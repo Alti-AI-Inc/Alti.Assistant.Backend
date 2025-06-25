@@ -1,0 +1,44 @@
+# name: Deploy to VPS
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v3
+
+#       - name: Setup SSH key
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+#           chmod 600 ~/.ssh/id_rsa
+#           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+#       - name: Deploy to VPS
+#         run: |
+#           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << EOF
+#             echo "🔍 Git status before pull:"
+#             sudo git -C /root/ASON-Backend status
+
+#             echo "🔁 Current commit BEFORE pull:"
+#             sudo git -C /root/ASON-Backend rev-parse HEAD
+
+#             echo "📥 Pulling latest code..."
+#             sudo git -C /root/ASON-Backend pull origin main || echo "⚠️ Git pull failed"
+
+#             echo "🔁 Current commit AFTER pull:"
+#             sudo git -C /root/ASON-Backend rev-parse HEAD
+
+#             echo "🚀 Restarting PM2 app..."
+#             sudo pm2 restart AsonBackend || echo "⚠️ PM2 restart failed"
+
+#             echo "✅ Deployment completed at: \$(date)"
+#           EOF
+
+# #

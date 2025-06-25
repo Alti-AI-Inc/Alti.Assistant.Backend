@@ -1,0 +1,151 @@
+version: '3.9'
+
+services:
+  ason:
+    build: .
+    container_name: ason
+    env_file:
+      - .env
+    ports:
+      - '5100:5100'
+    volumes:
+      - ../ASON-CORE-SERVICE:/app/ason-core-service
+    networks:
+      - ason-network
+    # depends_on:
+    # - mongodb
+    # - redis-stack
+    # - elasticsearch
+    # - kibana
+    # - rabbitmq
+    depends_on:
+      mongodb:
+        condition: service_started
+      redis-stack:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+
+  elasticsearch:
+    image: elasticsearch:8.18.1
+    container_name: elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1024m -Xmx1024m
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    networks:
+      - ason-network
+
+  kibana:
+    image: kibana:8.18.1
+    container_name: kibana
+    restart: always
+    environment:
+      ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
+    ports:
+      - '5601:5601'
+    depends_on:
+      - elasticsearch
+    networks:
+      - ason-network
+
+  redis-stack:
+    image: redis/redis-stack:latest
+    container_name: redis-stack
+    ports:
+      - '6379:6379'
+      - '8001:8001'
+    volumes:
+      - redis_data:/var/lib/redis
+    environment:
+      - REDIS_ARGS= --save 900 1
+    networks:
+      - ason-network
+
+  rabbitmq:
+    image: rabbitmq:3.8-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ason-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - '27017:27017'
+    networks:
+      - ason-network
+    volumes:
+      - mongodb_data:/data/db
+    command: ['--replSet', 'rs0']
+
+  mongodb-express:
+    image: mongo-express:latest
+    container_name: mongodb-express
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: password
+    ports:
+      - '8081:8081'
+    networks:
+      - ason-network
+    depends_on:
+      - mongodb
+
+  postgresql:
+    image: postgres:latest
+    container_name: postgresql
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ason_db
+    ports:
+      - '5432:5432'
+    networks:
+      - ason-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: anikh499@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    ports:
+      - '5050:80'
+    networks:
+      - ason-network
+    depends_on:
+      - postgresql
+
+networks:
+  ason-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+# end
