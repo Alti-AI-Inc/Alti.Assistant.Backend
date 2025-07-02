@@ -55,4 +55,18 @@ export default {
     stripe_secret_key: process.env.STRIPE_SECRET_KEY,
     stripe_webhook_secret_key: process.env.STRIPE_WEBHOOK_SECRET,
   },
+  openai: {
+    openai_api_key: process.env.OPENAI_API_KEY,
+  },
+  anthropic: {
+    anthropic_api_key: process.env.ANTHROPIC_API_KEY,
+  },
+  google: {
+    google_application_credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    gcp_project_id: process.env.GCP_PROJECT_ID,
+    gcp_location: process.env.GCP_LOCATION,
+    vertex_ai_endpoint: process.env.VERTEX_AI_ENDPOINT,
+    vertex_ai_region: process.env.VERTEX_AI_LOCATION,
+    model_id: process.env.MODEL_ID,
+  }
 };

@@ -20,6 +20,8 @@ import { composioRoutes } from '../modules/composio/composio.route.js';
 import { browserUseAiRoutes } from '../modules/browserUse/browserUse.route.js';
 import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
 import { llamaindexRoutes } from '../modules/llamaindex/llamaindex.route.js';
+import { codeRoutes } from '../modules/code/code.route.js';
+import { writingRoutes } from '../modules/writing/workflow.route.js';
 
 const router = express.Router();
 
@@ -107,9 +109,21 @@ const moduleRoutes = [
   {
     path: '/browser-use',
     route: browserUseAiRoutes,
+  },
+  {
+    path: '/code',
+    route: codeRoutes,
+  },
+  {
+    path: '/writing',
+    route: writingRoutes
   }
 ];
 
-moduleRoutes.forEach(route => router.use(route.path, route.route));
+moduleRoutes.forEach(route => {
+  console.log(`Registering route: ${route.path}`);
+  
+  return router.use(route.path, route.route);
+});
 
 export default router;
