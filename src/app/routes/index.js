@@ -22,6 +22,7 @@ import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
 import { llamaindexRoutes } from '../modules/llamaindex/llamaindex.route.js';
 import { codeRoutes } from '../modules/code/code.route.js';
 import { writingRoutes } from '../modules/writing/workflow.route.js';
+import { summaryRoutes } from '../modules/summary/summary.route.js';
 
 const router = express.Router();
 
@@ -117,6 +118,10 @@ const moduleRoutes = [
   {
     path: '/writing',
     route: writingRoutes
+  },
+  {
+    path: '/summary',
+    route: summaryRoutes
   }
 ];
 

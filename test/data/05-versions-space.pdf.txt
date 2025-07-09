@@ -1,0 +1,153 @@
+
+
+EMON REJA
+PROFESSIONAL SUMMARY
+Skilled back-end developer with deep expertise in server-side logic, database
+management, and API integration. Proven ability to deliver high-quality, scalable
+solutions that meet evolving business needs. Strong collaborator, adaptable to
+fast-paced environments, and focused on driving team success. Proficient in
+Python, Java, SQL, and cloud platforms. Known for reliability, problem-solving
+skills, and results-driven approach.
+SKILLS
+Software Design
+•
+Database Architecture
+•
+Cloud Computing
+•
+Leadership
+•
+Software Development
+•
+Microservices architecture
+•
+Advanced SQL
+•
+Performance monitoring and tuning
+•
+CI and CD pipeline implementation
+•
+Scalability and high availability
+strategies
+•
+WORK HISTORY
+August 2024 - February 2025
+Softward Bangladesh - Senior Backend Engineer, Dhaka, Bangladesh
+October 2021 - August 2024
+Gain Solutions - Senior Software Engineer & AWS Cloud Engineer, Dhaka,
+Bangladesh
+Enhanced system performance by optimizing back-end code and
+implementing efficient algorithms.
+•
+Conducted thorough code reviews that promoted high-quality software
+development practices amongst team members.
+•
+Reduced server downtime by proactively monitoring system health and
+addressing issues promptly.
+•
+Troubleshot complex technical issues to identify root causes, developing
+effective solutions to prevent future occurrences.
+•
+Optimized database queries for faster data retrieval, enhancing the efficiency
+of various applications.
+•
+Integrated third-party APIs into existing systems for added functionality
+without compromising performance or security standards.
+•
+Developed and implemented efficient and secure software solutions for an
+international corporate client
+•
+Designed and maintained database architecture to optimize application
+performance
+•
+Participated in the design and development of a variety of software
+applications
+•
+emondarock@gmail.com
++8801757580350
+Dhaka Bangladesh
+WEBSITES,
+PORTFOLIOS,
+PROFILES
+Github
+•
+Linkedin
+•
+EDUCATION
+Bachelor of Science, Computer
+Science
+Metropolitan University,
+Sylhet, Bangladesh
+December 2019
+LANGUAGES
+English:
+
+July 2022 - December 2022
+Omidnetcare - AWS CDK Developer, Philadelphia
+October 2019 - October 2021
+Ezcorps - Backend Developer, Toronto, Canada
+April 2018 - October 2021
+Console IT - Senior Backend Engineer, Sylhet, Bangladesh
+June 2016 - April 2019
+CRUX - Backend Developer, Dhaka, Bangladesh
+Utilized Agile methodologies to successfully manage software development
+projects
+•
+Utilized AWS services such as EC2, S3, VPC, and IAM to streamline cloud-based
+operations
+•
+Developed and managed CI/CD pipelines with GitHub
+•
+Developer HRM solution from scratch with ATS solution
+•
+Implemented security best practices within the AWS environment,
+safeguarding sensitive data and ensuring compliance with industry
+regulations.
+•
+Write IaaC to deploy infrastructure in AWS
+•
+Developed and maintained CI/CD pipelines using Jenkins, increasing
+deployment speed and reliability.
+•
+Developed comprehensive strategies for leveraging AWS Auto Scaling,
+ensuring optimal resource allocation and cost efficiency during periods of high
+demand.
+•
+Automated daily backups of critical data using AWS S3, reducing the risk of
+data loss in case of system failures.
+•
+Utilized AWS technologies to create a highly available and cost effective
+backend environment
+•
+Developed features and optimized existing code to improve application
+scalability
+•
+Worked closely with the front-end development team to ensure the smooth
+integration of the backend system
+•
+Developed a Graphql API to allow for interoperability between different
+systems
+•
+Maintained and monitored backend services and databases to ensure optimal
+performance
+•
+Developed a RESTful API to allow for interoperability between different
+systems
+•
+Created a system to automate the deployment process, reducing deployment
+time by 50%
+•
+Utilized AWS technologies to create a highly available and cost effective
+backend environment
+•
+Debugged and fixed application issues in a timely manner
+•
+Maintained and monitored backend services and databases to ensure optimal
+performance
+•
+Utilized AWS technologies to create a highly available and cost effective
+backend environment
+•
+Worked closely with the front-end development team to ensure the smooth
+integration of the backend system
+•
