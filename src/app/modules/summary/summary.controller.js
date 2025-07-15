@@ -10,12 +10,12 @@ export const summarizeContent = async (req, res) => {
   console.log('Received request for summarizer assistant', req);
     
     const { message, conversationId } = req.body;
-    if (!conversationId || !message) {
+    if (!message) {
       return res
         .status(400)
-        .json({ error: 'A URL and conversationId are required.' });
+        .json({ error: 'A URL is required.' });
     }
-
+    const thread_id = conversationId || generateConversationId();
     // This endpoint will always stream.
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -69,7 +69,7 @@ export const summarizeContent = async (req, res) => {
         ],
       };
       const result = await summarizerApp.invoke(inputs, {
-        configurable: { thread_id: conversationId },
+        configurable: { thread_id: thread_id },
       });
 
       const stream = result.summary;
@@ -105,3 +105,8 @@ export const summarizeContent = async (req, res) => {
       res.end();
     }
 }
+
+const generateConversationId = () => {
+  // Generate a unique conversation ID, e.g., using a UUID or timestamp
+  return `conv-${Date.now()}`;
+};

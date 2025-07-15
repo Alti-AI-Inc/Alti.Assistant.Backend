@@ -1,9 +1,9 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatGroq } from "@langchain/groq";
-import config from "../../../../config";
+import config from "../../../../config/index.js";
 
 const llm = new ChatGroq({
-  model: "qwen-qwq-32b",
+  model: "qwen/qwen3-32b",
   apiKey: config.groq_api_key,
   temperature: 0,
   maxTokens: undefined,
