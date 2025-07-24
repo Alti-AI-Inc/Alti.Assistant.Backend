@@ -26,7 +26,9 @@ export const runSimpleGroqTask = async (state, stream = false) => {
 - Just do summarization. Do not mention you are checking the sources. At the end of your answer, provide a "Sources" section listing the URLs corresponding to your citations.
 - I want only the answer from the search results.
 - Do not just list the search results. Weave them together into a coherent narrative.
-- At the end of your answer, provide a "Sources" section listing the URLs corresponding to your citations`,
+- At the end of your answer, provide a "Sources" section listing the URLs corresponding to your citations
+- Provide the result as an object with {answer: "Your synthesized answer here", reference: "Your reference url here"}. Do not include any other text or formatting.
+`,
       }, 
       {
         role: "user",
@@ -68,5 +70,36 @@ export const runGroqTask = async (systemPrompt, messages, stream = false) => {
   } catch (error) {
     console.error("Error calling Groq API:", error);
     return "Sorry, I encountered an error while processing your request with the coding model. Please try again.";
+  }
+}
+
+export const generateOneQuestionFromMultipleQuestions = async (questions) => {
+  try {
+    const systemPrompt = `You are an expert AI assistant. Your task is to generate a single, 
+    last question is the most recent and follow up questions of the user.
+    so focus on the last question and generate a single,
+    i.e: "How can I improve my coding skills?" and "What are the best resources for learning Python?" should become "What are the best resources for learning Python to improve my coding skills?".
+    or "Who won the 2022 FIFA World Cup?" and "Who were the top scorers?" should become "Who were the top scorers in the 2022 FIFA World Cup?".
+    concise question that captures the essence of the provided multiple questions. 
+    The generated question should be clear, focused, and relevant to the context of the input questions.`;
+    
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `Here are the multiple questions:\n${questions.join("\n")}\n\nPlease generate a single question that encompasses the essence of these questions.`
+      }
+    ]
+
+    const response = await llm.invoke(messages);
+    return response.content;
+
+    
+  } catch (error) {
+    console.error("Error generating question from multiple questions:", error);
+    return "Sorry, I encountered an error while processing your request. Please try again.";
   }
 }

@@ -1,0 +1,85 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Development files
+.vscode/
+.idea/
+*.log
+*.logs
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+docs/
+
+
+# Build artifacts
+dist/
+build/
+*.tgz
+*.tar.gz
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db 
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+Dockerfile.dev
+docker-compose.yml
+docker-compose.*.yml
+
+# CI/CD (keep cloudbuild.yaml)
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Logs (keep the structure but exclude actual log files)
+logs/*.log
+logs/errors/*.log
+logs/successes/*.log
+
+# ESLint and Prettier
+.eslintrc.*
+.prettierrc.*
+.prettierignore
+
+# Package lock files (we copy package*.json explicitly)
+package-lock.json
+yarn.lock
+
+# Local development
+.local
+.cache

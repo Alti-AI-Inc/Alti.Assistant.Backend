@@ -24,6 +24,7 @@ import { codeRoutes } from '../modules/code/code.route.js';
 import { writingRoutes } from '../modules/writing/workflow.route.js';
 import { summaryRoutes } from '../modules/summary/summary.route.js';
 import { searchRoute } from '../modules/search/search.route.js';
+import { conversationRoutes } from '../modules/conversations/conversation.route.js';
 
 const router = express.Router();
 
@@ -127,6 +128,10 @@ const moduleRoutes = [
   {
     path: '/search',
     route: searchRoute
+  },
+  {
+    path: '/conversations',
+    route: conversationRoutes
   }
 ];
 

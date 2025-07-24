@@ -5,6 +5,9 @@ export const researchAgentState = {
   // Raw search results from the tool.
   searchResults: { value: null },
 
+  // Depth of the search, e.g., 'standard', 'deep'.
+  depth: { value: 'standard' },
+  
   // The final, synthesized answer for the user.
   answer: { value: null },
   

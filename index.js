@@ -111,6 +111,17 @@ app.get('/api/user', (req, res) => {
 // API routes
 app.use('/api/v1', router);
 
+// Health check endpoint for Cloud Run
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Service is healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
 // Global error handler middleware
 app.use(globalErrorHandler);
 
@@ -134,9 +145,8 @@ app.use((req, res) => {
 });
 
 // Start server
-const port = config.port || 8080;
-app.listen(port, () => {
-  logger.info(`App is running on port ${port}`);
+const port = process.env.PORT || config.port || 5100;
+app.listen(port, "0.0.0.0", () => {
+  logger.info(`✅ App is running on 0.0.0.0:${port}`);
 });
-
 export default app;

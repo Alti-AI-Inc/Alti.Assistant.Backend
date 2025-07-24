@@ -67,10 +67,67 @@ Visit our website for more information: [ASON AI Website](https://www.asonai.com
 - **Docker + Docker Compose** — Containerized Microservices for API Gateway
 
 
-## 📚 Developer Documentation
+## � Quick Start & Deployment
+
+### Local Development
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/shohidul-jaman-anik/ASON-Backend-Core-Service.git
+   cd ASON-Core-Service-Backend
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables:**
+   ```bash
+   cp .env.example .env
+   # Update .env with your configuration
+   ```
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+### Production Deployment
+
+#### Google Cloud Run (Recommended)
+
+1. **Quick Setup:**
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
+   ```
+
+2. **Deploy:**
+   ```bash
+   ./deploy.sh
+   ```
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+#### Docker Deployment
+
+```bash
+# Build and run with Docker
+docker build -t ason-backend .
+docker run -p 5100:5100 ason-backend
+```
+
+#### Docker Compose
+
+```bash
+# Start all services
+docker-compose up -d
+```
+
+## �📚 Developer Documentation
 
 Explore our full documentation for comprehensive setup guides, API references, and integration tutorials across all services.
-
 
 | Service           | API Documentation                                                               | GitHub Repository                                               |
 |-------------------|----------------------------------------------------------------------------------|------------------------------------------------------------------|
