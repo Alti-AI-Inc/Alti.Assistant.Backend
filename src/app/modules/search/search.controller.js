@@ -8,19 +8,26 @@ import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 export const performSearch = catchAsync(async (req, res) => {
-    const userId = req.user?.userId || req.user?._id;
+    // Handle both authenticated and guest users
+    const isGuest = req.isGuest || !req.user;
+    const userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, conversationId, deepSearch } = req.body;
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const prompotUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
 
-    if (prompotUsage <= totalConversationWithConvId) {
-        return sendResponse(res, {
-            statusCode: httpStatus.FORBIDDEN,
-            success: false,
-            message: 'You have reached your search limit for this month. Please upgrade your plan to continue.',
-        });
+    // Skip subscription check for guest users
+    if (!isGuest) {
+        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+        const prompotUsage = userSubscription ? userSubscription.usage : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+
+        if (prompotUsage <= totalConversationWithConvId) {
+            return sendResponse(res, {
+                statusCode: httpStatus.FORBIDDEN,
+                success: false,
+                message: 'You have reached your search limit for this month. Please upgrade your plan to continue.',
+            });
+        }
     }
+
     if (!message) {
         return sendResponse(res, {
             statusCode: httpStatus.BAD_REQUEST,
@@ -31,9 +38,9 @@ export const performSearch = catchAsync(async (req, res) => {
 
     if (!userId) {
         return sendResponse(res, {
-            statusCode: httpStatus.UNAUTHORIZED,
+            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
             success: false,
-            message: 'User authentication required',
+            message: 'Failed to generate user identifier',
         });
     }
 
@@ -41,11 +48,11 @@ export const performSearch = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await searchService.handleSearchConversation(userId, conversationId, message);
+        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Add user message to conversation
-        await searchService.addSearchQueryMessage(actualConversationId, userId, message);
+        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
 
         const inputs = { 
             query: message,
@@ -54,9 +61,13 @@ export const performSearch = catchAsync(async (req, res) => {
         };
         
         const result = await researchAgentApp.invoke(inputs, { configurable: { thread_id: actualConversationId } });
-        logger.info(`Research Assistant Result for conversation: ${actualConversationId}`);
+        logger.info(`Research Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
         
         const stream = result.answer;
+        const reference = result.reference || [];
+
+        console.log('References are:', reference);
+        
         let fullResponse = "";
 
         if (typeof stream === 'string') {
@@ -64,16 +75,22 @@ export const performSearch = catchAsync(async (req, res) => {
             fullResponse = stream;
             
             // Add assistant response to conversation
-            await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse);
-
+            await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, {}, isGuest);
+            console.log('Full response:', fullResponse);
+            
             return sendResponse(res, {
                 statusCode: httpStatus.OK,
                 success: true,
                 message: 'Search completed successfully',
                 data: {
-                    responseMessage: fullResponse.startsWith("{") && fullResponse.endsWith("}") ? JSON.parse(fullResponse) : fullResponse,
+                    responseMessage: {
+                        answer: fullResponse,
+                        reference
+                    },
                     conversationId: actualConversationId,
                     messageCount: conversation.messageCount + 2,
+                    userType: isGuest ? 'guest' : 'authenticated',
+                    userId: isGuest ? userId : undefined, // Include userId for guest users for frontend tracking
                 },
             });
         } else {
@@ -87,7 +104,11 @@ export const performSearch = catchAsync(async (req, res) => {
                 if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
                     const chunk = event.delta.text;
                     fullResponse += chunk;
-                    res.write(`data: ${JSON.stringify({ chunk, conversationId: actualConversationId })}\n\n`);
+                    res.write(`data: ${JSON.stringify({ 
+                        chunk, 
+                        conversationId: actualConversationId,
+                        userType: isGuest ? 'guest' : 'authenticated'
+                    })}\n\n`);
                 }
             }
             
@@ -96,7 +117,8 @@ export const performSearch = catchAsync(async (req, res) => {
                 actualConversationId, 
                 userId, 
                 fullResponse, 
-                { streamed: true }
+                { streamed: true },
+                isGuest
             );
 
             // Send final message with complete response
@@ -105,7 +127,9 @@ export const performSearch = catchAsync(async (req, res) => {
                 fullResponse,
                 conversationId: actualConversationId,
                 success: true,
-                message: 'Search completed successfully'
+                message: 'Search completed successfully',
+                userType: isGuest ? 'guest' : 'authenticated',
+                userId: isGuest ? userId : undefined
             })}\n\n`);
             res.end();
         }
@@ -120,7 +144,8 @@ export const performSearch = catchAsync(async (req, res) => {
                     errorConversationId,
                     userId,
                     'I apologize, but an error occurred while processing your search request.',
-                    error
+                    error,
+                    isGuest
                 );
             }
         } catch (convError) {
@@ -132,7 +157,8 @@ export const performSearch = catchAsync(async (req, res) => {
             res.write(`data: ${JSON.stringify({ 
                 error: "An internal error occurred while processing your search.",
                 conversationId: errorConversationId,
-                success: false
+                success: false,
+                userType: isGuest ? 'guest' : 'authenticated'
             })}\n\n`);
             res.end();
         } else {
@@ -140,16 +166,29 @@ export const performSearch = catchAsync(async (req, res) => {
                 statusCode: httpStatus.INTERNAL_SERVER_ERROR,
                 success: false,
                 message: 'An internal error occurred while processing your search',
-                data: { conversationId: errorConversationId },
+                data: { 
+                    conversationId: errorConversationId,
+                    userType: isGuest ? 'guest' : 'authenticated',
+                },
             });
         }
     }
 });
 
 /**
- * Get search statistics for the user
+ * Get search statistics for the user (authenticated users only)
  */
 const getSearchStats = catchAsync(async (req, res) => {
+    const isGuest = req.isGuest || !req.user;
+    
+    if (isGuest) {
+        return sendResponse(res, {
+            statusCode: httpStatus.UNAUTHORIZED,
+            success: false,
+            message: 'Statistics are only available for authenticated users',
+        });
+    }
+
     const userId = req.user?.userId || req.user?._id;
 
     if (!userId) {

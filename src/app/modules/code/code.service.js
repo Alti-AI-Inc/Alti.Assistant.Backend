@@ -1,3 +1,18 @@
+/**
+ * Code Assistant Service Module
+ * 
+ * This service handles all code-related operations including:
+ * - Managing code conversations and chat history
+ * - Integration with the conversation system for persistent storage
+ * - Code query processing and result handling
+ * - User statistics and usage tracking
+ * - Error handling and recovery
+ * 
+ * Structure follows the same pattern as the search module for consistency.
+ * 
+ * @module CodeService
+ */
+
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
@@ -5,22 +20,14 @@ import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
- * Generate unique guest user ID
- * @returns {string}
- */
-const generateGuestUserId = () => {
-  return `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
-
-/**
- * Create or get search conversation (supports both authenticated and guest users)
+ * Create or get code conversation (supports both authenticated and guest users)
  * @param {string} userId
  * @param {string} conversationId
- * @param {string} searchQuery
+ * @param {string} codeQuery
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleSearchConversation = async (userId, conversationId, searchQuery, isGuest = false) => {
+const handleCodeConversation = async (userId, conversationId, codeQuery, isGuest = false) => {
   try {
     let conversation;
 
@@ -35,20 +42,20 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
 
     // Create conversation if it doesn't exist
     if (!conversation) {
-      const newConversationId = conversationId || generateSearchConversationId();
+      const newConversationId = conversationId || generateCodeConversationId();
       
       if (isGuest) {
         // For guest users, create a simpler conversation structure
         conversation = {
           conversationId: newConversationId,
           userId: userId,
-          title: `Search: ${searchQuery.substring(0, 50)}...`,
+          title: `Code: ${codeQuery.substring(0, 50)}...`,
           messageCount: 0,
           isGuest: true,
           metadata: {
-            category: 'search',
-            model: 'research-agent',
-            searchType: 'assistant',
+            category: 'code',
+            model: 'code-assistant',
+            codeType: 'assistant',
             userType: 'guest',
           },
           createdAt: new Date(),
@@ -58,14 +65,14 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
         conversation = await conversationService.createConversation(
           {
             userId,
-            title: `Search: ${searchQuery.substring(0, 50)}...`,
+            title: `Code: ${codeQuery.substring(0, 50)}...`,
             metadata: {
-              category: 'search',
-              model: 'research-agent',
-              searchType: 'assistant',
+              category: 'code',
+              model: 'code-assistant',
+              codeType: 'assistant',
               userType: 'authenticated',
             },
-            is_deep_search: true,
+            is_code_assistant: true,
           },
           newConversationId
         );
@@ -74,24 +81,24 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
 
     return conversation;
   } catch (error) {
-    logger.error('Error handling search conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle search conversation');
+    logger.error('Error handling code conversation:', error);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle code conversation');
   }
 };
 
 /**
- * Add search query message to conversation (supports both authenticated and guest users)
+ * Add code query message to conversation (supports both authenticated and guest users)
  * @param {string} conversationId
  * @param {string} userId
- * @param {string} searchQuery
+ * @param {string} codeQuery
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGuest = false) => {
+const addCodeQueryMessage = async (conversationId, userId, codeQuery, isGuest = false) => {
   try {
     if (isGuest) {
       // For guest users, just log the message (don't store in database)
-      logger.info(`Guest user ${userId} search query in conversation ${conversationId}: ${searchQuery.substring(0, 100)}...`);
+      logger.info(`Guest user ${userId} code query in conversation ${conversationId}: ${codeQuery.substring(0, 100)}...`);
       return {
         success: true,
         message: 'Guest message logged',
@@ -106,37 +113,37 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
       userId,
       {
         role: 'user',
-        content: searchQuery,
+        content: codeQuery,
         metadata: {
-          type: 'search_query',
+          type: 'code_query',
           timestamp: new Date().toISOString(),
         },
       }
     );
   } catch (error) {
-    logger.error('Error adding search query message:', error);
+    logger.error('Error adding code query message:', error);
     if (isGuest) {
       // Don't throw for guest users
       return { success: false, error: error.message, isGuest: true };
     }
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add search query to conversation');
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add code query to conversation');
   }
 };
 
 /**
- * Add search result message to conversation (supports both authenticated and guest users)
+ * Add code result message to conversation (supports both authenticated and guest users)
  * @param {string} conversationId
  * @param {string} userId
- * @param {string} searchResult
+ * @param {string} codeResult
  * @param {Object} metadata
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addSearchResultMessage = async (conversationId, userId, searchResult, metadata = {}, isGuest = false) => {
+const addCodeResultMessage = async (conversationId, userId, codeResult, metadata = {}, isGuest = false) => {
   try {
     if (isGuest) {
       // For guest users, just log the response (don't store in database)
-      logger.info(`Guest user ${userId} search result in conversation ${conversationId}: ${searchResult.substring(0, 100)}...`);
+      logger.info(`Guest user ${userId} code result in conversation ${conversationId}: ${codeResult.substring(0, 100)}...`);
       return {
         success: true,
         message: 'Guest response logged',
@@ -151,48 +158,35 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
       userId,
       {
         role: 'assistant',
-        content: searchResult,
+        content: codeResult,
         metadata: {
-          type: 'search_result',
+          type: 'code_result',
           timestamp: new Date().toISOString(),
-          model: 'research-agent',
+          model: 'code-assistant',
           ...metadata,
         },
       }
     );
   } catch (error) {
-    logger.error('Error adding search result message:', error);
+    logger.error('Error adding code result message:', error);
     if (isGuest) {
       // Don't throw for guest users
       return { success: false, error: error.message, isGuest: true };
     }
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add search result to conversation');
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add code result to conversation');
   }
 };
 
 /**
- * Add error message to conversation (supports both authenticated and guest users)
+ * Add error message to conversation
  * @param {string} conversationId
  * @param {string} userId
  * @param {string} errorMessage
  * @param {Error} originalError
- * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false) => {
+const addErrorMessage = async (conversationId, userId, errorMessage, originalError) => {
   try {
-    if (isGuest) {
-      // For guest users, just log the error (don't store in database)
-      logger.info(`Guest user ${userId} error in conversation ${conversationId}: ${errorMessage}`);
-      return {
-        success: true,
-        message: 'Guest error logged',
-        conversationId,
-        userId,
-        isGuest: true,
-      };
-    }
-
     return await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -213,13 +207,13 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
 };
 
 /**
- * Process search history for context
+ * Process code history for context
  * @param {string} conversationId
  * @param {string} userId
  * @param {number} limit
  * @returns {Promise<Array>}
  */
-const getSearchHistory = async (conversationId, userId, limit = 10) => {
+const getCodeHistory = async (conversationId, userId, limit = 10) => {
   try {
     const conversation = await conversationHelpers.getConversationById(conversationId, userId);
     
@@ -227,7 +221,7 @@ const getSearchHistory = async (conversationId, userId, limit = 10) => {
       return [];
     }
 
-    // Get recent messages and format for search context
+    // Get recent messages and format for code context
     return conversation.messages
       .slice(-limit)
       .map(msg => ({
@@ -236,21 +230,21 @@ const getSearchHistory = async (conversationId, userId, limit = 10) => {
         timestamp: msg.timestamp,
       }));
   } catch (error) {
-    logger.error('Error getting search history:', error);
+    logger.error('Error getting code history:', error);
     return [];
   }
 };
 
 /**
- * Update conversation title based on search query
+ * Update conversation title based on code query
  * @param {string} conversationId
  * @param {string} userId
- * @param {string} searchQuery
+ * @param {string} codeQuery
  * @returns {Promise<void>}
  */
-const updateConversationTitle = async (conversationId, userId, searchQuery) => {
+const updateConversationTitle = async (conversationId, userId, codeQuery) => {
   try {
-    const title = `Search: ${searchQuery.substring(0, 50)}${searchQuery.length > 50 ? '...' : ''}`;
+    const title = `Code: ${codeQuery.substring(0, 50)}${codeQuery.length > 50 ? '...' : ''}`;
     await conversationService.updateConversationTitle(conversationId, userId, title);
   } catch (error) {
     logger.warn('Failed to update conversation title:', error);
@@ -259,55 +253,63 @@ const updateConversationTitle = async (conversationId, userId, searchQuery) => {
 };
 
 /**
- * Generate unique conversation ID for search
+ * Generate unique guest user ID
  * @returns {string}
  */
-const generateSearchConversationId = () => {
-  return `search-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+const generateGuestUserId = () => {
+  return `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Get search conversation statistics
+ * Generate unique conversation ID for code
+ * @returns {string}
+ */
+const generateCodeConversationId = () => {
+  return `code-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+/**
+ * Get code conversation statistics
  * @param {string} userId
  * @returns {Promise<Object>}
  */
-const getSearchStats = async (userId) => {
+const getCodeStats = async (userId) => {
   try {
-    const searchConversations = await conversationHelpers.getUserConversations(userId, {
+    const codeConversations = await conversationHelpers.getUserConversations(userId, {
       page: 1,
       limit: 1000, // Get all for stats
-      category: 'search',
+      category: 'code',
     });
 
-    const totalSearches = searchConversations.conversations.length;
-    const totalMessages = searchConversations.conversations.reduce(
+    const totalCodeSessions = codeConversations.conversations.length;
+    const totalMessages = codeConversations.conversations.reduce(
       (sum, conv) => sum + conv.messageCount,
       0
     );
 
     return {
-      totalSearchConversations: totalSearches,
-      totalSearchMessages: totalMessages,
-      averageMessagesPerConversation: totalSearches > 0 ? Math.round(totalMessages / totalSearches) : 0,
+      totalCodeConversations: totalCodeSessions,
+      totalCodeMessages: totalMessages,
+      averageMessagesPerConversation: totalCodeSessions > 0 ? Math.round(totalMessages / totalCodeSessions) : 0,
     };
   } catch (error) {
-    logger.error('Error getting search stats:', error);
+    logger.error('Error getting code stats:', error);
     return {
-      totalSearchConversations: 0,
-      totalSearchMessages: 0,
+      totalCodeConversations: 0,
+      totalCodeMessages: 0,
       averageMessagesPerConversation: 0,
     };
   }
 };
 
-export const searchService = {
-  handleSearchConversation,
-  addSearchQueryMessage,
-  addSearchResultMessage,
+export const codeService = {
+  handleCodeConversation,
+  addCodeQueryMessage,
+  addCodeResultMessage,
   addErrorMessage,
-  getSearchHistory,
+  getCodeHistory,
   updateConversationTitle,
-  generateSearchConversationId,
+  generateCodeConversationId,
   generateGuestUserId,
-  getSearchStats,
+  getCodeStats,
 };

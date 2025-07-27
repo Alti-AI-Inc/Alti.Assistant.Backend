@@ -5,6 +5,30 @@ export const SEARCH_CONSTANTS = {
   TYPE: 'assistant',
 };
 
+// User types for search
+export const USER_TYPES = {
+  AUTHENTICATED: 'authenticated',
+  GUEST: 'guest',
+};
+
+// Guest user configuration
+export const GUEST_USER_CONFIG = {
+  ID_PREFIX: 'guest-',
+  CONVERSATION_PREFIX: 'search-guest-',
+  FEATURES: {
+    CONVERSATION_HISTORY: false, // Guests don't get persistent history
+    STATISTICS: false,
+    UNLIMITED_USAGE: false,
+    DEEP_SEARCH: true, // Allow deep search for guests
+  },
+};
+
+// Search depth options
+export const SEARCH_DEPTH = {
+  STANDARD: 'standard',
+  DEEP: 'deep',
+};
+
 // Search message types
 export const SEARCH_MESSAGE_TYPES = {
   QUERY: 'search_query',
@@ -16,6 +40,7 @@ export const SEARCH_MESSAGE_TYPES = {
 export const SEARCH_RATE_LIMITS = {
   SEARCH_REQUESTS: { requests: 30, window: 15 }, // 30 per 15 minutes
   STATS_REQUESTS: { requests: 10, window: 15 }, // 10 per 15 minutes
+  GUEST_REQUESTS: { requests: 15, window: 60 }, // Lower limit for guests (future enhancement)
 };
 
 // Search validation limits
@@ -34,6 +59,8 @@ export const SEARCH_ERROR_MESSAGES = {
   PROCESSING_ERROR: 'An error occurred while processing your search request',
   CONVERSATION_ERROR: 'Failed to handle search conversation',
   UNAUTHORIZED: 'User authentication required',
+  STATS_GUEST_ONLY: 'Statistics are only available for authenticated users',
+  USER_ID_GENERATION_FAILED: 'Failed to generate user identifier',
 };
 
 // Search success messages

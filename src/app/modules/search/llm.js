@@ -23,11 +23,8 @@ export const runSimpleGroqTask = async (state, stream = false) => {
 - Do not say "I am an AI language model" or similar phrases.
 - Do not mention you are synthesizing search results.
 - Do not mention you are actually summarizing search results.
-- Just do summarization. Do not mention you are checking the sources. At the end of your answer, provide a "Sources" section listing the URLs corresponding to your citations.
 - I want only the answer from the search results.
 - Do not just list the search results. Weave them together into a coherent narrative.
-- At the end of your answer, provide a "Sources" section listing the URLs corresponding to your citations
-- Provide the result as an object with {answer: "Your synthesized answer here", reference: "Your reference url here"}. Do not include any other text or formatting.
 `,
       }, 
       {
@@ -100,6 +97,72 @@ export const generateOneQuestionFromMultipleQuestions = async (questions) => {
     
   } catch (error) {
     console.error("Error generating question from multiple questions:", error);
+    return "Sorry, I encountered an error while processing your request. Please try again.";
+  }
+}
+
+export const checkIfSearchNeededForTheQueryUsingAi = async (query) => {
+  try {
+    const systemPrompt = `You are a query classifier.
+
+Your job is to decide if a user query needs an EXTERNAL SEARCH or can be ANSWERED DIRECTLY.
+
+RULES:
+- If the query is time-sensitive, about real-time data, news, prices, current events, or anything likely to change, respond ONLY with "SEARCH".
+- If the query is general knowledge, common facts, definitions, or something an AI model can answer without new information, respond ONLY with "ANSWER".
+- NEVER explain your choice. NEVER add extra words.
+
+Examples:
+- "What is the capital of France?" → ANSWER
+- "What is the weather in Dhaka right now?" → SEARCH
+- "Who won the FIFA World Cup 2018?" → ANSWER
+- "Who won the FIFA World Cup this year?" → SEARCH
+- "What is quantum computing?" → ANSWER
+- "Show me today’s stock price of Tesla" → SEARCH
+`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `Does this query require a search? "${query}"`
+      }
+    ]
+
+    const response = await llm.invoke(messages);
+    console.log("AI response for search necessity:", 'search', response.content.toLowerCase());
+    return response.content;
+    
+  } catch (error) {
+    console.error("Error checking if search is needed:", error);
+    return false;
+  }
+} 
+
+export const giveAnswerWithoutSearch = async (query) => {
+  try {
+    const systemPrompt = `You are an expert AI assistant. Your task is to provide a direct answer to the user's query without performing a search.
+    The query is: "${query}"`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `Please provide an answer to the following query without searching: "${query}"`
+      }
+    ]
+
+    const response = await llm.invoke(messages);
+    return response.content;
+
+  } catch (error) {
+    console.error("Error giving answer without search:", error);
     return "Sorry, I encountered an error while processing your request. Please try again.";
   }
 }

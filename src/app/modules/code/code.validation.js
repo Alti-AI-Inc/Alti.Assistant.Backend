@@ -1,13 +1,12 @@
 import * as zod from 'zod';
 const { z } = zod;
 
-const searchQuerySchema = z.object({
+const codeQuerySchema = z.object({
   body: z.object({
     message: z.string({
-      required_error: 'Search query is required',
-    }).min(1, 'Search query cannot be empty').max(1000, 'Search query too long'),
+      required_error: 'Code query is required',
+    }).min(1, 'Code query cannot be empty').max(5000, 'Code query too long'),
     conversationId: z.string().optional(),
-    deepSearch: z.boolean().optional(), // Allow deep search flag
   }),
 });
 
@@ -19,7 +18,7 @@ const guestRateLimitSchema = z.object({
   }).optional(),
 });
 
-export const SearchValidation = {
-  searchQuerySchema,
+export const CodeValidation = {
+  codeQuerySchema,
   guestRateLimitSchema,
 };

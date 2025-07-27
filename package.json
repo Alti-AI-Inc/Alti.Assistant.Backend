@@ -29,6 +29,7 @@
     "@langchain/groq": "^0.2.3",
     "@langchain/langgraph": "^0.0.21",
     "@langchain/openai": "^0.4.9",
+    "@langchain/tavily": "^0.1.4",
     "@llamaindex/openai": "^0.4.5",
     "@tavily/core": "^0.0.2",
     "ai": "^4.3.16",

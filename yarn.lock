@@ -905,6 +905,13 @@
     zod "^3.22.4"
     zod-to-json-schema "^3.22.3"
 
+"@langchain/tavily@^0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@langchain/tavily/-/tavily-0.1.4.tgz#5f42dd6ed2552e72d06b6d6365fc7d7de398a2d2"
+  integrity sha512-8hlZYMmqZ7oVsH9G8eq6hXq8UTgwmrXAUP6MZXNN+31SPCkFn31dK8JyEA1OI9paC6Rcgc2XMT36oy7tARKOwA==
+  dependencies:
+    zod "^3.25.32"
+
 "@langchain/textsplitters@>=0.0.0 <0.2.0":
   version "0.1.0"
   resolved "https://registry.npmjs.org/@langchain/textsplitters/-/textsplitters-0.1.0.tgz"
