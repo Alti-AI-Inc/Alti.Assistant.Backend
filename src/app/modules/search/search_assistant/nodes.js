@@ -41,8 +41,13 @@ export const searchNode = async (state) => {
     };
 
     console.log(formattedResults);
-    
-    return { searchResults, query: updatedQuery, metadata: formattedResults, history: history || [] };
+
+    return {
+      searchResults,
+      query: updatedQuery,
+      metadata: formattedResults,
+      history: history || [],
+    };
   } catch (error) {
     console.error('Error in searchNode:', error);
     return { searchResults: 'Error: Failed to perform the search.' };
@@ -80,9 +85,15 @@ export const giveAnswer = async (state) => {
   console.log('--- Node: giveAnswer ---');
   const { query } = state;
   try {
-    const answer = await giveAnswerWithoutSearch(query);
-    console.log('Answer without search:', answer);
-    return { answer };
+    let cleanedResponse = '';
+    const response = await giveAnswerWithoutSearch(query);
+    if (response.includes('<think>')) {
+      console.log('Response contains <think> tags. Removing them...');
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanedResponse = response.replace(regex, '').trim();
+    }
+    console.log('Answer without search:', cleanedResponse);
+    return { answer: cleanedResponse };
   } catch (error) {
     console.error('Error in giveAnswerWithoutSearch:', error);
     return 'Error: Failed to give answer without search.';
@@ -100,8 +111,8 @@ export const convertTheSearchResultsToGenerativeAnswerUsingAI = async (
     let finalResponse = response;
     if (response.includes('<think>')) {
       console.log('Response contains <think> tags. Removing them...');
-      const regex = /<think>.*?<\/think>/g;
-      finalResponse = response.replace(/<think>[\s\S]*?<\/think>/, '').trim();
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      finalResponse = response.replace(regex, '').trim();
     }
 
     //If finalResponse is json, parse it or return it as is
@@ -112,10 +123,10 @@ export const convertTheSearchResultsToGenerativeAnswerUsingAI = async (
 
     const metadata = state.metadata || {};
     console.log('Metadata for the search results:', metadata.results);
-    
-    const reference = metadata.results.map((result) => result.url)
+
+    const reference = metadata.results.map((result) => result.url);
     console.log('References are:', reference);
-    
+
     return { answer: finalResponse, reference };
   } catch (error) {
     console.error(

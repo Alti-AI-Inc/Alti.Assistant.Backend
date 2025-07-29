@@ -14,6 +14,22 @@ const llm = new ChatGroq({
 export const runSimpleGroqTask = async (state, stream = false) => {
   try {
     console.log("Running Groq task with search results:", state.searchResults);
+    
+    // Format search results into a readable string
+    let formattedSearchResults = "";
+    if (Array.isArray(state.searchResults)) {
+      formattedSearchResults = state.searchResults.map((result, index) => {
+        return `Source ${index + 1}:
+Title: ${result.title}
+URL: ${result.url}
+Content: ${result.content}
+Score: ${result.score}
+---`;
+      }).join('\n\n');
+    } else {
+      formattedSearchResults = JSON.stringify(state.searchResults, null, 2);
+    }
+    
     const messages = [
       {
         role: "system",
@@ -25,11 +41,14 @@ export const runSimpleGroqTask = async (state, stream = false) => {
 - Do not mention you are actually summarizing search results.
 - I want only the answer from the search results.
 - Do not just list the search results. Weave them together into a coherent narrative.
-`,
+- If the search results contain JSON data, parse and interpret it naturally.
+`,  
       }, 
       {
         role: "user",
-        content: `state.searchResults: ${state.searchResults}\n\nQuery: ${state.query}`,
+        content: `Based on these search results, provide a comprehensive answer:
+
+${formattedSearchResults}`,
       },
     ]
     const response = await llm.invoke(messages);
