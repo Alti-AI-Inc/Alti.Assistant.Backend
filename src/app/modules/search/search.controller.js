@@ -10,9 +10,9 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
 export const performSearch = catchAsync(async (req, res) => {
     // Handle both authenticated and guest users
     const isGuest = req.isGuest || !req.user;
-    const userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    let userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, conversationId, deepSearch } = req.body;
-
+    userId = req.body.userId || userId; // Allow overriding userId from request body
     // Skip subscription check for guest users
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });

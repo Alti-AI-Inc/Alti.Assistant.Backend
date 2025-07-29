@@ -15,8 +15,8 @@ export const searchNode = async (state) => {
   const { query, history, depth } = state;
   const researchTool = new TavilySearch({
     tavilyApiKey: config.tavily_api_key, // Ensure the API key is set in your environment variables
-    searchDepth: 'basic', // Default to 'standard' if not provided
-    maxResults: 2,
+    searchDepth: 'advanced', // Default to 'standard' if not provided
+    maxResults: 5,
   });
   const updatedQuery = history
     ? await createTavilyQueryFromHistory(history, query)
@@ -156,9 +156,15 @@ const createTavilyQueryFromHistory = async (history, query) => {
     .map((h) => h.content)
     .join('\n');
   const updatedQuery = `Search for: "${userQuery}\n ${query}"`;
-  const singleQuery = await generateOneQuestionFromMultipleQuestions(
+  let singleQuery = ''
+  const response = await generateOneQuestionFromMultipleQuestions(
     history.map((h) => h.content)
   );
+  if (response.includes('<think>')) {
+      console.log('Response contains <think> tags. Removing them...');
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      singleQuery = response.replace(regex, '').trim();
+    }
   console.log('Single Query from History:', singleQuery);
-  return updatedQuery;
+  return singleQuery || updatedQuery;
 };

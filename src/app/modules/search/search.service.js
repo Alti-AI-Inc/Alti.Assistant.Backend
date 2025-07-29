@@ -3,13 +3,15 @@ import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import mongoose from 'mongoose';
 
 /**
  * Generate unique guest user ID
  * @returns {string}
  */
 const generateGuestUserId = () => {
-  return `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // Generate a proper MongoDB ObjectId for guest users
+  return new mongoose.Types.ObjectId().toString();
 };
 
 /**
@@ -24,10 +26,17 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
   try {
     let conversation;
 
-    if (conversationId && !isGuest) {
-      // Try to get existing conversation for authenticated users only
+    if (conversationId) {
+      // Try to get existing conversation for both authenticated and guest users
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+        
+        // For guest users, verify the conversation belongs to them or is a guest conversation
+        if (isGuest && conversation.metadata?.userType !== 'guest') {
+          logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
+          conversation = null; // Force creation of new conversation
+        }
+        
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one`);
       }
@@ -38,21 +47,22 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
       const newConversationId = conversationId || generateSearchConversationId();
       
       if (isGuest) {
-        // For guest users, create a simpler conversation structure
-        conversation = {
-          conversationId: newConversationId,
-          userId: userId,
-          title: `Search: ${searchQuery.substring(0, 50)}...`,
-          messageCount: 0,
-          isGuest: true,
-          metadata: {
-            category: 'search',
-            model: 'research-agent',
-            searchType: 'assistant',
-            userType: 'guest',
+        // For guest users, create a conversation in the database but mark it as guest
+        conversation = await conversationService.createConversation(
+          {
+            userId,
+            title: `Search: ${searchQuery.substring(0, 50)}...`,
+            metadata: {
+              category: 'search',
+              model: 'research-agent',
+              searchType: 'assistant',
+              userType: 'guest',
+              isGuest: true,
+            },
+            is_deep_search: true,
           },
-          createdAt: new Date(),
-        };
+          newConversationId
+        );
       } else {
         // For authenticated users, use the full conversation service
         conversation = await conversationService.createConversation(
@@ -70,6 +80,8 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
           newConversationId
         );
       }
+      
+      console.log(`Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`);
     }
 
     return conversation;
@@ -89,18 +101,9 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
  */
 const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGuest = false) => {
   try {
-    if (isGuest) {
-      // For guest users, just log the message (don't store in database)
-      logger.info(`Guest user ${userId} search query in conversation ${conversationId}: ${searchQuery.substring(0, 100)}...`);
-      return {
-        success: true,
-        message: 'Guest message logged',
-        conversationId,
-        userId,
-        isGuest: true,
-      };
-    }
-
+    console.log(`Adding search query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    
+    // Store the message in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -115,10 +118,6 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
     );
   } catch (error) {
     logger.error('Error adding search query message:', error);
-    if (isGuest) {
-      // Don't throw for guest users
-      return { success: false, error: error.message, isGuest: true };
-    }
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add search query to conversation');
   }
 };
@@ -134,18 +133,9 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
  */
 const addSearchResultMessage = async (conversationId, userId, searchResult, metadata = {}, isGuest = false) => {
   try {
-    if (isGuest) {
-      // For guest users, just log the response (don't store in database)
-      logger.info(`Guest user ${userId} search result in conversation ${conversationId}: ${searchResult.substring(0, 100)}...`);
-      return {
-        success: true,
-        message: 'Guest response logged',
-        conversationId,
-        userId,
-        isGuest: true,
-      };
-    }
-
+    console.log(`Adding search result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    
+    // Store the result in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -162,10 +152,6 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
     );
   } catch (error) {
     logger.error('Error adding search result message:', error);
-    if (isGuest) {
-      // Don't throw for guest users
-      return { success: false, error: error.message, isGuest: true };
-    }
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add search result to conversation');
   }
 };
@@ -181,18 +167,9 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
  */
 const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false) => {
   try {
-    if (isGuest) {
-      // For guest users, just log the error (don't store in database)
-      logger.info(`Guest user ${userId} error in conversation ${conversationId}: ${errorMessage}`);
-      return {
-        success: true,
-        message: 'Guest error logged',
-        conversationId,
-        userId,
-        isGuest: true,
-      };
-    }
-
+    console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    
+    // Store the error in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
       conversationId,
       userId,
