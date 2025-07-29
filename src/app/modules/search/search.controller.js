@@ -75,7 +75,7 @@ export const performSearch = catchAsync(async (req, res) => {
             fullResponse = stream;
             
             // Add assistant response to conversation
-            await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, {}, isGuest);
+            await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, { reference }, isGuest);
             console.log('Full response:', fullResponse);
             
             return sendResponse(res, {
@@ -117,7 +117,7 @@ export const performSearch = catchAsync(async (req, res) => {
                 actualConversationId, 
                 userId, 
                 fullResponse, 
-                { streamed: true },
+                { streamed: true, reference },
                 isGuest
             );
 

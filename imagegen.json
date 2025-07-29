@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "imagegen-464609",
+  "private_key_id": "0d02e8da69f53e7a78e2c0238b5e02941bc0d4d5",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCnaBCZ9lfcfjZv\nImgFDo0brSwic/naIn+84NV4uVK4BzTXnvedWZ57VVdgm7kDOt34Ld1hsSUr8aeC\n2TCQnnoUnkmNxYjjJ2PDhqwWcdtaBCeLGEpRXHcIaBNh/e1v1lqh9L+t9fUlTbeu\nZIUtr5iiseFhStiBvTe+KStYh7zkaUgR8MOOa6nZToG+lIH3c8RbbP1Va3nql9Dy\nrq7DDVnqQzaCcJxD3MzKAfjj1bsrzy122u05CmfeQj0UFY9cGYGG6PiI+HXtSUbQ\nxXKvbc2/L2S8ZINXA7qi10VMyzTebq85xSBY1WQX5eBnIhBijzd5s3zmzw14/GGI\nntCOrpkJAgMBAAECggEAB3U7usWJF9nzmN3iiR8jKtwl1DRwfsb8roXMXNV8xEAQ\nmu6Kaih88VJVqIh8zz0HIzBVOtib0apcDm3t8PNueDlZCNzdAqmq6Hdjy+2EmoJc\nNKEqERfadwsT71CoYaFzZjWzeGTgZ/9fXdXn7PzJWFjZCUQ+rauoA8EXx5jnJxHL\nNCCR/8jdvcz8CMxCUXuf0S3EQRpxnjd0StkX55cXt1rstHHzr1Jrljmg20UfEtNk\nTukkl0E1wISZLq8oLjIi/56c+nJLEDiClzLoaPmA/7ot7Tu2HrWhQR9PMkMPgXZd\nvi95CQEIQETto6znUAskqnftIg7UMeeVaj4wIx9X0QKBgQDWhmsjUVZfhCn1SDuV\neQKVZ0PpHwRgh9QACZYwRbgvkYCnAqshELp9cRMN+HiY5vmWjbSSdQLw+z3u7oeG\npFkw9czaRdzu9yIEGwZ+9tmtypJZ75hdY3ofchK1QnBtnPXrekCbD3VnrFV9RoT/\nfCJsUMsCIPtZxl+4A3PMb/OrPQKBgQDHxZY3QMcP0ehxasblJryXmp2vrslMH+MS\n2Xvbz2cOBAD0gTRUAu3p7mkyVH7ca7lYKbO9jDGUfQrC8UvYuacEKM2ezDAd51Bt\nyXWvT4tFdnujAfbJ79GCDDa5lJr7O+4I8E7XI5uOw1E0ztjWIQszW/H0ckyfFjVC\nCtQ8njSxvQKBgG8iHZijR2qeDhp6fBuYH+WEJKM9JUhYtVP7o2mIhL1n1E0wzbSI\ndQQNMwDWyqrzZTNAX95LbeWnUlNYEK+Irof1nlUpQiYtstqLoZbejLBCtASRYc5n\nfVmS/+wU6idu29tMbvGlVX4KwhLvGHE+Ppr8U97bdTrx0J6Ec1XiXUpFAoGAI3EX\njGfuqQzZiz2hWcg8jzz8Gs4MonfJxm9VPRMXunHVZYuCqCD46pbEjQxWkW5/LHgB\njnBP34MrpJhAl4ugaOmASVr6cmO2bjPesCKRl9pEZxATI5JrfgICt3v43ver7GQN\n6LdFgtd+Ebtc1uh33z3BuFeK5nJ/Ml9Pdg2vVZUCgYEAktpO4ZUo4Z0scrFMQXGU\ndb3foOMggSJ3qQQTC/zQBy4P6xxMdF+/qyuvMzg7cRj72jANyF2NewlG8qFberha\npIMZ/1DUkzGXSDyNiUJAbLexT9GuxnZAjeZMN/0xp9S/GQ32FdYRZyTTcIKWAhln\nP7OCGTNv+D/JNV8kvqDFn5Q=\n-----END PRIVATE KEY-----\n",
+  "client_email": "image-generator-vertex@imagegen-464609.iam.gserviceaccount.com",
+  "client_id": "104505235010203940442",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/image-generator-vertex%40imagegen-464609.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

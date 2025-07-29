@@ -25,6 +25,7 @@ import { writingRoutes } from '../modules/writing/workflow.route.js';
 import { summaryRoutes } from '../modules/summary/summary.route.js';
 import { searchRoute } from '../modules/search/search.route.js';
 import { conversationRoutes } from '../modules/conversations/conversation.route.js';
+import { imageRoutes } from '../modules/image/image.route.js';
 
 const router = express.Router();
 
@@ -132,6 +133,10 @@ const moduleRoutes = [
   {
     path: '/conversations',
     route: conversationRoutes
+  },
+  {
+    path: '/image',
+    route: imageRoutes
   }
 ];
 

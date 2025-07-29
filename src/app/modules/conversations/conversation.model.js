@@ -57,6 +57,13 @@ const ConversationSchema = new mongoose.Schema(
       tags: [{ type: String }],
       category: { type: String },
       customData: { type: mongoose.Schema.Types.Mixed },
+      userType: {
+        type: String,
+      },
+      isGuest: {
+        type: Boolean,
+        default: false,
+      }
     },
     lastActivity: {
       type: Date,

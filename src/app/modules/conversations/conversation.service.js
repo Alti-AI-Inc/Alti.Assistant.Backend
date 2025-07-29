@@ -18,7 +18,8 @@ const createConversation = async (conversationData, conversationId) => {
       metadata = {},
       is_deep_search = false,
     } = conversationData;
-
+    console.log('Creating conversation with data:', conversationData);
+    
     // Generate unique conversation ID
 
     const conversation = new Conversation({
@@ -70,6 +71,9 @@ const addMessageToConversation = async (conversationId, userId, messageData) => 
     if (!role || !content) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Message role and content are required');
     }
+
+    console.log(`Adding message to conversation ${conversationId} for user ${userId}:`, { role, content, metadata });
+    
 
     const conversation = await Conversation.findByConversationId(conversationId, userId);
     
