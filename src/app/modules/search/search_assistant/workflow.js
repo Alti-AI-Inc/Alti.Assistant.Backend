@@ -1,45 +1,47 @@
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { researchAgentState } from "./state.js";
-import { checkIfSearchNeededByAi, convertTheSearchResultsToGenerativeAnswerUsingAI, searchNode, giveAnswer } from "./nodes.js";
+import { 
+  analyzeContextNode, 
+  intelligentSearchNode, 
+  directAnswerNode, 
+  conversationalSynthesisNode 
+} from "./nodes.js";
 import { MongoDBSaver } from "../../code/code_assistant/MongoDBSaver.js";
 import config from "../../../../../config/index.js";
 
 const workflow = new StateGraph({ channels: researchAgentState });
 
-// Define the workflow nodes
-workflow.addNode("checkIfSearchNeeded", checkIfSearchNeededByAi);
-workflow.addNode("search", searchNode);
-workflow.addNode("synthesize", convertTheSearchResultsToGenerativeAnswerUsingAI);
-workflow.addNode("giveAnswer", giveAnswer); // Add the missing giveAnswer node
+// Define the intelligent conversational workflow nodes
+workflow.addNode("analyzeContext", analyzeContextNode);
+workflow.addNode("intelligentSearch", intelligentSearchNode);
+workflow.addNode("directAnswer", directAnswerNode);
+workflow.addNode("conversationalSynthesis", conversationalSynthesisNode);
 
-// The workflow starts by checking if search is needed...
-workflow.addEdge(START, "checkIfSearchNeeded");
+// The workflow starts by analyzing context and determining the approach
+workflow.addEdge(START, "analyzeContext");
 
-// Define conditional routing based on search need
+// Define conditional routing based on intelligent analysis
 workflow.addConditionalEdges(
-  "checkIfSearchNeeded",
+  "analyzeContext",
   (state) => {
-    // The condition function that determines the next node
-    console.log("Checking if search is needed for query:", state);
+    console.log("Intelligent routing decision for query:", state.query, "→", state.needsSearch ? "search" : "direct");
     
-    return state.isSearchNeeded ? "search" : "giveAnswer";
+    return state.needsSearch ? "search" : "direct";
   },
   {
-    search: "search", // If search is needed, proceed to search
-    giveAnswer: "giveAnswer", // If not needed, directly give answer without search
+    search: "intelligentSearch", // If search is needed, proceed to intelligent search
+    direct: "directAnswer", // If not needed, give direct conversational answer
   }
 );
 
+// After intelligent search, synthesize with conversation awareness
+workflow.addEdge("intelligentSearch", "conversationalSynthesis");
 
-// ...and then proceeds to synthesize the results.
-workflow.addEdge("search", "synthesize");
+// Both direct answer and synthesis end the workflow
+workflow.addEdge("directAnswer", END);
+workflow.addEdge("conversationalSynthesis", END);
 
-workflow.addEdge("giveAnswer", END);
-
-// The process ends after synthesis.
-workflow.addEdge("synthesize", END);
-
-// Instantiate the checkpointer with a specific collection name.
-const checkpointer = await MongoDBSaver.fromUri(config.database_local, "research_checkpoints");
+// Instantiate the checkpointer with a specific collection name for conversational search
+const checkpointer = await MongoDBSaver.fromUri(config.database_local, "conversational_search_checkpoints");
 
 export const researchAgentApp = workflow.compile({ checkpointer });

@@ -74,9 +74,11 @@ const getUserConversations = catchAsync(async (req, res) => {
  * Get a specific conversation by ID
  */
 const getConversationById = catchAsync(async (req, res) => {
-  const userId = req.user?.userId || req.user?._id;
-  const { conversationId } = req.params;
-
+  let userId = req.user?.userId || req.user?._id;
+  const { conversationId, user_id } = req.params;
+  if (user_id) {
+    userId = user_id; // Use user_id from params if provided
+  }
   const result = await conversationHelpers.getConversationById(conversationId, userId);
 
   sendResponse(res, {

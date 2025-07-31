@@ -11,82 +11,30 @@ const llm = new ChatGroq({
   // other params...
 });
 
-/**
- * Helper function to update queries with current year for time-sensitive searches
- */
-const updateQueryWithCurrentYear = (query) => {
-  const currentYear = new Date().getFullYear();
-  const previousYears = [currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4, currentYear - 5];
-  
-  let updatedQuery = query;
-  
-  // Replace previous years with current year in common contexts
-  previousYears.forEach(year => {
-    // Match year patterns that are likely outdated
-    const patterns = [
-      new RegExp(`\\b${year}\\b(?=\\s*(game|schedule|season|event|news|latest|upcoming))`, 'gi'),
-      new RegExp(`\\b(schedule|game|season|event|news|latest|upcoming)\\s+${year}\\b`, 'gi'),
-      new RegExp(`\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming)\\b`, 'gi')
-    ];
-    
-    patterns.forEach(pattern => {
-      updatedQuery = updatedQuery.replace(pattern, (match) => {
-        return match.replace(year.toString(), currentYear.toString());
-      });
-    });
-  });
-  
-  return updatedQuery;
-};
-
 export const runSimpleGroqTask = async (state, stream = false) => {
   try {
     console.log("Running conversational Groq task with search results:", state.searchResults);
     
-    // Format search results into a readable string with enhanced content and citation numbers
+    // Format search results into a readable string
     let formattedSearchResults = "";
     if (Array.isArray(state.searchResults)) {
       formattedSearchResults = state.searchResults.map((result, index) => {
-        // Use detailed content if available, otherwise fall back to regular content
-        const content = result.detailedContent || result.content || result.snippet || 'No content available';
-        const domain = result.domain || 'Unknown domain';
-        const isRecent = result.isRecent ? ' (Recent)' : '';
-        const publishedDate = result.publishedDate ? ` (Published: ${result.publishedDate})` : '';
-        const citationIndex = index + 1;
-        
-        return `[${citationIndex}] ${result.title}
-Domain: ${domain}${isRecent}${publishedDate}
+        return `Source ${index + 1}:
+Title: ${result.title}
 URL: ${result.url}
-Content: ${content}
-Relevance Score: ${result.score?.toFixed(3) || 'N/A'}
+Content: ${result.content}
+Score: ${result.score}
 ---`;
       }).join('\n\n');
     } else {
       formattedSearchResults = JSON.stringify(state.searchResults, null, 2);
     }
 
-    // Build conversation context from message history - defensive coding
+    // Build conversation context from message history
     let conversationHistory = "";
-    
-    // Handle different formats of conversation context
-    let contextMessages = [];
-    if (state.conversationContext) {
-      if (Array.isArray(state.conversationContext)) {
-        contextMessages = state.conversationContext;
-      } else if (typeof state.conversationContext === 'string') {
-        // If it's a string, skip it and use history instead
-        contextMessages = [];
-      }
-    }
-    
-    // Fallback to history if conversationContext is not available or empty
-    if (contextMessages.length === 0 && state.history && Array.isArray(state.history)) {
-      contextMessages = state.history;
-    }
-    
-    // Build conversation history string
-    if (contextMessages.length > 0) {
-      const recentMessages = contextMessages.slice(-5);
+    if (state.conversationContext && state.conversationContext.length > 0) {
+      // Show last 5 messages for context
+      const recentMessages = state.conversationContext.slice(-5);
       conversationHistory = `Previous conversation:\n${recentMessages.map(msg => 
         `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
       ).join('\n')}\n\n`;
@@ -104,43 +52,26 @@ Search query used: ${state.searchQuery}
     const messages = [
       {
         role: "system",
-        content: `You are an intelligent research assistant that provides conversational, helpful responses with proper citations.
+        content: `You are an intelligent research assistant that provides conversational, helpful responses. 
 
 CONTEXT AWARENESS:
 - Consider the conversation history when formulating your response
 - Build upon previous exchanges naturally
 - Reference earlier topics when relevant
 
-CONTENT UTILIZATION:
-- You have access to detailed, high-quality content from search results
-- Prioritize recent content when available (marked as "Recent")
-- Use the full detailed content provided, not just titles or snippets
-- Extract key insights from the comprehensive content available
-
 RESPONSE GUIDELINES:
 - Be conversational and engaging
 - Provide comprehensive yet focused answers
 - Use the search results as your primary information source
-- ALWAYS include relevant citations with [1], [2], [3], etc.
+- Include relevant citations with [1], [2], etc.
 - If the search results don't fully address the question, acknowledge limitations
 - Maintain consistency with previous conversation context
-- Synthesize information from multiple sources when relevant
 
-CITATION REQUIREMENTS:
-- Use numbered citations [1], [2], etc. immediately after statements that reference specific sources
-- Each search result is numbered [1], [2], [3], etc. in the source list provided
-- Place citations at the end of relevant sentences or paragraphs
-- ALWAYS include a "References:" section at the end listing all sources used
-- Every fact, statistic, or specific information MUST be cited
-
-CITATION FORMAT EXAMPLE:
-"The Detroit Tigers' next game is scheduled for July 30th [1]. They are currently performing well this season with a record of 65-64 [2].
-
-References:
-[1] MLB.com - Detroit Tigers Schedule
-[2] ESPN - Detroit Tigers Stats"
-
-IMPORTANT: You MUST cite your sources. Do not provide information without proper citations.`
+FORMAT:
+- Write in a natural, conversational tone
+- Structure information clearly with paragraphs
+- End with citations: [1] URL, [2] URL, etc.
+- Don't be overly formal or robotic`
       },
       {
         role: "user",
@@ -193,14 +124,6 @@ export const createBetterQueryFromMultipleQuestions = async (
       }).join('\n');
     }
 
-    // Get current date information for context-aware queries
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
-    const currentDay = currentDate.getDate();
-    const currentDateString = `${currentMonth} ${currentDay - 1}, ${currentYear}`;
-    const currentWeekday = currentDate.toLocaleString('default', { weekday: 'long' });
-
     const messages = [
       {
         role: "system",
@@ -208,12 +131,6 @@ export const createBetterQueryFromMultipleQuestions = async (
 1. The original user question
 2. Conversation context
 3. Initial search results quality
-4. Current date and time context
-
-CURRENT DATE CONTEXT:
-- Today is ${currentWeekday}, ${currentDateString}
-- Current year: ${currentYear}
-- When users ask about "next", "upcoming", "latest", or current events, use ${currentYear} and after ${currentDateString}.
 
 OPTIMIZATION RULES:
 - If results are relevant and comprehensive, keep the query simple
@@ -221,14 +138,6 @@ OPTIMIZATION RULES:
 - If results miss the user's intent, rephrase to capture the core need
 - Consider conversation context to understand what the user really wants
 - Make the query more specific if initial results are off-topic
-- ALWAYS use the current year (${currentYear}) for time-sensitive queries
-- Replace outdated years in queries with the current year (${currentYear})
-- For sports schedules, events, news - ensure the year is ${currentYear}
-
-DATE-AWARE EXAMPLES:
-- "Detroit Tigers game 2023" → "Detroit Tigers game schedule ${currentYear}"
-- "Latest AI developments 2022" → "Latest AI developments ${currentYear}"
-- "Upcoming events" → "Upcoming events ${currentYear}"
 
 Output ONLY the improved search query, nothing else.`
       },
@@ -239,17 +148,12 @@ Output ONLY the improved search query, nothing else.`
 Current search results:
 ${formattedResults}
 
-Generate an improved search query that uses the current year (${currentYear}) when relevant:`
+Generate an improved search query:`
       }
     ];
 
     const response = await llm.invoke(messages);
-    let improvedQuery = response.content.trim();
-    
-    // Apply additional year correction as a safety measure
-    improvedQuery = updateQueryWithCurrentYear(improvedQuery);
-    
-    return improvedQuery;
+    return response.content.trim();
     
   } catch (error) {
     console.error("Error generating improved query:", error);
@@ -264,12 +168,6 @@ export const checkIfSearchNeededForTheQueryUsingAi = async (query, conversationC
       `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
     ).join('\n');
 
-    // Get current date for better classification
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
-    const currentDateString = `${currentMonth} ${currentDate.getDate()}, ${currentYear}`;
-
     const systemPrompt = `You are an intelligent query classifier with conversational awareness.
 
 Your job is to decide if a user query needs an EXTERNAL SEARCH or can be ANSWERED DIRECTLY based on:
@@ -277,16 +175,10 @@ Your job is to decide if a user query needs an EXTERNAL SEARCH or can be ANSWERE
 2. The conversation context
 3. Whether recent information is required
 
-CURRENT DATE CONTEXT:
-- Today is ${currentDateString}
-- Current year: ${currentYear}
-
 CLASSIFICATION RULES:
 - SEARCH: Time-sensitive data, current events, news, prices, recent developments, specific real-time information
-- SEARCH: Follow-up questions that reference "latest", "recent", "current", "today", "now", "next", "upcoming"
+- SEARCH: Follow-up questions that reference "latest", "recent", "current", "today", "now"
 - SEARCH: Queries about ongoing events, trending topics, or changing information
-- SEARCH: Sports schedules, game times, upcoming matches (these change frequently)
-- SEARCH: Weather, stock prices, cryptocurrency values, breaking news
 - ANSWER: General knowledge, historical facts, definitions, explanations, calculations
 - ANSWER: Follow-up clarifications about previously discussed topics
 - ANSWER: Conversational responses, greetings, acknowledgments
@@ -295,9 +187,8 @@ CONVERSATIONAL AWARENESS:
 - Consider if the query is continuing a previous topic
 - If previous context provides sufficient information, lean toward ANSWER
 - If query introduces new time-sensitive elements, choose SEARCH
-- Sports schedules and "next game" queries always need SEARCH for current information
 
-CRITICAL: Respond with ONLY "SEARCH" or "ANSWER" - no explanations, no thinking tags, no extra text.`;
+RESPONSE FORMAT: Respond with ONLY "SEARCH" or "ANSWER" - no explanations.`;
 
     const messages = [
       {
@@ -316,24 +207,10 @@ Classification needed:`
     ]
 
     const response = await llm.invoke(messages);
-    let rawContent = response.content.trim();
+    const classification = response.content.trim().toUpperCase();
+    console.log("AI classification for query:", query, "→", classification);
     
-    console.log("AI classification for query:", query, "→", rawContent);
-    
-    // Handle thinking tags - extract the actual decision after thinking
-    let cleanedContent = rawContent;
-    if (rawContent.includes('<THINK>') || rawContent.includes('<think>')) {
-      // Remove everything between thinking tags (case insensitive)
-      const regex = /<think>[\s\S]*?<\/think>/gi;
-      cleanedContent = rawContent.replace(regex, '').trim();
-    }
-    
-    // Extract the final decision
-    const finalDecision = cleanedContent.toUpperCase().trim();
-    console.log("Cleaned decision:", finalDecision);
-    
-    // Return the decision
-    return finalDecision.includes("SEARCH") ? "SEARCH" : "ANSWER";
+    return classification === "SEARCH" ? "SEARCH" : "ANSWER";
     
   } catch (error) {
     console.error("Error checking if search is needed:", error);
@@ -343,9 +220,9 @@ Classification needed:`
 
 export const giveAnswerWithoutSearch = async (query, conversationContext = []) => {
   try {
-    // Build conversation context with defensive coding
+    // Build conversation context
     let conversationHistory = "";
-    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+    if (conversationContext && conversationContext.length > 0) {
       const recentMessages = conversationContext.slice(-5);
       conversationHistory = `Previous conversation:\n${recentMessages.map(msg => 
         `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`

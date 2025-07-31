@@ -660,33 +660,33 @@ const initiateAmazonConnectionService = async () => {
   };
 };
 
-const searchAmazonProductService = async req => {
-  const { connectedAccountId, query } = req.body;
+// const searchAmazonProductService = async req => {
+//   const { connectedAccountId, query } = req.body;
 
-  if (!connectedAccountId || !query) {
-    return { error: 'Missing required fields: connectedAccountId, query' };
-  }
+//   if (!connectedAccountId || !query) {
+//     return { error: 'Missing required fields: connectedAccountId, query' };
+//   }
 
-  const actionId = 'AMAZON_SEARCH_PRODUCT';
-  const url = `https://backend.composio.dev/api/v2/actions/${actionId}/execute`;
+//   const actionId = 'AMAZON_SEARCH_PRODUCT';
+//   const url = `https://backend.composio.dev/api/v2/actions/${actionId}/execute`;
 
-  const response = await axios.post(
-    url,
-    {
-      integrationId: amazonIntegrationId, // Replace with your ID
-      connectedAccountId,
-      input: { query },
-    },
-    {
-      headers: {
-        'x-api-key': config.composio.apiKey,
-        'Content-Type': 'application/json',
-      },
-    },
-  );
+//   const response = await axios.post(
+//     url,
+//     {
+//       integrationId: amazonIntegrationId, // Replace with your ID
+//       connectedAccountId,
+//       input: { query },
+//     },
+//     {
+//       headers: {
+//         'x-api-key': config.composio.apiKey,
+//         'Content-Type': 'application/json',
+//       },
+//     },
+//   );
 
-  return response.data;
-};
+//   return response.data;
+// };
 
 export const composioService = {
   getGmailIntegrationService,
@@ -708,7 +708,7 @@ export const composioService = {
   initiateGithubConnectionService,
   createGithubIssueService,
   initiateAmazonConnectionService,
-  searchAmazonProductService,
+  // searchAmazonProductService,
   initiateTwitterConnectionService,
   postTweetService,
   deleteTweetService,

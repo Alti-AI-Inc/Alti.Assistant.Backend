@@ -9,6 +9,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:search": "node test_enhanced_search.js",
     "lint": "eslint . --fix --max-warnings=0",
     "format": "prettier . --write"
   },

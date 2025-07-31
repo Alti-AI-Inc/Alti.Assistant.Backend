@@ -5,6 +5,7 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { conversationController } from './conversation.controller.js';
 import { ConversationValidation } from './conversation.validation.js';
+import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 
 const router = express.Router();
 
@@ -80,7 +81,7 @@ router
 router
   .route('/category/:category')
   .get(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    optionalAuth(),
     conversationController.getConversationsByCategory,
   );
 
@@ -88,7 +89,7 @@ router
 router
   .route('/:conversationId')
   .get(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    optionalAuth(),
     conversationController.getConversationById,
   )
   .delete(

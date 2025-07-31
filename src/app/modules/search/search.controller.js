@@ -51,13 +51,26 @@ export const performSearch = catchAsync(async (req, res) => {
         const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
         const actualConversationId = conversation.conversationId || thread_id;
 
+        // Get conversation history for context-aware processing
+        let conversationHistory = [];
+        if (conversationId && conversation.messages) {
+            // Get last 10 messages for context (excluding the current message)
+            conversationHistory = conversation.messages
+                .slice(-10)
+                .map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+        }
+
         // Add user message to conversation
         await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
 
         const inputs = { 
             query: message,
+            conversationContext: conversationHistory,
             depth: deepSearch ? deepSearch : 'standard', // Use deepSearch flag to determine search depth
-            history: [{ role: 'user', content: message }],
+            history: [...conversationHistory, { role: 'user', content: message }],
         };
         
         const result = await researchAgentApp.invoke(inputs, { configurable: { thread_id: actualConversationId } });
@@ -65,8 +78,10 @@ export const performSearch = catchAsync(async (req, res) => {
         
         const stream = result.answer;
         const reference = result.reference || [];
+        const citationMetadata = result.citationMetadata || null;
 
         console.log('References are:', reference);
+        console.log('Citation metadata:', citationMetadata);
         
         let fullResponse = "";
 
@@ -74,8 +89,15 @@ export const performSearch = catchAsync(async (req, res) => {
             // If the stream is a string, send it directly as a JSON response
             fullResponse = stream;
             
-            // Add assistant response to conversation
-            await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, { reference }, isGuest);
+            // Add assistant response to conversation with enhanced metadata
+            const messageMetadata = {
+                reference,
+                citationMetadata,
+                searchQuery: citationMetadata?.searchQuery || message,
+                searchTimestamp: citationMetadata?.searchTimestamp || new Date().toISOString()
+            };
+            
+            await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, messageMetadata, isGuest);
             console.log('Full response:', fullResponse);
             
             return sendResponse(res, {
@@ -85,7 +107,13 @@ export const performSearch = catchAsync(async (req, res) => {
                 data: {
                     responseMessage: {
                         answer: fullResponse,
-                        reference
+                        reference,
+                        citations: reference.map((ref, index) => ({
+                            index: index + 1,
+                            url: ref.url,
+                            domain: ref.domain
+                        })),
+                        citationMetadata
                     },
                     conversationId: actualConversationId,
                     messageCount: conversation.messageCount + 2,
@@ -113,15 +141,23 @@ export const performSearch = catchAsync(async (req, res) => {
             }
             
             // Add assistant response to conversation after streaming is complete
+            const messageMetadata = {
+                reference,
+                citationMetadata,
+                searchQuery: citationMetadata?.searchQuery || message,
+                searchTimestamp: citationMetadata?.searchTimestamp || new Date().toISOString(),
+                streamed: true
+            };
+            
             await searchService.addSearchResultMessage(
                 actualConversationId, 
                 userId, 
                 fullResponse, 
-                { streamed: true, reference },
+                messageMetadata,
                 isGuest
             );
 
-            // Send final message with complete response
+            // Send final message with complete response and citations
             res.write(`data: ${JSON.stringify({ 
                 complete: true, 
                 fullResponse,
@@ -129,7 +165,14 @@ export const performSearch = catchAsync(async (req, res) => {
                 success: true,
                 message: 'Search completed successfully',
                 userType: isGuest ? 'guest' : 'authenticated',
-                userId: isGuest ? userId : undefined
+                userId: isGuest ? userId : undefined,
+                reference,
+                citations: reference.map((ref, index) => ({
+                    index: index + 1,
+                    url: ref.url,
+                    domain: ref.domain
+                })),
+                citationMetadata
             })}\n\n`);
             res.end();
         }
