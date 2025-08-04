@@ -21,6 +21,43 @@ const getGmailIntegration = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+const getAllIntegrations = catchAsync(async (req, res) => {
+  const result = await composioService.getAllIntegrationsService();
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Integrations retrieved successfully',
+    data: result,
+  });
+});
+
+
+const authorizeGmailIntegration = catchAsync(async (req, res) => {
+  const { userEmail } = req.body;
+
+  const result = await composioService.authorizeGmailIntegrationService(userEmail);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Successfully authorized Gmail integration',
+    data: result,
+  });
+});
+
+const sendEmailWithComposio = catchAsync(async (req, res) => {
+  const { userEmail } = req.body;
+  const result = await composioService.sendGmailFromAuthorizedAccountService(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Email sent successfully',
+    data: result,
+  });
+});
+
 const initiateGmailConnection = catchAsync(async (req, res) => {
   const { integrationId } = req.body;
   const result =
@@ -336,6 +373,16 @@ const sendDMByUsername = catchAsync(async (req, res) => {
   });
 });
 
+const getAllConnectedAccountsService = catchAsync(async (req, res) => {
+  const result = await composioService.getAllConnectedAccountsService();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Connected accounts retrieved successfully',
+    data: result,
+  });
+});
+
 export const composioController = {
   getGmailIntegration,
   initiateGmailConnection,
@@ -363,4 +410,8 @@ export const composioController = {
   followTwitterUser,
   getTwitterUserByUsername,
   sendDMByUsername,
+  getAllIntegrations,
+  authorizeGmailIntegration,
+  sendEmailWithComposio,
+  getAllConnectedAccountsService
 };

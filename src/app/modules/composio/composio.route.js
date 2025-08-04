@@ -3,10 +3,14 @@ import { composioController } from './composio.controller.js';
 
 const router = express.Router();
 
+router.get('/all/integrations', composioController.getAllIntegrations);
+router.get('/connected-accounts', composioController.getAllConnectedAccountsService);
+
 // Gmail routes
 router.get('/gmail/integration', composioController.getGmailIntegration);
+router.post('/gmail/authorize', composioController.authorizeGmailIntegration);
 router.post('/gmail/connect', composioController.initiateGmailConnection);
-router.post('/gmail/send-email', composioController.sendEmail);
+router.post('/gmail/send-email', composioController.sendEmailWithComposio);
 
 // YouTube routes
 router.get('/youtube/integration', composioController.getYouTubeIntegration);

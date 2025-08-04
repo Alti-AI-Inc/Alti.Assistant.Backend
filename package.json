@@ -19,7 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.1",
     "@apollo/server": "^4.10.4",
-    "@composio/core": "^0.1.21",
+    "@composio/core": "^0.1.39",
     "@composio/langchain": "^0.1.21",
     "@elastic/elasticsearch": "^9.0.1",
     "@getzep/zep-js": "^2.0.2",
@@ -73,6 +73,7 @@
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.8",
     "nodemon": "^3.1.0",
+    "openai": "^5.11.0",
     "otp-generator": "^4.0.1",
     "passport": "^0.7.0",
     "passport-apple": "^2.0.2",

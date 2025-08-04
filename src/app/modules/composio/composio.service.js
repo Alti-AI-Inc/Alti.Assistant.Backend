@@ -2,13 +2,19 @@ import axios from 'axios';
 import { OpenAIToolSet } from 'composio-core';
 import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
+import { Composio } from '@composio/core';
+import OpenAI from 'openai';
 
 const integrationId = '5c9834e1-14b3-4c06-9262-606bce538a9f';
 const toolset = new OpenAIToolSet({ apiKey: config.composio.apiKey });
+const composio = new Composio();
+const openai = new OpenAI({
+  apiKey: config.openai.apiKey,
+});
 
 const getGmailIntegrationService = async () => {
   const integration = await toolset.integrations.get({
-    integrationId: '9716ebb0-5dfa-420c-9033-2cae4f5b61ae',
+    integrationId: '32b20636-3b36-4aeb-8931-5bc614ddec45',
   });
 
   const inputFields = await toolset.integrations.getRequiredParams({
@@ -18,7 +24,96 @@ const getGmailIntegrationService = async () => {
   return data;
 };
 
-const initiateGmailConnectionService = async integrationId => {
+const authorizeGmailIntegrationService = async (userEmail) => {
+  const connectionRequest = await composio.toolkits.authorize(
+    userEmail,
+    'gmail'
+  );
+
+  // redirect the user to the OAuth flow
+  const redirectUrl = connectionRequest.redirectUrl;
+  console.log('Redirect URL:', redirectUrl);
+  return {
+    redirectUrl,
+  };
+};
+
+const sendGmailFromAuthorizedAccountService = async (body) => {
+  console.log('Sending email with Composio...', body);
+
+  // Fetch tools for your user and execute
+  const userEmail = body.userEmail || '';
+  const toEmail = body.toEmail;
+  const subject = body.subject;
+  const content = body.content;
+  const toolsForResponses = await composio.tools.get(
+    userEmail,
+    {
+      tools: ['GMAIL_SEND_EMAIL'],
+      connectedAccountId: body.connectedAccountId, // Ensure you pass the connected account ID
+    },
+    {
+      reciepient_email: 'emondarock@gmail.com',
+    }
+  );
+
+  const task = `Send an email to ${toEmail} from ${userEmail} with the subject ${subject} and the body ${content}`;
+
+  //Define the messages for the assistant
+  const messages = [
+    {
+      role: 'system',
+      content: 'You are a helpful assistant that can help with tasks.',
+    },
+    { role: 'user', content: task },
+  ];
+
+  // Create a chat completion
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages,
+    tools: toolsForResponses,
+    tool_choice: 'auto',
+  });
+
+  // Execute the tool calls
+  const result = await composio.provider.handleToolCalls(userEmail, response, {
+    connectedAccountId: body.connectedAccountId, // Ensure you pass the connected account ID
+  });
+  console.log(result);
+  // Will return the raw response from the GMAIL_SEND_EMAIL API.
+  console.log('Email sent successfully!');
+};
+
+const getAllConnectedAccountsService = async (integrationId) => {
+  const connected_accounts = await composio.connectedAccounts.list({
+    integrationId: 'dc88453c-0435-4487-9b61-4da031b4c2ee',
+    entityId: 'default',
+  });
+  console.log(connected_accounts.current_page);
+  return connected_accounts.items;
+};
+
+const getAllIntegrationsService = async () => {
+  const allIntegrations = await toolset.integrations.list();
+
+  // Find Gmail integration
+  const gmailIntegration = allIntegrations.items.find(
+    (integration) =>
+      integration.name.toLowerCase().includes('gmail') ||
+      integration.name.toLowerCase().includes('google mail')
+  );
+
+  console.log('Gmail Integration:', gmailIntegration);
+
+  return {
+    allIntegrations: allIntegrations.items,
+    gmailIntegration,
+    gmailIntegrationId: gmailIntegration?.id,
+  };
+};
+
+const initiateGmailConnectionService = async (integrationId) => {
   const connectedAccount = await toolset.connectedAccounts.initiate({
     integrationId,
     entityId: 'default', // or user ID if multi-user
@@ -32,7 +127,7 @@ const initiateGmailConnectionService = async integrationId => {
   return data;
 };
 
-const sendEmailService = async req => {
+const sendEmailService = async (req) => {
   const {
     integrationId,
     connectedAccountId,
@@ -49,7 +144,7 @@ const sendEmailService = async req => {
     // });
     throw new ApiError(
       400,
-      'Missing required fields: connectedAccountId, to, subject, message',
+      'Missing required fields: connectedAccountId, to, subject, message'
     );
   }
 
@@ -74,7 +169,7 @@ const sendEmailService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   const data = {
@@ -113,13 +208,13 @@ const initiateYouTubeConnectionService = async () => {
   };
 };
 
-const searchYouTubeService = async req => {
+const searchYouTubeService = async (req) => {
   const { connectedAccountId, query } = req.body;
 
   if (!connectedAccountId || !query) {
     throw new ApiError(
       400,
-      'Missing required fields: connectedAccountId, and query',
+      'Missing required fields: connectedAccountId, and query'
     );
   }
 
@@ -140,12 +235,12 @@ const searchYouTubeService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return response.data;
 };
-const disconnectYouTubeAccountService = async connectedAccountId => {
+const disconnectYouTubeAccountService = async (connectedAccountId) => {
   const response = await toolset.connectedAccounts.delete({
     connectedAccountId,
   });
@@ -175,7 +270,7 @@ const initiateTwitterConnectionService = async () => {
   };
 };
 
-const postTweetService = async req => {
+const postTweetService = async (req) => {
   const { connectedAccountId, text } = req.body;
 
   if (!connectedAccountId || !text) {
@@ -197,7 +292,7 @@ const postTweetService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return {
@@ -205,7 +300,7 @@ const postTweetService = async req => {
     data: response.data,
   };
 };
-const deleteTweetService = async req => {
+const deleteTweetService = async (req) => {
   const { connectedAccountId, tweetId } = req.body;
 
   if (!connectedAccountId || !tweetId) {
@@ -229,13 +324,13 @@ const deleteTweetService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return { success: true, data: response.data };
 };
 
-const followTwitterUserService = async req => {
+const followTwitterUserService = async (req) => {
   const { connectedAccountId, username } = req.body;
 
   if (!connectedAccountId || !username) {
@@ -257,12 +352,12 @@ const followTwitterUserService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return { success: true, data: response.data };
 };
-const getTwitterUserByUsernameService = async req => {
+const getTwitterUserByUsernameService = async (req) => {
   const { connectedAccountId, username } = req.body;
 
   if (!connectedAccountId || !username) {
@@ -284,7 +379,7 @@ const getTwitterUserByUsernameService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return { success: true, data: response.data };
@@ -308,8 +403,10 @@ const getUserIdFromUsername = async (connectedAccountId, username) => {
       },
     }
   );
-console.log('Response from Twitter API:', JSON.stringify(response.data, null, 2));
-
+  console.log(
+    'Response from Twitter API:',
+    JSON.stringify(response.data, null, 2)
+  );
 
   const users = response.data.data.data;
   if (users && users.length > 0) {
@@ -319,7 +416,7 @@ console.log('Response from Twitter API:', JSON.stringify(response.data, null, 2)
 };
 
 // Step 2: Send DM by user ID (participant_id)
-const sendDMByUsernameService = async req => {
+const sendDMByUsernameService = async (req) => {
   const { connectedAccountId, username, text } = req.body;
 
   if (!connectedAccountId || !username || !text) {
@@ -331,7 +428,7 @@ const sendDMByUsernameService = async req => {
   try {
     const participant_id = await getUserIdFromUsername(
       connectedAccountId,
-      username,
+      username
     );
 
     const actionId = 'TWITTER_SEND_A_NEW_MESSAGE_TO_A_USER';
@@ -352,7 +449,7 @@ const sendDMByUsernameService = async req => {
           'x-api-key': config.composio.apiKey,
           'Content-Type': 'application/json',
         },
-      },
+      }
     );
 
     return { success: true, data: response.data };
@@ -384,13 +481,13 @@ const exchangeCodeLinkedInService = async (code, integrationId, entityId) => {
 const postToLinkedInService = async (
   integrationId,
   connectedAccountId,
-  content,
+  content
 ) => {
   const integration = await toolset.integrations.get({
     integrationId: 'ff2c1c00-03ca-4135-9fe7-afa775098c26',
   });
   const expectedInputFields = await toolset.integrations.getRequiredParams(
-    integration.id,
+    integration.id
   );
   // Collect auth params from your users
 
@@ -415,7 +512,7 @@ const initiateGoogleCalendarConnectionService = async () => {
     connectionStatus: connectedAccount.connectionStatus,
   };
 };
-const createCalendarEventService = async req => {
+const createCalendarEventService = async (req) => {
   const {
     connectedAccountId,
     summary,
@@ -453,7 +550,7 @@ const createCalendarEventService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return {
@@ -462,7 +559,7 @@ const createCalendarEventService = async req => {
   };
 };
 
-const getCalendarEventsService = async req => {
+const getCalendarEventsService = async (req) => {
   const { connectedAccountId } = req.body;
 
   if (!connectedAccountId) {
@@ -486,12 +583,12 @@ const getCalendarEventsService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return response.data;
 };
-const deleteCalendarEventService = async req => {
+const deleteCalendarEventService = async (req) => {
   const { connectedAccountId, eventId, calendarId = 'primary' } = req.body;
 
   if (!connectedAccountId || !eventId) {
@@ -518,12 +615,12 @@ const deleteCalendarEventService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return response.data;
 };
-const updateCalendarEventService = async req => {
+const updateCalendarEventService = async (req) => {
   const {
     connectedAccountId,
     eventId,
@@ -562,7 +659,7 @@ const updateCalendarEventService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return response.data;
@@ -586,7 +683,7 @@ const getGithubIntegrationService = async () => {
   return { integration, inputFields };
 };
 
-const initiateGithubConnectionService = async integrationId => {
+const initiateGithubConnectionService = async (integrationId) => {
   const connectedAccount = await toolset.connectedAccounts.initiate({
     integrationId,
     entityId: 'default',
@@ -598,7 +695,7 @@ const initiateGithubConnectionService = async integrationId => {
     connectionStatus: connectedAccount.connectionStatus,
   };
 };
-const createGithubIssueService = async req => {
+const createGithubIssueService = async (req) => {
   const { connectedAccountId, owner, repo, title, body } = req.body;
 
   if (!connectedAccountId || !owner || !repo || !title) {
@@ -625,7 +722,7 @@ const createGithubIssueService = async req => {
         'x-api-key': config.composio.apiKey,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 
   return response.data;
@@ -639,8 +736,8 @@ const initiateAmazonConnectionService = async () => {
   const integrations = allIntegrationsResponse.items || [];
 
   // 2. Find Amazon integration
-  const amazonIntegration = integrations.find(integration =>
-    integration.name.toLowerCase().includes('amazon'),
+  const amazonIntegration = integrations.find((integration) =>
+    integration.name.toLowerCase().includes('amazon')
   );
 
   if (!amazonIntegration) {
@@ -714,5 +811,9 @@ export const composioService = {
   deleteTweetService,
   followTwitterUserService,
   getTwitterUserByUsernameService,
-  sendDMByUsernameService ,
+  sendDMByUsernameService,
+  getAllIntegrationsService,
+  authorizeGmailIntegrationService,
+  sendGmailFromAuthorizedAccountService,
+  getAllConnectedAccountsService,
 };
