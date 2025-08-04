@@ -1,0 +1,218 @@
+import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
+
+export const generatePDFReport = async (reportData) => {
+    const {
+        title,
+        query,
+        answer,
+        sources,
+        metadata
+    } = reportData;
+
+    return new Promise((resolve, reject) => {
+        try {
+            // Create a new PDF document
+            const doc = new PDFDocument({
+                size: 'A4',
+                margins: {
+                    top: 50,
+                    bottom: 50,
+                    left: 50,
+                    right: 50
+                }
+            });
+
+            // Create a buffer to store PDF data
+            const chunks = [];
+            doc.on('data', chunk => chunks.push(chunk));
+            doc.on('end', () => {
+                const pdfBuffer = Buffer.concat(chunks);
+                resolve({
+                    buffer: pdfBuffer,
+                    filename: generateFilename(query),
+                    contentType: 'application/pdf',
+                    size: pdfBuffer.length
+                });
+            });
+
+            // Add header
+            doc.fontSize(20)
+               .font('Helvetica-Bold')
+               .text('AI Research Report', { align: 'center' })
+               .moveDown();
+
+            // Add horizontal line
+            doc.moveTo(50, doc.y)
+               .lineTo(550, doc.y)
+               .stroke()
+               .moveDown();
+
+            // Add metadata
+            if (metadata) {
+                doc.fontSize(10)
+                   .font('Helvetica')
+                   .text(`Generated: ${metadata.generatedAt ? metadata.generatedAt.toLocaleString() : new Date().toLocaleString()}`, { align: 'right' })
+                   .text(`Query Type: ${metadata.queryType || 'Research'}`, { align: 'right' });
+                
+                if (metadata.processingTime) {
+                    doc.text(`Processing Time: ${metadata.processingTime}ms`, { align: 'right' });
+                }
+                
+                doc.moveDown();
+            }
+
+            // Add query section
+            doc.fontSize(14)
+               .font('Helvetica-Bold')
+               .text('Research Query:', { underline: true })
+               .moveDown(0.5);
+
+            doc.fontSize(12)
+               .font('Helvetica')
+               .text(query, { align: 'justify' })
+               .moveDown();
+
+            // Add answer section
+            doc.fontSize(14)
+               .font('Helvetica-Bold')
+               .text('Research Results:', { underline: true })
+               .moveDown(0.5);
+
+            // Process answer text and handle markdown-style formatting
+            const processedAnswer = processAnswerForPDF(answer);
+            doc.fontSize(11)
+               .font('Helvetica')
+               .text(processedAnswer, { 
+                   align: 'justify',
+                   lineGap: 2
+               })
+               .moveDown();
+
+            // Add sources section if available
+            if (sources && sources.length > 0) {
+                // Check if we need a new page
+                if (doc.y > 650) {
+                    doc.addPage();
+                }
+
+                doc.fontSize(14)
+                   .font('Helvetica-Bold')
+                   .text('Sources and References:', { underline: true })
+                   .moveDown(0.5);
+
+                sources.forEach((source, index) => {
+                    try {
+                        doc.fontSize(10)
+                           .font('Helvetica-Bold')
+                           .text(`[${source.id || index + 1}] ${source.title || 'Untitled Source'}`)
+                           .fontSize(9)
+                           .font('Helvetica');
+                        
+                        if (source.url && source.url !== '#') {
+                            doc.text(source.url, { 
+                                link: source.url,
+                                underline: true,
+                                color: 'blue'
+                            });
+                        }
+                        
+                        if (source.snippet) {
+                            doc.text(source.snippet, { 
+                                indent: 10,
+                                width: 500
+                            });
+                        }
+                        
+                        doc.moveDown(0.5);
+                        
+                        // Add page break if needed and check if document is still valid
+                        if (doc.y > 700) {
+                            doc.addPage();
+                        }
+                    } catch (sourceError) {
+                        console.warn(`Warning: Error adding source ${index + 1}:`, sourceError.message);
+                        // Continue with next source
+                    }
+                });
+            }
+
+            // Add footer to all pages
+            try {
+                const pageRange = doc.bufferedPageRange();
+                const startPage = pageRange.start;
+                const pageCount = pageRange.count;
+                
+                for (let i = 0; i < pageCount; i++) {
+                    const pageIndex = startPage + i;
+                    doc.switchToPage(pageIndex);
+                    doc.fontSize(8)
+                       .font('Helvetica')
+                       .text(
+                           `Page ${i + 1} of ${pageCount} | Generated by AI Research Agent`,
+                           50,
+                           doc.page.height - 30,
+                           { align: 'center' }
+                       );
+                }
+            } catch (footerError) {
+                console.warn('Warning: Could not add footer to all pages:', footerError.message);
+                // Continue without footer rather than failing completely
+            }
+
+            // Finalize the PDF
+            doc.end();
+
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
+const processAnswerForPDF = (answer) => {
+    if (!answer) return 'No answer available.';
+    
+    // Remove markdown formatting for PDF
+    let processed = answer
+        // Remove markdown headers
+        .replace(/#{1,6}\s*/g, '')
+        // Remove markdown bold/italic
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        // Remove markdown links but keep text
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        // Remove markdown code blocks
+        .replace(/```[\s\S]*?```/g, '[Code block removed for PDF]')
+        .replace(/`([^`]+)`/g, '$1')
+        // Clean up extra whitespace
+        .replace(/\n\s*\n/g, '\n\n')
+        .trim();
+    
+    return processed;
+};
+
+const generateFilename = (query) => {
+    // Create a safe filename from the query
+    const sanitized = query
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 50);
+    
+    const timestamp = new Date().toISOString().slice(0, 10);
+    return `research_report_${sanitized}_${timestamp}.pdf`;
+};
+
+// Utility function to save PDF to file system (optional)
+export const savePDFToFile = async (pdfData, outputPath) => {
+    try {
+        const fullPath = path.resolve(outputPath, pdfData.filename);
+        await fs.promises.writeFile(fullPath, pdfData.buffer);
+        console.log(`PDF saved to: ${fullPath}`);
+        return fullPath;
+    } catch (error) {
+        console.error('Error saving PDF to file:', error);
+        throw error;
+    }
+};

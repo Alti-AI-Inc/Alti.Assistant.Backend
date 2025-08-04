@@ -3,7 +3,7 @@ import { ChatGroq } from "@langchain/groq";
 import config from "../../../../config/index.js";
 
 const llm = new ChatGroq({
-  model: "qwen/qwen3-32b",
+  model: "deepseek-r1-distill-llama-70b",
   apiKey: config.groq_api_key,
   temperature: 0,
   maxTokens: undefined,
@@ -226,7 +226,7 @@ OPTIMIZATION RULES:
 - For sports schedules, events, news - ensure the year is ${currentYear}
 
 DATE-AWARE EXAMPLES:
-- "Detroit Tigers game 2023" → "Detroit Tigers game schedule ${currentYear}"
+- "Detroit Tigers game 2023" → "Detroit Tigers game ${currentYear} and after ${currentDateString}"
 - "Latest AI developments 2022" → "Latest AI developments ${currentYear}"
 - "Upcoming events" → "Upcoming events ${currentYear}"
 

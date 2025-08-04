@@ -26,6 +26,7 @@ import { summaryRoutes } from '../modules/summary/summary.route.js';
 import { searchRoute } from '../modules/search/search.route.js';
 import { conversationRoutes } from '../modules/conversations/conversation.route.js';
 import { imageRoutes } from '../modules/image/image.route.js';
+import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
 
 const router = express.Router();
 
@@ -129,6 +130,10 @@ const moduleRoutes = [
   {
     path: '/search',
     route: searchRoute
+  },
+  {
+    path: '/deep-research',
+    route: deepResearchRoute
   },
   {
     path: '/conversations',

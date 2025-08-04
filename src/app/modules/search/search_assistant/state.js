@@ -1,3 +1,5 @@
+import { fi } from "zod/v4/locales";
+
 export const researchAgentState = {
   // The user's current query/message.
   query: { value: null },
@@ -42,4 +44,6 @@ export const researchAgentState = {
 
   // Previous search context to avoid redundant searches
   previousSearchContext: { value: null },
+
+  final_answer: { value: null },
 };
