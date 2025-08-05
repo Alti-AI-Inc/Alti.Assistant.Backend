@@ -27,6 +27,7 @@ import { searchRoute } from '../modules/search/search.route.js';
 import { conversationRoutes } from '../modules/conversations/conversation.route.js';
 import { imageRoutes } from '../modules/image/image.route.js';
 import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
+import { composioV2Routes } from '../modules/composio_v2/composio.route.js';
 
 const router = express.Router();
 
@@ -102,6 +103,10 @@ const moduleRoutes = [
   {
     path: '/composio',
     route: composioRoutes,
+  },
+  {
+    path: '/composio_v2',
+    route: composioV2Routes,
   },
   {
     path: '/cyberdesk',

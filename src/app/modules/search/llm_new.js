@@ -3,7 +3,7 @@ import { ChatGroq } from "@langchain/groq";
 import config from "../../../../config/index.js";
 
 const llm = new ChatGroq({
-  model: "qwen/qwen3-32b",
+  model: "deepseek-r1-distill-llama-70b",
   apiKey: config.groq_api_key,
   temperature: 0,
   maxTokens: undefined,

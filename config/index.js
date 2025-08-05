@@ -41,6 +41,8 @@ export default {
     clientId: process.env.COMPOSIO_CLIENT_ID,
     clientSecret: process.env.COMPOSIO_CLIENT_SECRET,
     apiKey: process.env.COMPOSIO_API_KEY,
+    orgApiKey: process.env.COMPOSIO_ORG_API_KEY,
+    gmailAuthConfigId: process.env.COMPOSIO_GMAIL_AUTH_CONFIG_ID,
   },
   groq_api_key: process.env.GROQ_API_KEY,
   tavily_api_key: process.env.TAVILY_API_KEY,
