@@ -103,9 +103,9 @@ export const performDeepResearch = catchAsync(async (req, res) => {
         // Prepare response
         const response = {
             success: true,
-            query: result.query,
+            // query: result.query,
             answer: result.answer,
-            classification: result.classification,
+            // classification: result.classification,
             sources: result.sources,
             promisingLeads: result.promisingLeads,
             deepDiveResults: result.deepDiveResults,
