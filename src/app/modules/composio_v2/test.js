@@ -1,0 +1,130 @@
+/**
+ * Test file for AI Classification Module
+ * This file demonstrates how to use the AI classification system
+ */
+
+import { runAIClassificationAgent } from "./ai_classification/workflow.js";
+import { classifyUserIntent } from "./services/aiClassificationService.js";
+
+/**
+ * Test AI classification without execution
+ */
+export const testClassification = async () => {
+  const testInputs = [
+    "Send an email to john@example.com about the project update",
+    // "Create a GitHub issue for the login bug",
+    // "Schedule a meeting for tomorrow at 2 PM",
+    // "Post a tweet about our new product launch",
+    // "Search for React tutorials on YouTube"
+  ];
+
+  console.log("=== Testing AI Classification ===\n");
+
+  for (const input of testInputs) {
+    try {
+      console.log(`Input: "${input}"`);
+      const classification = await classifyUserIntent(input, []);
+      console.log(`App: ${classification.app}`);
+      console.log(`Action: ${classification.action}`);
+      console.log(`Confidence: ${classification.confidence}`);
+      console.log(`Parameters:`, classification.parameters);
+      console.log("---\n");
+    } catch (error) {
+      console.error(`Error classifying "${input}":`, error.message);
+      console.log("---\n");
+    }
+  }
+};
+
+/**
+ * Test full workflow (classification + execution)
+ * Note: This requires proper Composio setup and user connections
+ */
+export const testFullWorkflow = async () => {
+  const testCases = [
+    {
+      input: "Send a test email to test@example.com",
+      userId: "test-user-123",
+      conversationId: "test-conv-456"
+    }
+  ];
+
+  console.log("=== Testing Full Workflow ===\n");
+
+  for (const testCase of testCases) {
+    try {
+      console.log(`Input: "${testCase.input}"`);
+      console.log(`User ID: ${testCase.userId}`);
+      
+      const result = await runAIClassificationAgent(testCase.input, {
+        userId: testCase.userId,
+        conversationId: testCase.conversationId,
+        history: []
+      });
+
+      if (result.success) {
+        console.log("✅ Success!");
+        console.log(`App: ${result.identifiedApp}`);
+        console.log(`Action: ${result.identifiedAction}`);
+        console.log(`Response: ${result.response}`);
+      } else {
+        console.log("❌ Failed!");
+        console.log(`Error: ${result.error}`);
+      }
+      console.log("---\n");
+    } catch (error) {
+      console.error(`Error in full workflow:`, error.message);
+      console.log("---\n");
+    }
+  }
+};
+
+/**
+ * Interactive test function
+ */
+export const testInteractive = async (userInput, userId = "test-user") => {
+  try {
+    console.log(`\n=== Testing Input: "${userInput}" ===`);
+    
+    // Step 1: Test classification
+    console.log("Step 1: Classification");
+    const classification = await classifyUserIntent(userInput, []);
+    console.log(`Classified as: ${classification.app} -> ${classification.action}`);
+    console.log(`Confidence: ${classification.confidence}`);
+    
+    // Step 2: Test full workflow
+    console.log("\nStep 2: Full Workflow");
+    const result = await runAIClassificationAgent(userInput, {
+      userId,
+      conversationId: `test-${Date.now()}`,
+      history: []
+    });
+    
+    if (result.success) {
+      console.log("✅ Workflow completed successfully");
+      console.log(`Final response: ${result.response}`);
+    } else {
+      console.log("❌ Workflow failed");
+      console.log(`Error: ${result.error}`);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("Test failed:", error);
+    throw error;
+  }
+};
+
+// Example usage:
+// To run tests, you can use:
+// 
+// import { testClassification, testInteractive } from './test.js';
+// 
+// // Test classification only
+// await testClassification();
+// 
+// // Test specific input
+// await testInteractive("Create a calendar event for the team meeting");
+// 
+// // Test with specific user
+await testInteractive("Send email to Micheal meram.michael@gmail.com that i am welcoming him in my team", "67c1389dfa1f0fc1dbe9fd64");

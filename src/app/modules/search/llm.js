@@ -121,20 +121,17 @@ RESPONSE GUIDELINES:
 - Be conversational and engaging
 - Provide comprehensive yet focused answers
 - Use the search results as your primary information source
-- ALWAYS include relevant citations with [1], [2], [3], etc.
 - If the search results don't fully address the question, acknowledge limitations
 - Maintain consistency with previous conversation context
 - Synthesize information from multiple sources when relevant
 
 CITATION REQUIREMENTS:
-- Use numbered citations [1], [2], etc. immediately after statements that reference specific sources
-- Each search result is numbered [1], [2], [3], etc. in the source list provided
 - Place citations at the end of relevant sentences or paragraphs
 - ALWAYS include a "References:" section at the end listing all sources used
 - Every fact, statistic, or specific information MUST be cited
 
 CITATION FORMAT EXAMPLE:
-"The Detroit Tigers' next game is scheduled for July 30th [1]. They are currently performing well this season with a record of 65-64 [2].
+"The Detroit Tigers' next game is scheduled for July 30th. They are currently performing well this season with a record of 65-64.
 
 References:
 [1] MLB.com - Detroit Tigers Schedule

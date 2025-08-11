@@ -238,8 +238,14 @@ export const directAnswerNode = async (state) => {
  */
 export const conversationalSynthesisNode = async (state) => {
   console.log('--- Node: conversationalSynthesisNode ---');
-  const { searchResults, metadata, query, history, contextualizedQuery, final_answer } =
-    state;
+  const {
+    searchResults,
+    metadata,
+    query,
+    history,
+    contextualizedQuery,
+    final_answer,
+  } = state;
 
   try {
     // Enhance the state with conversation context for better synthesis
@@ -283,8 +289,13 @@ export const conversationalSynthesisNode = async (state) => {
     console.log('References extracted:', reference.length);
     console.log('Citation metadata created:', citationMetadata);
 
+    //Remove references from the final response. Also remove everything after "References:"
+    finalResponse = finalResponse.replace(/References:[\s\S]*$/i, '').trim();
+
+    console.log('Synthesized response:', finalResponse);
+
     return {
-      answer: final_answer ? final_answer : finalResponse,
+      answer: finalResponse,
       reference,
       citationMetadata, // Add metadata for message storage
       responseType: 'search_synthesis',
