@@ -2,6 +2,12 @@ export const aiClassificationState = {
   // The user's original input/message
   userInput: { value: null },
   
+  // List of available apps from database
+  availableApps: { value: null },
+  
+  // List of available actions for the identified app from database
+  availableActions: { value: null },
+  
   // Classified app/service (e.g., "gmail", "github", "calendar", etc.)
   identifiedApp: { value: null },
   
@@ -31,7 +37,9 @@ export const aiClassificationState = {
   
   // Processing metadata
   metadata: { value: null },
-  
+
+  finalResponse: { value: null },
+
   // Conversation history - accumulates over time
   history: { 
     value: (x, y) => {

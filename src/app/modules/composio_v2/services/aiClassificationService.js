@@ -38,7 +38,7 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps) 
   try {
     console.log(`Executing Composio tools with Groq for user: ${userId}`);
 
-    console.log(`Retrieved ${JSON.stringify(tools)} tools from Composio`);
+    // console.log(`Retrieved ${JSON.stringify(tools)} tools from Composio`);
 
     // Convert Composio tools to LangChain format
     const langchainTools = tools.map((tool) => ({
@@ -99,7 +99,6 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
     });
     console.log(
       'Using connected account:',
-      connectedAccount,
       connectedAccount.items[0]?.id
     );
     const connectedAccountId = connectedAccount.items[0].id;
@@ -116,6 +115,7 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
 
     const response = await llm.invoke(messages);
     console.log('Groq task completed successfully.', response);
+    let finalResponse = ''
     if (response.tool_calls?.length) {
       for (const call of response.tool_calls) {
         console.log(`Processing tool call: ${call.name} with args:`, call.args);
@@ -126,12 +126,14 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
           connectedAccountId: connectedAccountId,
           arguments: call.args,
         });
-        console.log(`Tool call result for ${call.name}:`, result);
+        // console.log(`Tool call result for ${call.name}:`, JSON.stringify(result.data, null, 2));
+        finalResponse += `Tool call result for ${call.name}: ${JSON.stringify(result.data, null, 2)}\n`;
       }
     }
     return {
       content: response.content,
       success: true,
+      tool_call_results: finalResponse
     };
   } catch (error) {
     console.error('Error in runGroqTaskWithTools:', error);
@@ -319,7 +321,7 @@ Respond with a JSON object:
         .replace(/```\s*/, '')
         .replace(/\s*```$/, '');
     }
-
+    console.log('Extracted parameters Cleaned Response:', cleanedResult);
     const parsed = JSON.parse(cleanedResult);
     return parsed.parameters || {};
   } catch (error) {
@@ -336,6 +338,7 @@ export const generateUserResponse = async (
   appName,
   actionName,
   executionResult,
+  finalResponse,
   isError = false
 ) => {
   const systemPrompt = `You are a helpful AI assistant that creates natural, conversational responses for users after completing or attempting to complete their requests.
@@ -352,14 +355,14 @@ Generate responses that are:
     userPrompt = `The user requested: "${userInput}"
 App: ${appName}
 Action: ${actionName}
-Error occurred: ${JSON.stringify(executionResult)}
+Error occurred: ${finalResponse}
 
 Generate a helpful error response that explains what went wrong and suggests next steps.`;
   } else {
     userPrompt = `The user requested: "${userInput}"
 App: ${appName} 
 Action: ${actionName}
-Result: ${JSON.stringify(executionResult, null, 2)}
+Result: ${finalResponse}
 
 Generate a friendly success response that confirms the action was completed and provides relevant details from the result.`;
   }
@@ -447,3 +450,120 @@ Return only the JSON array.`;
 };
 
 export { runGroqTask };
+
+/**
+ * Classify user intent to identify the app from available apps
+ */
+export const classifyAppIntent = async (userInput, availableApps, context = []) => {
+  const systemPrompt = `You are an AI app classifier. Your task is to identify which app the user wants to use based on their input.
+
+Available apps from database:
+${availableApps.map(app => `- ${app}`).join('\n')}
+
+Guidelines:
+1. Analyze the user's input to determine which app they want to interact with
+2. Choose ONLY from the available apps listed above
+3. Consider the context of the conversation if provided
+4. Return your response in JSON format with: {"app": "app_name", "confidence": 0.95, "reasoning": "explanation"}
+5. If you're unsure, choose the most likely app and indicate lower confidence
+6. If no app seems relevant, return {"app": null, "confidence": 0.0, "reasoning": "No relevant app found"}
+7. Only give the json nothing extra
+Context from conversation:
+${context.map(msg => `- ${msg}`).join('\n')}`;
+
+  try {
+    const response = await runGroqTask(userInput, systemPrompt);
+
+    let cleanResponse = ''
+
+    if (response.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanResponse = response.replace(regex, '').trim();
+    }
+    if (cleanResponse.startsWith('```json')) {
+      cleanResponse = cleanResponse
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+    if (cleanResponse.startsWith('```')) {
+      cleanResponse = cleanResponse
+        .replace(/```\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+
+    console.log('Cleaned response:', cleanResponse);
+
+    const parsed = JSON.parse(cleanResponse);
+
+    return {
+      app: parsed.app,
+      confidence: parsed.confidence,
+      reasoning: parsed.reasoning,
+      metadata: {
+        availableAppsCount: availableApps.length,
+        contextLength: context.length
+      }
+    };
+  } catch (error) {
+    console.error('Error in classifyAppIntent:', error);
+    throw new Error('Failed to classify app intent');
+  }
+};
+
+/**
+ * Classify user intent to identify the action from available actions for the app
+ */
+export const classifyActionIntent = async (userInput, appName, availableActions, context = []) => {
+  const systemPrompt = `You are an AI action classifier. Your task is to identify which action the user wants to perform with the "${appName}" app based on their input.
+
+Available actions for "${appName}" app from database:
+${availableActions.map(action => `- ${action.name}: ${action.description || 'No description'}`).join('\n')}
+
+Guidelines:
+1. Analyze the user's input to determine which action they want to perform with the "${appName}" app
+2. Choose ONLY from the available actions listed above
+3. Consider the context of the conversation if provided
+4. Return your response in JSON format with: {"action": "action_name", "confidence": 0.95, "reasoning": "explanation"}
+5. If you're unsure, choose the most likely action and indicate lower confidence
+6. If no action seems relevant, return {"action": null, "confidence": 0.0, "reasoning": "No relevant action found"}
+7. Only give the json nothing extra
+Context from conversation:
+${context.map(msg => `- ${msg}`).join('\n')}`;
+
+  try {
+    const response = await runGroqTask(userInput, systemPrompt);
+
+    let cleanResponse = ''
+
+    if (response.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanResponse = response.replace(regex, '').trim();
+    }
+    if (cleanResponse.startsWith('```json')) {
+      cleanResponse = cleanResponse
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+    if (cleanResponse.startsWith('```')) {
+      cleanResponse = cleanResponse
+        .replace(/```\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+
+    const parsed = JSON.parse(cleanResponse);
+
+    return {
+      action: parsed.action,
+      confidence: parsed.confidence,
+      reasoning: parsed.reasoning,
+      metadata: {
+        appName,
+        availableActionsCount: availableActions.length,
+        contextLength: context.length
+      }
+    };
+  } catch (error) {
+    console.error('Error in classifyActionIntent:', error);
+    throw new Error('Failed to classify action intent');
+  }
+};

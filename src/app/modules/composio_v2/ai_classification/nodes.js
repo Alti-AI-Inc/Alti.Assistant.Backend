@@ -4,15 +4,135 @@ import {
   generateUserResponse,
   filterToolsByRelevance,
   executeComposioWithGroq,
+  classifyAppIntent,
+  classifyActionIntent,
 } from '../services/aiClassificationService.js';
 import { Composio } from '@composio/core';
 import config from '../../../../../config/index.js';
 import ComposionAuth from '../composio.model.js';
 import { LangGraphToolSet } from 'composio-core';
+import Tool from '../tools.model.js';
 
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
+
+/**
+ * Node: Classify user input to identify the app
+ */
+export const classifyAppNode = async (state) => {
+  console.log('--- Node: classifyAppNode ---');
+  const { userInput, history } = state;
+
+  try {
+    // Get all available apps from database
+    const availableApps = await Tool.find({}).distinct('slug');
+    
+    console.log(`Found ${availableApps.length} apps in database:`);
+
+    // Build conversation context for better classification
+    const conversationContext =
+      history.length > 0
+        ? history.slice(-3) // Last 3 messages for context
+        : [];
+
+    console.log(`Classifying user input for app: "${userInput}"`);
+
+    // Use AI to classify the user input to identify the app
+    const appClassification = await classifyAppIntent(
+      userInput,
+      availableApps,
+      conversationContext
+    );
+
+    console.log(`App classification result:`, appClassification);
+
+    return {
+      availableApps,
+      identifiedApp: appClassification.app,
+      confidence: appClassification.confidence,
+      currentStage: 'action_classification',
+      metadata: {
+        ...state.metadata,
+        appClassificationTime: new Date(),
+        ...appClassification.metadata,
+      },
+    };
+  } catch (error) {
+    console.error('Error in classifyAppNode:', error);
+    return {
+      error: {
+        node: 'classifyApp',
+        message: error.message,
+      },
+      currentStage: 'error',
+    };
+  }
+};
+
+/**
+ * Node: Classify user input to identify the action for the identified app
+ */
+export const classifyActionNode = async (state) => {
+  console.log('--- Node: classifyActionNode ---');
+  const { userInput, identifiedApp, history } = state;
+
+  if (!identifiedApp) {
+    return {
+      error: {
+        node: 'classifyAction',
+        message: 'No app identified in previous step',
+      },
+      currentStage: 'error',
+    };
+  }
+
+  try {
+    // Get all available actions for the identified app from database
+    const availableActions = await Tool.find({ slug: identifiedApp }).select('name description');
+    
+    console.log(`Found available actions ${availableActions.length} actions for app "${identifiedApp}":`);
+
+    // Build conversation context for better classification
+    const conversationContext =
+      history.length > 0
+        ? history.slice(-3) // Last 3 messages for context
+        : [];
+
+    console.log(`Classifying user input for action in app "${identifiedApp}": "${userInput}"`);
+
+    // Use AI to classify the user input to identify the action
+    const actionClassification = await classifyActionIntent(
+      userInput,
+      identifiedApp,
+      availableActions,
+      conversationContext
+    );
+
+    console.log(`Action classification result:`, actionClassification);
+
+    return {
+      availableActions,
+      identifiedAction: actionClassification.action,
+      confidence: actionClassification.confidence,
+      currentStage: 'tools_filtering',
+      metadata: {
+        ...state.metadata,
+        actionClassificationTime: new Date(),
+        ...actionClassification.metadata,
+      },
+    };
+  } catch (error) {
+    console.error('Error in classifyActionNode:', error);
+    return {
+      error: {
+        node: 'classifyAction',
+        message: error.message,
+      },
+      currentStage: 'error',
+    };
+  }
+};
 
 /**
  * Node: Classify user input to identify app and action
@@ -101,7 +221,7 @@ export const filterRelevantToolsNode = async (state) => {
       identifiedApp
     );
 
-    console.log(`Connected accounts for ${identifiedApp}:`, connectedAccounts);
+    console.log(`Connected accounts for ${identifiedApp}: ${availableTools}`);
 
     console.log(
       `Found ${availableTools} relevant tools for ${identifiedApp}:${identifiedAction}`
@@ -138,7 +258,7 @@ export const extractParametersNode = async (state) => {
     identifiedAction,
   } = state;
   console.log(
-    `Extracting parameters for ${identifiedApp}:${identifiedAction} with input: "${state}"`
+    `Extracting parameters for ${identifiedApp}:${identifiedAction} with input: `
   );
 
   try {
@@ -198,8 +318,7 @@ export const executeToolNode = async (state) => {
 
   try {
     console.log(
-      `Executing tool for ${identifiedApp}:${identifiedAction} with parameters:`,
-      state
+      `Executing tool for ${identifiedApp}:${identifiedAction} with parameters:`
     );
 
     const primaryTool = relevantTools[0];
@@ -231,6 +350,7 @@ export const executeToolNode = async (state) => {
       executionResult,
       currentStage: 'response_generation',
       connectedAccounts: state.connectedAccounts,
+      finalResponse: executionResult.tool_call_results,
       metadata: {
         ...state.metadata,
         executionTime: new Date(),
@@ -254,9 +374,9 @@ export const executeToolNode = async (state) => {
  */
 export const generateResponseNode = async (state) => {
   console.log('--- Node: generateResponseNode ---');
-  const { userInput, identifiedApp, identifiedAction, executionResult, error } =
+  const { userInput, identifiedApp, identifiedAction, executionResult, error, finalResponse } =
     state;
-
+  console.log('Final response from state:', finalResponse);
   try {
     let response;
 
@@ -273,14 +393,32 @@ export const generateResponseNode = async (state) => {
         userInput,
         identifiedApp,
         identifiedAction,
-        executionResult
+        executionResult,
+        finalResponse
       );
+    }
+
+    let cleanedResult = '';
+    if (response.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanedResult = response.replace(regex, '').trim();
+    }
+
+    if (cleanedResult.startsWith('```json')) {
+      cleanedResult = cleanedResult
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+    if (cleanedResult.startsWith('```')) {
+      cleanedResult = cleanedResult
+        .replace(/```\s*/, '')
+        .replace(/\s*```$/, '');
     }
 
     console.log(`Generated response for user`);
 
     return {
-      response,
+      response: cleanedResult,
       currentStage: 'completed',
       metadata: {
         ...state.metadata,
@@ -315,7 +453,7 @@ const getAvailableToolsForApp = async (user_id, appName, actionKeywords) => {
     );
 
     const allTools = await composio.tools.get(user_id, {
-      toolkits: [appName.toUpperCase()],
+      tools: [actionKeywords],
     });
     const relevantTools = allTools.filter((tool) => {
       console.log(`Checking tool: ${tool.function.name}`, actionKeywords);
@@ -426,13 +564,15 @@ const generateSuccessResponse = async (
   userInput,
   appName,
   actionName,
-  executionResult
+  executionResult,
+  finalResponse
 ) => {
   return await generateUserResponse(
     userInput,
     appName,
     actionName,
     executionResult,
+    finalResponse,
     false
   );
 };

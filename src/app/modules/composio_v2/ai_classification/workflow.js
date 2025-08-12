@@ -1,7 +1,8 @@
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { aiClassificationState } from "./state.js";
 import {
-  classifyUserInputNode,
+  classifyAppNode,
+  classifyActionNode,
   filterRelevantToolsNode,
   extractParametersNode,
   executeToolNode,
@@ -17,15 +18,17 @@ const composio = new Composio({
 const workflow = new StateGraph({ channels: aiClassificationState });
 
 // Add all nodes for the AI classification and tool execution process
-workflow.addNode("classify_input", classifyUserInputNode);
+workflow.addNode("classify_app", classifyAppNode);
+workflow.addNode("classify_action", classifyActionNode);
 workflow.addNode("filter_tools", filterRelevantToolsNode);
 workflow.addNode("extract_parameters", extractParametersNode);
 workflow.addNode("execute_tool", executeToolNode);
 workflow.addNode("generate_response", generateResponseNode);
 
 // Define the workflow edges - Sequential flow for classification and execution
-workflow.addEdge(START, "classify_input");
-workflow.addEdge("classify_input", "filter_tools");
+workflow.addEdge(START, "classify_app");
+workflow.addEdge("classify_app", "classify_action");
+workflow.addEdge("classify_action", "filter_tools");
 workflow.addEdge("filter_tools", "extract_parameters");
 workflow.addEdge("extract_parameters", "execute_tool");
 workflow.addEdge("execute_tool", "generate_response");
@@ -79,6 +82,8 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
     return {
       success: true,
       userInput: result.userInput,
+      availableApps: result.availableApps,
+      availableActions: result.availableActions,
       identifiedApp: result.identifiedApp,
       identifiedAction: result.identifiedAction,
       confidence: result.confidence,

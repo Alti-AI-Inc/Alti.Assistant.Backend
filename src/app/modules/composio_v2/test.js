@@ -127,4 +127,4 @@ export const testInteractive = async (userInput, userId = "test-user") => {
 // await testInteractive("Create a calendar event for the team meeting");
 // 
 // // Test with specific user
-await testInteractive("Send email to Micheal meram.michael@gmail.com that i am welcoming him in my team", "67c1389dfa1f0fc1dbe9fd64");
+await testInteractive("Can you get all the branches of the repository emondarock/ws-eng-conduit-ai-assessment", "6891adec96841647d3bc8047");
