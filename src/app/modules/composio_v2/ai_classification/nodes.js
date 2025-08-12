@@ -22,19 +22,16 @@ const composio = new Composio({
  */
 export const classifyAppNode = async (state) => {
   console.log('--- Node: classifyAppNode ---');
-  const { userInput, history } = state;
+  const { userInput, history, conversationContext, messages } = state;
 
   try {
     // Get all available apps from database
     const availableApps = await Tool.find({}).distinct('slug');
     
-    console.log(`Found ${availableApps.length} apps in database:`);
+    console.log(`Found ${availableApps.length} apps in database:`, availableApps);
 
     // Build conversation context for better classification
-    const conversationContext =
-      history.length > 0
-        ? history.slice(-3) // Last 3 messages for context
-        : [];
+    const recentContext = history.length > 0 ? history.slice(-3) : [];
 
     console.log(`Classifying user input for app: "${userInput}"`);
 
@@ -42,6 +39,7 @@ export const classifyAppNode = async (state) => {
     const appClassification = await classifyAppIntent(
       userInput,
       availableApps,
+      recentContext,
       conversationContext
     );
 
@@ -55,6 +53,7 @@ export const classifyAppNode = async (state) => {
       metadata: {
         ...state.metadata,
         appClassificationTime: new Date(),
+        appClassificationReasoning: appClassification.reasoning,
         ...appClassification.metadata,
       },
     };
@@ -75,7 +74,7 @@ export const classifyAppNode = async (state) => {
  */
 export const classifyActionNode = async (state) => {
   console.log('--- Node: classifyActionNode ---');
-  const { userInput, identifiedApp, history } = state;
+  const { userInput, identifiedApp, history, conversationContext } = state;
 
   if (!identifiedApp) {
     return {
@@ -91,13 +90,10 @@ export const classifyActionNode = async (state) => {
     // Get all available actions for the identified app from database
     const availableActions = await Tool.find({ slug: identifiedApp }).select('name description');
     
-    console.log(`Found available actions ${availableActions.length} actions for app "${identifiedApp}":`);
+    console.log(`Found available actions ${availableActions.length} actions for app "${identifiedApp}":`, availableActions);
 
     // Build conversation context for better classification
-    const conversationContext =
-      history.length > 0
-        ? history.slice(-3) // Last 3 messages for context
-        : [];
+    const recentContext = history.length > 0 ? history.slice(-3) : [];
 
     console.log(`Classifying user input for action in app "${identifiedApp}": "${userInput}"`);
 
@@ -106,19 +102,33 @@ export const classifyActionNode = async (state) => {
       userInput,
       identifiedApp,
       availableActions,
+      recentContext,
       conversationContext
     );
 
     console.log(`Action classification result:`, actionClassification);
 
+    // Update conversation context with new information
+    const updatedConversationContext = {
+      ...conversationContext,
+      lastApp: identifiedApp,
+      lastAction: actionClassification.action,
+      recentTools: [
+        ...(conversationContext.recentTools || []).slice(-2), // Keep last 2 tools
+        `${identifiedApp}_${actionClassification.action}`
+      ]
+    };
+
     return {
       availableActions,
       identifiedAction: actionClassification.action,
       confidence: actionClassification.confidence,
+      conversationContext: updatedConversationContext,
       currentStage: 'tools_filtering',
       metadata: {
         ...state.metadata,
         actionClassificationTime: new Date(),
+        actionClassificationReasoning: actionClassification.reasoning,
         ...actionClassification.metadata,
       },
     };
@@ -374,9 +384,21 @@ export const executeToolNode = async (state) => {
  */
 export const generateResponseNode = async (state) => {
   console.log('--- Node: generateResponseNode ---');
-  const { userInput, identifiedApp, identifiedAction, executionResult, error, finalResponse } =
-    state;
+  const { 
+    userInput, 
+    identifiedApp, 
+    identifiedAction, 
+    executionResult, 
+    error, 
+    finalResponse,
+    history,
+    messages,
+    conversationContext,
+    extractedParameters
+  } = state;
+  
   console.log('Final response from state:', finalResponse);
+  
   try {
     let response;
 
@@ -417,12 +439,59 @@ export const generateResponseNode = async (state) => {
 
     console.log(`Generated response for user`);
 
+    // Update conversation context with completed action
+    const updatedConversationContext = {
+      ...conversationContext,
+      lastParameters: extractedParameters,
+      conversationSummary: `Last action: ${identifiedAction} on ${identifiedApp}`,
+    };
+
+    // Add assistant response to messages
+    const updatedMessages = [
+      ...messages,
+      {
+        role: 'assistant',
+        content: cleanedResult,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          app: identifiedApp,
+          action: identifiedAction,
+          success: !error
+        }
+      }
+    ];
+
+    // Update conversation history
+    const updatedHistory = [
+      ...history,
+      {
+        role: 'user',
+        content: userInput,
+        timestamp: new Date().toISOString()
+      },
+      {
+        role: 'assistant', 
+        content: cleanedResult,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          app: identifiedApp,
+          action: identifiedAction,
+          success: !error
+        }
+      }
+    ];
+
     return {
       response: cleanedResult,
+      finalResponse: cleanedResult,
+      conversationContext: updatedConversationContext,
+      messages: updatedMessages,
+      history: updatedHistory,
       currentStage: 'completed',
       metadata: {
         ...state.metadata,
         responseGenerationTime: new Date(),
+        conversationUpdated: true,
       },
     };
   } catch (error) {

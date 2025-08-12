@@ -88,15 +88,15 @@ export const testInteractive = async (userInput, userId = "test-user") => {
     
     // Step 1: Test classification
     console.log("Step 1: Classification");
-    const classification = await classifyUserIntent(userInput, []);
-    console.log(`Classified as: ${classification.app} -> ${classification.action}`);
-    console.log(`Confidence: ${classification.confidence}`);
+    // const classification = await classifyUserIntent(userInput, []);
+    // console.log(`Classified as: ${classification.app} -> ${classification.action}`);
+    // console.log(`Confidence: ${classification.confidence}`);
     
-    // Step 2: Test full workflow
-    console.log("\nStep 2: Full Workflow");
+    // // Step 2: Test full workflow
+    // console.log("\nStep 2: Full Workflow");
     const result = await runAIClassificationAgent(userInput, {
       userId,
-      conversationId: `test-${Date.now()}`,
+      conversationId: `test-12345678`,
       history: []
     });
     
@@ -127,4 +127,5 @@ export const testInteractive = async (userInput, userId = "test-user") => {
 // await testInteractive("Create a calendar event for the team meeting");
 // 
 // // Test with specific user
-await testInteractive("Can you get all the branches of the repository emondarock/ws-eng-conduit-ai-assessment", "6891adec96841647d3bc8047");
+// await testInteractive("Can you get all the branches of the repository emondarock/ws-eng-conduit-ai-assessment", "6891adec96841647d3bc8047");
+await testInteractive("Can you create a pull request from main to rwa/defect-resolution-v3 the repository emondarock/ws-eng-conduit-ai-assessment", "6891adec96841647d3bc8047");

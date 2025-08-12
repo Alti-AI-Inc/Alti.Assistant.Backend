@@ -40,7 +40,7 @@ export const aiClassificationState = {
 
   finalResponse: { value: null },
 
-  // Conversation history - accumulates over time
+  // Conversation history - accumulates over time with proper memory management
   history: { 
     value: (x, y) => {
       // If x is null/undefined, start with empty array
@@ -52,6 +52,30 @@ export const aiClassificationState = {
     },
     default: () => []
   },
+
+  // Current conversation messages (current turn)
+  messages: {
+    value: (x, y) => {
+      if (!x) return y || [];
+      if (!y) return x;
+      return [...x, ...y];
+    },
+    default: () => []
+  },
+
+  // Conversation context for better understanding
+  conversationContext: {
+    value: null,
+    default: () => ({
+      lastApp: null,
+      lastAction: null,
+      lastParameters: null,
+      recentTools: [],
+      userPreferences: {},
+      conversationSummary: "",
+      turnCount: 0
+    })
+  },
   
   // User ID for personalized tool access
   userId: { value: null },
@@ -60,5 +84,8 @@ export const aiClassificationState = {
   connectedAccounts: { value: null },
   
   // Processing stage
-  currentStage: { value: 'initial' }
+  currentStage: { value: 'initial' },
+
+  // Thread/Conversation ID for checkpointer
+  threadId: { value: null }
 };

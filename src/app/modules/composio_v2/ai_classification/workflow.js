@@ -51,7 +51,8 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
   const {
     userId = null,
     conversationId = null,
-    history = []
+    history = [],
+    retrieveHistory = true
   } = options;
 
   const connectedAccounts = userId
@@ -59,24 +60,67 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
       userIds: [userId]
     })
     : [];
+
+  // Generate or use provided conversation ID
+  const threadId = conversationId || `ai_classification_${userId}_${Date.now()}`;
+  const config = { configurable: { thread_id: threadId } };
+
+  // Retrieve conversation history if requested and conversation exists
+  let conversationHistory = history;
+  let conversationContext = {
+    lastApp: null,
+    lastAction: null,
+    lastParameters: null,
+    recentTools: [],
+    userPreferences: {},
+    conversationSummary: "",
+    turnCount: 0
+  };
+
+  if (retrieveHistory && conversationId) {
+    try {
+      const existingState = await aiClassificationApp.getState(config);
+      if (existingState && existingState.values) {
+        conversationHistory = existingState.values.history || history;
+        conversationContext = existingState.values.conversationContext || conversationContext;
+        console.log(`Retrieved conversation history with ${conversationHistory.length} messages`);
+      }
+    } catch (error) {
+      console.log('No existing conversation found, starting fresh');
+    }
+  }
+
+  // Add current user input to messages
+  const currentMessages = [
+    {
+      role: 'user',
+      content: userInput,
+      timestamp: new Date().toISOString()
+    }
+  ];
+
   const initialState = {
     userInput,
     userId,
-    history,
+    threadId,
+    history: conversationHistory,
+    messages: currentMessages,
+    conversationContext: {
+      ...conversationContext,
+      turnCount: conversationContext.turnCount + 1
+    },
     currentStage: 'initial',
     connectedAccounts: connectedAccounts.items || [],
     metadata: {
       timestamp: new Date(),
-      processingStartTime: new Date()
+      processingStartTime: new Date(),
+      conversationId: threadId,
+      turnNumber: conversationContext.turnCount + 1
     }
   };
 
-  const config = conversationId
-    ? { configurable: { thread_id: conversationId } }
-    : { configurable: { thread_id: `ai_classification_${Date.now()}` } };
-
   try {
-    console.log(`Starting AI classification for input: "${userInput}"`);
+    console.log(`Starting AI classification for input: "${userInput}" (Conversation: ${threadId})`);
     const result = await aiClassificationApp.invoke(initialState, config);
 
     return {
@@ -89,8 +133,12 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
       confidence: result.confidence,
       executionResult: result.executionResult,
       response: result.response,
+      finalResponse: result.finalResponse,
       metadata: result.metadata,
-      conversationId: config.configurable.thread_id,
+      conversationId: threadId,
+      conversationContext: result.conversationContext,
+      history: result.history,
+      messages: result.messages,
       error: result.error || null
     };
   } catch (error) {
@@ -99,7 +147,72 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
       success: false,
       error: error.message,
       userInput,
-      conversationId: config.configurable.thread_id
+      conversationId: threadId
+    };
+  }
+};
+
+// Utility function to get conversation history
+export const getConversationHistory = async (conversationId) => {
+  try {
+    const config = { configurable: { thread_id: conversationId } };
+    const state = await aiClassificationApp.getState(config);
+    
+    if (state && state.values) {
+      return {
+        success: true,
+        history: state.values.history || [],
+        conversationContext: state.values.conversationContext || {},
+        metadata: state.values.metadata || {}
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'Conversation not found'
+    };
+  } catch (error) {
+    console.error('Error retrieving conversation history:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// Utility function to clear conversation history
+export const clearConversationHistory = async (conversationId) => {
+  try {
+    const config = { configurable: { thread_id: conversationId } };
+    // Get current state and reset conversation-specific fields
+    const currentState = await aiClassificationApp.getState(config);
+    
+    if (currentState && currentState.values) {
+      const resetState = {
+        ...currentState.values,
+        history: [],
+        messages: [],
+        conversationContext: {
+          lastApp: null,
+          lastAction: null,
+          lastParameters: null,
+          recentTools: [],
+          userPreferences: {},
+          conversationSummary: "",
+          turnCount: 0
+        }
+      };
+      
+      await aiClassificationApp.updateState(config, resetState);
+      return { success: true, message: 'Conversation history cleared' };
+    }
+    
+    return { success: false, message: 'Conversation not found' };
+  } catch (error) {
+    console.error('Error clearing conversation history:', error);
+    return {
+      success: false,
+      error: error.message
     };
   }
 };
