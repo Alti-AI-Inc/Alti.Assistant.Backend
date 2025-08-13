@@ -34,9 +34,10 @@ const runGroqTask = async (userPrompt, systemPrompt) => {
   }
 };
 
-export const executeComposioWithGroq = async (userId, userMessage, tools, apps) => {
+export const executeComposioWithGroq = async (userId, userMessage, tools, apps, historySummary = null, conversationContext = null) => {
   try {
     console.log(`Executing Composio tools with Groq for user: ${userId}`);
+    console.log('History context available:', !!historySummary);
 
     // console.log(`Retrieved ${JSON.stringify(tools)} tools from Composio`);
 
@@ -47,22 +48,41 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps) 
       parameters: tool.function.parameters,
     }));
 
-    // Create messages for ChatGroq
-    const messages = [
-      new SystemMessage(`You are a helpful assistant that can use various tools to help users. 
+    // Build context-aware system message
+    let systemMessage = `You are a helpful assistant that can use various tools to help users. 
         Available tools: ${langchainTools.map((t) => t.name).join(', ')}.
         Available tools descriptions: ${langchainTools.map((t) => t.description).join(', ')}.
         Available tools parameters: ${JSON.stringify(langchainTools.map((t) => t.parameters), null, 2)}.
-        When you need to use a tool, call it with the appropriate parameters.`),
+        When you need to use a tool, call it with the appropriate parameters.`;
+
+    // Add conversation context if available
+    if (historySummary && historySummary.context) {
+      systemMessage += `\n\nCONVERSATION CONTEXT:
+        - Previous app used: ${historySummary.context.lastApp || 'None'}
+        - Previous action: ${historySummary.context.lastAction || 'None'}
+        - Previous parameters: ${JSON.stringify(historySummary.context.lastParameters || {})}
+        - Recent tools used: ${historySummary.context.recentTools.join(', ') || 'None'}
+        - Conversation summary: ${historySummary.context.conversationSummary || 'New conversation'}
+        - Total conversation turns: ${historySummary.context.totalTurns || 0}
+        
+        RECENT CONVERSATION:`;
+      
+      if (historySummary.recentConversation && historySummary.recentConversation.length > 0) {
+        historySummary.recentConversation.forEach(msg => {
+          systemMessage += `\n        ${msg.role}: ${msg.content}`;
+        });
+      }
+      
+      systemMessage += `\n\nUse this context to better understand the user's current request and maintain continuity with previous actions.`;
+    }
+
+    // Create messages for ChatGroq
+    const messages = [
+      new SystemMessage(systemMessage),
       new HumanMessage(userMessage),
     ];
 
-    console.log(`You are a helpful assistant that can use various tools to help users. 
-        Available tools: ${langchainTools.map((t) => t.name).join(', ')}.
-        Available tools descriptions: ${langchainTools.map((t) => t.description).join(', ')}.
-        Available tools parameters: ${JSON.stringify(langchainTools.map((t) => t.parameters), null, 2)}.
-        When you need to use a tool, call it with the appropriate parameters.`);
-    
+    console.log('System message with context:', systemMessage.substring(0, 500) + '...');
 
     // Execute with ChatGroq
     const response = await runGroqTaskWithTools(messages, tools, userId, apps);

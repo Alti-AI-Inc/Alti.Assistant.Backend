@@ -18,6 +18,40 @@ const composio = new Composio({
 });
 
 /**
+ * Helper: Create a comprehensive history summary for tool execution context
+ */
+const createHistorySummary = (history, conversationContext) => {
+  if (!history || history.length === 0) {
+    return null;
+  }
+
+  const { lastApp, lastAction, lastParameters, recentTools, conversationSummary } = conversationContext || {};
+  
+  // Get recent conversation context (last 3 exchanges)
+  const recentHistory = history.slice(-6); // Last 6 messages (3 exchanges)
+  
+  const historySummary = {
+    recentConversation: recentHistory.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp,
+      metadata: msg.metadata
+    })),
+    context: {
+      lastApp,
+      lastAction, 
+      lastParameters,
+      recentTools: recentTools || [],
+      conversationSummary: conversationSummary || '',
+      totalTurns: history.length / 2 // Approximate conversation turns
+    },
+    summary: `User has been working with: ${recentTools?.join(', ') || 'various tools'}. Recent focus on ${lastApp || 'unknown app'} for ${lastAction || 'unknown action'}.`
+  };
+
+  return historySummary;
+};
+
+/**
  * Node: Classify user input to identify the app
  */
 export const classifyAppNode = async (state) => {
@@ -324,11 +358,15 @@ export const executeToolNode = async (state) => {
     connectedAccounts,
     identifiedApp,
     identifiedAction,
+    history,
+    conversationContext,
+    userInput
   } = state;
 
   try {
     console.log(
-      `Executing tool for ${identifiedApp}:${identifiedAction} with parameters:`
+      `Executing tool for ${identifiedApp}:${identifiedAction} with parameters:`,
+      extractedParameters
     );
 
     const primaryTool = relevantTools[0];
@@ -341,17 +379,23 @@ export const executeToolNode = async (state) => {
       );
     }
 
+    // Create a comprehensive context summary for the execution
+    const historySummary = createHistorySummary(history, conversationContext);
+    
     console.log(
       `Executing tool: ${identifiedApp} with parameters:`,
-      extractedParameters
+      extractedParameters,
+      'with history context:', historySummary
     );
 
-    // Execute the tool using Composio
+    // Execute the tool using Composio with history context
     const executionResult = await executeComposioWithGroq(
       connectedAccount.userId,
-      state.userInput,
+      userInput,
       relevantTools,
-      identifiedApp
+      identifiedApp,
+      historySummary,
+      conversationContext
     );
 
     console.log(`Tool execution completed successfully`);
@@ -365,6 +409,7 @@ export const executeToolNode = async (state) => {
         ...state.metadata,
         executionTime: new Date(),
         toolExecuted: identifiedAction,
+        usedHistoryContext: !!historySummary,
       },
     };
   } catch (error) {

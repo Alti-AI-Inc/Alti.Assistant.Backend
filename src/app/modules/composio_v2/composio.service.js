@@ -1,15 +1,21 @@
 import { Composio } from "@composio/core";
 import config from "../../../../config/index.js";
 import ComposionAuth from './composio.model.js'
+import AuthConfig from "./authConfig.model.js";
 
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 })
 
 const initiateComposioAuth = async (body) => {
-  const { auth_config_id, user_id } = body;
+  const { app_name, user_id } = body;
 
   try {
+
+    const auth_config = await AuthConfig.findOne({ app: app_name });
+    console.log(`Found Auth Config for app ${app_name}:`, auth_config);
+
+    const auth_config_id = auth_config ? auth_config.authConfigId : null;
 
     const connectionUrl = await composio.connectedAccounts.initiate(
       user_id,

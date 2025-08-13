@@ -1,11 +1,13 @@
 import { composioService } from "./composio.service.js";
 
 const composioInitiateController = async (req, res) => {
-  const { auth_config_id, user_id } = req.body;
+  console.log('Initiating Composio Auth...', req.body);
+
+  const { app_name, user_id } = req.body;
 
   try {
     const connectionUrl = await composioService.initiateComposioAuth({
-      auth_config_id,
+      app_name,
       user_id
     });
     res.status(200).json({ connectionUrl });
