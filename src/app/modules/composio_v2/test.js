@@ -87,6 +87,22 @@ const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
 
+
+const getAllConnectedUser = async () => {
+  console.log('Getting all connected users for Gmail...');
+
+  const connectedUsers = await composio.connectedAccounts.list({
+    appNames: 'gmail',
+    status: 'ACTIVE',
+    toolkitSlugs: ['gmail']
+  });
+  for (const user of connectedUsers.items) {
+    console.log(`Connected user: ${user.id} toolkit is ${JSON.stringify(user.toolkit)}`);
+  }
+  console.log('Connected users:', connectedUsers);
+
+}
+
 const createAuthConfig = async () => {
   const apps = await Tool.find({}).distinct('slug');
 
@@ -169,4 +185,4 @@ export const testInteractive = async (userInput, userId = 'test-user') => {
 //   '6891adec96841647d3bc8047'
 // );
 
-await createAuthConfig();
+await getAllConnectedUser();

@@ -6,13 +6,16 @@ import {
   executeComposioWithGroq,
   classifyAppIntent,
   classifyActionIntent,
+  identifyRequiredApps,
+  createExecutionPlan,
+  extractCrossStepParameters,
 } from '../services/aiClassificationService.js';
 import { Composio } from '@composio/core';
 import config from '../../../../../config/index.js';
 import ComposionAuth from '../composio.model.js';
 import { LangGraphToolSet } from 'composio-core';
 import Tool from '../tools.model.js';
-
+import fs from 'fs';
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
@@ -62,7 +65,7 @@ export const classifyAppNode = async (state) => {
     // Get all available apps from database
     const availableApps = await Tool.find({}).distinct('slug');
     
-    console.log(`Found ${availableApps.length} apps in database:`, availableApps);
+    console.log(`Found ${availableApps.length} apps in database:`);
 
     // Build conversation context for better classification
     const recentContext = history.length > 0 ? history.slice(-3) : [];
@@ -77,7 +80,7 @@ export const classifyAppNode = async (state) => {
       conversationContext
     );
 
-    console.log(`App classification result:`, appClassification);
+    // console.log(`App classification result:`, appClassification);
 
     return {
       availableApps,
@@ -124,7 +127,7 @@ export const classifyActionNode = async (state) => {
     // Get all available actions for the identified app from database
     const availableActions = await Tool.find({ slug: identifiedApp }).select('name description');
     
-    console.log(`Found available actions ${availableActions.length} actions for app "${identifiedApp}":`, availableActions);
+    console.log(`Found available actions ${availableActions.length} actions for app "${identifiedApp}":`);
 
     // Build conversation context for better classification
     const recentContext = history.length > 0 ? history.slice(-3) : [];
@@ -401,6 +404,7 @@ export const executeToolNode = async (state) => {
     console.log(`Tool execution completed successfully`);
 
     return {
+      ...state,
       executionResult,
       currentStage: 'response_generation',
       connectedAccounts: state.connectedAccounts,
@@ -702,4 +706,376 @@ const generateErrorResponse = async (error, appName, actionName) => {
     error,
     true
   );
+};
+
+// =====================================================
+// NEW MULTI-STEP WORKFLOW NODES
+// =====================================================
+
+/**
+ * Node: Plan multi-step workflow
+ * Analyzes user input to identify required apps and create execution plan
+ */
+export const planWorkflowNode = async (state) => {
+  console.log('--- Node: planWorkflowNode ---');
+  const { userInput, history, conversationContext } = state;
+
+  console.log(`User Input: ${userInput}`);
+  // console.log(`Conversation Context: ${JSON.stringify(state.connectedAccounts)}`);
+
+  try {
+    // Step 1: Get all available apps from database
+    const availableApps = await Tool.find({}).distinct('slug');
+    console.log(`Found ${availableApps.length} available apps:`);
+
+    // Step 2: Identify required apps for this request
+    const recentContext = history.length > 0 ? history.slice(-3) : [];
+    const appIdentification = await identifyRequiredApps(userInput, availableApps, recentContext);
+    
+    console.log('App identification result:', appIdentification);
+
+    // Step 3: If single-step workflow, use existing flow
+    if (appIdentification.workflowType === 'single_step' || appIdentification.requiredApps.length <= 1) {
+      return {
+        workflowType: 'single_step',
+        requiredApps: appIdentification.requiredApps,
+        planningMetadata: {
+          reasoning: appIdentification.reasoning,
+          confidence: appIdentification.confidence,
+          planningTime: new Date()
+        },
+        currentStage: 'single_step_classification'
+      };
+    }
+
+    // Step 4: For multi-step workflow, get actions for all required apps
+    const actionsMap = {};
+    for (const app of appIdentification.requiredApps) {
+      const actions = await Tool.find({ slug: app }).select('name description');
+      actionsMap[app] = actions;
+    }
+
+    console.log('Actions map for required apps:');
+
+    // Step 5: Create execution plan
+    const planResult = await createExecutionPlan(
+      userInput,
+      appIdentification.requiredApps,
+      actionsMap,
+      recentContext
+    );
+
+    console.log('Execution plan created:', planResult);
+
+    // Step 6: Extract cross-step parameters
+    const parameterResult = await extractCrossStepParameters(
+      userInput,
+      planResult.executionPlan
+    );
+
+    console.log('Cross-step parameters extracted:', parameterResult);
+
+    return {
+      workflowType: 'multi_step',
+      requiredApps: appIdentification.requiredApps,
+      executionPlan: planResult.executionPlan,
+      totalSteps: planResult.totalSteps,
+      currentStep: 0,
+      stepResults: [],
+      dependencyGraph: planResult.dependencyGraph,
+      crossStepParameters: parameterResult.stepParameters,
+      connectedAccounts: state.connectedAccounts,
+      planningMetadata: {
+        reasoning: `${appIdentification.reasoning}. ${planResult.reasoning}`,
+        confidence: appIdentification.confidence,
+        planningTime: new Date(),
+        executionType: planResult.executionType
+      },
+      currentStage: 'workflow_validation'
+    };
+
+  } catch (error) {
+    console.error('Error in planWorkflowNode:', error);
+    return {
+      error: {
+        node: 'planWorkflow',
+        message: error.message,
+      },
+      currentStage: 'error',
+    };
+  }
+};
+
+/**
+ * Node: Validate workflow plan
+ * Checks if all required apps are connected and plan is executable
+ */
+export const validatePlanNode = async (state) => {
+  console.log('--- Node: validatePlanNode ---');
+  const { requiredApps, executionPlan, connectedAccounts } = state;
+
+  try {
+    // Check if all required apps have connected accounts
+    const connectedAppSlugs = connectedAccounts?.map(acc => acc.toolkit.slug) || [];
+    console.log('Connected app slugs:', connectedAppSlugs);
+
+    const missingConnections = requiredApps.filter(app => !connectedAppSlugs.includes(app));
+
+    if (missingConnections.length > 0) {
+      return {
+        error: {
+          node: 'validatePlan',
+          message: `Missing connections for apps: ${missingConnections.join(', ')}. Please connect these apps first.`,
+          missingConnections
+        },
+        currentStage: 'error'
+      };
+    }
+
+    // Validate execution plan structure
+    if (!executionPlan || executionPlan.length === 0) {
+      return {
+        error: {
+          node: 'validatePlan',
+          message: 'Invalid or empty execution plan',
+        },
+        currentStage: 'error'
+      };
+    }
+
+    console.log('Workflow validation successful. Ready to execute.');
+
+    return {
+      ...state,
+      connectedAccounts: state.connectedAccounts,
+      validationResult: {
+        valid: true,
+        connectedApps: connectedAppSlugs,
+        planSteps: executionPlan.length
+      },
+      currentStage: 'step_execution'
+    };
+
+  } catch (error) {
+    console.error('Error in validatePlanNode:', error);
+    return {
+      error: {
+        node: 'validatePlan',
+        message: error.message,
+      },
+      currentStage: 'error',
+    };
+  }
+};
+
+/**
+ * Node: Execute current step in multi-step workflow
+ */
+export const executeStepNode = async (state) => {
+  console.log('--- Node: executeStepNode ---');
+  const { 
+    userInput, 
+    executionPlan, 
+    currentStep, 
+    stepResults, 
+    crossStepParameters,
+    connectedAccounts,
+    history,
+    conversationContext
+  } = state;
+
+  try {
+    if (!executionPlan || currentStep >= executionPlan.length) {
+      return {
+        workflowComplete: true,
+        currentStage: 'workflow_completion'
+      };
+    }
+
+    const currentStepPlan = executionPlan[currentStep];
+    console.log(`Executing step ${currentStep + 1}/${executionPlan.length}:`, currentStepPlan);
+
+    console.log('Step Result', state.lastStepResult);
+
+    // Get parameters for current step
+    let stepParameters = crossStepParameters[currentStep + 1] || {};
+    
+    // Map data from previous steps
+    if (currentStepPlan.dependencies && currentStepPlan.dependencies.length > 0) {
+      for (const depStep of currentStepPlan.dependencies) {
+        const prevResult = stepResults[depStep - 1];
+        if (prevResult && currentStepPlan.parameters) {
+          // Map previous step outputs to current step inputs
+          Object.entries(currentStepPlan.parameters).forEach(([key, value]) => {
+            if (typeof value === 'string' && value.startsWith('from_step_')) {
+              const [, stepNum, field] = value.split('.');
+              if (prevResult.data && prevResult.data[field]) {
+                stepParameters[key] = prevResult.data[field];
+              }
+            }
+          });
+        }
+      }
+    }
+
+    // Merge with plan parameters
+    stepParameters = { ...currentStepPlan.parameters, ...stepParameters };
+
+    console.log('Step parameters:', stepParameters);
+    console.log('Connected accounts:', connectedAccounts);
+
+    // Find connected account for this app
+    const connectedAccount = connectedAccounts?.find(acc => acc.toolkit.slug === currentStepPlan.app);
+    if (!connectedAccount) {
+      throw new Error(`No connected account found for ${currentStepPlan.app}`);
+    }
+    console.log(`Using connected account for ${currentStepPlan.app}:`, connectedAccount);
+    const account = await ComposionAuth.findOne({
+      connectedAccountId: connectedAccount.id
+    });
+    // Execute the tool
+    const primaryTool = currentStepPlan.action;
+    const historySummary = createHistorySummary(history, conversationContext);
+    const tool = await composio.tools.get(account.userId, {
+      tools: [primaryTool],
+    })
+
+    const executionResult = await executeComposioWithGroq(
+      account.userId,
+      `${currentStepPlan.description}: ${JSON.stringify(stepParameters)}`,
+      tool,
+      currentStepPlan.app,
+      historySummary
+    );
+
+    console.log(`Step ${currentStep + 1} execution result:`, executionResult);
+
+    // Store step result
+    const stepResult = {
+      step: currentStep + 1,
+      app: currentStepPlan.app,
+      action: currentStepPlan.action,
+      parameters: stepParameters,
+      result: executionResult,
+      timestamp: new Date()
+    };
+
+    const updatedStepResults = [...stepResults, stepResult];
+
+    return {
+      ...state,
+      stepResults: updatedStepResults,
+      currentStep: currentStep + 1,
+      lastStepResult: stepResult,
+      currentStage: 'step_execution',
+      
+    };
+
+  } catch (error) {
+    console.error('Error in executeStepNode:', error);
+    return {
+      error: {
+        node: 'executeStep',
+        step: currentStep + 1,
+        message: error.message,
+      },
+      currentStage: 'error',
+    };
+  }
+};
+
+/**
+ * Node: Check if workflow is complete
+ */
+export const checkCompletionNode = async (state) => {
+  console.log('--- Node: checkCompletionNode ---');
+  const { executionPlan, currentStep, stepResults } = state;
+  fs.writeFileSync('executionPlan.json', JSON.stringify(state));
+  try {
+    console.log('Checking workflow completion...', currentStep, executionPlan.length);
+
+    const isComplete = currentStep >= executionPlan.length;
+    
+    if (isComplete) {
+      console.log('Workflow completed successfully');
+      return {
+        ...state,
+        workflowComplete: true,
+        currentStage: 'aggregation',
+      };
+    } else {
+      console.log(`Workflow continuing to step ${currentStep + 1}/${executionPlan.length}`);
+      return {
+        workflowComplete: false,
+        currentStage: 'step_execution'
+      };
+    }
+
+  } catch (error) {
+    console.error('Error in checkCompletionNode:', error);
+    return {
+      error: {
+        node: 'checkCompletion',
+        message: error.message,
+      },
+      currentStage: 'error',
+    };
+  }
+};
+
+/**
+ * Node: Aggregate results from all workflow steps
+ */
+export const aggregateResultsNode = async (state) => {
+  console.log('--- Node: aggregateResultsNode ---');
+  const { userInput, stepResults, executionPlan, planningMetadata } = state;
+
+  try {
+    // Aggregate all step results
+    const aggregatedResults = stepResults.map(step => ({
+      step: step.step,
+      app: step.app,
+      action: step.action,
+      success: step.result.success,
+      data: step.result.tool_call_results || step.result.content
+    }));
+
+    // Generate comprehensive response
+    const finalResponse = await generateUserResponse(
+      userInput,
+      'multi_step_workflow',
+      'workflow_execution',
+      {
+        totalSteps: executionPlan.length,
+        stepResults: aggregatedResults,
+        workflowType: 'multi_step',
+        planning: planningMetadata
+      },
+      false
+    );
+
+    console.log('Workflow aggregation completed');
+
+    return {
+      aggregatedResults,
+      response: finalResponse,
+      executionResult: {
+        success: true,
+        totalSteps: executionPlan.length,
+        completedSteps: stepResults.length,
+        stepResults: aggregatedResults
+      },
+      currentStage: 'response_generation'
+    };
+
+  } catch (error) {
+    console.error('Error in aggregateResultsNode:', error);
+    return {
+      error: {
+        node: 'aggregateResults',
+        message: error.message,
+      },
+      currentStage: 'error',
+    };
+  }
 };

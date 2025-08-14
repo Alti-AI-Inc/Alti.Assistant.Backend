@@ -40,6 +40,18 @@ export const aiClassificationState = {
 
   finalResponse: { value: null },
 
+  workflowType: { value: null },
+
+  // Multi-step workflow fields
+  executionPlan: { value: null },           // Array of planned steps
+  currentStep: { value: 0 },                // Current execution step index
+  stepResults: { value: [] },               // Results from completed steps
+  dependencyGraph: { value: null },         // Step dependencies and data flow
+  planningMetadata: { value: null },        // Planning context and reasoning
+  requiredApps: { value: null },            // All apps identified for the workflow
+  crossStepParameters: { value: {} },       // Parameters that flow between steps
+  workflowComplete: { value: false },       // Flag to indicate workflow completion
+
   // Conversation history - accumulates over time with proper memory management
   history: { 
     value: (x, y) => {
@@ -87,5 +99,7 @@ export const aiClassificationState = {
   currentStage: { value: 'initial' },
 
   // Thread/Conversation ID for checkpointer
-  threadId: { value: null }
+  threadId: { value: null },
+
+  lastStepResult: { value: null }
 };

@@ -21,7 +21,7 @@ const llm = new ChatGroq({
 
 const runGroqTask = async (userPrompt, systemPrompt) => {
   try {
-    console.log('Running Groq task with user prompt:', userPrompt);
+    // console.log('Running Groq task with user prompt:', userPrompt);
     const response = await llm.invoke([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -36,7 +36,7 @@ const runGroqTask = async (userPrompt, systemPrompt) => {
 
 export const executeComposioWithGroq = async (userId, userMessage, tools, apps, historySummary = null, conversationContext = null) => {
   try {
-    console.log(`Executing Composio tools with Groq for user: ${userId}`);
+    console.log(`Executing Composio tools with Groq for user: ${userId} ${userMessage}`);
     console.log('History context available:', !!historySummary);
 
     // console.log(`Retrieved ${JSON.stringify(tools)} tools from Composio`);
@@ -53,6 +53,17 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
         Available tools: ${langchainTools.map((t) => t.name).join(', ')}.
         Available tools descriptions: ${langchainTools.map((t) => t.description).join(', ')}.
         Available tools parameters: ${JSON.stringify(langchainTools.map((t) => t.parameters), null, 2)}.
+        
+        IMPORTANT RULES FOR TOOL CALLS:
+        1. NEVER set required parameters to null, undefined, or empty values
+        2. If a required parameter is missing from user input, infer a reasonable default or ask for clarification
+        3. For email tools: always provide a subject line if not specified (use a relevant default)
+        4. For missing required fields, use these defaults:
+           - subject: "Your [action] request" (e.g., "Your email request")
+           - recipient_email: extract from user input or use provided email
+           - body: create relevant content based on user intent
+        5. Only call tools when you have all required parameters with valid non-null values
+        
         When you need to use a tool, call it with the appropriate parameters.`;
 
     // Add conversation context if available
@@ -82,7 +93,7 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
       new HumanMessage(userMessage),
     ];
 
-    console.log('System message with context:', systemMessage.substring(0, 500) + '...');
+    // console.log('System message with context:', systemMessage.substring(0, 500) + '...');
 
     // Execute with ChatGroq
     const response = await runGroqTaskWithTools(messages, tools, userId, apps);
@@ -96,6 +107,8 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
 
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
+import Tool from '../tools.model.js';
+import ComposioAuth from '../composio.model.js';
 function jsonSchemaToZod(jsonSchema) {
   // For simplicity, handle only object schemas here
   if (jsonSchema.type === 'object' && jsonSchema.properties) {
@@ -120,17 +133,17 @@ function jsonSchemaToZod(jsonSchema) {
 }
 export const runGroqTaskWithTools = async (messages, tools = [], userId, app) => {
   try {
-    console.log('Running Groq task with Composio tools...', app);
-    const connectedAccount = await composio.connectedAccounts.list({
-      user_uuid: userId,
-      appNames: app,
-      status: 'ACTIVE',
+    console.log('Running Groq task with Composio tools...', app, userId);
+    const connectedAccount = await ComposioAuth.findOne({
+      userId: userId,
+      'toolkit.slug': app
     });
     console.log(
       'Using connected account:',
-      connectedAccount.items[0]?.id
+      connectedAccount.id,
+      app
     );
-    const connectedAccountId = connectedAccount.items[0].id;
+    const connectedAccountId = connectedAccount.connectedAccountId;
     console.log('Using connectedAccountId:', connectedAccountId);
     // Wrap each Composio tool into a LangChain DynamicStructuredTool
 
@@ -143,7 +156,7 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
     }).bindTools(tools);
 
     const response = await llm.invoke(messages);
-    console.log('Groq task completed successfully.', response);
+    console.log('Groq task completed successfully.');
     let finalResponse = ''
     if (response.tool_calls?.length) {
       for (const call of response.tool_calls) {
@@ -152,10 +165,57 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
         const tool = tools.find((t) => t.function.name === call.name);
         console.log(`Found tool for ${call.name}:`, tool);
 
+        // Validate and clean arguments - remove null values and add defaults for required fields
+        const cleanedArgs = { ...call.args };
+        
+        // Get tool schema to identify required fields
+        const toolSchema = tool?.function?.parameters;
+        const requiredFields = toolSchema?.required || [];
+        
+        // Remove null/undefined values
+        Object.keys(cleanedArgs).forEach(key => {
+          if (cleanedArgs[key] === null || cleanedArgs[key] === undefined) {
+            delete cleanedArgs[key];
+          }
+        });
+        
+        // Add defaults for missing required fields
+        requiredFields.forEach(field => {
+          if (!cleanedArgs[field]) {
+            switch (field) {
+              case 'subject':
+                cleanedArgs[field] = 'Your request';
+                break;
+              case 'recipient_email':
+                // Try to extract email from original arguments or set a placeholder
+                cleanedArgs[field] = call.args.recipient_email || 'user@example.com';
+                break;
+              case 'body':
+                cleanedArgs[field] = 'This is an automated message based on your request.';
+                break;
+              case 'user_id':
+                cleanedArgs[field] = userId || 'me';
+                break;
+              default:
+                // For other required fields, try to use a sensible default
+                if (toolSchema?.properties?.[field]?.type === 'string') {
+                  cleanedArgs[field] = '';
+                } else if (toolSchema?.properties?.[field]?.type === 'array') {
+                  cleanedArgs[field] = [];
+                } else if (toolSchema?.properties?.[field]?.type === 'boolean') {
+                  cleanedArgs[field] = false;
+                }
+                break;
+            }
+          }
+        });
+
+        console.log(`Cleaned arguments for ${call.name}:`);
+
         const result = await composio.tools.execute(tool.function.name, {
           userId: userId,
           connectedAccountId: connectedAccountId,
-          arguments: call.args,
+          arguments: cleanedArgs,
         });
         // console.log(`Tool call result for ${call.name}:`, JSON.stringify(result.data, null, 2));
         finalResponse += `Tool call result for ${call.name}: ${JSON.stringify(result.data, null, 2)}\n`;
@@ -311,8 +371,14 @@ export const extractToolParameters = async (
 ) => {
   const systemPrompt = `You are an expert parameter extraction system. Extract relevant parameters for API tool execution based on user input.
 
+CRITICAL RULES:
+1. NEVER set parameters to null, undefined, or empty strings for required fields
+2. Always provide sensible defaults for missing required parameters
+3. For email tools, always provide a subject line if not mentioned
+4. Extract all relevant information from user input
+
 Common parameter patterns:
-- Email: to, subject, body, cc, bcc, attachments
+- Email: to/recipient_email, subject, body, cc, bcc, attachments
 - GitHub: title, body, labels, assignees, repository, branch
 - Calendar: title, start_time, end_time, description, attendees, location
 - Social Media: content, message, visibility, tags
@@ -320,8 +386,14 @@ Common parameter patterns:
 
 You must respond with ONLY a valid JSON object containing the parameters.`;
 
+  const toolSchema = tool.function?.parameters;
+  const requiredFields = toolSchema?.required || [];
+  const toolProperties = toolSchema?.properties || {};
+
   const userPrompt = `TOOL: ${tool.name}
 TOOL DESCRIPTION: ${tool.description || 'No description available'}
+REQUIRED FIELDS: ${requiredFields.join(', ')}
+TOOL SCHEMA: ${JSON.stringify(toolProperties, null, 2)}
 
 USER INPUT: "${userInput}"
 
@@ -329,6 +401,13 @@ EXISTING PARAMETERS: ${JSON.stringify(existingParameters)}
 
 Extract the necessary parameters for this tool based on the user input.
 Merge with existing parameters where appropriate.
+Ensure ALL required fields have valid non-null values.
+
+For missing required fields, use these defaults:
+- subject: Create a relevant subject based on the action
+- recipient_email: Extract from user input
+- body: Create relevant content based on user intent
+- user_id: "me"
 
 Respond with a JSON object:
 {
@@ -355,7 +434,7 @@ Respond with a JSON object:
         .replace(/\s*```$/, '');
     }
     const jsonMatch = cleanedResult.match(/```json([\s\S]*?)```/);
-    console.log('JSON match found:', jsonMatch);
+    // console.log('JSON match found:', jsonMatch);
 
     if (jsonMatch) {
       cleanedResult = jsonMatch[1];
@@ -637,4 +716,272 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
     console.error('Error in classifyActionIntent:', error);
     throw new Error('Failed to classify action intent');
   }
+};
+
+/**
+ * Identify all required apps for a complex user intent
+ */
+export const identifyRequiredApps = async (userInput, availableApps, context = []) => {
+  const systemPrompt = `You are an expert app identification system. Analyze user input to identify ALL apps/services needed to complete their request.
+
+User might need multiple apps for complex workflows like:
+- "Get my GitHub issues and email them to john@company.com" → needs: github, gmail
+- "Create a calendar event and post about it on Twitter" → needs: google_calendar, twitter
+- "Search my emails and create a Notion page with the results" → needs: gmail, notion
+
+Available apps: ${availableApps.join(', ')}
+
+You must respond with ONLY a valid JSON object.`;
+
+  const userPrompt = `USER INPUT: "${userInput}"
+
+CONVERSATION CONTEXT: ${JSON.stringify(context)}
+
+Analyze the user input and identify ALL apps that will be needed to complete this request.
+Consider the full workflow from start to finish. Please return only json nothing else
+
+Respond with a JSON object:
+{
+  "required_apps": ["app1", "app2"],
+  "reasoning": "explanation of why these apps are needed",
+  "workflow_type": "single_step|multi_step",
+  "confidence": 0.95
+}`;
+
+  try {
+    const result = await runGroqTask(userPrompt, systemPrompt);
+    let cleanedResult = result;
+    
+    if (result.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanedResult = result.replace(regex, '').trim();
+    }
+
+    if (cleanedResult.startsWith('```json')) {
+      cleanedResult = cleanedResult
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+
+
+    console.log('Cleaned Result:', cleanedResult);
+
+    const match = cleanedResult.match(/```json([\s\S]*?)```/);
+    if (match) {
+      cleanedResult = match[1];
+    }
+    console.log('Cleaned Result After :', cleanedResult);
+    const parsed = JSON.parse(cleanedResult);
+    
+    // Validate structure
+    if (!parsed.required_apps || !Array.isArray(parsed.required_apps)) {
+      throw new Error('Invalid required_apps structure');
+    }
+
+    return {
+      requiredApps: parsed.required_apps,
+      reasoning: parsed.reasoning || '',
+      workflowType: parsed.workflow_type || 'single_step',
+      confidence: parsed.confidence || 0.5
+    };
+  } catch (error) {
+    console.error('Error in identifyRequiredApps:', error);
+    return {
+      requiredApps: [],
+      reasoning: 'Failed to identify required apps',
+      workflowType: 'single_step',
+      confidence: 0.0
+    };
+  }
+};
+
+/**
+ * Create execution plan for multi-step workflow
+ */
+export const createExecutionPlan = async (userInput, requiredApps, actionsMap, context = []) => {
+  const systemPrompt = `You are an expert workflow planning system. Create a detailed execution plan for complex user requests that require multiple apps/services.
+
+You must analyze the user input and create a step-by-step execution plan that:
+1. Identifies the correct sequence of actions
+2. Handles data dependencies between steps
+3. Extracts parameters for each step
+4. Maps output from one step to input of next step
+
+You must respond with ONLY a valid JSON object.`;
+
+  const actionsDescription = Object.entries(actionsMap)
+    .map(([app, actions]) => `${app}: ${actions.map(a => `${a.name} (${a.description})`).join(', ')}`)
+    .join('\n');
+
+  const userPrompt = `USER INPUT: "${userInput}"
+
+REQUIRED APPS: ${requiredApps.join(', ')}
+
+AVAILABLE ACTIONS:
+${actionsDescription}
+
+CONVERSATION CONTEXT: ${JSON.stringify(context)}
+
+Create a detailed execution plan that breaks down the user's request into sequential steps.
+Each step should specify the app, action, parameters, and any data dependencies.
+
+Respond with a JSON object:
+{
+  "plan": [
+    {
+      "step": 1,
+      "app": "github",
+      "action": "list_issues",
+      "description": "Fetch all GitHub issues for the user",
+      "parameters": {
+        "repository": "extracted_from_input_or_user_context",
+        "state": "open"
+      },
+      "dependencies": [],
+      "output_mapping": {
+        "issues_list": "step_2.email_body"
+      }
+    },
+    {
+      "step": 2,
+      "app": "gmail",
+      "action": "send_email",
+      "description": "Send email with GitHub issues",
+      "parameters": {
+        "to": "extracted_from_input",
+        "subject": "Your GitHub Issues",
+        "body": "from_step_1.issues_list"
+      },
+      "dependencies": [1],
+      "output_mapping": {}
+    }
+  ],
+  "total_steps": 2,
+  "execution_type": "sequential",
+  "reasoning": "explanation of the plan"
+}`;
+
+  try {
+    const result = await runGroqTask(userPrompt, systemPrompt);
+    let cleanedResult = result;
+    
+    if (result.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanedResult = result.replace(regex, '').trim();
+    }
+
+    if (cleanedResult.startsWith('```json')) {
+      cleanedResult = cleanedResult
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+
+    const parsed = JSON.parse(cleanedResult);
+    
+    // Validate structure
+    if (!parsed.plan || !Array.isArray(parsed.plan)) {
+      throw new Error('Invalid execution plan structure');
+    }
+
+    return {
+      executionPlan: parsed.plan,
+      totalSteps: parsed.total_steps || parsed.plan.length,
+      executionType: parsed.execution_type || 'sequential',
+      reasoning: parsed.reasoning || '',
+      dependencyGraph: createDependencyGraph(parsed.plan)
+    };
+  } catch (error) {
+    console.error('Error in createExecutionPlan:', error);
+    return {
+      executionPlan: [],
+      totalSteps: 0,
+      executionType: 'sequential',
+      reasoning: 'Failed to create execution plan',
+      dependencyGraph: {}
+    };
+  }
+};
+
+/**
+ * Extract parameters that flow between workflow steps
+ */
+export const extractCrossStepParameters = async (userInput, executionPlan, stepResults = []) => {
+  const systemPrompt = `You are an expert parameter extraction system for multi-step workflows. 
+Extract and map parameters that need to flow between different steps of a workflow.
+
+You must respond with ONLY a valid JSON object.`;
+
+  const userPrompt = `USER INPUT: "${userInput}"
+
+EXECUTION PLAN: ${JSON.stringify(executionPlan)}
+
+COMPLETED STEP RESULTS: ${JSON.stringify(stepResults)}
+
+Extract parameters for the workflow steps, considering:
+1. Direct parameters from user input
+2. Parameters that need to be passed between steps
+3. Default values for missing parameters
+
+Respond with a JSON object:
+{
+  "step_parameters": {
+    "1": {
+      "param_name": "param_value"
+    },
+    "2": {
+      "param_name": "value_from_step_1_or_direct"
+    }
+  },
+  "cross_step_mappings": {
+    "step_1_output_field": "step_2_input_field"
+  }
+}`;
+
+  try {
+    const result = await runGroqTask(userPrompt, systemPrompt);
+    let cleanedResult = result;
+    
+    if (result.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanedResult = result.replace(regex, '').trim();
+    }
+
+    if (cleanedResult.startsWith('```json')) {
+      cleanedResult = cleanedResult
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+
+    const parsed = JSON.parse(cleanedResult);
+    console.log('Extracted cross-step parameters:', parsed);
+
+    return {
+      stepParameters: parsed.step_parameters || {},
+      crossStepMappings: parsed.cross_step_mappings || {}
+    };
+  } catch (error) {
+    console.error('Error in extractCrossStepParameters:', error);
+    return {
+      stepParameters: {},
+      crossStepMappings: {}
+    };
+  }
+};
+
+/**
+ * Helper function to create dependency graph from execution plan
+ */
+const createDependencyGraph = (plan) => {
+  const graph = {};
+  
+  plan.forEach(step => {
+    graph[step.step] = {
+      dependencies: step.dependencies || [],
+      outputs: step.output_mapping || {},
+      app: step.app,
+      action: step.action
+    };
+  });
+  
+  return graph;
 };

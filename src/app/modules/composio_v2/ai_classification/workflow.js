@@ -6,7 +6,12 @@ import {
   filterRelevantToolsNode,
   extractParametersNode,
   executeToolNode,
-  generateResponseNode
+  generateResponseNode,
+  planWorkflowNode,
+  validatePlanNode,
+  executeStepNode,
+  checkCompletionNode,
+  aggregateResultsNode
 } from "./nodes.js";
 import { MongoDBSaver } from "../../code/code_assistant/MongoDBSaver.js";
 import config from "../../../../../config/index.js";
@@ -18,6 +23,13 @@ const composio = new Composio({
 const workflow = new StateGraph({ channels: aiClassificationState });
 
 // Add all nodes for the AI classification and tool execution process
+workflow.addNode("plan_workflow", planWorkflowNode);
+workflow.addNode("validate_plan", validatePlanNode);
+workflow.addNode("execute_step", executeStepNode);
+workflow.addNode("check_completion", checkCompletionNode);
+workflow.addNode("aggregate_results", aggregateResultsNode);
+
+// Legacy single-step nodes (still needed for single-step workflows)
 workflow.addNode("classify_app", classifyAppNode);
 workflow.addNode("classify_action", classifyActionNode);
 workflow.addNode("filter_tools", filterRelevantToolsNode);
@@ -25,13 +37,70 @@ workflow.addNode("extract_parameters", extractParametersNode);
 workflow.addNode("execute_tool", executeToolNode);
 workflow.addNode("generate_response", generateResponseNode);
 
-// Define the workflow edges - Sequential flow for classification and execution
-workflow.addEdge(START, "classify_app");
+// Define the workflow edges with conditional routing
+workflow.addEdge(START, "plan_workflow");
+
+// Conditional routing based on workflow type
+workflow.addConditionalEdges(
+  "plan_workflow",
+  (state) => {
+    console.log('Routing from plan_workflow, state:', { 
+      workflowType: state.workflowType, 
+      error: state.error,
+      currentStage: state.currentStage 
+    });
+    
+    if (state.error) return "error";
+    if (state.workflowType === "single_step") return "single_step";
+    if (state.workflowType === "multi_step") return "multi_step";
+    
+    // Default fallback
+    console.log('Defaulting to single_step workflow');
+    return "single_step";
+  },
+  {
+    single_step: "classify_app",
+    multi_step: "validate_plan", 
+    error: "generate_response"
+  }
+);
+
+// Multi-step workflow path
+workflow.addEdge("validate_plan", "execute_step");
+workflow.addEdge("execute_step", "check_completion");
+
+// Loop back to execute_step if more steps needed
+workflow.addConditionalEdges(
+  "check_completion",
+  (state) => {
+    console.log('Routing from check_completion, state:', { 
+      workflowComplete: state.workflowComplete, 
+      error: state.error,
+      currentStep: state.currentStep,
+      totalSteps: state.executionPlan?.length 
+    });
+    
+    if (state.error) return "error";
+    if (state.workflowComplete) return "complete";
+    return "continue";
+  },
+  {
+    continue: "execute_step",
+    complete: "aggregate_results",
+    error: "generate_response"
+  }
+);
+
+workflow.addEdge("aggregate_results", "generate_response");
+
+// Single-step workflow path (legacy)
 workflow.addEdge("classify_app", "classify_action");
 workflow.addEdge("classify_action", "filter_tools");
 workflow.addEdge("filter_tools", "extract_parameters");
 workflow.addEdge("extract_parameters", "execute_tool");
 workflow.addEdge("execute_tool", "generate_response");
+
+// All paths end at response generation
 workflow.addEdge("generate_response", END);
 
 // Initialize MongoDB checkpointer for conversation persistence
@@ -111,6 +180,18 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
     },
     currentStage: 'initial',
     connectedAccounts: connectedAccounts.items || [],
+    
+    // Multi-step workflow fields
+    workflowType: null,
+    requiredApps: null,
+    executionPlan: null,
+    currentStep: 0,
+    stepResults: [],
+    dependencyGraph: null,
+    planningMetadata: null,
+    crossStepParameters: {},
+    workflowComplete: false,
+    
     metadata: {
       timestamp: new Date(),
       processingStartTime: new Date(),
@@ -126,11 +207,25 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
     return {
       success: true,
       userInput: result.userInput,
+      workflowType: result.workflowType,
+      
+      // Single-step results (legacy)
       availableApps: result.availableApps,
       availableActions: result.availableActions,
       identifiedApp: result.identifiedApp,
       identifiedAction: result.identifiedAction,
       confidence: result.confidence,
+      
+      // Multi-step workflow results
+      requiredApps: result.requiredApps,
+      executionPlan: result.executionPlan,
+      currentStep: result.currentStep,
+      stepResults: result.stepResults,
+      totalSteps: result.totalSteps,
+      planningMetadata: result.planningMetadata,
+      aggregatedResults: result.aggregatedResults,
+      
+      // Common results
       executionResult: result.executionResult,
       response: result.response,
       finalResponse: result.finalResponse,

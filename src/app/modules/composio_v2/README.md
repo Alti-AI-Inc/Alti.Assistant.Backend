@@ -4,11 +4,16 @@ This module provides AI-powered user input classification and automatic tool exe
 
 ## Features
 
+- **🔄 Multi-Step Workflow Orchestration**: Automatically plans and executes complex workflows requiring multiple apps
 - **AI-Powered Classification**: Automatically identifies the app and action from natural language input
+- **🎯 Intelligent App Discovery**: Identifies all required apps for complex user requests
+- **📋 Execution Planning**: Creates detailed step-by-step plans with dependency management
+- **🔗 Cross-Step Parameter Mapping**: Seamlessly passes data between workflow steps
 - **Tool Filtering**: Finds and filters relevant tools for the identified request
 - **Parameter Extraction**: Extracts necessary parameters from user input using AI
 - **Automatic Execution**: Executes the appropriate Composio tool with extracted parameters
 - **Conversational Responses**: Generates natural language responses for users
+- **🔄 Backward Compatibility**: Maintains full compatibility with single-step workflows
 
 ## Architecture
 
@@ -138,6 +143,7 @@ Get user's connected accounts for all apps.
 ```javascript
 import { runAIClassificationAgent } from './ai_classification/workflow.js';
 
+// Single-step workflow
 const result = await runAIClassificationAgent(
   "Send an email to team@company.com with subject 'Weekly Update'",
   {
@@ -147,6 +153,37 @@ const result = await runAIClassificationAgent(
 );
 
 console.log(result.response); // "✅ Email sent successfully..."
+```
+
+### Multi-Step Workflow Usage
+```javascript
+// Multi-step workflow
+const result = await runAIClassificationAgent(
+  "Get all my GitHub issues and email them to john@company.com",
+  {
+    userId: "user123",
+    conversationId: "conv456"
+  }
+);
+
+console.log(result.workflowType);     // "multi_step"
+console.log(result.requiredApps);    // ["github", "gmail"]
+console.log(result.totalSteps);      // 2
+console.log(result.stepResults);     // Array of step execution results
+console.log(result.response);        // "✅ Successfully fetched 5 GitHub issues and emailed them to john@company.com"
+```
+
+### Complex Multi-Step Example
+```javascript
+const result = await runAIClassificationAgent(
+  "Search my emails for 'project update', create a calendar event to discuss findings, and notify the team on Slack",
+  { userId: "user123" }
+);
+
+// Automatically creates and executes:
+// Step 1: gmail.search_email (search for 'project update')
+// Step 2: google_calendar.create_event (create discussion meeting)
+// Step 3: slack.send_message (notify team about meeting)
 ```
 
 ### Service Usage
