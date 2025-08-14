@@ -11,7 +11,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
     // Handle both authenticated and guest users
     const isGuest = req.isGuest || !req.user;
     let userId = isGuest ? deepResearchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
-    const { query, generatePdf = false, conversationId, maxDepth = 3 } = req.body;
+    const { message, generatePdf = false, conversationId, maxDepth = 3 } = req.body;
     userId = req.body.userId || userId; // Allow overriding userId from request body
 
     // Skip subscription check for guest users
@@ -29,7 +29,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
         }
     }
 
-    if (!query) {
+    if (!message) {
         return sendResponse(res, {
             statusCode: httpStatus.BAD_REQUEST,
             success: false,
@@ -49,7 +49,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await deepResearchService.handleDeepResearchConversation(userId, conversationId, query, isGuest);
+        const conversation = await deepResearchService.handleDeepResearchConversation(userId, conversationId, message, isGuest);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Get conversation history for context-aware processing
@@ -65,12 +65,12 @@ export const performDeepResearch = catchAsync(async (req, res) => {
         }
 
         // Add user message to conversation
-        await deepResearchService.addDeepResearchQueryMessage(actualConversationId, userId, query, isGuest);
+        await deepResearchService.addDeepResearchQueryMessage(actualConversationId, userId, message, isGuest);
 
-        console.log(`Starting deep research for query: "${query}"`);
+        console.log(`Starting deep research for query: "${message}"`);
 
         // Run the deep research agent
-        const result = await runDeepResearchAgent(query, {
+        const result = await runDeepResearchAgent(message, {
             generatePdf,
             conversationId: actualConversationId,
             maxDepth,
@@ -87,9 +87,9 @@ export const performDeepResearch = catchAsync(async (req, res) => {
 
         // Add assistant response to conversation with enhanced metadata
         const messageMetadata = {
-            sources: result.sources,
-            promisingLeads: result.promisingLeads,
-            deepDiveResults: result.deepDiveResults,
+            reference: result.sources,
+            // promisingLeads: result.promisingLeads,
+            // deepDiveResults: result.deepDiveResults,
             qualityMetrics: result.qualityMetrics,
             knowledgeGraph: result.knowledgeGraph,
             researchProgress: result.researchProgress,
@@ -104,11 +104,15 @@ export const performDeepResearch = catchAsync(async (req, res) => {
         const response = {
             success: true,
             // query: result.query,
-            answer: result.answer,
+            
             // classification: result.classification,
-            sources: result.sources,
-            promisingLeads: result.promisingLeads,
-            deepDiveResults: result.deepDiveResults,
+            
+            responseMessage: {
+                answer: result.answer,
+                reference: result.sources,
+            },
+            // promisingLeads: result.promisingLeads,
+            // deepDiveResults: result.deepDiveResults,
             qualityMetrics: result.qualityMetrics,
             knowledgeGraph: result.knowledgeGraph,
             metadata: result.metadata,

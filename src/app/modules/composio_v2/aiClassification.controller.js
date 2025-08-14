@@ -20,7 +20,25 @@ const classifyAndExecuteController = catchAsync(async (req, res) => {
 
   try {
     // Get conversation history if conversationId is provided
-    const history = []; // This could be retrieved from database if needed
+    let history = [];
+    if (conversationId) {
+      try {
+        const { conversationHelpers } = await import('../conversations/conversation.helpers.js');
+        const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        if (conversation && conversation.messages) {
+          // Get last 10 messages for context
+          history = conversation.messages
+            .slice(-10)
+            .map(msg => ({
+              role: msg.role,
+              content: msg.content
+            }));
+        }
+      } catch (error) {
+        console.log('Could not retrieve conversation history:', error.message);
+        // Continue without history
+      }
+    }
     
     const result = await aiClassificationService.processUserInputService(userInput, {
       userId,
