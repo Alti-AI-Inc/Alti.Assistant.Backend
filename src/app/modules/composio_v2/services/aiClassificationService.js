@@ -1,10 +1,11 @@
 import { ChatGroq } from '@langchain/groq';
 import config from '../../../../../config/index.js';
 import { AgentExecutor, createReactAgent } from 'langchain/agents';
-import { Composio } from '@composio/core';
+import { Composio, OpenAIProvider } from '@composio/core';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
+  provider: new OpenAIProvider(),
 });
 /**
  * AI Classification Service using Groq
@@ -26,18 +27,27 @@ const runGroqTask = async (userPrompt, systemPrompt) => {
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ]);
-    console.log('Groq task completed successfully.');
+    // console.log('Groq task completed successfully.');
     return response.content;
   } catch (error) {
     console.error('Error running Groq task:', error);
     throw new Error('Failed to run Groq task');
   }
 };
-
+import fs from 'fs';
 export const executeComposioWithGroq = async (userId, userMessage, tools, apps, historySummary = null, conversationContext = null) => {
   try {
-    console.log(`Executing Composio tools with Groq for user: ${userId} ${userMessage}`);
-    console.log('History context available:', !!historySummary);
+    // console.log(`Executing Composio tools with Groq for user: ${userId} ${userMessage}`);
+    // console.log('History context available:', !!historySummary);
+
+    // fs.writeFileSync(`${userId}_history.json`, JSON.stringify({
+    //   userId,
+    //   userMessage,
+    //   tools,
+    //   apps,
+    //   historySummary,
+    //   conversationContext
+    // }, null, 2));
 
     // console.log(`Retrieved ${JSON.stringify(tools)} tools from Composio`);
 
@@ -47,7 +57,9 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
       description: tool.function.description,
       parameters: tool.function.parameters,
     }));
-
+    // console.log('LangChain tools:', langchainTools[0].parameters);
+    console.log('Tool length', tools.length);
+    
     // Build context-aware system message
     let systemMessage = `You are a helpful assistant that can use various tools to help users. 
         Available tools: ${langchainTools.map((t) => t.name).join(', ')}.
@@ -55,7 +67,7 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
         Available tools parameters: ${JSON.stringify(langchainTools.map((t) => t.parameters), null, 2)}.
         
         IMPORTANT RULES FOR TOOL CALLS:
-        1. NEVER set required parameters to null, undefined, or empty values
+        1. NEVER set parameters to null, undefined, or empty values
         2. If a required parameter is missing from user input, infer a reasonable default or ask for clarification
         3. For email tools: always provide a subject line if not specified (use a relevant default)
         4. For missing required fields, use these defaults:
@@ -90,13 +102,17 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
     // Create messages for ChatGroq
     const messages = [
       new SystemMessage(systemMessage),
-      new HumanMessage(userMessage),
+      new HumanMessage(systemMessage),
     ];
 
     // console.log('System message with context:', systemMessage.substring(0, 500) + '...');
 
     // Execute with ChatGroq
-    const response = await runGroqTaskWithTools(messages, tools, userId, apps);
+    const response = await runGroqTaskWithTools([{
+      role: 'user',
+      content: systemMessage + '\n' + userMessage
+    }], tools, userId, apps);
+    console.log('Groq task response:', response);
 
     return response;
   } catch (error) {
@@ -105,128 +121,64 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
   }
 };
 
-import { DynamicStructuredTool } from '@langchain/core/tools';
-import { z } from 'zod';
-import Tool from '../tools.model.js';
 import ComposioAuth from '../composio.model.js';
-function jsonSchemaToZod(jsonSchema) {
-  // For simplicity, handle only object schemas here
-  if (jsonSchema.type === 'object' && jsonSchema.properties) {
-    const shape = {};
-    for (const [key, value] of Object.entries(jsonSchema.properties)) {
-      let zodType;
-      if (value.type === 'string') zodType = z.string();
-      else if (value.type === 'array') zodType = z.array(z.any());
-      else if (value.type === 'boolean') zodType = z.boolean();
-      else if (value.type === 'number' || value.type === 'integer')
-        zodType = z.number();
-      else zodType = z.any();
+import { ChatOpenAI, OpenAIClient } from '@langchain/openai';
+import OpenAI from 'openai';
 
-      if (!(jsonSchema.required || []).includes(key)) {
-        zodType = zodType.optional();
-      }
-      shape[key] = zodType;
-    }
-    return z.object(shape);
-  }
-  return z.any();
-}
 export const runGroqTaskWithTools = async (messages, tools = [], userId, app) => {
   try {
-    console.log('Running Groq task with Composio tools...', app, userId);
+    // console.log('Running Groq task with Composio tools...', app, userId);
     const connectedAccount = await ComposioAuth.findOne({
       userId: userId,
       'toolkit.slug': app
     });
-    console.log(
-      'Using connected account:',
-      connectedAccount.id,
-      app
-    );
+    // console.log(
+    //   'Using connected account:',
+    //   connectedAccount.id,
+    //   app
+    // );
     const connectedAccountId = connectedAccount.connectedAccountId;
-    console.log('Using connectedAccountId:', connectedAccountId);
+    // console.log('Using connectedAccountId:', connectedAccountId);
+    
+    const composioConnectedAccount = await composio.connectedAccounts.list({
+      toolkitSlugs: [app],
+    })
+    // console.log('Composio connected account:', composioConnectedAccount);
+    
+    // Re-fetch tools with explicit connectedAccountId to avoid the warning
+    const toolsWithConnectedAccount = await composio.tools.get(userId, { 
+      tools: tools.map(t => t.function.name),
+      connectedAccountId: connectedAccountId 
+    });
+
+    // console.log('Tools with connected account:', toolsWithConnectedAccount);
+
+
     // Wrap each Composio tool into a LangChain DynamicStructuredTool
+    const openai = new OpenAI({
+      apiKey: config.openai_secret_key,
+    })
+    // console.log('Messages', messages);
 
-    const llm = new ChatGroq({
-      model: 'deepseek-r1-distill-llama-70b',
-      apiKey: config.groq_api_key,
-      temperature: 0,
-      maxTokens: undefined,
-      maxRetries: 2,
-    }).bindTools(tools);
+    const msg = await openai.chat.completions.create({
+      model: 'gpt-5',
+      messages: messages,
+      tools: toolsWithConnectedAccount,
+      max_completion_tokens: 1024
+    })
 
-    const response = await llm.invoke(messages);
-    console.log('Groq task completed successfully.');
-    let finalResponse = ''
-    if (response.tool_calls?.length) {
-      for (const call of response.tool_calls) {
-        console.log(`Processing tool call: ${call.name} with args:`, call.args, tools);
-
-        const tool = tools.find((t) => t.function.name === call.name);
-        console.log(`Found tool for ${call.name}:`, tool);
-
-        // Validate and clean arguments - remove null values and add defaults for required fields
-        const cleanedArgs = { ...call.args };
-        
-        // Get tool schema to identify required fields
-        const toolSchema = tool?.function?.parameters;
-        const requiredFields = toolSchema?.required || [];
-        
-        // Remove null/undefined values
-        Object.keys(cleanedArgs).forEach(key => {
-          if (cleanedArgs[key] === null || cleanedArgs[key] === undefined) {
-            delete cleanedArgs[key];
-          }
-        });
-        
-        // Add defaults for missing required fields
-        requiredFields.forEach(field => {
-          if (!cleanedArgs[field]) {
-            switch (field) {
-              case 'subject':
-                cleanedArgs[field] = 'Your request';
-                break;
-              case 'recipient_email':
-                // Try to extract email from original arguments or set a placeholder
-                cleanedArgs[field] = call.args.recipient_email || 'user@example.com';
-                break;
-              case 'body':
-                cleanedArgs[field] = 'This is an automated message based on your request.';
-                break;
-              case 'user_id':
-                cleanedArgs[field] = userId || 'me';
-                break;
-              default:
-                // For other required fields, try to use a sensible default
-                if (toolSchema?.properties?.[field]?.type === 'string') {
-                  cleanedArgs[field] = '';
-                } else if (toolSchema?.properties?.[field]?.type === 'array') {
-                  cleanedArgs[field] = [];
-                } else if (toolSchema?.properties?.[field]?.type === 'boolean') {
-                  cleanedArgs[field] = false;
-                }
-                break;
-            }
-          }
-        });
-
-        console.log(`Cleaned arguments for ${call.name}:`);
-
-        const result = await composio.tools.execute(tool.function.name, {
-          userId: userId,
-          connectedAccountId: connectedAccountId,
-          arguments: cleanedArgs,
-        });
-        // console.log(`Tool call result for ${call.name}:`, JSON.stringify(result.data, null, 2));
-        finalResponse += `Tool call result for ${call.name}: ${JSON.stringify(result.data, null, 2)}\n`;
-        console.log(`Tool call result for ${call.name}:`, JSON.stringify(result, null, 2));
-
-      }
-    }
-    return {
-      content: response.content,
+    const result = await composio.provider.handleToolCalls(userId, msg, {
+      connectedAccountId
+    })
+    console.log('Tool call result:', {
+      content: result[0].content,
       success: true,
-      tool_call_results: finalResponse
+      tool_call_results: result[0].content
+    });
+    return {
+      content: result[0].content,
+      success: true,
+      tool_call_results: result[0].content
     };
   } catch (error) {
     console.error('Error in runGroqTaskWithTools:', error);
@@ -331,7 +283,7 @@ Classify this input and respond with a JSON object:
         .replace(/\s*```$/, '');
     }
 
-    console.log('Classification result:', cleanedResult);
+    // console.log('Classification result:', cleanedResult);
 
     const parsed = JSON.parse(cleanedResult);
 
@@ -439,7 +391,7 @@ Respond with a JSON object:
     if (jsonMatch) {
       cleanedResult = jsonMatch[1];
     }
-    console.log('Extracted parameters Cleaned Response:', cleanedResult);
+    // console.log('Extracted parameters Cleaned Response:', cleanedResult);
     const parsed = JSON.parse(cleanedResult);
     return parsed.parameters || {};
   } catch (error) {
@@ -620,7 +572,7 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
         .replace(/\s*```$/, '');
     }
 
-    console.log('App classification cleaned response:', cleanResponse);
+    // console.log('App classification cleaned response:', cleanResponse);
 
     const parsed = JSON.parse(cleanResponse);
 
@@ -693,11 +645,11 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
 
     //Remove everything except the json
     const jsonMatch = cleanResponse.match(/```json([\s\S]*?)```/);
-    console.log('JSON match found:', jsonMatch);
+    // console.log('JSON match found:', jsonMatch);
 
     cleanResponse = jsonMatch ? jsonMatch[1] : cleanResponse;
 
-    console.log('Action classification cleaned response:', cleanResponse);
+    // console.log('Action classification cleaned response:', cleanResponse);
 
     const parsed = JSON.parse(cleanResponse);
 
@@ -764,13 +716,13 @@ Respond with a JSON object:
     }
 
 
-    console.log('Cleaned Result:', cleanedResult);
+    // console.log('Cleaned Result:', cleanedResult);
 
     const match = cleanedResult.match(/```json([\s\S]*?)```/);
     if (match) {
       cleanedResult = match[1];
     }
-    console.log('Cleaned Result After :', cleanedResult);
+    // console.log('Cleaned Result After :', cleanedResult);
     const parsed = JSON.parse(cleanedResult);
     
     // Validate structure
@@ -831,7 +783,7 @@ Respond with a JSON object:
     {
       "step": 1,
       "app": "github",
-      "action": "list_issues",
+      "action": "", //It has to be from actionDescriptions action name nothing outside of it.
       "description": "Fetch all GitHub issues for the user",
       "parameters": {
         "repository": "extracted_from_input_or_user_context",
@@ -845,7 +797,7 @@ Respond with a JSON object:
     {
       "step": 2,
       "app": "gmail",
-      "action": "send_email",
+      "action": "", //It has to be from actionDescriptions action name nothing outside of it
       "description": "Send email with GitHub issues",
       "parameters": {
         "to": "extracted_from_input",
@@ -914,7 +866,7 @@ You must respond with ONLY a valid JSON object.`;
   const userPrompt = `USER INPUT: "${userInput}"
 
 EXECUTION PLAN: ${JSON.stringify(executionPlan)}
-
+[]
 COMPLETED STEP RESULTS: ${JSON.stringify(stepResults)}
 
 Extract parameters for the workflow steps, considering:
@@ -953,7 +905,7 @@ Respond with a JSON object:
     }
 
     const parsed = JSON.parse(cleanedResult);
-    console.log('Extracted cross-step parameters:', parsed);
+    // console.log('Extracted cross-step parameters:', parsed);
 
     return {
       stepParameters: parsed.step_parameters || {},
@@ -984,4 +936,113 @@ const createDependencyGraph = (plan) => {
   });
   
   return graph;
+};
+
+/**
+ * Generate execution summary for a completed step
+ */
+export const generateStepExecutionSummary = async (stepResult, executionPlan, currentStepIndex) => {
+  const systemPrompt = `You are an expert workflow summarizer. Generate a concise, actionable summary of a step execution result that will be used as context for subsequent steps.
+
+Focus on:
+1. What was accomplished in this step
+2. Key data/information extracted or generated
+3. Important outcomes that next steps might need
+4. Any relevant context for the overall workflow
+
+Keep the summary concise but informative. This will be passed to the next step as context.`;
+
+  const userPrompt = `STEP EXECUTION SUMMARY REQUEST:
+
+Step ${stepResult.step} Details:
+- App: ${stepResult.app}
+- Action: ${stepResult.action}
+- Description: ${executionPlan[currentStepIndex]?.description || 'No description'}
+- Parameters: ${JSON.stringify(stepResult.parameters)}
+
+Execution Result:
+${JSON.stringify(stepResult.result, null, 2)}
+
+Overall Workflow Context:
+- Total Steps: ${executionPlan.length}
+- Current Step: ${stepResult.step}/${executionPlan.length}
+- Remaining Steps: ${executionPlan.slice(currentStepIndex + 1).map(s => `${s.app}.${s.action}`).join(', ')}
+
+Generate a concise summary of what was accomplished in this step and any key information that should be passed to the next step.
+
+Respond with a JSON object:
+{
+  "summary": "Concise summary of what was accomplished",
+  "key_outputs": {
+    "output_name": "output_value"
+  },
+  "context_for_next_step": "Relevant context for the next step",
+  "status": "success|partial|failed"
+}`;
+
+console.log( `STEP EXECUTION SUMMARY REQUEST:
+
+Step ${stepResult.step} Details:
+- App: ${stepResult.app}
+- Action: ${stepResult.action}
+- Description: ${executionPlan[currentStepIndex]?.description || 'No description'}
+- Parameters: ${JSON.stringify(stepResult.parameters)}
+
+Execution Result:
+${JSON.stringify(stepResult.result, null, 2)}
+
+Overall Workflow Context:
+- Total Steps: ${executionPlan.length}
+- Current Step: ${stepResult.step}/${executionPlan.length}
+- Remaining Steps: ${executionPlan.slice(currentStepIndex + 1).map(s => `${s.app}.${s.action}`).join(', ')}
+
+Generate a concise summary of what was accomplished in this step and any key information that should be passed to the next step.
+
+Respond with a JSON object:
+{
+  "summary": "Concise summary of what was accomplished",
+  "key_outputs": {
+    "output_name": "output_value"
+  },
+  "context_for_next_step": "Relevant context for the next step",
+  "status": "success|partial|failed"
+}`);
+
+
+  try {
+    const result = await runGroqTask(userPrompt, systemPrompt);
+    let cleanedResult = result;
+    
+    if (result.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanedResult = result.replace(regex, '').trim();
+    }
+
+    if (cleanedResult.startsWith('```json')) {
+      cleanedResult = cleanedResult
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    }
+
+    const parsed = JSON.parse(cleanedResult);
+    
+    return {
+      summary: parsed.summary || `Completed ${stepResult.app}.${stepResult.action}`,
+      keyOutputs: parsed.key_outputs || {},
+      contextForNextStep: parsed.context_for_next_step || '',
+      status: parsed.status || 'success',
+      timestamp: new Date(),
+      stepNumber: stepResult.step
+    };
+  } catch (error) {
+    console.error('Error in generateStepExecutionSummary:', error);
+    return {
+      summary: `Completed step ${stepResult.step}: ${stepResult.app}.${stepResult.action}`,
+      keyOutputs: {},
+      contextForNextStep: `Previous step executed ${stepResult.action} on ${stepResult.app}`,
+      status: 'unknown',
+      timestamp: new Date(),
+      stepNumber: stepResult.step
+    };
+  }
 };

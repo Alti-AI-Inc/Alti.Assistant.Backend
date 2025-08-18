@@ -9,6 +9,7 @@ import {
   identifyRequiredApps,
   createExecutionPlan,
   extractCrossStepParameters,
+  generateStepExecutionSummary,
 } from '../services/aiClassificationService.js';
 import { Composio } from '@composio/core';
 import config from '../../../../../config/index.js';
@@ -203,18 +204,18 @@ export const classifyUserInputNode = async (state) => {
       conversationContext
     );
 
-    console.log(`Classification result:`, classification.app, {
-      identifiedApp: classification.app,
-      identifiedAction: classification.action,
-      confidence: classification.confidence,
-      extractedParameters: classification.parameters,
-      currentStage: 'tools_filtering',
-      connectedAccounts: state.connectedAccounts,
-      metadata: {
-        classificationTime: new Date(),
-        ...classification.metadata,
-      },
-    });
+    // console.log(`Classification result:`, classification.app, {
+    //   identifiedApp: classification.app,
+    //   identifiedAction: classification.action,
+    //   confidence: classification.confidence,
+    //   extractedParameters: classification.parameters,
+    //   currentStage: 'tools_filtering',
+    //   connectedAccounts: state.connectedAccounts,
+    //   metadata: {
+    //     classificationTime: new Date(),
+    //     ...classification.metadata,
+    //   },
+    // });
 
     return {
       identifiedApp: classification.app,
@@ -268,7 +269,7 @@ export const filterRelevantToolsNode = async (state) => {
       identifiedApp
     );
 
-    console.log(`Connected accounts for ${identifiedApp}: ${availableTools}`);
+    // console.log(`Connected accounts for ${identifiedApp}: ${availableTools}`);
 
     console.log(
       `Found ${availableTools} relevant tools for ${identifiedApp}:${identifiedAction}`
@@ -304,9 +305,9 @@ export const extractParametersNode = async (state) => {
     identifiedApp,
     identifiedAction,
   } = state;
-  console.log(
-    `Extracting parameters for ${identifiedApp}:${identifiedAction} with input: `
-  );
+  // console.log(
+  //   `Extracting parameters for ${identifiedApp}:${identifiedAction} with input: `
+  // );
 
   try {
     // Get the primary tool for execution
@@ -326,7 +327,7 @@ export const extractParametersNode = async (state) => {
       identifiedAction
     );
 
-    console.log(`Parameter extraction result:`, parameterExtractionResult);
+    // console.log(`Parameter extraction result:`, parameterExtractionResult);
 
     return {
       extractedParameters: parameterExtractionResult.parameters,
@@ -367,14 +368,14 @@ export const executeToolNode = async (state) => {
   } = state;
 
   try {
-    console.log(
-      `Executing tool for ${identifiedApp}:${identifiedAction} with parameters:`,
-      extractedParameters
-    );
+    // console.log(
+    //   `Executing tool for ${identifiedApp}:${identifiedAction} with parameters:`,
+    //   extractedParameters
+    // );
 
     const primaryTool = relevantTools[0];
     const connectedAccount = connectedAccounts?.[0];
-    console.log(`Connected accounts for ${identifiedApp}:`, relevantTools);
+    // console.log(`Connected accounts for ${identifiedApp}:`, relevantTools);
 
     if (!connectedAccount) {
       throw new Error(
@@ -566,23 +567,23 @@ const getAvailableToolsForApp = async (user_id, appName, actionKeywords) => {
     // const actions = await composio.actions.list({
     //   appNames: [appName.toUpperCase()]
     // });
-    console.log(
-      `Fetching available tools for app: ${appName} with keywords: ${actionKeywords}`
-    );
+    // console.log(
+    //   `Fetching available tools for app: ${appName} with keywords: ${actionKeywords}`
+    // );
 
     const allTools = await composio.tools.get(user_id, {
       tools: [actionKeywords],
     });
     const relevantTools = allTools.filter((tool) => {
-      console.log(`Checking tool: ${tool.function.name}`, actionKeywords);
+      // console.log(`Checking tool: ${tool.function.name}`, actionKeywords);
 
       const toolName = tool.function.name.toLowerCase();
       const normalizedTool = toolName.toLowerCase().replace(/\s+/g, '_');
       const normalizedKw = actionKeywords.toLowerCase().replace(/\s+/g, '_');
       const isMatched = normalizedTool.includes(normalizedKw);
-      console.log(
-        `Keyword "${actionKeywords}" = ${toolName} matched: ${isMatched}`
-      );
+      // console.log(
+      //   `Keyword "${actionKeywords}" = ${toolName} matched: ${isMatched}`
+      // );
       return isMatched;
     });
 
@@ -597,7 +598,7 @@ const getAvailableToolsForApp = async (user_id, appName, actionKeywords) => {
         ? relevantTools.slice(0, 10)
         : allTools.slice(0, 10);
 
-    console.log(`Using ${toolsToUse.length} tools`);
+    // console.log(`Using ${toolsToUse.length} tools`);
     return toolsToUse;
   } catch (error) {
     console.error(`Error fetching tools for ${appName}:`, error);
@@ -726,7 +727,7 @@ export const planWorkflowNode = async (state) => {
   try {
     // Step 1: Get all available apps from database
     const availableApps = await Tool.find({}).distinct('slug');
-    console.log(`Found ${availableApps.length} available apps:`);
+    // console.log(`Found ${availableApps.length} available apps:`);
 
     // Step 2: Identify required apps for this request
     const recentContext = history.length > 0 ? history.slice(-3) : [];
@@ -755,7 +756,7 @@ export const planWorkflowNode = async (state) => {
       actionsMap[app] = actions;
     }
 
-    console.log('Actions map for required apps:');
+    console.log('Actions map for required apps:' , actionsMap.github?.length, actionsMap.gmail?.length);
 
     // Step 5: Create execution plan
     const planResult = await createExecutionPlan(
@@ -878,6 +879,7 @@ export const executeStepNode = async (state) => {
     executionPlan, 
     currentStep, 
     stepResults, 
+    stepSummaries,
     crossStepParameters,
     connectedAccounts,
     history,
@@ -895,7 +897,7 @@ export const executeStepNode = async (state) => {
     const currentStepPlan = executionPlan[currentStep];
     console.log(`Executing step ${currentStep + 1}/${executionPlan.length}:`, currentStepPlan);
 
-    console.log('Step Result', state.lastStepResult);
+    
 
     // Get parameters for current step
     let stepParameters = crossStepParameters[currentStep + 1] || {};
@@ -921,15 +923,15 @@ export const executeStepNode = async (state) => {
     // Merge with plan parameters
     stepParameters = { ...currentStepPlan.parameters, ...stepParameters };
 
-    console.log('Step parameters:', stepParameters);
-    console.log('Connected accounts:', connectedAccounts);
+    // console.log('Step parameters:', stepParameters);
+    // console.log('Connected accounts:', connectedAccounts);
 
     // Find connected account for this app
     const connectedAccount = connectedAccounts?.find(acc => acc.toolkit.slug === currentStepPlan.app);
     if (!connectedAccount) {
       throw new Error(`No connected account found for ${currentStepPlan.app}`);
     }
-    console.log(`Using connected account for ${currentStepPlan.app}:`, connectedAccount);
+    // console.log(`Using connected account for ${currentStepPlan.app}:`, connectedAccount);
     const account = await ComposionAuth.findOne({
       connectedAccountId: connectedAccount.id
     });
@@ -940,9 +942,32 @@ export const executeStepNode = async (state) => {
       tools: [primaryTool],
     })
 
+    // Build context with previous step summaries
+    let executionContext = `${currentStepPlan.description}: ${JSON.stringify(stepParameters)}`;
+
+    console.log('Step Result with step summaries:', stepSummaries);
+    if (stepSummaries && stepSummaries.length > 0) {
+      executionContext += '\n\nPREVIOUS STEPS CONTEXT:\n';
+      stepSummaries.forEach(summary => {
+        executionContext += `Step ${summary.stepNumber}: ${summary.summary}\n`;
+        if (summary.contextForNextStep) {
+          executionContext += `Context: ${summary.contextForNextStep}\n`;
+        }
+        if (Object.keys(summary.keyOutputs).length > 0) {
+          executionContext += `Key Outputs: ${JSON.stringify(summary.keyOutputs)}\n`;
+        }
+        executionContext += '\n';
+      });
+      
+      executionContext += `Current Step (${currentStep + 1}): Execute ${currentStepPlan.action} on ${currentStepPlan.app}\n`;
+      executionContext += `Use the context from previous steps to inform your current action.\n`;
+    }
+
+    console.log('Execution context with previous steps:', executionContext);
+
     const executionResult = await executeComposioWithGroq(
       account.userId,
-      `${currentStepPlan.description}: ${JSON.stringify(stepParameters)}`,
+      executionContext,
       tool,
       currentStepPlan.app,
       historySummary
@@ -960,15 +985,24 @@ export const executeStepNode = async (state) => {
       timestamp: new Date()
     };
 
+    // Generate step execution summary
+    console.log('Generating step execution summary...');
+    const stepSummary = await generateStepExecutionSummary(stepResult, executionPlan, currentStep);
+    // console.log(`Step ${currentStep + 1} summary:`, stepSummary);
+
     const updatedStepResults = [...stepResults, stepResult];
+    const updatedStepSummaries = [...(state.stepSummaries || []), stepSummary];
+    // console.log('Updated step results:', updatedStepResults);
+    console.log('Updated step summaries:', updatedStepSummaries);
 
     return {
       ...state,
       stepResults: updatedStepResults,
+      stepSummaries: updatedStepSummaries,
       currentStep: currentStep + 1,
       lastStepResult: stepResult,
+      lastStepSummary: stepSummary,
       currentStage: 'step_execution',
-      
     };
 
   } catch (error) {
@@ -990,9 +1024,9 @@ export const executeStepNode = async (state) => {
 export const checkCompletionNode = async (state) => {
   console.log('--- Node: checkCompletionNode ---');
   const { executionPlan, currentStep, stepResults } = state;
-  fs.writeFileSync('executionPlan.json', JSON.stringify(state));
+  
   try {
-    console.log('Checking workflow completion...', currentStep, executionPlan.length);
+    // console.log('Checking workflow completion...', currentStep, executionPlan.length, state.stepSummaries);
 
     const isComplete = currentStep >= executionPlan.length;
     
@@ -1004,7 +1038,7 @@ export const checkCompletionNode = async (state) => {
         currentStage: 'aggregation',
       };
     } else {
-      console.log(`Workflow continuing to step ${currentStep + 1}/${executionPlan.length}`);
+      // console.log(`Workflow continuing to step ${currentStep + 1}/${executionPlan.length}`);
       return {
         workflowComplete: false,
         currentStage: 'step_execution'
@@ -1028,7 +1062,7 @@ export const checkCompletionNode = async (state) => {
  */
 export const aggregateResultsNode = async (state) => {
   console.log('--- Node: aggregateResultsNode ---');
-  const { userInput, stepResults, executionPlan, planningMetadata } = state;
+  const { userInput, stepResults, stepSummaries, executionPlan, planningMetadata } = state;
 
   try {
     // Aggregate all step results
@@ -1040,6 +1074,14 @@ export const aggregateResultsNode = async (state) => {
       data: step.result.tool_call_results || step.result.content
     }));
 
+    // Create workflow summary from step summaries
+    const workflowSummary = stepSummaries?.map(summary => ({
+      step: summary.stepNumber,
+      summary: summary.summary,
+      status: summary.status,
+      keyOutputs: summary.keyOutputs
+    })) || [];
+
     // Generate comprehensive response
     const finalResponse = await generateUserResponse(
       userInput,
@@ -1048,6 +1090,7 @@ export const aggregateResultsNode = async (state) => {
       {
         totalSteps: executionPlan.length,
         stepResults: aggregatedResults,
+        workflowSummary: workflowSummary,
         workflowType: 'multi_step',
         planning: planningMetadata
       },
@@ -1058,12 +1101,14 @@ export const aggregateResultsNode = async (state) => {
 
     return {
       aggregatedResults,
+      workflowSummary,
       response: finalResponse,
       executionResult: {
         success: true,
         totalSteps: executionPlan.length,
         completedSteps: stepResults.length,
-        stepResults: aggregatedResults
+        stepResults: aggregatedResults,
+        workflowSummary: workflowSummary
       },
       currentStage: 'response_generation'
     };

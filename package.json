@@ -19,6 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.1",
     "@apollo/server": "^4.10.4",
+    "@composio/anthropic": "^0.1.43",
     "@composio/core": "^0.1.39",
     "@composio/langchain": "^0.1.39",
     "@elastic/elasticsearch": "^9.0.1",

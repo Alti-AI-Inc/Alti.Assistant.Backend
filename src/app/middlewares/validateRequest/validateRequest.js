@@ -6,7 +6,7 @@ export const validateRequest = schema => {
     try {
       await schema.parseAsync({
         body: req.body,
-        query: req.query,
+        message: req.message,
         params: req.params,
         cookies: req.cookies,
       });

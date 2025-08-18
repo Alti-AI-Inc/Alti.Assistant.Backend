@@ -3,12 +3,12 @@ import { z } from 'zod';
 // Deep research query validation schema
 const deepResearchQuerySchema = z.object({
   body: z.object({
-    query: z
+    message: z
       .string({
-        required_error: 'Query is required',
+        required_error: 'Message is required',
       })
-      .min(1, 'Query cannot be empty')
-      .max(1000, 'Query must be less than 1000 characters')
+      .min(1, 'Message cannot be empty')
+      .max(1000, 'Message must be less than 1000 characters')
       .trim(),
     generatePdf: z.boolean().optional().default(false),
     conversationId: z.string().optional(),

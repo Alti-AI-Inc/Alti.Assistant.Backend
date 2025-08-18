@@ -46,6 +46,7 @@ export const aiClassificationState = {
   executionPlan: { value: null },           // Array of planned steps
   currentStep: { value: 0 },                // Current execution step index
   stepResults: { value: [] },               // Results from completed steps
+  stepSummaries: { value: null },             // Summaries of completed steps for context
   dependencyGraph: { value: null },         // Step dependencies and data flow
   planningMetadata: { value: null },        // Planning context and reasoning
   requiredApps: { value: null },            // All apps identified for the workflow

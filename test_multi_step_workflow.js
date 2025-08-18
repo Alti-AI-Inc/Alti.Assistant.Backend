@@ -13,7 +13,7 @@ async function testMultiStepWorkflows() {
       name: "GitHub Issues → Email Workflow",
       input: "Get all branch names from repository emondarock/ws-eng-conduit-ai-assessment and email them to emondarock@gmail.com",
       userId: "6891adec96841647d3bc8047",
-      conversationId: "multi_step_test_21",
+      conversationId: "multi_step_test_42",
       expectedApps: ["github", "gmail"],
       expectedSteps: 2
     },
@@ -72,6 +72,23 @@ async function testMultiStepWorkflows() {
             result.stepResults.forEach(step => {
               console.log(`  ✓ Step ${step.step}: ${step.app}.${step.action} - ${step.success ? 'Success' : 'Failed'}`);
             });
+          }
+          
+          if (result.stepSummaries && result.stepSummaries.length > 0) {
+            console.log('📝 Step Summaries:');
+            result.stepSummaries.forEach(summary => {
+              console.log(`  Step ${summary.stepNumber}: ${summary.summary}`);
+              if (summary.contextForNextStep) {
+                console.log(`    Context: ${summary.contextForNextStep}`);
+              }
+              if (Object.keys(summary.keyOutputs).length > 0) {
+                console.log(`    Key Outputs: ${JSON.stringify(summary.keyOutputs)}`);
+              }
+            });
+          }
+          
+          if (result.workflowSummary) {
+            console.log('📊 Workflow Summary:', result.workflowSummary);
           }
           
           if (result.aggregatedResults) {

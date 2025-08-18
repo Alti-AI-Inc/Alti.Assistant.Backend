@@ -2,7 +2,8 @@
  * Test file for AI Classification Module
  * This file demonstrates how to use the AI classification system
  */
-
+import { AnthropicProvider } from '@composio/anthropic';
+import Anthropic from '@anthropic-ai/sdk';
 import { AuthConfigTypes, Composio, ToolSchema } from '@composio/core';
 import { runAIClassificationAgent } from './ai_classification/workflow.js';
 import { classifyUserIntent } from './services/aiClassificationService.js';
@@ -83,30 +84,32 @@ export const testFullWorkflow = async () => {
   }
 };
 
-const composio = new Composio({
-  apiKey: config.composio.orgApiKey,
-});
-
-
 const getAllConnectedUser = async () => {
   console.log('Getting all connected users for Gmail...');
 
+  const composio = new Composio({
+    apiKey: config.composio.orgApiKey,
+  });
   const connectedUsers = await composio.connectedAccounts.list({
     appNames: 'gmail',
     status: 'ACTIVE',
-    toolkitSlugs: ['gmail']
+    toolkitSlugs: ['gmail'],
   });
   for (const user of connectedUsers.items) {
-    console.log(`Connected user: ${user.id} toolkit is ${JSON.stringify(user.toolkit)}`);
+    console.log(
+      `Connected user: ${user.id} toolkit is ${JSON.stringify(user.toolkit)}`
+    );
   }
   console.log('Connected users:', connectedUsers);
-
-}
+};
 
 const createAuthConfig = async () => {
   const apps = await Tool.find({}).distinct('slug');
 
-  const appsAuthConfigs = []
+  const composio = new Composio({
+    apiKey: config.composio.orgApiKey,
+  });
+  const appsAuthConfigs = [];
   for (const app of apps) {
     console.log(`Creating Auth Config for app: ${app}`);
 
@@ -118,15 +121,62 @@ const createAuthConfig = async () => {
         app: authConfig.toolkit,
         authConfigId: authConfig.id,
         authSchema: authConfig.schema,
-        isComposioManaged: authConfig.isComposioManaged
+        isComposioManaged: authConfig.isComposioManaged,
       });
     } catch (error) {
-      console.error(`Failed to create Auth Config for app ${app}:`, error.message);
+      console.error(
+        `Failed to create Auth Config for app ${app}:`,
+        error.message
+      );
     }
   }
   await AuthConfig.insertMany(appsAuthConfigs);
 };
 
+const sendEmail = async () => {
+  const anthropic = new Anthropic();
+  const composio = new Composio({ provider: new AnthropicProvider(), apiKey: config.composio.orgApiKey });
+  const userId = '6891adec96841647d3bc8047';
+
+  // const connection = await composio.toolkits.authorize(userId, 'LINEAR');
+  // console.log(`🔗 Visit the URL to authorize:\n👉 ${connection.redirectUrl}`);
+
+  const tools = await composio.tools.get(userId, { tools: ['GMAIL_SEND_EMAIL'] });
+  // await connection.waitForConnection();
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-3-7-sonnet-latest',
+    tools: tools,
+    messages: [
+      {
+        role: 'user',
+        content: ` Email the list of branch names to the specified address: {"to":"emondarock@gmail.com","subject":"List of Branches in Repository","body":"The branches in your repository are: step_1.branches.join(', ')"}
+
+PREVIOUS STEPS CONTEXT:
+Step 1: Successfully retrieved all branch names from the repository 'emondarock/ws-eng-conduit-ai-assessment'.
+Context: The retrieved branch names are available for reference or action in the subsequent Gmail email step.
+Key Outputs: {"branches":["master","rwa/defect-resolution-v3","rwa/defect-resolution-v4","rwa/design-and-implementation-v1","rwa/feature-development-v3","rwa/feature-development-v4"]}
+
+Current Step (2): Execute GMAIL_SEND_EMAIL on gmail
+Use the context from previous steps to inform your current action.
+
+Executing Composio tools with Groq for user: 6891adec96841647d3bc8047 Email the list of branch names to the specified address: {"to":"emondarock@gmail.com","subject":"List of Branches in Repository","body":"The branches in your repository are: step_1.branches.join(', ')"}
+
+PREVIOUS STEPS CONTEXT:
+Step 1: Successfully retrieved all branch names from the repository 'emondarock/ws-eng-conduit-ai-assessment'.
+Context: The retrieved branch names are available for reference or action in the subsequent Gmail email step.
+Key Outputs: {"branches":["master","rwa/defect-resolution-v3","rwa/defect-resolution-v4","rwa/design-and-implementation-v1","rwa/feature-development-v3","rwa/feature-development-v4"]}
+
+Current Step (2): Execute GMAIL_SEND_EMAIL on gmail
+Use the context from previous steps to inform your current action. Convert the email body to html`,
+      },
+    ],
+    max_tokens: 1024,
+  });
+
+  const result = await composio.provider.handleToolCalls(userId, msg);
+  console.log('✅ Tool results:', result);
+};
 
 /**
  * Interactive test function
@@ -185,4 +235,4 @@ export const testInteractive = async (userInput, userId = 'test-user') => {
 //   '6891adec96841647d3bc8047'
 // );
 
-await getAllConnectedUser();
+await sendEmail();
