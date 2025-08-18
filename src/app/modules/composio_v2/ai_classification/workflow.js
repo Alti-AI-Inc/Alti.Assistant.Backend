@@ -11,7 +11,9 @@ import {
   validatePlanNode,
   executeStepNode,
   checkCompletionNode,
-  aggregateResultsNode
+  aggregateResultsNode,
+  scheduleDetectionNode,
+  saveWorkflowNode
 } from "./nodes.js";
 import { MongoDBSaver } from "../../code/code_assistant/MongoDBSaver.js";
 import config from "../../../../../config/index.js";
@@ -24,6 +26,8 @@ const workflow = new StateGraph({ channels: aiClassificationState });
 
 // Add all nodes for the AI classification and tool execution process
 workflow.addNode("plan_workflow", planWorkflowNode);
+workflow.addNode("schedule_detection", scheduleDetectionNode);
+workflow.addNode("save_workflow", saveWorkflowNode);
 workflow.addNode("validate_plan", validatePlanNode);
 workflow.addNode("execute_step", executeStepNode);
 workflow.addNode("check_completion", checkCompletionNode);
@@ -40,17 +44,26 @@ workflow.addNode("generate_response", generateResponseNode);
 // Define the workflow edges with conditional routing
 workflow.addEdge(START, "plan_workflow");
 
-// Conditional routing based on workflow type
+// Route to schedule detection after planning
+workflow.addEdge("plan_workflow", "schedule_detection");
+
+// Conditional routing based on scheduling requirements
 workflow.addConditionalEdges(
-  "plan_workflow",
+  "schedule_detection",
   (state) => {
-    console.log('Routing from plan_workflow, state:', { 
+    console.log('Routing from schedule_detection, state:', { 
+      needsScheduling: state.needsScheduling,
       workflowType: state.workflowType, 
       error: state.error,
       currentStage: state.currentStage 
     });
     
     if (state.error) return "error";
+    
+    // If scheduling is needed, save workflow instead of executing
+    if (state.needsScheduling) return "save_workflow";
+    
+    // Otherwise, proceed with execution based on workflow type
     if (state.workflowType === "single_step") return "single_step";
     if (state.workflowType === "multi_step") return "multi_step";
     
@@ -59,13 +72,18 @@ workflow.addConditionalEdges(
     return "single_step";
   },
   {
+    save_workflow: "save_workflow",
     single_step: "classify_app",
     multi_step: "validate_plan", 
     error: "generate_response"
   }
 );
 
+// Scheduled workflow path - save and respond
+workflow.addEdge("save_workflow", "generate_response");
+
 // Multi-step workflow path
+workflow.addEdge("validate_plan", "execute_step");
 workflow.addEdge("validate_plan", "execute_step");
 workflow.addEdge("execute_step", "check_completion");
 

@@ -102,5 +102,26 @@ export const aiClassificationState = {
   // Thread/Conversation ID for checkpointer
   threadId: { value: null },
 
-  lastStepResult: { value: null }
+  lastStepResult: { value: null },
+
+  // Scheduling and workflow storage fields
+  schedulingRequirements: { value: null },    // Detected schedule info from user input
+  workflowTemplate: { value: null },          // Template for later execution
+  triggerType: { value: "immediate" },       // immediate|manual|scheduled|recurring
+  scheduleExpression: { value: null },       // Parsed schedule expression
+  scheduleConfig: { value: null },           // Full schedule configuration
+  workflowSaved: { value: false },           // Whether workflow was saved
+  workflowId: { value: null },               // Generated workflow ID if saved
+  shouldSaveWorkflow: { value: false },      // Flag to save instead of execute
+  originalUserInput: { value: null },       // Original user input for workflow storage
+  
+  // Execution mode - determines if we execute immediately or save for later
+  executionMode: { 
+    value: "immediate",                      // immediate|save_and_execute|save_only
+    default: () => "immediate"
+  },
+  
+  // Workflow title and description for saved workflows
+  workflowTitle: { value: null },
+  workflowDescription: { value: null }
 };

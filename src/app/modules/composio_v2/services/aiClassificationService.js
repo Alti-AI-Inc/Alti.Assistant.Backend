@@ -170,11 +170,7 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
     const result = await composio.provider.handleToolCalls(userId, msg, {
       connectedAccountId
     })
-    console.log('Tool call result:', {
-      content: result[0].content,
-      success: true,
-      tool_call_results: result[0].content
-    });
+    console.log('Tool call result:', result);
     return {
       content: result[0].content,
       success: true,

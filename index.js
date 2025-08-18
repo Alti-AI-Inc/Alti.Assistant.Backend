@@ -39,6 +39,7 @@ app.use(
       'https://www.asonai.com',
       'https://ason-web.netlify.app',
       'http://localhost:3000',
+      'http://localhost:8080'
     ],
     credentials: true,
   }),

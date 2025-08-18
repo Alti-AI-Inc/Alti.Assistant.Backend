@@ -4,6 +4,7 @@ const router = express.Router();
 
 import {composioController} from './composio.controller.js';
 import {aiClassificationController} from './aiClassification.controller.js';
+import {workflowRoutes} from './routes/workflow.routes.js';
 
 // Original composio v2 routes
 router.post('/initiate', composioController.composioInitiateController);
@@ -19,5 +20,8 @@ router.post('/classify-and-execute', aiClassificationController.classifyAndExecu
 router.get('/supported-apps', aiClassificationController.getSupportedAppsController);
 router.post('/test-classification', aiClassificationController.testClassificationController);
 router.get('/user-connections/:userId', aiClassificationController.getUserConnectionsController);
+
+// Scheduled Workflow routes
+router.use('/workflows', workflowRoutes);
 
 export const composioV2Routes = router;

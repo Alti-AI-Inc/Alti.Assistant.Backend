@@ -17,6 +17,8 @@ import ComposionAuth from '../composio.model.js';
 import { LangGraphToolSet } from 'composio-core';
 import Tool from '../tools.model.js';
 import fs from 'fs';
+import { detectSchedulingRequirements } from '../services/scheduleDetection.service.js';
+import AuthConfig from '../authConfig.model.js';
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
@@ -726,9 +728,21 @@ export const planWorkflowNode = async (state) => {
 
   try {
     // Step 1: Get all available apps from database
-    const availableApps = await Tool.find({}).distinct('slug');
+    const availableAppsFromTools = await Tool.find({}).distinct('slug');
     // console.log(`Found ${availableApps.length} available apps:`);
+    const availableApps = []
 
+    for (let i = 0; i < availableAppsFromTools.length; i++) {
+      const element = availableAppsFromTools[i];
+      const authConfig = await AuthConfig.find({
+        app: element
+      })
+      if (authConfig.length === 0) {
+        continue
+      } else {
+        availableApps.push(element)
+      }
+    }
     // Step 2: Identify required apps for this request
     const recentContext = history.length > 0 ? history.slice(-3) : [];
     const appIdentification = await identifyRequiredApps(userInput, availableApps, recentContext);
@@ -925,7 +939,8 @@ export const executeStepNode = async (state) => {
 
     // console.log('Step parameters:', stepParameters);
     // console.log('Connected accounts:', connectedAccounts);
-
+    console.log('Currentplan app', currentStepPlan.app, 'ConnectedAccounts', JSON.stringify(connectedAccounts));
+    
     // Find connected account for this app
     const connectedAccount = connectedAccounts?.find(acc => acc.toolkit.slug === currentStepPlan.app);
     if (!connectedAccount) {
@@ -1120,6 +1135,158 @@ export const aggregateResultsNode = async (state) => {
         node: 'aggregateResults',
         message: error.message,
       },
+      currentStage: 'error',
+    };
+  }
+};
+
+/**
+ * Schedule Detection Node - Analyzes user input for scheduling requirements
+ */
+export const scheduleDetectionNode = async (state) => {
+  try {
+    console.log('Starting schedule detection...');
+
+    const { userInput, workflowType, executionPlan, userId } = state;
+
+
+    // Detect scheduling requirements
+    const scheduleResult = await detectSchedulingRequirements(userInput);
+
+    console.log('Schedule detection result:', scheduleResult);
+
+    return {
+      needsScheduling: scheduleResult.needsScheduling,
+      schedulingDetected: scheduleResult.needsScheduling,
+      scheduleType: scheduleResult.scheduleType,
+      cronExpression: scheduleResult.cronExpression,
+      oneTimeDate: scheduleResult.oneTimeDate,
+      timezone: scheduleResult.timezone,
+      scheduleDescription: scheduleResult.description,
+      scheduleMetadata: scheduleResult.metadata,
+      confidence: scheduleResult.confidence,
+      currentStage: 'schedule_detection'
+    };
+
+  } catch (error) {
+    console.error('Error in scheduleDetectionNode:', error);
+    return {
+      error: {
+        node: 'schedule_detection',
+        message: error.message,
+      },
+      needsScheduling: false,
+      currentStage: 'error',
+    };
+  }
+};
+
+/**
+ * Save Workflow Node - Saves workflow for scheduled execution
+ */
+export const saveWorkflowNode = async (state) => {
+  try {
+    console.log('Starting workflow save...');
+
+    const { 
+      userInput, 
+      userId, 
+      workflowType, 
+      executionPlan, 
+      requiredApps,
+      scheduleType,
+      cronExpression,
+      oneTimeDate,
+      timezone,
+      scheduleDescription,
+      scheduleMetadata,
+      planningMetadata,
+      crossStepParameters
+    } = state;
+
+    // Import workflow service
+    const { workflowService } = await import('../services/workflow.service.js');
+
+    // Prepare workflow data
+    const workflowData = {
+      name: scheduleMetadata?.workflowName || `Workflow for: ${userInput.substring(0, 50)}...`,
+      description: userInput,
+      userId: userId,
+      workflowType: workflowType,
+      executionPlan: executionPlan,
+      requiredApps: requiredApps,
+      crossStepParameters: crossStepParameters,
+      totalSteps: executionPlan?.length || 1,
+      
+      // Scheduling data
+      scheduleType: scheduleType,
+      cronExpression: cronExpression,
+      oneTimeDate: oneTimeDate,
+      timezone: timezone || 'UTC',
+      
+      // Metadata
+      planningMetadata: planningMetadata,
+      createdFromInput: userInput,
+      scheduleDetected: true
+    };
+
+    // Save the workflow
+    const saveResult = await workflowService.createScheduledWorkflow(workflowData);
+
+    if (!saveResult.success) {
+      throw new Error(saveResult.error);
+    }
+
+    console.log('Workflow saved successfully:', saveResult.data.workflowId);
+
+    // Prepare response message
+    let responseMessage = `✅ **Workflow Scheduled Successfully!**\n\n`;
+    responseMessage += `**Workflow ID:** ${saveResult.data.workflowId}\n`;
+    responseMessage += `**Name:** ${saveResult.data.name}\n`;
+    
+    if (scheduleType === 'recurring') {
+      responseMessage += `**Schedule:** ${scheduleDescription} (${cronExpression})\n`;
+    } else if (scheduleType === 'one_time') {
+      responseMessage += `**Scheduled for:** ${new Date(oneTimeDate).toLocaleString()}\n`;
+    }
+    
+    responseMessage += `**Apps involved:** ${requiredApps?.join(', ') || 'Various'}\n`;
+    responseMessage += `**Total steps:** ${executionPlan?.length || 1}\n\n`;
+    
+    responseMessage += `Your workflow has been saved and will execute automatically according to the schedule. `;
+    responseMessage += `You can manage this workflow using the workflow ID: ${saveResult.data.workflowId}`;
+
+    return {
+      workflowSaved: true,
+      savedWorkflowId: saveResult.data.workflowId,
+      savedWorkflowData: saveResult.data,
+      response: responseMessage,
+      finalResponse: responseMessage,
+      executionResult: {
+        success: true,
+        action: 'workflow_scheduled',
+        workflowId: saveResult.data.workflowId,
+        scheduleType: scheduleType,
+        message: 'Workflow scheduled successfully'
+      },
+      currentStage: 'workflow_saved'
+    };
+
+  } catch (error) {
+    console.error('Error in saveWorkflowNode:', error);
+    
+    let errorMessage = `❌ **Failed to Schedule Workflow**\n\n`;
+    errorMessage += `Error: ${error.message}\n\n`;
+    errorMessage += `Please try rephrasing your request or contact support if the issue persists.`;
+
+    return {
+      error: {
+        node: 'save_workflow',
+        message: error.message,
+      },
+      workflowSaved: false,
+      response: errorMessage,
+      finalResponse: errorMessage,
       currentStage: 'error',
     };
   }

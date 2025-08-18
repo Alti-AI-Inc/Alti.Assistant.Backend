@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Composio v2 - Workflow Automation Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .workflows-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .workflows-section h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .workflow-item {
+            background: linear-gradient(135deg, #f6f9fc 0%, #ffffff 100%);
+            border: 1px solid #e1e5e9;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .workflow-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .workflow-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .workflow-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #e8f5e8;
+            color: #28a745;
+        }
+
+        .status-paused {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .workflow-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .workflow-schedule {
+            font-size: 0.9rem;
+            color: #667eea;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+
+        .workflow-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .loading i {
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #e8f5e8;
+            color: #28a745;
+            border: 1px solid #28a745;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 20px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+
+        .execution-history {
+            margin-top: 20px;
+        }
+
+        .execution-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .execution-status {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #e8f5e8;
+            color: #28a745;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-running {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-robot"></i> Composio v2 Workflow Dashboard</h1>
+            <p>Create, schedule, and manage your automated workflows with AI</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('create')">
+                <i class="fas fa-plus"></i> Create Workflow
+            </button>
+            <button class="tab" onclick="switchTab('manage')">
+                <i class="fas fa-list"></i> Manage Workflows
+            </button>
+            <button class="tab" onclick="switchTab('execute')">
+                <i class="fas fa-play"></i> Execute Now
+            </button>
+        </div>
+
+        <!-- Create Workflow Tab -->
+        <div class="tab-content active" id="create-tab">
+            <div class="dashboard">
+                <div class="card">
+                    <h2><i class="fas fa-magic"></i> AI-Powered Workflow Creation</h2>
+                    <form id="ai-workflow-form">
+                        <div class="form-group">
+                            <label for="userInput">Describe your workflow in natural language:</label>
+                            <textarea id="userInput" class="form-control" 
+                                placeholder="e.g., 'Send me a daily GitHub issues summary every morning at 9 AM' or 'Email me weekly reports every Friday at 5 PM'"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="userId">User ID:</label>
+                            <input type="text" id="userId" class="form-control" value="demo_user_123" 
+                                placeholder="Enter your user ID">
+                        </div>
+                        <button type="submit" class="btn">
+                            <i class="fas fa-brain"></i> Create with AI
+                        </button>
+                    </form>
+                    
+                    <div class="loading" id="ai-loading">
+                        <i class="fas fa-spinner"></i> Creating workflow...
+                    </div>
+                    
+                    <div class="alert alert-success" id="ai-success"></div>
+                    <div class="alert alert-error" id="ai-error"></div>
+                </div>
+
+                <div class="card">
+                    <h2><i class="fas fa-cogs"></i> Manual Workflow Creation</h2>
+                    <form id="manual-workflow-form">
+                        <div class="form-group">
+                            <label for="workflowName">Workflow Name:</label>
+                            <input type="text" id="workflowName" class="form-control" 
+                                placeholder="e.g., Daily GitHub Summary">
+                        </div>
+                        <div class="form-group">
+                            <label for="workflowDescription">Description:</label>
+                            <textarea id="workflowDescription" class="form-control" 
+                                placeholder="Describe what this workflow does"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="scheduleType">Schedule Type:</label>
+                            <select id="scheduleType" class="form-control">
+                                <option value="recurring">Recurring</option>
+                                <option value="one_time">One Time</option>
+                                <option value="manual">Manual Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="cronGroup">
+                            <label for="cronExpression">Cron Expression:</label>
+                            <input type="text" id="cronExpression" class="form-control" 
+                                placeholder="e.g., 0 9 * * * (daily at 9 AM)">
+                        </div>
+                        <button type="submit" class="btn btn-secondary">
+                            <i class="fas fa-plus"></i> Create Manually
+                        </button>
+                    </form>
+                    
+                    <div class="loading" id="manual-loading">
+                        <i class="fas fa-spinner"></i> Creating workflow...
+                    </div>
+                    
+                    <div class="alert alert-success" id="manual-success"></div>
+                    <div class="alert alert-error" id="manual-error"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manage Workflows Tab -->
+        <div class="tab-content" id="manage-tab">
+            <div class="workflows-section">
+                <h2><i class="fas fa-list"></i> Your Workflows</h2>
+                <button class="btn btn-success" onclick="loadWorkflows()">
+                    <i class="fas fa-refresh"></i> Refresh Workflows
+                </button>
+                
+                <div class="loading" id="workflows-loading">
+                    <i class="fas fa-spinner"></i> Loading workflows...
+                </div>
+                
+                <div id="workflows-list">
+                    <div class="empty-state">
+                        <i class="fas fa-robot"></i>
+                        <h3>No workflows yet</h3>
+                        <p>Create your first workflow using the AI-powered creation tool!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Execute Now Tab -->
+        <div class="tab-content" id="execute-tab">
+            <div class="card">
+                <h2><i class="fas fa-play"></i> Execute Workflow Immediately</h2>
+                <form id="execute-form">
+                    <div class="form-group">
+                        <label for="executeInput">Describe what you want to do right now:</label>
+                        <textarea id="executeInput" class="form-control" 
+                            placeholder="e.g., 'Get my GitHub issues right now' or 'Send me the current status of my projects'"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="executeUserId">User ID:</label>
+                        <input type="text" id="executeUserId" class="form-control" value="demo_user_123">
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-play"></i> Execute Now
+                    </button>
+                </form>
+                
+                <div class="loading" id="execute-loading">
+                    <i class="fas fa-spinner"></i> Executing workflow...
+                </div>
+                
+                <div class="alert alert-success" id="execute-success"></div>
+                <div class="alert alert-error" id="execute-error"></div>
+                
+                <div id="execution-result" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:5100/api/v1/composio_v2';
+        
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // AI Workflow Creation
+        document.getElementById('ai-workflow-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userInput = document.getElementById('userInput').value;
+            const userId = document.getElementById('userId').value;
+            
+            if (!userInput.trim()) {
+                showAlert('ai-error', 'Please describe your workflow');
+                return;
+            }
+            
+            showLoading('ai-loading', true);
+            hideAlerts('ai');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/classify-and-execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userInput: userInput,
+                        userId: userId,
+                        options: {
+                            retrieveHistory: false
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.workflowSaved) {
+                        showAlert('ai-success', `✅ Workflow scheduled successfully! ID: ${result.savedWorkflowId}`);
+                        document.getElementById('userInput').value = '';
+                    } else {
+                        showAlert('ai-success', `✅ Workflow executed immediately: ${result.response}`);
+                    }
+                } else {
+                    showAlert('ai-error', `❌ Error: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showAlert('ai-error', `❌ Network error: ${error.message}`);
+            } finally {
+                showLoading('ai-loading', false);
+            }
+        });
+
+        // Manual Workflow Creation
+        document.getElementById('manual-workflow-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('workflowName').value,
+                description: document.getElementById('workflowDescription').value,
+                scheduleType: document.getElementById('scheduleType').value,
+                cronExpression: document.getElementById('cronExpression').value,
+                workflowType: 'single_step',
+                executionPlan: [
+                    {
+                        step: 1,
+                        app: 'example',
+                        action: 'example_action',
+                        parameters: {},
+                        dependencies: []
+                    }
+                ],
+                requiredApps: ['example'],
+                isActive: true,
+                timezone: 'UTC'
+            };
+            
+            if (!formData.name.trim()) {
+                showAlert('manual-error', 'Please enter a workflow name');
+                return;
+            }
+            
+            showLoading('manual-loading', true);
+            hideAlerts('manual');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/workflows`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('manual-success', `✅ Workflow created successfully! ID: ${result.data.workflowId}`);
+                    document.getElementById('manual-workflow-form').reset();
+                } else {
+                    showAlert('manual-error', `❌ Error: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showAlert('manual-error', `❌ Network error: ${error.message}`);
+            } finally {
+                showLoading('manual-loading', false);
+            }
+        });
+
+        // Execute Now
+        document.getElementById('execute-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userInput = document.getElementById('executeInput').value;
+            const userId = document.getElementById('executeUserId').value;
+            
+            if (!userInput.trim()) {
+                showAlert('execute-error', 'Please describe what you want to execute');
+                return;
+            }
+            
+            showLoading('execute-loading', true);
+            hideAlerts('execute');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/classify-and-execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userInput: userInput,
+                        userId: userId,
+                        options: {
+                            retrieveHistory: false
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('execute-success', '✅ Execution completed successfully!');
+                    displayExecutionResult(result);
+                    document.getElementById('executeInput').value = '';
+                } else {
+                    showAlert('execute-error', `❌ Error: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showAlert('execute-error', `❌ Network error: ${error.message}`);
+            } finally {
+                showLoading('execute-loading', false);
+            }
+        });
+
+        // Load Workflows
+        async function loadWorkflows() {
+            showLoading('workflows-loading', true);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/workflows`);
+                const result = await response.json();
+                
+                if (result.success && result.data.length > 0) {
+                    displayWorkflows(result.data);
+                } else {
+                    document.getElementById('workflows-list').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-robot"></i>
+                            <h3>No workflows found</h3>
+                            <p>Create your first workflow using the AI-powered creation tool!</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('workflows-list').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Error loading workflows</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                showLoading('workflows-loading', false);
+            }
+        }
+
+        // Display Workflows
+        function displayWorkflows(workflows) {
+            const workflowsList = document.getElementById('workflows-list');
+            
+            workflowsList.innerHTML = workflows.map(workflow => `
+                <div class="workflow-item">
+                    <div class="workflow-header">
+                        <div class="workflow-name">${workflow.name}</div>
+                        <div class="workflow-status status-${workflow.isActive ? 'active' : 'paused'}">
+                            ${workflow.isActive ? 'Active' : 'Paused'}
+                        </div>
+                    </div>
+                    <div class="workflow-description">${workflow.description}</div>
+                    <div class="workflow-schedule">
+                        <i class="fas fa-clock"></i> 
+                        ${workflow.scheduleType === 'recurring' ? 
+                            `Recurring: ${workflow.cronExpression}` : 
+                            workflow.scheduleType === 'one_time' ? 
+                                `One-time: ${new Date(workflow.oneTimeDate).toLocaleString()}` : 
+                                'Manual trigger only'
+                        }
+                    </div>
+                    <div class="workflow-actions">
+                        <button class="btn btn-sm btn-success" onclick="triggerWorkflow('${workflow.workflowId}')">
+                            <i class="fas fa-play"></i> Trigger
+                        </button>
+                        <button class="btn btn-sm" onclick="pauseWorkflow('${workflow.workflowId}', ${workflow.isActive})">
+                            <i class="fas fa-${workflow.isActive ? 'pause' : 'play'}"></i> 
+                            ${workflow.isActive ? 'Pause' : 'Resume'}
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="getExecutions('${workflow.workflowId}')">
+                            <i class="fas fa-history"></i> History
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteWorkflow('${workflow.workflowId}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Display Execution Result
+        function displayExecutionResult(result) {
+            const resultDiv = document.getElementById('execution-result');
+            
+            resultDiv.innerHTML = `
+                <div class="card">
+                    <h3><i class="fas fa-check-circle"></i> Execution Result</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <pre style="margin: 0; white-space: pre-wrap;">${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Workflow Actions
+        async function triggerWorkflow(workflowId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/workflows/${workflowId}/trigger`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Workflow triggered successfully!');
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Network error: ${error.message}`);
+            }
+        }
+
+        async function pauseWorkflow(workflowId, isActive) {
+            const action = isActive ? 'pause' : 'resume';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/workflows/${workflowId}/${action}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Workflow ${action}d successfully!`);
+                    loadWorkflows(); // Refresh the list
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Network error: ${error.message}`);
+            }
+        }
+
+        async function deleteWorkflow(workflowId) {
+            if (!confirm('Are you sure you want to delete this workflow?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/workflows/${workflowId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Workflow deleted successfully!');
+                    loadWorkflows(); // Refresh the list
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Network error: ${error.message}`);
+            }
+        }
+
+        async function getExecutions(workflowId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/workflows/${workflowId}/executions`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Execution history loaded! Found ${result.data.length} executions.`);
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Network error: ${error.message}`);
+            }
+        }
+
+        // Utility Functions
+        function showLoading(elementId, show) {
+            const element = document.getElementById(elementId);
+            element.style.display = show ? 'block' : 'none';
+        }
+
+        function showAlert(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function hideAlerts(prefix) {
+            document.getElementById(`${prefix}-success`).style.display = 'none';
+            document.getElementById(`${prefix}-error`).style.display = 'none';
+        }
+
+        // Schedule type change handler
+        document.getElementById('scheduleType').addEventListener('change', function() {
+            const cronGroup = document.getElementById('cronGroup');
+            if (this.value === 'recurring') {
+                cronGroup.style.display = 'block';
+            } else {
+                cronGroup.style.display = 'none';
+            }
+        });
+
+        // Load workflows on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-load workflows when switching to manage tab
+            console.log('🚀 Composio v2 Workflow Dashboard loaded!');
+            console.log('📝 Try creating a workflow with: "Send me a daily GitHub summary at 9 AM"');
+        });
+    </script>
+</body>
+</html>
