@@ -141,7 +141,7 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
     history = [],
     retrieveHistory = true
   } = options;
-
+  
   const connectedAccounts = userId
     ? await composio.connectedAccounts.list({
       userIds: [userId]

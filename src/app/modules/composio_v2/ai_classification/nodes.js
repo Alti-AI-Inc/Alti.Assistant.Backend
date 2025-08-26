@@ -62,39 +62,28 @@ const createHistorySummary = (history, conversationContext) => {
  */
 export const classifyAppNode = async (state) => {
   console.log('--- Node: classifyAppNode ---');
-  const { userInput, history, conversationContext, messages } = state;
+  const { userInput, history, conversationContext, messages, requiredApps, planningMetadata } = state;
 
   try {
     // Get all available apps from database
     const availableApps = await Tool.find({}).distinct('slug');
     
-    console.log(`Found ${availableApps.length} apps in database:`);
-
-    // Build conversation context for better classification
-    const recentContext = history.length > 0 ? history.slice(-3) : [];
-
-    console.log(`Classifying user input for app: "${userInput}"`);
-
-    // Use AI to classify the user input to identify the app
-    const appClassification = await classifyAppIntent(
-      userInput,
-      availableApps,
-      recentContext,
-      conversationContext
-    );
+    console.log(`Required apps from planning: ${requiredApps} and planning metadata: ${JSON.stringify(planningMetadata)}`);
+    
 
     // console.log(`App classification result:`, appClassification);
 
     return {
+      ...state,
       availableApps,
-      identifiedApp: appClassification.app,
-      confidence: appClassification.confidence,
+      identifiedApp: requiredApps[0],
+      confidence: planningMetadata.confidence || 1.0,
       currentStage: 'action_classification',
       metadata: {
         ...state.metadata,
         appClassificationTime: new Date(),
-        appClassificationReasoning: appClassification.reasoning,
-        ...appClassification.metadata,
+        appClassificationReasoning: planningMetadata.reasoning || 'No reasoning provided',
+        ...planningMetadata,
       },
     };
   } catch (error) {
@@ -160,6 +149,7 @@ export const classifyActionNode = async (state) => {
     };
 
     return {
+      ...state,
       availableActions,
       identifiedAction: actionClassification.action,
       confidence: actionClassification.confidence,
@@ -270,6 +260,8 @@ export const filterRelevantToolsNode = async (state) => {
       userId,
       identifiedApp
     );
+
+    console.log(`Connected accounts for ${identifiedApp} and user ${userId}:`, connectedAccounts);
 
     // console.log(`Connected accounts for ${identifiedApp}: ${availableTools}`);
 
@@ -723,26 +715,12 @@ export const planWorkflowNode = async (state) => {
   console.log('--- Node: planWorkflowNode ---');
   const { userInput, history, conversationContext } = state;
 
-  console.log(`User Input: ${userInput}`);
+  console.log(`User Input: ${userInput} ${JSON.stringify(state)}`);
   // console.log(`Conversation Context: ${JSON.stringify(state.connectedAccounts)}`);
-
+  
   try {
-    // Step 1: Get all available apps from database
-    const availableAppsFromTools = await Tool.find({}).distinct('slug');
-    // console.log(`Found ${availableApps.length} available apps:`);
-    const availableApps = []
-
-    for (let i = 0; i < availableAppsFromTools.length; i++) {
-      const element = availableAppsFromTools[i];
-      const authConfig = await AuthConfig.find({
-        app: element
-      })
-      if (authConfig.length === 0) {
-        continue
-      } else {
-        availableApps.push(element)
-      }
-    }
+    const apps = fs.readFileSync('src/app/modules/composio_v2/ai_classification/available_apps.json');
+    const availableApps = JSON.parse(apps);
     // Step 2: Identify required apps for this request
     const recentContext = history.length > 0 ? history.slice(-3) : [];
     const appIdentification = await identifyRequiredApps(userInput, availableApps, recentContext);
@@ -754,6 +732,7 @@ export const planWorkflowNode = async (state) => {
       return {
         workflowType: 'single_step',
         requiredApps: appIdentification.requiredApps,
+        userId: state.userId,
         planningMetadata: {
           reasoning: appIdentification.reasoning,
           confidence: appIdentification.confidence,

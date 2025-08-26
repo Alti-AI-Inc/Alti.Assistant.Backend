@@ -151,7 +151,7 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
       connectedAccountId: connectedAccountId 
     });
 
-    // console.log('Tools with connected account:', toolsWithConnectedAccount);
+    console.log('Tools with connected account:', toolsWithConnectedAccount);
 
 
     // Wrap each Composio tool into a LangChain DynamicStructuredTool
@@ -161,7 +161,7 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
     // console.log('Messages', messages);
 
     const msg = await openai.chat.completions.create({
-      model: 'gpt-5',
+      model: 'gpt-4o',
       messages: messages,
       tools: toolsWithConnectedAccount,
       max_completion_tokens: 1024
@@ -670,6 +670,7 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
  * Identify all required apps for a complex user intent
  */
 export const identifyRequiredApps = async (userInput, availableApps, context = []) => {
+  const startTime = Date.now();
   const systemPrompt = `You are an expert app identification system. Analyze user input to identify ALL apps/services needed to complete their request.
 
 User might need multiple apps for complex workflows like:
@@ -725,7 +726,8 @@ Respond with a JSON object:
     if (!parsed.required_apps || !Array.isArray(parsed.required_apps)) {
       throw new Error('Invalid required_apps structure');
     }
-
+    const endTime = Date.now();
+    console.log(`identifyRequiredApps execution time: ${endTime - startTime}ms`);
     return {
       requiredApps: parsed.required_apps,
       reasoning: parsed.reasoning || '',

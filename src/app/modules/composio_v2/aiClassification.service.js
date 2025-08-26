@@ -35,8 +35,7 @@ export const processUserInputService = async (userInput, options = {}) => {
           confidence: result.confidence,
           executionResult: result.executionResult,
           response: result.response,
-          conversationId: result.conversationId,
-          metadata: result.metadata
+          conversationId: result.conversationId
         }
       };
     } else {
