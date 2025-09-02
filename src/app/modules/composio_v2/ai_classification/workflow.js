@@ -141,7 +141,7 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
     history = [],
     retrieveHistory = true
   } = options;
-  
+
   const connectedAccounts = userId
     ? await composio.connectedAccounts.list({
       userIds: [userId]
@@ -222,48 +222,61 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
   try {
     console.log(`Starting AI classification for input: "${userInput}" (Conversation: ${threadId})`);
     const result = await aiClassificationApp.invoke(initialState, config);
+    console.log(`AI classification result for conversation ${threadId}:`)
 
+    // Format response to match search and image modules
     return {
       success: true,
-      userInput: result.userInput,
-      workflowType: result.workflowType,
-      
-      // Single-step results (legacy)
-      availableApps: result.availableApps,
-      availableActions: result.availableActions,
-      identifiedApp: result.identifiedApp,
-      identifiedAction: result.identifiedAction,
-      confidence: result.confidence,
-      
-      // Multi-step workflow results
-      requiredApps: result.requiredApps,
-      executionPlan: result.executionPlan,
-      currentStep: result.currentStep,
-      stepResults: result.stepResults,
-      stepSummaries: result.stepSummaries,
-      workflowSummary: result.workflowSummary,
-      totalSteps: result.totalSteps,
-      planningMetadata: result.planningMetadata,
-      aggregatedResults: result.aggregatedResults,
-      
-      // Common results
-      executionResult: result.executionResult,
-      response: result.response,
-      finalResponse: result.finalResponse,
-      metadata: result.metadata,
-      conversationId: threadId,
-      conversationContext: result.conversationContext,
-      history: result.history,
-      messages: result.messages,
-      error: result.error || null
+      message: 'Tool execution completed successfully',
+      data: {
+        responseMessage: {
+          message: result.finalResponse || result.response || 'Action completed successfully',
+          type: result.workflowType || 'single_step',
+          executionResult: result.executionResult,
+          toolResults: result.stepResults || [],
+          metadata: {
+            identifiedApp: result.identifiedApp,
+            identifiedAction: result.identifiedAction,
+            confidence: result.confidence,
+            workflowType: result.workflowType,
+            totalSteps: result.totalSteps || 1,
+            executionPlan: result.executionPlan,
+            aggregatedResults: result.aggregatedResults
+          }
+        },
+        conversationId: threadId,
+        messageCount: (result.history?.length || 0) + 2, // User message + assistant response
+        userType: 'authenticated', // Composio typically requires authentication
+        
+        // Additional metadata for debugging/monitoring
+        // workflow: {
+        //   availableApps: result.availableApps,
+        //   availableActions: result.availableActions,
+        //   requiredApps: result.requiredApps,
+        //   currentStep: result.currentStep,
+        //   stepSummaries: result.stepSummaries,
+        //   workflowSummary: result.workflowSummary,
+        //   planningMetadata: result.planningMetadata,
+        //   conversationContext: result.conversationContext,
+        //   crossStepParameters: result.crossStepParameters
+        // }
+      }
     };
   } catch (error) {
     console.error("Error running AI classification agent:", error);
     return {
       success: false,
+      message: 'Tool execution failed',
       error: error.message,
-      userInput,
-      conversationId: threadId
+      data: {
+        responseMessage: {
+          text: `Sorry, I encountered an error while processing your request: ${error.message}`,
+          type: 'error'
+        },
+        conversationId: threadId,
+        messageCount: 1,
+        userType: 'authenticated'
+      }
     };
   }
 };
@@ -277,21 +290,35 @@ export const getConversationHistory = async (conversationId) => {
     if (state && state.values) {
       return {
         success: true,
-        history: state.values.history || [],
-        conversationContext: state.values.conversationContext || {},
-        metadata: state.values.metadata || {}
+        message: 'Conversation history retrieved successfully',
+        data: {
+          history: state.values.history || [],
+          conversationContext: state.values.conversationContext || {},
+          metadata: state.values.metadata || {},
+          conversationId,
+          messageCount: state.values.history?.length || 0
+        }
       };
     }
     
     return {
       success: false,
-      message: 'Conversation not found'
+      message: 'Conversation not found',
+      data: {
+        conversationId,
+        messageCount: 0
+      }
     };
   } catch (error) {
     console.error('Error retrieving conversation history:', error);
     return {
       success: false,
-      error: error.message
+      message: 'Failed to retrieve conversation history',
+      error: error.message,
+      data: {
+        conversationId,
+        messageCount: 0
+      }
     };
   }
 };
@@ -320,15 +347,34 @@ export const clearConversationHistory = async (conversationId) => {
       };
       
       await aiClassificationApp.updateState(config, resetState);
-      return { success: true, message: 'Conversation history cleared' };
+      return {
+        success: true,
+        message: 'Conversation history cleared successfully',
+        data: {
+          conversationId,
+          messageCount: 0
+        }
+      };
     }
     
-    return { success: false, message: 'Conversation not found' };
+    return {
+      success: false,
+      message: 'Conversation not found',
+      data: {
+        conversationId,
+        messageCount: 0
+      }
+    };
   } catch (error) {
     console.error('Error clearing conversation history:', error);
     return {
       success: false,
-      error: error.message
+      message: 'Failed to clear conversation history',
+      error: error.message,
+      data: {
+        conversationId,
+        messageCount: 0
+      }
     };
   }
 };

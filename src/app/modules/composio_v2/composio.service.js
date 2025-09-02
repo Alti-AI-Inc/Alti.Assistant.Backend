@@ -19,7 +19,14 @@ const initiateComposioAuth = async (body) => {
     console.log(`Found Auth Config for app ${app_name}:`, auth_config);
 
     const auth_config_id = auth_config ? auth_config.authConfigId : null;
+    console.log(`Auth Config ID for app ${app_name}:`, auth_config_id);
+    const existingComposioAuth = await ComposionAuth.findOne({ userId: user_id, authConfigId: auth_config_id });
 
+    if (existingComposioAuth) {
+      console.log(`Found existing Composio auth for user ${user_id}:`, existingComposioAuth);
+      // You may want to handle re-authentication or token refresh here
+      return { authConfig: existingComposioAuth, message: 'User is already authenticated' };
+    }
     const connectionUrl = await composio.connectedAccounts.initiate(
       user_id,
       auth_config_id
@@ -36,7 +43,7 @@ const initiateComposioAuth = async (body) => {
     })
     await composioAuth.save();
     console.log('Composio connection initiated successfully', connectionUrl);
-    return { connectionUrl };
+    return { authConfig: connectionUrl };
   } catch (error) {
     console.error('Error initiating Composio auth:', error);
     throw new Error('Failed to initiate authentication');
@@ -87,18 +94,18 @@ const generateGuestUserId = () => {
 const handleComposioConversation = async (userId, conversationId, message, isGuest = false) => {
   try {
     let conversation;
-    
+
     if (conversationId) {
       // Try to find existing conversation
       conversation = await Conversation.findByConversationId(conversationId, userId);
-      
+
       if (!conversation) {
         throw new Error('Conversation not found');
       }
     } else {
       // Create new conversation
       const newConversationId = generateComposioConversationId();
-      
+
       conversation = new Conversation({
         conversationId: newConversationId,
         userId: userId,
@@ -111,10 +118,10 @@ const handleComposioConversation = async (userId, conversationId, message, isGue
         },
         status: 'active'
       });
-      
+
       await conversation.save();
     }
-    
+
     return conversation;
   } catch (error) {
     console.error('Error handling composio conversation:', error);
@@ -132,7 +139,7 @@ const handleComposioConversation = async (userId, conversationId, message, isGue
 const addComposioQueryMessage = async (conversationId, userId, message, isGuest = false) => {
   try {
     const conversation = await Conversation.findByConversationId(conversationId, userId);
-    
+
     if (conversation) {
       conversation.messages.push({
         role: 'user',
@@ -143,10 +150,10 @@ const addComposioQueryMessage = async (conversationId, userId, message, isGuest 
           type: 'composio_query'
         }
       });
-      
+
       conversation.lastActivity = new Date();
       conversation.messageCount = conversation.messages.length;
-      
+
       await conversation.save();
     }
   } catch (error) {
@@ -166,7 +173,7 @@ const addComposioQueryMessage = async (conversationId, userId, message, isGuest 
 const addComposioResponseMessage = async (conversationId, userId, response, metadata = {}, isGuest = false) => {
   try {
     const conversation = await Conversation.findByConversationId(conversationId, userId);
-    
+
     if (conversation) {
       conversation.messages.push({
         role: 'assistant',
@@ -178,10 +185,10 @@ const addComposioResponseMessage = async (conversationId, userId, response, meta
           ...metadata
         }
       });
-      
+
       conversation.lastActivity = new Date();
       conversation.messageCount = conversation.messages.length;
-      
+
       await conversation.save();
     }
   } catch (error) {
@@ -198,14 +205,14 @@ const addComposioResponseMessage = async (conversationId, userId, response, meta
 const processComposioConversation = async (inputs) => {
   try {
     const { query, conversationContext, history, userId, conversationId } = inputs;
-    
+
     // Use the existing AI classification service to process the user input
     const result = await aiClassificationService.processUserInputService(query, {
       userId,
       conversationId,
       history: conversationContext
     });
-    
+
     if (result.success) {
       return {
         response: result.data.response || 'Task completed successfully',

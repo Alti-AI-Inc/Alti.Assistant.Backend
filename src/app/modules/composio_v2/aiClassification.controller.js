@@ -8,9 +8,13 @@ import catchAsync from "../../../shared/catchAsync.js";
  * Controller for AI-powered user input classification and tool execution
  */
 const classifyAndExecuteController = catchAsync(async (req, res) => {
-  const { userInput, userId, conversationId } = req.body;
+  // Handle both authenticated and guest users
+  const isGuest = req.isGuest || !req.user;
+  let userId = isGuest ? null : (req.user?.userId || req.user?._id);
+  const { message, conversationId } = req.body;
+  userId = req.body?.userId || userId; // Allow overriding userId from request body
 
-  if (!userInput) {
+  if (!message) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
@@ -19,56 +23,46 @@ const classifyAndExecuteController = catchAsync(async (req, res) => {
   }
 
   try {
-    // Get conversation history if conversationId is provided
-    let history = [];
-    if (conversationId) {
-      try {
-        const { conversationHelpers } = await import('../conversations/conversation.helpers.js');
-        const conversation = await conversationHelpers.getConversationById(conversationId, userId);
-        if (conversation && conversation.messages) {
-          // Get last 10 messages for context
-          history = conversation.messages
-            .slice(-10)
-            .map(msg => ({
-              role: msg.role,
-              content: msg.content
-            }));
-        }
-      } catch (error) {
-        console.log('Could not retrieve conversation history:', error.message);
-        // Continue without history
-      }
-    }
-    
-    const result = await aiClassificationService.processUserInputService(userInput, {
+    // For authenticated users, check if they have any connected accounts
+
+    const result = await aiClassificationService.processUserInputService(message, {
       userId,
       conversationId,
-      history
+      isGuest
     });
 
+    console.log('AI classification result:', result);
+
     if (result.success) {
-      sendResponse(res, {
+      return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: 'Request processed successfully',
+        message: result.message || 'Request processed successfully',
         data: result.data
       });
     } else {
-      sendResponse(res, {
+      return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
-        message: 'Failed to process request',
+        message: result.message || 'Failed to process request',
         data: result.data
       });
     }
   } catch (error) {
     console.error('Error in classifyAndExecuteController:', error);
-    sendResponse(res, {
+    return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Internal server error while processing request',
       data: {
-        error: error.message
+        responseMessage: {
+          text: `Sorry, I encountered an unexpected error: ${error.message}`,
+          type: 'error'
+        },
+        conversationId: conversationId || null,
+        messageCount: 1,
+        userType: isGuest ? 'guest' : 'authenticated',
+        userId: isGuest ? userId : undefined,
       }
     });
   }
@@ -155,7 +149,7 @@ const testClassificationController = catchAsync(async (req, res) => {
 
   try {
     const { classifyUserIntent } = await import("./services/aiClassificationService.js");
-    
+
     const classification = await classifyUserIntent(userInput, []);
 
     sendResponse(res, {
@@ -181,7 +175,9 @@ const testClassificationController = catchAsync(async (req, res) => {
  * Controller to check user connections for apps
  */
 const getUserConnectionsController = catchAsync(async (req, res) => {
-  const { userId } = req.params;
+  const isGuest = req.isGuest || !req.user;
+  let userId = isGuest ? null : (req.user?.userId || req.user?._id);
+  console.log(`User ID for connections: ${userId}`);
 
   if (!userId) {
     return sendResponse(res, {
@@ -193,6 +189,7 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
 
   try {
     const result = await aiClassificationService.getUserConnectedAccountsService(userId);
+    console.log(`User connections for ${userId}:`, result);
 
     if (result.success) {
       sendResponse(res, {
@@ -224,9 +221,63 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * Controller to get conversation history and stats
+ */
+const getConversationHistoryController = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+  let userId = isGuest ? null : (req.user?.userId || req.user?._id);
+  const { conversationId, limit } = req.query;
+  userId = req.query?.userId || userId;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'User ID is required',
+    });
+  }
+
+  try {
+    const result = await aiClassificationService.getComposioConversationHistoryService(userId, {
+      conversationId,
+      limit: limit ? parseInt(limit) : 20
+    });
+
+    if (result.success) {
+      return sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: conversationId ? 'Conversation history retrieved successfully' : 'Conversation stats retrieved successfully',
+        data: result.data
+      });
+    } else {
+      return sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: 'Failed to retrieve conversation data',
+        data: {
+          error: result.error
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error in getConversationHistoryController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Internal server error while retrieving conversation data',
+      data: {
+        error: error.message
+      }
+    });
+  }
+});
+
 export const aiClassificationController = {
   classifyAndExecuteController,
   getSupportedAppsController,
   testClassificationController,
-  getUserConnectionsController
+  getUserConnectionsController,
+  getConversationHistoryController
 };

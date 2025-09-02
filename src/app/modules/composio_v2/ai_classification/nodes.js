@@ -715,7 +715,7 @@ export const planWorkflowNode = async (state) => {
   console.log('--- Node: planWorkflowNode ---');
   const { userInput, history, conversationContext } = state;
 
-  console.log(`User Input: ${userInput} ${JSON.stringify(state)}`);
+  console.log(`User Input: ${userInput}`);
   // console.log(`Conversation Context: ${JSON.stringify(state.connectedAccounts)}`);
   
   try {

@@ -16,7 +16,7 @@ const composioInitiateController = async (req, res) => {
       app_name,
       user_id
     });
-    res.status(200).json({ connectionUrl });
+    res.status(200).json({ authConfig: connectionUrl });
   } catch (error) {
     res.status(500).json({ error: 'Failed to initiate authentication' });
   }
@@ -97,17 +97,17 @@ const composioConversationController = catchAsync(async (req, res) => {
     // Add user message to conversation
     await composioService.addComposioQueryMessage(actualConversationId, userId, message, isGuest);
 
-    const inputs = { 
+    const inputs = {
       query: message,
       conversationContext: conversationHistory,
       history: [...conversationHistory, { role: 'user', content: message }],
       userId: userId,
       conversationId: actualConversationId
     };
-    
+
     const result = await composioService.processComposioConversation(inputs);
     logger.info(`Composio Automation Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
-    
+
     const response = result.response;
     const metadata = result.metadata || {};
 
@@ -129,7 +129,7 @@ const composioConversationController = catchAsync(async (req, res) => {
 
   } catch (error) {
     logger.error(`Error in composio conversation: ${error.message}`);
-    
+
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
@@ -160,7 +160,7 @@ const getComposioConversationController = catchAsync(async (req, res) => {
 
   try {
     const conversation = await conversationHelpers.getConversationById(conversationId, userId);
-    
+
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -169,7 +169,7 @@ const getComposioConversationController = catchAsync(async (req, res) => {
     });
   } catch (error) {
     logger.error(`Error retrieving composio conversation: ${error.message}`);
-    
+
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
@@ -204,7 +204,7 @@ const getUserComposioConversationsController = catchAsync(async (req, res) => {
     };
 
     const conversations = await conversationHelpers.getUserConversations(userId, options);
-    
+
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -213,7 +213,7 @@ const getUserComposioConversationsController = catchAsync(async (req, res) => {
     });
   } catch (error) {
     logger.error(`Error retrieving user composio conversations: ${error.message}`);
-    
+
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
