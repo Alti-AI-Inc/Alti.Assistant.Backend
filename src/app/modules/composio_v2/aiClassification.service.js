@@ -190,11 +190,11 @@ export const processUserInputService = async (userInput, options = {}) => {
 /**
  * Get user's connected accounts for apps
  */
-export const getUserConnectedAccountsService = async (userId) => {
+export const getUserConnectedAccountsService = async (userId, status) => {
   try {
 
     const accounts = await ComposioAuth.find({
-      userId: userId, status: 'ACTIVE'
+      userId: userId
     });
 
     console.log(`User connected accounts for ${userId}:`, accounts);

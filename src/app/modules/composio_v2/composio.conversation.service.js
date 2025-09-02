@@ -247,7 +247,7 @@ const updateComposioConversationTitle = async (conversationId, userId, workflowR
     let newTitle = 'Tool Execution';
 
     if (identifiedApp && identifiedAction) {
-      newTitle = `${identifiedApp}: ${identifiedAction}`;
+      newTitle = `${identifiedAction}`;
     } else if (workflowType === 'multi_step') {
       newTitle = `Multi-step Workflow`;
     }
