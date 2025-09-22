@@ -59,7 +59,7 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
     }));
     // console.log('LangChain tools:', langchainTools[0].parameters);
     console.log('Tool length', tools.length);
-    
+
     // Build context-aware system message
     let systemMessage = `You are a helpful assistant that can use various tools to help users. 
         Available tools: ${langchainTools.map((t) => t.name).join(', ')}.
@@ -89,13 +89,13 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
         - Total conversation turns: ${historySummary.context.totalTurns || 0}
         
         RECENT CONVERSATION:`;
-      
+
       if (historySummary.recentConversation && historySummary.recentConversation.length > 0) {
         historySummary.recentConversation.forEach(msg => {
           systemMessage += `\n        ${msg.role}: ${msg.content}`;
         });
       }
-      
+
       systemMessage += `\n\nUse this context to better understand the user's current request and maintain continuity with previous actions.`;
     }
 
@@ -139,16 +139,16 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
     // );
     const connectedAccountId = connectedAccount.connectedAccountId;
     // console.log('Using connectedAccountId:', connectedAccountId);
-    
+
     const composioConnectedAccount = await composio.connectedAccounts.list({
       toolkitSlugs: [app],
     })
     // console.log('Composio connected account:', composioConnectedAccount);
-    
+
     // Re-fetch tools with explicit connectedAccountId to avoid the warning
-    const toolsWithConnectedAccount = await composio.tools.get(userId, { 
+    const toolsWithConnectedAccount = await composio.tools.get(userId, {
       tools: tools.map(t => t.function.name),
-      connectedAccountId: connectedAccountId 
+      connectedAccountId: connectedAccountId
     });
 
     console.log('Tools with connected account:', toolsWithConnectedAccount);
@@ -522,7 +522,7 @@ export { runGroqTask };
  */
 export const classifyAppIntent = async (userInput, availableApps, context = [], conversationContext = {}) => {
   const { lastApp, lastAction, recentTools = [], userPreferences = {} } = conversationContext;
-  
+
   const systemPrompt = `You are an AI app classifier with conversation memory. Your task is to identify which app the user wants to use based on their input and conversation context.
 
 Available apps from database:
@@ -593,7 +593,7 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
  */
 export const classifyActionIntent = async (userInput, appName, availableActions, context = [], conversationContext = {}) => {
   const { lastApp, lastAction, lastParameters = {}, userPreferences = {} } = conversationContext;
-  
+
   const systemPrompt = `You are an AI action classifier with conversation memory. Your task is to identify which action the user wants to perform with the "${appName}" app based on their input and conversation context.
 
 Available actions for "${appName}" app from database:
@@ -700,7 +700,7 @@ Respond with a JSON object:
   try {
     const result = await runGroqTask(userPrompt, systemPrompt);
     let cleanedResult = result;
-    
+
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = result.replace(regex, '').trim();
@@ -721,7 +721,7 @@ Respond with a JSON object:
     }
     // console.log('Cleaned Result After :', cleanedResult);
     const parsed = JSON.parse(cleanedResult);
-    
+
     // Validate structure
     if (!parsed.required_apps || !Array.isArray(parsed.required_apps)) {
       throw new Error('Invalid required_apps structure');
@@ -814,7 +814,7 @@ Respond with a JSON object:
   try {
     const result = await runGroqTask(userPrompt, systemPrompt);
     let cleanedResult = result;
-    
+
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = result.replace(regex, '').trim();
@@ -825,9 +825,10 @@ Respond with a JSON object:
         .replace(/```json\s*/, '')
         .replace(/\s*```$/, '');
     }
+    console.log('Cleaned Result:', cleanedResult);
 
     const parsed = JSON.parse(cleanedResult);
-    
+
     // Validate structure
     if (!parsed.plan || !Array.isArray(parsed.plan)) {
       throw new Error('Invalid execution plan structure');
@@ -890,7 +891,7 @@ Respond with a JSON object:
   try {
     const result = await runGroqTask(userPrompt, systemPrompt);
     let cleanedResult = result;
-    
+
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = result.replace(regex, '').trim();
@@ -923,7 +924,7 @@ Respond with a JSON object:
  */
 const createDependencyGraph = (plan) => {
   const graph = {};
-  
+
   plan.forEach(step => {
     graph[step.step] = {
       dependencies: step.dependencies || [],
@@ -932,7 +933,7 @@ const createDependencyGraph = (plan) => {
       action: step.action
     };
   });
-  
+
   return graph;
 };
 
@@ -978,7 +979,7 @@ Respond with a JSON object:
   "status": "success|partial|failed"
 }`;
 
-console.log( `STEP EXECUTION SUMMARY REQUEST:
+  console.log(`STEP EXECUTION SUMMARY REQUEST:
 
 Step ${stepResult.step} Details:
 - App: ${stepResult.app}
@@ -1010,7 +1011,7 @@ Respond with a JSON object:
   try {
     const result = await runGroqTask(userPrompt, systemPrompt);
     let cleanedResult = result;
-    
+
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = result.replace(regex, '').trim();
@@ -1023,7 +1024,7 @@ Respond with a JSON object:
     }
 
     const parsed = JSON.parse(cleanedResult);
-    
+
     return {
       summary: parsed.summary || `Completed ${stepResult.app}.${stepResult.action}`,
       keyOutputs: parsed.key_outputs || {},

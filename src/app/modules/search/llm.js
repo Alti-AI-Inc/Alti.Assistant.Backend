@@ -17,9 +17,9 @@ const llm = new ChatGroq({
 const updateQueryWithCurrentYear = (query) => {
   const currentYear = new Date().getFullYear();
   const previousYears = [currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4, currentYear - 5];
-  
+
   let updatedQuery = query;
-  
+
   // Replace previous years with current year in common contexts
   previousYears.forEach(year => {
     // Match year patterns that are likely outdated
@@ -28,21 +28,21 @@ const updateQueryWithCurrentYear = (query) => {
       new RegExp(`\\b(schedule|game|season|event|news|latest|upcoming)\\s+${year}\\b`, 'gi'),
       new RegExp(`\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming)\\b`, 'gi')
     ];
-    
+
     patterns.forEach(pattern => {
       updatedQuery = updatedQuery.replace(pattern, (match) => {
         return match.replace(year.toString(), currentYear.toString());
       });
     });
   });
-  
+
   return updatedQuery;
 };
 
 export const runSimpleGroqTask = async (state, stream = false) => {
   try {
     console.log("Running conversational Groq task with search results:", state.searchResults);
-    
+
     // Format search results into a readable string with enhanced content and citation numbers
     let formattedSearchResults = "";
     if (Array.isArray(state.searchResults)) {
@@ -53,7 +53,7 @@ export const runSimpleGroqTask = async (state, stream = false) => {
         const isRecent = result.isRecent ? ' (Recent)' : '';
         const publishedDate = result.publishedDate ? ` (Published: ${result.publishedDate})` : '';
         const citationIndex = index + 1;
-        
+
         return `[${citationIndex}] ${result.title}
 Domain: ${domain}${isRecent}${publishedDate}
 URL: ${result.url}
@@ -67,7 +67,7 @@ Relevance Score: ${result.score?.toFixed(3) || 'N/A'}
 
     // Build conversation context from message history - defensive coding
     let conversationHistory = "";
-    
+
     // Handle different formats of conversation context
     let contextMessages = [];
     if (state.conversationContext) {
@@ -78,16 +78,16 @@ Relevance Score: ${result.score?.toFixed(3) || 'N/A'}
         contextMessages = [];
       }
     }
-    
+
     // Fallback to history if conversationContext is not available or empty
     if (contextMessages.length === 0 && state.history && Array.isArray(state.history)) {
       contextMessages = state.history;
     }
-    
+
     // Build conversation history string
     if (contextMessages.length > 0) {
       const recentMessages = contextMessages.slice(-5);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg => 
+      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
         `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
       ).join('\n')}\n\n`;
     }
@@ -100,7 +100,7 @@ Search query used: ${state.searchQuery}
 
 `;
     }
-    
+
     const messages = [
       {
         role: "system",
@@ -160,7 +160,7 @@ Please provide a conversational, well-researched response based on the search re
       console.log("Groq response received");
       return response.content;
     }
-    
+
   } catch (error) {
     console.error("Error in runSimpleGroqTask:", error);
     return "I encountered an error while processing your request. Please try again.";
@@ -177,7 +177,7 @@ export const createBetterQueryFromMultipleQuestions = async (
     let contextHistory = "";
     if (conversationContext && conversationContext.length > 0) {
       const recentMessages = conversationContext.slice(-3);
-      contextHistory = `Recent conversation:\n${recentMessages.map(msg => 
+      contextHistory = `Recent conversation:\n${recentMessages.map(msg =>
         `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
       ).join('\n')}\n\n`;
     }
@@ -242,12 +242,12 @@ Generate an improved search query that uses the current year (${currentYear}) wh
 
     const response = await llm.invoke(messages);
     let improvedQuery = response.content.trim();
-    
+
     // Apply additional year correction as a safety measure
     improvedQuery = updateQueryWithCurrentYear(improvedQuery);
-    
+
     return improvedQuery;
-    
+
   } catch (error) {
     console.error("Error generating improved query:", error);
     return query; // Return original query if improvement fails
@@ -257,7 +257,7 @@ Generate an improved search query that uses the current year (${currentYear}) wh
 export const checkIfSearchNeededForTheQueryUsingAi = async (query, conversationContext = []) => {
   try {
     // Prepare conversation history for context
-    const contextHistory = conversationContext.slice(-3).map(msg => 
+    const contextHistory = conversationContext.slice(-3).map(msg =>
       `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
     ).join('\n');
 
@@ -314,9 +314,9 @@ Classification needed:`
 
     const response = await llm.invoke(messages);
     let rawContent = response.content.trim();
-    
+
     console.log("AI classification for query:", query, "→", rawContent);
-    
+
     // Handle thinking tags - extract the actual decision after thinking
     let cleanedContent = rawContent;
     if (rawContent.includes('<THINK>') || rawContent.includes('<think>')) {
@@ -324,17 +324,92 @@ Classification needed:`
       const regex = /<think>[\s\S]*?<\/think>/gi;
       cleanedContent = rawContent.replace(regex, '').trim();
     }
-    
+
     // Extract the final decision
     const finalDecision = cleanedContent.toUpperCase().trim();
     console.log("Cleaned decision:", finalDecision);
-    
+
     // Return the decision
     return finalDecision.includes("SEARCH") ? "SEARCH" : "ANSWER";
-    
+
   } catch (error) {
     console.error("Error checking if search is needed:", error);
     return "ANSWER"; // Default to direct answer on error
+  }
+};
+
+export const analyzeDirectAnswerQuality = async (answer, originalQuery, conversationContext = []) => {
+  try {
+    // Build conversation context for better analysis
+    let conversationHistory = "";
+    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+      const recentMessages = conversationContext.slice(-3);
+      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
+        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+      ).join('\n')}\n\n`;
+    }
+
+    const systemPrompt = `You are an expert answer quality analyzer. Your task is to evaluate if a direct answer is adequate or if external search is needed.
+
+ANALYSIS CRITERIA:
+1. NEGATIVE INDICATORS (requires search):
+   - Answer explicitly states "I don't know" or "I'm not sure"
+   - Contains phrases like "I cannot provide", "I don't have access to", "I'm unable to"
+   - Mentions outdated information or knowledge cutoff limitations
+   - Provides vague or generic responses without specific details
+   - Acknowledges lack of current/real-time information
+   - Contains disclaimers about needing to search or verify
+
+2. INADEQUATE RESPONSES (requires search):
+   - Very short responses (less than 2 sentences) for complex questions
+   - Generic advice without specific details when specifics are requested
+   - Partial answers that only address part of the question
+   - Responses that ask for clarification instead of attempting to answer
+
+3. ADEQUATE RESPONSES (no search needed):
+   - Provides specific, detailed information
+   - Answers the question comprehensively
+   - Shows confidence in the information provided
+   - Includes relevant context and examples
+   - Successfully builds on conversation history
+
+IMPORTANT: Respond with ONLY "ADEQUATE" or "INADEQUATE" - no explanations, no thinking tags, no extra text.`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `${conversationHistory}Original question: "${originalQuery}"
+
+Direct answer provided: "${answer}"
+
+Analyze if this answer is ADEQUATE or INADEQUATE:`
+      }
+    ];
+
+    const response = await llm.invoke(messages);
+    let rawContent = response.content.trim();
+
+    console.log("Answer quality analysis for query:", originalQuery, "→", rawContent);
+
+    // Handle thinking tags - extract the actual decision
+    let cleanedContent = rawContent;
+    if (rawContent.includes('<THINK>') || rawContent.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/gi;
+      cleanedContent = rawContent.replace(regex, '').trim();
+    }
+
+    const finalDecision = cleanedContent.toUpperCase().trim();
+    console.log("Cleaned answer quality decision:", finalDecision);
+
+    return finalDecision.includes("INADEQUATE") ? "INADEQUATE" : "ADEQUATE";
+
+  } catch (error) {
+    console.error("Error analyzing answer quality:", error);
+    return "ADEQUATE"; // Default to adequate on error to avoid infinite loops
   }
 };
 
@@ -344,7 +419,7 @@ export const giveAnswerWithoutSearch = async (query, conversationContext = []) =
     let conversationHistory = "";
     if (Array.isArray(conversationContext) && conversationContext.length > 0) {
       const recentMessages = conversationContext.slice(-5);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg => 
+      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
         `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
       ).join('\n')}\n\n`;
     }

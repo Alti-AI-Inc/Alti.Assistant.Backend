@@ -51,22 +51,18 @@ workflow.addEdge("plan_workflow", "schedule_detection");
 workflow.addConditionalEdges(
   "schedule_detection",
   (state) => {
-    console.log('Routing from schedule_detection, state:', { 
-      needsScheduling: state.needsScheduling,
-      workflowType: state.workflowType, 
-      error: state.error,
-      currentStage: state.currentStage 
-    });
-    
+    console.log('Routing from schedule_detection, state:', state);
+
     if (state.error) return "error";
-    
+    console.log('Needs scheduling:', state.needsScheduling);
+
     // If scheduling is needed, save workflow instead of executing
     if (state.needsScheduling) return "save_workflow";
-    
+
     // Otherwise, proceed with execution based on workflow type
     if (state.workflowType === "single_step") return "single_step";
     if (state.workflowType === "multi_step") return "multi_step";
-    
+
     // Default fallback
     console.log('Defaulting to single_step workflow');
     return "single_step";
@@ -74,7 +70,7 @@ workflow.addConditionalEdges(
   {
     save_workflow: "save_workflow",
     single_step: "classify_app",
-    multi_step: "validate_plan", 
+    multi_step: "validate_plan",
     error: "generate_response"
   }
 );
@@ -91,13 +87,13 @@ workflow.addEdge("execute_step", "check_completion");
 workflow.addConditionalEdges(
   "check_completion",
   (state) => {
-    console.log('Routing from check_completion, state:', { 
-      workflowComplete: state.workflowComplete, 
+    console.log('Routing from check_completion, state:', {
+      workflowComplete: state.workflowComplete,
       error: state.error,
       currentStep: state.currentStep,
-      totalSteps: state.executionPlan?.length 
+      totalSteps: state.executionPlan?.length
     });
-    
+
     if (state.error) return "error";
     if (state.workflowComplete) return "complete";
     return "continue";
@@ -198,7 +194,7 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
     },
     currentStage: 'initial',
     connectedAccounts: connectedAccounts.items || [],
-    
+
     // Multi-step workflow fields
     workflowType: null,
     requiredApps: null,
@@ -210,7 +206,7 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
     planningMetadata: null,
     crossStepParameters: {},
     workflowComplete: false,
-    
+
     metadata: {
       timestamp: new Date(),
       processingStartTime: new Date(),
@@ -247,7 +243,7 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
         conversationId: threadId,
         messageCount: (result.history?.length || 0) + 2, // User message + assistant response
         userType: 'authenticated', // Composio typically requires authentication
-        
+
         // Additional metadata for debugging/monitoring
         // workflow: {
         //   availableApps: result.availableApps,
@@ -286,7 +282,7 @@ export const getConversationHistory = async (conversationId) => {
   try {
     const config = { configurable: { thread_id: conversationId } };
     const state = await aiClassificationApp.getState(config);
-    
+
     if (state && state.values) {
       return {
         success: true,
@@ -300,7 +296,7 @@ export const getConversationHistory = async (conversationId) => {
         }
       };
     }
-    
+
     return {
       success: false,
       message: 'Conversation not found',
@@ -329,7 +325,7 @@ export const clearConversationHistory = async (conversationId) => {
     const config = { configurable: { thread_id: conversationId } };
     // Get current state and reset conversation-specific fields
     const currentState = await aiClassificationApp.getState(config);
-    
+
     if (currentState && currentState.values) {
       const resetState = {
         ...currentState.values,
@@ -345,7 +341,7 @@ export const clearConversationHistory = async (conversationId) => {
           turnCount: 0
         }
       };
-      
+
       await aiClassificationApp.updateState(config, resetState);
       return {
         success: true,
@@ -356,7 +352,7 @@ export const clearConversationHistory = async (conversationId) => {
         }
       };
     }
-    
+
     return {
       success: false,
       message: 'Conversation not found',

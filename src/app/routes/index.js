@@ -29,6 +29,7 @@ import { imageRoutes } from '../modules/image/image.route.js';
 import { videoRoutes } from '../modules/video/video.route.js';
 import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
 import { composioV2Routes } from '../modules/composio_v2/composio.route.js';
+import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
 
 const router = express.Router();
 
@@ -110,6 +111,10 @@ const moduleRoutes = [
     route: composioV2Routes,
   },
   {
+    path: '/workflow-automation',
+    route: workflowAutomationRoutes,
+  },
+  {
     path: '/cyberdesk',
     route: cyberdeskRoutes,
   },
@@ -157,7 +162,7 @@ const moduleRoutes = [
 
 moduleRoutes.forEach(route => {
   console.log(`Registering route: ${route.path}`);
-  
+
   return router.use(route.path, route.route);
 });
 

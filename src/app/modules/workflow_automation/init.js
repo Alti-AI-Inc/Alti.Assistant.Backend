@@ -1,0 +1,42 @@
+import { workflowExecutionService } from './services/workflowExecution.service.js';
+import { logger } from '../../../shared/logger.js';
+
+/**
+ * Initialize the workflow automation module
+ */
+export const initializeWorkflowAutomation = async () => {
+  try {
+    logger.info('Initializing Workflow Automation module...');
+
+    // Initialize scheduled workflows
+    await workflowExecutionService.initializeScheduledWorkflows();
+
+    logger.info('Workflow Automation module initialized successfully');
+
+  } catch (error) {
+    logger.error('Error initializing Workflow Automation module:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cleanup function for graceful shutdown
+ */
+export const cleanupWorkflowAutomation = () => {
+  try {
+    logger.info('Cleaning up Workflow Automation module...');
+
+    // Stop all scheduled jobs
+    workflowExecutionService.scheduledJobs.forEach((job, workflowId) => {
+      job.stop();
+      logger.info(`Stopped scheduled job for workflow: ${workflowId}`);
+    });
+
+    workflowExecutionService.scheduledJobs.clear();
+
+    logger.info('Workflow Automation module cleanup completed');
+
+  } catch (error) {
+    logger.error('Error during Workflow Automation cleanup:', error);
+  }
+};

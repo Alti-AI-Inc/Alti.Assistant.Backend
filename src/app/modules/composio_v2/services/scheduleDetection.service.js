@@ -50,23 +50,24 @@ Respond with a JSON object:
 
   try {
     const result = await runGroqTask(userPrompt, systemPrompt);
-    
+
     let cleanedResult = result;
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = result.replace(regex, '').trim();
     }
-    
+
     if (cleanedResult.startsWith('```json')) {
       cleanedResult = cleanedResult.replace(/```json\s*/, '').replace(/\s*```$/, '');
     }
-    
+
     if (cleanedResult.startsWith('```')) {
       cleanedResult = cleanedResult.replace(/```\s*/, '').replace(/\s*```$/, '');
     }
 
     const parsed = JSON.parse(cleanedResult);
-    
+    console.log('Schedule detection result:', parsed);
+
     // Validate structure
     if (typeof parsed.requiresScheduling !== 'boolean' || !parsed.triggerType) {
       throw new Error('Invalid schedule detection structure');
@@ -79,10 +80,10 @@ Respond with a JSON object:
 
   } catch (error) {
     console.error('Error in detectSchedulingRequirements:', error);
-    
+
     // Fallback detection based on keywords
     const fallbackDetection = fallbackScheduleDetection(userInput);
-    
+
     return {
       success: true,
       data: fallbackDetection
@@ -124,19 +125,19 @@ Respond with a JSON object:
 
   try {
     const result = await runGroqTask(userPrompt, systemPrompt);
-    
+
     let cleanedResult = result;
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = result.replace(regex, '').trim();
     }
-    
+
     if (cleanedResult.startsWith('```json')) {
       cleanedResult = cleanedResult.replace(/```json\s*/, '').replace(/\s*```$/, '');
     }
 
     const parsed = JSON.parse(cleanedResult);
-    
+
     return {
       success: true,
       data: parsed
@@ -144,7 +145,7 @@ Respond with a JSON object:
 
   } catch (error) {
     console.error('Error in parseScheduleExpression:', error);
-    
+
     return {
       success: false,
       error: error.message,
@@ -195,19 +196,19 @@ Respond with a JSON object:
 
   try {
     const result = await runGroqTask(userPrompt, systemPrompt);
-    
+
     let cleanedResult = result;
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = result.replace(regex, '').trim();
     }
-    
+
     if (cleanedResult.startsWith('```json')) {
       cleanedResult = cleanedResult.replace(/```json\s*/, '').replace(/\s*```$/, '');
     }
 
     const parsed = JSON.parse(cleanedResult);
-    
+
     return {
       success: true,
       data: parsed
@@ -215,10 +216,10 @@ Respond with a JSON object:
 
   } catch (error) {
     console.error('Error in generateWorkflowMetadata:', error);
-    
+
     // Fallback metadata generation
     const fallbackTitle = generateFallbackTitle(userInput, requiredApps);
-    
+
     return {
       success: true,
       data: {
@@ -235,32 +236,32 @@ Respond with a JSON object:
  */
 const fallbackScheduleDetection = (userInput) => {
   const input = userInput.toLowerCase();
-  
+
   // Check for workflow creation keywords
   const workflowKeywords = [
-    'create workflow', 'save for later', 'set up automation', 
+    'create workflow', 'save for later', 'set up automation',
     'create automation', 'don\'t run yet', 'save as workflow'
   ];
-  
+
   const isWorkflowCreation = workflowKeywords.some(keyword => input.includes(keyword));
-  
+
   // Check for schedule keywords
   const scheduleKeywords = [
-    'tomorrow', 'next week', 'schedule for', 'run at', 'at 3 pm', 
+    'tomorrow', 'next week', 'schedule for', 'run at', 'at 3 pm',
     'on friday', 'every day', 'daily', 'weekly', 'monthly'
   ];
-  
+
   const hasSchedule = scheduleKeywords.some(keyword => input.includes(keyword));
-  
+
   // Check for recurring keywords
   const recurringKeywords = ['daily', 'weekly', 'monthly', 'every day', 'every hour'];
   const isRecurring = recurringKeywords.some(keyword => input.includes(keyword));
-  
+
   let triggerType = 'immediate';
   if (isWorkflowCreation) triggerType = 'manual';
   else if (isRecurring) triggerType = 'recurring';
   else if (hasSchedule) triggerType = 'scheduled';
-  
+
   return {
     requiresScheduling: triggerType !== 'immediate',
     triggerType,
@@ -287,12 +288,12 @@ const extractScheduleFromInput = (input) => {
     /(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i,
     /(tomorrow|next week|friday|monday|tuesday|wednesday|thursday|saturday|sunday)/i
   ];
-  
+
   for (const pattern of timePatterns) {
     const match = input.match(pattern);
     if (match) return match[1] || match[0];
   }
-  
+
   return null;
 };
 

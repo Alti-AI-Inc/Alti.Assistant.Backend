@@ -32,10 +32,10 @@ const createHistorySummary = (history, conversationContext) => {
   }
 
   const { lastApp, lastAction, lastParameters, recentTools, conversationSummary } = conversationContext || {};
-  
+
   // Get recent conversation context (last 3 exchanges)
   const recentHistory = history.slice(-6); // Last 6 messages (3 exchanges)
-  
+
   const historySummary = {
     recentConversation: recentHistory.map(msg => ({
       role: msg.role,
@@ -45,7 +45,7 @@ const createHistorySummary = (history, conversationContext) => {
     })),
     context: {
       lastApp,
-      lastAction, 
+      lastAction,
       lastParameters,
       recentTools: recentTools || [],
       conversationSummary: conversationSummary || '',
@@ -67,9 +67,9 @@ export const classifyAppNode = async (state) => {
   try {
     // Get all available apps from database
     const availableApps = await Tool.find({}).distinct('slug');
-    
+
     console.log(`Required apps from planning: ${requiredApps} and planning metadata: ${JSON.stringify(planningMetadata)}`);
-    
+
 
     // console.log(`App classification result:`, appClassification);
 
@@ -118,7 +118,7 @@ export const classifyActionNode = async (state) => {
   try {
     // Get all available actions for the identified app from database
     const availableActions = await Tool.find({ slug: identifiedApp }).select('name description');
-    
+
     console.log(`Found available actions ${availableActions.length} actions for app "${identifiedApp}":`);
 
     // Build conversation context for better classification
@@ -379,7 +379,7 @@ export const executeToolNode = async (state) => {
 
     // Create a comprehensive context summary for the execution
     const historySummary = createHistorySummary(history, conversationContext);
-    
+
     console.log(
       `Executing tool: ${identifiedApp} with parameters:`,
       extractedParameters,
@@ -428,21 +428,21 @@ export const executeToolNode = async (state) => {
  */
 export const generateResponseNode = async (state) => {
   console.log('--- Node: generateResponseNode ---');
-  const { 
-    userInput, 
-    identifiedApp, 
-    identifiedAction, 
-    executionResult, 
-    error, 
+  const {
+    userInput,
+    identifiedApp,
+    identifiedAction,
+    executionResult,
+    error,
     finalResponse,
     history,
     messages,
     conversationContext,
     extractedParameters
   } = state;
-  
+
   console.log('Final response from state:', finalResponse);
-  
+
   try {
     let response;
 
@@ -514,7 +514,7 @@ export const generateResponseNode = async (state) => {
         timestamp: new Date().toISOString()
       },
       {
-        role: 'assistant', 
+        role: 'assistant',
         content: cleanedResult,
         timestamp: new Date().toISOString(),
         metadata: {
@@ -717,14 +717,14 @@ export const planWorkflowNode = async (state) => {
 
   console.log(`User Input: ${userInput}`);
   // console.log(`Conversation Context: ${JSON.stringify(state.connectedAccounts)}`);
-  
+
   try {
     const apps = fs.readFileSync('src/app/modules/composio_v2/ai_classification/available_apps.json');
     const availableApps = JSON.parse(apps);
     // Step 2: Identify required apps for this request
     const recentContext = history.length > 0 ? history.slice(-3) : [];
     const appIdentification = await identifyRequiredApps(userInput, availableApps, recentContext);
-    
+
     console.log('App identification result:', appIdentification);
 
     // Step 3: If single-step workflow, use existing flow
@@ -749,7 +749,7 @@ export const planWorkflowNode = async (state) => {
       actionsMap[app] = actions;
     }
 
-    console.log('Actions map for required apps:' , actionsMap.github?.length, actionsMap.gmail?.length);
+    // console.log('Actions map for required apps:', actionsMap.github?.length, actionsMap.gmail?.length);
 
     // Step 5: Create execution plan
     const planResult = await createExecutionPlan(
@@ -867,11 +867,11 @@ export const validatePlanNode = async (state) => {
  */
 export const executeStepNode = async (state) => {
   console.log('--- Node: executeStepNode ---');
-  const { 
-    userInput, 
-    executionPlan, 
-    currentStep, 
-    stepResults, 
+  const {
+    userInput,
+    executionPlan,
+    currentStep,
+    stepResults,
     stepSummaries,
     crossStepParameters,
     connectedAccounts,
@@ -890,11 +890,11 @@ export const executeStepNode = async (state) => {
     const currentStepPlan = executionPlan[currentStep];
     console.log(`Executing step ${currentStep + 1}/${executionPlan.length}:`, currentStepPlan);
 
-    
+
 
     // Get parameters for current step
     let stepParameters = crossStepParameters[currentStep + 1] || {};
-    
+
     // Map data from previous steps
     if (currentStepPlan.dependencies && currentStepPlan.dependencies.length > 0) {
       for (const depStep of currentStepPlan.dependencies) {
@@ -919,7 +919,7 @@ export const executeStepNode = async (state) => {
     // console.log('Step parameters:', stepParameters);
     // console.log('Connected accounts:', connectedAccounts);
     console.log('Currentplan app', currentStepPlan.app, 'ConnectedAccounts', JSON.stringify(connectedAccounts));
-    
+
     // Find connected account for this app
     const connectedAccount = connectedAccounts?.find(acc => acc.toolkit.slug === currentStepPlan.app);
     if (!connectedAccount) {
@@ -952,7 +952,7 @@ export const executeStepNode = async (state) => {
         }
         executionContext += '\n';
       });
-      
+
       executionContext += `Current Step (${currentStep + 1}): Execute ${currentStepPlan.action} on ${currentStepPlan.app}\n`;
       executionContext += `Use the context from previous steps to inform your current action.\n`;
     }
@@ -1018,12 +1018,12 @@ export const executeStepNode = async (state) => {
 export const checkCompletionNode = async (state) => {
   console.log('--- Node: checkCompletionNode ---');
   const { executionPlan, currentStep, stepResults } = state;
-  
+
   try {
     // console.log('Checking workflow completion...', currentStep, executionPlan.length, state.stepSummaries);
 
     const isComplete = currentStep >= executionPlan.length;
-    
+
     if (isComplete) {
       console.log('Workflow completed successfully');
       return {
@@ -1132,17 +1132,29 @@ export const scheduleDetectionNode = async (state) => {
     // Detect scheduling requirements
     const scheduleResult = await detectSchedulingRequirements(userInput);
 
-    console.log('Schedule detection result:', scheduleResult);
+    console.log('Schedule detection result:', {
+      needsScheduling: scheduleResult.data.requiresScheduling,
+      schedulingDetected: scheduleResult.data.requiresScheduling,
+      scheduleType: scheduleResult.data.triggerType,
+      cronExpression: scheduleResult.data.scheduleConfig.cronExpression,
+      oneTimeDate: scheduleResult.data.scheduleConfig.triggerDate,
+      timezone: scheduleResult.data.scheduleConfig.timezone,
+      scheduleDescription: scheduleResult.data.scheduleDescription,
+      scheduleMetadata: scheduleResult.data.scheduleMetadata,
+      confidence: scheduleResult.confidence,
+      currentStage: 'schedule_detection'
+    });
 
     return {
-      needsScheduling: scheduleResult.needsScheduling,
-      schedulingDetected: scheduleResult.needsScheduling,
-      scheduleType: scheduleResult.scheduleType,
-      cronExpression: scheduleResult.cronExpression,
-      oneTimeDate: scheduleResult.oneTimeDate,
-      timezone: scheduleResult.timezone,
-      scheduleDescription: scheduleResult.description,
-      scheduleMetadata: scheduleResult.metadata,
+      ...state,
+      needsScheduling: scheduleResult.data.requiresScheduling,
+      schedulingDetected: scheduleResult.data.requiresScheduling,
+      scheduleType: scheduleResult.data.triggerType,
+      cronExpression: scheduleResult.data.scheduleConfig.cronExpression,
+      oneTimeDate: scheduleResult.data.scheduleConfig.triggerDate,
+      timezone: scheduleResult.data.scheduleConfig.timezone,
+      scheduleDescription: scheduleResult.data.scheduleDescription,
+      scheduleMetadata: scheduleResult.data.scheduleMetadata,
       confidence: scheduleResult.confidence,
       currentStage: 'schedule_detection'
     };
@@ -1167,11 +1179,11 @@ export const saveWorkflowNode = async (state) => {
   try {
     console.log('Starting workflow save...');
 
-    const { 
-      userInput, 
-      userId, 
-      workflowType, 
-      executionPlan, 
+    const {
+      userInput,
+      userId,
+      workflowType,
+      executionPlan,
       requiredApps,
       scheduleType,
       cronExpression,
@@ -1196,13 +1208,13 @@ export const saveWorkflowNode = async (state) => {
       requiredApps: requiredApps,
       crossStepParameters: crossStepParameters,
       totalSteps: executionPlan?.length || 1,
-      
+
       // Scheduling data
       scheduleType: scheduleType,
       cronExpression: cronExpression,
       oneTimeDate: oneTimeDate,
       timezone: timezone || 'UTC',
-      
+
       // Metadata
       planningMetadata: planningMetadata,
       createdFromInput: userInput,
@@ -1222,16 +1234,16 @@ export const saveWorkflowNode = async (state) => {
     let responseMessage = `✅ **Workflow Scheduled Successfully!**\n\n`;
     responseMessage += `**Workflow ID:** ${saveResult.data.workflowId}\n`;
     responseMessage += `**Name:** ${saveResult.data.name}\n`;
-    
+
     if (scheduleType === 'recurring') {
       responseMessage += `**Schedule:** ${scheduleDescription} (${cronExpression})\n`;
     } else if (scheduleType === 'one_time') {
       responseMessage += `**Scheduled for:** ${new Date(oneTimeDate).toLocaleString()}\n`;
     }
-    
+
     responseMessage += `**Apps involved:** ${requiredApps?.join(', ') || 'Various'}\n`;
     responseMessage += `**Total steps:** ${executionPlan?.length || 1}\n\n`;
-    
+
     responseMessage += `Your workflow has been saved and will execute automatically according to the schedule. `;
     responseMessage += `You can manage this workflow using the workflow ID: ${saveResult.data.workflowId}`;
 
@@ -1253,7 +1265,7 @@ export const saveWorkflowNode = async (state) => {
 
   } catch (error) {
     console.error('Error in saveWorkflowNode:', error);
-    
+
     let errorMessage = `❌ **Failed to Schedule Workflow**\n\n`;
     errorMessage += `Error: ${error.message}\n\n`;
     errorMessage += `Please try rephrasing your request or contact support if the issue persists.`;

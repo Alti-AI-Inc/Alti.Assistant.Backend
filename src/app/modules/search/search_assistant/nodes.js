@@ -5,6 +5,7 @@ import {
   createBetterQueryFromMultipleQuestions,
   giveAnswerWithoutSearch,
   runSimpleGroqTask,
+  analyzeDirectAnswerQuality,
 } from '../llm.js';
 import { tavily } from '@tavily/core';
 
@@ -218,6 +219,7 @@ export const directAnswerNode = async (state) => {
     );
 
     return {
+      directAnswer: cleanedResponse, // Store the direct answer for analysis
       answer: cleanedResponse,
       responseType: 'direct',
       reference: [], // No references for direct answers
@@ -225,10 +227,48 @@ export const directAnswerNode = async (state) => {
   } catch (error) {
     console.error('Error in directAnswerNode:', error);
     return {
-      answer:
-        'I apologize, but I encountered an error while processing your question. Could you please rephrase it?',
+      directAnswer: 'I apologize, but I encountered an error while processing your question. Could you please rephrase it?',
+      answer: 'I apologize, but I encountered an error while processing your question. Could you please rephrase it?',
       responseType: 'error',
       reference: [],
+    };
+  }
+};
+
+/**
+ * Node: Analyzes the quality of direct answer to determine if search is needed
+ */
+export const analyzeAnswerQualityNode = async (state) => {
+  console.log('--- Node: analyzeAnswerQualityNode ---');
+  const { directAnswer, query, history } = state;
+
+  try {
+    // Analyze if the direct answer is adequate or needs search
+    const qualityAssessment = await analyzeDirectAnswerQuality(
+      directAnswer,
+      query,
+      history
+    );
+
+    console.log(`Answer quality analysis for "${query}": ${qualityAssessment}`);
+
+    const needsSearchFallback = qualityAssessment === 'INADEQUATE';
+
+    return {
+      ...state, // Preserve existing state
+      answerQuality: qualityAssessment,
+      needsSearchFallback,
+      analysisComplete: true,
+    };
+  } catch (error) {
+    console.error('Error in analyzeAnswerQualityNode:', error);
+
+    // On error, assume the direct answer is adequate to avoid infinite loops
+    return {
+      ...state,
+      answerQuality: 'ADEQUATE',
+      needsSearchFallback: false,
+      analysisComplete: true,
     };
   }
 };
