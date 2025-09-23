@@ -20,13 +20,17 @@ const updateQueryWithCurrentYear = (query) => {
 
   let updatedQuery = query;
 
-  // Replace previous years with current year in common contexts
+  // Enhanced patterns for sports and time-sensitive queries
   previousYears.forEach(year => {
     // Match year patterns that are likely outdated
     const patterns = [
-      new RegExp(`\\b${year}\\b(?=\\s*(game|schedule|season|event|news|latest|upcoming))`, 'gi'),
-      new RegExp(`\\b(schedule|game|season|event|news|latest|upcoming)\\s+${year}\\b`, 'gi'),
-      new RegExp(`\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming)\\b`, 'gi')
+      // Basic patterns
+      new RegExp(`\\b${year}\\b(?=\\s*(game|schedule|season|event|news|latest|upcoming|next|when|match))`, 'gi'),
+      new RegExp(`\\b(schedule|game|season|event|news|latest|upcoming|next|when|match)\\s+${year}\\b`, 'gi'),
+      new RegExp(`\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming|next|when|match)\\b`, 'gi'),
+      // Sports specific patterns
+      new RegExp(`\\b${year}[-/]\\d{2}\\b`, 'gi'), // Match 2023-24 season format
+      new RegExp(`\\b\\d{2}[-/]${year}\\b`, 'gi'), // Match 23-2024 season format
     ];
 
     patterns.forEach(pattern => {
@@ -35,6 +39,16 @@ const updateQueryWithCurrentYear = (query) => {
       });
     });
   });
+
+  // Add current year context for sports queries that don't have years
+  const sportsKeywords = ['next game', 'upcoming game', 'when is', 'schedule', 'next match'];
+  const hasSportsKeyword = sportsKeywords.some(keyword =>
+    updatedQuery.toLowerCase().includes(keyword.toLowerCase())
+  );
+
+  if (hasSportsKeyword && !updatedQuery.includes(currentYear.toString())) {
+    updatedQuery += ` ${currentYear}`;
+  }
 
   return updatedQuery;
 };
@@ -117,6 +131,8 @@ Search query used: ${state.searchQuery}
         role: "system",
         content: `You are an intelligent research assistant that provides conversational, helpful responses.
 
+CRITICAL: Today's date is ${new Date().toDateString()} (${new Date().getFullYear()}). Always prioritize current information and be aware that older data may be outdated.
+
 CONTEXT AWARENESS:
 - Consider the conversation history when formulating your response
 - Build upon previous exchanges naturally
@@ -129,6 +145,11 @@ CONTENT UTILIZATION:
 - Extract key insights from the comprehensive content available
 - YouTube videos (marked with 🎥) provide visual/audio content - mention when video format adds value
 
+TIME-SENSITIVE INFORMATION:
+- For sports schedules, events, news, or current affairs, prioritize the most recent information
+- If search results contain outdated information (from previous years), acknowledge this and suggest checking official sources
+- When providing dates or schedules, always verify they are current for ${new Date().getFullYear()}
+
 RESPONSE GUIDELINES:
 - Be conversational and engaging
 - Provide comprehensive yet focused answers
@@ -138,8 +159,9 @@ RESPONSE GUIDELINES:
 - Synthesize information from multiple sources when relevant
 - When referencing YouTube videos, mention that they provide visual demonstrations or detailed explanations
 - Provide clean, readable responses without citation numbers or reference sections
+- For outdated information, clearly state when the data is from and recommend checking current sources
 
-IMPORTANT: Focus on delivering clear, informative content without citations or numbered references.`
+IMPORTANT: Focus on delivering clear, informative content without citations or numbered references. Always prioritize current ${new Date().getFullYear()} information over older data.`
       },
       {
         role: "user",

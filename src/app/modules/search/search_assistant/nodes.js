@@ -142,7 +142,13 @@ export const intelligentSearchNode = async (state) => {
   const { contextualizedQuery, query, depth, previousSearchContext } = state;
 
   // Use contextualized query if available, otherwise fall back to original query
-  const searchQuery = contextualizedQuery || query;
+  let searchQuery = contextualizedQuery || query;
+
+  // Apply year correction to ensure current information
+  searchQuery = updateQueryWithCurrentYear(searchQuery);
+
+  console.log(`Original query: ${contextualizedQuery || query}`);
+  console.log(`Year-corrected query: ${searchQuery}`);
 
   // Check if we've already searched for similar content recently
   if (
@@ -173,7 +179,7 @@ export const intelligentSearchNode = async (state) => {
 
   try {
     console.log('Performing search with query:', searchQuery);
-    const response = await researchTool.search(contextualizedQuery, {
+    const response = await researchTool.search(searchQuery, {
       searchDepth: 'advanced',
       maxResults: 11,
       includeAnswer: 'advanced',
@@ -729,21 +735,21 @@ Click the link above to watch the video on YouTube!`;
     } else {
       // Multiple videos response
       const videosToShow = youtubeResults.slice(0, requestedCount);
-      
+
       let videoResponse = `Here are the ${videosToShow.length} most relevant videos I found for your request:\n\n`;
 
       videosToShow.forEach((video, index) => {
         videoResponse += `**${index + 1}. ${video.title}** 🎥\n`;
         videoResponse += `📺 Channel: ${video.channelTitle}\n`;
         videoResponse += `🔗 Link: ${video.url}\n`;
-        
+
         if (video.description && video.description.length > 0) {
           const shortDesc = video.description.length > 100
             ? video.description.substring(0, 100) + '...'
             : video.description;
           videoResponse += `📝 Description: ${shortDesc}\n`;
         }
-        
+
         videoResponse += '\n';
       });
 
