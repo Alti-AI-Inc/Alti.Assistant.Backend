@@ -11,6 +11,7 @@ import {
   shouldSearchYouTube,
   searchYouTube,
   isVideoOnlyQuery,
+  analyzeVideoQuery,
 } from '../llm.js';
 import { tavily } from '@tavily/core';
 
@@ -32,11 +33,11 @@ export const analyzeContextNode = async (state) => {
       `Analyzing query: "${query}" with ${conversationContext.length} context messages`
     );
 
-    // First, check if this is a video-only query
-    const isVideoOnly = isVideoOnlyQuery(query);
+    // First, check if this is a video-only query and extract count using LLM
+    const videoAnalysis = await analyzeVideoQuery(query, conversationContext);
 
-    if (isVideoOnly) {
-      console.log(`Video-only query detected for: "${query}"`);
+    if (videoAnalysis.isVideoOnly) {
+      console.log(`Video-only query detected for: "${query}" with count: ${videoAnalysis.videoCount}`);
 
       // Generate contextualized query for video search
       let contextualizedQuery = query;
@@ -49,12 +50,11 @@ export const analyzeContextNode = async (state) => {
         needsSearch: false, // Skip web search
         isSearchNeeded: false, // Skip web search
         isVideoOnlyQuery: true, // Flag for video-only routing
+        requestedVideoCount: videoAnalysis.videoCount, // Store the requested count
         contextualizedQuery,
         responseType: 'video_only',
       };
-    }
-
-    // Check if search is needed based on query and context
+    }    // Check if search is needed based on query and context
     const searchDecision = await checkIfSearchNeededForTheQueryUsingAi(
       query,
       conversationContext
@@ -183,7 +183,7 @@ export const intelligentSearchNode = async (state) => {
     const searchResults = response.results || [];
     console.log('Raw Tavily response:', response.answer);
 
-    // Format results with detailed metadata for citations
+    // Format results with detailed metadata
     const formattedResults = {
       answer: response.answer || null,
       results: searchResults.map((result, index) => ({
@@ -200,7 +200,6 @@ export const intelligentSearchNode = async (state) => {
         isRecent: isRecentContent(
           result.published_date || result.publishedDate
         ),
-        citationIndex: index + 1, // Add citation index for references
       })),
       query: searchQuery,
       originalQuery: query,
@@ -574,7 +573,7 @@ export const synthesizeDirectAnswerWithYouTubeNode = async (state) => {
       combinedAnswer += '\n\n**For visual demonstrations and additional information, you might find these helpful:**\n';
 
       youtubeResults.forEach((video, index) => {
-        combinedAnswer += `\n[${index + 1}] 🎥 **${video.title}**\n`;
+        combinedAnswer += `\n🎥 **${video.title}**\n`;
         combinedAnswer += `   Channel: ${video.channelTitle}\n`;
         combinedAnswer += `   ${video.url}\n`;
         if (video.description && video.description.length > 0) {
@@ -619,18 +618,21 @@ export const synthesizeDirectAnswerWithYouTubeNode = async (state) => {
  */
 export const videoOnlySearchNode = async (state) => {
   console.log('--- Node: videoOnlySearchNode ---');
-  const { query, contextualizedQuery, history, conversationSummary } = state;
+  const { query, contextualizedQuery, history, conversationSummary, requestedVideoCount } = state;
 
   try {
     // Use the contextualized query if available, otherwise fall back to original query
     const searchQuery = contextualizedQuery || query;
 
-    console.log(`Performing video-only YouTube search for: "${searchQuery}"`);
+    // Use the requested video count, default to 1 if not specified
+    const videoCount = requestedVideoCount || 1;
 
-    // Perform YouTube search - get more results to find the most relevant one
-    const youtubeResults = await searchYouTube(searchQuery, 5); // Get a few results to pick the best
+    console.log(`Performing video-only YouTube search for: "${searchQuery}" with count: ${videoCount}`);
 
-    console.log(`Found ${youtubeResults.length} YouTube results for video-only query`);
+    // Perform YouTube search with the requested number of videos
+    const youtubeResults = await searchYouTube(searchQuery, videoCount);
+
+    console.log(`Found ${youtubeResults.length} YouTube results for video-only query (requested: ${videoCount})`);
 
     return {
       youtubeResults,
@@ -664,10 +666,12 @@ export const videoOnlySynthesisNode = async (state) => {
     history,
     contextualizedQuery,
     conversationSummary,
+    requestedVideoCount,
   } = state;
 
   try {
-    console.log(`Synthesizing video-only response with ${youtubeResults?.length || 0} YouTube results`);
+    const requestedCount = requestedVideoCount || 1;
+    console.log(`Synthesizing video-only response with ${youtubeResults?.length || 0} YouTube results (requested: ${requestedCount})`);
 
     // Build context from conversation history and summary
     let fullContext = "";
@@ -695,11 +699,12 @@ export const videoOnlySynthesisNode = async (state) => {
       };
     }
 
-    // Get the most relevant video (first result is usually most relevant)
-    const mostRelevantVideo = youtubeResults[0];
+    // Handle single vs multiple video responses
+    if (requestedCount === 1) {
+      // Single video response (existing logic)
+      const mostRelevantVideo = youtubeResults[0];
 
-    // Create a descriptive response with the video link
-    const videoResponse = `Here's the most relevant video I found for your request:
+      const videoResponse = `Here's the most relevant video I found for your request:
 
 🎥 **${mostRelevantVideo.title}**
 📺 Channel: ${mostRelevantVideo.channelTitle}
@@ -707,22 +712,59 @@ export const videoOnlySynthesisNode = async (state) => {
 
 Click the link above to watch the video on YouTube!`;
 
-    // Create a single reference for the most relevant video
-    const references = [{
-      title: `🎥 ${mostRelevantVideo.title}`,
-      url: mostRelevantVideo.url,
-      source: 'youtube',
-      index: 1
-    }];
+      const references = [{
+        title: `🎥 ${mostRelevantVideo.title}`,
+        url: mostRelevantVideo.url,
+        source: 'youtube',
+        index: 1
+      }];
 
-    console.log(`Returning most relevant video: ${mostRelevantVideo.title}`);
-    console.log(`Video URL: ${mostRelevantVideo.url}`);
+      console.log(`Returning most relevant video: ${mostRelevantVideo.title}`);
 
-    return {
-      answer: videoResponse,
-      reference: references,
-      responseType: 'video_only_synthesis',
-    };
+      return {
+        answer: videoResponse,
+        reference: references,
+        responseType: 'video_only_synthesis',
+      };
+    } else {
+      // Multiple videos response
+      const videosToShow = youtubeResults.slice(0, requestedCount);
+      
+      let videoResponse = `Here are the ${videosToShow.length} most relevant videos I found for your request:\n\n`;
+
+      videosToShow.forEach((video, index) => {
+        videoResponse += `**${index + 1}. ${video.title}** 🎥\n`;
+        videoResponse += `📺 Channel: ${video.channelTitle}\n`;
+        videoResponse += `🔗 Link: ${video.url}\n`;
+        
+        if (video.description && video.description.length > 0) {
+          const shortDesc = video.description.length > 100
+            ? video.description.substring(0, 100) + '...'
+            : video.description;
+          videoResponse += `📝 Description: ${shortDesc}\n`;
+        }
+        
+        videoResponse += '\n';
+      });
+
+      videoResponse += `Click any link above to watch the videos on YouTube!`;
+
+      // Create references for all videos
+      const references = videosToShow.map((video, index) => ({
+        title: `🎥 ${video.title}`,
+        url: video.url,
+        source: 'youtube',
+        index: index + 1
+      }));
+
+      console.log(`Returning ${videosToShow.length} videos as requested`);
+
+      return {
+        answer: videoResponse,
+        reference: references,
+        responseType: 'video_only_synthesis',
+      };
+    }
 
   } catch (error) {
     console.error('Error in videoOnlySynthesisNode:', error);
@@ -816,7 +858,6 @@ export const conversationalSynthesisNode = async (state) => {
     return {
       answer:
         'I found some information but encountered an error while synthesizing it. Please try asking your question differently.',
-      reference: [],
       responseType: 'error',
     };
   }

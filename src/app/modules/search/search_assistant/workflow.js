@@ -46,7 +46,7 @@ workflow.addConditionalEdges(
       console.log("Video-only routing decision for query:", state.query, "→ video_only");
       return "video_only";
     }
-    
+
     // Otherwise, use the existing routing logic
     console.log("Intelligent routing decision for query:", state.query, "→", state.needsSearch ? "search" : "direct");
     return state.needsSearch ? "search" : "direct";

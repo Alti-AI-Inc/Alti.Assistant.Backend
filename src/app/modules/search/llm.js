@@ -43,7 +43,7 @@ export const runSimpleGroqTask = async (state, stream = false) => {
   try {
     console.log("Running conversational Groq task with search results:", state.searchResults);
 
-    // Format search results into a readable string with enhanced content and citation numbers
+    // Format search results into a readable string with enhanced content (no citations)
     let formattedSearchResults = "";
     if (Array.isArray(state.searchResults)) {
       formattedSearchResults = state.searchResults.map((result, index) => {
@@ -52,11 +52,10 @@ export const runSimpleGroqTask = async (state, stream = false) => {
         const domain = result.domain || 'Unknown domain';
         const isRecent = result.isRecent ? ' (Recent)' : '';
         const publishedDate = result.publishedDate ? ` (Published: ${result.publishedDate})` : '';
-        const citationIndex = index + 1;
 
         // Handle YouTube results differently
         if (result.source === 'youtube') {
-          return `[${citationIndex}] 🎥 ${result.title}
+          return `🎥 ${result.title}
 Channel: ${result.channelTitle}
 URL: ${result.url}
 Description: ${content}
@@ -65,7 +64,7 @@ Source: YouTube Video
 ---`;
         } else {
           // Regular web results
-          return `[${citationIndex}] ${result.title}
+          return `${result.title}
 Domain: ${domain}${isRecent}${publishedDate}
 URL: ${result.url}
 Content: ${content}
@@ -116,7 +115,7 @@ Search query used: ${state.searchQuery}
     const messages = [
       {
         role: "system",
-        content: `You are an intelligent research assistant that provides conversational, helpful responses with proper citations.
+        content: `You are an intelligent research assistant that provides conversational, helpful responses.
 
 CONTEXT AWARENESS:
 - Consider the conversation history when formulating your response
@@ -138,22 +137,9 @@ RESPONSE GUIDELINES:
 - Maintain consistency with previous conversation context
 - Synthesize information from multiple sources when relevant
 - When referencing YouTube videos, mention that they provide visual demonstrations or detailed explanations
+- Provide clean, readable responses without citation numbers or reference sections
 
-CITATION REQUIREMENTS:
-- Place citations at the end of relevant sentences or paragraphs
-- ALWAYS include a "References:" section at the end listing all sources used
-- Every fact, statistic, or specific information MUST be cited
-- Distinguish between web sources and YouTube videos in citations
-
-CITATION FORMAT EXAMPLE:
-"The Detroit Tigers' next game is scheduled for July 30th [1]. They are currently performing well this season with a record of 65-64 [2]. For a detailed analysis of their recent performance, you can watch the game highlights and expert commentary [3].
-
-References:
-[1] MLB.com - Detroit Tigers Schedule
-[2] ESPN - Detroit Tigers Stats  
-[3] 🎥 YouTube - Detroit Tigers Game Analysis by Sports Center"
-
-IMPORTANT: You MUST cite your sources. Do not provide information without proper citations.`
+IMPORTANT: Focus on delivering clear, informative content without citations or numbered references.`
       },
       {
         role: "user",
@@ -644,74 +630,207 @@ export const manageConversationContext = async (history, existingSummary = null)
 };
 
 /**
- * Detects if the user is specifically asking for video content
+ * Detects if the user is specifically asking for video content using LLM
  */
-export const isVideoOnlyQuery = (query) => {
+export const isVideoOnlyQuery = async (query, conversationContext = []) => {
   try {
-    const normalizedQuery = query.toLowerCase().trim();
-    
-    // Video-specific keywords that indicate user wants video content
-    const videoKeywords = [
-      'video', 'videos', 'watch', 'tutorial', 'tutorials', 'demonstration', 'demo',
-      'how to', 'step by step', 'visual guide', 'show me', 'youtube',
-      'walkthrough', 'guide', 'learn by watching', 'video tutorial',
-      'video guide', 'instructional video', 'visual tutorial',
-      'watch how', 'see how', 'video explanation', 'animated',
-      'screencast', 'recording', 'footage', 'clip', 'clips'
-    ];
-
-    // Video-specific phrases
-    const videoPhrases = [
-      'show me a video',
-      'find a video',
-      'video about',
-      'watch a video',
-      'tutorial video',
-      'instructional video',
-      'video demonstration',
-      'video guide',
-      'how to video',
-      'step by step video',
-      'visual explanation'
-    ];
-
-    // Check for exact phrase matches first
-    for (const phrase of videoPhrases) {
-      if (normalizedQuery.includes(phrase)) {
-        console.log(`Video-only query detected - phrase match: "${phrase}"`);
-        return true;
-      }
+    // Build conversation context for better classification
+    let conversationHistory = "";
+    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+      const recentMessages = conversationContext.slice(-3);
+      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
+        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+      ).join('\n')}\n\n`;
     }
 
-    // Check for keyword matches
-    for (const keyword of videoKeywords) {
-      if (normalizedQuery.includes(keyword)) {
-        console.log(`Video-only query detected - keyword match: "${keyword}"`);
-        return true;
-      }
-    }
+    const systemPrompt = `You are an intelligent query classifier that determines if a user is specifically asking for video content.
 
-    // Additional pattern matching for common video request patterns
-    const videoPatterns = [
-      /\b(show|find|get|search)\s+(me\s+)?(a\s+)?video/i,
-      /\b(how\s+to)\s+.+\s+(video|tutorial)/i,
-      /\b(watch|see)\s+(how|a)/i,
-      /\b(tutorial|guide)\s+for/i
+CLASSIFY AS VIDEO-ONLY QUERY ONLY IF:
+- User EXPLICITLY asks for videos: "show me a video", "find a video", "I want to watch"
+- User EXPLICITLY asks for tutorials: "tutorial video", "video tutorial", "show me how to"
+- User EXPLICITLY asks for demonstrations: "video demonstration", "watch a demo"
+- User EXPLICITLY asks for visual content: "visual guide", "step-by-step video"
+- User mentions YouTube specifically: "youtube video", "find on youtube"
+- User wants to SEE something being done: "show me how", "watch how to"
+
+DO NOT CLASSIFY AS VIDEO-ONLY IF:
+- Simple factual questions: "Who is the president?", "What is the capital?"
+- General knowledge queries: "Tell me about...", "What is...?"
+- News or current events: "Latest news about...", "What happened...?"
+- Mathematical calculations or definitions
+- Questions that can be answered with text
+- General search queries that don't specifically request video format
+- Educational topics that don't explicitly ask for video content
+- Historical questions, biographical information
+- Scientific facts or explanations that don't specifically request visual format
+
+CRITICAL RULES:
+- Be VERY strict - only classify as video-only if the user CLEARLY and EXPLICITLY wants video content
+- A topic being "educational" or "tutorial-like" does NOT automatically make it video-only
+- The user must explicitly indicate they want to WATCH, SEE, or VIEW content
+- Factual questions should NEVER be classified as video-only unless explicitly requesting video format
+
+Respond with ONLY "VIDEO_ONLY" or "NOT_VIDEO_ONLY" - no explanations, no thinking tags, no extra text.`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `${conversationHistory}Current query: "${query}"
+
+Determine if this is a video-only query:`
+      }
     ];
 
-    for (const pattern of videoPatterns) {
-      if (pattern.test(normalizedQuery)) {
-        console.log(`Video-only query detected - pattern match: ${pattern}`);
-        return true;
-      }
+    const response = await llm.invoke(messages);
+    let rawContent = response.content.trim();
+
+    console.log("LLM video-only classification for query:", query, "→", rawContent);
+
+    // Handle thinking tags - extract the actual decision
+    let cleanedContent = rawContent;
+    if (rawContent.includes('<THINK>') || rawContent.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/gi;
+      cleanedContent = rawContent.replace(regex, '').trim();
     }
 
-    console.log(`Query "${query}" is not video-specific`);
-    return false;
+    const finalDecision = cleanedContent.toUpperCase().trim();
+    console.log("Cleaned video-only decision:", finalDecision);
+
+    const isNotVideoOnly = finalDecision.includes("NOT_VIDEO_ONLY");
+    console.log(`Video-only query result: ${isNotVideoOnly}`);
+
+    return isNotVideoOnly ? false : true;
 
   } catch (error) {
-    console.error("Error detecting video-only query:", error);
+    console.error("Error detecting video-only query with LLM:", error);
     return false; // Default to not video-only on error
+  }
+};
+
+/**
+ * Extracts the number of videos requested from the query using LLM
+ */
+export const extractVideoCount = async (query, conversationContext = []) => {
+  try {
+    // Build conversation context for better analysis
+    let conversationHistory = "";
+    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+      const recentMessages = conversationContext.slice(-3);
+      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
+        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+      ).join('\n')}\n\n`;
+    }
+
+    const systemPrompt = `You are an expert at extracting the number of videos requested from user queries.
+
+ANALYZE THE QUERY TO DETERMINE HOW MANY VIDEOS THE USER WANTS:
+
+EXPLICIT NUMBERS:
+- "5 videos" → 5
+- "show me 3 tutorials" → 3
+- "find 10 clips" → 10
+- "top 7 videos" → 7
+- "first 2 demonstrations" → 2
+
+WRITTEN NUMBERS:
+- "three videos" → 3
+- "five tutorials" → 5
+- "ten clips" → 10
+
+IMPLIED QUANTITIES:
+- "a video" → 1
+- "single video" → 1
+- "one video" → 1
+- "some videos" → 3
+- "few videos" → 3
+- "several videos" → 3
+- "multiple videos" → 3
+- "many videos" → 5
+- "lots of videos" → 5
+- "all videos" → 10
+
+DEFAULT BEHAVIOR:
+- If no specific number is mentioned, assume 1
+- Maximum reasonable limit is 20 videos
+- If user asks for an unreasonable amount (>20), cap at 20
+
+IMPORTANT: 
+- Respond with ONLY a single number (1-20)
+- Do not include any explanations, text, or thinking tags
+- Just return the number as a digit`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `${conversationHistory}Current query: "${query}"
+
+Extract the number of videos requested:`
+      }
+    ];
+
+    const response = await llm.invoke(messages);
+    let rawContent = response.content.trim();
+
+    console.log("LLM video count extraction for query:", query, "→", rawContent);
+
+    // Handle thinking tags - extract the actual decision
+    let cleanedContent = rawContent;
+    if (rawContent.includes('<THINK>') || rawContent.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/gi;
+      cleanedContent = rawContent.replace(regex, '').trim();
+    }
+
+    // Extract just the number from the response
+    const numberMatch = cleanedContent.match(/\b(\d+)\b/);
+    let count = 1;
+
+    if (numberMatch) {
+      count = parseInt(numberMatch[1], 10);
+      // Ensure reasonable bounds
+      if (count < 1) count = 1;
+      if (count > 20) count = 20;
+    }
+
+    console.log(`Extracted video count: ${count}`);
+    return count;
+
+  } catch (error) {
+    console.error("Error extracting video count with LLM:", error);
+    return 1; // Default to 1 on error
+  }
+};
+
+/**
+ * Analyzes video query and extracts the requested count using LLM
+ */
+export const analyzeVideoQuery = async (query, conversationContext = []) => {
+  try {
+    console.log(`Analyzing video query with LLM: "${query}"`);
+
+    // Use LLM to determine if it's a video-only query
+    const isVideoOnly = await isVideoOnlyQuery(query, conversationContext);
+
+    // If it's a video query, extract the count
+    let videoCount = 1;
+    if (isVideoOnly) {
+      videoCount = await extractVideoCount(query, conversationContext);
+    }
+
+    console.log(`LLM Video query analysis - Query: "${query}", IsVideoOnly: ${isVideoOnly}, Count: ${videoCount}`);
+
+    return { isVideoOnly, videoCount };
+
+  } catch (error) {
+    console.error("Error analyzing video query with LLM:", error);
+    return { isVideoOnly: false, videoCount: 1 };
   }
 };
 

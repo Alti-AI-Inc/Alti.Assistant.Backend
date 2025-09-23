@@ -25,6 +25,9 @@ export const researchAgentState = {
   // Flag to indicate if this is a video-only query (should skip web search)
   isVideoOnlyQuery: { value: null },
 
+  // Number of videos requested by the user (extracted from query)
+  requestedVideoCount: { value: null },
+
   // Depth of the search, e.g., 'standard', 'deep'.
   depth: { value: 'standard' },
 
