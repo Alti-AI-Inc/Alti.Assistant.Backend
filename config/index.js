@@ -8,6 +8,7 @@ export default {
   database_local: process.env.DATABASE_LOCAL,
   port: process.env.PORT,
   client_url: process.env.CLIENT_URL,
+  youtube_api_key: process.env.YOUTUBE_API_KEY,
   jwt: {
     access_token: process.env.JWT_ACCESS_TOKEN,
     access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN,

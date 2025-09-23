@@ -6,6 +6,11 @@ import {
   giveAnswerWithoutSearch,
   runSimpleGroqTask,
   analyzeDirectAnswerQuality,
+  manageConversationContext,
+  shouldTrimContext,
+  shouldSearchYouTube,
+  searchYouTube,
+  isVideoOnlyQuery,
 } from '../llm.js';
 import { tavily } from '@tavily/core';
 
@@ -26,6 +31,28 @@ export const analyzeContextNode = async (state) => {
     console.log(
       `Analyzing query: "${query}" with ${conversationContext.length} context messages`
     );
+
+    // First, check if this is a video-only query
+    const isVideoOnly = isVideoOnlyQuery(query);
+
+    if (isVideoOnly) {
+      console.log(`Video-only query detected for: "${query}"`);
+
+      // Generate contextualized query for video search
+      let contextualizedQuery = query;
+      if (history.length > 0) {
+        contextualizedQuery = await createContextualizedQuery(history, query);
+      }
+
+      return {
+        ...state, // Preserve existing state
+        needsSearch: false, // Skip web search
+        isSearchNeeded: false, // Skip web search
+        isVideoOnlyQuery: true, // Flag for video-only routing
+        contextualizedQuery,
+        responseType: 'video_only',
+      };
+    }
 
     // Check if search is needed based on query and context
     const searchDecision = await checkIfSearchNeededForTheQueryUsingAi(
@@ -55,6 +82,7 @@ export const analyzeContextNode = async (state) => {
       ...state, // Preserve existing state
       needsSearch: isSearchNeeded, // Use needsSearch to match workflow routing
       isSearchNeeded, // Keep for backward compatibility
+      isVideoOnlyQuery: false, // Not a video-only query
       contextualizedQuery,
       responseType: isSearchNeeded ? 'search' : 'direct',
     };
@@ -64,8 +92,44 @@ export const analyzeContextNode = async (state) => {
       ...state, // Preserve existing state
       needsSearch: false, // Default to direct answer on error
       isSearchNeeded: false,
+      isVideoOnlyQuery: false,
       contextualizedQuery: query,
       responseType: 'direct',
+    };
+  }
+};
+
+/**
+ * Node: Manages conversation context by trimming and summarizing when needed
+ */
+export const manageContextNode = async (state) => {
+  console.log('--- Node: manageContextNode ---');
+  const { history, conversationSummary } = state;
+
+  try {
+    // Manage the conversation context
+    const contextResult = await manageConversationContext(history, conversationSummary);
+
+    console.log(`Context management result:`, {
+      managed: contextResult.contextManaged,
+      trimmedCount: contextResult.trimmedMessageCount,
+      keptCount: contextResult.keptMessageCount,
+      hasSummary: !!contextResult.conversationSummary
+    });
+
+    return {
+      ...state, // Preserve existing state
+      history: contextResult.trimmedHistory,
+      conversationSummary: contextResult.conversationSummary,
+      contextManaged: contextResult.contextManaged,
+    };
+  } catch (error) {
+    console.error('Error in manageContextNode:', error);
+
+    // On error, preserve original state
+    return {
+      ...state,
+      contextManaged: false,
     };
   }
 };
@@ -187,21 +251,108 @@ export const intelligentSearchNode = async (state) => {
 };
 
 /**
+ * Node: Performs YouTube search and combines with web search results
+ */
+export const youtubeSearchNode = async (state) => {
+  console.log('--- Node: youtubeSearchNode ---');
+  const { query, contextualizedQuery, history, conversationSummary, searchResults } = state;
+
+  try {
+    // Use the contextualized query if available, otherwise fall back to original query
+    const searchQuery = contextualizedQuery || query;
+
+    // Build context for YouTube relevance determination
+    let fullContextHistory = [];
+
+    if (conversationSummary) {
+      fullContextHistory.push({
+        role: 'system',
+        content: `Previous conversation summary: ${conversationSummary}`
+      });
+    }
+
+    fullContextHistory = fullContextHistory.concat(history || []);
+
+    // Check if YouTube search is relevant for this query
+    const isYouTubeRelevant = await shouldSearchYouTube(searchQuery, fullContextHistory);
+
+    console.log(`YouTube search relevance for "${searchQuery}": ${isYouTubeRelevant}`);
+
+    if (!isYouTubeRelevant) {
+      console.log('YouTube search not relevant, skipping');
+      return {
+        youtubeResults: [],
+        needsYouTubeSearch: false,
+        combinedResults: searchResults || [],
+      };
+    }
+
+    // Perform YouTube search
+    const youtubeResults = await searchYouTube(searchQuery, 5);
+
+    console.log(`Found ${youtubeResults.length} YouTube results`);
+
+    // Combine web search results with YouTube results
+    const webResults = searchResults || [];
+    const combinedResults = [
+      ...webResults.map(result => ({ ...result, source: 'web' })),
+      ...youtubeResults
+    ];
+
+    // Sort combined results by relevance score if available
+    combinedResults.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+
+    console.log(`Combined ${webResults.length} web results with ${youtubeResults.length} YouTube results`);
+
+    return {
+      youtubeResults,
+      needsYouTubeSearch: true,
+      combinedResults,
+      youtubeSearchPerformed: true,
+    };
+
+  } catch (error) {
+    console.error('Error in youtubeSearchNode:', error);
+
+    // On error, return original search results without YouTube
+    return {
+      youtubeResults: [],
+      needsYouTubeSearch: false,
+      combinedResults: searchResults || [],
+      youtubeSearchPerformed: false,
+      youtubeError: error.message,
+    };
+  }
+};
+
+/**
  * Node: Provides direct answer without search for simple queries
  */
 export const directAnswerNode = async (state) => {
   console.log('--- Node: directAnswerNode ---');
-  const { query, history } = state;
+  const { query, history, conversationSummary } = state;
 
   try {
-    // Build context from conversation history
+    // Build context from conversation history and summary
     let contextualPrompt = query;
+
+    // Combine summary and recent history for comprehensive context
+    let fullContext = "";
+
+    if (conversationSummary) {
+      fullContext += `Previous conversation summary:\n${conversationSummary}\n\n`;
+    }
+
     if (history.length > 0) {
       const recentHistory = history.slice(-4); // Last 4 messages for context
       const contextString = recentHistory
         .map((msg) => `${msg.role}: ${msg.content}`)
         .join('\n');
-      contextualPrompt = `Context from conversation:\n${contextString}\n\nCurrent question: ${query}`;
+      fullContext += `Recent conversation:\n${contextString}`;
+    }
+
+    if (fullContext) {
+      contextualPrompt = `${fullContext}\n\nCurrent question: ${query}`;
     }
 
     const response = await giveAnswerWithoutSearch(contextualPrompt);
@@ -240,14 +391,28 @@ export const directAnswerNode = async (state) => {
  */
 export const analyzeAnswerQualityNode = async (state) => {
   console.log('--- Node: analyzeAnswerQualityNode ---');
-  const { directAnswer, query, history } = state;
+  const { directAnswer, query, history, conversationSummary } = state;
 
   try {
+    // Build complete context for analysis (summary + recent history)
+    let fullContextHistory = [];
+
+    if (conversationSummary) {
+      // Add summary as context
+      fullContextHistory.push({
+        role: 'system',
+        content: `Previous conversation summary: ${conversationSummary}`
+      });
+    }
+
+    // Add recent history
+    fullContextHistory = fullContextHistory.concat(history);
+
     // Analyze if the direct answer is adequate or needs search
     const qualityAssessment = await analyzeDirectAnswerQuality(
       directAnswer,
       query,
-      history
+      fullContextHistory
     );
 
     console.log(`Answer quality analysis for "${query}": ${qualityAssessment}`);
@@ -274,12 +439,311 @@ export const analyzeAnswerQualityNode = async (state) => {
 };
 
 /**
+ * Node: Checks if YouTube search would enhance a direct answer
+ */
+export const checkYouTubeRelevanceNode = async (state) => {
+  console.log('--- Node: checkYouTubeRelevanceNode ---');
+  const { query, history, conversationSummary, answerQuality } = state;
+
+  try {
+    // Only check YouTube relevance if the direct answer was adequate
+    if (answerQuality !== 'ADEQUATE') {
+      console.log('Direct answer was inadequate, skipping YouTube relevance check');
+      return {
+        ...state,
+        needsYouTubeSearch: false,
+        youtubeRelevanceChecked: true,
+      };
+    }
+
+    // Build context for YouTube relevance determination
+    let fullContextHistory = [];
+
+    if (conversationSummary) {
+      fullContextHistory.push({
+        role: 'system',
+        content: `Previous conversation summary: ${conversationSummary}`
+      });
+    }
+
+    fullContextHistory = fullContextHistory.concat(history || []);
+
+    // Check if YouTube search would add value to the direct answer
+    const isYouTubeRelevant = await shouldSearchYouTube(query, fullContextHistory);
+
+    console.log(`YouTube relevance for direct answer on "${query}": ${isYouTubeRelevant}`);
+
+    return {
+      ...state,
+      needsYouTubeSearch: isYouTubeRelevant,
+      youtubeRelevanceChecked: true,
+    };
+
+  } catch (error) {
+    console.error('Error in checkYouTubeRelevanceNode:', error);
+
+    // On error, skip YouTube search to avoid disrupting the flow
+    return {
+      ...state,
+      needsYouTubeSearch: false,
+      youtubeRelevanceChecked: true,
+      youtubeError: error.message,
+    };
+  }
+};
+
+/**
+ * Node: Performs YouTube search for direct answers (without web search)
+ */
+export const youtubeSearchForDirectAnswerNode = async (state) => {
+  console.log('--- Node: youtubeSearchForDirectAnswerNode ---');
+  const { query, contextualizedQuery, history, conversationSummary, needsYouTubeSearch } = state;
+
+  try {
+    // Skip YouTube search if not needed
+    if (!needsYouTubeSearch) {
+      console.log('YouTube search not needed for direct answer');
+      return {
+        youtubeResults: [],
+        combinedResults: [],
+        youtubeSearchPerformed: false,
+      };
+    }
+
+    // Use the contextualized query if available, otherwise fall back to original query
+    const searchQuery = contextualizedQuery || query;
+
+    console.log(`Performing YouTube search for direct answer: "${searchQuery}"`);
+
+    // Perform YouTube search
+    const youtubeResults = await searchYouTube(searchQuery, 3); // Fewer results for direct answers
+
+    console.log(`Found ${youtubeResults.length} YouTube results for direct answer`);
+
+    return {
+      youtubeResults,
+      combinedResults: youtubeResults, // For direct answers, only YouTube results
+      youtubeSearchPerformed: true,
+    };
+
+  } catch (error) {
+    console.error('Error in youtubeSearchForDirectAnswerNode:', error);
+
+    // On error, continue without YouTube results
+    return {
+      youtubeResults: [],
+      combinedResults: [],
+      youtubeSearchPerformed: false,
+      youtubeError: error.message,
+    };
+  }
+};
+
+/**
+ * Node: Synthesizes direct answers with YouTube results
+ */
+export const synthesizeDirectAnswerWithYouTubeNode = async (state) => {
+  console.log('--- Node: synthesizeDirectAnswerWithYouTubeNode ---');
+  const {
+    directAnswer,
+    youtubeResults,
+    query,
+    history,
+    conversationSummary,
+    youtubeSearchPerformed
+  } = state;
+
+  try {
+    // If no YouTube results, just return the direct answer
+    if (!youtubeSearchPerformed || !youtubeResults || youtubeResults.length === 0) {
+      console.log('No YouTube results to synthesize, returning direct answer');
+      return {
+        answer: directAnswer,
+        responseType: 'direct',
+        reference: [],
+      };
+    }
+
+    console.log(`Synthesizing direct answer with ${youtubeResults.length} YouTube results`);
+
+    // Create a combined response that includes the direct answer plus YouTube recommendations
+    let combinedAnswer = directAnswer;
+
+    // Add YouTube recommendations
+    if (youtubeResults.length > 0) {
+      combinedAnswer += '\n\n**For visual demonstrations and additional information, you might find these helpful:**\n';
+
+      youtubeResults.forEach((video, index) => {
+        combinedAnswer += `\n[${index + 1}] 🎥 **${video.title}**\n`;
+        combinedAnswer += `   Channel: ${video.channelTitle}\n`;
+        combinedAnswer += `   ${video.url}\n`;
+        if (video.description && video.description.length > 0) {
+          const shortDesc = video.description.length > 100
+            ? video.description.substring(0, 100) + '...'
+            : video.description;
+          combinedAnswer += `   ${shortDesc}\n`;
+        }
+      });
+    }
+
+    // Create references for YouTube videos
+    const references = youtubeResults.map((video, index) => ({
+      title: `🎥 ${video.title}`,
+      url: video.url,
+      source: 'youtube',
+      index: index + 1
+    }));
+
+    console.log('Combined direct answer with YouTube results');
+
+    return {
+      answer: combinedAnswer,
+      responseType: 'direct_with_youtube',
+      reference: references,
+    };
+
+  } catch (error) {
+    console.error('Error in synthesizeDirectAnswerWithYouTubeNode:', error);
+
+    // On error, fall back to direct answer only
+    return {
+      answer: directAnswer || 'I apologize, but I encountered an error while processing your question.',
+      responseType: 'direct',
+      reference: [],
+    };
+  }
+};
+
+/**
+ * Node: Performs YouTube-only search for video-specific queries
+ */
+export const videoOnlySearchNode = async (state) => {
+  console.log('--- Node: videoOnlySearchNode ---');
+  const { query, contextualizedQuery, history, conversationSummary } = state;
+
+  try {
+    // Use the contextualized query if available, otherwise fall back to original query
+    const searchQuery = contextualizedQuery || query;
+
+    console.log(`Performing video-only YouTube search for: "${searchQuery}"`);
+
+    // Perform YouTube search - get more results to find the most relevant one
+    const youtubeResults = await searchYouTube(searchQuery, 5); // Get a few results to pick the best
+
+    console.log(`Found ${youtubeResults.length} YouTube results for video-only query`);
+
+    return {
+      youtubeResults,
+      combinedResults: youtubeResults, // For video-only, YouTube is the only source
+      youtubeSearchPerformed: true,
+      needsYouTubeSearch: true,
+      searchResults: [], // No web search results
+    };
+
+  } catch (error) {
+    console.error('Error in videoOnlySearchNode:', error);
+
+    return {
+      youtubeResults: [],
+      combinedResults: [],
+      youtubeSearchPerformed: false,
+      youtubeError: error.message,
+      searchResults: [],
+    };
+  }
+};
+
+/**
+ * Node: Synthesizes video-only results into a conversational response
+ */
+export const videoOnlySynthesisNode = async (state) => {
+  console.log('--- Node: videoOnlySynthesisNode ---');
+  const {
+    youtubeResults,
+    query,
+    history,
+    contextualizedQuery,
+    conversationSummary,
+  } = state;
+
+  try {
+    console.log(`Synthesizing video-only response with ${youtubeResults?.length || 0} YouTube results`);
+
+    // Build context from conversation history and summary
+    let fullContext = "";
+
+    if (conversationSummary) {
+      fullContext += `Previous conversation summary:\n${conversationSummary}\n\n`;
+    }
+
+    if (history.length > 0) {
+      const recentHistory = history.slice(-3); // Last 3 messages for context
+      const contextString = recentHistory
+        .map((msg) => `${msg.role}: ${msg.content}`)
+        .join('\n');
+      fullContext += `Recent conversation:\n${contextString}\n\n`;
+    }
+
+    // If no YouTube results found, provide a helpful message
+    if (!youtubeResults || youtubeResults.length === 0) {
+      const fallbackMessage = `I couldn't find any relevant videos for "${query}". Try searching directly on YouTube with different keywords.`;
+
+      return {
+        answer: fallbackMessage,
+        reference: [],
+        responseType: 'video_only_no_results',
+      };
+    }
+
+    // Get the most relevant video (first result is usually most relevant)
+    const mostRelevantVideo = youtubeResults[0];
+
+    // Create a descriptive response with the video link
+    const videoResponse = `Here's the most relevant video I found for your request:
+
+🎥 **${mostRelevantVideo.title}**
+📺 Channel: ${mostRelevantVideo.channelTitle}
+🔗 **Video Link:** ${mostRelevantVideo.url}
+
+Click the link above to watch the video on YouTube!`;
+
+    // Create a single reference for the most relevant video
+    const references = [{
+      title: `🎥 ${mostRelevantVideo.title}`,
+      url: mostRelevantVideo.url,
+      source: 'youtube',
+      index: 1
+    }];
+
+    console.log(`Returning most relevant video: ${mostRelevantVideo.title}`);
+    console.log(`Video URL: ${mostRelevantVideo.url}`);
+
+    return {
+      answer: videoResponse,
+      reference: references,
+      responseType: 'video_only_synthesis',
+    };
+
+  } catch (error) {
+    console.error('Error in videoOnlySynthesisNode:', error);
+
+    return {
+      answer: 'I encountered an error while searching for videos. Please try rephrasing your query or search directly on YouTube.',
+      reference: [],
+      responseType: 'video_only_error',
+    };
+  }
+};
+
+/**
  * Node: Synthesizes search results into a conversational response
  */
 export const conversationalSynthesisNode = async (state) => {
   console.log('--- Node: conversationalSynthesisNode ---');
   const {
     searchResults,
+    youtubeResults,
+    combinedResults,
     metadata,
     query,
     history,
@@ -288,9 +752,16 @@ export const conversationalSynthesisNode = async (state) => {
   } = state;
 
   try {
-    // Enhance the state with conversation context for better synthesis
+    // Use combined results if available, otherwise fall back to regular search results
+    const resultsToUse = combinedResults && combinedResults.length > 0 ? combinedResults : searchResults;
+
+    console.log(`Synthesizing response with ${resultsToUse?.length || 0} total results`);
+    console.log(`YouTube results: ${youtubeResults?.length || 0}, Web results: ${searchResults?.length || 0}`);
+
+    // Enhance the state with conversation context and combined results for better synthesis
     const enhancedState = {
       ...state,
+      searchResults: resultsToUse, // Use combined results for synthesis
       conversationContext:
         history.length > 0
           ? history.slice(-3) // Keep as array for proper processing

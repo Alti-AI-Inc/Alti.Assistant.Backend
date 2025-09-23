@@ -7,6 +7,24 @@ export const researchAgentState = {
   // Raw search results from the tool.
   searchResults: { value: null },
 
+  // YouTube search results
+  youtubeResults: { value: null },
+
+  // Flag to indicate if YouTube search is relevant for the query
+  needsYouTubeSearch: { value: null },
+
+  // Flag to indicate if YouTube relevance has been checked
+  youtubeRelevanceChecked: { value: null },
+
+  // Flag to indicate if YouTube search was performed
+  youtubeSearchPerformed: { value: null },
+
+  // Combined search results (web + YouTube)
+  combinedResults: { value: null },
+
+  // Flag to indicate if this is a video-only query (should skip web search)
+  isVideoOnlyQuery: { value: null },
+
   // Depth of the search, e.g., 'standard', 'deep'.
   depth: { value: 'standard' },
 
@@ -48,6 +66,12 @@ export const researchAgentState = {
     },
     default: () => []
   },
+
+  // Summary of older conversation context (when history gets too long)
+  conversationSummary: { value: null },
+
+  // Flag to indicate if context was managed/trimmed in this interaction
+  contextManaged: { value: null },
 
   // The contextualized query (may be different from original query)
   contextualizedQuery: { value: null },

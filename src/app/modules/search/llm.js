@@ -48,18 +48,30 @@ export const runSimpleGroqTask = async (state, stream = false) => {
     if (Array.isArray(state.searchResults)) {
       formattedSearchResults = state.searchResults.map((result, index) => {
         // Use detailed content if available, otherwise fall back to regular content
-        const content = result.detailedContent || result.content || result.snippet || 'No content available';
+        const content = result.detailedContent || result.content || result.snippet || result.description || 'No content available';
         const domain = result.domain || 'Unknown domain';
         const isRecent = result.isRecent ? ' (Recent)' : '';
         const publishedDate = result.publishedDate ? ` (Published: ${result.publishedDate})` : '';
         const citationIndex = index + 1;
 
-        return `[${citationIndex}] ${result.title}
+        // Handle YouTube results differently
+        if (result.source === 'youtube') {
+          return `[${citationIndex}] 🎥 ${result.title}
+Channel: ${result.channelTitle}
+URL: ${result.url}
+Description: ${content}
+Published: ${result.publishedAt}
+Source: YouTube Video
+---`;
+        } else {
+          // Regular web results
+          return `[${citationIndex}] ${result.title}
 Domain: ${domain}${isRecent}${publishedDate}
 URL: ${result.url}
 Content: ${content}
 Relevance Score: ${result.score?.toFixed(3) || 'N/A'}
 ---`;
+        }
       }).join('\n\n');
     } else {
       formattedSearchResults = JSON.stringify(state.searchResults, null, 2);
@@ -112,10 +124,11 @@ CONTEXT AWARENESS:
 - Reference earlier topics when relevant
 
 CONTENT UTILIZATION:
-- You have access to detailed, high-quality content from search results
+- You have access to detailed, high-quality content from both web search and YouTube video results
 - Prioritize recent content when available (marked as "Recent")
 - Use the full detailed content provided, not just titles or snippets
 - Extract key insights from the comprehensive content available
+- YouTube videos (marked with 🎥) provide visual/audio content - mention when video format adds value
 
 RESPONSE GUIDELINES:
 - Be conversational and engaging
@@ -124,18 +137,21 @@ RESPONSE GUIDELINES:
 - If the search results don't fully address the question, acknowledge limitations
 - Maintain consistency with previous conversation context
 - Synthesize information from multiple sources when relevant
+- When referencing YouTube videos, mention that they provide visual demonstrations or detailed explanations
 
 CITATION REQUIREMENTS:
 - Place citations at the end of relevant sentences or paragraphs
 - ALWAYS include a "References:" section at the end listing all sources used
 - Every fact, statistic, or specific information MUST be cited
+- Distinguish between web sources and YouTube videos in citations
 
 CITATION FORMAT EXAMPLE:
-"The Detroit Tigers' next game is scheduled for July 30th. They are currently performing well this season with a record of 65-64.
+"The Detroit Tigers' next game is scheduled for July 30th [1]. They are currently performing well this season with a record of 65-64 [2]. For a detailed analysis of their recent performance, you can watch the game highlights and expert commentary [3].
 
 References:
 [1] MLB.com - Detroit Tigers Schedule
-[2] ESPN - Detroit Tigers Stats"
+[2] ESPN - Detroit Tigers Stats  
+[3] 🎥 YouTube - Detroit Tigers Game Analysis by Sports Center"
 
 IMPORTANT: You MUST cite your sources. Do not provide information without proper citations.`
       },
@@ -458,5 +474,389 @@ Please provide a direct answer based on your knowledge:`
   } catch (error) {
     console.error("Error giving answer without search:", error);
     return "Sorry, I encountered an error while processing your request. Please try again.";
+  }
+};
+
+/**
+ * Configuration for conversation context management
+ */
+const CONTEXT_CONFIG = {
+  MAX_MESSAGES: 20, // Maximum number of messages to keep in active context
+  TRIM_TO_MESSAGES: 10, // Number of recent messages to keep when trimming
+  MIN_MESSAGES_FOR_SUMMARY: 8, // Minimum messages before creating summary
+  MAX_TOKENS_ESTIMATE: 8000, // Rough token limit for context
+};
+
+/**
+ * Estimates token count for conversation history
+ */
+const estimateTokenCount = (history) => {
+  if (!Array.isArray(history)) return 0;
+
+  let totalTokens = 0;
+  history.forEach(msg => {
+    // Rough estimation: 1 token per 4 characters
+    const content = msg.content || '';
+    totalTokens += Math.ceil(content.length / 4);
+  });
+
+  return totalTokens;
+};
+
+/**
+ * Checks if conversation context needs trimming
+ */
+export const shouldTrimContext = (history, conversationSummary = null) => {
+  if (!Array.isArray(history)) return false;
+
+  const messageCount = history.length;
+  const tokenCount = estimateTokenCount(history);
+
+  // Trim if we exceed message limit or token limit
+  const exceedsMessages = messageCount > CONTEXT_CONFIG.MAX_MESSAGES;
+  const exceedsTokens = tokenCount > CONTEXT_CONFIG.MAX_TOKENS_ESTIMATE;
+
+  console.log(`Context check: ${messageCount} messages, ~${tokenCount} tokens`);
+  console.log(`Needs trim: ${exceedsMessages || exceedsTokens}`);
+
+  return exceedsMessages || exceedsTokens;
+};
+
+/**
+ * Creates a summary of older conversation messages
+ */
+export const summarizeConversation = async (messagesToSummarize) => {
+  try {
+    if (!Array.isArray(messagesToSummarize) || messagesToSummarize.length === 0) {
+      return "";
+    }
+
+    // Format messages for summarization
+    const conversationText = messagesToSummarize
+      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n');
+
+    const systemPrompt = `You are an expert conversation summarizer. Create a concise but comprehensive summary of the conversation that captures:
+
+1. KEY TOPICS DISCUSSED: Main subjects and themes
+2. IMPORTANT DECISIONS OR CONCLUSIONS: Any decisions made or conclusions reached
+3. CONTEXT THAT AFFECTS FUTURE RESPONSES: Information that would be relevant for continuing the conversation
+4. USER PREFERENCES OR REQUIREMENTS: Any specific needs or preferences mentioned
+
+GUIDELINES:
+- Keep the summary under 300 words
+- Focus on information that would be useful for continuing the conversation
+- Maintain the chronological flow of important topics
+- Include specific details that might be referenced later
+- Use clear, structured format
+
+Create a conversation summary:`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `Conversation to summarize:\n\n${conversationText}`
+      }
+    ];
+
+    const response = await llm.invoke(messages);
+    const summary = response.content.trim();
+
+    console.log(`Created conversation summary (${messagesToSummarize.length} messages)`);
+    console.log(`Summary length: ${summary.length} characters`);
+
+    return summary;
+
+  } catch (error) {
+    console.error("Error summarizing conversation:", error);
+    return "Previous conversation context available but couldn't be summarized.";
+  }
+};
+
+/**
+ * Manages conversation context by trimming and summarizing when needed
+ */
+export const manageConversationContext = async (history, existingSummary = null) => {
+  try {
+    if (!Array.isArray(history)) {
+      return {
+        trimmedHistory: [],
+        conversationSummary: existingSummary,
+        contextManaged: false
+      };
+    }
+
+    // Check if trimming is needed
+    if (!shouldTrimContext(history, existingSummary)) {
+      return {
+        trimmedHistory: history,
+        conversationSummary: existingSummary,
+        contextManaged: false
+      };
+    }
+
+    console.log(`Managing context: ${history.length} messages need trimming`);
+
+    // Determine how many messages to keep and summarize
+    const messagesToKeep = CONTEXT_CONFIG.TRIM_TO_MESSAGES;
+    const recentMessages = history.slice(-messagesToKeep);
+    const messagesToSummarize = history.slice(0, -messagesToKeep);
+
+    // Only create summary if we have enough messages to summarize
+    let newSummary = existingSummary;
+    if (messagesToSummarize.length >= CONTEXT_CONFIG.MIN_MESSAGES_FOR_SUMMARY) {
+      const oldConversationSummary = await summarizeConversation(messagesToSummarize);
+
+      // Combine with existing summary if present
+      if (existingSummary) {
+        newSummary = `Previous context: ${existingSummary}\n\nRecent developments: ${oldConversationSummary}`;
+      } else {
+        newSummary = oldConversationSummary;
+      }
+    }
+
+    console.log(`Context managed: Kept ${recentMessages.length} recent messages, summarized ${messagesToSummarize.length} older messages`);
+
+    return {
+      trimmedHistory: recentMessages,
+      conversationSummary: newSummary,
+      contextManaged: true,
+      trimmedMessageCount: messagesToSummarize.length,
+      keptMessageCount: recentMessages.length
+    };
+
+  } catch (error) {
+    console.error("Error managing conversation context:", error);
+
+    // Fallback: keep recent messages without summary
+    const fallbackMessages = history.slice(-CONTEXT_CONFIG.TRIM_TO_MESSAGES);
+    return {
+      trimmedHistory: fallbackMessages,
+      conversationSummary: existingSummary,
+      contextManaged: false,
+      error: "Context management failed, using fallback"
+    };
+  }
+};
+
+/**
+ * Detects if the user is specifically asking for video content
+ */
+export const isVideoOnlyQuery = (query) => {
+  try {
+    const normalizedQuery = query.toLowerCase().trim();
+    
+    // Video-specific keywords that indicate user wants video content
+    const videoKeywords = [
+      'video', 'videos', 'watch', 'tutorial', 'tutorials', 'demonstration', 'demo',
+      'how to', 'step by step', 'visual guide', 'show me', 'youtube',
+      'walkthrough', 'guide', 'learn by watching', 'video tutorial',
+      'video guide', 'instructional video', 'visual tutorial',
+      'watch how', 'see how', 'video explanation', 'animated',
+      'screencast', 'recording', 'footage', 'clip', 'clips'
+    ];
+
+    // Video-specific phrases
+    const videoPhrases = [
+      'show me a video',
+      'find a video',
+      'video about',
+      'watch a video',
+      'tutorial video',
+      'instructional video',
+      'video demonstration',
+      'video guide',
+      'how to video',
+      'step by step video',
+      'visual explanation'
+    ];
+
+    // Check for exact phrase matches first
+    for (const phrase of videoPhrases) {
+      if (normalizedQuery.includes(phrase)) {
+        console.log(`Video-only query detected - phrase match: "${phrase}"`);
+        return true;
+      }
+    }
+
+    // Check for keyword matches
+    for (const keyword of videoKeywords) {
+      if (normalizedQuery.includes(keyword)) {
+        console.log(`Video-only query detected - keyword match: "${keyword}"`);
+        return true;
+      }
+    }
+
+    // Additional pattern matching for common video request patterns
+    const videoPatterns = [
+      /\b(show|find|get|search)\s+(me\s+)?(a\s+)?video/i,
+      /\b(how\s+to)\s+.+\s+(video|tutorial)/i,
+      /\b(watch|see)\s+(how|a)/i,
+      /\b(tutorial|guide)\s+for/i
+    ];
+
+    for (const pattern of videoPatterns) {
+      if (pattern.test(normalizedQuery)) {
+        console.log(`Video-only query detected - pattern match: ${pattern}`);
+        return true;
+      }
+    }
+
+    console.log(`Query "${query}" is not video-specific`);
+    return false;
+
+  } catch (error) {
+    console.error("Error detecting video-only query:", error);
+    return false; // Default to not video-only on error
+  }
+};
+
+/**
+ * Determines if YouTube search would be relevant for the given query
+ */
+export const shouldSearchYouTube = async (query, conversationContext = []) => {
+  try {
+    // Build conversation context for better classification
+    let conversationHistory = "";
+    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+      const recentMessages = conversationContext.slice(-3);
+      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
+        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+      ).join('\n')}\n\n`;
+    }
+
+    const systemPrompt = `You are an intelligent query classifier that determines when YouTube video content would be valuable for answering a query.
+
+YOUTUBE SEARCH IS RELEVANT FOR:
+- How-to guides, tutorials, demonstrations
+- Product reviews, comparisons, unboxings
+- Entertainment content (music, movies, shows, games)
+- Educational content (lectures, explanations, documentaries)
+- News events, interviews, speeches
+- Cooking recipes, DIY projects, crafts
+- Sports highlights, game analysis
+- Technology demos, software tutorials
+- Scientific explanations with visual components
+- Music-related queries (songs, artists, concerts)
+- Visual learning topics (art, dance, fitness)
+
+YOUTUBE SEARCH IS NOT RELEVANT FOR:
+- Simple factual questions with direct answers
+- Mathematical calculations
+- Text-based information queries
+- Historical dates or basic facts
+- Definitions or explanations that don't benefit from video
+- Personal advice or recommendations
+- Current stock prices, weather, or real-time data
+- Simple conversational queries
+
+IMPORTANT: Consider the conversation context. If the user is following up on a topic that could benefit from video content, lean toward YouTube search.
+
+Respond with ONLY "RELEVANT" or "NOT_RELEVANT" - no explanations, no thinking tags, no extra text.`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `${conversationHistory}Current query: "${query}"
+
+Determine if YouTube search would be relevant:`
+      }
+    ];
+
+    const response = await llm.invoke(messages);
+    let rawContent = response.content.trim();
+
+    console.log("YouTube relevance analysis for query:", query, "→", rawContent);
+
+    // Handle thinking tags - extract the actual decision
+    let cleanedContent = rawContent;
+    if (rawContent.includes('<THINK>') || rawContent.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/gi;
+      cleanedContent = rawContent.replace(regex, '').trim();
+    }
+
+    const finalDecision = cleanedContent.toUpperCase().trim();
+    console.log("Cleaned YouTube relevance decision:", finalDecision);
+
+    return finalDecision.includes("RELEVANT");
+
+  } catch (error) {
+    console.error("Error checking YouTube relevance:", error);
+    return false; // Default to no YouTube search on error
+  }
+};
+
+/**
+ * Performs YouTube search using YouTube Data API v3
+ */
+export const searchYouTube = async (query, maxResults = 5) => {
+  try {
+    const youtubeApiKey = config.youtube_api_key
+
+    if (!youtubeApiKey) {
+      console.warn("YouTube API key not configured, skipping YouTube search");
+      return [];
+    }
+
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search`;
+    const params = new URLSearchParams({
+      part: 'snippet',
+      q: query,
+      type: 'video',
+      maxResults: maxResults.toString(),
+      order: 'relevance',
+      key: youtubeApiKey,
+      safeSearch: 'moderate',
+      relevanceLanguage: 'en'
+    });
+
+    console.log(`Searching YouTube for: "${query}"`);
+
+    const response = await fetch(`${searchUrl}?${params}`);
+
+    if (!response.ok) {
+      console.error(`YouTube API error: ${response.status} ${response.statusText}`);
+      return [];
+    }
+
+    const data = await response.json();
+
+    if (!data.items || data.items.length === 0) {
+      console.log("No YouTube results found");
+      return [];
+    }
+
+    const youtubeResults = data.items.map((item, index) => {
+      const snippet = item.snippet;
+      const videoId = item.id.videoId;
+
+      return {
+        title: snippet.title,
+        description: snippet.description,
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        videoId,
+        channelTitle: snippet.channelTitle,
+        publishedAt: snippet.publishedAt,
+        thumbnails: snippet.thumbnails,
+        relevanceScore: (maxResults - index) / maxResults, // Simple relevance scoring
+        source: 'youtube',
+        citationIndex: index + 1
+      };
+    });
+
+    console.log(`Found ${youtubeResults.length} YouTube results`);
+    return youtubeResults;
+
+  } catch (error) {
+    console.error("Error searching YouTube:", error);
+    return [];
   }
 };
