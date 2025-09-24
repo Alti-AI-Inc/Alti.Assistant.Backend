@@ -102,7 +102,7 @@ export const classifyAppNode = async (state) => {
  * Node: Classify user input to identify the action for the identified app
  */
 export const classifyActionNode = async (state) => {
-  console.log('--- Node: classifyActionNode ---');
+  console.log('--- Node: classifyActionNode ---', state.identifiedApp);
   const { userInput, identifiedApp, history, conversationContext } = state;
 
   if (!identifiedApp) {
@@ -380,11 +380,11 @@ export const executeToolNode = async (state) => {
     // Create a comprehensive context summary for the execution
     const historySummary = createHistorySummary(history, conversationContext);
 
-    console.log(
-      `Executing tool: ${identifiedApp} with parameters:`,
-      extractedParameters,
-      'with history context:', historySummary
-    );
+    // console.log(
+    //   `Executing tool: ${identifiedApp} with parameters:`,
+    //   extractedParameters,
+    //   'with history context:', historySummary
+    // );
 
     // Execute the tool using Composio with history context
     const executionResult = await executeComposioWithGroq(

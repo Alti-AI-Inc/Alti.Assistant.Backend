@@ -8,11 +8,11 @@ import { workflowRoutes } from './routes/workflow.routes.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 
 // Original composio v2 routes
-router.post('/initiate', composioController.composioInitiateController);
-router.post('/wait-for-connection', composioController.composioWaitForConnectionController);
+router.post('/initiate', optionalAuth(), composioController.composioInitiateController);
+router.post('/wait-for-connection', optionalAuth(), composioController.composioWaitForConnectionController);
 
 // Conversational Composio routes
-router.post('/chat', composioController.composioConversationController);
+router.post('/chat', optionalAuth(), composioController.composioConversationController);
 router.get('/conversation/:conversationId', optionalAuth(), composioController.getComposioConversationController);
 router.get('/conversations', optionalAuth(), composioController.getUserComposioConversationsController);
 

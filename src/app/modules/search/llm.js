@@ -936,9 +936,89 @@ Determine if YouTube search would be relevant:`
 };
 
 /**
+ * Creates an optimized YouTube search query from the original query and context
+ */
+export const createOptimizedYouTubeQuery = async (query, conversationContext = []) => {
+  try {
+    // Build conversation history
+    let conversationHistory = "";
+    if (conversationContext && conversationContext.length > 0) {
+      const recentMessages = conversationContext.slice(-3);
+      conversationHistory = `Recent conversation:\n${recentMessages.map(msg =>
+        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+      ).join('\n')}\n\n`;
+    }
+
+    const systemPrompt = `You are an expert at creating optimized YouTube search queries that will find the most relevant and high-quality video content.
+
+OPTIMIZATION GUIDELINES:
+- Keep queries concise but descriptive (3-8 words optimal)
+- Add specific keywords that improve video discoverability
+- Use terms that content creators commonly use in titles
+- Consider educational vs entertainment intent
+- Remove unnecessary words that don't help search
+
+YOUTUBE-SPECIFIC IMPROVEMENTS:
+- Add "tutorial", "guide", "how to" for instructional content
+- Add "review", "comparison" for product/service queries  
+- Add "explained", "breakdown" for complex topics
+- Add "best", "top" for recommendation queries
+- Use popular YouTube terminology and keywords
+
+EXAMPLES:
+- "How do I cook pasta" → "how to cook pasta perfectly tutorial"
+- "What happened in the news today" → "latest news today"
+- "Best smartphones" → "best smartphones review comparison"
+- "Learn Python programming" → "Python programming tutorial beginners"
+- "Detroit Tigers game" → "Detroit Tigers highlights"
+
+CONTEXT AWARENESS:
+- Consider conversation history to understand user intent
+- If user is following up on a topic, refine the query accordingly
+- Maintain the core intent while optimizing for YouTube search
+
+Output ONLY the optimized YouTube search query, nothing else.`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `${conversationHistory}Original query: "${query}"
+
+Create an optimized YouTube search query:`
+      }
+    ];
+
+    const response = await llm.invoke(messages);
+    let optimizedQuery = response.content.trim();
+
+    // Clean any thinking tags
+    if (optimizedQuery.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/gi;
+      optimizedQuery = optimizedQuery.replace(regex, '').trim();
+    }
+
+    // Remove quotes if present
+    optimizedQuery = optimizedQuery.replace(/^["']|["']$/g, '');
+
+    console.log(`YouTube query optimization: "${query}" → "${optimizedQuery}"`);
+
+    return optimizedQuery;
+
+  } catch (error) {
+    console.error("Error optimizing YouTube query:", error);
+    // Fallback to original query
+    return query;
+  }
+};
+
+/**
  * Performs YouTube search using YouTube Data API v3
  */
-export const searchYouTube = async (query, maxResults = 5) => {
+export const searchYouTube = async (query, maxResults = 5, conversationContext = []) => {
   try {
     const youtubeApiKey = config.youtube_api_key
 
@@ -947,10 +1027,24 @@ export const searchYouTube = async (query, maxResults = 5) => {
       return [];
     }
 
+    // Optimize the query for better YouTube results
+    const optimizedQuery = await createOptimizedYouTubeQuery(query, conversationContext);
+
     const searchUrl = `https://www.googleapis.com/youtube/v3/search`;
+    console.log(`Performing YouTube search for: "${{
+      part: 'snippet',
+      q: optimizedQuery, // Use optimized query
+      type: 'video',
+      maxResults: maxResults.toString(),
+      order: 'relevance',
+      key: youtubeApiKey,
+      safeSearch: 'moderate',
+      relevanceLanguage: 'en'
+    }}"`);
+
     const params = new URLSearchParams({
       part: 'snippet',
-      q: query,
+      q: optimizedQuery, // Use optimized query
       type: 'video',
       maxResults: maxResults.toString(),
       order: 'relevance',
@@ -959,9 +1053,10 @@ export const searchYouTube = async (query, maxResults = 5) => {
       relevanceLanguage: 'en'
     });
 
-    console.log(`Searching YouTube for: "${query}"`);
+    console.log(`Searching YouTube for: "${optimizedQuery}" (original: "${query}")`);
 
     const response = await fetch(`${searchUrl}?${params}`);
+    // console.log(`YouTube API response status: ${JSON.stringify(response.json())}`);
 
     if (!response.ok) {
       console.error(`YouTube API error: ${response.status} ${response.statusText}`);

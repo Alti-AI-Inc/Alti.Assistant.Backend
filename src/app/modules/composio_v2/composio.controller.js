@@ -8,8 +8,10 @@ import SubscriptionModel from '../payment/payment.model.js';
 
 const composioInitiateController = async (req, res) => {
   console.log('Initiating Composio Auth...', req.body);
+  const user_id = req.user?.userId || req.body?.userId || req.user?._id;
+  console.log(`User ID for Composio initiation: ${req.user}`);
 
-  const { app_name, user_id } = req.body;
+  const { app_name } = req.body;
 
   try {
     const connectionUrl = await composioService.initiateComposioAuth({

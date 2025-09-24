@@ -166,8 +166,9 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
       tools: toolsWithConnectedAccount,
       max_completion_tokens: 1024
     })
+    console.log('User id for tool execution:', userId);
 
-    const result = await composio.provider.handleToolCalls(userId, msg, {
+    const result = await composio.provider.handleToolCalls(userId.toString(), msg, {
       connectedAccountId
     })
     console.log('Tool call result:', result);
@@ -721,6 +722,7 @@ Respond with a JSON object:
     }
     // console.log('Cleaned Result After :', cleanedResult);
     const parsed = JSON.parse(cleanedResult);
+    console.log('Parsed Result:', parsed);
 
     // Validate structure
     if (!parsed.required_apps || !Array.isArray(parsed.required_apps)) {

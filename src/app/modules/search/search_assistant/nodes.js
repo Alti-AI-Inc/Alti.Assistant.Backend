@@ -292,8 +292,8 @@ export const youtubeSearchNode = async (state) => {
       };
     }
 
-    // Perform YouTube search
-    const youtubeResults = await searchYouTube(searchQuery, 5);
+    // Perform YouTube search with conversation context
+    const youtubeResults = await searchYouTube(searchQuery, 5, fullContextHistory);
 
     console.log(`Found ${youtubeResults.length} YouTube results`);
 
@@ -520,8 +520,20 @@ export const youtubeSearchForDirectAnswerNode = async (state) => {
 
     console.log(`Performing YouTube search for direct answer: "${searchQuery}"`);
 
-    // Perform YouTube search
-    const youtubeResults = await searchYouTube(searchQuery, 3); // Fewer results for direct answers
+    // Build context for YouTube search
+    let fullContextHistory = [];
+
+    if (conversationSummary) {
+      fullContextHistory.push({
+        role: 'system',
+        content: `Previous conversation summary: ${conversationSummary}`
+      });
+    }
+
+    fullContextHistory = fullContextHistory.concat(history || []);
+
+    // Perform YouTube search with conversation context
+    const youtubeResults = await searchYouTube(searchQuery, 3, fullContextHistory); // Fewer results for direct answers
 
     console.log(`Found ${youtubeResults.length} YouTube results for direct answer`);
 
@@ -635,8 +647,20 @@ export const videoOnlySearchNode = async (state) => {
 
     console.log(`Performing video-only YouTube search for: "${searchQuery}" with count: ${videoCount}`);
 
-    // Perform YouTube search with the requested number of videos
-    const youtubeResults = await searchYouTube(searchQuery, videoCount);
+    // Build context for YouTube search
+    let fullContextHistory = [];
+
+    if (conversationSummary) {
+      fullContextHistory.push({
+        role: 'system',
+        content: `Previous conversation summary: ${conversationSummary}`
+      });
+    }
+
+    fullContextHistory = fullContextHistory.concat(history || []);
+
+    // Perform YouTube search with conversation context and the requested number of videos
+    const youtubeResults = await searchYouTube(searchQuery, videoCount, fullContextHistory);
 
     console.log(`Found ${youtubeResults.length} YouTube results for video-only query (requested: ${videoCount})`);
 

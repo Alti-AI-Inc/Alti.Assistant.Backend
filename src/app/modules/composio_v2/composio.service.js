@@ -20,7 +20,8 @@ const initiateComposioAuth = async (body) => {
 
     const auth_config_id = auth_config ? auth_config.authConfigId : null;
     console.log(`Auth Config ID for app ${app_name}:`, auth_config_id);
-    const existingComposioAuth = await ComposionAuth.findOne({ userId: user_id, authConfigId: auth_config_id });
+    const existingComposioAuth = await ComposionAuth.findOne({ userId: user_id, authConfigId: auth_config_id, status: 'ACTIVE' });
+    console.log(`Existing Composio Auth for user ${user_id} and app ${app_name}:`, existingComposioAuth);
 
     if (existingComposioAuth) {
       console.log(`Found existing Composio auth for user ${user_id}:`, existingComposioAuth);
@@ -39,7 +40,9 @@ const initiateComposioAuth = async (body) => {
       status: 'pending',
       integrationId: connectionUrl.integrationId,
       redirectUrl: connectionUrl.redirectUrl,
-      toolkit: {}
+      toolkit: {
+        slug: app_name,
+      }
     })
     await composioAuth.save();
     console.log('Composio connection initiated successfully', connectionUrl);
