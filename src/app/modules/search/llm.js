@@ -3,6 +3,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { TavilySearch } from '@langchain/tavily';
 import config from "../../../../config/index.js";
 import { tavily } from "@tavily/core";
+import { TavilySearchTool, YouTubeSearchTool } from './tools.js';
 
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash-preview-05-20",
@@ -11,6 +12,19 @@ const llm = new ChatGoogleGenerativeAI({
   maxRetries: 2,
   // other params...
 });
+
+// Create tool-enabled LLM with search capabilities
+const createToolEnabledLLM = () => {
+  const searchTools = [
+    new TavilySearchTool(),
+    new YouTubeSearchTool()
+  ];
+
+  return llm.bindTools(searchTools);
+};
+
+// Tool-enabled LLM instance
+const toolEnabledLLM = createToolEnabledLLM();
 
 /**
  * Fast rule-based query classification to avoid unnecessary LLM calls
@@ -311,7 +325,7 @@ export const updateQueryWithCurrentYear = (query) => {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1; // 0-indexed, so add 1
-  const currentDay = now.getDate() - 1;
+  const currentDay = now.getDate();
   const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
 
   // Get current date strings in different formats
@@ -438,6 +452,317 @@ export const updateQueryWithCurrentYear = (query) => {
 };
 
 /**
+ * Tool-based intelligent search using LLM with search tools
+ * This allows the LLM to decide when and how to use search tools
+ */
+export const performIntelligentToolSearch = async (query, conversationContext = []) => {
+  try {
+    console.log(`🤖 Starting intelligent tool-based search for: "${query}"`);
+    const startTime = Date.now();
+
+    // Build conversation context
+    let conversationHistory = "";
+    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+      const recentMessages = conversationContext.slice(-5);
+      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
+        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+      ).join('\n')}\n\n`;
+    }
+
+    // Get current date context
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentDateString = currentDate.toDateString();
+
+    const systemPrompt = `You are an intelligent research assistant with access to powerful search tools. Your task is to answer user questions by deciding when and how to use your available tools.
+
+CURRENT CONTEXT:
+- Today's date: ${currentDateString}
+- Current year: ${currentYear}
+
+AVAILABLE TOOLS:
+1. tavily_search: Advanced web search for current information, news, facts, real-time data
+2. youtube_search: Video content search for tutorials, demonstrations, visual content
+
+DECISION FRAMEWORK:
+1. ANALYZE the user's question to understand what information is needed
+2. DETERMINE if you need external information or if you can answer directly
+3. CHOOSE the appropriate tool(s) if search is needed:
+   - Use tavily_search for: current events, news, facts, data, recent information, sports scores/schedules
+   - Use youtube_search for: when user explicitly asks for videos, tutorials, demonstrations, visual content
+4. SYNTHESIZE the search results into a comprehensive, conversational response
+
+SEARCH STRATEGY:
+- For time-sensitive queries, emphasize current year (${currentYear}) and recent information
+- Use specific, focused search queries for better results
+- Consider multiple searches if the question has multiple components
+- Always provide context about the recency and reliability of information
+
+RESPONSE GUIDELINES:
+- Be conversational and helpful
+- Synthesize information from multiple sources when available
+- Always cite your sources naturally in the response
+- If information conflicts, acknowledge different perspectives
+- For time-sensitive information, emphasize the currency of data
+- If you can't find current information, acknowledge limitations
+
+Remember: Use tools strategically - not every question needs a search. Use your judgment to provide the most helpful response.`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt
+      },
+      {
+        role: "user",
+        content: `${conversationHistory}Current question: ${query}
+
+Please analyze this question and use appropriate tools if needed to provide a comprehensive answer.`
+      }
+    ];
+
+    // Use the tool-enabled LLM
+    const response = await toolEnabledLLM.invoke(messages);
+
+    const duration = Date.now() - startTime;
+    console.log(`✅ Intelligent tool search completed in ${duration}ms`);
+
+    // Extract the final response content
+    let finalResponse = response.content;
+
+    // Log tool usage if any tools were called
+    if (response.tool_calls && response.tool_calls.length > 0) {
+      console.log(`🔧 Tools used: ${response.tool_calls.map(tc => tc.name).join(', ')}`);
+    }
+
+    return {
+      content: finalResponse,
+      toolCalls: response.tool_calls || [],
+      duration: duration,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error("❌ Error in intelligent tool search:", error);
+
+    // Fallback to direct answer
+    return {
+      content: "I encountered an error while processing your request. Let me try to provide a direct answer based on my knowledge.",
+      error: error.message,
+      fallback: true
+    };
+  }
+};
+
+/**
+ * Executes tool calls and returns results
+ */
+const executeToolCalls = async (toolCalls) => {
+  const toolResults = [];
+  const searchTools = [
+    new TavilySearchTool(),
+    new YouTubeSearchTool()
+  ];
+
+  for (const toolCall of toolCalls) {
+    try {
+      const tool = searchTools.find(t => t.name === toolCall.name);
+      if (tool) {
+        console.log(`🔧 Executing tool: ${toolCall.name} with args:`, toolCall.args);
+        const result = await tool._call(toolCall.args);
+        toolResults.push({
+          toolCallId: toolCall.id,
+          toolName: toolCall.name,
+          result: result
+        });
+      } else {
+        console.warn(`⚠️ Tool not found: ${toolCall.name}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error executing tool ${toolCall.name}:`, error);
+      toolResults.push({
+        toolCallId: toolCall.id,
+        toolName: toolCall.name,
+        error: error.message
+      });
+    }
+  }
+
+  return toolResults;
+};
+
+/**
+ * Enhanced search function that uses tool-enabled LLM for intelligent search decisions
+ */
+export const runIntelligentSearch = async (state, stream = false) => {
+  try {
+    console.log("🔍 Running intelligent search with tool-enabled LLM");
+
+    const query = updateQueryWithCurrentYear(state.query) || updateQueryWithCurrentYear(state.originalQuery);
+    const conversationContext = state.conversationContext || state.history || [];
+
+    // Build conversation context
+    let conversationHistory = "";
+    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
+      const recentMessages = conversationContext.slice(-5);
+      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
+        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+      ).join('\n')}\n\n`;
+    }
+
+    // Get current date -1 context
+    const currentDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const currentYear = currentDate.getFullYear();
+    const currentDateString = currentDate.toDateString();
+
+    const systemPrompt = `You are an intelligent research assistant that provides CONCISE, well-referenced answers.
+
+CURRENT CONTEXT:
+- Today's date: ${currentDateString}
+- Current year: ${currentYear}
+
+RESPONSE STYLE:
+- Provide CONCISE, direct answers (1-4 sentences for simple questions)
+- Always include source references when using search results
+- If possible response in 1 sentence
+- Use format: "According to [Source]..." or "Based on [Domain]..."
+- Lead with the main answer, then add source attribution
+
+TOOL USAGE:
+- Use web search for: current events, news, facts, data, recent information, sports, prices
+- Use video search for: tutorials, demonstrations when explicitly requested
+- Don't search for general knowledge you already know
+- Be specific in search queries for better results
+
+CRITICAL: When you use search tools, always include source attribution in your final response.`;
+
+    // Initial messages
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt
+      },
+      {
+        role: "user",
+        content: `${conversationHistory}Current question: ${query}
+
+Please analyze this question and use appropriate search tools if needed to provide a CONCISE answer with proper source references.`
+      }
+    ];
+
+    // First LLM call to decide on tool usage
+    const initialResponse = await toolEnabledLLM.invoke(messages);
+
+    // Check if tools were called
+    if (initialResponse.tool_calls && initialResponse.tool_calls.length > 0) {
+      console.log(`🔧 ${initialResponse.tool_calls.length} tool(s) will be executed`);
+
+      // Execute the tool calls
+      const toolResults = await executeToolCalls(initialResponse.tool_calls);
+
+      // Add tool results to conversation and get final response
+      const toolMessages = [
+        ...messages,
+        {
+          role: "assistant",
+          content: initialResponse.content || "I'll search for current information to answer your question.",
+          tool_calls: initialResponse.tool_calls
+        }
+      ];
+
+      // Add tool results as messages
+      toolResults.forEach(toolResult => {
+        toolMessages.push({
+          role: "tool",
+          content: toolResult.result || toolResult.error,
+          tool_call_id: toolResult.toolCallId,
+          name: toolResult.toolName
+        });
+      });
+
+      // Add instructions for synthesizing the response
+      toolMessages.push({
+        role: "user",
+        content: `Based on the search results above, please provide a CONCISE, direct answer to the original question: "${query}"
+
+CONCISE RESPONSE GUIDELINES:
+- Provide a direct, focused answer (2-4 sentences max for simple questions)
+- Lead with the key facts or main answer
+- Be precise and avoid unnecessary elaboration
+- Include specific data, numbers, dates when relevant
+
+CITATION REQUIREMENTS:
+- Always include source references in your response
+- I want the references in an array format with title, url, domain, sourceName, publishedDate, publishedYear, citationFormat
+
+STRUCTURE:
+1. Direct answer first
+2. Key supporting details (if needed)
+3. Source attribution
+
+Example: "The next Detroit Tigers game is October 1st at 7:30 PM against the Cleveland Guardians at Comerica Park. According to MLB.com (September 2025), this is part of the final regular season series."`
+      });
+
+      // Get final response with tool results
+      const finalResponse = await llm.invoke(toolMessages);
+      console.log("✅ Final response with tool results obtained", finalResponse);
+      // Extract references from tool results
+      const references = [];
+      toolResults.forEach(toolResult => {
+        if (toolResult.result && !toolResult.error) {
+          try {
+            const parsedResult = JSON.parse(toolResult.result);
+            if (parsedResult.results && Array.isArray(parsedResult.results)) {
+              parsedResult.results.forEach(result => {
+                references.push({
+                  title: result.title,
+                  url: result.url,
+                  domain: result.domain,
+                  sourceName: result.sourceName || result.domain,
+                  publishedDate: result.publishedDate,
+                  publishedYear: result.publishedYear,
+                  citationFormat: result.citationFormat
+                });
+              });
+            }
+          } catch (parseError) {
+            console.warn("Could not parse tool result for references:", parseError.message);
+          }
+        }
+      });
+
+      // Return structured response with references array
+      return {
+        answer: finalResponse.content,
+        references: references,
+        searchMethod: 'tool_based',
+        timestamp: new Date().toISOString()
+      };
+
+    } else {
+      // No tools needed, return direct response
+      console.log("✅ Direct answer provided without external search");
+      return {
+        answer: initialResponse.content,
+        references: [],
+        searchMethod: 'direct',
+        timestamp: new Date().toISOString()
+      };
+    }
+
+  } catch (error) {
+    console.error("❌ Error in intelligent search:", error);
+    return {
+      answer: "I encountered an error while processing your search request. Please try again.",
+      references: [],
+      searchMethod: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+/**
  * Performance monitoring utility
  */
 export const performanceMonitor = {
@@ -539,43 +864,40 @@ Search query used: ${state.searchQuery}
     const messages = [
       {
         role: "system",
-        content: `You are an intelligent research assistant that provides conversational, helpful responses.
+        content: `You are an intelligent research assistant that provides CONCISE, well-referenced responses.
 
-CRITICAL: Today's date is ${new Date().toDateString()} (${new Date().getFullYear()}). Always prioritize current information and be aware that older data may be outdated.
+CURRENT DATE: ${new Date().toDateString()} (${new Date().getFullYear()})
 
-CRITICAL: IF the user explicitly wants an answer-only format (no explanations), provide a concise answer without additional context or references. For Example If someone asks "What is the capital of France? Answer only." you respond with "Paris." without any further elaboration.
-Or if the user says "Just give me the answer, no details." you respond with the answer only.
-Example: What is better tea or coffee? Answer only.
+CONCISE RESPONSE RULES:
+- Provide direct, focused answers (2-4 sentences for simple questions)
+- Lead with the main answer or key facts
+- Avoid unnecessary elaboration unless specifically requested
+- Be precise and factual
 
-CONTEXT AWARENESS:
-- Consider the conversation history when formulating your response
-- Build upon previous exchanges naturally
-- Reference earlier topics when relevant
+CITATION REQUIREMENTS (CRITICAL):
+- ALWAYS include source references in your response
+- Use format: "According to [Source Name/Domain]..." or "Based on [Source]..."
+- For multiple sources: "Sources: [Source1], [Source2]" at the end
+- Include publication dates when available: "[Source] (2025)"
+- For YouTube videos: "According to [Channel Name] on YouTube..."
 
-CONTENT UTILIZATION:
-- You have access to detailed, high-quality content from both web search and YouTube video results
-- Prioritize recent content when available (marked as "Recent")
-- Use the full detailed content provided, not just titles or snippets
-- Extract key insights from the comprehensive content available
-- YouTube videos (marked with 🎥) provide visual/audio content - mention when video format adds value
+ANSWER-ONLY FORMAT:
+- IF user asks for "answer only" or "no explanations": respond with just the fact, no sources
+- Example: "What is the capital of France? Answer only." → "Paris."
 
-TIME-SENSITIVE INFORMATION:
-- For sports schedules, events, news, or current affairs, prioritize the most recent information
-- If search results contain outdated information (from previous years), acknowledge this and suggest checking official sources
-- When providing dates or schedules, always verify they are current for ${new Date().getFullYear()}
+RESPONSE STRUCTURE:
+1. Direct answer first
+2. Key supporting details (if needed and space allows)
+3. Source attribution
 
-RESPONSE GUIDELINES:
-- Be conversational and engaging
-- Provide comprehensive yet focused answers
-- Use the search results as your primary information source
-- If the search results don't fully address the question, acknowledge limitations
-- Maintain consistency with previous conversation context
-- Synthesize information from multiple sources when relevant
-- When referencing YouTube videos, mention that they provide visual demonstrations or detailed explanations
-- Provide clean, readable responses without citation numbers or reference sections
-- For outdated information, clearly state when the data is from and recommend checking current sources
+EXAMPLES:
+- Question: "When is the next Detroit Tigers game?"
+- Answer: "The Detroit Tigers' next game is October 1st at 7:30 PM against Cleveland at Comerica Park. According to MLB.com (September 2025)."
 
-IMPORTANT: Focus on delivering clear, informative content without citations or numbered references. Always prioritize current ${new Date().getFullYear()} information over older data.`
+- Question: "What's the latest on AI developments?"
+- Answer: "Recent AI developments include GPT-5 announcements and new robotics advances. Based on TechCrunch and Reuters (September 2025)."
+
+CRITICAL: Always include source attribution with your answers unless specifically asked for "answer only" format.`
       },
       {
         role: "user",
@@ -584,11 +906,15 @@ IMPORTANT: Focus on delivering clear, informative content without citations or n
 Search results:
 ${formattedSearchResults}
 
-Please provide a conversational, well-researched response based on the search results and conversation context.
-CRITICAL: IF the user explicitly wants an answer-only format (no explanations), provide a concise answer without additional context or references. For Example If someone asks "What is the capital of France? Answer only." you respond with "Paris." without any further elaboration.
-Or if the user says "Just give me the answer, no details." you respond with the answer only.
-Example: What is better tea or coffee? Answer only.
-`
+Please provide a CONCISE, well-referenced response based on the search results.
+
+REQUIREMENTS:
+- Lead with the direct answer (2-4 sentences max for simple questions)
+- Include source attribution: "According to [Source]..." or "Based on [Domain]..."
+- Add publication dates when available
+- Be precise and factual
+
+ANSWER-ONLY EXCEPTION: If user specifically asks for "answer only", "no details", etc., provide just the fact without sources.`
       }
     ];
 
@@ -600,12 +926,40 @@ Example: What is better tea or coffee? Answer only.
       // For regular responses
       const response = await llm.invoke(messages);
       console.log("Gemini response received", response.content);
-      return response.content;
+
+      // Extract references from search results
+      const references = [];
+      if (Array.isArray(state.searchResults)) {
+        state.searchResults.forEach(result => {
+          references.push({
+            title: result.title,
+            url: result.url,
+            domain: result.domain || 'Unknown domain',
+            sourceName: result.sourceName || result.domain || 'Unknown source',
+            publishedDate: result.publishedDate,
+            publishedYear: result.publishedYear || (result.publishedDate ? new Date(result.publishedDate).getFullYear() : new Date().getFullYear()),
+            citationFormat: result.citationFormat || `${result.sourceName || result.domain} (${result.publishedYear || new Date().getFullYear()})`
+          });
+        });
+      }
+
+      return {
+        answer: response.content,
+        references: references,
+        searchMethod: 'traditional',
+        timestamp: new Date().toISOString()
+      };
     }
 
   } catch (error) {
     console.error("Error in runSimpleSearchTask:", error);
-    return "I encountered an error while processing your request. Please try again.";
+    return {
+      answer: "I encountered an error while processing your request. Please try again.",
+      references: [],
+      searchMethod: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
   }
 };
 
