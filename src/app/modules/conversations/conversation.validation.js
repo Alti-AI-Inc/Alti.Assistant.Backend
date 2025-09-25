@@ -153,6 +153,54 @@ const getRecentConversationsSchema = z.object({
   }),
 });
 
+// Share chat validation schemas
+const shareChatSchema = z.object({
+  body: z.object({
+    shareType: z.enum(['public', 'private'], {
+      required_error: 'Share type is required',
+    }).default('public'),
+    expiresAt: z.string().datetime().optional().nullable(),
+    allowComments: z.boolean().default(false),
+  }),
+  params: z.object({
+    conversationId: z.string({
+      required_error: 'Conversation ID is required',
+    }),
+  }),
+});
+
+const updateShareSettingsSchema = z.object({
+  body: z.object({
+    shareType: z.enum(['public', 'private']).optional(),
+    expiresAt: z.string().datetime().optional().nullable(),
+    allowComments: z.boolean().optional(),
+    isActive: z.boolean().optional(),
+  }).refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided',
+  }),
+  params: z.object({
+    conversationId: z.string({
+      required_error: 'Conversation ID is required',
+    }),
+  }),
+});
+
+const getSharedChatSchema = z.object({
+  params: z.object({
+    shareId: z.string({
+      required_error: 'Share ID is required',
+    }),
+  }),
+});
+
+const getUserSharedChatsSchema = z.object({
+  query: z.object({
+    page: z.string().regex(/^\d+$/, 'Page must be a number').optional(),
+    limit: z.string().regex(/^\d+$/, 'Limit must be a number').optional(),
+    status: z.enum(['active', 'expired', 'revoked']).optional(),
+  }),
+});
+
 export const ConversationValidation = {
   createConversationSchema,
   addMessageSchema,
@@ -166,4 +214,9 @@ export const ConversationValidation = {
   addTagsSchema,
   getCategoryConversationsSchema,
   getRecentConversationsSchema,
+  // Share chat validation schemas
+  shareChatSchema,
+  updateShareSettingsSchema,
+  getSharedChatSchema,
+  getUserSharedChatsSchema,
 };

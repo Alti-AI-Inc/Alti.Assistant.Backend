@@ -133,6 +133,10 @@ Search query used: ${state.searchQuery}
 
 CRITICAL: Today's date is ${new Date().toDateString()} (${new Date().getFullYear()}). Always prioritize current information and be aware that older data may be outdated.
 
+CRITICAL: IF the user explicitly wants an answer-only format (no explanations), provide a concise answer without additional context or references. For Example If someone asks "What is the capital of France? Answer only." you respond with "Paris." without any further elaboration.
+Or if the user says "Just give me the answer, no details." you respond with the answer only.
+Example: What is better tea or coffee? Answer only.
+
 CONTEXT AWARENESS:
 - Consider the conversation history when formulating your response
 - Build upon previous exchanges naturally
@@ -170,7 +174,11 @@ IMPORTANT: Focus on delivering clear, informative content without citations or n
 Search results:
 ${formattedSearchResults}
 
-Please provide a conversational, well-researched response based on the search results and conversation context.`
+Please provide a conversational, well-researched response based on the search results and conversation context.
+CRITICAL: IF the user explicitly wants an answer-only format (no explanations), provide a concise answer without additional context or references. For Example If someone asks "What is the capital of France? Answer only." you respond with "Paris." without any further elaboration.
+Or if the user says "Just give me the answer, no details." you respond with the answer only.
+Example: What is better tea or coffee? Answer only.
+`
       }
     ];
 
@@ -181,7 +189,7 @@ Please provide a conversational, well-researched response based on the search re
     } else {
       // For regular responses
       const response = await llm.invoke(messages);
-      console.log("Groq response received");
+      console.log("Groq response received", response.content);
       return response.content;
     }
 
@@ -449,6 +457,9 @@ export const giveAnswerWithoutSearch = async (query, conversationContext = []) =
     }
 
     const systemPrompt = `You are an expert AI assistant providing direct answers without external search.
+CRITICAL: IF the user explicitly wants an answer-only format (no explanations), provide a concise answer without additional context or references. For Example If someone asks "What is the capital of France? Answer only." you respond with "Paris." without any further elaboration.
+Or if the user says "Just give me the answer, no details." you respond with the answer only.
+Example: What is better tea or coffee? Answer only.
 
 RESPONSE GUIDELINES:
 - Be conversational and helpful
@@ -927,7 +938,7 @@ Determine if YouTube search would be relevant:`
     const finalDecision = cleanedContent.toUpperCase().trim();
     console.log("Cleaned YouTube relevance decision:", finalDecision);
 
-    return finalDecision.includes("RELEVANT");
+    return !finalDecision.includes("NOT_RELEVANT");
 
   } catch (error) {
     console.error("Error checking YouTube relevance:", error);

@@ -2,7 +2,9 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import Conversation from './conversation.model.js';
+import ChatShare from './chatShare.model.js';
 import { conversationHelpers } from './conversation.helpers.js';
+import mongoose from 'mongoose';
 
 /**
  * Create a new conversation
@@ -19,7 +21,7 @@ const createConversation = async (conversationData, conversationId) => {
       is_deep_search = false,
     } = conversationData;
     console.log('Creating conversation with data:', conversationData);
-    
+
     // Generate unique conversation ID
 
     const conversation = new Conversation({
@@ -73,10 +75,10 @@ const addMessageToConversation = async (conversationId, userId, messageData) => 
     }
 
     console.log(`Adding message to conversation ${conversationId} for user ${userId}:`, { role, content, metadata });
-    
+
 
     const conversation = await Conversation.findByConversationId(conversationId, userId);
-    
+
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
@@ -146,8 +148,8 @@ const updateConversationMetadata = async (conversationId, userId, metadata) => {
   try {
     const conversation = await Conversation.findOneAndUpdate(
       { conversationId, userId },
-      { 
-        $set: { 
+      {
+        $set: {
           metadata: { ...metadata },
           lastActivity: new Date()
         }
@@ -282,7 +284,7 @@ const clearConversationMessages = async (conversationId, userId) => {
   try {
     const conversation = await Conversation.findOneAndUpdate(
       { conversationId, userId },
-      { 
+      {
         messages: [],
         messageCount: 0,
         lastActivity: new Date()
@@ -312,12 +314,12 @@ const clearConversationMessages = async (conversationId, userId) => {
 const bulkArchiveConversations = async (conversationIds, userId) => {
   try {
     const result = await Conversation.updateMany(
-      { 
+      {
         conversationId: { $in: conversationIds },
         userId,
         status: 'active'
       },
-      { 
+      {
         status: 'archived',
         lastActivity: new Date()
       }
@@ -344,11 +346,11 @@ const bulkArchiveConversations = async (conversationIds, userId) => {
 const bulkDeleteConversations = async (conversationIds, userId) => {
   try {
     const result = await Conversation.updateMany(
-      { 
+      {
         conversationId: { $in: conversationIds },
         userId
       },
-      { 
+      {
         status: 'deleted',
         lastActivity: new Date()
       }
@@ -381,7 +383,7 @@ const addConversationTags = async (conversationId, userId, tags) => {
 
     const conversation = await Conversation.findOneAndUpdate(
       { conversationId, userId },
-      { 
+      {
         $addToSet: { 'metadata.tags': { $each: tags } },
         lastActivity: new Date()
       },
@@ -401,6 +403,272 @@ const addConversationTags = async (conversationId, userId, tags) => {
   }
 };
 
+/**
+ * Share a chat conversation
+ * @param {Object} shareData
+ * @returns {Promise<Object>}
+ */
+const shareChatConversation = async (shareData) => {
+  try {
+    const { conversationId, userId, shareType, expiresAt, allowComments } = shareData;
+    console.log(`Sharing conversation ${conversationId} for user ${userId}:`, { shareType, expiresAt, allowComments });
+
+    // Check if conversation exists and belongs to user
+    const conversation = await Conversation.findOne({ _id: new mongoose.Types.ObjectId(conversationId), userId: new mongoose.Types.ObjectId(userId) });
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    }
+
+    // Check if conversation is already shared
+    let existingShare = await ChatShare.findOne({
+      conversationId,
+      userId,
+      isActive: true
+    });
+
+    if (existingShare) {
+      // Update existing share
+      existingShare.shareType = shareType;
+      existingShare.expiresAt = expiresAt;
+      existingShare.allowComments = allowComments;
+      await existingShare.save();
+
+      logger.info(`Chat conversation share updated: ${conversationId} by user: ${userId}`);
+
+      return {
+        shareId: existingShare.shareId,
+        shareUrl: `/chat/shared/${existingShare.shareId}`,
+        shareType: existingShare.shareType,
+        expiresAt: existingShare.expiresAt,
+        allowComments: existingShare.allowComments,
+        isActive: existingShare.isActive,
+      };
+    }
+
+    // Create new share
+    const chatShare = new ChatShare({
+      conversationId,
+      userId,
+      shareType,
+      expiresAt,
+      allowComments,
+    });
+
+    await chatShare.save();
+
+    logger.info(`Chat conversation shared: ${conversationId} by user: ${userId}`);
+
+    return {
+      shareId: chatShare.shareId,
+      shareUrl: `/chat/shared/${chatShare.shareId}`,
+      shareType: chatShare.shareType,
+      expiresAt: chatShare.expiresAt,
+      allowComments: chatShare.allowComments,
+      isActive: chatShare.isActive,
+    };
+  } catch (error) {
+    logger.error('Error sharing chat conversation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get shared chat conversation
+ * @param {string} shareId
+ * @returns {Promise<Object>}
+ */
+const getSharedChatConversation = async (shareId) => {
+  try {
+    const chatShare = await ChatShare.findOne({ shareId });
+
+    if (!chatShare) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Shared chat not found or expired');
+    }
+
+    if (!chatShare.isAccessible()) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'Shared chat is no longer accessible');
+    }
+
+    // Get the conversation details
+    const conversation = await Conversation.findOne({
+      _id: chatShare.conversationId
+    }).populate('userId', 'username email');
+
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    }
+
+    // Increment view count
+    await chatShare.incrementViewCount();
+
+    logger.info(`Shared chat accessed: ${shareId}`);
+
+    return {
+      shareId: chatShare.shareId,
+      conversation: {
+        conversationId: conversation.conversationId,
+        title: conversation.title,
+        messages: conversation.messages,
+        messageCount: conversation.messageCount,
+        lastActivity: conversation.lastActivity,
+        createdAt: conversation.createdAt,
+        metadata: conversation.metadata,
+      },
+      owner: {
+        username: conversation.userId.username || 'Anonymous',
+      },
+      shareSettings: {
+        shareType: chatShare.shareType,
+        allowComments: chatShare.allowComments,
+        viewCount: chatShare.viewCount,
+        sharedAt: chatShare.createdAt,
+        expiresAt: chatShare.expiresAt,
+      },
+    };
+  } catch (error) {
+    logger.error('Error getting shared chat conversation:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update chat share settings
+ * @param {Object} updateData
+ * @returns {Promise<Object>}
+ */
+const updateChatShareSettings = async (updateData) => {
+  try {
+    const { conversationId, userId, shareType, expiresAt, allowComments, isActive } = updateData;
+
+    // Find the chat share
+    const chatShare = await ChatShare.findOne({
+      conversationId,
+      userId
+    });
+
+    if (!chatShare) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Chat share not found');
+    }
+
+    // Update fields if provided
+    if (shareType !== undefined) chatShare.shareType = shareType;
+    if (expiresAt !== undefined) chatShare.expiresAt = expiresAt;
+    if (allowComments !== undefined) chatShare.allowComments = allowComments;
+    if (isActive !== undefined) chatShare.isActive = isActive;
+
+    await chatShare.save();
+
+    logger.info(`Chat share settings updated: ${conversationId} by user: ${userId}`);
+
+    return {
+      shareId: chatShare.shareId,
+      shareUrl: `/chat/shared/${chatShare.shareId}`,
+      shareType: chatShare.shareType,
+      expiresAt: chatShare.expiresAt,
+      allowComments: chatShare.allowComments,
+      isActive: chatShare.isActive,
+      updatedAt: chatShare.updatedAt,
+    };
+  } catch (error) {
+    logger.error('Error updating chat share settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user's shared chats
+ * @param {Object} queryData
+ * @returns {Promise<Object>}
+ */
+const getUserSharedChats = async (queryData) => {
+  try {
+    const { userId, page, limit, status } = queryData;
+
+    const chatShares = await ChatShare.findUserShares(userId, { page, limit, status });
+
+    const totalShares = await ChatShare.countDocuments({
+      userId,
+      ...(status === 'active' && {
+        isActive: true,
+        $or: [
+          { expiresAt: null },
+          { expiresAt: { $gt: new Date() } }
+        ]
+      }),
+      ...(status === 'expired' && { expiresAt: { $lte: new Date() } }),
+      ...(status === 'revoked' && { isActive: false }),
+    });
+
+    const totalPages = Math.ceil(totalShares / limit);
+
+    logger.info(`Retrieved ${chatShares.length} shared chats for user: ${userId}`);
+
+    return {
+      shares: chatShares.map(share => ({
+        shareId: share.shareId,
+        shareUrl: `/chat/shared/${share.shareId}`,
+        conversation: {
+          conversationId: share.conversationId.conversationId,
+          title: share.conversationId.title,
+          messageCount: share.conversationId.messageCount,
+          lastActivity: share.conversationId.lastActivity,
+        },
+        shareType: share.shareType,
+        allowComments: share.allowComments,
+        viewCount: share.viewCount,
+        isActive: share.isActive,
+        expiresAt: share.expiresAt,
+        sharedAt: share.createdAt,
+        lastViewedAt: share.lastViewedAt,
+      })),
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalShares,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
+  } catch (error) {
+    logger.error('Error getting user shared chats:', error);
+    throw error;
+  }
+};
+
+/**
+ * Revoke chat share
+ * @param {Object} revokeData
+ * @returns {Promise<Object>}
+ */
+const revokeChatShare = async (revokeData) => {
+  try {
+    const { conversationId, userId } = revokeData;
+
+    const chatShare = await ChatShare.findOne({
+      conversationId,
+      userId
+    });
+
+    if (!chatShare) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Chat share not found');
+    }
+
+    chatShare.isActive = false;
+    await chatShare.save();
+
+    logger.info(`Chat share revoked: ${conversationId} by user: ${userId}`);
+
+    return {
+      shareId: chatShare.shareId,
+      message: 'Chat share has been revoked successfully',
+      revokedAt: new Date(),
+    };
+  } catch (error) {
+    logger.error('Error revoking chat share:', error);
+    throw error;
+  }
+};
+
 export const conversationService = {
   createConversation,
   addMessageToConversation,
@@ -414,4 +682,10 @@ export const conversationService = {
   bulkArchiveConversations,
   bulkDeleteConversations,
   addConversationTags,
+  // Share chat methods
+  shareChatConversation,
+  getSharedChatConversation,
+  updateChatShareSettings,
+  getUserSharedChats,
+  revokeChatShare,
 };

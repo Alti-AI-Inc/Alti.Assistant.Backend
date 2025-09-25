@@ -481,6 +481,145 @@ const addTags = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Share a chat conversation
+ */
+const shareChatConversation = catchAsync(async (req, res) => {
+  const { conversationId } = req.params;
+  const userId = req.user?.userId || req.user?._id;
+  const { shareType = 'public', expiresAt = null, allowComments = false } = req.body;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  const result = await conversationService.shareChatConversation({
+    conversationId,
+    userId,
+    shareType,
+    expiresAt,
+    allowComments,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Chat conversation shared successfully',
+    data: result,
+  });
+});
+
+/**
+ * Get shared chat conversation
+ */
+const getSharedChatConversation = catchAsync(async (req, res) => {
+  const { shareId } = req.params;
+
+  const result = await conversationService.getSharedChatConversation(shareId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Shared chat conversation retrieved successfully',
+    data: result,
+  });
+});
+
+/**
+ * Update share settings for a chat conversation
+ */
+const updateChatShareSettings = catchAsync(async (req, res) => {
+  const { conversationId } = req.params;
+  const userId = req.user?.userId || req.user?._id;
+  const { shareType, expiresAt, allowComments, isActive } = req.body;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  const result = await conversationService.updateChatShareSettings({
+    conversationId,
+    userId,
+    shareType,
+    expiresAt,
+    allowComments,
+    isActive,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Chat share settings updated successfully',
+    data: result,
+  });
+});
+
+/**
+ * Get all shared chats for a user
+ */
+const getUserSharedChats = catchAsync(async (req, res) => {
+  const userId = req.user?.userId || req.user?._id;
+  const { page = 1, limit = 20, status = 'active' } = req.query;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  const result = await conversationService.getUserSharedChats({
+    userId,
+    page: parseInt(page),
+    limit: parseInt(limit),
+    status,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User shared chats retrieved successfully',
+    data: result,
+  });
+});
+
+/**
+ * Revoke chat share
+ */
+const revokeChatShare = catchAsync(async (req, res) => {
+  const { conversationId } = req.params;
+  const userId = req.user?.userId || req.user?._id;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  const result = await conversationService.revokeChatShare({
+    conversationId,
+    userId,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Chat share revoked successfully',
+    data: result,
+  });
+});
+
 export const conversationController = {
   createConversation,
   getUserConversations,
@@ -502,4 +641,10 @@ export const conversationController = {
   bulkArchiveConversations,
   bulkDeleteConversations,
   addTags,
+  // Share chat methods
+  shareChatConversation,
+  getSharedChatConversation,
+  updateChatShareSettings,
+  getUserSharedChats,
+  revokeChatShare,
 };

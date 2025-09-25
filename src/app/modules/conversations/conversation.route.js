@@ -175,4 +175,40 @@ router
     conversationController.addTags,
   );
 
+// Share chat conversation
+router
+  .route('/:conversationId/share')
+  .post(
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    createRateLimiter(20, 15), // 20 share operations per 15 minutes
+    validateRequest(ConversationValidation.shareChatSchema),
+    conversationController.shareChatConversation,
+  )
+  .patch(
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    createRateLimiter(30, 15), // 30 share updates per 15 minutes
+    validateRequest(ConversationValidation.updateShareSettingsSchema),
+    conversationController.updateChatShareSettings,
+  )
+  .delete(
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    createRateLimiter(10, 15), // 10 revoke operations per 15 minutes
+    conversationController.revokeChatShare,
+  );
+
+// Get user's shared chats
+router
+  .route('/shared')
+  .get(
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    conversationController.getUserSharedChats,
+  );
+
+// Get public shared chat (no auth required)
+router
+  .route('/shared/:shareId')
+  .get(
+    conversationController.getSharedChatConversation,
+  );
+
 export const conversationRoutes = router;
