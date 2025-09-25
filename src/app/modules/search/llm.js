@@ -1,12 +1,11 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { ChatGroq } from "@langchain/groq";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import config from "../../../../config/index.js";
 
-const llm = new ChatGroq({
-  model: "deepseek-r1-distill-llama-70b",
-  apiKey: config.groq_api_key,
+const llm = new ChatGoogleGenerativeAI({
+  model: "gemini-2.5-flash-preview-05-20",
+  apiKey: config.gemini_secret_key,
   temperature: 0,
-  maxTokens: undefined,
   maxRetries: 2,
   // other params...
 });
@@ -53,9 +52,9 @@ const updateQueryWithCurrentYear = (query) => {
   return updatedQuery;
 };
 
-export const runSimpleGroqTask = async (state, stream = false) => {
+export const runSimpleSearchTask = async (state, stream = false) => {
   try {
-    console.log("Running conversational Groq task with search results:", state.searchResults);
+    console.log("Running conversational search task with search results:", state.searchResults);
 
     // Format search results into a readable string with enhanced content (no citations)
     let formattedSearchResults = "";
@@ -189,12 +188,12 @@ Example: What is better tea or coffee? Answer only.
     } else {
       // For regular responses
       const response = await llm.invoke(messages);
-      console.log("Groq response received", response.content);
+      console.log("Gemini response received", response.content);
       return response.content;
     }
 
   } catch (error) {
-    console.error("Error in runSimpleGroqTask:", error);
+    console.error("Error in runSimpleSearchTask:", error);
     return "I encountered an error while processing your request. Please try again.";
   }
 };

@@ -4,7 +4,7 @@ import {
   checkIfSearchNeededForTheQueryUsingAi,
   createBetterQueryFromMultipleQuestions,
   giveAnswerWithoutSearch,
-  runSimpleGroqTask,
+  runSimpleSearchTask,
   analyzeDirectAnswerQuality,
   manageConversationContext,
   shouldTrimContext,
@@ -842,7 +842,7 @@ export const conversationalSynthesisNode = async (state) => {
       searchQuery: contextualizedQuery,
     };
 
-    const response = await runSimpleGroqTask(enhancedState, false);
+    const response = await runSimpleSearchTask(enhancedState, false);
 
     // Clean response
     let finalResponse = response;
