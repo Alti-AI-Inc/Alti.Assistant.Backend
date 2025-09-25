@@ -627,6 +627,16 @@ RESPONSE STYLE:
 - If possible response in 1 sentence
 - Use format: "According to [Source]..." or "Based on [Domain]..."
 - Lead with the main answer, then add source attribution
+- I want the answer in a structured JSON format with answer and references array i.e: "responseMessage": {
+            "answer": "The next Detroit Tigers game is on September 25, 2025, at 6:40 PM against the Cleveland Guardians at Progressive Field in Cleveland",
+            "reference": [{
+                "title": "Detroit Tigers Schedule 2025",
+                "url": "https://www.mlb.com/tigers/schedule/2025-09",
+                "domain": "mlb.com",
+            }],
+            "citations": [],
+            "citationMetadata": null
+        }
 
 TOOL USAGE:
 - Use web search for: current events, news, facts, data, recent information, sports, prices
@@ -700,41 +710,36 @@ STRUCTURE:
 2. Key supporting details (if needed)
 3. Source attribution
 
-Example: "The next Detroit Tigers game is October 1st at 7:30 PM against the Cleveland Guardians at Comerica Park. According to MLB.com (September 2025), this is part of the final regular season series."`
+Example: "responseMessage": {
+            "answer": "The next Detroit Tigers game is on September 25, 2025, at 6:40 PM against the Cleveland Guardians at Progressive Field in Cleveland",
+            "reference": [{
+                "title": "Detroit Tigers Schedule 2025",
+                "url": "https://www.mlb.com/tigers/schedule/2025-09",
+                "domain": "mlb.com",
+            }],
+            "citations": [],
+            "citationMetadata": null
+        }`
       });
 
       // Get final response with tool results
       const finalResponse = await llm.invoke(toolMessages);
-      console.log("✅ Final response with tool results obtained", finalResponse);
+      console.log("✅ Final response with tool results obtained", finalResponse.content);
       // Extract references from tool results
-      const references = [];
-      toolResults.forEach(toolResult => {
-        if (toolResult.result && !toolResult.error) {
-          try {
-            const parsedResult = JSON.parse(toolResult.result);
-            if (parsedResult.results && Array.isArray(parsedResult.results)) {
-              parsedResult.results.forEach(result => {
-                references.push({
-                  title: result.title,
-                  url: result.url,
-                  domain: result.domain,
-                  sourceName: result.sourceName || result.domain,
-                  publishedDate: result.publishedDate,
-                  publishedYear: result.publishedYear,
-                  citationFormat: result.citationFormat
-                });
-              });
-            }
-          } catch (parseError) {
-            console.warn("Could not parse tool result for references:", parseError.message);
-          }
-        }
-      });
+      const match = finalResponse.content.match(/```json([\s\S]*?)```/);
+      let result = {}
+      if (match && match[1]) {
+        const jsonOnly = match[1].trim();
+        result = JSON.parse(jsonOnly);
 
+        console.log(result); // ✅ now it's a JS object
+      } else {
+        console.error("No JSON found!");
+      }
       // Return structured response with references array
       return {
-        answer: finalResponse.content,
-        references: references,
+        answer: result.responseMessage.answer,
+        reference: result.responseMessage.reference,
         searchMethod: 'tool_based',
         timestamp: new Date().toISOString()
       };

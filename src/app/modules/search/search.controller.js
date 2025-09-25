@@ -66,29 +66,31 @@ export const performSearch = catchAsync(async (req, res) => {
         // Add user message to conversation
         await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
 
-        const inputs = { 
+        const inputs = {
             query: message,
             conversationContext: conversationHistory,
             depth: deepSearch ? deepSearch : 'standard', // Use deepSearch flag to determine search depth
             history: [...conversationHistory, { role: 'user', content: message }],
         };
-        
+
         const result = await researchAgentApp.invoke(inputs, { configurable: { thread_id: actualConversationId } });
         logger.info(`Research Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
-        
+        console.log('Research Assistant Result:', result);
+
+
         const stream = result.answer;
         const reference = result.reference || [];
         const citationMetadata = result.citationMetadata || null;
 
         console.log('References are:', reference);
         console.log('Citation metadata:', citationMetadata);
-        
+
         let fullResponse = "";
 
         if (typeof stream === 'string') {
             // If the stream is a string, send it directly as a JSON response
             fullResponse = stream;
-            
+
             // Add assistant response to conversation with enhanced metadata
             const messageMetadata = {
                 reference,
@@ -96,10 +98,10 @@ export const performSearch = catchAsync(async (req, res) => {
                 searchQuery: citationMetadata?.searchQuery || message,
                 searchTimestamp: citationMetadata?.searchTimestamp || new Date().toISOString()
             };
-            
+
             await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, messageMetadata, isGuest);
             console.log('Full response:', fullResponse);
-            
+
             return sendResponse(res, {
                 statusCode: httpStatus.OK,
                 success: true,
@@ -132,14 +134,14 @@ export const performSearch = catchAsync(async (req, res) => {
                 if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
                     const chunk = event.delta.text;
                     fullResponse += chunk;
-                    res.write(`data: ${JSON.stringify({ 
-                        chunk, 
+                    res.write(`data: ${JSON.stringify({
+                        chunk,
                         conversationId: actualConversationId,
                         userType: isGuest ? 'guest' : 'authenticated'
                     })}\n\n`);
                 }
             }
-            
+
             // Add assistant response to conversation after streaming is complete
             const messageMetadata = {
                 reference,
@@ -148,18 +150,18 @@ export const performSearch = catchAsync(async (req, res) => {
                 searchTimestamp: citationMetadata?.searchTimestamp || new Date().toISOString(),
                 streamed: true
             };
-            
+
             await searchService.addSearchResultMessage(
-                actualConversationId, 
-                userId, 
-                fullResponse, 
+                actualConversationId,
+                userId,
+                fullResponse,
                 messageMetadata,
                 isGuest
             );
 
             // Send final message with complete response and citations
-            res.write(`data: ${JSON.stringify({ 
-                complete: true, 
+            res.write(`data: ${JSON.stringify({
+                complete: true,
                 fullResponse,
                 conversationId: actualConversationId,
                 success: true,
@@ -178,7 +180,7 @@ export const performSearch = catchAsync(async (req, res) => {
         }
     } catch (error) {
         logger.error("Research Assistant Error:", error);
-        
+
         // Try to save error message to conversation if possible
         const errorConversationId = conversationId || searchService.generateSearchConversationId();
         try {
@@ -194,10 +196,10 @@ export const performSearch = catchAsync(async (req, res) => {
         } catch (convError) {
             logger.error("Failed to save error to conversation:", convError);
         }
-        
+
         // Check if headers have already been sent
         if (res.headersSent) {
-            res.write(`data: ${JSON.stringify({ 
+            res.write(`data: ${JSON.stringify({
                 error: "An internal error occurred while processing your search.",
                 conversationId: errorConversationId,
                 success: false,
@@ -209,7 +211,7 @@ export const performSearch = catchAsync(async (req, res) => {
                 statusCode: httpStatus.INTERNAL_SERVER_ERROR,
                 success: false,
                 message: 'An internal error occurred while processing your search',
-                data: { 
+                data: {
                     conversationId: errorConversationId,
                     userType: isGuest ? 'guest' : 'authenticated',
                 },
@@ -223,7 +225,7 @@ export const performSearch = catchAsync(async (req, res) => {
  */
 const getSearchStats = catchAsync(async (req, res) => {
     const isGuest = req.isGuest || !req.user;
-    
+
     if (isGuest) {
         return sendResponse(res, {
             statusCode: httpStatus.UNAUTHORIZED,

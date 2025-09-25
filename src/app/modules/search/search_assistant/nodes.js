@@ -455,7 +455,7 @@ export const toolBasedSearchNode = async (state) => {
       return {
         ...state,
         answer: result.answer,
-        references: result.references || [],
+        reference: result.reference || [],
         searchCompleted: true,
         searchMethod: result.searchMethod || 'tool_based',
         searchDuration: duration,
@@ -466,7 +466,7 @@ export const toolBasedSearchNode = async (state) => {
       return {
         ...state,
         answer: result,
-        references: [],
+        reference: [],
         searchCompleted: true,
         searchMethod: 'tool_based',
         searchDuration: duration,
