@@ -12,91 +12,154 @@ import {
   searchYouTube,
   isVideoOnlyQuery,
   analyzeVideoQuery,
+  classifyQueryFast,
+  classifyQueryOptimized,
+  performParallelSearch,
+  extractVideoCountFast,
+  createContextualizedQueryFast,
+  updateQueryWithCurrentYear,
 } from '../llm.js';
 import { tavily } from '@tavily/core';
 
 /**
- * Node: Analyzes the conversation context and determines the response strategy
+ * OPTIMIZED Node: Fast analysis using rule-based classification first
  */
-export const analyzeContextNode = async (state) => {
-  console.log('--- Node: analyzeContextNode ---');
+export const analyzeContextNodeOptimized = async (state) => {
+  console.log('--- Node: analyzeContextNodeOptimized ---');
   const { query, history } = state;
 
   try {
-    // Build conversation context for the LLM
-    const conversationContext =
-      history.length > 0
-        ? history.slice(-3) // Last 3 messages for context
-        : [];
+    // Build conversation context (lighter for simple queries)
+    const conversationContext = history.length > 0 ? history.slice(-2) : [];
 
-    console.log(
-      `Analyzing query: "${query}" with ${conversationContext.length} context messages`
-    );
+    console.log(`Fast analyzing query: "${query}" with ${conversationContext.length} context messages`);
 
-    // First, check if this is a video-only query and extract count using LLM
-    const videoAnalysis = await analyzeVideoQuery(query, conversationContext);
+    // OPTIMIZATION 1: Use fast rule-based classification first
+    const fastClassification = classifyQueryFast(query);
+    console.log(`Fast classification result:`, fastClassification);
 
-    if (videoAnalysis.isVideoOnly) {
-      console.log(`Video-only query detected for: "${query}" with count: ${videoAnalysis.videoCount}`);
-
-      // Generate contextualized query for video search
-      let contextualizedQuery = query;
-      if (history.length > 0) {
-        contextualizedQuery = await createContextualizedQuery(history, query);
+    // Handle different query types with optimized paths
+    switch (fastClassification.recommendedAction) {
+      case 'direct_answer': {
+        // Simple factual queries - skip all searches
+        console.log(`Simple query detected: "${query}" - using direct answer path`);
+        return {
+          ...state,
+          needsSearch: false,
+          isSearchNeeded: false,
+          isVideoOnlyQuery: false,
+          contextualizedQuery: query,
+          responseType: 'direct',
+          fastTrack: true,
+          classificationUsed: 'rule_based'
+        };
       }
 
-      return {
-        ...state, // Preserve existing state
-        needsSearch: false, // Skip web search
-        isSearchNeeded: false, // Skip web search
-        isVideoOnlyQuery: true, // Flag for video-only routing
-        requestedVideoCount: videoAnalysis.videoCount, // Store the requested count
-        contextualizedQuery,
-        responseType: 'video_only',
-      };
-    }    // Check if search is needed based on query and context
-    const searchDecision = await checkIfSearchNeededForTheQueryUsingAi(
-      query,
-      conversationContext
-    );
+      case 'video_search': {
+        // Video queries - skip LLM analysis for video detection
+        console.log(`Video query detected: "${query}" - using video path`);
+        // Quick video count extraction without LLM for common patterns
+        const videoCount = extractVideoCountFast(query);
+        return {
+          ...state,
+          needsSearch: false,
+          isSearchNeeded: false,
+          isVideoOnlyQuery: true,
+          requestedVideoCount: videoCount,
+          contextualizedQuery: query,
+          responseType: 'video_only',
+          fastTrack: true,
+          classificationUsed: 'rule_based'
+        };
+      }
 
-    console.log(`Raw LLM decision for "${query}": "${searchDecision}"`);
+      case 'search_required': {
+        // Time-sensitive queries - definitely need search
+        console.log(`Time-sensitive query detected: "${query}" - using search path`);
+        const contextualizedQuery = history.length > 0 ?
+          await createContextualizedQueryFast(history, query) : query;
 
-    // The LLM function already handles cleaning and returns "SEARCH" or "ANSWER"
-    const isSearchNeeded = searchDecision === 'SEARCH';
+        return {
+          ...state,
+          needsSearch: true,
+          isSearchNeeded: true,
+          isVideoOnlyQuery: false,
+          contextualizedQuery,
+          responseType: 'search',
+          fastTrack: true,
+          classificationUsed: 'rule_based'
+        };
+      }
 
-    console.log(
-      `Final decision: ${searchDecision} → Search needed: ${isSearchNeeded}`
-    );
-
-    // Generate contextualized query if search is needed
-    let contextualizedQuery = query;
-    if (isSearchNeeded && history.length > 0) {
-      contextualizedQuery = await createContextualizedQuery(history, query);
+      case 'llm_classify':
+      default: {
+        // Low confidence - use LLM classification
+        console.log(`Using LLM classification for: "${query}"`);
+        break;
+      }
     }
 
-    console.log(`Search needed: ${isSearchNeeded}`);
-    console.log(`Contextualized query: ${contextualizedQuery}`);
+    // FALLBACK: Use LLM classification for complex or uncertain queries
+    const searchDecision = await classifyQueryOptimized(query, conversationContext);
+
+    // Handle video queries with LLM if needed
+    if (searchDecision === 'VIDEO' || fastClassification.queryType === 'video') {
+      const videoAnalysis = await analyzeVideoQuery(query, conversationContext);
+      if (videoAnalysis.isVideoOnly) {
+        console.log(`LLM video-only query detected: "${query}" with count: ${videoAnalysis.videoCount}`);
+        return {
+          ...state,
+          needsSearch: false,
+          isSearchNeeded: false,
+          isVideoOnlyQuery: true,
+          requestedVideoCount: videoAnalysis.videoCount,
+          contextualizedQuery: query,
+          responseType: 'video_only',
+          classificationUsed: 'llm'
+        };
+      }
+    }
+
+    const isSearchNeeded = searchDecision === 'SEARCH';
+    console.log(`LLM decision: ${searchDecision} → Search needed: ${isSearchNeeded}`);
+
+    // Generate contextualized query only if needed
+    let contextualizedQuery = query;
+    if (isSearchNeeded && history.length > 0) {
+      contextualizedQuery = await createContextualizedQueryFast(history, query);
+    }
 
     return {
-      ...state, // Preserve existing state
-      needsSearch: isSearchNeeded, // Use needsSearch to match workflow routing
-      isSearchNeeded, // Keep for backward compatibility
-      isVideoOnlyQuery: false, // Not a video-only query
+      ...state,
+      needsSearch: isSearchNeeded,
+      isSearchNeeded,
+      isVideoOnlyQuery: false,
       contextualizedQuery,
       responseType: isSearchNeeded ? 'search' : 'direct',
+      classificationUsed: 'llm'
     };
+
   } catch (error) {
-    console.error('Error in analyzeContextNode:', error);
+    console.error('Error in analyzeContextNodeOptimized:', error);
     return {
-      ...state, // Preserve existing state
-      needsSearch: false, // Default to direct answer on error
+      ...state,
+      needsSearch: false,
       isSearchNeeded: false,
       isVideoOnlyQuery: false,
       contextualizedQuery: query,
       responseType: 'direct',
+      classificationUsed: 'error_fallback'
     };
   }
+};
+
+/**
+ * Legacy Node: Keep original for backward compatibility
+ */
+export const analyzeContextNode = async (state) => {
+  console.log('--- Node: analyzeContextNode (Legacy) ---');
+  // For now, redirect to optimized version
+  return await analyzeContextNodeOptimized(state);
 };
 
 /**
@@ -135,10 +198,111 @@ export const manageContextNode = async (state) => {
 };
 
 /**
- * Node: Performs intelligent search using the contextualized query
+ * OPTIMIZED Node: Performs parallel intelligent search
  */
-export const intelligentSearchNode = async (state) => {
-  console.log('--- Node: intelligentSearchNode ---');
+export const intelligentSearchNodeOptimized = async (state) => {
+  console.log('--- Node: intelligentSearchNodeOptimized ---');
+  const { contextualizedQuery, query, depth, previousSearchContext, history, fastTrack } = state;
+
+  // Use contextualized query if available, otherwise fall back to original query
+  let searchQuery = contextualizedQuery || query;
+
+  // Apply year correction to ensure current information
+  searchQuery = updateQueryWithCurrentYear(searchQuery);
+
+  console.log(`Optimized search for: "${searchQuery}"`);
+
+  try {
+    // OPTIMIZATION 3: Determine search strategy based on query type and fast track status
+    let searchOptions = {
+      includeWeb: true,
+      includeYouTube: false,
+      maxWebResults: fastTrack ? 3 : 5, // Fewer results for fast track
+      maxVideoResults: 2,
+      conversationContext: history.slice(-2) // Lighter context
+    };
+
+    // Quick YouTube relevance check without LLM for obvious cases
+    const lowerQuery = searchQuery.toLowerCase();
+    const needsYouTube = lowerQuery.includes('video') ||
+      lowerQuery.includes('tutorial') ||
+      lowerQuery.includes('how to') ||
+      lowerQuery.includes('demo') ||
+      lowerQuery.includes('watch');
+
+    if (needsYouTube) {
+      searchOptions.includeYouTube = true;
+      console.log('YouTube search included based on query content');
+    } else if (!fastTrack) {
+      // For non-fast track queries, use LLM to determine YouTube relevance
+      const youtubeRelevant = await shouldSearchYouTube(searchQuery, history.slice(-2));
+      searchOptions.includeYouTube = youtubeRelevant;
+      console.log(`YouTube relevance (LLM): ${youtubeRelevant}`);
+    }
+
+    // OPTIMIZATION 2: Perform parallel searches
+    console.log('Starting parallel search operations...');
+    const startTime = Date.now();
+
+    const searchResults = await performParallelSearch(searchQuery, searchOptions);
+
+    const searchTime = Date.now() - startTime;
+    console.log(`Parallel search completed in ${searchTime}ms`);
+    console.log('Raw search results:', searchResults.web);
+    // Process and combine results
+    const combinedResults = [];
+
+    // Add web results
+    if (searchResults.web.results && searchResults.web.results.length > 0) {
+      combinedResults.push(...searchResults.web.results.map(result => {
+        console.log("Web result:", result);
+
+        return {
+          ...result,
+          source: 'web'
+        }
+      }));
+    }
+
+    // Add YouTube results
+    if (searchResults.youtube && searchResults.youtube.length > 0) {
+      combinedResults.push(...searchResults.youtube.map(result => ({
+        ...result,
+        source: 'youtube'
+      })));
+    }
+
+    console.log(`Found ${combinedResults.length} total results (${searchResults.web?.length || 0} web, ${searchResults.youtube?.length || 0} YouTube)`);
+
+    // Log any errors but don't fail the request
+    if (searchResults.errors && searchResults.errors.length > 0) {
+      console.warn('Search errors:', searchResults.errors);
+    }
+
+    return {
+      ...state,
+      searchResults: combinedResults,
+      searchQuery,
+      hasYouTubeResults: (searchResults.youtube?.length || 0) > 0,
+      searchPerformed: true,
+      searchTime,
+      parallelSearch: true
+    };
+
+  } catch (error) {
+    console.error('Error in intelligentSearchNodeOptimized:', error);
+
+    // Fallback to basic search if parallel search fails
+    console.log('Falling back to basic search...');
+    return await intelligentSearchNodeLegacy(state);
+  }
+};
+
+/**
+ * Legacy Node: Original search implementation as fallback
+ */
+export const intelligentSearchNodeLegacy = async (state) => {
+  console.log('--- Node: intelligentSearchNodeLegacy ---');
   const { contextualizedQuery, query, depth, previousSearchContext } = state;
 
   // Use contextualized query if available, otherwise fall back to original query
@@ -234,6 +398,7 @@ export const intelligentSearchNode = async (state) => {
     }
 
     return {
+      ...state,
       searchResults,
       contextualizedQuery: searchQuery,
       metadata: formattedResults,
@@ -244,15 +409,27 @@ export const intelligentSearchNode = async (state) => {
         metadata: formattedResults,
         timestamp: new Date(),
       },
+      searchPerformed: true,
+      parallelSearch: false
     };
   } catch (error) {
-    console.error('Error in intelligentSearchNode:', error);
+    console.error('Error in intelligentSearchNodeLegacy:', error);
     return {
+      ...state,
       searchResults: [],
       metadata: { error: 'Failed to perform search', query: searchQuery },
       contextualizedQuery: searchQuery,
+      searchPerformed: false
     };
   }
+};
+
+/**
+ * Main Node: Uses optimized version by default
+ */
+export const intelligentSearchNode = async (state) => {
+  console.log('--- Node: intelligentSearchNode (Optimized) ---');
+  return await intelligentSearchNodeOptimized(state);
 };
 
 /**
@@ -1061,45 +1238,4 @@ const isRecentContent = (publishedDate) => {
   }
 };
 
-/**
- * Helper: Updates queries with current year for time-sensitive searches
- */
-const updateQueryWithCurrentYear = (query) => {
-  const currentYear = new Date().getFullYear();
-  const previousYears = [
-    currentYear - 1,
-    currentYear - 2,
-    currentYear - 3,
-    currentYear - 4,
-    currentYear - 5,
-  ];
-
-  let updatedQuery = query;
-
-  // Replace previous years with current year in common contexts
-  previousYears.forEach((year) => {
-    // Match year patterns that are likely outdated
-    const patterns = [
-      new RegExp(
-        `\\b${year}\\b(?=\\s*(game|schedule|season|event|news|latest|upcoming))`,
-        'gi'
-      ),
-      new RegExp(
-        `\\b(schedule|game|season|event|news|latest|upcoming)\\s+${year}\\b`,
-        'gi'
-      ),
-      new RegExp(
-        `\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming)\\b`,
-        'gi'
-      ),
-    ];
-
-    patterns.forEach((pattern) => {
-      updatedQuery = updatedQuery.replace(pattern, (match) => {
-        return match.replace(year.toString(), currentYear.toString());
-      });
-    });
-  });
-
-  return updatedQuery;
-};
+// Removed duplicate function - now imported from llm.js

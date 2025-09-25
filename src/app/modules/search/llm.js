@@ -1,6 +1,8 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { TavilySearch } from '@langchain/tavily';
 import config from "../../../../config/index.js";
+import { tavily } from "@tavily/core";
 
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash-preview-05-20",
@@ -11,25 +13,343 @@ const llm = new ChatGoogleGenerativeAI({
 });
 
 /**
- * Helper function to update queries with current year for time-sensitive searches
+ * Fast rule-based query classification to avoid unnecessary LLM calls
+ * Returns: { isSimple: boolean, queryType: string, confidence: number }
  */
-const updateQueryWithCurrentYear = (query) => {
-  const currentYear = new Date().getFullYear();
+export const classifyQueryFast = (query) => {
+  const lowerQuery = query.toLowerCase().trim();
+
+  // Simple factual queries - high confidence
+  const simpleFactPatterns = [
+    /^what is (the |a )?[a-zA-Z0-9\s]+\?*$/,
+    /^who is [a-zA-Z0-9\s]+\?*$/,
+    /^when (did|was|is) [a-zA-Z0-9\s]+\?*$/,
+    /^where is [a-zA-Z0-9\s]+\?*$/,
+    /^how many [a-zA-Z0-9\s]+\?*$/,
+    /^define [a-zA-Z0-9\s]+$/,
+    /^meaning of [a-zA-Z0-9\s]+$/
+  ];
+
+  // Time-sensitive queries - need search
+  const timeSensitivePatterns = [
+    /\b(today|now|current|latest|recent|2024|2025)\b/,
+    /\b(next|upcoming|when is the next)\b/,
+    /\b(schedule|game|match|event)\b.*\b(today|tomorrow|this week|next)\b/,
+    /\b(stock price|weather|news)\b/
+  ];
+
+  // Video-related queries
+  const videoPatterns = [
+    /\b(video|tutorial|how to|guide|demo|watch)\b/,
+    /\b(youtube|show me|explain|walkthrough)\b/,
+    /\b(\d+\s*(video|tutorial|clip|demo)s?)\b/
+  ];
+
+  // Complex queries that need full workflow
+  const complexPatterns = [
+    /\b(compare|vs|versus|difference between)\b/,
+    /\b(analyze|research|detailed|comprehensive)\b/,
+    /\b(pros and cons|advantages|disadvantages)\b/,
+    /\w+.*\w+.*\w+.*\w+.*\w+/ // More than 5 meaningful words
+  ];
+
+  // Check for simple factual queries
+  for (const pattern of simpleFactPatterns) {
+    if (pattern.test(lowerQuery)) {
+      return {
+        isSimple: true,
+        queryType: 'factual',
+        confidence: 0.9,
+        recommendedAction: 'direct_answer'
+      };
+    }
+  }
+
+  // Check for time-sensitive queries
+  for (const pattern of timeSensitivePatterns) {
+    if (pattern.test(lowerQuery)) {
+      return {
+        isSimple: false,
+        queryType: 'time_sensitive',
+        confidence: 0.95,
+        recommendedAction: 'search_required'
+      };
+    }
+  }
+
+  // Check for video queries
+  for (const pattern of videoPatterns) {
+    if (pattern.test(lowerQuery)) {
+      return {
+        isSimple: false,
+        queryType: 'video',
+        confidence: 0.85,
+        recommendedAction: 'video_search'
+      };
+    }
+  }
+
+  // Check for complex queries
+  for (const pattern of complexPatterns) {
+    if (pattern.test(lowerQuery)) {
+      return {
+        isSimple: false,
+        queryType: 'complex',
+        confidence: 0.8,
+        recommendedAction: 'full_search'
+      };
+    }
+  }
+
+  // Default classification based on query length and complexity
+  const wordCount = lowerQuery.split(/\s+/).length;
+  const hasQuestionWords = /\b(what|who|when|where|why|how)\b/.test(lowerQuery);
+
+  if (wordCount <= 4 && hasQuestionWords) {
+    return {
+      isSimple: true,
+      queryType: 'simple',
+      confidence: 0.7,
+      recommendedAction: 'direct_answer'
+    };
+  }
+
+  return {
+    isSimple: false,
+    queryType: 'unknown',
+    confidence: 0.6,
+    recommendedAction: 'llm_classify'
+  };
+};
+
+/**
+ * Optimized classification that uses rule-based first, then LLM if needed
+ */
+export const classifyQueryOptimized = async (query, conversationContext = []) => {
+  // First try fast rule-based classification
+  const fastClassification = classifyQueryFast(query);
+
+  console.log(`Fast classification for "${query}":`, fastClassification);
+
+  // If high confidence, use fast classification
+  if (fastClassification.confidence >= 0.8) {
+    switch (fastClassification.recommendedAction) {
+      case 'direct_answer':
+        return 'ANSWER';
+      case 'search_required':
+      case 'full_search':
+        return 'SEARCH';
+      case 'video_search':
+        return 'VIDEO';
+      default:
+        return 'ANSWER';
+    }
+  }
+
+  // If low confidence or unknown type, fall back to LLM classification
+  console.log(`Low confidence (${fastClassification.confidence}), using LLM classification`);
+  return await checkIfSearchNeededForTheQueryUsingAi(query, conversationContext);
+};
+
+/**
+ * Parallel search operations for better performance
+ */
+export const performParallelSearch = async (query, options = {}) => {
+  const {
+    includeWeb = true,
+    includeYouTube = false,
+    maxWebResults = 5,
+    maxVideoResults = 3,
+    conversationContext = []
+  } = options;
+
+  const searchPromises = [];
+
+  if (includeWeb) {
+    // Web search promise
+    const webSearchPromise = (async () => {
+      try {
+        const researchTool = tavily({
+          apiKey: config.tavily_api_key,
+        });
+        console.log("Performing web search for query:", updateQueryWithCurrentYear(query));
+
+        const response = await researchTool.search(updateQueryWithCurrentYear(query), {
+          searchDepth: 'advanced',
+          maxResults: 11,
+          includeAnswer: 'advanced',
+          chunksPerSource: 5,
+        });
+        // console.log("Web search response:", response);
+
+        return { type: 'web', result: response, success: true };
+      } catch (error) {
+        console.error('Web search error:', error);
+        return { type: 'web', results: [], success: false, error };
+      }
+    })();
+    searchPromises.push(webSearchPromise);
+  }
+
+  if (includeYouTube) {
+    // YouTube search promise
+    const youtubeSearchPromise = (async () => {
+      try {
+        const results = await searchYouTube(query, maxVideoResults, conversationContext);
+        return { type: 'youtube', results, success: true };
+      } catch (error) {
+        console.error('YouTube search error:', error);
+        return { type: 'youtube', results: [], success: false, error };
+      }
+    })();
+    searchPromises.push(youtubeSearchPromise);
+  }
+
+  // Execute all searches in parallel
+  const searchResults = await Promise.all(searchPromises);
+
+  // Combine and return results
+  const combinedResults = {
+    web: [],
+    youtube: [],
+    errors: []
+  };
+
+  searchResults.forEach(result => {
+    if (result.success) {
+      combinedResults[result.type] = result.answer || result.results || result.result || [];
+    } else {
+      combinedResults.errors.push({ type: result.type, error: result.error });
+    }
+  });
+  console.log("Parallel search results:", combinedResults);
+  return combinedResults;
+};
+
+/**
+ * Fast video count extraction without LLM for common patterns
+ */
+export const extractVideoCountFast = (query) => {
+  const lowerQuery = query.toLowerCase();
+
+  // Look for explicit numbers
+  const numberPatterns = [
+    /(\d+)\s*(video|tutorial|clip|demo)s?/,
+    /(one|two|three|four|five|six|seven|eight|nine|ten)\s*(video|tutorial|clip|demo)s?/,
+    /show me (\d+)/,
+    /(first|top) (\d+)/
+  ];
+
+  for (const pattern of numberPatterns) {
+    const match = lowerQuery.match(pattern);
+    if (match) {
+      const numStr = match[1];
+      if (/^\d+$/.test(numStr)) {
+        const count = parseInt(numStr, 10);
+        return Math.min(Math.max(count, 1), 10); // Limit between 1-10
+      }
+
+      // Handle written numbers
+      const writtenNums = {
+        'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+        'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+      };
+      return writtenNums[numStr] || 1;
+    }
+  }
+
+  // Default based on query type
+  if (lowerQuery.includes('video') || lowerQuery.includes('tutorial')) {
+    return lowerQuery.includes('some') || lowerQuery.includes('few') ? 3 : 1;
+  }
+
+  return 1;
+};
+
+/**
+ * Fast contextualized query creation without heavy LLM processing
+ */
+export const createContextualizedQueryFast = async (history, query) => {
+  if (!history || history.length === 0) return query;
+
+  const lastMessage = history[history.length - 1];
+  const lowerQuery = query.toLowerCase();
+
+  // Simple contextual patterns that don't need LLM
+  const followUpPatterns = [
+    /^(and|also|what about|how about)\b/,
+    /^(more|tell me more|details?)\b/,
+    /^(why|how|when|where)\b.*\b(it|that|this|they)\b/
+  ];
+
+  let needsContext = false;
+  for (const pattern of followUpPatterns) {
+    if (pattern.test(lowerQuery)) {
+      needsContext = true;
+      break;
+    }
+  }
+
+  if (needsContext && lastMessage && lastMessage.role === 'assistant') {
+    // Extract main topic from last response
+    const lastContent = lastMessage.content.toLowerCase();
+    const topicMatch = lastContent.match(/\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)\b/);
+    const topic = topicMatch ? topicMatch[1] : '';
+
+    if (topic) {
+      return `${query} about ${topic}`;
+    }
+  }
+
+  return query;
+};
+
+/**
+ * Helper function to update queries with current year and date for time-sensitive searches
+ */
+export const updateQueryWithCurrentYear = (query) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 0-indexed, so add 1
+  const currentDay = now.getDate() - 1;
+  const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+  // Get current date strings in different formats
+  const currentMonthName = now.toLocaleString('default', { month: 'long' });
+  const currentMonthShort = now.toLocaleString('default', { month: 'short' });
+  const currentDateFormatted = `${currentMonthName} ${currentDay}, ${currentYear}`;
+  const todayFormatted = `today ${currentDateFormatted}`;
+
   const previousYears = [currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4, currentYear - 5];
+  const previousMonths = [];
+
+  // Generate previous months for the current year
+  for (let i = 1; i <= 3; i++) {
+    const prevDate = new Date(now);
+    prevDate.setMonth(now.getMonth() - i);
+    previousMonths.push({
+      year: prevDate.getFullYear(),
+      month: prevDate.getMonth() + 1,
+      monthName: prevDate.toLocaleString('default', { month: 'long' }),
+      monthShort: prevDate.toLocaleString('default', { month: 'short' })
+    });
+  }
 
   let updatedQuery = query;
 
-  // Enhanced patterns for sports and time-sensitive queries
+  // 1. Update outdated years
   previousYears.forEach(year => {
-    // Match year patterns that are likely outdated
     const patterns = [
-      // Basic patterns
-      new RegExp(`\\b${year}\\b(?=\\s*(game|schedule|season|event|news|latest|upcoming|next|when|match))`, 'gi'),
-      new RegExp(`\\b(schedule|game|season|event|news|latest|upcoming|next|when|match)\\s+${year}\\b`, 'gi'),
-      new RegExp(`\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming|next|when|match)\\b`, 'gi'),
+      // Basic year patterns
+      new RegExp(`\\b${year}\\b(?=\\s*(game|schedule|season|event|news|latest|upcoming|next|when|match|today|now|current))`, 'gi'),
+      new RegExp(`\\b(schedule|game|season|event|news|latest|upcoming|next|when|match|today|now|current)\\s+${year}\\b`, 'gi'),
+      new RegExp(`\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming|next|when|match|today|now|current)\\b`, 'gi'),
       // Sports specific patterns
       new RegExp(`\\b${year}[-/]\\d{2}\\b`, 'gi'), // Match 2023-24 season format
       new RegExp(`\\b\\d{2}[-/]${year}\\b`, 'gi'), // Match 23-2024 season format
+      // Date formats with outdated years
+      new RegExp(`\\b${year}[-/]\\d{1,2}[-/]\\d{1,2}\\b`, 'gi'), // YYYY-MM-DD or YYYY/MM/DD
+      new RegExp(`\\b\\d{1,2}[-/]\\d{1,2}[-/]${year}\\b`, 'gi'), // MM/DD/YYYY or DD/MM/YYYY
     ];
 
     patterns.forEach(pattern => {
@@ -39,17 +359,108 @@ const updateQueryWithCurrentYear = (query) => {
     });
   });
 
-  // Add current year context for sports queries that don't have years
-  const sportsKeywords = ['next game', 'upcoming game', 'when is', 'schedule', 'next match'];
-  const hasSportsKeyword = sportsKeywords.some(keyword =>
+  // 2. Update relative time references to be more specific
+  const timeReplacements = [
+    // Today/now references
+    { pattern: /\b(today|now)\b(?!\s+\d{4})/gi, replacement: todayFormatted },
+    { pattern: /\bcurrent\s+(month|week|day)\b/gi, replacement: `current $1 ${currentMonthName} ${currentYear}` },
+    { pattern: /\bthis\s+(month|week|year)\b/gi, replacement: `this $1 ${currentMonthName} ${currentYear}` },
+    { pattern: /\blatest\s+(news|updates|information)\b/gi, replacement: `latest $1 ${currentMonthName} ${currentYear}` },
+
+    // Recent time references
+    { pattern: /\brecent\b(?!\s+\d{4})/gi, replacement: `recent ${currentYear}` },
+    { pattern: /\bupcoming\b(?!\s+\d{4})/gi, replacement: `upcoming ${currentYear}` },
+    { pattern: /\bnext\s+(week|month)\b(?!\s+\d{4})/gi, replacement: `next $1 ${currentYear}` },
+
+    // Yesterday/tomorrow references
+    { pattern: /\byesterday\b/gi, replacement: `yesterday ${currentDateFormatted}` },
+    { pattern: /\btomorrow\b/gi, replacement: `tomorrow ${currentDateFormatted}` },
+  ];
+
+  timeReplacements.forEach(({ pattern, replacement }) => {
+    updatedQuery = updatedQuery.replace(pattern, replacement);
+  });
+
+  // 3. Update outdated month references
+  previousMonths.forEach(({ year, monthName, monthShort }) => {
+    if (year < currentYear) {
+      const monthPatterns = [
+        new RegExp(`\\b${monthName}\\s+${year}\\b`, 'gi'),
+        new RegExp(`\\b${monthShort}\\s+${year}\\b`, 'gi'),
+        new RegExp(`\\b${year}\\s+${monthName}\\b`, 'gi'),
+        new RegExp(`\\b${year}\\s+${monthShort}\\b`, 'gi'),
+      ];
+
+      monthPatterns.forEach(pattern => {
+        updatedQuery = updatedQuery.replace(pattern, (match) => {
+          return match.replace(year.toString(), currentYear.toString());
+        });
+      });
+    }
+  });
+
+  // 4. Add current context for time-sensitive keywords
+  const timeSensitiveKeywords = [
+    'next game', 'upcoming game', 'when is', 'schedule', 'next match',
+    'latest news', 'current events', 'breaking news', 'today\'s',
+    'stock price', 'weather', 'forecast', 'happening now'
+  ];
+
+  const hasTimeSensitiveKeyword = timeSensitiveKeywords.some(keyword =>
     updatedQuery.toLowerCase().includes(keyword.toLowerCase())
   );
 
-  if (hasSportsKeyword && !updatedQuery.includes(currentYear.toString())) {
+  // Add current year/date context if not already present
+  if (hasTimeSensitiveKeyword) {
+    const hasYearContext = /\b\d{4}\b/.test(updatedQuery);
+    const hasDateContext = /\b(today|now|current|latest|recent|upcoming|next)\s+\d{4}\b/i.test(updatedQuery);
+
+    if (!hasYearContext && !hasDateContext) {
+      updatedQuery += ` ${currentYear}`;
+    }
+  }
+
+  // 5. Special handling for "latest" or "current" queries
+  if (/\b(latest|current|newest|most recent)\b/i.test(updatedQuery) && !/\b\d{4}\b/.test(updatedQuery)) {
     updatedQuery += ` ${currentYear}`;
   }
 
+  // Log the transformation if there were changes
+  if (updatedQuery !== query) {
+    console.log(`Query updated for current date context:`);
+    console.log(`  Original: "${query}"`);
+    console.log(`  Updated:  "${updatedQuery}"`);
+    console.log(`  Context:  ${currentDateFormatted}`);
+    updatedQuery = `${updatedQuery} ${currentDateFormatted}`;
+  }
+
   return updatedQuery;
+};
+
+/**
+ * Performance monitoring utility
+ */
+export const performanceMonitor = {
+  startTime: (label) => {
+    const start = Date.now();
+    console.log(`⏱️  Started: ${label}`);
+    return start;
+  },
+
+  endTime: (label, startTime) => {
+    const duration = Date.now() - startTime;
+    console.log(`✅ Completed: ${label} in ${duration}ms`);
+    return duration;
+  },
+
+  logOptimization: (query, fastTrack, classificationUsed, totalTime) => {
+    console.log(`🚀 Query Optimization Summary:`);
+    console.log(`   Query: "${query}"`);
+    console.log(`   Fast Track: ${fastTrack ? '✅' : '❌'}`);
+    console.log(`   Classification: ${classificationUsed}`);
+    console.log(`   Total Time: ${totalTime}ms`);
+    console.log(`   Expected Savings: ${fastTrack ? '60-80%' : '20-40%'}`);
+  }
 };
 
 export const runSimpleSearchTask = async (state, stream = false) => {
