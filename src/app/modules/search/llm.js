@@ -630,13 +630,13 @@ RESPONSE STYLE:
 - I want the answer in a structured JSON format with answer and references array i.e: "responseMessage": {
             "answer": "The next Detroit Tigers game is on September 25, 2025, at 6:40 PM against the Cleveland Guardians at Progressive Field in Cleveland",
             "reference": [{
-                "title": "Detroit Tigers Schedule 2025",
-                "url": "https://www.mlb.com/tigers/schedule/2025-09",
-                "domain": "mlb.com",
+                "url": "https://seatgeek.com/detroit-tigers-tickets/schedule",
+                "domain": "seatgeek.com"
             }],
             "citations": [],
             "citationMetadata": null
         }
+  - For youtube results give the url only
 
 TOOL USAGE:
 - Use web search for: current events, news, facts, data, recent information, sports, prices
@@ -713,7 +713,6 @@ STRUCTURE:
 Example: "responseMessage": {
             "answer": "The next Detroit Tigers game is on September 25, 2025, at 6:40 PM against the Cleveland Guardians at Progressive Field in Cleveland",
             "reference": [{
-                "title": "Detroit Tigers Schedule 2025",
                 "url": "https://www.mlb.com/tigers/schedule/2025-09",
                 "domain": "mlb.com",
             }],
