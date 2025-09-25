@@ -745,9 +745,19 @@ Example: "responseMessage": {
 
     } else {
       // No tools needed, return direct response
+      const match = initialResponse.content.match(/```json([\s\S]*?)```/);
+      let result = {}
+      if (match && match[1]) {
+        const jsonOnly = match[1].trim();
+        result = JSON.parse(jsonOnly);
+
+        console.log(result); // ✅ now it's a JS object
+      } else {
+        console.error("No JSON found!");
+      }
       console.log("✅ Direct answer provided without external search");
       return {
-        answer: initialResponse.content,
+        answer: result.responseMessage.answer,
         references: [],
         searchMethod: 'direct',
         timestamp: new Date().toISOString()
