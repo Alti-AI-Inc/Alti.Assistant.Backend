@@ -58,7 +58,7 @@ import {
   directAnswerNode,
   conversationalSynthesisNode,
   analyzeAnswerQualityNode,
-  manageContextNode,
+  // manageContextNode,
   youtubeSearchNode,
   checkYouTubeRelevanceNode,
   youtubeSearchForDirectAnswerNode,
@@ -183,4 +183,4 @@ workflow.addEdge('toolBasedSearch', END);
 // Instantiate the checkpointer with a specific collection name for conversational search
 const checkpointer = await MongoDBSaver.fromUri(config.database_local, "conversational_search_checkpoints");
 
-export const researchAgentApp = workflow.compile({ checkpointer });
+export const researchAgentApp = workflow.compile();

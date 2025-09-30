@@ -279,7 +279,7 @@ const clearMessages = catchAsync(async (req, res) => {
  */
 const searchConversations = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { q: searchTerm, limit = 10, category } = req.query;
+  const { searchTerm, limit = 10, category } = req.query;
 
   if (!searchTerm) {
     return sendResponse(res, {
@@ -299,6 +299,66 @@ const searchConversations = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Search completed successfully',
+    data: result,
+  });
+});
+
+const renameChatConversation = catchAsync(async (req, res) => {
+  const userId = req.user?.userId || req.user?._id;
+  const { conversationId } = req.params;
+  const { newTitle } = req.body;
+  if (!newTitle || newTitle.trim() === '') {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'New title is required',
+    });
+  }
+  const result = await conversationService.renameChatConversation(
+    conversationId,
+    userId,
+    newTitle.trim()
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Conversation renamed successfully',
+    data: result,
+  });
+});
+
+const saveChatConversation = catchAsync(async (req, res) => {
+  const userId = req.user?.userId || req.user?._id;
+  const { conversationId } = req.params;
+  const { is_saved } = req.body;
+  const result = await conversationService.saveChatConversation(
+    conversationId,
+    userId,
+    is_saved
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Conversation saved successfully',
+    data: result,
+  });
+});
+
+const getAllSavedConversations = catchAsync(async (req, res) => {
+  const userId = req.user?.userId || req.user?._id;
+  const { limit = 50, page = 1 } = req.query;
+
+  const result = await conversationHelpers.getAllSavedConversations(
+    userId,
+    parseInt(limit),
+    parseInt(page)
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Saved conversations retrieved successfully',
     data: result,
   });
 });
@@ -647,4 +707,7 @@ export const conversationController = {
   updateChatShareSettings,
   getUserSharedChats,
   revokeChatShare,
+  renameChatConversation,
+  saveChatConversation,
+  getAllSavedConversations,
 };

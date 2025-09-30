@@ -81,6 +81,11 @@ const ConversationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    is_saved: {
+      type: Boolean,
+      default: false,
+    }
   },
   {
     timestamps: true, // Adds createdAt and updatedAt
@@ -137,7 +142,7 @@ ConversationSchema.methods.getRecentMessages = function (limit = 10) {
 // Static method to find active conversations for a user
 ConversationSchema.statics.findActiveByUser = function (userId, options = {}) {
   const { limit = 20, skip = 0, sortBy = 'lastActivity', sortOrder = -1 } = options;
-  
+
   return this.find({ userId, status: 'active' })
     .sort({ [sortBy]: sortOrder })
     .limit(limit)

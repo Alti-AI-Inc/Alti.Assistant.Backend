@@ -1,6 +1,7 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager';
 import { LinkupClient } from 'linkup-sdk'; // Adjust to actual SDK import
-import { StructuredTool } from '@langchain/core/tools';
+import { DynamicStructuredTool, StructuredTool } from '@langchain/core/tools';
+import { GoogleCustomSearch } from '@langchain/community/tools/google_custom_search';
 import { tavily } from '@tavily/core';
 import { z } from 'zod';
 import config from "../../../../config/index.js";
@@ -168,6 +169,77 @@ export class LinkupSearchTool extends StructuredTool {
     }
   }
 }
+
+const rawGoogle = new GoogleCustomSearch({
+  maxResults: 5, // tweak
+  apiKey: config.google_search_api_key,
+  googleCSEId: config.google_engine_id,
+});
+
+// Structured wrapper so the LLM won’t pass [object Object]
+export const googleSearch = new DynamicStructuredTool({
+  name: "google_search",
+  description:
+    "Search the web for up-to-date info. Return top results with titles and URLs. Search on timezone of the user",
+  schema: z.object({
+    query: z.string().describe("Plain-text search query, e.g., 'next SpaceX launch schedule'"),
+    dateRestrict: z
+      .string()
+      .optional()
+      .describe("Google dateRestrict like 'd7' (7 days), 'w1' (1 week), etc."),
+    tz: z.string().describe("IANA timezone, e.g., 'Asia/Dhaka'"),
+    gl: z.string().optional().describe("Geolocation region code, e.g., 'us'"),
+    lr: z.string().optional().describe("Language restrict, e.g., 'lang_en'"),
+    safe: z.string().optional().describe("safe, off, or active"),
+  }),
+  func: async ({ query, ...params }) => {
+    // pass extra params to CSE if you want recency/locale control
+    if (Object.keys(params).length) (rawGoogle).params = params;
+    const results = await rawGoogle.invoke(query);
+    console.log('Google Search Results:', JSON.stringify(results, null, 2));
+
+    return JSON.stringify(results); // ToolMessages must be strings
+  },
+});
+
+
+// export class GoogleCustomSearchTool extends StructuredTool {
+//   name = 'google_custom_search';
+//   description = `Advanced web search tool using Tavily AI. Use this tool when you need current, real-time information, news, facts, or data that requires web search. 
+
+//   WHEN TO USE:
+//   - Current events, news, or time-sensitive information
+//   - Recent data, prices, or statistics  
+//   - Specific facts that may have changed recently
+//   - Information about ongoing events or developments
+//   - Sports scores, schedules, or recent games
+//   - Weather, stock prices, or real-time data
+
+//   SEARCH STRATEGIES:
+//   - Use specific, focused queries for better results
+//   - Include time context (e.g., "2025", "recent", "latest") for current information
+//   - Combine multiple concepts in one search when relevant
+//   - Use quotation marks for exact phrases when needed
+
+//   The tool automatically updates queries with current date context for time-sensitive searches.`;
+
+//   schema = z.object({
+//     query: z.string().describe("The search query - be specific and include relevant keywords. The tool will automatically add current date context for time-sensitive queries."),
+//     searchDepth: z.enum(['basic', 'advanced']).default('advanced').describe("Search depth: 'basic' for quick results, 'advanced' for comprehensive search with more sources"),
+//     maxResults: z.number().min(1).max(10).default(5).describe("Maximum number of search results to return (1-10, default 5 for faster performance)"),
+//     includeAnswer: z.boolean().default(true).describe("Whether to include Tavily's AI-generated answer based on search results")
+//   });
+
+//   constructor({ apiKey = null, searchEngineId = null } = {}) {
+//     super();
+//     this.apiKey = apiKey || config.google_search_api_key;
+//     this.searchEngineId = searchEngineId || config.google_search_engine_id;
+//     if (!this.apiKey || !this.searchEngineId) {
+//       throw new Error('Google Custom Search API key and Search Engine ID are required');
+//     }
+//     const client = GoogleCustomSearch.
+//   }
+// }
 
 export class TavilySearchTool extends StructuredTool {
   name = 'tavily_search';

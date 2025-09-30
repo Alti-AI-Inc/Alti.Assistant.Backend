@@ -7,6 +7,7 @@ import { researchAgentApp } from "./search_assistant/workflow.js";
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
+
 export const performSearch = catchAsync(async (req, res) => {
     // Handle both authenticated and guest users
     const isGuest = req.isGuest || !req.user;
@@ -69,13 +70,14 @@ export const performSearch = catchAsync(async (req, res) => {
         const inputs = {
             query: message,
             conversationContext: conversationHistory,
+            conversationId: actualConversationId,
             depth: deepSearch ? deepSearch : 'standard', // Use deepSearch flag to determine search depth
             history: [...conversationHistory, { role: 'user', content: message }],
         };
 
         const result = await researchAgentApp.invoke(inputs, { configurable: { thread_id: actualConversationId } });
         logger.info(`Research Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
-        console.log('Research Assistant Result:', result);
+        // console.log('Research Assistant Result:', result);
 
 
         const stream = result.answer;

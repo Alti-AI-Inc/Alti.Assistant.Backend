@@ -13,7 +13,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
-  createRateLimiter(30, 15), // 30 search requests per 15 minutes (applies to all users)
+  // createRateLimiter(30, 15), // 30 search requests per 15 minutes (applies to all users)
   validateRequest(SearchValidation.searchQuerySchema),
   searchController.performSearch
 );

@@ -30,6 +30,7 @@ import { videoRoutes } from '../modules/video/video.route.js';
 import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
 import { composioV2Routes } from '../modules/composio_v2/composio.route.js';
 import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
+import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
 
 const router = express.Router();
 
@@ -157,6 +158,10 @@ const moduleRoutes = [
   {
     path: '/video',
     route: videoRoutes
+  },
+  {
+    path: '/knowledgebase',
+    route: knowledgebaseRoutes
   }
 ];
 

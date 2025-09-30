@@ -12,7 +12,7 @@ import Conversation from './conversation.model.js';
 const getConversationById = async (conversationId, userId = null) => {
   try {
     const conversation = await Conversation.findByConversationId(conversationId, userId);
-    
+
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
@@ -44,17 +44,17 @@ const getUserConversations = async (userId, options = {}) => {
     } = options;
 
     const skip = (page - 1) * limit;
-    
+
     // Build query
     const query = { userId, status };
-    
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
         { 'metadata.tags': { $in: [new RegExp(search, 'i')] } },
       ];
     }
-    
+
     if (category) {
       query['metadata.category'] = category;
     }
@@ -101,15 +101,15 @@ const getUserConversations = async (userId, options = {}) => {
 const getConversationMessages = async (conversationId, userId, options = {}) => {
   try {
     const { page = 1, limit = 50, beforeDate = null } = options;
-    
+
     const conversation = await Conversation.findByConversationId(conversationId, userId);
-    
+
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
 
     let messages = conversation.messages;
-    
+
     // Filter by date if provided
     if (beforeDate) {
       messages = messages.filter(msg => msg.timestamp < new Date(beforeDate));
@@ -155,7 +155,7 @@ const getConversationMessages = async (conversationId, userId, options = {}) => 
 const searchConversations = async (userId, searchTerm, options = {}) => {
   try {
     const { limit = 10, category = null } = options;
-    
+
     const query = {
       userId,
       status: 'active',
@@ -170,10 +170,12 @@ const searchConversations = async (userId, searchTerm, options = {}) => {
       query['metadata.category'] = category;
     }
 
+    console.log('Search Query:', JSON.stringify(query, null, 2));
+
+
     const conversations = await Conversation.find(query)
       .sort({ lastActivity: -1 })
       .limit(limit)
-      .select('conversationId title lastActivity metadata.category messageCount')
       .lean();
 
     return conversations;
@@ -182,6 +184,39 @@ const searchConversations = async (userId, searchTerm, options = {}) => {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to search conversations');
   }
 };
+
+const getAllSavedConversations = async (userId, limit = 20, page = 1) => {
+  try {
+    const conversations = await Conversation.find({
+      userId,
+      is_saved: true,
+    })
+      .sort({ lastActivity: -1 })
+      .limit(limit)
+      .skip((page - 1) * limit)
+      .lean();
+
+    const total = await Conversation.countDocuments({
+      userId,
+      is_saved: true,
+    });
+
+    return {
+      conversations,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+      hasNext: (page * limit) < total,
+      hasPrev: page > 1,
+    };
+  } catch (error) {
+    logger.error('Error fetching all saved conversations:', error);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch saved conversations');
+  }
+};
+
+
 
 /**
  * Get conversation statistics for a user
@@ -232,7 +267,7 @@ const getConversationStats = async (userId) => {
 const getConversationsByCategory = async (userId, category, options = {}) => {
   try {
     const { limit = 20, sortBy = 'lastActivity', sortOrder = -1 } = options;
-    
+
     const conversations = await Conversation.find({
       userId,
       'metadata.category': category,
@@ -303,4 +338,5 @@ export const conversationHelpers = {
   getConversationsByCategory,
   hasConversationAccess,
   getRecentConversations,
+  getAllSavedConversations,
 };

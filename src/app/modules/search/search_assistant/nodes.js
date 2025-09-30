@@ -6,8 +6,8 @@ import {
   giveAnswerWithoutSearch,
   runSimpleSearchTask,
   analyzeDirectAnswerQuality,
-  manageConversationContext,
-  shouldTrimContext,
+  // manageConversationContext,
+  // shouldTrimContext,
   shouldSearchYouTube,
   searchYouTube,
   isVideoOnlyQuery,
@@ -166,37 +166,37 @@ export const analyzeContextNode = async (state) => {
 /**
  * Node: Manages conversation context by trimming and summarizing when needed
  */
-export const manageContextNode = async (state) => {
-  console.log('--- Node: manageContextNode ---');
-  const { history, conversationSummary } = state;
+// export const manageContextNode = async (state) => {
+//   console.log('--- Node: manageContextNode ---');
+//   const { history, conversationSummary } = state;
 
-  try {
-    // Manage the conversation context
-    const contextResult = await manageConversationContext(history, conversationSummary);
+//   try {
+//     // Manage the conversation context
+//     const contextResult = await manageConversationContext(history, conversationSummary);
 
-    console.log(`Context management result:`, {
-      managed: contextResult.contextManaged,
-      trimmedCount: contextResult.trimmedMessageCount,
-      keptCount: contextResult.keptMessageCount,
-      hasSummary: !!contextResult.conversationSummary
-    });
+//     console.log(`Context management result:`, {
+//       managed: contextResult.contextManaged,
+//       trimmedCount: contextResult.trimmedMessageCount,
+//       keptCount: contextResult.keptMessageCount,
+//       hasSummary: !!contextResult.conversationSummary
+//     });
 
-    return {
-      ...state, // Preserve existing state
-      history: contextResult.trimmedHistory,
-      conversationSummary: contextResult.conversationSummary,
-      contextManaged: contextResult.contextManaged,
-    };
-  } catch (error) {
-    console.error('Error in manageContextNode:', error);
+//     return {
+//       ...state, // Preserve existing state
+//       history: contextResult.trimmedHistory,
+//       conversationSummary: contextResult.conversationSummary,
+//       contextManaged: contextResult.contextManaged,
+//     };
+//   } catch (error) {
+//     console.error('Error in manageContextNode:', error);
 
-    // On error, preserve original state
-    return {
-      ...state,
-      contextManaged: false,
-    };
-  }
-};
+//     // On error, preserve original state
+//     return {
+//       ...state,
+//       contextManaged: false,
+//     };
+//   }
+// };
 
 /**
  * OPTIMIZED Node: Performs parallel intelligent search
@@ -455,7 +455,7 @@ export const toolBasedSearchNode = async (state) => {
       return {
         ...state,
         answer: result.answer,
-        reference: result.reference || [],
+        reference: result.references || [],
         searchCompleted: true,
         searchMethod: result.searchMethod || 'tool_based',
         searchDuration: duration,

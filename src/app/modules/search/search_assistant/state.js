@@ -70,6 +70,8 @@ export const researchAgentState = {
     default: () => []
   },
 
+  conversationId: { value: null },
+
   // Summary of older conversation context (when history gets too long)
   conversationSummary: { value: null },
 

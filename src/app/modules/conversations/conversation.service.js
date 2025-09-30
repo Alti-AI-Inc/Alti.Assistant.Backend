@@ -233,7 +233,7 @@ const restoreConversation = async (conversationId, userId) => {
 const deleteConversation = async (conversationId, userId) => {
   try {
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId },
+      { _id: conversationId, userId },
       { status: 'deleted', lastActivity: new Date() },
       { new: true }
     ).select('conversationId status');
@@ -241,7 +241,7 @@ const deleteConversation = async (conversationId, userId) => {
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
-
+    await Conversation.deleteOne({ _id: conversationId, userId });
     logger.info(`Conversation deleted: ${conversationId}`);
 
     return { message: 'Conversation deleted successfully' };
@@ -531,6 +531,44 @@ const getSharedChatConversation = async (shareId) => {
   }
 };
 
+const renameChatConversation = async (conversationId, userId, newTitle) => {
+  try {
+    if (!newTitle || newTitle.trim().length === 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Title cannot be empty');
+    }
+    const conversation = await Conversation.updateOne(
+      { conversationId, userId },
+      { title: newTitle.trim(), lastActivity: new Date() }
+    ).select('conversationId title lastActivity');
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    }
+    logger.info(`Conversation renamed: ${conversationId}`);
+    return conversation;
+  } catch (error) {
+    logger.error('Error renaming conversation:', error);
+    throw error;
+  }
+};
+
+const saveChatConversation = async (conversationId, userId, is_saved) => {
+  try {
+    const conversation = await Conversation.updateOne(
+      { conversationId, userId },
+      { is_saved, lastActivity: new Date() }
+    ).select('conversationId is_saved lastActivity');
+
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    }
+    logger.info(`Conversation saved: ${conversationId}`);
+    return conversation;
+  } catch (error) {
+    logger.error('Error saving conversation:', error);
+    throw error;
+  }
+};
+
 /**
  * Update chat share settings
  * @param {Object} updateData
@@ -688,4 +726,6 @@ export const conversationService = {
   updateChatShareSettings,
   getUserSharedChats,
   revokeChatShare,
+  renameChatConversation,
+  saveChatConversation,
 };

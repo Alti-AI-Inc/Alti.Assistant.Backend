@@ -9,6 +9,8 @@ export default {
   port: process.env.PORT,
   client_url: process.env.CLIENT_URL,
   youtube_api_key: process.env.YOUTUBE_API_KEY,
+  google_search_api_key: process.env.GOOGLE_SEARCH_API_KEY,
+  google_engine_id: process.env.GOOGLE_CSE_ID,
   jwt: {
     access_token: process.env.JWT_ACCESS_TOKEN,
     access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN,

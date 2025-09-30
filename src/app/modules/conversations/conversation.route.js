@@ -54,8 +54,30 @@ router
   .route('/search')
   .get(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    validateRequest(ConversationValidation.searchConversationsSchema),
+    // validateRequest(ConversationValidation.searchConversationsSchema),
     conversationController.searchConversations,
+  );
+
+router.route('/rename/:conversationId')
+  .patch(
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    // createRateLimiter(30, 15), // 30 rename operations per 15 minutes
+    // validateRequest(ConversationValidation.renameChatSchema),
+    conversationController.renameChatConversation,
+  );
+
+router.route('/save/:conversationId')
+  .patch(
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    // createRateLimiter(30, 15), // 30 save operations per 15 minutes
+    conversationController.saveChatConversation,
+  );
+
+router
+  .route('/saved')
+  .get(
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    conversationController.getAllSavedConversations,
   );
 
 // Bulk operations

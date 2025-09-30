@@ -3,7 +3,21 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { TavilySearch } from '@langchain/tavily';
 import config from "../../../../config/index.js";
 import { tavily } from "@tavily/core";
-import { TavilySearchTool, YouTubeSearchTool } from './tools.js';
+import { googleSearch, TavilySearchTool, YouTubeSearchTool } from './tools.js';
+import { GoogleCustomSearch } from "@langchain/community/tools/google_custom_search";
+import Conversation from "../conversations/conversation.model.js";
+
+/**
+ * Configuration for intelligent conversation history management
+ */
+const HISTORY_CONFIG = {
+  MAX_TOKENS: 4000,           // Maximum tokens before triggering summarization
+  SUMMARY_TARGET_TOKENS: 2500, // Target token count for summary
+  MIN_MESSAGES_TO_KEEP: 4,    // Minimum recent messages to always keep
+  MAX_MESSAGES_TO_KEEP: 8,    // Maximum recent messages to keep after summarization
+  TOKEN_ESTIMATION_RATIO: 4,  // Rough estimation: 1 token ≈ 4 characters
+  SUMMARIZATION_THRESHOLD: 0.6 // Start summarization when 60% of max tokens reached
+};
 
 const llm = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash-preview-05-20",
@@ -16,8 +30,9 @@ const llm = new ChatGoogleGenerativeAI({
 // Create tool-enabled LLM with search capabilities
 const createToolEnabledLLM = () => {
   const searchTools = [
-    new TavilySearchTool(),
-    new YouTubeSearchTool()
+    // new TavilySearchTool(),
+    new YouTubeSearchTool(),
+    googleSearch
   ];
 
   return llm.bindTools(searchTools);
@@ -445,10 +460,301 @@ export const updateQueryWithCurrentYear = (query) => {
     console.log(`  Original: "${query}"`);
     console.log(`  Updated:  "${updatedQuery}"`);
     console.log(`  Context:  ${currentDateFormatted}`);
-    updatedQuery = `${updatedQuery} ${currentDateFormatted}`;
+    updatedQuery = `${updatedQuery} For context today is: ${currentDateFormatted}`;
+
+    console.log(`Final contextualized query: "${updatedQuery}"`);
+
   }
 
   return updatedQuery;
+};
+
+/**
+ * INTELLIGENT CONVERSATION HISTORY MANAGEMENT
+ * Automatically manages conversation history with token-aware summarization
+ */
+
+/**
+ * Estimates token count for conversation history
+ * Uses character-to-token ratio for fast estimation
+ */
+export const estimateTokenCount = (history) => {
+  if (!Array.isArray(history) || history.length === 0) return 0;
+  console.log(`Estimating tokens for ${history.length} messages`);
+
+  let totalCharacters = 0;
+  history.forEach(msg => {
+    if (msg && msg.content) {
+      totalCharacters += msg.content.length;
+      // Add overhead for role and formatting
+      totalCharacters += 20;
+    }
+  });
+
+  // Convert characters to estimated tokens
+  const estimatedTokens = Math.ceil(totalCharacters / HISTORY_CONFIG.TOKEN_ESTIMATION_RATIO);
+
+  console.log(`📊 Token estimation: ${totalCharacters} chars ≈ ${estimatedTokens} tokens`);
+  return estimatedTokens;
+};
+
+/**
+ * Checks if conversation history needs management
+ */
+export const needsHistoryManagement = (history, existingSummary = null) => {
+  if (!Array.isArray(history) || history.length === 0) return false;
+
+  const tokenCount = estimateTokenCount(history);
+  const threshold = HISTORY_CONFIG.MAX_TOKENS * 0.7; // Summarize at 70% of max tokens (2800 tokens)
+
+  const needsManagement = tokenCount > threshold;
+
+  console.log(`🔍 History check: ${tokenCount} tokens (threshold: ${threshold})`);
+  console.log(`📝 Needs management: ${needsManagement}`);
+
+  return needsManagement;
+};
+
+/**
+ * Creates an intelligent conversation summary using Gemini
+ * Targets specific token count for optimal context retention
+ */
+export const createIntelligentSummary = async (messagesToSummarize, targetTokens = HISTORY_CONFIG.SUMMARY_TARGET_TOKENS) => {
+  try {
+    if (!Array.isArray(messagesToSummarize) || messagesToSummarize.length === 0) {
+      return "";
+    }
+
+    console.log(`🧠 Creating intelligent summary for ${messagesToSummarize.length} messages`);
+    console.log(`🎯 Target: ${targetTokens} tokens`);
+
+    // Format messages for summarization
+    const conversationText = messagesToSummarize
+      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n');
+
+    const systemPrompt = `You are an expert conversation summarizer. Create an intelligent, contextual summary of this conversation.
+
+TARGET: Create a summary of approximately ${targetTokens} tokens (roughly ${targetTokens * 4} characters).
+
+SUMMARIZATION STRATEGY:
+1. PRESERVE KEY CONTEXT: Maintain important topics, decisions, and ongoing discussions
+2. CAPTURE USER INTENT: Remember user preferences, requests, and interests  
+3. RETAIN FACTUAL DATA: Keep specific information, dates, names, and numbers
+4. MAINTAIN CONVERSATION FLOW: Preserve the logical progression of topics
+5. INCLUDE RECENT FOCUS: Emphasize more recent topics and developments
+
+STRUCTURE YOUR SUMMARY:
+- **Main Topics Discussed**: Key subjects and themes
+- **Important Facts & Data**: Specific information mentioned
+- **User Preferences & Requests**: What the user is looking for or interested in
+- **Recent Context**: Latest developments in the conversation
+- **Action Items**: Any pending questions or follow-ups
+
+QUALITY REQUIREMENTS:
+- Be comprehensive yet concise
+- Use clear, structured formatting
+- Include specific details that might be referenced later
+- Maintain chronological context where relevant
+- Ensure the summary provides sufficient context for future responses
+
+Create a conversation summary:`;
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `Conversation to summarize:\n\n${conversationText}`
+      }
+    ];
+
+    console.log(`🔄 Generating summary with Gemini...`);
+    const startTime = Date.now();
+
+    const response = await llm.invoke(messages);
+    const summary = response.content.trim();
+
+    const duration = Date.now() - startTime;
+    const summaryTokens = estimateTokenCount([{ content: summary }]);
+
+    console.log(`✅ Summary created in ${duration}ms`);
+    console.log(`📏 Summary length: ${summary.length} chars ≈ ${summaryTokens} tokens`);
+    console.log(`🎯 Target efficiency: ${((summaryTokens / targetTokens) * 100).toFixed(1)}%`);
+
+    return summary;
+
+  } catch (error) {
+    console.error("❌ Error creating intelligent summary:", error);
+    // Fallback to simple summary
+    return `Previous conversation covered ${messagesToSummarize.length} messages with topics including search queries and responses. Context available but couldn't be fully summarized due to technical issues.`;
+  }
+};
+
+/**
+ * Intelligently manages conversation history with smart summarization and trimming
+ * Automatically triggers when token limits are approached
+ */
+export const manageConversationHistoryIntelligent = async (history, existingSummary = null, forceManagement = false) => {
+  try {
+    if (!Array.isArray(history)) {
+      console.log("⚠️ Invalid history format, returning empty state");
+      return {
+        managedHistory: [],
+        conversationSummary: existingSummary,
+        historyManaged: false,
+        tokenCount: 0
+      };
+    }
+
+    const initialTokenCount = estimateTokenCount(history);
+    console.log(`🔍 Starting history management - Initial tokens: ${initialTokenCount}`);
+
+    // Check if management is needed
+    if (!forceManagement && !needsHistoryManagement(history, existingSummary)) {
+      console.log("✅ History within limits, no management needed");
+      return {
+        managedHistory: history,
+        conversationSummary: existingSummary,
+        historyManaged: false,
+        tokenCount: initialTokenCount
+      };
+    }
+
+    console.log(`🚀 History management triggered - Processing ${history.length} messages`);
+
+    // Determine how many recent messages to keep
+    const messagesToKeep = Math.min(
+      Math.max(HISTORY_CONFIG.MIN_MESSAGES_TO_KEEP,
+        Math.floor(history.length * 0.3)), // Keep at least 30% of messages
+      HISTORY_CONFIG.MAX_MESSAGES_TO_KEEP
+    );
+
+    const recentMessages = history.slice(-messagesToKeep);
+    const messagesToSummarize = history.slice(0, -messagesToKeep);
+
+    console.log(`📊 Management plan:`);
+    console.log(`   📝 Messages to summarize: ${messagesToSummarize.length}`);
+    console.log(`   🔄 Recent messages to keep: ${recentMessages.length}`);
+
+    // Create intelligent summary if we have enough messages to summarize
+    let newSummary = existingSummary;
+    if (messagesToSummarize.length >= 2) { // Need at least 2 messages to summarize
+      const oldConversationSummary = await createIntelligentSummary(
+        messagesToSummarize,
+        HISTORY_CONFIG.SUMMARY_TARGET_TOKENS
+      );
+
+      // Combine with existing summary if present
+      if (existingSummary && existingSummary.trim()) {
+        newSummary = `## Previous Context:\n${existingSummary}\n\n## Recent Developments:\n${oldConversationSummary}`;
+
+        // If combined summary is too long, recreate with both parts
+        const combinedTokens = estimateTokenCount([{ content: newSummary }]);
+        if (combinedTokens > HISTORY_CONFIG.SUMMARY_TARGET_TOKENS * 1.2) {
+          console.log(`📏 Combined summary too long (${combinedTokens} tokens), recreating...`);
+          // Recreate summary with all messages that would be summarized
+          const allMessagesToSummarize = [
+            { role: 'assistant', content: `Previous summary: ${existingSummary}` },
+            ...messagesToSummarize
+          ];
+          newSummary = await createIntelligentSummary(allMessagesToSummarize, HISTORY_CONFIG.SUMMARY_TARGET_TOKENS);
+        }
+      } else {
+        newSummary = oldConversationSummary;
+      }
+    }
+
+    const finalTokenCount = estimateTokenCount(recentMessages) + estimateTokenCount([{ content: newSummary || '' }]);
+    const tokenReduction = initialTokenCount - finalTokenCount;
+    const reductionPercentage = ((tokenReduction / initialTokenCount) * 100).toFixed(1);
+
+    console.log(`✅ History management completed:`);
+    console.log(`   📉 Token reduction: ${tokenReduction} (${reductionPercentage}%)`);
+    console.log(`   📊 Final token count: ${finalTokenCount}`);
+    console.log(`   📝 Has summary: ${!!newSummary}`);
+    console.log(`   🔄 Recent messages: ${recentMessages.length}`);
+
+    return {
+      managedHistory: recentMessages,
+      conversationSummary: newSummary,
+      historyManaged: true,
+      tokenCount: finalTokenCount,
+      tokenReduction: tokenReduction,
+      reductionPercentage: parseFloat(reductionPercentage),
+      summarizedMessages: messagesToSummarize.length,
+      keptMessages: recentMessages.length
+    };
+
+  } catch (error) {
+    console.error("❌ Error in intelligent history management:", error);
+
+    // Fallback: keep recent messages without summary
+    const fallbackMessages = history.slice(-HISTORY_CONFIG.MIN_MESSAGES_TO_KEEP);
+    return {
+      managedHistory: fallbackMessages,
+      conversationSummary: existingSummary,
+      historyManaged: false,
+      tokenCount: estimateTokenCount(fallbackMessages),
+      error: "History management failed, using fallback"
+    };
+  }
+};
+
+/**
+ * Prepares conversation context with intelligent history management
+ * This is the main function to call before processing any query
+ */
+export const prepareConversationContext = async (history, existingSummary = null, currentQuery = '') => {
+  try {
+    console.log(`🔧 Preparing conversation context for query: "${currentQuery}"`);
+
+    // First, check if history management is needed
+    const managementResult = await manageConversationHistoryIntelligent(history, existingSummary);
+
+    // Build formatted conversation context
+    let conversationContext = "";
+
+    // Add summary if available
+    if (managementResult.conversationSummary) {
+      conversationContext += `## Previous Conversation Summary:\n${managementResult.conversationSummary}\n\n`;
+    }
+
+    // Add recent conversation history
+    if (managementResult.managedHistory && managementResult.managedHistory.length > 0) {
+      conversationContext += `## Recent Conversation:\n`;
+      managementResult.managedHistory.forEach(msg => {
+        const role = msg.role === 'user' ? 'User' : 'Assistant';
+        const content = msg.content.length > 500 ? msg.content.substring(0, 500) + '...' : msg.content;
+        conversationContext += `**${role}**: ${content}\n\n`;
+      });
+    }
+
+    const contextTokens = estimateTokenCount([{ content: conversationContext }]);
+
+    console.log(`✅ Context prepared - ${contextTokens} tokens`);
+
+    return {
+      ...managementResult,
+      formattedContext: conversationContext,
+      contextTokens: contextTokens,
+      isOptimized: managementResult.historyManaged
+    };
+
+  } catch (error) {
+    console.error("❌ Error preparing conversation context:", error);
+    return {
+      managedHistory: history?.slice(-HISTORY_CONFIG.MIN_MESSAGES_TO_KEEP) || [],
+      conversationSummary: existingSummary,
+      formattedContext: "",
+      historyManaged: false,
+      tokenCount: 0,
+      contextTokens: 0,
+      error: error.message
+    };
+  }
 };
 
 /**
@@ -561,10 +867,13 @@ const executeToolCalls = async (toolCalls) => {
   const toolResults = [];
   const searchTools = [
     new TavilySearchTool(),
-    new YouTubeSearchTool()
+    new YouTubeSearchTool(),
+    googleSearch
   ];
 
   for (const toolCall of toolCalls) {
+    console.log(`🔍 Preparing to execute tool: ${toolCall.name} with args:`, toolCall.args);
+
     try {
       const tool = searchTools.find(t => t.name === toolCall.name);
       if (tool) {
@@ -596,18 +905,31 @@ const executeToolCalls = async (toolCalls) => {
  */
 export const runIntelligentSearch = async (state, stream = false) => {
   try {
-    console.log("🔍 Running intelligent search with tool-enabled LLM");
+    console.log("🔍 Running intelligent search with INTELLIGENT history management", state.conversationId);
 
-    const query = updateQueryWithCurrentYear(state.query) || updateQueryWithCurrentYear(state.originalQuery);
-    const conversationContext = state.conversationContext || state.history || [];
+    const query = updateQueryWithCurrentYear(state.currentQuery || state.query || "");
+    const conversation = await Conversation.findOne({ conversationId: state.conversationId });
+    let conversationContext = conversation ? conversation.messages : [];
+    //  = state.conversationContext || state.history || [];
+    const existingSummary = state.conversationSummary || null;
+    console.log("Length of conversation context:", conversationContext.length);
 
-    // Build conversation context
-    let conversationHistory = "";
-    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
-      const recentMessages = conversationContext.slice(-5);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
+    conversationContext = conversationContext.filter((item, index, arr) => {
+      if (index === 0) return true;
+      const prev = arr[index - 1];
+      return !(item.role === prev.role && item.content === prev.content);
+    });
+    // 🧠 INTELLIGENT HISTORY MANAGEMENT - Automatically handle token limits
+    console.log(`📊 Processing conversation with ${conversationContext.length} messages`);
+    const contextResult = await prepareConversationContext(conversationContext, existingSummary, query);
+
+
+    // Use the intelligently managed conversation context
+    const conversationHistory = contextResult.formattedContext;
+
+    console.log(`✅ Context prepared: ${contextResult.contextTokens} tokens (managed: ${contextResult.isOptimized})`);
+    if (contextResult.historyManaged) {
+      console.log(`🔄 History optimized: ${contextResult.reductionPercentage}% token reduction`);
     }
 
     // Get current date -1 context
@@ -615,36 +937,67 @@ export const runIntelligentSearch = async (state, stream = false) => {
     const currentYear = currentDate.getFullYear();
     const currentDateString = currentDate.toDateString();
 
-    const systemPrompt = `You are an intelligent research assistant that provides CONCISE, well-referenced answers.
+    const systemPrompt = `You are an intelligent research assistant that provides COMPREHENSIVE, well-researched answers backed by current data.
 
 CURRENT CONTEXT:
 - Today's date: ${currentDateString}
 - Current year: ${currentYear}
 
-RESPONSE STYLE:
-- Provide CONCISE, direct answers (1-4 sentences for simple questions)
+RESPONSE PHILOSOPHY:
+- ALWAYS search for current data when answering business, investment, market, or analysis questions
+- Provide detailed, research-backed responses with multiple perspectives
+- Default to searching rather than relying on general knowledge
+- Use multiple search queries to gather comprehensive information
+
+RESPONSE FORMATS:
+- Simple factual queries (weather, sports scores): Concise 1-2 sentences
+- Business/Investment/Market questions: Detailed analysis with multiple data points
+- Complex topics: Comprehensive responses with pros/cons, market data, trends
 - Always include source references when using search results
-- If possible response in 1 sentence
 - Use format: "According to [Source]..." or "Based on [Domain]..."
-- Lead with the main answer, then add source attribution
-- I want the answer in a structured JSON format with answer and references array i.e: "responseMessage": {
-            "answer": "The next Detroit Tigers game is on September 25, 2025, at 6:40 PM against the Cleveland Guardians at Progressive Field in Cleveland",
-            "reference": [{
-                "url": "https://seatgeek.com/detroit-tigers-tickets/schedule",
-                "domain": "seatgeek.com"
-            }],
-            "citations": [],
-            "citationMetadata": null
-        }
-  - For youtube results give the url only
 
-TOOL USAGE:
-- Use web search for: current events, news, facts, data, recent information, sports, prices
-- Use video search for: tutorials, demonstrations when explicitly requested
-- Don't search for general knowledge you already know
-- Be specific in search queries for better results
+STRUCTURED JSON FORMAT:
+{
+    "responseMessage": {
+        "answer": "Detailed answer with analysis, data points, and insights",
+        "reference": [{
+            "url": "source_url",
+            "domain": "domain.com"
+        }],
+        "citations": [],
+        "citationMetadata": null
+    }
+}
 
-CRITICAL: When you use search tools, always include source attribution in your final response.`;
+AGGRESSIVE SEARCH STRATEGY:
+- Business questions: Search for market trends, competitive analysis, industry reports, investment data
+- Investment queries: Search for market conditions, ROI data, industry performance, risk factors
+- Market analysis: Search for current market size, growth rates, competitive landscape
+- Technology topics: Search for latest developments, adoption rates, market penetration
+- Always search for recent data (${currentYear}) and multiple perspectives
+- Use specific search queries like "market size", "investment trends", "industry analysis"
+
+TOOL USAGE - SEARCH FOR:
+✅ Market research and industry data
+✅ Competitive analysis and benchmarking  
+✅ Investment trends and performance metrics
+✅ Business model validation data
+✅ Current market conditions and forecasts
+✅ Industry reports and expert opinions
+✅ Financial data and ROI metrics
+✅ Technology adoption and trends
+✅ Consumer behavior and demand patterns
+✅ Regulatory and economic factors
+✅ Current events, news, facts, data, sports, prices, weather
+✅ Recent developments and breaking news
+
+SEARCH DECISION RULE:
+- If the question involves analysis, opinion, investment, business strategy, market conditions, or trends → ALWAYS SEARCH
+- If the question asks for recommendations, comparisons, or "should I" → ALWAYS SEARCH  
+- If the question is about current market conditions → ALWAYS SEARCH
+- Only skip search for basic definitions or simple historical facts
+
+CRITICAL: Provide thorough, research-backed analysis rather than generic responses. Always cite sources.`;
 
     // Initial messages
     const messages = [
@@ -654,9 +1007,16 @@ CRITICAL: When you use search tools, always include source attribution in your f
       },
       {
         role: "user",
-        content: `${conversationHistory}Current question: ${query}
+        content: `This is the current conversation history: ${conversationHistory}Current question: ${query}
 
-Please analyze this question and use appropriate search tools if needed to provide a CONCISE answer with proper source references.`
+ANALYSIS REQUIRED: For business, investment, market, or analytical questions, conduct comprehensive research using search tools to gather:
+- Current market data and trends (${currentYear})
+- Industry analysis and competitive landscape  
+- Expert opinions and recent reports
+- Financial metrics and performance data
+- Risk factors and market conditions
+
+Provide a well-researched, detailed response with proper source references. Use multiple search queries if needed to build a complete analysis.`
       }
     ];
 
@@ -700,6 +1060,10 @@ CONCISE RESPONSE GUIDELINES:
 - Lead with the key facts or main answer
 - Be precise and avoid unnecessary elaboration
 - Include specific data, numbers, dates when relevant
+- Use the timezone and current date context (${currentDateString}) for time-sensitive info
+- The timezone is 'Asia/Dhaka'
+- Always include source references in your response
+- I want the references in an array format with title, url, domain, sourceName, publishedDate, publishedYear, citationFormat
 
 CITATION REQUIREMENTS:
 - Always include source references in your response
@@ -734,11 +1098,15 @@ Example: "responseMessage": {
         console.log(result); // ✅ now it's a JS object
       } else {
         console.error("No JSON found!");
+        result = JSON.parse(finalResponse.content);
       }
       // Return structured response with references array
+      console.log("✅ Answer provided with external search and references", result.responseMessage);
+
       return {
-        answer: result.responseMessage.answer,
-        reference: result.responseMessage.reference,
+        //If final response is a valid JSON with answer, use it. If it is a json string then parse it otherwise use it at it is. Otherwise, fallback to initial response content.
+        answer: result?.responseMessage?.answer || initialResponse?.responseMessage?.answer || finalResponse.content || initialResponse.content,
+        references: result?.responseMessage?.reference || [],
         searchMethod: 'tool_based',
         timestamp: new Date().toISOString()
       };
@@ -755,9 +1123,9 @@ Example: "responseMessage": {
       } else {
         console.error("No JSON found!");
       }
-      console.log("✅ Direct answer provided without external search");
+      console.log("✅ Direct answer provided without external search", result, initialResponse.content);
       return {
-        answer: result.responseMessage.answer,
+        answer: result?.responseMessage?.answer || JSON.parse(initialResponse.content)?.responseMessage?.answer || initialResponse.content,
         references: [],
         searchMethod: 'direct',
         timestamp: new Date().toISOString()
@@ -1274,171 +1642,7 @@ Please provide a direct answer based on your knowledge:`
   }
 };
 
-/**
- * Configuration for conversation context management
- */
-const CONTEXT_CONFIG = {
-  MAX_MESSAGES: 20, // Maximum number of messages to keep in active context
-  TRIM_TO_MESSAGES: 10, // Number of recent messages to keep when trimming
-  MIN_MESSAGES_FOR_SUMMARY: 8, // Minimum messages before creating summary
-  MAX_TOKENS_ESTIMATE: 8000, // Rough token limit for context
-};
-
-/**
- * Estimates token count for conversation history
- */
-const estimateTokenCount = (history) => {
-  if (!Array.isArray(history)) return 0;
-
-  let totalTokens = 0;
-  history.forEach(msg => {
-    // Rough estimation: 1 token per 4 characters
-    const content = msg.content || '';
-    totalTokens += Math.ceil(content.length / 4);
-  });
-
-  return totalTokens;
-};
-
-/**
- * Checks if conversation context needs trimming
- */
-export const shouldTrimContext = (history, conversationSummary = null) => {
-  if (!Array.isArray(history)) return false;
-
-  const messageCount = history.length;
-  const tokenCount = estimateTokenCount(history);
-
-  // Trim if we exceed message limit or token limit
-  const exceedsMessages = messageCount > CONTEXT_CONFIG.MAX_MESSAGES;
-  const exceedsTokens = tokenCount > CONTEXT_CONFIG.MAX_TOKENS_ESTIMATE;
-
-  console.log(`Context check: ${messageCount} messages, ~${tokenCount} tokens`);
-  console.log(`Needs trim: ${exceedsMessages || exceedsTokens}`);
-
-  return exceedsMessages || exceedsTokens;
-};
-
-/**
- * Creates a summary of older conversation messages
- */
-export const summarizeConversation = async (messagesToSummarize) => {
-  try {
-    if (!Array.isArray(messagesToSummarize) || messagesToSummarize.length === 0) {
-      return "";
-    }
-
-    // Format messages for summarization
-    const conversationText = messagesToSummarize
-      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
-      .join('\n');
-
-    const systemPrompt = `You are an expert conversation summarizer. Create a concise but comprehensive summary of the conversation that captures:
-
-1. KEY TOPICS DISCUSSED: Main subjects and themes
-2. IMPORTANT DECISIONS OR CONCLUSIONS: Any decisions made or conclusions reached
-3. CONTEXT THAT AFFECTS FUTURE RESPONSES: Information that would be relevant for continuing the conversation
-4. USER PREFERENCES OR REQUIREMENTS: Any specific needs or preferences mentioned
-
-GUIDELINES:
-- Keep the summary under 300 words
-- Focus on information that would be useful for continuing the conversation
-- Maintain the chronological flow of important topics
-- Include specific details that might be referenced later
-- Use clear, structured format
-
-Create a conversation summary:`;
-
-    const messages = [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      {
-        role: "user",
-        content: `Conversation to summarize:\n\n${conversationText}`
-      }
-    ];
-
-    const response = await llm.invoke(messages);
-    const summary = response.content.trim();
-
-    console.log(`Created conversation summary (${messagesToSummarize.length} messages)`);
-    console.log(`Summary length: ${summary.length} characters`);
-
-    return summary;
-
-  } catch (error) {
-    console.error("Error summarizing conversation:", error);
-    return "Previous conversation context available but couldn't be summarized.";
-  }
-};
-
-/**
- * Manages conversation context by trimming and summarizing when needed
- */
-export const manageConversationContext = async (history, existingSummary = null) => {
-  try {
-    if (!Array.isArray(history)) {
-      return {
-        trimmedHistory: [],
-        conversationSummary: existingSummary,
-        contextManaged: false
-      };
-    }
-
-    // Check if trimming is needed
-    if (!shouldTrimContext(history, existingSummary)) {
-      return {
-        trimmedHistory: history,
-        conversationSummary: existingSummary,
-        contextManaged: false
-      };
-    }
-
-    console.log(`Managing context: ${history.length} messages need trimming`);
-
-    // Determine how many messages to keep and summarize
-    const messagesToKeep = CONTEXT_CONFIG.TRIM_TO_MESSAGES;
-    const recentMessages = history.slice(-messagesToKeep);
-    const messagesToSummarize = history.slice(0, -messagesToKeep);
-
-    // Only create summary if we have enough messages to summarize
-    let newSummary = existingSummary;
-    if (messagesToSummarize.length >= CONTEXT_CONFIG.MIN_MESSAGES_FOR_SUMMARY) {
-      const oldConversationSummary = await summarizeConversation(messagesToSummarize);
-
-      // Combine with existing summary if present
-      if (existingSummary) {
-        newSummary = `Previous context: ${existingSummary}\n\nRecent developments: ${oldConversationSummary}`;
-      } else {
-        newSummary = oldConversationSummary;
-      }
-    }
-
-    console.log(`Context managed: Kept ${recentMessages.length} recent messages, summarized ${messagesToSummarize.length} older messages`);
-
-    return {
-      trimmedHistory: recentMessages,
-      conversationSummary: newSummary,
-      contextManaged: true,
-      trimmedMessageCount: messagesToSummarize.length,
-      keptMessageCount: recentMessages.length
-    };
-
-  } catch (error) {
-    console.error("Error managing conversation context:", error);
-
-    // Fallback: keep recent messages without summary
-    const fallbackMessages = history.slice(-CONTEXT_CONFIG.TRIM_TO_MESSAGES);
-    return {
-      trimmedHistory: fallbackMessages,
-      conversationSummary: existingSummary,
-      contextManaged: false,
-      error: "Context management failed, using fallback"
-    };
-  }
-};
+// OLD CONTEXT MANAGEMENT SYSTEM REMOVED - Using new intelligent system above
 
 /**
  * Detects if the user is specifically asking for video content using LLM
