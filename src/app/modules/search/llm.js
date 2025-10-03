@@ -1123,9 +1123,20 @@ Example: "responseMessage": {
       } else {
         console.error("No JSON found!");
       }
-      console.log("✅ Direct answer provided without external search", result, initialResponse.content);
+      console.log("✅ Direct answer provided without external search", result);
+      console.log("Initial response content:", initialResponse.content);
+      let answer = ''
+
+      if (result?.responseMessage?.answer) {
+        answer = result.responseMessage.answer;
+      } else if (initialResponse?.responseMessage?.answer) {
+        answer = initialResponse.responseMessage.answer;
+      } else {
+        answer = initialResponse.content;
+      }
+
       return {
-        answer: result?.responseMessage?.answer || JSON.parse(initialResponse.content)?.responseMessage?.answer || initialResponse.content,
+        answer: answer,
         references: [],
         searchMethod: 'direct',
         timestamp: new Date().toISOString()

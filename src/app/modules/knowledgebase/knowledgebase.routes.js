@@ -31,7 +31,13 @@ const upload = multer({
 });
 
 // Routes
+router.post('/create', auth(), knowledgebaseController.createKnowledgeBase);
+router.get('/list', auth(), knowledgebaseController.getUserKnowledgeBases);
 router.post('/upload', optionalAuth(), upload.any(), knowledgebaseController.uploadFile);
 router.get('/files', auth(), knowledgebaseController.getUserFiles);
+router.post('/invoke-rag', optionalAuth(), knowledgebaseController.invokeRagSystem);
+router.post('/chat', auth(), knowledgebaseController.chatWithKnowledgeBase);
+router.get('/:knowledgebaseId/conversations', auth(), knowledgebaseController.getKnowledgeBaseConversations);
+router.get('/conversations/:conversationId/messages', auth(), knowledgebaseController.getConversationMessages);
 
 export default router;

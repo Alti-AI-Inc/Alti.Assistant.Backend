@@ -93,7 +93,7 @@
     "passport-twitter-oauth2": "^2.1.1",
     "pdf-parse": "^1.1.1",
     "pdfkit": "^0.17.1",
-    "rag-system-pgvector": "^2.1.0",
+    "rag-system-pgvector": "^2.1.1",
     "redis": "^5.5.6",
     "serper": "^1.0.6",
     "socket.io": "^4.7.4",

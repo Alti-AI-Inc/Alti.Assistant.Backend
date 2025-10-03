@@ -5,6 +5,8 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { RAGSystem } from 'rag-system-pgvector'
 import { knowledgebaseService } from './knowledgebase.service.js';
 import path from 'path';
+import Conversation from '../conversations/conversation.model.js';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Upload file to knowledge base
@@ -21,6 +23,7 @@ const uploadFile = catchAsync(async (req, res) => {
   // }
 
   const userId = req.user?.userId || req.user?._id;
+  const knowledgebotId = req.body.knowledgebotId || null;
 
   // if (!userId) {
   //   return sendResponse(res, {
@@ -48,7 +51,7 @@ const uploadFile = catchAsync(async (req, res) => {
     // For now, just return success message
     // You can add the actual processing logic later
     logger.info(`File upload attempted by user: ${userId}, file: ${uploadedFile.originalname}, type: ${fileExtension}, size: ${uploadedFile.size} bytes`);
-    await knowledgebaseService.processUploadedFile(uploadedFile, userId);
+    await knowledgebaseService.processUploadedFile(uploadedFile, knowledgebotId);
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -118,7 +121,401 @@ const getUserFiles = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * Create a new knowledge base
+ */
+const createKnowledgeBase = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+
+  if (isGuest) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Creating knowledge base is only available for authenticated users',
+    });
+  }
+
+  const userId = req.user?.userId || req.user?._id;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  const { name } = req.body;
+
+  if (!name || !name.trim()) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Knowledge base name is required',
+    });
+  }
+
+  try {
+    const knowledgeBase = await knowledgebaseService.createKnowledgeBase(name.trim(), userId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.CREATED,
+      success: true,
+      message: 'Knowledge base created successfully',
+      data: knowledgeBase,
+    });
+  } catch (error) {
+    logger.error("Create knowledge base error:", error);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'An error occurred while creating the knowledge base',
+    });
+  }
+});
+
+/**
+ * Get user's knowledge bases
+ */
+const getUserKnowledgeBases = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+
+  if (isGuest) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Access to knowledge bases is only available for authenticated users',
+    });
+  }
+
+  const userId = req.user?.userId || req.user?._id;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  try {
+    const knowledgeBases = await knowledgebaseService.getUserKnowledgeBases(userId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Knowledge bases retrieved successfully',
+      data: {
+        knowledgeBases,
+        totalCount: knowledgeBases.length,
+      },
+    });
+  } catch (error) {
+    logger.error("Get user knowledge bases error:", error);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'An error occurred while retrieving knowledge bases',
+    });
+  }
+});
+
+const invokeRagSystem = async (req, res) => {
+  const response = await knowledgebaseService.invokeRagSystem();
+  console.log("RAG Response:", response);
+  return sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'RAG system invoked successfully',
+    data: response,
+  });
+}
+
+/**
+ * Chat with knowledge base
+ */
+const chatWithKnowledgeBase = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+
+  if (isGuest) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Chat with knowledge base is only available for authenticated users',
+    });
+  }
+
+  const userId = req.user?.userId || req.user?._id;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  const { message, knowledgebaseId, conversationId } = req.body;
+
+  if (!message || !message.trim()) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Message is required',
+    });
+  }
+
+  if (!knowledgebaseId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Knowledge base ID is required',
+    });
+  }
+
+  try {
+    // Verify knowledge base exists and belongs to user
+    const knowledgeBase = await knowledgebaseService.getKnowledgeBaseById(knowledgebaseId, userId);
+    if (!knowledgeBase) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Knowledge base not found',
+      });
+    }
+
+    // Handle conversation
+    let conversation;
+    let newConversationId = conversationId;
+
+    if (conversationId) {
+      // Find existing conversation
+      conversation = await Conversation.findByConversationId(conversationId, userId);
+      if (!conversation || conversation.knowledgebaseId?.toString() !== knowledgebaseId) {
+        return sendResponse(res, {
+          statusCode: httpStatus.NOT_FOUND,
+          success: false,
+          message: 'Conversation not found or does not belong to this knowledge base',
+        });
+      }
+    } else {
+      // Create new conversation
+      newConversationId = `kb_${knowledgebaseId}_${uuidv4()}`;
+      conversation = new Conversation({
+        conversationId: newConversationId,
+        userId: userId,
+        knowledgebaseId: knowledgebaseId,
+        title: `Chat with ${knowledgeBase.name}`,
+        status: 'active',
+        metadata: {
+          category: 'knowledgebase',
+          knowledgebaseName: knowledgeBase.name,
+        },
+      });
+    }
+
+    // Add user message to conversation
+    conversation.addMessage('user', message.trim());
+
+    // Get RAG response
+    const ragResponse = await knowledgebaseService.chatWithKnowledgeBase(
+      message.trim(),
+      knowledgebaseId,
+      conversation.getRecentMessages(5) // Get last 5 messages for context
+    );
+
+    // Add assistant message to conversation
+    conversation.addMessage('assistant', ragResponse.answer, {
+      sources: ragResponse.sources,
+      model: ragResponse.model,
+      confidence: ragResponse.confidence,
+    });
+
+    // Save conversation
+    await conversation.save();
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Chat response generated successfully',
+      data: {
+        conversationId: newConversationId,
+        message: ragResponse.answer,
+        sources: ragResponse.sources,
+        confidence: ragResponse.confidence,
+        knowledgebaseId: knowledgebaseId,
+        knowledgebaseName: knowledgeBase.name,
+      },
+    });
+  } catch (error) {
+    logger.error("Chat with knowledge base error:", error);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'An error occurred while processing your message',
+    });
+  }
+});
+
+/**
+ * Get knowledge base conversations
+ */
+const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+
+  if (isGuest) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Access to conversations is only available for authenticated users',
+    });
+  }
+
+  const userId = req.user?.userId || req.user?._id;
+  const { knowledgebaseId } = req.params;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  if (!knowledgebaseId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Knowledge base ID is required',
+    });
+  }
+
+  try {
+    // Verify knowledge base exists and belongs to user
+    const knowledgeBase = await knowledgebaseService.getKnowledgeBaseById(knowledgebaseId, userId);
+    if (!knowledgeBase) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Knowledge base not found',
+      });
+    }
+
+    // Get conversations for this knowledge base
+    const conversations = await Conversation.find({
+      userId: userId,
+      knowledgebaseId: knowledgebaseId,
+      status: 'active'
+    })
+      .select('conversationId title lastActivity messageCount createdAt updatedAt metadata')
+      .sort({ lastActivity: -1 })
+      .limit(50);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Conversations retrieved successfully',
+      data: {
+        conversations,
+        totalCount: conversations.length,
+        knowledgebaseId: knowledgebaseId,
+        knowledgebaseName: knowledgeBase.name,
+      },
+    });
+  } catch (error) {
+    logger.error("Get knowledge base conversations error:", error);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'An error occurred while retrieving conversations',
+    });
+  }
+});
+
+/**
+ * Get conversation messages
+ */
+const getConversationMessages = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+
+  if (isGuest) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Access to conversation messages is only available for authenticated users',
+    });
+  }
+
+  const userId = req.user?.userId || req.user?._id;
+  const { conversationId } = req.params;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  if (!conversationId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Conversation ID is required',
+    });
+  }
+
+  try {
+    // Find conversation
+    const conversation = await Conversation.findByConversationId(conversationId, userId)
+      .populate('knowledgebaseId', 'name description');
+
+    if (!conversation) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Conversation not found',
+      });
+    }
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Conversation messages retrieved successfully',
+      data: {
+        conversationId: conversation.conversationId,
+        title: conversation.title,
+        knowledgebaseId: conversation.knowledgebaseId?._id,
+        knowledgebaseName: conversation.knowledgebaseId?.name,
+        messages: conversation.messages,
+        messageCount: conversation.messageCount,
+        lastActivity: conversation.lastActivity,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+      },
+    });
+  } catch (error) {
+    logger.error("Get conversation messages error:", error);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'An error occurred while retrieving conversation messages',
+    });
+  }
+});
+
 export const knowledgebaseController = {
   uploadFile,
   getUserFiles,
+  createKnowledgeBase,
+  getUserKnowledgeBases,
+  invokeRagSystem,
+  chatWithKnowledgeBase,
+  getKnowledgeBaseConversations,
+  getConversationMessages,
 };

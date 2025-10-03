@@ -10,6 +10,8 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 export const performSearch = catchAsync(async (req, res) => {
     // Handle both authenticated and guest users
+    console.log("Performing search with request body:", req.user);
+
     const isGuest = req.isGuest || !req.user;
     let userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, conversationId, deepSearch } = req.body;
