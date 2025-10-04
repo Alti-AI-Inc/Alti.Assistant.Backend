@@ -8,11 +8,11 @@ import { OpenAI } from 'openai';
 const ragConfig = {
   // Database configuration (required)
   database: {
-    host: 'localhost',
+    host: '34.135.175.69',
     port: 5432,
     database: 'rag_database',
     username: 'postgres',
-    password: 'postgres'
+    password: 'Em0nd4r0ck@2'
   },
 
   // OpenAI configuration (required)
