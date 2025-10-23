@@ -51,17 +51,12 @@ const uploadFile = catchAsync(async (req, res) => {
     // For now, just return success message
     // You can add the actual processing logic later
     logger.info(`File upload attempted by user: ${userId}, file: ${uploadedFile.originalname}, type: ${fileExtension}, size: ${uploadedFile.size} bytes`);
-    await knowledgebaseService.processUploadedFile(uploadedFile, knowledgebotId);
+    const response = await knowledgebaseService.processUploadedFile(uploadedFile, knowledgebotId, userId);
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Upload successful',
-      data: {
-        fileName: uploadedFile.originalname,
-        fileType: fileExtension,
-        fileSize: uploadedFile.size,
-        uploadedAt: new Date().toISOString(),
-      },
+      data: response,
     });
   } catch (error) {
     logger.error("File upload error:", error);
@@ -98,16 +93,20 @@ const getUserFiles = catchAsync(async (req, res) => {
     });
   }
 
+  // Get optional knowledgebotId from query params
+  const { knowledgebotId } = req.query;
+
   try {
-    // Placeholder for getting user files
-    // You can implement the actual logic later
+    const files = await knowledgebaseService.getUserFiles(userId, knowledgebotId);
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Files retrieved successfully',
       data: {
-        files: [],
-        totalCount: 0,
+        files,
+        totalCount: files.length,
+        knowledgebotId: knowledgebotId || null,
       },
     });
   } catch (error) {
@@ -323,6 +322,7 @@ const chatWithKnowledgeBase = catchAsync(async (req, res) => {
     const ragResponse = await knowledgebaseService.chatWithKnowledgeBase(
       message.trim(),
       knowledgebaseId,
+      conversationId,
       conversation.getRecentMessages(5) // Get last 5 messages for context
     );
 

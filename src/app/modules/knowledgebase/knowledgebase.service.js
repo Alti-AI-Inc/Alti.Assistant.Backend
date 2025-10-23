@@ -3,8 +3,20 @@ import { logger } from '../../../shared/logger.js';
 import { RAGSystem } from 'rag-system-pgvector';
 import path from 'path';
 import KnowledgeBase from './knowledgebase.model.js';
+import KnowledgebaseFile from './knowledgebase.files.model.js';
 import { OpenAI } from 'openai';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
+import { Storage } from '@google-cloud/storage';
+const embeddings = new OpenAIEmbeddings({
+  openAIApiKey: config.openai_secret_key,
+  modelName: 'text-embedding-ada-002',
+});
 
+const llm = new ChatOpenAI({
+  openAIApiKey: config.openai_secret_key,
+  modelName: 'gpt-4',
+  temperature: 0.7,
+});
 const ragConfig = {
   // Database configuration (required)
   database: {
@@ -15,20 +27,9 @@ const ragConfig = {
     password: 'Em0nd4r0ck@2'
   },
 
-  // OpenAI configuration (required)
-  openai: {
-    apiKey: config.openai_secret_key,              // OpenAI API key
-    modelName: 'gpt-4o-mini',                 // Chat model (optional)
-    embeddingModel: 'text-embedding-ada-002'    // Embedding model (optional)
-  },
-
-  // Vector store configuration (optional)
-  vectorStore: {
-    tableName: 'documents',           // Table name for documents
-    vectorColumnName: 'embedding',    // Column for vector embeddings
-    contentColumnName: 'content',     // Column for document content
-    metadataColumnName: 'metadata'    // Column for metadata
-  }
+  embeddings: embeddings,
+  llm: llm,
+  embeddingDimensions: 1536,
 };
 const rag = new RAGSystem(ragConfig);
 
@@ -36,6 +37,14 @@ const rag = new RAGSystem(ragConfig);
 const openai = new OpenAI({
   apiKey: config.openai_secret_key,
 });
+
+// Initialize Google Cloud Storage
+const storage = new Storage({
+  projectId: config.google?.gcp_project_id,
+  keyFilename: 'alti_gcp.json'
+});
+
+const BUCKET_NAME = 'alti_knowledge_bot_files';
 
 /**
  * Estimate token count for text (rough approximation)
@@ -115,37 +124,191 @@ class KnowledgebaseService {
   }
 
   /**
-   * Process uploaded file
-   * @param {Object} file - The uploaded file object
-   * @param {string} kbId - The user ID
+   * Upload file to Google Cloud Storage
+   * @param {Buffer} buffer - File buffer
+   * @param {string} fileName - Original file name
+   * @param {string} knowledgebotId - The knowledgebot ID
+   * @returns {Promise<string>} - Public URL of uploaded file
+   */
+  async uploadToGCS(buffer, fileName, knowledgebotId) {
+    try {
+      // Create a unique file path: knowledgebotId/timestamp_originalname
+      const timestamp = Date.now();
+      const gcsFileName = `${knowledgebotId}/${timestamp}_${fileName}`;
+
+      logger.info(`Uploading file to GCS: ${BUCKET_NAME}/${gcsFileName}`);
+
+      const bucket = storage.bucket(BUCKET_NAME);
+      const file = bucket.file(gcsFileName);
+
+      // Determine content type based on file extension
+      const fileExtension = path.extname(fileName).toLowerCase();
+      const contentTypeMap = {
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.txt': 'text/plain',
+        '.csv': 'text/csv',
+        '.json': 'application/json',
+        '.xml': 'application/xml',
+        '.html': 'text/html',
+        '.md': 'text/markdown',
+      };
+      const contentType = contentTypeMap[fileExtension] || 'application/octet-stream';
+
+      // Upload the buffer
+      await file.save(buffer, {
+        metadata: {
+          contentType: contentType,
+          metadata: {
+            knowledgebotId: knowledgebotId,
+            originalName: fileName,
+            uploadedAt: new Date().toISOString()
+          }
+        },
+        resumable: false,
+      });
+
+      // Generate public URL
+      const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${gcsFileName}`;
+      logger.info(`File uploaded successfully to GCS: ${publicUrl}`);
+
+      return publicUrl;
+    } catch (error) {
+      logger.error('Error uploading file to GCS:', error);
+      throw new Error(`Failed to upload file to GCS: ${error.message}`);
+    }
+  }
+
+  /**
+   * Process uploaded file or file path
+   * @param {Object|string} file - The uploaded file object (with buffer) or file path string
+   * @param {string} knowledgebotId - The knowledgebot ID
+   * @param {string} userId - The user ID
    * @returns {Promise<Object>} - Processing result
    */
-  async processUploadedFile(file, knowledgebotId) {
+  async processUploadedFile(file, knowledgebotId, userId) {
     try {
-      // Extract file extension from filename
-      const fileExtension = path.extname(file.originalname).toLowerCase().substring(1); // Remove the dot and convert to lowercase
-
-      logger.info(`Processing file upload for user: ${knowledgebotId}, file: ${file.originalname}, type: ${fileExtension}, size: ${file.size} bytes`);
-
-      // Placeholder for file processing logic
-      // You can add actual processing here later (e.g., save to database, cloud storage, etc.)
+      // Initialize RAG system
       await rag.initialize();
-      const processedDocs = await rag.processor.processDocumentFromBuffer(file.buffer, fileExtension, {
-        title: file.originalname,
-        filename: file.originalname,
-        metadata: { knowledgebotId: knowledgebotId }
-      });
-      console.log('Processed documents:', processedDocs.metadata);
 
-      await rag.documentStore.addDocumentChunks(processedDocs);
+      let result;
+      let gcsUrl = null;
+      let gcsFileName = null;
 
-      return {
-        success: true,
-        fileName: file.originalname,
-        fileType: fileExtension,
-        fileSize: file.size,
-        uploadedAt: new Date().toISOString(),
-      };
+      if (typeof file === 'string') {
+        // It's a file path - read the file and upload to GCS, then use addDocuments
+        const fs = await import('fs/promises');
+        const fileName = path.basename(file);
+        const fileStats = await fs.stat(file);
+        const fileExtension = path.extname(file).toLowerCase().substring(1);
+
+        logger.info(`Processing file from path for knowledgebot: ${knowledgebotId}, file: ${fileName}`);
+
+        // Read file buffer and upload to GCS
+        const fileBuffer = await fs.readFile(file);
+        const timestamp = Date.now();
+        gcsFileName = `${knowledgebotId}/${timestamp}_${fileName}`;
+        gcsUrl = await this.uploadToGCS(fileBuffer, fileName, knowledgebotId);
+        logger.info(`File uploaded to GCS: ${gcsUrl}`);
+
+        // Process with RAG system
+        result = await rag.addDocuments(file, {
+          knowledgebotId: knowledgebotId,
+          gcsUrl: gcsUrl
+        });
+
+        logger.info(`Successfully processed and stored document from path: ${fileName}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`);
+
+        // Save file information to MongoDB
+        const fileRecord = new KnowledgebaseFile({
+          fileName: `${timestamp}_${fileName}`,
+          originalName: fileName,
+          fileType: fileExtension,
+          fileSize: fileStats.size,
+          gcsUrl: gcsUrl,
+          gcsPath: gcsFileName,
+          documentId: result.documentId,
+          knowledgebotId: knowledgebotId,
+          userId: userId,
+          title: result.title,
+          chunkCount: result.chunkCount,
+          isActive: true,
+        });
+
+        await fileRecord.save();
+        logger.info(`File record saved to database: ${fileRecord._id}`);
+
+        return {
+          success: result.success,
+          fileName: fileName,
+          filePath: file,
+          fileType: fileExtension,
+          documentId: result.documentId,
+          title: result.title,
+          chunkCount: result.chunkCount,
+          gcsUrl: gcsUrl,
+          fileId: fileRecord._id.toString(),
+          uploadedAt: new Date().toISOString(),
+        };
+      } else if (file.buffer) {
+        // It's a buffer from file upload - upload to GCS first, then process
+        const fileExtension = path.extname(file.originalname).toLowerCase().substring(1);
+        logger.info(`Processing file upload from buffer for knowledgebot: ${knowledgebotId}, file: ${file.originalname}, type: ${fileExtension}, size: ${file.size} bytes`);
+
+        // Upload to Google Cloud Storage
+        const timestamp = Date.now();
+        gcsFileName = `${knowledgebotId}/${timestamp}_${file.originalname}`;
+        gcsUrl = await this.uploadToGCS(file.buffer, file.originalname, knowledgebotId);
+        logger.info(`File uploaded to GCS: ${gcsUrl}`);
+
+        // Process the file with RAG system
+        result = await rag.addDocumentFromBuffer(
+          file.buffer,
+          file.originalname,
+          fileExtension,
+          {
+            knowledgebotId: knowledgebotId,
+            gcsUrl: gcsUrl // Store GCS URL in metadata
+          }
+        );
+
+        logger.info(`Successfully processed and stored document from buffer: ${file.originalname}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`);
+
+        // Save file information to MongoDB
+        const fileRecord = new KnowledgebaseFile({
+          fileName: `${timestamp}_${file.originalname}`,
+          originalName: file.originalname,
+          fileType: fileExtension,
+          fileSize: file.size,
+          gcsUrl: gcsUrl,
+          gcsPath: gcsFileName,
+          documentId: result.documentId,
+          knowledgebotId: knowledgebotId,
+          userId: userId,
+          title: result.title,
+          chunkCount: result.chunkCount,
+          isActive: true,
+        });
+
+        await fileRecord.save();
+        logger.info(`File record saved to database: ${fileRecord._id}`);
+
+        return {
+          success: result.success,
+          fileName: result.fileName,
+          fileType: fileExtension,
+          fileSize: file.size,
+          documentId: result.documentId,
+          title: result.title,
+          chunkCount: result.chunkCount,
+          gcsUrl: gcsUrl,
+          fileId: fileRecord._id.toString(),
+          uploadedAt: new Date().toISOString(),
+        };
+      } else {
+        throw new Error('Invalid file input: must be either a file path string or a file object with buffer');
+      }
     } catch (error) {
       logger.error('Error processing uploaded file:', error);
       throw error;
@@ -155,12 +318,8 @@ class KnowledgebaseService {
 
   async invokeRagSystem(query = "What are the core features does E-Commerce Platform have?", knowledgebotId = "111", contextString = "") {
     await rag.initialize();
-    const response = await rag.workflow.workflow.invoke({
-      query: query,
-      messages: contextString, // Now expects a string instead of array
-      metadata: {
-        knowledgebotId: knowledgebotId
-      }
+    const response = await rag.query(query, {
+      filter: { knowledgebotId: knowledgebotId },
     });
     console.log("RAG Response:", response);
     return response;
@@ -168,18 +327,71 @@ class KnowledgebaseService {
   /**
    * Get user's uploaded files
    * @param {string} userId - The user ID
+   * @param {string} knowledgebotId - Optional knowledgebot ID filter
    * @returns {Promise<Array>} - List of user's files
    */
-  async getUserFiles(userId) {
+  async getUserFiles(userId, knowledgebotId = null) {
     try {
-      logger.info(`Retrieving files for user: ${userId}`);
+      logger.info(`Retrieving files for user: ${userId}${knowledgebotId ? `, knowledgebot: ${knowledgebotId}` : ''}`);
 
-      // Placeholder for getting user files
-      // You can implement database queries here later
+      let files;
 
-      return [];
+      if (knowledgebotId) {
+        // Get files for specific knowledgebot and user
+        files = await KnowledgebaseFile.findByUserAndKnowledgebot(userId, knowledgebotId, true);
+      } else {
+        // Get all files for user
+        files = await KnowledgebaseFile.findByUserId(userId, true);
+      }
+
+      return files.map(file => ({
+        id: file._id,
+        fileName: file.originalName,
+        fileType: file.fileType,
+        fileSize: file.fileSize,
+        formattedFileSize: file.formattedFileSize,
+        gcsUrl: file.gcsUrl,
+        documentId: file.documentId,
+        knowledgebotId: file.knowledgebotId,
+        title: file.title,
+        chunkCount: file.chunkCount,
+        createdAt: file.createdAt,
+        updatedAt: file.updatedAt,
+      }));
     } catch (error) {
       logger.error('Error retrieving user files:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get files by knowledgebot ID
+   * @param {string} knowledgebotId - The knowledgebot ID
+   * @returns {Promise<Array>} - List of knowledgebot's files
+   */
+  async getKnowledgebotFiles(knowledgebotId) {
+    try {
+      logger.info(`Retrieving files for knowledgebot: ${knowledgebotId}`);
+
+      const files = await KnowledgebaseFile.findByKnowledgebotId(knowledgebotId, true);
+
+      return files.map(file => ({
+        id: file._id,
+        fileName: file.originalName,
+        fileType: file.fileType,
+        fileSize: file.fileSize,
+        formattedFileSize: file.formattedFileSize,
+        gcsUrl: file.gcsUrl,
+        documentId: file.documentId,
+        knowledgebotId: file.knowledgebotId,
+        userId: file.userId,
+        title: file.title,
+        chunkCount: file.chunkCount,
+        createdAt: file.createdAt,
+        updatedAt: file.updatedAt,
+      }));
+    } catch (error) {
+      logger.error('Error retrieving knowledgebot files:', error);
       throw error;
     }
   }
@@ -303,28 +515,38 @@ class KnowledgebaseService {
    * Chat with knowledge base using RAG
    * @param {string} message - User message
    * @param {string} knowledgebaseId - Knowledge base ID
+   * @param {string} conversationId - Conversation/Session ID
    * @param {Array} conversationHistory - Previous messages for context
    * @returns {Promise<Object>} - RAG response
    */
-  async chatWithKnowledgeBase(message, knowledgebaseId, conversationHistory = []) {
+  async chatWithKnowledgeBase(message, knowledgebaseId, conversationId, conversationHistory = []) {
     try {
-      logger.info(`Processing chat message for knowledge base: ${knowledgebaseId}`);
+      logger.info(`Processing chat message for knowledge base: ${knowledgebaseId}, conversation: ${conversationId}`);
 
-      // Format conversation history to string and manage token size
-      const contextString = await this.formatConversationContext(conversationHistory);
+      // Initialize RAG system
+      await rag.initialize();
 
-      // Use the existing invokeRagSystem method with string context
-      const ragResponse = await this.invokeRagSystem(message, knowledgebaseId, contextString);
+      // Use RAG system's query method with session management
+      const ragResponse = await rag.query(message, {
+        filter: { knowledgebotId: knowledgebaseId },
+        chatHistory: conversationHistory,
+        sessionId: conversationId,
+        persistSession: true,
+        knowledgebotId: knowledgebaseId,
+        limit: 10,
+        threshold: 0.1
+      });
 
       logger.info(`RAG response generated for knowledge base: ${knowledgebaseId}`);
 
       return {
-        answer: ragResponse.answer || ragResponse.response || 'I apologize, but I couldn\'t find relevant information in the knowledge base to answer your question.',
-        sources: ragResponse.sources || ragResponse.source_nodes || [],
+        answer: ragResponse.answer || 'I apologize, but I couldn\'t find relevant information in the knowledge base to answer your question.',
+        sources: ragResponse.sources || [],
         confidence: ragResponse.confidence || 0.8,
         model: ragResponse.model || 'gpt-4o-mini',
         tokensUsed: ragResponse.tokensUsed || ragResponse.token_usage || 0,
-        contextTokens: estimateTokenCount(contextString), // Add context token info
+        chatHistory: ragResponse.chatHistory || conversationHistory,
+        sessionId: ragResponse.sessionId || conversationId
       };
     } catch (error) {
       logger.error('Error in chat with knowledge base:', error);

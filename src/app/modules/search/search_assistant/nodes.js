@@ -449,13 +449,13 @@ export const toolBasedSearchNode = async (state) => {
 
     const duration = Date.now() - startTime;
     console.log(`🚀 Tool-based search completed in ${duration}ms`);
-
+    console.log('Tool-based search result:', result);
     // Handle structured response format
     if (typeof result === 'object' && result.answer) {
       return {
         ...state,
         answer: result.answer,
-        reference: result.references || [],
+        reference: result.reference || [],
         searchCompleted: true,
         searchMethod: result.searchMethod || 'tool_based',
         searchDuration: duration,

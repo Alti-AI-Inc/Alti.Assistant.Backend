@@ -1,11 +1,14 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { TavilySearch } from '@langchain/tavily';
 import config from "../../../../config/index.js";
 import { tavily } from "@tavily/core";
-import { googleSearch, TavilySearchTool, YouTubeSearchTool } from './tools.js';
+import { googleSearch, YouTubeSearchTool } from './tools.js';
 import { GoogleCustomSearch } from "@langchain/community/tools/google_custom_search";
 import Conversation from "../conversations/conversation.model.js";
+import { WebBrowser } from "langchain/tools/webbrowser";
+import e from "express";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
 /**
  * Configuration for intelligent conversation history management
@@ -30,7 +33,6 @@ const llm = new ChatGoogleGenerativeAI({
 // Create tool-enabled LLM with search capabilities
 const createToolEnabledLLM = () => {
   const searchTools = [
-    // new TavilySearchTool(),
     new YouTubeSearchTool(),
     googleSearch
   ];
@@ -863,10 +865,39 @@ Please analyze this question and use appropriate tools if needed to provide a co
 /**
  * Executes tool calls and returns results
  */
+
+const executeSingleToolCall = async (toolCall) => {
+  try {
+    console.log(`🔍 Preparing to execute tool: ${toolCall.name} with args:`, toolCall.args);
+    const searchTools = [
+      new YouTubeSearchTool(),
+      googleSearch,
+      new WebBrowser({
+        model: llm, embeddings: new GoogleGenerativeAIEmbeddings({
+          apiKey: config.gemini_secret_key,
+        })
+      })
+    ];
+
+    const tool = searchTools.find(t => t.name === toolCall.name);
+    if (tool) {
+      console.log(`🔧 Executing tool: ${toolCall.name} with args:`, toolCall.args);
+      const result = await tool._call(toolCall.args);
+      console.log(`✅ Tool executed successfully: ${toolCall.name}`, result);
+      return result;
+    } else {
+      console.warn(`⚠️ Tool not found: ${toolCall.name}`);
+      return { error: `Tool not found: ${toolCall.name}` };
+    }
+  } catch (error) {
+    console.error(`❌ Error executing tool ${toolCall.name}:`, error);
+    return { error: error.message };
+  }
+};
+
 const executeToolCalls = async (toolCalls) => {
   const toolResults = [];
   const searchTools = [
-    new TavilySearchTool(),
     new YouTubeSearchTool(),
     googleSearch
   ];
@@ -937,29 +968,48 @@ export const runIntelligentSearch = async (state, stream = false) => {
     const currentYear = currentDate.getFullYear();
     const currentDateString = currentDate.toDateString();
 
-    const systemPrompt = `You are an intelligent research assistant that provides COMPREHENSIVE, well-researched answers backed by current data.
+    const systemPrompt = `You are an intelligent research assistant that provides CONCRETE, specific answers with complete details.
 
 CURRENT CONTEXT:
 - Today's date: ${currentDateString}
 - Current year: ${currentYear}
 
-RESPONSE PHILOSOPHY:
-- ALWAYS search for current data when answering business, investment, market, or analysis questions
-- Provide detailed, research-backed responses with multiple perspectives
-- Default to searching rather than relying on general knowledge
-- Use multiple search queries to gather comprehensive information
+CORE PRINCIPLE: PROVIDE DIRECT, ESSENTIAL INFORMATION ONLY
+- For direct questions (sports schedules, dates, times, facts), provide ONLY the essential details
+- NO unnecessary context or date qualifiers like "after [current date]" or "next game after today is"
+- NO vague responses like "please refer to official schedule" or "search results indicate"
+- If information is incomplete, state it simply: "The exact date and time is not scheduled"
+- NEVER mention "search results" or reference the search process in your answer
+- State facts directly and concisely - just the core information requested
 
-RESPONSE FORMATS:
-- Simple factual queries (weather, sports scores): Concise 1-2 sentences
-- Business/Investment/Market questions: Detailed analysis with multiple data points
-- Complex topics: Comprehensive responses with pros/cons, market data, trends
-- Always include source references when using search results
-- Use format: "According to [Source]..." or "Based on [Domain]..."
+RESPONSE FORMATS (CONCISE):
+- Sports/Event Schedules: MUST include date + time + opponent (e.g., "November 7, 2025 at 7:00 PM against the New York Rangers")
+- NEVER provide just a date alone - always include time and opponent for sports
+- Weather: Temperature, conditions (skip verbose details unless asked)
+- News/Facts: Core information without unnecessary context
+- Business/Investment: Key findings and actionable insights
+
+CONCRETE ANSWER EXAMPLES:
+❌ BAD: "The next Detroit Red Wings home game after October 23, 2025, is on Friday, November 7, 2025, at 7:00 PM against the New York Rangers. The game will be broadcast on NHL Net."
+❌ BAD: "October 25, 2025"
+✅ GOOD: "November 7, 2025 at 7:00 PM against the New York Rangers"
+
+❌ BAD: "The Detroit Red Wings' next home game after today's date is scheduled for October 15, 2025 at 7:30 PM against the Toronto Maple Leafs at Little Caesars Arena."
+✅ GOOD: "October 15, 2025 at 7:30 PM against the Toronto Maple Leafs"
+
+❌ BAD: "Based on the search results, today's weather in Detroit is 72°F with partly cloudy skies and a 20% chance of rain throughout the day."
+✅ GOOD: "72°F, partly cloudy, 20% chance of rain"
+
+FOR "NEXT GAME" QUERIES:
+- User asks: "When is the next Detroit Red Wings home game?"
+- ❌ BAD: Just the date "October 25, 2025"
+- ✅ GOOD: "November 7, 2025 at 7:00 PM against the New York Rangers"
+- MUST INCLUDE: date, time, AND opponent
 
 STRUCTURED JSON FORMAT:
 {
     "responseMessage": {
-        "answer": "Detailed answer with analysis, data points, and insights",
+        "answer": "Direct answer with only essential details - no fluff or unnecessary context",
         "reference": [{
             "url": "source_url",
             "domain": "domain.com"
@@ -969,35 +1019,70 @@ STRUCTURED JSON FORMAT:
     }
 }
 
-AGGRESSIVE SEARCH STRATEGY:
-- Business questions: Search for market trends, competitive analysis, industry reports, investment data
-- Investment queries: Search for market conditions, ROI data, industry performance, risk factors
-- Market analysis: Search for current market size, growth rates, competitive landscape
-- Technology topics: Search for latest developments, adoption rates, market penetration
-- Always search for recent data (${currentYear}) and multiple perspectives
-- Use specific search queries like "market size", "investment trends", "industry analysis"
+SEARCH STRATEGY:
+- Use multiple specific search queries to find complete information
+- Search for current schedules, dates, times, and specific details
+- For sports: search team schedules, upcoming games, specific dates
+- Always verify information is current and accurate for ${currentDateString}
+- Combine information from multiple sources for complete answers
+
+FORBIDDEN PHRASES:
+- "after [date]" or "next game after today"
+- "Search results indicate..."
+- "Please refer to..."
+- "Check the official..."
+- "According to search results..."
+- "Based on the information found..."
+- Any unnecessary date context or qualifiers
+
+REQUIRED APPROACH:
+- For sports queries, ALWAYS provide: date + time + opponent (all three required)
+- NEVER provide just a date by itself for sports/game queries
+- If user asks "when is next game", give full details: "November 7, 2025 at 7:00 PM against the New York Rangers"
+- Provide essential details concisely but completely
+- NO extra context, venue, or broadcast info unless specifically asked
+- Use minimal, direct language
+- Include what was directly asked for plus necessary context (time + opponent for games)
+
+For business/financial/investment questions:
+- MUST use search tools to gather current market data and expert analysis
+- Provide data-driven insights based on current market conditions
+- Include specific metrics, trends, and expert opinions from search results
+- Give balanced analysis with both opportunities and risks
+- NO generic disclaimers like "I cannot provide financial advice" - instead provide informational analysis
+- Present findings objectively: "Based on current market analysis..." or "According to recent data..."
+- Cite all sources used in your analysis
+
+For sports, weather, news, or factual queries, provide exact details:
+- Exact dates, times, opponents for events (skip venue unless asked)
+- Current conditions and forecasts (concise)
+- Latest updates and facts (core info only)
+- If exact details are not available, state it simply: "The exact date and time is not scheduled"
+- If asks for schedules, provide only the schedule data
+- For sports search on espn.com, nhl.com, www.viagogo.com, team site, or trusted sports sources
 
 TOOL USAGE - SEARCH FOR:
-✅ Market research and industry data
-✅ Competitive analysis and benchmarking  
-✅ Investment trends and performance metrics
-✅ Business model validation data
-✅ Current market conditions and forecasts
-✅ Industry reports and expert opinions
-✅ Financial data and ROI metrics
-✅ Technology adoption and trends
-✅ Consumer behavior and demand patterns
-✅ Regulatory and economic factors
-✅ Current events, news, facts, data, sports, prices, weather
-✅ Recent developments and breaking news
+✅ Current sports schedules and upcoming games
+✅ Specific dates, times, and opponent information
+✅ Weather forecasts and current conditions
+✅ News updates and current events
+✅ Market data and financial information - ALWAYS search for investment/crypto queries
+✅ Business trends and analysis
+✅ Technology developments
+✅ Any factual, time-sensitive information
 
-SEARCH DECISION RULE:
-- If the question involves analysis, opinion, investment, business strategy, market conditions, or trends → ALWAYS SEARCH
-- If the question asks for recommendations, comparisons, or "should I" → ALWAYS SEARCH  
-- If the question is about current market conditions → ALWAYS SEARCH
-- Only skip search for basic definitions or simple historical facts
+FOR INVESTMENT/FINANCIAL QUERIES:
+- ALWAYS use search tools to gather current market data
+- Search for: price trends, technical analysis, expert opinions, market sentiment
+- Provide data-driven analysis, NOT generic disclaimers
+- Present information objectively: "Current market analysis shows..." or "Recent data indicates..."
+- Include specific metrics, predictions, and expert viewpoints from sources
+- Balance opportunities with risks using actual market data
+- **MUST provide a clear conclusion that synthesizes the data into actionable insights**
+- Structure: [Data & Analysis] → [Key Factors] → **[Clear Conclusion/Bottom Line]**
+- Answer the user's specific question (e.g., "Should I invest?") with a direct synthesis like: "**Bottom Line:** Current data suggests [bullish/bearish/neutral] signals. Key considerations: [1-3 specific points]."
 
-CRITICAL: Provide thorough, research-backed analysis rather than generic responses. Always cite sources.`;
+CRITICAL: Provide minimal, direct answers with only essential details. Remove all fluff and unnecessary context.`;
 
     // Initial messages
     const messages = [
@@ -1010,138 +1095,62 @@ CRITICAL: Provide thorough, research-backed analysis rather than generic respons
         content: `This is the current conversation history: ${conversationHistory}Current question: ${query}
 
 ANALYSIS REQUIRED: For business, investment, market, or analytical questions, conduct comprehensive research using search tools to gather:
-- Current market data and trends (${currentYear})
-- Industry analysis and competitive landscape  
-- Expert opinions and recent reports
+- Current market data and trends (${currentDateString})
+- Technical analysis and price predictions
+- Expert opinions and recent reports from credible sources
 - Financial metrics and performance data
 - Risk factors and market conditions
+- Sentiment analysis and market indicators
+- IMPORTANT: Provide data-driven analysis WITH A CLEAR CONCLUSION, NOT disclaimers. Present findings objectively.
+- Format: "Based on current market analysis from [sources], Bitcoin shows [data]... **Bottom Line: [Clear actionable synthesis of whether signals are bullish/bearish/neutral and why]**"
+- Structure your answer: [Current Data] → [Expert Opinions] → [Technical Analysis] → **[Clear Conclusion/Recommendation]**
+
+For sports/event schedules, weather, news, or factual queries, use search tools to find:
+- Current sports schedules and upcoming games. Current date is ${currentDateString}.
+- For sports/games: MUST provide date + time + opponent (e.g., "November 7, 2025 at 7:00 PM against the New York Rangers")
+- NEVER provide just a date alone for sports queries
+- Exact dates, times, opponents, and venues for events
+- Current weather conditions and forecasts
+- Latest news updates and factual information
+- Session mostly requires up-to-date information
+- Session declares like 2025/2026 season, next game, upcoming events.
+- If asked for next game or schedule, provide exact date, time, opponent when available. Also search from ${currentDateString} onwards.
+- For sports search on espn.com, nhl.com, www.viagogo.com, team site, or trusted sports sources
+- Search top 20 results for best info
+
+SYNTHESIS: After gathering information, synthesize it into a clear, specific answer that includes all relevant details.
+
+For investment/financial questions:
+- Present current market analysis with specific data points
+- Include expert opinions and predictions from credible sources
+- Discuss technical indicators, trends, and price movements
+- Analyze risks and opportunities based on current data
+- Provide balanced perspective using multiple sources
+- NO generic disclaimers - give informational analysis instead
+- **CRITICAL: Provide a CLEAR CONCLUSION/SUMMARY at the end that synthesizes all the data into actionable insights**
+- Example format: "Based on current market analysis (October 2025), Bitcoin is trading at $X with analysts predicting... Key factors include... **Conclusion: The data suggests [bullish/bearish/neutral] sentiment due to [key reasons]. Consider [specific actionable insights].**"
+- End with a clear "**Bottom Line:**" or "**Key Takeaway:**" section that answers the user's question directly
+
+For analytical/business questions, provide a detailed analysis covering:
+- Market trends and data points
+- Competitive landscape overview
+- Strategic recommendations based on findings
+- Risk assessment and mitigation strategies
+- Cite all sources used in your analysis
 
 Provide a well-researched, detailed response with proper source references. Use multiple search queries if needed to build a complete analysis.`
       }
     ];
+    const startTime = Date.now();
+    const searchResult = await executeToolBasedConversation(messages);
 
-    // First LLM call to decide on tool usage
-    const initialResponse = await toolEnabledLLM.invoke(messages);
+    const duration = Date.now() - startTime;
+    console.log(`✅ Intelligent search process completed in ${duration}ms`);
+    console.log(`Search Result:`, searchResult.responseMessage);
 
-    // Check if tools were called
-    if (initialResponse.tool_calls && initialResponse.tool_calls.length > 0) {
-      console.log(`🔧 ${initialResponse.tool_calls.length} tool(s) will be executed`);
-
-      // Execute the tool calls
-      const toolResults = await executeToolCalls(initialResponse.tool_calls);
-
-      // Add tool results to conversation and get final response
-      const toolMessages = [
-        ...messages,
-        {
-          role: "assistant",
-          content: initialResponse.content || "I'll search for current information to answer your question.",
-          tool_calls: initialResponse.tool_calls
-        }
-      ];
-
-      // Add tool results as messages
-      toolResults.forEach(toolResult => {
-        toolMessages.push({
-          role: "tool",
-          content: toolResult.result || toolResult.error,
-          tool_call_id: toolResult.toolCallId,
-          name: toolResult.toolName
-        });
-      });
-
-      // Add instructions for synthesizing the response
-      toolMessages.push({
-        role: "user",
-        content: `Based on the search results above, please provide a CONCISE, direct answer to the original question: "${query}"
-
-CONCISE RESPONSE GUIDELINES:
-- Provide a direct, focused answer (2-4 sentences max for simple questions)
-- Lead with the key facts or main answer
-- Be precise and avoid unnecessary elaboration
-- Include specific data, numbers, dates when relevant
-- Use the timezone and current date context (${currentDateString}) for time-sensitive info
-- The timezone is 'Asia/Dhaka'
-- Always include source references in your response
-- I want the references in an array format with title, url, domain, sourceName, publishedDate, publishedYear, citationFormat
-
-CITATION REQUIREMENTS:
-- Always include source references in your response
-- I want the references in an array format with title, url, domain, sourceName, publishedDate, publishedYear, citationFormat
-
-STRUCTURE:
-1. Direct answer first
-2. Key supporting details (if needed)
-3. Source attribution
-
-Example: "responseMessage": {
-            "answer": "The next Detroit Tigers game is on September 25, 2025, at 6:40 PM against the Cleveland Guardians at Progressive Field in Cleveland",
-            "reference": [{
-                "url": "https://www.mlb.com/tigers/schedule/2025-09",
-                "domain": "mlb.com",
-            }],
-            "citations": [],
-            "citationMetadata": null
-        }`
-      });
-
-      // Get final response with tool results
-      const finalResponse = await llm.invoke(toolMessages);
-      console.log("✅ Final response with tool results obtained", finalResponse.content);
-      // Extract references from tool results
-      const match = finalResponse.content.match(/```json([\s\S]*?)```/);
-      let result = {}
-      if (match && match[1]) {
-        const jsonOnly = match[1].trim();
-        result = JSON.parse(jsonOnly);
-
-        console.log(result); // ✅ now it's a JS object
-      } else {
-        console.error("No JSON found!");
-        result = JSON.parse(finalResponse.content);
-      }
-      // Return structured response with references array
-      console.log("✅ Answer provided with external search and references", result.responseMessage);
-
-      return {
-        //If final response is a valid JSON with answer, use it. If it is a json string then parse it otherwise use it at it is. Otherwise, fallback to initial response content.
-        answer: result?.responseMessage?.answer || initialResponse?.responseMessage?.answer || finalResponse.content || initialResponse.content,
-        references: result?.responseMessage?.reference || [],
-        searchMethod: 'tool_based',
-        timestamp: new Date().toISOString()
-      };
-
-    } else {
-      // No tools needed, return direct response
-      const match = initialResponse.content.match(/```json([\s\S]*?)```/);
-      let result = {}
-      if (match && match[1]) {
-        const jsonOnly = match[1].trim();
-        result = JSON.parse(jsonOnly);
-
-        console.log(result); // ✅ now it's a JS object
-      } else {
-        console.error("No JSON found!");
-      }
-      console.log("✅ Direct answer provided without external search", result);
-      console.log("Initial response content:", initialResponse.content);
-      let answer = ''
-
-      if (result?.responseMessage?.answer) {
-        answer = result.responseMessage.answer;
-      } else if (initialResponse?.responseMessage?.answer) {
-        answer = initialResponse.responseMessage.answer;
-      } else {
-        answer = initialResponse.content;
-      }
-
-      return {
-        answer: answer,
-        references: [],
-        searchMethod: 'direct',
-        timestamp: new Date().toISOString()
-      };
-    }
+    return {
+      ...searchResult?.responseMessage
+    };
 
   } catch (error) {
     console.error("❌ Error in intelligent search:", error);
@@ -1154,6 +1163,225 @@ Example: "responseMessage": {
     };
   }
 };
+
+async function executeToolBasedConversation(messages) {
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 200,
+  });
+
+  const toolBasedLlm = llm.bindTools([
+    new GoogleCustomSearch({ apiKey: config.google_search_api_key, googleCSEId: config.google_engine_id }),
+    new WebBrowser({
+      model: llm,
+      embeddings: new GoogleGenerativeAIEmbeddings({
+        apiKey: config.gemini_secret_key,
+      }),
+      textSplitter
+    })
+  ]);
+
+  let currentMessages = [...messages];
+  let iterationCount = 0;
+  const maxIterations = 5; // Prevent infinite loops
+  let usedUrls = new Set(); // Track URLs used for references
+
+  while (iterationCount < maxIterations) {
+    iterationCount++;
+    console.log(`\n=== Iteration ${iterationCount} ===`);
+
+    const res = await toolBasedLlm.invoke(currentMessages);
+    console.log("Response tool_calls:", res.tool_calls?.length || 0);
+
+    // If no tool calls, we have a final answer
+    if (!res.tool_calls || res.tool_calls.length === 0) {
+      console.log("=== Final Answer ===");
+      console.log(res.content);
+
+      // Format the response in the requested structure
+      // Limit references to 3-5 items
+      const allReferences = Array.from(usedUrls).map(url => {
+        try {
+          const domain = new URL(url).hostname.replace('www.', '');
+          return { url, domain };
+        } catch {
+          return { url, domain: 'unknown' };
+        }
+      });
+
+      // Take only first 5 references
+      const references = allReferences.slice(0, 5);
+
+      const citations = references.map((ref, index) => ({
+        index: index + 1,
+        url: ref.url,
+        domain: ref.domain
+      }));
+
+      // Clean the answer by removing URLs and source sections
+      let cleanAnswer = typeof res.content === 'string' ? res.content : res.content[0]?.text || 'No answer provided';
+
+      // Check if the answer is already in JSON format and extract just the answer
+      try {
+        // Try to parse as direct JSON first
+        const directJson = JSON.parse(cleanAnswer);
+        if (directJson.responseMessage && directJson.responseMessage.answer) {
+          cleanAnswer = directJson.responseMessage.answer;
+        }
+      } catch (e) {
+        // Try to find JSON in code blocks
+        try {
+          const jsonMatch = cleanAnswer.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            const jsonContent = JSON.parse(jsonMatch[1]);
+            if (jsonContent.responseMessage && jsonContent.responseMessage.answer) {
+              cleanAnswer = jsonContent.responseMessage.answer;
+            }
+          }
+        } catch (e2) {
+          // If parsing fails, continue with original answer
+        }
+      }
+
+      // Remove URLs from the answer
+      cleanAnswer = cleanAnswer.replace(/https?:\/\/[^\s\n\r]*/g, '');
+
+      // Remove **Sources:** section and everything after it
+      cleanAnswer = cleanAnswer.replace(/\*\*Sources?\*\*:[\s\S]*$/, '');
+
+      // Remove bullet point lists that contain URLs
+      cleanAnswer = cleanAnswer.replace(/\*\s+[^\n]*https?:\/\/[^\n]*/g, '');
+
+      // Clean up extra whitespace and newlines
+      cleanAnswer = cleanAnswer.replace(/\n{3,}/g, '\n\n').trim();
+
+      const formattedResponse = {
+        responseMessage: {
+          answer: cleanAnswer,
+          reference: references,
+          citations: citations,
+          citationMetadata: null
+        }
+      };
+
+      console.log("\n=== Formatted Response ===");
+      console.log(JSON.stringify(formattedResponse, null, 2));
+      return formattedResponse;
+    }
+
+    // Add the assistant's message with tool calls
+    currentMessages.push({
+      role: "assistant",
+      content: res.content,
+      tool_calls: res.tool_calls
+    });
+
+    // Execute each tool call and add results
+    for (const toolCall of res.tool_calls) {
+      console.log(`Executing tool: ${toolCall.name}`);
+      console.log(`Args:`, toolCall.args);
+
+      try {
+        // Execute the tool based on its name
+        let toolResult;
+        if (toolCall.name === "google-custom-search") {
+          const googleSearch = new GoogleCustomSearch({
+            apiKey: config.google_search_api_key,
+            googleCSEId: config.google_engine_id
+          });
+          toolResult = await googleSearch.invoke(toolCall.args.input);
+
+          // Extract URLs from Google search results for references
+          try {
+            const searchResults = JSON.parse(toolResult);
+            if (Array.isArray(searchResults)) {
+              searchResults.forEach(result => {
+                if (result.link) {
+                  usedUrls.add(result.link);
+                }
+              });
+            }
+          } catch (e) {
+            // If not JSON, try to extract URLs with regex
+            const urlRegex = /https?:\/\/[^\s"]+/g;
+            const urls = toolResult.match(urlRegex) || [];
+            urls.forEach(url => usedUrls.add(url));
+          }
+
+        } else if (toolCall.name === "web-browser") {
+          const browser = new WebBrowser({
+            model: llm,
+            embeddings: new GoogleGenerativeAIEmbeddings({
+              apiKey: config.gemini_secret_key,
+            }),
+            textSplitter
+          });
+          toolResult = await browser.invoke(toolCall.args.input);
+
+          // Extract URL from web browser input
+          const urlMatch = toolCall.args.input.match(/https?:\/\/[^\s,"]+/);
+          if (urlMatch) {
+            usedUrls.add(urlMatch[0]);
+          }
+        }
+
+        console.log(`Tool result preview:`, toolResult.substring(0, 400) + "...");
+
+        // Add tool result to messages
+        currentMessages.push({
+          role: "tool",
+          content: toolResult,
+          tool_call_id: toolCall.id,
+          name: toolCall.name
+        });
+
+      } catch (error) {
+        console.error(`Error executing tool ${toolCall.name}:`, error.message);
+        currentMessages.push({
+          role: "tool",
+          content: `Error: ${error.message}`,
+          tool_call_id: toolCall.id,
+          name: toolCall.name
+        });
+      }
+    }
+  }
+
+  console.log("Max iterations reached, returning last result");
+
+  // If we reach max iterations, still format the response
+  // Limit references to 3-5 items
+  const allReferences = Array.from(usedUrls).map(url => {
+    try {
+      const domain = new URL(url).hostname.replace('www.', '');
+      return { url, domain };
+    } catch {
+      return { url, domain: 'unknown' };
+    }
+  });
+
+  // Take only first 5 references
+  const references = allReferences.slice(0, 5);
+
+  const citations = references.map((ref, index) => ({
+    index: index + 1,
+    url: ref.url,
+    domain: ref.domain
+  }));
+
+  const formattedResponse = {
+    responseMessage: {
+      answer: "Max iterations reached without final answer",
+      reference: references,
+      citations: citations,
+      citationMetadata: null
+    }
+  };
+
+  console.log("\n=== Formatted Response (Max Iterations) ===");
+  console.log(JSON.stringify(formattedResponse, null, 2));
+  return formattedResponse;
+}
 
 /**
  * Performance monitoring utility
@@ -1257,57 +1485,68 @@ Search query used: ${state.searchQuery}
     const messages = [
       {
         role: "system",
-        content: `You are an intelligent research assistant that provides CONCISE, well-referenced responses.
+        content: `You are an intelligent research assistant that provides CONCRETE, specific answers with complete details.
 
 CURRENT DATE: ${new Date().toDateString()} (${new Date().getFullYear()})
 
-CONCISE RESPONSE RULES:
-- Provide direct, focused answers (2-4 sentences for simple questions)
-- Lead with the main answer or key facts
-- Avoid unnecessary elaboration unless specifically requested
-- Be precise and factual
+CORE PRINCIPLE: PROVIDE EXACT, CONCRETE ANSWERS
+- For direct questions, provide SPECIFIC details (dates, times, locations, names)
+- NO vague responses or references to "search results"
+- State facts directly as if you know them definitively
+- NEVER mention the search process in your response
 
-CITATION REQUIREMENTS (CRITICAL):
-- ALWAYS include source references in your response
-- Use format: "According to [Source Name/Domain]..." or "Based on [Source]..."
-- For multiple sources: "Sources: [Source1], [Source2]" at the end
+CONCRETE RESPONSE RULES:
+- Sports schedules: Exact date, time, opponent, venue
+- Weather: Specific temperature, conditions, forecast
+- Events: Complete details with all relevant information
+- Facts: Direct, specific information
+
+FORBIDDEN PHRASES:
+- "Search results indicate..."
+- "According to search results..."
+- "Based on the information found..."
+- "Please refer to official..."
+- "Check the official..."
+
+CITATION REQUIREMENTS:
+- Include source attribution naturally: "According to [Source Name]..." 
+- Use format: "Based on [Domain]..." for website sources
+- For multiple sources: "Sources: [Source1], [Source2]" at end
 - Include publication dates when available: "[Source] (2025)"
-- For YouTube videos: "According to [Channel Name] on YouTube..."
 
 ANSWER-ONLY FORMAT:
 - IF user asks for "answer only" or "no explanations": respond with just the fact, no sources
 - Example: "What is the capital of France? Answer only." → "Paris."
 
-RESPONSE STRUCTURE:
-1. Direct answer first
-2. Key supporting details (if needed and space allows)
-3. Source attribution
+EXAMPLES OF GOOD RESPONSES:
+❌ BAD: "Search results show a game occurred. Please check the official schedule."
+✅ GOOD: "The Detroit Red Wings' next home game is October 15, 2025 at 7:30 PM against the Toronto Maple Leafs at Little Caesars Arena."
 
-EXAMPLES:
-- Question: "When is the next Detroit Tigers game?"
-- Answer: "The Detroit Tigers' next game is October 1st at 7:30 PM against Cleveland at Comerica Park. According to MLB.com (September 2025)."
+❌ BAD: "Weather information indicates varying conditions."
+✅ GOOD: "Detroit's weather today is 72°F with partly cloudy skies and a 20% chance of rain."
 
-- Question: "What's the latest on AI developments?"
-- Answer: "Recent AI developments include GPT-5 announcements and new robotics advances. Based on TechCrunch and Reuters (September 2025)."
-
-CRITICAL: Always include source attribution with your answers unless specifically asked for "answer only" format.`
+CRITICAL: Always provide complete, specific information. Never reference the search process or tell users to check elsewhere.`
       },
       {
         role: "user",
         content: `${conversationHistory}${queryContext}Current question: ${state.query}
 
-Search results:
+Available information:
 ${formattedSearchResults}
 
-Please provide a CONCISE, well-referenced response based on the search results.
+Provide a CONCRETE, specific answer with complete details.
 
 REQUIREMENTS:
-- Lead with the direct answer (2-4 sentences max for simple questions)
-- Include source attribution: "According to [Source]..." or "Based on [Domain]..."
-- Add publication dates when available
-- Be precise and factual
+- State the exact information requested (dates, times, locations, opponents)
+- NO references to "search results" or "information found"
+- Provide complete details in a natural, conversational way
+- Include source attribution naturally without mentioning the search process
+- For sports: exact date, time, opponent, venue
+- Use current date context: ${new Date().toDateString()}
 
-ANSWER-ONLY EXCEPTION: If user specifically asks for "answer only", "no details", etc., provide just the fact without sources.`
+FORBIDDEN: Do not mention "search results", "information indicates", or "please refer to"
+
+ANSWER-ONLY EXCEPTION: If user asks for "answer only", provide just the fact without sources.`
       }
     ];
 
