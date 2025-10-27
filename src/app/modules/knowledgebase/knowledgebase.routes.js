@@ -35,6 +35,7 @@ router.post('/create', auth(), knowledgebaseController.createKnowledgeBase);
 router.get('/list', auth(), knowledgebaseController.getUserKnowledgeBases);
 router.post('/upload', optionalAuth(), upload.any(), knowledgebaseController.uploadFile);
 router.get('/files', auth(), knowledgebaseController.getUserFiles);
+router.delete('/files/:fileId', auth(), knowledgebaseController.deleteFile);
 router.post('/invoke-rag', optionalAuth(), knowledgebaseController.invokeRagSystem);
 router.post('/chat', auth(), knowledgebaseController.chatWithKnowledgeBase);
 router.get('/:knowledgebaseId/conversations', auth(), knowledgebaseController.getKnowledgeBaseConversations);

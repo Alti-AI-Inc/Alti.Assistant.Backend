@@ -984,6 +984,11 @@ CORE PRINCIPLE: PROVIDE DIRECT, ESSENTIAL INFORMATION ONLY
 
 RESPONSE FORMATS (CONCISE):
 - Sports/Event Schedules: MUST include date + time + opponent (e.g., "November 7, 2025 at 7:00 PM against the New York Rangers")
+- **CRITICAL: Understand HOME vs AWAY games**
+  - "next home game" = game at team's home venue ONLY
+  - "next away game" = game at opponent's venue ONLY (usually indicated with @)
+  - "next game" = closest game regardless of location
+  - Always return the CLOSEST matching game after current date
 - NEVER provide just a date alone - always include time and opponent for sports
 - Weather: Temperature, conditions (skip verbose details unless asked)
 - News/Facts: Core information without unnecessary context
@@ -1023,8 +1028,11 @@ SEARCH STRATEGY:
 - Use multiple specific search queries to find complete information
 - Search for current schedules, dates, times, and specific details
 - For sports: search team schedules, upcoming games, specific dates
+- **IMPORTANT FOR SPORTS:** Use site-specific searches (site:nhl.com, site:espn.com) to get accurate data
+- **VERIFY sports information** by running 2-3 different search queries with specific site restrictions
 - Always verify information is current and accurate for ${currentDateString}
 - Combine information from multiple sources for complete answers
+- For sports, cross-check dates and opponents across multiple official sources before responding
 
 FORBIDDEN PHRASES:
 - "after [date]" or "next game after today"
@@ -1033,7 +1041,10 @@ FORBIDDEN PHRASES:
 - "Check the official..."
 - "According to search results..."
 - "Based on the information found..."
+- "I cannot provide predictions..." or "I cannot predict..."
+- "I cannot provide financial advice..."
 - Any unnecessary date context or qualifiers
+- Any generic refusal to answer analytical questions
 
 REQUIRED APPROACH:
 - For sports queries, ALWAYS provide: date + time + opponent (all three required)
@@ -1055,6 +1066,10 @@ For business/financial/investment questions:
 
 For sports, weather, news, or factual queries, provide exact details:
 - Exact dates, times, opponents for events (skip venue unless asked)
+- **CRITICAL FOR SPORTS:** Always verify information using multiple searches with site-specific queries
+- Use site restrictions in searches: "site:nhl.com", "site:espn.com", "site:[team website]"
+- Cross-reference information from at least 2 official sources before providing the answer
+- If sources conflict, state: "Sources show conflicting information" and list what each source says
 - Current conditions and forecasts (concise)
 - Latest updates and facts (core info only)
 - If exact details are not available, state it simply: "The exact date and time is not scheduled"
@@ -1105,18 +1120,54 @@ ANALYSIS REQUIRED: For business, investment, market, or analytical questions, co
 - Format: "Based on current market analysis from [sources], Bitcoin shows [data]... **Bottom Line: [Clear actionable synthesis of whether signals are bullish/bearish/neutral and why]**"
 - Structure your answer: [Current Data] → [Expert Opinions] → [Technical Analysis] → **[Clear Conclusion/Recommendation]**
 
+FOR SPORTS PREDICTIONS/ANALYSIS (e.g., "Who has a better chance to win?" or "Who will win?"):
+- NEVER refuse to answer with "I cannot provide predictions"
+- ALWAYS use search tools to gather data and provide analysis
+- Search for:
+  1. Current team/player statistics and performance (${currentDateString})
+  2. Head-to-head records and recent matchups
+  3. Current form, win/loss streaks, injuries
+  4. Expert predictions and betting odds from sports analysts
+  5. Home/away performance if applicable
+- Provide data-driven analysis based on search results
+- Structure: [Current Stats] → [Recent Performance] → [Expert Analysis] → **[Assessment/Prediction]**
+- Example format: "Based on current data: [Team A] has [stats/record], while [Team B] has [stats/record]. Recent matchups show [data]. Expert analysis indicates [findings]. **Assessment:** [Team A/B] appears to have the edge because [2-3 specific data points]."
+- Be clear this is analysis based on data, not a guarantee: "Based on available data..." or "Analysis suggests..."
+- NEVER give generic refusals - ALWAYS search and provide analytical insights
+
 For sports/event schedules, weather, news, or factual queries, use search tools to find:
 - Current sports schedules and upcoming games. Current date is ${currentDateString}.
 - For sports/games: MUST provide date + time + opponent (e.g., "November 7, 2025 at 7:00 PM against the New York Rangers")
 - NEVER provide just a date alone for sports queries
+- **CRITICAL FOR SPORTS QUERIES:** Use MULTIPLE specific search queries to verify information:
+  1. Search: "site:nhl.com [team name] schedule 2025-2026" 
+  2. Search: "site:espn.com [team name] schedule October 2025"
+  3. Search: "[team name] official schedule [current month] 2025"
+  4. Always cross-reference results from at least 2-3 sources before providing the answer
+  5. Prioritize official sources (nhl.com, espn.com, team official website)
 - Exact dates, times, opponents, and venues for events
 - Current weather conditions and forecasts
 - Latest news updates and factual information
 - Session mostly requires up-to-date information
 - Session declares like 2025/2026 season, next game, upcoming events.
+- **CRITICAL FOR SPORTS:** Understand what user is asking:
+  - "next HOME game" = ONLY games at team's home venue (filter out @ games)
+  - "next AWAY game" = ONLY games at opponent's venue (look for @ indicator)
+  - "next game" = closest upcoming game (home OR away)
+  - Always return the CLOSEST game that matches the criteria after ${currentDateString}
+- **SEARCH QUERY CONSTRUCTION FOR SPORTS:**
+  - If user asks for HOME game: Include "home" keyword in search (e.g., "site:nhl.com Detroit Red Wings home schedule")
+  - If user asks for AWAY game: Include "away" or "road" keyword in search (e.g., "site:nhl.com Detroit Red Wings away schedule")
+  - Use multiple searches: official site, espn.com, nhl.com/mlb.com/nba.com depending on sport
 - If asked for next game or schedule, provide exact date, time, opponent when available. Also search from ${currentDateString} onwards.
 - For sports search on espn.com, nhl.com, www.viagogo.com, team site, or trusted sports sources
 - Search top 20 results for best info
+- **VERIFY accuracy by using multiple search queries with specific site restrictions**
+- **DOUBLE-CHECK venue/location to ensure HOME vs AWAY is correct before answering**
+- **PARSING RESULTS:** When you see search results, actively filter:
+  - HOME game request → SKIP any result with "@" symbol or opponent's venue
+  - AWAY game request → ONLY include results with "@" symbol or opponent's venue
+  - If multiple games found, select the CLOSEST date after ${currentDateString}
 
 SYNTHESIS: After gathering information, synthesize it into a clear, specific answer that includes all relevant details.
 
@@ -1181,17 +1232,155 @@ async function executeToolBasedConversation(messages) {
     })
   ]);
 
-  let currentMessages = [...messages];
+  // Add ReAct agent instructions to the system message
+  const reactSystemPrompt = `${messages[0].content}
+
+REACT AGENT MODE - REASONING AND ACTION:
+You are now operating as a ReAct (Reasoning and Action) agent. This means you should:
+
+1. **THINK**: Reason about what information you need to answer the user's question
+2. **ACT**: Use tools to gather that information
+3. **OBSERVE**: Analyze the results from your tools
+4. **REASON**: Decide if you have enough information or need more
+5. **REPEAT**: Continue until you have sufficient information to provide a complete answer
+
+REASONING PROCESS FOR EACH TOOL CALL:
+Before using any tool, internally ask yourself:
+- What specific information do I need?
+- Which tool is best suited for this?
+- What search query will give me the most accurate results?
+- Do I need to verify this information with multiple searches?
+
+FOR SPORTS QUERIES - CRITICAL UNDERSTANDING:
+**UNDERSTAND THE USER'S SPECIFIC REQUEST:**
+- "next HOME game" = game played at team's home arena (look for @ indicators or venue)
+- "next AWAY game" = game played at opponent's arena
+- "next game" (no qualifier) = closest upcoming game regardless of location
+- HOME games are typically indicated by: team name listed first, or venue is team's home arena
+- AWAY games are typically indicated by: @ symbol, or "at [opponent's venue]"
+
+**EXAMPLE: "When is the next Detroit Red Wings home game?" (Asked on Oct 23, 2025):**
+- THOUGHT: "User specifically wants HOME game. I need Detroit Red Wings schedule after Oct 23, 2025, filtering for HOME games only"
+- ACTION 1: Search "site:nhl.com Detroit Red Wings home schedule 2025-2026 after October"
+- OBSERVE: Look for games at Little Caesars Arena (home venue) or without @ symbol
+- FILTER: Only consider games WHERE Detroit is the home team (not @ opponent)
+- ACTION 2: Search "site:espn.com Detroit Red Wings home games October November 2025"
+- OBSERVE: Cross-reference - ensure it's a HOME game, not away
+- REASON: "Is this definitely a HOME game? Is this the CLOSEST upcoming home game after Oct 23?"
+- VERIFY: Check venue or @ indicator to confirm it's at Detroit's home arena
+- FINAL: Provide the CLOSEST home game with date + time + opponent
+
+**FILTERING RULES:**
+1. If user asks for "home game" - ONLY return games at team's home venue
+2. If user asks for "away game" - ONLY return games at opponent's venue (with @)
+3. If user asks for "next game" - return the CLOSEST upcoming game (home or away)
+4. Always return the CLOSEST matching game after the current date
+5. Double-check the venue/location before finalizing answer
+
+**HOW TO IDENTIFY HOME VS AWAY GAMES IN SEARCH RESULTS:**
+When analyzing search results, look for these indicators:
+
+HOME GAME INDICATORS:
+✓ NO "@" symbol before opponent name
+✓ Format: "Team vs Opponent" or "Team - Opponent"
+✓ Venue matches team's home arena (e.g., Little Caesars Arena for Detroit Red Wings)
+✓ Listed as "HOME" in schedule
+✓ Team name appears first in matchup
+
+AWAY GAME INDICATORS:
+✗ "@" symbol present (e.g., "@ New York Rangers")
+✗ Format: "Team @ Opponent" or "Team at Opponent"
+✗ Venue is opponent's arena (e.g., game at Madison Square Garden when it's not your team's home)
+✗ Listed as "AWAY" or "ROAD" in schedule
+✗ Opponent name appears first with "vs" (e.g., "Rangers vs Red Wings" = away for Red Wings)
+
+CRITICAL: When user asks for HOME game, you MUST:
+1. Search specifically for "home game" or "home schedule"
+2. Parse results and REJECT any games with @ symbol
+3. Verify venue matches team's home arena
+4. If first result is away game, continue searching for home game
+5. NEVER return an away game when user asks for home game
+
+**FINAL VERIFICATION CHECKLIST (Before providing answer):**
+For HOME game queries, ask yourself:
+☐ Did I search with "home" keyword explicitly?
+☐ Does the result have NO "@" symbol?
+☐ Is the venue the team's home arena?
+☐ Is this the CLOSEST home game after the current date?
+☐ Did I verify with at least 2 sources?
+
+For AWAY game queries, ask yourself:
+☐ Did I search with "away" or "road" keyword?
+☐ Does the result have "@" symbol OR opponent's venue?
+☐ Is this the CLOSEST away game after the current date?
+☐ Did I verify with at least 2 sources?
+
+If ANY checkbox is NO, continue searching. Do NOT provide answer until ALL checkboxes are YES.
+
+FOR INVESTMENT QUERIES (e.g., "Should I invest in Bitcoin?"):
+- THOUGHT: "I need current price, trends, expert predictions, and risk factors"
+- ACTION 1: Search for current Bitcoin price and technical analysis
+- OBSERVE: Note current price and trend indicators
+- ACTION 2: Search for expert predictions for late 2025
+- OBSERVE: Gather price predictions and timeframes
+- ACTION 3: Search for current market sentiment and risks
+- OBSERVE: Understand market conditions and risks
+- REASON: Can I synthesize this into a clear conclusion?
+- FINAL: Provide data-driven analysis with clear bottom line
+
+FOR SPORTS PREDICTIONS (e.g., "Who has a better chance to win the [Team A] vs [Team B] game?"):
+- THOUGHT: "User wants prediction. I need current stats, recent form, head-to-head, and expert analysis"
+- ACTION 1: Search "Team A vs Team B current statistics 2025 season"
+- OBSERVE: Gather win/loss records, scoring averages, defensive stats
+- ACTION 2: Search "Team A vs Team B head to head history recent games"
+- OBSERVE: Analyze recent matchup results and patterns
+- ACTION 3: Search "Team A vs Team B expert predictions betting odds"
+- OBSERVE: Collect expert opinions and betting line insights
+- ACTION 4: Search "Team A Team B injuries lineup news October 2025"
+- OBSERVE: Check for key player injuries or absences
+- REASON: "Do I have enough data to provide an informed analysis?"
+- SYNTHESIZE: Compare all data points (stats, form, H2H, expert views, injuries)
+- FINAL: Provide analysis with clear assessment - "Based on available data: [Team A] appears to have the edge because [specific reasons with data]"
+- NEVER say "I cannot predict" - ALWAYS provide data-driven analysis
+
+CRITICAL REASONING GUIDELINES:
+- Always use MULTIPLE searches for verification, especially for sports schedules
+- Use site-specific searches (site:nhl.com, site:espn.com) for authoritative sources
+- If information conflicts between sources, continue searching until clarity
+- Don't stop at first result - verify with 2-3 sources
+- Reason about whether you have COMPLETE information before answering`;
+
+  // Update the first message with ReAct instructions
+  const reactMessages = [
+    {
+      role: "system",
+      content: reactSystemPrompt
+    },
+    ...messages.slice(1)
+  ];
+
+  let currentMessages = [...reactMessages];
   let iterationCount = 0;
-  const maxIterations = 5; // Prevent infinite loops
+  const maxIterations = 8; // Increased for ReAct reasoning cycles
   let usedUrls = new Set(); // Track URLs used for references
+  let reasoningLog = []; // Track reasoning steps
 
   while (iterationCount < maxIterations) {
     iterationCount++;
-    console.log(`\n=== Iteration ${iterationCount} ===`);
+    console.log(`\n=== ReAct Agent Iteration ${iterationCount}/${maxIterations} ===`);
 
     const res = await toolBasedLlm.invoke(currentMessages);
     console.log("Response tool_calls:", res.tool_calls?.length || 0);
+
+    // Log reasoning if present in the response
+    if (res.content && typeof res.content === 'string' && res.content.length > 0) {
+      console.log(`💭 Agent Reasoning: ${res.content.substring(0, 200)}...`);
+      reasoningLog.push({
+        iteration: iterationCount,
+        reasoning: res.content,
+        toolCalls: res.tool_calls?.length || 0
+      });
+    }
 
     // If no tool calls, we have a final answer
     if (!res.tool_calls || res.tool_calls.length === 0) {
@@ -1264,6 +1453,10 @@ async function executeToolBasedConversation(messages) {
         }
       };
 
+      console.log("\n=== ReAct Agent Summary ===");
+      console.log(`Total iterations: ${iterationCount}`);
+      console.log(`Total tool calls: ${reasoningLog.reduce((sum, log) => sum + log.toolCalls, 0)}`);
+      console.log(`Sources verified: ${usedUrls.size}`);
       console.log("\n=== Formatted Response ===");
       console.log(JSON.stringify(formattedResponse, null, 2));
       return formattedResponse;
@@ -1278,8 +1471,8 @@ async function executeToolBasedConversation(messages) {
 
     // Execute each tool call and add results
     for (const toolCall of res.tool_calls) {
-      console.log(`Executing tool: ${toolCall.name}`);
-      console.log(`Args:`, toolCall.args);
+      console.log(`🔧 ReAct ACTION: Executing tool: ${toolCall.name}`);
+      console.log(`📝 Search Query:`, toolCall.args.input);
 
       try {
         // Execute the tool based on its name
@@ -1289,12 +1482,18 @@ async function executeToolBasedConversation(messages) {
             apiKey: config.google_search_api_key,
             googleCSEId: config.google_engine_id
           });
+
+          const startTime = Date.now();
           toolResult = await googleSearch.invoke(toolCall.args.input);
+          const duration = Date.now() - startTime;
+
+          console.log(`✅ Search completed in ${duration}ms`);
 
           // Extract URLs from Google search results for references
           try {
             const searchResults = JSON.parse(toolResult);
             if (Array.isArray(searchResults)) {
+              console.log(`📊 ReAct OBSERVE: Found ${searchResults.length} search results`);
               searchResults.forEach(result => {
                 if (result.link) {
                   usedUrls.add(result.link);
@@ -1305,6 +1504,7 @@ async function executeToolBasedConversation(messages) {
             // If not JSON, try to extract URLs with regex
             const urlRegex = /https?:\/\/[^\s"]+/g;
             const urls = toolResult.match(urlRegex) || [];
+            console.log(`📊 ReAct OBSERVE: Extracted ${urls.length} URLs from results`);
             urls.forEach(url => usedUrls.add(url));
           }
 

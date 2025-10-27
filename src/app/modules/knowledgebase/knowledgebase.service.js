@@ -566,7 +566,9 @@ class KnowledgebaseService {
 
       // Placeholder for file deletion logic
       // You can implement the actual deletion here later
+      await KnowledgebaseFile.deleteOne({ _id: fileId });
 
+      logger.info(`File ${fileId} deleted successfully for user: ${userId}`);
       return true;
     } catch (error) {
       logger.error('Error deleting user file:', error);

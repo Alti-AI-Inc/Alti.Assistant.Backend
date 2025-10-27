@@ -436,6 +436,56 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
   }
 });
 
+const deleteFile = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+  if (isGuest) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'File deletion is only available for authenticated users',
+    });
+  }
+  const userId = req.user?.userId || req.user?._id;
+  const { fileId } = req.params;
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+  if (!fileId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'File ID is required',
+    });
+  }
+  try {
+    const result = await knowledgebaseService.deleteUserFile(fileId, userId);
+    if (!result) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'File not found or could not be deleted',
+      });
+    }
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'File deleted successfully',
+    });
+  }
+  catch (error) {
+    logger.error("Delete user file error:", error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'An error occurred while deleting the file',
+    });
+  }
+});
+
 /**
  * Get conversation messages
  */
@@ -512,6 +562,7 @@ const getConversationMessages = catchAsync(async (req, res) => {
 export const knowledgebaseController = {
   uploadFile,
   getUserFiles,
+  deleteFile,
   createKnowledgeBase,
   getUserKnowledgeBases,
   invokeRagSystem,
