@@ -3,7 +3,7 @@ import {
   extractToolParameters,
   generateUserResponse,
   filterToolsByRelevance,
-  executeComposioWithGroq,
+  executeComposioWithGemini,
   classifyAppIntent,
   classifyActionIntent,
   identifyRequiredApps,
@@ -387,7 +387,7 @@ export const executeToolNode = async (state) => {
     // );
 
     // Execute the tool using Composio with history context
-    const executionResult = await executeComposioWithGroq(
+    const executionResult = await executeComposioWithGemini(
       connectedAccount.userId,
       userInput,
       relevantTools,
@@ -959,7 +959,7 @@ export const executeStepNode = async (state) => {
 
     console.log('Execution context with previous steps:', executionContext);
 
-    const executionResult = await executeComposioWithGroq(
+    const executionResult = await executeComposioWithGemini(
       account.userId,
       executionContext,
       tool,

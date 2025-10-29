@@ -1,4 +1,4 @@
-import { runGroqTask } from '../services/aiClassificationService.js';
+import { runGeminiTask } from '../services/aiClassificationService.js';
 
 /**
  * Schedule Detection Service - Detects scheduling requirements from user input
@@ -49,7 +49,7 @@ Respond with a JSON object:
 }`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
 
     let cleanedResult = result;
     if (result.includes('<think>')) {
@@ -124,7 +124,7 @@ Respond with a JSON object:
 }`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
 
     let cleanedResult = result;
     if (result.includes('<think>')) {
@@ -195,7 +195,7 @@ Respond with a JSON object:
 }`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
 
     let cleanedResult = result;
     if (result.includes('<think>')) {

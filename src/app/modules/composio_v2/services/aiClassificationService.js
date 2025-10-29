@@ -1,4 +1,4 @@
-import { ChatGroq } from '@langchain/groq';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import config from '../../../../../config/index.js';
 import { AgentExecutor, createReactAgent } from 'langchain/agents';
 import { Composio, OpenAIProvider } from '@composio/core';
@@ -8,36 +8,34 @@ const composio = new Composio({
   provider: new OpenAIProvider(),
 });
 /**
- * AI Classification Service using Groq
+ * AI Classification Service using Gemini 2.5
  * This service handles AI-powered classification and reasoning tasks
  */
-const llm = new ChatGroq({
-  model: 'deepseek-r1-distill-llama-70b',
-  apiKey: config.groq_api_key,
+const llm = new ChatGoogleGenerativeAI({
+  model: 'gemini-2.0-flash-exp',
+  apiKey: config.gemini_secret_key,
   temperature: 0,
-  maxTokens: undefined,
   maxRetries: 2,
-  // other params...
 });
 
-const runGroqTask = async (userPrompt, systemPrompt) => {
+const runGeminiTask = async (userPrompt, systemPrompt) => {
   try {
-    // console.log('Running Groq task with user prompt:', userPrompt);
+    // console.log('Running Gemini task with user prompt:', userPrompt);
     const response = await llm.invoke([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ]);
-    // console.log('Groq task completed successfully.');
+    // console.log('Gemini task completed successfully.');
     return response.content;
   } catch (error) {
-    console.error('Error running Groq task:', error);
-    throw new Error('Failed to run Groq task');
+    console.error('Error running Gemini task:', error);
+    throw new Error('Failed to run Gemini task');
   }
 };
 import fs from 'fs';
-export const executeComposioWithGroq = async (userId, userMessage, tools, apps, historySummary = null, conversationContext = null) => {
+export const executeComposioWithGemini = async (userId, userMessage, tools, apps, historySummary = null, conversationContext = null) => {
   try {
-    // console.log(`Executing Composio tools with Groq for user: ${userId} ${userMessage}`);
+    // console.log(`Executing Composio tools with Gemini for user: ${userId} ${userMessage}`);
     // console.log('History context available:', !!historySummary);
 
     // fs.writeFileSync(`${userId}_history.json`, JSON.stringify({
@@ -99,7 +97,7 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
       systemMessage += `\n\nUse this context to better understand the user's current request and maintain continuity with previous actions.`;
     }
 
-    // Create messages for ChatGroq
+    // Create messages for Gemini
     const messages = [
       new SystemMessage(systemMessage),
       new HumanMessage(systemMessage),
@@ -107,16 +105,16 @@ export const executeComposioWithGroq = async (userId, userMessage, tools, apps, 
 
     // console.log('System message with context:', systemMessage.substring(0, 500) + '...');
 
-    // Execute with ChatGroq
-    const response = await runGroqTaskWithTools([{
+    // Execute with Gemini
+    const response = await runGeminiTaskWithTools([{
       role: 'user',
       content: systemMessage + '\n' + userMessage
     }], tools, userId, apps);
-    console.log('Groq task response:', response);
+    console.log('Gemini task response:', response);
 
     return response;
   } catch (error) {
-    console.error('Error in executeComposioWithGroq:', error);
+    console.error('Error in executeComposioWithGemini:', error);
     throw error;
   }
 };
@@ -125,9 +123,9 @@ import ComposioAuth from '../composio.model.js';
 import { ChatOpenAI, OpenAIClient } from '@langchain/openai';
 import OpenAI from 'openai';
 
-export const runGroqTaskWithTools = async (messages, tools = [], userId, app) => {
+export const runGeminiTaskWithTools = async (messages, tools = [], userId, app) => {
   try {
-    // console.log('Running Groq task with Composio tools...', app, userId);
+    // console.log('Running Gemini task with Composio tools...', app, userId);
     const connectedAccount = await ComposioAuth.findOne({
       userId: userId,
       'toolkit.slug': app
@@ -178,7 +176,7 @@ export const runGroqTaskWithTools = async (messages, tools = [], userId, app) =>
       tool_call_results: result[0].content
     };
   } catch (error) {
-    console.error('Error in runGroqTaskWithTools:', error);
+    console.error('Error in runGeminiTaskWithTools:', error);
     return {
       content: `Error processing request: ${error.message}`,
       success: false,
@@ -261,7 +259,7 @@ Classify this input and respond with a JSON object:
 }`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
     // Clean the response to ensure it's valid JSON
     let cleanedResult = '';
     if (result.includes('<think>')) {
@@ -366,8 +364,9 @@ Respond with a JSON object:
 }`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
-    let cleanedResult = '';
+    const result = await runGeminiTask(userPrompt, systemPrompt);
+    console.log('Raw parameter extraction result:', result);
+    let cleanedResult = result;
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = result.replace(regex, '').trim();
@@ -388,6 +387,7 @@ Respond with a JSON object:
     if (jsonMatch) {
       cleanedResult = jsonMatch[1];
     }
+    console.log('Extracted parameters Cleaned Response:', cleanedResult);
     // console.log('Extracted parameters Cleaned Response:', cleanedResult);
     const parsed = JSON.parse(cleanedResult);
     return parsed.parameters || {};
@@ -435,7 +435,7 @@ Generate a friendly success response that confirms the action was completed and 
   }
 
   try {
-    const response = await runGroqTask(userPrompt, systemPrompt);
+    const response = await runGeminiTask(userPrompt, systemPrompt);
     return response;
   } catch (error) {
     console.error('Error in generateUserResponse:', error);
@@ -476,7 +476,7 @@ Respond with a JSON array of tool names in order of relevance:
 Return only the JSON array.`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
     let cleanedResult = '';
     if (result.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
@@ -516,7 +516,7 @@ Return only the JSON array.`;
   }
 };
 
-export { runGroqTask };
+export { runGeminiTask };
 
 /**
  * Classify user intent to identify the app from available apps
@@ -550,7 +550,7 @@ Recent conversation:
 ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
 
   try {
-    const response = await runGroqTask(userInput, systemPrompt);
+    const response = await runGeminiTask(userInput, systemPrompt);
 
     let cleanResponse = response;
 
@@ -621,7 +621,7 @@ Recent conversation:
 ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
 
   try {
-    const response = await runGroqTask(userInput, systemPrompt);
+    const response = await runGeminiTask(userInput, systemPrompt);
 
     let cleanResponse = response;
 
@@ -699,7 +699,7 @@ Respond with a JSON object:
 }`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
     let cleanedResult = result;
 
     if (result.includes('<think>')) {
@@ -814,7 +814,7 @@ Respond with a JSON object:
 }`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
     let cleanedResult = result;
 
     if (result.includes('<think>')) {
@@ -891,7 +891,7 @@ Respond with a JSON object:
 }`;
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
     let cleanedResult = result;
 
     if (result.includes('<think>')) {
@@ -1011,7 +1011,7 @@ Respond with a JSON object:
 
 
   try {
-    const result = await runGroqTask(userPrompt, systemPrompt);
+    const result = await runGeminiTask(userPrompt, systemPrompt);
     let cleanedResult = result;
 
     if (result.includes('<think>')) {

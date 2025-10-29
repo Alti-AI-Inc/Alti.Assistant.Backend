@@ -2,12 +2,13 @@
 import WorkflowExecution from '../models/workflowExecution.model.js';
 import ComposioAuth from '../composio.model.js';
 import ScheduledWorkflow from '../models/scheduledWorkflow.model.js';
+import { logger } from '../../../../shared/logger.js';
 
 /**
  * Workflow Service - Core business logic for scheduled workflows
  */
 class WorkflowService {
-  
+
   /**
    * Create a new scheduled workflow
    */
@@ -294,7 +295,7 @@ class WorkflowService {
 
       // Create execution record
       const executionResult = await this.createExecution(workflow, 'manual', triggerSource);
-      
+
       if (!executionResult.success) {
         return executionResult;
       }
@@ -302,7 +303,7 @@ class WorkflowService {
       // TODO: Add to execution queue here
       // For now, just return success
       console.log(`Workflow triggered manually: ${workflowId}`);
-      
+
       return {
         success: true,
         data: {
@@ -452,8 +453,8 @@ class WorkflowService {
   async validateWorkflowConnections(workflow) {
     try {
       const connectedAccounts = await this.getUserConnectedAccounts(workflow.userId, workflow.requiredApps);
-      
-      const missingApps = workflow.requiredApps.filter(app => 
+
+      const missingApps = workflow.requiredApps.filter(app =>
         !connectedAccounts.some(account => account.app === app && account.status === 'active')
       );
 

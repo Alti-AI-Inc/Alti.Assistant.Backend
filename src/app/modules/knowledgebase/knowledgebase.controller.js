@@ -69,6 +69,55 @@ const uploadFile = catchAsync(async (req, res) => {
   }
 });
 
+const deleteKnowledgeBase = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+  if (isGuest) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Knowledge base deletion is only available for authenticated users',
+    });
+  }
+  const userId = req.user?.userId || req.user?._id;
+  const { knowledgebaseId } = req.params;
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+  if (!knowledgebaseId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Knowledge base ID is required',
+    });
+  }
+  try {
+    const result = await knowledgebaseService.deleteKnowledgeBase(knowledgebaseId, userId);
+    if (!result) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Knowledge base not found or could not be deleted',
+      });
+    }
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Knowledge base deleted successfully',
+    });
+  } catch (error) {
+    logger.error("Delete knowledge base error:", error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'An error occurred while deleting the knowledge base',
+    });
+  }
+});
+
 /**
  * Get user's uploaded files
  */
@@ -563,6 +612,7 @@ export const knowledgebaseController = {
   uploadFile,
   getUserFiles,
   deleteFile,
+  deleteKnowledgeBase,
   createKnowledgeBase,
   getUserKnowledgeBases,
   invokeRagSystem,

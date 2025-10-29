@@ -554,6 +554,26 @@ class KnowledgebaseService {
     }
   }
 
+  async deleteKnowledgeBase(knowledgebaseId, userId) {
+    try {
+      logger.info(`Deleting knowledge base: ${knowledgebaseId} for user: ${userId}`);
+      const knowledgeBase = await KnowledgeBase.findOne({
+        _id: knowledgebaseId,
+        userId: userId
+      });
+      if (!knowledgeBase) {
+        throw new Error('Knowledge base not found');
+      }
+      knowledgeBase.isActive = false;
+      await knowledgeBase.save();
+      logger.info(`Knowledge base deleted successfully: ${knowledgebaseId}`);
+      return true;
+    } catch (error) {
+      logger.error('Error deleting knowledge base:', error);
+      throw error;
+    }
+  }
+
   /**
    * Delete user file
    * @param {string} fileId - The file ID

@@ -2,20 +2,20 @@ import { logger } from '../../../../shared/logger.js';
 import WorkflowExecution from '../models/workflowExecution.model.js';
 import ScheduledWorkflow from '../models/scheduledWorkflow.model.js';
 import { runAIClassificationAgent } from '../ai_classification/workflow.js';
-import { executeComposioWithGroq } from '../services/aiClassificationService.js';
+import { executeComposioWithGemini } from '../services/aiClassificationService.js';
 import ComposioAuth from '../composio.model.js';
 
 /**
  * Workflow Executor Service - Executes saved workflows
  */
 class WorkflowExecutor {
-  
+
   /**
    * Execute a saved workflow
    */
   async executeWorkflow(workflow, executionType = 'manual', triggerSource = 'api_call') {
     const executionId = WorkflowExecution.generateExecutionId();
-    
+
     try {
       logger.info(`Starting workflow execution: ${workflow.workflowId} (${executionType})`);
 
@@ -38,10 +38,10 @@ class WorkflowExecutor {
       if (!connectionCheck.success) {
         await execution.addLog('error', `Connection validation failed: ${connectionCheck.error}`);
         await execution.completeExecution(false, { error: connectionCheck.error });
-        
+
         // Update workflow failure count
         await workflow.updateExecutionStats(false);
-        
+
         return {
           success: false,
           executionId,
@@ -110,7 +110,7 @@ class WorkflowExecutor {
   async executeSingleStepWorkflow(workflow, execution) {
     try {
       const step = workflow.executionPlan[0];
-      
+
       await execution.addLog('info', `Executing single step: ${step.app} -> ${step.action}`);
       await execution.updateProgress(1, {
         step: 1,
@@ -157,7 +157,7 @@ class WorkflowExecutor {
 
     } catch (error) {
       logger.error('Error in single-step execution:', error);
-      
+
       await execution.updateProgress(1, {
         step: 1,
         app: workflow.executionPlan[0].app,
@@ -190,10 +190,10 @@ class WorkflowExecutor {
         const stepNumber = step.step;
 
         await execution.addLog('info', `Starting step ${stepNumber}: ${step.app} -> ${step.action}`);
-        
+
         // Check dependencies
         if (step.dependencies && step.dependencies.length > 0) {
-          const dependenciesMet = step.dependencies.every(depStep => 
+          const dependenciesMet = step.dependencies.every(depStep =>
             stepResults.some(sr => sr.step === depStep && sr.status === 'completed')
           );
 
@@ -215,8 +215,8 @@ class WorkflowExecutor {
         try {
           // Resolve parameters with cross-step data
           const resolvedParameters = this.resolveCrossStepParameters(
-            step.parameters, 
-            stepOutputs, 
+            step.parameters,
+            stepOutputs,
             workflow.crossStepParameters
           );
 
@@ -265,7 +265,7 @@ class WorkflowExecutor {
 
         } catch (stepError) {
           logger.error(`Error in step ${stepNumber}:`, stepError);
-          
+
           const failedStepResult = {
             step: stepNumber,
             app: step.app,
@@ -286,7 +286,7 @@ class WorkflowExecutor {
         success: true,
         data: { stepResults },
         summary: `Multi-step workflow completed successfully (${workflow.executionPlan.length} steps)`,
-        outputData: { 
+        outputData: {
           stepResults: stepResults.map(sr => sr.result),
           crossStepOutputs: stepOutputs
         }
@@ -294,7 +294,7 @@ class WorkflowExecutor {
 
     } catch (error) {
       logger.error('Error in multi-step execution:', error);
-      
+
       return {
         success: false,
         error: error.message,
@@ -311,9 +311,9 @@ class WorkflowExecutor {
     try {
       // Use existing Composio integration
       // This simulates the actual execution - in production, you'd call the real Composio API
-      
+
       logger.info(`Executing ${app}.${action} for user ${userId}`);
-      
+
       // Mock execution for demo purposes
       const mockResult = {
         success: true,
@@ -457,7 +457,7 @@ class WorkflowExecutor {
   async cancelExecution(executionId, userId) {
     try {
       const execution = await WorkflowExecution.findOne({ executionId, userId });
-      
+
       if (!execution) {
         return {
           success: false,
@@ -496,7 +496,7 @@ class WorkflowExecutor {
   async retryExecution(executionId, userId) {
     try {
       const execution = await WorkflowExecution.findOne({ executionId, userId });
-      
+
       if (!execution) {
         return {
           success: false,
@@ -513,7 +513,7 @@ class WorkflowExecutor {
 
       // Get the original workflow
       const workflow = await ScheduledWorkflow.findOne({ workflowId: execution.workflowId });
-      
+
       if (!workflow) {
         return {
           success: false,
