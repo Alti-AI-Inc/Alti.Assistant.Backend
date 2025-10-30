@@ -18,7 +18,8 @@ router.route('/register').post(
   // validateRequest(AuthValidation.UserValidationSchema),
   authController.register,
 );
-router.route('/register/confirmation/:token').get(authController.confirmEmail); // verify mail
+router.route('/register/resend-confirmation').post(authController.resendEmailConfirmation);
+router.route('/register/confirmation').post(authController.confirmEmail); // verify mail
 
 router.route('/login').post(createRateLimiter(5, 5), authController.login); // login in app
 

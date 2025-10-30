@@ -68,6 +68,7 @@ const UserSchema = new mongoose.Schema(
     resetPasswordExpires: Date,
     deleteAccountOTP: String,
     deleteAccountExpires: Date,
+    stripeAccountId: { type: String },
   },
   {
     timestamps: true,

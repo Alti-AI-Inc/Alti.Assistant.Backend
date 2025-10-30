@@ -30,8 +30,19 @@ const register = catchAsync(async (req, res) => {
   });
 });
 
+const resendEmailConfirmation = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  const result = await authService.resendEmailConfirmationService(email);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
 const confirmEmail = catchAsync(async (req, res) => {
-  const { token } = req.params;
+  const { token } = req.body;
   const result = await authService.confirmEmailService(token);
   if (result instanceof ApiError) {
     // If an ApiError is returned, handle it as an error response
@@ -43,7 +54,12 @@ const confirmEmail = catchAsync(async (req, res) => {
   }
 
   // If no error, redirect to the URL
-  res.status(302).redirect('https://www.asonai.com');
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Email confirmed successfully',
+    data: null,
+  });
 });
 
 const login = catchAsync(async (req, res) => {
@@ -415,6 +431,7 @@ export const authController = {
   login,
   refreshToken,
   confirmEmail,
+  resendEmailConfirmation,
   getUser,
   updateUser,
   forgetPassword,

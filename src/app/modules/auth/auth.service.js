@@ -8,6 +8,9 @@ import { jwtHelpers } from '../../helpers/jwtHelpers.js';
 import { sendMailWithMailGun } from '../../middlewares/sendEmail/sendMailWithMailGun.js';
 import UserModel from './auth.model.js';
 import { registrationOtpTemplate } from './auth.utils.js';
+import Token from './token.model.js';
+import crypto from 'crypto';
+import { createCustomerService } from '../stripe/customer/stripe.service.js';
 
 const deleteUserAccountService = async userId => {
   const result = await UserModel.deleteOne({ _id: userId });
@@ -35,8 +38,17 @@ const registerService = async req => {
         { session },
       );
 
-      const token = user[0].generateConfirmationToken();
-      await user[0].save({ session, validateBeforeSave: false });
+      //Generate 6 digit token only numbers
+      const token = crypto.randomInt(100000, 999999).toString();
+
+      const newToken = new Token({
+        userId: user[0]._id,
+        token: token,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+        type: 'emailVerification',
+      })
+
+      await newToken.save({ newToken });
 
       const mailData = await registrationOtpTemplate(email, token);
       await sendMailWithMailGun(mailData);
@@ -56,13 +68,14 @@ const registerService = async req => {
     session.endSession();
     throw new ApiError(httpStatus.BAD_REQUEST, 'Password is required.');
   } catch (error) {
-    await session.abortTransaction().catch(() => {});
+    await session.abortTransaction().catch(() => { });
     session.endSession();
 
     // Only rethrow if it's already an ApiError
     if (error instanceof ApiError) {
       throw error;
     }
+    console.error('Registration Error:', error);
 
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
@@ -71,14 +84,43 @@ const registerService = async req => {
   }
 };
 
-const confirmEmailService = async token => {
-  const user = await UserModel.findOne({ confirmationToken: token });
-
+const resendEmailConfirmationService = async email => {
+  const user = await UserModel.findOne({ email });
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
+  if (user.role !== 'unauthorized') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email is already verified');
+  }
+  const token = crypto.randomInt(100000, 999999).toString();
 
-  const expired = new Date() > new Date(user.confirmationTokenExpires);
+  const newToken = new Token({
+    userId: user._id,
+    token: token,
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+    type: 'emailVerification',
+  })
+  await newToken.save({ newToken });
+
+  const mailData = await registrationOtpTemplate(email, token);
+  await sendMailWithMailGun(mailData);
+  return { message: 'Verification email resent successfully' };
+}
+
+const confirmEmailService = async confirmationCode => {
+  const token = await Token.findOne({ token: confirmationCode, type: 'emailVerification' });
+  if (!token) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Invalid or expired token');
+  }
+  console.log(token, 'token');
+
+  const user = await UserModel.findById(token.userId);
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+  console.log(user, 'user');
+
+  const expired = new Date() > new Date(token.expiresAt);
 
   if (expired) {
     throw new ApiError(
@@ -92,6 +134,7 @@ const confirmEmailService = async token => {
   user.confirmationTokenExpires = undefined;
 
   await user.save({ validateBeforeSave: false });
+  await Token.deleteOne({ _id: token._id });
 
   return { success: true };
 };
@@ -147,7 +190,19 @@ const loginService = async (email, password) => {
     config.jwt.refresh_token,
     config.jwt.refresh_expires_in,
   );
-
+  const isStripeAccountConnected = user?.stripeAccountId;
+  if (!isStripeAccountConnected) {
+    try {
+      const stripeAccountId = await createCustomerService({
+        email: user.email,
+        name: user.username || 'No Name',
+      });
+      user.stripeAccountId = stripeAccountId.id;
+      await user.save();
+    } catch (error) {
+      logger.error('Error creating Stripe customer:', error);
+    }
+  }
   return {
     _id: user._id,
     accessToken,
@@ -215,6 +270,7 @@ export const authService = {
   deleteUserAccountService,
   registerService,
   confirmEmailService,
+  resendEmailConfirmationService,
   loginService,
   refreshToken,
   updateUserService,

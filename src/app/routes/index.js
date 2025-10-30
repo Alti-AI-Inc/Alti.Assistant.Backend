@@ -31,6 +31,7 @@ import { deepResearchRoute } from '../modules/deep_research/deep_research.route.
 import { composioV2Routes } from '../modules/composio_v2/composio.route.js';
 import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
 import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
+import { stripeRoutes } from '../modules/stripe/stripe.route.js';
 
 const router = express.Router();
 
@@ -162,6 +163,10 @@ const moduleRoutes = [
   {
     path: '/knowledgebase',
     route: knowledgebaseRoutes
+  },
+  {
+    path: '/stripe',
+    route: stripeRoutes
   }
 ];
 

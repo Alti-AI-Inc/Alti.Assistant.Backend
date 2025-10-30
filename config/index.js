@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { google } from 'googleapis';
 import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -73,5 +74,11 @@ export default {
     vertex_ai_endpoint: process.env.VERTEX_AI_ENDPOINT,
     vertex_ai_region: process.env.VERTEX_AI_LOCATION,
     model_id: process.env.MODEL_ID,
+  },
+  mail: {
+    google_smtp_password: process.env.GOOGLE_SMTP_PASSWORD,
+    google_smtp_user: process.env.GOOGLE_SMTP_USER,
+    google_smtp_host: process.env.GOOGLE_SMTP_HOST,
+    google_smtp_port: process.env.GOOGLE_SMTP_PORT,
   }
 };
