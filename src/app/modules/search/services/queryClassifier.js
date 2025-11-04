@@ -14,7 +14,7 @@ const PROGRAMMING_LANGUAGES = [
 ];
 
 const CODE_KEYWORDS = [
-  'function', 'class', 'method', 'variable', 'loop', 'algorithm', 'code',
+  'function', 'class', 'method', 'variable', 'loop', 'algorithm', 'code', 'script',
   'debug', 'error', 'bug', 'implement', 'refactor', 'syntax', 'compile',
   'runtime', 'exception', 'async', 'await', 'promise', 'callback', 'closure',
   'recursion', 'iteration', 'scope', 'inheritance', 'polymorphism', 'interface',
@@ -31,9 +31,11 @@ const TECHNICAL_TERMS = [
 ];
 
 const DEVELOPMENT_ACTIONS = [
-  'write code', 'create function', 'implement', 'build', 'develop', 'program',
+  'write code', 'write script', 'write a script', 'create function', 'create script',
+  'implement', 'build', 'develop', 'program', 'make a script', 'generate code',
   'fix bug', 'debug', 'troubleshoot', 'optimize', 'refactor', 'review code',
-  'how to code', 'coding', 'programming', 'software development', 'app development'
+  'how to code', 'coding', 'programming', 'software development', 'app development',
+  'show me code', 'give me code', 'provide code', 'code for', 'script for'
 ];
 
 const DATA_STRUCTURES = [
@@ -116,6 +118,14 @@ function analyzeKeywordMatches(query) {
  */
 function checkCodePatterns(query) {
   let score = 0;
+  const lowerQuery = query.toLowerCase();
+
+  // Check for code request patterns
+  if (/write\s+(a\s+)?.*?\s+(script|code|function|class|program)/.test(lowerQuery)) score += 3;
+  if (/create\s+(a\s+)?.*?\s+(script|code|function|class|program)/.test(lowerQuery)) score += 3;
+  if (/generate\s+(a\s+)?.*?\s+(script|code|function|class|program)/.test(lowerQuery)) score += 3;
+  if (/make\s+(a\s+)?.*?\s+(script|code|function|class|program)/.test(lowerQuery)) score += 3;
+  if (/(show|give|provide)\s+me\s+(a\s+)?(script|code|example)/.test(lowerQuery)) score += 3;
 
   // Check for code snippets (curly braces, semicolons, etc.)
   if (query.includes('{') && query.includes('}')) score += 2;
