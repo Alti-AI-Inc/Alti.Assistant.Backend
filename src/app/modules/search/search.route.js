@@ -18,6 +18,15 @@ router.post(
   searchController.performSearch
 );
 
+// Dedicated code generation endpoint - Always uses Claude Sonnet 4.5
+router.post(
+  '/code',
+  optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  // createRateLimiter(20, 15), // 20 code generation requests per 15 minutes
+  validateRequest(SearchValidation.searchQuerySchema),
+  searchController.generateCode
+);
+
 // Get search statistics - authenticated users only
 router.get(
   '/stats',

@@ -258,8 +258,158 @@ const getSearchStats = catchAsync(async (req, res) => {
     });
 });
 
+/**
+ * Dedicated code generation endpoint - Always uses Claude Sonnet 4.5
+ */
+const generateCode = catchAsync(async (req, res) => {
+    console.log("Code generation request:", req.user);
+
+    const isGuest = req.isGuest || !req.user;
+    let userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    const { message, conversationId } = req.body;
+    userId = req.body.userId || userId;
+
+    // Skip subscription check for guest users
+    if (!isGuest) {
+        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+        const prompotUsage = userSubscription ? userSubscription.usage : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+
+        if (prompotUsage <= totalConversationWithConvId) {
+            return sendResponse(res, {
+                statusCode: httpStatus.FORBIDDEN,
+                success: false,
+                message: 'You have reached your code generation limit for this month. Please upgrade your plan to continue.',
+            });
+        }
+    }
+
+    if (!message) {
+        return sendResponse(res, {
+            statusCode: httpStatus.BAD_REQUEST,
+            success: false,
+            message: 'A code generation request is required',
+        });
+    }
+
+    if (!userId) {
+        return sendResponse(res, {
+            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+            success: false,
+            message: 'Failed to generate user identifier',
+        });
+    }
+
+    const thread_id = conversationId || searchService.generateSearchConversationId();
+
+    try {
+        // Handle conversation creation/retrieval
+        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
+        const actualConversationId = conversation.conversationId || thread_id;
+
+        // Get conversation history for context-aware processing
+        let conversationHistory = [];
+        if (conversationId && conversation.messages) {
+            conversationHistory = conversation.messages
+                .slice(-10)
+                .map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+        }
+
+        // Add user message to conversation
+        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
+
+        // Import code generation function
+        const { runCodeGeneration } = await import('./llm.js');
+
+        const inputs = {
+            query: message,
+            conversationContext: conversationHistory,
+            conversationId: actualConversationId,
+            currentQuery: message,
+        };
+
+        const result = await runCodeGeneration(inputs, false);
+        logger.info(`Code Generation Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
+
+        const answer = result.answer;
+        const reference = result.reference || [];
+        const citationMetadata = result.citationMetadata || {
+            model: 'gemini-2.5-flash-preview-05-20',
+            type: 'code_generation',
+            timestamp: new Date().toISOString()
+        };
+
+        // Add assistant response to conversation
+        const messageMetadata = {
+            reference,
+            citationMetadata,
+            searchQuery: message,
+            searchTimestamp: citationMetadata.timestamp || new Date().toISOString(),
+            model: citationMetadata.model || 'gemini-2.5-flash-preview-05-20',
+            type: 'code_generation'
+        };
+
+        await searchService.addSearchResultMessage(actualConversationId, userId, answer, messageMetadata, isGuest);
+
+        return sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: 'Code generated successfully',
+            data: {
+                responseMessage: {
+                    answer: answer,
+                    reference,
+                    citations: reference.map((ref, index) => ({
+                        index: index + 1,
+                        url: ref.url,
+                        domain: ref.domain
+                    })),
+                    citationMetadata
+                },
+                conversationId: actualConversationId,
+                messageCount: conversation.messageCount + 2,
+                userType: isGuest ? 'guest' : 'authenticated',
+                userId: isGuest ? userId : undefined,
+                model: citationMetadata.model || 'gemini-2.5-flash-preview-05-20'
+            },
+        });
+
+    } catch (error) {
+        logger.error("Code Generation Error:", error);
+
+        const errorConversationId = conversationId || searchService.generateSearchConversationId();
+        try {
+            if (errorConversationId && userId) {
+                await searchService.addErrorMessage(
+                    errorConversationId,
+                    userId,
+                    'I apologize, but an error occurred while generating code.',
+                    error,
+                    isGuest
+                );
+            }
+        } catch (convError) {
+            logger.error("Failed to save error to conversation:", convError);
+        }
+
+        return sendResponse(res, {
+            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+            success: false,
+            message: 'An internal error occurred while generating code',
+            data: {
+                conversationId: errorConversationId,
+                userType: isGuest ? 'guest' : 'authenticated',
+            },
+        });
+    }
+});
+
 export const searchController = {
     performSearch,
     getSearchStats,
+    generateCode,
 };
 
