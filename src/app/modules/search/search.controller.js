@@ -82,106 +82,48 @@ export const performSearch = catchAsync(async (req, res) => {
         // console.log('Research Assistant Result:', result);
 
 
-        const stream = result.answer;
+        const answer = result.answer;
         const reference = result.reference || [];
         const citationMetadata = result.citationMetadata || null;
 
         console.log('References are:', reference);
         console.log('Citation metadata:', citationMetadata);
 
-        let fullResponse = "";
+        // Always send as JSON response (no streaming)
+        const fullResponse = answer;
 
-        if (typeof stream === 'string') {
-            // If the stream is a string, send it directly as a JSON response
-            fullResponse = stream;
+        // Add assistant response to conversation with enhanced metadata
+        const messageMetadata = {
+            reference,
+            citationMetadata,
+            searchQuery: citationMetadata?.searchQuery || message,
+            searchTimestamp: citationMetadata?.searchTimestamp || new Date().toISOString()
+        };
 
-            // Add assistant response to conversation with enhanced metadata
-            const messageMetadata = {
-                reference,
-                citationMetadata,
-                searchQuery: citationMetadata?.searchQuery || message,
-                searchTimestamp: citationMetadata?.searchTimestamp || new Date().toISOString()
-            };
+        await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, messageMetadata, isGuest);
+        console.log('Full response:', fullResponse);
 
-            await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, messageMetadata, isGuest);
-            console.log('Full response:', fullResponse);
-
-            return sendResponse(res, {
-                statusCode: httpStatus.OK,
-                success: true,
-                message: 'Search completed successfully',
-                data: {
-                    responseMessage: {
-                        answer: fullResponse,
-                        reference,
-                        citations: reference.map((ref, index) => ({
-                            index: index + 1,
-                            url: ref.url,
-                            domain: ref.domain
-                        })),
-                        citationMetadata
-                    },
-                    conversationId: actualConversationId,
-                    messageCount: conversation.messageCount + 2,
-                    userType: isGuest ? 'guest' : 'authenticated',
-                    userId: isGuest ? userId : undefined, // Include userId for guest users for frontend tracking
+        return sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: 'Search completed successfully',
+            data: {
+                responseMessage: {
+                    answer: fullResponse,
+                    reference,
+                    citations: reference.map((ref, index) => ({
+                        index: index + 1,
+                        url: ref.url,
+                        domain: ref.domain
+                    })),
+                    citationMetadata
                 },
-            });
-        } else {
-            // Set up SSE headers only when streaming
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Connection', 'keep-alive');
-            res.flushHeaders();
-
-            for await (const event of stream) {
-                if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-                    const chunk = event.delta.text;
-                    fullResponse += chunk;
-                    res.write(`data: ${JSON.stringify({
-                        chunk,
-                        conversationId: actualConversationId,
-                        userType: isGuest ? 'guest' : 'authenticated'
-                    })}\n\n`);
-                }
-            }
-
-            // Add assistant response to conversation after streaming is complete
-            const messageMetadata = {
-                reference,
-                citationMetadata,
-                searchQuery: citationMetadata?.searchQuery || message,
-                searchTimestamp: citationMetadata?.searchTimestamp || new Date().toISOString(),
-                streamed: true
-            };
-
-            await searchService.addSearchResultMessage(
-                actualConversationId,
-                userId,
-                fullResponse,
-                messageMetadata,
-                isGuest
-            );
-
-            // Send final message with complete response and citations
-            res.write(`data: ${JSON.stringify({
-                complete: true,
-                fullResponse,
                 conversationId: actualConversationId,
-                success: true,
-                message: 'Search completed successfully',
+                messageCount: conversation.messageCount + 2,
                 userType: isGuest ? 'guest' : 'authenticated',
-                userId: isGuest ? userId : undefined,
-                reference,
-                citations: reference.map((ref, index) => ({
-                    index: index + 1,
-                    url: ref.url,
-                    domain: ref.domain
-                })),
-                citationMetadata
-            })}\n\n`);
-            res.end();
-        }
+                userId: isGuest ? userId : undefined, // Include userId for guest users for frontend tracking
+            },
+        });
     } catch (error) {
         logger.error("Research Assistant Error:", error);
 

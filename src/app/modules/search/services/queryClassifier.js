@@ -304,9 +304,166 @@ export function isAskingForCodeExample(query) {
   return codeExamplePhrases.some(phrase => lowerQuery.includes(phrase));
 }
 
+/**
+ * Writing-related keywords and patterns
+ */
+const WRITING_KEYWORDS = [
+  'write', 'compose', 'draft', 'create', 'generate', 'craft', 'author',
+  'essay', 'article', 'blog', 'post', 'story', 'letter', 'email',
+  'report', 'document', 'paper', 'proposal', 'summary', 'review',
+  'description', 'caption', 'headline', 'title', 'paragraph',
+  'content', 'copy', 'text', 'message', 'script', 'speech',
+  'poem', 'narrative', 'biography', 'resume', 'cover letter'
+];
+
+const WRITING_ACTIONS = [
+  'write me', 'write a', 'write an', 'compose a', 'compose an',
+  'draft a', 'draft an', 'create a', 'create an', 'generate a', 'generate an',
+  'help me write', 'i need to write', 'can you write',
+  'please write', 'could you write', 'would you write',
+  'write about', 'write on', 'writing about'
+];
+
+const CONTENT_TYPES = [
+  'essay', 'article', 'blog post', 'story', 'letter', 'email',
+  'report', 'document', 'paper', 'proposal', 'summary', 'review',
+  'description', 'caption', 'headline', 'title', 'paragraph',
+  'content', 'copy', 'message', 'script', 'speech', 'poem'
+];
+
+const WRITING_CONTEXTS = [
+  'for social media', 'for linkedin', 'for twitter', 'for facebook',
+  'for instagram', 'for blog', 'for website', 'for newsletter',
+  'for presentation', 'for meeting', 'for client', 'for boss',
+  'professional', 'formal', 'informal', 'casual', 'creative',
+  'persuasive', 'informative', 'descriptive', 'narrative'
+];
+
+/**
+ * Check if query is asking for writing/content creation (NOT code)
+ * @param {string} query - The user query
+ * @returns {Object} - Classification result with isWritingRequest and confidence
+ */
+export function classifyWritingRequest(query) {
+  if (!query || typeof query !== 'string') {
+    return {
+      isWritingRequest: false,
+      confidence: 0,
+      reason: 'Invalid query'
+    };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  let score = 0;
+  const maxScore = 100;
+
+  // Check for writing action phrases (strong indicators)
+  let hasWritingAction = false;
+  WRITING_ACTIONS.forEach(action => {
+    if (lowerQuery.includes(action)) {
+      score += 15;
+      hasWritingAction = true;
+    }
+  });
+
+  // Check for content type mentions
+  let contentTypeMatches = 0;
+  CONTENT_TYPES.forEach(type => {
+    if (lowerQuery.includes(type)) {
+      score += 10;
+      contentTypeMatches++;
+    }
+  });
+
+  // Check for writing keywords
+  let writingKeywordMatches = 0;
+  WRITING_KEYWORDS.forEach(keyword => {
+    if (lowerQuery.includes(keyword)) {
+      score += 5;
+      writingKeywordMatches++;
+    }
+  });
+
+  // Check for writing context
+  WRITING_CONTEXTS.forEach(context => {
+    if (lowerQuery.includes(context)) {
+      score += 8;
+    }
+  });
+
+  // IMPORTANT: Check for CODE-RELATED exclusions
+  // If it's asking for code/script, it's NOT a writing request
+  const codeExclusionKeywords = [
+    'javascript', 'python', 'java', ' code ', 'function', ' script',
+    'program', ' api ', 'database', 'algorithm', 'debug', 'compile',
+    'node', 'react', 'html', 'css', 'sql', 'programming'
+  ];
+
+  let hasCodeKeyword = false;
+  codeExclusionKeywords.forEach(keyword => {
+    if (lowerQuery.includes(keyword)) {
+      hasCodeKeyword = true;
+      score -= 30; // Heavy penalty for code keywords
+    }
+  });
+
+  // Check for code patterns that should exclude writing
+  // More specific patterns to avoid false positives with words like "app"
+  if (/write\s+(a\s+|an\s+)?(script|code|function|program)\b/.test(lowerQuery)) {
+    hasCodeKeyword = true;
+    score -= 40; // Even heavier penalty for explicit code writing requests
+  }
+
+  if (/(create|generate|build)\s+(a\s+|an\s+)?(script|code|function|program|api)\b/.test(lowerQuery)) {
+    hasCodeKeyword = true;
+    score -= 40;
+  }
+
+  // Patterns that strongly suggest writing (not code)
+  if (/(write|compose|draft)\s+(me\s+)?(a|an)\s+(?!script|code|function|program)/.test(lowerQuery)) {
+    score += 15;
+  }
+
+  // "Write me a [something]" where [something] is not code-related
+  if (/write\s+me\s+(a|an)\s+\w+/.test(lowerQuery) && !hasCodeKeyword) {
+    score += 10;
+  }
+
+  // Normalize confidence
+  const confidence = Math.max(0, Math.min(1, score / maxScore));
+
+  // Determine if it's a writing request
+  // Requirements: High confidence AND has writing action AND no code keywords
+  const isWritingRequest = confidence >= 0.4 && hasWritingAction && !hasCodeKeyword;
+
+  console.log(`📝 Writing Classification:`);
+  console.log(`   Query: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`);
+  console.log(`   Writing request: ${isWritingRequest ? 'YES' : 'NO'}`);
+  console.log(`   Confidence: ${(confidence * 100).toFixed(1)}%`);
+  console.log(`   Has writing action: ${hasWritingAction}`);
+  console.log(`   Content types: ${contentTypeMatches}`);
+  console.log(`   Writing keywords: ${writingKeywordMatches}`);
+  console.log(`   Has code keyword: ${hasCodeKeyword}`);
+
+  return {
+    isWritingRequest,
+    confidence,
+    hasWritingAction,
+    contentTypeMatches,
+    writingKeywordMatches,
+    hasCodeKeyword,
+    reason: isWritingRequest
+      ? `Writing request detected (${(confidence * 100).toFixed(1)}% confidence)`
+      : hasCodeKeyword
+        ? 'Code-related request (not writing)'
+        : `Not a writing request (${(confidence * 100).toFixed(1)}% confidence)`
+  };
+}
+
 export default {
   classifyQuery,
   classifyQueryFast,
   getCodeQueryConfidence,
   isAskingForCodeExample,
+  classifyWritingRequest,
 };

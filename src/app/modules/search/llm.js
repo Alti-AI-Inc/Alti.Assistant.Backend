@@ -9,7 +9,7 @@ import Conversation from "../conversations/conversation.model.js";
 import { WebBrowser } from "langchain/tools/webbrowser";
 import e from "express";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { classifyQuery } from './services/queryClassifier.js';
+import { classifyQuery, classifyWritingRequest } from './services/queryClassifier.js';
 import { ClaudeService } from './services/claudeService.js';
 
 /**
@@ -153,188 +153,6 @@ export const classifyQueryFast = (query) => {
     confidence: 0.6,
     recommendedAction: 'llm_classify'
   };
-};
-
-/**
- * Optimized classification that uses rule-based first, then LLM if needed
- */
-export const classifyQueryOptimized = async (query, conversationContext = []) => {
-  // First try fast rule-based classification
-  const fastClassification = classifyQueryFast(query);
-
-  console.log(`Fast classification for "${query}":`, fastClassification);
-
-  // If high confidence, use fast classification
-  if (fastClassification.confidence >= 0.8) {
-    switch (fastClassification.recommendedAction) {
-      case 'direct_answer':
-        return 'ANSWER';
-      case 'search_required':
-      case 'full_search':
-        return 'SEARCH';
-      case 'video_search':
-        return 'VIDEO';
-      default:
-        return 'ANSWER';
-    }
-  }
-
-  // If low confidence or unknown type, fall back to LLM classification
-  console.log(`Low confidence (${fastClassification.confidence}), using LLM classification`);
-  return await checkIfSearchNeededForTheQueryUsingAi(query, conversationContext);
-};
-
-/**
- * Parallel search operations for better performance
- */
-export const performParallelSearch = async (query, options = {}) => {
-  const {
-    includeWeb = true,
-    includeYouTube = false,
-    maxWebResults = 5,
-    maxVideoResults = 3,
-    conversationContext = []
-  } = options;
-
-  const searchPromises = [];
-
-  if (includeWeb) {
-    // Web search promise
-    const webSearchPromise = (async () => {
-      try {
-        const researchTool = tavily({
-          apiKey: config.tavily_api_key,
-        });
-        console.log("Performing web search for query:", updateQueryWithCurrentYear(query));
-
-        const response = await researchTool.search(updateQueryWithCurrentYear(query), {
-          searchDepth: 'advanced',
-          maxResults: 11,
-          includeAnswer: 'advanced',
-          chunksPerSource: 5,
-        });
-        // console.log("Web search response:", response);
-
-        return { type: 'web', result: response, success: true };
-      } catch (error) {
-        console.error('Web search error:', error);
-        return { type: 'web', results: [], success: false, error };
-      }
-    })();
-    searchPromises.push(webSearchPromise);
-  }
-
-  if (includeYouTube) {
-    // YouTube search promise
-    const youtubeSearchPromise = (async () => {
-      try {
-        const results = await searchYouTube(query, maxVideoResults, conversationContext);
-        return { type: 'youtube', results, success: true };
-      } catch (error) {
-        console.error('YouTube search error:', error);
-        return { type: 'youtube', results: [], success: false, error };
-      }
-    })();
-    searchPromises.push(youtubeSearchPromise);
-  }
-
-  // Execute all searches in parallel
-  const searchResults = await Promise.all(searchPromises);
-
-  // Combine and return results
-  const combinedResults = {
-    web: [],
-    youtube: [],
-    errors: []
-  };
-
-  searchResults.forEach(result => {
-    if (result.success) {
-      combinedResults[result.type] = result.answer || result.results || result.result || [];
-    } else {
-      combinedResults.errors.push({ type: result.type, error: result.error });
-    }
-  });
-  console.log("Parallel search results:", combinedResults);
-  return combinedResults;
-};
-
-/**
- * Fast video count extraction without LLM for common patterns
- */
-export const extractVideoCountFast = (query) => {
-  const lowerQuery = query.toLowerCase();
-
-  // Look for explicit numbers
-  const numberPatterns = [
-    /(\d+)\s*(video|tutorial|clip|demo)s?/,
-    /(one|two|three|four|five|six|seven|eight|nine|ten)\s*(video|tutorial|clip|demo)s?/,
-    /show me (\d+)/,
-    /(first|top) (\d+)/
-  ];
-
-  for (const pattern of numberPatterns) {
-    const match = lowerQuery.match(pattern);
-    if (match) {
-      const numStr = match[1];
-      if (/^\d+$/.test(numStr)) {
-        const count = parseInt(numStr, 10);
-        return Math.min(Math.max(count, 1), 10); // Limit between 1-10
-      }
-
-      // Handle written numbers
-      const writtenNums = {
-        'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-        'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
-      };
-      return writtenNums[numStr] || 1;
-    }
-  }
-
-  // Default based on query type
-  if (lowerQuery.includes('video') || lowerQuery.includes('tutorial')) {
-    return lowerQuery.includes('some') || lowerQuery.includes('few') ? 3 : 1;
-  }
-
-  return 1;
-};
-
-/**
- * Fast contextualized query creation without heavy LLM processing
- */
-export const createContextualizedQueryFast = async (history, query) => {
-  if (!history || history.length === 0) return query;
-
-  const lastMessage = history[history.length - 1];
-  const lowerQuery = query.toLowerCase();
-
-  // Simple contextual patterns that don't need LLM
-  const followUpPatterns = [
-    /^(and|also|what about|how about)\b/,
-    /^(more|tell me more|details?)\b/,
-    /^(why|how|when|where)\b.*\b(it|that|this|they)\b/
-  ];
-
-  let needsContext = false;
-  for (const pattern of followUpPatterns) {
-    if (pattern.test(lowerQuery)) {
-      needsContext = true;
-      break;
-    }
-  }
-
-  if (needsContext && lastMessage && lastMessage.role === 'assistant') {
-    // Extract main topic from last response
-    const lastContent = lastMessage.content.toLowerCase();
-    const topicMatch = lastContent.match(/\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)\b/);
-    const topic = topicMatch ? topicMatch[1] : '';
-
-    if (topic) {
-      return `${query} about ${topic}`;
-    }
-  }
-
-  return query;
 };
 
 /**
@@ -762,178 +580,6 @@ export const prepareConversationContext = async (history, existingSummary = null
 };
 
 /**
- * Tool-based intelligent search using LLM with search tools
- * This allows the LLM to decide when and how to use search tools
- */
-export const performIntelligentToolSearch = async (query, conversationContext = []) => {
-  try {
-    console.log(`🤖 Starting intelligent tool-based search for: "${query}"`);
-    const startTime = Date.now();
-
-    // Build conversation context
-    let conversationHistory = "";
-    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
-      const recentMessages = conversationContext.slice(-5);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
-    }
-
-    // Get current date context
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentDateString = currentDate.toDateString();
-
-    const systemPrompt = `You are an intelligent research assistant with access to powerful search tools. Your task is to answer user questions by deciding when and how to use your available tools.
-
-CURRENT CONTEXT:
-- Today's date: ${currentDateString}
-- Current year: ${currentYear}
-
-AVAILABLE TOOLS:
-1. tavily_search: Advanced web search for current information, news, facts, real-time data
-2. youtube_search: Video content search for tutorials, demonstrations, visual content
-
-DECISION FRAMEWORK:
-1. ANALYZE the user's question to understand what information is needed
-2. DETERMINE if you need external information or if you can answer directly
-3. CHOOSE the appropriate tool(s) if search is needed:
-   - Use tavily_search for: current events, news, facts, data, recent information, sports scores/schedules
-   - Use youtube_search for: when user explicitly asks for videos, tutorials, demonstrations, visual content
-4. SYNTHESIZE the search results into a comprehensive, conversational response
-
-SEARCH STRATEGY:
-- For time-sensitive queries, emphasize current year (${currentYear}) and recent information
-- Use specific, focused search queries for better results
-- Consider multiple searches if the question has multiple components
-- Always provide context about the recency and reliability of information
-
-RESPONSE GUIDELINES:
-- Be conversational and helpful
-- Synthesize information from multiple sources when available
-- Always cite your sources naturally in the response
-- If information conflicts, acknowledge different perspectives
-- For time-sensitive information, emphasize the currency of data
-- If you can't find current information, acknowledge limitations
-
-Remember: Use tools strategically - not every question needs a search. Use your judgment to provide the most helpful response.`;
-
-    const messages = [
-      {
-        role: "system",
-        content: systemPrompt
-      },
-      {
-        role: "user",
-        content: `${conversationHistory}Current question: ${query}
-
-Please analyze this question and use appropriate tools if needed to provide a comprehensive answer.`
-      }
-    ];
-
-    // Use the tool-enabled LLM
-    const response = await toolEnabledLLM.invoke(messages);
-
-    const duration = Date.now() - startTime;
-    console.log(`✅ Intelligent tool search completed in ${duration}ms`);
-
-    // Extract the final response content
-    let finalResponse = response.content;
-
-    // Log tool usage if any tools were called
-    if (response.tool_calls && response.tool_calls.length > 0) {
-      console.log(`🔧 Tools used: ${response.tool_calls.map(tc => tc.name).join(', ')}`);
-    }
-
-    return {
-      content: finalResponse,
-      toolCalls: response.tool_calls || [],
-      duration: duration,
-      timestamp: new Date().toISOString()
-    };
-
-  } catch (error) {
-    console.error("❌ Error in intelligent tool search:", error);
-
-    // Fallback to direct answer
-    return {
-      content: "I encountered an error while processing your request. Let me try to provide a direct answer based on my knowledge.",
-      error: error.message,
-      fallback: true
-    };
-  }
-};
-
-/**
- * Executes tool calls and returns results
- */
-
-const executeSingleToolCall = async (toolCall) => {
-  try {
-    console.log(`🔍 Preparing to execute tool: ${toolCall.name} with args:`, toolCall.args);
-    const searchTools = [
-      new YouTubeSearchTool(),
-      googleSearch,
-      new WebBrowser({
-        model: llm, embeddings: new GoogleGenerativeAIEmbeddings({
-          apiKey: config.gemini_secret_key,
-        })
-      })
-    ];
-
-    const tool = searchTools.find(t => t.name === toolCall.name);
-    if (tool) {
-      console.log(`🔧 Executing tool: ${toolCall.name} with args:`, toolCall.args);
-      const result = await tool._call(toolCall.args);
-      console.log(`✅ Tool executed successfully: ${toolCall.name}`, result);
-      return result;
-    } else {
-      console.warn(`⚠️ Tool not found: ${toolCall.name}`);
-      return { error: `Tool not found: ${toolCall.name}` };
-    }
-  } catch (error) {
-    console.error(`❌ Error executing tool ${toolCall.name}:`, error);
-    return { error: error.message };
-  }
-};
-
-const executeToolCalls = async (toolCalls) => {
-  const toolResults = [];
-  const searchTools = [
-    new YouTubeSearchTool(),
-    googleSearch
-  ];
-
-  for (const toolCall of toolCalls) {
-    console.log(`🔍 Preparing to execute tool: ${toolCall.name} with args:`, toolCall.args);
-
-    try {
-      const tool = searchTools.find(t => t.name === toolCall.name);
-      if (tool) {
-        console.log(`🔧 Executing tool: ${toolCall.name} with args:`, toolCall.args);
-        const result = await tool._call(toolCall.args);
-        toolResults.push({
-          toolCallId: toolCall.id,
-          toolName: toolCall.name,
-          result: result
-        });
-      } else {
-        console.warn(`⚠️ Tool not found: ${toolCall.name}`);
-      }
-    } catch (error) {
-      console.error(`❌ Error executing tool ${toolCall.name}:`, error);
-      toolResults.push({
-        toolCallId: toolCall.id,
-        toolName: toolCall.name,
-        error: error.message
-      });
-    }
-  }
-
-  return toolResults;
-};
-
-/**
  * Enhanced search function that uses tool-enabled LLM for intelligent search decisions
  */
 export const runIntelligentSearch = async (state, stream = false) => {
@@ -980,20 +626,136 @@ export const runIntelligentSearch = async (state, stream = false) => {
       console.log(`🔄 History optimized: ${contextResult.reductionPercentage}% token reduction`);
     }
 
-    // 🎯 SMART ROUTING: Classify query to determine if it's code-related
+    // 🎯 SMART ROUTING: Classify query to determine routing
     if (config.routing.enableSmartRouting) {
       console.log(`🎯 Smart Routing enabled - Classifying query...`);
+
+      // First check if it's a writing request
+      const writingClassification = classifyWritingRequest(query);
+
+      // Check if it's code-related
       const classification = classifyQuery(query, conversationContext);
 
       console.log(`📊 Query Classification Result:`, {
         query: query.substring(0, 100),
+        isWritingRequest: writingClassification?.isWritingRequest,
+        writingConfidence: writingClassification?.confidence,
         isCodeRelated: classification.isCodeRelated,
-        confidence: classification.confidence,
+        codeConfidence: classification.confidence,
         primaryCategory: classification.primaryCategory,
         matchedKeywords: classification.matchedKeywords?.slice(0, 5)
       });
 
-      // Route to Claude if it's code-related and confidence is above threshold
+      // 📝 Route to Claude for WRITING requests (without search)
+      if (writingClassification?.isWritingRequest && writingClassification.confidence >= 0.4) {
+        console.log(`✍️ Routing to Claude Sonnet 4.5 for WRITING (confidence: ${writingClassification.confidence})`);
+        console.log(`📌 Writing Classification:`, {
+          hasWritingAction: writingClassification.hasWritingAction,
+          contentTypes: writingClassification.contentTypeMatches,
+          reasoning: writingClassification.reason
+        });
+
+        try {
+          // Initialize Claude service
+          const claudeService = new ClaudeService();
+          await claudeService.initialize();
+
+          // Prepare messages for Claude
+          const claudeMessages = [];
+
+          // Add conversation history if available
+          if (conversationHistory && conversationHistory.length > 0) {
+            claudeMessages.push({
+              role: 'user',
+              content: `Previous conversation context:\n${conversationHistory}\n\nCurrent request: ${query}`
+            });
+          } else {
+            claudeMessages.push({
+              role: 'user',
+              content: query
+            });
+          }
+
+          // Call Claude with writing-optimized system prompt
+          const writingSystemPrompt = `You are an expert writing assistant and content creator. Provide clear, engaging, and well-structured written content.
+
+CORE PRINCIPLES:
+- Write in a natural, flowing style appropriate for the context
+- Match the tone and style to the requested format
+- Structure content logically with proper paragraphs
+- Use vivid language and engaging narrative when appropriate
+- Maintain clarity and readability
+- Adapt formality level to the context (professional, casual, creative, etc.)
+
+WRITING TYPES YOU EXCEL AT:
+- Essays and articles
+- Blog posts and social media content
+- Business documents (reports, proposals, emails)
+- Creative writing (stories, poems, narratives)
+- Marketing copy and descriptions
+- Technical documentation (non-code)
+- Letters and correspondence
+- Summaries and reviews
+
+RESPONSE FORMAT:
+1. Deliver the requested content directly
+2. If needed, provide brief context or explanation
+3. Offer variations or alternatives when appropriate
+
+QUALITY STANDARDS:
+- Clear and coherent structure
+- Appropriate tone and voice
+- Engaging and purposeful language
+- Proper grammar and punctuation
+- Audience-appropriate vocabulary
+- Well-organized paragraphs and flow
+
+DO NOT:
+- Write code or programming scripts (unless it's about explaining code in prose)
+- Include search results or references (generate from your knowledge)
+- Add unnecessary preambles (get straight to the content)`;
+
+          console.log(`📤 Sending writing request to Claude...`);
+          const startTime = Date.now();
+
+          const claudeResponse = await claudeService.callClaude(claudeMessages, {
+            system: writingSystemPrompt,
+            maxTokens: config.claude.maxTokens || 4096,
+            temperature: 0.7 // Higher temperature for more creative writing
+          });
+
+          // Extract text content from Claude response
+          const answerText = claudeResponse.content
+            .filter(block => block.type === 'text')
+            .map(block => block.text)
+            .join('');
+
+          const duration = Date.now() - startTime;
+          console.log(`✅ Claude writing response received in ${duration}ms`);
+          console.log(`📝 Response length: ${answerText.length} characters`);
+
+          return {
+            answer: answerText,
+            modelUsed: 'claude-sonnet-4.5',
+            classification: {
+              isWritingRequest: true,
+              confidence: writingClassification.confidence,
+              type: 'writing'
+            },
+            references: [],
+            searchMethod: 'claude_direct_writing',
+            timestamp: new Date().toISOString(),
+            responseTime: duration
+          };
+
+        } catch (error) {
+          console.error(`❌ Error routing to Claude for writing:`, error);
+          console.log(`⚠️ Falling back to Gemini due to Claude error`);
+          // Fall through to Gemini if Claude fails
+        }
+      }
+
+      // 💻 Route to Claude for CODE requests (with search capability via ReAct)
       if (classification.isCodeRelated && classification.confidence >= config.routing.codeQueryThreshold) {
         console.log(`🚀 Routing to Claude Sonnet 4.5 (confidence: ${classification.confidence})`);
         console.log(`📌 Classification details:`, {
@@ -1055,12 +817,18 @@ QUALITY STANDARDS:
             temperature: config.claude.temperature || 0.7
           });
 
+          // Extract text content from Claude response
+          const answerText = claudeResponse.content
+            .filter(block => block.type === 'text')
+            .map(block => block.text)
+            .join('');
+
           const duration = Date.now() - startTime;
           console.log(`✅ Claude response received in ${duration}ms`);
-          console.log(`📝 Response length: ${claudeResponse.length} characters`);
+          console.log(`📝 Response length: ${answerText.length} characters`);
 
           return {
-            answer: claudeResponse,
+            answer: answerText,
             modelUsed: 'claude-sonnet-4.5',
             classification: {
               isCodeRelated: true,
@@ -1736,515 +1504,6 @@ CRITICAL REASONING GUIDELINES:
   console.log(JSON.stringify(formattedResponse, null, 2));
   return formattedResponse;
 }
-
-/**
- * Performance monitoring utility
- */
-export const performanceMonitor = {
-  startTime: (label) => {
-    const start = Date.now();
-    console.log(`⏱️  Started: ${label}`);
-    return start;
-  },
-
-  endTime: (label, startTime) => {
-    const duration = Date.now() - startTime;
-    console.log(`✅ Completed: ${label} in ${duration}ms`);
-    return duration;
-  },
-
-  logOptimization: (query, fastTrack, classificationUsed, totalTime) => {
-    console.log(`🚀 Query Optimization Summary:`);
-    console.log(`   Query: "${query}"`);
-    console.log(`   Fast Track: ${fastTrack ? '✅' : '❌'}`);
-    console.log(`   Classification: ${classificationUsed}`);
-    console.log(`   Total Time: ${totalTime}ms`);
-    console.log(`   Expected Savings: ${fastTrack ? '60-80%' : '20-40%'}`);
-  }
-};
-
-export const runSimpleSearchTask = async (state, stream = false) => {
-  try {
-    console.log("Running conversational search task with search results:", state.searchResults);
-
-    // Format search results into a readable string with enhanced content (no citations)
-    let formattedSearchResults = "";
-    if (Array.isArray(state.searchResults)) {
-      formattedSearchResults = state.searchResults.map((result, index) => {
-        // Use detailed content if available, otherwise fall back to regular content
-        const content = result.detailedContent || result.content || result.snippet || result.description || 'No content available';
-        const domain = result.domain || 'Unknown domain';
-        const isRecent = result.isRecent ? ' (Recent)' : '';
-        const publishedDate = result.publishedDate ? ` (Published: ${result.publishedDate})` : '';
-
-        // Handle YouTube results differently
-        if (result.source === 'youtube') {
-          return `🎥 ${result.title}
-Channel: ${result.channelTitle}
-URL: ${result.url}
-Description: ${content}
-Published: ${result.publishedAt}
-Source: YouTube Video
----`;
-        } else {
-          // Regular web results
-          return `${result.title}
-Domain: ${domain}${isRecent}${publishedDate}
-URL: ${result.url}
-Content: ${content}
-Relevance Score: ${result.score?.toFixed(3) || 'N/A'}
----`;
-        }
-      }).join('\n\n');
-    } else {
-      formattedSearchResults = JSON.stringify(state.searchResults, null, 2);
-    }
-
-    // Build conversation context from message history - defensive coding
-    let conversationHistory = "";
-
-    // Handle different formats of conversation context
-    let contextMessages = [];
-    if (state.conversationContext) {
-      if (Array.isArray(state.conversationContext)) {
-        contextMessages = state.conversationContext;
-      } else if (typeof state.conversationContext === 'string') {
-        // If it's a string, skip it and use history instead
-        contextMessages = [];
-      }
-    }
-
-    // Fallback to history if conversationContext is not available or empty
-    if (contextMessages.length === 0 && state.history && Array.isArray(state.history)) {
-      contextMessages = state.history;
-    }
-
-    // Build conversation history string
-    if (contextMessages.length > 0) {
-      const recentMessages = contextMessages.slice(-5);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
-    }
-
-    // Include original vs search query context
-    let queryContext = "";
-    if (state.originalQuery && state.searchQuery && state.originalQuery !== state.searchQuery) {
-      queryContext = `User's original question: ${state.originalQuery}
-Search query used: ${state.searchQuery}
-
-`;
-    }
-
-    const messages = [
-      {
-        role: "system",
-        content: `You are an intelligent research assistant that provides CONCRETE, specific answers with complete details.
-
-CURRENT DATE: ${new Date().toDateString()} (${new Date().getFullYear()})
-
-CORE PRINCIPLE: PROVIDE EXACT, CONCRETE ANSWERS
-- For direct questions, provide SPECIFIC details (dates, times, locations, names)
-- NO vague responses or references to "search results"
-- State facts directly as if you know them definitively
-- NEVER mention the search process in your response
-
-CONCRETE RESPONSE RULES:
-- Sports schedules: Exact date, time, opponent, venue
-- Weather: Specific temperature, conditions, forecast
-- Events: Complete details with all relevant information
-- Facts: Direct, specific information
-
-FORBIDDEN PHRASES:
-- "Search results indicate..."
-- "According to search results..."
-- "Based on the information found..."
-- "Please refer to official..."
-- "Check the official..."
-
-CITATION REQUIREMENTS:
-- Include source attribution naturally: "According to [Source Name]..." 
-- Use format: "Based on [Domain]..." for website sources
-- For multiple sources: "Sources: [Source1], [Source2]" at end
-- Include publication dates when available: "[Source] (2025)"
-
-ANSWER-ONLY FORMAT:
-- IF user asks for "answer only" or "no explanations": respond with just the fact, no sources
-- Example: "What is the capital of France? Answer only." → "Paris."
-
-EXAMPLES OF GOOD RESPONSES:
-❌ BAD: "Search results show a game occurred. Please check the official schedule."
-✅ GOOD: "The Detroit Red Wings' next home game is October 15, 2025 at 7:30 PM against the Toronto Maple Leafs at Little Caesars Arena."
-
-❌ BAD: "Weather information indicates varying conditions."
-✅ GOOD: "Detroit's weather today is 72°F with partly cloudy skies and a 20% chance of rain."
-
-CRITICAL: Always provide complete, specific information. Never reference the search process or tell users to check elsewhere.`
-      },
-      {
-        role: "user",
-        content: `${conversationHistory}${queryContext}Current question: ${state.query}
-
-Available information:
-${formattedSearchResults}
-
-Provide a CONCRETE, specific answer with complete details.
-
-REQUIREMENTS:
-- State the exact information requested (dates, times, locations, opponents)
-- NO references to "search results" or "information found"
-- Provide complete details in a natural, conversational way
-- Include source attribution naturally without mentioning the search process
-- For sports: exact date, time, opponent, venue
-- Use current date context: ${new Date().toDateString()}
-
-FORBIDDEN: Do not mention "search results", "information indicates", or "please refer to"
-
-ANSWER-ONLY EXCEPTION: If user asks for "answer only", provide just the fact without sources.`
-      }
-    ];
-
-    if (stream) {
-      // For streaming responses
-      const streamResponse = await llm.stream(messages);
-      return streamResponse;
-    } else {
-      // For regular responses
-      const response = await llm.invoke(messages);
-      console.log("Gemini response received", response.content);
-
-      // Extract references from search results
-      const references = [];
-      if (Array.isArray(state.searchResults)) {
-        state.searchResults.forEach(result => {
-          references.push({
-            title: result.title,
-            url: result.url,
-            domain: result.domain || 'Unknown domain',
-            sourceName: result.sourceName || result.domain || 'Unknown source',
-            publishedDate: result.publishedDate,
-            publishedYear: result.publishedYear || (result.publishedDate ? new Date(result.publishedDate).getFullYear() : new Date().getFullYear()),
-            citationFormat: result.citationFormat || `${result.sourceName || result.domain} (${result.publishedYear || new Date().getFullYear()})`
-          });
-        });
-      }
-
-      return {
-        answer: response.content,
-        references: references,
-        searchMethod: 'traditional',
-        timestamp: new Date().toISOString()
-      };
-    }
-
-  } catch (error) {
-    console.error("Error in runSimpleSearchTask:", error);
-    return {
-      answer: "I encountered an error while processing your request. Please try again.",
-      references: [],
-      searchMethod: 'error',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    };
-  }
-};
-
-export const createBetterQueryFromMultipleQuestions = async (
-  query,
-  searchResults,
-  conversationContext = []
-) => {
-  try {
-    // Include conversation context for better query refinement
-    let contextHistory = "";
-    if (conversationContext && conversationContext.length > 0) {
-      const recentMessages = conversationContext.slice(-3);
-      contextHistory = `Recent conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
-    }
-
-    // Format current search results
-    let formattedResults = "";
-    if (Array.isArray(searchResults) && searchResults.length > 0) {
-      formattedResults = searchResults.map((result, index) => {
-        return `Result ${index + 1}: ${result.title} - ${result.content?.substring(0, 200)}...`;
-      }).join('\n');
-    }
-
-    // Get current date information for context-aware queries
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
-    const currentDay = currentDate.getDate();
-    const currentDateString = `${currentMonth} ${currentDay - 1}, ${currentYear}`;
-    const currentWeekday = currentDate.toLocaleString('default', { weekday: 'long' });
-
-    const messages = [
-      {
-        role: "system",
-        content: `You are a query optimization specialist. Your task is to improve search queries based on:
-1. The original user question
-2. Conversation context
-3. Initial search results quality
-4. Current date and time context
-
-CURRENT DATE CONTEXT:
-- Today is ${currentWeekday}, ${currentDateString}
-- Current year: ${currentYear}
-- When users ask about "next", "upcoming", "latest", or current events, use ${currentYear} and after ${currentDateString}.
-
-OPTIMIZATION RULES:
-- If results are relevant and comprehensive, keep the query simple
-- If results are too broad, add specific keywords or constraints
-- If results miss the user's intent, rephrase to capture the core need
-- Consider conversation context to understand what the user really wants
-- Make the query more specific if initial results are off-topic
-- ALWAYS use the current year (${currentYear}) for time-sensitive queries
-- Replace outdated years in queries with the current year (${currentYear})
-- For sports schedules, events, news - ensure the year is ${currentYear}
-
-DATE-AWARE EXAMPLES:
-- "Detroit Tigers game 2023" → "Detroit Tigers game ${currentYear} and after ${currentDateString}"
-- "Latest AI developments 2022" → "Latest AI developments ${currentYear}"
-- "Upcoming events" → "Upcoming events ${currentYear}"
-
-Output ONLY the improved search query, nothing else.`
-      },
-      {
-        role: "user",
-        content: `${contextHistory}Original query: "${query}"
-
-Current search results:
-${formattedResults}
-
-Generate an improved search query that uses the current year (${currentYear}) when relevant:`
-      }
-    ];
-
-    const response = await llm.invoke(messages);
-    let improvedQuery = response.content.trim();
-
-    // Apply additional year correction as a safety measure
-    improvedQuery = updateQueryWithCurrentYear(improvedQuery);
-
-    return improvedQuery;
-
-  } catch (error) {
-    console.error("Error generating improved query:", error);
-    return query; // Return original query if improvement fails
-  }
-};
-
-export const checkIfSearchNeededForTheQueryUsingAi = async (query, conversationContext = []) => {
-  try {
-    // Prepare conversation history for context
-    const contextHistory = conversationContext.slice(-3).map(msg =>
-      `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-    ).join('\n');
-
-    // Get current date for better classification
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
-    const currentDateString = `${currentMonth} ${currentDate.getDate()}, ${currentYear}`;
-
-    const systemPrompt = `You are an intelligent query classifier with conversational awareness.
-
-Your job is to decide if a user query needs an EXTERNAL SEARCH or can be ANSWERED DIRECTLY based on:
-1. The query content
-2. The conversation context
-3. Whether recent information is required
-
-CURRENT DATE CONTEXT:
-- Today is ${currentDateString}
-- Current year: ${currentYear}
-
-CLASSIFICATION RULES:
-- SEARCH: Time-sensitive data, current events, news, prices, recent developments, specific real-time information
-- SEARCH: Follow-up questions that reference "latest", "recent", "current", "today", "now", "next", "upcoming"
-- SEARCH: Queries about ongoing events, trending topics, or changing information
-- SEARCH: Sports schedules, game times, upcoming matches (these change frequently)
-- SEARCH: Weather, stock prices, cryptocurrency values, breaking news
-- ANSWER: General knowledge, historical facts, definitions, explanations, calculations
-- ANSWER: Follow-up clarifications about previously discussed topics
-- ANSWER: Conversational responses, greetings, acknowledgments
-
-CONVERSATIONAL AWARENESS:
-- Consider if the query is continuing a previous topic
-- If previous context provides sufficient information, lean toward ANSWER
-- If query introduces new time-sensitive elements, choose SEARCH
-- Sports schedules and "next game" queries always need SEARCH for current information
-
-CRITICAL: Respond with ONLY "SEARCH" or "ANSWER" - no explanations, no thinking tags, no extra text.`;
-
-    const messages = [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      {
-        role: "user",
-        content: `Conversation Context:
-${contextHistory}
-
-Current Query: "${query}"
-
-Classification needed:`
-      }
-    ]
-
-    const response = await llm.invoke(messages);
-    let rawContent = response.content.trim();
-
-    console.log("AI classification for query:", query, "→", rawContent);
-
-    // Handle thinking tags - extract the actual decision after thinking
-    let cleanedContent = rawContent;
-    if (rawContent.includes('<THINK>') || rawContent.includes('<think>')) {
-      // Remove everything between thinking tags (case insensitive)
-      const regex = /<think>[\s\S]*?<\/think>/gi;
-      cleanedContent = rawContent.replace(regex, '').trim();
-    }
-
-    // Extract the final decision
-    const finalDecision = cleanedContent.toUpperCase().trim();
-    console.log("Cleaned decision:", finalDecision);
-
-    // Return the decision
-    return finalDecision.includes("SEARCH") ? "SEARCH" : "ANSWER";
-
-  } catch (error) {
-    console.error("Error checking if search is needed:", error);
-    return "ANSWER"; // Default to direct answer on error
-  }
-};
-
-export const analyzeDirectAnswerQuality = async (answer, originalQuery, conversationContext = []) => {
-  try {
-    // Build conversation context for better analysis
-    let conversationHistory = "";
-    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
-      const recentMessages = conversationContext.slice(-3);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
-    }
-
-    const systemPrompt = `You are an expert answer quality analyzer. Your task is to evaluate if a direct answer is adequate or if external search is needed.
-
-ANALYSIS CRITERIA:
-1. NEGATIVE INDICATORS (requires search):
-   - Answer explicitly states "I don't know" or "I'm not sure"
-   - Contains phrases like "I cannot provide", "I don't have access to", "I'm unable to"
-   - Mentions outdated information or knowledge cutoff limitations
-   - Provides vague or generic responses without specific details
-   - Acknowledges lack of current/real-time information
-   - Contains disclaimers about needing to search or verify
-
-2. INADEQUATE RESPONSES (requires search):
-   - Very short responses (less than 2 sentences) for complex questions
-   - Generic advice without specific details when specifics are requested
-   - Partial answers that only address part of the question
-   - Responses that ask for clarification instead of attempting to answer
-
-3. ADEQUATE RESPONSES (no search needed):
-   - Provides specific, detailed information
-   - Answers the question comprehensively
-   - Shows confidence in the information provided
-   - Includes relevant context and examples
-   - Successfully builds on conversation history
-
-IMPORTANT: Respond with ONLY "ADEQUATE" or "INADEQUATE" - no explanations, no thinking tags, no extra text.`;
-
-    const messages = [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      {
-        role: "user",
-        content: `${conversationHistory}Original question: "${originalQuery}"
-
-Direct answer provided: "${answer}"
-
-Analyze if this answer is ADEQUATE or INADEQUATE:`
-      }
-    ];
-
-    const response = await llm.invoke(messages);
-    let rawContent = response.content.trim();
-
-    console.log("Answer quality analysis for query:", originalQuery, "→", rawContent);
-
-    // Handle thinking tags - extract the actual decision
-    let cleanedContent = rawContent;
-    if (rawContent.includes('<THINK>') || rawContent.includes('<think>')) {
-      const regex = /<think>[\s\S]*?<\/think>/gi;
-      cleanedContent = rawContent.replace(regex, '').trim();
-    }
-
-    const finalDecision = cleanedContent.toUpperCase().trim();
-    console.log("Cleaned answer quality decision:", finalDecision);
-
-    return finalDecision.includes("INADEQUATE") ? "INADEQUATE" : "ADEQUATE";
-
-  } catch (error) {
-    console.error("Error analyzing answer quality:", error);
-    return "ADEQUATE"; // Default to adequate on error to avoid infinite loops
-  }
-};
-
-export const giveAnswerWithoutSearch = async (query, conversationContext = []) => {
-  try {
-    // Build conversation context with defensive coding
-    let conversationHistory = "";
-    if (Array.isArray(conversationContext) && conversationContext.length > 0) {
-      const recentMessages = conversationContext.slice(-5);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
-    }
-
-    const systemPrompt = `You are an expert AI assistant providing direct answers without external search.
-CRITICAL: IF the user explicitly wants an answer-only format (no explanations), provide a concise answer without additional context or references. For Example If someone asks "What is the capital of France? Answer only." you respond with "Paris." without any further elaboration.
-Or if the user says "Just give me the answer, no details." you respond with the answer only.
-Example: What is better tea or coffee? Answer only.
-
-RESPONSE GUIDELINES:
-- Be conversational and helpful
-- Use your knowledge base to provide accurate information
-- Consider the conversation context when responding
-- If you don't have current/specific information, acknowledge limitations
-- Build upon previous conversation naturally
-- Be concise but comprehensive
-
-CONVERSATION AWARENESS:
-- Reference previous topics when relevant
-- Maintain consistency with earlier responses
-- Understand follow-up questions in context`;
-
-    const messages = [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      {
-        role: "user",
-        content: `${conversationHistory}Current question: ${query}
-
-Please provide a direct answer based on your knowledge:`
-      }
-    ]
-
-    const response = await llm.invoke(messages);
-    return response.content;
-
-  } catch (error) {
-    console.error("Error giving answer without search:", error);
-    return "Sorry, I encountered an error while processing your request. Please try again.";
-  }
-};
 
 // OLD CONTEXT MANAGEMENT SYSTEM REMOVED - Using new intelligent system above
 
