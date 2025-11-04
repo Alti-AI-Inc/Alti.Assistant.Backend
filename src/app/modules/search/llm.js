@@ -9,6 +9,8 @@ import Conversation from "../conversations/conversation.model.js";
 import { WebBrowser } from "langchain/tools/webbrowser";
 import e from "express";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { classifyQuery } from './services/queryClassifier.js';
+import { ClaudeService } from './services/claudeService.js';
 
 /**
  * Configuration for intelligent conversation history management
@@ -939,10 +941,25 @@ export const runIntelligentSearch = async (state, stream = false) => {
     console.log("🔍 Running intelligent search with INTELLIGENT history management", state.conversationId);
 
     const query = updateQueryWithCurrentYear(state.currentQuery || state.query || "");
-    const conversation = await Conversation.findOne({ conversationId: state.conversationId });
-    let conversationContext = conversation ? conversation.messages : [];
-    //  = state.conversationContext || state.history || [];
-    const existingSummary = state.conversationSummary || null;
+
+    // Handle test scenarios where conversationId might be null or we have direct context
+    let conversationContext;
+    let existingSummary = state.conversationSummary || null;
+
+    if (state.conversationContext !== undefined) {
+      // If conversationContext is explicitly provided (e.g., in tests), use it directly
+      conversationContext = state.conversationContext;
+      console.log("Using provided conversation context");
+    } else if (state.conversationId) {
+      // Otherwise, fetch from database if conversationId is provided
+      const conversation = await Conversation.findOne({ conversationId: state.conversationId });
+      conversationContext = conversation ? conversation.messages : [];
+    } else {
+      // No conversationId and no context provided - start fresh
+      conversationContext = [];
+      console.log("No conversation context available - starting fresh");
+    }
+
     console.log("Length of conversation context:", conversationContext.length);
 
     conversationContext = conversationContext.filter((item, index, arr) => {
@@ -961,6 +978,110 @@ export const runIntelligentSearch = async (state, stream = false) => {
     console.log(`✅ Context prepared: ${contextResult.contextTokens} tokens (managed: ${contextResult.isOptimized})`);
     if (contextResult.historyManaged) {
       console.log(`🔄 History optimized: ${contextResult.reductionPercentage}% token reduction`);
+    }
+
+    // 🎯 SMART ROUTING: Classify query to determine if it's code-related
+    if (config.routing.enableSmartRouting) {
+      console.log(`🎯 Smart Routing enabled - Classifying query...`);
+      const classification = classifyQuery(query, conversationContext);
+
+      console.log(`📊 Query Classification Result:`, {
+        query: query.substring(0, 100),
+        isCodeRelated: classification.isCodeRelated,
+        confidence: classification.confidence,
+        primaryCategory: classification.primaryCategory,
+        matchedKeywords: classification.matchedKeywords?.slice(0, 5)
+      });
+
+      // Route to Claude if it's code-related and confidence is above threshold
+      if (classification.isCodeRelated && classification.confidence >= config.routing.codeQueryThreshold) {
+        console.log(`🚀 Routing to Claude Sonnet 4.5 (confidence: ${classification.confidence})`);
+        console.log(`📌 Classification details:`, {
+          primaryCategory: classification.primaryCategory,
+          categories: classification.categories,
+          reasoning: classification.reasoning
+        });
+
+        try {
+          // Initialize Claude service
+          const claudeService = new ClaudeService();
+          await claudeService.initialize();
+
+          // Prepare messages for Claude
+          const claudeMessages = [];
+
+          // Add conversation history if available
+          if (conversationHistory && conversationHistory.length > 0) {
+            claudeMessages.push({
+              role: 'user',
+              content: `Previous conversation context:\n${conversationHistory}\n\nCurrent question: ${query}`
+            });
+          } else {
+            claudeMessages.push({
+              role: 'user',
+              content: query
+            });
+          }
+
+          // Call Claude with code-optimized system prompt
+          const codeSystemPrompt = `You are an expert software engineer and programming assistant. Provide clear, accurate, and well-explained code solutions.
+
+CORE PRINCIPLES:
+- Write clean, production-ready code with proper error handling
+- Include detailed comments explaining complex logic
+- Follow language-specific best practices and conventions
+- Provide working, tested code examples
+- Explain your reasoning and approach
+
+RESPONSE FORMAT:
+1. Brief explanation of the approach
+2. Complete, working code with comments
+3. Key points and considerations
+4. Potential gotchas or edge cases
+
+QUALITY STANDARDS:
+- Code should be copy-paste ready and functional
+- Use modern language features and idioms
+- Consider performance and scalability
+- Include type hints/annotations where applicable
+- Suggest testing approaches when relevant`;
+
+          console.log(`📤 Sending query to Claude...`);
+          const startTime = Date.now();
+
+          const claudeResponse = await claudeService.callClaude(claudeMessages, {
+            system: codeSystemPrompt,
+            maxTokens: config.claude.maxTokens || 4096,
+            temperature: config.claude.temperature || 0.7
+          });
+
+          const duration = Date.now() - startTime;
+          console.log(`✅ Claude response received in ${duration}ms`);
+          console.log(`📝 Response length: ${claudeResponse.length} characters`);
+
+          return {
+            answer: claudeResponse,
+            modelUsed: 'claude-sonnet-4.5',
+            classification: {
+              isCodeRelated: true,
+              confidence: classification.confidence,
+              primaryCategory: classification.primaryCategory
+            },
+            references: [],
+            searchMethod: 'claude_direct',
+            timestamp: new Date().toISOString(),
+            responseTime: duration
+          };
+
+        } catch (error) {
+          console.error(`❌ Error routing to Claude:`, error);
+          console.log(`⚠️ Falling back to Gemini due to Claude error`);
+          // Fall through to Gemini if Claude fails
+        }
+      } else {
+        console.log(`📍 Routing to Gemini (not code-related or low confidence: ${classification.confidence})`);
+        console.log(`📊 Classification: ${classification.primaryCategory} | Code-related: ${classification.isCodeRelated}`);
+      }
     }
 
     // Get current date -1 context

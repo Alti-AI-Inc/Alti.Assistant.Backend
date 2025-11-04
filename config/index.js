@@ -67,6 +67,15 @@ export default {
   anthropic: {
     anthropic_api_key: process.env.ANTHROPIC_API_KEY,
   },
+  claude: {
+    modelName: process.env.CLAUDE_MODEL_NAME || 'claude-sonnet-4-5-20241022',
+    maxTokens: parseInt(process.env.CLAUDE_MAX_TOKENS) || 4096,
+    temperature: parseFloat(process.env.CLAUDE_TEMPERATURE) || 0.7,
+  },
+  routing: {
+    enableSmartRouting: process.env.ENABLE_SMART_ROUTING === 'true',
+    codeQueryThreshold: parseFloat(process.env.CODE_QUERY_CONFIDENCE_THRESHOLD) || 0.7,
+  },
   google: {
     google_application_credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS,
     gcp_project_id: process.env.GCP_PROJECT_ID,
