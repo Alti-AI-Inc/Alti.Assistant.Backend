@@ -47,6 +47,7 @@ export default {
     apiKey: process.env.COMPOSIO_API_KEY,
     orgApiKey: process.env.COMPOSIO_ORG_API_KEY,
     gmailAuthConfigId: process.env.COMPOSIO_GMAIL_AUTH_CONFIG_ID,
+    useSimplified: process.env.USE_SIMPLIFIED_COMPOSIO === 'true', // Feature flag to toggle between v2 and simple
   },
   groq_api_key: process.env.GROQ_API_KEY,
   tavily_api_key: process.env.TAVILY_API_KEY,

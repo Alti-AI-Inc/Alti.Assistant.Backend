@@ -29,6 +29,7 @@ import { imageRoutes } from '../modules/image/image.route.js';
 import { videoRoutes } from '../modules/video/video.route.js';
 import { deepResearchRoute } from '../modules/deep_research/deep_research.route.js';
 import { composioV2Routes } from '../modules/composio_v2/composio.route.js';
+import { composioSimpleRoutes } from '../modules/composio_simple/composio.route.js';
 import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
 import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
 import { stripeRoutes } from '../modules/stripe/stripe.route.js';
@@ -111,6 +112,10 @@ const moduleRoutes = [
   {
     path: '/composio_v2',
     route: composioV2Routes,
+  },
+  {
+    path: '/composio-simple',
+    route: composioSimpleRoutes,
   },
   {
     path: '/workflow-automation',
