@@ -204,7 +204,7 @@ const createKnowledgeBase = catchAsync(async (req, res) => {
   }
 
   try {
-    const knowledgeBase = await knowledgebaseService.createKnowledgeBase(name.trim(), userId);
+    const knowledgeBase = await knowledgebaseService.createKnowledgeBase(req.body, userId);
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,

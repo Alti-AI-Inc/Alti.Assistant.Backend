@@ -27,6 +27,15 @@ router.post(
   searchController.generateCode
 );
 
+// Dedicated writing endpoint - Uses intelligent routing (Claude for writing tasks)
+router.post(
+  '/writing',
+  optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  // createRateLimiter(20, 15), // 20 writing requests per 15 minutes
+  validateRequest(SearchValidation.searchQuerySchema),
+  searchController.generateWriting
+);
+
 // Get search statistics - authenticated users only
 router.get(
   '/stats',

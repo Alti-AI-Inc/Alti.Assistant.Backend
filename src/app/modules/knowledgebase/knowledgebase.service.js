@@ -431,8 +431,9 @@ class KnowledgebaseService {
    * @param {string} userId - The user ID
    * @returns {Promise<Object>} - Created knowledge base information
    */
-  async createKnowledgeBase(name, userId) {
+  async createKnowledgeBase(payload, userId) {
     try {
+      const { name, description } = payload;
       logger.info(`Creating knowledge base: ${name} for user: ${userId}`);
 
       // Check if knowledge base with same name already exists for user
@@ -445,7 +446,7 @@ class KnowledgebaseService {
       const knowledgeBase = new KnowledgeBase({
         name: name,
         userId: userId,
-        description: '', // Can be added later
+        description: description || '', // Can be added later
         isActive: true,
         documentsCount: 0,
         totalFileSize: 0,
@@ -472,6 +473,7 @@ class KnowledgebaseService {
       throw error;
     }
   }
+
 
   /**
    * Get knowledge base by ID
