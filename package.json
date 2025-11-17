@@ -11,14 +11,17 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:search": "node test_enhanced_search.js",
     "lint": "eslint . --fix --max-warnings=0",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "embeddings:generate": "node src/app/modules/composio_simple/embeddings-generator.js",
+    "embeddings:test": "node src/app/modules/composio_simple/test-vector-search.js"
   },
   "keywords": [],
   "author": "Shohidul-Jaman-Anik",
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.1",
-    "@composio/core": "^0.1.39",
+    "@composio/core": "^0.2.4",
+    "@composio/google": "^0.2.4",
     "@composio/langchain": "^0.1.39",
     "@getzep/zep-js": "^2.0.2",
     "@google-cloud/aiplatform": "^3.20.0",

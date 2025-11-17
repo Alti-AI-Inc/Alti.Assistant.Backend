@@ -1,4 +1,5 @@
 import Conversation from '../conversations/conversation.model.js';
+import { conversationSummaryService } from '../conversations/conversationSummary.service.js';
 
 /**
  * Simple conversation management for Composio
@@ -84,6 +85,12 @@ export const saveMessage = async (conversationId, userId, role, content, metadat
     conversation.messageCount = conversation.messages.length;
 
     await conversation.save();
+
+    // Check if summarization is needed (async, don't wait)
+    conversationSummaryService.checkAndSummarizeIfNeeded(conversationId, userId).catch(err => {
+      console.error('Error in background summarization:', err);
+    });
+
     return conversation;
   } catch (error) {
     console.error('Error saving message:', error);
@@ -129,10 +136,18 @@ export const getUserConversations = async (userId, options = {}) => {
   };
 };
 
+/**
+ * Get conversation with summary context
+ */
+export const getConversationWithContext = async (conversationId, userId) => {
+  return conversationSummaryService.getConversationContext(conversationId, userId);
+};
+
 export const conversationService = {
   generateConversationId,
   getOrCreateConversation,
   getRecentMessages,
   saveMessage,
-  getUserConversations
+  getUserConversations,
+  getConversationWithContext
 };

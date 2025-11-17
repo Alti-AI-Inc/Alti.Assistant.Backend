@@ -3,7 +3,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { composioService } from './composio.service.js';
-import { conversationService } from './composio.conversation.js';
+import { conversationService, generateConversationId } from './composio.conversation.js';
 import SubscriptionModel from '../payment/payment.model.js';
 
 /**
@@ -41,19 +41,63 @@ export const chatController = catchAsync(async (req, res) => {
   }
 
   try {
+    // Get or create conversation
+    const activeConversationId = conversationId || generateConversationId();
+    const conversation = await conversationService.getOrCreateConversation(
+      userId,
+      activeConversationId,
+      message
+    );
+
+    // Save user message
+    await conversationService.saveMessage(
+      conversation.conversationId,
+      userId,
+      'user',
+      message
+    );
+
     // Execute the request
-    const result = await composioService.executeUserRequest(message, userId, conversationId);
+    const result = await composioService.executeUserRequest(
+      message,
+      userId,
+      conversation.conversationId
+    );
 
     if (result.success) {
+      // Save assistant response
+      await conversationService.saveMessage(
+        conversation.conversationId,
+        userId,
+        'assistant',
+        result.data.response,
+        {
+          toolsUsed: result.data.toolsUsed || [],
+          executionTime: result.data.executionTime
+        }
+      );
+
       logger.info(`Composio Simple: Successful execution for user ${userId}`);
 
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: 'Request processed successfully',
-        data: result.data,
+        data: {
+          ...result.data,
+          conversationId: conversation.conversationId
+        },
       });
     } else {
+      // Save error message
+      await conversationService.saveMessage(
+        conversation.conversationId,
+        userId,
+        'assistant',
+        `Error: ${result.error}`,
+        { error: true }
+      );
+
       logger.error(`Composio Simple: Failed execution for user ${userId}: ${result.error}`);
 
       return sendResponse(res, {

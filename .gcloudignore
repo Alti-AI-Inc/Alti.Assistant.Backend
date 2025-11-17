@@ -76,10 +76,6 @@ logs/successes/*.log
 .prettierrc.*
 .prettierignore
 
-# Package lock files (we copy package*.json explicitly)
-package-lock.json
-yarn.lock
-
 # Local development
 .local
 .cache

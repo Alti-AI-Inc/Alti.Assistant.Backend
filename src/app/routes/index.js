@@ -33,6 +33,7 @@ import { composioSimpleRoutes } from '../modules/composio_simple/composio.route.
 import { workflowAutomationRoutes } from '../modules/workflow_automation/workflowAutomation.route.js';
 import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
 import { stripeRoutes } from '../modules/stripe/stripe.route.js';
+import knowledgeBankRoutes from '../modules/knowledge_bank/knowledge_bank.routes.js';
 
 const router = express.Router();
 
@@ -168,6 +169,10 @@ const moduleRoutes = [
   {
     path: '/knowledgebase',
     route: knowledgebaseRoutes
+  },
+  {
+    path: '/knowledge-bank',
+    route: knowledgeBankRoutes
   },
   {
     path: '/stripe',

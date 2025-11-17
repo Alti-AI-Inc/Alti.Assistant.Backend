@@ -49,6 +49,14 @@ export default {
     gmailAuthConfigId: process.env.COMPOSIO_GMAIL_AUTH_CONFIG_ID,
     useSimplified: process.env.USE_SIMPLIFIED_COMPOSIO === 'true', // Feature flag to toggle between v2 and simple
   },
+  openMemory: {
+    enabled: process.env.OPENMEMORY_ENABLED === 'true',
+    baseUrl: process.env.OPENMEMORY_BASE_URL || 'http://localhost:8080',
+    apiKey: process.env.OPENMEMORY_API_KEY || '',
+    defaultNamespace: process.env.OPENMEMORY_NAMESPACE || 'default',
+    defaultTopK: Number(process.env.OPENMEMORY_TOP_K || 5),
+    timeoutMs: Number(process.env.OPENMEMORY_TIMEOUT_MS || 8000),
+  },
   groq_api_key: process.env.GROQ_API_KEY,
   tavily_api_key: process.env.TAVILY_API_KEY,
   serper_api_key: process.env.SERPER_API_KEY,
@@ -84,6 +92,10 @@ export default {
     vertex_ai_endpoint: process.env.VERTEX_AI_ENDPOINT,
     vertex_ai_region: process.env.VERTEX_AI_LOCATION,
     model_id: process.env.MODEL_ID,
+  },
+  gcs: {
+    knowledge_bank_bucket: process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'alti_knowledge_bank_files',
+    knowledgebot_bucket: process.env.GCS_KNOWLEDGEBOT_BUCKET || 'alti_knowledge_bot_files',
   },
   mail: {
     google_smtp_password: process.env.GOOGLE_SMTP_PASSWORD,
