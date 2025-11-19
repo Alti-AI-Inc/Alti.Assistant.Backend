@@ -1,9 +1,11 @@
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { GoogleCustomSearch } from "@langchain/community/tools/google_custom_search";
+import { DynamicTool } from "@langchain/core/tools";
 import { WebBrowser } from "langchain/tools/webbrowser";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import config from "../../../../../config/index.js";
 import { llm } from './geminiService.js';
+import { openMemoryClient } from '../../../shared/openMemoryClient.js';
 
 /**
  * ReAct Agent Service
@@ -15,13 +17,15 @@ import { llm } from './geminiService.js';
  * @param {Array} messages - Array of conversation messages
  * @returns {Object} Formatted response with answer, references, and citations
  */
-export async function executeToolBasedConversation(messages) {
+export async function executeToolBasedConversation(messages, options = {}) {
+  const resolvedUserId = options?.userId || options?.authUserId || options?.user?.id || null;
+
   const textSplitter = new RecursiveCharacterTextSplitter({
     chunkSize: 1000,
     chunkOverlap: 200,
   });
 
-  const toolBasedLlm = llm.bindTools([
+  const tools = [
     new GoogleCustomSearch({ apiKey: config.google_search_api_key, googleCSEId: config.google_engine_id }),
     new WebBrowser({
       model: llm,
@@ -30,9 +34,95 @@ export async function executeToolBasedConversation(messages) {
       }),
       textSplitter
     })
-  ]);
+  ];
+
+  if (openMemoryClient?.enabled) {
+    const openMemoryTool = new DynamicTool({
+      name: 'openmemory-query',
+      description: 'Retrieve long-term, user-scoped memories. Input must be JSON with {"query":"...","userId":"...","k":5,"filters":{}}.',
+      async func(rawInput) {
+        if (!openMemoryClient.enabled) {
+          return JSON.stringify({ error: 'OpenMemory disabled' });
+        }
+
+        let payload = {};
+        if (typeof rawInput === 'string') {
+          const trimmed = rawInput.trim();
+          if (trimmed.startsWith('{')) {
+            try {
+              payload = JSON.parse(trimmed);
+            } catch (err) {
+              console.warn('⚠️ Failed to parse OpenMemory tool input, falling back to raw string', err?.message || err);
+              payload = { query: rawInput };
+            }
+          } else {
+            payload = { query: rawInput };
+          }
+        } else if (typeof rawInput === 'object' && rawInput !== null) {
+          payload = rawInput;
+        }
+
+        const query = payload.query || payload.input || '';
+        const userId = payload.userId || resolvedUserId;
+        const topK = payload.k || config.openMemory?.defaultTopK || 5;
+
+        if (!query) {
+          return JSON.stringify({ error: 'Missing query for OpenMemory tool' });
+        }
+
+        if (!userId) {
+          return JSON.stringify({ error: 'Missing userId for OpenMemory tool' });
+        }
+
+        try {
+          const matches = await openMemoryClient.queryMemories({
+            query,
+            userId,
+            k: topK,
+            filters: payload.filters || {}
+          });
+
+          if (!Array.isArray(matches) || matches.length === 0) {
+            return JSON.stringify([]);
+          }
+
+          if (payload.reinforce !== false) {
+            const reinforcePromises = matches
+              .filter(match => match?.id)
+              .map(match => openMemoryClient.reinforceMemory(match.id).catch(() => null));
+            await Promise.allSettled(reinforcePromises);
+          }
+
+          const response = matches.map(match => ({
+            id: match?.id,
+            content: match?.content,
+            score: match?.score,
+            sector: match?.primary_sector || match?.metadata?.sector || 'semantic',
+            metadata: match?.metadata || {},
+            createdAt: match?.created_at || match?.createdAt
+          }));
+
+          return JSON.stringify(response);
+        } catch (error) {
+          console.warn('⚠️ OpenMemory tool query failed', error);
+          return JSON.stringify({ error: 'OpenMemory query failed', details: error.message });
+        }
+      }
+    });
+
+    tools.push(openMemoryTool);
+  }
+
+  const toolBasedLlm = llm.bindTools(tools);
 
   // Add ReAct agent instructions to the system message
+  const openMemoryInstruction = openMemoryClient?.enabled ? `
+
+OPENMEMORY MEMORY ACCESS:
+- Use the "openmemory-query" tool for user-specific recall.
+- ALWAYS pass JSON with "query" and "userId" (use "${resolvedUserId || '<provide_user_id>'}" if available).
+- Use this before web search when recalling prior user answers, uploaded docs, or preferences.` : '';
+
   const reactSystemPrompt = `${messages[0].content}
 
 REACT AGENT MODE - REASONING AND ACTION:
@@ -143,7 +233,7 @@ FOR SPORTS PREDICTIONS (e.g., "Who has a better chance to win the [Team A] vs [T
 - FINAL: Provide analysis with clear assessment - "Based on available data: [Team A] appears to have the edge because [specific reasons with data]"
 - NEVER say "I cannot predict" - ALWAYS provide data-driven analysis
 
-CRITICAL REASONING GUIDELINES:
+CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
 - Always use MULTIPLE searches for verification, especially for sports schedules
 - Use site-specific searches (site:nhl.com, site:espn.com) for authoritative sources
 - If information conflicts between sources, continue searching until clarity

@@ -192,26 +192,30 @@ const toolBasedLlm = llm.bindTools([
 3. When the tool runs, parse `userId` from the conversation state (pass it through `messages` or `state` as JSON so the tool knows which namespace to hit).
 
 ## 7. Persist Answers Back to Memory (`search.service.js`)
-Right after storing the assistant’s message in Mongo, mirror it into OpenMemory so future recalls work even if the conversation is archived.
+This is now live in `src/app/modules/search/search.service.js`:
+
+- `addSearchQueryMessage` mirrors every stored user query into OpenMemory as an `episodic` memory with tags `['search','query']` (works for both authenticated and guest users; guests get `isGuest: true` metadata so you can filter later).
+- `addSearchResultMessage` mirrors the final assistant answer as a `semantic` memory with tags `['search','answer']`, preserving whatever metadata (references, citation info, etc.) you already attach to the conversation entry.
+
+Key snippet:
 
 ```javascript
-import { openMemoryClient } from '../../shared/openMemoryClient.js';
-
-await openMemoryClient.addMemory({
-  content: fullResponse,
-  userId,
-  tags: ['search', 'answer'],
-  metadata: {
-    conversationId: actualConversationId,
-    searchQuery: message,
-    references: reference,
-    citationMetadata,
-  },
-  sector: 'semantic',
-});
+if (!isGuest && openMemoryClient?.enabled && searchResult) {
+  await openMemoryClient.addMemory({
+    content: searchResult,
+    userId,
+    tags: ['search', 'answer'],
+    metadata: {
+      conversationId,
+      ...metadata,
+      type: metadata?.type || 'search_result',
+    },
+    sector: metadata?.sector || 'semantic',
+  });
+}
 ```
 
-Also consider capturing the *user query* itself (sector `episodic`) when `addSearchQueryMessage` is called. This lets the agent recall what the user asked previously even if the main answer was lost.
+User queries follow the same pattern but use `sector: 'episodic'`. Because the persistence happens directly inside the conversation helper functions, every endpoint (`performSearch`, `generateCode`, `generateWriting`, etc.) automatically contributes to the user’s memory as soon as it saves a message.
 
 ## 8. Optional Enhancements
 - **Document ingest**: If users upload PDFs or notes, send them to `/memory/ingest` so they become searchable memories tied to the same `user_id`.

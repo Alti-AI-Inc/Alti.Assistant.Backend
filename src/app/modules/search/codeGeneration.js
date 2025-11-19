@@ -24,6 +24,7 @@ export const runCodeGeneration = async (state, stream = false) => {
     console.log("🔧 Running dedicated code generation with Claude Sonnet 4.5");
 
     const query = state.currentQuery || state.query || "";
+    const userId = state.userId || state.authUserId || state?.user?.id || null;
 
     // Handle conversation context
     let conversationContext;
@@ -265,7 +266,10 @@ Generate high-quality, production-ready code with:
     console.log("🚀 Starting code generation with tool-based conversation...");
 
     // Use executeToolBasedConversation from reactAgent.js with optional search
-    const codeResult = await executeToolBasedConversation(messages);
+    const codeResult = await executeToolBasedConversation(messages, {
+      userId,
+      conversationId: state.conversationId
+    });
 
     const duration = Date.now() - startTime;
     console.log(`✅ Code generation process completed in ${duration}ms`);

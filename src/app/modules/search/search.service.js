@@ -4,6 +4,7 @@ import { logger } from '../../../shared/logger.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import mongoose from 'mongoose';
+import { openMemoryClient } from '../../shared/openMemoryClient.js';
 
 /**
  * Generate unique guest user ID
@@ -30,13 +31,13 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
       // Try to get existing conversation for both authenticated and guest users
       try {
         conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
-        
+
         // For guest users, verify the conversation belongs to them or is a guest conversation
         if (isGuest && conversation.metadata?.userType !== 'guest') {
           logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
           conversation = null; // Force creation of new conversation
         }
-        
+
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one`);
       }
@@ -45,7 +46,7 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
     // Create conversation if it doesn't exist
     if (!conversation) {
       const newConversationId = conversationId || generateSearchConversationId();
-      
+
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
         conversation = await conversationService.createConversation(
@@ -80,7 +81,7 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
           newConversationId
         );
       }
-      
+
       console.log(`Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`);
     }
 
@@ -102,9 +103,9 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
 const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGuest = false) => {
   try {
     console.log(`Adding search query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
-    
+
     // Store the message in the conversation for both guest and authenticated users
-    return await conversationService.addMessageToConversation(
+    const savedMessage = await conversationService.addMessageToConversation(
       conversationId,
       userId,
       {
@@ -116,6 +117,27 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
         },
       }
     );
+
+    if (openMemoryClient?.enabled && searchQuery && userId) {
+      try {
+        await openMemoryClient.addMemory({
+          content: searchQuery,
+          userId,
+          tags: ['search', 'query'],
+          metadata: {
+            conversationId,
+            type: 'search_query',
+            timestamp: new Date().toISOString(),
+            isGuest,
+          },
+          sector: 'episodic',
+        });
+      } catch (memoryError) {
+        logger.warn('Failed to persist search query in OpenMemory', memoryError);
+      }
+    }
+
+    return savedMessage;
   } catch (error) {
     logger.error('Error adding search query message:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add search query to conversation');
@@ -134,9 +156,9 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
 const addSearchResultMessage = async (conversationId, userId, searchResult, metadata = {}, isGuest = false) => {
   try {
     console.log(`Adding search result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
-    
+
     // Store the result in the conversation for both guest and authenticated users
-    return await conversationService.addMessageToConversation(
+    const savedMessage = await conversationService.addMessageToConversation(
       conversationId,
       userId,
       {
@@ -150,6 +172,27 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
         },
       }
     );
+
+    if (openMemoryClient?.enabled && searchResult && userId) {
+      try {
+        await openMemoryClient.addMemory({
+          content: searchResult,
+          userId,
+          tags: ['search', 'answer'],
+          metadata: {
+            conversationId,
+            ...metadata,
+            type: metadata?.type || 'search_result',
+            isGuest,
+          },
+          sector: metadata?.sector || 'semantic',
+        });
+      } catch (memoryError) {
+        logger.warn('Failed to persist search result in OpenMemory', memoryError);
+      }
+    }
+
+    return savedMessage;
   } catch (error) {
     logger.error('Error adding search result message:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add search result to conversation');
@@ -168,7 +211,7 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
 const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false) => {
   try {
     console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
-    
+
     // Store the error in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
       conversationId,
@@ -199,7 +242,7 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
 const getSearchHistory = async (conversationId, userId, limit = 10) => {
   try {
     const conversation = await conversationHelpers.getConversationById(conversationId, userId);
-    
+
     if (!conversation || !conversation.messages) {
       return [];
     }

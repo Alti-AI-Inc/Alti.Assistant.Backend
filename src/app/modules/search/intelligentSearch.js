@@ -6,6 +6,7 @@ import { classifyQuery, classifyWritingRequest } from './services/queryClassifie
 import { ClaudeService } from './services/claudeService.js';
 import { executeToolBasedConversation } from './services/reactAgent.js';
 import Conversation from "../conversations/conversation.model.js";
+import { openMemoryClient } from '../../shared/openMemoryClient.js';
 
 /**
  * Enhanced search function that uses tool-enabled LLM for intelligent search decisions
@@ -57,6 +58,44 @@ export const runIntelligentSearch = async (state, stream = false) => {
 
     // Use the intelligently managed conversation context
     const conversationHistory = contextResult.formattedContext;
+    let conversationHistoryWithMemory = conversationHistory;
+    let classificationContext = conversationContext;
+    const userId = state.userId || state.authUserId || state?.user?.id;
+
+    if (openMemoryClient?.enabled && userId) {
+      try {
+        const memoryMatches = await openMemoryClient.queryMemories({ query, userId });
+        if (memoryMatches.length) {
+          console.log(`🧠 OpenMemory: retrieved ${memoryMatches.length} memories for user ${userId}`);
+          const memoryHeader = '## Retrieved Memories:\n';
+          const memoryLines = memoryMatches
+            .map((match, idx) => {
+              const sector = match?.primary_sector || match?.metadata?.sector || 'semantic';
+              return `Memory ${idx + 1} (${sector}): ${match?.content}`;
+            })
+            .join('\n');
+
+          conversationHistoryWithMemory = `${memoryHeader}${memoryLines}\n\n${conversationHistory}`;
+          classificationContext = [
+            ...memoryMatches.map(match => ({
+              role: 'assistant',
+              content: `Referenced memory (${match?.primary_sector || match?.metadata?.sector || 'semantic'}): ${match?.content}`
+            })),
+            ...conversationContext
+          ];
+
+          memoryMatches.forEach(match => {
+            if (match?.id) {
+              openMemoryClient.reinforceMemory(match.id).catch(err => {
+                console.warn(`⚠️ Failed to reinforce OpenMemory id ${match.id}`, err?.message || err);
+              });
+            }
+          });
+        }
+      } catch (memoryError) {
+        console.warn('⚠️ OpenMemory query failed, continuing without memory context', memoryError);
+      }
+    }
 
     console.log(`✅ Context prepared: ${contextResult.contextTokens} tokens (managed: ${contextResult.isOptimized})`);
     if (contextResult.historyManaged) {
@@ -71,7 +110,7 @@ export const runIntelligentSearch = async (state, stream = false) => {
       const writingClassification = classifyWritingRequest(query);
 
       // Check if it's code-related
-      const classification = classifyQuery(query, conversationContext);
+      const classification = classifyQuery(query, classificationContext);
 
       console.log(`📊 Query Classification Result:`, {
         query: query.substring(0, 100),
@@ -101,10 +140,10 @@ export const runIntelligentSearch = async (state, stream = false) => {
           const claudeMessages = [];
 
           // Add conversation history if available
-          if (conversationHistory && conversationHistory.length > 0) {
+          if (conversationHistoryWithMemory && conversationHistoryWithMemory.length > 0) {
             claudeMessages.push({
               role: 'user',
-              content: `Previous conversation context:\n${conversationHistory}\n\nCurrent request: ${query}`
+              content: `Previous conversation context:\n${conversationHistoryWithMemory}\n\nCurrent request: ${query}`
             });
           } else {
             claudeMessages.push({
@@ -210,10 +249,10 @@ DO NOT:
           const claudeMessages = [];
 
           // Add conversation history if available
-          if (conversationHistory && conversationHistory.length > 0) {
+          if (conversationHistoryWithMemory && conversationHistoryWithMemory.length > 0) {
             claudeMessages.push({
               role: 'user',
-              content: `Previous conversation context:\n${conversationHistory}\n\nCurrent question: ${query}`
+              content: `Previous conversation context:\n${conversationHistoryWithMemory}\n\nCurrent question: ${query}`
             });
           } else {
             claudeMessages.push({
@@ -454,7 +493,7 @@ CRITICAL: Provide minimal, direct answers with only essential details. Remove al
       },
       {
         role: "user",
-        content: `This is the current conversation history: ${conversationHistory}
+        content: `This is the current conversation history: ${conversationHistoryWithMemory}
 
 Current question: ${query}
 
@@ -543,7 +582,10 @@ Provide a well-researched, detailed response with proper source references. Use 
     ];
 
     const startTime = Date.now();
-    const searchResult = await executeToolBasedConversation(messages);
+    const searchResult = await executeToolBasedConversation(messages, {
+      userId,
+      conversationId: state.conversationId
+    });
 
     const duration = Date.now() - startTime;
     console.log(`✅ Intelligent search process completed in ${duration}ms`);
