@@ -49,7 +49,7 @@ This plan outlines the implementation of smart routing logic in the `toolBasedSe
 export const runIntelligentSearch = async (state, stream = false) => {
   // Currently uses Google Gemini 2.5 Flash for all queries
   const llm = new ChatGoogleGenerativeAI({
-    model: "gemini-2.5-flash-preview-05-20",
+    model: "gemini-3-pro-preview",
     apiKey: config.gemini_secret_key,
   });
   
@@ -278,11 +278,11 @@ export const runIntelligentSearch = async (state, stream = false) => {
     } else {
       console.log(`🔮 Using Gemini 2.5 Flash for general query`);
       selectedModel = new ChatGoogleGenerativeAI({
-        model: "gemini-2.5-flash-preview-05-20",
+        model: "gemini-3-pro-preview",
         apiKey: config.gemini_secret_key,
       });
       modelConfig = {
-        modelName: 'gemini-2.5-flash',
+        modelName: 'gemini-3-pro-preview',
         provider: 'google',
         optimizedFor: 'general',
       };
@@ -320,7 +320,7 @@ export class ModelFactory {
   
   static createGeminiModel(config) {
     return new ChatGoogleGenerativeAI({
-      model: "gemini-2.5-flash-preview-05-20",
+      model: "gemini-3-pro-preview",
       apiKey: config.gemini_secret_key,
     });
   }
@@ -500,7 +500,7 @@ describe('Query Classification', () => {
 **Gemini 2.5 Flash (Existing)**:
 ```javascript
 {
-  model: 'gemini-2.5-flash-preview-05-20',
+  model: 'gemini-3-pro-preview',
   temperature: 1,
   topP: 0.95,
   maxOutputTokens: 8192,

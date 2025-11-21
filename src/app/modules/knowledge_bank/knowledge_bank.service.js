@@ -24,8 +24,11 @@ const embeddings = new GoogleGenerativeAIEmbeddings({
 
 const llm = new ChatGoogleGenerativeAI({
   temperature: 0.2,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-3-pro-preview',
   apiKey: config?.gemini_secret_key,
+  thinkingConfig: {
+    includeThoughts: false,
+  }
 })
 
 const ragConfig = {

@@ -35,8 +35,8 @@ export async function findAppropriateApp(query, chatHistory = [], summarizedCont
   }
 
   const response = await generateContent(
-    'gemini-2.5-flash',
-    [{ role: 'user', parts: [{ text: prompt }] }]
+    'gemini-3-pro-preview',
+    [{ role: 'user', parts: [{ text: prompt }] }],
   );
 
   // Before parsing remove any extra text around the JSON array
@@ -103,10 +103,13 @@ export async function generateAndExecuteTools(query, tools, toolkitVersions, ent
   const cleanedTools = tools.map(tool => sanitizeToolForGemini(tool));
   console.log('Entity ID for tool execution:', entityId);
   const response = await generateContent(
-    'gemini-2.5-flash',
+    'gemini-3-pro-preview',
     query,
     {
       tools: [{ functionDeclarations: cleanedTools }],
+      thinkingConfig: {
+        includeThoughts: false,
+      }
     }
   );
 
@@ -156,7 +159,7 @@ Output only the final comprehensive user request, nothing else:`;
 
     console.log('Generating user message with prompt:', prompt);
     const response = await generateContent(
-      'gemini-2.5-flash',
+      'gemini-3-pro-preview',
       [{ role: 'user', parts: [{ text: prompt }] }]
     );
     const generatedMessage = response.candidates[0].content.parts[0].text.trim();

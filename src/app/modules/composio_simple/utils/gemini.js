@@ -30,7 +30,11 @@ export async function generateContent(model, contents, config = {}) {
   const response = await gemini.models.generateContent({
     model,
     contents,
-    config
+    config: config ? config : {
+      thinkingConfig: {
+        includeThoughts: false,
+      }
+    }
   });
   return response;
 }
