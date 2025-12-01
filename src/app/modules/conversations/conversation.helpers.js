@@ -11,6 +11,7 @@ import Conversation from './conversation.model.js';
  */
 const getConversationById = async (conversationId, userId = null) => {
   try {
+    console.log("Fetching conversation with ID:", conversationId, "for user:", userId);
     const conversation = await Conversation.findByConversationId(conversationId, userId);
 
     if (!conversation) {

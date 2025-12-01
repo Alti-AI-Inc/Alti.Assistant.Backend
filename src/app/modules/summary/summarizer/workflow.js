@@ -20,6 +20,6 @@ workflow.addEdge("fetch_content", "summarize_content");
 workflow.addEdge("summarize_content", END);
 
 // Instantiate the checkpointer with a specific collection name for this agent.
-const checkpointer = await MongoDBSaver.fromUri(config.database_local, "summarizer_v2_checkpoints");
+// const checkpointer = await MongoDBSaver.fromUri(config.database_local, "summarizer_v2_checkpoints");
 
-export const summarizerApp = workflow.compile({ checkpointer });
+export const summarizerApp = workflow.compile();

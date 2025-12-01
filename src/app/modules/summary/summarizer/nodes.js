@@ -8,10 +8,13 @@ import { generateSummary } from '../summarizerService.js';
  * Node: Fetches content from the URL provided in the state.
  */
 export const fetchContentNode = async (state) => {
-  const { user_input } = state;
-  const urlInfo = convertRawJsonToJson(
-    await getUrlFromUserInputUsingAi(user_input)
-  );
+  const { user_input, isFilePassed } = state;
+  let urlInfo = { url: null, isYoutubeUrl: false };
+  if (!isFilePassed) {
+    urlInfo = convertRawJsonToJson(
+      await getUrlFromUserInputUsingAi(user_input)
+    );
+  }
   console.log(
     `--- Node: fetchContentNode for URL: ${JSON.stringify(urlInfo)} ---`
   );
@@ -97,10 +100,10 @@ export const summarizeContentNode = async (state) => {
     return { summary: content };
   }
 
-  // Request a stream from the service.
-  const stream = await generateSummary(content, history, true);
+  // Request a non-streaming response from the service.
+  const summary = await generateSummary(content, history);
 
-  return { summary: stream };
+  return { summary };
 };
 /**
  * Node: Get the url from the user input

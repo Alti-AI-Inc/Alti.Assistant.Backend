@@ -1,0 +1,717 @@
+{
+  "info": {
+    "name": "Enhanced Image API",
+    "_postman_id": "enhanced-image-api-v1",
+    "description": "Complete API collection for Enhanced Image module with conversation-based image generation and editing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Image Generation",
+      "item": [
+        {
+          "name": "Generate Image (Guest)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.conversationId) {",
+                  "        pm.collectionVariables.set('conversationId', jsonData.data.conversationId);",
+                  "    }",
+                  "    if (jsonData.data && jsonData.data.userId) {",
+                  "        pm.collectionVariables.set('userId', jsonData.data.userId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"A serene mountain landscape at sunset with a lake reflection, photorealistic style\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "generate"
+              ]
+            },
+            "description": "Generate an image as a guest user without authentication. Creates a new conversation automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Image (Authenticated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.conversationId) {",
+                  "        pm.collectionVariables.set('conversationId', jsonData.data.conversationId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"A futuristic city skyline at night with neon lights, cyberpunk style\",\n  \"aspectRatio\": \"16:9\",\n  \"negativePrompt\": \"blurry, low quality\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "generate"
+              ]
+            },
+            "description": "Generate an image with authentication. Checks subscription limits."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Image (Continue Conversation)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Add more vibrant colors and increase the saturation\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "generate"
+              ]
+            },
+            "description": "Continue an existing conversation to generate a contextually-aware image."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate from Conversation History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"aspectRatio\": \"16:9\",\n  \"negativePrompt\": \"blurry, low quality\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/generate-from-conversation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "generate-from-conversation"
+              ]
+            },
+            "description": "Generate an image using the entire conversation history to build an enhanced prompt automatically."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Image Editing",
+      "item": [
+        {
+          "name": "Edit Image (Guest)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.conversationId) {",
+                  "        pm.collectionVariables.set('conversationId', jsonData.data.conversationId);",
+                  "    }",
+                  "    if (jsonData.data && jsonData.data.userId) {",
+                  "        pm.collectionVariables.set('userId', jsonData.data.userId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Add a rainbow to the sky\",\n  \"imageBase64\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/edit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "edit"
+              ]
+            },
+            "description": "Edit an existing image by providing base64 encoded image and edit instructions."
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Image (Authenticated)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Make the image brighter and add more contrast\",\n  \"imageBase64\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\",\n  \"conversationId\": \"{{conversationId}}\",\n  \"aspectRatio\": \"16:9\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/edit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "edit"
+              ]
+            },
+            "description": "Edit an image with authentication and continue an existing conversation."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Prompt Analysis & Enhancement",
+      "item": [
+        {
+          "name": "Analyze Intent (Simple)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Create a minimalist logo for a tech startup\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/analyze-intent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "analyze-intent"
+              ]
+            },
+            "description": "Analyze the intent of an image generation prompt (simple version, no context)."
+          },
+          "response": []
+        },
+        {
+          "name": "Analyze Image Intent (With Context)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request\": \"I want to edit the sky to make it more dramatic\",\n  \"hasImage\": true,\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/analyze-image-intent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "analyze-image-intent"
+              ]
+            },
+            "description": "Analyze image intent with conversation context. Returns whether it's editable, intent type, and questions if more info needed."
+          },
+          "response": []
+        },
+        {
+          "name": "Evaluate Prompt Quality",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"A mountain landscape\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/evaluate-prompt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "evaluate-prompt"
+              ]
+            },
+            "description": "Evaluate the quality of a prompt and get suggestions for improvement. Returns score, missing elements, and suggestions."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Detail to Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"detail\": \"with golden hour lighting and dramatic clouds\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/add-detail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "add-detail"
+              ]
+            },
+            "description": "Add additional details to an existing conversation and re-evaluate the prompt quality. Returns updated evaluation with score and suggestions."
+          },
+          "response": []
+        },
+        {
+          "name": "Finalize Prompt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/finalize-prompt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "finalize-prompt"
+              ]
+            },
+            "description": "Finalize the prompt by building an enhanced version from all conversation messages. Returns the optimized prompt ready for image generation."
+          },
+          "response": []
+        },
+        {
+          "name": "Build Enhanced Prompt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/build-enhanced-prompt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "build-enhanced-prompt"
+              ]
+            },
+            "description": "Build an enhanced, optimized prompt from all user messages in a conversation."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        {
+          "name": "Get Image Statistics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/enhanced-image/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enhanced-image",
+                "stats"
+              ]
+            },
+            "description": "Get image generation statistics for the authenticated user. Requires authentication."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Example Workflows",
+      "item": [
+        {
+          "name": "Workflow 1: Guest User Journey",
+          "item": [
+            {
+              "name": "Step 1 - Generate First Image",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.collectionVariables.set('conversationId', jsonData.data.conversationId);",
+                      "    pm.collectionVariables.set('userId', jsonData.data.userId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prompt\": \"A mountain landscape\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/enhanced-image/generate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "enhanced-image",
+                    "generate"
+                  ]
+                },
+                "description": "Start a new conversation as a guest user"
+              },
+              "response": []
+            },
+            {
+              "name": "Step 2 - Add Details",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"detail\": \"with sunset colors and dramatic lighting\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/enhanced-image/add-detail",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "enhanced-image",
+                    "add-detail"
+                  ]
+                },
+                "description": "Add more details to the conversation"
+              },
+              "response": []
+            },
+            {
+              "name": "Step 3 - Add More Details",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"detail\": \"photorealistic style with vibrant colors\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/enhanced-image/add-detail",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "enhanced-image",
+                    "add-detail"
+                  ]
+                },
+                "description": "Add even more details to refine the prompt"
+              },
+              "response": []
+            },
+            {
+              "name": "Step 4 - Generate Enhanced",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"userId\": \"{{userId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/enhanced-image/generate-from-conversation",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "enhanced-image",
+                    "generate-from-conversation"
+                  ]
+                },
+                "description": "Generate image using all conversation history"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Workflow 2: Prompt Enhancement",
+          "item": [
+            {
+              "name": "Step 1 - Evaluate Initial Prompt",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prompt\": \"A cat\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/enhanced-image/evaluate-prompt",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "enhanced-image",
+                    "evaluate-prompt"
+                  ]
+                },
+                "description": "Check if prompt needs improvement"
+              },
+              "response": []
+            },
+            {
+              "name": "Step 2 - Analyze Intent",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prompt\": \"A realistic photo of a Persian cat sitting on a windowsill\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/enhanced-image/analyze-intent",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "enhanced-image",
+                    "analyze-intent"
+                  ]
+                },
+                "description": "Analyze the improved prompt intent"
+              },
+              "response": []
+            },
+            {
+              "name": "Step 3 - Generate Image",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prompt\": \"A realistic photo of a Persian cat sitting on a windowsill, golden hour lighting, soft focus background\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/enhanced-image/generate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "enhanced-image",
+                    "generate"
+                  ]
+                },
+                "description": "Generate with the enhanced prompt"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Ignore all audio files in this directory
+*.mp3
+*.wav
+*.aiff
+*.aac
+*.ogg
+*.flac
+*.m4a
+*.wma
+
+# Keep the directory structure
+!.gitignore

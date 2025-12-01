@@ -1,6 +1,16 @@
-import multer from "multer";
 import express from "express";
+import multer from "multer";
+import { ENUM_USER_ROLE } from '../../../shared/enum.js';
+import auth from '../../middlewares/auth/auth.js';
+import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
+import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import { summaryController } from "./summary.controller.js";
+import { SummaryValidation } from "./summary.validation.js";
 
+const router = express.Router();
+
+// Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -14,7 +24,7 @@ const upload = multer({
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'text/csv',
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -23,12 +33,21 @@ const upload = multer({
   },
 });
 
-const router = express.Router();
-import { summarizeContent } from './summary.controller.js';
-
+// Summarize content endpoint - open to all (with optional auth)
 router.post(
   '/summarize',
-  upload.single('file'),
-  summarizeContent
+  optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  upload.single('file'), // Allow file upload
+  // createRateLimiter(30, 15), // 30 summary requests per 15 minutes (applies to all users)
+  validateRequest(SummaryValidation.summaryQuerySchema),
+  summaryController.summarizeContent
 );
+
+// Get summary statistics - authenticated users only
+router.get(
+  '/stats',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), // Keep regular auth for stats
+  summaryController.getSummaryStats
+);
+
 export const summaryRoutes = router;

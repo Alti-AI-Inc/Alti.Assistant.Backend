@@ -1,0 +1,463 @@
+{
+  "info": {
+    "name": "Transcription API - Gemini Audio Understanding",
+    "description": "Complete API collection for the Transcription module using Gemini's audio understanding capabilities",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "your-auth-token-here",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Transcribe Audio File",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/your/audio.mp3",
+              "description": "Audio file to transcribe"
+            },
+            {
+              "key": "processingType",
+              "value": "transcribe",
+              "type": "text",
+              "description": "Type: transcribe, describe, summarize, analyze, segment, question"
+            },
+            {
+              "key": "prompt",
+              "value": "Generate a detailed transcript",
+              "type": "text",
+              "description": "Optional custom prompt"
+            },
+            {
+              "key": "includeTimestamps",
+              "value": "false",
+              "type": "text",
+              "description": "Include timestamps in output"
+            },
+            {
+              "key": "outputFormat",
+              "value": "text",
+              "type": "text",
+              "description": "Output format: text, json, srt, vtt"
+            },
+            {
+              "key": "conversationId",
+              "value": "{{conversationId}}",
+              "type": "text",
+              "description": "Optional conversation ID"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe"
+          ]
+        },
+        "description": "Upload and transcribe an audio file"
+      },
+      "response": []
+    },
+    {
+      "name": "Transcribe with Timestamps",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/your/audio.mp3"
+            },
+            {
+              "key": "processingType",
+              "value": "transcribe",
+              "type": "text"
+            },
+            {
+              "key": "startTimestamp",
+              "value": "02:30",
+              "type": "text",
+              "description": "Start time in MM:SS format"
+            },
+            {
+              "key": "endTimestamp",
+              "value": "03:29",
+              "type": "text",
+              "description": "End time in MM:SS format"
+            },
+            {
+              "key": "prompt",
+              "value": "Transcribe the segment from 02:30 to 03:29",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe"
+          ]
+        },
+        "description": "Transcribe a specific time segment of audio"
+      },
+      "response": []
+    },
+    {
+      "name": "Describe Audio",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/your/audio.mp3"
+            },
+            {
+              "key": "processingType",
+              "value": "describe",
+              "type": "text"
+            },
+            {
+              "key": "prompt",
+              "value": "Describe all sounds, music, and speech in detail",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe"
+          ]
+        },
+        "description": "Get a detailed description of audio content"
+      },
+      "response": []
+    },
+    {
+      "name": "Summarize Audio",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/your/audio.mp3"
+            },
+            {
+              "key": "processingType",
+              "value": "summarize",
+              "type": "text"
+            },
+            {
+              "key": "prompt",
+              "value": "Provide a concise summary of the main points",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe"
+          ]
+        },
+        "description": "Get a summary of audio content"
+      },
+      "response": []
+    },
+    {
+      "name": "Analyze Audio",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/your/audio.mp3"
+            },
+            {
+              "key": "processingType",
+              "value": "analyze",
+              "type": "text"
+            },
+            {
+              "key": "prompt",
+              "value": "Analyze themes, speakers, tone, and key topics",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe"
+          ]
+        },
+        "description": "Analyze audio for themes, speakers, and sentiment"
+      },
+      "response": []
+    },
+    {
+      "name": "Transcribe Inline Audio",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"audioData\": \"<base64_encoded_audio>\",\n  \"mimeType\": \"audio/mp3\",\n  \"processingType\": \"transcribe\",\n  \"prompt\": \"Generate a transcript\",\n  \"includeTimestamps\": false,\n  \"outputFormat\": \"text\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe/inline",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe",
+            "inline"
+          ]
+        },
+        "description": "Process base64-encoded audio data directly"
+      },
+      "response": []
+    },
+    {
+      "name": "Batch Transcribe",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/audio1.mp3"
+            },
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/audio2.mp3"
+            },
+            {
+              "key": "audioFiles",
+              "value": "[\n  {\n    \"fileId\": \"file1\",\n    \"prompt\": \"Transcribe this\",\n    \"processingType\": \"transcribe\"\n  },\n  {\n    \"fileId\": \"file2\",\n    \"prompt\": \"Summarize this\",\n    \"processingType\": \"summarize\"\n  }\n]",
+              "type": "text",
+              "description": "Configuration for each file"
+            },
+            {
+              "key": "outputFormat",
+              "value": "text",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe/batch",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe",
+            "batch"
+          ]
+        },
+        "description": "Process multiple audio files in one request (max 10)"
+      },
+      "response": []
+    },
+    {
+      "name": "Analyze Segments",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fileId\": \"<uploaded-file-uri>\",\n  \"segments\": [\n    {\n      \"start\": \"00:30\",\n      \"end\": \"01:45\",\n      \"prompt\": \"What is discussed in this segment?\"\n    },\n    {\n      \"start\": \"02:00\",\n      \"end\": \"03:30\",\n      \"prompt\": \"Summarize this part\"\n    }\n  ],\n  \"conversationId\": \"{{conversationId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/analyze/segments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "analyze",
+            "segments"
+          ]
+        },
+        "description": "Analyze specific time segments of an uploaded audio file"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Transcription Statistics",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/transcription/stats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "stats"
+          ]
+        },
+        "description": "Get transcription statistics for authenticated user"
+      },
+      "response": []
+    },
+    {
+      "name": "Guest User - Transcribe",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/your/audio.mp3"
+            },
+            {
+              "key": "processingType",
+              "value": "transcribe",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe"
+          ]
+        },
+        "description": "Test guest user access (no authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "Question About Audio",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "audio",
+              "type": "file",
+              "src": "/path/to/your/audio.mp3"
+            },
+            {
+              "key": "processingType",
+              "value": "question",
+              "type": "text"
+            },
+            {
+              "key": "prompt",
+              "value": "What are the main topics discussed? Who are the speakers?",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/transcription/transcribe",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "transcription",
+            "transcribe"
+          ]
+        },
+        "description": "Ask questions about audio content"
+      },
+      "response": []
+    }
+  ]
+}

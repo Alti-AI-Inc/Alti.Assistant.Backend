@@ -34,6 +34,8 @@ import { workflowAutomationRoutes } from '../modules/workflow_automation/workflo
 import knowledgebaseRoutes from '../modules/knowledgebase/knowledgebase.routes.js';
 import { stripeRoutes } from '../modules/stripe/stripe.route.js';
 import knowledgeBankRoutes from '../modules/knowledge_bank/knowledge_bank.routes.js';
+import { enhancedImageRoute } from '../modules/enhanced_image/enhanced_image.route.js';
+import { TranscriptionRoutes } from '../modules/transcription/transcription.route.js';
 
 const router = express.Router();
 
@@ -177,6 +179,14 @@ const moduleRoutes = [
   {
     path: '/stripe',
     route: stripeRoutes
+  },
+  {
+    path: '/enhanced-image',
+    route: enhancedImageRoute
+  },
+  {
+    path: '/transcription',
+    route: TranscriptionRoutes
   }
 ];
 

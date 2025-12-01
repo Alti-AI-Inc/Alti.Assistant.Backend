@@ -1,4 +1,7 @@
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import config from "../../../../config/index.js";
 import { anthropic } from "./llm.js";
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * A generic function to interact with the Claude model for various coding tasks.
@@ -6,7 +9,7 @@ import { anthropic } from "./llm.js";
  * @param {Array<{role: 'user' | 'assistant', content: string}>} history - The conversation history.
  * @returns {Promise<string>} - The model's response.
  */
-async function runClaudeTask(systemPrompt, history, stream = false) {
+async function runClaudeTask(content, history) {
     const messages = history
         .filter(msg => msg.role === 'user' || msg.role === 'assistant')
         .map(msg => ({
@@ -16,18 +19,11 @@ async function runClaudeTask(systemPrompt, history, stream = false) {
 
     try {
         const response = await anthropic.messages.create({
-            model: 'claude-3-7-sonnet-latest',
-            system: systemPrompt,
+            model: 'claude-4.5-sonnet-latest',
+            system: content,
             max_tokens: 4096,
             messages: messages,
-            stream: stream, // Enable or disable streaming based on the parameter
         });
-
-        if (stream) {
-            console.log("Streaming response from Anthropic API...", stream);
-            
-            return response; // Return the stream object directly
-        }
 
         return response.content[0].text;
     } catch (error) {
@@ -36,17 +32,43 @@ async function runClaudeTask(systemPrompt, history, stream = false) {
     }
 }
 
-// Update all service functions to accept and pass the 'stream' parameter.
+const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
-export const claudeSummarizer = async (history, stream) => {
+async function runGeminiTask(content, history) {
+    const contents = [
+        ...history.map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+        })),
+        {
+            role: 'user',
+            parts: [{ text: content }]
+        }
+    ];
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: contents,
+            config: {
+                maxOutputTokens: 4096,
+                temperature: 0.7,
+                topP: 0.95,
+            }
+        });
+
+        return response.text;
+    }
+    catch (error) {
+        console.error("Error calling Gemini API:", error);
+        return "Sorry, I encountered an error while processing your request with the coding model. Please try again.";
+    }
+}
+
+export const claudeSummarizer = async (history, content) => {
     const systemPrompt = `You are an expert summarization assistant. Your task is to provide a clear, concise, and accurate summary of the provided content.
 - Identify the key points, main arguments, and important conclusions.
 - The summary should be neutral and objective.
 - Structure the summary in well-organized paragraphs.
-The content to summarize is below:
----
-${history.map(h => `${h.role}: ${h.content}`).join('\n')}
----
     `;
-    return runClaudeTask(systemPrompt, history, stream);
+    return runGeminiTask(content, history);
 }
