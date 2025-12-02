@@ -306,19 +306,23 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
         parts: [{ text: query }]
       }
     ];
+    console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
 
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: contents,
       config: {
         systemInstruction: systemPrompt,
-        tools: [{ googleSearch: {} }]
+        tools: [{ googleSearch: {} }],
       }
     });
 
     const endTime = Date.now();
     console.log(`⏱️ Search took ${endTime - startTime} ms`);
     const response = result.candidates[0];
+    console.log('Full response object:', JSON.stringify(result, null, 2));
+    console.log('Response content:', JSON.stringify(response.content, null, 2));
+    console.log('Response parts:', response.content?.parts);
     const text = response.content.parts.map(part => part.text).join('');
 
     // Extract grounding metadata

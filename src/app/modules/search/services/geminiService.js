@@ -9,7 +9,7 @@ import { googleSearch, YouTubeSearchTool } from '../tools.js';
 
 // Base Gemini LLM instance - Using Gemini 3 with native Google Search support
 export const llm = new ChatGoogleGenerativeAI({
-  model: "gemini-3-pro-preview", // Gemini 3 with advanced capabilities
+  model: "gemini-2.5-flash", // Gemini 3 with advanced capabilities
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
