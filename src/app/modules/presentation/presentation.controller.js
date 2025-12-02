@@ -1,0 +1,289 @@
+import httpStatus from 'http-status';
+import catchAsync from '../../../shared/catchAsync.js';
+import { logger } from '../../../shared/logger.js';
+import sendResponse from '../../../shared/sendResponse.js';
+import { presentationService } from './presentation.service.js';
+import SubscriptionModel from '../payment/payment.model.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
+
+/**
+ * Conversational presentation assistant endpoint
+ * Handles natural language requests for presentation generation
+ */
+export const conversationalAssistant = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+  let userId = isGuest
+    ? presentationService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
+
+  const { message, conversationId } = req.body;
+  userId = req.body.userId || userId;
+
+  logger.info(`Presentation assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`);
+
+  // Check subscription limits for authenticated users
+  if (!isGuest) {
+    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+    const promptUsage = userSubscription ? userSubscription.usage : 0;
+    const totalConversationWithConvId = conversationId
+      ? await conversationHelpers.getConversationById(conversationId, userId)
+      : 0;
+
+    if (promptUsage <= totalConversationWithConvId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.FORBIDDEN,
+        success: false,
+        message:
+          'You have reached your presentation generation limit for this month. Please upgrade your plan to continue.',
+      });
+    }
+  }
+
+  if (!message) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Message is required',
+    });
+  }
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Failed to generate user identifier',
+    });
+  }
+
+  try {
+    const result = await presentationService.processConversationalRequest(
+      userId,
+      message,
+      conversationId,
+      isGuest
+    );
+
+    logger.info('Presentation assistant response:', {
+      conversationId: result.conversationId,
+      success: result.success,
+      needsMoreInfo: result.needsMoreInfo,
+    });
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Request processed successfully',
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error in conversational assistant:', error);
+
+    return sendResponse(res, {
+      statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'An error occurred while processing your request',
+      data: {
+        conversationId,
+        error: error.message,
+      },
+    });
+  }
+});
+
+/**
+ * Direct generation endpoint (non-conversational)
+ * For programmatic access with all parameters provided
+ */
+export const generatePresentation = catchAsync(async (req, res) => {
+  const {
+    content,
+    n_slides,
+    language,
+    template,
+    theme,
+    export_as,
+    tone,
+    verbosity,
+    image_type,
+    web_search,
+    include_table_of_contents,
+    include_title_slide,
+    async,
+  } = req.body;
+
+  logger.info('Direct presentation generation request');
+
+  const params = {
+    content,
+    n_slides,
+    language,
+    template,
+    theme,
+    export_as,
+    tone,
+    verbosity,
+    image_type,
+    web_search,
+    include_table_of_contents,
+    include_title_slide,
+  };
+
+  try {
+    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+
+    let result;
+    if (async) {
+      result = await presentonAPIClient.generatePresentationAsync(params);
+    } else {
+      result = await presentonAPIClient.generatePresentation(params);
+    }
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: async ? 'Presentation generation started' : 'Presentation generated successfully',
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error generating presentation:', error);
+
+    return sendResponse(res, {
+      statusCode: error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to generate presentation',
+    });
+  }
+});
+
+/**
+ * Check async task status
+ */
+export const checkTaskStatus = catchAsync(async (req, res) => {
+  const { taskId } = req.params;
+
+  logger.info(`Checking status for task ${taskId}`);
+
+  try {
+    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const result = await presentonAPIClient.checkTaskStatus(taskId);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Task status retrieved successfully',
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error checking task status:', error);
+
+    return sendResponse(res, {
+      statusCode: error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to check task status',
+    });
+  }
+});
+
+/**
+ * Edit existing presentation
+ */
+export const editPresentation = catchAsync(async (req, res) => {
+  const { presentationId, slides, export_as } = req.body;
+
+  logger.info(`Editing presentation ${presentationId}`);
+
+  try {
+    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const result = await presentonAPIClient.editPresentation({
+      presentationId,
+      slides,
+      export_as,
+    });
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Presentation edited successfully',
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error editing presentation:', error);
+
+    return sendResponse(res, {
+      statusCode: error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to edit presentation',
+    });
+  }
+});
+
+/**
+ * Derive new presentation from existing one
+ */
+export const derivePresentation = catchAsync(async (req, res) => {
+  const { presentationId, slides, export_as } = req.body;
+
+  logger.info(`Deriving presentation from ${presentationId}`);
+
+  try {
+    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const result = await presentonAPIClient.derivePresentation({
+      presentationId,
+      slides,
+      export_as,
+    });
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'New presentation created successfully',
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error deriving presentation:', error);
+
+    return sendResponse(res, {
+      statusCode: error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to create new presentation',
+    });
+  }
+});
+
+/**
+ * Get presentation details
+ */
+export const getPresentation = catchAsync(async (req, res) => {
+  const { presentationId } = req.params;
+
+  logger.info(`Getting presentation ${presentationId}`);
+
+  try {
+    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const result = await presentonAPIClient.getPresentation(presentationId);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Presentation retrieved successfully',
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error getting presentation:', error);
+
+    return sendResponse(res, {
+      statusCode: error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to retrieve presentation',
+    });
+  }
+});
+
+export const presentationController = {
+  conversationalAssistant,
+  generatePresentation,
+  checkTaskStatus,
+  editPresentation,
+  derivePresentation,
+  getPresentation,
+};

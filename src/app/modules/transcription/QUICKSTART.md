@@ -200,7 +200,7 @@ formData.append('prompt', 'Describe all sounds and music');
       "fileName": "audio.mp3",
       "tokenCount": 1920,
       "estimatedDuration": 60,
-      "model": "gemini-2.0-flash-exp"
+      "model": "gemini-2.5-flash"
     }
   }
 }

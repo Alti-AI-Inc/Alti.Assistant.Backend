@@ -17,7 +17,7 @@ const getConversationById = async (conversationId, userId = null) => {
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
-
+    console.log("Fetched conversation:", conversation);
     return conversation;
   } catch (error) {
     logger.error('Error fetching conversation by ID:', error);

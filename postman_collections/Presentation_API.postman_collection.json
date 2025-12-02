@@ -1,0 +1,390 @@
+{
+  "info": {
+    "name": "Presentation API",
+    "description": "Conversational AI-powered presentation generation API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Conversational Assistant",
+      "item": [
+        {
+          "name": "Start New Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Create a presentation about artificial intelligence\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "assistant"
+              ]
+            },
+            "description": "Start a new conversation to create a presentation"
+          }
+        },
+        {
+          "name": "Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"10 slides please, professional tone\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "assistant"
+              ]
+            },
+            "description": "Continue an existing conversation"
+          }
+        },
+        {
+          "name": "Complete Request in One Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Create a professional presentation about Machine Learning with 15 slides using the modern template and professional-blue theme. Use stock images and include a table of contents.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "assistant"
+              ]
+            },
+            "description": "Provide all information in one message"
+          }
+        },
+        {
+          "name": "Ask General Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What templates are available?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "assistant"
+              ]
+            },
+            "description": "Ask questions about features"
+          }
+        },
+        {
+          "name": "Request Async Generation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Create a detailed 50-slide presentation about Quantum Computing. Make it educational and generate it asynchronously.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "assistant"
+              ]
+            },
+            "description": "Request async generation for large presentations"
+          }
+        },
+        {
+          "name": "Check Task Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Check status of task-9a827c13f4\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "assistant"
+              ]
+            },
+            "description": "Check the status of an async task"
+          }
+        },
+        {
+          "name": "Edit Presentation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Edit presentation {{presentationId}}, change slide 3 title to 'New Introduction' and slide 5 company name to 'TechCorp'\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "assistant"
+              ]
+            },
+            "description": "Edit an existing presentation"
+          }
+        }
+      ],
+      "description": "Conversational interface for presentation generation"
+    },
+    {
+      "name": "Direct API",
+      "item": [
+        {
+          "name": "Generate Presentation (Sync)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Introduction to Machine Learning\",\n  \"n_slides\": 10,\n  \"language\": \"English\",\n  \"template\": \"modern\",\n  \"theme\": \"professional-blue\",\n  \"export_as\": \"pptx\",\n  \"tone\": \"professional\",\n  \"verbosity\": \"standard\",\n  \"image_type\": \"stock\",\n  \"web_search\": false,\n  \"include_table_of_contents\": true,\n  \"include_title_slide\": true,\n  \"async\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "generate"
+              ]
+            },
+            "description": "Generate presentation synchronously"
+          }
+        },
+        {
+          "name": "Generate Presentation (Async)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Quantum Computing Deep Dive\",\n  \"n_slides\": 50,\n  \"language\": \"English\",\n  \"template\": \"modern\",\n  \"theme\": \"professional-blue\",\n  \"export_as\": \"pptx\",\n  \"tone\": \"educational\",\n  \"verbosity\": \"text-heavy\",\n  \"image_type\": \"stock\",\n  \"web_search\": true,\n  \"include_table_of_contents\": true,\n  \"include_title_slide\": true,\n  \"async\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "generate"
+              ]
+            },
+            "description": "Generate presentation asynchronously"
+          }
+        },
+        {
+          "name": "Check Task Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/status/{{taskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "status",
+                "{{taskId}}"
+              ]
+            },
+            "description": "Check the status of an async task"
+          }
+        },
+        {
+          "name": "Edit Presentation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"presentationId\": \"{{presentationId}}\",\n  \"slides\": [\n    {\n      \"index\": 0,\n      \"content\": {\n        \"title\": \"Updated Introduction\"\n      }\n    },\n    {\n      \"index\": 3,\n      \"content\": {\n        \"companyName\": \"New Company Inc\",\n        \"revenue\": 5000000\n      }\n    },\n    {\n      \"index\": 7,\n      \"content\": {\n        \"bullets\": [\n          \"First updated point\",\n          \"Second updated point\",\n          \"Third updated point\"\n        ]\n      }\n    }\n  ],\n  \"export_as\": \"pptx\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/edit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "edit"
+              ]
+            },
+            "description": "Edit an existing presentation"
+          }
+        },
+        {
+          "name": "Derive Presentation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"presentationId\": \"{{presentationId}}\",\n  \"slides\": [\n    {\n      \"index\": 0,\n      \"content\": {\n        \"title\": \"Derived Presentation Title\"\n      }\n    }\n  ],\n  \"export_as\": \"pptx\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/derive",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "derive"
+              ]
+            },
+            "description": "Create a new presentation from an existing one"
+          }
+        },
+        {
+          "name": "Get Presentation Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presentation/{{presentationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presentation",
+                "{{presentationId}}"
+              ]
+            },
+            "description": "Get details of a presentation"
+          }
+        }
+      ],
+      "description": "Direct API endpoints (non-conversational)"
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "presentationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "taskId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

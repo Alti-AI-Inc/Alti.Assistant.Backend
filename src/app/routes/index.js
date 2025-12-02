@@ -36,6 +36,7 @@ import { stripeRoutes } from '../modules/stripe/stripe.route.js';
 import knowledgeBankRoutes from '../modules/knowledge_bank/knowledge_bank.routes.js';
 import { enhancedImageRoute } from '../modules/enhanced_image/enhanced_image.route.js';
 import { TranscriptionRoutes } from '../modules/transcription/transcription.route.js';
+import presentationRoutes from '../modules/presentation/presentation.route.js';
 
 const router = express.Router();
 
@@ -187,6 +188,10 @@ const moduleRoutes = [
   {
     path: '/transcription',
     route: TranscriptionRoutes
+  },
+  {
+    path: '/presentation',
+    route: presentationRoutes
   }
 ];
 

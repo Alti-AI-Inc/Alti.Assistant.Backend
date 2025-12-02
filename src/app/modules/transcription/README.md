@@ -73,7 +73,7 @@ curl -X POST http://localhost:5000/transcription/transcribe \
       "fileName": "audio.mp3",
       "tokenCount": 1920,
       "estimatedDuration": 60,
-      "model": "gemini-2.0-flash-exp"
+      "model": "gemini-2.5-flash"
     }
   }
 }
