@@ -6,9 +6,11 @@ AI-powered conversational presentation generation module that integrates with Pr
 
 ### 🤖 Conversational AI Assistant
 - Natural language understanding for presentation requests
-- Intelligent parameter extraction from user messages
+- Intelligent parameter extraction from user messages across entire conversation history
 - Context-aware follow-up questions when information is missing
 - Maintains conversation history for seamless interactions
+- **Automatic token management and conversation summarization** for cost optimization
+- Supports unlimited conversation length without context overflow
 
 ### 🎨 Presentation Generation
 - **Synchronous Generation**: Instant presentation creation
@@ -24,6 +26,14 @@ AI-powered conversational presentation generation module that integrates with Pr
   - Web Search: Real-time information integration
   - Table of Contents: Optional TOC slide
   - Title Slide: Customizable cover slide
+
+### ☁️ Google Cloud Storage Integration
+- **Automatic Upload**: All generated presentations are uploaded to GCS
+- **Public URLs**: Get shareable public links for presentations
+- **Persistent Storage**: Files remain accessible beyond API session
+- **Organized Structure**: Files organized by user and conversation
+- **Metadata Tracking**: URLs saved to conversation history
+- See [GCS Upload Feature Documentation](./docs/GCS_UPLOAD_FEATURE.md) for details
 
 ### ✏️ Presentation Editing
 - **Edit Existing**: Modify slides in an existing presentation

@@ -1,11 +1,13 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
+import path from 'path';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { presentonAPIClient } from './services/presentonAPIClient.js';
 import { conversationAnalyzer } from './services/conversationAnalyzer.js';
+import { uploadPresentationToGCS } from './services/gcsUploadService.js';
 import {
   PRESENTATION_INTENTS,
   REQUIRED_PARAMS,
@@ -110,6 +112,32 @@ const updateConversationMetadata = async (conversationId, userId, params) => {
 };
 
 /**
+ * Save conversation summary to metadata
+ */
+const saveConversationSummary = async (conversationId, userId, summary) => {
+  try {
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+
+    if (conversation) {
+      conversation.metadata = {
+        ...conversation.metadata,
+        conversationSummary: summary,
+        summarizedAt: new Date().toISOString(),
+        summarizedMessageCount: conversation.messages.length,
+      };
+
+      await conversation.save();
+      logger.info(`Saved conversation summary for ${conversationId}`, {
+        summaryLength: summary.length,
+        messageCount: conversation.messages.length,
+      });
+    }
+  } catch (error) {
+    logger.error('Error saving conversation summary:', error);
+  }
+};
+
+/**
  * Main conversational handler - processes user messages intelligently
  */
 const processConversationalRequest = async (userId, userMessage, conversationId, isGuest = false) => {
@@ -128,22 +156,59 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 
     // Get conversation history for context
     const conversationHistory = conversation.messages || [];
-    const recentHistory = conversationHistory.slice(-10).map((msg) => ({
+    const recentHistory = conversationHistory.map((msg) => ({
       role: msg.role,
       content: msg.content,
     }));
 
     // Get existing parameters from metadata
     const existingParams = conversation.metadata?.collectedParams || {};
+    let conversationSummary = conversation.metadata?.conversationSummary || null;
 
     // Add user message
     await addMessage(actualConversationId, userId, 'user', userMessage, {}, isGuest);
+
+    // Log what we're sending to the analyzer
+    logger.info('Conversation context for analysis', {
+      messageCount: recentHistory.length,
+      firstMessage: recentHistory[0]?.content,
+      lastMessage: recentHistory[recentHistory.length - 1]?.content,
+      currentMessage: userMessage,
+      existingParams,
+      hasSummary: !!conversationSummary,
+    });
+
+    // Check if we need to summarize the conversation
+    const estimatedTokens = conversationAnalyzer._calculateConversationTokens(
+      recentHistory,
+      existingParams
+    );
+
+    logger.info('Token check before analysis', {
+      estimatedTokens,
+      messageCount: conversationHistory.length,
+      hasSummary: !!conversationSummary,
+    });
+
+    // If tokens exceed threshold and we don't have a recent summary, create one
+    if (estimatedTokens > 5000 && (!conversationSummary ||
+      conversation.metadata?.summarizedMessageCount < conversationHistory.length - 5)) {
+      logger.info('Token limit approaching, summarizing conversation...');
+
+      conversationSummary = await conversationAnalyzer.summarizeConversation(
+        recentHistory,
+        existingParams
+      );
+
+      await saveConversationSummary(actualConversationId, userId, conversationSummary);
+    }
 
     // Analyze intent and extract parameters
     const analysis = await conversationAnalyzer.analyzeIntent(
       userMessage,
       recentHistory,
-      existingParams
+      existingParams,
+      conversationSummary
     );
 
     logger.info('Intent analysis:', {
@@ -293,7 +358,45 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
       };
     } else {
       result = await presentonAPIClient.generatePresentation(generationParams);
-      const responseMessage = `🎉 Your presentation is ready!\n\n` +
+      console.log('Presentation generated:', result);
+      // Upload presentation to GCS
+      let publicUrl = null;
+      let uploadResult = null;
+      try {
+        // Extract filename from path or create one
+        const fileName = path.basename(result.path) || `presentation_${result.presentation_id}.pptx`;
+
+        // Upload to GCS
+        uploadResult = await uploadPresentationToGCS(
+          result.path,
+          fileName,
+          userId,
+          conversationId
+        );
+
+        publicUrl = uploadResult.publicUrl;
+
+        // Update conversation metadata with the public URL
+        await updateConversationMetadata(conversationId, userId, {
+          presentationUrl: publicUrl,
+          gcsPath: uploadResult.gcsPath,
+          uploadedAt: new Date().toISOString(),
+        });
+
+        logger.info(`Presentation uploaded to GCS: ${publicUrl}`);
+      } catch (uploadError) {
+        logger.error('Error uploading presentation to GCS:', uploadError);
+        // Continue even if upload fails - user still gets the Presenton download link
+      }
+
+      const responseMessage = publicUrl
+        ? `🎉 Your presentation is ready!\n\n` +
+        `📊 Presentation ID: ${result.presentation_id}\n` +
+        `🔗 Public URL: ${publicUrl}\n` +
+        `📥 Download: ${result.path}\n` +
+        `✏️ Edit online: ${result.edit_path}\n` +
+        `💳 Credits used: ${result.credits_consumed}`
+        : `🎉 Your presentation is ready!\n\n` +
         `📊 Presentation ID: ${result.presentation_id}\n` +
         `📥 Download: ${result.path}\n` +
         `✏️ Edit online: ${result.edit_path}\n` +
@@ -304,7 +407,13 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
         userId,
         'assistant',
         responseMessage,
-        { presentationId: result.presentation_id, result, generationParams },
+        {
+          presentationId: result.presentation_id,
+          result,
+          generationParams,
+          publicUrl,
+          uploadResult
+        },
         isGuest
       );
 
@@ -314,6 +423,7 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
         presentationId: result.presentation_id,
         downloadUrl: result.path,
         editUrl: result.edit_path,
+        publicUrl: publicUrl,
         creditsConsumed: result.credits_consumed,
       };
     }
@@ -400,12 +510,45 @@ const handleEditIntent = async (analysis, params, conversationId, userId, isGues
 
   try {
     const result = await presentonAPIClient.editPresentation(params);
-    const responseMessage = `✅ Presentation updated!\n\n` +
+
+    // Upload edited presentation to GCS
+    let publicUrl = null;
+    let uploadResult = null;
+    try {
+      const fileName = path.basename(result.path) || `presentation_${result.presentation_id}_edited.pptx`;
+
+      uploadResult = await uploadPresentationToGCS(
+        result.path,
+        fileName,
+        userId,
+        conversationId
+      );
+
+      publicUrl = uploadResult.publicUrl;
+
+      await updateConversationMetadata(conversationId, userId, {
+        editedPresentationUrl: publicUrl,
+        editedGcsPath: uploadResult.gcsPath,
+        editedAt: new Date().toISOString(),
+      });
+
+      logger.info(`Edited presentation uploaded to GCS: ${publicUrl}`);
+    } catch (uploadError) {
+      logger.error('Error uploading edited presentation to GCS:', uploadError);
+    }
+
+    const responseMessage = publicUrl
+      ? `✅ Presentation updated!\n\n` +
+      `📊 New Presentation ID: ${result.presentation_id}\n` +
+      `🔗 Public URL: ${publicUrl}\n` +
+      `📥 Download: ${result.path}\n` +
+      `✏️ Edit online: ${result.edit_path}`
+      : `✅ Presentation updated!\n\n` +
       `📊 New Presentation ID: ${result.presentation_id}\n` +
       `📥 Download: ${result.path}\n` +
       `✏️ Edit online: ${result.edit_path}`;
 
-    await addMessage(conversationId, userId, 'assistant', responseMessage, { result }, isGuest);
+    await addMessage(conversationId, userId, 'assistant', responseMessage, { result, publicUrl, uploadResult }, isGuest);
 
     return {
       success: true,
@@ -413,6 +556,7 @@ const handleEditIntent = async (analysis, params, conversationId, userId, isGues
       presentationId: result.presentation_id,
       downloadUrl: result.path,
       editUrl: result.edit_path,
+      publicUrl: publicUrl,
     };
   } catch (error) {
     const errorMessage = `I couldn't edit the presentation: ${error.message || 'Unknown error'}`;
@@ -445,12 +589,45 @@ const handleDeriveIntent = async (analysis, params, conversationId, userId, isGu
 
   try {
     const result = await presentonAPIClient.derivePresentation(params);
-    const responseMessage = `🎉 New presentation created!\n\n` +
+
+    // Upload derived presentation to GCS
+    let publicUrl = null;
+    let uploadResult = null;
+    try {
+      const fileName = path.basename(result.path) || `presentation_${result.presentation_id}_derived.pptx`;
+
+      uploadResult = await uploadPresentationToGCS(
+        result.path,
+        fileName,
+        userId,
+        conversationId
+      );
+
+      publicUrl = uploadResult.publicUrl;
+
+      await updateConversationMetadata(conversationId, userId, {
+        derivedPresentationUrl: publicUrl,
+        derivedGcsPath: uploadResult.gcsPath,
+        derivedAt: new Date().toISOString(),
+      });
+
+      logger.info(`Derived presentation uploaded to GCS: ${publicUrl}`);
+    } catch (uploadError) {
+      logger.error('Error uploading derived presentation to GCS:', uploadError);
+    }
+
+    const responseMessage = publicUrl
+      ? `🎉 New presentation created!\n\n` +
+      `📊 Presentation ID: ${result.presentation_id}\n` +
+      `🔗 Public URL: ${publicUrl}\n` +
+      `📥 Download: ${result.path}\n` +
+      `✏️ Edit online: ${result.edit_path}`
+      : `🎉 New presentation created!\n\n` +
       `📊 Presentation ID: ${result.presentation_id}\n` +
       `📥 Download: ${result.path}\n` +
       `✏️ Edit online: ${result.edit_path}`;
 
-    await addMessage(conversationId, userId, 'assistant', responseMessage, { result }, isGuest);
+    await addMessage(conversationId, userId, 'assistant', responseMessage, { result, publicUrl, uploadResult }, isGuest);
 
     return {
       success: true,
@@ -458,6 +635,7 @@ const handleDeriveIntent = async (analysis, params, conversationId, userId, isGu
       presentationId: result.presentation_id,
       downloadUrl: result.path,
       editUrl: result.edit_path,
+      publicUrl: publicUrl,
     };
   } catch (error) {
     const errorMessage = `I couldn't create the new presentation: ${error.message || 'Unknown error'}`;

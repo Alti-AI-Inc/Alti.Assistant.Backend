@@ -96,6 +96,7 @@ export default {
   gcs: {
     knowledge_bank_bucket: process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'alti_knowledge_bank_files',
     knowledgebot_bucket: process.env.GCS_KNOWLEDGEBOT_BUCKET || 'alti_knowledge_bot_files',
+    presentation_bucket: process.env.GCS_PRESENTATION_BUCKET || 'alti_presentation',
   },
   mail: {
     google_smtp_password: process.env.GOOGLE_SMTP_PASSWORD,

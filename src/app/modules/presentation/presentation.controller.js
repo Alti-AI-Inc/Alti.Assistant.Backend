@@ -130,12 +130,35 @@ export const generatePresentation = catchAsync(async (req, res) => {
 
   try {
     const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const { uploadPresentationToGCS } = await import('./services/gcsUploadService.js');
+    const path = await import('path');
 
     let result;
     if (async) {
       result = await presentonAPIClient.generatePresentationAsync(params);
     } else {
       result = await presentonAPIClient.generatePresentation(params);
+      console.log('Synchronous generation result:', result);
+      // Upload to GCS for sync generation
+      if (result.downloadUrl) {
+        try {
+          const userId = req.user?.userId || req.user?._id || 'direct_api';
+          const conversationId = `direct_${Date.now()}`;
+          const fileName = path.default.basename(result.downloadUrl) || `presentation_${result.presentation_id}.pptx`;
+          const uploadResult = await uploadPresentationToGCS(
+            result.downloadUrl,
+            fileName,
+            userId,
+            conversationId
+          );
+
+          result.publicUrl = uploadResult.publicUrl;
+          logger.info(`Presentation uploaded to GCS: ${uploadResult.publicUrl}`);
+        } catch (uploadError) {
+          logger.error('Error uploading presentation to GCS:', uploadError);
+          // Continue even if upload fails
+        }
+      }
     }
 
     return sendResponse(res, {

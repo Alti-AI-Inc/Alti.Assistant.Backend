@@ -18,7 +18,7 @@ class PresentonAPIClient {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`,
       },
-      timeout: 60000, // 60 seconds timeout
+      timeout: 120000, // 120 seconds timeout
     });
 
     // Add response interceptor for logging
@@ -47,6 +47,7 @@ class PresentonAPIClient {
       const response = await this.client.post(PRESENTON_ENDPOINTS.GENERATE, params);
       return response.data;
     } catch (error) {
+      console.log('Error in generatePresentation:', error);
       this._handleError(error, 'generatePresentation');
     }
   }

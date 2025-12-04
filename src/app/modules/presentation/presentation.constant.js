@@ -1,6 +1,6 @@
 // Presenton API configuration
 export const PRESENTON_CONFIG = {
-  BASE_URL: process.env.PRESENTON_API_URL || 'http://localhost:5000',
+  BASE_URL: process.env.PRESENTON_API_URL || 'https://presenton-w4eb2q6kra-uc.a.run.app',
   API_KEY: process.env.PRESENTON_API_KEY || '',
 };
 
@@ -66,8 +66,8 @@ export const PRESENTATION_INTENTS = {
 
 // Required parameters for each intent
 export const REQUIRED_PARAMS = {
-  [PRESENTATION_INTENTS.GENERATE]: ['content'],
-  [PRESENTATION_INTENTS.GENERATE_ASYNC]: ['content'],
+  [PRESENTATION_INTENTS.GENERATE]: ['content', 'title'],
+  [PRESENTATION_INTENTS.GENERATE_ASYNC]: ['content', 'title'],
   [PRESENTATION_INTENTS.CHECK_STATUS]: ['taskId'],
   [PRESENTATION_INTENTS.EDIT]: ['presentationId', 'slides'],
   [PRESENTATION_INTENTS.DERIVE]: ['presentationId', 'slides'],
