@@ -1,0 +1,514 @@
+import httpStatus from 'http-status';
+import mongoose from 'mongoose';
+import path from 'path';
+import fs from 'fs';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import ApiError from '../../../errors/ApiError.js';
+import { logger } from '../../../shared/logger.js';
+import { conversationService } from '../conversations/conversation.service.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import { extractContentFromFiles } from './utils/fileParser.js';
+import { exportReport } from './utils/reportExporter.js';
+import { cleanupUploadedFiles } from './middlewares/uploadReportFiles.js';
+import { uploadReportToGCS } from './services/gcsUploadService.js';
+import {
+  REPORT_CONFIG,
+  REPORT_INTENTS,
+  REQUIRED_PARAMS,
+  DEFAULT_PARAMS,
+  CONVERSATION_CATEGORY,
+  CONVERSATION_MODEL,
+  TASK_STATUS,
+  SUPPORTED_OUTPUT_FORMATS,
+} from './report.constant.js';
+import config from '../../../../config/index.js';
+
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+const model = genAI.getGenerativeModel({ model: REPORT_CONFIG.MODEL });
+
+/**
+ * Generate unique guest user ID
+ */
+const generateGuestUserId = () => {
+  return new mongoose.Types.ObjectId().toString();
+};
+
+/**
+ * Generate unique conversation ID
+ */
+const generateConversationId = () => {
+  return `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+/**
+ * Handle report conversation (create or retrieve)
+ */
+const handleReportConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+  try {
+    let conversation;
+
+    if (conversationId) {
+      try {
+        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        logger.info(`Retrieved existing conversation: ${conversationId}`);
+      } catch (error) {
+        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+      }
+    }
+
+    if (!conversation) {
+      const newConversationId = conversationId || generateConversationId();
+
+      conversation = await conversationService.createConversation(
+        {
+          userId,
+          title: `Report: ${userMessage.substring(0, 50)}...`,
+          metadata: {
+            category: CONVERSATION_CATEGORY,
+            model: CONVERSATION_MODEL,
+            userType: isGuest ? 'guest' : 'authenticated',
+            isGuest,
+            collectedParams: {},
+          },
+        },
+        newConversationId
+      );
+
+      logger.info(`Created new report conversation ${newConversationId} for user ${userId}`);
+    }
+
+    return conversation;
+  } catch (error) {
+    logger.error('Error handling report conversation:', error);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+  }
+};
+
+/**
+ * Add message to conversation
+ */
+const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false) => {
+  try {
+    const message = {
+      role,
+      content,
+      timestamp: new Date(),
+      metadata,
+    };
+
+    return await conversationService.addMessageToConversation(conversationId, userId, message);
+  } catch (error) {
+    logger.error('Error adding message to conversation:', error);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+  }
+};
+
+/**
+ * Analyze user intent and extract parameters from conversation
+ */
+const analyzeConversationalRequest = async (userMessage, conversationHistory = []) => {
+  try {
+    const systemPrompt = `You are an AI assistant that analyzes user requests for report generation.
+Your task is to:
+1. Identify the user's intent (generate_report, modify_report, export_report, analyze_data, summarize_content, compare_data)
+2. Extract relevant parameters: reportType, outputFormat, tone, sections, title, etc.
+3. Determine if you have enough information to proceed or need more details
+
+Available report types: ${Object.values(REPORT_INTENTS).join(', ')}
+Available output formats: ${SUPPORTED_OUTPUT_FORMATS.join(', ')}
+
+Respond in JSON format:
+{
+  "intent": "generate_report",
+  "parameters": {
+    "reportType": "analytical",
+    "outputFormat": "pdf",
+    "tone": "professional",
+    "title": "extracted title",
+    "sections": ["introduction", "findings", "conclusion"]
+  },
+  "needsMoreInfo": false,
+  "missingParams": [],
+  "response": "Your natural language response to the user"
+}`;
+
+    // Format conversation history for Gemini
+    let conversationText = systemPrompt + '\n\n';
+    conversationHistory.slice(-5).forEach(msg => {
+      conversationText += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
+    });
+    conversationText += `User: ${userMessage}\n\nRespond with valid JSON only.`;
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: conversationText }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: REPORT_CONFIG.MAX_TOKENS,
+      },
+    });
+
+    const responseText = result.response.text();
+    // Extract JSON from response (handle markdown code blocks)
+    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)```/) || responseText.match(/\{[\s\S]*\}/);
+    const analysis = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : responseText);
+    logger.info('Conversation analysis:', analysis);
+
+    return analysis;
+  } catch (error) {
+    logger.error('Error analyzing conversational request:', error);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to analyze request'
+    );
+  }
+};
+
+/**
+ * Generate report content using AI
+ */
+const generateReportContent = async (params) => {
+  try {
+    const {
+      content,
+      title,
+      reportType = DEFAULT_PARAMS.reportType,
+      tone = DEFAULT_PARAMS.tone,
+      sections = DEFAULT_PARAMS.sections,
+      includeTitlePage = DEFAULT_PARAMS.includeTitlePage,
+      includeTableOfContents = DEFAULT_PARAMS.includeTableOfContents,
+      includeExecutiveSummary = DEFAULT_PARAMS.includeExecutiveSummary,
+      customInstructions = '',
+    } = params;
+
+    const systemPrompt = `You are an expert report writer. Generate a comprehensive ${reportType} report with a ${tone} tone.
+
+The report should include the following sections: ${sections.join(', ')}.
+
+${customInstructions ? `Additional instructions: ${customInstructions}` : ''}
+
+Return the report in JSON format with this structure:
+{
+  "title": "Report Title",
+  "subtitle": "Report Subtitle (optional)",
+  "executiveSummary": "Brief summary of key points",
+  "sections": [
+    {
+      "title": "Section Title",
+      "content": "Section content with detailed analysis"
+    }
+  ],
+  "metadata": {
+    "reportType": "${reportType}",
+    "tone": "${tone}",
+    "generatedAt": "ISO date string"
+  }
+}`;
+
+    const userPrompt = title
+      ? `Generate a report titled "${title}" based on the following content:\n\n${content}`
+      : `Generate a report based on the following content:\n\n${content}`;
+
+    const fullPrompt = systemPrompt + '\n\n' + userPrompt + '\n\nRespond with valid JSON only.';
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+      generationConfig: {
+        temperature: REPORT_CONFIG.TEMPERATURE,
+        maxOutputTokens: REPORT_CONFIG.MAX_TOKENS,
+      },
+    });
+
+    const responseText = result.response.text();
+    // Extract JSON from response (handle markdown code blocks)
+    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)```/) || responseText.match(/\{[\s\S]*\}/);
+    const reportData = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : responseText);
+
+    // Add additional metadata
+    reportData.includeTitlePage = includeTitlePage;
+    reportData.includeTableOfContents = includeTableOfContents;
+    reportData.includeExecutiveSummary = includeExecutiveSummary;
+    reportData.metadata = {
+      ...reportData.metadata,
+      reportType,
+      tone,
+      generatedAt: new Date().toISOString(),
+    };
+
+    logger.info('Report content generated successfully');
+    return reportData;
+  } catch (error) {
+    logger.error('Error generating report content:', error);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to generate report content'
+    );
+  }
+};
+
+/**
+ * Process conversational request for report generation
+ */
+const processConversationalRequest = async (
+  userId,
+  userMessage,
+  conversationId = null,
+  isGuest = false,
+  files = []
+) => {
+  try {
+    // Handle conversation
+    const conversation = await handleReportConversation(
+      userId,
+      conversationId,
+      userMessage,
+      isGuest
+    );
+
+    // Add user message
+    await addMessage(
+      conversation.conversationId,
+      userId,
+      'user',
+      userMessage,
+      { hasFiles: files.length > 0, fileCount: files.length },
+      isGuest
+    );
+
+    // Get conversation history
+    const conversationData = await conversationHelpers.getConversationById(
+      conversation.conversationId,
+      userId
+    );
+    const conversationHistory = conversationData.messages.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+
+    // Process uploaded files if any
+    let fileContents = '';
+    if (files && files.length > 0) {
+      try {
+        const extractedData = await extractContentFromFiles(files);
+        fileContents = extractedData
+          .map(file => `\n--- ${file.filename} ---\n${file.content || file.error}`)
+          .join('\n');
+
+        logger.info(`Processed ${files.length} files for report generation`);
+      } catch (error) {
+        logger.error('Error processing files:', error);
+      } finally {
+        // Cleanup uploaded files
+        cleanupUploadedFiles(files);
+      }
+    }
+
+    // Combine user message with file contents
+    const fullContent = fileContents
+      ? `${userMessage}\n\nContent from uploaded files:${fileContents}`
+      : userMessage;
+
+    // Analyze the request
+    const analysis = await analyzeConversationalRequest(fullContent, conversationHistory);
+
+    // If more information is needed
+    if (analysis.needsMoreInfo) {
+      await addMessage(
+        conversation.conversationId,
+        userId,
+        'assistant',
+        analysis.response,
+        { needsMoreInfo: true, missingParams: analysis.missingParams },
+        isGuest
+      );
+
+      return {
+        conversationId: conversation.conversationId,
+        userId,
+        success: true,
+        needsMoreInfo: true,
+        response: analysis.response,
+        missingParams: analysis.missingParams,
+      };
+    }
+
+    // Generate the report
+    const reportData = await generateReportContent({
+      content: fullContent,
+      ...analysis.parameters,
+    });
+
+    // Export to requested format
+    const outputFormat = analysis.parameters.outputFormat || DEFAULT_PARAMS.outputFormat;
+    const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const outputDir = path.join(process.cwd(), 'output', 'reports');
+    const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
+
+    // Ensure output directory exists
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const filePath = await exportReport(reportData, outputFormat, outputPath);
+
+    // Upload to GCS
+    const fileName = `${reportId}.${outputFormat}`;
+    const gcsUploadResult = await uploadReportToGCS(
+      filePath,
+      fileName,
+      userId,
+      conversation.conversationId
+    );
+
+    logger.info(`Report uploaded to GCS: ${gcsUploadResult.publicUrl}`);
+
+    // Prepare download URL (adjust based on your server configuration)
+    const downloadUrl = `/api/v1/reports/download/${reportId}.${outputFormat}`;
+
+    const assistantResponse = `I've generated your ${analysis.parameters.reportType || 'report'} in ${outputFormat.toUpperCase()} format. ${analysis.response}`;
+
+    await addMessage(
+      conversation.conversationId,
+      userId,
+      'assistant',
+      assistantResponse,
+      {
+        reportGenerated: true,
+        reportId,
+        outputFormat,
+        filePath,
+        downloadUrl,
+        gcsPath: gcsUploadResult.gcsPath,
+        publicUrl: gcsUploadResult.publicUrl,
+        bucket: gcsUploadResult.bucket,
+      },
+      isGuest
+    );
+
+    return {
+      conversationId: conversation.conversationId,
+      userId,
+      success: true,
+      needsMoreInfo: false,
+      response: assistantResponse,
+      report: {
+        reportId,
+        title: reportData.title,
+        outputFormat,
+        filePath,
+        downloadUrl,
+        publicUrl: gcsUploadResult.publicUrl,
+        gcsPath: gcsUploadResult.gcsPath,
+        metadata: reportData.metadata,
+      },
+    };
+  } catch (error) {
+    logger.error('Error in processConversationalRequest:', error);
+    throw error;
+  }
+};
+
+/**
+ * Direct report generation (non-conversational)
+ */
+const generateReport = async (params, userId, isGuest = false) => {
+  try {
+    const reportData = await generateReportContent(params);
+
+    const outputFormat = params.outputFormat || DEFAULT_PARAMS.outputFormat;
+    const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const outputDir = path.join(process.cwd(), 'output', 'reports');
+    const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
+
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const filePath = await exportReport(reportData, outputFormat, outputPath);
+    const downloadUrl = `/api/v1/reports/download/${reportId}.${outputFormat}`;
+
+    // Upload to GCS
+    const fileName = `${reportId}.${outputFormat}`;
+    const gcsUploadResult = await uploadReportToGCS(
+      filePath,
+      fileName,
+      userId,
+      reportId // Use reportId as conversationId for direct generation
+    );
+
+    logger.info(`Report generated and uploaded to GCS: ${reportId}`);
+
+    return {
+      success: true,
+      userId,
+      report: {
+        reportId,
+        title: reportData.title,
+        outputFormat,
+        filePath,
+        downloadUrl,
+        publicUrl: gcsUploadResult.publicUrl,
+        gcsPath: gcsUploadResult.gcsPath,
+        sections: reportData.sections,
+        metadata: reportData.metadata,
+      },
+    };
+  } catch (error) {
+    logger.error('Error in generateReport:', error);
+    throw error;
+  }
+};
+
+/**
+ * Analyze uploaded files
+ */
+const analyzeFiles = async (files, analysisType = 'summary', instructions = '', userId, conversationId = null) => {
+  try {
+    if (!files || files.length === 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'No files provided for analysis');
+    }
+
+    const extractedData = await extractContentFromFiles(files);
+
+    // Cleanup uploaded files
+    cleanupUploadedFiles(files);
+
+    const fileContents = extractedData
+      .map(file => `\n--- ${file.filename} ---\n${file.content || file.error}`)
+      .join('\n');
+
+    const prompt = `You are an expert data analyst. Provide a comprehensive ${analysisType} analysis of the provided files.\n\nAnalyze the following files and provide a ${analysisType} analysis.\n\n${instructions ? `Additional instructions: ${instructions}\n\n` : ''}Files content:${fileContents}`;
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: REPORT_CONFIG.TEMPERATURE,
+        maxOutputTokens: REPORT_CONFIG.MAX_TOKENS,
+      },
+    });
+
+    const analysis = result.response.text();
+
+    return {
+      success: true,
+      analysis,
+      filesAnalyzed: files.length,
+      extractedData,
+    };
+  } catch (error) {
+    logger.error('Error analyzing files:', error);
+    // Cleanup on error
+    cleanupUploadedFiles(files);
+    throw error;
+  }
+};
+
+export const reportService = {
+  generateGuestUserId,
+  generateConversationId,
+  processConversationalRequest,
+  generateReport,
+  analyzeFiles,
+  generateReportContent,
+  exportReport,
+};

@@ -37,6 +37,7 @@ import knowledgeBankRoutes from '../modules/knowledge_bank/knowledge_bank.routes
 import { enhancedImageRoute } from '../modules/enhanced_image/enhanced_image.route.js';
 import { TranscriptionRoutes } from '../modules/transcription/transcription.route.js';
 import presentationRoutes from '../modules/presentation/presentation.route.js';
+import reportRoutes from '../modules/report/report.route.js';
 
 const router = express.Router();
 
@@ -192,6 +193,10 @@ const moduleRoutes = [
   {
     path: '/presentation',
     route: presentationRoutes
+  },
+  {
+    path: '/reports',
+    route: reportRoutes
   }
 ];
 

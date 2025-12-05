@@ -1,0 +1,527 @@
+{
+  "info": {
+    "name": "Report Generation API",
+    "description": "AI-powered report generation from text and files",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Conversational Assistant",
+      "item": [
+        {
+          "name": "Text-Only Report Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Create a comprehensive sales report for Q4 2024\",\n  \"outputFormat\": \"pdf\",\n  \"reportType\": \"analytical\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "assistant"
+              ]
+            },
+            "description": "Generate a report from text message only"
+          }
+        },
+        {
+          "name": "With File Upload",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Analyze these files and create a detailed report",
+                  "type": "text"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "pdf",
+                  "type": "text"
+                },
+                {
+                  "key": "reportType",
+                  "value": "analytical",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "assistant"
+              ]
+            },
+            "description": "Generate report with file uploads"
+          }
+        },
+        {
+          "name": "Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Make it more detailed with charts\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "assistant"
+              ]
+            },
+            "description": "Continue an existing conversation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Direct Generation",
+      "item": [
+        {
+          "name": "Generate PDF Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Our company achieved significant growth in Q4 2024. Revenue increased by 35% compared to Q3. Key drivers included new product launches, market expansion in Asia, and improved customer retention rates. The sales team exceeded targets by 20%.\",\n  \"title\": \"Q4 2024 Business Performance Report\",\n  \"reportType\": \"business\",\n  \"outputFormat\": \"pdf\",\n  \"tone\": \"professional\",\n  \"includeTitlePage\": true,\n  \"includeTableOfContents\": true,\n  \"includeExecutiveSummary\": true,\n  \"sections\": [\n    \"title_page\",\n    \"executive_summary\",\n    \"introduction\",\n    \"findings\",\n    \"analysis\",\n    \"recommendations\",\n    \"conclusion\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "generate"
+              ]
+            },
+            "description": "Generate a PDF report directly"
+          }
+        },
+        {
+          "name": "Generate Excel Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Monthly sales data: January: $50000, February: $55000, March: $60000, April: $58000, May: $62000, June: $65000\",\n  \"title\": \"Sales Data Report\",\n  \"reportType\": \"financial\",\n  \"outputFormat\": \"xlsx\",\n  \"tone\": \"formal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "generate"
+              ]
+            },
+            "description": "Generate an Excel report"
+          }
+        },
+        {
+          "name": "Generate Markdown Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Project completed successfully. All milestones achieved on time. Team performance was excellent.\",\n  \"title\": \"Project Completion Report\",\n  \"reportType\": \"technical\",\n  \"outputFormat\": \"md\",\n  \"tone\": \"professional\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "generate"
+              ]
+            },
+            "description": "Generate a Markdown report"
+          }
+        }
+      ]
+    },
+    {
+      "name": "File Analysis",
+      "item": [
+        {
+          "name": "Analyze Files - Summary",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "analysisType",
+                  "value": "summary",
+                  "type": "text"
+                },
+                {
+                  "key": "instructions",
+                  "value": "Provide a high-level summary of the key points",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/analyze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "analyze"
+              ]
+            },
+            "description": "Analyze files and get a summary"
+          }
+        },
+        {
+          "name": "Analyze Files - Detailed",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "analysisType",
+                  "value": "detailed",
+                  "type": "text"
+                },
+                {
+                  "key": "instructions",
+                  "value": "Analyze in detail with statistics and insights",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/analyze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "analyze"
+              ]
+            },
+            "description": "Get detailed analysis of files"
+          }
+        },
+        {
+          "name": "Analyze Files - Comparison",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "analysisType",
+                  "value": "comparison",
+                  "type": "text"
+                },
+                {
+                  "key": "instructions",
+                  "value": "Compare the data across files and identify trends",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/analyze",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "analyze"
+              ]
+            },
+            "description": "Compare multiple files"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Download Report",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/reports/download/:filename",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "reports",
+            "download",
+            ":filename"
+          ],
+          "variable": [
+            {
+              "key": "filename",
+              "value": "report_1733308800_xyz789.pdf"
+            }
+          ]
+        },
+        "description": "Download a generated report file"
+      }
+    },
+    {
+      "name": "Future Features (Placeholders)",
+      "item": [
+        {
+          "name": "Export Report to Different Format",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportId\": \"report_1733308800_xyz789\",\n  \"outputFormat\": \"docx\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "export"
+              ]
+            },
+            "description": "Export existing report to different format (Not yet implemented)"
+          }
+        },
+        {
+          "name": "Get Report Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/:reportId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "report_1733308800_xyz789"
+                }
+              ]
+            },
+            "description": "Get report metadata and content (Not yet implemented)"
+          }
+        },
+        {
+          "name": "List Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports?page=1&limit=10&reportType=analytical&sortBy=createdAt&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "reportType",
+                  "value": "analytical"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "List user's reports with pagination (Not yet implemented)"
+          }
+        },
+        {
+          "name": "Modify Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportId\": \"report_1733308800_xyz789\",\n  \"modifications\": \"Add more details to the analysis section and include charts\",\n  \"sections\": [\"analysis\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/modify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "modify"
+              ]
+            },
+            "description": "Modify existing report (Not yet implemented)"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
