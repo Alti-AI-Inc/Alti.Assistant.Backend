@@ -10,7 +10,7 @@ The Knowledge Bank is a file management system that allows users to upload, stor
 |---------|---------------|--------------|
 | **Purpose** | Personal file storage for users | Bot-specific knowledge base |
 | **Ownership** | Files belong to user | Files belong to specific bot/knowledge base |
-| **GCS Bucket** | `alti_knowledge_bank_files` | `alti_knowledge_bot_files` |
+| **GCS Bucket** | `alti_knowledge_bank_files` | `alti_assistant_knowledge_bot_files` |
 | **Use Case** | General document management | AI chatbot training data |
 | **API Endpoint** | `/api/v1/knowledge-bank` | `/api/v1/knowledgebase` |
 

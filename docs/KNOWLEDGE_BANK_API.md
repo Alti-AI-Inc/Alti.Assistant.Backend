@@ -388,7 +388,7 @@ Add these to your `.env` file:
 ```env
 # GCS Configuration
 GCS_KNOWLEDGE_BANK_BUCKET=alti_knowledge_bank_files
-GCS_KNOWLEDGEBOT_BUCKET=alti_knowledge_bot_files
+GCS_KNOWLEDGEBOT_BUCKET=alti_assistant_knowledge_bot_files
 ```
 
 ### GCS Bucket Setup
