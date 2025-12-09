@@ -8,7 +8,7 @@
    ls alti_gcp.json
    
    # Verify GCS bucket exists or create it
-   gsutil ls gs://alti_presentation || gsutil mb gs://alti_presentation
+   gsutil ls gs://alti_assistant_presentation || gsutil mb gs://alti_assistant_presentation
    ```
 
 2. **Environment Configuration**
@@ -16,7 +16,7 @@
    # In .env file
    GCP_PROJECT_ID=your-project-id
    GOOGLE_APPLICATION_CREDENTIALS=alti_gcp.json
-   GCS_PRESENTATION_BUCKET=alti_presentation
+   GCS_PRESENTATION_BUCKET=alti_assistant_presentation
    ```
 
 3. **Server Running**
@@ -51,11 +51,11 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
   "data": {
     "conversationId": "pres_1234567890_abc123",
     "success": true,
-    "message": "🎉 Your presentation is ready!\n\n📊 Presentation ID: abc123\n🔗 Public URL: https://storage.googleapis.com/alti_presentation/user_id/conv_id/presentation_abc123.pptx\n📥 Download: http://localhost:5000/download/abc123\n✏️ Edit online: http://localhost:5000/edit/abc123\n💳 Credits used: 10",
+    "message": "🎉 Your presentation is ready!\n\n📊 Presentation ID: abc123\n🔗 Public URL: https://storage.googleapis.com/alti_assistant_presentation/user_id/conv_id/presentation_abc123.pptx\n📥 Download: http://localhost:5000/download/abc123\n✏️ Edit online: http://localhost:5000/edit/abc123\n💳 Credits used: 10",
     "presentationId": "abc123",
     "downloadUrl": "http://localhost:5000/download/abc123",
     "editUrl": "http://localhost:5000/edit/abc123",
-    "publicUrl": "https://storage.googleapis.com/alti_presentation/...",
+    "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/...",
     "creditsConsumed": 10
   }
 }
@@ -63,7 +63,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 
 ### Verification Steps
 1. ✅ Check response contains `publicUrl` field
-2. ✅ Verify URL format: `https://storage.googleapis.com/alti_presentation/...`
+2. ✅ Verify URL format: `https://storage.googleapis.com/alti_assistant_presentation/...`
 3. ✅ Access the `publicUrl` in browser - should download presentation
 4. ✅ Check conversation in database:
    ```javascript
@@ -123,7 +123,7 @@ curl -X POST http://localhost:3000/api/presentation/generate \
     "presentation_id": "abc123",
     "path": "http://localhost:5000/download/abc123",
     "edit_path": "http://localhost:5000/edit/abc123",
-    "publicUrl": "https://storage.googleapis.com/alti_presentation/direct_api/direct_1234567890/presentation_abc123.pptx",
+    "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/direct_api/direct_1234567890/presentation_abc123.pptx",
     "credits_consumed": 10
   }
 }
@@ -206,17 +206,17 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ### Using gsutil
 ```bash
 # List all files in bucket
-gsutil ls -r gs://alti_presentation/
+gsutil ls -r gs://alti_assistant_presentation/
 
 # Expected structure:
-# gs://alti_presentation/user_id_1/conversation_id_1/presentation_abc123.pptx
-# gs://alti_presentation/user_id_1/conversation_id_1/presentation_def456_edited.pptx
-# gs://alti_presentation/direct_api/direct_1234567890/presentation_xyz789.pptx
+# gs://alti_assistant_presentation/user_id_1/conversation_id_1/presentation_abc123.pptx
+# gs://alti_assistant_presentation/user_id_1/conversation_id_1/presentation_def456_edited.pptx
+# gs://alti_assistant_presentation/direct_api/direct_1234567890/presentation_xyz789.pptx
 ```
 
 ### Using GCS Console
 1. Go to [Google Cloud Console](https://console.cloud.google.com/storage)
-2. Navigate to `alti_presentation` bucket
+2. Navigate to `alti_assistant_presentation` bucket
 3. Verify folder structure matches user/conversation pattern
 4. Check file permissions (should be public)
 
@@ -316,17 +316,17 @@ node scripts/test-gcs-upload.js
 **Solutions:**
 1. Check `alti_gcp.json` exists and has correct permissions
 2. Verify `GCP_PROJECT_ID` in `.env`
-3. Check bucket exists: `gsutil ls gs://alti_presentation`
+3. Check bucket exists: `gsutil ls gs://alti_assistant_presentation`
 4. Verify service account has Storage Object Creator role
 
 ### Issue: "Public URL not accessible"
 **Solutions:**
-1. Check file permissions: `gsutil iam get gs://alti_presentation`
+1. Check file permissions: `gsutil iam get gs://alti_assistant_presentation`
 2. Make bucket publicly readable:
    ```bash
-   gsutil iam ch allUsers:objectViewer gs://alti_presentation
+   gsutil iam ch allUsers:objectViewer gs://alti_assistant_presentation
    ```
-3. Verify file is public: `gsutil acl get gs://alti_presentation/path/to/file.pptx`
+3. Verify file is public: `gsutil acl get gs://alti_assistant_presentation/path/to/file.pptx`
 
 ### Issue: "No publicUrl in response"
 **Solutions:**
@@ -357,8 +357,8 @@ node scripts/test-gcs-upload.js
 
 ```bash
 # Delete test files from GCS
-gsutil -m rm -r gs://alti_presentation/test_*
-gsutil -m rm -r gs://alti_presentation/direct_api/
+gsutil -m rm -r gs://alti_assistant_presentation/test_*
+gsutil -m rm -r gs://alti_assistant_presentation/direct_api/
 
 # Delete test conversations from database
 db.conversations.deleteMany({ conversationId: /^pres_test/ })

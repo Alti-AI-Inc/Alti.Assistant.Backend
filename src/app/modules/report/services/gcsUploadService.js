@@ -10,7 +10,7 @@ const storage = new Storage({
   keyFilename: 'alti_gcp.json',
 });
 
-const REPORT_BUCKET = 'alti_reports';
+const REPORT_BUCKET = 'alti_assistant_reports';
 
 /**
  * Get content type based on file extension

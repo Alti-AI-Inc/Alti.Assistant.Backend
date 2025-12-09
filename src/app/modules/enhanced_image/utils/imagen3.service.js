@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 
 // Initialize GCP Storage
 const gcpKeyPath = path.join(process.cwd(), "alti_gcp.json");
-const gcpStorage = new GCPStorageService("alti_generated_photo", gcpKeyPath);
+const gcpStorage = new GCPStorageService("alti_assistant_generated_photo", gcpKeyPath);
 
 /**
  * Edit an image using Gemini 3 Pro Image

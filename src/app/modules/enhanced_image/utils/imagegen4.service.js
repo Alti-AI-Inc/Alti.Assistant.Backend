@@ -9,7 +9,7 @@ dotenv.config();
 
 // Initialize GCP Storage
 const gcpKeyPath = path.join(process.cwd(), "alti_gcp.json");
-const gcpStorage = new GCPStorageService("alti_generated_photo", gcpKeyPath);
+const gcpStorage = new GCPStorageService("alti_assistant_generated_photo", gcpKeyPath);
 
 export async function imagegen_4(prompt, download_path) {
 

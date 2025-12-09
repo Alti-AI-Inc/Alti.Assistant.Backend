@@ -6,7 +6,7 @@ Successfully integrated Google Cloud Storage (GCS) upload functionality into the
 
 ## 🎯 Requirements Completed
 
-✅ **Upload presentations to GCS bucket "alti_presentation"**
+✅ **Upload presentations to GCS bucket "alti_assistant_presentation"**
 - Implemented upload service with automatic file handling
 - Organized structure: `userId/conversationId/filename`
 
@@ -65,7 +65,7 @@ Presenton API (Generate/Edit/Derive)
     ↓
 Download File from Presenton URL
     ↓
-Upload to GCS (alti_presentation bucket)
+Upload to GCS (alti_assistant_presentation bucket)
     ↓
 Make File Public
     ↓
@@ -78,7 +78,7 @@ Return in Response
 
 ### File Organization
 ```
-gs://alti_presentation/
+gs://alti_assistant_presentation/
   ├── {userId}/
   │   └── {conversationId}/
   │       ├── presentation_{id}.pptx
@@ -99,7 +99,7 @@ gs://alti_presentation/
   "presentationId": "abc123",
   "downloadUrl": "http://localhost:5000/download/abc123",
   "editUrl": "http://localhost:5000/edit/abc123",
-  "publicUrl": "https://storage.googleapis.com/alti_presentation/.../presentation.pptx",
+  "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/.../presentation.pptx",
   "creditsConsumed": 10
 }
 ```
@@ -111,7 +111,7 @@ gs://alti_presentation/
     "presentation_id": "abc123",
     "path": "http://localhost:5000/download/abc123",
     "edit_path": "http://localhost:5000/edit/abc123",
-    "publicUrl": "https://storage.googleapis.com/alti_presentation/.../presentation.pptx",
+    "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/.../presentation.pptx",
     "credits_consumed": 10
   }
 }
@@ -151,8 +151,8 @@ Required environment variables:
 GCP_PROJECT_ID=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS=alti_gcp.json
 
-# Optional - defaults to 'alti_presentation'
-GCS_PRESENTATION_BUCKET=alti_presentation
+# Optional - defaults to 'alti_assistant_presentation'
+GCS_PRESENTATION_BUCKET=alti_assistant_presentation
 ```
 
 ## 🧪 Testing
@@ -272,7 +272,7 @@ Complete documentation available:
 
 The GCS upload feature is fully implemented and ready for testing and deployment. All requirements have been met:
 
-✅ Upload to alti_presentation bucket
+✅ Upload to alti_assistant_presentation bucket
 ✅ Save public URL to conversation model
 ✅ Send URL in response
 

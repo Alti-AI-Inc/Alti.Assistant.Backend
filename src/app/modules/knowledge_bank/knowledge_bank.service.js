@@ -15,7 +15,7 @@ const storage = new Storage({
 });
 
 // GCS Bucket for Knowledge Bank (separate from knowledgebot)
-const KNOWLEDGE_BANK_BUCKET = 'alti_knowledge_bot_files';
+const KNOWLEDGE_BANK_BUCKET = 'alti_assistant_knowledge_bot_files';
 
 // Initialize RAG System for processing files
 const embeddings = new GoogleGenerativeAIEmbeddings({

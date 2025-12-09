@@ -12,7 +12,7 @@ const storage = new Storage({
   projectId: config.google?.gcp_project_id,
 });
 
-const BUCKET_NAME = 'alti_transcription';
+const BUCKET_NAME = 'alti_assistant_transcription';
 const bucket = storage.bucket(BUCKET_NAME);
 
 /**

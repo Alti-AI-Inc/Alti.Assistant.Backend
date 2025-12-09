@@ -14,16 +14,16 @@ Add the following to your `.env` file:
 # GCS Configuration
 GCP_PROJECT_ID=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS=alti_gcp.json
-GCS_PRESENTATION_BUCKET=alti_presentation
+GCS_PRESENTATION_BUCKET=alti_assistant_presentation
 ```
 
 ### GCS Bucket
 
-The module uses the `alti_presentation` bucket (configurable via `GCS_PRESENTATION_BUCKET` env var).
+The module uses the `alti_assistant_presentation` bucket (configurable via `GCS_PRESENTATION_BUCKET` env var).
 
 **Bucket Structure:**
 ```
-alti_presentation/
+alti_assistant_presentation/
   ├── {userId}/
   │   ├── {conversationId}/
   │   │   ├── presentation_{id}.pptx
@@ -65,12 +65,12 @@ If GCS upload fails:
 ```json
 {
   "success": true,
-  "message": "🎉 Your presentation is ready!\n\n📊 Presentation ID: abc123\n🔗 Public URL: https://storage.googleapis.com/alti_presentation/user123/conv456/presentation_abc123.pptx\n📥 Download: http://localhost:5000/download/abc123\n✏️ Edit online: http://localhost:5000/edit/abc123\n💳 Credits used: 10",
+  "message": "🎉 Your presentation is ready!\n\n📊 Presentation ID: abc123\n🔗 Public URL: https://storage.googleapis.com/alti_assistant_presentation/user123/conv456/presentation_abc123.pptx\n📥 Download: http://localhost:5000/download/abc123\n✏️ Edit online: http://localhost:5000/edit/abc123\n💳 Credits used: 10",
   "conversationId": "pres_1234567890_abc123",
   "presentationId": "abc123",
   "downloadUrl": "http://localhost:5000/download/abc123",
   "editUrl": "http://localhost:5000/edit/abc123",
-  "publicUrl": "https://storage.googleapis.com/alti_presentation/user123/conv456/presentation_abc123.pptx",
+  "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/user123/conv456/presentation_abc123.pptx",
   "creditsConsumed": 10
 }
 ```
@@ -86,7 +86,7 @@ If GCS upload fails:
     "presentation_id": "abc123",
     "path": "http://localhost:5000/download/abc123",
     "edit_path": "http://localhost:5000/edit/abc123",
-    "publicUrl": "https://storage.googleapis.com/alti_presentation/direct_api/direct_1234567890/presentation_abc123.pptx",
+    "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/direct_api/direct_1234567890/presentation_abc123.pptx",
     "credits_consumed": 10
   }
 }
@@ -100,7 +100,7 @@ Presentation URLs are stored in conversation metadata:
 {
   metadata: {
     // ... other metadata
-    presentationUrl: "https://storage.googleapis.com/alti_presentation/.../presentation.pptx",
+    presentationUrl: "https://storage.googleapis.com/alti_assistant_presentation/.../presentation.pptx",
     gcsPath: "userId/conversationId/presentation.pptx",
     uploadedAt: "2024-01-15T10:30:00.000Z",
     
@@ -187,7 +187,7 @@ POST /api/presentation/conversational
 // Response includes publicUrl
 {
   "success": true,
-  "publicUrl": "https://storage.googleapis.com/alti_presentation/..."
+  "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/..."
 }
 ```
 
@@ -204,7 +204,7 @@ POST /api/presentation/generate
 // Response includes publicUrl in data
 {
   "data": {
-    "publicUrl": "https://storage.googleapis.com/alti_presentation/..."
+    "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/..."
   }
 }
 ```

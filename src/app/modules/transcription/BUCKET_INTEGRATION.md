@@ -2,7 +2,7 @@
 
 ## Overview
 
-Audio files uploaded for transcription are now **automatically saved to the `alti_transcription` GCP bucket** for permanent storage. This allows you to:
+Audio files uploaded for transcription are now **automatically saved to the `alti_assistant_transcription` GCP bucket** for permanent storage. This allows you to:
 
 - Access original audio files later
 - Re-process audio without re-uploading
@@ -17,7 +17,7 @@ Audio files uploaded for transcription are now **automatically saved to the `alt
 ```
 User uploads audio → Save to GCS bucket → Use gs:// URI in Gemini → Process → Store results
                      ↓
-                  gs://alti_transcription/transcriptions/
+                  gs://alti_assistant_transcription/transcriptions/
                      ├─ timestamp-audio1.mp3
                      ├─ timestamp-audio2.wav
                      └─ ...
@@ -25,11 +25,11 @@ User uploads audio → Save to GCS bucket → Use gs:// URI in Gemini → Proces
 
 ### Storage Details
 
-**Bucket:** `alti_transcription` (Google Cloud Storage)  
+**Bucket:** `alti_assistant_transcription` (Google Cloud Storage)  
 **Access:** Private (requires signed URLs for external access)  
 **Naming:** `transcriptions/{timestamp}-{originalName}`  
-**GCS URI:** `gs://alti_transcription/transcriptions/{filename}`  
-**Public URL:** `https://storage.googleapis.com/alti_transcription/transcriptions/{filename}`
+**GCS URI:** `gs://alti_assistant_transcription/transcriptions/{filename}`  
+**Public URL:** `https://storage.googleapis.com/alti_assistant_transcription/transcriptions/{filename}`
 
 ## Conversation Metadata
 
@@ -43,9 +43,9 @@ Each audio upload message now includes:
     "fileSize": 5242880,
     "mimeType": "audio/mp3",
     "fileUri": "https://generativelanguage.googleapis.com/v1beta/files/xyz",
-    "gsUri": "gs://alti_transcription/transcriptions/1732723200-meeting.mp3",
+    "gsUri": "gs://alti_assistant_transcription/transcriptions/1732723200-meeting.mp3",
     "gcsFileName": "transcriptions/1732723200-meeting.mp3",
-    "bucketName": "alti_transcription",
+    "bucketName": "alti_assistant_transcription",
     "processingType": "transcribe"
   }
 }
@@ -99,7 +99,7 @@ console.log(metadata);
 //   mimeType: 'audio/mp3',
 //   created: '2025-11-27T16:00:00Z',
 //   updated: '2025-11-27T16:00:00Z',
-//   gsUri: 'gs://alti_transcription/transcriptions/meeting.mp3',
+//   gsUri: 'gs://alti_assistant_transcription/transcriptions/meeting.mp3',
 //   metadata: { originalName: 'meeting.mp3', ... }
 // }
 ```
@@ -113,11 +113,11 @@ Uploads audio file to bucket.
 **Returns:**
 ```javascript
 {
-  gsUri: 'gs://alti_transcription/transcriptions/...',  // GCS URI for Gemini
+  gsUri: 'gs://alti_assistant_transcription/transcriptions/...',  // GCS URI for Gemini
   publicUrl: 'https://storage.googleapis.com/...',  // Public URL
   fileName: 'transcriptions/1234-meeting.mp3',  // GCS file path
   originalName: 'meeting.mp3',
-  bucketName: 'alti_transcription',
+  bucketName: 'alti_assistant_transcription',
   mimeType: 'audio/mp3',
   size: 5242880
 }
@@ -223,7 +223,7 @@ Currently using DigitalOcean Spaces (S3-compatible). For Google Cloud Storage:
 **Implementation:**
 ```javascript
 // Instead of uploading to Gemini File API
-const bucketUrl = `gs://your-gcs-bucket/alti_transcription/${filename}`;
+const bucketUrl = `gs://your-gcs-bucket/alti_assistant_transcription/${filename}`;
 
 // Use directly in Gemini
 const result = await geminiAudioService.processAudioWithGemini(
@@ -253,7 +253,7 @@ Bucket settings are in `config/index.js`:
 ## File Structure
 
 ```
-alti_transcription/
+alti_assistant_transcription/
 ├── 1732723200123-meeting.mp3
 ├── 1732723201456-interview.wav
 ├── 1732723202789-podcast.mp3

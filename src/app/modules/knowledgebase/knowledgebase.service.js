@@ -44,7 +44,7 @@ const storage = new Storage({
   keyFilename: 'alti_gcp.json'
 });
 
-const BUCKET_NAME = 'alti_knowledge_bot_files';
+const BUCKET_NAME = 'alti_assistant_knowledge_bot_files';
 
 /**
  * Estimate token count for text (rough approximation)
