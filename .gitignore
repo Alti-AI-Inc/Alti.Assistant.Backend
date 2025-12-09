@@ -3,3 +3,4 @@ logs/
 *.env
 app_data/
 output/
+alti_gcp.json

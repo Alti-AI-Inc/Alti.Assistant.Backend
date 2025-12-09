@@ -1,0 +1,390 @@
+{
+  "info": {
+    "name": "Document Drafting API",
+    "description": "AI-powered document drafting with conversational interface and multiple format support",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Conversational Assistant",
+      "item": [
+        {
+          "name": "Start New Document Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I need to write a professional business proposal for a new software project\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "assistant"
+              ]
+            },
+            "description": "Start a new conversational document drafting session"
+          },
+          "response": []
+        },
+        {
+          "name": "Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Make it about 1000 words, professional tone, and export as PDF\",\n  \"conversationId\": \"doc_1234567890_abc123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "assistant"
+              ]
+            },
+            "description": "Continue an existing conversation with additional details"
+          },
+          "response": []
+        },
+        {
+          "name": "Simple Document Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Write a cover letter for a software engineer position at a tech startup. Make it professional and export as PDF.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "assistant"
+              ]
+            },
+            "description": "Single message with all details for quick document generation"
+          },
+          "response": []
+        },
+        {
+          "name": "Essay Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Write an academic essay about the impact of artificial intelligence on education. Make it around 1500 words in academic tone.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "assistant"
+              ]
+            },
+            "description": "Generate an academic essay"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Direct Generation",
+      "item": [
+        {
+          "name": "Generate Business Proposal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Create a business proposal for implementing a new CRM system for the sales team. Include benefits, timeline, and cost analysis.\",\n  \"documentType\": \"proposal\",\n  \"outputFormat\": \"pdf\",\n  \"tone\": \"professional\",\n  \"length\": \"long\",\n  \"wordCount\": 2000,\n  \"includeTitle\": true,\n  \"includeDate\": true,\n  \"language\": \"en\",\n  \"additionalInstructions\": \"Include an executive summary at the beginning\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "generate"
+              ]
+            },
+            "description": "Generate a business proposal with all parameters specified"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Cover Letter",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Cover letter for Senior Software Engineer position at TechCorp. Highlighting 8 years of experience in full-stack development, team leadership, and cloud architecture.\",\n  \"documentType\": \"cover_letter\",\n  \"outputFormat\": \"pdf\",\n  \"tone\": \"professional\",\n  \"length\": \"short\",\n  \"includeTitle\": false,\n  \"includeDate\": true,\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "generate"
+              ]
+            },
+            "description": "Generate a professional cover letter"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Technical Documentation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Technical documentation for REST API implementation. Include authentication methods, endpoints, request/response formats, error handling, and rate limiting.\",\n  \"documentType\": \"technical_doc\",\n  \"outputFormat\": \"html\",\n  \"tone\": \"technical\",\n  \"length\": \"long\",\n  \"includeTitle\": true,\n  \"includeDate\": true,\n  \"template\": \"technical_documentation\",\n  \"additionalInstructions\": \"Include code examples for each endpoint\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "generate"
+              ]
+            },
+            "description": "Generate technical documentation"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Blog Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Blog post about the future of artificial intelligence in healthcare. Discuss current trends, potential applications, ethical considerations, and future predictions.\",\n  \"documentType\": \"blog_post\",\n  \"outputFormat\": \"md\",\n  \"tone\": \"casual\",\n  \"length\": \"medium\",\n  \"wordCount\": 1000,\n  \"includeTitle\": true,\n  \"includeDate\": true,\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "generate"
+              ]
+            },
+            "description": "Generate a blog post in markdown format"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Research Paper",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Research paper on machine learning applications in climate change prediction. Include abstract, introduction, methodology, results, discussion, and conclusion.\",\n  \"documentType\": \"research_paper\",\n  \"outputFormat\": \"pdf\",\n  \"tone\": \"academic\",\n  \"length\": \"long\",\n  \"wordCount\": 3000,\n  \"includeTitle\": true,\n  \"includeDate\": true,\n  \"template\": \"academic_paper\",\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "generate"
+              ]
+            },
+            "description": "Generate an academic research paper"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Business Letter",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Formal business letter to inform clients about new service offerings and pricing updates. Thank them for their continued partnership.\",\n  \"documentType\": \"letter\",\n  \"outputFormat\": \"docx\",\n  \"tone\": \"formal\",\n  \"length\": \"short\",\n  \"includeTitle\": false,\n  \"includeDate\": true,\n  \"template\": \"business_letter\",\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "generate"
+              ]
+            },
+            "description": "Generate a formal business letter"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Memo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Internal memo about the new remote work policy. Include guidelines, expectations, and effective date.\",\n  \"documentType\": \"memo\",\n  \"outputFormat\": \"txt\",\n  \"tone\": \"professional\",\n  \"length\": \"short\",\n  \"includeTitle\": true,\n  \"includeDate\": true,\n  \"language\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/documents/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "generate"
+              ]
+            },
+            "description": "Generate an internal memo"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Export Document",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"documentId\": \"doc_1234567890_abc123\",\n  \"outputFormat\": \"docx\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/documents/export",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "documents",
+            "export"
+          ]
+        },
+        "description": "Export an existing document to a different format (Not yet implemented)"
+      },
+      "response": []
+    },
+    {
+      "name": "Edit Document",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"documentId\": \"doc_1234567890_abc123\",\n  \"editInstructions\": \"Make the tone more formal and add a conclusion section\",\n  \"outputFormat\": \"pdf\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/documents/edit",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "documents",
+            "edit"
+          ]
+        },
+        "description": "Edit or refine an existing document (Not yet implemented)"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    }
+  ]
+}

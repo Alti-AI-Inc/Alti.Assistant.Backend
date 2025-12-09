@@ -38,6 +38,7 @@ import { enhancedImageRoute } from '../modules/enhanced_image/enhanced_image.rou
 import { TranscriptionRoutes } from '../modules/transcription/transcription.route.js';
 import presentationRoutes from '../modules/presentation/presentation.route.js';
 import reportRoutes from '../modules/report/report.route.js';
+import documentRoutes from '../modules/document_drafting/document.route.js';
 
 const router = express.Router();
 
@@ -197,6 +198,10 @@ const moduleRoutes = [
   {
     path: '/reports',
     route: reportRoutes
+  },
+  {
+    path: '/documents',
+    route: documentRoutes
   }
 ];
 
