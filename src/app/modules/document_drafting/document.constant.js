@@ -112,7 +112,7 @@ export const DOCUMENT_TEMPLATES = {
 
 // GCS Configuration
 export const GCS_CONFIG = {
-  BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'ason-documents',
+  BUCKET_NAME: process.env.GCS_BUCKET_NAME || 'alti_assistant_documents',
   PROJECT_ID: process.env.GCP_PROJECT_ID,
   KEY_FILE: process.env.GCS_KEY_FILE,
   FOLDER_PREFIX: 'documents/',
