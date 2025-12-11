@@ -148,7 +148,7 @@ app.use((req, res) => {
 
 // Start server
 const port = process.env.PORT || config.port || 5100;
-app.listen(port, "0.0.0.0", () => {
+app.listen(port, () => {
   logger.info(`✅ App is running on 0.0.0.0:${port}`);
 });
 export default app;

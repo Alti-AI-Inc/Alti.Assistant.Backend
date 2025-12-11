@@ -81,7 +81,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
-export function createGroundedModel(modelName = "gemini-2.0-flash-exp") {
+export function createGroundedModel(modelName = "gemini-2.5-flash") {
   return genAI.getGenerativeModel({
     model: modelName,
     tools: [

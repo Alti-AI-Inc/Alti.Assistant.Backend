@@ -234,7 +234,7 @@ console.log(conversation.metadata);
 // Expected metadata:
 {
   category: "presentation",
-  model: "gemini-2.0-flash-exp",
+  model: "gemini-2.5-flash",
   presentationUrl: "https://storage.googleapis.com/...",
   gcsPath: "userId/conversationId/presentation.pptx",
   uploadedAt: "2024-01-15T10:30:00.000Z",

@@ -1,0 +1,603 @@
+{
+  "info": {
+    "name": "Document Review API",
+    "description": "API collection for the Document Review module - AI-powered document review and analysis",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "document-review-api"
+  },
+  "item": [
+    {
+      "name": "Conversational Assistant",
+      "item": [
+        {
+          "name": "Upload and Review Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "message",
+                  "value": "Please review this document for grammar and clarity",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "assistant"
+              ]
+            },
+            "description": "Upload a document and request a review using natural language"
+          },
+          "response": []
+        },
+        {
+          "name": "Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Can you focus more on the tone and structure?",
+                  "type": "text"
+                },
+                {
+                  "key": "conversationId",
+                  "value": "{{conversation_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "assistant"
+              ]
+            },
+            "description": "Continue an existing conversation with follow-up requests"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload New Document to Existing Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "message",
+                  "value": "Can you review this updated version?",
+                  "type": "text"
+                },
+                {
+                  "key": "conversationId",
+                  "value": "{{conversation_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "assistant"
+              ]
+            },
+            "description": "Upload a new document in an existing conversation"
+          },
+          "response": []
+        },
+        {
+          "name": "Grammar Check Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "message",
+                  "value": "Check this document for grammar and spelling errors",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "assistant"
+              ]
+            },
+            "description": "Request a grammar check using natural language"
+          },
+          "response": []
+        },
+        {
+          "name": "Content Analysis Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "message",
+                  "value": "Analyze the content quality and provide suggestions for improvement",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "assistant"
+              ]
+            },
+            "description": "Request content analysis using natural language"
+          },
+          "response": []
+        },
+        {
+          "name": "Summary Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "message",
+                  "value": "Summarize this document for me",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "assistant"
+              ]
+            },
+            "description": "Request a document summary"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Direct Review",
+      "item": [
+        {
+          "name": "General Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "reviewType",
+                  "value": "general_review",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "standard",
+                  "type": "text"
+                },
+                {
+                  "key": "documentType",
+                  "value": "general",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "review"
+              ]
+            },
+            "description": "Direct general review with explicit parameters"
+          },
+          "response": []
+        },
+        {
+          "name": "Grammar Check - Detailed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "reviewType",
+                  "value": "grammar_check",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "detailed",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "review"
+              ]
+            },
+            "description": "Detailed grammar check"
+          },
+          "response": []
+        },
+        {
+          "name": "Business Document Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "reviewType",
+                  "value": "content_analysis",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "comprehensive",
+                  "type": "text"
+                },
+                {
+                  "key": "documentType",
+                  "value": "business",
+                  "type": "text"
+                },
+                {
+                  "key": "additionalInstructions",
+                  "value": "Focus on professional tone and clarity for executive audience",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "review"
+              ]
+            },
+            "description": "Comprehensive review for business documents"
+          },
+          "response": []
+        },
+        {
+          "name": "Academic Paper Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "reviewType",
+                  "value": "content_analysis",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "detailed",
+                  "type": "text"
+                },
+                {
+                  "key": "documentType",
+                  "value": "academic",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "review"
+              ]
+            },
+            "description": "Review academic papers and research documents"
+          },
+          "response": []
+        },
+        {
+          "name": "Tone Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "reviewType",
+                  "value": "tone_analysis",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "standard",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "review"
+              ]
+            },
+            "description": "Analyze document tone and style"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Conversation Management",
+      "item": [
+        {
+          "name": "Get Conversation History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/document-review/conversation/{{conversation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "conversation",
+                "{{conversation_id}}"
+              ]
+            },
+            "description": "Retrieve full conversation history including all messages and metadata"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Guest User Examples",
+      "item": [
+        {
+          "name": "Guest - Upload and Review",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "message",
+                  "value": "Please review this document",
+                  "type": "text"
+                },
+                {
+                  "key": "userId",
+                  "value": "guest_{{$timestamp}}",
+                  "type": "text",
+                  "description": "Optional: provide a guest user ID"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/document-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "document-review",
+                "assistant"
+              ]
+            },
+            "description": "Guest users can use the service without authentication"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "default"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}

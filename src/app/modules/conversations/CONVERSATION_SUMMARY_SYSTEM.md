@@ -181,7 +181,7 @@ Current settings in `conversationSummary.service.js`:
 ```javascript
 TOKEN_THRESHOLD = 4000          // When to summarize
 RECENT_MESSAGE_LIMIT = 5        // How many recent messages to include
-SUMMARY_MODEL = "gemini-2.0-flash-exp"
+SUMMARY_MODEL = "gemini-2.5-flash"
 ```
 
 ---

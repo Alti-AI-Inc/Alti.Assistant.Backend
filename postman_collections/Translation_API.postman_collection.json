@@ -1,0 +1,492 @@
+{
+  "info": {
+    "_postman_id": "translation-module-collection",
+    "name": "Translation Module API",
+    "description": "Complete API collection for the Translation Module with examples for all endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Supported Languages",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/translation/languages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "languages"
+          ]
+        },
+        "description": "Get a list of all supported languages with their codes and names"
+      },
+      "response": []
+    },
+    {
+      "name": "Direct Text Translation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Hello, how are you today?\",\n  \"targetLanguage\": \"es\",\n  \"sourceLanguage\": \"en\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        },
+        "description": "Direct translation endpoint without conversation context"
+      },
+      "response": []
+    },
+    {
+      "name": "Direct Text Translation (Auto-detect)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Bonjour, comment ça va?\",\n  \"targetLanguage\": \"en\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        },
+        "description": "Translate with automatic source language detection"
+      },
+      "response": []
+    },
+    {
+      "name": "Language Detection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Guten Morgen, wie geht es Ihnen?\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/detect",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "detect"
+          ]
+        },
+        "description": "Detect the language of provided text"
+      },
+      "response": []
+    },
+    {
+      "name": "Conversational Assistant - Simple Text",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "Translate 'Good morning, have a great day!' to French",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "assistant"
+          ]
+        },
+        "description": "Natural language translation request"
+      },
+      "response": []
+    },
+    {
+      "name": "Conversational Assistant - Turn 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Save conversation ID for next request",
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.collectionVariables.set(\"conversationId\", jsonData.data.conversationId);",
+              "    console.log(\"Conversation ID:\", jsonData.data.conversationId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "I need to translate something",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "assistant"
+          ]
+        },
+        "description": "Start a multi-turn conversation - Step 1"
+      },
+      "response": []
+    },
+    {
+      "name": "Conversational Assistant - Turn 2",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "Spanish",
+              "type": "text"
+            },
+            {
+              "key": "conversationId",
+              "value": "{{conversationId}}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "assistant"
+          ]
+        },
+        "description": "Continue conversation - Specify target language"
+      },
+      "response": []
+    },
+    {
+      "name": "Conversational Assistant - Turn 3",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "Thank you for your help!",
+              "type": "text"
+            },
+            {
+              "key": "conversationId",
+              "value": "{{conversationId}}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "assistant"
+          ]
+        },
+        "description": "Complete conversation - Provide text to translate"
+      },
+      "response": []
+    },
+    {
+      "name": "Conversational Assistant - File Upload",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "Translate this document to German",
+              "type": "text"
+            },
+            {
+              "key": "file",
+              "type": "file",
+              "src": "test-document.txt"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "assistant"
+          ]
+        },
+        "description": "Upload and translate a document"
+      },
+      "response": []
+    },
+    {
+      "name": "Multiple Languages - Spanish",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Welcome to our application!\",\n  \"targetLanguage\": \"es\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Multiple Languages - French",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Welcome to our application!\",\n  \"targetLanguage\": \"fr\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Multiple Languages - German",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Welcome to our application!\",\n  \"targetLanguage\": \"de\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Multiple Languages - Japanese",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Welcome to our application!\",\n  \"targetLanguage\": \"ja\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Multiple Languages - Chinese (Simplified)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Welcome to our application!\",\n  \"targetLanguage\": \"zh-CN\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Error Test - Invalid Language Code",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Test text\",\n  \"targetLanguage\": \"invalid\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        },
+        "description": "Test error handling for invalid language codes"
+      },
+      "response": []
+    },
+    {
+      "name": "Error Test - Missing Required Fields",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Test text\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/translation/translate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "translation",
+            "translate"
+          ]
+        },
+        "description": "Test validation for missing target language"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

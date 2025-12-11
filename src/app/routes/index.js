@@ -39,6 +39,8 @@ import { TranscriptionRoutes } from '../modules/transcription/transcription.rout
 import presentationRoutes from '../modules/presentation/presentation.route.js';
 import reportRoutes from '../modules/report/report.route.js';
 import documentRoutes from '../modules/document_drafting/document.route.js';
+import { documentReviewRoutes } from '../modules/document_review/document_review.route.js';
+import translationRoutes from '../modules/translation/translation.route.js';
 
 const router = express.Router();
 
@@ -202,6 +204,14 @@ const moduleRoutes = [
   {
     path: '/documents',
     route: documentRoutes
+  },
+  {
+    path: '/document-review',
+    route: documentReviewRoutes
+  },
+  {
+    path: '/translation',
+    route: translationRoutes
   }
 ];
 

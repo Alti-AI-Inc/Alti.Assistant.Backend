@@ -123,7 +123,7 @@ gs://alti_assistant_presentation/
 {
   metadata: {
     category: "presentation",
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-2.5-flash",
     
     // Generated presentation
     presentationUrl: "https://storage.googleapis.com/.../presentation.pptx",

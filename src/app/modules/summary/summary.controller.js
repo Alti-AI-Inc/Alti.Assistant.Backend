@@ -1,7 +1,7 @@
 /* eslint-disable no-case-declarations */
 
 import httpStatus from 'http-status';
-import PdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import { parse } from "csv-parse/browser/esm";
 import catchAsync from '../../../shared/catchAsync.js';
@@ -79,6 +79,7 @@ const summarizeContent = catchAsync(async (req, res) => {
     let contentToSummarize = '';
     let fileMetadata = {};
     let isFilePassed = false
+    console.log(`Received summarization request from ${isGuest ? 'guest' : 'authenticated'} user ${userId} for conversation ${actualConversationId}, file uploaded: ${!!req.file}`);
     if (req.file) {
       console.log(
         `Processing uploaded file: ${req.file.originalname} (MIME type: ${req.file.mimetype})`
@@ -93,8 +94,11 @@ const summarizeContent = catchAsync(async (req, res) => {
       // File parsing logic
       switch (req.file.mimetype) {
         case 'application/pdf':
-          const pdfData = await PdfParse(req.file.buffer);
-          contentToSummarize = pdfData.text;
+          const pdfData = new PDFParse({
+            data: req.file.buffer,
+          });
+          const pdfContent = await pdfData.getText();
+          contentToSummarize = pdfContent.text;
           console.log(`Extracted text from PDF: ${contentToSummarize.substring(0, 100)}...`);
           isFilePassed = true;
           break;

@@ -1,6 +1,6 @@
 // Document drafting configuration
 export const DOCUMENT_CONFIG = {
-  MODEL: 'gemini-2.0-flash-exp',
+  MODEL: 'gemini-2.5-flash',
   MAX_CONTEXT_TOKENS: 50000,
   MAX_OUTPUT_TOKENS: 8192,
   TEMPERATURE: 0.7,
@@ -98,7 +98,7 @@ export const TASK_STATUS = {
 
 // Conversation settings
 export const CONVERSATION_CATEGORY = 'document_drafting';
-export const CONVERSATION_MODEL = 'gemini-2.0-flash-exp';
+export const CONVERSATION_MODEL = 'gemini-2.5-flash';
 
 // Document templates
 export const DOCUMENT_TEMPLATES = {

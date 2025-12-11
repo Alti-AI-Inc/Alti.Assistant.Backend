@@ -149,7 +149,7 @@ user: No, generate now
     
     // Other metadata
     category: "presentation",
-    model: "gemini-2.0-flash-exp"
+    model: "gemini-2.5-flash"
   }
 }
 ```

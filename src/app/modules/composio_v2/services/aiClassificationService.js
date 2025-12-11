@@ -12,7 +12,7 @@ const composio = new Composio({
  * This service handles AI-powered classification and reasoning tasks
  */
 const llm = new ChatGoogleGenerativeAI({
-  model: 'gemini-2.0-flash-exp',
+  model: 'gemini-2.5-flash',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,

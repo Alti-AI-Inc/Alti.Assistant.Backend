@@ -22,14 +22,14 @@ const SUMMARIZATION_THRESHOLD = 5000; // Trigger summarization at this token cou
 class ConversationAnalyzer {
   constructor() {
     this.model = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       apiKey: config.gemini_secret_key,
       temperature: 0.3, // Lower temperature for more consistent parameter extraction
       maxOutputTokens: 2048,
     });
 
     this.summarizerModel = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       apiKey: config.gemini_secret_key,
       temperature: 0.5,
       maxOutputTokens: 1000,
