@@ -5,12 +5,30 @@
 export { HISTORY_CONFIG } from './config/historyConfig.js';
 
 // ==================== LLM SERVICES ====================
-export { llm, toolEnabledLLM, createToolEnabledLLM } from './services/geminiService.js';
+export {
+  llm,
+  toolEnabledLLM,
+  createToolEnabledLLM,
+  createToolEnabledLLMExplicit,
+  selectModel,
+  selectModelSmart,
+  gemini2_5Flash,
+  gemini3ProPreview,
+  ModelComplexity
+} from './services/geminiService.js';
+
+// ==================== MODEL SELECTION UTILITIES ====================
+export {
+  analyzeQueryForModel,
+  selectOptimalModel,
+  analyzeAndLogModelSelection,
+  QueryCategory
+} from './utils/modelSelector.js';
 
 // ==================== QUERY UTILITIES ====================
-export { 
+export {
   classifyQueryFast,
-  updateQueryWithCurrentYear 
+  updateQueryWithCurrentYear
 } from './utils/queryUtils.js';
 
 // ==================== HISTORY MANAGEMENT ====================

@@ -270,130 +270,192 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
 
   console.log(`🔍 Executing grounded search: "${query}"`);
 
-  try {
-    const startTime = Date.now();
+  const MAX_RETRIES = 3;
+  let attemptCount = 0;
 
-    // Token management: Check if history needs summarization
-    const TOKEN_LIMIT = 8000; // Conservative limit for context window
-    const QUERY_TOKEN_RESERVE = 2000; // Reserve tokens for query and response
-    const MAX_HISTORY_TOKENS = TOKEN_LIMIT - QUERY_TOKEN_RESERVE;
+  while (attemptCount < MAX_RETRIES) {
+    attemptCount++;
 
-    let processedHistory = conversationHistory;
-    const historyTokens = await estimateTokens(conversationHistory);
+    try {
+      const startTime = Date.now();
 
-    console.log(`📊 History tokens: ${historyTokens} / ${MAX_HISTORY_TOKENS}`);
+      // Token management: Check if history needs summarization
+      const TOKEN_LIMIT = 8000; // Conservative limit for context window
+      const QUERY_TOKEN_RESERVE = 2000; // Reserve tokens for query and response
+      const MAX_HISTORY_TOKENS = TOKEN_LIMIT - QUERY_TOKEN_RESERVE;
 
-    if (historyTokens > MAX_HISTORY_TOKENS) {
-      console.log(`⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`);
-      processedHistory = await summarizeHistory(conversationHistory, ai);
+      let processedHistory = conversationHistory;
+      const historyTokens = await estimateTokens(conversationHistory);
 
-      // Check if even summary is too large
-      const summaryTokens = estimateTokens(processedHistory);
-      if (summaryTokens > MAX_HISTORY_TOKENS) {
-        console.log(`⚠️ Summary still too large, truncating to last message only`);
-        processedHistory = conversationHistory.slice(-1);
-      }
-    }
+      console.log(`📊 History tokens: ${historyTokens} / ${MAX_HISTORY_TOKENS}`);
 
-    // Build contents with proper format for Google GenAI
-    const contents = [
-      ...processedHistory.map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-      })),
-      {
-        role: 'user',
-        parts: [{ text: query }]
-      }
-    ];
-    console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
+      if (historyTokens > MAX_HISTORY_TOKENS) {
+        console.log(`⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`);
+        processedHistory = await summarizeHistory(conversationHistory, ai);
 
-    const result = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: contents,
-      config: {
-        systemInstruction: systemPrompt,
-        tools: [{ googleSearch: {} }],
-      }
-    });
-
-    const endTime = Date.now();
-    console.log(`⏱️ Search took ${endTime - startTime} ms`);
-    const response = result.candidates[0];
-    console.log('Full response object:', JSON.stringify(result, null, 2));
-    console.log('Response content:', JSON.stringify(response.content, null, 2));
-    console.log('Response parts:', response.content?.parts);
-    const text = response.content.parts.map(part => part.text).join('');
-
-    // Extract grounding metadata
-    const groundingMetadata = response.groundingMetadata;
-
-    // Process grounding metadata into references
-    const references = [];
-    const usedUrls = new Set();
-
-    if (groundingMetadata?.groundingChunks) {
-      groundingMetadata.groundingChunks.forEach((chunk, index) => {
-        if (chunk.web?.uri && !usedUrls.has(chunk.web.uri)) {
-          usedUrls.add(chunk.web.uri);
-          console.log(`   Source ${index + 1}: ${chunk.web.uri}`);
-
-          try {
-            const url = new URL(chunk.web.uri);
-            references.push({
-              url: chunk.web.uri,
-              domain: chunk.web.title || url.hostname.replace('www.', ''),
-              title: chunk.web.title
-            });
-          } catch {
-            references.push({
-              url: chunk.web.uri,
-              domain: chunk.web.title || 'unknown',
-              title: chunk.web.title
-            });
-          }
+        // Check if even summary is too large
+        const summaryTokens = estimateTokens(processedHistory);
+        if (summaryTokens > MAX_HISTORY_TOKENS) {
+          console.log(`⚠️ Summary still too large, truncating to last message only`);
+          processedHistory = conversationHistory.slice(-1);
         }
+      }
+
+      // Build contents with proper format for Google GenAI
+      const contents = [
+        ...processedHistory.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        })),
+        {
+          role: 'user',
+          parts: [{ text: query }]
+        }
+      ];
+      console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3-pro-preview",
+        contents: contents,
+        config: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          systemInstruction: systemPrompt,
+          tools: [{ googleSearch: {} }],
+          thinkingConfig: {
+            thinkingLevel: 'LOW'
+          }
+        },
       });
+
+      const endTime = Date.now();
+      console.log(`⏱️ Search took ${endTime - startTime} ms`);
+      const response = result.candidates[0];
+
+      // Check if finishReason is STOP but no content (empty response)
+      const hasContent = response.content?.parts &&
+        response.content.parts.length > 0 &&
+        response.content.parts.some(part => part.text && part.text.trim().length > 0);
+
+      if (response.finishReason === 'STOP' && !hasContent) {
+        console.warn(`⚠️ Attempt ${attemptCount}/${MAX_RETRIES}: Got STOP but no content. Retrying...`);
+        console.log('Empty response details:', JSON.stringify(result, null, 2));
+
+        if (attemptCount < MAX_RETRIES) {
+          // Wait before retry (exponential backoff)
+          const waitTime = Math.pow(2, attemptCount) * 1000; // 2s, 4s, 8s
+          console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue; // Retry
+        } else {
+          console.error(`❌ All ${MAX_RETRIES} attempts failed with empty responses`);
+          throw new Error('Model returned STOP but no content after 3 attempts');
+        }
+      }
+
+      console.log('Full response object:', JSON.stringify(result, null, 2));
+      console.log('Response content:', JSON.stringify(response.content, null, 2));
+      console.log('Response parts:', response.content?.parts);
+
+      // Log thinking process if available
+      if (response.content?.parts) {
+        response.content.parts.forEach((part, index) => {
+          if (part.thought) {
+            console.log(`\n🧠 === GEMINI THINKING (Part ${index + 1}) ===`);
+            console.log(part.thought);
+            console.log(`=== END THINKING ===\n`);
+          }
+        });
+      }
+
+      // Extract only the text parts (not thinking)
+      const text = response.content.parts
+        .filter(part => part.text)
+        .map(part => part.text)
+        .join('');
+
+      // Extract grounding metadata
+      const groundingMetadata = response.groundingMetadata;
+
+      // Process grounding metadata into references
+      const references = [];
+      const usedUrls = new Set();
+
+      if (groundingMetadata?.groundingChunks) {
+        groundingMetadata.groundingChunks.forEach((chunk, index) => {
+          if (chunk.web?.uri && !usedUrls.has(chunk.web.uri)) {
+            usedUrls.add(chunk.web.uri);
+            console.log(`   Source ${index + 1}: ${chunk.web.uri}`);
+
+            try {
+              const url = new URL(chunk.web.uri);
+              references.push({
+                url: chunk.web.uri,
+                domain: chunk.web.title || url.hostname.replace('www.', ''),
+                title: chunk.web.title
+              });
+            } catch {
+              references.push({
+                url: chunk.web.uri,
+                domain: chunk.web.title || 'unknown',
+                title: chunk.web.title
+              });
+            }
+          }
+        });
+      }
+
+      // Limit to 5 references
+      const limitedReferences = references.slice(0, 5);
+
+      const citations = limitedReferences.map((ref, index) => ({
+        index: index + 1,
+        url: ref.url,
+        domain: ref.domain,
+        title: ref.title
+      }));
+
+      // Build citation metadata
+      const citationMetadata = groundingMetadata ? {
+        searchQueries: groundingMetadata.webSearchQueries || [],
+        searchTimestamp: new Date().toISOString(),
+        model: "gemini-2.5-flash",
+        groundingSupports: groundingMetadata.groundingSupports?.length || 0,
+        totalSources: groundingMetadata.groundingChunks?.length || 0
+      } : null;
+
+      console.log(`✅ Grounded search completed on attempt ${attemptCount}`);
+      console.log(`📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`);
+      console.log(`📚 Found ${references.length} sources`);
+
+      if (groundingMetadata?.webSearchQueries) {
+        console.log(`🔎 Search queries used:`, groundingMetadata.webSearchQueries);
+      }
+
+      return {
+        answer: text,
+        reference: limitedReferences,
+        citations: citations,
+        citationMetadata: citationMetadata
+      };
+
+    } catch (error) {
+      console.error(`❌ Error in grounded search (attempt ${attemptCount}/${MAX_RETRIES}):`, error);
+
+      // If we've exhausted retries, throw the error
+      if (attemptCount >= MAX_RETRIES) {
+        throw error;
+      }
+
+      // Wait before retry (exponential backoff)
+      const waitTime = Math.pow(2, attemptCount) * 1000;
+      console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
-
-    // Limit to 5 references
-    const limitedReferences = references.slice(0, 5);
-
-    const citations = limitedReferences.map((ref, index) => ({
-      index: index + 1,
-      url: ref.url,
-      domain: ref.domain,
-      title: ref.title
-    }));
-
-    // Build citation metadata
-    const citationMetadata = groundingMetadata ? {
-      searchQueries: groundingMetadata.webSearchQueries || [],
-      searchTimestamp: new Date().toISOString(),
-      model: "gemini-3-pro-preview",
-      groundingSupports: groundingMetadata.groundingSupports?.length || 0,
-      totalSources: groundingMetadata.groundingChunks?.length || 0
-    } : null;
-
-    console.log(`✅ Grounded search completed`);
-    console.log(`📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`);
-    console.log(`📚 Found ${references.length} sources`);
-
-    if (groundingMetadata?.webSearchQueries) {
-      console.log(`🔎 Search queries used:`, groundingMetadata.webSearchQueries);
-    }
-
-    return {
-      answer: text,
-      reference: limitedReferences,
-      citations: citations,
-      citationMetadata: citationMetadata
-    };
-
-  } catch (error) {
-    console.error("❌ Error in grounded search:", error);
-    throw error;
   }
+
+  // Should never reach here, but just in case
+  throw new Error('Unexpected: Exhausted all retry attempts without returning or throwing');
 }
 
 /**

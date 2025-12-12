@@ -458,8 +458,38 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
       );
     }
 
+    // Add user message to conversation
+    await enhancedImageService.addImageRequestMessage(
+      conversationId,
+      userId,
+      userRequest,
+      {
+        type: 'image_intent_analysis',
+        hasImage
+      },
+      isGuest
+    );
+
     // Analyze intent with explicit hasImage value and retrieved context
     const result = await enhancedImageService.analyzeImageIntentWithContext(userRequest, hasImage, context);
+
+    // Add assistant response to conversation
+    await enhancedImageService.addImageResultMessage(
+      conversationId,
+      userId,
+      `Intent analysis: ${result.intent}`,
+      {
+        type: 'intent_analysis_result',
+        intent: result.intent,
+        isEditable: result.isEditable,
+        editType: result.editType,
+        reasoning: result.reasoning,
+        needsMoreInfo: result.needsMoreInfo,
+        questions: result.questions,
+        timestamp: new Date().toISOString()
+      },
+      isGuest
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,

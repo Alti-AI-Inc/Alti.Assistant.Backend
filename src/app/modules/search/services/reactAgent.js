@@ -4,21 +4,39 @@ import { DynamicTool } from "@langchain/core/tools";
 import { WebBrowser } from "langchain/tools/webbrowser";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import config from "../../../../../config/index.js";
-import { llm } from './geminiService.js';
+import { selectModelSmart, gemini2_5Flash, gemini3ProPreview } from './geminiService.js';
 import { openMemoryClient } from '../../../shared/openMemoryClient.js';
 
 /**
  * ReAct Agent Service
  * Executes tool-based conversation with reasoning and action cycles
+ * NOW WITH SMART MODEL SELECTION
  */
 
 /**
  * Executes a ReAct (Reasoning + Acting) agent conversation with tool calls
  * @param {Array} messages - Array of conversation messages
+ * @param {Object} options - Additional options including userId and query context
  * @returns {Object} Formatted response with answer, references, and citations
  */
 export async function executeToolBasedConversation(messages, options = {}) {
   const resolvedUserId = options?.userId || options?.authUserId || options?.user?.id || null;
+
+  // Extract query from messages for smart model selection
+  const userMessages = messages.filter(m => m.role === 'user');
+  const currentQuery = userMessages.length > 0
+    ? userMessages[userMessages.length - 1].content
+    : '';
+
+  // SMART MODEL SELECTION based on query
+  const conversationHistory = messages.filter(m => m.role === 'user' || m.role === 'assistant');
+  const selectedLLM = selectModelSmart(currentQuery, {
+    conversationHistory,
+    searchDepth: options.searchDepth || 'standard',
+    previousToolCalls: options.previousToolCalls || 0
+  });
+
+  console.log('🤖 ReactAgent using selected model for tool-based conversation', selectModelSmart);
 
   const textSplitter = new RecursiveCharacterTextSplitter({
     chunkSize: 1000,
@@ -28,7 +46,7 @@ export async function executeToolBasedConversation(messages, options = {}) {
   const tools = [
     new GoogleCustomSearch({ apiKey: config.google_search_api_key, googleCSEId: config.google_engine_id }),
     new WebBrowser({
-      model: llm,
+      model: selectedLLM, // Use selected model
       embeddings: new GoogleGenerativeAIEmbeddings({
         apiKey: config.gemini_secret_key,
       }),
@@ -113,7 +131,7 @@ export async function executeToolBasedConversation(messages, options = {}) {
     tools.push(openMemoryTool);
   }
 
-  const toolBasedLlm = llm.bindTools(tools);
+  const toolBasedLlm = selectedLLM.bindTools(tools); // Use selected model
 
   // Add ReAct agent instructions to the system message
   const openMemoryInstruction = openMemoryClient?.enabled ? `
@@ -261,6 +279,8 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
 
     const res = await toolBasedLlm.invoke(currentMessages);
     console.log("Response tool_calls:", res.tool_calls?.length || 0);
+
+    console.log("🧠 ReAct THINK:", res.content);
 
     // Log reasoning if present in the response
     if (res.content && typeof res.content === 'string' && res.content.length > 0) {
@@ -412,7 +432,7 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
 
         } else if (toolCall.name === "web-browser") {
           const browser = new WebBrowser({
-            model: llm,
+            model: selectedLLM, // Use selected model
             embeddings: new GoogleGenerativeAIEmbeddings({
               apiKey: config.gemini_secret_key,
             }),

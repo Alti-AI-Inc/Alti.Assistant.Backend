@@ -11,7 +11,7 @@ const router = express.Router();
 
 // Search assistant endpoint - open to all (with optional auth)
 router.post(
-  '/assistant',
+  '/assistant_v2',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes (applies to all users)
   validateRequest(SearchValidation.searchQuerySchema),
@@ -46,7 +46,7 @@ router.get(
 // TEST ENDPOINT - Native grounding only (no smart routing)
 // This endpoint uses ONLY Google's native grounding search for testing/comparison
 router.post(
-  '/assistant_v2',
+  '/assistant',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),

@@ -584,15 +584,24 @@ Provide a well-researched, detailed response with proper source references. Use 
     const startTime = Date.now();
     const searchResult = await executeToolBasedConversation(messages, {
       userId,
-      conversationId: state.conversationId
+      conversationId: state.conversationId,
+      searchDepth: state.depth || 'standard',
+      query: query // Pass query for smart model selection
     });
 
     const duration = Date.now() - startTime;
     console.log(`✅ Intelligent search process completed in ${duration}ms`);
     console.log(`Search Result:`, searchResult.responseMessage);
 
+    // Return the properly structured response
+    // executeToolBasedConversation returns { responseMessage: { answer, reference, citations, citationMetadata } }
     return {
-      ...searchResult?.responseMessage
+      answer: searchResult?.responseMessage?.answer || '',
+      reference: searchResult?.responseMessage?.reference || [],
+      citations: searchResult?.responseMessage?.citations || [],
+      citationMetadata: searchResult?.responseMessage?.citationMetadata || null,
+      searchMethod: 'intelligent_search',
+      timestamp: new Date().toISOString()
     };
 
   } catch (error) {
