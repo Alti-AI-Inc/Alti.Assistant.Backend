@@ -55,6 +55,7 @@ export async function analyzeImageIntent(
   context = "No previous context.",
   { apiKey, modelName = "gemini-2.5-flash" } = {}
 ) {
+  console.log("Analyzing image intent for request:", apiKey);
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
     apiKey,

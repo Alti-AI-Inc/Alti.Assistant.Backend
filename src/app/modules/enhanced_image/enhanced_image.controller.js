@@ -325,17 +325,19 @@ export const analyzeIntent = catchAsync(async (req, res) => {
     const isGuest = req.isGuest || !req.user;
     let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     userId = req.body.userId || userId;
-
+    let conversation = null;
     // Create conversation if not exists
     if (!conversationId) {
       conversationId = enhancedImageService.generateImageConversationId();
-      const conversation = await enhancedImageService.handleImageConversation(
+      conversation = await enhancedImageService.handleImageConversation(
         userId,
         conversationId,
         prompt,
         isGuest,
         'intent_analysis'
       );
+    } else {
+      conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
     }
 
     const result = await enhancedImageService.analyzeImageIntent(prompt);
@@ -405,8 +407,11 @@ const getImageStats = catchAsync(async (req, res) => {
  */
 export const analyzeImageIntent = catchAsync(async (req, res) => {
   console.log("Analyze Image Intent Request:", req.body);
-  const { request, userMessage, hasImage, sessionId } = req.body;
+  const { request, userMessage, sessionId } = req.body;
   let { conversationId } = req.body;
+
+  // Explicitly handle hasImage - default to false if not provided or not true
+  const hasImage = req.body.hasImage === true;
 
   const userRequest = request || userMessage;
   console.log("Analyze Image Intent Request:", { userRequest, hasImage, sessionId, conversationId });
@@ -453,7 +458,8 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
       );
     }
 
-    const result = await enhancedImageService.analyzeImageIntentWithContext(userRequest, hasImage || false, context);
+    // Analyze intent with explicit hasImage value and retrieved context
+    const result = await enhancedImageService.analyzeImageIntentWithContext(userRequest, hasImage, context);
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,

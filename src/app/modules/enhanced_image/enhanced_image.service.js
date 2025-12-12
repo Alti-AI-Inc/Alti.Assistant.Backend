@@ -302,7 +302,7 @@ const editImage = async (prompt, imageBase64, filename, options = {}) => {
 const analyzeImageIntent = async (prompt) => {
   try {
     const apiKey = config.gemini_secret_key;
-    const result = await analyzeIntent(prompt, { apiKey });
+    const result = await analyzeIntent(prompt, false, "No previous context.", { apiKey });
     return result;
   } catch (error) {
     logger.error('Error analyzing image intent:', error);
