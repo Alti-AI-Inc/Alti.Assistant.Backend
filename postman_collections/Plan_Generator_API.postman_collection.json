@@ -1,0 +1,587 @@
+{
+  "info": {
+    "_postman_id": "plan-generator-collection-2024",
+    "name": "Plan Generator API",
+    "description": "Comprehensive API collection for the Plan Generator module - AI-powered planning assistant that transforms ideas into actionable plans",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Conversational Planning",
+      "item": [
+        {
+          "name": "Start New Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I want to launch a food delivery app for small restaurants\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "assistant"
+              ]
+            },
+            "description": "Start a new planning conversation. AI will analyze your idea and may ask clarifying questions."
+          },
+          "response": []
+        },
+        {
+          "name": "Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"The target market is urban areas with 500+ restaurants. Budget is $50,000 and timeline is 6 months\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "assistant"
+              ]
+            },
+            "description": "Continue an existing conversation with more details or refinement requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Conversational with File Upload",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Create a plan based on the attached business requirements document",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/your/document.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "assistant"
+              ]
+            },
+            "description": "Upload a document (PDF, DOCX, TXT) to provide additional context for plan generation."
+          },
+          "response": []
+        },
+        {
+          "name": "Request Refinement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Can you make the timeline more aggressive and add more detail to the marketing strategy?\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "assistant"
+              ]
+            },
+            "description": "Request refinements to specific sections of your plan."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Alternative Approaches",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What are some alternative approaches to this plan?\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "assistant"
+              ]
+            },
+            "description": "Request alternative strategies and approaches for your plan."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Direct Plan Generation",
+      "item": [
+        {
+          "name": "Generate Business Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Create a sustainable fashion e-commerce platform that connects eco-friendly designers with conscious consumers\",\n  \"planType\": \"business_plan\",\n  \"complexity\": \"complex\",\n  \"planDepth\": \"comprehensive\",\n  \"domains\": [\"business\", \"marketing\", \"technical\"],\n  \"constraints\": {\n    \"budget\": 100000,\n    \"timeline\": \"12 months\",\n    \"teamSize\": 8\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "generate"
+              ]
+            },
+            "description": "Generate a complete business plan with all parameters specified."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Product Launch Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Launch a mobile fitness app with AI-powered workout recommendations and social features\",\n  \"planType\": \"product_launch\",\n  \"complexity\": \"moderate\",\n  \"planDepth\": \"standard\",\n  \"domains\": [\"technical\", \"marketing\", \"design\"],\n  \"constraints\": {\n    \"budget\": 50000,\n    \"timeline\": \"6 months\",\n    \"teamSize\": 5\n  },\n  \"brainstormAspects\": [\n    \"swot_analysis\",\n    \"market_analysis\",\n    \"technical_feasibility\",\n    \"financial_projections\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "generate"
+              ]
+            },
+            "description": "Generate a product launch plan with specific brainstorming aspects."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Event Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Organize a 2-day tech conference for 500 attendees with keynote speakers, workshops, and networking sessions\",\n  \"planType\": \"event_plan\",\n  \"complexity\": \"complex\",\n  \"planDepth\": \"detailed\",\n  \"constraints\": {\n    \"budget\": 75000,\n    \"timeline\": \"4 months\",\n    \"teamSize\": 6\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "generate"
+              ]
+            },
+            "description": "Generate an event planning document."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Marketing Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Launch a social media marketing campaign to promote our new AI writing assistant to content creators and businesses\",\n  \"planType\": \"marketing_campaign\",\n  \"complexity\": \"moderate\",\n  \"planDepth\": \"comprehensive\",\n  \"domains\": [\"marketing\", \"business\"],\n  \"constraints\": {\n    \"budget\": 25000,\n    \"timeline\": \"3 months\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "generate"
+              ]
+            },
+            "description": "Generate a marketing campaign plan."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Simple Project Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Redesign company website with modern UI and improved user experience\",\n  \"planType\": \"project_plan\",\n  \"complexity\": \"simple\",\n  \"planDepth\": \"quick\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "generate"
+              ]
+            },
+            "description": "Generate a quick project plan without detailed constraints."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Brainstorming",
+      "item": [
+        {
+          "name": "Brainstorm with All Aspects",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Create an AI-powered tutoring platform for high school students that provides personalized learning paths\",\n  \"aspects\": [\n    \"swot_analysis\",\n    \"market_analysis\",\n    \"competitive_landscape\",\n    \"resource_needs\",\n    \"risk_assessment\",\n    \"financial_projections\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/brainstorm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "brainstorm"
+              ]
+            },
+            "description": "Generate comprehensive brainstorming insights for an idea."
+          },
+          "response": []
+        },
+        {
+          "name": "SWOT Analysis Only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Launch a subscription box service for organic baby products\",\n  \"aspects\": [\"swot_analysis\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/brainstorm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "brainstorm"
+              ]
+            },
+            "description": "Generate only SWOT analysis for quick insights."
+          },
+          "response": []
+        },
+        {
+          "name": "Brainstorm with Context",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Create a blockchain-based supply chain tracking system for pharmaceutical companies\",\n  \"aspects\": [\n    \"technical_feasibility\",\n    \"market_analysis\",\n    \"financial_projections\"\n  ],\n  \"context\": {\n    \"industry\": \"Pharmaceutical & Healthcare\",\n    \"targetMarket\": \"Mid to large pharmaceutical companies\",\n    \"budget\": 200000,\n    \"timeline\": \"18 months\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/brainstorm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "brainstorm"
+              ]
+            },
+            "description": "Generate brainstorm with additional context for better insights."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Export & History",
+      "item": [
+        {
+          "name": "Export as Markdown",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"format\": \"markdown\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "export"
+              ]
+            },
+            "description": "Export plan in Markdown format."
+          },
+          "response": []
+        },
+        {
+          "name": "Export as JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"format\": \"json\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "export"
+              ]
+            },
+            "description": "Export plan as structured JSON."
+          },
+          "response": []
+        },
+        {
+          "name": "Export as HTML",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"format\": \"html\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "export"
+              ]
+            },
+            "description": "Export plan as HTML document."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Conversation History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/plan-generator/conversation/{{conversationId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "conversation",
+                "{{conversationId}}"
+              ]
+            },
+            "description": "Retrieve full conversation history including all messages, analysis, brainstorm, and generated plan."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Test Scenarios",
+      "item": [
+        {
+          "name": "Startup Plan - Complete Flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Build a SaaS platform that uses AI to automate customer support for e-commerce businesses. The platform will integrate with popular e-commerce platforms like Shopify and WooCommerce, providing 24/7 automated responses, intelligent ticket routing, and sentiment analysis.\",\n  \"planType\": \"startup_plan\",\n  \"complexity\": \"enterprise\",\n  \"planDepth\": \"strategic\",\n  \"domains\": [\"technical\", \"business\", \"marketing\", \"financial\"],\n  \"constraints\": {\n    \"budget\": 250000,\n    \"timeline\": \"18 months\",\n    \"teamSize\": 12\n  },\n  \"brainstormAspects\": [\n    \"swot_analysis\",\n    \"market_analysis\",\n    \"competitive_landscape\",\n    \"technical_feasibility\",\n    \"financial_projections\",\n    \"risk_assessment\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "generate"
+              ]
+            },
+            "description": "Complete enterprise-level startup plan with all aspects."
+          },
+          "response": []
+        },
+        {
+          "name": "Guest User - No Auth",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I want to create a YouTube channel about cooking\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/plan-generator/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plan-generator",
+                "assistant"
+              ]
+            },
+            "description": "Test guest user access without authentication."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

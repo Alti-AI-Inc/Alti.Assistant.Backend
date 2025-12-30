@@ -6,7 +6,7 @@ import { searchService } from './search.service.js';
 import { researchAgentApp } from "./search_assistant/workflow.js";
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import { executeGroundedSearch } from './services/geminiGroundingService.js';
+import { executeGroundedSearch, executeGroundedSearchStream } from './services/geminiGroundingService.js';
 
 
 export const performSearch = catchAsync(async (req, res) => {
@@ -280,7 +280,7 @@ const generateCode = catchAsync(async (req, res) => {
         const answer = result.answer;
         const reference = result.reference || [];
         const citationMetadata = result.citationMetadata || {
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3-flash-preview',
             type: 'code_generation',
             timestamp: new Date().toISOString()
         };
@@ -291,7 +291,7 @@ const generateCode = catchAsync(async (req, res) => {
             citationMetadata,
             searchQuery: message,
             searchTimestamp: citationMetadata.timestamp || new Date().toISOString(),
-            model: citationMetadata.model || 'gemini-3-pro-preview',
+            model: citationMetadata.model || 'gemini-3-flash-preview',
             type: 'code_generation'
         };
 
@@ -316,7 +316,7 @@ const generateCode = catchAsync(async (req, res) => {
                 messageCount: conversation.messageCount + 2,
                 userType: isGuest ? 'guest' : 'authenticated',
                 userId: isGuest ? userId : undefined,
-                model: citationMetadata.model || 'gemini-3-pro-preview'
+                model: citationMetadata.model || 'gemini-3-flash-preview'
             },
         });
 
@@ -570,7 +570,14 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
 
         logger.info(`Native Grounding Search Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
 
-        const answer = result.answer;
+        let answer = result.answer;
+        // console.log(answer)
+        const isJson = isValidJSON(answer)
+        console.log('Is valid json', isJson, answer)
+        if (isJson) {
+            const parsedAnswer = JSON.parse(answer)
+            answer = parsedAnswer.responseMessage.answer
+        }
         const reference = result.reference || [];
         const citations = result.citations || [];
         const citationMetadata = result.citationMetadata || null;
@@ -608,7 +615,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
                 messageCount: conversation.messageCount + 2,
                 userType: isGuest ? 'guest' : 'authenticated',
                 userId: isGuest ? userId : undefined,
-                model: citationMetadata?.model || 'gemini-3-pro-preview',
+                model: citationMetadata?.model || 'gemini-3-flash-preview',
                 searchMethod: 'native_grounding_only'
             },
         });
@@ -644,11 +651,205 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
     }
 });
 
+function isValidJSON(str) {
+    // First, check if the input is actually a string
+    try {
+        // Attempt to parse the string
+        const json = JSON.parse(str);
+        console.log('Json Parsed')
+        // Handle non-exception-throwing cases:
+        // JSON.parse(null) returns null, which is not an object or array (common usage)
+        // If you want to accept all valid JSON primitives (like "1", "true", "null"),
+        // you can simply return true after the try block
+        if (json && typeof json === 'object') {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (e) {
+        // An error was thrown, so the string is not valid JSON
+        return false;
+    }
+}
+
+
+/**
+ * Streaming grounded search endpoint - streams thinking and response in real-time
+ */
+const performStreamingSearch = catchAsync(async (req, res) => {
+    const isGuest = req.isGuest || !req.user;
+    let userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    const { message, conversationId } = req.body;
+    userId = req.body.userId || userId;
+
+    // Skip subscription check for guest users
+    if (!isGuest) {
+        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+        const prompotUsage = userSubscription ? userSubscription.usage : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+
+        if (prompotUsage <= totalConversationWithConvId) {
+            return sendResponse(res, {
+                statusCode: httpStatus.FORBIDDEN,
+                success: false,
+                message: 'You have reached your search limit for this month. Please upgrade your plan to continue.',
+            });
+        }
+    }
+
+    if (!message) {
+        return sendResponse(res, {
+            statusCode: httpStatus.BAD_REQUEST,
+            success: false,
+            message: 'A search query is required',
+        });
+    }
+
+    if (!userId) {
+        return sendResponse(res, {
+            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+            success: false,
+            message: 'Failed to generate user identifier',
+        });
+    }
+
+    const thread_id = conversationId || searchService.generateSearchConversationId();
+
+    try {
+        // Set up SSE headers
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
+
+        // Handle conversation creation/retrieval
+        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
+        const actualConversationId = conversation.conversationId || thread_id;
+
+        // Get conversation history for context
+        let conversationHistory = [];
+        if (conversationId && conversation.messages) {
+            conversationHistory = conversation.messages
+                .slice(-10)
+                .map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+        }
+
+        // Add user message to conversation
+        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
+
+        // Send initial connection event
+        res.write(`data: ${JSON.stringify({
+            type: 'connected',
+            conversationId: actualConversationId,
+            timestamp: Date.now()
+        })}\n\n`);
+
+        let fullText = '';
+        let metadata = null;
+
+        // Stream the response
+        for await (const chunk of executeGroundedSearchStream(message, conversationHistory)) {
+            if (chunk.type === 'thinking') {
+                // Stream thinking chunks
+                res.write(`data: ${JSON.stringify({
+                    type: 'thinking',
+                    content: chunk.content,
+                    timestamp: chunk.timestamp
+                })}\n\n`);
+            } else if (chunk.type === 'text') {
+                // Stream text chunks
+                fullText += chunk.content;
+                res.write(`data: ${JSON.stringify({
+                    type: 'text',
+                    content: chunk.content,
+                    timestamp: chunk.timestamp
+                })}\n\n`);
+            } else if (chunk.type === 'metadata') {
+                // Final metadata with references
+                metadata = chunk;
+                res.write(`data: ${JSON.stringify({
+                    type: 'metadata',
+                    reference: chunk.reference,
+                    citations: chunk.citations,
+                    citationMetadata: chunk.citationMetadata,
+                    timestamp: chunk.timestamp
+                })}\n\n`);
+            }
+        }
+
+        // Save the complete response to conversation
+        const messageMetadata = {
+            reference: metadata?.reference || [],
+            citationMetadata: metadata?.citationMetadata || null,
+            searchQuery: message,
+            searchTimestamp: new Date().toISOString(),
+            streamingMode: true
+        };
+
+        await searchService.addSearchResultMessage(
+            actualConversationId,
+            userId,
+            fullText,
+            messageMetadata,
+            isGuest
+        );
+
+        // Send completion event
+        res.write(`data: ${JSON.stringify({
+            type: 'done',
+            conversationId: actualConversationId,
+            messageCount: conversation.messageCount + 2,
+            userType: isGuest ? 'guest' : 'authenticated',
+            timestamp: Date.now()
+        })}\n\n`);
+
+        res.end();
+
+    } catch (error) {
+        logger.error("Streaming Search Error:", error);
+
+        const errorConversationId = conversationId || searchService.generateSearchConversationId();
+
+        try {
+            if (errorConversationId && userId) {
+                await searchService.addErrorMessage(
+                    errorConversationId,
+                    userId,
+                    'I apologize, but an error occurred while processing your streaming search request.',
+                    error,
+                    isGuest
+                );
+            }
+        } catch (convError) {
+            logger.error("Failed to save error to conversation:", convError);
+        }
+
+        if (!res.headersSent) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+        }
+
+        res.write(`data: ${JSON.stringify({
+            type: 'error',
+            error: error.message || 'An internal error occurred',
+            conversationId: errorConversationId,
+            timestamp: Date.now()
+        })}\n\n`);
+
+        res.end();
+    }
+});
+
 export const searchController = {
     performSearch,
     getSearchStats,
     generateCode,
     generateWriting,
     performNativeGroundingSearch,
+    performStreamingSearch,
 };
 

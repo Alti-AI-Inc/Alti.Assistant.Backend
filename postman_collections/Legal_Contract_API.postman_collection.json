@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "Legal Contract API",
+    "description": "API collection for AI-powered legal contract generation with conversational interface",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Conversational Assistant",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "I need to create an employment contract for a software developer position",
+              "type": "text",
+              "description": "User's natural language request"
+            },
+            {
+              "key": "conversationId",
+              "value": "",
+              "type": "text",
+              "description": "Optional - Continue existing conversation"
+            },
+            {
+              "key": "userId",
+              "value": "",
+              "type": "text",
+              "description": "Optional - For guest users"
+            },
+            {
+              "key": "outputFormat",
+              "value": "text",
+              "type": "text",
+              "description": "Output format: text, docx, or pdf"
+            },
+            {
+              "key": "file",
+              "type": "file",
+              "description": "Optional - Upload reference document (.pdf, .docx, .doc, .txt)"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "assistant"
+          ]
+        },
+        "description": "Main conversational endpoint for contract generation. AI will ask essential questions before generating the contract."
+      },
+      "response": []
+    },
+    {
+      "name": "Answer Questions and Continue",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "The company name is TechCorp Inc., the position is Senior Software Developer, salary is $120,000 per year, and the start date is January 1, 2024",
+              "type": "text",
+              "description": "Answers to AI's questions"
+            },
+            {
+              "key": "conversationId",
+              "value": "contract_1234567890_abc123",
+              "type": "text",
+              "description": "Conversation ID from previous request"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "assistant"
+          ]
+        },
+        "description": "Continue the conversation by answering the AI's questions"
+      },
+      "response": []
+    },
+    {
+      "name": "Direct Contract Generation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contractType\": \"employment\",\n  \"complexity\": \"standard\",\n  \"jurisdiction\": \"us_federal\",\n  \"outputFormat\": \"text\",\n  \"parties\": [\n    {\n      \"name\": \"TechCorp Inc.\",\n      \"role\": \"employer\",\n      \"address\": \"123 Tech Street, San Francisco, CA 94105\",\n      \"email\": \"hr@techcorp.com\"\n    },\n    {\n      \"name\": \"John Doe\",\n      \"role\": \"employee\",\n      \"address\": \"456 Main Street, San Francisco, CA 94102\",\n      \"email\": \"john.doe@email.com\"\n    }\n  ],\n  \"terms\": {\n    \"position\": \"Senior Software Developer\",\n    \"startDate\": \"January 1, 2024\",\n    \"salary\": \"$120,000 per year\",\n    \"benefits\": \"Health insurance, 401k, paid time off\",\n    \"duration\": \"Indefinite (at-will employment)\",\n    \"workLocation\": \"Hybrid - 3 days in office, 2 days remote\"\n  },\n  \"additionalInstructions\": \"Include standard non-compete and confidentiality clauses\",\n  \"includeBoilerplate\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "generate"
+          ]
+        },
+        "description": "Direct contract generation without conversational flow - for programmatic access"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Conversation History",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/conversation/:conversationId",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "conversation",
+            ":conversationId"
+          ],
+          "variable": [
+            {
+              "key": "conversationId",
+              "value": "contract_1234567890_abc123"
+            }
+          ]
+        },
+        "description": "Retrieve complete conversation history including all messages and metadata"
+      },
+      "response": []
+    },
+    {
+      "name": "Download Contract (Text)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/download/:conversationId?format=text",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "download",
+            ":conversationId"
+          ],
+          "query": [
+            {
+              "key": "format",
+              "value": "text",
+              "description": "Format: text, docx, or pdf (currently only text supported)"
+            }
+          ],
+          "variable": [
+            {
+              "key": "conversationId",
+              "value": "contract_1234567890_abc123"
+            }
+          ]
+        },
+        "description": "Download the generated contract in the specified format"
+      },
+      "response": []
+    },
+    {
+      "name": "Modify Contract",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"conversationId\": \"contract_1234567890_abc123\",\n  \"modifications\": \"Please add a section about remote work policy and increase the vacation days to 20 days per year\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/modify",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "modify"
+          ]
+        },
+        "description": "Request modifications to an existing contract"
+      },
+      "response": []
+    },
+    {
+      "name": "Example: NDA Contract",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "I need a mutual non-disclosure agreement for a potential business partnership",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "assistant"
+          ]
+        },
+        "description": "Example request for NDA generation"
+      },
+      "response": []
+    },
+    {
+      "name": "Example: Service Agreement",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "Create a service agreement for web development services",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "assistant"
+          ]
+        },
+        "description": "Example request for service agreement"
+      },
+      "response": []
+    },
+    {
+      "name": "Example: Freelance Contract",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "I need a freelance contract for a graphic designer working on a logo design project",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/legal-contract/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "legal-contract",
+            "assistant"
+          ]
+        },
+        "description": "Example request for freelance contract"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    }
+  ]
+}

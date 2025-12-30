@@ -1,0 +1,234 @@
+{
+  "info": {
+    "name": "Streaming Search API",
+    "description": "Real-time streaming search with visible thinking process using Server-Sent Events (SSE)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "streaming-search-api-001"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Streaming Search",
+      "item": [
+        {
+          "name": "Simple Query - Stream with Thinking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What is the weather in Detroit today?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/search/stream",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "search",
+                "stream"
+              ]
+            },
+            "description": "Test streaming search with a simple weather query. You'll see:\n1. 'connected' event with conversationId\n2. 'thinking' events showing the model's reasoning\n3. 'text' events with response chunks\n4. 'metadata' event with references and citations\n5. 'done' event signaling completion"
+          },
+          "response": []
+        },
+        {
+          "name": "Sports Query - Stream with Citations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"When is the next Detroit Red Wings home game?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/search/stream",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "search",
+                "stream"
+              ]
+            },
+            "description": "Test streaming search with a sports schedule query. Watch for multiple search queries and grounding metadata."
+          },
+          "response": []
+        },
+        {
+          "name": "Investment Query - Complex Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Should I invest in Bitcoin right now? Give me a clear answer.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/search/stream",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "search",
+                "stream"
+              ]
+            },
+            "description": "Test streaming search with a complex investment query. This should trigger multiple thinking events as the model analyzes market data."
+          },
+          "response": []
+        },
+        {
+          "name": "Continue Conversation - Stream",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Tell me more about their performance this season\",\n  \"conversationId\": \"PASTE_CONVERSATION_ID_HERE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/search/stream",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "search",
+                "stream"
+              ]
+            },
+            "description": "Continue an existing conversation with streaming. Replace PASTE_CONVERSATION_ID_HERE with the conversationId from a previous response."
+          },
+          "response": []
+        }
+      ],
+      "description": "Streaming search endpoints that use Server-Sent Events (SSE) to stream thinking and text in real-time"
+    },
+    {
+      "name": "Non-Streaming Search (Comparison)",
+      "item": [
+        {
+          "name": "Native Grounding - No Stream",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What is the weather in Detroit today?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/search/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "search",
+                "assistant"
+              ]
+            },
+            "description": "Same query using non-streaming endpoint for comparison. Returns complete response in single JSON payload."
+          },
+          "response": []
+        }
+      ],
+      "description": "Non-streaming endpoints for comparison testing"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Optional: Add authentication token if needed",
+          "// pm.request.headers.add({",
+          "//   key: 'Authorization',",
+          "//   value: 'Bearer ' + pm.environment.get('auth_token')",
+          "// });"
+        ]
+      }
+    }
+  ]
+}

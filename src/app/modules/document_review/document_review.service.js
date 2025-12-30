@@ -17,6 +17,7 @@ import {
   CONVERSATION_MODEL,
   DEFAULT_PARAMS,
 } from './document_review.constant.js';
+import Conversation from '../conversations/conversation.model.js';
 
 // Initialize Gemini client
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -113,53 +114,120 @@ const updateConversationMetadata = async (conversationId, userId, params) => {
 };
 
 /**
- * Store uploaded file information in conversation metadata
+ * Store uploaded document in conversation metadata with text extraction and GCS upload
  */
-const storeFileInConversation = async (conversationId, userId, fileInfo) => {
+const storeDocumentInConversation = async (conversationId, userId, fileInfo) => {
   try {
+    logger.info('Storing document in conversation', {
+      conversationId,
+      filename: fileInfo.originalName,
+      size: fileInfo.size
+    });
+
+    // 1. Extract text from document
+    const extractedText = await fileProcessor.extractTextFromFile(fileInfo);
+
+    if (!extractedText || extractedText.trim().length === 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Unable to extract text from the document');
+    }
+
+    // 2. Upload to GCS and get public URL (with metadata)
+    const uploadResult = await fileProcessor.uploadToGCS(fileInfo.path, fileInfo.filename, {
+      userId: userId,
+      originalName: fileInfo.originalName,
+      documentType: 'review'
+    });
+
+    // 3. Create document data object
+    const documentData = {
+      id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      originalName: fileInfo.originalName,
+      filename: fileInfo.filename,
+      publicUrl: uploadResult.publicUrl || uploadResult.localPath,
+      gcsPath: uploadResult.gcsPath,
+      storageType: uploadResult.storageType,
+      extractedText: extractedText.length <= DOCUMENT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE
+        ? extractedText
+        : extractedText.substring(0, DOCUMENT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE),
+      textLength: extractedText.length,
+      textTruncated: extractedText.length > DOCUMENT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE,
+      size: fileInfo.size,
+      mimetype: fileInfo.mimetype,
+      uploadedAt: new Date(),
+      extractedAt: new Date()
+    };
+
+    // 4. Update conversation metadata
     const conversation = await conversationHelpers.getConversationById(conversationId, userId);
 
-    if (conversation) {
-      const uploadedFiles = conversation.metadata?.uploadedFiles || [];
-      uploadedFiles.push({
-        filename: fileInfo.filename,
-        originalName: fileInfo.originalName,
-        mimetype: fileInfo.mimetype,
-        size: fileInfo.size,
-        path: fileInfo.path,
-        uploadedAt: new Date(),
-      });
-
-      conversation.metadata = {
-        ...conversation.metadata,
-        uploadedFiles,
-        currentFile: fileInfo,
-      };
-
-      await conversation.save();
-      logger.info(`Stored file info in conversation ${conversationId}`);
+    if (!conversation.metadata.documents) {
+      conversation.metadata.documents = [];
     }
+
+    console.log('Existing Documents in Metadata:', conversation.metadata.documents, conversationId);
+
+    conversation.metadata.documents.push(documentData);
+    conversation.metadata.currentDocumentId = documentData.id;
+    console.log('Updated Documents in Metadata:', conversation.metadata);
+    await Conversation.updateOne({ conversationId }, {
+      $set: {
+        documents_metadata: {
+          documents: conversation.metadata.documents,
+          currentDocumentId: documentData.id
+        }
+      }
+    })
+
+    logger.info('Document stored successfully in conversation', {
+      documentId: documentData.id,
+      textLength: documentData.textLength,
+      textTruncated: documentData.textTruncated,
+      publicUrl: documentData.publicUrl,
+      storageType: documentData.storageType
+    });
+
+    // 5. Cleanup temporary local file
+    await fileProcessor.cleanupFile(fileInfo.path);
+
+    return documentData;
   } catch (error) {
-    logger.error('Error storing file in conversation:', error);
+    logger.error('Error storing document in conversation:', error);
+    // Try to cleanup file even if upload failed
+    try {
+      await fileProcessor.cleanupFile(fileInfo.path);
+    } catch (cleanupError) {
+      logger.warn('Failed to cleanup file after error:', cleanupError);
+    }
+    throw error;
   }
 };
 
 /**
- * Process file and perform review
+ * Process document and perform review using cached document data
  */
-const performDocumentReview = async (fileInfo, reviewParams, conversationHistory = []) => {
+const performDocumentReview = async (documentData, reviewParams, conversationHistory = []) => {
   try {
     logger.info('Starting document review', {
-      filename: fileInfo.originalName,
+      filename: documentData.originalName,
       reviewType: reviewParams.reviewType,
       reviewDepth: reviewParams.reviewDepth,
+      usingCachedText: true,
+      textLength: documentData.textLength
     });
 
-    // Extract text content from file
-    const documentContent = await fileProcessor.extractTextFromFile(fileInfo);
+    // Use cached extracted text
+    const documentContent = documentData.extractedText;
 
     if (!documentContent || documentContent.trim().length === 0) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Unable to extract text from the document');
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Document has no extractable text content');
+    }
+
+    // Log if text was truncated
+    if (documentData.textTruncated) {
+      logger.warn('Document text was truncated for caching', {
+        originalLength: documentData.textLength,
+        cachedLength: documentContent.length
+      });
     }
 
     // Determine review intent and system prompt
@@ -183,7 +251,7 @@ const performDocumentReview = async (fileInfo, reviewParams, conversationHistory
 ${reviewInstructions}
 
 Document Information:
-- Filename: ${fileInfo.originalName}
+- Filename: ${documentData.originalName}
 - Type: ${reviewParams.documentType || 'general'}
 - Review Depth: ${reviewParams.reviewDepth || 'standard'}
 
@@ -208,7 +276,7 @@ Please provide a detailed review based on the instructions above.`;
     const reviewText = response.text();
 
     logger.info('Document review completed', {
-      filename: fileInfo.originalName,
+      filename: documentData.originalName,
       reviewLength: reviewText.length,
     });
 
@@ -216,9 +284,11 @@ Please provide a detailed review based on the instructions above.`;
       success: true,
       review: reviewText,
       documentInfo: {
-        filename: fileInfo.originalName,
-        size: fileInfo.size,
-        contentLength: documentContent.length,
+        filename: documentData.originalName,
+        size: documentData.size,
+        contentLength: documentData.textLength,
+        publicUrl: documentData.publicUrl,
+        documentId: documentData.id
       },
       reviewParams,
     };
@@ -282,34 +352,57 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 
     // Get existing parameters from metadata
     const existingParams = conversation.metadata?.collectedParams || {};
-    const currentFile = conversation.metadata?.currentFile || null;
 
     // Add user message
     await addMessage(actualConversationId, userId, 'user', userMessage, {
       hasFile: !!fileInfo,
     }, isGuest);
 
-    // If a file is uploaded, store it
+    // If a file is uploaded, store it with text extraction and GCS upload
+    let newDocumentData = null;
     if (fileInfo) {
-      await storeFileInConversation(actualConversationId, userId, fileInfo);
+      newDocumentData = await storeDocumentInConversation(actualConversationId, userId, fileInfo);
+      logger.info('New document uploaded and stored', {
+        documentId: newDocumentData.id,
+        filename: newDocumentData.originalName
+      });
     }
 
-    // Determine if we have a file to work with
-    const workingFile = fileInfo || currentFile;
+    // Retrieve current document from metadata (not from fileInfo)
+    const currentDocumentId = conversation.documents_metadata?.currentDocumentId;
+    console.log('Current Document ID:', currentDocumentId);
+    console.log('Conversation Metadata:', conversation.documents_metadata);
+    let documentData = null;
 
-    // If no file is available, ask for one
-    if (!workingFile) {
-      const responseMessage = RESPONSE_MESSAGES.FILE_REQUIRED;
-      await addMessage(actualConversationId, userId, 'assistant', responseMessage, {}, isGuest);
+    if (newDocumentData) {
+      // Use newly uploaded document
+      documentData = newDocumentData;
+    } else if (currentDocumentId && conversation.documents_metadata?.documents) {
+      // Retrieve from cached documents
+      documentData = conversation.documents_metadata.documents.find(doc => doc.id === currentDocumentId);
 
-      return {
-        success: true,
-        conversationId: actualConversationId,
-        response: responseMessage,
-        needsFile: true,
-        needsMoreInfo: false,
-      };
+      if (documentData) {
+        logger.info('Using cached document from conversation', {
+          documentId: documentData.id,
+          filename: documentData.originalName,
+          cachedTextLength: documentData.extractedText?.length
+        });
+      }
     }
+
+    // // If no document is available, ask for one
+    // if (!documentData) {
+    //   const responseMessage = RESPONSE_MESSAGES.FILE_REQUIRED;
+    //   await addMessage(actualConversationId, userId, 'assistant', responseMessage, {}, isGuest);
+
+    //   return {
+    //     success: true,
+    //     conversationId: actualConversationId,
+    //     response: responseMessage,
+    //     needsFile: true,
+    //     needsMoreInfo: false,
+    //   };
+    // }
 
     // Analyze intent and extract parameters
     const analysis = await conversationAnalyzer.analyzeIntent(
@@ -323,20 +416,23 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
       confidence: analysis.confidence,
       parameters: analysis.parameters,
     });
-
+    const updatedConversation = await conversationHelpers.getConversationById(actualConversationId, userId);
+    console.log('Updated Conversation Metadata:', updatedConversation.metadata);
     // Merge parameters
     const updatedParams = {
+      ...updatedConversation.metadata,
       ...DEFAULT_PARAMS,
       ...existingParams,
       ...analysis.parameters
     };
+    console.log('Updated Params:', updatedParams);
 
     // Update metadata with collected parameters
     await updateConversationMetadata(actualConversationId, userId, updatedParams);
 
-    // Perform document review
+    // Perform document review using cached document data
     const reviewResult = await performDocumentReview(
-      workingFile,
+      documentData,  // Contains extractedText already
       updatedParams,
       recentHistory
     );

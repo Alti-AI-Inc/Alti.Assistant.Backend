@@ -1,6 +1,6 @@
 // Report generation AI configuration
 export const REPORT_CONFIG = {
-  MODEL: process.env.REPORT_AI_MODEL || 'gemini-2.5-flash',
+  MODEL: process.env.REPORT_AI_MODEL || 'gemini-3-flash-preview',
   TEMPERATURE: 0.7,
   MAX_TOKENS: 8192,
 };

@@ -11,10 +11,10 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Create a grounded Gemini model with native Google Search
- * @param {string} modelName - Model to use (default: gemini-3-pro-preview)
+ * @param {string} modelName - Model to use (default: gemini-3-flash-preview)
  * @returns {GenerativeModel} Configured model instance
  */
-export function createGroundedModel(modelName = "gemini-3-pro-preview") {
+export function createGroundedModel(modelName = "gemini-3-flash-preview") {
   return genAI.getGenerativeModel({
     model: modelName,
     tools: [
@@ -165,19 +165,6 @@ FOR "NEXT GAME" QUERIES:
 - ✅ GOOD: "November 7, 2025 at 7:00 PM against the New York Rangers"
 - MUST INCLUDE: date, time, AND opponent
 
-STRUCTURED JSON FORMAT:
-{
-    "responseMessage": {
-        "answer": "Direct answer with only essential details - no fluff or unnecessary context",
-        "reference": [{
-            "url": "source_url",
-            "domain": "domain.com"
-        }],
-        "citations": [],
-        "citationMetadata": null
-    }
-}
-
 SEARCH STRATEGY:
 - Use multiple specific search queries to find complete information
 - Search for current schedules, dates, times, and specific details
@@ -260,7 +247,216 @@ FOR INVESTMENT/FINANCIAL QUERIES:
 CRITICAL: Provide minimal, direct answers with only essential details. Remove all fluff and unnecessary context.`;
 
 /**
- * Execute a grounded search with Google's native tool
+ * Execute a grounded search with streaming support
+ * @param {string} query - User query
+ * @param {Array} conversationHistory - Previous messages for context
+ * @yields {Object} Chunks containing thinking or text parts
+ * @returns {AsyncGenerator} Stream of response chunks
+ */
+export async function* executeGroundedSearchStream(query, conversationHistory = []) {
+  console.log(`🔍 Executing streaming grounded search: "${query}"`);
+
+  const MAX_RETRIES = 3;
+  let attemptCount = 0;
+
+  while (attemptCount < MAX_RETRIES) {
+    attemptCount++;
+
+    try {
+      const startTime = Date.now();
+
+      // Token management: Check if history needs summarization
+      const TOKEN_LIMIT = 8000;
+      const QUERY_TOKEN_RESERVE = 2000;
+      const MAX_HISTORY_TOKENS = TOKEN_LIMIT - QUERY_TOKEN_RESERVE;
+
+      let processedHistory = conversationHistory;
+      const historyTokens = await estimateTokens(conversationHistory);
+
+      console.log(`📊 History tokens: ${historyTokens} / ${MAX_HISTORY_TOKENS}`);
+
+      if (historyTokens > MAX_HISTORY_TOKENS) {
+        console.log(`⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`);
+        processedHistory = await summarizeHistory(conversationHistory, ai);
+
+        const summaryTokens = estimateTokens(processedHistory);
+        if (summaryTokens > MAX_HISTORY_TOKENS) {
+          console.log(`⚠️ Summary still too large, truncating to last message only`);
+          processedHistory = conversationHistory.slice(-1);
+        }
+      }
+
+      // Build contents with proper format for Google GenAI
+      const contents = [
+        ...processedHistory.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        })),
+        {
+          role: 'user',
+          parts: [{ text: query }]
+        }
+      ];
+
+      const stream = await ai.models.generateContentStream({
+        model: "gemini-3-flash-preview",
+        contents: contents,
+        config: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          systemInstruction: systemPrompt,
+          tools: [{ googleSearch: {} }],
+          thinkingConfig: {
+            thinkingLevel: 'LOW'
+          }
+        },
+      });
+
+      let fullText = '';
+      let groundingMetadata = null;
+      let hasReceivedContent = false;
+
+      // Stream chunks as they arrive
+      for await (const chunk of stream) {
+        if (chunk.candidates && chunk.candidates[0]) {
+          const candidate = chunk.candidates[0];
+
+          // Process each part in the chunk
+          if (candidate.content?.parts) {
+            for (const part of candidate.content.parts) {
+              // Handle thinking parts
+              if (part.thought) {
+                hasReceivedContent = true;
+                console.log(`🧠 Streaming thinking chunk`);
+                yield {
+                  type: 'thinking',
+                  content: part.thought,
+                  timestamp: Date.now()
+                };
+              }
+
+              // Handle text parts
+              if (part.text) {
+                hasReceivedContent = true;
+                fullText += part.text;
+                console.log(`💬 Streaming text chunk: ${part.text.substring(0, 50)}...`);
+                yield {
+                  type: 'text',
+                  content: part.text,
+                  timestamp: Date.now()
+                };
+              }
+            }
+          }
+
+          // Capture grounding metadata (usually in final chunk)
+          if (candidate.groundingMetadata) {
+            groundingMetadata = candidate.groundingMetadata;
+          }
+        }
+      }
+
+      const endTime = Date.now();
+      console.log(`⏱️ Streaming search took ${endTime - startTime} ms`);
+
+      // Check if we got content
+      if (!hasReceivedContent || fullText.trim().length === 0) {
+        console.warn(`⚠️ Attempt ${attemptCount}/${MAX_RETRIES}: Stream completed but no content received. Retrying...`);
+
+        if (attemptCount < MAX_RETRIES) {
+          const waitTime = Math.pow(2, attemptCount) * 1000;
+          console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        } else {
+          console.error(`❌ All ${MAX_RETRIES} attempts failed with empty streams`);
+          throw new Error('Model stream completed but no content received after 3 attempts');
+        }
+      }
+
+      // Process grounding metadata into references
+      const references = [];
+      const usedUrls = new Set();
+
+      if (groundingMetadata?.groundingChunks) {
+        groundingMetadata.groundingChunks.forEach((chunk, index) => {
+          if (chunk.web?.uri && !usedUrls.has(chunk.web.uri)) {
+            usedUrls.add(chunk.web.uri);
+            console.log(`   Source ${index + 1}: ${chunk.web.uri}`);
+
+            try {
+              const url = new URL(chunk.web.uri);
+              references.push({
+                url: chunk.web.uri,
+                domain: chunk.web.title || url.hostname.replace('www.', ''),
+                title: chunk.web.title
+              });
+            } catch {
+              references.push({
+                url: chunk.web.uri,
+                domain: chunk.web.title || 'unknown',
+                title: chunk.web.title
+              });
+            }
+          }
+        });
+      }
+
+      const limitedReferences = references.slice(0, 5);
+
+      const citations = limitedReferences.map((ref, index) => ({
+        index: index + 1,
+        url: ref.url,
+        domain: ref.domain,
+        title: ref.title
+      }));
+
+      const citationMetadata = groundingMetadata ? {
+        searchQueries: groundingMetadata.webSearchQueries || [],
+        searchTimestamp: new Date().toISOString(),
+        model: "gemini-3-flash-preview",
+        groundingSupports: groundingMetadata.groundingSupports?.length || 0,
+        totalSources: groundingMetadata.groundingChunks?.length || 0
+      } : null;
+
+      console.log(`✅ Streaming grounded search completed on attempt ${attemptCount}`);
+      console.log(`📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`);
+      console.log(`📚 Found ${references.length} sources`);
+
+      if (groundingMetadata?.webSearchQueries) {
+        console.log(`🔎 Search queries used:`, groundingMetadata.webSearchQueries);
+      }
+
+      // Yield final metadata
+      yield {
+        type: 'metadata',
+        answer: fullText,
+        reference: limitedReferences,
+        citations: citations,
+        citationMetadata: citationMetadata,
+        timestamp: Date.now()
+      };
+
+      return; // Success, exit retry loop
+
+    } catch (error) {
+      console.error(`❌ Error in streaming grounded search (attempt ${attemptCount}/${MAX_RETRIES}):`, error);
+
+      if (attemptCount >= MAX_RETRIES) {
+        throw error;
+      }
+
+      const waitTime = Math.pow(2, attemptCount) * 1000;
+      console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+
+  throw new Error('Unexpected: Exhausted all retry attempts without returning or throwing');
+}
+
+/**
+ * Execute a grounded search with Google's native tool (non-streaming)
  * @param {string} query - User query
  * @param {Array} conversationHistory - Previous messages for context
  * @returns {Object} Formatted response with answer, references, and citations
@@ -315,7 +511,7 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
       console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
 
       const result = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
+        model: "gemini-3-flash-preview",
         contents: contents,
         config: {
           temperature: 0.2,
@@ -332,14 +528,34 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
       console.log(`⏱️ Search took ${endTime - startTime} ms`);
       const response = result.candidates[0];
 
-      // Check if finishReason is STOP but no content (empty response)
-      const hasContent = response.content?.parts &&
-        response.content.parts.length > 0 &&
-        response.content.parts.some(part => part.text && part.text.trim().length > 0);
+      // Check if finishReason is STOP but no content (empty or incomplete response)
+      let hasContent = false;
+
+      if (response.content?.parts && response.content.parts.length > 0) {
+        // Check if we have meaningful text content
+        const textParts = response.content.parts
+          .filter(part => part.text && !part.thought)
+          .map(part => part.text.trim());
+
+        const fullText = textParts.join('').trim();
+
+        // Consider response valid if:
+        // 1. Text has meaningful length (> 10 chars)
+        // 2. Text is not just incomplete JSON structure
+        // 3. Text doesn't look like a partial response
+        const isIncompleteJson = /^{\s*"?\s*$/.test(fullText) || fullText === '{' || fullText === '{\n';
+        const isMeaningful = fullText.length > 10 && !isIncompleteJson;
+
+        hasContent = isMeaningful;
+
+        if (!hasContent) {
+          console.warn(`⚠️ Detected incomplete/meaningless response: "${fullText.substring(0, 50)}..."`);
+        }
+      }
 
       if (response.finishReason === 'STOP' && !hasContent) {
-        console.warn(`⚠️ Attempt ${attemptCount}/${MAX_RETRIES}: Got STOP but no content. Retrying...`);
-        console.log('Empty response details:', JSON.stringify(result, null, 2));
+        console.warn(`⚠️ Attempt ${attemptCount}/${MAX_RETRIES}: Got STOP but no valid content. Retrying...`);
+        console.log('Empty/incomplete response details:', JSON.stringify(result, null, 2));
 
         if (attemptCount < MAX_RETRIES) {
           // Wait before retry (exponential backoff)
@@ -348,8 +564,8 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue; // Retry
         } else {
-          console.error(`❌ All ${MAX_RETRIES} attempts failed with empty responses`);
-          throw new Error('Model returned STOP but no content after 3 attempts');
+          console.error(`❌ All ${MAX_RETRIES} attempts failed with empty/incomplete responses`);
+          throw new Error('Model returned STOP but no valid content after 3 attempts');
         }
       }
 
@@ -465,7 +681,7 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
  * @param {string} modelName - Specific model to use
  * @returns {Object} Formatted response
  */
-export async function executeGroundedSearchWithModel(query, conversationHistory = [], modelName = "gemini-3-pro-preview") {
+export async function executeGroundedSearchWithModel(query, conversationHistory = [], modelName = "gemini-3-flash-preview") {
   const model = createGroundedModel(modelName);
 
   const chat = model.startChat({
@@ -547,5 +763,6 @@ export async function executeGroundedSearchWithModel(query, conversationHistory 
 export default {
   createGroundedModel,
   executeGroundedSearch,
+  executeGroundedSearchStream,
   executeGroundedSearchWithModel
 };

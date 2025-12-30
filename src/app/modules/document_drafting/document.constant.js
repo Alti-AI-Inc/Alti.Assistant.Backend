@@ -1,6 +1,6 @@
 // Document drafting configuration
 export const DOCUMENT_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3-flash-preview',
   MAX_CONTEXT_TOKENS: 50000,
   MAX_OUTPUT_TOKENS: 8192,
   TEMPERATURE: 0.7,

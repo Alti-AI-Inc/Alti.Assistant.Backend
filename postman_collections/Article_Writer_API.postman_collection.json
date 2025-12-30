@@ -1,0 +1,345 @@
+{
+  "info": {
+    "name": "Article Writer API",
+    "description": "AI-powered article writing service with file upload support",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Generate Article (Simple)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Write a blog post about the benefits of meditation for mental health\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Generate a simple article without authentication (guest mode)"
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Article with Parameters",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Write about the future of artificial intelligence in healthcare\",\n  \"articleType\": \"technical_article\",\n  \"tone\": \"professional\",\n  \"length\": \"long\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Generate an article with specific type, tone, and length"
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Article with File Upload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "message",
+              "value": "Expand this document into a comprehensive blog post",
+              "type": "text"
+            },
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "articleType",
+              "value": "blog_post",
+              "type": "text"
+            },
+            {
+              "key": "tone",
+              "value": "conversational",
+              "type": "text"
+            },
+            {
+              "key": "length",
+              "value": "medium",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Generate an article based on an uploaded file"
+      },
+      "response": []
+    },
+    {
+      "name": "Continue Conversation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Make the tone more casual and add real-world examples\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Continue an existing conversation to refine the article"
+      },
+      "response": []
+    },
+    {
+      "name": "Generate How-To Guide",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Write a step-by-step guide on how to set up a home office for remote work\",\n  \"articleType\": \"how_to_guide\",\n  \"tone\": \"informative\",\n  \"length\": \"medium\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Generate a how-to guide article"
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Listicle",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Write a listicle about 10 productivity tips for software developers\",\n  \"articleType\": \"listicle\",\n  \"tone\": \"casual\",\n  \"length\": \"medium\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Generate a list-based article"
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Opinion Piece",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Write an opinion piece about the impact of social media on society\",\n  \"articleType\": \"opinion_piece\",\n  \"tone\": \"persuasive\",\n  \"length\": \"long\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Generate an opinion/editorial piece"
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Short Article",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Write a brief article introducing quantum computing\",\n  \"articleType\": \"general\",\n  \"tone\": \"informative\",\n  \"length\": \"short\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Generate a short article (300-500 words)"
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Comprehensive Article",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Write a comprehensive guide to machine learning for beginners\",\n  \"articleType\": \"technical_article\",\n  \"tone\": \"informative\",\n  \"length\": \"comprehensive\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/assistant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "assistant"
+          ]
+        },
+        "description": "Generate a comprehensive article (2000+ words)"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Conversation History",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/article-writer/conversation/{{conversationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "article-writer",
+            "conversation",
+            "{{conversationId}}"
+          ]
+        },
+        "description": "Retrieve conversation history for a specific conversation"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "your_auth_token_here",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "article_1234567890_abc123",
+      "type": "string"
+    }
+  ]
+}

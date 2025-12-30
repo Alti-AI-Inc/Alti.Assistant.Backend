@@ -1,0 +1,1010 @@
+{
+  "info": {
+    "name": "Rewrite API",
+    "description": "API collection for the Rewrite module - AI-powered content rewriting with multiple styles and modes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "rewrite-api"
+  },
+  "item": [
+    {
+      "name": "Conversational Assistant",
+      "item": [
+        {
+          "name": "Rewrite Text - Formal Style",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Make this more formal\",\n  \"textContent\": \"Hey! Thanks for the update. I'll check it out soon and let you know what I think.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Rewrite text in a formal style using natural language"
+          },
+          "response": []
+        },
+        {
+          "name": "Rewrite Text - Professional Style",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Rewrite this in a professional tone\",\n  \"textContent\": \"I think we should probably meet up sometime next week to discuss the project. Let me know when you're free.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Rewrite text in a professional style"
+          },
+          "response": []
+        },
+        {
+          "name": "Simplify Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Simplify this for easy understanding\",\n  \"textContent\": \"The implementation of sophisticated algorithms facilitates the optimization of computational efficiency through the utilization of advanced data structures and methodological approaches.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Simplify complex text for better understanding"
+          },
+          "response": []
+        },
+        {
+          "name": "Expand Text with Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Expand this with more details\",\n  \"textContent\": \"The project was successful. We completed all tasks on time.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Expand brief text with additional details and context"
+          },
+          "response": []
+        },
+        {
+          "name": "Shorten Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Make this shorter and more concise\",\n  \"textContent\": \"I wanted to take a moment to reach out and thank you for all of your hard work and dedication on this project. Your contributions have been invaluable, and I really appreciate everything you've done to help us reach our goals and objectives.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Condense text to essential points"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Document and Rewrite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "message",
+                  "value": "Rewrite this document in a professional style",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Upload a document and rewrite it using natural language"
+          },
+          "response": []
+        },
+        {
+          "name": "Rewrite and Generate File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Rewrite this in formal style and create a file\",\n  \"textContent\": \"Hey team! Just wanted to share some updates on the project. We've made good progress this week and are on track to meet our deadlines. Keep up the great work!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Rewrite text and generate a downloadable file"
+          },
+          "response": []
+        },
+        {
+          "name": "Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Now make it more casual\",\n  \"conversationId\": \"{{conversation_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Continue an existing conversation with follow-up rewrite requests"
+          },
+          "response": []
+        },
+        {
+          "name": "Academic Style Rewrite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Rewrite this in academic style\",\n  \"textContent\": \"This study looks at how social media affects young people's mental health. We found that spending too much time on social media can lead to anxiety and depression.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Rewrite text in academic/scholarly style"
+          },
+          "response": []
+        },
+        {
+          "name": "Fix Grammar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Fix all grammar errors\",\n  \"textContent\": \"Me and my team has been working on this project since last week. We was hoping to finish it by tomorrow but their is still alot of work to do.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Fix grammar and spelling errors while improving readability"
+          },
+          "response": []
+        },
+        {
+          "name": "Paraphrase Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Paraphrase this completely\",\n  \"textContent\": \"Artificial intelligence has revolutionized the way we approach problem-solving in various industries, enabling automation and data-driven decision-making.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Completely paraphrase text using different words and structure"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Direct Rewrite (Programmatic)",
+      "item": [
+        {
+          "name": "Direct Rewrite - Formal Style",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"Hey! Thanks for your help. I really appreciate it.\",\n  \"intent\": \"formal\",\n  \"style\": \"formal\",\n  \"mode\": \"preserve_meaning\",\n  \"outputFormat\": \"text\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/rewrite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "rewrite"
+              ]
+            },
+            "description": "Direct rewrite with explicit parameters - formal style"
+          },
+          "response": []
+        },
+        {
+          "name": "Direct Rewrite - Simplify Mode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"The implementation of advanced algorithmic methodologies facilitates the optimization of computational processes.\",\n  \"intent\": \"simplify\",\n  \"style\": \"conversational\",\n  \"mode\": \"simplify\",\n  \"outputFormat\": \"text\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/rewrite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "rewrite"
+              ]
+            },
+            "description": "Direct rewrite with simplify mode"
+          },
+          "response": []
+        },
+        {
+          "name": "Direct Rewrite - Expand Mode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"The project was successful.\",\n  \"intent\": \"expand\",\n  \"style\": \"professional\",\n  \"mode\": \"expand\",\n  \"targetAudience\": \"business executives\",\n  \"outputFormat\": \"text\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/rewrite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "rewrite"
+              ]
+            },
+            "description": "Direct rewrite with expand mode and target audience"
+          },
+          "response": []
+        },
+        {
+          "name": "Direct Rewrite - Academic Style",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"Social media has changed how people communicate. It affects mental health in many ways.\",\n  \"intent\": \"academic\",\n  \"style\": \"academic\",\n  \"mode\": \"preserve_meaning\",\n  \"additionalInstructions\": \"Use scholarly terminology and include citations\",\n  \"outputFormat\": \"text\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/rewrite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "rewrite"
+              ]
+            },
+            "description": "Direct rewrite with academic style and additional instructions"
+          },
+          "response": []
+        },
+        {
+          "name": "Direct Rewrite - Generate File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"This is an important business communication that needs to be rewritten professionally.\",\n  \"intent\": \"professional\",\n  \"style\": \"professional\",\n  \"mode\": \"improve_clarity\",\n  \"outputFormat\": \"both\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/rewrite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "rewrite"
+              ]
+            },
+            "description": "Direct rewrite with file generation (outputFormat: both)"
+          },
+          "response": []
+        },
+        {
+          "name": "Direct Rewrite - Upload File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "intent",
+                  "value": "formal",
+                  "type": "text"
+                },
+                {
+                  "key": "style",
+                  "value": "professional",
+                  "type": "text"
+                },
+                {
+                  "key": "mode",
+                  "value": "preserve_meaning",
+                  "type": "text"
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "file",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/rewrite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "rewrite"
+              ]
+            },
+            "description": "Direct rewrite with file upload and explicit parameters"
+          },
+          "response": []
+        },
+        {
+          "name": "Direct Rewrite - Creative Style",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"The sun was setting over the mountains, creating beautiful colors in the sky.\",\n  \"intent\": \"creative\",\n  \"style\": \"creative\",\n  \"mode\": \"expand\",\n  \"additionalInstructions\": \"Make it vivid and engaging\",\n  \"outputFormat\": \"text\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/rewrite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "rewrite"
+              ]
+            },
+            "description": "Direct rewrite with creative style for engaging content"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Conversation Management",
+      "item": [
+        {
+          "name": "Get Conversation History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rewrite/conversation/{{conversation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "conversation",
+                "{{conversation_id}}"
+              ]
+            },
+            "description": "Retrieve the full history of a rewrite conversation"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Use Cases",
+      "item": [
+        {
+          "name": "Email Tone Adjustment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Make this email professional for my boss\",\n  \"textContent\": \"Hey boss! Just wanted to let you know I finished the report. Check it out when you get a chance!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Use case: Making casual email professional"
+          },
+          "response": []
+        },
+        {
+          "name": "Meeting Notes Expansion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Expand these meeting notes into a detailed summary\",\n  \"textContent\": \"Meeting: Project Status\\nDate: Today\\nTopics: Budget, timeline, resources\\nDecisions: Hire 2 developers, extend deadline by 2 weeks\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Use case: Expanding brief notes into detailed summary"
+          },
+          "response": []
+        },
+        {
+          "name": "Social Media Post - Casual to Professional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Make this LinkedIn-appropriate\",\n  \"textContent\": \"Just finished an awesome project! So excited to share what we've been working on. It's gonna be huge!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Use case: Converting casual social media post to professional"
+          },
+          "response": []
+        },
+        {
+          "name": "Technical Documentation Simplification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Simplify this technical content for non-technical users\",\n  \"textContent\": \"The API utilizes RESTful architecture principles to facilitate stateless client-server communication through standardized HTTP methods, enabling scalable and maintainable web service implementations.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Use case: Simplifying technical documentation for general audience"
+          },
+          "response": []
+        },
+        {
+          "name": "Cover Letter Enhancement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Improve this cover letter to be more professional and compelling\",\n  \"textContent\": \"I'm writing to apply for the software developer position. I have experience in programming and think I'd be good for this job. I've worked on some projects before.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/rewrite/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewrite",
+                "assistant"
+              ]
+            },
+            "description": "Use case: Enhancing cover letter for job application"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

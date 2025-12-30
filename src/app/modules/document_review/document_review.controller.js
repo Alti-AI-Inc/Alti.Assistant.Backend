@@ -12,13 +12,14 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  */
 export const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
+  console.log('Is Guest:', isGuest);
   let userId = isGuest
     ? documentReviewService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
-
+  console.log('User ID:', userId);
   const { message, conversationId } = req.body;
   userId = req.body.userId || userId;
-
+  console.log('Final User ID:', userId);
   // Handle file upload if present
   const fileInfo = req.file
     ? {

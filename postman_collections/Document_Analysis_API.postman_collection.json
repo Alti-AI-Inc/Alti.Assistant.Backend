@@ -1,0 +1,317 @@
+{
+  "info": {
+    "name": "Document Analysis API",
+    "description": "AI-powered document and text analysis using Gemini 3.5 Flash. Analyze text or files with intelligent insights.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Analyze Text Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"The company Q4 revenue increased by 45% to $2.3M. Customer satisfaction scores improved from 7.2 to 8.9. However, operational costs rose by 12%. The product launch was delayed by 2 weeks.\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Analyze plain text with general analysis type"
+      }
+    },
+    {
+      "name": "2. Sentiment Analysis",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"This product is absolutely amazing! I love how easy it is to use. The customer support team was incredibly helpful and responsive. My only complaint is the price, which seems a bit high.\",\n  \"analysisType\": \"sentiment\",\n  \"outputFormat\": \"structured\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Analyze sentiment and emotional tone"
+      }
+    },
+    {
+      "name": "3. Extract Key Points",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Our Q4 strategy focuses on three pillars: expanding into the Asian market with a target of 20% market share, launching our new AI-powered analytics platform by March 2025, and reducing operational costs by 15% through automation. We will invest $5M in R&D and hire 50 new engineers. The board has approved a budget increase of 30% for marketing initiatives.\",\n  \"analysisType\": \"key_points\",\n  \"outputFormat\": \"structured\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Extract main points and key information"
+      }
+    },
+    {
+      "name": "4. Generate Summary",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Artificial intelligence has revolutionized numerous industries over the past decade. From healthcare diagnostics to autonomous vehicles, AI systems are becoming increasingly sophisticated. Machine learning algorithms can now process vast amounts of data, identifying patterns that humans might miss. Natural language processing has improved dramatically, enabling more natural human-computer interactions. However, concerns about AI ethics, bias, and job displacement remain significant challenges that society must address.\",\n  \"analysisType\": \"summary\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Generate concise summary of content"
+      }
+    },
+    {
+      "name": "5. Entity Extraction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"John Smith, CEO of TechCorp Inc., announced a partnership with Microsoft Corporation on January 15, 2025, in San Francisco. The deal, valued at $50 million, will see TechCorp integrate Azure AI services into their platform. Sarah Johnson, CTO, stated that the implementation will begin in March 2025 at their Seattle headquarters.\",\n  \"analysisType\": \"entity_extraction\",\n  \"outputFormat\": \"structured\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Extract entities: people, places, organizations, dates, monetary values"
+      }
+    },
+    {
+      "name": "6. Topic Classification",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"This whitepaper explores the implementation of blockchain technology in supply chain management. We examine distributed ledger systems, smart contracts, and cryptographic security measures. The research demonstrates improved transparency, reduced fraud, and enhanced traceability across global logistics networks.\",\n  \"analysisType\": \"topic_classification\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Classify content topics and categories"
+      }
+    },
+    {
+      "name": "7. Upload and Analyze File",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{AUTH_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "/path/to/document.pdf"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Upload and analyze a document file (PDF, DOCX, TXT, etc.)"
+      }
+    },
+    {
+      "name": "8. File with Specific Instructions",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{AUTH_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "/path/to/contract.pdf"
+            },
+            {
+              "key": "message",
+              "value": "Extract all payment terms, deadlines, and parties involved in this contract",
+              "type": "text"
+            },
+            {
+              "key": "analysisType",
+              "value": "entity_extraction",
+              "type": "text"
+            },
+            {
+              "key": "outputFormat",
+              "value": "structured",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Analyze file with specific user instructions"
+      }
+    },
+    {
+      "name": "9. Continue Conversation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{AUTH_TOKEN}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"conversationId\": \"{{CONVERSATION_ID}}\",\n  \"message\": \"Can you provide more details about the financial implications?\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Continue existing conversation with follow-up question"
+      }
+    },
+    {
+      "name": "10. Get Conversation History",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{AUTH_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/conversation/{{CONVERSATION_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "conversation", "{{CONVERSATION_ID}}"]
+        },
+        "description": "Retrieve full conversation history"
+      }
+    },
+    {
+      "name": "11. Language Detection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Este es un texto de ejemplo escrito en español. El análisis debe detectar el idioma y proporcionar información sobre el estilo de escritura.\",\n  \"analysisType\": \"language_detection\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Detect language and analyze linguistic characteristics"
+      }
+    },
+    {
+      "name": "12. Guest User Analysis",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Analyze this business proposal for strengths and weaknesses.\",\n  \"userId\": \"guest_{{$randomUUID}}\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
+        },
+        "description": "Analysis request from guest (unauthenticated) user"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "AUTH_TOKEN",
+      "value": "your_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "CONVERSATION_ID",
+      "value": "analysis_1234567890_abc",
+      "type": "string"
+    }
+  ]
+}

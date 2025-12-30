@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { Schema } from 'mongoose';
 
 const MessageSchema = new mongoose.Schema(
   {
@@ -66,10 +67,28 @@ const ConversationSchema = new mongoose.Schema(
       userType: {
         type: String,
       },
+
       isGuest: {
         type: Boolean,
         default: false,
       }
+    },
+    documents_metadata: {
+      documents: {
+        type: Schema.Types.Mixed,
+      },
+      currentDocumentId: { type: String },
+    },
+    contractMetadata: {
+      generatedContract: { type: String },
+      contractType: { type: String },
+      contractParams: { type: Schema.Types.Mixed },
+      pendingQuestions: { type: Schema.Types.Mixed },
+      currentQuestionIndex: { type: Number, default: 0 },
+      allQuestionsAnswered: { type: Boolean, default: false },
+      contractGenerated: { type: Boolean, default: false },
+      uploadedFiles: [{ type: Schema.Types.Mixed }],
+      currentDocumentId: { type: String },
     },
     lastActivity: {
       type: Date,
@@ -96,6 +115,7 @@ const ConversationSchema = new mongoose.Schema(
   {
     timestamps: true, // Adds createdAt and updatedAt
     versionKey: false,
+    strict: false
   }
 );
 

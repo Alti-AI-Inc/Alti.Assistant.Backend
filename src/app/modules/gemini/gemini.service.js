@@ -13,7 +13,7 @@ import { GEMINI_RESPONSE_SERVICE_POST } from './gemini.constant.js';
 import { RedisClient } from '../../../shared/redis.js';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
-const model = client.getGenerativeModel({ model: 'gemini-3-pro-preview' });
+const model = client.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
 const sessionMemoryStore = {};
 
@@ -56,7 +56,7 @@ const geminiService = async (sessionId, prompt, userId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       reply,
       total_time: result?.usage?.total_time || 0,
     };
@@ -95,7 +95,7 @@ const geminiService = async (sessionId, prompt, userId) => {
 };
 
 const model1 = client.getGenerativeModel({
-  model: 'gemini-3-pro-preview',
+  model: 'gemini-3-flash-preview',
 });
 
 const sessionMemoryStore25Preview = {};
@@ -139,7 +139,7 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-3-pro-preview-preview',
+      model: 'gemini-3-flash-preview-preview',
       reply,
       total_time: result?.usage?.total_time || 0,
     };

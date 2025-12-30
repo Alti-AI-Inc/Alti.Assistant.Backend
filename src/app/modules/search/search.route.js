@@ -53,4 +53,14 @@ router.post(
   searchController.performNativeGroundingSearch
 );
 
+// STREAMING ENDPOINT - Real-time streaming with thinking process visible
+// This endpoint streams both thinking and text responses in real-time using SSE
+router.post(
+  '/stream',
+  optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  // createRateLimiter(30, 15), // 30 search requests per 15 minutes
+  validateRequest(SearchValidation.searchQuerySchema),
+  searchController.performStreamingSearch
+);
+
 export const searchRoute = router;

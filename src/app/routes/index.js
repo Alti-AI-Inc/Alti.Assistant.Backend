@@ -41,6 +41,14 @@ import reportRoutes from '../modules/report/report.route.js';
 import documentRoutes from '../modules/document_drafting/document.route.js';
 import { documentReviewRoutes } from '../modules/document_review/document_review.route.js';
 import translationRoutes from '../modules/translation/translation.route.js';
+import { rewriteRoutes } from '../modules/rewrite/rewrite.route.js';
+import { brainstormRoutes } from '../modules/brainstorm/brainstorm.route.js';
+import { planGeneratorRoutes } from '../modules/plan_generator/plan_generator.route.js';
+import { documentAnalysisRoutes } from '../modules/document_analysis/document_analysis.route.js';
+import { articleWriterRoutes } from '../modules/article_writer/article_writer.route.js';
+import { legalContractRoutes } from '../modules/legal_contract/legal_contract.route.js';
+import { legalContractReviewRoutes } from '../modules/legal_contract_review/legal_contract_review.route.js';
+import { creativeWritingRoutes } from '../modules/creative_writing/creative_writing.route.js';
 
 const router = express.Router();
 
@@ -210,8 +218,40 @@ const moduleRoutes = [
     route: documentReviewRoutes
   },
   {
+    path: '/brainstorm',
+    route: brainstormRoutes
+  },
+  {
     path: '/translation',
     route: translationRoutes
+  },
+  {
+    path: '/rewrite',
+    route: rewriteRoutes
+  },
+  {
+    path: '/plan-generator',
+    route: planGeneratorRoutes
+  },
+  {
+    path: '/document-analysis',
+    route: documentAnalysisRoutes
+  },
+  {
+    path: '/article-writer',
+    route: articleWriterRoutes
+  },
+  {
+    path: '/legal-contract',
+    route: legalContractRoutes
+  },
+  {
+    path: '/legal-contract-review',
+    route: legalContractReviewRoutes
+  },
+  {
+    path: '/creative-writing',
+    route: creativeWritingRoutes
   }
 ];
 

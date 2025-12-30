@@ -70,12 +70,12 @@ Analyze the request and determine the appropriate service based on the current r
  * @param {string} userRequest - The user's image generation request
  * @param {Object} options - Configuration options
  * @param {string} options.apiKey - Google API key
- * @param {string} options.modelName - Model name (default: "gemini-3-pro-preview")
+ * @param {string} options.modelName - Model name (default: "gemini-3-flash-preview")
  * @returns {Promise<Object>} Intent classification result
  */
 export async function classifyImageGenIntent(
   userRequest,
-  { apiKey, modelName = "gemini-3-pro-preview", memory = null } = {}
+  { apiKey, modelName = "gemini-3-flash-preview", memory = null } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,

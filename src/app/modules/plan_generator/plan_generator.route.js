@@ -1,0 +1,74 @@
+import express from 'express';
+import { ENUM_USER_ROLE } from '../../../shared/enum.js';
+import auth from '../../middlewares/auth/auth.js';
+import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
+import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import { planGeneratorController } from './plan_generator.controller.js';
+import { PlanGeneratorValidation } from './plan_generator.validation.js';
+import { uploadPlanFiles } from './middlewares/uploadPlanFiles.js';
+
+const router = express.Router();
+
+/**
+ * Conversational assistant endpoint - Main entry point
+ * Supports both authenticated and guest users
+ * Handles natural language requests intelligently with optional file upload
+ */
+router.post(
+  '/assistant',
+  optionalAuth(),
+  uploadPlanFiles.single('file'),
+  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  validateRequest(PlanGeneratorValidation.conversationalRequestSchema),
+  planGeneratorController.conversationalAssistant
+);
+
+/**
+ * Direct plan generation endpoint (non-conversational)
+ * For programmatic access with all parameters
+ */
+router.post(
+  '/generate',
+  optionalAuth(),
+  // createRateLimiter(20, 15), // 20 generations per 15 minutes
+  validateRequest(PlanGeneratorValidation.generatePlanSchema),
+  planGeneratorController.generatePlan
+);
+
+/**
+ * Brainstorm only endpoint
+ * Generate brainstorming insights without full plan
+ */
+router.post(
+  '/brainstorm',
+  optionalAuth(),
+  // createRateLimiter(30, 15), // 30 brainstorms per 15 minutes
+  validateRequest(PlanGeneratorValidation.brainstormSchema),
+  planGeneratorController.brainstormIdea
+);
+
+/**
+ * Export plan endpoint
+ * Export generated plan in various formats (PDF, DOCX, JSON, Markdown)
+ */
+router.post(
+  '/export',
+  optionalAuth(),
+  // createRateLimiter(20, 15), // 20 exports per 15 minutes
+  validateRequest(PlanGeneratorValidation.exportPlanSchema),
+  planGeneratorController.exportPlan
+);
+
+/**
+ * Get conversation history
+ * Retrieve full conversation and plan data
+ */
+router.get(
+  '/conversation/:conversationId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(PlanGeneratorValidation.getConversationHistorySchema),
+  planGeneratorController.getConversationHistory
+);
+
+export const planGeneratorRoutes = router;

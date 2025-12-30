@@ -1,0 +1,610 @@
+{
+  "info": {
+    "name": "Brainstorm API",
+    "_postman_id": "brainstorm-api-collection",
+    "description": "AI-powered brainstorming assistant API endpoints for exploring, developing, and refining ideas through structured creative thinking.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Conversational Assistant",
+      "item": [
+        {
+          "name": "Simple Brainstorm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Help me brainstorm ideas for a mobile app for pet owners\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "assistant"
+              ]
+            },
+            "description": "Start a new brainstorming session with a simple message. The AI will analyze your idea and generate creative concepts."
+          },
+          "response": []
+        },
+        {
+          "name": "Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"message\": \"Can you focus on the technical implementation?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "assistant"
+              ]
+            },
+            "description": "Continue an existing brainstorming conversation by providing the conversationId from the previous response."
+          },
+          "response": []
+        },
+        {
+          "name": "Business Strategy Brainstorm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"I want to create a SaaS platform for small businesses to manage their social media presence. Budget is $15k and timeline is 6 months.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "assistant"
+              ]
+            },
+            "description": "Brainstorm business strategy with context and constraints."
+          },
+          "response": []
+        },
+        {
+          "name": "Marketing Campaign Ideas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Brainstorm marketing campaign ideas for launching a new eco-friendly water bottle targeting Gen Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "assistant"
+              ]
+            },
+            "description": "Generate marketing campaign ideas."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Structured Brainstorm",
+      "item": [
+        {
+          "name": "Generate with SCAMPER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Traditional calendar application\",\n  \"technique\": \"scamper\",\n  \"depth\": \"standard\",\n  \"perspective\": [\"creative\", \"user_centric\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Apply SCAMPER technique to improve an existing idea."
+          },
+          "response": []
+        },
+        {
+          "name": "SWOT Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Online marketplace for sustainable fashion\",\n  \"brainstormType\": \"business_strategy\",\n  \"technique\": \"swot\",\n  \"perspective\": [\"business\", \"financial\", \"competitive\"],\n  \"depth\": \"deep\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Perform SWOT analysis on your idea."
+          },
+          "response": []
+        },
+        {
+          "name": "Product Idea - Deep Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"AI-powered personal finance assistant for millennials\",\n  \"brainstormType\": \"product_idea\",\n  \"technique\": \"free_association\",\n  \"perspective\": [\"business\", \"technical\", \"user_centric\"],\n  \"depth\": \"deep\",\n  \"focusAreas\": [\"innovation\", \"profitability\", \"user_value\"],\n  \"constraints\": {\n    \"budget\": \"$50,000 seed funding\",\n    \"timeline\": \"9 months to launch\",\n    \"technology\": [\"React Native\", \"Python\", \"TensorFlow\"],\n    \"targetAudience\": \"Millennials aged 25-35 with entry-level to mid-career jobs\"\n  },\n  \"additionalInstructions\": \"Focus on unique value propositions and competitive advantages\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Comprehensive product ideation with all parameters."
+          },
+          "response": []
+        },
+        {
+          "name": "Technical Solution - Mind Map",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Microservices architecture for e-commerce platform\",\n  \"brainstormType\": \"technical_solution\",\n  \"technique\": \"mind_map\",\n  \"perspective\": [\"technical\", \"operational\"],\n  \"depth\": \"comprehensive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Explore technical solutions using mind mapping."
+          },
+          "response": []
+        },
+        {
+          "name": "Problem Solving - Five Whys",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Our mobile app has low user retention rate (30% after 7 days)\",\n  \"brainstormType\": \"problem_solving\",\n  \"technique\": \"five_whys\",\n  \"perspective\": [\"user_centric\", \"technical\"],\n  \"depth\": \"deep\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Use Five Whys technique for root cause analysis."
+          },
+          "response": []
+        },
+        {
+          "name": "Quick Brainstorm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Team building activities for remote workers\",\n  \"depth\": \"quick\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Quick brainstorm for fast results (~10 ideas)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Conversation Management",
+      "item": [
+        {
+          "name": "Get Conversation History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/conversation/{{conversationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "conversation",
+                "{{conversationId}}"
+              ]
+            },
+            "description": "Retrieve the complete history of a brainstorming conversation."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Refinement",
+      "item": [
+        {
+          "name": "Refine Brainstorm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"message\": \"Can you refine the top 3 ideas to be more feasible and unique?\",\n  \"focusOn\": [\"Personalized Yoga Journey Tracker\", \"AI Pose Correction\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/refine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "refine"
+              ]
+            },
+            "description": "Refine and improve specific ideas from an existing brainstorm session."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Export",
+      "item": [
+        {
+          "name": "Export as Markdown",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"format\": \"markdown\",\n  \"includeHistory\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "export"
+              ]
+            },
+            "description": "Export brainstorm session as Markdown format."
+          },
+          "response": []
+        },
+        {
+          "name": "Export as JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"format\": \"json\",\n  \"includeHistory\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "export"
+              ]
+            },
+            "description": "Export brainstorm session as JSON format."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Advanced Examples",
+      "item": [
+        {
+          "name": "Six Thinking Hats Analysis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"AI chatbot for mental health support\",\n  \"technique\": \"six_thinking_hats\",\n  \"depth\": \"comprehensive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Analyze idea from six different thinking modes."
+          },
+          "response": []
+        },
+        {
+          "name": "Reverse Brainstorm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"How to improve customer service response time\",\n  \"technique\": \"reverse_brainstorm\",\n  \"brainstormType\": \"problem_solving\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Use reverse brainstorming to find unconventional solutions."
+          },
+          "response": []
+        },
+        {
+          "name": "Starbursting Questions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"Blockchain-based supply chain tracking system\",\n  \"technique\": \"starbursting\",\n  \"brainstormType\": \"technical_solution\",\n  \"depth\": \"deep\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Explore all aspects using Who, What, Where, When, Why, How questions."
+          },
+          "response": []
+        },
+        {
+          "name": "Creative Content Ideation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idea\": \"YouTube channel about sustainable living\",\n  \"brainstormType\": \"creative_content\",\n  \"perspective\": [\"creative\", \"user_centric\"],\n  \"focusAreas\": [\"uniqueness\", \"user_value\"],\n  \"depth\": \"standard\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "brainstorm",
+                "generate"
+              ]
+            },
+            "description": "Generate creative content ideas."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

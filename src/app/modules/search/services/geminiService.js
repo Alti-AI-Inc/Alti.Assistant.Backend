@@ -25,7 +25,7 @@ export const gemini2_5Flash = new ChatGoogleGenerativeAI({
 
 // Gemini 3 Pro Preview - Advanced capabilities for complex tasks
 export const gemini3ProPreview = new ChatGoogleGenerativeAI({
-  model: "gemini-3-pro-preview", // Gemini 3 with advanced capabilities
+  model: "gemini-3-flash-preview", // Gemini 3 with advanced capabilities
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,

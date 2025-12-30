@@ -4,6 +4,7 @@ export const DOCUMENT_REVIEW_CONFIG = {
   TEMPERATURE: 0.7,
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  MAX_CACHED_TEXT_SIZE: 1 * 1024 * 1024, // 1MB text cache limit
   SUPPORTED_MIME_TYPES: [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

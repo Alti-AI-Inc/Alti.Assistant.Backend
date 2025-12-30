@@ -1,0 +1,649 @@
+{
+  "info": {
+    "name": "Legal Contract Review API",
+    "description": "AI-powered legal contract review with intelligent conversation handling. Review contracts, identify risks, analyze clauses, and get actionable recommendations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "legal-contract-review-api-v1",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Conversational Reviews",
+      "item": [
+        {
+          "name": "1. Quick Review with File Upload",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Please review this contract and identify any red flags or concerning clauses",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "text",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "assistant"
+              ]
+            },
+            "description": "Upload a contract file and get a quick review with red flags identified"
+          }
+        },
+        {
+          "name": "2. Review Pasted Contract Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"EMPLOYMENT AGREEMENT\\n\\nThis Employment Agreement (\\\"Agreement\\\") is entered into as of January 1, 2025, between ABC Corporation (\\\"Employer\\\") and John Doe (\\\"Employee\\\").\\n\\n1. POSITION AND DUTIES\\nEmployee shall serve as Senior Software Engineer and shall perform all duties assigned by the Employer.\\n\\n2. COMPENSATION\\nEmployee shall receive an annual salary of $120,000, payable in accordance with Employer's standard payroll practices.\\n\\n3. TERMINATION\\nEither party may terminate this Agreement with 30 days written notice.\\n\\nPlease review this employment contract.\",\n  \"outputFormat\": \"markdown\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "assistant"
+              ]
+            },
+            "description": "Paste contract text directly for review"
+          }
+        },
+        {
+          "name": "3. Risk Assessment Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "I need a detailed risk assessment of this NDA. Focus on confidentiality obligations and potential liabilities.",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "markdown",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "assistant"
+              ]
+            },
+            "description": "Request a detailed risk assessment with specific focus areas"
+          }
+        },
+        {
+          "name": "4. Clause Analysis Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Analyze the termination and non-compete clauses in detail",
+                  "type": "text"
+                },
+                {
+                  "key": "conversationId",
+                  "value": "{{conversation_id}}",
+                  "type": "text",
+                  "description": "Continue previous conversation"
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "text",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "assistant"
+              ]
+            },
+            "description": "Continue conversation and request specific clause analysis"
+          }
+        },
+        {
+          "name": "5. Fairness Evaluation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Is this contract fair and balanced? Are there any one-sided clauses that favor the employer?",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "markdown",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "assistant"
+              ]
+            },
+            "description": "Evaluate contract fairness and balance"
+          }
+        },
+        {
+          "name": "6. Compliance Check",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Check if this employment contract complies with California labor laws",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "text",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "assistant"
+              ]
+            },
+            "description": "Review contract for legal compliance"
+          }
+        },
+        {
+          "name": "7. Amendment Suggestions",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "What amendments would you suggest to make this contract more favorable to the employee?",
+                  "type": "text"
+                },
+                {
+                  "key": "conversationId",
+                  "value": "{{conversation_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "markdown",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "assistant"
+              ]
+            },
+            "description": "Get amendment suggestions for negotiation"
+          }
+        },
+        {
+          "name": "8. Executive Summary",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Provide an executive summary of this contract suitable for non-legal professionals",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "markdown",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/assistant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "assistant"
+              ]
+            },
+            "description": "Generate executive summary of the contract"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Direct Review Endpoint",
+      "item": [
+        {
+          "name": "1. General Review - Standard Depth",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "reviewType",
+                  "value": "general_review",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "standard",
+                  "type": "text"
+                },
+                {
+                  "key": "contractType",
+                  "value": "employment",
+                  "type": "text"
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "text",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "review"
+              ]
+            },
+            "description": "Standard comprehensive contract review"
+          }
+        },
+        {
+          "name": "2. Risk Assessment - Detailed",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "reviewType",
+                  "value": "risk_assessment",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "detailed",
+                  "type": "text"
+                },
+                {
+                  "key": "contractType",
+                  "value": "nda",
+                  "type": "text"
+                },
+                {
+                  "key": "aspects[]",
+                  "value": "confidentiality",
+                  "type": "text"
+                },
+                {
+                  "key": "aspects[]",
+                  "value": "liabilities",
+                  "type": "text"
+                },
+                {
+                  "key": "aspects[]",
+                  "value": "termination",
+                  "type": "text"
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "markdown",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "review"
+              ]
+            },
+            "description": "Detailed risk assessment with specific aspects"
+          }
+        },
+        {
+          "name": "3. Clause Analysis - Comprehensive",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "reviewType",
+                  "value": "clause_analysis",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "comprehensive",
+                  "type": "text"
+                },
+                {
+                  "key": "contractType",
+                  "value": "service_agreement",
+                  "type": "text"
+                },
+                {
+                  "key": "aspects[]",
+                  "value": "obligations",
+                  "type": "text"
+                },
+                {
+                  "key": "aspects[]",
+                  "value": "payment_terms",
+                  "type": "text"
+                },
+                {
+                  "key": "aspects[]",
+                  "value": "intellectual_property",
+                  "type": "text"
+                },
+                {
+                  "key": "additionalInstructions",
+                  "value": "Pay special attention to IP ownership and transfer clauses",
+                  "type": "text"
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "markdown",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "review"
+              ]
+            },
+            "description": "Comprehensive clause-by-clause analysis"
+          }
+        },
+        {
+          "name": "4. Compliance Check - Standard",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "reviewType",
+                  "value": "compliance_check",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "standard",
+                  "type": "text"
+                },
+                {
+                  "key": "contractType",
+                  "value": "employment",
+                  "type": "text"
+                },
+                {
+                  "key": "additionalInstructions",
+                  "value": "Check compliance with US federal employment laws",
+                  "type": "text"
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "text",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "review"
+              ]
+            },
+            "description": "Compliance check with regulatory requirements"
+          }
+        },
+        {
+          "name": "5. Fairness Evaluation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "reviewType",
+                  "value": "fairness_evaluation",
+                  "type": "text"
+                },
+                {
+                  "key": "reviewDepth",
+                  "value": "detailed",
+                  "type": "text"
+                },
+                {
+                  "key": "contractType",
+                  "value": "lease",
+                  "type": "text"
+                },
+                {
+                  "key": "outputFormat",
+                  "value": "markdown",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "review"
+              ]
+            },
+            "description": "Evaluate fairness and balance of contract terms"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Conversation Management",
+      "item": [
+        {
+          "name": "Get Conversation History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/legal-contract-review/conversation/:conversationId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal-contract-review",
+                "conversation",
+                ":conversationId"
+              ],
+              "variable": [
+                {
+                  "key": "conversationId",
+                  "value": "{{conversation_id}}",
+                  "description": "The conversation ID to retrieve"
+                }
+              ]
+            },
+            "description": "Retrieve complete conversation history with all messages and metadata"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:80/api",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
