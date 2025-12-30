@@ -8,7 +8,7 @@ import { logger } from '../../../../shared/logger.js';
 export const generateTextFile = async (contractContent, fileName = 'contract.txt') => {
   try {
     const outputDir = path.join(process.cwd(), 'output', 'contracts');
-    
+
     // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true });
 
@@ -41,7 +41,7 @@ export const generateDocxFile = async (contractContent, fileName = 'contract.doc
     // TODO: Integrate with 'docx' library for proper DOCX generation
     const txtFileName = fileName.replace('.docx', '.txt');
     const result = await generateTextFile(contractContent, txtFileName);
-    
+
     logger.warn('DOCX generation not fully implemented. Generated TXT file instead.');
 
     return {
@@ -63,11 +63,11 @@ export const generateContractFile = async (contractContent, format = 'txt', meta
     const timestamp = Date.now();
     const contractType = metadata.contractType || 'contract';
     const userId = metadata.userId || 'anonymous';
-    
+
     const fileName = `${contractType}_${timestamp}.${format}`;
 
     let result;
-    
+
     if (format === 'docx' || format === 'doc') {
       result = await generateDocxFile(contractContent, fileName);
     } else {

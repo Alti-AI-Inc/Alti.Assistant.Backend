@@ -16,21 +16,21 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  */
 const buildAnalysisPrompt = (content, analysisType, outputFormat, userMessage) => {
   const systemPrompt = SYSTEM_PROMPTS[analysisType] || SYSTEM_PROMPTS[ANALYSIS_TYPES.GENERAL];
-  
+
   let prompt = `${systemPrompt}\n\n`;
-  
+
   if (userMessage) {
     prompt += `User Request: ${userMessage}\n\n`;
   }
-  
+
   prompt += `Content to Analyze:\n${content}\n\n`;
-  
+
   if (outputFormat === OUTPUT_FORMATS.STRUCTURED) {
     prompt += `Please provide your analysis in a well-structured format with clear headings and sections.`;
   } else {
     prompt += `Please provide your analysis in a clear, narrative format.`;
   }
-  
+
   return prompt;
 };
 
@@ -40,7 +40,7 @@ const buildAnalysisPrompt = (content, analysisType, outputFormat, userMessage) =
 const analyzeWithGemini = async (content, analysisType = ANALYSIS_TYPES.GENERAL, outputFormat = OUTPUT_FORMATS.NARRATIVE, userMessage = null) => {
   try {
     logger.info(`Starting analysis with type: ${analysisType}, format: ${outputFormat}`);
-    
+
     // Initialize the model
     const model = genAI.getGenerativeModel({
       model: DOCUMENT_ANALYSIS_CONFIG.MODEL,
@@ -62,7 +62,7 @@ const analyzeWithGemini = async (content, analysisType = ANALYSIS_TYPES.GENERAL,
     const analysisResult = response.text();
 
     logger.info(`Analysis completed successfully (${analysisResult.length} characters)`);
-    
+
     return {
       success: true,
       analysis: analysisResult,
@@ -91,14 +91,14 @@ const analyzeWithContext = async (
 ) => {
   try {
     logger.info('Starting analysis with conversation context');
-    
+
     const model = genAI.getGenerativeModel({
       model: DOCUMENT_ANALYSIS_CONFIG.MODEL,
     });
 
     // Build conversation history for context
     const messages = [];
-    
+
     // Add system prompt
     const systemPrompt = SYSTEM_PROMPTS[analysisType] || SYSTEM_PROMPTS[ANALYSIS_TYPES.GENERAL];
     messages.push({
@@ -127,7 +127,7 @@ const analyzeWithContext = async (
     if (userMessage) {
       currentPrompt += `User Request: ${userMessage}`;
     }
-    
+
     messages.push({
       role: 'user',
       parts: [{ text: currentPrompt }],
@@ -146,7 +146,7 @@ const analyzeWithContext = async (
     const analysisResult = result.response.text();
 
     logger.info(`Contextual analysis completed successfully`);
-    
+
     return {
       success: true,
       analysis: analysisResult,

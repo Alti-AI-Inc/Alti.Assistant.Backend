@@ -41,7 +41,7 @@ const generateConversationId = () => {
  */
 const analyzeUserMessage = (message, conversationHistory = []) => {
   const lowerMessage = message.toLowerCase();
-  
+
   // Detect intent
   let detectedIntent = WRITING_INTENTS.UNKNOWN;
   let maxMatches = 0;
@@ -195,8 +195,8 @@ const buildWritingPrompt = (userMessage, params, conversationHistory = []) => {
     constraints.push(`Tone: ${tone}`);
   }
 
-  const constraintsText = constraints.length > 0 
-    ? `\n\nConstraints:\n- ${constraints.join('\n- ')}\n` 
+  const constraintsText = constraints.length > 0
+    ? `\n\nConstraints:\n- ${constraints.join('\n- ')}\n`
     : '';
 
   // Handle different intents
@@ -310,10 +310,10 @@ const needsClarification = (analysis, conversationHistory) => {
   // If it's the first message and very vague
   if (conversationHistory.length === 0) {
     const vaguePhrases = ['write something', 'help me write', 'create', 'make something'];
-    const isVague = vaguePhrases.some(phrase => 
+    const isVague = vaguePhrases.some(phrase =>
       analysis.originalMessage.toLowerCase().includes(phrase)
     );
-    
+
     if (isVague && !analysis.writingType) {
       return true;
     }
@@ -368,7 +368,7 @@ const processConversationalRequest = async (userId, message, conversationId, isG
     // Check if we need clarification
     if (needsClarification(analysis, conversationHistory)) {
       const clarificationMessage = generateClarificationQuestion(analysis);
-      
+
       await addMessage(actualConversationId, userId, 'assistant', clarificationMessage, {
         needsClarification: true,
       });
@@ -444,7 +444,7 @@ const processConversationalRequest = async (userId, message, conversationId, isG
 const getConversationHistory = async (conversationId, userId) => {
   try {
     const conversation = await conversationHelpers.getConversationById(conversationId, userId);
-    
+
     return {
       conversationId: conversation.conversationId,
       title: conversation.title,

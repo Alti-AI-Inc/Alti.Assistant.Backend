@@ -195,7 +195,7 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
         originalName: fileInfo.originalname,
         uploadedAt: new Date(),
       });
-      
+
       await conversationService.updateConversationMetadata(conversation.conversationId, userId, {
         ...conversation.metadata,
         uploadedFiles,
@@ -232,7 +232,7 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
 const getConversationHistory = async (conversationId, userId) => {
   try {
     const conversation = await conversationHelpers.getConversationById(conversationId, userId);
-    
+
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }

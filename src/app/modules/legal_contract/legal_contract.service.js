@@ -863,10 +863,10 @@ const processConversationalRequest = async (
 
     // SCENARIO 3: Contract exists but user is making a general request (not answering question)
     // This handles modifications or clarifications
-    
+
     // User is making a modification request - process it with AI
     logger.info('Processing contract modification request', { userMessage });
-    
+
     const modifiedContract = await modifyContractWithRequest(
       currentContract,
       userMessage,

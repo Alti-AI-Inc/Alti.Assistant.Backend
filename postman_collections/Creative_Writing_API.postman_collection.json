@@ -24,8 +24,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Create a new poem using conversational AI assistant"
           },
@@ -47,8 +52,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Create a short mystery story with specific word count"
           },
@@ -70,8 +80,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Continue an existing story in a conversation"
           },
@@ -93,8 +108,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Create song lyrics with specific tone"
           },
@@ -116,8 +136,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Create a dramatic script scene"
           },
@@ -139,8 +164,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Create a traditional haiku poem"
           },
@@ -162,8 +192,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Create a flash fiction piece with exact word count"
           },
@@ -185,8 +220,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Revise existing writing with style changes"
           },
@@ -208,8 +248,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Expand existing writing with more details"
           },
@@ -231,8 +276,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Get creative writing ideas and inspiration"
           },
@@ -254,8 +304,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Create a creative personal essay"
           },
@@ -277,8 +332,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/creative-writing/assistant",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "assistant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "assistant"
+              ]
             },
             "description": "Create a free verse poem without traditional structure"
           },
@@ -302,8 +362,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/creative-writing/conversation/:conversationId",
-              "host": ["{{baseUrl}}"],
-              "path": ["creative-writing", "conversation", ":conversationId"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "creative-writing",
+                "conversation",
+                ":conversationId"
+              ],
               "variable": [
                 {
                   "key": "conversationId",
