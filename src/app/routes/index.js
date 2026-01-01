@@ -49,6 +49,7 @@ import { articleWriterRoutes } from '../modules/article_writer/article_writer.ro
 import { legalContractRoutes } from '../modules/legal_contract/legal_contract.route.js';
 import { legalContractReviewRoutes } from '../modules/legal_contract_review/legal_contract_review.route.js';
 import { creativeWritingRoutes } from '../modules/creative_writing/creative_writing.route.js';
+import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
 
 const router = express.Router();
 
@@ -252,6 +253,10 @@ const moduleRoutes = [
   {
     path: '/creative-writing',
     route: creativeWritingRoutes
+  },
+  {
+    path: '/knowledge',
+    route: knowledgeRoutes
   }
 ];
 

@@ -1,0 +1,696 @@
+{
+  "info": {
+    "name": "Knowledge API",
+    "description": "Unified Knowledge module for managing both user files (Knowledge Bank) and bot files (Knowledge Base) with RAG processing and conversational AI capabilities",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "knowledge-api-v1"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "File Management",
+      "item": [
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "ownerType",
+                  "value": "user",
+                  "description": "Owner type: 'user' or 'bot'",
+                  "type": "text"
+                },
+                {
+                  "key": "ownerId",
+                  "value": "{{user_id}}",
+                  "description": "ID of the owner (userId or botId)",
+                  "type": "text"
+                },
+                {
+                  "key": "folderId",
+                  "value": "",
+                  "description": "(Optional) Folder ID for user files",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "tags",
+                  "value": "contract,legal",
+                  "description": "(Optional) Comma-separated tags",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "processImmediately",
+                  "value": "true",
+                  "description": "(Optional) Process file immediately",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/upload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "upload"
+              ]
+            },
+            "description": "Upload a file to the knowledge system. Supports both user files (Knowledge Bank) and bot files (Knowledge Base).\n\n**Parameters:**\n- file (required): File to upload\n- ownerType (required): 'user' or 'bot'\n- ownerId (required): User ID or Bot ID\n- folderId (optional): Folder ID for user files only\n- tags (optional): Comma-separated tags\n- processImmediately (optional): true/false to process RAG immediately"
+          },
+          "response": []
+        },
+        {
+          "name": "Process File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/process/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "process",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{file_id}}",
+                  "description": "File ID to process"
+                }
+              ]
+            },
+            "description": "Trigger RAG processing for a previously uploaded file. Extracts text, generates embeddings, and stores in vector database."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/files?ownerType=user&ownerId={{user_id}}&folderId=&page=1&limit=20&sortBy=createdAt&order=desc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "files"
+              ],
+              "query": [
+                {
+                  "key": "ownerType",
+                  "value": "user",
+                  "description": "Filter by owner type: 'user' or 'bot'"
+                },
+                {
+                  "key": "ownerId",
+                  "value": "{{user_id}}",
+                  "description": "Filter by owner ID"
+                },
+                {
+                  "key": "folderId",
+                  "value": "",
+                  "description": "(Optional) Filter by folder ID",
+                  "disabled": true
+                },
+                {
+                  "key": "tags",
+                  "value": "",
+                  "description": "(Optional) Comma-separated tags to filter",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "(Optional) Search in file names",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "Sort field"
+                },
+                {
+                  "key": "order",
+                  "value": "desc",
+                  "description": "Sort order: asc/desc"
+                }
+              ]
+            },
+            "description": "Get list of files with filtering, pagination, and sorting options."
+          },
+          "response": []
+        },
+        {
+          "name": "Get File by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/files/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "files",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{file_id}}",
+                  "description": "File ID"
+                }
+              ]
+            },
+            "description": "Get detailed information about a specific file."
+          },
+          "response": []
+        },
+        {
+          "name": "Update File",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"folderId\": \"folder_id_here\",\n  \"tags\": [\"updated\", \"legal\", \"contract\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/files/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "files",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{file_id}}",
+                  "description": "File ID to update"
+                }
+              ]
+            },
+            "description": "Update file metadata such as folder location and tags."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/files/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "files",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{file_id}}",
+                  "description": "File ID to delete"
+                }
+              ]
+            },
+            "description": "Delete a file from the knowledge system. This will also remove it from the RAG vector database and GCS storage."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Storage Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/stats?ownerType=user&ownerId={{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "ownerType",
+                  "value": "user",
+                  "description": "Owner type: 'user' or 'bot'"
+                },
+                {
+                  "key": "ownerId",
+                  "value": "{{user_id}}",
+                  "description": "Owner ID"
+                }
+              ]
+            },
+            "description": "Get storage statistics for a user or bot including total files, total size, and processing status breakdown."
+          },
+          "response": []
+        }
+      ],
+      "description": "File upload, processing, and management endpoints"
+    },
+    {
+      "name": "Folder Management",
+      "item": [
+        {
+          "name": "Create Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Legal Contracts\",\n  \"userId\": \"{{user_id}}\",\n  \"parentFolderId\": null,\n  \"description\": \"Folder for all legal contract documents\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/folders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "folders"
+              ]
+            },
+            "description": "Create a new folder for organizing user files. Folders are only available for user files (not bot files).\n\n**Note:** parentFolderId can be used to create nested folders."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Folders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/folders?userId={{user_id}}&parentFolderId=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "folders"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{user_id}}",
+                  "description": "User ID (required)"
+                },
+                {
+                  "key": "parentFolderId",
+                  "value": "",
+                  "description": "(Optional) Parent folder ID to get subfolders. Omit for root folders."
+                }
+              ]
+            },
+            "description": "Get list of folders for a user. Can filter by parent folder to get folder hierarchy."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Folder by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/folders/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "folders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{folder_id}}",
+                  "description": "Folder ID"
+                }
+              ]
+            },
+            "description": "Get detailed information about a specific folder including statistics."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Folder",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Folder Name\",\n  \"description\": \"Updated description\",\n  \"parentFolderId\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/folders/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "folders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{folder_id}}",
+                  "description": "Folder ID to update"
+                }
+              ]
+            },
+            "description": "Update folder metadata such as name, description, or parent folder (move folder)."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Folder",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/folders/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "folders",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{folder_id}}",
+                  "description": "Folder ID to delete"
+                }
+              ]
+            },
+            "description": "Delete a folder. The folder must be empty (no files or subfolders)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Folder Contents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/folders/:id/contents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "folders",
+                ":id",
+                "contents"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{folder_id}}",
+                  "description": "Folder ID"
+                }
+              ]
+            },
+            "description": "Get all contents of a folder including both subfolders and files."
+          },
+          "response": []
+        }
+      ],
+      "description": "Folder creation and management endpoints (user files only)"
+    },
+    {
+      "name": "Conversational AI",
+      "item": [
+        {
+          "name": "Conversational Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What are the key points in my legal contracts regarding payment terms?\",\n  \"ownerType\": \"user\",\n  \"ownerId\": \"{{user_id}}\",\n  \"conversationId\": null,\n  \"folderId\": null,\n  \"temperature\": 0.2,\n  \"maxResults\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/chat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "chat"
+              ]
+            },
+            "description": "Have a conversational interaction with your knowledge files using RAG and conversation history.\n\n**Parameters:**\n- message (required): Your question or message\n- ownerType (required): 'user' or 'bot'\n- ownerId (required): User ID or Bot ID\n- conversationId (optional): Continue existing conversation\n- folderId (optional): Limit search to specific folder\n- temperature (optional): AI creativity (0.0-1.0, default 0.2)\n- maxResults (optional): Max documents to retrieve (default 5)\n\n**Features:**\n- Maintains conversation history\n- RAG-based responses from your files\n- Context-aware follow-up questions"
+          },
+          "response": []
+        },
+        {
+          "name": "Query Knowledge",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Find all mentions of confidentiality clauses\",\n  \"ownerType\": \"user\",\n  \"ownerId\": \"{{user_id}}\",\n  \"folderId\": null,\n  \"maxResults\": 10,\n  \"includeMetadata\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/query",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "query"
+              ]
+            },
+            "description": "Query your knowledge base with natural language questions. Returns AI-generated answer with source documents.\n\n**Parameters:**\n- query (required): Your question\n- ownerType (required): 'user' or 'bot'\n- ownerId (required): User ID or Bot ID\n- folderId (optional): Limit to specific folder\n- maxResults (optional): Max documents (default 5)\n- includeMetadata (optional): Include file metadata (default true)\n\n**Response includes:**\n- AI-generated answer\n- Relevant source documents\n- Similarity scores\n- File metadata"
+          },
+          "response": []
+        },
+        {
+          "name": "Semantic Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"intellectual property rights\",\n  \"ownerType\": \"user\",\n  \"ownerId\": \"{{user_id}}\",\n  \"folderId\": null,\n  \"maxResults\": 10,\n  \"minSimilarity\": 0.7\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "search"
+              ]
+            },
+            "description": "Perform semantic vector similarity search across your knowledge files.\n\n**Parameters:**\n- query (required): Search query\n- ownerType (required): 'user' or 'bot'\n- ownerId (required): User ID or Bot ID\n- folderId (optional): Limit to folder\n- maxResults (optional): Max results (default 10)\n- minSimilarity (optional): Minimum similarity score 0-1 (default 0.5)\n\n**Returns:**\n- Matching text chunks\n- Similarity scores\n- Source file information\n- Document positions"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Conversation History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/knowledge/conversations/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "knowledge",
+                "conversations",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{conversation_id}}",
+                  "description": "Conversation ID"
+                }
+              ]
+            },
+            "description": "Retrieve the full history of a conversation including all messages and AI responses."
+          },
+          "response": []
+        }
+      ],
+      "description": "Conversational AI and RAG query endpoints"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "your_bearer_token_here",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "user_id_here",
+      "type": "string"
+    },
+    {
+      "key": "file_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "folder_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
