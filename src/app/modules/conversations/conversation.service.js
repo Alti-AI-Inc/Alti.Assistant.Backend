@@ -146,6 +146,7 @@ const updateConversationTitle = async (conversationId, userId, title) => {
  */
 const updateConversationMetadata = async (conversationId, userId, metadata) => {
   try {
+    console.log(`Updating metadata for conversation ${conversationId} for user ${userId}:`, metadata);
     const conversation = await Conversation.findOneAndUpdate(
       { conversationId, userId },
       {

@@ -65,11 +65,16 @@ echo ""
 echo -e "${YELLOW}Configuring Docker authentication...${NC}"
 gcloud auth configure-docker "$REGION-docker.pkg.dev"
 
+# Set Docker client timeout for large uploads
+export DOCKER_CLIENT_TIMEOUT=600
+export COMPOSE_HTTP_TIMEOUT=600
+echo -e "${GREEN}Docker timeout set to 600 seconds${NC}"
+
 # Build the Docker image
 IMAGE_TAG="$REGION-docker.pkg.dev/$PROJECT_ID/alti-assistant-core-backend-repo/$SERVICE_NAME:latest"
 echo ""
-echo -e "${YELLOW}Building Docker image: $IMAGE_TAG${NC}"
-docker build -t "$IMAGE_TAG" .
+echo -e "${YELLOW}Building Docker image for linux/amd64 platform: $IMAGE_TAG${NC}"
+docker build --platform linux/amd64 -t "$IMAGE_TAG" .
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Docker build failed!${NC}"
@@ -78,13 +83,29 @@ fi
 
 # Push the image to Artifact Registry
 echo ""
-echo -e "${YELLOW}Pushing image to Artifact Registry...${NC}"
-docker push "$IMAGE_TAG"
+echo -e "${YELLOW}Pushing image to Artifact Registry (this may take several minutes)...${NC}"
 
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Docker push failed!${NC}"
-    exit 1
-fi
+# Retry logic for push
+MAX_RETRIES=3
+RETRY_COUNT=0
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    docker push "$IMAGE_TAG"
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Image pushed successfully!${NC}"
+        break
+    else
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo -e "${YELLOW}Push failed. Retrying ($RETRY_COUNT/$MAX_RETRIES)...${NC}"
+            sleep 5
+        else
+            echo -e "${RED}Docker push failed after $MAX_RETRIES attempts!${NC}"
+            exit 1
+        fi
+    fi
+done
 
 # Deploy to Cloud Run
 echo ""

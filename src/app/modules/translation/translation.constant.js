@@ -166,3 +166,11 @@ export const SUCCESS_MESSAGES = {
   TRANSLATION_COMPLETED: 'Translation completed successfully',
   LANGUAGE_DETECTED: 'Language detected successfully',
 };
+
+// File storage configuration
+export const STORAGE_CONFIG = {
+  UPLOAD_FOLDER: 'translations',
+  TEMP_FOLDER: 'uploads/translations',
+  GCS_BUCKET: process.env.GCS_BUCKET_NAME || '',
+  MAX_CACHED_TEXT_SIZE: 1 * 1024 * 1024, // 1MB text cache limit in documents_metadata
+};

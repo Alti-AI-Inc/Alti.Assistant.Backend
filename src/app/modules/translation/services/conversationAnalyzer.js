@@ -286,6 +286,105 @@ Analyze this message and respond with the JSON structure specified in the system
       confidence: 0.3,
     };
   }
+
+  /**
+   * Select appropriate file from multiple documents based on user's message
+   * Uses LLM to intelligently detect which file the user is referring to
+   */
+  async selectFileFromMultiple(userMessage, documents) {
+    try {
+      const documentList = documents.map((doc, index) => ({
+        index: index,
+        id: doc.id,
+        name: doc.originalName,
+        uploadedAt: doc.uploadedAt,
+        size: `${(doc.size / 1024).toFixed(2)} KB`,
+      }));
+
+      const prompt = `You are helping a user select which file they want to translate from multiple uploaded files.
+
+User's message: "${userMessage}"
+
+Available files:
+${documentList.map((doc, i) => `${i + 1}. "${doc.name}" (uploaded: ${new Date(doc.uploadedAt).toLocaleDateString()}, size: ${doc.size})`).join('\n')}
+
+Analyze the user's message and determine which file they are referring to. Look for:
+- Explicit file name mentions (e.g., "translate the contract", "the agreement document")
+- Positional references (e.g., "first file", "last document", "second one")
+- Implicit context (e.g., if they just say "translate to Spanish", use the most recent file)
+- File type mentions (e.g., "the PDF", "the Word document")
+
+Respond with ONLY a JSON object:
+{
+  "selectedIndex": <0-based index of the file>,
+  "confidence": <0.0 to 1.0>,
+  "reason": "<brief explanation of why this file was selected>"
+}`;
+
+      logger.info('Selecting file from multiple documents using LLM', {
+        userMessage,
+        totalDocuments: documents.length,
+      });
+
+      const response = await this.model.invoke(prompt);
+      let result;
+
+      try {
+        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          result = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
+
+        // Validate the response
+        if (
+          typeof result.selectedIndex === 'number' &&
+          result.selectedIndex >= 0 &&
+          result.selectedIndex < documents.length
+        ) {
+          logger.info('File selected by LLM', {
+            selectedIndex: result.selectedIndex,
+            selectedFile: documents[result.selectedIndex].originalName,
+            confidence: result.confidence,
+            reason: result.reason,
+          });
+
+          return {
+            selectedDocument: documents[result.selectedIndex],
+            selectedIndex: result.selectedIndex,
+            confidence: result.confidence,
+            reason: result.reason,
+          };
+        } else {
+          throw new Error('Invalid selectedIndex in response');
+        }
+      } catch (parseError) {
+        logger.warn('Failed to parse LLM file selection response, using most recent', {
+          error: parseError.message,
+          response: response.content,
+        });
+
+        // Fallback to most recent file
+        return {
+          selectedDocument: documents[documents.length - 1],
+          selectedIndex: documents.length - 1,
+          confidence: 0.5,
+          reason: 'Fallback to most recent file due to parsing error',
+        };
+      }
+    } catch (error) {
+      logger.error('Error in LLM file selection:', error);
+
+      // Fallback to most recent file
+      return {
+        selectedDocument: documents[documents.length - 1],
+        selectedIndex: documents.length - 1,
+        confidence: 0.3,
+        reason: 'Fallback to most recent file due to error',
+      };
+    }
+  }
 }
 
 export const conversationAnalyzer = new ConversationAnalyzer();

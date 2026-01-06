@@ -16,7 +16,7 @@ class PresentonAPIClient {
       baseURL: this.baseURL,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        // Authorization: `Bearer ${this.apiKey}`,
       },
       timeout: 120000, // 120 seconds timeout
     });

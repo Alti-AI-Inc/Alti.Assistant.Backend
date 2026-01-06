@@ -6,7 +6,8 @@ import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { translationAPIClient } from './services/translationAPIClient.js';
 import { conversationAnalyzer } from './services/conversationAnalyzer.js';
-import { fileExtractionService } from './services/fileExtractionService.js';
+import { fileProcessor } from './services/fileProcessor.js';
+import Conversation from '../conversations/conversation.model.js';
 import {
   TRANSLATION_INTENTS,
   REQUIRED_PARAMS,
@@ -15,6 +16,7 @@ import {
   CONVERSATION_MODEL,
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
+  STORAGE_CONFIG,
 } from './translation.constant.js';
 
 /**
@@ -98,6 +100,136 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
 };
 
 /**
+ * Store uploaded document in conversation with GCS upload
+ */
+const storeDocumentInConversation = async (conversationId, userId, fileInfo, extractedText, translationParams = {}) => {
+  try {
+    logger.info('Storing translation document in conversation', {
+      conversationId,
+      filename: fileInfo.originalname,
+      size: fileInfo.size
+    });
+
+    // Upload to GCS
+    const uploadResult = await fileProcessor.uploadToGCS(
+      fileInfo.path,
+      fileInfo.filename,
+      {
+        userId: userId,
+        originalName: fileInfo.originalname,
+        documentType: 'translation',
+        targetLanguage: translationParams.targetLanguage,
+        sourceLanguage: translationParams.sourceLanguage,
+      }
+    );
+
+    // Create document data object
+    const documentData = {
+      id: `trans_doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      originalName: fileInfo.originalname,
+      filename: fileInfo.filename,
+      publicUrl: uploadResult.publicUrl || uploadResult.localPath,
+      gcsPath: uploadResult.gcsPath,
+      storageType: uploadResult.storageType,
+      extractedText: extractedText.length <= STORAGE_CONFIG.MAX_CACHED_TEXT_SIZE
+        ? extractedText
+        : extractedText.substring(0, STORAGE_CONFIG.MAX_CACHED_TEXT_SIZE),
+      textLength: extractedText.length,
+      textTruncated: extractedText.length > STORAGE_CONFIG.MAX_CACHED_TEXT_SIZE,
+      size: fileInfo.size,
+      mimetype: fileInfo.mimetype,
+      uploadedAt: new Date(),
+      extractedAt: new Date(),
+      translationParams: {
+        targetLanguage: translationParams.targetLanguage,
+        sourceLanguage: translationParams.sourceLanguage,
+      }
+    };
+
+    // Update conversation documents_metadata
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const existingDocuments = conversation.documents_metadata?.documents || [];
+
+    await Conversation.updateOne(
+      { conversationId },
+      {
+        $set: {
+          'documents_metadata.documents': [...existingDocuments, documentData],
+          'documents_metadata.currentDocumentId': documentData.id,
+        }
+      }
+    );
+
+    logger.info('Document stored in conversation with GCS upload', {
+      documentId: documentData.id,
+      gcsPath: uploadResult.gcsPath,
+      storageType: uploadResult.storageType,
+    });
+
+    // Cleanup temporary local file
+    await fileProcessor.cleanupFile(fileInfo.path);
+
+    return documentData;
+  } catch (error) {
+    logger.error('Error storing document in conversation:', error);
+
+    // Try to cleanup file even if upload failed
+    try {
+      await fileProcessor.cleanupFile(fileInfo.path);
+    } catch (cleanupError) {
+      logger.warn('Failed to cleanup file after error:', cleanupError);
+    }
+
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to store document in conversation');
+  }
+};
+
+/**
+ * Fetch file from GCS when needed (for re-translation or reference)
+ */
+const fetchDocumentFromGCS = async (conversationId, userId, documentId) => {
+  try {
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const documents = conversation.documents_metadata?.documents || [];
+
+    const document = documents.find(doc => doc.id === documentId);
+
+    if (!document) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Document not found in conversation');
+    }
+
+    // If stored locally, return the local path
+    if (document.storageType === 'local') {
+      return {
+        success: true,
+        localPath: document.publicUrl,
+        document,
+      };
+    }
+
+    // Download from GCS to temporary location
+    const tempPath = `uploads/translations/temp_${Date.now()}_${document.filename}`;
+    const downloadResult = await fileProcessor.downloadFromGCS(document.gcsPath, tempPath);
+
+    logger.info('Document fetched from GCS', {
+      documentId,
+      gcsPath: document.gcsPath,
+      tempPath,
+    });
+
+    return {
+      success: true,
+      localPath: downloadResult.localPath,
+      document,
+      isTemporary: true, // Indicates this file should be cleaned up after use
+    };
+  } catch (error) {
+    logger.error('Error fetching document from GCS:', error);
+    throw error;
+  }
+};
+
+/**
  * Process conversational translation request
  */
 const processConversationalRequest = async (
@@ -172,6 +304,7 @@ const processConversationalRequest = async (
     const updatedParams = {
       ...existingParams,
       ...analysis.extractedParams,
+      userMessage, // Include original message for intelligent file selection
     };
 
     // Update conversation metadata
@@ -311,20 +444,127 @@ const handleTranslateText = async (conversationId, userId, params, analysis) => 
  * Handle translate file intent
  */
 const handleTranslateFile = async (conversationId, userId, uploadedFile, params, analysis) => {
+  let tempFilePath = null;
+  let selectionReason = ''; // Define at function scope
+
   try {
-    // Check if file is present
+    let fileToProcess = uploadedFile;
+    let extractedText = null;
+    let fileMetadata = null;
+    let isExistingFile = false;
+
+    // If no new file uploaded, check for existing files in conversation
     if (!uploadedFile) {
-      return {
-        conversationId,
-        success: false,
-        needsMoreInfo: true,
-        message: 'Please upload a file to translate.',
-        collectedParams: params,
+      logger.info('No new file uploaded, checking conversation for existing files');
+
+      const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+      const existingDocuments = conversation.documents_metadata?.documents || [];
+
+      if (existingDocuments.length === 0) {
+        return {
+          conversationId,
+          success: false,
+          needsMoreInfo: true,
+          message: 'Please upload a file to translate.',
+          collectedParams: params,
+        };
+      }
+
+      // Determine which file to use
+      let selectedDocument;
+
+      if (existingDocuments.length === 1) {
+        // Only one file - use it
+        selectedDocument = existingDocuments[0];
+        selectionReason = 'Only one file available';
+        logger.info('Using the only file in conversation', { documentId: selectedDocument.id });
+      } else {
+        // Multiple files - use LLM to intelligently select the right file
+        logger.info('Multiple files found, using LLM to select appropriate file', {
+          totalFiles: existingDocuments.length
+        });
+
+        const userMessage = params.userMessage || 'translate to ' + params.targetLanguage;
+        const selection = await conversationAnalyzer.selectFileFromMultiple(
+          userMessage,
+          existingDocuments
+        );
+
+        selectedDocument = selection.selectedDocument;
+        selectionReason = selection.reason;
+
+        logger.info('LLM selected file', {
+          documentId: selectedDocument.id,
+          fileName: selectedDocument.originalName,
+          confidence: selection.confidence,
+          reason: selection.reason,
+        });
+      }
+
+      // Check if we have cached text
+      if (selectedDocument.extractedText && !selectedDocument.textTruncated) {
+        extractedText = selectedDocument.extractedText;
+        fileMetadata = {
+          fileName: selectedDocument.originalName,
+          fileExtension: selectedDocument.originalName.split('.').pop(),
+          fileSize: selectedDocument.size,
+          characterCount: selectedDocument.textLength,
+          wordCount: extractedText.split(/\s+/).filter(Boolean).length,
+        };
+        logger.info('Using cached extracted text from document metadata');
+      } else {
+        // Need to fetch file from GCS and extract text
+        logger.info('Fetching file from GCS for text extraction', { gcsPath: selectedDocument.gcsPath });
+
+        const fetchResult = await fetchDocumentFromGCS(conversationId, userId, selectedDocument.id);
+        tempFilePath = fetchResult.localPath;
+
+        // Extract text from downloaded file
+        const extractedTextFromFile = await fileProcessor.extractTextFromFile({
+          path: fetchResult.localPath,
+          originalname: selectedDocument.originalName
+        });
+
+        extractedText = extractedTextFromFile;
+        fileMetadata = {
+          fileName: selectedDocument.originalName,
+          characterCount: extractedTextFromFile.length,
+          fileSize: selectedDocument.size
+        };
+
+        logger.info('Text extracted from fetched file', {
+          characterCount: fileMetadata.characterCount,
+        });
+      }
+
+      isExistingFile = true;
+      fileMetadata.documentId = selectedDocument.id;
+    } else {
+      // New file uploaded - extract text from it
+      extractedText = await fileProcessor.extractTextFromFile({
+        path: uploadedFile.path,
+        originalname: uploadedFile.originalname
+      });
+
+      fileMetadata = {
+        fileName: uploadedFile.originalname,
+        characterCount: extractedText.length,
+        fileSize: uploadedFile.size
       };
+
+      logger.info('File text extracted from new upload', {
+        fileName: uploadedFile.originalname,
+        characterCount: extractedText.length,
+      });
     }
 
     // Check if target language is specified
     if (!params.targetLanguage) {
+      // Clean up temp file if exists
+      if (tempFilePath) {
+        await fileProcessor.cleanupFile(tempFilePath);
+      }
+
       return {
         conversationId,
         success: false,
@@ -334,34 +574,61 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
       };
     }
 
-    // Extract text from file
-    const extraction = await fileExtractionService.extractTextFromFile(
-      uploadedFile.path,
-      uploadedFile.originalname
-    );
-
-    logger.info('File text extracted', {
-      fileName: uploadedFile.originalname,
-      characterCount: extraction.metadata.characterCount,
-    });
-
     // Translate extracted text
     const translationResult = await translationAPIClient.translateText(
-      extraction.text,
+      extractedText,
       params.targetLanguage,
       params.sourceLanguage || 'auto'
     );
 
-    // Clean up uploaded file
-    await fileExtractionService.cleanupFile(uploadedFile.path);
+    let storedDocument = null;
+
+    // Only store new document if a new file was uploaded
+    if (uploadedFile && !isExistingFile) {
+      storedDocument = await storeDocumentInConversation(
+        conversationId,
+        userId,
+        {
+          originalname: uploadedFile.originalname,
+          filename: uploadedFile.filename,
+          path: uploadedFile.path,
+          size: uploadedFile.size,
+          mimetype: uploadedFile.mimetype,
+        },
+        extractedText,
+        {
+          targetLanguage: params.targetLanguage,
+          sourceLanguage: translationResult.sourceLanguage,
+        }
+      );
+
+      // Clean up local temporary file after GCS upload
+      await fileProcessor.cleanupFile(uploadedFile.path);
+    } else if (tempFilePath) {
+      // Clean up temporary downloaded file
+      await fileProcessor.cleanupFile(tempFilePath);
+    }
+
+    // Build success message
+    let successMessage = `File "${fileMetadata.fileName}" translated successfully from ${translationResult.sourceLanguageName} to ${translationResult.targetLanguageName}.`;
+
+    // Add selection reason if multiple files were available
+    if (isExistingFile && selectionReason) {
+      successMessage += ` (${selectionReason})`;
+    }
 
     return {
       conversationId,
       success: true,
       needsMoreInfo: false,
-      message: `File "${extraction.metadata.fileName}" translated successfully from ${translationResult.sourceLanguageName} to ${translationResult.targetLanguageName}.`,
+      message: successMessage,
       translation: translationResult,
-      fileMetadata: extraction.metadata,
+      fileMetadata: fileMetadata,
+      documentId: storedDocument?.id || fileMetadata.documentId,
+      gcsPath: storedDocument?.gcsPath,
+      storageType: storedDocument?.storageType,
+      isExistingFile,
+      selectionReason: isExistingFile ? selectionReason : undefined,
       collectedParams: params,
     };
   } catch (error) {
@@ -369,7 +636,10 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
 
     // Clean up file on error
     if (uploadedFile?.path) {
-      await fileExtractionService.cleanupFile(uploadedFile.path);
+      await fileProcessor.cleanupFile(uploadedFile.path);
+    }
+    if (tempFilePath) {
+      await fileProcessor.cleanupFile(tempFilePath);
     }
 
     return {
@@ -512,4 +782,6 @@ export const translationService = {
   processConversationalRequest,
   translateTextDirect,
   detectLanguageDirect,
+  storeDocumentInConversation,
+  fetchDocumentFromGCS,
 };

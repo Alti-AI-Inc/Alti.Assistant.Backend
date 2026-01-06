@@ -5,6 +5,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { presentationService } from './presentation.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import { conversationService } from '../conversations/conversation.service.js';
 
 /**
  * Conversational presentation assistant endpoint
@@ -182,19 +183,100 @@ export const generatePresentation = catchAsync(async (req, res) => {
  * Check async task status
  */
 export const checkTaskStatus = catchAsync(async (req, res) => {
-  const { taskId } = req.params;
+  let { taskId } = req.params;
+  const { conversationId } = req.query;
+  const isGuest = req.isGuest || !req.user;
+  let userId = isGuest
+    ? presentationService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
+  userId = req.query.userId || userId;
+  // If conversationId is provided, fetch taskId from conversation metadata
+  if (conversationId && !taskId) {
+    try {
+      const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+      taskId = conversation.metadata?.presentation_metadata?.taskId;
+
+      if (!taskId) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'No task ID found in conversation metadata',
+        });
+      }
+
+      logger.info(`Retrieved taskId ${taskId} from conversation ${conversationId}`);
+    } catch (error) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Conversation not found',
+      });
+    }
+  }
 
   logger.info(`Checking status for task ${taskId}`);
 
   try {
     const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const { uploadPresentationToGCS } = await import('./services/gcsUploadService.js');
+    const path = await import('path');
+
     const result = await presentonAPIClient.checkTaskStatus(taskId);
+
+    // If task is completed and has a presentation, upload to GCS
+    let publicUrl = null;
+    let uploadResult = null;
+
+    if (result.status === 'completed' && result.data?.path) {
+      try {
+        const fileName = path.default.basename(result.data.path) || `presentation_${result.data.presentation_id}.pptx`;
+        const uploadConversationId = conversationId || `task_${taskId}`;
+
+        uploadResult = await uploadPresentationToGCS(
+          result.data.path,
+          fileName,
+          userId,
+          uploadConversationId
+        );
+
+        publicUrl = uploadResult.publicUrl;
+        logger.info(`Task ${taskId} presentation uploaded to GCS: ${publicUrl}`);
+
+        // Update conversation metadata with completion info if conversationId provided
+        if (conversationId) {
+          try {
+            await conversationService.updateConversationMetadata(conversationId, userId, {
+              presentation_metadata: {
+                taskId,
+                status: 'completed',
+                presentationId: result.data.presentation_id,
+                publicUrl,
+                downloadPath: result.data.path,
+                editPath: result.data.edit_path,
+                completedAt: new Date().toISOString(),
+                uploadResult,
+              },
+            });
+            logger.info(`Updated conversation ${conversationId} with completion metadata`);
+          } catch (metadataError) {
+            logger.error('Error updating conversation metadata:', metadataError);
+          }
+        }
+      } catch (uploadError) {
+        logger.error('Error uploading task presentation to GCS:', uploadError);
+        // Continue even if upload fails
+      }
+    }
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Task status retrieved successfully',
-      data: result,
+      data: {
+        ...result,
+        publicUrl,
+        uploadResult,
+      },
     });
   } catch (error) {
     logger.error('Error checking task status:', error);

@@ -1,0 +1,48 @@
+services:
+  alti-backend:
+    image: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest
+    container_name: alti-backend
+    restart: unless-stopped
+    ports:
+      - "5100:5100"
+    env_file:
+      - .env
+    environment:
+      # Override Presenton URL to use internal container network
+      - PRESENTON_API_URL=http://presenton:80
+    volumes:
+      # Shared volume with Presenton - Presenton's /app_data mounted to backend's /app/presenton_files
+      - presenton_data:/app/presenton_files
+      # Your application logs and uploads
+      - ./logs:/app/ason-core-service/logs
+      - ./uploads:/app/ason-core-service/uploads
+    networks:
+      - app-network
+    depends_on:
+      - presenton
+
+  presenton:
+    image: ghcr.io/presenton/presenton:latest
+    container_name: presenton
+    restart: unless-stopped
+    environment:
+      - LLM=google
+      - GOOGLE_API_KEY=AIzaSyATOQRmcM0DMO83Z9jEuuC4DIgna60TSJQ
+      - IMAGE_PROVIDER=gemini_flash
+      - CAN_CHANGE_KEYS=false
+    volumes:
+      # Presenton stores files in /app_data
+      - presenton_data:/app_data
+    networks:
+      - app-network
+    # Optionally expose Presenton port for debugging
+    ports:
+      - "5200:80"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  presenton_data:
+    driver: local

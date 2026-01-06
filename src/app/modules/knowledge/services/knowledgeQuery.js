@@ -1,13 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 import httpStatus from 'http-status';
 import { RAGSystem } from 'rag-system-pgvector';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatAnthropic } from '@langchain/anthropic';
 import {
   KNOWLEDGE_CONFIG,
   RAG_DATABASE_CONFIG,
   OWNER_TYPES,
   QUERY_MODES,
+  COMPLEXITY_INDICATORS,
 } from '../knowledge.constant.js';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
@@ -19,19 +22,30 @@ import KnowledgeFile from '../knowledge.model.js';
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
+// Initialize Anthropic Claude
+const anthropic = new Anthropic({
+  apiKey: config.anthropic.anthropic_api_key,
+});
+
 // Initialize embeddings and LLM for RAG
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: config.gemini_secret_key,
   model: KNOWLEDGE_CONFIG.EMBEDDING_MODEL,
 });
 
-const llm = new ChatGoogleGenerativeAI({
+const geminiLLM = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
   model: KNOWLEDGE_CONFIG.MODEL,
   temperature: KNOWLEDGE_CONFIG.TEMPERATURE,
 });
 
-// Initialize RAG System
+const claudeLLM = new ChatAnthropic({
+  apiKey: config.anthropic.anthropic_api_key,
+  model: KNOWLEDGE_CONFIG.COMPLEX_MODEL,
+  temperature: KNOWLEDGE_CONFIG.TEMPERATURE,
+});
+
+// Initialize RAG System with Gemini (default)
 const ragConfig = {
   database: {
     host: RAG_DATABASE_CONFIG.HOST,
@@ -41,11 +55,60 @@ const ragConfig = {
     password: RAG_DATABASE_CONFIG.PASSWORD,
   },
   embeddings: embeddings,
-  llm: llm,
+  llm: geminiLLM,
   embeddingDimensions: 768,
 };
 
 const rag = new RAGSystem(ragConfig);
+
+/**
+ * Detect query complexity based on keywords and context
+ */
+const detectQueryComplexity = (message, conversationHistory = '') => {
+  const fullText = `${conversationHistory} ${message}`.toLowerCase();
+
+  let complexityScore = 0;
+  let indicators = [];
+
+  // Check for high complexity keywords
+  COMPLEXITY_INDICATORS.HIGH_COMPLEXITY_KEYWORDS.forEach(keyword => {
+    if (fullText.includes(keyword.toLowerCase())) {
+      complexityScore += 0.15;
+      indicators.push(keyword);
+    }
+  });
+
+  // Check for medium complexity keywords
+  COMPLEXITY_INDICATORS.MEDIUM_COMPLEXITY_KEYWORDS.forEach(keyword => {
+    if (fullText.includes(keyword.toLowerCase())) {
+      complexityScore += 0.08;
+      indicators.push(keyword);
+    }
+  });
+
+  // Additional complexity factors
+  const wordCount = message.split(' ').length;
+  if (wordCount > 30) complexityScore += 0.1; // Long question
+  if (message.includes('?') && message.split('?').length > 2) complexityScore += 0.1; // Multiple questions
+  if (/\d+/.test(message)) complexityScore += 0.05; // Contains numbers (might be asking for calculations)
+
+  // Conversation depth increases complexity
+  if (conversationHistory) {
+    const historyLines = conversationHistory.split('\n').length;
+    if (historyLines > 10) complexityScore += 0.1;
+    else if (historyLines > 5) complexityScore += 0.05;
+  }
+
+  const isComplex = complexityScore >= KNOWLEDGE_CONFIG.COMPLEXITY_THRESHOLD;
+
+  logger.info(`[Knowledge] Complexity detection: score=${complexityScore.toFixed(2)}, isComplex=${isComplex}, indicators=[${indicators.slice(0, 3).join(', ')}]`);
+
+  return {
+    isComplex,
+    score: complexityScore,
+    indicators: indicators.slice(0, 5),
+  };
+};
 
 /**
  * Generate unique conversation ID
@@ -215,6 +278,13 @@ export const conversationalQuery = async (
     // Format history for context
     const conversationHistory = formatConversationHistory(messages); // Last 10 messages
 
+    // Detect query complexity
+    const complexityAnalysis = detectQueryComplexity(message, conversationHistory);
+    const selectedModel = complexityAnalysis.isComplex ? KNOWLEDGE_CONFIG.COMPLEX_MODEL : KNOWLEDGE_CONFIG.MODEL;
+
+    logger.info(`[Knowledge] 🤖 Model Selection - Complexity: ${complexityAnalysis.isComplex ? 'HIGH' : 'LOW'} (score: ${complexityAnalysis.score.toFixed(2)})`);
+    logger.info(`[Knowledge] 📊 Using Model: ${selectedModel} - Indicators: [${complexityAnalysis.indicators.join(', ')}]`);
+
     // Check if there are processed files
     const processedFiles = await KnowledgeFile.find({
       ownerType,
@@ -225,12 +295,19 @@ export const conversationalQuery = async (
 
     let answer;
     let sources = [];
+    let modelUsed = selectedModel;
 
     if (processedFiles.length === 0) {
       answer =
         "I don't have any documents to search through yet. Please upload and process some files first, then I can help answer questions about them.";
     } else {
-      // Query using RAG with conversation context
+      // Initialize RAG with appropriate model
+      const dynamicLLM = complexityAnalysis.isComplex ? claudeLLM : geminiLLM;
+      logger.info(`[Knowledge] 🔧 Initializing RAG with ${complexityAnalysis.isComplex ? 'Claude Opus 4.5' : 'Gemini 2.5 Flash'}`);
+
+
+      // Update RAG config with selected model
+      rag.llm = dynamicLLM;
       await rag.initialize();
 
       const enrichedQuery = conversationHistory
@@ -247,8 +324,9 @@ export const conversationalQuery = async (
 
       answer = ragResponse.answer;
       sources = ragResponse.sources || [];
+      logger.info(`✅ Query complete using ${modelUsed}: ${sources.length} sources found, ${answer.length} chars generated`);
 
-      logger.info(`[Knowledge] Query complete: ${sources.length} sources found`);
+      logger.info(`[Knowledge] Query complete using ${modelUsed}: ${sources.length} sources found`);
     }
 
     // Add assistant message
@@ -258,6 +336,8 @@ export const conversationalQuery = async (
         content: s.content?.substring(0, 200),
         score: s.score,
       })),
+      modelUsed,
+      complexityScore: complexityAnalysis.score,
     });
 
     return {
@@ -267,6 +347,12 @@ export const conversationalQuery = async (
       sources,
       relevantFiles: processedFiles.length,
       hasProcessedFiles: processedFiles.length > 0,
+      modelUsed,
+      complexity: {
+        isComplex: complexityAnalysis.isComplex,
+        score: complexityAnalysis.score,
+        indicators: complexityAnalysis.indicators,
+      },
     };
   } catch (error) {
     logger.error('[Knowledge] Error in conversational query:', error);

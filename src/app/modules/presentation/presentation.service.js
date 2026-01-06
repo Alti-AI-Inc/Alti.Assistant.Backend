@@ -220,15 +220,24 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 
     // Merge parameters
     const updatedParams = { ...existingParams, ...analysis.parameters };
-
+    console.log('Updated parameters after analysis:', updatedParams);
     // Update metadata with collected parameters
     await updateConversationMetadata(actualConversationId, userId, updatedParams);
 
     // Handle different intents
     let response;
-
+    console.log('Handling intent :', analysis.intent);
     switch (analysis.intent) {
       case PRESENTATION_INTENTS.GENERATE:
+        console.log('Handling GENERATE intent');
+        response = await handleGenerateIntent(
+          analysis,
+          updatedParams,
+          actualConversationId,
+          userId,
+          isGuest
+        );
+        break;
       case PRESENTATION_INTENTS.GENERATE_ASYNC:
         response = await handleGenerateIntent(
           analysis,
@@ -341,13 +350,23 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
 
   try {
     let result;
-    const isAsync = analysis.intent === PRESENTATION_INTENTS.GENERATE_ASYNC;
-
+    const isAsync = true;
+    console.log('Generating presentation with params:', analysis.intent, 'Async:', isAsync);
     if (isAsync) {
       result = await presentonAPIClient.generatePresentationAsync(generationParams);
       const responseMessage = `Great! I've started generating your presentation. Your task ID is: ${result.id}\n\nStatus: ${result.status}\nCreated at: ${result.created_at}\n\nI'll keep track of this for you. You can ask me to check the status anytime!`;
 
       await addMessage(conversationId, userId, 'assistant', responseMessage, { taskId: result.id, generationParams }, isGuest);
+
+      // Save taskId in conversation metadata for later retrieval
+      await conversationService.updateConversationMetadata(conversationId, userId, {
+        presentation_metadata: {
+          taskId: result.id,
+          status: result.status,
+          created_at: result.created_at,
+          generationParams,
+        },
+      });
 
       return {
         success: true,

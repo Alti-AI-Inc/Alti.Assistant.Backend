@@ -68,22 +68,13 @@ export const uploadPresentationToGCS = async (
       // Read file from local file system
       console.log('Reading presentation from local path:', presentonPathOrUrl);
 
-      // Resolve the path relative to project root
-      const __dirname = path.dirname(fileURLToPath(import.meta.url));
-      const projectRoot = path.resolve(__dirname, '../../../../../');
-
       // Handle paths from Presenton API
       // Presenton returns paths like: /app_data/exports/file.pptx
-      // These are relative to project root, not absolute system paths
+      // In Docker, Presenton's /app_data is mounted to our /app/presenton_files via shared volume
       let filePath;
 
-      // Remove leading slash if present (Unix-style paths from Presenton)
-      const relativePath = presentonPathOrUrl.startsWith('/')
-        ? presentonPathOrUrl.substring(1)
-        : presentonPathOrUrl;
-
-      // Join with project root
-      filePath = path.join(projectRoot, relativePath);
+      // Map Presenton's /app_data path to our shared volume mount at /app/presenton_files
+      filePath = presentonPathOrUrl.replace('/app_data', '/app/presenton_files');
 
       console.log('Resolved file path:', filePath);
       fileBuffer = await fs.readFile(filePath);

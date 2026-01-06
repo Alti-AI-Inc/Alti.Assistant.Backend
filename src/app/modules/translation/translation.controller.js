@@ -3,7 +3,6 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { translationService } from './translation.service.js';
-import { fileExtractionService } from './services/fileExtractionService.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
@@ -44,11 +43,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
         : 0;
 
       if (promptUsage <= totalConversationWithConvId) {
-        // Clean up file if limit reached
-        if (uploadedFile?.path) {
-          await fileExtractionService.cleanupFile(uploadedFile.path);
-        }
-
         return sendResponse(res, {
           statusCode: httpStatus.FORBIDDEN,
           success: false,
@@ -62,11 +56,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   }
 
   if (!message) {
-    // Clean up file if message is missing
-    if (uploadedFile?.path) {
-      await fileExtractionService.cleanupFile(uploadedFile.path);
-    }
-
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
@@ -75,11 +64,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   }
 
   if (!userId) {
-    // Clean up file if user ID generation failed
-    if (uploadedFile?.path) {
-      await fileExtractionService.cleanupFile(uploadedFile.path);
-    }
-
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
@@ -110,11 +94,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in conversational assistant:', error);
-
-    // Clean up file on error
-    if (uploadedFile?.path) {
-      await fileExtractionService.cleanupFile(uploadedFile.path);
-    }
 
     return sendResponse(res, {
       statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
