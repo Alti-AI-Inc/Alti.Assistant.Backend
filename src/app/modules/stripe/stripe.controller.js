@@ -1,13 +1,14 @@
 import catchAsync from '../../../shared/catchAsync.js';
 import UserModel from '../auth/auth.model.js';
-import { createCustomerService, deleteCustomerService, retrieveCustomerService, updateCustomerService } from "./customer/stripe.service.js";
+import { createCustomerService, deleteCustomerService, retrieveAllCustomersService, retrieveAllProductsService, retrieveAllSubscriptionsService, retrieveCustomerService, updateCustomerService } from "./customer/stripe.service.js";
 import { createPaymentIntentService, getAllPaymentMethodsService, savePaymentMethodService } from "./paymentMethod.service.js";
-import { createProductService, retrieveProductService } from "./products/product.service.js";
-import { cancelSubscriptionService, createSubscriptionService } from "./subscription.service.js";
+import { createProductService, retrieveAllPricesService, retrieveProductService } from "./products/product.service.js";
+import { cancelSubscriptionService, createSubscriptionService, retrieveSubscriptionService } from "./subscription.service.js";
 
 const createCustomerController = catchAsync(async (req, res, next) => {
   const user = req.user;
-  const customer = await createCustomerService(user);
+
+  const customer = await createCustomerService(req.body);
   res.status(201).json({ customer });
 });
 
@@ -45,7 +46,8 @@ const createPaymentIntentController = catchAsync(async (req, res, next) => {
   const { amount, currency } = req.body;
   const userId = req.user._id || req.user.userId || req.user.id;
   const user = await UserModel.findOne({ _id: userId });
-  const customerId = user.stripeAccountId;
+  let customerId = user.stripeAccountId;
+  customerId = customerId || req.body.customerId;
   const paymentIntent = await createPaymentIntentService(amount, currency, customerId);
   res.status(201).json({ paymentIntent });
 });
@@ -54,7 +56,8 @@ const addPaymentMethodController = catchAsync(async (req, res, next) => {
   const { paymentMethodId } = req.body;
   const userId = req.user._id || req.user.userId || req.user.id;
   const user = await UserModel.findOne({ _id: userId });
-  const customerId = user.stripeAccountId;
+  let customerId = user.stripeAccountId;
+  customerId = customerId || req.body.customerId;
   const paymentMethod = await savePaymentMethodService(customerId, paymentMethodId);
   res.status(200).json({ paymentMethod });
 });
@@ -71,6 +74,33 @@ const createSubscriptionController = catchAsync(async (req, res, next) => {
   const subscription = await createSubscriptionService(customerId, priceId);
   res.status(201).json({ subscription });
 });
+
+const listPricesController = catchAsync(async (req, res, next) => {
+  const prices = await retrieveAllPricesService(req.query);
+  res.status(200).json({ prices });
+});
+
+const listAccounts = catchAsync(async (req, res, next) => {
+  const accounts = await retrieveAllCustomersService();
+  res.status(200).json({ accounts });
+})
+
+const listProducts = catchAsync(async (req, res, next) => {
+  const products = await retrieveAllProductsService();
+  res.status(200).json({ products });
+})
+
+const listSubscriptions = catchAsync(async (req, res, next) => {
+  const subscriptions = await retrieveAllSubscriptionsService();
+  res.status(200).json({ subscriptions });
+})
+
+const getSingleSubscription = catchAsync(async (req, res, next) => {
+  const { subscriptionId } = req.params;
+  const subscription = await retrieveSubscriptionService(subscriptionId);
+  res.status(200).json({ subscription });
+})
+
 
 const cancelSubscriptionController = catchAsync(async (req, res, next) => {
   // Implementation for canceling a subscription
@@ -90,5 +120,10 @@ export {
   addPaymentMethodController,
   listPaymentMethodsController,
   createSubscriptionController,
-  cancelSubscriptionController
+  cancelSubscriptionController,
+  listAccounts,
+  listProducts,
+  listSubscriptions,
+  getSingleSubscription,
+  listPricesController
 };

@@ -159,6 +159,12 @@ const createProductService = async (productData) => {
   }
 };
 
+const retrieveAllPricesService = async (params) => {
+  const prices = await stripe.prices.list({
+    product: params.productId,
+  });
+  return prices;
+}
 
 const retrieveProductService = async (productId) => {
   const product = await stripe.products.retrieve(productId);
@@ -179,5 +185,6 @@ export {
   createProductService,
   retrieveProductService,
   updateProductService,
-  deleteProductService
+  deleteProductService,
+  retrieveAllPricesService
 };

@@ -9,8 +9,25 @@ const createCustomerService = async (user) => {
   const customer = await stripe.customers.create({
     name: user.name,
     email: user.email,
+    address: user.address,
+    phone: user.phone,
   });
   return customer;
+}
+
+const retrieveAllCustomersService = async () => {
+  const customers = await stripe.customers.list();
+  return customers;
+}
+
+const retrieveAllProductsService = async () => {
+  const products = await stripe.products.list();
+  return products;
+}
+
+const retrieveAllSubscriptionsService = async () => {
+  const subscriptions = await stripe.subscriptions.list();
+  return subscriptions;
 }
 
 const retrieveCustomerService = async (customerId) => {
@@ -32,5 +49,8 @@ export {
   createCustomerService,
   retrieveCustomerService,
   updateCustomerService,
-  deleteCustomerService
+  deleteCustomerService,
+  retrieveAllCustomersService,
+  retrieveAllProductsService,
+  retrieveAllSubscriptionsService
 };
