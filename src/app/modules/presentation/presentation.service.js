@@ -160,9 +160,12 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
       role: msg.role,
       content: msg.content,
     }));
-
+    console.log(`Conversation history has ${conversation?.presentation_metadata} messages`);
     // Get existing parameters from metadata
-    const existingParams = conversation.metadata?.collectedParams || {};
+    const existingParams = {
+      ...conversation?.presentation_metadata,
+      ...conversation.metadata?.collectedParams
+    } || {};
     let conversationSummary = conversation.metadata?.conversationSummary || null;
 
     // Add user message
@@ -269,7 +272,7 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
         break;
 
       case PRESENTATION_INTENTS.DERIVE:
-        response = await handleDeriveIntent(
+        response = await handleGenerateIntent(
           analysis,
           updatedParams,
           actualConversationId,
@@ -535,7 +538,7 @@ const handleEditIntent = async (analysis, params, conversationId, userId, isGues
     let uploadResult = null;
     try {
       const fileName = path.basename(result.path) || `presentation_${result.presentation_id}_edited.pptx`;
-
+      console.log('Uploading edited presentation with fileName:', fileName);
       uploadResult = await uploadPresentationToGCS(
         result.path,
         fileName,
@@ -590,8 +593,15 @@ const handleEditIntent = async (analysis, params, conversationId, userId, isGues
  */
 const handleDeriveIntent = async (analysis, params, conversationId, userId, isGuest) => {
   const requiredParams = REQUIRED_PARAMS[PRESENTATION_INTENTS.DERIVE];
+  //If params has n_slides, rename to slides
+  if (params.n_slides && !params.slides) {
+    params.slides = params.n_slides;
+    delete params.n_slides;
+  }
   const missingParams = requiredParams.filter((param) => !params[param]);
-
+  console.log('Derive intent missing parameters:', missingParams);
+  console.log('Derive intent analysis:', analysis);
+  console.log('Derive intent params:', params);
   if (missingParams.length > 0) {
     const followUpQuestion =
       analysis.followUpQuestion ||

@@ -1,0 +1,515 @@
+{
+  "info": {
+    "name": "Stripe API",
+    "description": "Complete Stripe payment integration API for managing customers, products, subscriptions, and payment methods. Supports subscription-based billing with Base, Professional, and Enterprise plans.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "stripe-api-v1"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Customer Management",
+      "item": [
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\",\n  \"address\": {\n    \"line1\": \"123 Main St\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"postal_code\": \"94105\",\n    \"country\": \"US\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/customer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "customer"
+              ]
+            },
+            "description": "Create a new customer in Stripe.\n\n**Request Body:**\n- name (required): Customer's full name\n- email (required): Customer's email address\n- phone (optional): Customer's phone number\n- address (optional): Customer's address object"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/customer/:customerId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "customer",
+                ":customerId"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "cus_xxxxxxxxxxxxx",
+                  "description": "Stripe Customer ID"
+                }
+              ]
+            },
+            "description": "Retrieve a specific customer by their Stripe customer ID."
+          },
+          "response": []
+        },
+        {
+          "name": "List All Customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "customers"
+              ]
+            },
+            "description": "Retrieve a list of all customers in Stripe."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"john.updated@example.com\",\n  \"phone\": \"+1987654321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/customer/:customerId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "customer",
+                ":customerId"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "cus_xxxxxxxxxxxxx",
+                  "description": "Stripe Customer ID"
+                }
+              ]
+            },
+            "description": "Update an existing customer's information.\n\n**Request Body:**\n- Any customer field to update (name, email, phone, address, etc.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/customer/:customerId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "customer",
+                ":customerId"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "cus_xxxxxxxxxxxxx",
+                  "description": "Stripe Customer ID"
+                }
+              ]
+            },
+            "description": "Delete a customer from Stripe. This action cannot be undone."
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage Stripe customers - create, retrieve, update, and delete customer records."
+    },
+    {
+      "name": "Product Management",
+      "item": [
+        {
+          "name": "Create Products & Prices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "products"
+              ]
+            },
+            "description": "Create all subscription products and their prices in Stripe. This will create:\n\n**Base Plan** ($99/month or $1,009/year)\n- Up to 3 connectors\n- 100 GB storage\n\n**Professional Plan** ($249/month or $2,541/year)\n- Up to 10 connectors\n- 500 GB storage\n\n**Enterprise Plan** ($499/month or $5,089/year)\n- Unlimited connectors\n- 1 TB+ storage\n\nAnnual plans include 15% discount. Products are also saved to the local database."
+          },
+          "response": []
+        },
+        {
+          "name": "List All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "products"
+              ]
+            },
+            "description": "Retrieve a list of all products from Stripe."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/products/:productId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "products",
+                ":productId"
+              ],
+              "variable": [
+                {
+                  "key": "productId",
+                  "value": "prod_xxxxxxxxxxxxx",
+                  "description": "Stripe Product ID"
+                }
+              ]
+            },
+            "description": "Retrieve a specific product by its Stripe product ID."
+          },
+          "response": []
+        },
+        {
+          "name": "List Prices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/prices?productId=prod_xxxxxxxxxxxxx",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "prices"
+              ],
+              "query": [
+                {
+                  "key": "productId",
+                  "value": "prod_xxxxxxxxxxxxx",
+                  "description": "Filter prices by product ID"
+                }
+              ]
+            },
+            "description": "Retrieve all prices, optionally filtered by product ID.\n\n**Query Parameters:**\n- productId (optional): Filter prices for a specific product"
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage subscription products and pricing plans."
+    },
+    {
+      "name": "Payment Methods",
+      "item": [
+        {
+          "name": "Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 9900,\n  \"currency\": \"usd\",\n  \"customerId\": \"cus_xxxxxxxxxxxxx\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/payment-intent",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "payment-intent"
+              ]
+            },
+            "description": "Create a payment intent for processing a payment.\n\n**Request Body:**\n- amount (required): Amount in cents (e.g., 9900 for $99.00)\n- currency (required): Three-letter ISO currency code (e.g., 'usd')\n- customerId (optional): Stripe customer ID. If not provided, uses authenticated user's Stripe account ID\n\n**Response:**\n- clientSecret: Use this on the frontend to complete the payment"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Payment Method",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethodId\": \"pm_xxxxxxxxxxxxx\",\n  \"customerId\": \"cus_xxxxxxxxxxxxx\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/payment-method",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "payment-method"
+              ]
+            },
+            "description": "Attach a payment method to a customer and set it as default.\n\n**Request Body:**\n- paymentMethodId (required): Stripe payment method ID (obtained from Stripe.js on frontend)\n- customerId (optional): Stripe customer ID. If not provided, uses authenticated user's Stripe account ID\n\nThis endpoint will:\n1. Attach the payment method to the customer\n2. Set it as the default payment method for invoices"
+          },
+          "response": []
+        },
+        {
+          "name": "List Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/payment-methods/:customerId/:type",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "payment-methods",
+                ":customerId",
+                ":type"
+              ],
+              "variable": [
+                {
+                  "key": "customerId",
+                  "value": "cus_xxxxxxxxxxxxx",
+                  "description": "Stripe Customer ID"
+                },
+                {
+                  "key": "type",
+                  "value": "card",
+                  "description": "Payment method type (currently only 'card' supported)"
+                }
+              ]
+            },
+            "description": "Retrieve all payment methods for a customer.\n\n**Path Parameters:**\n- customerId (required): Stripe customer ID\n- type (required): Payment method type (currently only 'card' is supported)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage payment methods and process payments."
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Create Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"cus_xxxxxxxxxxxxx\",\n  \"priceId\": \"price_xxxxxxxxxxxxx\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/subscription",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "subscription"
+              ]
+            },
+            "description": "Create a new subscription for a customer.\n\n**Request Body:**\n- customerId (required): Stripe customer ID\n- priceId (required): Stripe price ID (from the pricing plans)\n\n**Note:** Customer must have a default payment method attached before creating a subscription.\n\n**Response includes:**\n- Subscription details\n- Expanded latest invoice with payment intent"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/subscription/:subscriptionId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "subscription",
+                ":subscriptionId"
+              ],
+              "variable": [
+                {
+                  "key": "subscriptionId",
+                  "value": "sub_xxxxxxxxxxxxx",
+                  "description": "Stripe Subscription ID"
+                }
+              ]
+            },
+            "description": "Retrieve details of a specific subscription.\n\n**Path Parameters:**\n- subscriptionId (required): Stripe subscription ID"
+          },
+          "response": []
+        },
+        {
+          "name": "List All Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/subscriptions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "subscriptions"
+              ]
+            },
+            "description": "Retrieve a list of all subscriptions in Stripe."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Subscription",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stripe/subscription/:subscriptionId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stripe",
+                "subscription",
+                ":subscriptionId"
+              ],
+              "variable": [
+                {
+                  "key": "subscriptionId",
+                  "value": "sub_xxxxxxxxxxxxx",
+                  "description": "Stripe Subscription ID"
+                }
+              ]
+            },
+            "description": "Cancel an active subscription.\n\n**Path Parameters:**\n- subscriptionId (required): Stripe subscription ID\n\n**Note:** By default, the subscription cancels immediately. The customer will not be charged again."
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage customer subscriptions - create, retrieve, and cancel subscriptions."
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

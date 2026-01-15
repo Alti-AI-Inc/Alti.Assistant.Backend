@@ -50,20 +50,36 @@ Only return valid JSON, no additional text.`;
       contents: [{ role: 'user', parts: [{ text: analysisPrompt }] }],
       generationConfig: {
         temperature: PLAN_GENERATOR_CONFIG.TEMPERATURE_PLANNING,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 4096,
       },
     });
 
     const response = result.response;
-    const analysisText = response.text();
+    let analysisText = response.text();
     console.log('Analysis Response Text:', analysisText);
-    // Extract JSON from response
-    const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+
+    // Remove markdown code block markers if present
+    analysisText = analysisText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+    // Extract JSON from response - find first { and last }
+    const firstBrace = analysisText.indexOf('{');
+    const lastBrace = analysisText.lastIndexOf('}');
+
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+      logger.error('Failed to find valid JSON boundaries in response:', analysisText.substring(0, 200));
       throw new Error('Failed to extract JSON from analysis');
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    const jsonString = analysisText.substring(firstBrace, lastBrace + 1);
+
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonString);
+    } catch (parseError) {
+      logger.error('JSON parse error:', parseError.message);
+      logger.error('Attempted to parse:', jsonString.substring(0, 500));
+      throw new Error('Failed to parse JSON from analysis');
+    }
 
     logger.info('Idea analysis completed:', {
       clarityScore: analysis.clarity_score,

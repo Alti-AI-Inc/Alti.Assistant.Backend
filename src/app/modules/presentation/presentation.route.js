@@ -2,6 +2,7 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { presentationController } from './presentation.controller.js';
@@ -17,6 +18,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 requests per 15 minutes
   validateRequest(PresentationValidation.conversationalRequestSchema),
   presentationController.conversationalAssistant

@@ -84,12 +84,27 @@ export const uploadPresentationToGCS = async (
     const contentType = getContentType(fileName);
 
     // Create organized path: userId/conversationId/fileName
-    const gcsPath = `${userId}/${conversationId}/${fileName}`;
+    // Handle duplicate filenames by adding numbers
+    const bucket = storage.bucket(PRESENTATION_BUCKET);
+    let gcsPath = `${userId}/${conversationId}/${fileName}`;
+    let file = bucket.file(gcsPath);
+
+    // Check if file exists and find unique name
+    let counter = 1;
+    let exists = await file.exists();
+
+    while (exists[0]) {
+      // File exists, add counter before extension
+      const ext = path.extname(fileName);
+      const nameWithoutExt = path.basename(fileName, ext);
+      const newFileName = `${nameWithoutExt}_${counter}${ext}`;
+      gcsPath = `${userId}/${conversationId}/${newFileName}`;
+      file = bucket.file(gcsPath);
+      exists = await file.exists();
+      counter++;
+    }
 
     // Upload to GCS
-    const bucket = storage.bucket(PRESENTATION_BUCKET);
-    const file = bucket.file(gcsPath);
-
     await file.save(fileBuffer, {
       metadata: {
         contentType,

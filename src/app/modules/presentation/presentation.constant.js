@@ -1,6 +1,6 @@
 // Presenton API configuration
 export const PRESENTON_CONFIG = {
-  BASE_URL: process.env.PRESENTON_API_URL,
+  BASE_URL: process.env.PRESENTON_API_URL || 'http://localhost:5000',
   API_KEY: process.env.PRESENTON_API_KEY || '',
 };
 

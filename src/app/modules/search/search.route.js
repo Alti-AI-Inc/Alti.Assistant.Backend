@@ -2,6 +2,7 @@ import express from "express";
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { searchController } from "./search.controller.js";
@@ -13,6 +14,7 @@ const router = express.Router();
 router.post(
   '/assistant_v2',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  checkDailyRequestLimit,
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes (applies to all users)
   validateRequest(SearchValidation.searchQuerySchema),
   searchController.performSearch
@@ -22,6 +24,7 @@ router.post(
 router.post(
   '/code',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 code generation requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),
   searchController.generateCode
@@ -31,6 +34,7 @@ router.post(
 router.post(
   '/writing',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 writing requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),
   searchController.generateWriting

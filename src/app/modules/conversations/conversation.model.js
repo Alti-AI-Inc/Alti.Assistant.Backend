@@ -90,6 +90,9 @@ const ConversationSchema = new mongoose.Schema(
       uploadedFiles: [{ type: Schema.Types.Mixed }],
       currentDocumentId: { type: String },
     },
+    presentation_metadata: {
+      type: Schema.Types.Mixed,
+    },
     lastActivity: {
       type: Date,
       default: Date.now,

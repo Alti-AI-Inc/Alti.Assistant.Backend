@@ -2,6 +2,7 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { documentAnalysisController } from './document_analysis.controller.js';
 import { DocumentAnalysisValidation } from './document_analysis.validation.js';
@@ -17,6 +18,7 @@ const router = express.Router();
 router.post(
   '/analyze',
   optionalAuth(),
+  checkDailyRequestLimit,
   uploadDocumentAnalysis.single('file'),
   validateRequest(DocumentAnalysisValidation.analyzeRequestSchema),
   documentAnalysisController.analyzeDocument

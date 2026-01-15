@@ -3,8 +3,7 @@ import SubscriptionModel from '../../modules/payment/payment.model.js';
 import UserModel from '../../modules/auth/auth.model.js';
 
 cron.schedule(
-  '47 18 * * *', // Runs at 6:47 PM UTC (3:11 PM Bangladesh Time)
-  // '30 2 * * *',  // Runs at 2:30 AM Bangladesh Time
+  '0 0 * * *', // Runs at midnight (12:00 AM) Bangladesh Time
   async () => {
     console.log(`⏳ Running scheduled task at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })}`);
 
@@ -54,6 +53,19 @@ cron.schedule(
     );
 
     console.log('✅ Reset free plan usage for all users.');
+
+    // ✅ 4. Reset daily request limits for all users at midnight
+    await UserModel.updateMany(
+      {},
+      {
+        $set: {
+          'dailyRequestLimit.requestsUsed': 0,
+          'dailyRequestLimit.lastResetAt': new Date(),
+        },
+      }
+    );
+
+    console.log('✅ Reset daily request limits for all users.');
   },
   {
     scheduled: true,

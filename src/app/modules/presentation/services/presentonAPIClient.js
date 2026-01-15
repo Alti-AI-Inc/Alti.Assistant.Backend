@@ -93,8 +93,15 @@ class PresentonAPIClient {
    */
   async editPresentation(params) {
     try {
+      console.log('Edit presentation with params:', JSON.stringify(params));
+      if (params.presentationId) {
+        params.presentation_id = params.presentationId;
+        delete params.presentationId;
+      }
       const response = await this.client.post(PRESENTON_ENDPOINTS.EDIT, params);
+      console.log('Edit presentation response:', JSON.stringify(response.data));
       return response.data;
+
     } catch (error) {
       this._handleError(error, 'editPresentation');
     }
@@ -105,7 +112,33 @@ class PresentonAPIClient {
    */
   async derivePresentation(params) {
     try {
-      const response = await this.client.post(PRESENTON_ENDPOINTS.DERIVE, params);
+      console.log('Derive presentation with params:', params);
+
+      // Clean params - only send valid API parameters
+      const apiParams = {
+        presentation_id: params.presentationId || params.presentation_id,
+      };
+
+      // Add valid generation parameters
+      const validParams = [
+        'content', 'title', 'n_slides', 'language', 'template',
+        'theme', 'tone', 'verbosity', 'image_type', 'export_as',
+        'web_search', 'include_table_of_contents', 'include_title_slide'
+      ];
+
+      validParams.forEach(param => {
+        if (params[param] !== undefined && params[param] !== null) {
+          apiParams[param] = params[param];
+        }
+      });
+
+      // Handle slides parameter - only include if it's an array (for actual slide edits)
+      if (params.slides && Array.isArray(params.slides)) {
+        apiParams.slides = params.slides;
+      }
+
+      console.log('Cleaned API params:', apiParams);
+      const response = await this.client.post(PRESENTON_ENDPOINTS.DERIVE, apiParams);
       return response.data;
     } catch (error) {
       this._handleError(error, 'derivePresentation');

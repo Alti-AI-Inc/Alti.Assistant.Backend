@@ -87,26 +87,75 @@ Create a concise, actionable plan in the following JSON format (be brief and foc
   "next_steps": ["<immediate actions>"]
 }
 
-Only return valid JSON, no additional text. Make the plan detailed, actionable, and professional.`;
+CRITICAL INSTRUCTIONS:
+- Output ONLY valid JSON - no markdown, no code blocks, no explanatory text
+- Ensure all strings are properly quoted
+- NO trailing commas before } or ]
+- All property names must be in double quotes
+- All string values must be in double quotes
+- Escape any quotes inside strings with backslash
+- Validate JSON syntax before returning
+
+Only return the JSON object itself.`;
 
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: planPrompt }] }],
       generationConfig: {
         temperature: PLAN_GENERATOR_CONFIG.TEMPERATURE_PLANNING,
-        maxOutputTokens: 6144,
+        // maxOutputTokens: 6144,
       },
     });
 
     const response = result.response;
-    const planText = response.text();
+    let planText = response.text();
 
-    // Extract JSON from response
-    const jsonMatch = planText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Remove markdown code block markers if present
+    planText = planText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+    // Extract JSON from response - find first { and last }
+    const firstBrace = planText.indexOf('{');
+    const lastBrace = planText.lastIndexOf('}');
+
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+      logger.error('Failed to find valid JSON boundaries in response:', planText.substring(0, 500));
       throw new Error('Failed to extract JSON from plan');
     }
 
-    const plan = JSON.parse(jsonMatch[0]);
+    const jsonString = planText.substring(firstBrace, lastBrace + 1);
+
+    let plan;
+    try {
+      plan = JSON.parse(jsonString);
+    } catch (parseError) {
+      logger.error('JSON parse error:', parseError.message);
+      logger.error('JSON string length:', jsonString.length);
+      logger.error('Attempted to parse (first 1000 chars):', jsonString.substring(0, 1000));
+      logger.error('Attempted to parse (last 500 chars):', jsonString.substring(jsonString.length - 500));
+
+      // Attempt to repair common JSON issues
+      logger.info('Attempting to repair JSON...');
+      try {
+        // Remove trailing commas before } or ]
+        let repairedJson = jsonString
+          .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas
+          .replace(/([}\]])(\s*)([{"\w])/g, '$1,$2$3')  // Add missing commas between objects
+          .replace(/\n/g, ' ')  // Remove newlines that might break strings
+          .replace(/\r/g, '');  // Remove carriage returns
+
+        plan = JSON.parse(repairedJson);
+        logger.info('JSON repair successful!');
+      } catch (repairError) {
+        logger.error('JSON repair also failed:', repairError.message);
+
+        // Save the problematic JSON to a file for debugging
+        const fs = await import('fs/promises');
+        const debugPath = `./logs/failed-json-${Date.now()}.txt`;
+        await fs.writeFile(debugPath, jsonString, 'utf-8');
+        logger.error('Problematic JSON saved to:', debugPath);
+
+        throw new Error('Failed to parse JSON from plan: ' + parseError.message);
+      }
+    }
 
     logger.info('Plan generated successfully:', { title: plan.title });
 
@@ -147,10 +196,19 @@ Return only JSON:
       },
     });
 
-    const response = result.response.text();
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    let response = result.response.text();
+    response = response.replace(/```json\s*/g, '').replace(/```\s*/g, '');
 
-    return jsonMatch ? JSON.parse(jsonMatch[0]).action_items : [];
+    const firstBrace = response.indexOf('{');
+    const lastBrace = response.lastIndexOf('}');
+
+    if (firstBrace === -1 || lastBrace === -1) {
+      return [];
+    }
+
+    const jsonString = response.substring(firstBrace, lastBrace + 1);
+    const parsed = JSON.parse(jsonString);
+    return parsed.action_items || [];
   } catch (error) {
     logger.error('Error generating quick action items:', error);
     return [];

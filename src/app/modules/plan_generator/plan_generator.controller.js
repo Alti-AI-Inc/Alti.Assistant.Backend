@@ -31,6 +31,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     }
     : null;
 
+
+
   logger.info(
     `Plan generator request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`,
     {

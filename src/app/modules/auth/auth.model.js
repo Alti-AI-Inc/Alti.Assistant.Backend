@@ -40,6 +40,11 @@ const UserSchema = new mongoose.Schema(
       imagesUsed: { type: Number, default: 0 },
       lastResetAt: { type: Date, default: Date.now }, // Track when the usage was last reset
     },
+    dailyRequestLimit: {
+      requestsUsed: { type: Number, default: 0 },
+      maxRequests: { type: Number, default: 10 }, // 10 requests per day limit
+      lastResetAt: { type: Date, default: Date.now }, // Track when the daily limit was last reset
+    },
     role: {
       type: String,
       enum: {

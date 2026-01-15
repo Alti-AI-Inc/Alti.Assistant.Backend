@@ -2,6 +2,7 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { imageController } from './image.controller.js';
@@ -15,6 +16,7 @@ console.log('Image routes initialized');
 router.post(
   '/generate',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  checkDailyRequestLimit,
   createRateLimiter(20, 15), // 20 image generation requests per 15 minutes
   validateRequest(ImageValidation.imageGenerationSchema),
   imageController.generateImage
@@ -24,6 +26,7 @@ router.post(
 router.post(
   '/analyze',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  checkDailyRequestLimit,
   createRateLimiter(30, 15), // 30 image analysis requests per 15 minutes
   validateRequest(ImageValidation.imageAnalysisSchema),
   imageController.analyzeImage

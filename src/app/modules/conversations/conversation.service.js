@@ -157,7 +157,7 @@ const updateConversationMetadata = async (conversationId, userId, metadata) => {
       },
       { new: true, runValidators: true }
     ).select('conversationId metadata lastActivity');
-
+    console.log('Updated conversation metadata:', conversation?.metadata);
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
@@ -167,6 +167,58 @@ const updateConversationMetadata = async (conversationId, userId, metadata) => {
     return conversation;
   } catch (error) {
     logger.error('Error updating conversation metadata:', error);
+    throw error;
+  }
+};
+
+const updadtePlanMetadata = async (conversationId, userId, planMetadata) => {
+  try {
+    console.log(`Updating plan metadata for conversation ${conversationId} for user ${userId}:`, planMetadata);
+    const conversation = await Conversation.findOneAndUpdate(
+      { conversationId, userId },
+      {
+        $set: {
+          plan_metadata: { ...planMetadata },
+          lastActivity: new Date()
+        }
+      },
+      { new: true, runValidators: true }
+    ).select('conversationId plan_metadata lastActivity');
+    console.log('Updated plan metadata:', conversation?.plan_metadata);
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    }
+    logger.info(`Conversation plan metadata updated: ${conversationId}`);
+
+    return conversation;
+  } catch (error) {
+    logger.error('Error updating conversation plan metadata:', error);
+    throw error;
+  }
+};
+
+const updatePresentationMetadata = async (conversationId, userId, presentationMetadata) => {
+  try {
+    console.log(`Updating presentation metadata for conversation ${conversationId} for user ${userId}:`, presentationMetadata);
+    const conversation = await Conversation.findOneAndUpdate(
+      { conversationId, userId },
+      {
+        $set: {
+          presentation_metadata: { ...presentationMetadata },
+          lastActivity: new Date()
+        }
+      },
+      { new: true, runValidators: true }
+    ).select('conversationId presentation_metadata lastActivity');
+    console.log('Updated presentation metadata:', conversation?.presentation_metadata);
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    }
+    logger.info(`Conversation presentation metadata updated: ${conversationId}`);
+
+    return conversation;
+  } catch (error) {
+    logger.error('Error updating conversation presentation metadata:', error);
     throw error;
   }
 };
@@ -729,4 +781,6 @@ export const conversationService = {
   revokeChatShare,
   renameChatConversation,
   saveChatConversation,
+  updatePresentationMetadata,
+  updadtePlanMetadata,
 };

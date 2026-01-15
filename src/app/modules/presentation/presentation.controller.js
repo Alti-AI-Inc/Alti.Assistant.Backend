@@ -232,30 +232,33 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
         const fileName = path.default.basename(result.data.path) || `presentation_${result.data.presentation_id}.pptx`;
         const uploadConversationId = conversationId || `task_${taskId}`;
 
-        uploadResult = await uploadPresentationToGCS(
-          result.data.path,
-          fileName,
-          userId,
-          uploadConversationId
-        );
+        try {
+          uploadResult = await uploadPresentationToGCS(
+            result.data.path,
+            fileName,
+            userId,
+            uploadConversationId
+          );
 
-        publicUrl = uploadResult.publicUrl;
-        logger.info(`Task ${taskId} presentation uploaded to GCS: ${publicUrl}`);
+          publicUrl = uploadResult.publicUrl;
+          logger.info(`Task ${taskId} presentation uploaded to GCS: ${publicUrl}`);
+        } catch (uploadError) {
+          logger.error('Error uploading task presentation to GCS:', uploadError);
+        }
 
         // Update conversation metadata with completion info if conversationId provided
         if (conversationId) {
           try {
-            await conversationService.updateConversationMetadata(conversationId, userId, {
-              presentation_metadata: {
-                taskId,
-                status: 'completed',
-                presentationId: result.data.presentation_id,
-                publicUrl,
-                downloadPath: result.data.path,
-                editPath: result.data.edit_path,
-                completedAt: new Date().toISOString(),
-                uploadResult,
-              },
+            console.log('Updating conversation metadata with presentation completion info');
+            await conversationService.updatePresentationMetadata(conversationId, userId, {
+              taskId,
+              status: 'completed',
+              presentationId: result.data.presentation_id,
+              publicUrl,
+              downloadPath: result.data.path,
+              editPath: result.data.edit_path,
+              completedAt: new Date().toISOString(),
+              uploadResult,
             });
             logger.info(`Updated conversation ${conversationId} with completion metadata`);
           } catch (metadataError) {

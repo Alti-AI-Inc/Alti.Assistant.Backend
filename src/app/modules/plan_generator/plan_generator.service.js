@@ -6,6 +6,7 @@ import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import { fileProcessor } from '../document_review/services/fileProcessor.js';
 import { ideaAnalyzer } from './services/ideaAnalyzer.js';
 import { brainstormEngine } from './services/brainstormEngine.js';
 import { planGenerator } from './services/planGenerator.js';
@@ -106,6 +107,83 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
 };
 
 /**
+ * Store uploaded file in conversation metadata with text extraction
+ */
+const storeFileInConversation = async (conversationId, userId, fileInfo) => {
+  try {
+    logger.info('Storing file in conversation', {
+      conversationId,
+      filename: fileInfo.originalName,
+      size: fileInfo.size
+    });
+
+    // 1. Extract text from file
+    const extractedText = await fileProcessor.extractTextFromFile(fileInfo);
+
+    if (!extractedText || extractedText.trim().length === 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Unable to extract text from the file');
+    }
+
+    // 2. Upload to GCS and get public URL (with metadata)
+    const uploadResult = await fileProcessor.uploadToGCS(fileInfo.path, fileInfo.filename, {
+      userId: userId,
+      originalName: fileInfo.originalName,
+      documentType: 'plan_generator'
+    });
+
+    // 3. Create file data object
+    const fileData = {
+      id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      originalName: fileInfo.originalName,
+      filename: fileInfo.filename,
+      publicUrl: uploadResult.publicUrl || uploadResult.localPath,
+      gcsPath: uploadResult.gcsPath,
+      storageType: uploadResult.storageType,
+      extractedText: extractedText,
+      textLength: extractedText.length,
+      size: fileInfo.size,
+      mimetype: fileInfo.mimetype,
+      uploadedAt: new Date(),
+      extractedAt: new Date()
+    };
+
+    // 4. Update conversation metadata
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+
+    if (!conversation.metadata.uploadedFiles) {
+      conversation.metadata.uploadedFiles = [];
+    }
+
+    conversation.metadata.uploadedFiles.push(fileData);
+
+    await conversationService.updadtePlanMetadata(conversationId, userId, {
+      uploadedFiles: conversation.metadata.uploadedFiles,
+    });
+
+    logger.info('File stored successfully in conversation', {
+      fileId: fileData.id,
+      textLength: fileData.textLength,
+      publicUrl: fileData.publicUrl,
+      storageType: fileData.storageType
+    });
+
+    // 5. Cleanup temporary local file
+    await fileProcessor.cleanupFile(fileInfo.path);
+
+    return fileData;
+  } catch (error) {
+    logger.error('Error storing file in conversation:', error);
+    // Try to cleanup file even if upload failed
+    try {
+      await fileProcessor.cleanupFile(fileInfo.path);
+    } catch (cleanupError) {
+      logger.warn('Failed to cleanup file after error:', cleanupError);
+    }
+    throw error;
+  }
+};
+
+/**
  * Conversational assistant - Main entry point
  */
 const conversationalAssistant = async (userId, message, conversationId = null, isGuest = false, fileInfo = null) => {
@@ -115,16 +193,42 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
       messageLength: message.length,
       conversationId,
       isGuest,
+      fileInfo
     });
 
     // Get or create conversation
     const conversation = await handlePlanConversation(userId, conversationId, message, isGuest);
 
+    // Get conversation metadata
+    const metadata = conversation.plan_metadata || {};
+
+    // Handle file upload if present - extract text content
+    let fileContent = '';
+    if (fileInfo) {
+      try {
+        const fileData = await storeFileInConversation(conversation.conversationId, userId, fileInfo);
+        fileContent = fileData.extractedText;
+        logger.info('File content extracted successfully', {
+          filename: fileData.originalName,
+          textLength: fileContent.length
+        });
+      } catch (error) {
+        logger.error('Failed to extract file content:', error);
+        // Continue without file content, but log the error
+        fileContent = '';
+      }
+    } else if (metadata.uploadedFiles && metadata.uploadedFiles.length > 0) {
+      // Retrieve previously uploaded file content from conversation metadata
+      const latestFile = metadata.uploadedFiles[metadata.uploadedFiles.length - 1];
+      fileContent = latestFile.extractedText || '';
+      logger.info('Using cached file content from previous upload', {
+        filename: latestFile.originalName,
+        textLength: fileContent.length
+      });
+    }
+
     // Add user message
     await addMessage(conversation.conversationId, userId, 'user', message, { fileInfo });
-
-    // Get conversation metadata
-    const metadata = conversation.metadata || {};
     const planStage = metadata.planStage || PLAN_STAGES.IDEA_ANALYSIS;
     const existingAnalysis = metadata.analysis;
     const existingBrainstorm = metadata.brainstorm;
@@ -136,8 +240,14 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
     // Determine conversation flow based on stage
     switch (planStage) {
       case PLAN_STAGES.IDEA_ANALYSIS: {
-        // Analyze the idea
-        const ideaText = metadata.ideaDescription ? `${metadata.ideaDescription} ${message}` : message;
+        // Analyze the idea - include file content if available
+        let ideaText = metadata.ideaDescription ? `${metadata.ideaDescription} ${message}` : message;
+
+        // Append extracted file content to idea text
+        if (fileContent) {
+          ideaText += `\n\n--- Attached Document Content ---\n${fileContent}`;
+          logger.info('Appended file content to idea text', { totalLength: ideaText.length });
+        }
         const analysis = await ideaAnalyzer.analyzeIdea(ideaText, {
           previousMessages: conversation.messages || [],
         });

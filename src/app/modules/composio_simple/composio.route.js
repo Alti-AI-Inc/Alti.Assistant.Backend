@@ -1,6 +1,7 @@
 import express from 'express';
 import { composioSimpleController } from './composio.controller.js';
 import auth from '../../middlewares/auth/auth.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 
 const router = express.Router();
 
@@ -8,6 +9,7 @@ const router = express.Router();
 router.post(
   '/chat',
   auth(),
+  checkDailyRequestLimit,
   composioSimpleController.chatController
 );
 
