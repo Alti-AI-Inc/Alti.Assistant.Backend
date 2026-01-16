@@ -544,7 +544,7 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
         // 2. Text is not just incomplete JSON structure
         // 3. Text doesn't look like a partial response
         const isIncompleteJson = /^{\s*"?\s*$/.test(fullText) || fullText === '{' || fullText === '{\n';
-        const isMeaningful = fullText.length > 10 && !isIncompleteJson;
+        const isMeaningful = fullText.length > 2 && !isIncompleteJson;
 
         hasContent = isMeaningful;
 

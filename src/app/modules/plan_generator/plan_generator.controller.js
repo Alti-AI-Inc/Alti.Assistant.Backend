@@ -5,6 +5,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { planGeneratorService } from './plan_generator.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import { taskManager } from './plan_generator.taskmanager.js';
 
 /**
  * Conversational plan generation assistant endpoint
@@ -76,6 +77,127 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Plan generation response generated successfully',
+    data: responseData,
+  });
+});
+
+/**
+ * Async conversational plan generation assistant endpoint
+ * Starts plan generation asynchronously and returns task ID
+ */
+export const conversationalAssistantAsync = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+  let userId = isGuest
+    ? planGeneratorService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
+
+  const { message, conversationId } = req.body;
+  userId = req.body.userId || userId;
+
+  // Handle file upload if present
+  const fileInfo = req.file
+    ? {
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path,
+      location: req.file.location || req.file.path,
+    }
+    : null;
+
+  logger.info(
+    `Async plan generator request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`,
+    {
+      hasFile: !!fileInfo,
+      conversationId,
+    }
+  );
+
+  // Check subscription limits for authenticated users
+  if (!isGuest) {
+    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+    const promptUsage = userSubscription ? userSubscription.usage : 0;
+    const totalConversationWithConvId = conversationId
+      ? await conversationHelpers.getConversationById(conversationId, userId)
+      : 0;
+
+    if (promptUsage <= totalConversationWithConvId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.PAYMENT_REQUIRED,
+        success: false,
+        message: 'Subscription limit reached. Please upgrade your plan.',
+        data: null,
+      });
+    }
+  }
+
+  // Create task
+  const task = taskManager.createTask(userId, conversationId);
+
+  // Start async processing (don't await)
+  taskManager.processTask(
+    task.taskId,
+    userId,
+    message,
+    conversationId,
+    isGuest,
+    fileInfo
+  ).catch(error => {
+    logger.error('Async task processing error:', error);
+  });
+
+  // Return immediately with task ID
+  const responseData = {
+    taskId: task.taskId,
+    status: task.status,
+    message: 'Plan generation started. Use /task/:taskId to check progress.',
+    userId: isGuest ? userId : undefined,
+  };
+
+  sendResponse(res, {
+    statusCode: httpStatus.ACCEPTED,
+    success: true,
+    message: 'Plan generation started successfully',
+    data: responseData,
+  });
+});
+
+/**
+ * Get task status and result
+ */
+export const getTaskStatus = catchAsync(async (req, res) => {
+  const { taskId } = req.params;
+
+  const task = taskManager.getTask(taskId);
+
+  if (!task) {
+    return sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: 'Task not found',
+      data: null,
+    });
+  }
+
+  // Return task status and result
+  const responseData = {
+    taskId: task.taskId,
+    status: task.status,
+    stage: task.stage,
+    progress: task.progress,
+    message: task.message,
+    result: task.result,
+    error: task.error,
+    createdAt: task.createdAt,
+    startedAt: task.startedAt,
+    completedAt: task.completedAt,
+  };
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Task status retrieved successfully',
     data: responseData,
   });
 });
@@ -201,6 +323,8 @@ export const brainstormIdea = catchAsync(async (req, res) => {
 
 export const planGeneratorController = {
   conversationalAssistant,
+  conversationalAssistantAsync,
+  getTaskStatus,
   generatePlan,
   getConversationHistory,
   exportPlan,

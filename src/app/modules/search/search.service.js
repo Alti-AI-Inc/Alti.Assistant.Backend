@@ -88,7 +88,7 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
     return conversation;
   } catch (error) {
     logger.error('Error handling search conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle search conversation');
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message || 'Failed to handle search conversation');
   }
 };
 

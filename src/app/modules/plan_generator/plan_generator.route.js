@@ -27,6 +27,31 @@ router.post(
 );
 
 /**
+ * Async conversational assistant endpoint
+ * Starts plan generation asynchronously and returns task ID
+ * Use /task/:taskId to check status and get results
+ */
+router.post(
+  '/assistant/async',
+  optionalAuth(),
+  checkDailyRequestLimit,
+  uploadPlanFiles.single('file'),
+  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  validateRequest(PlanGeneratorValidation.conversationalRequestSchema),
+  planGeneratorController.conversationalAssistantAsync
+);
+
+/**
+ * Get task status and result
+ * Check the progress and result of an async plan generation task
+ */
+router.get(
+  '/task/:taskId',
+  optionalAuth(),
+  planGeneratorController.getTaskStatus
+);
+
+/**
  * Direct plan generation endpoint (non-conversational)
  * For programmatic access with all parameters
  */
