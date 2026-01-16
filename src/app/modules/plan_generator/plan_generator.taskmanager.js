@@ -35,7 +35,7 @@ export const TASK_STAGES = {
  */
 export const createTask = (userId, conversationId) => {
   const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   const task = {
     taskId,
     userId,
