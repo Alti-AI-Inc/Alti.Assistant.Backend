@@ -21,9 +21,9 @@ const getAllBuyer = catchAsync(async (req, res) => {
 
 
 const deleteUser = catchAsync(async (req, res) => {
-  const objectId  = req.params?.objectId;
+  const objectId = req.params?.objectId;
   const result = await AdminService.deleteUserService(objectId);
-  
+
 
   if (!result.deletedCount) {
     return res.status(400).json({
@@ -41,7 +41,7 @@ const deleteUser = catchAsync(async (req, res) => {
 });
 
 const getAllUsers = catchAsync(async (req, res) => {
- 
+
   const filters = pick(req.query, [
     'searchTerm',
     'email',
@@ -122,6 +122,89 @@ const getAllPayment = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Get all tenants
+ */
+const getAllTenants = catchAsync(async (req, res) => {
+  const filters = pick(req.query, ['searchTerm', 'status', 'plan']);
+  const paginationOptions = pick(req.query, paginationFields);
+
+  const result = await AdminService.getAllTenantsService(filters, paginationOptions);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tenants retrieved successfully',
+    data: result,
+  });
+});
+
+/**
+ * Get tenant details
+ */
+const getTenantDetails = catchAsync(async (req, res) => {
+  const { tenantId } = req.params;
+
+  const result = await AdminService.getTenantDetailsService(tenantId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tenant details retrieved successfully',
+    data: result,
+  });
+});
+
+/**
+ * Update tenant status
+ */
+const updateTenantStatus = catchAsync(async (req, res) => {
+  const { tenantId } = req.params;
+  const { status } = req.body;
+
+  const result = await AdminService.updateTenantStatusService(tenantId, status);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tenant status updated successfully',
+    data: result,
+  });
+});
+
+/**
+ * Get tenant usage
+ */
+const getTenantUsageAdmin = catchAsync(async (req, res) => {
+  const { tenantId } = req.params;
+
+  const result = await AdminService.getTenantUsageService(tenantId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tenant usage retrieved successfully',
+    data: result,
+  });
+});
+
+/**
+ * Extend tenant trial
+ */
+const extendTenantTrial = catchAsync(async (req, res) => {
+  const { tenantId } = req.params;
+  const { days } = req.body;
+
+  const result = await AdminService.extendTenantTrialService(tenantId, days);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tenant trial extended successfully',
+    data: result,
+  });
+});
+
 export const AdminController = {
   getAllBuyer,
   deleteUser,
@@ -130,4 +213,9 @@ export const AdminController = {
   getAdmin,
   getUserStatisticsByMonth,
   getAllPayment,
+  getAllTenants,
+  getTenantDetails,
+  updateTenantStatus,
+  getTenantUsageAdmin,
+  extendTenantTrial,
 };

@@ -2,6 +2,7 @@ import StoredWorkflow from '../models/storedWorkflow.model.js';
 import { planWorkflowNode } from '../../composio_v2/ai_classification/nodes.js';
 import ComposioAuth from '../../composio_v2/composio.model.js';
 import { logger } from '../../../../shared/logger.js';
+import { withTenantPipeline } from '../../../helpers/tenantQuery.js';
 
 /**
  * Workflow Storage Service - Analyzes user input and stores workflows without execution
@@ -167,7 +168,7 @@ class WorkflowStorageService {
       let filteredWorkflows = workflows;
       if (tags && tags.length > 0) {
         const searchTags = Array.isArray(tags) ? tags : [tags];
-        filteredWorkflows = workflows.filter(workflow => 
+        filteredWorkflows = workflows.filter(workflow =>
           searchTags.some(tag => (workflow.tags || []).includes(tag))
         );
       }
@@ -381,7 +382,7 @@ class WorkflowStorageService {
 
       // Get latest connected accounts
       const connectedAccounts = await this.getUserConnectedAccounts(userId);
-      
+
       // Update workflow with latest connections
       await workflow.updateConnections(connectedAccounts);
 
@@ -468,7 +469,7 @@ class WorkflowStorageService {
     try {
       // Simple title generation logic
       let title = userInput;
-      
+
       if (title.length > 50) {
         title = title.substring(0, 47) + '...';
       }
@@ -509,11 +510,12 @@ class WorkflowStorageService {
   /**
    * Get workflow statistics for a user
    * @param {string} userId - User ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Object} Statistics
    */
-  async getWorkflowStatistics(userId) {
+  async getWorkflowStatistics(userId, req = null) {
     try {
-      const stats = await StoredWorkflow.aggregate([
+      const pipeline = [
         { $match: { userId } },
         {
           $group: {
@@ -543,7 +545,10 @@ class WorkflowStorageService {
             averageSteps: { $avg: '$totalSteps' }
           }
         }
-      ]);
+      ];
+
+      const tenantPipeline = req ? withTenantPipeline(req, pipeline) : pipeline;
+      const stats = await StoredWorkflow.aggregate(tenantPipeline);
 
       const result = stats[0] || {
         totalWorkflows: 0,

@@ -2,6 +2,7 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
@@ -18,6 +19,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext, // Extract tenant context after auth
   checkDailyRequestLimit,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(DocumentValidation.conversationalRequestSchema),
@@ -31,6 +33,7 @@ router.post(
 router.post(
   '/generate',
   optionalAuth(),
+  extractTenantContext, // Extract tenant context after auth
   // createRateLimiter(20, 15), // 20 generations per 15 minutes
   validateRequest(DocumentValidation.generateDocumentSchema),
   documentController.generateDocument
@@ -42,6 +45,7 @@ router.post(
 router.post(
   '/export',
   optionalAuth(),
+  extractTenantContext, // Extract tenant context after auth
   // createRateLimiter(20, 15), // 20 exports per 15 minutes
   validateRequest(DocumentValidation.exportDocumentSchema),
   documentController.exportDocument
@@ -53,6 +57,7 @@ router.post(
 router.post(
   '/edit',
   optionalAuth(),
+  extractTenantContext, // Extract tenant context after auth
   // createRateLimiter(20, 15), // 20 edits per 15 minutes
   validateRequest(DocumentValidation.editDocumentSchema),
   documentController.editDocument

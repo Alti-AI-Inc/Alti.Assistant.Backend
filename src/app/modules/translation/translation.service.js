@@ -36,7 +36,7 @@ const generateConversationId = () => {
 /**
  * Handle translation conversation (create or retrieve)
  */
-const handleTranslationConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+const handleTranslationConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
   try {
     let conversation;
 
@@ -83,7 +83,7 @@ const handleTranslationConversation = async (userId, conversationId, userMessage
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}) => {
+const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
   try {
     const message = {
       role,
@@ -92,7 +92,7 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message);
+    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
@@ -102,7 +102,7 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
 /**
  * Store uploaded document in conversation with GCS upload
  */
-const storeDocumentInConversation = async (conversationId, userId, fileInfo, extractedText, translationParams = {}) => {
+const storeDocumentInConversation = async (conversationId, userId, fileInfo, extractedText, translationParams = {}, req = null) => {
   try {
     logger.info('Storing translation document in conversation', {
       conversationId,
@@ -147,7 +147,7 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo, ext
     };
 
     // Update conversation documents_metadata
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
     const existingDocuments = conversation.documents_metadata?.documents || [];
 
     await Conversation.updateOne(
@@ -187,9 +187,9 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo, ext
 /**
  * Fetch file from GCS when needed (for re-translation or reference)
  */
-const fetchDocumentFromGCS = async (conversationId, userId, documentId) => {
+const fetchDocumentFromGCS = async (conversationId, userId, documentId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
     const documents = conversation.documents_metadata?.documents || [];
 
     const document = documents.find(doc => doc.id === documentId);
@@ -237,7 +237,8 @@ const processConversationalRequest = async (
   userMessage,
   conversationId = null,
   isGuest = false,
-  uploadedFile = null
+  uploadedFile = null,
+  req = null
 ) => {
   try {
     logger.info('Processing translation request', {
@@ -457,7 +458,7 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
     if (!uploadedFile) {
       logger.info('No new file uploaded, checking conversation for existing files');
 
-      const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+      const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
       const existingDocuments = conversation.documents_metadata?.documents || [];
 
       if (existingDocuments.length === 0) {

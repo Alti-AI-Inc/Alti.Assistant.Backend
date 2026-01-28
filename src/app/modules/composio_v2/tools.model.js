@@ -22,7 +22,15 @@ const ToolSchema = mongoose.Schema({
     type: [Number],
     required: false
     // Note: Vector index should be created in MongoDB Atlas, not here
-  }
+  },
+
+  // Multi-tenant support
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
+    default: null,
+    index: true,
+  },
 }, {
   strict: false // Allow additional fields that might come from Composio
 });

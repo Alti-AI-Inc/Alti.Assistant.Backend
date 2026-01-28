@@ -50,10 +50,15 @@ import { legalContractRoutes } from '../modules/legal_contract/legal_contract.ro
 import { legalContractReviewRoutes } from '../modules/legal_contract_review/legal_contract_review.route.js';
 import { creativeWritingRoutes } from '../modules/creative_writing/creative_writing.route.js';
 import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
+import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/tenant',
+    route: tenantRoutes,
+  },
   {
     path: '/admin',
     route: adminRoutes,

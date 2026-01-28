@@ -35,13 +35,13 @@ const generateConversationId = () => {
 /**
  * Handle brainstorm conversation (create or retrieve)
  */
-const handleBrainstormConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+const handleBrainstormConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found, creating new one`);
@@ -64,7 +64,8 @@ const handleBrainstormConversation = async (userId, conversationId, userMessage,
             brainstormData: {},
           },
         },
-        newConversationId
+        newConversationId,
+        req
       );
 
       logger.info(`Created new brainstorm conversation ${newConversationId} for user ${userId}`);
@@ -80,7 +81,7 @@ const handleBrainstormConversation = async (userId, conversationId, userMessage,
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}) => {
+const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
   try {
     const message = {
       role,
@@ -89,7 +90,7 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message);
+    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
@@ -99,15 +100,15 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
 /**
  * Process conversational brainstorm request
  */
-const processConversationalBrainstorm = async (userId, message, conversationId = null) => {
+const processConversationalBrainstorm = async (userId, message, conversationId = null, req = null) => {
   try {
     const isGuest = !userId || userId.startsWith('guest_');
 
     // Handle conversation
-    const conversation = await handleBrainstormConversation(userId, conversationId, message, isGuest);
+    const conversation = await handleBrainstormConversation(userId, conversationId, message, isGuest, req);
 
     // Add user message
-    await addMessage(conversation.conversationId, userId, 'user', message);
+    await addMessage(conversation.conversationId, userId, 'user', message, {}, req);
 
     // Get conversation history
     const conversationHistory = conversation.messages || [];
@@ -176,7 +177,7 @@ const processConversationalBrainstorm = async (userId, message, conversationId =
       await addMessage(conversation.conversationId, userId, 'assistant', clarificationMessage, {
         intent: intentAnalysis.intent,
         needsMoreInfo: true,
-      });
+      }, req);
 
       return {
         success: true,
@@ -198,7 +199,7 @@ const processConversationalBrainstorm = async (userId, message, conversationId =
       const needIdeaMessage = RESPONSE_MESSAGES.NEED_IDEA;
       await addMessage(conversation.conversationId, userId, 'assistant', needIdeaMessage, {
         needsIdea: true,
-      });
+      }, req);
 
       return {
         success: true,
@@ -229,7 +230,7 @@ const processConversationalBrainstorm = async (userId, message, conversationId =
     // Update conversation metadata with collected params
     await conversationService.updateConversationMetadata(conversation.conversationId, userId, {
       collectedParams: brainstormParams,
-    });
+    }, req);
 
     let brainstormData;
     let formattedResponse;
@@ -272,13 +273,13 @@ const processConversationalBrainstorm = async (userId, message, conversationId =
     // Store brainstorm data in conversation metadata
     await conversationService.updateConversationMetadata(conversation.conversationId, userId, {
       brainstormData: brainstormData,
-    });
+    }, req);
 
     // Add assistant response
     await addMessage(conversation.conversationId, userId, 'assistant', formattedResponse, {
       intent: intentAnalysis.intent,
       brainstormParams,
-    });
+    }, req);
 
     return {
       success: true,
@@ -300,7 +301,7 @@ const processConversationalBrainstorm = async (userId, message, conversationId =
 /**
  * Generate structured brainstorm with explicit parameters
  */
-const generateStructuredBrainstorm = async (userId, params) => {
+const generateStructuredBrainstorm = async (userId, params, req = null) => {
   try {
     const isGuest = !userId || userId.startsWith('guest_');
 
@@ -351,14 +352,15 @@ const generateStructuredBrainstorm = async (userId, params) => {
           ideaAnalysis,
         },
       },
-      conversationId
+      conversationId,
+      req
     );
 
     // Add messages
-    await addMessage(conversationId, userId, 'user', `Brainstorm idea: ${params.idea}`);
+    await addMessage(conversationId, userId, 'user', `Brainstorm idea: ${params.idea}`, {}, req);
     await addMessage(conversationId, userId, 'assistant', formattedResponse, {
       brainstormParams,
-    });
+    }, req);
 
     return {
       success: true,
@@ -380,9 +382,9 @@ const generateStructuredBrainstorm = async (userId, params) => {
 /**
  * Get conversation history
  */
-const getConversationHistory = async (conversationId, userId) => {
+const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -408,9 +410,9 @@ const getConversationHistory = async (conversationId, userId) => {
 /**
  * Export brainstorm session
  */
-const exportBrainstormSession = async (conversationId, userId, format = 'markdown', includeHistory = true) => {
+const exportBrainstormSession = async (conversationId, userId, format = 'markdown', includeHistory = true, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -459,9 +461,9 @@ const exportBrainstormSession = async (conversationId, userId, format = 'markdow
 /**
  * Refine existing brainstorm
  */
-const refineBrainstorm = async (conversationId, userId, message, focusOn = []) => {
+const refineBrainstorm = async (conversationId, userId, message, focusOn = [], req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -475,7 +477,7 @@ const refineBrainstorm = async (conversationId, userId, message, focusOn = []) =
     }
 
     // Add user refinement message
-    await addMessage(conversationId, userId, 'user', message);
+    await addMessage(conversationId, userId, 'user', message, {}, req);
 
     // Generate refinement
     const refinementData = await brainstormEngine.refineIdea(originalIdea, message, focusOn);
@@ -485,7 +487,7 @@ const refineBrainstorm = async (conversationId, userId, message, focusOn = []) =
     await addMessage(conversationId, userId, 'assistant', formattedResponse, {
       intent: BRAINSTORM_INTENTS.REFINE_IDEA,
       focusOn,
-    });
+    }, req);
 
     return {
       success: true,

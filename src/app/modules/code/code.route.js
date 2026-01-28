@@ -6,6 +6,7 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { codeController } from './code.controller.js';
 import { CodeValidation } from './code.validation.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
 const router = express.Router();
 
@@ -24,6 +25,7 @@ router.post(
 router.get(
   '/stats',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), // Keep regular auth for stats
+  extractTenantContext,
   codeController.getCodeStats
 );
 

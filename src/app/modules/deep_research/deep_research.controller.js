@@ -18,7 +18,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
         const promptUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
         if (promptUsage <= totalConversationWithConvId) {
             return sendResponse(res, {
@@ -49,7 +49,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await deepResearchService.handleDeepResearchConversation(userId, conversationId, message, isGuest);
+        const conversation = await deepResearchService.handleDeepResearchConversation(userId, conversationId, message, isGuest, req);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Get conversation history for context-aware processing
@@ -65,7 +65,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
         }
 
         // Add user message to conversation
-        await deepResearchService.addDeepResearchQueryMessage(actualConversationId, userId, message, isGuest);
+        await deepResearchService.addDeepResearchQueryMessage(actualConversationId, userId, message, isGuest, req);
 
         console.log(`Starting deep research for query: "${message}"`);
 
@@ -98,15 +98,15 @@ export const performDeepResearch = catchAsync(async (req, res) => {
             searchTimestamp: new Date().toISOString()
         };
 
-        await deepResearchService.addDeepResearchResultMessage(actualConversationId, userId, result.answer, messageMetadata, isGuest);
+        await deepResearchService.addDeepResearchResultMessage(actualConversationId, userId, result.answer, messageMetadata, isGuest, req);
 
         // Prepare response
         const response = {
             success: true,
             // query: result.query,
-            
+
             // classification: result.classification,
-            
+
             responseMessage: {
                 answer: result.answer,
                 reference: result.sources,
@@ -141,7 +141,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
 
     } catch (error) {
         logger.error("Deep Research API Error:", error);
-        
+
         // Try to save error message to conversation if possible
         const errorConversationId = conversationId || deepResearchService.generateDeepResearchConversationId();
         try {
@@ -151,18 +151,19 @@ export const performDeepResearch = catchAsync(async (req, res) => {
                     userId,
                     'I apologize, but an error occurred while processing your deep research request.',
                     error,
-                    isGuest
+                    isGuest,
+                    req
                 );
             }
         } catch (convError) {
             logger.error("Failed to save error to conversation:", convError);
         }
-        
+
         return sendResponse(res, {
             statusCode: httpStatus.INTERNAL_SERVER_ERROR,
             success: false,
             message: 'An internal error occurred while processing your deep research',
-            data: { 
+            data: {
                 conversationId: errorConversationId,
                 userType: isGuest ? 'guest' : 'authenticated',
             },
@@ -175,7 +176,7 @@ export const performDeepResearch = catchAsync(async (req, res) => {
  */
 const getDeepResearchStats = catchAsync(async (req, res) => {
     const isGuest = req.isGuest || !req.user;
-    
+
     if (isGuest) {
         return sendResponse(res, {
             statusCode: httpStatus.UNAUTHORIZED,
@@ -194,7 +195,7 @@ const getDeepResearchStats = catchAsync(async (req, res) => {
         });
     }
 
-    const stats = await deepResearchService.getDeepResearchStats(userId);
+    const stats = await deepResearchService.getDeepResearchStats(userId, req);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -213,7 +214,7 @@ const downloadPDF = catchAsync(async (req, res) => {
     // TODO: Implement PDF download logic
     // This should retrieve the PDF from storage using the savedId
     // For now, return a placeholder response
-    
+
     return sendResponse(res, {
         statusCode: httpStatus.NOT_IMPLEMENTED,
         success: false,

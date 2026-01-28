@@ -5,6 +5,7 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { reportController } from './report.controller.js';
 import { ReportValidation } from './report.validation.js';
 import { uploadReportFiles } from './middlewares/uploadReportFiles.js';
@@ -19,6 +20,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext,
   checkDailyRequestLimit,
   uploadReportFiles,
   // createRateLimiter(20, 15), // 20 requests per 15 minutes
@@ -33,6 +35,7 @@ router.post(
 router.post(
   '/generate',
   optionalAuth(),
+  extractTenantContext,
   // createRateLimiter(10, 15), // 10 generations per 15 minutes
   validateRequest(ReportValidation.generateReportSchema),
   reportController.generateReport

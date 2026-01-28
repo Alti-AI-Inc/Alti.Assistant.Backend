@@ -52,17 +52,17 @@ export const generateImage = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await imageService.handleImageConversation(userId, conversationId, message, isGuest);
+        const conversation = await imageService.handleImageConversation(userId, conversationId, message, isGuest, req);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Add user message to conversation
-        await imageService.addImageQueryMessage(actualConversationId, userId, message, isGuest);
+        await imageService.addImageQueryMessage(actualConversationId, userId, message, isGuest, req);
 
         // Determine if this is the first message or a subsequent message
         const isFirstMessage = conversation.messageCount === 0 || !conversationId;
-        
+
         logger.info(`Image generation for conversation ${actualConversationId}: isFirstMessage=${isFirstMessage}, messageCount=${conversation.messageCount}`);
-        
+
         let inputs;
         if (isFirstMessage) {
             // For first message, use initialPrompt
@@ -85,14 +85,14 @@ export const generateImage = catchAsync(async (req, res) => {
                 }
             };
         }
-        
+
         const result = await imageAssistantApp.invoke(inputs, { configurable: { thread_id: actualConversationId } });
         logger.info(`Image Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
-        
+
         let fullResponse = "";
         let imageData = null;
         // console.log(`Image Assistant Result: ${JSON.stringify(result)}`);
-        
+
         // Handle different response types from the image assistant
         if (result.imageUrl) {
             // If images were generated
@@ -108,14 +108,15 @@ export const generateImage = catchAsync(async (req, res) => {
 
         // Add assistant response to conversation
         await imageService.addImageResultMessage(
-            actualConversationId, 
-            userId, 
-            fullResponse, 
-            { 
+            actualConversationId,
+            userId,
+            fullResponse,
+            {
                 images: imageData,
-                preferences: inputs.preferences 
-            }, 
-            isGuest
+                preferences: inputs.preferences
+            },
+            isGuest,
+            req
         );
 
         return sendResponse(res, {
@@ -136,7 +137,7 @@ export const generateImage = catchAsync(async (req, res) => {
 
     } catch (error) {
         logger.error("Image Assistant Error:", error);
-        
+
         // Try to save error message to conversation if possible
         const errorConversationId = conversationId || imageService.generateImageConversationId();
         try {
@@ -146,18 +147,19 @@ export const generateImage = catchAsync(async (req, res) => {
                     userId,
                     imageHelpers.formatErrorMessage(error, message),
                     error,
-                    isGuest
+                    isGuest,
+                    req
                 );
             }
         } catch (convError) {
             logger.error("Failed to save error to conversation:", convError);
         }
-        
+
         return sendResponse(res, {
             statusCode: httpStatus.INTERNAL_SERVER_ERROR,
             success: false,
             message: 'An internal error occurred while processing your image request',
-            data: { 
+            data: {
                 conversationId: errorConversationId,
                 userType: isGuest ? 'guest' : 'authenticated',
             },
@@ -178,7 +180,7 @@ export const analyzeImage = catchAsync(async (req, res) => {
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
         const promptUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
         if (promptUsage <= totalConversationWithConvId) {
             return sendResponse(res, {
@@ -220,24 +222,26 @@ export const analyzeImage = catchAsync(async (req, res) => {
     try {
         // Handle conversation creation/retrieval
         const conversation = await imageService.handleImageConversation(
-            userId, 
-            conversationId, 
-            message || 'Image analysis request', 
-            isGuest
+            userId,
+            conversationId,
+            message || 'Image analysis request',
+            isGuest,
+            req
         );
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Add user message to conversation
         await imageService.addImageQueryMessage(
-            actualConversationId, 
-            userId, 
-            `${message || 'Analyze this image'} [Image attached]`, 
-            isGuest
+            actualConversationId,
+            userId,
+            `${message || 'Analyze this image'} [Image attached]`,
+            isGuest,
+            req
         );
 
         // Determine if this is the first message or a subsequent message
         const isFirstMessage = conversation.messageCount === 0 || !conversationId;
-        
+
         let inputs;
         if (isFirstMessage) {
             // For first message, use initialPrompt
@@ -254,22 +258,23 @@ export const analyzeImage = catchAsync(async (req, res) => {
                 analysisType: 'analyze'
             };
         }
-        
+
         const result = await imageAssistantApp.invoke(inputs, { configurable: { thread_id: actualConversationId } });
         logger.info(`Image Analysis Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
-        
+
         const fullResponse = result.response || "Image analysis completed";
 
         // Add assistant response to conversation
         await imageService.addImageResultMessage(
-            actualConversationId, 
-            userId, 
-            fullResponse, 
-            { 
+            actualConversationId,
+            userId,
+            fullResponse,
+            {
                 analysisType: 'image_analysis',
-                originalImage: validation.type === 'url' ? imageData : '[Base64 Image Data]' 
-            }, 
-            isGuest
+                originalImage: validation.type === 'url' ? imageData : '[Base64 Image Data]'
+            },
+            isGuest,
+            req
         );
 
         return sendResponse(res, {
@@ -289,7 +294,7 @@ export const analyzeImage = catchAsync(async (req, res) => {
 
     } catch (error) {
         logger.error("Image Analysis Error:", error);
-        
+
         // Try to save error message to conversation if possible
         const errorConversationId = conversationId || imageService.generateImageConversationId();
         try {
@@ -299,18 +304,19 @@ export const analyzeImage = catchAsync(async (req, res) => {
                     userId,
                     imageHelpers.formatErrorMessage(error, message || 'Image analysis'),
                     error,
-                    isGuest
+                    isGuest,
+                    req
                 );
             }
         } catch (convError) {
             logger.error("Failed to save error to conversation:", convError);
         }
-        
+
         return sendResponse(res, {
             statusCode: httpStatus.INTERNAL_SERVER_ERROR,
             success: false,
             message: 'An internal error occurred while analyzing your image',
-            data: { 
+            data: {
                 conversationId: errorConversationId,
                 userType: isGuest ? 'guest' : 'authenticated',
             },
@@ -323,7 +329,7 @@ export const analyzeImage = catchAsync(async (req, res) => {
  */
 const getImageStats = catchAsync(async (req, res) => {
     const isGuest = req.isGuest || !req.user;
-    
+
     if (isGuest) {
         return sendResponse(res, {
             statusCode: httpStatus.UNAUTHORIZED,
@@ -342,7 +348,7 @@ const getImageStats = catchAsync(async (req, res) => {
         });
     }
 
-    const stats = await imageService.getImageStats(userId);
+    const stats = await imageService.getImageStats(userId, req);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -370,13 +376,13 @@ const getImageConversation = catchAsync(async (req, res) => {
 
     try {
         let conversation;
-        
+
         if (isGuest) {
             // For guest users, get the conversation without user verification
-            conversation = await imageService.getGuestConversation(conversationId);
+            conversation = await imageService.getGuestConversation(conversationId, null, req);
         } else {
             // For authenticated users, verify ownership
-            conversation = await conversationHelpers.getConversationById(conversationId, userId);
+            conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
         }
 
         sendResponse(res, {
@@ -390,7 +396,7 @@ const getImageConversation = catchAsync(async (req, res) => {
         });
     } catch (error) {
         logger.error("Error retrieving image conversation:", error);
-        
+
         return sendResponse(res, {
             statusCode: httpStatus.NOT_FOUND,
             success: false,
@@ -414,7 +420,7 @@ const getGuestConversations = catchAsync(async (req, res) => {
     }
 
     try {
-        const conversations = await imageService.getGuestConversations(guestUserId);
+        const conversations = await imageService.getGuestConversations(guestUserId, req);
 
         sendResponse(res, {
             statusCode: httpStatus.OK,
@@ -429,7 +435,7 @@ const getGuestConversations = catchAsync(async (req, res) => {
         });
     } catch (error) {
         logger.error("Error retrieving guest conversations:", error);
-        
+
         return sendResponse(res, {
             statusCode: httpStatus.INTERNAL_SERVER_ERROR,
             success: false,

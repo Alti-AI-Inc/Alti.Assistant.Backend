@@ -30,7 +30,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -128,7 +128,7 @@ export const generateDocument = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await documentService.generateDocument(params, userId, isGuest);
+    const result = await documentService.generateDocument(params, userId, isGuest, req);
 
     logger.info('Document generated successfully', {
       userId,

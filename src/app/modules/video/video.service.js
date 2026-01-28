@@ -12,7 +12,7 @@ const generateVideoConversationId = () => {
   return `vid-conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-const handleVideoConversation = async (userId, conversationId, videoQuery, isGuest = false) => {
+const handleVideoConversation = async (userId, conversationId, videoQuery, isGuest = false, req = null) => {
   try {
     let conversation;
 
@@ -45,7 +45,7 @@ const handleVideoConversation = async (userId, conversationId, videoQuery, isGue
         },
         is_video_assistant: true,
       };
-      conversation = await conversationService.createConversation(base, newConversationId);
+      conversation = await conversationService.createConversation(base, newConversationId, req);
       logger.info(`Created video conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`);
     }
 
@@ -56,7 +56,7 @@ const handleVideoConversation = async (userId, conversationId, videoQuery, isGue
   }
 };
 
-const addVideoQueryMessage = async (conversationId, userId, videoQuery, isGuest = false) => {
+const addVideoQueryMessage = async (conversationId, userId, videoQuery, isGuest = false, req = null) => {
   try {
     const message = await conversationService.addMessageToConversation(conversationId, userId, {
       role: 'user',
@@ -74,7 +74,7 @@ const addVideoQueryMessage = async (conversationId, userId, videoQuery, isGuest 
   }
 };
 
-const addVideoResultMessage = async (conversationId, userId, content, metadata = {}, isGuest = false) => {
+const addVideoResultMessage = async (conversationId, userId, content, metadata = {}, isGuest = false, req = null) => {
   try {
     const message = await conversationService.addMessageToConversation(conversationId, userId, {
       role: 'assistant',
@@ -94,7 +94,7 @@ const addVideoResultMessage = async (conversationId, userId, content, metadata =
   }
 };
 
-const addErrorMessage = async (conversationId, userId, errorMessage, error, isGuest = false) => {
+const addErrorMessage = async (conversationId, userId, errorMessage, error, isGuest = false, req = null) => {
   try {
     return await conversationService.addMessageToConversation(conversationId, userId, {
       role: 'assistant',
@@ -114,7 +114,7 @@ const addErrorMessage = async (conversationId, userId, errorMessage, error, isGu
   }
 };
 
-const getGuestConversations = async (guestUserId) => {
+const getGuestConversations = async (guestUserId, req = null) => {
   try {
     const conversations = await conversationHelpers.getUserConversations(guestUserId, {
       category: 'video',
@@ -127,9 +127,9 @@ const getGuestConversations = async (guestUserId) => {
   }
 };
 
-const getGuestConversation = async (conversationId) => {
+const getGuestConversation = async (conversationId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, req);
     if (conversation && conversation.metadata?.userType === 'guest') return conversation;
     throw new ApiError(httpStatus.NOT_FOUND, 'Guest conversation not found');
   } catch (error) {
@@ -138,7 +138,7 @@ const getGuestConversation = async (conversationId) => {
   }
 };
 
-const getVideoStats = async (userId) => {
+const getVideoStats = async (userId, req = null) => {
   try {
     const videoConversations = await conversationHelpers.getUserConversations(userId, {
       category: 'video',

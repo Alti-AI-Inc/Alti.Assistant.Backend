@@ -5,6 +5,7 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { presentationController } from './presentation.controller.js';
 import { PresentationValidation } from './presentation.validation.js';
 
@@ -18,6 +19,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext,
   checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 requests per 15 minutes
   validateRequest(PresentationValidation.conversationalRequestSchema),
@@ -31,6 +33,7 @@ router.post(
 router.post(
   '/generate',
   optionalAuth(),
+  extractTenantContext,
   // createRateLimiter(10, 15), // 10 generations per 15 minutes
   validateRequest(PresentationValidation.generatePresentationSchema),
   presentationController.generatePresentation
@@ -42,6 +45,7 @@ router.post(
 router.get(
   '/status/:taskId',
   optionalAuth(),
+  extractTenantContext,
   validateRequest(PresentationValidation.checkStatusSchema),
   presentationController.checkTaskStatus
 );

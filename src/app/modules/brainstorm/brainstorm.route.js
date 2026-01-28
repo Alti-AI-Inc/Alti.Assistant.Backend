@@ -7,6 +7,7 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { brainstormController } from './brainstorm.controller.js';
 import { BrainstormValidation } from './brainstorm.validation.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext,
   checkDailyRequestLimit,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(BrainstormValidation.conversationalBrainstormSchema),
@@ -31,6 +33,7 @@ router.post(
 router.post(
   '/generate',
   optionalAuth(),
+  extractTenantContext,
   // createRateLimiter(20, 15), // 20 requests per 15 minutes
   validateRequest(BrainstormValidation.structuredBrainstormSchema),
   brainstormController.generateBrainstorm
@@ -42,6 +45,7 @@ router.post(
 router.get(
   '/conversation/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(BrainstormValidation.getConversationHistorySchema),
   brainstormController.getConversationHistory
 );
@@ -52,6 +56,7 @@ router.get(
 router.post(
   '/export',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   // createRateLimiter(10, 15), // 10 exports per 15 minutes
   validateRequest(BrainstormValidation.exportBrainstormSchema),
   brainstormController.exportBrainstorm
@@ -63,6 +68,7 @@ router.post(
 router.post(
   '/refine',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   // createRateLimiter(20, 15), // 20 refinements per 15 minutes
   validateRequest(BrainstormValidation.refineBrainstormSchema),
   brainstormController.refineBrainstorm

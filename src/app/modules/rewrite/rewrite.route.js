@@ -8,6 +8,7 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { rewriteController } from './rewrite.controller.js';
 import { RewriteValidation } from './rewrite.validation.js';
 import { uploadRewrite } from './middlewares/uploadRewrite.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext,
   checkDailyRequestLimit,
   uploadRewrite.single('file'),
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
@@ -33,6 +35,7 @@ router.post(
 router.post(
   '/rewrite',
   optionalAuth(),
+  extractTenantContext,
   uploadRewrite.single('file'),
   // createRateLimiter(20, 15), // 20 rewrites per 15 minutes
   validateRequest(RewriteValidation.rewriteContentSchema),
@@ -45,6 +48,7 @@ router.post(
 router.get(
   '/conversation/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(RewriteValidation.getConversationHistorySchema),
   rewriteController.getConversationHistory
 );

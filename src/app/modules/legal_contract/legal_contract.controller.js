@@ -43,7 +43,7 @@ const conversationalAssistant = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -143,7 +143,7 @@ const generateContract = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await legalContractService.generateContractDirect(params, userId, isGuest);
+    const result = await legalContractService.generateContractDirect(params, userId, isGuest, req);
 
     logger.info('Direct contract generation successful:', {
       conversationId: result.conversationId,
@@ -179,7 +179,7 @@ const getConversationHistory = catchAsync(async (req, res) => {
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
-    const result = await legalContractService.getConversationHistory(conversationId, userId);
+    const result = await legalContractService.getConversationHistory(conversationId, userId, req);
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -208,7 +208,7 @@ const downloadContract = catchAsync(async (req, res) => {
   logger.info(`Download contract request: ${conversationId}, format: ${format}`);
 
   try {
-    const conversation = await legalContractService.getConversationHistory(conversationId, userId);
+    const conversation = await legalContractService.getConversationHistory(conversationId, userId, req);
 
     if (!conversation.metadata?.generatedContract) {
       return sendResponse(res, {
@@ -257,7 +257,7 @@ const modifyContract = catchAsync(async (req, res) => {
 
   try {
     // Get existing conversation
-    const conversation = await legalContractService.getConversationHistory(conversationId, userId);
+    const conversation = await legalContractService.getConversationHistory(conversationId, userId, req);
 
     if (!conversation.metadata?.generatedContract) {
       return sendResponse(res, {

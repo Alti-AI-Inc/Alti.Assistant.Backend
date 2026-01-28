@@ -4,6 +4,7 @@ import path from 'path';
 import { knowledgebaseController } from './knowledgebase.controller.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
 const router = express.Router();
 
@@ -31,15 +32,15 @@ const upload = multer({
 });
 
 // Routes
-router.post('/create', auth(), knowledgebaseController.createKnowledgeBase);
-router.get('/list', auth(), knowledgebaseController.getUserKnowledgeBases);
+router.post('/create', auth(), extractTenantContext, knowledgebaseController.createKnowledgeBase);
+router.get('/list', auth(), extractTenantContext, knowledgebaseController.getUserKnowledgeBases);
 router.post('/upload', optionalAuth(), upload.any(), knowledgebaseController.uploadFile);
-router.get('/files', auth(), knowledgebaseController.getUserFiles);
-router.delete('/files/:fileId', auth(), knowledgebaseController.deleteFile);
-router.delete('/:knowledgebaseId', auth(), knowledgebaseController.deleteKnowledgeBase);
+router.get('/files', auth(), extractTenantContext, knowledgebaseController.getUserFiles);
+router.delete('/files/:fileId', auth(), extractTenantContext, knowledgebaseController.deleteFile);
+router.delete('/:knowledgebaseId', auth(), extractTenantContext, knowledgebaseController.deleteKnowledgeBase);
 router.post('/invoke-rag', optionalAuth(), knowledgebaseController.invokeRagSystem);
-router.post('/chat', auth(), knowledgebaseController.chatWithKnowledgeBase);
-router.get('/:knowledgebaseId/conversations', auth(), knowledgebaseController.getKnowledgeBaseConversations);
-router.get('/conversations/:conversationId/messages', auth(), knowledgebaseController.getConversationMessages);
+router.post('/chat', auth(), extractTenantContext, knowledgebaseController.chatWithKnowledgeBase);
+router.get('/:knowledgebaseId/conversations', auth(), extractTenantContext, knowledgebaseController.getKnowledgeBaseConversations);
+router.get('/conversations/:conversationId/messages', auth(), extractTenantContext, knowledgebaseController.getConversationMessages);
 
 export default router;

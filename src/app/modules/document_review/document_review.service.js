@@ -39,13 +39,13 @@ const generateConversationId = () => {
 /**
  * Handle document review conversation (create or retrieve)
  */
-const handleDocumentReviewConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+const handleDocumentReviewConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found, creating new one`);
@@ -68,7 +68,8 @@ const handleDocumentReviewConversation = async (userId, conversationId, userMess
             uploadedFiles: [],
           },
         },
-        newConversationId
+        newConversationId,
+        req
       );
 
       logger.info(`Created new document review conversation ${newConversationId} for user ${userId}`);
@@ -84,7 +85,7 @@ const handleDocumentReviewConversation = async (userId, conversationId, userMess
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false) => {
+const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false, req = null) => {
   try {
     const message = {
       role,
@@ -93,7 +94,7 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message);
+    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
@@ -103,11 +104,11 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
 /**
  * Update conversation metadata
  */
-const updateConversationMetadata = async (conversationId, userId, params) => {
+const updateConversationMetadata = async (conversationId, userId, params, req = null) => {
   try {
     await conversationService.updateConversationMetadata(conversationId, userId, {
       collectedParams: params,
-    });
+    }, req);
   } catch (error) {
     logger.warn('Error updating conversation metadata:', error);
   }
@@ -116,7 +117,7 @@ const updateConversationMetadata = async (conversationId, userId, params) => {
 /**
  * Store uploaded document in conversation metadata with text extraction and GCS upload
  */
-const storeDocumentInConversation = async (conversationId, userId, fileInfo) => {
+const storeDocumentInConversation = async (conversationId, userId, fileInfo, req = null) => {
   try {
     logger.info('Storing document in conversation', {
       conversationId,
@@ -158,7 +159,7 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo) => 
     };
 
     // 4. Update conversation metadata
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation.metadata.documents) {
       conversation.metadata.documents = [];
@@ -416,7 +417,7 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
       confidence: analysis.confidence,
       parameters: analysis.parameters,
     });
-    const updatedConversation = await conversationHelpers.getConversationById(actualConversationId, userId);
+    const updatedConversation = await conversationHelpers.getConversationById(actualConversationId, userId, req);
     console.log('Updated Conversation Metadata:', updatedConversation.metadata);
     // Merge parameters
     const updatedParams = {
@@ -428,7 +429,7 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
     console.log('Updated Params:', updatedParams);
 
     // Update metadata with collected parameters
-    await updateConversationMetadata(actualConversationId, userId, updatedParams);
+    await updateConversationMetadata(actualConversationId, userId, updatedParams, req);
 
     // Perform document review using cached document data
     const reviewResult = await performDocumentReview(
@@ -471,7 +472,7 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 /**
  * Direct review endpoint (non-conversational)
  */
-const reviewDocument = async (fileInfo, reviewParams, userId, isGuest = false) => {
+const reviewDocument = async (fileInfo, reviewParams, userId, isGuest = false, req = null) => {
   try {
     logger.info('Direct document review request', {
       filename: fileInfo.originalName,

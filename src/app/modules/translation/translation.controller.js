@@ -39,7 +39,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       });
       const promptUsage = userSubscription ? userSubscription.usage : 0;
       const totalConversationWithConvId = conversationId
-        ? await conversationHelpers.getConversationById(conversationId, userId)
+        ? await conversationHelpers.getConversationById(conversationId, userId, req)
         : 0;
 
       if (promptUsage <= totalConversationWithConvId) {
@@ -77,7 +77,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       message,
       conversationId,
       isGuest,
-      uploadedFile
+      uploadedFile,
+      req
     );
 
     logger.info('Translation assistant response:', {

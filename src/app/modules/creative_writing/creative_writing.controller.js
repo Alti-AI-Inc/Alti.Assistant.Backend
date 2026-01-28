@@ -36,7 +36,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -70,7 +70,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       userId,
       message,
       conversationId,
-      isGuest
+      isGuest,
+      req
     );
 
     logger.info('Creative writing assistant response:', {
@@ -113,7 +114,7 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   });
 
   try {
-    const conversation = await creativeWritingService.getConversationHistory(conversationId, userId);
+    const conversation = await creativeWritingService.getConversationHistory(conversationId, userId, req);
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,

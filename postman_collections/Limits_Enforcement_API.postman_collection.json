@@ -1,0 +1,685 @@
+{
+  "info": {
+    "name": "Limits Enforcement API",
+    "description": "Test suite for API call limits, storage limits, and user limits enforcement",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "limits-enforce-001"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{ownerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. API Call Limits",
+      "item": [
+        {
+          "name": "TC-020: Make API Call Under Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('Request successful', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/conversations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Conversation\",\n  \"category\": \"general\"\n}"
+            }
+          }
+        },
+        {
+          "name": "TC-021: Rapid API Calls (Loop Test)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// This test should be run in a loop to test limits",
+                  "var counter = pm.environment.get('apiCallCounter') || 0;",
+                  "counter++;",
+                  "pm.environment.set('apiCallCounter', counter);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var counter = pm.environment.get('apiCallCounter');",
+                  "",
+                  "if (counter < 1000) {",
+                  "    pm.test('Status code is 200', function () {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Status code is 429 (limit reached)', function () {",
+                  "        pm.response.to.have.status(429);",
+                  "    });",
+                  "    ",
+                  "    pm.test('Error message indicates limit reached', function () {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.message.toLowerCase()).to.include('limit');",
+                  "        pm.expect(jsonData.data).to.have.property('limitType');",
+                  "        pm.expect(jsonData.data.limitType).to.equal('api_call');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Test message {{apiCallCounter}}\",\n  \"role\": \"user\"\n}"
+            }
+          }
+        },
+        {
+          "name": "TC-022: API Call Over Limit (429 Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 429', function () {",
+                  "    pm.response.to.have.status(429);",
+                  "});",
+                  "",
+                  "pm.test('Error includes usage data', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('used');",
+                  "    pm.expect(jsonData.data).to.have.property('limit');",
+                  "    pm.expect(jsonData.data).to.have.property('plan');",
+                  "    pm.expect(jsonData.data.used).to.be.at.least(jsonData.data.limit);",
+                  "});",
+                  "",
+                  "pm.test('Error message is clear', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('API call limit reached');",
+                  "    pm.expect(jsonData.message).to.include('upgrade');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/conversations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should fail - limit reached\",\n  \"category\": \"general\"\n}"
+            }
+          }
+        },
+        {
+          "name": "TC-023: Get Current Usage",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('API calls usage at or over limit', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var apiCalls = jsonData.data.apiCalls;",
+                  "    pm.expect(apiCalls.used).to.be.at.least(apiCalls.limit);",
+                  "    pm.expect(apiCalls.percentage).to.be.at.least(100);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/tenant/usage"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Storage Limits",
+      "item": [
+        {
+          "name": "TC-024: Upload File Under Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('File uploaded successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('fileSize');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/plan-generator/assistant",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/test-file-1mb.pdf"
+                },
+                {
+                  "key": "request",
+                  "value": "Generate a plan from this document",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-025: Upload Large File (10MB)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('Storage usage tracked', function () {",
+                  "    // Verify via GET /tenant/usage after upload",
+                  "    pm.sendRequest({",
+                  "        url: pm.environment.get('baseUrl') + '/tenant/usage',",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Authorization': 'Bearer ' + pm.environment.get('ownerToken')",
+                  "        }",
+                  "    }, function (err, response) {",
+                  "        var data = response.json();",
+                  "        pm.expect(data.data.storage.used).to.be.greaterThan(0);",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/plan-generator/assistant",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/test-file-10mb.pdf"
+                },
+                {
+                  "key": "request",
+                  "value": "Analyze this large document",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-026: Upload Over Storage Limit (413 Error)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// This test assumes storage is near 5GB limit",
+                  "// Upload a 1GB file to exceed limit"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 413', function () {",
+                  "    pm.response.to.have.status(413);",
+                  "});",
+                  "",
+                  "pm.test('Error includes storage data', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('limitType');",
+                  "    pm.expect(jsonData.data.limitType).to.equal('storage');",
+                  "    pm.expect(jsonData.data).to.have.property('used');",
+                  "    pm.expect(jsonData.data).to.have.property('fileSize');",
+                  "    pm.expect(jsonData.data).to.have.property('limit');",
+                  "});",
+                  "",
+                  "pm.test('Error message shows formatted sizes', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('GB');",
+                  "    pm.expect(jsonData.message).to.include('Storage limit');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/plan-generator/assistant",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/test-file-1gb.pdf"
+                },
+                {
+                  "key": "request",
+                  "value": "This should fail",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-027: Check Storage Usage",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Storage usage near or at limit', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var storage = jsonData.data.storage;",
+                  "    pm.expect(storage).to.have.property('usedFormatted');",
+                  "    pm.expect(storage).to.have.property('limitFormatted');",
+                  "    pm.expect(storage.percentage).to.be.at.least(80);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/tenant/usage"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. User Limits",
+      "item": [
+        {
+          "name": "TC-028: Invite User Under Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Invitation created', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/tenant/members/invite",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user{{$randomInt}}@test.com\",\n  \"role\": \"member\"\n}"
+            }
+          }
+        },
+        {
+          "name": "TC-029: Invite Multiple Users",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Track how many users invited",
+                  "var counter = pm.environment.get('userInviteCounter') || 0;",
+                  "counter++;",
+                  "pm.environment.set('userInviteCounter', counter);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var counter = pm.environment.get('userInviteCounter');",
+                  "",
+                  "if (counter < 5) {",
+                  "    pm.test('Status code is 201', function () {",
+                  "        pm.response.to.have.status(201);",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Status code is 403 (user limit)', function () {",
+                  "        pm.response.to.have.status(403);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/tenant/members/invite",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user{{userInviteCounter}}@test.com\",\n  \"role\": \"member\"\n}"
+            }
+          }
+        },
+        {
+          "name": "TC-030: Invite Over User Limit (403 Error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Error includes user limit data', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('limitType');",
+                  "    pm.expect(jsonData.data.limitType).to.equal('user');",
+                  "    pm.expect(jsonData.data).to.have.property('used');",
+                  "    pm.expect(jsonData.data).to.have.property('limit');",
+                  "    pm.expect(jsonData.data.used).to.be.at.least(jsonData.data.limit);",
+                  "});",
+                  "",
+                  "pm.test('Error message guides to upgrade', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('User limit reached');",
+                  "    pm.expect(jsonData.message).to.include('upgrade');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/tenant/members/invite",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"extra-user@test.com\",\n  \"role\": \"member\"\n}"
+            }
+          }
+        },
+        {
+          "name": "TC-031: Check User Count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('User count at limit', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var users = jsonData.data.users;",
+                  "    pm.expect(users.used).to.be.at.least(users.limit);",
+                  "    pm.expect(users.percentage).to.equal(100);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/tenant/usage"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Plan Upgrade Scenarios",
+      "item": [
+        {
+          "name": "TC-032: Upgrade to Explore Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Checkout URL returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.url).to.include('stripe.com');",
+                  "    pm.environment.set('checkoutUrl', jsonData.data.url);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payment/create-checkout-session",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_name\": \"explore\",\n  \"duration\": \"month\",\n  \"price\": 29\n}"
+            }
+          }
+        },
+        {
+          "name": "TC-033: Simulate Webhook (Subscription Success)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// This would be triggered by Stripe webhook",
+                  "// For testing, simulate the webhook payload"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Subscription processed', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('processed');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "stripe-signature",
+                "value": "{{stripeWebhookSignature}}"
+              }
+            ],
+            "url": "{{baseUrl}}/payment/webhook",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"cs_test_123\",\n      \"customer\": \"cus_test_123\",\n      \"subscription\": \"sub_test_123\",\n      \"amount_total\": 2900,\n      \"payment_status\": \"paid\",\n      \"metadata\": {\n        \"plan_name\": \"explore\",\n        \"duration\": \"month\",\n        \"tenantId\": \"{{tenantId}}\",\n        \"userId\": \"{{userId}}\"\n      }\n    }\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "TC-034: Verify Limits Updated After Upgrade",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Limits updated to Explore tier', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.plan).to.equal('explore');",
+                  "    pm.expect(jsonData.data.limits.maxApiCalls).to.equal(10000);",
+                  "    pm.expect(jsonData.data.limits.maxStorage).to.equal(53687091200);",
+                  "    pm.expect(jsonData.data.limits.maxUsers).to.equal(10);",
+                  "});",
+                  "",
+                  "pm.test('Status changed to active', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.status).to.equal('active');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/tenant/current"
+          }
+        },
+        {
+          "name": "TC-035: API Call After Upgrade (Should Work)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 201', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('Request successful after upgrade', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/conversations",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"After upgrade conversation\",\n  \"category\": \"general\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

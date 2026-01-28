@@ -29,7 +29,7 @@ const classifyAndExecuteController = catchAsync(async (req, res) => {
       userId,
       conversationId,
       isGuest
-    });
+    }, req);
 
     console.log('AI classification result:', result);
 
@@ -188,7 +188,7 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await aiClassificationService.getUserConnectedAccountsService(userId);
+    const result = await aiClassificationService.getUserConnectedAccountsService(userId, req);
     console.log(`User connections for ${userId}:`, result);
 
     if (result.success) {
@@ -242,7 +242,7 @@ const getConversationHistoryController = catchAsync(async (req, res) => {
     const result = await aiClassificationService.getComposioConversationHistoryService(userId, {
       conversationId,
       limit: limit ? parseInt(limit) : 20
-    });
+    }, req);
 
     if (result.success) {
       return sendResponse(res, {

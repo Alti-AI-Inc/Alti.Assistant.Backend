@@ -70,6 +70,14 @@ const forumSchema = mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+
+    // Multi-tenant support
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,

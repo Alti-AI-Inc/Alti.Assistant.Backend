@@ -256,6 +256,123 @@ const getAllPaymentService = async (filters, paginationOptions) => {
   };
 };
 
+/**
+ * Get all tenants (admin)
+ */
+const getAllTenantsService = async (filters, paginationOptions) => {
+  const Tenant = (await import('../tenant/tenant.model.js')).default;
+  const { searchTerm, ...filterData } = filters;
+  const { page, limit, skip, sortBy, sortOrder } = paginationHelpers.calculatePagination(paginationOptions);
+
+  const andConditions = [];
+
+  if (searchTerm) {
+    andConditions.push({
+      $or: ['name', 'slug'].map(field => ({
+        [field]: { $regex: searchTerm, $options: 'i' },
+      })),
+    });
+  }
+
+  if (Object.keys(filterData).length) {
+    andConditions.push({
+      $and: Object.entries(filterData).map(([field, value]) => ({
+        [field]: value,
+      })),
+    });
+  }
+
+  const query = andConditions.length > 0 ? { $and: andConditions } : {};
+  const sortConditions = {};
+  if (sortBy && sortOrder) {
+    sortConditions[sortBy] = sortOrder;
+  }
+
+  const tenants = await Tenant.find(query)
+    .populate('ownerId', 'name email')
+    .sort(sortConditions)
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Tenant.countDocuments(query);
+
+  return {
+    meta: { page, limit, total },
+    data: tenants,
+  };
+};
+
+/**
+ * Get tenant details (admin)
+ */
+const getTenantDetailsService = async (tenantId) => {
+  const Tenant = (await import('../tenant/tenant.model.js')).default;
+  const UserModel = (await import('../auth/auth.model.js')).default;
+
+  const tenant = await Tenant.findById(tenantId).populate('ownerId', 'name email');
+
+  if (!tenant) {
+    throw new Error('Tenant not found');
+  }
+
+  // Get member count
+  const memberCount = await UserModel.countDocuments({ tenantId });
+
+  return {
+    ...tenant.toObject(),
+    memberCount,
+  };
+};
+
+/**
+ * Update tenant status (admin)
+ */
+const updateTenantStatusService = async (tenantId, status) => {
+  const Tenant = (await import('../tenant/tenant.model.js')).default;
+
+  const tenant = await Tenant.findByIdAndUpdate(
+    tenantId,
+    { status },
+    { new: true, runValidators: true }
+  );
+
+  if (!tenant) {
+    throw new Error('Tenant not found');
+  }
+
+  return tenant;
+};
+
+/**
+ * Get tenant usage (admin)
+ */
+const getTenantUsageService = async (tenantId) => {
+  const tenantService = (await import('../tenant/tenant.service.js')).tenantService;
+  return await tenantService.getTenantUsage(tenantId);
+};
+
+/**
+ * Extend tenant trial (admin)
+ */
+const extendTenantTrialService = async (tenantId, days) => {
+  const Tenant = (await import('../tenant/tenant.model.js')).default;
+
+  const tenant = await Tenant.findById(tenantId);
+
+  if (!tenant) {
+    throw new Error('Tenant not found');
+  }
+
+  const currentTrialEnd = tenant.trialEndsAt || new Date();
+  const newTrialEnd = new Date(currentTrialEnd);
+  newTrialEnd.setDate(newTrialEnd.getDate() + parseInt(days));
+
+  tenant.trialEndsAt = newTrialEnd;
+  await tenant.save();
+
+  return tenant;
+};
+
 export const AdminService = {
   getAllUsersService,
   getAllBuyerServices,
@@ -265,4 +382,9 @@ export const AdminService = {
   getAdminServices,
   getUserStatisticsByMonthService,
   getAllPaymentService,
+  getAllTenantsService,
+  getTenantDetailsService,
+  updateTenantStatusService,
+  getTenantUsageService,
+  extendTenantTrialService,
 };

@@ -30,13 +30,13 @@ const generateTranscriptionConversationId = () => {
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleTranscriptionConversation = async (userId, conversationId, fileName, isGuest = false) => {
+const handleTranscriptionConversation = async (userId, conversationId, fileName, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
 
         if (isGuest && conversation.metadata?.userType !== 'guest') {
           logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
@@ -84,7 +84,7 @@ const handleTranscriptionConversation = async (userId, conversationId, fileName,
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addAudioUploadMessage = async (conversationId, userId, fileName, metadata = {}, isGuest = false) => {
+const addAudioUploadMessage = async (conversationId, userId, fileName, metadata = {}, isGuest = false, req = null) => {
   try {
     const messageData = {
       role: 'user',
@@ -115,7 +115,7 @@ const addAudioUploadMessage = async (conversationId, userId, fileName, metadata 
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addTranscriptionResult = async (conversationId, userId, result, isGuest = false) => {
+const addTranscriptionResult = async (conversationId, userId, result, isGuest = false, req = null) => {
   try {
     const messageData = {
       role: 'assistant',
@@ -199,7 +199,7 @@ const formatTimestamp = (seconds) => {
  * @param {string} userId
  * @returns {Promise<Object>}
  */
-const getTranscriptionStats = async (userId) => {
+const getTranscriptionStats = async (userId, req = null) => {
   try {
     const conversations = await conversationHelpers.getUserConversations(userId, {
       'metadata.category': TRANSCRIPTION_CONSTANTS.CATEGORY,
@@ -248,7 +248,7 @@ const getTranscriptionStats = async (userId) => {
  * @param {string} role
  * @returns {Promise<Object>}
  */
-const addChatMessage = async (conversationId, userId, message, isGuest = false, role = 'user') => {
+const addChatMessage = async (conversationId, userId, message, isGuest = false, role = 'user', req = null) => {
   try {
     const messageData = {
       role,

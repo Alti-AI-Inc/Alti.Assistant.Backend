@@ -18,7 +18,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
         const promptUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
         if (promptUsage <= totalConversationWithConvId) {
             return sendResponse(res, {
@@ -49,24 +49,24 @@ export const performCodeTask = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await codeService.handleCodeConversation(userId, conversationId, message, isGuest);
+        const conversation = await codeService.handleCodeConversation(userId, conversationId, message, isGuest, req);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Add user message to conversation
-        await codeService.addCodeQueryMessage(actualConversationId, userId, message, isGuest);
+        await codeService.addCodeQueryMessage(actualConversationId, userId, message, isGuest, req);
 
         const inputs = {
             userInput: message, // The user's latest message
             history: [{ role: 'user', content: message }], // Add current message to history
         };
-        
+
         const result = await codeAssistantApp.invoke(inputs, { configurable: { thread_id: actualConversationId } });
         logger.info(`Code Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
-        
+
         const fullResponse = result.response;
 
         // Add assistant response to conversation
-        await codeService.addCodeResultMessage(actualConversationId, userId, fullResponse, {}, isGuest);
+        await codeService.addCodeResultMessage(actualConversationId, userId, fullResponse, {}, isGuest, req);
 
         return sendResponse(res, {
             statusCode: httpStatus.OK,
@@ -85,7 +85,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
 
     } catch (error) {
         logger.error("Code Assistant Error:", error);
-        
+
         // Try to save error message to conversation if possible
         const errorConversationId = conversationId || codeService.generateCodeConversationId();
         try {
@@ -94,18 +94,19 @@ export const performCodeTask = catchAsync(async (req, res) => {
                     errorConversationId,
                     userId,
                     codeHelpers.formatErrorMessage(error, message),
-                    error
+                    error,
+                    req
                 );
             }
         } catch (convError) {
             logger.error("Failed to save error to conversation:", convError);
         }
-        
+
         return sendResponse(res, {
             statusCode: httpStatus.INTERNAL_SERVER_ERROR,
             success: false,
             message: 'An internal error occurred while processing your code request',
-            data: { 
+            data: {
                 conversationId: errorConversationId,
                 userType: isGuest ? 'guest' : 'authenticated',
             },
@@ -118,7 +119,7 @@ export const performCodeTask = catchAsync(async (req, res) => {
  */
 const getCodeStats = catchAsync(async (req, res) => {
     const isGuest = req.isGuest || !req.user;
-    
+
     if (isGuest) {
         return sendResponse(res, {
             statusCode: httpStatus.UNAUTHORIZED,
@@ -137,7 +138,7 @@ const getCodeStats = catchAsync(async (req, res) => {
         });
     }
 
-    const stats = await codeService.getCodeStats(userId);
+    const stats = await codeService.getCodeStats(userId, req);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

@@ -58,12 +58,12 @@ export const uploadFile = catchAsync(async (req, res) => {
       ipAddress: req.ip,
     };
 
-    const result = await knowledgeService.uploadFile(req.file, ownerType, finalOwnerId, options);
+    const result = await knowledgeService.uploadFile(req.file, ownerType, finalOwnerId, options, req);
 
     // Process file immediately if requested (synchronously)
     if (processImmediately === 'true') {
       logger.info(`[Knowledge] Processing file immediately: ${result.fileId}`);
-      const processResult = await knowledgeService.processFile(result.fileId);
+      const processResult = await knowledgeService.processFile(result.fileId, req);
 
       sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -117,7 +117,7 @@ export const processFile = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeService.processFile(fileId);
+    const result = await knowledgeService.processFile(fileId, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -179,7 +179,7 @@ export const getFiles = catchAsync(async (req, res) => {
       skip: parseInt(skip) || 0,
     };
 
-    const files = await knowledgeService.getFiles(ownerType, finalOwnerId, filters);
+    const files = await knowledgeService.getFiles(ownerType, finalOwnerId, filters, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -235,7 +235,7 @@ export const getFileById = catchAsync(async (req, res) => {
   const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   try {
-    const file = await knowledgeService.getFileById(fileId, ownerType, finalOwnerId);
+    const file = await knowledgeService.getFileById(fileId, ownerType, finalOwnerId, req);
 
     if (!file) {
       return sendResponse(res, {
@@ -289,7 +289,7 @@ export const deleteFile = catchAsync(async (req, res) => {
   const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   try {
-    const result = await knowledgeService.deleteFile(fileId, ownerType, finalOwnerId);
+    const result = await knowledgeService.deleteFile(fileId, ownerType, finalOwnerId, req);
 
     if (!result) {
       return sendResponse(res, {
@@ -341,7 +341,7 @@ export const getStorageStats = catchAsync(async (req, res) => {
   const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   try {
-    const stats = await knowledgeService.getStorageStats(ownerType, finalOwnerId);
+    const stats = await knowledgeService.getStorageStats(ownerType, finalOwnerId, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -377,7 +377,7 @@ export const createFolder = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeService.createFolder(userId, req.body);
+    const result = await knowledgeService.createFolder(userId, req.body, req);
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
@@ -417,7 +417,7 @@ export const getFolders = catchAsync(async (req, res) => {
       options.parentFolderId = parentFolderId === 'root' || parentFolderId === 'null' ? null : parentFolderId;
     }
 
-    const folders = await knowledgeService.getFolders(userId, options);
+    const folders = await knowledgeService.getFolders(userId, options, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -463,7 +463,7 @@ export const getFolderById = catchAsync(async (req, res) => {
   }
 
   try {
-    const folder = await knowledgeService.getFolderById(folderId, userId);
+    const folder = await knowledgeService.getFolderById(folderId, userId, req);
 
     if (!folder) {
       return sendResponse(res, {
@@ -514,7 +514,7 @@ export const updateFolder = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeService.updateFolder(folderId, userId, req.body);
+    const result = await knowledgeService.updateFolder(folderId, userId, req.body, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -558,7 +558,7 @@ export const deleteFolder = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeService.deleteFolder(folderId, userId, recursive === 'true' || recursive === true);
+    const result = await knowledgeService.deleteFolder(folderId, userId, recursive === 'true' || recursive === true, req);
 
     if (!result) {
       return sendResponse(res, {
@@ -601,7 +601,7 @@ export const getFolderContents = catchAsync(async (req, res) => {
 
   try {
     const finalFolderId = folderId === 'root' || folderId === 'null' ? null : folderId;
-    const contents = await knowledgeService.getFolderContents(finalFolderId, userId);
+    const contents = await knowledgeService.getFolderContents(finalFolderId, userId, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

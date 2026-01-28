@@ -7,6 +7,7 @@ import KnowledgebaseFile from './knowledgebase.files.model.js';
 import { OpenAI } from 'openai';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { Storage } from '@google-cloud/storage';
+import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
 const embeddings = new OpenAIEmbeddings({
   openAIApiKey: config.openai_secret_key,
   modelName: 'text-embedding-ada-002',
@@ -185,9 +186,10 @@ class KnowledgebaseService {
    * @param {Object|string} file - The uploaded file object (with buffer) or file path string
    * @param {string} knowledgebotId - The knowledgebot ID
    * @param {string} userId - The user ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object>} - Processing result
    */
-  async processUploadedFile(file, knowledgebotId, userId) {
+  async processUploadedFile(file, knowledgebotId, userId, req = null) {
     try {
       // Initialize RAG system
       await rag.initialize();
@@ -221,7 +223,7 @@ class KnowledgebaseService {
         logger.info(`Successfully processed and stored document from path: ${fileName}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`);
 
         // Save file information to MongoDB
-        const fileRecord = new KnowledgebaseFile({
+        const fileData = {
           fileName: `${timestamp}_${fileName}`,
           originalName: fileName,
           fileType: fileExtension,
@@ -234,7 +236,11 @@ class KnowledgebaseService {
           title: result.title,
           chunkCount: result.chunkCount,
           isActive: true,
-        });
+        };
+
+        const fileRecord = new KnowledgebaseFile(
+          req ? withTenantContext(req, fileData) : fileData
+        );
 
         await fileRecord.save();
         logger.info(`File record saved to database: ${fileRecord._id}`);
@@ -328,21 +334,22 @@ class KnowledgebaseService {
    * Get user's uploaded files
    * @param {string} userId - The user ID
    * @param {string} knowledgebotId - Optional knowledgebot ID filter
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Array>} - List of user's files
    */
-  async getUserFiles(userId, knowledgebotId = null) {
+  async getUserFiles(userId, knowledgebotId = null, req = null) {
     try {
       logger.info(`Retrieving files for user: ${userId}${knowledgebotId ? `, knowledgebot: ${knowledgebotId}` : ''}`);
 
-      let files;
+      const query = {
+        userId: userId,
+        isActive: true,
+        ...(knowledgebotId && { knowledgebotId })
+      };
 
-      if (knowledgebotId) {
-        // Get files for specific knowledgebot and user
-        files = await KnowledgebaseFile.findByUserAndKnowledgebot(userId, knowledgebotId, true);
-      } else {
-        // Get all files for user
-        files = await KnowledgebaseFile.findByUserId(userId, true);
-      }
+      const files = await KnowledgebaseFile.find(
+        req ? withTenantFilter(req, query) : query
+      );
 
       return files.map(file => ({
         id: file._id,
@@ -367,13 +374,20 @@ class KnowledgebaseService {
   /**
    * Get files by knowledgebot ID
    * @param {string} knowledgebotId - The knowledgebot ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Array>} - List of knowledgebot's files
    */
-  async getKnowledgebotFiles(knowledgebotId) {
+  async getKnowledgebotFiles(knowledgebotId, req = null) {
     try {
       logger.info(`Retrieving files for knowledgebot: ${knowledgebotId}`);
 
-      const files = await KnowledgebaseFile.findByKnowledgebotId(knowledgebotId, true);
+      const query = {
+        knowledgebotId: knowledgebotId,
+        isActive: true
+      };
+      const files = await KnowledgebaseFile.find(
+        req ? withTenantFilter(req, query) : query
+      );
 
       return files.map(file => ({
         id: file._id,
@@ -399,13 +413,20 @@ class KnowledgebaseService {
   /**
    * Get user's knowledge bases
    * @param {string} userId - The user ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Array>} - List of user's knowledge bases
    */
-  async getUserKnowledgeBases(userId) {
+  async getUserKnowledgeBases(userId, req = null) {
     try {
       logger.info(`Retrieving knowledge bases for user: ${userId}`);
 
-      const knowledgeBases = await KnowledgeBase.findByUserId(userId, true);
+      const query = {
+        userId: userId,
+        isActive: true
+      };
+      const knowledgeBases = await KnowledgeBase.find(
+        req ? withTenantFilter(req, query) : query
+      );
 
       return knowledgeBases.map(kb => ({
         id: kb._id,
@@ -429,28 +450,36 @@ class KnowledgebaseService {
    * Create a new knowledge base
    * @param {string} name - The name of the knowledge base
    * @param {string} userId - The user ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object>} - Created knowledge base information
    */
-  async createKnowledgeBase(payload, userId) {
+  async createKnowledgeBase(payload, userId, req = null) {
     try {
       const { name, description } = payload;
       logger.info(`Creating knowledge base: ${name} for user: ${userId}`);
 
       // Check if knowledge base with same name already exists for user
-      const existingKB = await KnowledgeBase.findOne({ userId, name, isActive: true });
+      const query = { userId, name, isActive: true };
+      const existingKB = await KnowledgeBase.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
       if (existingKB) {
         throw new Error('Knowledge base with this name already exists');
       }
 
       // Create new knowledge base in database
-      const knowledgeBase = new KnowledgeBase({
+      const kbData = {
         name: name,
         userId: userId,
         description: description || '', // Can be added later
         isActive: true,
         documentsCount: 0,
         totalFileSize: 0,
-      });
+      };
+
+      const knowledgeBase = new KnowledgeBase(
+        req ? withTenantContext(req, kbData) : kbData
+      );
 
       const savedKB = await knowledgeBase.save();
 
@@ -479,17 +508,21 @@ class KnowledgebaseService {
    * Get knowledge base by ID
    * @param {string} knowledgebaseId - The knowledge base ID
    * @param {string} userId - The user ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object|null>} - Knowledge base information
    */
-  async getKnowledgeBaseById(knowledgebaseId, userId) {
+  async getKnowledgeBaseById(knowledgebaseId, userId, req = null) {
     try {
       logger.info(`Retrieving knowledge base: ${knowledgebaseId} for user: ${userId}`);
 
-      const knowledgeBase = await KnowledgeBase.findOne({
+      const query = {
         _id: knowledgebaseId,
         userId: userId,
         isActive: true
-      });
+      };
+      const knowledgeBase = await KnowledgeBase.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
       if (!knowledgeBase) {
         return null;
@@ -556,13 +589,16 @@ class KnowledgebaseService {
     }
   }
 
-  async deleteKnowledgeBase(knowledgebaseId, userId) {
+  async deleteKnowledgeBase(knowledgebaseId, userId, req = null) {
     try {
       logger.info(`Deleting knowledge base: ${knowledgebaseId} for user: ${userId}`);
-      const knowledgeBase = await KnowledgeBase.findOne({
+      const query = {
         _id: knowledgebaseId,
         userId: userId
-      });
+      };
+      const knowledgeBase = await KnowledgeBase.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
       if (!knowledgeBase) {
         throw new Error('Knowledge base not found');
       }
@@ -580,15 +616,19 @@ class KnowledgebaseService {
    * Delete user file
    * @param {string} fileId - The file ID
    * @param {string} userId - The user ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<boolean>} - Deletion result
    */
-  async deleteUserFile(fileId, userId) {
+  async deleteUserFile(fileId, userId, req = null) {
     try {
       logger.info(`Deleting file ${fileId} for user: ${userId}`);
 
       // Placeholder for file deletion logic
       // You can implement the actual deletion here later
-      await KnowledgebaseFile.deleteOne({ _id: fileId });
+      const query = { _id: fileId };
+      await KnowledgebaseFile.deleteOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
       logger.info(`File ${fileId} deleted successfully for user: ${userId}`);
       return true;

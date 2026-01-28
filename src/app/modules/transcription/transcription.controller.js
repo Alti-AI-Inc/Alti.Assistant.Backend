@@ -40,7 +40,7 @@ export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
     try {
       const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
       const promptUsage = userSubscription ? userSubscription.usage : 0;
-      const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+      const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
       const messageCount = conversation?.messages ? conversation.messages.length : 0;
 
       if (promptUsage <= messageCount) {
@@ -147,7 +147,8 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
       userId,
       conversationId,
       audioFile.originalname,
-      isGuest
+      isGuest,
+      req
     );
     const actualConversationId = conversation.conversationId;
 
@@ -288,7 +289,8 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
       userId,
       conversationId,
       `batch-${audioFiles.length}-files`,
-      isGuest
+      isGuest,
+      req
     );
     const actualConversationId = conversation.conversationId;
 
@@ -511,7 +513,7 @@ export const getTranscriptionStats = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
 
   try {
-    const stats = await transcriptionService.getTranscriptionStats(userId);
+    const stats = await transcriptionService.getTranscriptionStats(userId, req);
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,

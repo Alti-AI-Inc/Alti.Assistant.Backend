@@ -11,7 +11,7 @@ import mongoose from "mongoose";
 /**
  * Process user input through AI classification and execute the identified action
  */
-export const processUserInputService = async (userInput, options = {}) => {
+export const processUserInputService = async (userInput, options = {}, req = null) => {
   const {
     userId = null,
     conversationId = null,
@@ -190,7 +190,7 @@ export const processUserInputService = async (userInput, options = {}) => {
 /**
  * Get user's connected accounts for apps
  */
-export const getUserConnectedAccountsService = async (userId, status) => {
+export const getUserConnectedAccountsService = async (userId, status, req = null) => {
   try {
 
     const accounts = await ComposioAuth.find({
@@ -216,7 +216,7 @@ export const getUserConnectedAccountsService = async (userId, status) => {
 /**
  * Check if user has required connections for an app
  */
-export const checkUserConnectionsService = async (userId, appName) => {
+export const checkUserConnectionsService = async (userId, appName, req = null) => {
   try {
     const ComposionAuth = (await import('./composio.model.js')).default;
 
@@ -253,13 +253,13 @@ export const checkUserConnectionsService = async (userId, appName) => {
 /**
  * Get composio conversation history for a user
  */
-export const getComposioConversationHistoryService = async (userId, options = {}) => {
+export const getComposioConversationHistoryService = async (userId, options = {}, req = null) => {
   try {
     const { limit = 20, conversationId = null } = options;
 
     if (conversationId) {
       // Get specific conversation history
-      const history = await composioConversationService.getComposioHistory(conversationId, userId, limit);
+      const history = await composioConversationService.getComposioHistory(conversationId, userId, limit, req);
       return {
         success: true,
         data: {
@@ -270,7 +270,7 @@ export const getComposioConversationHistoryService = async (userId, options = {}
       };
     } else {
       // Get conversation stats
-      const stats = await composioConversationService.getComposioStats(userId);
+      const stats = await composioConversationService.getComposioStats(userId, req);
       return {
         success: true,
         data: stats

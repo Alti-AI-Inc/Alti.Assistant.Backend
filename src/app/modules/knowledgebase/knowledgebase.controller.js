@@ -51,7 +51,7 @@ const uploadFile = catchAsync(async (req, res) => {
     // For now, just return success message
     // You can add the actual processing logic later
     logger.info(`File upload attempted by user: ${userId}, file: ${uploadedFile.originalname}, type: ${fileExtension}, size: ${uploadedFile.size} bytes`);
-    const response = await knowledgebaseService.processUploadedFile(uploadedFile, knowledgebotId, userId);
+    const response = await knowledgebaseService.processUploadedFile(uploadedFile, knowledgebotId, userId, req);
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -95,7 +95,7 @@ const deleteKnowledgeBase = catchAsync(async (req, res) => {
     });
   }
   try {
-    const result = await knowledgebaseService.deleteKnowledgeBase(knowledgebaseId, userId);
+    const result = await knowledgebaseService.deleteKnowledgeBase(knowledgebaseId, userId, req);
     if (!result) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
@@ -146,7 +146,7 @@ const getUserFiles = catchAsync(async (req, res) => {
   const { knowledgebotId } = req.query;
 
   try {
-    const files = await knowledgebaseService.getUserFiles(userId, knowledgebotId);
+    const files = await knowledgebaseService.getUserFiles(userId, knowledgebotId, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -204,7 +204,7 @@ const createKnowledgeBase = catchAsync(async (req, res) => {
   }
 
   try {
-    const knowledgeBase = await knowledgebaseService.createKnowledgeBase(req.body, userId);
+    const knowledgeBase = await knowledgebaseService.createKnowledgeBase(req.body, userId, req);
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
@@ -248,7 +248,7 @@ const getUserKnowledgeBases = catchAsync(async (req, res) => {
   }
 
   try {
-    const knowledgeBases = await knowledgebaseService.getUserKnowledgeBases(userId);
+    const knowledgeBases = await knowledgebaseService.getUserKnowledgeBases(userId, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -511,7 +511,7 @@ const deleteFile = catchAsync(async (req, res) => {
     });
   }
   try {
-    const result = await knowledgebaseService.deleteUserFile(fileId, userId);
+    const result = await knowledgebaseService.deleteUserFile(fileId, userId, req);
     if (!result) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,

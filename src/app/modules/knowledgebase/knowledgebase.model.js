@@ -49,6 +49,14 @@ const KnowledgeBaseSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+
+    // Multi-tenant support
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true, // adds createdAt and updatedAt

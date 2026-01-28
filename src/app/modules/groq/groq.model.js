@@ -45,6 +45,14 @@ const llamaResponseSchema = new mongoose.Schema({
     },
   ],
   createdAt: { type: Date, default: Date.now },
+
+  // Multi-tenant support
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
+    default: null,
+    index: true,
+  },
 });
 
 const Llama = mongoose.model('Chat-History', llamaResponseSchema);

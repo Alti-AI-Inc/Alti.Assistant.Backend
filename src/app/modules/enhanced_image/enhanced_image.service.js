@@ -34,13 +34,13 @@ const generateGuestUserId = () => {
  * @param {string} category - 'image_generation' or 'image_editing'
  * @returns {Promise<Object>}
  */
-const handleImageConversation = async (userId, conversationId, prompt, isGuest = false, category = 'image_generation') => {
+const handleImageConversation = async (userId, conversationId, prompt, isGuest = false, category = 'image_generation', req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
 
         if (isGuest && conversation.metadata?.userType !== 'guest') {
           logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
@@ -67,7 +67,8 @@ const handleImageConversation = async (userId, conversationId, prompt, isGuest =
               isGuest: true,
             },
           },
-          newConversationId
+          newConversationId,
+          req
         );
       } else {
         conversation = await conversationService.createConversation(
@@ -80,7 +81,8 @@ const handleImageConversation = async (userId, conversationId, prompt, isGuest =
               userType: 'authenticated',
             },
           },
-          newConversationId
+          newConversationId,
+          req
         );
       }
 
@@ -103,7 +105,7 @@ const handleImageConversation = async (userId, conversationId, prompt, isGuest =
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addImageRequestMessage = async (conversationId, userId, prompt, metadata = {}, isGuest = false) => {
+const addImageRequestMessage = async (conversationId, userId, prompt, metadata = {}, isGuest = false, req = null) => {
   try {
     console.log(`Adding image request message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -156,7 +158,7 @@ const addImageRequestMessage = async (conversationId, userId, prompt, metadata =
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addImageResultMessage = async (conversationId, userId, result, metadata = {}, isGuest = false) => {
+const addImageResultMessage = async (conversationId, userId, result, metadata = {}, isGuest = false, req = null) => {
   try {
     console.log(`Adding image result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -209,7 +211,7 @@ const addImageResultMessage = async (conversationId, userId, result, metadata = 
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false) => {
+const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false, req = null) => {
   try {
     console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -377,7 +379,7 @@ const generateImageConversationId = () => {
  * @param {string} userId
  * @returns {Promise<Object>}
  */
-const getImageStats = async (userId) => {
+const getImageStats = async (userId, req = null) => {
   try {
     const imageConversations = await conversationHelpers.getUserConversations(userId, {
       page: 1,

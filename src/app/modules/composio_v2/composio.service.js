@@ -5,12 +5,13 @@ import AuthConfig from "./authConfig.model.js";
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import Conversation from '../conversations/conversation.model.js';
 import { aiClassificationService } from "./aiClassification.service.js";
+import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
 
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 })
 
-const initiateComposioAuth = async (body) => {
+const initiateComposioAuth = async (body, req = null) => {
   const { app_name, user_id } = body;
 
   try {
@@ -20,7 +21,10 @@ const initiateComposioAuth = async (body) => {
 
     const auth_config_id = auth_config ? auth_config.authConfigId : null;
     console.log(`Auth Config ID for app ${app_name}:`, auth_config_id);
-    const existingComposioAuth = await ComposionAuth.findOne({ userId: user_id, authConfigId: auth_config_id, status: 'ACTIVE' });
+    const existingAuthQuery = { userId: user_id, authConfigId: auth_config_id, status: 'ACTIVE' };
+    const existingComposioAuth = await ComposionAuth.findOne(
+      req ? withTenantFilter(req, existingAuthQuery) : existingAuthQuery
+    );
     console.log(`Existing Composio Auth for user ${user_id} and app ${app_name}:`, existingComposioAuth);
 
     if (existingComposioAuth) {
@@ -33,17 +37,29 @@ const initiateComposioAuth = async (body) => {
       auth_config_id
     );
     // await connectionUrl.waitForConnection();
-    const composioAuth = new ComposionAuth({
-      userId: user_id,
-      authConfigId: auth_config_id,
-      connectedAccountId: connectionUrl.id,
-      status: 'pending',
-      integrationId: connectionUrl.integrationId,
-      redirectUrl: connectionUrl.redirectUrl,
-      toolkit: {
-        slug: app_name,
+    const composioAuth = new ComposionAuth(
+      req ? withTenantContext(req, {
+        userId: user_id,
+        authConfigId: auth_config_id,
+        connectedAccountId: connectionUrl.id,
+        integrationId: connectionUrl.integrationId,
+        redirectUrl: connectionUrl.redirectUrl,
+        status: 'pending',
+        toolkit: {
+          slug: app_name,
+        }
+      }) : {
+        userId: user_id,
+        authConfigId: auth_config_id,
+        connectedAccountId: connectionUrl.id,
+        integrationId: connectionUrl.integrationId,
+        redirectUrl: connectionUrl.redirectUrl,
+        status: 'pending',
+        toolkit: {
+          slug: app_name,
+        }
       }
-    })
+    );
     await composioAuth.save();
     console.log('Composio connection initiated successfully', connectionUrl);
     return { authConfig: connectionUrl };

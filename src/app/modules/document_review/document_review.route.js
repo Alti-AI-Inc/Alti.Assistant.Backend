@@ -2,6 +2,7 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
@@ -19,6 +20,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext, // Extract tenant context after auth
   checkDailyRequestLimit,
   uploadDocumentReview.single('file'),
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
@@ -33,6 +35,7 @@ router.post(
 router.post(
   '/review',
   optionalAuth(),
+  extractTenantContext, // Extract tenant context after auth
   uploadDocumentReview.single('file'),
   // createRateLimiter(20, 15), // 20 reviews per 15 minutes
   validateRequest(DocumentReviewValidation.reviewDocumentSchema),
@@ -45,6 +48,7 @@ router.post(
 router.get(
   '/conversation/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext, // Extract tenant context after auth
   validateRequest(DocumentReviewValidation.getConversationHistorySchema),
   documentReviewController.getConversationHistory
 );

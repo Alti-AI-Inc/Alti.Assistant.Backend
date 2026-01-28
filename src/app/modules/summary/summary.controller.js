@@ -58,7 +58,7 @@ const summarizeContent = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
-    const conversation = await summaryService.handleSummaryConversation(userId, conversationId, message, isGuest);
+    const conversation = await summaryService.handleSummaryConversation(userId, conversationId, message, isGuest, req);
     const actualConversationId = conversation.conversationId || thread_id;
 
     // Get conversation history for context-aware processing
@@ -133,7 +133,7 @@ const summarizeContent = catchAsync(async (req, res) => {
     }
 
     // Add user message to conversation
-    await summaryService.addSummaryQueryMessage(actualConversationId, userId, userMessageForHistory, isGuest);
+    await summaryService.addSummaryQueryMessage(actualConversationId, userId, userMessageForHistory, isGuest, req);
 
     const inputs = {
       user_input: user_input,
@@ -155,7 +155,7 @@ const summarizeContent = catchAsync(async (req, res) => {
       model: 'claude-sonnet-4.5',
     };
 
-    await summaryService.addSummaryResultMessage(actualConversationId, userId, fullResponse, messageMetadata, isGuest);
+    await summaryService.addSummaryResultMessage(actualConversationId, userId, fullResponse, messageMetadata, isGuest, req);
     console.log('Full response:', fullResponse);
 
     return sendResponse(res, {
@@ -187,7 +187,8 @@ const summarizeContent = catchAsync(async (req, res) => {
           userId,
           'I apologize, but an error occurred while processing your summarization request.',
           error,
-          isGuest
+          isGuest,
+          req
         );
       }
     } catch (convError) {
@@ -231,7 +232,7 @@ const getSummaryStats = catchAsync(async (req, res) => {
     });
   }
 
-  const stats = await summaryService.getSummaryStats(userId);
+  const stats = await summaryService.getSummaryStats(userId, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

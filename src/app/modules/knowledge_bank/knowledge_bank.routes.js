@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { knowledgeBankController } from './knowledge_bank.controller.js';
 import auth from '../../middlewares/auth/auth.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
 const router = express.Router();
 
@@ -65,6 +66,7 @@ const upload = multer({
 router.post(
   '/upload',
   auth(),
+  extractTenantContext,
   upload.any(),
   knowledgeBankController.uploadFile
 );
@@ -73,6 +75,7 @@ router.post(
 router.get(
   '/files',
   auth(),
+  extractTenantContext,
   knowledgeBankController.getUserFiles
 );
 
@@ -80,6 +83,7 @@ router.get(
 router.get(
   '/files/:fileId',
   auth(),
+  extractTenantContext,
   knowledgeBankController.getFileById
 );
 
@@ -87,6 +91,7 @@ router.get(
 router.delete(
   '/files/:fileId',
   auth(),
+  extractTenantContext,
   knowledgeBankController.deleteFile
 );
 
@@ -94,6 +99,7 @@ router.delete(
 router.post(
   '/files/:fileId/process',
   auth(),
+  extractTenantContext,
   knowledgeBankController.processFile
 );
 
@@ -103,6 +109,7 @@ router.post(
 router.post(
   '/folders',
   auth(),
+  extractTenantContext,
   knowledgeBankController.createFolder
 );
 
@@ -110,6 +117,7 @@ router.post(
 router.get(
   '/folders',
   auth(),
+  extractTenantContext,
   knowledgeBankController.getUserFolders
 );
 
@@ -117,6 +125,7 @@ router.get(
 router.get(
   '/folders/:folderId',
   auth(),
+  extractTenantContext,
   knowledgeBankController.getFolderById
 );
 
@@ -124,6 +133,7 @@ router.get(
 router.put(
   '/folders/:folderId',
   auth(),
+  extractTenantContext,
   knowledgeBankController.updateFolder
 );
 
@@ -131,6 +141,7 @@ router.put(
 router.delete(
   '/folders/:folderId',
   auth(),
+  extractTenantContext,
   knowledgeBankController.deleteFolder
 );
 
@@ -138,6 +149,7 @@ router.delete(
 router.get(
   '/folders/:folderId/contents',
   auth(),
+  extractTenantContext,
   knowledgeBankController.getFolderContents
 );
 
@@ -147,6 +159,7 @@ router.get(
 router.get(
   '/stats',
   auth(),
+  extractTenantContext,
   knowledgeBankController.getUserStorageStats
 );
 

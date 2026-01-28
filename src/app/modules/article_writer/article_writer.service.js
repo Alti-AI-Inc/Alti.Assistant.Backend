@@ -42,13 +42,13 @@ const generateConversationId = () => {
 /**
  * Handle article writer conversation (create or retrieve)
  */
-const handleArticleWriterConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+const handleArticleWriterConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found, creating new one`);
@@ -71,7 +71,8 @@ const handleArticleWriterConversation = async (userId, conversationId, userMessa
             uploadedFiles: [],
           },
         },
-        newConversationId
+        newConversationId,
+        req
       );
 
       logger.info(`Created new article writer conversation ${newConversationId} for user ${userId}`);
@@ -87,7 +88,7 @@ const handleArticleWriterConversation = async (userId, conversationId, userMessa
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}) => {
+const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
   try {
     const message = {
       role,
@@ -96,7 +97,7 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message);
+    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
@@ -228,7 +229,8 @@ const processConversationalRequest = async (
   isGuest = false,
   articleType = null,
   tone = null,
-  length = null
+  length = null,
+  req = null
 ) => {
   try {
     // Handle conversation
@@ -236,14 +238,15 @@ const processConversationalRequest = async (
       userId,
       conversationId,
       message,
-      isGuest
+      isGuest,
+      req
     );
 
     // Add user message to conversation
     await addMessage(conversation.conversationId, userId, 'user', message, {
       hasFile: !!fileInfo,
       fileName: fileInfo?.originalName,
-    });
+    }, req);
 
     // Process file if uploaded
     let fileData = null;
@@ -277,7 +280,7 @@ const processConversationalRequest = async (
       tone: finalTone,
       length: finalLength,
       hasFile: !!fileData,
-    });
+    }, req);
 
     // Clean up uploaded file if it exists
     if (fileInfo && fileInfo.path) {

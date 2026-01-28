@@ -1,6 +1,7 @@
 import express from 'express';
 import audioUploader from '../../middlewares/uploder/uploadAudio.js';
 import { WishperAiController } from './wishper.controller.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 const router = express.Router();
 
 // const uploader = audioUploader({

@@ -23,14 +23,14 @@ const generateGuestUserId = () => {
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleSearchConversation = async (userId, conversationId, searchQuery, isGuest = false) => {
+const handleSearchConversation = async (userId, conversationId, searchQuery, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
         if (isGuest && conversation.metadata?.userType !== 'guest') {
@@ -62,7 +62,8 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
             },
             is_deep_search: true,
           },
-          newConversationId
+          newConversationId,
+          req
         );
       } else {
         // For authenticated users, use the full conversation service
@@ -78,7 +79,8 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
             },
             is_deep_search: true,
           },
-          newConversationId
+          newConversationId,
+          req
         );
       }
 
@@ -100,7 +102,7 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGuest = false) => {
+const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGuest = false, req = null) => {
   try {
     console.log(`Adding search query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -115,7 +117,8 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
           type: 'search_query',
           timestamp: new Date().toISOString(),
         },
-      }
+      },
+      req
     );
 
     if (openMemoryClient?.enabled && searchQuery && userId) {
@@ -153,7 +156,7 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addSearchResultMessage = async (conversationId, userId, searchResult, metadata = {}, isGuest = false) => {
+const addSearchResultMessage = async (conversationId, userId, searchResult, metadata = {}, isGuest = false, req = null) => {
   try {
     console.log(`Adding search result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -170,7 +173,8 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
           model: 'research-agent',
           ...metadata,
         },
-      }
+      },
+      req
     );
 
     if (openMemoryClient?.enabled && searchResult && userId) {
@@ -208,7 +212,7 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false) => {
+const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false, req = null) => {
   try {
     console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -224,7 +228,8 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
           timestamp: new Date().toISOString(),
           error: originalError?.message || 'Unknown error',
         },
-      }
+      },
+      req
     );
   } catch (error) {
     logger.error('Error adding error message:', error);
@@ -239,9 +244,9 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
  * @param {number} limit
  * @returns {Promise<Array>}
  */
-const getSearchHistory = async (conversationId, userId, limit = 10) => {
+const getSearchHistory = async (conversationId, userId, limit = 10, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation || !conversation.messages) {
       return [];
@@ -268,10 +273,10 @@ const getSearchHistory = async (conversationId, userId, limit = 10) => {
  * @param {string} searchQuery
  * @returns {Promise<void>}
  */
-const updateConversationTitle = async (conversationId, userId, searchQuery) => {
+const updateConversationTitle = async (conversationId, userId, searchQuery, req = null) => {
   try {
     const title = `Search: ${searchQuery.substring(0, 50)}${searchQuery.length > 50 ? '...' : ''}`;
-    await conversationService.updateConversationTitle(conversationId, userId, title);
+    await conversationService.updateConversationTitle(conversationId, userId, title, req);
   } catch (error) {
     logger.warn('Failed to update conversation title:', error);
     // Don't throw as this is not critical
@@ -291,7 +296,7 @@ const generateSearchConversationId = () => {
  * @param {string} userId
  * @returns {Promise<Object>}
  */
-const getSearchStats = async (userId) => {
+const getSearchStats = async (userId, req = null) => {
   try {
     const searchConversations = await conversationHelpers.getUserConversations(userId, {
       page: 1,

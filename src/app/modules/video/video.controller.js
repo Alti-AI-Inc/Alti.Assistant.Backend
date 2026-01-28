@@ -37,7 +37,7 @@ export const generateVideo = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
     if (promptUsage <= totalConversationWithConvId) {
       return sendResponse(res, {
@@ -56,12 +56,13 @@ export const generateVideo = catchAsync(async (req, res) => {
       userId,
       conversationId,
       message,
-      isGuest
+      isGuest,
+      req
     );
     const actualConversationId = conversation.conversationId || thread_id;
 
     // Add user message to conversation
-    await videoService.addVideoQueryMessage(actualConversationId, userId, message, isGuest);
+    await videoService.addVideoQueryMessage(actualConversationId, userId, message, isGuest, req);
 
     // Determine if this is the first message or a subsequent message
     const isFirstMessage = conversation.messageCount === 0 || !conversationId;
@@ -109,7 +110,8 @@ export const generateVideo = catchAsync(async (req, res) => {
         video: videoData,
         preferences: inputs.preferences
       },
-      isGuest
+      isGuest,
+      req
     );
 
     return sendResponse(res, {
@@ -139,7 +141,8 @@ export const generateVideo = catchAsync(async (req, res) => {
           userId,
           videoHelpers.formatErrorMessage(error, message),
           error,
-          isGuest
+          isGuest,
+          req
         );
       }
     } catch {
@@ -168,7 +171,7 @@ const getVideoStats = catchAsync(async (req, res) => {
     });
   }
   const userId = req.user?.userId || req.user?._id;
-  const stats = await videoService.getVideoStats(userId);
+  const stats = await videoService.getVideoStats(userId, req);
   return sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -193,9 +196,9 @@ const getVideoConversation = catchAsync(async (req, res) => {
   try {
     let conversation;
     if (isGuest) {
-      conversation = await videoService.getGuestConversation(conversationId);
+      conversation = await videoService.getGuestConversation(conversationId, req);
     } else {
-      conversation = await conversationHelpers.getConversationById(conversationId, userId);
+      conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
     }
 
     return sendResponse(res, {
@@ -222,7 +225,7 @@ const getGuestConversations = catchAsync(async (req, res) => {
       message: 'Guest user ID is required',
     });
   }
-  const conversations = await videoService.getGuestConversations(guestUserId);
+  const conversations = await videoService.getGuestConversations(guestUserId, req);
   return sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

@@ -104,13 +104,13 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
 /**
  * Handle creative writing conversation (create or retrieve)
  */
-const handleCreativeWritingConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+const handleCreativeWritingConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found, creating new one`);
@@ -133,7 +133,8 @@ const handleCreativeWritingConversation = async (userId, conversationId, userMes
             writingHistory: [],
           },
         },
-        newConversationId
+        newConversationId,
+        req
       );
 
       logger.info(`Created new creative writing conversation ${newConversationId} for user ${userId}`);
@@ -149,7 +150,7 @@ const handleCreativeWritingConversation = async (userId, conversationId, userMes
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}) => {
+const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
   try {
     const message = {
       role,
@@ -158,7 +159,7 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message);
+    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
@@ -276,9 +277,9 @@ const generateCreativeWriting = async (prompt, temperature = CREATIVE_WRITING_CO
 /**
  * Store writing in conversation history
  */
-const storeWritingInConversation = async (conversationId, userId, writingData) => {
+const storeWritingInConversation = async (conversationId, userId, writingData, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation.metadata.writingHistory) {
       conversation.metadata.writingHistory = [];
@@ -292,7 +293,7 @@ const storeWritingInConversation = async (conversationId, userId, writingData) =
     await conversationService.updateConversationMetadata(conversationId, userId, {
       writingHistory: conversation.metadata.writingHistory,
       lastWritingType: writingData.writingType,
-    });
+    }, req);
 
     logger.info('Writing stored in conversation history', {
       conversationId,
@@ -336,20 +337,21 @@ const generateClarificationQuestion = (analysis) => {
 /**
  * Main function to process conversational creative writing request
  */
-const processConversationalRequest = async (userId, message, conversationId, isGuest = false) => {
+const processConversationalRequest = async (userId, message, conversationId, isGuest = false, req = null) => {
   try {
     // Handle or create conversation
     const conversation = await handleCreativeWritingConversation(
       userId,
       conversationId,
       message,
-      isGuest
+      isGuest,
+      req
     );
 
     const actualConversationId = conversation.conversationId;
 
     // Add user message to conversation
-    await addMessage(actualConversationId, userId, 'user', message);
+    await addMessage(actualConversationId, userId, 'user', message, {}, req);
 
     // Get conversation history
     const conversationHistory = conversation.messages || [];
@@ -371,7 +373,7 @@ const processConversationalRequest = async (userId, message, conversationId, isG
 
       await addMessage(actualConversationId, userId, 'assistant', clarificationMessage, {
         needsClarification: true,
-      });
+      }, req);
 
       return {
         success: true,
@@ -411,14 +413,14 @@ const processConversationalRequest = async (userId, message, conversationId, isG
       style: writingParams.style,
       wordCount: writingParams.wordCount,
       intent: writingParams.intent,
-    });
+    }, req);
 
     // Add assistant response to conversation
     await addMessage(actualConversationId, userId, 'assistant', generatedText, {
       writingType: writingParams.writingType,
       style: writingParams.style,
       intent: writingParams.intent,
-    });
+    }, req);
 
     logger.info('Creative writing generated successfully', {
       conversationId: actualConversationId,
@@ -441,9 +443,9 @@ const processConversationalRequest = async (userId, message, conversationId, isG
 /**
  * Get conversation history
  */
-const getConversationHistory = async (conversationId, userId) => {
+const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     return {
       conversationId: conversation.conversationId,

@@ -5,9 +5,11 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { planGeneratorController } from './plan_generator.controller.js';
 import { PlanGeneratorValidation } from './plan_generator.validation.js';
 import { uploadPlanFiles } from './middlewares/uploadPlanFiles.js';
+import { checkApiCallLimit, checkStorageLimit, trackStorageUsage } from '../../middlewares/tenant/checkTenantLimits.js';
 
 const router = express.Router();
 
@@ -19,8 +21,12 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext,
+  checkApiCallLimit, // Check tenant API call limit
   checkDailyRequestLimit,
+  checkStorageLimit(10485760), // Check 10MB file size limit
   uploadPlanFiles.single('file'),
+  trackStorageUsage, // Track storage after upload
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(PlanGeneratorValidation.conversationalRequestSchema),
   planGeneratorController.conversationalAssistant
@@ -34,6 +40,8 @@ router.post(
 router.post(
   '/assistant/async',
   optionalAuth(),
+  extractTenantContext,
+  checkApiCallLimit, // Check tenant API call limit
   checkDailyRequestLimit,
   uploadPlanFiles.single('file'),
   // createRateLimiter(30, 15), // 30 requests per 15 minutes

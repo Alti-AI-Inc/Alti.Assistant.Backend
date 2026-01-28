@@ -5,13 +5,16 @@ import Conversation from './conversation.model.js';
 import ChatShare from './chatShare.model.js';
 import { conversationHelpers } from './conversation.helpers.js';
 import mongoose from 'mongoose';
+import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
 
 /**
  * Create a new conversation
  * @param {Object} conversationData
+ * @param {string} conversationId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const createConversation = async (conversationData, conversationId) => {
+const createConversation = async (conversationData, conversationId, req = null) => {
   try {
     const {
       userId,
@@ -24,7 +27,7 @@ const createConversation = async (conversationData, conversationId) => {
 
     // Generate unique conversation ID
 
-    const conversation = new Conversation({
+    const conversationPayload = {
       conversationId,
       userId,
       title,
@@ -32,7 +35,11 @@ const createConversation = async (conversationData, conversationId) => {
       messages: [],
       status: 'active',
       is_deep_search,
-    });
+    };
+
+    const conversation = new Conversation(
+      req ? withTenantContext(req, conversationPayload) : conversationPayload
+    );
 
     // Add initial message if provided
     if (initialMessage) {
@@ -64,9 +71,10 @@ const createConversation = async (conversationData, conversationId) => {
  * @param {string} conversationId
  * @param {string} userId
  * @param {Object} messageData
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const addMessageToConversation = async (conversationId, userId, messageData) => {
+const addMessageToConversation = async (conversationId, userId, messageData, req = null) => {
   try {
     const { role, content, metadata = {} } = messageData;
 
@@ -110,16 +118,18 @@ const addMessageToConversation = async (conversationId, userId, messageData) => 
  * @param {string} conversationId
  * @param {string} userId
  * @param {string} title
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const updateConversationTitle = async (conversationId, userId, title) => {
+const updateConversationTitle = async (conversationId, userId, title, req = null) => {
   try {
     if (!title || title.trim().length === 0) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Title cannot be empty');
     }
 
+    const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       { title: title.trim(), lastActivity: new Date() },
       { new: true, runValidators: true }
     ).select('conversationId title lastActivity');
@@ -142,13 +152,15 @@ const updateConversationTitle = async (conversationId, userId, title) => {
  * @param {string} conversationId
  * @param {string} userId
  * @param {Object} metadata
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const updateConversationMetadata = async (conversationId, userId, metadata) => {
+const updateConversationMetadata = async (conversationId, userId, metadata, req = null) => {
   try {
     console.log(`Updating metadata for conversation ${conversationId} for user ${userId}:`, metadata);
+    const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       {
         $set: {
           metadata: { ...metadata },
@@ -171,11 +183,12 @@ const updateConversationMetadata = async (conversationId, userId, metadata) => {
   }
 };
 
-const updadtePlanMetadata = async (conversationId, userId, planMetadata) => {
+const updadtePlanMetadata = async (conversationId, userId, planMetadata, req = null) => {
   try {
     console.log(`Updating plan metadata for conversation ${conversationId} for user ${userId}:`, planMetadata);
+    const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       {
         $set: {
           plan_metadata: { ...planMetadata },
@@ -197,11 +210,12 @@ const updadtePlanMetadata = async (conversationId, userId, planMetadata) => {
   }
 };
 
-const updatePresentationMetadata = async (conversationId, userId, presentationMetadata) => {
+const updatePresentationMetadata = async (conversationId, userId, presentationMetadata, req = null) => {
   try {
     console.log(`Updating presentation metadata for conversation ${conversationId} for user ${userId}:`, presentationMetadata);
+    const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       {
         $set: {
           presentation_metadata: { ...presentationMetadata },
@@ -227,12 +241,14 @@ const updatePresentationMetadata = async (conversationId, userId, presentationMe
  * Archive a conversation
  * @param {string} conversationId
  * @param {string} userId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const archiveConversation = async (conversationId, userId) => {
+const archiveConversation = async (conversationId, userId, req = null) => {
   try {
+    const query = { conversationId, userId, status: 'active' };
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId, status: 'active' },
+      req ? withTenantFilter(req, query) : query,
       { status: 'archived', lastActivity: new Date() },
       { new: true }
     ).select('conversationId status lastActivity');
@@ -254,12 +270,14 @@ const archiveConversation = async (conversationId, userId) => {
  * Restore an archived conversation
  * @param {string} conversationId
  * @param {string} userId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const restoreConversation = async (conversationId, userId) => {
+const restoreConversation = async (conversationId, userId, req = null) => {
   try {
+    const query = { conversationId, userId, status: 'archived' };
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId, status: 'archived' },
+      req ? withTenantFilter(req, query) : query,
       { status: 'active', lastActivity: new Date() },
       { new: true }
     ).select('conversationId status lastActivity');
@@ -281,12 +299,14 @@ const restoreConversation = async (conversationId, userId) => {
  * Delete a conversation (soft delete)
  * @param {string} conversationId
  * @param {string} userId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const deleteConversation = async (conversationId, userId) => {
+const deleteConversation = async (conversationId, userId, req = null) => {
   try {
+    const query = { _id: conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
-      { _id: conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       { status: 'deleted', lastActivity: new Date() },
       { new: true }
     ).select('conversationId status');
@@ -294,7 +314,10 @@ const deleteConversation = async (conversationId, userId) => {
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
-    await Conversation.deleteOne({ _id: conversationId, userId });
+    const deleteQuery = { _id: conversationId, userId };
+    await Conversation.deleteOne(
+      req ? withTenantFilter(req, deleteQuery) : deleteQuery
+    );
     logger.info(`Conversation deleted: ${conversationId}`);
 
     return { message: 'Conversation deleted successfully' };
@@ -308,11 +331,15 @@ const deleteConversation = async (conversationId, userId) => {
  * Permanently delete a conversation
  * @param {string} conversationId
  * @param {string} userId
- * @returns {Promise<Object>}
+ * @param {Object} req - Request object for tenant context
+ * @returns {Promise<void>}
  */
-const permanentlyDeleteConversation = async (conversationId, userId) => {
+const permanentlyDeleteConversation = async (conversationId, userId, req = null) => {
   try {
-    const result = await Conversation.deleteOne({ conversationId, userId });
+    const query = { conversationId, userId };
+    const result = await Conversation.deleteOne(
+      req ? withTenantFilter(req, query) : query
+    );
 
     if (result.deletedCount === 0) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -331,12 +358,14 @@ const permanentlyDeleteConversation = async (conversationId, userId) => {
  * Clear all messages from a conversation
  * @param {string} conversationId
  * @param {string} userId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const clearConversationMessages = async (conversationId, userId) => {
+const clearConversationMessages = async (conversationId, userId, req = null) => {
   try {
+    const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       {
         messages: [],
         messageCount: 0,
@@ -362,16 +391,18 @@ const clearConversationMessages = async (conversationId, userId) => {
  * Bulk archive conversations
  * @param {Array<string>} conversationIds
  * @param {string} userId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const bulkArchiveConversations = async (conversationIds, userId) => {
+const bulkArchiveConversations = async (conversationIds, userId, req = null) => {
   try {
+    const query = {
+      conversationId: { $in: conversationIds },
+      userId,
+      status: 'active'
+    };
     const result = await Conversation.updateMany(
-      {
-        conversationId: { $in: conversationIds },
-        userId,
-        status: 'active'
-      },
+      req ? withTenantFilter(req, query) : query,
       {
         status: 'archived',
         lastActivity: new Date()
@@ -394,15 +425,17 @@ const bulkArchiveConversations = async (conversationIds, userId) => {
  * Bulk delete conversations
  * @param {Array<string>} conversationIds
  * @param {string} userId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const bulkDeleteConversations = async (conversationIds, userId) => {
+const bulkDeleteConversations = async (conversationIds, userId, req = null) => {
   try {
+    const query = {
+      conversationId: { $in: conversationIds },
+      userId
+    };
     const result = await Conversation.updateMany(
-      {
-        conversationId: { $in: conversationIds },
-        userId
-      },
+      req ? withTenantFilter(req, query) : query,
       {
         status: 'deleted',
         lastActivity: new Date()
@@ -426,16 +459,18 @@ const bulkDeleteConversations = async (conversationIds, userId) => {
  * @param {string} conversationId
  * @param {string} userId
  * @param {Array<string>} tags
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const addConversationTags = async (conversationId, userId, tags) => {
+const addConversationTags = async (conversationId, userId, tags, req = null) => {
   try {
     if (!Array.isArray(tags) || tags.length === 0) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Tags must be a non-empty array');
     }
 
+    const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
-      { conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       {
         $addToSet: { 'metadata.tags': { $each: tags } },
         lastActivity: new Date()
@@ -459,25 +494,32 @@ const addConversationTags = async (conversationId, userId, tags) => {
 /**
  * Share a chat conversation
  * @param {Object} shareData
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const shareChatConversation = async (shareData) => {
+const shareChatConversation = async (shareData, req = null) => {
   try {
     const { conversationId, userId, shareType, expiresAt, allowComments } = shareData;
     console.log(`Sharing conversation ${conversationId} for user ${userId}:`, { shareType, expiresAt, allowComments });
 
     // Check if conversation exists and belongs to user
-    const conversation = await Conversation.findOne({ _id: new mongoose.Types.ObjectId(conversationId), userId: new mongoose.Types.ObjectId(userId) });
+    const query = { _id: new mongoose.Types.ObjectId(conversationId), userId: new mongoose.Types.ObjectId(userId) };
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, query) : query
+    );
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
 
     // Check if conversation is already shared
-    let existingShare = await ChatShare.findOne({
+    const shareQuery = {
       conversationId,
       userId,
       isActive: true
-    });
+    };
+    let existingShare = await ChatShare.findOne(
+      req ? withTenantFilter(req, shareQuery) : shareQuery
+    );
 
     if (existingShare) {
       // Update existing share
@@ -499,13 +541,16 @@ const shareChatConversation = async (shareData) => {
     }
 
     // Create new share
-    const chatShare = new ChatShare({
+    const shareData = {
       conversationId,
       userId,
       shareType,
       expiresAt,
       allowComments,
-    });
+    };
+    const chatShare = new ChatShare(
+      req ? withTenantContext(req, shareData) : shareData
+    );
 
     await chatShare.save();
 
@@ -528,11 +573,15 @@ const shareChatConversation = async (shareData) => {
 /**
  * Get shared chat conversation
  * @param {string} shareId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const getSharedChatConversation = async (shareId) => {
+const getSharedChatConversation = async (shareId, req = null) => {
   try {
-    const chatShare = await ChatShare.findOne({ shareId });
+    const shareQuery = { shareId };
+    const chatShare = await ChatShare.findOne(
+      req ? withTenantFilter(req, shareQuery) : shareQuery
+    );
 
     if (!chatShare) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Shared chat not found or expired');
@@ -543,9 +592,12 @@ const getSharedChatConversation = async (shareId) => {
     }
 
     // Get the conversation details
-    const conversation = await Conversation.findOne({
+    const convQuery = {
       _id: chatShare.conversationId
-    }).populate('userId', 'username email');
+    };
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, convQuery) : convQuery
+    ).populate('userId', 'username email');
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -584,13 +636,14 @@ const getSharedChatConversation = async (shareId) => {
   }
 };
 
-const renameChatConversation = async (conversationId, userId, newTitle) => {
+const renameChatConversation = async (conversationId, userId, newTitle, req = null) => {
   try {
     if (!newTitle || newTitle.trim().length === 0) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Title cannot be empty');
     }
+    const query = { conversationId, userId };
     const conversation = await Conversation.updateOne(
-      { conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       { title: newTitle.trim(), lastActivity: new Date() }
     ).select('conversationId title lastActivity');
     if (!conversation) {
@@ -604,10 +657,11 @@ const renameChatConversation = async (conversationId, userId, newTitle) => {
   }
 };
 
-const saveChatConversation = async (conversationId, userId, is_saved) => {
+const saveChatConversation = async (conversationId, userId, is_saved, req = null) => {
   try {
+    const query = { conversationId, userId };
     const conversation = await Conversation.updateOne(
-      { conversationId, userId },
+      req ? withTenantFilter(req, query) : query,
       { is_saved, lastActivity: new Date() }
     ).select('conversationId is_saved lastActivity');
 
@@ -625,17 +679,21 @@ const saveChatConversation = async (conversationId, userId, is_saved) => {
 /**
  * Update chat share settings
  * @param {Object} updateData
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const updateChatShareSettings = async (updateData) => {
+const updateChatShareSettings = async (updateData, req = null) => {
   try {
     const { conversationId, userId, shareType, expiresAt, allowComments, isActive } = updateData;
 
     // Find the chat share
-    const chatShare = await ChatShare.findOne({
+    const query = {
       conversationId,
       userId
-    });
+    };
+    const chatShare = await ChatShare.findOne(
+      req ? withTenantFilter(req, query) : query
+    );
 
     if (!chatShare) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Chat share not found');
@@ -669,15 +727,16 @@ const updateChatShareSettings = async (updateData) => {
 /**
  * Get user's shared chats
  * @param {Object} queryData
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const getUserSharedChats = async (queryData) => {
+const getUserSharedChats = async (queryData, req = null) => {
   try {
     const { userId, page, limit, status } = queryData;
 
-    const chatShares = await ChatShare.findUserShares(userId, { page, limit, status });
+    const chatShares = await ChatShare.findUserShares(userId, { page, limit, status }, req);
 
-    const totalShares = await ChatShare.countDocuments({
+    const countQuery = {
       userId,
       ...(status === 'active' && {
         isActive: true,
@@ -688,7 +747,10 @@ const getUserSharedChats = async (queryData) => {
       }),
       ...(status === 'expired' && { expiresAt: { $lte: new Date() } }),
       ...(status === 'revoked' && { isActive: false }),
-    });
+    };
+    const totalShares = await ChatShare.countDocuments(
+      req ? withTenantFilter(req, countQuery) : countQuery
+    );
 
     const totalPages = Math.ceil(totalShares / limit);
 
@@ -729,16 +791,20 @@ const getUserSharedChats = async (queryData) => {
 /**
  * Revoke chat share
  * @param {Object} revokeData
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const revokeChatShare = async (revokeData) => {
+const revokeChatShare = async (revokeData, req = null) => {
   try {
     const { conversationId, userId } = revokeData;
 
-    const chatShare = await ChatShare.findOne({
+    const query = {
       conversationId,
       userId
-    });
+    };
+    const chatShare = await ChatShare.findOne(
+      req ? withTenantFilter(req, query) : query
+    );
 
     if (!chatShare) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Chat share not found');

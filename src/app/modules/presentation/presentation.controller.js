@@ -27,7 +27,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -61,7 +61,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       userId,
       message,
       conversationId,
-      isGuest
+      isGuest,
+      req
     );
 
     logger.info('Presentation assistant response:', {
@@ -193,7 +194,7 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
   // If conversationId is provided, fetch taskId from conversation metadata
   if (conversationId && !taskId) {
     try {
-      const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+      const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
       taskId = conversation.metadata?.presentation_metadata?.taskId;
 
       if (!taskId) {
@@ -259,7 +260,7 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
               editPath: result.data.edit_path,
               completedAt: new Date().toISOString(),
               uploadResult,
-            });
+            }, req);
             logger.info(`Updated conversation ${conversationId} with completion metadata`);
           } catch (metadataError) {
             logger.error('Error updating conversation metadata:', metadataError);

@@ -4,6 +4,7 @@ import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { enhancedImageController } from "./enhanced_image.controller.js";
 import { EnhancedImageValidation } from "./enhanced_image.validation.js";
 
@@ -13,6 +14,7 @@ const router = express.Router();
 router.post(
   '/generate',
   optionalAuth(),
+  extractTenantContext, extractTenantContext,
   // createRateLimiter(20, 15), // 20 image generation requests per 15 minutes
   validateRequest(EnhancedImageValidation.generateImageSchema),
   enhancedImageController.generateImageDirect
@@ -22,7 +24,7 @@ router.post(
 router.post(
   '/edit',
   optionalAuth(),
-  // createRateLimiter(20, 15), // 20 image editing requests per 15 minutes
+  extractTenantContext,  // createRateLimiter(20, 15), // 20 image editing requests per 15 minutes
   validateRequest(EnhancedImageValidation.editImageSchema),
   enhancedImageController.editImage
 );
@@ -38,7 +40,7 @@ router.post(
 router.post(
   '/analyze-image-intent',
   optionalAuth(),
-  // validateRequest(EnhancedImageValidation.analyzeImageIntentSchema),
+  extractTenantContext,  // validateRequest(EnhancedImageValidation.analyzeImageIntentSchema),
   enhancedImageController.analyzeImageIntent
 );
 
@@ -46,7 +48,7 @@ router.post(
 router.post(
   '/evaluate-prompt',
   optionalAuth(),
-  // validateRequest(EnhancedImageValidation.evaluatePromptSchema),
+  extractTenantContext,  // validateRequest(EnhancedImageValidation.evaluatePromptSchema),
   enhancedImageController.evaluatePrompt
 );
 
@@ -54,7 +56,7 @@ router.post(
 router.post(
   '/add-detail',
   optionalAuth(),
-  validateRequest(EnhancedImageValidation.addDetailSchema),
+  extractTenantContext, validateRequest(EnhancedImageValidation.addDetailSchema),
   enhancedImageController.addDetail
 );
 
@@ -62,7 +64,7 @@ router.post(
 router.post(
   '/finalize-prompt',
   optionalAuth(),
-  validateRequest(EnhancedImageValidation.finalizePromptSchema),
+  extractTenantContext, validateRequest(EnhancedImageValidation.finalizePromptSchema),
   enhancedImageController.finalizePrompt
 );
 
@@ -70,7 +72,7 @@ router.post(
 router.post(
   '/build-enhanced-prompt',
   optionalAuth(),
-  validateRequest(EnhancedImageValidation.buildEnhancedPromptSchema),
+  extractTenantContext, validateRequest(EnhancedImageValidation.buildEnhancedPromptSchema),
   enhancedImageController.buildEnhancedPrompt
 );
 
@@ -78,7 +80,7 @@ router.post(
 router.post(
   '/generate-from-conversation',
   optionalAuth(),
-  // createRateLimiter(20, 15),
+  extractTenantContext,  // createRateLimiter(20, 15),
   validateRequest(EnhancedImageValidation.generateFromConversationSchema),
   enhancedImageController.generateFromConversation
 );
@@ -87,6 +89,7 @@ router.post(
 router.get(
   '/stats',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
   enhancedImageController.getImageStats
 );
 

@@ -50,7 +50,7 @@ const composioConversationController = catchAsync(async (req, res) => {
   if (!isGuest) {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const prompotUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+    const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
     if (prompotUsage <= totalConversationWithConvId) {
       return sendResponse(res, {
@@ -161,7 +161,7 @@ const getComposioConversationController = catchAsync(async (req, res) => {
   }
 
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -205,7 +205,7 @@ const getUserComposioConversationsController = catchAsync(async (req, res) => {
       search: req.query.search || '',
     };
 
-    const conversations = await conversationHelpers.getUserConversations(userId, options);
+    const conversations = await conversationHelpers.getUserConversations(userId, options, req);
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,

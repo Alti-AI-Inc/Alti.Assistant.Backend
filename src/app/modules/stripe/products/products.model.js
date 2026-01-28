@@ -17,6 +17,14 @@ const productSchema = new mongoose.Schema({
     },
   ],
   stripe_product_id: { type: String, required: true },
+
+  // Multi-tenant support
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
+    default: null,
+    index: true,
+  },
 });
 
 const Product = mongoose.model("Product", productSchema);

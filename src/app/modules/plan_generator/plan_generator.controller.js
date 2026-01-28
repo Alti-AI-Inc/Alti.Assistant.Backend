@@ -65,7 +65,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     message,
     conversationId,
     isGuest,
-    fileInfo
+    fileInfo,
+    req
   );
 
   // Include userId in response for guest users
@@ -119,7 +120,7 @@ export const conversationalAssistantAsync = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -250,7 +251,7 @@ export const getConversationHistory = catchAsync(async (req, res) => {
 
   logger.info(`Fetching conversation history: ${conversationId}`);
 
-  const result = await planGeneratorService.getConversationHistory(conversationId, userId);
+  const result = await planGeneratorService.getConversationHistory(conversationId, userId, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -273,7 +274,7 @@ export const exportPlan = catchAsync(async (req, res) => {
 
   logger.info(`Exporting plan: ${conversationId} in ${format} format`);
 
-  const result = await planGeneratorService.exportPlan(conversationId, userId, format);
+  const result = await planGeneratorService.exportPlan(conversationId, userId, format, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

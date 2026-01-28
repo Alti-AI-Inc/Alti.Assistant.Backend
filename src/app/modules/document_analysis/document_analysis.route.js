@@ -2,6 +2,7 @@ import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { documentAnalysisController } from './document_analysis.controller.js';
@@ -18,6 +19,7 @@ const router = express.Router();
 router.post(
   '/analyze',
   optionalAuth(),
+  extractTenantContext, // Extract tenant context after auth
   checkDailyRequestLimit,
   uploadDocumentAnalysis.single('file'),
   validateRequest(DocumentAnalysisValidation.analyzeRequestSchema),
@@ -30,6 +32,7 @@ router.post(
 router.get(
   '/conversation/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext, // Extract tenant context after auth
   validateRequest(DocumentAnalysisValidation.getConversationHistorySchema),
   documentAnalysisController.getConversationHistory
 );

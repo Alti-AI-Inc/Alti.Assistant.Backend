@@ -1,5 +1,6 @@
 import express from 'express';
 import auth from '../../middlewares/auth/auth.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import {
   createCustomerController,
   getCustomerController,
@@ -22,28 +23,28 @@ import {
 const router = express.Router();
 
 // Customer routes
-router.post('/customer', auth(), createCustomerController);
-router.get('/customers', auth(), listAccounts);
-router.get('/customer/:customerId', auth(), getCustomerController);
-router.put('/customer/:customerId', auth(), updateCustomerController);
-router.delete('/customer/:customerId', auth(), deleteCustomerController);
+router.post('/customer', auth(), extractTenantContext, createCustomerController);
+router.get('/customers', auth(), extractTenantContext, listAccounts);
+router.get('/customer/:customerId', auth(), extractTenantContext, getCustomerController);
+router.put('/customer/:customerId', auth(), extractTenantContext, updateCustomerController);
+router.delete('/customer/:customerId', auth(), extractTenantContext, deleteCustomerController);
 
 // Product routes
-router.post('/products', auth(), createProductController);
-router.get('/products', auth(), listProducts);
-router.get('/products/:productId', auth(), retrieveProductController);
-router.get('/prices', auth(), listPricesController);
+router.post('/products', auth(), extractTenantContext, createProductController);
+router.get('/products', auth(), extractTenantContext, listProducts);
+router.get('/products/:productId', auth(), extractTenantContext, retrieveProductController);
+router.get('/prices', auth(), extractTenantContext, listPricesController);
 
 // Payment routes
-router.post('/payment-intent', auth(), createPaymentIntentController);
-router.post('/payment-method', auth(), addPaymentMethodController);
-router.get('/payment-methods/:customerId/:type', auth(), listPaymentMethodsController);
+router.post('/payment-intent', auth(), extractTenantContext, createPaymentIntentController);
+router.post('/payment-method', auth(), extractTenantContext, addPaymentMethodController);
+router.get('/payment-methods/:customerId/:type', auth(), extractTenantContext, listPaymentMethodsController);
 
 
 //Subscription routes can be added here in the future
-router.post('/subscription', auth(), createSubscriptionController);
-router.get('/subscriptions', auth(), listSubscriptions);
-router.get('/subscription/:subscriptionId', auth(), getSingleSubscription);
-router.delete('/subscription/:subscriptionId', auth(), cancelSubscriptionController);
+router.post('/subscription', auth(), extractTenantContext, createSubscriptionController);
+router.get('/subscriptions', auth(), extractTenantContext, listSubscriptions);
+router.get('/subscription/:subscriptionId', auth(), extractTenantContext, getSingleSubscription);
+router.delete('/subscription/:subscriptionId', auth(), extractTenantContext, cancelSubscriptionController);
 
 export { router as stripeRoutes };

@@ -6,6 +6,7 @@ import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { TranscriptionValidation } from "./transcription.validation.js";
 import { transcriptionController } from "./transcription.controller.js";
 
@@ -54,6 +55,7 @@ const upload = multer({
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext,
   upload.fields([
     { name: 'audio', maxCount: 1 },
     { name: 'audios', maxCount: 10 }
@@ -66,6 +68,7 @@ router.post(
 router.get(
   '/stats',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
   transcriptionController.getTranscriptionStats
 );
 

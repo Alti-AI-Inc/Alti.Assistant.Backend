@@ -21,7 +21,7 @@ export const performSearch = catchAsync(async (req, res) => {
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
         const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
         if (prompotUsage <= totalConversationWithConvId) {
             return sendResponse(res, {
@@ -52,7 +52,7 @@ export const performSearch = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
+        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest, req);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Get conversation history for context-aware processing
@@ -68,7 +68,7 @@ export const performSearch = catchAsync(async (req, res) => {
         }
 
         // Add user message to conversation
-        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
+        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest, req);
 
         const inputs = {
             query: message,
@@ -101,7 +101,7 @@ export const performSearch = catchAsync(async (req, res) => {
             searchTimestamp: citationMetadata?.searchTimestamp || new Date().toISOString()
         };
 
-        await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, messageMetadata, isGuest);
+        await searchService.addSearchResultMessage(actualConversationId, userId, fullResponse, messageMetadata, isGuest, req);
         console.log('Full response:', fullResponse);
 
         return sendResponse(res, {
@@ -137,7 +137,8 @@ export const performSearch = catchAsync(async (req, res) => {
                     userId,
                     'I apologize, but an error occurred while processing your search request.',
                     error,
-                    isGuest
+                    isGuest,
+                    req
                 );
             }
         } catch (convError) {
@@ -191,7 +192,7 @@ const getSearchStats = catchAsync(async (req, res) => {
         });
     }
 
-    const stats = await searchService.getSearchStats(userId);
+    const stats = await searchService.getSearchStats(userId, req);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -216,7 +217,7 @@ const generateCode = catchAsync(async (req, res) => {
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
         const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
         if (prompotUsage <= totalConversationWithConvId) {
             return sendResponse(res, {
@@ -247,7 +248,7 @@ const generateCode = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
+        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest, req);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Get conversation history for context-aware processing
@@ -262,7 +263,7 @@ const generateCode = catchAsync(async (req, res) => {
         }
 
         // Add user message to conversation
-        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
+        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest, req);
 
         // Import code generation function
         const { runCodeGeneration } = await import('./llm.js');
@@ -295,7 +296,7 @@ const generateCode = catchAsync(async (req, res) => {
             type: 'code_generation'
         };
 
-        await searchService.addSearchResultMessage(actualConversationId, userId, answer, messageMetadata, isGuest);
+        await searchService.addSearchResultMessage(actualConversationId, userId, answer, messageMetadata, isGuest, req);
 
         return sendResponse(res, {
             statusCode: httpStatus.OK,
@@ -331,7 +332,8 @@ const generateCode = catchAsync(async (req, res) => {
                     userId,
                     'I apologize, but an error occurred while generating code.',
                     error,
-                    isGuest
+                    isGuest,
+                    req
                 );
             }
         } catch (convError) {
@@ -365,7 +367,7 @@ const generateWriting = catchAsync(async (req, res) => {
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
         const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
         if (prompotUsage <= totalConversationWithConvId) {
             return sendResponse(res, {
@@ -396,7 +398,7 @@ const generateWriting = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
+        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest, req);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Get conversation history for context-aware processing
@@ -411,7 +413,7 @@ const generateWriting = catchAsync(async (req, res) => {
         }
 
         // Add user message to conversation
-        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
+        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest, req);
 
         // Import intelligent search function
         const { runIntelligentSearch } = await import('./llm.js');
@@ -444,7 +446,7 @@ const generateWriting = catchAsync(async (req, res) => {
             type: 'writing'
         };
 
-        await searchService.addSearchResultMessage(actualConversationId, userId, answer, messageMetadata, isGuest);
+        await searchService.addSearchResultMessage(actualConversationId, userId, answer, messageMetadata, isGuest, req);
 
         return sendResponse(res, {
             statusCode: httpStatus.OK,
@@ -480,7 +482,8 @@ const generateWriting = catchAsync(async (req, res) => {
                     userId,
                     'I apologize, but an error occurred while generating writing.',
                     error,
-                    isGuest
+                    isGuest,
+                    req
                 );
             }
         } catch (convError) {
@@ -515,7 +518,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
         const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
         if (prompotUsage <= totalConversationWithConvId) {
             return sendResponse(res, {
@@ -546,7 +549,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
 
     try {
         // Handle conversation creation/retrieval
-        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
+        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest, req);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Get conversation history for context-aware processing
@@ -561,7 +564,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
         }
 
         // Add user message to conversation
-        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
+        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest, req);
 
         console.log(`🔍 Using NATIVE GROUNDING ONLY (Test Mode)`);
 
@@ -594,7 +597,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
             searchMethod: 'native_grounding_only'
         };
 
-        await searchService.addSearchResultMessage(actualConversationId, userId, answer, messageMetadata, isGuest);
+        await searchService.addSearchResultMessage(actualConversationId, userId, answer, messageMetadata, isGuest, req);
 
         return sendResponse(res, {
             statusCode: httpStatus.OK,
@@ -631,7 +634,8 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
                     userId,
                     'I apologize, but an error occurred while processing your search request with native grounding.',
                     error,
-                    isGuest
+                    isGuest,
+                    req
                 );
             }
         } catch (convError) {
@@ -686,7 +690,7 @@ const performStreamingSearch = catchAsync(async (req, res) => {
     if (!isGuest) {
         const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
         const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
+        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
 
         if (prompotUsage <= totalConversationWithConvId) {
             return sendResponse(res, {
@@ -723,7 +727,7 @@ const performStreamingSearch = catchAsync(async (req, res) => {
         res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
 
         // Handle conversation creation/retrieval
-        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest);
+        const conversation = await searchService.handleSearchConversation(userId, conversationId, message, isGuest, req);
         const actualConversationId = conversation.conversationId || thread_id;
 
         // Get conversation history for context
@@ -738,7 +742,7 @@ const performStreamingSearch = catchAsync(async (req, res) => {
         }
 
         // Add user message to conversation
-        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest);
+        await searchService.addSearchQueryMessage(actualConversationId, userId, message, isGuest, req);
 
         // Send initial connection event
         res.write(`data: ${JSON.stringify({
@@ -794,7 +798,8 @@ const performStreamingSearch = catchAsync(async (req, res) => {
             userId,
             fullText,
             messageMetadata,
-            isGuest
+            isGuest,
+            req
         );
 
         // Send completion event
@@ -820,7 +825,8 @@ const performStreamingSearch = catchAsync(async (req, res) => {
                     userId,
                     'I apologize, but an error occurred while processing your streaming search request.',
                     error,
-                    isGuest
+                    isGuest,
+                    req
                 );
             }
         } catch (convError) {

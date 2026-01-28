@@ -2,16 +2,19 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import Conversation from './conversation.model.js';
+import { withTenantFilter } from '../../helpers/tenantQuery.js';
 
 /**
  * Get conversation by conversationId
  * @param {string} conversationId
  * @param {string} userId - Optional user ID for security check
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const getConversationById = async (conversationId, userId = null) => {
+const getConversationById = async (conversationId, userId = null, req = null) => {
   try {
     console.log("Fetching conversation with ID:", conversationId, "for user:", userId);
+    // Note: Conversation.findByConversationId is a model method, tenant filtering handled at model level
     const conversation = await Conversation.findByConversationId(conversationId, userId);
 
     if (!conversation) {
@@ -29,9 +32,10 @@ const getConversationById = async (conversationId, userId = null) => {
  * Get conversations for a specific user
  * @param {string} userId
  * @param {Object} options - Query options
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const getUserConversations = async (userId, options = {}) => {
+const getUserConversations = async (userId, options = {}, req = null) => {
   try {
     const {
       page = 1,
@@ -65,7 +69,9 @@ const getUserConversations = async (userId, options = {}) => {
     }
 
     // Get conversations without messages for list view
-    const conversations = await Conversation.find(query)
+    const conversations = await Conversation.find(
+      req ? withTenantFilter(req, query) : query
+    )
       .sort({ [sortBy]: sortOrder })
       .limit(limit)
       .skip(skip)
@@ -73,7 +79,9 @@ const getUserConversations = async (userId, options = {}) => {
       .lean();
 
     // Get total count for pagination
-    const total = await Conversation.countDocuments(query);
+    const total = await Conversation.countDocuments(
+      req ? withTenantFilter(req, query) : query
+    );
 
     return {
       conversations,
@@ -97,9 +105,10 @@ const getUserConversations = async (userId, options = {}) => {
  * @param {string} conversationId
  * @param {string} userId
  * @param {Object} options - Query options
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const getConversationMessages = async (conversationId, userId, options = {}) => {
+const getConversationMessages = async (conversationId, userId, options = {}, req = null) => {
   try {
     const { page = 1, limit = 50, beforeDate = null } = options;
 
@@ -151,9 +160,10 @@ const getConversationMessages = async (conversationId, userId, options = {}) => 
  * @param {string} userId
  * @param {string} searchTerm
  * @param {Object} options - Query options
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Array>}
  */
-const searchConversations = async (userId, searchTerm, options = {}) => {
+const searchConversations = async (userId, searchTerm, options = {}, req = null) => {
   try {
     const { limit = 10, category = null } = options;
 
@@ -174,7 +184,9 @@ const searchConversations = async (userId, searchTerm, options = {}) => {
     console.log('Search Query:', JSON.stringify(query, null, 2));
 
 
-    const conversations = await Conversation.find(query)
+    const conversations = await Conversation.find(
+      req ? withTenantFilter(req, query) : query
+    )
       .sort({ lastActivity: -1 })
       .limit(limit)
       .lean();
@@ -186,21 +198,23 @@ const searchConversations = async (userId, searchTerm, options = {}) => {
   }
 };
 
-const getAllSavedConversations = async (userId, limit = 20, page = 1) => {
+const getAllSavedConversations = async (userId, limit = 20, page = 1, req = null) => {
   try {
-    const conversations = await Conversation.find({
+    const query = {
       userId,
       is_saved: true,
-    })
+    };
+    const conversations = await Conversation.find(
+      req ? withTenantFilter(req, query) : query
+    )
       .sort({ lastActivity: -1 })
       .limit(limit)
       .skip((page - 1) * limit)
       .lean();
 
-    const total = await Conversation.countDocuments({
-      userId,
-      is_saved: true,
-    });
+    const total = await Conversation.countDocuments(
+      req ? withTenantFilter(req, query) : query
+    );
 
     return {
       conversations,
@@ -222,11 +236,12 @@ const getAllSavedConversations = async (userId, limit = 20, page = 1) => {
 /**
  * Get conversation statistics for a user
  * @param {string} userId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const getConversationStats = async (userId) => {
+const getConversationStats = async (userId, req = null) => {
   try {
-    const stats = await Conversation.aggregate([
+    const pipeline = [
       { $match: { userId: userId } },
       {
         $group: {
@@ -235,7 +250,14 @@ const getConversationStats = async (userId) => {
           totalMessages: { $sum: '$messageCount' },
         },
       },
-    ]);
+    ];
+
+    // Apply tenant filtering using withTenantPipeline if req available
+    const tenantPipeline = req
+      ? (await import('../../helpers/tenantQuery.js')).withTenantPipeline(req, pipeline)
+      : pipeline;
+
+    const stats = await Conversation.aggregate(tenantPipeline);
 
     const result = {
       total: 0,
@@ -263,17 +285,22 @@ const getConversationStats = async (userId) => {
  * @param {string} userId
  * @param {string} category
  * @param {Object} options - Query options
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Array>}
  */
-const getConversationsByCategory = async (userId, category, options = {}) => {
+const getConversationsByCategory = async (userId, category, options = {}, req = null) => {
   try {
     const { limit = 20, sortBy = 'lastActivity', sortOrder = -1 } = options;
 
-    const conversations = await Conversation.find({
+    const query = {
       userId,
       'metadata.category': category,
       status: 'active',
-    })
+    };
+
+    const conversations = await Conversation.find(
+      req ? withTenantFilter(req, query) : query
+    )
       .sort({ [sortBy]: sortOrder })
       .limit(limit)
       .select('-messages')
@@ -290,14 +317,18 @@ const getConversationsByCategory = async (userId, category, options = {}) => {
  * Check if conversation exists and user has access
  * @param {string} conversationId
  * @param {string} userId
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<boolean>}
  */
-const hasConversationAccess = async (conversationId, userId) => {
+const hasConversationAccess = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await Conversation.findOne({
+    const query = {
       conversationId,
       userId,
-    }).select('_id');
+    };
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, query) : query
+    ).select('_id');
 
     return !!conversation;
   } catch (error) {
@@ -310,14 +341,18 @@ const hasConversationAccess = async (conversationId, userId) => {
  * Get recent active conversations for a user
  * @param {string} userId
  * @param {number} limit
+ * @param {Object} req - Request object for tenant context
  * @returns {Promise<Array>}
  */
-const getRecentConversations = async (userId, limit = 5) => {
+const getRecentConversations = async (userId, limit = 5, req = null) => {
   try {
-    const conversations = await Conversation.find({
+    const query = {
       userId,
       status: 'active',
-    })
+    };
+    const conversations = await Conversation.find(
+      req ? withTenantFilter(req, query) : query
+    )
       .sort({ lastActivity: -1 })
       .limit(limit)
       .select('conversationId title lastActivity messageCount')

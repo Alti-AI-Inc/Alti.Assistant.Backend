@@ -8,11 +8,48 @@ import UserModel from '../auth/auth.model.js';
 import SubscriptionModel from './payment.model.js';
 import { purchasePlanTemplate } from './payment.utils.js';
 import { logger } from '../../../shared/logger.js';
+import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
+import Tenant from '../tenant/tenant.model.js';
 
 const stripe = new Stripe(config.stripe.stripe_secret_key);
 
+/**
+ * Plan limits configuration based on plan type
+ */
+const PLAN_LIMITS = {
+  free: {
+    maxApiCalls: 1000,
+    maxStorage: 5368709120, // 5GB
+    maxUsers: 5,
+  },
+  explore: {
+    maxApiCalls: 10000,
+    maxStorage: 53687091200, // 50GB
+    maxUsers: 10,
+  },
+  analyze: {
+    maxApiCalls: 50000,
+    maxStorage: 107374182400, // 100GB
+    maxUsers: 25,
+  },
+  execute: {
+    maxApiCalls: 200000,
+    maxStorage: 536870912000, // 500GB
+    maxUsers: 100,
+  },
+  command: {
+    maxApiCalls: -1, // Unlimited
+    maxStorage: 1099511627776, // 1TB
+    maxUsers: -1, // Unlimited
+  },
+  enterprise: {
+    maxApiCalls: -1, // Unlimited
+    maxStorage: -1, // Unlimited
+    maxUsers: -1, // Unlimited
+  },
+};
 
-const createCheckoutSessionService = async (user, plan) => {
+const createCheckoutSessionService = async (user, plan, req = null) => {
   if (!['explore', 'analyze', 'execute', 'command'].includes(plan.plan_name)) {
     throw new Error('Invalid plan name');
   }
@@ -20,9 +57,42 @@ const createCheckoutSessionService = async (user, plan) => {
     throw new Error('Invalid plan duration');
   }
 
+  // Get user's tenant
+  const tenant = await Tenant.findById(user.tenantId);
+  if (!tenant) {
+    throw new Error('User must belong to a tenant to subscribe');
+  }
+
+  // Create or get Stripe customer for tenant
+  let stripeCustomerId = tenant.subscription?.stripeCustomerId;
+
+  if (!stripeCustomerId) {
+    // Create new Stripe customer for tenant
+    const customer = await stripe.customers.create({
+      email: user.email,
+      name: tenant.name,
+      metadata: {
+        tenantId: tenant._id.toString(),
+        tenantSlug: tenant.slug,
+        ownerId: tenant.ownerId.toString(),
+      },
+    });
+    stripeCustomerId = customer.id;
+
+    // Save customer ID to tenant
+    tenant.subscription = tenant.subscription || {};
+    tenant.subscription.stripeCustomerId = stripeCustomerId;
+    await tenant.save();
+
+    logger.info('Created Stripe customer for tenant', {
+      tenantId: tenant._id,
+      customerId: stripeCustomerId,
+    });
+  }
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
-    customer_email: user.email,
+    customer: stripeCustomerId,
     line_items: [
       {
         price_data: {
@@ -38,11 +108,11 @@ const createCheckoutSessionService = async (user, plan) => {
     metadata: {
       plan_name: plan.plan_name,
       duration: plan.duration,
+      tenantId: tenant._id.toString(),
+      userId: user._id.toString(),
     },
-    // success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
     success_url: `${config.client_url}`,
     cancel_url: `${config.client_url}`,
-
   });
 
   return session.url;
@@ -85,27 +155,34 @@ const handleWebhookService = async (req, res) => {
       // Validate metadata
       if (
         !stripeSession.metadata.plan_name ||
-        !stripeSession.metadata.duration
+        !stripeSession.metadata.duration ||
+        !stripeSession.metadata.tenantId
       ) {
-        logger.error('Missing plan_name or duration in session metadata', {
+        logger.error('Missing required metadata in session', {
           metadata: stripeSession.metadata,
         });
         throw new Error('Invalid session metadata');
       }
 
+      // Find tenant
+      const tenant = await Tenant.findById(stripeSession.metadata.tenantId).session(session);
+      if (!tenant) {
+        logger.warn('No tenant found', { tenantId: stripeSession.metadata.tenantId });
+        throw new Error('Tenant not found');
+      }
+
       // Find user
-      const user = await UserModel.findOne({
-        email: stripeSession.customer_email,
-      }).session(session);
+      const user = await UserModel.findById(stripeSession.metadata.userId).session(session);
       if (!user) {
-        logger.warn('No user found', { email: stripeSession.customer_email });
+        logger.warn('No user found', { userId: stripeSession.metadata.userId });
         throw new Error('User not found');
       }
 
       // Check for existing subscription to prevent duplicates
-      const existingSubscription = await SubscriptionModel.findOne({
-        transactionId: stripeSession.id,
-      }).session(session);
+      const existingSubQuery = { transactionId: stripeSession.id };
+      const existingSubscription = await SubscriptionModel.findOne(
+        req ? withTenantFilter(req, existingSubQuery) : existingSubQuery
+      ).session(session);
       if (existingSubscription) {
         logger.warn('Subscription already exists', {
           transactionId: stripeSession.id,
@@ -116,11 +193,15 @@ const handleWebhookService = async (req, res) => {
 
       // Prepare subscription data and fetch invoiceUrl
       let invoiceUrl = null;
+      let stripeSubscriptionId = null;
+
       if (stripeSession.subscription) {
         try {
           const stripeSubscription = await stripe.subscriptions.retrieve(
             stripeSession.subscription,
           );
+          stripeSubscriptionId = stripeSubscription.id;
+
           if (stripeSubscription.latest_invoice) {
             const invoice = await stripe.invoices.retrieve(
               stripeSubscription.latest_invoice,
@@ -132,14 +213,18 @@ const handleWebhookService = async (req, res) => {
         }
       }
 
+      const planName = stripeSession.metadata.plan_name;
+      const expirationDate = getExpirationDate(stripeSession.metadata.duration);
+
       const subscriptionData = {
         userId: user._id,
+        tenantId: tenant._id,
         transactionId: stripeSession.id,
         price: stripeSession.amount_total / 100,
-        plan_name: stripeSession.metadata.plan_name,
+        plan_name: planName,
         duration: stripeSession.metadata.duration,
-        expiresAt: getExpirationDate(stripeSession.metadata.duration),
-        paymentStatus: stripeSession.payment_status || 'pending',
+        expiresAt: expirationDate,
+        paymentStatus: stripeSession.payment_status || 'paid',
         invoiceUrl,
       };
 
@@ -150,15 +235,40 @@ const handleWebhookService = async (req, res) => {
         subscriptionId: newSubscription._id,
       });
 
-      // Update user with invoiceUrl
+      // Update tenant with subscription details and limits
+      tenant.plan = planName;
+      tenant.status = 'active';
+      tenant.subscription = {
+        stripeCustomerId: stripeSession.customer,
+        stripeSubscriptionId: stripeSubscriptionId,
+        status: 'active',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: expirationDate,
+      };
+
+      // Update tenant limits based on plan
+      const planLimits = PLAN_LIMITS[planName] || PLAN_LIMITS.free;
+      tenant.limits = {
+        maxApiCalls: planLimits.maxApiCalls,
+        maxStorage: planLimits.maxStorage,
+        maxUsers: planLimits.maxUsers,
+      };
+
+      await tenant.save({ session });
+      logger.info('Tenant updated with subscription', {
+        tenantId: tenant._id,
+        plan: planName,
+      });
+
+      // Update user subscription info (for backward compatibility)
       user.isSubscribed = true;
       user.subscription = {
         price: stripeSession.amount_total / 100,
-        plan_name: stripeSession.metadata.plan_name,
+        plan_name: planName,
         duration: stripeSession.metadata.duration,
-        expiresAt: getExpirationDate(stripeSession.metadata.duration),
+        expiresAt: expirationDate,
         status: 'paid',
-        invoiceUrl, // Added invoiceUrl
+        invoiceUrl,
       };
       await user.save({ session });
       logger.info('User updated', { email: user.email });
@@ -180,7 +290,8 @@ const handleWebhookService = async (req, res) => {
       }
 
       await session.commitTransaction();
-      logger.info('Subscription created and user updated successfully', {
+      logger.info('Subscription created and tenant updated successfully', {
+        tenantId: tenant._id,
         userId: user._id,
       });
     }
@@ -188,16 +299,38 @@ const handleWebhookService = async (req, res) => {
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object;
 
-      const existingSubscription = await SubscriptionModel.findOne({
-        transactionId: subscription.id,
-      }).session(session);
+      const existingSubQuery = { transactionId: subscription.id };
+      const existingSubscription = await SubscriptionModel.findOne(
+        req ? withTenantFilter(req, existingSubQuery) : existingSubQuery
+      ).session(session);
+
       if (existingSubscription) {
         existingSubscription.paymentStatus = 'expired';
         await existingSubscription.save({ session });
 
-        const user = await UserModel.findById(
-          existingSubscription.userId,
-        ).session(session);
+        // Update tenant status and revert to free plan
+        const tenant = await Tenant.findById(existingSubscription.tenantId).session(session);
+        if (tenant) {
+          tenant.plan = 'free';
+          tenant.status = 'active';
+          tenant.subscription.status = 'cancelled';
+          tenant.subscription.cancelAt = new Date();
+
+          // Reset limits to free tier
+          tenant.limits = {
+            maxApiCalls: PLAN_LIMITS.free.maxApiCalls,
+            maxStorage: PLAN_LIMITS.free.maxStorage,
+            maxUsers: PLAN_LIMITS.free.maxUsers,
+          };
+
+          await tenant.save({ session });
+          logger.info('Tenant reverted to free plan', {
+            tenantId: tenant._id,
+          });
+        }
+
+        // Update user subscription status (backward compatibility)
+        const user = await UserModel.findById(existingSubscription.userId).session(session);
         if (user) {
           user.isSubscribed = false;
           user.subscription = null;

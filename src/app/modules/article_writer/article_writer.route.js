@@ -8,6 +8,7 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { articleWriterController } from './article_writer.controller.js';
 import { ArticleWriterValidation } from './article_writer.validation.js';
 import { uploadArticleFile } from './middlewares/uploadArticleFile.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
+  extractTenantContext,
   checkDailyRequestLimit,
   uploadArticleFile.single('file'),
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
@@ -32,6 +34,7 @@ router.post(
 router.get(
   '/conversation/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(ArticleWriterValidation.getConversationHistorySchema),
   articleWriterController.getConversationHistory
 );

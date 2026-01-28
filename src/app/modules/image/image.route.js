@@ -7,6 +7,7 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { imageController } from './image.controller.js';
 import { ImageValidation } from './image.validation.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ console.log('Image routes initialized');
 router.post(
   '/generate',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  extractTenantContext,
   checkDailyRequestLimit,
   createRateLimiter(20, 15), // 20 image generation requests per 15 minutes
   validateRequest(ImageValidation.imageGenerationSchema),
@@ -26,6 +28,7 @@ router.post(
 router.post(
   '/analyze',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  extractTenantContext,
   checkDailyRequestLimit,
   createRateLimiter(30, 15), // 30 image analysis requests per 15 minutes
   validateRequest(ImageValidation.imageAnalysisSchema),
@@ -36,6 +39,7 @@ router.post(
 router.get(
   '/stats',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), // Keep regular auth for stats
+  extractTenantContext,
   imageController.getImageStats
 );
 
@@ -43,6 +47,7 @@ router.get(
 router.get(
   '/conversation/:conversationId',
   optionalAuth(), // Use optional auth to allow guest access
+  extractTenantContext,
   validateRequest(ImageValidation.conversationSchema),
   imageController.getImageConversation
 );
@@ -51,6 +56,7 @@ router.get(
 router.get(
   '/guest/:guestUserId/conversations',
   optionalAuth(), // Use optional auth to allow guest access
+  extractTenantContext,
   validateRequest(ImageValidation.guestUserSchema),
   imageController.getGuestConversations
 );

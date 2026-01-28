@@ -13,5 +13,13 @@ export const CodeChatSessionSchema = new mongoose.Schema({
   },
   history: {
     type: Schema.Types.Mixed
-  }
+  },
+
+  // Multi-tenant support
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
+    default: null,
+    index: true,
+  },
 })

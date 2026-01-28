@@ -1,6 +1,7 @@
 import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { knowledgeController } from './knowledge.controller.js';
 import { KnowledgeValidation } from './knowledge.validation.js';
@@ -18,6 +19,7 @@ const router = express.Router();
 router.post(
   '/upload',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   uploadKnowledge.single('file'),
   validateRequest(KnowledgeValidation.uploadFileSchema),
   knowledgeController.uploadFile
@@ -30,6 +32,7 @@ router.post(
 router.post(
   '/process/:fileId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.processFileSchema),
   knowledgeController.processFile
 );
@@ -41,6 +44,7 @@ router.post(
 router.get(
   '/files',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.getFilesSchema),
   knowledgeController.getFiles
 );
@@ -52,6 +56,7 @@ router.get(
 router.get(
   '/files/:fileId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.getFileByIdSchema),
   knowledgeController.getFileById
 );
@@ -63,6 +68,7 @@ router.get(
 router.delete(
   '/files/:fileId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.deleteFileSchema),
   knowledgeController.deleteFile
 );
@@ -74,6 +80,7 @@ router.delete(
 router.get(
   '/stats',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.getStorageStatsSchema),
   knowledgeController.getStorageStats
 );
@@ -87,6 +94,7 @@ router.get(
 router.post(
   '/folders',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.createFolderSchema),
   knowledgeController.createFolder
 );
@@ -98,6 +106,7 @@ router.post(
 router.get(
   '/folders',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.getFoldersSchema),
   knowledgeController.getFolders
 );
@@ -109,6 +118,7 @@ router.get(
 router.get(
   '/folders/:folderId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.getFolderByIdSchema),
   knowledgeController.getFolderById
 );
@@ -120,6 +130,7 @@ router.get(
 router.patch(
   '/folders/:folderId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.updateFolderSchema),
   knowledgeController.updateFolder
 );
@@ -131,6 +142,7 @@ router.patch(
 router.delete(
   '/folders/:folderId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.deleteFolderSchema),
   knowledgeController.deleteFolder
 );
@@ -142,6 +154,7 @@ router.delete(
 router.get(
   '/folders/:folderId/contents',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   validateRequest(KnowledgeValidation.getFolderContentsSchema),
   knowledgeController.getFolderContents
 );
@@ -156,6 +169,7 @@ router.get(
 router.post(
   '/chat',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   knowledgeController.conversationalQuery
 );
 
@@ -167,6 +181,7 @@ router.post(
 router.post(
   '/query',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   knowledgeController.queryKnowledge
 );
 
@@ -178,6 +193,7 @@ router.post(
 router.post(
   '/search',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   knowledgeController.semanticSearch
 );
 
@@ -188,6 +204,7 @@ router.post(
 router.get(
   '/conversations/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  extractTenantContext,
   knowledgeController.getConversationHistory
 );
 

@@ -45,7 +45,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -181,7 +181,8 @@ export const reviewDocument = catchAsync(async (req, res) => {
       fileInfo,
       reviewParams,
       userId,
-      isGuest
+      isGuest,
+      req
     );
 
     logger.info('Document review completed successfully');
@@ -225,7 +226,7 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   }
 
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation) {
       return sendResponse(res, {

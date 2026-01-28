@@ -23,14 +23,14 @@ const generateGuestUserId = () => {
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleSummaryConversation = async (userId, conversationId, summaryQuery, isGuest = false) => {
+const handleSummaryConversation = async (userId, conversationId, summaryQuery, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
         if (isGuest && conversation.metadata?.userType !== 'guest') {
@@ -61,7 +61,8 @@ const handleSummaryConversation = async (userId, conversationId, summaryQuery, i
               isGuest: true,
             },
           },
-          newConversationId
+          newConversationId,
+          req
         );
       } else {
         // For authenticated users, use the full conversation service
@@ -76,7 +77,8 @@ const handleSummaryConversation = async (userId, conversationId, summaryQuery, i
               userType: 'authenticated',
             },
           },
-          newConversationId
+          newConversationId,
+          req
         );
       }
 
@@ -98,7 +100,7 @@ const handleSummaryConversation = async (userId, conversationId, summaryQuery, i
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addSummaryQueryMessage = async (conversationId, userId, summaryQuery, isGuest = false) => {
+const addSummaryQueryMessage = async (conversationId, userId, summaryQuery, isGuest = false, req = null) => {
   try {
     console.log(`Adding summary query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -113,7 +115,8 @@ const addSummaryQueryMessage = async (conversationId, userId, summaryQuery, isGu
           type: 'summary_query',
           timestamp: new Date().toISOString(),
         },
-      }
+      },
+      req
     );
 
     if (openMemoryClient?.enabled && summaryQuery && userId) {
@@ -151,7 +154,7 @@ const addSummaryQueryMessage = async (conversationId, userId, summaryQuery, isGu
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addSummaryResultMessage = async (conversationId, userId, summaryResult, metadata = {}, isGuest = false) => {
+const addSummaryResultMessage = async (conversationId, userId, summaryResult, metadata = {}, isGuest = false, req = null) => {
   try {
     console.log(`Adding summary result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -168,7 +171,8 @@ const addSummaryResultMessage = async (conversationId, userId, summaryResult, me
           model: 'summary-agent',
           ...metadata,
         },
-      }
+      },
+      req
     );
 
     if (openMemoryClient?.enabled && summaryResult && userId) {
@@ -206,7 +210,7 @@ const addSummaryResultMessage = async (conversationId, userId, summaryResult, me
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false) => {
+const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false, req = null) => {
   try {
     console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -222,7 +226,8 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
           timestamp: new Date().toISOString(),
           error: originalError?.message || 'Unknown error',
         },
-      }
+      },
+      req
     );
   } catch (error) {
     logger.error('Error adding error message:', error);
@@ -237,9 +242,9 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
  * @param {number} limit
  * @returns {Promise<Array>}
  */
-const getSummaryHistory = async (conversationId, userId, limit = 10) => {
+const getSummaryHistory = async (conversationId, userId, limit = 10, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation || !conversation.messages) {
       return [];
@@ -266,10 +271,10 @@ const getSummaryHistory = async (conversationId, userId, limit = 10) => {
  * @param {string} summaryQuery
  * @returns {Promise<void>}
  */
-const updateConversationTitle = async (conversationId, userId, summaryQuery) => {
+const updateConversationTitle = async (conversationId, userId, summaryQuery, req = null) => {
   try {
     const title = `Summary: ${summaryQuery.substring(0, 50)}${summaryQuery.length > 50 ? '...' : ''}`;
-    await conversationService.updateConversationTitle(conversationId, userId, title);
+    await conversationService.updateConversationTitle(conversationId, userId, title, req);
   } catch (error) {
     logger.warn('Failed to update conversation title:', error);
     // Don't throw as this is not critical
@@ -289,7 +294,7 @@ const generateSummaryConversationId = () => {
  * @param {string} userId
  * @returns {Promise<Object>}
  */
-const getSummaryStats = async (userId) => {
+const getSummaryStats = async (userId, req = null) => {
   try {
     const summaryConversations = await conversationHelpers.getUserConversations(userId, {
       page: 1,

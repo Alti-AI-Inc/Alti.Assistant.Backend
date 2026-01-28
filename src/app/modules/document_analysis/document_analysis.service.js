@@ -33,26 +33,26 @@ const generateConversationId = () => {
 /**
  * Add a message to a conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false) => {
+const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false, req = null) => {
   const message = {
     role,
     content,
     metadata,
   };
 
-  return await conversationService.addMessageToConversation(conversationId, userId, message);
+  return await conversationService.addMessageToConversation(conversationId, userId, message, req);
 };
 
 /**
  * Handle document analysis conversation (create or retrieve)
  */
-const handleAnalysisConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+const handleAnalysisConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found, creating new one`);
@@ -74,7 +74,8 @@ const handleAnalysisConversation = async (userId, conversationId, userMessage, i
             uploadedFiles: [],
           },
         },
-        newConversationId
+        newConversationId,
+        req
       );
 
       logger.info(`Created new analysis conversation ${newConversationId} for user ${userId}`);
@@ -90,7 +91,7 @@ const handleAnalysisConversation = async (userId, conversationId, userMessage, i
 /**
  * Main analysis service - processes text or file content
  */
-const analyzeContent = async (userId, message, fileInfo, conversationId, analysisType, outputFormat, isGuest = false) => {
+const analyzeContent = async (userId, message, fileInfo, conversationId, analysisType, outputFormat, isGuest = false, req = null) => {
   try {
     // Set defaults
     const finalAnalysisType = analysisType || DEFAULT_PARAMS.analysisType;
@@ -143,7 +144,7 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
 
     // Handle conversation
     const displayMessage = message || `Analyze this document: ${fileName || 'uploaded file'}`;
-    const conversation = await handleAnalysisConversation(userId, conversationId, displayMessage, isGuest);
+    const conversation = await handleAnalysisConversation(userId, conversationId, displayMessage, isGuest, req);
 
     // Get conversation history for context
     const conversationHistory = conversation.messages || [];
@@ -180,12 +181,12 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
       fileName: fileName,
       analysisType: finalAnalysisType,
       outputFormat: finalOutputFormat,
-    }, isGuest);
+    }, isGuest, req);
 
     await addMessage(conversation.conversationId, userId, 'assistant', analysisResult.analysis, {
       model: CONVERSATION_MODEL,
       ...analysisResult.metadata,
-    }, isGuest);
+    }, isGuest, req);
 
     // Update conversation metadata with file info if applicable
     if (fileInfo) {
@@ -199,7 +200,7 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
       await conversationService.updateConversationMetadata(conversation.conversationId, userId, {
         ...conversation.metadata,
         uploadedFiles,
-      });
+      }, req);
     }
 
     logger.info(`Analysis completed for conversation ${conversation.conversationId}`);
@@ -229,9 +230,9 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
 /**
  * Get conversation history
  */
-const getConversationHistory = async (conversationId, userId) => {
+const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');

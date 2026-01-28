@@ -22,6 +22,8 @@ const UserValidationSchema = z.object({
     profile: z.string().optional(),
     confirmationToken: z.string().optional(),
     confirmationTokenExpires: z.date().optional(),
+    tenantId: z.string().optional(), // For invitation-based registration
+    invitationToken: z.string().optional(), // Auto-accept invitation on signup
   }).superRefine((data, ctx) => {
     if (data.password !== data.confirmPassword) {
       ctx.addIssue({
@@ -40,6 +42,8 @@ const loginZodSchema = z.object({
     password: z.string({
       required_error: 'Password is required',
     }),
+    tenantId: z.string().optional(), // For invitation-based login
+    invitationToken: z.string().optional(), // Auto-accept invitation on login
   }),
 });
 

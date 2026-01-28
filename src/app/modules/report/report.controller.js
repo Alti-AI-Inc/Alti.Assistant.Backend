@@ -33,7 +33,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -68,7 +68,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       message || 'Generate a report from the uploaded files',
       conversationId,
       isGuest,
-      files
+      files,
+      req
     );
 
     logger.info('Report assistant response:', {

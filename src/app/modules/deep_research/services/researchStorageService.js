@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { connectToMongoDB } from '../utils/mongodb-connection.js';
 import config from '../../../../../config/index.js';
+import { withTenantPipeline, withTenantFilter } from '../../../helpers/tenantQuery.js';
 
 // Ensure MongoDB connection using the config URI
 connectToMongoDB(config.database_local).catch(console.error);
@@ -93,7 +94,7 @@ export const getResearchResultsByQuery = async (query, limit = 10) => {
             .sort({ timestamp: -1 })
             .limit(limit)
             .lean();
-        
+
         return results;
     } catch (error) {
         console.error('Error retrieving research results by query:', error);
@@ -112,7 +113,7 @@ export const getRecentResearchResults = async (limit = 20) => {
             .limit(limit)
             .select('query classification timestamp metadata.processingTime')
             .lean();
-        
+
         return results;
     } catch (error) {
         console.error('Error retrieving recent research results:', error);
@@ -142,7 +143,7 @@ export const getResearchResultsByConversation = async (conversationId) => {
             .find({ conversationId })
             .sort({ timestamp: 1 })
             .lean();
-        
+
         return results;
     } catch (error) {
         console.error('Error retrieving research results by conversation:', error);
@@ -166,22 +167,29 @@ export const deleteResearchResult = async (id) => {
 /**
  * Get research statistics
  */
-export const getResearchStatistics = async () => {
+export const getResearchStatistics = async (req = null) => {
     try {
-        const totalResults = await ResearchResult.countDocuments();
-        const searchResults = await ResearchResult.countDocuments({ classification: 'search' });
-        const directResults = await ResearchResult.countDocuments({ classification: 'direct' });
-        
-        const avgProcessingTime = await ResearchResult.aggregate([
+        const baseQuery = req ? withTenantFilter(req, {}) : {};
+        const totalResults = await ResearchResult.countDocuments(baseQuery);
+
+        const searchQuery = req ? withTenantFilter(req, { classification: 'search' }) : { classification: 'search' };
+        const searchResults = await ResearchResult.countDocuments(searchQuery);
+
+        const directQuery = req ? withTenantFilter(req, { classification: 'direct' }) : { classification: 'direct' };
+        const directResults = await ResearchResult.countDocuments(directQuery);
+
+        const avgTimePipeline = [
             {
                 $group: {
                     _id: null,
                     avgTime: { $avg: '$metadata.processingTime' }
                 }
             }
-        ]);
+        ];
+        const avgTimeTenantPipeline = req ? withTenantPipeline(req, avgTimePipeline) : avgTimePipeline;
+        const avgProcessingTime = await ResearchResult.aggregate(avgTimeTenantPipeline);
 
-        const recentActivity = await ResearchResult.aggregate([
+        const recentPipeline = [
             {
                 $match: {
                     timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
@@ -196,7 +204,9 @@ export const getResearchStatistics = async () => {
             {
                 $sort: { '_id': 1 }
             }
-        ]);
+        ];
+        const recentTenantPipeline = req ? withTenantPipeline(req, recentPipeline) : recentPipeline;
+        const recentActivity = await ResearchResult.aggregate(recentTenantPipeline);
 
         return {
             total: totalResults,

@@ -212,13 +212,13 @@ const generateAndUploadContractFile = async (contractContent, userId, metadata =
 /**
  * Handle contract conversation (create or retrieve)
  */
-const handleContractConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+const handleContractConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found, creating new one`);
@@ -247,7 +247,8 @@ const handleContractConversation = async (userId, conversationId, userMessage, i
             allQuestionsAnswered: false,
           },
         },
-        newConversationId
+        newConversationId,
+        req
       );
 
       logger.info(`Created new contract conversation ${newConversationId} for user ${userId}`);
@@ -263,7 +264,7 @@ const handleContractConversation = async (userId, conversationId, userMessage, i
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}) => {
+const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
   try {
     const message = {
       role,
@@ -272,7 +273,7 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message);
+    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
@@ -907,7 +908,7 @@ const processConversationalRequest = async (
 /**
  * Direct contract generation (non-conversational)
  */
-const generateContractDirect = async (params, userId, isGuest = false) => {
+const generateContractDirect = async (params, userId, isGuest = false, req = null) => {
   try {
     const contractParams = {
       ...DEFAULT_PARAMS,
@@ -929,7 +930,8 @@ const generateContractDirect = async (params, userId, isGuest = false) => {
           directGeneration: true,
         },
       },
-      conversationId
+      conversationId,
+      req
     );
 
     // Generate contract without questions using direct generation
@@ -967,9 +969,9 @@ const generateContractDirect = async (params, userId, isGuest = false) => {
 /**
  * Get conversation history
  */
-const getConversationHistory = async (conversationId, userId) => {
+const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     return {
       conversationId,

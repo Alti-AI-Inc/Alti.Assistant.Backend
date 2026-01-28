@@ -29,7 +29,7 @@ const conversationalAssistant = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -62,7 +62,8 @@ const conversationalAssistant = catchAsync(async (req, res) => {
     const result = await brainstormService.processConversationalBrainstorm(
       userId,
       message,
-      conversationId
+      conversationId,
+      req
     );
 
     sendResponse(res, {
@@ -120,7 +121,7 @@ const generateBrainstorm = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await brainstormService.generateStructuredBrainstorm(userId, req.body);
+    const result = await brainstormService.generateStructuredBrainstorm(userId, req.body, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -148,7 +149,7 @@ const getConversationHistory = catchAsync(async (req, res) => {
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
-    const result = await brainstormService.getConversationHistory(conversationId, userId);
+    const result = await brainstormService.getConversationHistory(conversationId, userId, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -180,7 +181,8 @@ const exportBrainstorm = catchAsync(async (req, res) => {
       conversationId,
       userId,
       format,
-      includeHistory
+      includeHistory,
+      req
     );
 
     sendResponse(res, {
@@ -213,7 +215,8 @@ const refineBrainstorm = catchAsync(async (req, res) => {
       conversationId,
       userId,
       message,
-      focusOn
+      focusOn,
+      req
     );
 
     sendResponse(res, {

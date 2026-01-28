@@ -3,6 +3,7 @@ import multer from "multer";
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
+import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { summaryController } from "./summary.controller.js";
@@ -37,6 +38,7 @@ const upload = multer({
 router.post(
   '/summarize',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
+  extractTenantContext, // Extract tenant context after auth
   upload.single('file'), // Allow file upload
   // createRateLimiter(30, 15), // 30 summary requests per 15 minutes (applies to all users)
   validateRequest(SummaryValidation.summaryQuerySchema),
@@ -47,6 +49,7 @@ router.post(
 router.get(
   '/stats',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), // Keep regular auth for stats
+  extractTenantContext, // Extract tenant context after auth
   summaryController.getSummaryStats
 );
 

@@ -22,7 +22,8 @@ const createConversation = catchAsync(async (req, res) => {
 
   const result = await conversationService.createConversation(
     { userId, title, initialMessage, metadata },
-    conversationId
+    conversationId,
+    req
   );
 
   sendResponse(res, {
@@ -79,7 +80,7 @@ const getConversationById = catchAsync(async (req, res) => {
   if (user_id) {
     userId = user_id; // Use user_id from params if provided
   }
-  const result = await conversationHelpers.getConversationById(conversationId, userId);
+  const result = await conversationHelpers.getConversationById(conversationId, userId, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -106,7 +107,8 @@ const getConversationMessages = catchAsync(async (req, res) => {
   const result = await conversationHelpers.getConversationMessages(
     conversationId,
     userId,
-    options
+    options,
+    req
   );
 
   sendResponse(res, {
@@ -128,7 +130,8 @@ const addMessage = catchAsync(async (req, res) => {
   const result = await conversationService.addMessageToConversation(
     conversationId,
     userId,
-    { role, content, metadata }
+    { role, content, metadata },
+    req
   );
 
   sendResponse(res, {
@@ -150,7 +153,8 @@ const updateTitle = catchAsync(async (req, res) => {
   const result = await conversationService.updateConversationTitle(
     conversationId,
     userId,
-    title
+    title,
+    req
   );
 
   sendResponse(res, {
@@ -172,7 +176,8 @@ const updateMetadata = catchAsync(async (req, res) => {
   const result = await conversationService.updateConversationMetadata(
     conversationId,
     userId,
-    metadata
+    metadata,
+    req
   );
 
   sendResponse(res, {
@@ -190,7 +195,7 @@ const archiveConversation = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { conversationId } = req.params;
 
-  const result = await conversationService.archiveConversation(conversationId, userId);
+  const result = await conversationService.archiveConversation(conversationId, userId, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -207,7 +212,7 @@ const restoreConversation = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { conversationId } = req.params;
 
-  const result = await conversationService.restoreConversation(conversationId, userId);
+  const result = await conversationService.restoreConversation(conversationId, userId, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -224,7 +229,7 @@ const deleteConversation = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { conversationId } = req.params;
 
-  const result = await conversationService.deleteConversation(conversationId, userId);
+  const result = await conversationService.deleteConversation(conversationId, userId, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -243,7 +248,8 @@ const permanentlyDeleteConversation = catchAsync(async (req, res) => {
 
   const result = await conversationService.permanentlyDeleteConversation(
     conversationId,
-    userId
+    userId,
+    req
   );
 
   sendResponse(res, {
@@ -263,7 +269,8 @@ const clearMessages = catchAsync(async (req, res) => {
 
   const result = await conversationService.clearConversationMessages(
     conversationId,
-    userId
+    userId,
+    req
   );
 
   sendResponse(res, {
@@ -317,7 +324,8 @@ const renameChatConversation = catchAsync(async (req, res) => {
   const result = await conversationService.renameChatConversation(
     conversationId,
     userId,
-    newTitle.trim()
+    newTitle.trim(),
+    req
   );
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -334,7 +342,8 @@ const saveChatConversation = catchAsync(async (req, res) => {
   const result = await conversationService.saveChatConversation(
     conversationId,
     userId,
-    is_saved
+    is_saved,
+    req
   );
 
   sendResponse(res, {
@@ -352,7 +361,8 @@ const getAllSavedConversations = catchAsync(async (req, res) => {
   const result = await conversationHelpers.getAllSavedConversations(
     userId,
     parseInt(limit),
-    parseInt(page)
+    parseInt(page),
+    req
   );
 
   sendResponse(res, {
@@ -369,7 +379,7 @@ const getAllSavedConversations = catchAsync(async (req, res) => {
 const getConversationStats = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
 
-  const result = await conversationHelpers.getConversationStats(userId);
+  const result = await conversationHelpers.getConversationStats(userId, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -396,7 +406,8 @@ const getConversationsByCategory = catchAsync(async (req, res) => {
   const result = await conversationHelpers.getConversationsByCategory(
     userId,
     category,
-    options
+    options,
+    req
   );
 
   sendResponse(res, {
@@ -416,7 +427,8 @@ const getRecentConversations = catchAsync(async (req, res) => {
 
   const result = await conversationHelpers.getRecentConversations(
     userId,
-    parseInt(limit)
+    parseInt(limit),
+    req
   );
 
   sendResponse(res, {
@@ -444,7 +456,8 @@ const bulkArchiveConversations = catchAsync(async (req, res) => {
 
   const result = await conversationService.bulkArchiveConversations(
     conversationIds,
-    userId
+    userId,
+    req
   );
 
   sendResponse(res, {
@@ -472,7 +485,8 @@ const bulkDeleteConversations = catchAsync(async (req, res) => {
 
   const result = await conversationService.bulkDeleteConversations(
     conversationIds,
-    userId
+    userId,
+    req
   );
 
   sendResponse(res, {
@@ -509,7 +523,7 @@ const getDeepSearchConversations = catchAsync(async (req, res) => {
     is_deep_search: true, // Filter only deep search conversations
   };
 
-  const result = await conversationHelpers.getUserConversations(userId, options);
+  const result = await conversationHelpers.getUserConversations(userId, options, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -530,7 +544,8 @@ const addTags = catchAsync(async (req, res) => {
   const result = await conversationService.addConversationTags(
     conversationId,
     userId,
-    tags
+    tags,
+    req
   );
 
   sendResponse(res, {

@@ -50,7 +50,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -88,7 +88,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       isGuest,
       articleType,
       tone,
-      length
+      length,
+      req
     );
 
     logger.info(`Article generated successfully for conversation ${result.conversationId}`);

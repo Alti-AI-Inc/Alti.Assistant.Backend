@@ -30,14 +30,14 @@ const generateComposioConversationId = () => {
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleComposioConversation = async (userId, conversationId, userInput, isGuest = false) => {
+const handleComposioConversation = async (userId, conversationId, userInput, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
         if (isGuest && conversation.metadata?.userType !== 'guest') {
@@ -110,7 +110,7 @@ const handleComposioConversation = async (userId, conversationId, userInput, isG
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addComposioQueryMessage = async (conversationId, userId, userInput, isGuest = false) => {
+const addComposioQueryMessage = async (conversationId, userId, userInput, isGuest = false, req = null) => {
   try {
     console.log(`Adding composio query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -142,7 +142,7 @@ const addComposioQueryMessage = async (conversationId, userId, userInput, isGues
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addComposioResultMessage = async (conversationId, userId, result, metadata = {}, isGuest = false) => {
+const addComposioResultMessage = async (conversationId, userId, result, metadata = {}, isGuest = false, req = null) => {
   try {
     console.log(`Adding composio result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -176,7 +176,7 @@ const addComposioResultMessage = async (conversationId, userId, result, metadata
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addComposioErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false) => {
+const addComposioErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false, req = null) => {
   try {
     console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
 
@@ -208,9 +208,9 @@ const addComposioErrorMessage = async (conversationId, userId, errorMessage, ori
  * @param {number} limit
  * @returns {Promise<Array>}
  */
-const getComposioHistory = async (conversationId, userId, limit = 10) => {
+const getComposioHistory = async (conversationId, userId, limit = 10, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (!conversation) {
       return [];
@@ -240,7 +240,7 @@ const getComposioHistory = async (conversationId, userId, limit = 10) => {
  * @param {Object} workflowResult
  * @returns {Promise<void>}
  */
-const updateComposioConversationTitle = async (conversationId, userId, workflowResult) => {
+const updateComposioConversationTitle = async (conversationId, userId, workflowResult, req = null) => {
   try {
     const { identifiedApp, identifiedAction, workflowType } = workflowResult;
 
@@ -252,7 +252,7 @@ const updateComposioConversationTitle = async (conversationId, userId, workflowR
       newTitle = `Multi-step Workflow`;
     }
 
-    await conversationService.updateConversationTitle(conversationId, userId, newTitle);
+    await conversationService.updateConversationTitle(conversationId, userId, newTitle, req);
 
     logger.info(`Updated conversation title for ${conversationId}: ${newTitle}`);
   } catch (error) {
@@ -266,7 +266,7 @@ const updateComposioConversationTitle = async (conversationId, userId, workflowR
  * @param {string} userId
  * @returns {Promise<Object>}
  */
-const getComposioStats = async (userId) => {
+const getComposioStats = async (userId, req = null) => {
   try {
     const composioConversations = await conversationHelpers.getUserConversations(
       userId,

@@ -7,6 +7,7 @@ import KnowledgeBankFolder from './knowledge_bank_folder.model.js';
 import { RAGSystem } from 'rag-system-pgvector';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
 
 // Initialize Google Cloud Storage
 const storage = new Storage({
@@ -57,9 +58,10 @@ class KnowledgeBankService {
    * @param {Object} file - Uploaded file object with buffer
    * @param {string} userId - User ID
    * @param {Object} options - Additional options (description, tags, folderId, etc.)
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object>} - Upload result with file info
    */
-  async uploadFile(file, userId, options = {}) {
+  async uploadFile(file, userId, options = {}, req = null) {
     try {
       logger.info(`[KnowledgeBank] Uploading file for user: ${userId}, file: ${file.originalname}`);
 
@@ -70,11 +72,14 @@ class KnowledgeBankService {
 
       // Validate folder if provided
       if (options.folderId) {
-        const folder = await KnowledgeBankFolder.findOne({
+        const query = {
           _id: options.folderId,
           userId: userId,
           isActive: true
-        });
+        };
+        const folder = await KnowledgeBankFolder.findOne(
+          req ? withTenantFilter(req, query) : query
+        );
         if (!folder) {
           throw new Error('Folder not found or does not belong to user');
         }
@@ -104,7 +109,7 @@ class KnowledgeBankService {
       logger.info(`[KnowledgeBank] File uploaded to GCS: ${gcsUrl}`);
 
       // Save file record to database
-      const fileRecord = new KnowledgeBankFile({
+      const fileData = {
         fileName: fileName,
         originalName: file.originalname,
         fileType: fileExtension,
@@ -121,7 +126,11 @@ class KnowledgeBankService {
         isActive: true,
         processingStatus: 'pending',
         metadata: options.metadata || {},
-      });
+      };
+
+      const fileRecord = new KnowledgeBankFile(
+        req ? withTenantContext(req, fileData) : fileData
+      );
 
       await fileRecord.save();
       logger.info(`[KnowledgeBank] File record saved to database: ${fileRecord._id}`);
@@ -210,14 +219,18 @@ class KnowledgeBankService {
   /**
    * Process uploaded file using RAG system
    * @param {string} fileId - File ID from database
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object>} - Processing result
    */
-  async processUploadedFile(fileId) {
+  async processUploadedFile(fileId, req = null) {
     try {
       logger.info(`[KnowledgeBank] Processing file: ${fileId}`);
 
       // Get file record from database
-      const fileRecord = await KnowledgeBankFile.findById(fileId);
+      const query = { _id: fileId };
+      const fileRecord = await KnowledgeBankFile.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
       if (!fileRecord) {
         throw new Error('File not found');
       }
@@ -288,21 +301,28 @@ class KnowledgeBankService {
    * Get user's files from knowledge bank
    * @param {string} userId - User ID
    * @param {Object} filters - Optional filters (fileType, processingStatus, etc.)
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Array>} - List of files
    */
-  async getUserFiles(userId, filters = {}) {
+  async getUserFiles(userId, filters = {}, req = null) {
     try {
       logger.info(`[KnowledgeBank] Retrieving files for user: ${userId}`);
 
-      const options = {
-        fileType: filters.fileType,
-        processingStatus: filters.processingStatus,
-        isProcessed: filters.isProcessed,
-        limit: filters.limit || 100,
-        skip: filters.skip || 0,
+      const query = {
+        userId: userId,
+        isActive: true,
+        ...(filters.fileType && { fileType: filters.fileType }),
+        ...(filters.processingStatus && { processingStatus: filters.processingStatus }),
+        ...(filters.isProcessed !== undefined && { isProcessed: filters.isProcessed }),
+        ...(filters.folderId && { folderId: filters.folderId })
       };
 
-      const files = await KnowledgeBankFile.findByUserId(userId, options);
+      const files = await KnowledgeBankFile.find(
+        req ? withTenantFilter(req, query) : query
+      )
+        .limit(filters.limit || 100)
+        .skip(filters.skip || 0)
+        .sort({ createdAt: -1 });
 
       return files.map(file => ({
         id: file._id.toString(),
@@ -333,17 +353,21 @@ class KnowledgeBankService {
    * Get file by ID
    * @param {string} fileId - File ID
    * @param {string} userId - User ID (for authorization)
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object|null>} - File details
    */
-  async getFileById(fileId, userId) {
+  async getFileById(fileId, userId, req = null) {
     try {
       logger.info(`[KnowledgeBank] Retrieving file: ${fileId} for user: ${userId}`);
 
-      const file = await KnowledgeBankFile.findOne({
+      const query = {
         _id: fileId,
         userId: userId,
         isActive: true
-      });
+      };
+      const file = await KnowledgeBankFile.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
       if (!file) {
         return null;
@@ -380,18 +404,22 @@ class KnowledgeBankService {
    * Delete file from knowledge bank
    * @param {string} fileId - File ID
    * @param {string} userId - User ID (for authorization)
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<boolean>} - Success status
    */
-  async deleteFile(fileId, userId) {
+  async deleteFile(fileId, userId, req = null) {
     try {
       logger.info(`[KnowledgeBank] Deleting file: ${fileId} for user: ${userId}`);
 
       // Find file
-      const file = await KnowledgeBankFile.findOne({
+      const query = {
         _id: fileId,
         userId: userId,
         isActive: true
-      });
+      };
+      const file = await KnowledgeBankFile.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
       if (!file) {
         logger.warn(`[KnowledgeBank] File not found: ${fileId}`);
@@ -437,31 +465,48 @@ class KnowledgeBankService {
   /**
    * Get user's storage statistics
    * @param {string} userId - User ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object>} - Storage stats
    */
-  async getUserStorageStats(userId) {
+  async getUserStorageStats(userId, req = null) {
     try {
       logger.info(`[KnowledgeBank] Getting storage stats for user: ${userId}`);
 
-      const totalFiles = await KnowledgeBankFile.countByUserId(userId, true);
-      const totalStorage = await KnowledgeBankFile.getTotalStorageByUserId(userId, true);
+      const fileQuery = { userId: userId, isActive: true };
+      const totalFiles = await KnowledgeBankFile.countDocuments(
+        req ? withTenantFilter(req, fileQuery) : fileQuery
+      );
 
-      const processedFiles = await KnowledgeBankFile.countDocuments({
+      const files = await KnowledgeBankFile.find(
+        req ? withTenantFilter(req, fileQuery) : fileQuery
+      ).select('fileSize');
+      const totalStorage = files.reduce((sum, file) => sum + (file.fileSize || 0), 0);
+
+      const processedQuery = {
         userId: userId,
         isActive: true,
         isProcessed: true
-      });
+      };
+      const processedFiles = await KnowledgeBankFile.countDocuments(
+        req ? withTenantFilter(req, processedQuery) : processedQuery
+      );
 
-      const pendingFiles = await KnowledgeBankFile.countDocuments({
+      const pendingQuery = {
         userId: userId,
         isActive: true,
         processingStatus: 'pending'
-      });
+      };
+      const pendingFiles = await KnowledgeBankFile.countDocuments(
+        req ? withTenantFilter(req, pendingQuery) : pendingQuery
+      );
 
-      const totalFolders = await KnowledgeBankFolder.countDocuments({
+      const folderQuery = {
         userId: userId,
         isActive: true
-      });
+      };
+      const totalFolders = await KnowledgeBankFolder.countDocuments(
+        req ? withTenantFilter(req, folderQuery) : folderQuery
+      );
 
       // Format total storage
       const formatBytes = (bytes) => {
@@ -492,29 +537,37 @@ class KnowledgeBankService {
    * Create a new folder
    * @param {string} userId - User ID
    * @param {Object} folderData - Folder data (name, description, parentFolderId, etc.)
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object>} - Created folder
    */
-  async createFolder(userId, folderData) {
+  async createFolder(userId, folderData, req = null) {
     try {
       logger.info(`[KnowledgeBank] Creating folder for user: ${userId}, name: ${folderData.name}`);
 
       // Validate parent folder if provided
       if (folderData.parentFolderId) {
-        const parentFolder = await KnowledgeBankFolder.findOne({
+        const query = {
           _id: folderData.parentFolderId,
           userId: userId,
           isActive: true
-        });
+        };
+        const parentFolder = await KnowledgeBankFolder.findOne(
+          req ? withTenantFilter(req, query) : query
+        );
         if (!parentFolder) {
           throw new Error('Parent folder not found or does not belong to user');
         }
       }
 
       // Check if folder name already exists in parent
-      const nameExists = await KnowledgeBankFolder.nameExistsInParent(
-        userId,
-        folderData.name,
-        folderData.parentFolderId
+      const nameQuery = {
+        userId: userId,
+        name: folderData.name,
+        parentFolderId: folderData.parentFolderId || null,
+        isActive: true
+      };
+      const nameExists = await KnowledgeBankFolder.findOne(
+        req ? withTenantFilter(req, nameQuery) : nameQuery
       );
 
       if (nameExists) {
@@ -522,7 +575,7 @@ class KnowledgeBankService {
       }
 
       // Create folder
-      const folder = new KnowledgeBankFolder({
+      const data = {
         name: folderData.name,
         userId: userId,
         parentFolderId: folderData.parentFolderId || null,
@@ -532,7 +585,11 @@ class KnowledgeBankService {
         tags: folderData.tags || [],
         metadata: folderData.metadata || {},
         isActive: true,
-      });
+      };
+
+      const folder = new KnowledgeBankFolder(
+        req ? withTenantContext(req, data) : data
+      );
 
       await folder.save();
       logger.info(`[KnowledgeBank] Folder created: ${folder._id}`);
@@ -564,24 +621,26 @@ class KnowledgeBankService {
    * Get user's folders
    * @param {string} userId - User ID
    * @param {Object} options - Options (parentFolderId filter, etc.)
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Array>} - List of folders
    */
-  async getUserFolders(userId, options = {}) {
+  async getUserFolders(userId, options = {}, req = null) {
     try {
       logger.info(`[KnowledgeBank] Getting folders for user: ${userId}`);
 
-      let folders;
+      const query = {
+        userId: userId,
+        isActive: true,
+        ...(options.parentFolderId === null || options.parentFolderId === 'root'
+          ? { parentFolderId: null }
+          : options.parentFolderId
+            ? { parentFolderId: options.parentFolderId }
+            : {})
+      };
 
-      if (options.parentFolderId === null || options.parentFolderId === 'root') {
-        // Get root folders
-        folders = await KnowledgeBankFolder.findRootFolders(userId);
-      } else if (options.parentFolderId) {
-        // Get subfolders of specific parent
-        folders = await KnowledgeBankFolder.findSubfolders(options.parentFolderId, userId);
-      } else {
-        // Get all folders
-        folders = await KnowledgeBankFolder.findByUserId(userId, options);
-      }
+      const folders = await KnowledgeBankFolder.find(
+        req ? withTenantFilter(req, query) : query
+      ).sort({ name: 1 });
 
       return folders.map(folder => ({
         id: folder._id.toString(),
@@ -610,40 +669,42 @@ class KnowledgeBankService {
    * Get folder by ID with ancestors
    * @param {string} folderId - Folder ID
    * @param {string} userId - User ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object|null>} - Folder with ancestors
    */
-  async getFolderById(folderId, userId) {
+  async getFolderById(folderId, userId, req = null) {
     try {
       logger.info(`[KnowledgeBank] Getting folder: ${folderId} for user: ${userId}`);
 
-      const result = await KnowledgeBankFolder.getFolderWithAncestors(folderId, userId);
+      const query = {
+        _id: folderId,
+        userId: userId,
+        isActive: true
+      };
+      const folder = await KnowledgeBankFolder.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
-      if (!result) {
+      if (!folder) {
         return null;
       }
 
       return {
-        id: result.folder._id.toString(),
-        name: result.folder.name,
-        parentFolderId: result.folder.parentFolderId,
-        path: result.folder.path,
-        description: result.folder.description,
-        color: result.folder.color,
-        icon: result.folder.icon,
-        tags: result.folder.tags,
-        fileCount: result.folder.fileCount,
-        subfolderCount: result.folder.subfolderCount,
-        totalSize: result.folder.totalSize,
-        formattedTotalSize: result.folder.formattedTotalSize,
-        depth: result.folder.depth,
-        breadcrumb: result.breadcrumb,
-        ancestors: result.ancestors.map(a => ({
-          id: a._id.toString(),
-          name: a.name,
-          path: a.path
-        })),
-        createdAt: result.folder.createdAt,
-        updatedAt: result.folder.updatedAt,
+        id: folder._id.toString(),
+        name: folder.name,
+        parentFolderId: folder.parentFolderId,
+        path: folder.path,
+        description: folder.description,
+        color: folder.color,
+        icon: folder.icon,
+        tags: folder.tags,
+        fileCount: folder.fileCount,
+        subfolderCount: folder.subfolderCount,
+        totalSize: folder.totalSize,
+        formattedTotalSize: folder.formattedTotalSize,
+        depth: folder.depth,
+        createdAt: folder.createdAt,
+        updatedAt: folder.updatedAt,
       };
     } catch (error) {
       logger.error('[KnowledgeBank] Error getting folder:', error);
@@ -656,17 +717,21 @@ class KnowledgeBankService {
    * @param {string} folderId - Folder ID
    * @param {string} userId - User ID
    * @param {Object} updateData - Data to update
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object>} - Updated folder
    */
-  async updateFolder(folderId, userId, updateData) {
+  async updateFolder(folderId, userId, updateData, req = null) {
     try {
       logger.info(`[KnowledgeBank] Updating folder: ${folderId} for user: ${userId}`);
 
-      const folder = await KnowledgeBankFolder.findOne({
+      const query = {
         _id: folderId,
         userId: userId,
         isActive: true
-      });
+      };
+      const folder = await KnowledgeBankFolder.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
       if (!folder) {
         throw new Error('Folder not found');
@@ -722,32 +787,42 @@ class KnowledgeBankService {
    * @param {string} folderId - Folder ID
    * @param {string} userId - User ID
    * @param {boolean} recursive - Delete subfolders and files
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<boolean>} - Success status
    */
-  async deleteFolder(folderId, userId, recursive = false) {
+  async deleteFolder(folderId, userId, recursive = false, req = null) {
     try {
       logger.info(`[KnowledgeBank] Deleting folder: ${folderId} for user: ${userId}, recursive: ${recursive}`);
 
-      const folder = await KnowledgeBankFolder.findOne({
+      const query = {
         _id: folderId,
         userId: userId,
         isActive: true
-      });
+      };
+      const folder = await KnowledgeBankFolder.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
       if (!folder) {
         return false;
       }
 
       // Check if folder has files or subfolders
-      const hasFiles = await KnowledgeBankFile.exists({
+      const fileQuery = {
         folderId: folderId,
         isActive: true
-      });
+      };
+      const hasFiles = await KnowledgeBankFile.exists(
+        req ? withTenantFilter(req, fileQuery) : fileQuery
+      );
 
-      const hasSubfolders = await KnowledgeBankFolder.exists({
+      const subfolderQuery = {
         parentFolderId: folderId,
         isActive: true
-      });
+      };
+      const hasSubfolders = await KnowledgeBankFolder.exists(
+        req ? withTenantFilter(req, subfolderQuery) : subfolderQuery
+      );
 
       if (!recursive && (hasFiles || hasSubfolders)) {
         throw new Error('Folder is not empty. Use recursive delete to remove all contents.');
@@ -755,23 +830,21 @@ class KnowledgeBankService {
 
       if (recursive) {
         // Delete all files in folder
-        const files = await KnowledgeBankFile.find({
-          folderId: folderId,
-          isActive: true
-        });
+        const files = await KnowledgeBankFile.find(
+          req ? withTenantFilter(req, fileQuery) : fileQuery
+        );
 
         for (const file of files) {
           await file.softDelete();
         }
 
         // Delete all subfolders recursively
-        const subfolders = await KnowledgeBankFolder.find({
-          parentFolderId: folderId,
-          isActive: true
-        });
+        const subfolders = await KnowledgeBankFolder.find(
+          req ? withTenantFilter(req, subfolderQuery) : subfolderQuery
+        );
 
         for (const subfolder of subfolders) {
-          await this.deleteFolder(subfolder._id.toString(), userId, true);
+          await this.deleteFolder(subfolder._id.toString(), userId, true, req);
         }
       }
 
@@ -790,31 +863,37 @@ class KnowledgeBankService {
    * Get folder contents (files and subfolders)
    * @param {string} folderId - Folder ID (null for root)
    * @param {string} userId - User ID
+   * @param {Object} req - Request object for tenant context
    * @returns {Promise<Object>} - Folder contents
    */
-  async getFolderContents(folderId, userId) {
+  async getFolderContents(folderId, userId, req = null) {
     try {
       logger.info(`[KnowledgeBank] Getting folder contents: ${folderId || 'root'} for user: ${userId}`);
 
       // Get subfolders
-      let subfolders;
-      if (folderId) {
-        subfolders = await KnowledgeBankFolder.findSubfolders(folderId, userId);
-      } else {
-        subfolders = await KnowledgeBankFolder.findRootFolders(userId);
-      }
+      const subfoldersQuery = {
+        userId: userId,
+        parentFolderId: folderId || null,
+        isActive: true
+      };
+      const subfolders = await KnowledgeBankFolder.find(
+        req ? withTenantFilter(req, subfoldersQuery) : subfoldersQuery
+      ).sort({ name: 1 });
 
       // Get files in folder
-      const files = await KnowledgeBankFile.find({
+      const filesQuery = {
         userId: userId,
         folderId: folderId || null,
         isActive: true
-      }).sort({ createdAt: -1 });
+      };
+      const files = await KnowledgeBankFile.find(
+        req ? withTenantFilter(req, filesQuery) : filesQuery
+      ).sort({ createdAt: -1 });
 
       // Get folder details if not root
       let folderDetails = null;
       if (folderId) {
-        const folder = await this.getFolderById(folderId, userId);
+        const folder = await this.getFolderById(folderId, userId, req);
         folderDetails = folder;
       }
 

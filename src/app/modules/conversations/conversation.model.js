@@ -113,7 +113,15 @@ const ConversationSchema = new mongoose.Schema(
     is_saved: {
       type: Boolean,
       default: false,
-    }
+    },
+
+    // Multi-tenant support
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt

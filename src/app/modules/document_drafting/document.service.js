@@ -49,13 +49,13 @@ const generateConversationId = () => {
 /**
  * Handle document conversation (create or retrieve)
  */
-const handleDocumentConversation = async (userId, conversationId, userMessage, isGuest = false) => {
+const handleDocumentConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
         logger.info(`Retrieved existing conversation: ${conversationId}`);
       } catch (error) {
         logger.warn(`Conversation ${conversationId} not found, creating new one`);
@@ -77,7 +77,8 @@ const handleDocumentConversation = async (userId, conversationId, userMessage, i
             collectedParams: {},
           },
         },
-        newConversationId
+        newConversationId,
+        req
       );
 
       logger.info(`Created new document conversation ${newConversationId} for user ${userId}`);
@@ -93,7 +94,7 @@ const handleDocumentConversation = async (userId, conversationId, userMessage, i
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false) => {
+const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false, req = null) => {
   try {
     const message = {
       role,
@@ -102,7 +103,7 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message);
+    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
@@ -112,11 +113,11 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
 /**
  * Update conversation metadata
  */
-const updateConversationMetadata = async (conversationId, userId, params) => {
+const updateConversationMetadata = async (conversationId, userId, params, req = null) => {
   try {
     await conversationService.updateConversationMetadata(conversationId, userId, {
       collectedParams: params,
-    });
+    }, req);
   } catch (error) {
     logger.warn('Error updating conversation metadata:', error);
   }
@@ -125,9 +126,9 @@ const updateConversationMetadata = async (conversationId, userId, params) => {
 /**
  * Save conversation summary
  */
-const saveConversationSummary = async (conversationId, userId, summary) => {
+const saveConversationSummary = async (conversationId, userId, summary, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
 
     if (conversation) {
       conversation.metadata = {
@@ -523,7 +524,7 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 /**
  * Direct document generation (non-conversational)
  */
-const generateDocument = async (params, userId, isGuest = false) => {
+const generateDocument = async (params, userId, isGuest = false, req = null) => {
   try {
     logger.info('Direct document generation', { params });
 

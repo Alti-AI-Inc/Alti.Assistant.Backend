@@ -9,6 +9,7 @@ import ApiError from '../../../errors/ApiError.js';
 import KnowledgeFile from './knowledge.model.js';
 import KnowledgeFolder from './knowledge_folder.model.js';
 import { fileProcessor } from './services/fileProcessor.js';
+import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
 import {
   KNOWLEDGE_CONFIG,
   RAG_DATABASE_CONFIG,
@@ -65,8 +66,9 @@ class KnowledgeService {
    * @param {string} ownerType - 'user' or 'bot'
    * @param {string} ownerId - userId or botId
    * @param {Object} options - Additional options
+   * @param {Object} req - Request object for tenant context
    */
-  async uploadFile(file, ownerType, ownerId, options = {}) {
+  async uploadFile(file, ownerType, ownerId, options = {}, req = null) {
     try {
       logger.info(`[Knowledge] Uploading file for ${ownerType}: ${ownerId}, file: ${file.originalname}`);
 
@@ -82,11 +84,14 @@ class KnowledgeService {
 
       // Validate folder for user files
       if (ownerType === OWNER_TYPES.USER && options.folderId) {
-        const folder = await KnowledgeFolder.findOne({
+        const folderQuery = {
           _id: options.folderId,
           userId: ownerId,
           isActive: true,
-        });
+        };
+        const folder = await KnowledgeFolder.findOne(
+          req ? withTenantFilter(req, folderQuery) : folderQuery
+        );
         if (!folder) {
           throw new ApiError(httpStatus.NOT_FOUND, 'Folder not found or does not belong to user');
         }
@@ -108,7 +113,7 @@ class KnowledgeService {
       logger.info(`[Knowledge] File uploaded to GCS: ${uploadResult.publicUrl}`);
 
       // Save file record
-      const fileRecord = new KnowledgeFile({
+      const fileData = {
         fileName: fileName,
         originalName: file.originalname,
         fileType: fileExtension,
@@ -127,7 +132,11 @@ class KnowledgeService {
         isActive: true,
         processingStatus: PROCESSING_STATUS.PENDING,
         metadata: options.metadata || {},
-      });
+      };
+
+      const fileRecord = new KnowledgeFile(
+        req ? withTenantContext(req, fileData) : fileData
+      );
 
       await fileRecord.save();
       logger.info(`[Knowledge] File record saved: ${fileRecord._id}`);
@@ -242,8 +251,9 @@ class KnowledgeService {
    * @param {string} ownerType - 'user' or 'bot'
    * @param {string} ownerId - userId or botId
    * @param {Object} filters - Optional filters
+   * @param {Object} req - Request object for tenant context
    */
-  async getFiles(ownerType, ownerId, filters = {}) {
+  async getFiles(ownerType, ownerId, filters = {}, req = null) {
     try {
       logger.info(`[Knowledge] Retrieving files for ${ownerType}: ${ownerId}`);
 
@@ -288,17 +298,22 @@ class KnowledgeService {
    * @param {string} fileId - File ID
    * @param {string} ownerType - Owner type for verification
    * @param {string} ownerId - Owner ID for verification
+   * @param {Object} req - Request object for tenant context
    */
-  async getFileById(fileId, ownerType, ownerId) {
+  async getFileById(fileId, ownerType, ownerId, req = null) {
     try {
       logger.info(`[Knowledge] Retrieving file: ${fileId}`);
 
-      const file = await KnowledgeFile.findOne({
+      const query = {
         _id: fileId,
         ownerType: ownerType,
         ownerId: ownerId,
         isActive: true,
-      });
+      };
+
+      const file = await KnowledgeFile.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
       if (!file) {
         return null;
@@ -338,17 +353,22 @@ class KnowledgeService {
    * @param {string} fileId - File ID
    * @param {string} ownerType - Owner type
    * @param {string} ownerId - Owner ID
+   * @param {Object} req - Request object for tenant context
    */
-  async deleteFile(fileId, ownerType, ownerId) {
+  async deleteFile(fileId, ownerType, ownerId, req = null) {
     try {
       logger.info(`[Knowledge] Deleting file: ${fileId}`);
 
-      const file = await KnowledgeFile.findOne({
+      const query = {
         _id: fileId,
         ownerType: ownerType,
         ownerId: ownerId,
         isActive: true,
-      });
+      };
+
+      const file = await KnowledgeFile.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
 
       if (!file) {
         return false;
@@ -388,34 +408,44 @@ class KnowledgeService {
    * Get storage statistics
    * @param {string} ownerType - Owner type
    * @param {string} ownerId - Owner ID
+   * @param {Object} req - Request object for tenant context
    */
-  async getStorageStats(ownerType, ownerId) {
+  async getStorageStats(ownerType, ownerId, req = null) {
     try {
       logger.info(`[Knowledge] Getting storage stats for ${ownerType}: ${ownerId}`);
 
       const totalFiles = await KnowledgeFile.countByOwner(ownerType, ownerId, true);
       const totalStorage = await KnowledgeFile.getTotalStorageByOwner(ownerType, ownerId, true);
 
-      const processedFiles = await KnowledgeFile.countDocuments({
+      const query1 = {
         ownerType,
         ownerId,
         isActive: true,
         isProcessed: true,
-      });
+      };
+      const processedFiles = await KnowledgeFile.countDocuments(
+        req ? withTenantFilter(req, query1) : query1
+      );
 
-      const pendingFiles = await KnowledgeFile.countDocuments({
+      const query2 = {
         ownerType,
         ownerId,
         isActive: true,
         processingStatus: PROCESSING_STATUS.PENDING,
-      });
+      };
+      const pendingFiles = await KnowledgeFile.countDocuments(
+        req ? withTenantFilter(req, query2) : query2
+      );
 
       let totalFolders = 0;
       if (ownerType === OWNER_TYPES.USER) {
-        totalFolders = await KnowledgeFolder.countDocuments({
+        const folderQuery = {
           userId: ownerId,
           isActive: true,
-        });
+        };
+        totalFolders = await KnowledgeFolder.countDocuments(
+          req ? withTenantFilter(req, folderQuery) : folderQuery
+        );
       }
 
       const formatBytes = (bytes) => {
@@ -446,18 +476,22 @@ class KnowledgeService {
    * Create folder
    * @param {string} userId - User ID
    * @param {Object} folderData - Folder data
+   * @param {Object} req - Request object for tenant context
    */
-  async createFolder(userId, folderData) {
+  async createFolder(userId, folderData, req = null) {
     try {
       logger.info(`[Knowledge] Creating folder for user: ${userId}, name: ${folderData.name}`);
 
       // Validate parent folder
       if (folderData.parentFolderId) {
-        const parentFolder = await KnowledgeFolder.findOne({
+        const parentQuery = {
           _id: folderData.parentFolderId,
           userId: userId,
           isActive: true,
-        });
+        };
+        const parentFolder = await KnowledgeFolder.findOne(
+          req ? withTenantFilter(req, parentQuery) : parentQuery
+        );
         if (!parentFolder) {
           throw new ApiError(httpStatus.NOT_FOUND, 'Parent folder not found');
         }
@@ -478,7 +512,7 @@ class KnowledgeService {
       }
 
       // Create folder
-      const folder = new KnowledgeFolder({
+      const folderPayload = {
         name: folderData.name,
         userId: userId,
         parentFolderId: folderData.parentFolderId || null,
@@ -488,7 +522,11 @@ class KnowledgeService {
         tags: folderData.tags || [],
         metadata: folderData.metadata || {},
         isActive: true,
-      });
+      };
+
+      const folder = new KnowledgeFolder(
+        req ? withTenantContext(req, folderPayload) : folderPayload
+      );
 
       await folder.save();
       logger.info(`[Knowledge] Folder created: ${folder._id}`);
@@ -520,8 +558,9 @@ class KnowledgeService {
    * Get folders
    * @param {string} userId - User ID
    * @param {Object} options - Options
+   * @param {Object} req - Request object for tenant context
    */
-  async getFolders(userId, options = {}) {
+  async getFolders(userId, options = {}, req = null) {
     try {
       logger.info(`[Knowledge] Getting folders for user: ${userId}`);
 
@@ -562,8 +601,9 @@ class KnowledgeService {
    * Get folder by ID
    * @param {string} folderId - Folder ID
    * @param {string} userId - User ID
+   * @param {Object} req - Request object for tenant context
    */
-  async getFolderById(folderId, userId) {
+  async getFolderById(folderId, userId, req = null) {
     try {
       const result = await KnowledgeFolder.getFolderWithAncestors(folderId, userId);
 
@@ -605,14 +645,18 @@ class KnowledgeService {
    * @param {string} folderId - Folder ID
    * @param {string} userId - User ID
    * @param {Object} updateData - Update data
+   * @param {Object} req - Request object for tenant context
    */
-  async updateFolder(folderId, userId, updateData) {
+  async updateFolder(folderId, userId, updateData, req = null) {
     try {
-      const folder = await KnowledgeFolder.findOne({
+      const folderQuery = {
         _id: folderId,
         userId: userId,
         isActive: true,
-      });
+      };
+      const folder = await KnowledgeFolder.findOne(
+        req ? withTenantFilter(req, folderQuery) : folderQuery
+      );
 
       if (!folder) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Folder not found');
@@ -671,14 +715,18 @@ class KnowledgeService {
    * @param {string} folderId - Folder ID
    * @param {string} userId - User ID
    * @param {boolean} recursive - Delete contents
+   * @param {Object} req - Request object for tenant context
    */
-  async deleteFolder(folderId, userId, recursive = false) {
+  async deleteFolder(folderId, userId, recursive = false, req = null) {
     try {
-      const folder = await KnowledgeFolder.findOne({
+      const folderQuery = {
         _id: folderId,
         userId: userId,
         isActive: true,
-      });
+      };
+      const folder = await KnowledgeFolder.findOne(
+        req ? withTenantFilter(req, folderQuery) : folderQuery
+      );
 
       if (!folder) {
         return false;
@@ -739,8 +787,9 @@ class KnowledgeService {
    * Get folder contents
    * @param {string} folderId - Folder ID (null for root)
    * @param {string} userId - User ID
+   * @param {Object} req - Request object for tenant context
    */
-  async getFolderContents(folderId, userId) {
+  async getFolderContents(folderId, userId, req = null) {
     try {
       logger.info(`[Knowledge] Getting folder contents: ${folderId || 'root'}`);
 

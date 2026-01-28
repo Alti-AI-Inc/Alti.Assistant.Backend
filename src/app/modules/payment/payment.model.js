@@ -8,11 +8,19 @@ const SubscriptionSchema = new mongoose.Schema(
     plan_name: { type: String, required: true, enum: ['explore', 'analyze', 'execute', 'command'] },
     duration: { type: String, required: true, enum: ['month', 'year'] },
     expiresAt: { type: Date, required: true },
-    paymentStatus: { type: String, enum: ['paid', 'canceled', 'expired', 'pending']},
+    paymentStatus: { type: String, enum: ['paid', 'canceled', 'expired', 'pending'] },
     invoiceUrl: { type: String, default: null },
     usage: {
       promptsUsed: { type: Number, default: 0 },
       imagesUsed: { type: Number, default: 0 },
+    },
+
+    // Multi-tenant support
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      default: null,
+      index: true,
     },
   },
   { timestamps: true }

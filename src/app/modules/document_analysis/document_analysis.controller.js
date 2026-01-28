@@ -47,7 +47,7 @@ export const analyzeDocument = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
+      ? await conversationHelpers.getConversationById(conversationId, userId, req)
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -67,7 +67,8 @@ export const analyzeDocument = catchAsync(async (req, res) => {
     conversationId,
     analysisType,
     outputFormat,
-    isGuest
+    isGuest,
+    req
   );
 
   sendResponse(res, {
@@ -87,7 +88,7 @@ export const getConversationHistory = catchAsync(async (req, res) => {
 
   logger.info(`Fetching conversation history: ${conversationId} for user ${userId}`);
 
-  const conversation = await documentAnalysisService.getConversationHistory(conversationId, userId);
+  const conversation = await documentAnalysisService.getConversationHistory(conversationId, userId, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
