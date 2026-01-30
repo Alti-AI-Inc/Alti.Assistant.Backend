@@ -14,7 +14,8 @@
     "lint": "eslint . --fix --max-warnings=0",
     "format": "prettier . --write",
     "embeddings:generate": "node src/app/modules/composio_simple/embeddings-generator.js",
-    "embeddings:test": "node src/app/modules/composio_simple/test-vector-search.js"
+    "embeddings:test": "node src/app/modules/composio_simple/test-vector-search.js",
+    "seed:stripe": "node scripts/seed-stripe-products.js"
   },
   "keywords": [],
   "author": "Shohidul-Jaman-Anik",

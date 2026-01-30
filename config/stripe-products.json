@@ -1,0 +1,66 @@
+{
+  "createdAt": "2026-01-30T08:29:03.935Z",
+  "environment": "production",
+  "plans": [
+    {
+      "plan": "free",
+      "name": "Free Trial",
+      "productId": "prod_Tsz2pOQMePPps3",
+      "priceId": "price_1SvD4YKunQzDWl59WAtnzPIp",
+      "price": 0,
+      "currency": "usd",
+      "interval": "month",
+      "features": {
+        "dailyWebSearchLimit": 10,
+        "dailyDeepResearchLimit": 0,
+        "canInviteTeam": false,
+        "unlimitedSeats": false
+      }
+    },
+    {
+      "plan": "explore",
+      "name": "Explore",
+      "productId": "prod_Tsz2suDd1JIZ8z",
+      "priceId": "price_1SvD4aKunQzDWl59VdfdTeqZ",
+      "price": 20,
+      "currency": "usd",
+      "interval": "month",
+      "features": {
+        "dailyWebSearchLimit": 1000,
+        "dailyDeepResearchLimit": 10,
+        "canInviteTeam": true,
+        "unlimitedSeats": true
+      }
+    },
+    {
+      "plan": "execute",
+      "name": "Execute",
+      "productId": "prod_Tsz2XzWZ8CgAPo",
+      "priceId": "price_1SvD4bKunQzDWl59UQwqGLMD",
+      "price": 50,
+      "currency": "usd",
+      "interval": "month",
+      "features": {
+        "dailyWebSearchLimit": 5000,
+        "dailyDeepResearchLimit": 50,
+        "canInviteTeam": true,
+        "unlimitedSeats": true
+      }
+    },
+    {
+      "plan": "command",
+      "name": "Command",
+      "productId": "prod_Tsz2e4GoTtelZw",
+      "priceId": "price_1SvD4dKunQzDWl59PDLuSvJI",
+      "price": 100,
+      "currency": "usd",
+      "interval": "month",
+      "features": {
+        "dailyWebSearchLimit": 15000,
+        "dailyDeepResearchLimit": 150,
+        "canInviteTeam": true,
+        "unlimitedSeats": true
+      }
+    }
+  ]
+}

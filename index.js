@@ -16,6 +16,7 @@ import config from './config/index.js';
 import './src/app/middlewares/resetUsage/resetUsage.js';
 import passportConfig from './src/app/modules/social-login/config/passport.js';
 import { logger } from './src/shared/logger.js';
+import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
 
 // Load environment variables
 dotenv.config();
@@ -104,6 +105,9 @@ mongoose
 // Initialize passport (no session)
 passportConfig(passport);
 app.use(passport.initialize());
+
+// Usage logging middleware (asynchronous - no performance impact)
+app.use(usageLogger);
 
 app.get('/api/user', (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
