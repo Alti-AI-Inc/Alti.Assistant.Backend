@@ -4,7 +4,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { composioService } from './composio.service.js';
 import { conversationService, generateConversationId } from './composio.conversation.js';
-import SubscriptionModel from '../payment/payment.model.js';
+import SubscriptionModel from '../subscription/subscription.model.js';
 
 /**
  * Main chat endpoint - handles user messages and executes actions

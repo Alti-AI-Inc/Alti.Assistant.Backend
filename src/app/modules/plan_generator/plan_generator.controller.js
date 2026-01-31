@@ -3,7 +3,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { planGeneratorService } from './plan_generator.service.js';
-import SubscriptionModel from '../payment/payment.model.js';
+import SubscriptionModel from '../subscription/subscription.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { taskManager } from './plan_generator.taskmanager.js';
 

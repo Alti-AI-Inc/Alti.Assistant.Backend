@@ -68,7 +68,7 @@ export default {
   cyberdesk_api_key: process.env.CYBERDESK_API_KEY,
   stripe: {
     stripe_secret_key: process.env.STRIPE_SECRET_KEY,
-    stripe_webhook_secret_key: process.env.STRIPE_WEBHOOK_SECRET,
+    webhook_secret: process.env.STRIPE_WEBHOOK_SECRET,
   },
   openai: {
     openai_api_key: process.env.OPENAI_API_KEY,

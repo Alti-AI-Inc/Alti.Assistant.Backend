@@ -17,6 +17,7 @@ import './src/app/middlewares/resetUsage/resetUsage.js';
 import passportConfig from './src/app/modules/social-login/config/passport.js';
 import { logger } from './src/shared/logger.js';
 import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
+import { initializeCronJobs } from './src/app/cron/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -96,7 +97,12 @@ app.use((req, res, next) => {
 // MongoDB connection
 mongoose
   .connect(config.database_local)
-  .then(() => logger.info('✅ Database connection successfully'))
+  .then(() => {
+    logger.info('✅ Database connection successfully');
+
+    // Initialize cron jobs after database connection
+    initializeCronJobs();
+  })
   .catch(err => {
     logger.error('❌ Error connecting to the database:', err);
     process.exit(1); // Exit the application on database connection error

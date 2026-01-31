@@ -17,10 +17,18 @@ import {
   listProducts,
   listSubscriptions,
   getSingleSubscription,
-  listPricesController
+  listPricesController,
+  handleWebhook,
+  testWebhook
 } from './stripe.controller.js';
 
 const router = express.Router();
+
+// Webhook route (MUST be before body parser - raw body needed)
+router.post('/webhook', handleWebhook);
+
+// Test webhook (development only)
+router.post('/test-webhook', auth(), testWebhook);
 
 // Customer routes
 router.post('/customer', auth(), extractTenantContext, createCustomerController);

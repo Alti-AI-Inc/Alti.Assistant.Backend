@@ -5,6 +5,7 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import { checkDeepResearchLimit } from '../../middlewares/checkSubscriptionLimits.js';
 import { deepResearchController } from "./deep_research.controller.js";
 import { DeepResearchValidation } from "./deep_research.validation.js";
 
@@ -15,6 +16,7 @@ router.post(
   '/assistant',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext, // Extract tenant context after auth
+  checkDeepResearchLimit,
   createRateLimiter(10, 15), // 10 deep research requests per 15 minutes (due to heavy computational cost)
   validateRequest(DeepResearchValidation.deepResearchQuerySchema),
   deepResearchController.performDeepResearch

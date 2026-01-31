@@ -858,6 +858,448 @@
           }
         }
       ]
+    },
+    {
+      "name": "6. Subscription Management",
+      "item": [
+        {
+          "name": "SUB-001: Get Available Plans (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns plans array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "    pm.expect(jsonData.data.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/subscriptions/plans"
+          }
+        },
+        {
+          "name": "SUB-002: Get My Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns subscription with usage', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('subscription');",
+                  "    pm.expect(jsonData.data).to.have.property('plan');",
+                  "    pm.expect(jsonData.data).to.have.property('usage');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/subscriptions/my-subscription"
+          }
+        },
+        {
+          "name": "SUB-003: Get Tenant Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns tenant subscription', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('plan');",
+                  "    pm.expect(jsonData.data).to.have.property('limits');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/subscriptions/tenant/{{tenantId}}"
+          }
+        },
+        {
+          "name": "SUB-004: Create Free Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Free subscription created', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.plan).to.equal('free');",
+                  "    pm.expect(jsonData.data.status).to.equal('active');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/create-free",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{tenantId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "SUB-005: Upgrade Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Checkout session created', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('sessionId');",
+                  "    pm.expect(jsonData.data).to.have.property('sessionUrl');",
+                  "    pm.environment.set('checkoutSessionId', jsonData.data.sessionId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/upgrade",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planName\": \"explore\",\n  \"tenantId\": \"{{tenantId}}\",\n  \"seats\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "SUB-006: Process Checkout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Subscription activated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.status).to.equal('active');",
+                  "    pm.expect(jsonData.data).to.have.property('stripeSubscriptionId');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/process-checkout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{checkoutSessionId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "SUB-007: Get Usage Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns usage statistics', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('usage');",
+                  "    pm.expect(jsonData.data).to.have.property('limits');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/subscriptions/usage-stats"
+          }
+        },
+        {
+          "name": "SUB-008: Check Usage Limit (Web Search)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns usage limit info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('allowed');",
+                  "    pm.expect(jsonData.data).to.have.property('remaining');",
+                  "    pm.expect(jsonData.data).to.have.property('limit');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/subscriptions/usage-limit/webSearch"
+          }
+        },
+        {
+          "name": "SUB-009: Check Usage Limit (Deep Research)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns usage limit info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('allowed');",
+                  "    pm.expect(jsonData.data).to.have.property('remaining');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/subscriptions/usage-limit/deepResearch"
+          }
+        },
+        {
+          "name": "SUB-010: Increment Usage",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Usage incremented', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('incremented');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/increment-usage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limitType\": \"webSearch\"\n}"
+            }
+          }
+        },
+        {
+          "name": "SUB-011: Add Seat to Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Seat added successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.seats.used).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/add-seat",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": \"{{subscriptionId}}\",\n  \"userId\": \"{{newMemberId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "SUB-012: Remove Seat from Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Seat removed successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('removed');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/remove-seat",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": \"{{subscriptionId}}\",\n  \"userId\": \"{{memberToRemove}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "SUB-013: Cancel Subscription (At Period End)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Subscription marked for cancellation', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('cancel');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"immediate\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "SUB-014: Cancel Subscription (Immediate)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Subscription cancelled immediately', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.status).to.equal('cancelled');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"immediate\": true\n}"
+            }
+          }
+        }
+      ]
     }
   ]
 }

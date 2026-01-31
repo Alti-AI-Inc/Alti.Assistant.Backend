@@ -163,13 +163,15 @@ const updateMemberRole = catchAsync(async (req, res) => {
 const removeMember = catchAsync(async (req, res) => {
   const tenantId = req.user?.tenantId;
   const { userId } = req.params;
+  const removedBy = req.user._id;
 
-  await tenantService.removeMember(tenantId, userId);
+  const result = await tenantService.removeMember(tenantId, userId, removedBy);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Member removed successfully',
+    data: result,
   });
 });
 

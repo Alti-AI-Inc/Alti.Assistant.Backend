@@ -14,6 +14,7 @@ import { createCustomerService } from '../stripe/customer/stripe.service.js';
 import TenantInvitation from '../tenant/tenantInvitation.model.js';
 import TenantMember from '../tenant/tenantMember.model.js';
 import Tenant from '../tenant/tenant.model.js';
+import subscriptionService from '../subscription/subscription.service.js';
 
 const deleteUserAccountService = async userId => {
   const result = await UserModel.deleteOne({ _id: userId });
@@ -110,6 +111,17 @@ const registerService = async req => {
       const mailData = await registrationOtpTemplate(email, token);
       await sendMailWithNodeMailer(mailData);
 
+      // Create free subscription for new users without tenant
+      if (!tenantId && !invitationToken) {
+        try {
+          await subscriptionService.createFreeSubscription(user[0]._id);
+          logger.info(`Free subscription created for new user: ${user[0]._id}`);
+        } catch (subError) {
+          logger.error('Error creating free subscription during registration:', subError);
+          // Don't fail registration if subscription creation fails
+        }
+      }
+
       await session.commitTransaction();
       session.endSession();
 
@@ -192,6 +204,17 @@ const confirmEmailService = async confirmationCode => {
 
   await user.save({ validateBeforeSave: false });
   await Token.deleteOne({ _id: token._id });
+
+  // Create free subscription if user doesn't have one
+  if (!user.subscriptionId) {
+    try {
+      await subscriptionService.createFreeSubscription(user._id, user.tenantId);
+      logger.info(`Free subscription created for user after email confirmation: ${user._id}`);
+    } catch (subError) {
+      logger.error('Error creating free subscription after email confirmation:', subError);
+      // Don't fail email confirmation if subscription creation fails
+    }
+  }
 
   return { success: true };
 };

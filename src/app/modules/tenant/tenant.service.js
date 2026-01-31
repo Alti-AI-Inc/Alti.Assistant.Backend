@@ -6,6 +6,7 @@ import TenantMember from './tenantMember.model.js';
 import TenantInvitation from './tenantInvitation.model.js';
 import UserModel from '../auth/auth.model.js';
 import { tenantInvitationService } from './tenantInvitation.service.js';
+import subscriptionService from '../subscription/subscription.service.js';
 
 /**
  * Create a new tenant
@@ -53,6 +54,21 @@ const createTenant = async (tenantData) => {
       tenantPermissions: ['*'],
       activeTenantId: tenant._id, // Set as active tenant
     });
+
+    // Create free subscription for the tenant
+    try {
+      const subscription = await subscriptionService.createFreeSubscription(ownerId, tenant._id);
+      logger.info(`Free subscription created for tenant: ${tenant._id}`, {
+        subscriptionId: subscription._id,
+      });
+    } catch (subscriptionError) {
+      // Log but don't fail tenant creation if subscription fails
+      logger.error('Failed to create subscription for new tenant:', {
+        tenantId: tenant._id,
+        ownerId,
+        error: subscriptionError.message,
+      });
+    }
 
     logger.info(`Tenant created: ${tenant._id} by user: ${ownerId}`);
 
@@ -164,6 +180,22 @@ const inviteMember = async (invitationData) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
 
+  // Check tenant's subscription to see if they can invite team members
+  const subscription = await subscriptionService.getTenantSubscription(tenantId);
+  if (!subscription) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'No subscription found. Please upgrade to invite team members.'
+    );
+  }
+
+  if (!subscription.limits.canInviteTeam) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Free plan is limited to 1 user. Please upgrade to Explore or higher to invite team members.'
+    );
+  }
+
   // Check if tenant can add more members
   if (!tenant.canAddMembers()) {
     throw new ApiError(
@@ -226,21 +258,33 @@ const updateMemberRole = async (tenantId, userId, role) => {
 /**
  * Remove member from tenant
  */
-const removeMember = async (tenantId, userId) => {
-  const user = await UserModel.findOne({ _id: userId, tenantId });
+const removeMember = async (tenantId, userId, removedBy) => {
+  // Find the member in TenantMember collection
+  const tenantMember = await TenantMember.findOne({ userId, tenantId });
 
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Member not found');
+  if (!tenantMember) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Member not found in tenant');
   }
 
-  if (user.tenantRole === 'owner') {
+  if (tenantMember.role === 'owner') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Cannot remove tenant owner');
   }
 
-  user.tenantId = null;
-  user.tenantRole = null;
-  user.tenantPermissions = [];
-  await user.save();
+  // Verify permissions - only owner or admin can remove members
+  const remover = await TenantMember.findOne({ userId: removedBy, tenantId });
+  if (!remover || !['owner', 'admin'].includes(remover.role)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Insufficient permissions to remove members');
+  }
+
+  // Delete TenantMember record
+  await TenantMember.deleteOne({ _id: tenantMember._id });
+
+  // Update user's active tenant if this was their active tenant
+  const user = await UserModel.findById(userId);
+  if (user && user.activeTenantId?.toString() === tenantId.toString()) {
+    user.activeTenantId = null;
+    await user.save();
+  }
 
   // Update tenant user count
   const tenant = await Tenant.findById(tenantId);
@@ -249,7 +293,25 @@ const removeMember = async (tenantId, userId) => {
     await tenant.save();
   }
 
-  logger.info(`Member removed: ${userId} from tenant ${tenantId}`);
+  // Remove seat from subscription if paid plan
+  try {
+    const subscription = await subscriptionService.getTenantSubscription(tenantId);
+    if (subscription && subscription.plan !== 'free' && subscription.status === 'active') {
+      await subscriptionService.removeSeatFromSubscription(subscription._id, userId);
+      logger.info(`Removed seat from subscription ${subscription._id} for user ${userId}`);
+    }
+  } catch (seatError) {
+    logger.error('Error removing seat after member removal:', seatError);
+    // Don't fail member removal if seat removal fails
+  }
+
+  logger.info(`Member removed: ${userId} from tenant ${tenantId} by ${removedBy}`);
+
+  return {
+    message: 'Member removed successfully',
+    userId,
+    tenantId,
+  };
 };
 
 /**

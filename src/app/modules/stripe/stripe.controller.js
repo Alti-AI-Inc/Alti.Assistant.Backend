@@ -4,6 +4,7 @@ import { createCustomerService, deleteCustomerService, retrieveAllCustomersServi
 import { createPaymentIntentService, getAllPaymentMethodsService, savePaymentMethodService } from "./paymentMethod.service.js";
 import { createProductService, retrieveAllPricesService, retrieveProductService } from "./products/product.service.js";
 import { cancelSubscriptionService, createSubscriptionService, retrieveSubscriptionService } from "./subscription.service.js";
+import webhookController from './webhook.controller.js';
 
 const createCustomerController = catchAsync(async (req, res, next) => {
   const user = req.user;
@@ -109,6 +110,9 @@ const cancelSubscriptionController = catchAsync(async (req, res, next) => {
   res.status(200).json({ confirmation });
 });
 
+const handleWebhook = webhookController.handleStripeWebhook;
+const testWebhook = webhookController.testWebhook;
+
 export {
   createCustomerController,
   getCustomerController,
@@ -125,5 +129,7 @@ export {
   listProducts,
   listSubscriptions,
   getSingleSubscription,
-  listPricesController
+  listPricesController,
+  handleWebhook,
+  testWebhook
 };
