@@ -93,10 +93,11 @@ const createFreeSubscription = catchAsync(async (req, res) => {
  */
 const upgradeSubscription = catchAsync(async (req, res) => {
   const userId = req.user._id;
-  const { planName, tenantId, seats } = req.body;
+  const { stripeProductId, planName, tenantId, seats } = req.body;
 
-  if (!planName) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Plan name is required');
+  // Require either stripeProductId or planName
+  if (!stripeProductId && !planName) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Either stripeProductId or planName is required');
   }
 
   const initialSeats = seats || 1;
@@ -106,7 +107,7 @@ const upgradeSubscription = catchAsync(async (req, res) => {
 
   const checkoutSession = await subscriptionService.upgradeSubscription(
     userId,
-    planName,
+    { stripeProductId, planName },
     tenantId,
     initialSeats
   );

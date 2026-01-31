@@ -980,7 +980,44 @@
           }
         },
         {
-          "name": "SUB-005: Upgrade Subscription",
+          "name": "SUB-005: Upgrade Subscription (by Stripe Product ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Checkout session created', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('sessionId');",
+                  "    pm.expect(jsonData.data).to.have.property('sessionUrl');",
+                  "    pm.expect(jsonData.data).to.have.property('stripeProductId');",
+                  "    pm.environment.set('checkoutSessionId', jsonData.data.sessionId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/upgrade",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stripeProductId\": \"{{stripeProductId}}\",\n  \"tenantId\": \"{{tenantId}}\",\n  \"seats\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "SUB-005b: Upgrade Subscription (by Plan Name - Fallback)",
           "event": [
             {
               "listen": "test",

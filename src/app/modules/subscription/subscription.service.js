@@ -89,22 +89,43 @@ const createFreeSubscription = async (userId, tenantId = null) => {
  * Upgrade subscription to a paid plan
  * Creates a Stripe checkout session
  * @param {string} userId - User ID
- * @param {string} planName - Plan name (explore, execute, command)
+ * @param {Object} planIdentifier - Object containing stripeProductId or planName
+ * @param {string} planIdentifier.stripeProductId - Stripe Product ID (preferred)
+ * @param {string} planIdentifier.planName - Plan name as fallback (explore, execute, command)
  * @param {string} tenantId - Optional tenant ID
  * @param {number} initialSeats - Initial number of seats (default: 1)
  * @returns {Promise<Object>} Stripe checkout session
  */
-const upgradeSubscription = async (userId, planName, tenantId = null, initialSeats = 1) => {
+const upgradeSubscription = async (userId, planIdentifier, tenantId = null, initialSeats = 1) => {
   try {
-    // Validate plan
-    if (planName === 'free') {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot upgrade to free plan');
+    const { stripeProductId, planName } = planIdentifier;
+
+    // Get plan details from database - prefer stripeProductId over planName
+    let plan;
+    if (stripeProductId) {
+      plan = await ProductModel.findByStripeProductId(stripeProductId);
+      if (!plan) {
+        throw new ApiError(httpStatus.NOT_FOUND, `Plan with Stripe Product ID '${stripeProductId}' not found`);
+      }
+    } else if (planName) {
+      // Validate plan name
+      if (planName === 'free') {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot upgrade to free plan');
+      }
+      plan = await ProductModel.findByPlan(planName);
+      if (!plan) {
+        throw new ApiError(httpStatus.NOT_FOUND, `Plan '${planName}' not found`);
+      }
+    } else {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Either stripeProductId or planName is required');
     }
 
-    // Get plan details from database
-    const plan = await ProductModel.findByPlan(planName);
-    if (!plan || !plan.isActive) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Plan not found or inactive');
+    // Validate plan is active and not free
+    if (!plan.isActive) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Plan is not active');
+    }
+    if (plan.plan === 'free') {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot upgrade to free plan');
     }
 
     // Get user
@@ -161,17 +182,19 @@ const upgradeSubscription = async (userId, planName, tenantId = null, initialSea
       metadata: {
         userId: userId.toString(),
         tenantId: tenantId?.toString() || '',
-        planName,
+        planName: plan.plan, // Use plan.plan to ensure consistency
+        stripeProductId: plan.stripeProductId,
         initialSeats: initialSeats.toString(),
       },
     });
 
-    logger.info(`Created checkout session for user ${userId}, plan ${planName}`);
+    logger.info(`Created checkout session for user ${userId}, plan ${plan.plan}, stripeProductId ${plan.stripeProductId}`);
 
     return {
       sessionId: session.id,
       sessionUrl: session.url,
-      planName,
+      planName: plan.plan,
+      stripeProductId: plan.stripeProductId,
       pricePerSeat: plan.price,
       seats: initialSeats,
       totalAmount: plan.price * initialSeats,
