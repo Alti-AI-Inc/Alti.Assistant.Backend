@@ -87,6 +87,18 @@ const registerService = async req => {
               invitation.acceptedBy = user[0]._id;
               await invitation.save({ session });
 
+              // Add seat to subscription if paid plan
+              try {
+                const subscription = await subscriptionService.getTenantSubscription(invitation.tenantId);
+                if (subscription && subscription.plan !== 'free' && subscription.status === 'active') {
+                  await subscriptionService.addSeatToSubscription(subscription._id, user[0]._id);
+                  logger.info(`Added seat to subscription ${subscription._id} for new user ${user[0]._id}`);
+                }
+              } catch (seatError) {
+                logger.error('Error adding seat during registration:', seatError);
+                // Don't fail registration if seat addition fails
+              }
+
               logger.info(`Invitation auto-accepted during registration: ${invitation._id}`);
             }
           }
@@ -94,6 +106,68 @@ const registerService = async req => {
           logger.error('Error auto-accepting invitation during registration:', inviteError);
           // Don't fail registration if invitation accept fails
         }
+      }
+
+      // If invitation token provided, skip email verification and directly log in user
+      if (invitationToken) {
+        // Mark user as verified
+        user[0].role = 'user';
+        await user[0].save({ session });
+
+        // Create free subscription for new users without tenant
+        if (!tenantId) {
+          try {
+            await subscriptionService.createFreeSubscription(user[0]._id);
+            logger.info(`Free subscription created for new user: ${user[0]._id}`);
+          } catch (subError) {
+            logger.error('Error creating free subscription during registration:', subError);
+          }
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+
+        // Generate tokens and return login response
+        const accessToken = jwtHelpers.createToken(
+          {
+            _id: user[0]._id,
+            email: user[0].email,
+            role: user[0].role,
+            tenantId: user[0].tenantId,
+            activeTenantId: user[0].activeTenantId,
+          },
+          config.jwt.access_token,
+          config.jwt.access_expires_in,
+        );
+
+        const refreshToken = jwtHelpers.createToken(
+          {
+            _id: user[0]._id,
+            email: user[0].email,
+            role: user[0].role,
+            tenantId: user[0].tenantId,
+            activeTenantId: user[0].activeTenantId,
+          },
+          config.jwt.refresh_token,
+          config.jwt.refresh_expires_in,
+        );
+
+        logger.info(`User registered and auto-logged in with invitation: ${user[0]._id}`);
+
+        return {
+          user: {
+            _id: user[0]._id,
+            email: user[0].email,
+            role: user[0].role,
+            tenantId: user[0].tenantId,
+            activeTenantId: user[0].activeTenantId,
+            tenantRole: user[0].tenantRole,
+          },
+          accessToken,
+          refreshToken,
+          message: 'Registration successful. You are now logged in.',
+          statusCode: httpStatus.CREATED,
+        };
       }
 
       //Generate 6 digit token only numbers
@@ -112,7 +186,7 @@ const registerService = async req => {
       await sendMailWithNodeMailer(mailData);
 
       // Create free subscription for new users without tenant
-      if (!tenantId && !invitationToken) {
+      if (!tenantId) {
         try {
           await subscriptionService.createFreeSubscription(user[0]._id);
           logger.info(`Free subscription created for new user: ${user[0]._id}`);
@@ -219,13 +293,25 @@ const confirmEmailService = async confirmationCode => {
   return { success: true };
 };
 
-const loginService = async (email, password, tenantId = null, invitationToken = null) => {
+const loginService = async (email, password, tenantId = null, invitationToken = null, subdomain = null) => {
   if (!email || !password) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       'Email and password are required',
     );
   }
+
+  // If subdomain is provided, check if tenant exists
+  if (subdomain) {
+    const tenant = await Tenant.findOne({ subdomain: subdomain.toLowerCase() });
+    if (tenant) {
+      tenantId = tenant._id.toString();
+      logger.info(`Tenant found for subdomain ${subdomain}: ${tenantId}`);
+    } else {
+      logger.warn(`No tenant found for subdomain: ${subdomain}`);
+    }
+  }
+
   const user = await UserModel.findOne({ email }).select('+password');
 
   if (!user) {
@@ -291,6 +377,18 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
               invitation.tenantId,
               { $inc: { 'usage.usersCount': 1 } }
             );
+
+            // Add seat to subscription if paid plan
+            try {
+              const subscription = await subscriptionService.getTenantSubscription(invitation.tenantId);
+              if (subscription && subscription.plan !== 'free' && subscription.status === 'active') {
+                await subscriptionService.addSeatToSubscription(subscription._id, user._id);
+                logger.info(`Added seat to subscription ${subscription._id} for user ${user._id}`);
+              }
+            } catch (seatError) {
+              logger.error('Error adding seat during login invitation acceptance:', seatError);
+              // Don't fail login if seat addition fails
+            }
 
             logger.info(`Invitation auto-accepted during login: ${invitation._id}`);
           } else {

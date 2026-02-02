@@ -63,8 +63,9 @@ const createCheckoutSessionService = async (user, plan, req = null) => {
     throw new Error('User must belong to a tenant to subscribe');
   }
 
-  // Create or get Stripe customer for tenant
-  let stripeCustomerId = tenant.subscription?.stripeCustomerId;
+  // Get existing subscription for tenant to check for stripeCustomerId
+  const existingSubscription = await SubscriptionModel.findOne({ tenantId: tenant._id, status: 'active' });
+  let stripeCustomerId = existingSubscription?.stripeCustomerId;
 
   if (!stripeCustomerId) {
     // Create new Stripe customer for tenant
@@ -78,11 +79,6 @@ const createCheckoutSessionService = async (user, plan, req = null) => {
       },
     });
     stripeCustomerId = customer.id;
-
-    // Save customer ID to tenant
-    tenant.subscription = tenant.subscription || {};
-    tenant.subscription.stripeCustomerId = stripeCustomerId;
-    await tenant.save();
 
     logger.info('Created Stripe customer for tenant', {
       tenantId: tenant._id,
@@ -230,21 +226,18 @@ const handleWebhookService = async (req, res) => {
 
       // Save subscription
       const newSubscription = new SubscriptionModel(subscriptionData);
+      // Add Stripe IDs to subscription
+      newSubscription.stripeCustomerId = stripeSession.customer;
+      newSubscription.stripeSubscriptionId = stripeSubscriptionId;
       await newSubscription.save({ session });
       logger.info('Subscription saved', {
         subscriptionId: newSubscription._id,
       });
 
-      // Update tenant with subscription details and limits
+      // Update tenant with subscription reference and limits (single source of truth is Subscription model)
       tenant.plan = planName;
       tenant.status = 'active';
-      tenant.subscription = {
-        stripeCustomerId: stripeSession.customer,
-        stripeSubscriptionId: stripeSubscriptionId,
-        status: 'active',
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: expirationDate,
-      };
+      tenant.subscriptionId = newSubscription._id;
 
       // Update tenant limits based on plan
       const planLimits = PLAN_LIMITS[planName] || PLAN_LIMITS.free;
@@ -255,8 +248,9 @@ const handleWebhookService = async (req, res) => {
       };
 
       await tenant.save({ session });
-      logger.info('Tenant updated with subscription', {
+      logger.info('Tenant updated with subscription reference', {
         tenantId: tenant._id,
+        subscriptionId: newSubscription._id,
         plan: planName,
       });
 
@@ -306,6 +300,7 @@ const handleWebhookService = async (req, res) => {
 
       if (existingSubscription) {
         existingSubscription.paymentStatus = 'expired';
+        existingSubscription.status = 'cancelled';
         await existingSubscription.save({ session });
 
         // Update tenant status and revert to free plan
@@ -313,8 +308,8 @@ const handleWebhookService = async (req, res) => {
         if (tenant) {
           tenant.plan = 'free';
           tenant.status = 'active';
-          tenant.subscription.status = 'cancelled';
-          tenant.subscription.cancelAt = new Date();
+          // Clear subscription reference (or keep for history, but subscription status will be 'cancelled')
+          // tenant.subscriptionId = null; // Uncomment if you want to clear reference
 
           // Reset limits to free tier
           tenant.limits = {

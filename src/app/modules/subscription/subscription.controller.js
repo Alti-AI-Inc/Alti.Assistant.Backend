@@ -4,6 +4,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import subscriptionService from './subscription.service.js';
 import ProductModel from '../products/products.model.js';
 import ApiError from '../../../errors/ApiError.js';
+import config from '../../../../config/index.js';
 
 /**
  * Subscription Controller
@@ -88,8 +89,14 @@ const createFreeSubscription = catchAsync(async (req, res) => {
 });
 
 /**
- * Upgrade subscription (create checkout session)
+ * Upgrade subscription (hybrid approach)
  * POST /api/v1/subscription/upgrade
+ * 
+ * Response types:
+ * - type: 'plan_changed' - Plan was updated (existing subscription)
+ * - type: 'subscription_created' - New subscription created with saved payment method
+ * - type: 'requires_action' - 3D Secure required, frontend must confirm
+ * - type: 'checkout_session' - No saved payment method, redirect to Stripe checkout
  */
 const upgradeSubscription = catchAsync(async (req, res) => {
   const userId = req.user._id;
@@ -105,18 +112,67 @@ const upgradeSubscription = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Seats must be at least 1');
   }
 
-  const checkoutSession = await subscriptionService.upgradeSubscription(
+  const result = await subscriptionService.upgradeSubscription(
     userId,
     { stripeProductId, planName },
     tenantId,
     initialSeats
   );
 
+  // Determine response message based on result type
+  let message;
+  let statusCode = httpStatus.OK;
+
+  switch (result.type) {
+    case 'plan_changed':
+      message = result.message || 'Plan changed successfully';
+      break;
+    case 'subscription_created':
+      message = result.message || 'Subscription created successfully';
+      statusCode = httpStatus.CREATED;
+      break;
+    case 'requires_action':
+      message = result.message || 'Payment requires additional authentication';
+      statusCode = httpStatus.ACCEPTED;
+      break;
+    case 'checkout_session':
+      message = result.message || 'Checkout session created - redirect to complete payment';
+      break;
+    default:
+      message = 'Subscription updated';
+  }
+
   sendResponse(res, {
     success: true,
-    statusCode: httpStatus.OK,
-    message: 'Checkout session created successfully',
-    data: checkoutSession,
+    statusCode,
+    message,
+    data: result,
+  });
+});
+
+/**
+ * Confirm subscription payment after 3D Secure
+ * POST /api/v1/subscription/confirm-payment
+ */
+const confirmPayment = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const { subscriptionId, tenantId } = req.body;
+
+  if (!subscriptionId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Subscription ID is required');
+  }
+
+  const subscription = await subscriptionService.confirmSubscriptionPayment(
+    subscriptionId,
+    userId,
+    tenantId
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: 'Subscription activated successfully',
+    data: subscription,
   });
 });
 
@@ -324,10 +380,18 @@ const getUsageStats = catchAsync(async (req, res) => {
  */
 const handleStripeWebhook = catchAsync(async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = config.stripe.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
+
+  console.log('Webhook received - signature present:', !!sig);
+  console.log('Webhook secret configured:', !!webhookSecret);
+  console.log('Body type:', typeof req.body, Buffer.isBuffer(req.body) ? 'Buffer' : 'Not Buffer');
 
   if (!webhookSecret) {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Webhook secret not configured');
+  }
+
+  if (!sig) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Missing stripe-signature header');
   }
 
   let event;
@@ -335,9 +399,10 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
   try {
     const Stripe = (await import('stripe')).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    console.log('Webhook verified successfully:', event.type);
   } catch (err) {
+    console.error('Webhook verification error:', err.message);
     throw new ApiError(httpStatus.BAD_REQUEST, `Webhook signature verification failed: ${err.message}`);
   }
 
@@ -356,13 +421,19 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
       break;
     }
 
-    case 'invoice.payment_succeeded':
-      // Payment successful - subscription continues
+    case 'invoice.payment_succeeded': {
+      // Payment successful - update subscription and tenant
+      const invoice = event.data.object;
+      await subscriptionService.handleInvoicePaymentSucceeded(invoice);
       break;
+    }
 
-    case 'invoice.payment_failed':
-      // Payment failed - handle accordingly
+    case 'invoice.payment_failed': {
+      // Payment failed - mark subscription as past_due
+      const invoice = event.data.object;
+      await subscriptionService.handleInvoicePaymentFailed(invoice);
       break;
+    }
 
     default:
       console.log(`Unhandled event type ${event.type}`);
@@ -377,6 +448,7 @@ export default {
   getTenantSubscription,
   createFreeSubscription,
   upgradeSubscription,
+  confirmPayment,
   processCheckout,
   cancelSubscription,
   addSeat,

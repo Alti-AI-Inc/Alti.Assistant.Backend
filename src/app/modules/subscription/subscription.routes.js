@@ -27,10 +27,13 @@ router.get('/tenant/:tenantId', subscriptionController.getTenantSubscription);
 // Create free subscription
 router.post('/create-free', subscriptionController.createFreeSubscription);
 
-// Upgrade subscription (creates checkout session)
+// Upgrade subscription (hybrid: direct charge, plan change, or checkout session)
 router.post('/upgrade', subscriptionController.upgradeSubscription);
 
-// Process successful checkout
+// Confirm payment after 3D Secure authentication
+router.post('/confirm-payment', subscriptionController.confirmPayment);
+
+// Process successful checkout (after redirect from Stripe checkout)
 router.post('/process-checkout', subscriptionController.processCheckout);
 
 // Cancel subscription

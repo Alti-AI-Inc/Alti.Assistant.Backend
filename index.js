@@ -49,7 +49,20 @@ app.use(
 );
 
 // Middleware
-app.use(express.json());
+// Exclude Stripe webhook paths from JSON parsing (they need raw body for signature verification)
+app.use((req, res, next) => {
+  if (req.originalUrl.includes('/webhook') && req.method === 'POST') {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
+
+// Raw body parser for Stripe webhooks
+app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/v1/subscription/webhook', express.raw({ type: 'application/json' }));
+
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true }));

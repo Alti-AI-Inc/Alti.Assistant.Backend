@@ -98,17 +98,12 @@ const TenantSchema = new mongoose.Schema(
         default: Date.now,
       },
     },
-    subscription: {
-      stripeCustomerId: String,
-      stripeSubscriptionId: String,
-      status: {
-        type: String,
-        enum: ['active', 'cancelled', 'past_due', 'trialing'],
-      },
-      currentPeriodStart: Date,
-      currentPeriodEnd: Date,
-      trialEndsAt: Date,
-      cancelAt: Date,
+    // Reference to Subscription model (single source of truth for billing)
+    subscriptionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subscription',
+      default: null,
+      index: true,
     },
     metadata: {
       industry: String,
@@ -140,9 +135,26 @@ TenantSchema.virtual('members', {
   foreignField: 'tenantId',
 });
 
+// Virtual for subscription (populate from Subscription model)
+TenantSchema.virtual('subscription', {
+  ref: 'Subscription',
+  localField: 'subscriptionId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+// Enable virtuals in JSON output
+TenantSchema.set('toJSON', { virtuals: true });
+TenantSchema.set('toObject', { virtuals: true });
+
 // Static method to find active tenants
 TenantSchema.statics.findActive = function () {
   return this.find({ status: 'active', deletedAt: null });
+};
+
+// Static method to find tenant with subscription populated
+TenantSchema.statics.findWithSubscription = function (tenantId) {
+  return this.findById(tenantId).populate('subscriptionId');
 };
 
 // Instance method to check if tenant can add more members

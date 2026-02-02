@@ -72,23 +72,20 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
       }
 
       case 'invoice.payment_succeeded': {
-        // Payment successful - subscription continues
+        // Payment successful - update subscription and tenant
         const invoice = event.data.object;
         logger.info(`Payment succeeded for invoice: ${invoice.id}`);
 
-        // Subscription remains active
-        // Could send confirmation email here
+        await subscriptionService.handleInvoicePaymentSucceeded(invoice);
         break;
       }
 
       case 'invoice.payment_failed': {
-        // Payment failed - update status
+        // Payment failed - mark subscription as past_due
         const invoice = event.data.object;
         logger.error(`Payment failed for invoice: ${invoice.id}`);
 
-        // Subscription will be marked as past_due by Stripe
-        // Will be updated via customer.subscription.updated webhook
-        // Could send notification email here
+        await subscriptionService.handleInvoicePaymentFailed(invoice);
         break;
       }
 

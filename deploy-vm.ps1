@@ -53,30 +53,23 @@ if (-not $SkipBuild) {
 # Step 2: SSH into VM and deploy
 Write-Host "`nConnecting to VM and deploying..." -ForegroundColor Yellow
 
-# Create deployment commands
-$deployCommands = @"
-set -e
-echo 'Navigating to compose directory...'
-cd $ComposeDir
-
-echo 'Stopping existing containers...'
-docker-compose -f $ComposeFile down
-
-echo 'Pulling latest images...'
-docker-compose -f $ComposeFile pull
-
-echo 'Starting containers...'
-docker-compose -f $ComposeFile up -d
-
-echo 'Checking container status...'
-docker-compose -f $ComposeFile ps
-
-echo 'Deployment completed successfully!'
-"@
+# Create deployment commands (use LF line endings for Linux)
+$deployCommands = "set -e`n" +
+    "echo 'Navigating to compose directory...'`n" +
+    "cd $ComposeDir`n" +
+    "echo 'Stopping existing containers...'`n" +
+    "docker compose -f $ComposeFile down`n" +
+    "echo 'Pulling latest images...'`n" +
+    "docker compose -f $ComposeFile pull`n" +
+    "echo 'Starting containers...'`n" +
+    "docker compose -f $ComposeFile up -d`n" +
+    "echo 'Checking container status...'`n" +
+    "docker compose -f $ComposeFile ps`n" +
+    "echo 'Deployment completed successfully!'"
 
 try {
-    # Execute deployment commands via SSH
-    $deployCommands | ssh -i $SSHKey "${VMUser}@${VMHost}" "bash -s"
+    # Execute deployment commands via SSH (convert to LF)
+    $deployCommands -replace "`r`n", "`n" | ssh -i $SSHKey "${VMUser}@${VMHost}" "bash -s"
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Deployment completed successfully!" -ForegroundColor Green
@@ -91,7 +84,7 @@ try {
 # Step 3: Show logs (optional)
 Write-Host "`nFetching recent logs..." -ForegroundColor Yellow
 try {
-    ssh -i $SSHKey "${VMUser}@${VMHost}" "cd $ComposeDir && docker-compose -f $ComposeFile logs --tail=20"
+    ssh -i $SSHKey "${VMUser}@${VMHost}" "cd $ComposeDir && docker compose -f $ComposeFile logs --tail=20"
 } catch {
     Write-Host "WARNING: Failed to fetch logs: $_" -ForegroundColor Red
 }
@@ -101,6 +94,6 @@ Write-Host "Deployment workflow completed!" -ForegroundColor Green
 Write-Host "========================================`n" -ForegroundColor Magenta
 
 Write-Host "`nUseful commands:" -ForegroundColor Cyan
-Write-Host "  View logs:    ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker-compose logs -f'" -ForegroundColor Gray
-Write-Host "  Check status: ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker-compose ps'" -ForegroundColor Gray
-Write-Host "  Restart:      ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker-compose restart'" -ForegroundColor Gray
+Write-Host "  View logs:    ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker compose logs -f'" -ForegroundColor Gray
+Write-Host "  Check status: ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker compose ps'" -ForegroundColor Gray
+Write-Host "  Restart:      ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker compose restart'" -ForegroundColor Gray
