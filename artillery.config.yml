@@ -1,0 +1,14 @@
+config:
+  target: 'http://localhost:5100/api/v1'
+  phases:
+    - name: 'warmup'
+      duration: 60
+      arrivalRate: 10
+  headers:
+    Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFuaWtoNDk5QGdtYWlsLmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc0NjMwNzYzMCwiZXhwIjoxNzQ2OTEyNDMwfQ.cX8s3uk2ZOJlvL7i7iWFnjI90wf3334VRaWvydVXqpQ'
+
+scenarios:
+  - name: 'Test All API Endpoints'
+    flow:
+      - get:
+          url: '/groq/get-response-by-sessionid/ddbfedc4-a5d4-46d8-ada4-bf34f58b065a'
