@@ -95,7 +95,7 @@ services:
       - ason-network
     volumes:
       - mongodb_data:/data/db
-    command: ['--replSet', 'rs0']
+    command: [ '--replSet', 'rs0' ]
 
   mongodb-express:
     image: mongo-express:latest
@@ -139,37 +139,6 @@ services:
     depends_on:
       - postgresql
 
-  # Tabular Review Services
-  tabular-review-backend:
-    build:
-      context: ../external/Tabular_Review
-      dockerfile: Dockerfile.backend
-    container_name: tabular-review-backend
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      - PYTHONUNBUFFERED=1
-      - VITE_API_URL=http://localhost:8000
-    networks:
-      - ason-network
-
-  tabular-review-frontend:
-    build:
-      context: ../external/Tabular_Review
-      dockerfile: Dockerfile.frontend
-    container_name: tabular-review-frontend
-    restart: unless-stopped
-    depends_on:
-      - tabular-review-backend
-    ports:
-      - "3001:3000"
-    environment:
-      - VITE_API_URL=http://localhost:8000
-      - NODE_ENV=development
-    networks:
-      - ason-network
-
 networks:
   ason-network:
     driver: bridge
@@ -178,5 +147,4 @@ volumes:
   mongodb_data:
   postgres_data:
   redis_data:
-  rabbitmq_data:
-# end
+  rabbitmq_data: # end
