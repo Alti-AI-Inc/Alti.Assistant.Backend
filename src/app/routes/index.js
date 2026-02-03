@@ -17,6 +17,7 @@ import { notificationRoutes } from '../modules/notification/notification.route.j
 import { socialLoginRotes } from '../modules/social-login/social-login.route.js';
 import { supportRoutes } from '../modules/support/support.route.js';
 import { composioRoutes } from '../modules/composio/composio.route.js';
+import { composioV2Routes } from '../modules/composio/composio.v2.route.js';
 import { browserUseAiRoutes } from '../modules/browserUse/browserUse.route.js';
 import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
 import { llamaindexRoutes } from '../modules/llamaindex/llamaindex.route.js';
@@ -96,6 +97,10 @@ const moduleRoutes = [
   {
     path: '/composio',
     route: composioRoutes,
+  },
+  {
+    path: '/composio_v2',
+    route: composioV2Routes,
   },
   {
     path: '/cyberdesk',
