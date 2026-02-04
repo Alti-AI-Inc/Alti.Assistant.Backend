@@ -62,10 +62,13 @@ const UserSchema = new mongoose.Schema(
         ref: 'Notification', // Reference to Notification model
       },
     ],
+    preferences: {
+      useLongTermMemory: { type: Boolean, default: false },
+      theme: { type: String, default: 'light' }
+    },
     confirmationToken: String,
     confirmationTokenExpires: Date,
     resetPasswordOTP: String,
-    resetPasswordExpires: Date,
     deleteAccountOTP: String,
     deleteAccountExpires: Date,
   },
