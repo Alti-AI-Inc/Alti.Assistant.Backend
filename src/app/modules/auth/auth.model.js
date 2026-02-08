@@ -62,10 +62,13 @@ const UserSchema = new mongoose.Schema(
         ref: 'Notification', // Reference to Notification model
       },
     ],
+    installedApps: [String], // Array of installed App IDs or Names
     preferences: {
       useLongTermMemory: { type: Boolean, default: false },
-      theme: { type: String, default: 'light' }
+      theme: { type: String, default: 'light' },
     },
+    googleTokens: { type: Object }, // Store entire token object from Google
+    microsoftTokens: { type: Object }, // Store entire token object from Microsoft
     confirmationToken: String,
     confirmationTokenExpires: Date,
     resetPasswordOTP: String,

@@ -55,4 +55,15 @@ export default {
     stripe_secret_key: process.env.STRIPE_SECRET_KEY,
     stripe_webhook_secret_key: process.env.STRIPE_WEBHOOK_SECRET,
   },
+  google: {
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+  },
+  microsoft: {
+    client_id: process.env.MICROSOFT_CLIENT_ID,
+    client_secret: process.env.MICROSOFT_CLIENT_SECRET,
+    redirect_uri: process.env.MICROSOFT_REDIRECT_URI,
+    tenant_id: process.env.MICROSOFT_TENANT_ID || 'common',
+  },
 };

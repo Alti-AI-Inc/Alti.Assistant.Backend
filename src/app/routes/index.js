@@ -22,6 +22,9 @@ import { browserUseAiRoutes } from '../modules/browserUse/browserUse.route.js';
 import { cyberdeskRoutes } from '../modules/cyberdesk/cyberdesk.route.js';
 import { llamaindexRoutes } from '../modules/llamaindex/llamaindex.route.js';
 import { openRouterRoutes } from '../modules/openRouter/openRouter.route.js';
+import { GoogleWorkspaceRoutes } from '../modules/google-workspace/google-workspace.route.js';
+import { MicrosoftGraphRoutes } from '../modules/microsoft-graph/microsoft-graph.route.js';
+import { MarketplaceRoutes } from '../modules/marketplace/marketplace.route.js';
 
 const router = express.Router();
 
@@ -117,6 +120,18 @@ const moduleRoutes = [
   {
     path: '/open-router',
     route: openRouterRoutes,
+  },
+  {
+    path: '/google-workspace',
+    route: GoogleWorkspaceRoutes,
+  },
+  {
+    path: '/microsoft-graph',
+    route: MicrosoftGraphRoutes,
+  },
+  {
+    path: '/marketplace',
+    route: MarketplaceRoutes,
   }
 ];
 
