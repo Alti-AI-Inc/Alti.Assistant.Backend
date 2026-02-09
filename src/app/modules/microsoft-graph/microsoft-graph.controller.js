@@ -2,7 +2,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import httpStatus from 'http-status';
 import { MicrosoftGraphService } from './microsoft-graph.service.js';
-import { User } from '../user/user.model.js';
+import User from '../auth/auth.model.js';
 
 const getAuthUrl = catchAsync(async (req, res) => {
     const url = MicrosoftGraphService.getAuthUrl();

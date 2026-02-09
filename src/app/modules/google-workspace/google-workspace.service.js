@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
-import config from '../../../config/index.js';
-import { User } from '../user/user.model.js';
+import config from '../../../../config/index.js';
+import User from '../auth/auth.model.js';
 
 const SCOPES = [
     'https://www.googleapis.com/auth/userinfo.profile',

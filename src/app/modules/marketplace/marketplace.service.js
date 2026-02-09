@@ -1,4 +1,4 @@
-import { User } from '../user/user.model.js';
+import User from '../auth/auth.model.js';
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 

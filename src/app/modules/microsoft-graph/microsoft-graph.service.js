@@ -1,6 +1,6 @@
 import { Client } from '@microsoft/microsoft-graph-client';
 import config from '../../../config/index.js';
-import { User } from '../user/user.model.js';
+import User from '../auth/auth.model.js';
 import 'isomorphic-fetch';
 
 const REDIRECT_URI = config.microsoft.redirect_uri;
