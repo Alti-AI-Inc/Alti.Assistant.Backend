@@ -1,6 +1,6 @@
 import express from 'express';
 import { composioV2Controller } from './composio.v2.controller.js';
-import auth from '../../../middlewares/auth.js';
+import auth from '../../middlewares/auth/auth.js';
 
 const router = express.Router();
 

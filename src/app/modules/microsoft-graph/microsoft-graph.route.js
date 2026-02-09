@@ -1,5 +1,5 @@
 import express from 'express';
-import auth from '../../middlewares/auth.js';
+import auth from '../../middlewares/auth/auth.js';
 import { MicrosoftGraphController } from './microsoft-graph.controller.js';
 
 const router = express.Router();
