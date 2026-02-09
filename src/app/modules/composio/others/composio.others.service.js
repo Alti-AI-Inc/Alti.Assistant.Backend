@@ -4,7 +4,7 @@ import config from '../../../../../config/index.js';
 import ApiError from '../../../../errors/ApiError.js';
 import { githubIntegrationId } from '../composio.constant.js';
 
-const toolset = new OpenAIToolSet({ apiKey: config.composio.apiKey });
+const toolset = new OpenAIToolSet({ apiKey: process.env.COMPOSIO_API_KEY || 'mock-composio-key' });
 
 const headers = {
   'x-api-key': config.composio.apiKey,

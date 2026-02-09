@@ -6,6 +6,7 @@ export const githubIntegrationId = '394bc42b-5fa8-4777-8e08-6fed12510deb';
 export const slackIntegrationId = 'b0fe0298-2baf-4111-a145-36988f8ffc1e';
 export const googleCalendarIntegrationId =
   '21c69c18-54ef-464b-a181-dc82f3e5b089';
+export const calendarIntegrationId = googleCalendarIntegrationId;
 
 export const googlemeetIntegrationId = '7664a645-c363-404a-9463-f8c3b3d83ada';
 export const notionIntegrationId = '9cae24dc-b7bb-404a-b2ec-6f26354c2090';

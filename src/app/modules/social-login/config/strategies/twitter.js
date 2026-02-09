@@ -189,8 +189,8 @@ import { findOrCreateUserModel } from '../../social-login.utils.js';
 // NOTE: This uses passport-twitter-oauth2 for Twitter API v2
 const strategy = new TwitterStrategy(
   {
-    clientID: process.env.TWITTER_CLIENT_ID,
-    clientSecret: process.env.TWITTER_CLIENT_SECRET,
+    clientID: process.env.TWITTER_CLIENT_ID || 'mock-client-id',
+    clientSecret: process.env.TWITTER_CLIENT_SECRET || 'mock-client-secret',
     callbackURL: '/api/v1/auth-social/twitter/callback',
     clientType: 'confidential', // Important for web applications
     scope: ['tweet.read', 'users.read', 'offline.access'], // Standard scopes for reading profile

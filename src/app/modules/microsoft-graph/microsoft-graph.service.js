@@ -1,5 +1,5 @@
 import { Client } from '@microsoft/microsoft-graph-client';
-import config from '../../../config/index.js';
+import config from '../../../../config/index.js';
 import User from '../auth/auth.model.js';
 import 'isomorphic-fetch';
 

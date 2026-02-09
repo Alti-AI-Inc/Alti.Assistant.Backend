@@ -4,8 +4,8 @@ import { logger } from '../../../../../shared/logger.js';
 
 const strategy = new FacebookStrategy(
   {
-    clientID: process.env.FACEBOOK_APP_ID,
-    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    clientID: process.env.FACEBOOK_APP_ID || 'mock-client-id',
+    clientSecret: process.env.FACEBOOK_APP_SECRET || 'mock-client-secret',
     callbackURL: '/api/v1/auth-social/facebook/callback',
     profileFields: ['id', 'displayName', 'photos', 'email'],
   },

@@ -5,7 +5,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { paymentController } from '../payment/payment.controller.js';
 
-const together = new Together({ apiKey: config.together_secret_key });
+const together = new Together({ apiKey: config.together_secret_key || 'mock-key-for-start' });
 
 const TogetherAiImgGeneration = catchAsync(async (req, res) => {
   //   const responseData = await TogetherAiService.TogetherAiImgGenerationService(

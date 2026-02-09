@@ -3,8 +3,8 @@ import { findOrCreateUserModel } from '../../social-login.utils.js';
 
 const strategy = new GithubStrategy(
   {
-    clientID: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    clientID: process.env.GITHUB_CLIENT_ID || 'mock-client-id',
+    clientSecret: process.env.GITHUB_CLIENT_SECRET || 'mock-client-secret',
     callbackURL: '/api/v1/auth-social/github/callback',
     scope: ['profile', 'email'],
   },

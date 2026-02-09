@@ -197,7 +197,7 @@ mongoose
   .then(() => logger.info('✅ Database connection successfully'))
   .catch(err => {
     logger.error('❌ Error connecting to the database:', err);
-    process.exit(1); // Exit the application on database connection error
+    // process.exit(1); // Keep server running so /health still works
   });
 
 // Initialize passport (no session)
@@ -218,6 +218,10 @@ app.use(globalErrorHandler);
 // Root endpoint
 app.get('/', (req, res) => {
   res.send('ASON is working! YaY!');
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 404 Handler

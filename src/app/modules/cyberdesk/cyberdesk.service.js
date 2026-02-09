@@ -3,9 +3,7 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import config from '../../../../config/index.js';
 
-const cyberdesk = createCyberdeskClient({
-  apiKey: config.cyberdesk_api_key,
-});
+const cyberdesk = createCyberdeskClient({ apiKey: process.env.CYBERDESK_API_KEY || 'mock-cyberdesk-key' });
 
 // Launch a new desktop
 const launchDesktop = async () => {

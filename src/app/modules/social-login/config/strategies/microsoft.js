@@ -3,8 +3,8 @@ import { findOrCreateUserModel } from '../../social-login.utils.js';
 
 const strategy = new MicrosoftStrategy(
   {
-    clientID: process.env.MICROSOFT_CLIENT_ID,
-    clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+    clientID: process.env.MICROSOFT_CLIENT_ID || 'mock-client-id',
+    clientSecret: process.env.MICROSOFT_CLIENT_SECRET || 'mock-client-secret',
     callbackURL: '/api/v1/auth-social/microsoft/callback',
     scope: ['profile', 'email'],
   },
