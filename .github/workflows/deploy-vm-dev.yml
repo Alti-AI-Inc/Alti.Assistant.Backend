@@ -64,7 +64,7 @@ jobs:
           script: |
             set -e
             echo "Navigating to compose directory..."
-            cd "$COMPOSE_DIR"
+            cd /home/emondarock
             echo "Stopping existing containers..."
             docker compose -f "$COMPOSE_FILE" down
             echo "Removing old image..."
