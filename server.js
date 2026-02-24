@@ -64,6 +64,7 @@ mongoose
   .connect(config.database_local, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    family: 4,
   })
   .then(() => logger.info('Database connection successfully'))
   .catch(err => {
@@ -78,7 +79,7 @@ async function main() {
     });
 
     // This line is redundant if already connected above, but keeping as per your original
-    await mongoose.connect(config.database_local);
+    await mongoose.connect(config.database_local, { family: 4 });
 
     server = http.createServer(app).listen(config.port, () => {
       logger.info(`Application listening on port ${config.port}`);

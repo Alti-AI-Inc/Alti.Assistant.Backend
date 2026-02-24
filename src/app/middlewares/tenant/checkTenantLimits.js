@@ -192,7 +192,7 @@ export const trackStorageUsage = async (req, res, next) => {
 export const checkUserLimit = async (req, res, next) => {
   try {
     console.log('Checking user limit middleware', req);
-    const tenantId = req?.user?.tenantId;
+    const tenantId = req?.user?.currentTenantId || req?.user?.tenantId;
 
     if (!tenantId) {
       logger.warn('No tenantId found in request for user limit check');

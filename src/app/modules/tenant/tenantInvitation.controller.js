@@ -7,7 +7,7 @@ import { tenantInvitationService } from './tenantInvitation.service.js';
  * Get tenant invitations
  */
 const getTenantInvitations = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const { page = 1, limit = 20, status } = req.query;
 
   const result = await tenantInvitationService.getTenantInvitations(tenantId, {

@@ -21,68 +21,106 @@ const PLANS = [
     currency: 'usd',
     interval: 'month',
     features: {
-      dailyWebSearchLimit: 10,
-      dailyDeepResearchLimit: 0,
+      dailyRequestLimit: 10,
+      ragType: 'none',
+      storagePerUser: 0,
       canInviteTeam: false,
-      unlimitedSeats: false,
     },
+    featuresList: [
+      '10 requests/day',
+      'No Team Collaboration',
+      'No document storage',
+      'Basic support'
+    ],
     metadata: {
       plan: 'free',
       canInviteTeam: 'false',
+      ragType: 'none',
+      storagePerUserGB: '0',
     },
   },
   {
     name: 'Explore',
     id: 'explore',
-    description: 'For small teams looking to enhance productivity with advanced features',
+    description: 'Basic Text Document RAG (10GB/user) - Invite Your Team',
     price: 20, // $20 per user per month
     currency: 'usd',
     interval: 'month',
     features: {
-      dailyWebSearchLimit: 1000,
-      dailyDeepResearchLimit: 10,
+      dailyRequestLimit: 1000,
+      ragType: 'basic_text',
+      storagePerUser: 10737418240, // 10GB in bytes
       canInviteTeam: true,
-      unlimitedSeats: true,
     },
+    featuresList: [
+      '1,000 requests/day',
+      'Basic Text Document RAG',
+      '10GB storage per user',
+      'Invite Your Team',
+      'Email support'
+    ],
     metadata: {
       plan: 'explore',
       canInviteTeam: 'true',
+      ragType: 'basic_text',
+      storagePerUserGB: '10',
     },
   },
   {
     name: 'Execute',
     id: 'execute',
-    description: 'For growing teams requiring more capacity and advanced features',
+    description: 'Advanced Multi-Modal RAG (50GB/user) - Invite Your Team',
     price: 50, // $50 per user per month
     currency: 'usd',
     interval: 'month',
     features: {
-      dailyWebSearchLimit: 5000,
-      dailyDeepResearchLimit: 50,
+      dailyRequestLimit: 5000,
+      ragType: 'advanced_multimodal',
+      storagePerUser: 53687091200, // 50GB in bytes
       canInviteTeam: true,
-      unlimitedSeats: true,
     },
+    featuresList: [
+      '5,000 requests/day',
+      'Advanced Multi-Modal RAG',
+      '50GB storage per user',
+      'Invite Your Team',
+      'Priority email support',
+      'Advanced analytics'
+    ],
     metadata: {
       plan: 'execute',
       canInviteTeam: 'true',
+      ragType: 'advanced_multimodal',
+      storagePerUserGB: '50',
     },
   },
   {
     name: 'Command',
     id: 'command',
-    description: 'For large teams and enterprises with maximum capacity needs',
+    description: 'Premium Agentic RAG (100GB/user) - Invite Your Team',
     price: 100, // $100 per user per month
     currency: 'usd',
     interval: 'month',
     features: {
-      dailyWebSearchLimit: 15000,
-      dailyDeepResearchLimit: 150,
+      dailyRequestLimit: 15000,
+      ragType: 'premium_agentic',
+      storagePerUser: 107374182400, // 100GB in bytes
       canInviteTeam: true,
-      unlimitedSeats: true,
     },
+    featuresList: [
+      '15,000 requests/day',
+      'Premium Agentic RAG',
+      '100GB storage per user',
+      'Invite Your Team',
+      'Priority support with dedicated account manager',
+      'Advanced analytics',
+      'Custom integrations'
+    ],
     metadata: {
       plan: 'command',
       canInviteTeam: 'true',
+      ragType: 'premium_agentic',
+      storagePerUserGB: '100',
     },
   },
 ];
@@ -279,10 +317,10 @@ async function seedStripeProducts() {
       console.log(`  Price ID: ${result.priceId}`);
       console.log(`  Price: $${result.price}/${result.interval}`);
       console.log(`  Features:`);
-      console.log(`    - Daily Web Search: ${result.features.dailyWebSearchLimit}`);
-      console.log(`    - Daily Deep Research: ${result.features.dailyDeepResearchLimit}`);
+      console.log(`    - Daily Request Limit: ${result.features.dailyRequestLimit}`);
+      console.log(`    - RAG Type: ${result.features.ragType}`);
+      console.log(`    - Storage Per User: ${(result.features.storagePerUser / 1073741824).toFixed(0)}GB`);
       console.log(`    - Can Invite Team: ${result.features.canInviteTeam}`);
-      console.log(`    - Unlimited Seats: ${result.features.unlimitedSeats}`);
       console.log('');
     });
 

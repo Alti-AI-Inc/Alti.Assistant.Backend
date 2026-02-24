@@ -16,14 +16,24 @@ import { logger } from '../../shared/logger.js';
  * // Result: { userId: '123', status: 'active', tenantId: 'tenant123' }
  */
 export const withTenantFilter = (req, query = {}) => {
-  if (!req || !req.tenantId) {
-    logger.warn('withTenantFilter called without tenant context');
+  if (!req) {
+    logger.warn('withTenantFilter called without request object');
+    return query;
+  }
+
+  // Check if currentTenantId exists in JWT payload (even if null for personal mode)
+  const tenantId = req.user && 'currentTenantId' in req.user
+    ? req.user.currentTenantId
+    : req.tenantId;
+
+  // If tenantId is null (personal mode), return query without tenant filter
+  if (!tenantId) {
     return query;
   }
 
   return {
     ...query,
-    tenantId: req.tenantId,
+    tenantId,
   };
 };
 
@@ -41,14 +51,24 @@ export const withTenantFilter = (req, query = {}) => {
  * // Result: { title: 'My Chat', userId: '123', tenantId: 'tenant123' }
  */
 export const withTenantContext = (req, data = {}) => {
-  if (!req || !req.tenantId) {
-    logger.warn('withTenantContext called without tenant context');
+  if (!req) {
+    logger.warn('withTenantContext called without request object');
+    return data;
+  }
+
+  // Check if currentTenantId exists in JWT payload (even if null for personal mode)
+  const tenantId = req.user && 'currentTenantId' in req.user
+    ? req.user.currentTenantId
+    : req.tenantId;
+
+  // If tenantId is null (personal mode), return data without tenant context
+  if (!tenantId) {
     return data;
   }
 
   return {
     ...data,
-    tenantId: req.tenantId,
+    tenantId,
   };
 };
 
@@ -71,13 +91,23 @@ export const withTenantContext = (req, data = {}) => {
  * // ]
  */
 export const withTenantPipeline = (req, pipeline = []) => {
-  if (!req || !req.tenantId) {
-    logger.warn('withTenantPipeline called without tenant context');
+  if (!req) {
+    logger.warn('withTenantPipeline called without request object');
+    return pipeline;
+  }
+
+  // Check if currentTenantId exists in JWT payload (even if null for personal mode)
+  const tenantId = req.user && 'currentTenantId' in req.user
+    ? req.user.currentTenantId
+    : req.tenantId;
+
+  // If tenantId is null (personal mode), return pipeline without tenant filter
+  if (!tenantId) {
     return pipeline;
   }
 
   return [
-    { $match: { tenantId: req.tenantId } },
+    { $match: { tenantId } },
     ...pipeline,
   ];
 };

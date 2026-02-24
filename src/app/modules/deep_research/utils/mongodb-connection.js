@@ -8,7 +8,7 @@ export const connectToMongoDB = async (uri = 'mongodb://localhost:27017/research
     if (isConnected && currentUri === uri) {
         return mongoose.connection;
     }
-    
+
     // If connected to a different URI, disconnect first
     if (isConnected && currentUri !== uri) {
         console.log('Disconnecting from previous MongoDB connection...');
@@ -19,16 +19,17 @@ export const connectToMongoDB = async (uri = 'mongodb://localhost:27017/research
 
     try {
         console.log('Connecting to MongoDB for research agent...');
-        
+
         const connection = await mongoose.connect(uri, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
+            family: 4,
         });
 
         isConnected = true;
         currentUri = uri;
         console.log('MongoDB connected successfully for research agent');
-        
+
         // Handle connection events
         mongoose.connection.on('error', (error) => {
             console.error('MongoDB connection error:', error);

@@ -14,8 +14,14 @@ import { withTenantFilter } from '../../helpers/tenantQuery.js';
 const getConversationById = async (conversationId, userId = null, req = null) => {
   try {
     console.log("Fetching conversation with ID:", conversationId, "for user:", userId);
-    // Note: Conversation.findByConversationId is a model method, tenant filtering handled at model level
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    // Build query with tenant filtering
+    const query = { conversationId };
+    if (userId) {
+      query.userId = userId;
+    }
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, query) : query
+    );
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -67,7 +73,7 @@ const getUserConversations = async (userId, options = {}, req = null) => {
     if (is_deep_search !== null) {
       query.is_deep_search = is_deep_search;
     }
-
+    console.log('Check currentTenantId in getUserConversations:', req && req.user ? withTenantFilter(req, query) : 'No req or user');
     // Get conversations without messages for list view
     const conversations = await Conversation.find(
       req ? withTenantFilter(req, query) : query
@@ -112,7 +118,10 @@ const getConversationMessages = async (conversationId, userId, options = {}, req
   try {
     const { page = 1, limit = 50, beforeDate = null } = options;
 
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    const query = { conversationId, userId };
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, query) : query
+    );
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');

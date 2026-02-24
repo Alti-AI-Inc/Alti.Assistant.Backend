@@ -32,7 +32,7 @@ export class MongoDBSaver extends BaseCheckpointSaver {
 
   static async fromUri(uri) {
     if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(uri);
+      await mongoose.connect(uri, { family: 4 });
       console.log('Successfully connected to MongoDB via Mongoose.');
     }
     return new MongoDBSaver();
@@ -43,7 +43,7 @@ export class MongoDBSaver extends BaseCheckpointSaver {
     if (!checkpoint) {
       return null;
     }
-    
+
     return {
       config,
       checkpoint,

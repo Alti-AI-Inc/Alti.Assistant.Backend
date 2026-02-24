@@ -85,7 +85,10 @@ const addMessageToConversation = async (conversationId, userId, messageData, req
     console.log(`Adding message to conversation ${conversationId} for user ${userId}:`, { role, content, metadata });
 
 
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    const query = { conversationId, userId };
+    const conversation = await Conversation.findOne(
+      req ? withTenantFilter(req, query) : query
+    );
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');

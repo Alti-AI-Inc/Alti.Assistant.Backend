@@ -61,7 +61,7 @@ const getUserConversations = catchAsync(async (req, res) => {
     is_deep_search: is_deep_search === 'true' ? true : is_deep_search === 'false' ? false : null,
   };
 
-  const result = await conversationHelpers.getUserConversations(userId, options);
+  const result = await conversationHelpers.getUserConversations(userId, options, req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -299,7 +299,8 @@ const searchConversations = catchAsync(async (req, res) => {
   const result = await conversationHelpers.searchConversations(
     userId,
     searchTerm,
-    { limit: parseInt(limit), category }
+    { limit: parseInt(limit), category },
+    req
   );
 
   sendResponse(res, {
@@ -578,6 +579,7 @@ const shareChatConversation = catchAsync(async (req, res) => {
     shareType,
     expiresAt,
     allowComments,
+    req,
   });
 
   sendResponse(res, {

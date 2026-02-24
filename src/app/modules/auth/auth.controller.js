@@ -64,8 +64,8 @@ const confirmEmail = catchAsync(async (req, res) => {
 
 const login = catchAsync(async (req, res) => {
   // logger.info(req.body, 'data login');
-  const { email, password, tenantId, invitationToken } = req.body;
-  const result = await authService.loginService(email, password, tenantId, invitationToken);
+  const { email, password, invitationToken } = req.body;
+  const result = await authService.loginService(email, password, invitationToken);
   logger.info(result, 'resultttttttttttttttt');
 
   const { refreshToken, ...others } = result;

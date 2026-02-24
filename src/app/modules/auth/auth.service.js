@@ -48,6 +48,8 @@ const registerService = async req => {
         { session },
       );
 
+      let invitationAccepted = false;
+
       // Auto-accept invitation if token provided
       if (invitationToken) {
         try {
@@ -66,11 +68,12 @@ const registerService = async req => {
                 joinedAt: new Date(),
               }], { session });
 
-              // Update user with tenant info
+              // Update user with tenant info and auto-verify
               user[0].tenantId = invitation.tenantId;
               user[0].tenantRole = invitation.role;
               user[0].activeTenantId = invitation.tenantId;
               user[0].tenantPermissions = invitation.role === 'admin' ? ['manage_members', 'manage_content'] : ['view_content'];
+              user[0].role = 'user'; // Auto-verify user with invitation
               await user[0].save({ session });
 
               // Update tenant user count
@@ -86,6 +89,7 @@ const registerService = async req => {
               invitation.acceptedBy = user[0]._id;
               await invitation.save({ session });
 
+              invitationAccepted = true;
               logger.info(`Invitation auto-accepted during registration: ${invitation._id}`);
             }
           }
@@ -95,28 +99,32 @@ const registerService = async req => {
         }
       }
 
-      //Generate 6 digit token only numbers
-      const token = crypto.randomInt(100000, 999999).toString();
+      // Only send verification email if not registered via invitation
+      if (!invitationAccepted) {
+        //Generate 6 digit token only numbers
+        const token = crypto.randomInt(100000, 999999).toString();
 
-      const newToken = new Token({
-        userId: user[0]._id,
-        token: token,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-        type: 'emailVerification',
-      })
+        const newToken = new Token({
+          userId: user[0]._id,
+          token: token,
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+          type: 'emailVerification',
+        })
 
-      await newToken.save({ newToken });
+        await newToken.save({ newToken });
 
-      const mailData = await registrationOtpTemplate(email, token);
-      await sendMailWithNodeMailer(mailData);
+        const mailData = await registrationOtpTemplate(email, token);
+        await sendMailWithNodeMailer(mailData);
+      }
 
       await session.commitTransaction();
       session.endSession();
 
-      // ✅ Instead of throwing, return a success response
+      // ✅ Return appropriate message based on invitation status
       return {
-        message: 'Please verify your E-mail.',
+        message: invitationAccepted ? 'Registration successful. You can now login.' : 'Please verify your E-mail.',
         statusCode: httpStatus.CREATED,
+        autoVerified: invitationAccepted,
       };
     }
 
@@ -196,7 +204,7 @@ const confirmEmailService = async confirmationCode => {
   return { success: true };
 };
 
-const loginService = async (email, password, tenantId = null, invitationToken = null) => {
+const loginService = async (email, password, invitationToken = null) => {
   if (!email || !password) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
@@ -281,9 +289,6 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
           invitation.acceptedAt = new Date();
           invitation.acceptedBy = user._id;
           await invitation.save();
-
-          // Override tenantId for token generation
-          tenantId = invitation.tenantId;
         }
       }
     } catch (inviteError) {
@@ -292,21 +297,23 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
     }
   }
 
-  // If tenantId provided during login (from invitation), update user's active tenant
-  if (tenantId && !invitationToken) {
-    user.activeTenantId = tenantId;
-    await user.save();
-  }
+  // Fetch all tenantIds for the user from TenantMember collection
+  const tenantMemberships = await TenantMember.find({
+    userId: user._id,
+    status: 'active'
+  }).select('tenantId role');
 
-  // Include tenantId in JWT if user has active tenant
+  const tenantIds = tenantMemberships.map(membership => ({
+    tenantId: membership.tenantId,
+    role: membership.role
+  }));
+
+  // Include tenants in JWT token payload
   const tokenPayload = {
     _id: user._id,
     role: user.role,
+    tenants: tenantIds,
   };
-
-  if (user.activeTenantId || tenantId) {
-    tokenPayload.tenantId = tenantId || user.activeTenantId;
-  }
 
   const accessToken = jwtHelpers.createToken(
     tokenPayload,
@@ -335,6 +342,7 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
     _id: user._id,
     accessToken,
     refreshToken,
+    tenants: tenantIds,
   };
 };
 
@@ -353,17 +361,31 @@ const refreshToken = async token => {
   if (!isUserExist) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User does not exist');
   }
+
+  // Fetch all tenantIds for the user from TenantMember collection
+  const tenantMemberships = await TenantMember.find({
+    userId: isUserExist._id,
+    status: 'active'
+  }).select('tenantId role');
+
+  const tenantIds = tenantMemberships.map(membership => ({
+    tenantId: membership.tenantId,
+    role: membership.role
+  }));
+
   //generate new token;
   const newAccessToken = jwtHelpers.createToken(
     {
       id: isUserExist._id,
       role: isUserExist.role,
+      tenants: tenantIds,
     },
     config.jwt.access_token,
     config.jwt.access_expires_in,
   );
   return {
     accessToken: newAccessToken,
+    tenants: tenantIds,
   };
 };
 

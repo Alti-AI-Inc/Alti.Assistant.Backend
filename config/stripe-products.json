@@ -1,5 +1,5 @@
 {
-  "createdAt": "2026-01-30T08:29:03.935Z",
+  "updatedAt": "2026-02-24T15:54:40.586Z",
   "environment": "production",
   "plans": [
     {
@@ -11,11 +11,17 @@
       "currency": "usd",
       "interval": "month",
       "features": {
-        "dailyWebSearchLimit": 10,
-        "dailyDeepResearchLimit": 0,
-        "canInviteTeam": false,
-        "unlimitedSeats": false
-      }
+        "dailyRequestLimit": 10,
+        "ragType": "none",
+        "storagePerUser": 0,
+        "canInviteTeam": false
+      },
+      "featuresList": [
+        "10 requests/day",
+        "No Team Collaboration",
+        "No document storage",
+        "Basic support"
+      ]
     },
     {
       "plan": "explore",
@@ -26,11 +32,18 @@
       "currency": "usd",
       "interval": "month",
       "features": {
-        "dailyWebSearchLimit": 1000,
-        "dailyDeepResearchLimit": 10,
-        "canInviteTeam": true,
-        "unlimitedSeats": true
-      }
+        "dailyRequestLimit": 1000,
+        "ragType": "basic_text",
+        "storagePerUser": 10737418240,
+        "canInviteTeam": true
+      },
+      "featuresList": [
+        "1,000 requests/day",
+        "Basic Text Document RAG",
+        "10GB storage per user",
+        "Invite Your Team",
+        "Email support"
+      ]
     },
     {
       "plan": "execute",
@@ -41,11 +54,19 @@
       "currency": "usd",
       "interval": "month",
       "features": {
-        "dailyWebSearchLimit": 5000,
-        "dailyDeepResearchLimit": 50,
-        "canInviteTeam": true,
-        "unlimitedSeats": true
-      }
+        "dailyRequestLimit": 5000,
+        "ragType": "advanced_multimodal",
+        "storagePerUser": 53687091200,
+        "canInviteTeam": true
+      },
+      "featuresList": [
+        "5,000 requests/day",
+        "Advanced Multi-Modal RAG",
+        "50GB storage per user",
+        "Invite Your Team",
+        "Priority email support",
+        "Advanced analytics"
+      ]
     },
     {
       "plan": "command",
@@ -56,11 +77,20 @@
       "currency": "usd",
       "interval": "month",
       "features": {
-        "dailyWebSearchLimit": 15000,
-        "dailyDeepResearchLimit": 150,
-        "canInviteTeam": true,
-        "unlimitedSeats": true
-      }
+        "dailyRequestLimit": 15000,
+        "ragType": "premium_agentic",
+        "storagePerUser": 107374182400,
+        "canInviteTeam": true
+      },
+      "featuresList": [
+        "15,000 requests/day",
+        "Premium Agentic RAG",
+        "100GB storage per user",
+        "Invite Your Team",
+        "Priority support with dedicated account manager",
+        "Advanced analytics",
+        "Custom integrations"
+      ]
     }
   ]
 }

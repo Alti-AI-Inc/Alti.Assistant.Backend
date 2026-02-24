@@ -6,7 +6,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node --dns-result-order=ipv4first index.js",
     "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:search": "node test_enhanced_search.js",
@@ -15,7 +15,9 @@
     "format": "prettier . --write",
     "embeddings:generate": "node src/app/modules/composio_simple/embeddings-generator.js",
     "embeddings:test": "node src/app/modules/composio_simple/test-vector-search.js",
-    "seed:stripe": "node scripts/seed-stripe-products.js"
+    "seed:stripe": "node scripts/seed-stripe-products.js",
+    "update:products": "node scripts/update-stripe-products.js",
+    "seed:products-db": "node scripts/seed-products-to-db.js"
   },
   "keywords": [],
   "author": "Shohidul-Jaman-Anik",

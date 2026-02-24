@@ -6,6 +6,9 @@ import TenantMember from './tenantMember.model.js';
 import TenantInvitation from './tenantInvitation.model.js';
 import UserModel from '../auth/auth.model.js';
 import { tenantInvitationService } from './tenantInvitation.service.js';
+import { createCustomerService } from '../stripe/customer/stripe.service.js';
+import SubscriptionModel from '../payment/payment.model.js';
+import mongoose from 'mongoose';
 
 /**
  * Create a new tenant
@@ -47,12 +50,41 @@ const createTenant = async (tenantData) => {
     });
 
     // Update user with tenant info (keep for backward compatibility)
-    await UserModel.findByIdAndUpdate(ownerId, {
-      tenantId: tenant._id,
-      tenantRole: 'owner',
-      tenantPermissions: ['*'],
-      activeTenantId: tenant._id, // Set as active tenant
-    });
+    const owner = await UserModel.findByIdAndUpdate(
+      ownerId,
+      {
+        tenantId: tenant._id,
+        tenantRole: 'owner',
+        tenantPermissions: ['*'],
+        activeTenantId: tenant._id, // Set as active tenant
+      },
+      { new: true }
+    );
+
+    // Create Stripe customer for the tenant
+    try {
+      const stripeCustomer = await createCustomerService({
+        email: owner.email,
+        name: tenant.name,
+        metadata: {
+          tenantId: tenant._id.toString(),
+          tenantSlug: tenant.slug,
+          ownerId: ownerId.toString(),
+        },
+      });
+
+      // Update tenant with Stripe customer ID
+      tenant.subscription = {
+        ...tenant.subscription,
+        stripeCustomerId: stripeCustomer.id,
+      };
+      await tenant.save();
+
+      logger.info(`Stripe customer created for tenant: ${tenant._id}, customerId: ${stripeCustomer.id}`);
+    } catch (error) {
+      logger.error('Error creating Stripe customer for tenant:', error);
+      // Don't fail tenant creation if Stripe customer creation fails
+    }
 
     logger.info(`Tenant created: ${tenant._id} by user: ${ownerId}`);
 
@@ -74,13 +106,32 @@ const createTenant = async (tenantData) => {
  * Get tenant by ID
  */
 const getTenantById = async (tenantId) => {
-  const tenant = await Tenant.findById(tenantId).populate('ownerId', 'name email');
+  const tenant = await Tenant.findById(tenantId).populate('ownerId', 'name email').lean();
 
+  const subscription = await SubscriptionModel.aggregate([
+    { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
+    {
+      $lookup: {
+        from: 'products',
+        localField: 'price',
+        foreignField: 'stripePriceId',
+        as: 'price'
+      }
+    },
+    { $unwind: '$price' },
+    { $sort: { createdAt: -1 } },
+    { $limit: 1 },
+  ]);
+  console.log('Subscription aggregation result:', subscription);
   if (!tenant) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
 
-  return tenant;
+  return {
+    ...tenant,
+    subscription: subscription.length > 0 ? subscription[0] : null
+
+  };
 };
 
 /**
@@ -126,6 +177,99 @@ const deleteTenant = async (tenantId) => {
   logger.info(`Tenant deleted: ${tenantId}`);
 };
 
+/** * Get all tenants/organizations for a user
+ */
+const getUserTenants = async (userId) => {
+  try {
+    // Find all active memberships for the user
+    const tenantMemberships = await TenantMember.find({
+      userId,
+      status: 'active'
+    })
+      .populate('tenantId', 'name slug subdomain status plan')
+      .sort({ joinedAt: -1 });
+
+    if (!tenantMemberships || tenantMemberships.length === 0) {
+      return {
+        tenants: [],
+        total: 0,
+      };
+    }
+
+    // Format the response
+    const tenants = tenantMemberships.map((membership) => ({
+      id: membership.tenantId._id,
+      name: membership.tenantId.name,
+      slug: membership.tenantId.slug,
+      subdomain: membership.tenantId.subdomain,
+      status: membership.tenantId.status,
+      plan: membership.tenantId.plan,
+      role: membership.role,
+      permissions: membership.permissions,
+      joinedAt: membership.joinedAt,
+    }));
+
+    logger.info(`Retrieved ${tenants.length} tenants for user: ${userId}`);
+
+    return {
+      tenants,
+      total: tenants.length,
+    };
+  } catch (error) {
+    logger.error('Error fetching user tenants:', error);
+    throw error;
+  }
+};
+
+/**
+ * Switch user to a different tenant
+ */
+const switchTenant = async (userId, tenantId) => {
+  try {
+    // Handle personal mode (no organization)
+    if (!tenantId || tenantId === null) {
+      logger.info(`User ${userId} switched to personal mode`);
+      return {
+        tenantId: null,
+        tenantName: 'Personal',
+        mode: 'personal',
+        role: null,
+        permissions: [],
+      };
+    }
+
+    // Verify user is a member of the tenant
+    const tenantMembership = await TenantMember.findOne({
+      userId,
+      tenantId,
+      status: 'active'
+    });
+
+    if (!tenantMembership) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'User is not a member of this tenant');
+    }
+
+    // Get the tenant details
+    const tenant = await Tenant.findById(tenantId);
+    if (!tenant) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+    }
+
+    logger.info(`User ${userId} switched to tenant ${tenantId}`);
+
+    return {
+      tenantId: tenant._id,
+      tenantName: tenant.name,
+      mode: 'organization',
+      role: tenantMembership.role,
+      permissions: tenantMembership.permissions,
+    };
+  } catch (error) {
+    logger.error('Error switching tenant:', error);
+    throw error;
+  }
+};
+
 /**
  * Get tenant members
  */
@@ -133,13 +277,13 @@ const getTenantMembers = async (tenantId, options = {}) => {
   const { page = 1, limit = 20 } = options;
   const skip = (page - 1) * limit;
 
-  const members = await UserModel.find({ tenantId })
-    .select('name email avatar tenantRole createdAt')
-    .sort({ createdAt: -1 })
+  const members = await TenantMember.find({ tenantId, status: 'active' })
+    .populate('userId', 'name email')
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean();
 
-  const total = await UserModel.countDocuments({ tenantId });
+  const total = await TenantMember.countDocuments({ tenantId, status: 'active' });
 
   return {
     members,
@@ -173,9 +317,16 @@ const inviteMember = async (invitationData) => {
   }
 
   // Check if user is already a member
-  const existingMember = await UserModel.findOne({ email, tenantId });
-  if (existingMember) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'User is already a member');
+  const existingMember = await TenantMember.findOne({
+    tenantId,
+    status: 'active',
+  }).populate({
+    path: 'userId',
+    match: { email: email.toLowerCase() },
+  });
+
+  if (existingMember && existingMember.userId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'User is already a member of this tenant');
   }
 
   // Check for pending invitation
@@ -306,6 +457,8 @@ export const tenantService = {
   getTenantById,
   updateTenant,
   deleteTenant,
+  getUserTenants,
+  switchTenant,
   getTenantMembers,
   inviteMember,
   updateMemberRole,

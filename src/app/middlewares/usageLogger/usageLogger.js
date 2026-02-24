@@ -43,7 +43,12 @@ const usageLogger = (req, res, next) => {
 
       // Extract user and tenant from request (set by auth middleware)
       const userId = req.user?._id || req.user?.id || null;
-      const tenantId = req.tenant?._id || req.tenant?.id || req.user?.activeTenantId || req.user?.tenantId || null;
+      const tenantId = req.tenant?._id
+        || req.tenant?.id
+        || req.user?.currentTenantId
+        || req.user?.activeTenantId
+        || req.user?.tenantId
+        || null;
 
       // Skip logging if no user (some public endpoints)
       if (!userId) {

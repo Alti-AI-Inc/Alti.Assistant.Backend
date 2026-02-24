@@ -15,7 +15,7 @@ export const extractTenantContext = async (req, res, next) => {
     }
 
     const userId = req.user.id || req.user._id;
-    const tenantId = req.user.tenantId;
+    const tenantId = req.user.currentTenantId || req.user.tenantId;
     const tenantRole = req.user.tenantRole;
 
     // If user has tenant, attach tenant context

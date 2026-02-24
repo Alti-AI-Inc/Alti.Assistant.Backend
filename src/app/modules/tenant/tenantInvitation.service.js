@@ -94,10 +94,12 @@ const verifyInvitationToken = async (token) => {
     throw new ApiError(httpStatus.GONE, 'Invitation has expired');
   }
 
+  const isUserExistWithEmail = await UserModel.exists({ email: invitation.email });
   return {
     id: invitation._id,
     email: invitation.email,
     role: invitation.role,
+    isUserExistWithEmail: !!isUserExistWithEmail,
     tenantName: invitation.metadata.tenantName,
     inviterName: invitation.metadata.inviterName,
     expiresAt: invitation.expiresAt,

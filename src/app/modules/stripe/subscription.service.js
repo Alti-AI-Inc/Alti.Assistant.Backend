@@ -25,8 +25,18 @@ const cancelSubscriptionService = async (subscriptionId) => {
   return confirmation;
 }
 
+const getCustomerSubscriptionsService = async (customerId) => {
+  const subscriptions = await stripe.subscriptions.list({
+    customer: customerId,
+    status: 'active',
+    expand: ['data.default_payment_method', 'data.latest_invoice']
+  });
+  return subscriptions.data;
+}
+
 export {
   createSubscriptionService,
   retrieveSubscriptionService,
-  cancelSubscriptionService
+  cancelSubscriptionService,
+  getCustomerSubscriptionsService
 };

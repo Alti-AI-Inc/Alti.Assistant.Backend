@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { tenantService } from './tenant.service.js';
+import TenantMember from './tenantMember.model.js';
 import { jwtHelpers } from '../../helpers/jwtHelpers.js';
 import config from '../../../../config/index.js';
 
@@ -21,12 +22,12 @@ const createTenant = catchAsync(async (req, res) => {
     plan,
   });
 
-  // Generate new access token with tenantId in payload
+  // Generate new access token with currentTenantId in payload
   const accessToken = jwtHelpers.createToken(
     {
       _id: userId,
       role: userRole,
-      tenantId: result.id,
+      currentTenantId: result.id,
     },
     config.jwt.access_token,
     config.jwt.access_expires_in
@@ -47,7 +48,7 @@ const createTenant = catchAsync(async (req, res) => {
  * Get current user's tenant
  */
 const getCurrentTenant = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
 
   if (!tenantId) {
     return sendResponse(res, {
@@ -71,7 +72,7 @@ const getCurrentTenant = catchAsync(async (req, res) => {
  * Update tenant settings
  */
 const updateTenantSettings = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const updates = req.body;
 
   const result = await tenantService.updateTenant(tenantId, updates);
@@ -100,10 +101,63 @@ const deleteTenant = catchAsync(async (req, res) => {
 });
 
 /**
+ * Switch to a different tenant or personal mode
+ * @body tenantId - Tenant ID to switch to, or null/"personal" for personal mode
+ */
+const switchTenant = catchAsync(async (req, res) => {
+  const userId = req.user?.id || req.user?._id;
+  const userRole = req.user?.role;
+  let { tenantId } = req.body;
+
+  // Handle personal mode switching
+  const isPersonalMode = !tenantId || tenantId === 'personal' || tenantId === 'null';
+
+  if (isPersonalMode) {
+    tenantId = null;
+  }
+
+  const result = await tenantService.switchTenant(userId, tenantId);
+
+  // Fetch all user's tenants for the token payload
+  const tenantMemberships = await TenantMember.find({
+    userId,
+    status: 'active'
+  }).select('tenantId role');
+
+  const tenants = tenantMemberships.map(membership => ({
+    tenantId: membership.tenantId,
+    role: membership.role
+  }));
+
+  // Generate new access token with currentTenantId in payload (null for personal mode)
+  const accessToken = jwtHelpers.createToken(
+    {
+      _id: userId,
+      role: userRole,
+      currentTenantId: tenantId,
+      tenants: tenants,
+    },
+    config.jwt.access_token,
+    config.jwt.access_expires_in
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: isPersonalMode ? 'Switched to personal mode successfully' : 'Tenant switched successfully',
+    data: {
+      ...result,
+      accessToken,
+      mode: isPersonalMode ? 'personal' : 'organization',
+    },
+  });
+});
+
+/**
  * Get tenant members
  */
 const getTenantMembers = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const { page = 1, limit = 20 } = req.query;
 
   const result = await tenantService.getTenantMembers(tenantId, { page, limit });
@@ -120,7 +174,7 @@ const getTenantMembers = catchAsync(async (req, res) => {
  * Invite user to tenant
  */
 const inviteMember = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const userId = req.user?.id || req.user?._id;
   const { email, role } = req.body;
 
@@ -143,7 +197,7 @@ const inviteMember = catchAsync(async (req, res) => {
  * Update member role
  */
 const updateMemberRole = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const { userId } = req.params;
   const { role } = req.body;
 
@@ -161,7 +215,7 @@ const updateMemberRole = catchAsync(async (req, res) => {
  * Remove member from tenant
  */
 const removeMember = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const { userId } = req.params;
 
   await tenantService.removeMember(tenantId, userId);
@@ -177,7 +231,7 @@ const removeMember = catchAsync(async (req, res) => {
  * Get tenant usage statistics
  */
 const getTenantUsage = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
 
   const result = await tenantService.getTenantUsage(tenantId);
 
@@ -193,7 +247,7 @@ const getTenantUsage = catchAsync(async (req, res) => {
  * Get tenant limits
  */
 const getTenantLimits = catchAsync(async (req, res) => {
-  const tenantId = req.user?.tenantId;
+  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
 
   const result = await tenantService.getTenantLimits(tenantId);
 
@@ -221,12 +275,30 @@ const checkSubdomainAvailability = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Get all tenants for logged-in user
+ */
+const getUserTenants = catchAsync(async (req, res) => {
+  const userId = req.user?.id || req.user?._id;
+
+  const result = await tenantService.getUserTenants(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User tenants retrieved successfully',
+    data: result,
+  });
+});
+
 export const tenantController = {
   createTenant,
   getCurrentTenant,
   updateTenantSettings,
   deleteTenant,
+  switchTenant,
   getTenantMembers,
+  getUserTenants,
   inviteMember,
   updateMemberRole,
   removeMember,

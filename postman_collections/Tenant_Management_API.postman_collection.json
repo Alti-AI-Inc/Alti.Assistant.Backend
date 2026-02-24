@@ -272,6 +272,54 @@
           }
         },
         {
+          "name": "TC-006.5: Get All User Tenants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array of tenants', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('tenants');",
+                  "    pm.expect(jsonData.data.tenants).to.be.an('array');",
+                  "    pm.expect(jsonData.data).to.have.property('total');",
+                  "});",
+                  "",
+                  "pm.test('Each tenant has required properties', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data.tenants.length > 0) {",
+                  "        var tenant = jsonData.data.tenants[0];",
+                  "        pm.expect(tenant).to.have.property('id');",
+                  "        pm.expect(tenant).to.have.property('name');",
+                  "        pm.expect(tenant).to.have.property('slug');",
+                  "        pm.expect(tenant).to.have.property('subdomain');",
+                  "        pm.expect(tenant).to.have.property('status');",
+                  "        pm.expect(tenant).to.have.property('plan');",
+                  "        pm.expect(tenant).to.have.property('role');",
+                  "        pm.expect(tenant).to.have.property('permissions');",
+                  "        pm.expect(tenant).to.have.property('joinedAt');",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('User has at least one tenant', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.total).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/tenant/all"
+          }
+        },
+        {
           "name": "TC-005: Create Duplicate Slug (Should Fail)",
           "event": [
             {

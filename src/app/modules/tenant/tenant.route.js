@@ -12,6 +12,29 @@ const router = express.Router();
 // ============= Tenant CRUD Routes =============
 
 /**
+ * @route   GET /api/v1/tenant/all
+ * @desc    Get all tenants for logged-in user
+ * @access  Private (Authenticated users)
+ */
+router.get(
+  '/all',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  tenantController.getUserTenants
+);
+
+/**
+ * @route   POST /api/v1/tenant/switch
+ * @desc    Switch to a different tenant or personal mode (pass tenantId: null or "personal" for personal mode)
+ * @body    { tenantId: string | null | "personal" }
+ * @access  Private (Authenticated users)
+ */
+router.post(
+  '/switch',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  tenantController.switchTenant
+);
+
+/**
  * @route   POST /api/v1/tenant/create
  * @desc    Create a new tenant
  * @access  Private (Authenticated users)
@@ -30,7 +53,6 @@ router.post(
  */
 router.get(
   '/check-subdomain',
-  validateRequest(tenantValidation.checkSubdomainSchema),
   tenantController.checkSubdomainAvailability
 );
 
@@ -62,13 +84,6 @@ router.patch(
  * @desc    Delete a tenant (admin only)
  * @access  Private (Admin only)
  */
-router.delete(
-  '/:tenantId',
-  auth(ENUM_USER_ROLE.ADMIN),
-  validateRequest(tenantValidation.tenantIdParamSchema),
-  tenantController.deleteTenant
-);
-
 // ============= Member Management Routes =============
 
 /**
@@ -94,32 +109,6 @@ router.post(
   validateRequest(tenantValidation.inviteMemberSchema),
   tenantController.inviteMember
 );
-
-/**
- * @route   PATCH /api/v1/tenant/members/:userId/role
- * @desc    Update a member's role
- * @access  Private (Tenant owner/admin)
- */
-router.patch(
-  '/members/:userId/role',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-  validateRequest(tenantValidation.updateMemberRoleSchema),
-  tenantController.updateMemberRole
-);
-
-/**
- * @route   DELETE /api/v1/tenant/members/:userId
- * @desc    Remove a member from the tenant
- * @access  Private (Tenant owner/admin)
- */
-router.delete(
-  '/members/:userId',
-  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-  validateRequest(tenantValidation.removeMemberSchema),
-  tenantController.removeMember
-);
-
-// ============= Invitation Routes =============
 
 /**
  * @route   GET /api/v1/tenant/members/invitations
@@ -179,7 +168,29 @@ router.post(
   tenantInvitationController.resendInvitation
 );
 
-// ============= Usage & Limits Routes =============
+/**
+ * @route   PATCH /api/v1/tenant/members/:userId/role
+ * @desc    Update a member's role
+ * @access  Private (Tenant owner/admin)
+ */
+router.patch(
+  '/members/:userId/role',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(tenantValidation.updateMemberRoleSchema),
+  tenantController.updateMemberRole
+);
+
+/**
+ * @route   DELETE /api/v1/tenant/members/:userId
+ * @desc    Remove a member from the tenant
+ * @access  Private (Tenant owner/admin)
+ */
+router.delete(
+  '/members/:userId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validateRequest(tenantValidation.removeMemberSchema),
+  tenantController.removeMember
+);
 
 /**
  * @route   GET /api/v1/tenant/usage
@@ -201,6 +212,18 @@ router.get(
   '/limits',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   tenantController.getTenantLimits
+);
+
+/**
+ * @route   DELETE /api/v1/tenant/:tenantId
+ * @desc    Delete a tenant (admin only)
+ * @access  Private (Admin only)
+ */
+router.delete(
+  '/:tenantId',
+  auth(ENUM_USER_ROLE.ADMIN),
+  validateRequest(tenantValidation.tenantIdParamSchema),
+  tenantController.deleteTenant
 );
 
 export const tenantRoutes = router;

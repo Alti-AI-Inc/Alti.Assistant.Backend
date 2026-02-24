@@ -9,6 +9,7 @@ const createPaymentIntentService = async (amount, currency, customerId) => {
   const paymentIntent = await stripe.paymentIntents.create({
     amount: amount, // amount in cents
     currency: currency,
+    customer: customerId,
     // Optional: attach minimal metadata to help you later
     metadata: { customerId },
     automatic_payment_methods: { enabled: false }, // we’ll use CardElement explicitly

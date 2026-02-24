@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import config from "../../../../../config/index.js";
+import Product from "../products/products.model.js";
 
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: "2022-11-15",
@@ -21,7 +22,7 @@ const retrieveAllCustomersService = async () => {
 }
 
 const retrieveAllProductsService = async () => {
-  const products = await stripe.products.list();
+  const products = await Product.find({}).lean();
   return products;
 }
 
