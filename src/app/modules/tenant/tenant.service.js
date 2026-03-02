@@ -308,6 +308,22 @@ const inviteMember = async (invitationData) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
 
+  // Check if the tenant's subscription allows team invitations
+  const tenantSubscription = await SubscriptionModel.findOne({
+    tenantId,
+    paymentStatus: 'paid',
+  });
+
+  const canInviteTeam = tenantSubscription?.limits?.canInviteTeam ?? false;
+
+  if (!canInviteTeam) {
+    const currentPlan = tenantSubscription?.plan_name || 'free';
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      `Team collaboration requires a paid plan (current: ${currentPlan}). Upgrade to Explore ($20/mo), Execute ($50/mo), or Command ($100/mo) to invite team members.`
+    );
+  }
+
   // Check if tenant can add more members
   if (!tenant.canAddMembers()) {
     throw new ApiError(

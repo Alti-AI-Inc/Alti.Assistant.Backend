@@ -8,6 +8,8 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { documentAnalysisController } from './document_analysis.controller.js';
 import { DocumentAnalysisValidation } from './document_analysis.validation.js';
 import { uploadDocumentAnalysis } from './middlewares/uploadDocumentAnalysis.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -19,9 +21,11 @@ const router = express.Router();
 router.post(
   '/analyze',
   optionalAuth(),
-  extractTenantContext, // Extract tenant context after auth
+  extractTenantContext,
   checkDailyRequestLimit,
+  checkStorageLimit,
   uploadDocumentAnalysis.single('file'),
+  checkRAGFeature,
   validateRequest(DocumentAnalysisValidation.analyzeRequestSchema),
   documentAnalysisController.analyzeDocument
 );

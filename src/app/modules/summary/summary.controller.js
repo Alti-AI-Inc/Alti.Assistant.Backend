@@ -9,8 +9,6 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { summaryService } from './summary.service.js';
 import { summarizerApp } from "./summarizer/workflow.js";
-import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * Summarize content (URL or file)
@@ -22,21 +20,6 @@ const summarizeContent = catchAsync(async (req, res) => {
   let userId = isGuest ? summaryService.generateGuestUserId() : (req.user?.userId || req.user?._id);
   const { message, conversationId } = req.body;
   userId = req.body.userId || userId; // Allow overriding userId from request body
-
-  // Skip subscription check for guest users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const prompotUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
-
-    if (prompotUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message: 'You have reached your summary limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   if (!message) {
     return sendResponse(res, {

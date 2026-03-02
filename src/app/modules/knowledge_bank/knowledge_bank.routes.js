@@ -3,6 +3,8 @@ import multer from 'multer';
 import { knowledgeBankController } from './knowledge_bank.controller.js';
 import auth from '../../middlewares/auth/auth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -67,7 +69,9 @@ router.post(
   '/upload',
   auth(),
   extractTenantContext,
+  checkStorageLimit,
   upload.any(),
+  checkRAGFeature,
   knowledgeBankController.uploadFile
 );
 
@@ -100,6 +104,7 @@ router.post(
   '/files/:fileId/process',
   auth(),
   extractTenantContext,
+  checkRAGFeature,
   knowledgeBankController.processFile
 );
 
@@ -110,6 +115,7 @@ router.post(
   '/folders',
   auth(),
   extractTenantContext,
+  checkRAGFeature,
   knowledgeBankController.createFolder
 );
 

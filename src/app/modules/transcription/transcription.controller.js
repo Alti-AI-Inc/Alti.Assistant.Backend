@@ -5,8 +5,6 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { transcriptionService } from './transcription.service.js';
 import { geminiAudioService } from './geminiAudioService.js';
 import { bucketUploadService } from './bucketUpload.service.js';
-import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import {
   ERROR_MESSAGES,
   AUDIO_PROCESSING,
@@ -34,26 +32,6 @@ export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
   // Determine action type
   const actionType = determineActionType(audioFile, audioFiles, message);
   logger.info(`Smart transcription action: ${actionType}, conversationId: ${conversationId || 'new'}`);
-
-  // Check subscription for authenticated users
-  if (!isGuest && conversationId) {
-    try {
-      const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-      const promptUsage = userSubscription ? userSubscription.usage : 0;
-      const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
-      const messageCount = conversation?.messages ? conversation.messages.length : 0;
-
-      if (promptUsage <= messageCount) {
-        return sendResponse(res, {
-          statusCode: httpStatus.FORBIDDEN,
-          success: false,
-          message: ERROR_MESSAGES.USAGE_LIMIT_REACHED,
-        });
-      }
-    } catch (error) {
-      logger.warn('Subscription check failed:', error.message);
-    }
-  }
 
   console.log('Proceeding with action type:', actionType);
 

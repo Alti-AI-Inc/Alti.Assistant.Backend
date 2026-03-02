@@ -15,85 +15,96 @@
 
 ## 🔴 Phase 1 — Enforcement (3-5 days)
 
-### 1. Rewrite `checkDailyRequestLimit` Middleware
+### 1. ~~Rewrite `checkDailyRequestLimit` Middleware~~ ✅
 **File:** `src/app/middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js`
 
-- [ ] Detect context: personal (`tenantId = null`) vs org (`tenantId = ObjectId`) from `req.currentTenantId`
-- [ ] Get limits: `SubscriptionModel.findOne({ userId, tenantId, paymentStatus: 'paid' })` → fallback to free (10/day)
-- [ ] Get today's count: `UserUsageModel.getTodayRequests(userId, tenantId)`
-- [ ] Block if `todayCount >= subscription.limits.dailyRequestLimit` → return 429
-- [ ] On pass: `UserUsageModel.incrementRequest(userId, tenantId)`
-- [ ] No reset logic needed — new day = new `UserUsage` document automatically
+- [x] Detect context: personal (`tenantId = null`) vs org (`tenantId = ObjectId`) from `req.currentTenantId`
+- [x] Get limits: `SubscriptionModel.findOne({ userId, tenantId, paymentStatus: 'paid' })` → fallback to free (10/day)
+- [x] Get today's count: `UserUsageModel.getTodayRequests(userId, tenantId)`
+- [x] Block if `todayCount >= subscription.limits.dailyRequestLimit` → return 429
+- [x] On pass: `UserUsageModel.incrementRequest(userId, tenantId)`
+- [x] No reset logic needed — new day = new `UserUsage` document automatically
 
 ---
 
-### 2. Create `checkRAGFeature` Middleware
-**File:** `src/app/middlewares/checkRAGFeature.js`
+### 2. ~~Create `checkRAGFeature` Middleware~~ ✅
+**File:** `src/app/middlewares/checkRAGFeature/checkRAGFeature.js`
 
-- [ ] Get subscription (context-aware: personal vs org)
-- [ ] Read `subscription.limits.ragType`
-- [ ] Block if `ragType === 'none'` → return 403
-- [ ] For `basic_text`: validate uploaded file is text/document (no images, video)
-- [ ] For `advanced_multimodal`: allow images, PDFs, tables
-- [ ] For `premium_agentic`: allow all types
-
----
-
-### 3. Create `checkStorageLimit` Middleware
-**File:** `src/app/middlewares/checkStorageLimit.js`
-
-- [ ] Get subscription (context-aware)
-- [ ] Get current storage: `UserUsageModel.getTotalStorage(userId, tenantId)`
-- [ ] Calculate if `storageUsed + incomingFileSize > subscription.limits.storagePerUser`
-- [ ] Block if exceeded → return 413 with upgrade prompt
-- [ ] Pass file size via `req.fileSize` for the middleware to read
+- [x] Get subscription (context-aware: personal vs org)
+- [x] Read `subscription.limits.ragType`
+- [x] Block if `ragType === 'none'` → return 403
+- [x] For `basic_text`: validate uploaded file is text/document (no images, video)
+- [x] For `advanced_multimodal`: allow images, PDFs, tables
+- [x] For `premium_agentic`: allow all types
 
 ---
 
-### 4. Apply Middleware to Routes
+### 3. ~~Create `checkStorageLimit` Middleware~~ ✅
+**File:** `src/app/middlewares/checkStorageLimit/checkStorageLimit.js`
 
-- [ ] `search.route.js` — keep `checkDailyRequestLimit` (rewritten)
-- [ ] `translation.route.js` — keep `checkDailyRequestLimit`
-- [ ] `workflow_automation/chat.routes.js` — keep `checkDailyRequestLimit`
-- [ ] Knowledge bank routes — add `checkRAGFeature`
-- [ ] Document upload routes — add `checkRAGFeature` + `checkStorageLimit`
-- [ ] Image upload routes — add `checkStorageLimit`
-
----
-
-### 5. Storage Tracking Hooks
-
-- [ ] After **upload success**: `UserUsageModel.updateStorage(userId, tenantId, +fileSize)`
-- [ ] After **file delete**: `UserUsageModel.updateStorage(userId, tenantId, -fileSize)`
-- [ ] Add to: knowledge bank upload controller
-- [ ] Add to: document upload controller
-- [ ] Add to: image upload endpoint
+- [x] Get subscription (context-aware)
+- [x] Get current storage: `UserUsageModel.getTotalStorage(userId, tenantId)`
+- [x] Calculate if `storageUsed + incomingFileSize > subscription.limits.storagePerUser`
+- [x] Block if exceeded → return 413 with upgrade prompt
+- [x] Pass file size via `req.fileSize` for the middleware to read
 
 ---
 
-### 6. Team Invitation Check
-**File:** `src/app/modules/tenant/tenant.service.js` (inviteUser method)
+### 4. ~~Apply Middleware to Routes~~ ✅
 
-- [ ] Before calling `createInvitation()`, fetch the tenant's subscription
-- [ ] Check `subscription.limits.canInviteTeam`
-- [ ] If `false` → throw error: `"Team collaboration requires a paid plan"`
-- [ ] Include upgrade plan options in error response
+- [x] `code.route.js` — added `checkDailyRequestLimit`
+- [x] `writing/workflow.route.js` — added `checkDailyRequestLimit`
+- [x] `deep_research.route.js` — added `checkDailyRequestLimit`
+- [x] `summary.route.js` — added DRL + STG + RAG (order: DRL → STG → upload → RAG)
+- [x] `enhanced_image.route.js` — added DRL to 5 generation routes; fixed duplicate `extractTenantContext`
+- [x] `video.route.js` — added DRL to `/generate`
+- [x] `transcription.route.js` — added DRL + STG + RAG on `/assistant`
+- [x] `knowledge_bank.routes.js` — added STG + RAG on `/upload`; RAG on `/process` and `/folders` (create)
+- [x] `knowledgebase.routes.js` — added STG + RAG on `/upload`; RAG on `/chat`, `/invoke-rag`, `/create`; added `extractTenantContext` to previously missing routes
+- [x] `article_writer.route.js` — added STG + RAG on `/assistant`
+- [x] `document_analysis.route.js` — added STG + RAG on `/analyze`
+- [x] `document_review.route.js` — added STG + RAG on `/assistant` and `/review`; added DRL to `/review`
+- [x] `legal_contract.route.js` — added STG + RAG on `/assistant`
+- [x] `legal_contract_review.route.js` — added STG + RAG on `/assistant` and `/review`; added DRL to `/review`
+- [x] `rewrite.route.js` — added DRL + STG + RAG on `/rewrite`
+- [x] `report.route.js` — added STG + RAG on `/assistant` and `/analyze`; added DRL + extractTenantContext to `/analyze`
+- [x] `plan_generator.route.js` — replaced old `checkStorageLimit(10485760)` + `checkApiCallLimit` + `trackStorageUsage` with new `checkStorageLimit` + `checkRAGFeature`
 
 ---
 
-### 7. Cleanup Cron Job *(optional — not blocking)*
+### 5. Storage Tracking Hooks ✅
+
+- [x] After **upload success**: `UserUsageModel.updateStorage(userId, tenantId, +fileSize)`
+- [x] After **file delete**: `UserUsageModel.updateStorage(userId, tenantId, -fileSize)`
+- [x] Add to: knowledge bank upload controller (`knowledge_bank.controller.js`)
+- [x] Add to: knowledgebase upload/delete controller (`knowledgebase.controller.js`)
+- [x] Note: image/document endpoints use `memoryStorage()` — not persisted, no quota tracking needed
+
+---
+
+### 6. Team Invitation Check ✅
+**File:** `src/app/modules/tenant/tenant.service.js` (inviteMember method)
+
+- [x] Before calling `createInvitation()`, fetch the tenant's subscription
+- [x] Check `subscription.limits.canInviteTeam`
+- [x] If `false` → throw 403 error: `"Team collaboration requires a paid plan (current: <plan>). Upgrade to Explore ($20/mo), Execute ($50/mo), or Command ($100/mo) to invite team members."`
+- [x] Fallback: no paid subscription found → `canInviteTeam = false` (free plan default)
+
+---
+
+### 7. Cleanup Cron Job ✅
 **File:** `src/app/cron/usage/cleanupOldUsage.js`
 
-- [ ] Schedule: `0 2 * * *` (2am daily)
-- [ ] Delete `UserUsage` docs older than 90 days
-- [ ] Expire subscriptions where `expiresAt < now` (set `paymentStatus = 'expired'`)
-- [ ] Register in `index.js` or `server.js`
+- [x] Schedule: `0 2 * * *` (2am daily)
+- [x] Delete `UserUsage` docs older than 90 days
+- [x] Expire subscriptions where `expiresAt < now` (set `paymentStatus = 'expired'`)
+- [x] Registered in `index.js` as side-effect import (same pattern as `resetUsage.js`)
 
 ---
 
 ### 8. Phase 1 Testing
 
-- [ ] Free user hits limit at request 11 → 429 returned
+- [x] Free user hits limit at request 11 → 429 returned
 - [ ] Free user blocked from knowledge bank (ragType = none)
 - [ ] Free user cannot send team invitation
 - [ ] Explore user: 1,000 requests/day allowed
@@ -216,11 +227,11 @@
 | ✅ Done | `src/app/modules/stripe/products/products.model.js` | New schema with RAG features |
 | ✅ Done | `scripts/update-stripe-products.js` | Update existing Stripe products |
 | ✅ Done | `scripts/seed-products-to-db.js` | Seed Product collection |
-| 🔴 TODO | `src/app/middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js` | Complete rewrite |
-| 🔴 TODO | `src/app/middlewares/checkRAGFeature.js` | New middleware |
-| 🔴 TODO | `src/app/middlewares/checkStorageLimit.js` | New middleware |
-| 🔴 TODO | `src/app/modules/tenant/tenant.service.js` | Add `canInviteTeam` check |
+| ✅ Done | `src/app/middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js` | Complete rewrite |
+| ✅ Done | `src/app/middlewares/checkRAGFeature/checkRAGFeature.js` | New middleware |
+| ✅ Done | `src/app/middlewares/checkStorageLimit/checkStorageLimit.js` | New middleware |
+| ✅ Done | `src/app/modules/tenant/tenant.service.js` | Add `canInviteTeam` check |
 | 🟡 TODO | `src/app/modules/stripe/stripe.webhook.js` | New webhook handler |
-| 🟡 TODO | `src/app/cron/usage/cleanupOldUsage.js` | New cleanup cron |
+| ✅ Done | `src/app/cron/usage/cleanupOldUsage.js` | New cleanup cron |
 | 🟢 TODO | `src/app/modules/usage/usage.controller.js` | Usage stats API |
 | 🟢 TODO | `src/app/modules/usage/usage.route.js` | Usage route |

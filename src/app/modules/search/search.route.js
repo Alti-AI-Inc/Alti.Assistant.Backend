@@ -58,6 +58,7 @@ router.post(
   '/assistant',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
+  checkDailyRequestLimit,
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),
   searchController.performNativeGroundingSearch
@@ -69,6 +70,7 @@ router.post(
   '/stream',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
+  checkDailyRequestLimit,
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),
   searchController.performStreamingSearch

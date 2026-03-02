@@ -9,6 +9,8 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { legalContractReviewController } from './legal_contract_review.controller.js';
 import { LegalContractReviewValidation } from './legal_contract_review.validation.js';
 import { uploadLegalContractReview } from './middlewares/uploadLegalContractReview.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -21,9 +23,11 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
-  extractTenantContext, // Extract tenant context after auth
+  extractTenantContext,
   checkDailyRequestLimit,
+  checkStorageLimit,
   uploadLegalContractReview.single('file'),
+  checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(LegalContractReviewValidation.conversationalRequestSchema),
   legalContractReviewController.conversationalAssistant
@@ -37,8 +41,11 @@ router.post(
 router.post(
   '/review',
   optionalAuth(),
-  extractTenantContext, // Extract tenant context after auth
+  extractTenantContext,
+  checkDailyRequestLimit,
+  checkStorageLimit,
   uploadLegalContractReview.single('file'),
+  checkRAGFeature,
   // createRateLimiter(20, 15), // 20 reviews per 15 minutes
   validateRequest(LegalContractReviewValidation.reviewContractSchema),
   legalContractReviewController.reviewContract

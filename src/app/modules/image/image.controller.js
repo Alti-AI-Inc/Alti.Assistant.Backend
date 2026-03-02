@@ -4,8 +4,6 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { imageService } from './image.service.js';
 import { app as imageAssistantApp } from "./imageAssistant/workflow.js";
-import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { imageHelpers } from './image.helper.js';
 
 /**
@@ -17,21 +15,6 @@ export const generateImage = catchAsync(async (req, res) => {
     let userId = isGuest ? imageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, conversationId, imageSize, imageStyle, imageModel } = req.body;
     userId = req.body?.userId || userId; // Ensure userId is set correctly
-    // Skip subscription check for guest users
-    if (!isGuest) {
-        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-        const promptUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
-
-        if (promptUsage <= totalConversationWithConvId) {
-            return sendResponse(res, {
-                statusCode: httpStatus.FORBIDDEN,
-                success: false,
-                message: 'You have reached your image generation limit for this month. Please upgrade your plan to continue.',
-            });
-        }
-    }
-
     if (!message) {
         return sendResponse(res, {
             statusCode: httpStatus.BAD_REQUEST,
@@ -175,21 +158,6 @@ export const analyzeImage = catchAsync(async (req, res) => {
     const isGuest = req.isGuest || !req.user;
     const userId = isGuest ? imageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, imageData, conversationId } = req.body;
-
-    // Skip subscription check for guest users
-    if (!isGuest) {
-        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-        const promptUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
-
-        if (promptUsage <= totalConversationWithConvId) {
-            return sendResponse(res, {
-                statusCode: httpStatus.FORBIDDEN,
-                success: false,
-                message: 'You have reached your image analysis limit for this month. Please upgrade your plan to continue.',
-            });
-        }
-    }
 
     if (!imageData) {
         return sendResponse(res, {

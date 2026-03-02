@@ -3,8 +3,6 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { legalContractService } from './legal_contract.service.js';
-import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * Conversational legal contract assistant endpoint
@@ -37,24 +35,6 @@ const conversationalAssistant = catchAsync(async (req, res) => {
       conversationId,
     }
   );
-
-  // Check subscription limits for authenticated users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
-      : 0;
-
-    if (promptUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message:
-          'You have reached your contract generation limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   if (!message) {
     return sendResponse(res, {
@@ -126,21 +106,6 @@ const generateContract = catchAsync(async (req, res) => {
     contractType: params.contractType,
     complexity: params.complexity,
   });
-
-  // Check subscription limits for authenticated users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-
-    if (promptUsage <= 0) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message:
-          'You have reached your contract generation limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   try {
     const result = await legalContractService.generateContractDirect(params, userId, isGuest, req);

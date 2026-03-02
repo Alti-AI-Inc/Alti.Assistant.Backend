@@ -5,8 +5,6 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { reportService } from './report.service.js';
-import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * Conversational report assistant endpoint
@@ -25,26 +23,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   logger.info(
     `Report assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}, files: ${files.length}`
   );
-
-  // Check subscription limits for authenticated users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-      createdAt: -1,
-    });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
-      : 0;
-
-    if (promptUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message:
-          'You have reached your report generation limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   if (!message && files.length === 0) {
     return sendResponse(res, {

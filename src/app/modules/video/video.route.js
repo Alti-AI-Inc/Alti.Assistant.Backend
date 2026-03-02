@@ -7,6 +7,7 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { videoController } from './video.controller.js';
 import { VideoValidation } from './video.validation.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext,
+  checkDailyRequestLimit,
   createRateLimiter(10, 15), // 10 video requests per 15 minutes
   validateRequest(VideoValidation.videoGenerationSchema),
   videoController.generateVideo

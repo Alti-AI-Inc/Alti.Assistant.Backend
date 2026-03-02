@@ -3,8 +3,6 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { composioService } from "./composio.service.js";
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
-import SubscriptionModel from '../payment/payment.model.js';
 
 const composioInitiateController = async (req, res) => {
   console.log('Initiating Composio Auth...', req.body);
@@ -45,21 +43,6 @@ const composioConversationController = catchAsync(async (req, res) => {
   let userId = isGuest ? composioService.generateGuestUserId() : (req.user?.userId || req.user?._id);
   const { message, conversationId } = req.body;
   userId = req.body.userId || userId; // Allow overriding userId from request body
-
-  // Skip subscription check for guest users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const prompotUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
-
-    if (prompotUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message: 'You have reached your automation limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   if (!message) {
     return sendResponse(res, {

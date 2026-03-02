@@ -623,15 +623,23 @@ class KnowledgebaseService {
     try {
       logger.info(`Deleting file ${fileId} for user: ${userId}`);
 
-      // Placeholder for file deletion logic
-      // You can implement the actual deletion here later
       const query = { _id: fileId };
+      const file = await KnowledgebaseFile.findOne(
+        req ? withTenantFilter(req, query) : query
+      );
+
+      if (!file) {
+        return false;
+      }
+
+      const fileSize = file.fileSize || 0;
+
       await KnowledgebaseFile.deleteOne(
         req ? withTenantFilter(req, query) : query
       );
 
       logger.info(`File ${fileId} deleted successfully for user: ${userId}`);
-      return true;
+      return { deleted: true, fileSize };
     } catch (error) {
       logger.error('Error deleting user file:', error);
       throw error;

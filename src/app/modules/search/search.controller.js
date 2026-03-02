@@ -4,8 +4,6 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { searchService } from './search.service.js';
 import { researchAgentApp } from "./search_assistant/workflow.js";
-import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { executeGroundedSearch, executeGroundedSearchStream } from './services/geminiGroundingService.js';
 
 
@@ -17,20 +15,6 @@ export const performSearch = catchAsync(async (req, res) => {
     let userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, conversationId, deepSearch } = req.body;
     userId = req.body.userId || userId; // Allow overriding userId from request body
-    // Skip subscription check for guest users
-    if (!isGuest) {
-        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-        const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
-
-        if (prompotUsage <= totalConversationWithConvId) {
-            return sendResponse(res, {
-                statusCode: httpStatus.FORBIDDEN,
-                success: false,
-                message: 'You have reached your search limit for this month. Please upgrade your plan to continue.',
-            });
-        }
-    }
 
     if (!message) {
         return sendResponse(res, {
@@ -213,21 +197,6 @@ const generateCode = catchAsync(async (req, res) => {
     const { message, conversationId } = req.body;
     userId = req.body.userId || userId;
 
-    // Skip subscription check for guest users
-    if (!isGuest) {
-        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-        const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
-
-        if (prompotUsage <= totalConversationWithConvId) {
-            return sendResponse(res, {
-                statusCode: httpStatus.FORBIDDEN,
-                success: false,
-                message: 'You have reached your code generation limit for this month. Please upgrade your plan to continue.',
-            });
-        }
-    }
-
     if (!message) {
         return sendResponse(res, {
             statusCode: httpStatus.BAD_REQUEST,
@@ -362,21 +331,6 @@ const generateWriting = catchAsync(async (req, res) => {
     let userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, conversationId } = req.body;
     userId = req.body.userId || userId;
-
-    // Skip subscription check for guest users
-    if (!isGuest) {
-        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-        const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
-
-        if (prompotUsage <= totalConversationWithConvId) {
-            return sendResponse(res, {
-                statusCode: httpStatus.FORBIDDEN,
-                success: false,
-                message: 'You have reached your writing generation limit for this month. Please upgrade your plan to continue.',
-            });
-        }
-    }
 
     if (!message) {
         return sendResponse(res, {
@@ -513,21 +467,6 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
     let userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, conversationId } = req.body;
     userId = req.body.userId || userId;
-
-    // Skip subscription check for guest users
-    if (!isGuest) {
-        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-        const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
-
-        if (prompotUsage <= totalConversationWithConvId) {
-            return sendResponse(res, {
-                statusCode: httpStatus.FORBIDDEN,
-                success: false,
-                message: 'You have reached your search limit for this month. Please upgrade your plan to continue.',
-            });
-        }
-    }
 
     if (!message) {
         return sendResponse(res, {
@@ -685,21 +624,6 @@ const performStreamingSearch = catchAsync(async (req, res) => {
     let userId = isGuest ? searchService.generateGuestUserId() : (req.user?.userId || req.user?._id);
     const { message, conversationId } = req.body;
     userId = req.body.userId || userId;
-
-    // Skip subscription check for guest users
-    if (!isGuest) {
-        const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-        const prompotUsage = userSubscription ? userSubscription.usage : 0;
-        const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId, req) : 0;
-
-        if (prompotUsage <= totalConversationWithConvId) {
-            return sendResponse(res, {
-                statusCode: httpStatus.FORBIDDEN,
-                success: false,
-                message: 'You have reached your search limit for this month. Please upgrade your plan to continue.',
-            });
-        }
-    }
 
     if (!message) {
         return sendResponse(res, {

@@ -455,7 +455,7 @@ class KnowledgeBankService {
       }
 
       logger.info(`[KnowledgeBank] File deleted successfully: ${fileId}`);
-      return true;
+      return { deleted: true, fileSize: file.fileSize || 0 };
     } catch (error) {
       logger.error('[KnowledgeBank] Error deleting file:', error);
       throw error;

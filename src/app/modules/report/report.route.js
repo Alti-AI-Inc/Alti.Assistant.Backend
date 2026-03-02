@@ -9,6 +9,8 @@ import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js'
 import { reportController } from './report.controller.js';
 import { ReportValidation } from './report.validation.js';
 import { uploadReportFiles } from './middlewares/uploadReportFiles.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -22,7 +24,9 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
+  checkStorageLimit,
   uploadReportFiles,
+  checkRAGFeature,
   // createRateLimiter(20, 15), // 20 requests per 15 minutes
   validateRequest(ReportValidation.conversationalRequestSchema),
   reportController.conversationalAssistant
@@ -48,7 +52,10 @@ router.post(
 router.post(
   '/analyze',
   optionalAuth(),
+  checkDailyRequestLimit,
+  checkStorageLimit,
   uploadReportFiles,
+  checkRAGFeature,
   // createRateLimiter(15, 15), // 15 requests per 15 minutes
   validateRequest(ReportValidation.analyzeFilesSchema),
   reportController.analyzeFiles

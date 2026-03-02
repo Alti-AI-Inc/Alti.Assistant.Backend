@@ -9,7 +9,8 @@ import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js'
 import { planGeneratorController } from './plan_generator.controller.js';
 import { PlanGeneratorValidation } from './plan_generator.validation.js';
 import { uploadPlanFiles } from './middlewares/uploadPlanFiles.js';
-import { checkApiCallLimit, checkStorageLimit, trackStorageUsage } from '../../middlewares/tenant/checkTenantLimits.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -22,11 +23,10 @@ router.post(
   '/assistant',
   optionalAuth(),
   extractTenantContext,
-  checkApiCallLimit, // Check tenant API call limit
   checkDailyRequestLimit,
-  checkStorageLimit(10485760), // Check 10MB file size limit
+  checkStorageLimit,
   uploadPlanFiles.single('file'),
-  trackStorageUsage, // Track storage after upload
+  checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(PlanGeneratorValidation.conversationalRequestSchema),
   planGeneratorController.conversationalAssistant
@@ -41,7 +41,6 @@ router.post(
   '/assistant/async',
   optionalAuth(),
   extractTenantContext,
-  checkApiCallLimit, // Check tenant API call limit
   checkDailyRequestLimit,
   uploadPlanFiles.single('file'),
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
@@ -66,6 +65,8 @@ router.get(
 router.post(
   '/generate',
   optionalAuth(),
+  extractTenantContext,
+  checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 generations per 15 minutes
   validateRequest(PlanGeneratorValidation.generatePlanSchema),
   planGeneratorController.generatePlan

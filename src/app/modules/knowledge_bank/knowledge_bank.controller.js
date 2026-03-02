@@ -3,6 +3,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { knowledgeBankService } from './knowledge_bank.service.js';
+import UserUsageModel from '../usage/userUsage.model.js';
 
 /**
  * Upload file to knowledge bank
@@ -44,6 +45,12 @@ const uploadFile = catchAsync(async (req, res) => {
 
     // Upload file
     const result = await knowledgeBankService.uploadFile(uploadedFile, userId, options, req);
+
+    // Track storage usage
+    const tenantId = req.currentTenantId ?? null;
+    await UserUsageModel.updateStorage(userId, tenantId, uploadedFile.size).catch(err =>
+      logger.error('[KnowledgeBank] Storage increment error:', err)
+    );
 
     // Optionally trigger processing in background (async)
     if (req.body.processImmediately === 'true') {
@@ -206,6 +213,12 @@ const deleteFile = catchAsync(async (req, res) => {
         message: 'File not found or could not be deleted',
       });
     }
+
+    // Decrement storage usage
+    const tenantId = req.currentTenantId ?? null;
+    await UserUsageModel.updateStorage(userId, tenantId, -(result.fileSize || 0)).catch(err =>
+      logger.error('[KnowledgeBank] Storage decrement error:', err)
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

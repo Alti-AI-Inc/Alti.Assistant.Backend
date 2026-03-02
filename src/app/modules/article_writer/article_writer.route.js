@@ -9,6 +9,8 @@ import { articleWriterController } from './article_writer.controller.js';
 import { ArticleWriterValidation } from './article_writer.validation.js';
 import { uploadArticleFile } from './middlewares/uploadArticleFile.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -22,7 +24,9 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
+  checkStorageLimit,
   uploadArticleFile.single('file'),
+  checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(ArticleWriterValidation.conversationalRequestSchema),
   articleWriterController.conversationalAssistant

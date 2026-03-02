@@ -5,6 +5,7 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import { deepResearchController } from "./deep_research.controller.js";
 import { DeepResearchValidation } from "./deep_research.validation.js";
 
@@ -13,8 +14,9 @@ const router = express.Router();
 // Deep research assistant endpoint - open to all (with optional auth)
 router.post(
   '/assistant',
-  optionalAuth(), // Use optional auth to allow both authenticated and guest users
-  extractTenantContext, // Extract tenant context after auth
+  optionalAuth(),
+  extractTenantContext,
+  checkDailyRequestLimit,
   createRateLimiter(10, 15), // 10 deep research requests per 15 minutes (due to heavy computational cost)
   validateRequest(DeepResearchValidation.deepResearchQuerySchema),
   deepResearchController.performDeepResearch

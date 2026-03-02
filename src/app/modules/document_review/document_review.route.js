@@ -9,6 +9,8 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { documentReviewController } from './document_review.controller.js';
 import { DocumentReviewValidation } from './document_review.validation.js';
 import { uploadDocumentReview } from './middlewares/uploadDocumentReview.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -20,9 +22,11 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
-  extractTenantContext, // Extract tenant context after auth
+  extractTenantContext,
   checkDailyRequestLimit,
+  checkStorageLimit,
   uploadDocumentReview.single('file'),
+  checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(DocumentReviewValidation.conversationalRequestSchema),
   documentReviewController.conversationalAssistant
@@ -35,8 +39,11 @@ router.post(
 router.post(
   '/review',
   optionalAuth(),
-  extractTenantContext, // Extract tenant context after auth
+  extractTenantContext,
+  checkDailyRequestLimit,
+  checkStorageLimit,
   uploadDocumentReview.single('file'),
+  checkRAGFeature,
   // createRateLimiter(20, 15), // 20 reviews per 15 minutes
   validateRequest(DocumentReviewValidation.reviewDocumentSchema),
   documentReviewController.reviewDocument

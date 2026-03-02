@@ -3,8 +3,6 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { planGeneratorService } from './plan_generator.service.js';
-import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { taskManager } from './plan_generator.taskmanager.js';
 
 /**
@@ -41,24 +39,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       conversationId,
     }
   );
-
-  // Check subscription limits for authenticated users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId)
-      : 0;
-
-    if (promptUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.PAYMENT_REQUIRED,
-        success: false,
-        message: 'Subscription limit reached. Please upgrade your plan.',
-        data: null,
-      });
-    }
-  }
 
   const result = await planGeneratorService.conversationalAssistant(
     userId,
@@ -114,24 +94,6 @@ export const conversationalAssistantAsync = catchAsync(async (req, res) => {
       conversationId,
     }
   );
-
-  // Check subscription limits for authenticated users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
-      : 0;
-
-    if (promptUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.PAYMENT_REQUIRED,
-        success: false,
-        message: 'Subscription limit reached. Please upgrade your plan.',
-        data: null,
-      });
-    }
-  }
 
   // Create task
   const task = taskManager.createTask(userId, conversationId);
@@ -216,21 +178,6 @@ export const generatePlan = catchAsync(async (req, res) => {
   const params = req.body;
 
   logger.info(`Direct plan generation from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`);
-
-  // Check subscription limits for authenticated users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-
-    if (promptUsage <= 0) {
-      return sendResponse(res, {
-        statusCode: httpStatus.PAYMENT_REQUIRED,
-        success: false,
-        message: 'Subscription limit reached. Please upgrade your plan.',
-        data: null,
-      });
-    }
-  }
 
   const result = await planGeneratorService.generatePlanDirect(params, userId, isGuest);
 

@@ -54,28 +54,10 @@ if (-not $SkipBuild) {
 Write-Host "`nConnecting to VM and deploying..." -ForegroundColor Yellow
 
 # Create deployment commands
-$deployCommands = @"
-set -e
-echo 'Navigating to compose directory...'
-cd $ComposeDir
-
-echo 'Stopping existing containers...'
-docker-compose -f $ComposeFile down
-
-echo 'Pulling latest images...'
-docker-compose -f $ComposeFile pull
-
-echo 'Starting containers...'
-docker-compose -f $ComposeFile up -d
-
-echo 'Checking container status...'
-docker-compose -f $ComposeFile ps
-
-echo 'Deployment completed successfully!'
-"@
+$deployCommands = "set -e`necho 'Navigating to compose directory...'`ncd $ComposeDir`necho 'Stopping existing containers...'`ndocker compose -f $ComposeFile down`necho 'Pulling latest images...'`ndocker compose -f $ComposeFile pull`necho 'Starting containers...'`ndocker compose -f $ComposeFile up -d`necho 'Checking container status...'`ndocker compose -f $ComposeFile ps`necho 'Deployment completed successfully!'"
 
 try {
-    # Execute deployment commands via SSH
+    # Execute deployment commands via SSH (use printf to avoid CRLF issues)
     $deployCommands | ssh -i $SSHKey "${VMUser}@${VMHost}" "bash -s"
     
     if ($LASTEXITCODE -eq 0) {
@@ -91,7 +73,7 @@ try {
 # Step 3: Show logs (optional)
 Write-Host "`nFetching recent logs..." -ForegroundColor Yellow
 try {
-    ssh -i $SSHKey "${VMUser}@${VMHost}" "cd $ComposeDir && docker-compose -f $ComposeFile logs --tail=20"
+    ssh -i $SSHKey "${VMUser}@${VMHost}" "cd $ComposeDir && docker compose -f $ComposeFile logs --tail=20"
 } catch {
     Write-Host "WARNING: Failed to fetch logs: $_" -ForegroundColor Red
 }
@@ -101,6 +83,6 @@ Write-Host "Deployment workflow completed!" -ForegroundColor Green
 Write-Host "========================================`n" -ForegroundColor Magenta
 
 Write-Host "`nUseful commands:" -ForegroundColor Cyan
-Write-Host "  View logs:    ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker-compose logs -f'" -ForegroundColor Gray
-Write-Host "  Check status: ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker-compose ps'" -ForegroundColor Gray
-Write-Host "  Restart:      ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker-compose restart'" -ForegroundColor Gray
+Write-Host "  View logs:    ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker compose logs -f'" -ForegroundColor Gray
+Write-Host "  Check status: ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker compose ps'" -ForegroundColor Gray
+Write-Host "  Restart:      ssh -i $SSHKey ${VMUser}@${VMHost} 'cd $ComposeDir && docker compose restart'" -ForegroundColor Gray

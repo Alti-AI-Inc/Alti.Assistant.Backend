@@ -9,6 +9,8 @@ import { rewriteController } from './rewrite.controller.js';
 import { RewriteValidation } from './rewrite.validation.js';
 import { uploadRewrite } from './middlewares/uploadRewrite.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -36,7 +38,10 @@ router.post(
   '/rewrite',
   optionalAuth(),
   extractTenantContext,
+  checkDailyRequestLimit,
+  checkStorageLimit,
   uploadRewrite.single('file'),
+  checkRAGFeature,
   // createRateLimiter(20, 15), // 20 rewrites per 15 minutes
   validateRequest(RewriteValidation.rewriteContentSchema),
   rewriteController.rewriteContent

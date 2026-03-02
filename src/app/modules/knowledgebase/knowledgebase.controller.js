@@ -4,6 +4,7 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { RAGSystem } from 'rag-system-pgvector'
 import { knowledgebaseService } from './knowledgebase.service.js';
+import UserUsageModel from '../usage/userUsage.model.js';
 import path from 'path';
 import Conversation from '../conversations/conversation.model.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,6 +53,13 @@ const uploadFile = catchAsync(async (req, res) => {
     // You can add the actual processing logic later
     logger.info(`File upload attempted by user: ${userId}, file: ${uploadedFile.originalname}, type: ${fileExtension}, size: ${uploadedFile.size} bytes`);
     const response = await knowledgebaseService.processUploadedFile(uploadedFile, knowledgebotId, userId, req);
+
+    // Track storage usage
+    const tenantId = req.currentTenantId ?? null;
+    await UserUsageModel.updateStorage(userId, tenantId, uploadedFile.size).catch(err =>
+      logger.error('[Knowledgebase] Storage increment error:', err)
+    );
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -519,6 +527,13 @@ const deleteFile = catchAsync(async (req, res) => {
         message: 'File not found or could not be deleted',
       });
     }
+
+    // Decrement storage usage
+    const tenantId = req.currentTenantId ?? null;
+    await UserUsageModel.updateStorage(userId, tenantId, -(result.fileSize || 0)).catch(err =>
+      logger.error('[Knowledgebase] Storage decrement error:', err)
+    );
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,

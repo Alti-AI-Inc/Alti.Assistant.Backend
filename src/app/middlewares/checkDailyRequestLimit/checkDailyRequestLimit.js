@@ -1,79 +1,71 @@
 import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
-import UserModel from '../../modules/auth/auth.model.js';
+import SubscriptionModel from '../../modules/payment/payment.model.js';
+import UserUsageModel from '../../modules/usage/userUsage.model.js';
 import { logger } from '../../../shared/logger.js';
 
+const FREE_PLAN_DAILY_LIMIT = 10;
+
 /**
- * Middleware to check and enforce daily request limits for authenticated users
- * This applies to all conversational API endpoints
- * Users can make up to 10 requests per day across all conversational APIs
+ * Middleware to enforce daily request limits based on the user's active subscription.
+ *
+ * - Reads plan limits from SubscriptionModel (limits.dailyRequestLimit)
+ * - Reads / increments daily usage from UserUsageModel (one doc per user per day)
+ * - Supports both personal mode (tenantId = null) and org mode (tenantId = ObjectId)
+ * - No manual reset logic needed — new UTC day = new UserUsage document automatically
  */
 const checkDailyRequestLimit = async (req, res, next) => {
   try {
-    // Skip check for guest users
-    if (req.isGuest || !req.user || !req.user.id) {
+    console.log('Checking daily request limit for user:', req.user._id, req.isGuest, !req.user._id);
+    // Skip check for guests / unauthenticated
+    if (req.isGuest || !req.user._id) {
       return next();
     }
 
-    const userId = req.user.id;
+    const userId = req.user._id;
+    const tenantId = req.currentTenantId ?? null; // null = personal mode
 
-    // Fetch user from database
-    const user = await UserModel.findById(userId);
+    // ── 1. Get the active subscription for the right context ──────────────────
+    const subscription = await SubscriptionModel.findOne(
+      tenantId
+        ? { tenantId, paymentStatus: 'paid' }
+        : { userId, tenantId: null, paymentStatus: 'paid' }
+    );
 
-    if (!user) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
-    }
+    const dailyLimit = subscription?.limits?.dailyRequestLimit ?? FREE_PLAN_DAILY_LIMIT;
+    const planName = subscription?.plan_name ?? 'free';
+    console.log(`User ${userId} on plan ${planName} has a daily request limit of ${dailyLimit}`);
+    // ── 2. Get today's request count from UserUsage ───────────────────────────
+    const todayCount = await UserUsageModel.getTodayRequests(userId, tenantId);
 
-    // Check if user has an active subscription - subscribed users have unlimited requests
-    if (user.isSubscribed && user.subscription && user.subscription.status === 'paid') {
-      logger.info(`User ${userId} has active subscription, bypassing daily limit`);
-      return next();
-    }
+    // ── 3. Enforce limit ──────────────────────────────────────────────────────
+    if (todayCount >= dailyLimit) {
+      const tomorrow = new Date();
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      tomorrow.setUTCHours(0, 0, 0, 0);
 
-    // Initialize dailyRequestLimit if it doesn't exist (for existing users)
-    if (!user.dailyRequestLimit) {
-      user.dailyRequestLimit = {
-        requestsUsed: 0,
-        maxRequests: 10,
-        lastResetAt: new Date(),
-      };
-    }
-
-    // Check if we need to reset the counter (new day)
-    const now = new Date();
-    const lastReset = new Date(user.dailyRequestLimit.lastResetAt);
-
-    // Reset if it's a new day (after midnight)
-    if (now.toDateString() !== lastReset.toDateString()) {
-      user.dailyRequestLimit.requestsUsed = 0;
-      user.dailyRequestLimit.lastResetAt = now;
-      logger.info(`Reset daily request limit for user ${userId}`);
-    }
-
-    // Check if user has exceeded the daily limit
-    if (user.dailyRequestLimit.requestsUsed >= user.dailyRequestLimit.maxRequests) {
-      const resetTime = new Date(lastReset);
-      resetTime.setDate(resetTime.getDate() + 1);
-      resetTime.setHours(0, 0, 0, 0);
+      logger.warn(`Daily limit reached for user ${userId} (plan: ${planName}) — ${todayCount}/${dailyLimit}`);
 
       throw new ApiError(
         httpStatus.TOO_MANY_REQUESTS,
-        `Daily request limit exceeded. You have used ${user.dailyRequestLimit.requestsUsed} out of ${user.dailyRequestLimit.maxRequests} requests today. Your limit will reset at midnight. Consider upgrading to a paid plan for unlimited requests.`
+        `Daily request limit reached. You have used ${todayCount} of ${dailyLimit} requests today. ` +
+        `Your limit resets at midnight UTC. ` +
+        (planName === 'free'
+          ? 'Upgrade to Explore ($20/mo) for 1,000 requests/day.'
+          : `Your current plan: ${planName}.`)
       );
     }
 
-    // Increment the request count
-    user.dailyRequestLimit.requestsUsed += 1;
-    await user.save();
+    // ── 4. Increment usage ────────────────────────────────────────────────────
+    await UserUsageModel.incrementRequest(userId, tenantId);
+    const used = todayCount + 1;
 
-    logger.info(
-      `User ${userId} request count: ${user.dailyRequestLimit.requestsUsed}/${user.dailyRequestLimit.maxRequests}`
-    );
+    logger.info(`Request usage — user: ${userId}, plan: ${planName}, used: ${used}/${dailyLimit}`);
 
-    // Attach remaining requests to response header for client information
-    res.setHeader('X-Daily-Requests-Used', user.dailyRequestLimit.requestsUsed);
-    res.setHeader('X-Daily-Requests-Limit', user.dailyRequestLimit.maxRequests);
-    res.setHeader('X-Daily-Requests-Remaining', user.dailyRequestLimit.maxRequests - user.dailyRequestLimit.requestsUsed);
+    // ── 5. Set info headers for the client ────────────────────────────────────
+    res.setHeader('X-Daily-Requests-Used', used);
+    res.setHeader('X-Daily-Requests-Limit', dailyLimit);
+    res.setHeader('X-Daily-Requests-Remaining', Math.max(0, dailyLimit - used));
 
     next();
   } catch (error) {
@@ -82,3 +74,4 @@ const checkDailyRequestLimit = async (req, res, next) => {
 };
 
 export default checkDailyRequestLimit;
+

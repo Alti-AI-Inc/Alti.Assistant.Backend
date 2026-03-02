@@ -7,6 +7,7 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { enhancedImageController } from "./enhanced_image.controller.js";
 import { EnhancedImageValidation } from "./enhanced_image.validation.js";
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 
 const router = express.Router();
 
@@ -14,7 +15,8 @@ const router = express.Router();
 router.post(
   '/generate',
   optionalAuth(),
-  extractTenantContext, extractTenantContext,
+  extractTenantContext,
+  checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 image generation requests per 15 minutes
   validateRequest(EnhancedImageValidation.generateImageSchema),
   enhancedImageController.generateImageDirect
@@ -24,7 +26,9 @@ router.post(
 router.post(
   '/edit',
   optionalAuth(),
-  extractTenantContext,  // createRateLimiter(20, 15), // 20 image editing requests per 15 minutes
+  extractTenantContext,
+  checkDailyRequestLimit,
+  // createRateLimiter(20, 15), // 20 image editing requests per 15 minutes
   validateRequest(EnhancedImageValidation.editImageSchema),
   enhancedImageController.editImage
 );
@@ -40,7 +44,9 @@ router.post(
 router.post(
   '/analyze-image-intent',
   optionalAuth(),
-  extractTenantContext,  // validateRequest(EnhancedImageValidation.analyzeImageIntentSchema),
+  extractTenantContext,
+  checkDailyRequestLimit,
+  // validateRequest(EnhancedImageValidation.analyzeImageIntentSchema),
   enhancedImageController.analyzeImageIntent
 );
 
@@ -64,7 +70,9 @@ router.post(
 router.post(
   '/finalize-prompt',
   optionalAuth(),
-  extractTenantContext, validateRequest(EnhancedImageValidation.finalizePromptSchema),
+  extractTenantContext,
+  checkDailyRequestLimit,
+  validateRequest(EnhancedImageValidation.finalizePromptSchema),
   enhancedImageController.finalizePrompt
 );
 
@@ -72,7 +80,9 @@ router.post(
 router.post(
   '/build-enhanced-prompt',
   optionalAuth(),
-  extractTenantContext, validateRequest(EnhancedImageValidation.buildEnhancedPromptSchema),
+  extractTenantContext,
+  checkDailyRequestLimit,
+  validateRequest(EnhancedImageValidation.buildEnhancedPromptSchema),
   enhancedImageController.buildEnhancedPrompt
 );
 
@@ -80,7 +90,9 @@ router.post(
 router.post(
   '/generate-from-conversation',
   optionalAuth(),
-  extractTenantContext,  // createRateLimiter(20, 15),
+  extractTenantContext,
+  checkDailyRequestLimit,
+  // createRateLimiter(20, 15),
   validateRequest(EnhancedImageValidation.generateFromConversationSchema),
   enhancedImageController.generateFromConversation
 );

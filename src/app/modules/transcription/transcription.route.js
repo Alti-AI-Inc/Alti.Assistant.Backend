@@ -7,6 +7,9 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 import { TranscriptionValidation } from "./transcription.validation.js";
 import { transcriptionController } from "./transcription.controller.js";
 
@@ -56,10 +59,13 @@ router.post(
   '/assistant',
   optionalAuth(),
   extractTenantContext,
+  checkDailyRequestLimit,
+  checkStorageLimit,
   upload.fields([
     { name: 'audio', maxCount: 1 },
     { name: 'audios', maxCount: 10 }
   ]),
+  checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   transcriptionController.smartTranscriptionAssistant
 );

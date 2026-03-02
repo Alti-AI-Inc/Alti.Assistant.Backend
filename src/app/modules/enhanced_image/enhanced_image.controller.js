@@ -2,9 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import SubscriptionModel from '../payment/payment.model.js';
 import { enhancedImageService } from './enhanced_image.service.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * Generate image directly with prompt
@@ -16,21 +14,6 @@ export const generateImageDirect = catchAsync(async (req, res) => {
   let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
   const { prompt, conversationId, imageBase64, aspectRatio, negativePrompt } = req.body;
   userId = req.body.userId || userId;
-
-  // Skip subscription check for guest users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const prompotUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
-
-    if (prompotUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message: 'You have reached your image generation limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   if (!prompt) {
     return sendResponse(res, {
@@ -169,21 +152,6 @@ export const editImage = catchAsync(async (req, res) => {
   let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
   const { prompt, imageBase64, conversationId, aspectRatio } = req.body;
   userId = req.body.userId || userId;
-
-  // Skip subscription check for guest users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const prompotUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId ? await conversationHelpers.getConversationById(conversationId, userId) : 0;
-
-    if (prompotUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message: 'You have reached your image editing limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   if (!prompt) {
     return sendResponse(res, {

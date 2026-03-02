@@ -6,6 +6,9 @@ import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
+import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 import { summaryController } from "./summary.controller.js";
 import { SummaryValidation } from "./summary.validation.js";
 
@@ -37,9 +40,12 @@ const upload = multer({
 // Summarize content endpoint - open to all (with optional auth)
 router.post(
   '/summarize',
-  optionalAuth(), // Use optional auth to allow both authenticated and guest users
-  extractTenantContext, // Extract tenant context after auth
-  upload.single('file'), // Allow file upload
+  optionalAuth(),
+  extractTenantContext,
+  checkDailyRequestLimit,
+  checkStorageLimit,
+  upload.single('file'),
+  checkRAGFeature,
   // createRateLimiter(30, 15), // 30 summary requests per 15 minutes (applies to all users)
   validateRequest(SummaryValidation.summaryQuerySchema),
   summaryController.summarizeContent

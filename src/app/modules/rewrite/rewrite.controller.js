@@ -3,8 +3,6 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { rewriteService } from './rewrite.service.js';
-import SubscriptionModel from '../payment/payment.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * Conversational rewrite assistant endpoint
@@ -39,24 +37,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       conversationId,
     }
   );
-
-  // Check subscription limits for authenticated users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
-      : 0;
-
-    if (promptUsage <= totalConversationWithConvId) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message:
-          'You have reached your rewrite limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   if (!message) {
     return sendResponse(res, {
@@ -129,21 +109,6 @@ export const rewriteContent = catchAsync(async (req, res) => {
     : req.user?.userId || req.user?._id;
 
   userId = req.body.userId || userId;
-
-  // Check subscription limits for authenticated users
-  if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-
-    if (promptUsage <= 0) {
-      return sendResponse(res, {
-        statusCode: httpStatus.FORBIDDEN,
-        success: false,
-        message:
-          'You have reached your rewrite limit for this month. Please upgrade your plan to continue.',
-      });
-    }
-  }
 
   const { textContent } = req.body;
 

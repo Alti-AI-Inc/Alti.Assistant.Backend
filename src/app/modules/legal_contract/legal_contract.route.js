@@ -9,6 +9,8 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { legalContractController } from './legal_contract.controller.js';
 import { LegalContractValidation } from './legal_contract.validation.js';
 import { uploadLegalContract } from './middlewares/uploadLegalContract.js';
+import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
+import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
 
 const router = express.Router();
 
@@ -20,9 +22,11 @@ const router = express.Router();
 router.post(
   '/assistant',
   optionalAuth(),
-  extractTenantContext, // Extract tenant context after auth
+  extractTenantContext,
   checkDailyRequestLimit,
+  checkStorageLimit,
   uploadLegalContract.single('file'),
+  checkRAGFeature,
   // createRateLimiter(20, 15), // 20 requests per 15 minutes
   validateRequest(LegalContractValidation.conversationalRequestSchema),
   legalContractController.conversationalAssistant
@@ -36,6 +40,7 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext, // Extract tenant context after auth
+  checkDailyRequestLimit,
   // createRateLimiter(10, 15), // 10 generations per 15 minutes
   validateRequest(LegalContractValidation.generateContractSchema),
   legalContractController.generateContract
