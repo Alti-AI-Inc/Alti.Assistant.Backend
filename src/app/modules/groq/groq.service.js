@@ -69,14 +69,33 @@ const GroqAiGetResponseAnonymousService = async (
 
   // Prepare conversation context (previous memory + search results)
   const enrichedPrompt = searchResults.length
-    ? `Previous Conversation:\n${previousMessages
-        .map((msg) => `${msg._getType().toUpperCase()}: ${msg.text}`)
-        .join(
-          '\n'
-        )}\n\nReal-Time Search Info:\n${searchContext}\n\nUser Query: ${enhancedPrompt}`
-    : `Previous Conversation:\n${previousMessages
-        .map((msg) => `${msg._getType().toUpperCase()}: ${msg.text}`)
-        .join('\n')}\n\nUser Query: ${enhancedPrompt}`;
+    ? `[SYSTEM INSTRUCTION - ACTIVE ELITE WEB SEARCH]
+You are a highly accurate, extremely fast real-time search engine competing with Perplexity. 
+Follow these rules strictly:
+1. Answer the user query directly, simply, and clearly. Never include greeting, filler, conversational preamble, or throat-clearing.
+2. Rely 100% on the Real-Time Search Info provided below. Do not speculate or hallucinate.
+3. Be extremely concise to maximize response speed and minimize generation latency.
+4. Cite your facts inline using brackets corresponding to the search index numbers below (e.g., "[1]", "[2]") so the user can trace back sources perfectly.
+
+Real-Time Search Info:
+${searchContext}
+
+Previous Conversation:
+${previousMessages
+  .map((msg) => `${msg._getType().toUpperCase()}: ${msg.text}`)
+  .join('\n')}
+
+User Query: ${enhancedPrompt}`
+    : `[SYSTEM INSTRUCTION - ACTIVE ELITE SEARCH]
+Answer the user query directly, simply, and concisely. Never include conversational preamble or throat-clearing.
+Be extremely concise to maximize response speed.
+
+Previous Conversation:
+${previousMessages
+  .map((msg) => `${msg._getType().toUpperCase()}: ${msg.text}`)
+  .join('\n')}
+
+User Query: ${enhancedPrompt}`;
 
   // Initialize Google Gemini model
   const client = new GoogleGenerativeAI(config.gemini_secret_key);

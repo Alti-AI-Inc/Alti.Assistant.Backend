@@ -220,17 +220,20 @@ const routeAndEnhancePrompt = async (prompt) => {
         const status = await massiveService.getMarketStatusService();
         const holidays = await massiveService.getMarketHolidaysService();
         return `
-[REAL-TIME INTEL ACTIVE - GLOBAL MARKET STATUS]
-The following live global market trading status and holiday schedule is loaded from www.massive.com as of ${timestamp}:
-- Live Market Status: ${JSON.stringify(status, null, 2)}
-- Upcoming Market Holidays: ${JSON.stringify(holidays?.results?.slice(0, 3) || holidays?.slice(0, 3) || [], null, 2)}
+[SYSTEM INSTRUCTION - ACTIVE ELITE SEARCH]
+Data Feed: Massive.com Global Market Status Service
+Timestamp: ${timestamp}
+Live Status: ${JSON.stringify(status, null, 2)}
+Upcoming Holidays: ${JSON.stringify(holidays?.results?.slice(0, 3) || holidays?.slice(0, 3) || [], null, 2)}
 
-CRITICAL VERIFICATION AND CITATION MANDATE:
-You MUST explicitly cite the exact "Data Feed Source" as "Massive.com Market Status Service" and include the current live status/holiday details in your final response.
-If you fail to cite this precise source, it is a fatal project failure.
-Use this absolute to-the-second exact tick data to reply with perfect accuracy and speed. Do not hallucinate.
+INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
+- Output a direct, simple, and straightforward response. Never include greeting, filler, conversational preambles ("Here is the status...", "Based on real-time data..."), or throat-clearing.
+- Be extremely concise to maximize response speed and minimize generation time.
+- Clearly and explicitly include the source citation at the very top: "[Source: Massive.com Market Status Service]".
+- Use a clear bulleted list or a Markdown table for any list of upcoming holidays or status details.
+- Adhere strictly and 100% to the live data provided above. Hallucination is strictly forbidden.
 
-User Request: ${prompt}
+User Query: ${prompt}
 `;
       } catch (err) {
         logger.error('Market status router failed:', err.message);
@@ -252,17 +255,20 @@ User Request: ${prompt}
         const inflation = await massiveService.getFedInflationService(3);
         const yields = await massiveService.getFedYieldsService(3);
         return `
-[REAL-TIME INTEL ACTIVE - MACRO ECONOMIC STATISTICS]
-The following live Federal Reserve economic indicators are loaded directly from www.massive.com as of ${timestamp}:
-- Inflation Rates (CPI): ${JSON.stringify(inflation?.results || inflation || [], null, 2)}
-- Treasury Yields: ${JSON.stringify(yields?.results || yields || [], null, 2)}
+[SYSTEM INSTRUCTION - ACTIVE ELITE MACRO SEARCH]
+Data Feed: Massive.com Federal Reserve Economic Database
+Timestamp: ${timestamp}
+Inflation (CPI): ${JSON.stringify(inflation?.results || inflation || [], null, 2)}
+Treasury Yields: ${JSON.stringify(yields?.results || yields || [], null, 2)}
 
-CRITICAL VERIFICATION AND CITATION MANDATE:
-You MUST explicitly cite the exact "Data Feed Source" as "Massive.com Federal Reserve Economic Database" and the exact live rates in your final response.
-If you fail to cite this precise source, it is a fatal project failure.
-Use this absolute to-the-second exact data to reply with perfect accuracy and speed. Do not hallucinate.
+INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
+- Output a direct, simple, and straightforward response. Never include greeting, filler, conversational preambles, or throat-clearing.
+- Be extremely concise to maximize response speed and minimize generation time.
+- Clearly and explicitly include the source citation at the very top: "[Source: Massive.com Federal Reserve Economic Database]".
+- Present key rates or yields in a clear Markdown table or clean bullet points.
+- Adhere strictly and 100% to the live data provided above. Hallucination is strictly forbidden.
 
-User Request: ${prompt}
+User Query: ${prompt}
 `;
       } catch (err) {
         logger.error('Fed macro router failed:', err.message);
@@ -345,19 +351,20 @@ User Request: ${prompt}
 
     if (marketData && marketData.success) {
       const contextBlock = `
-[REAL-TIME INTEL ACTIVE - TO-THE-TICK DATA]
-The following up-to-the-second financial information is loaded directly from www.massive.com / Coinbase Real-Time feeds as of ${timestamp}:
-- Asset: ${tickerInfo.symbol}
-- Type: ${tickerInfo.type}
-- Data Feed Source: ${marketData.source}
-- Live Details: ${JSON.stringify(marketData.data, null, 2)}
+[SYSTEM INSTRUCTION - ACTIVE ELITE TICKER SEARCH]
+Asset: ${tickerInfo.symbol} (${tickerInfo.type})
+Data Feed Source: ${marketData.source}
+Timestamp: ${timestamp}
+Live Details: ${JSON.stringify(marketData.data, null, 2)}
 ${extraContext}
 
-CRITICAL VERIFICATION AND CITATION MANDATE:
-You MUST explicitly cite the exact "Data Feed Source" and the exact "Live Details" (especially price, volume, or rate) in your final response. 
-Format your citation clearly at the top or bottom of your response, e.g., "[Source: ${marketData.source}]".
-If you fail to cite this precise source and values, it is a fatal project failure.
-Use this absolute to-the-second exact tick data to reply with perfect accuracy and speed. Do not hallucinate.
+INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
+- Output a direct, simple, and straightforward response. Never include greeting, filler, conversational preambles, or throat-clearing.
+- Be extremely concise to maximize response speed and minimize generation time.
+- Highlight the exact latest price/rate and relevant metric in bold.
+- Clearly and explicitly include the source citation at the very top: "[Source: ${marketData.source}]".
+- Present key metrics in a clear Markdown table or clean bullet points.
+- Adhere strictly and 100% to the live data provided above. Hallucination is strictly forbidden.
 `;
 
       const enhancedPrompt = `${contextBlock}\nUser Request: ${prompt}`;
