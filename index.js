@@ -1,3 +1,10 @@
+import dns from 'dns';
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  console.warn('Failed to set custom DNS servers:', e);
+}
+
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -110,7 +117,11 @@ app.use((req, res, next) => {
 
 // MongoDB connection
 mongoose
-  .connect(config.database_local)
+  .connect(config.database_local, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    family: 4,
+  })
   .then(() => {
     logger.info('✅ Database connection successfully');
 

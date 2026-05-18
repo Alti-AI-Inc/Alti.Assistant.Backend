@@ -171,17 +171,16 @@ const registerService = async req => {
           message: 'Registration successful. You are now logged in.',
           statusCode: httpStatus.CREATED,
         };
-      }
-
-      //Generate 6 digit token only numbers
-      const token = crypto.randomInt(100000, 999999).toString();
+      } else {
+        //Generate 6 digit token only numbers
+        const token = crypto.randomInt(100000, 999999).toString();
 
         const newToken = new Token({
           userId: user[0]._id,
           token: token,
           expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
           type: 'emailVerification',
-        })
+        });
 
         await newToken.save({ newToken });
 
