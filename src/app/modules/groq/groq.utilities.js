@@ -1,3 +1,6 @@
+import axios from 'axios';
+import config from '../../../../config/index.js';
+
 export const fetchSearchResults = async (query) => {
   try {
     const response = await axios.post(

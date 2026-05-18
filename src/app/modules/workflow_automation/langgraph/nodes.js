@@ -1,14 +1,14 @@
-import { ChatOpenAI } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import { composioIntegrationService } from '../services/composioIntegration.service.js';
 
 // Initialize LLM
-const llm = new ChatOpenAI({
-  model: 'gpt-4o-mini',
+const llm = new ChatGoogleGenerativeAI({
+  model: 'gemini-2.5-flash',
   temperature: 0,
-  openAIApiKey: config.openai_secret_key,
+  apiKey: config.gemini_secret_key,
 });
 
 /**
