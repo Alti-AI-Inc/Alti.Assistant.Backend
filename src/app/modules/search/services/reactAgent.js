@@ -169,8 +169,24 @@ OPENMEMORY MEMORY ACCESS:
 - Use this before web search when recalling prior user answers, uploaded docs, or preferences.`
     : '';
 
-  const reactSystemPrompt = `${messages[0].content}
+  let deepResearchInstruction = '';
+  if (options.searchDepth === 'deep' || options.depth === 'deep') {
+    deepResearchInstruction = `
+DEEP RESEARCH MODE ENABLED:
+- You are operating as our ELITE, WORLD-CLASS DEEP RESEARCH AGENT.
+- Your priority is absolute quality, precision, thoroughness, and perfect citation accuracy.
+- Do NOT stop at simple answers or single-source information.
+- Construct and execute multiple highly distinct, structured, and targeted search queries to thoroughly sweep all sources.
+- Actively cross-reference facts, find hidden risks, and query opposing views or contradictory statistics.
+- Use the WebBrowser tool to read deep page content when search snippets are insufficient.
+- Structure your final response as an elite research paper or a professional analyst report: clear, direct, structured with bold key concepts, complete with a definitive summary of findings.
+- Exclude conversational filler. Cite your sources clearly.
+- Include the citation: "[Source: Elite Deep Research Agent]" at the top.
+`;
+  }
 
+  const reactSystemPrompt = `${messages[0].content}
+${deepResearchInstruction}
 REACT AGENT MODE - REASONING AND ACTION:
 You are now operating as a ReAct (Reasoning and Action) agent. This means you should:
 
@@ -297,7 +313,7 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
 
   let currentMessages = [...reactMessages];
   let iterationCount = 0;
-  const maxIterations = 8; // Increased for ReAct reasoning cycles
+  const maxIterations = (options.searchDepth === 'deep' || options.depth === 'deep') ? 15 : 8; // Increased for Deep Research
   let usedUrls = new Set(); // Track URLs used for references
   let reasoningLog = []; // Track reasoning steps
 
@@ -402,6 +418,12 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
 
       // Clean up extra whitespace and newlines
       cleanAnswer = cleanAnswer.replace(/\n{3,}/g, '\n\n').trim();
+
+      if (options.searchDepth === 'deep' || options.depth === 'deep') {
+        if (!cleanAnswer.startsWith('[Source:')) {
+          cleanAnswer = `[Source: Elite Deep Research Agent]\n\n${cleanAnswer}`;
+        }
+      }
 
       const formattedResponse = {
         responseMessage: {

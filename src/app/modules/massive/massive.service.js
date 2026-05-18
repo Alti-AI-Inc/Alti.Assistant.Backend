@@ -4,7 +4,7 @@ import { logger } from '../../../shared/logger.js';
 
 dotenv.config();
 
-const apiKey = process.env.MASSIVE_API_KEY || 'gyJwOQtsm3yZXPsGqOjewhzezPzJm4l';
+const apiKey = process.env.MASSIVE_API_KEY || 'gyJwOQtsm3yZXPsGqOjewhzezPzJm4l3';
 const rest = restClient(apiKey, 'https://api.massive.com');
 
 /**

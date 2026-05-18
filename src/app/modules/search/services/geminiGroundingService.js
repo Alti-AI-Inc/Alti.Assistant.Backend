@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { GoogleGenAI } from '@google/genai';
+import { massiveSmartRouter } from '../../../../helpers/massiveSmartRouter.js';
+import { isVideoOnlyQuery, searchYouTube, extractVideoCount } from '../utils/videoUtils.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 /**
  * Gemini Grounding Service with Native Google Search
@@ -223,6 +225,66 @@ export async function* executeGroundedSearchStream(
 ) {
   console.log(`🔍 Executing streaming grounded search: "${query}"`);
 
+  // 1. Check for financial queries using massiveSmartRouter
+  const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
+  const isFinancialQuery = enhancedQuery !== query;
+
+  // 2. Check for YouTube video queries
+  const isVideoQuery = await isVideoOnlyQuery(query, conversationHistory);
+  let finalQuery = enhancedQuery;
+  let videoReferences = [];
+  let videoCitations = [];
+
+  if (isVideoQuery) {
+    console.log('📹 Detected video query. Performing YouTube search...');
+    try {
+      const videoCount = await extractVideoCount(query, conversationHistory);
+      const videos = await searchYouTube(query, videoCount, conversationHistory);
+      
+      if (videos && videos.length > 0) {
+        console.log(`Found ${videos.length} videos from YouTube`);
+        
+        const videoResultsBlock = `
+[SYSTEM INSTRUCTION - ACTIVE ELITE YOUTUBE SEARCH]
+YouTube Video Search Results:
+${videos.map((vid, idx) => `
+Video #${idx + 1}:
+- Title: ${vid.title}
+- Channel: ${vid.channelTitle}
+- URL: ${vid.url}
+- Description: ${vid.description}
+- Published At: ${vid.publishedAt}
+`).join('\n')}
+
+INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
+- Output a direct, simple, and straightforward response recommending/summarizing these videos.
+- Never include conversational preambles ("Here are the videos...", "According to YouTube...").
+- Highlight key videos with their titles in bold.
+- Explicitly include source citation at the very top: "[Source: YouTube Search Service]".
+- Format with neat bullet points, displaying the video title, channel, description, and direct link.
+- Strictly stick to the provided YouTube video data.
+`;
+        
+        finalQuery = `${videoResultsBlock}\n\nUser Request: ${query}`;
+        
+        videoReferences = videos.map((vid) => ({
+          url: vid.url,
+          domain: 'youtube.com',
+          title: vid.title,
+        }));
+        
+        videoCitations = videos.map((vid, index) => ({
+          index: index + 1,
+          url: vid.url,
+          domain: 'youtube.com',
+          title: vid.title,
+        }));
+      }
+    } catch (err) {
+      console.error('Error during YouTube search integration:', err);
+    }
+  }
+
   const MAX_RETRIES = 3;
   let attemptCount = 0;
 
@@ -267,7 +329,7 @@ export async function* executeGroundedSearchStream(
         })),
         {
           role: 'user',
-          parts: [{ text: query }],
+          parts: [{ text: finalQuery }],
         },
       ];
 
@@ -392,6 +454,16 @@ export async function* executeGroundedSearchStream(
         title: ref.title,
       }));
 
+      const mergedReferences = [
+        ...(videoReferences || []),
+        ...limitedReferences
+      ].slice(0, 5);
+
+      const mergedCitations = [
+        ...(videoCitations || []),
+        ...citations
+      ].map((cit, idx) => ({ ...cit, index: idx + 1 })).slice(0, 5);
+
       const citationMetadata = groundingMetadata
         ? {
             searchQueries: groundingMetadata.webSearchQueries || [],
@@ -399,8 +471,12 @@ export async function* executeGroundedSearchStream(
             model: 'gemini-3-flash-preview',
             groundingSupports: groundingMetadata.groundingSupports?.length || 0,
             totalSources: groundingMetadata.groundingChunks?.length || 0,
+            searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'native_grounding',
           }
-        : null;
+        : {
+            searchTimestamp: new Date().toISOString(),
+            searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'native_grounding',
+          };
 
       console.log(
         `✅ Streaming grounded search completed on attempt ${attemptCount}`
@@ -421,8 +497,8 @@ export async function* executeGroundedSearchStream(
       yield {
         type: 'metadata',
         answer: fullText,
-        reference: limitedReferences,
-        citations: citations,
+        reference: mergedReferences,
+        citations: mergedCitations,
         citationMetadata: citationMetadata,
         timestamp: Date.now(),
       };
@@ -457,6 +533,66 @@ export async function* executeGroundedSearchStream(
  */
 export async function executeGroundedSearch(query, conversationHistory = []) {
   console.log(`🔍 Executing grounded search: "${query}"`);
+
+  // 1. Check for financial queries using massiveSmartRouter
+  const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
+  const isFinancialQuery = enhancedQuery !== query;
+
+  // 2. Check for YouTube video queries
+  const isVideoQuery = await isVideoOnlyQuery(query, conversationHistory);
+  let finalQuery = enhancedQuery;
+  let videoReferences = [];
+  let videoCitations = [];
+
+  if (isVideoQuery) {
+    console.log('📹 Detected video query. Performing YouTube search...');
+    try {
+      const videoCount = await extractVideoCount(query, conversationHistory);
+      const videos = await searchYouTube(query, videoCount, conversationHistory);
+      
+      if (videos && videos.length > 0) {
+        console.log(`Found ${videos.length} videos from YouTube`);
+        
+        const videoResultsBlock = `
+[SYSTEM INSTRUCTION - ACTIVE ELITE YOUTUBE SEARCH]
+YouTube Video Search Results:
+${videos.map((vid, idx) => `
+Video #${idx + 1}:
+- Title: ${vid.title}
+- Channel: ${vid.channelTitle}
+- URL: ${vid.url}
+- Description: ${vid.description}
+- Published At: ${vid.publishedAt}
+`).join('\n')}
+
+INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
+- Output a direct, simple, and straightforward response recommending/summarizing these videos.
+- Never include conversational preambles ("Here are the videos...", "According to YouTube...").
+- Highlight key videos with their titles in bold.
+- Explicitly include source citation at the very top: "[Source: YouTube Search Service]".
+- Format with neat bullet points, displaying the video title, channel, description, and direct link.
+- Strictly stick to the provided YouTube video data.
+`;
+        
+        finalQuery = `${videoResultsBlock}\n\nUser Request: ${query}`;
+        
+        videoReferences = videos.map((vid) => ({
+          url: vid.url,
+          domain: 'youtube.com',
+          title: vid.title,
+        }));
+        
+        videoCitations = videos.map((vid, index) => ({
+          index: index + 1,
+          url: vid.url,
+          domain: 'youtube.com',
+          title: vid.title,
+        }));
+      }
+    } catch (err) {
+      console.error('Error during YouTube search integration:', err);
+    }
+  }
 
   const MAX_RETRIES = 3;
   let attemptCount = 0;
@@ -503,7 +639,7 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
         })),
         {
           role: 'user',
-          parts: [{ text: query }],
+          parts: [{ text: finalQuery }],
         },
       ];
       console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
@@ -643,6 +779,16 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
         title: ref.title,
       }));
 
+      const mergedReferences = [
+        ...(videoReferences || []),
+        ...limitedReferences
+      ].slice(0, 5);
+
+      const mergedCitations = [
+        ...(videoCitations || []),
+        ...citations
+      ].map((cit, idx) => ({ ...cit, index: idx + 1 })).slice(0, 5);
+
       // Build citation metadata
       const citationMetadata = groundingMetadata
         ? {
@@ -651,8 +797,12 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
             model: 'gemini-2.5-flash',
             groundingSupports: groundingMetadata.groundingSupports?.length || 0,
             totalSources: groundingMetadata.groundingChunks?.length || 0,
+            searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'native_grounding',
           }
-        : null;
+        : {
+            searchTimestamp: new Date().toISOString(),
+            searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'native_grounding',
+          };
 
       console.log(`✅ Grounded search completed on attempt ${attemptCount}`);
       console.log(
@@ -669,8 +819,8 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
 
       return {
         answer: text,
-        reference: limitedReferences,
-        citations: citations,
+        reference: mergedReferences,
+        citations: mergedCitations,
         citationMetadata: citationMetadata,
       };
     } catch (error) {

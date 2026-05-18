@@ -10,6 +10,8 @@ import { ClaudeService } from './services/claudeService.js';
 import { executeToolBasedConversation } from './services/reactAgent.js';
 import Conversation from '../conversations/conversation.model.js';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
+import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
+import { isVideoOnlyQuery, searchYouTube, extractVideoCount } from './utils/videoUtils.js';
 
 /**
  * Enhanced search function that uses tool-enabled LLM for intelligent search decisions
@@ -61,6 +63,66 @@ export const runIntelligentSearch = async (state, stream = false) => {
       const prev = arr[index - 1];
       return !(item.role === prev.role && item.content === prev.content);
     });
+
+    // 1. Check for financial queries using massiveSmartRouter
+    const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
+    const isFinancialQuery = enhancedQuery !== query;
+
+    // 2. Check for YouTube video queries
+    const isVideoQuery = await isVideoOnlyQuery(query, conversationContext);
+    let finalQuery = enhancedQuery;
+    let videoReferences = [];
+    let videoCitations = [];
+
+    if (isVideoQuery) {
+      console.log('📹 Detected video query. Performing YouTube search...');
+      try {
+        const videoCount = await extractVideoCount(query, conversationContext);
+        const videos = await searchYouTube(query, videoCount, conversationContext);
+        
+        if (videos && videos.length > 0) {
+          console.log(`Found ${videos.length} videos from YouTube`);
+          
+          const videoResultsBlock = `
+[SYSTEM INSTRUCTION - ACTIVE ELITE YOUTUBE SEARCH]
+YouTube Video Search Results:
+${videos.map((vid, idx) => `
+Video #${idx + 1}:
+- Title: ${vid.title}
+- Channel: ${vid.channelTitle}
+- URL: ${vid.url}
+- Description: ${vid.description}
+- Published At: ${vid.publishedAt}
+`).join('\n')}
+
+INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
+- Output a direct, simple, and straightforward response recommending/summarizing these videos.
+- Never include conversational preambles ("Here are the videos...", "According to YouTube...").
+- Highlight key videos with their titles in bold.
+- Explicitly include source citation at the very top: "[Source: YouTube Search Service]".
+- Format with neat bullet points, displaying the video title, channel, description, and direct link.
+- Strictly stick to the provided YouTube video data.
+`;
+          
+          finalQuery = `${videoResultsBlock}\n\nUser Request: ${query}`;
+          
+          videoReferences = videos.map((vid) => ({
+            url: vid.url,
+            domain: 'youtube.com',
+            title: vid.title,
+          }));
+          
+          videoCitations = videos.map((vid, index) => ({
+            index: index + 1,
+            url: vid.url,
+            domain: 'youtube.com',
+            title: vid.title,
+          }));
+        }
+      } catch (err) {
+        console.error('Error during YouTube search integration:', err);
+      }
+    }
 
     // 🧠 INTELLIGENT HISTORY MANAGEMENT - Automatically handle token limits
     console.log(
@@ -551,7 +613,7 @@ CRITICAL: Provide minimal, direct answers with only essential details. Remove al
         role: 'user',
         content: `This is the current conversation history: ${conversationHistoryWithMemory}
 
-Current question: ${query}
+Current question: ${finalQuery}
 
 ANALYSIS REQUIRED: For business, investment, market, or analytical questions, conduct comprehensive research using search tools to gather:
 - Current market data and trends (${currentDateString})
@@ -650,13 +712,21 @@ Provide a well-researched, detailed response with proper source references. Use 
     console.log(`Search Result:`, searchResult.responseMessage);
 
     // Return the properly structured response
-    // executeToolBasedConversation returns { responseMessage: { answer, reference, citations, citationMetadata } }
     return {
       answer: searchResult?.responseMessage?.answer || '',
-      reference: searchResult?.responseMessage?.reference || [],
-      citations: searchResult?.responseMessage?.citations || [],
-      citationMetadata: searchResult?.responseMessage?.citationMetadata || null,
-      searchMethod: 'intelligent_search',
+      reference: [
+        ...(videoReferences || []),
+        ...(searchResult?.responseMessage?.reference || [])
+      ].slice(0, 5),
+      citations: [
+        ...(videoCitations || []),
+        ...(searchResult?.responseMessage?.citations || [])
+      ].map((cit, idx) => ({ ...cit, index: idx + 1 })).slice(0, 5),
+      citationMetadata: {
+        ...(searchResult?.responseMessage?.citationMetadata || {}),
+        searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'intelligent_search',
+      },
+      searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'intelligent_search',
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
