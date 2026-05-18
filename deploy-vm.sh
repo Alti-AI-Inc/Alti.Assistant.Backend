@@ -4,7 +4,7 @@
 # Usage: ./deploy-vm.sh [options]
 # Options:
 #   -v, --version VERSION     Set version tag (default: v0.1.0)
-#   -u, --user USER          VM user (default: emondarock)
+#   -u, --user USER          VM user (default: alti_deployer)
 #   -h, --host HOST          VM host (default: 35.239.192.33)
 #   -k, --ssh-key KEY        SSH key path (default: ~/.ssh/alti-vm-key)
 #   -f, --compose-file FILE  Docker compose file (default: docker-compose.yml)
@@ -16,7 +16,7 @@ set -e
 
 # Default values
 VERSION="v0.1.0"
-VM_USER="emondarock"
+VM_USER="alti_deployer"
 VM_HOST="35.239.192.33"
 SSH_KEY="$HOME/.ssh/alti-vm-key"
 COMPOSE_FILE="docker-compose.yml"
@@ -59,7 +59,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  -v, --version VERSION     Set version tag (default: v0.1.0)"
-      echo "  -u, --user USER          VM user (default: emondarock)"
+      echo "  -u, --user USER          VM user (default: alti_deployer)"
       echo "  -h, --host HOST          VM host (default: 35.239.192.33)"
       echo "  -k, --ssh-key KEY        SSH key path (default: ~/.ssh/alti-vm-key)"
       echo "  -f, --compose-file FILE  Docker compose file (default: docker-compose.yml)"

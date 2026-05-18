@@ -1,7 +1,7 @@
 # Deployment script for Alti Assistant Backend
 param(
     [string]$Version = "v0.1.0",
-    [string]$VMUser = "emondarock",
+    [string]$VMUser = "alti_deployer",
     [string]$VMHost = "35.239.192.33",
     [string]$SSHKey = "$env:USERPROFILE\.ssh\alti-vm-key",
     [string]$ComposeFile = "docker-compose.yml",

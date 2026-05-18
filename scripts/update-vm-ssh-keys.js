@@ -58,7 +58,7 @@ const compute = google.compute({
 async function main() {
   const project = gcpKey.project_id;
   const targetIp = '35.239.192.33';
-  const username = 'emondarock';
+  const username = process.env.VM_USER || 'alti_deployer';
 
   console.log(`\n========================================`);
   console.log(`Connecting to GCP Project: ${project}`);
