@@ -25,15 +25,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "assistant"]
             },
             "description": "Generate a report from text message only"
           }
@@ -70,15 +63,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "assistant"]
             },
             "description": "Generate report with file uploads"
           }
@@ -99,15 +85,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "assistant"]
             },
             "description": "Continue an existing conversation"
           }
@@ -133,15 +112,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "generate"]
             },
             "description": "Generate a PDF report directly"
           }
@@ -162,15 +134,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "generate"]
             },
             "description": "Generate an Excel report"
           }
@@ -191,15 +156,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "generate"]
             },
             "description": "Generate a Markdown report"
           }
@@ -236,15 +194,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/analyze",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "analyze"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "analyze"]
             },
             "description": "Analyze files and get a summary"
           }
@@ -276,15 +227,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/analyze",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "analyze"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "analyze"]
             },
             "description": "Get detailed analysis of files"
           }
@@ -316,15 +260,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/analyze",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "analyze"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "analyze"]
             },
             "description": "Compare multiple files"
           }
@@ -338,16 +275,8 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/api/v1/reports/download/:filename",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "reports",
-            "download",
-            ":filename"
-          ],
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "reports", "download", ":filename"],
           "variable": [
             {
               "key": "filename",
@@ -381,15 +310,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/export",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "export"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "export"]
             },
             "description": "Export existing report to different format (Not yet implemented)"
           }
@@ -406,15 +328,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/:reportId",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                ":reportId"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", ":reportId"],
               "variable": [
                 {
                   "key": "reportId",
@@ -437,14 +352,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports?page=1&limit=10&reportType=analytical&sortBy=createdAt&sortOrder=desc",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports"],
               "query": [
                 {
                   "key": "page",
@@ -491,15 +400,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/reports/modify",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "reports",
-                "modify"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "modify"]
             },
             "description": "Modify existing report (Not yet implemented)"
           }

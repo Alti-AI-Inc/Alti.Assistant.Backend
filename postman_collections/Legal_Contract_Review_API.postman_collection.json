@@ -37,13 +37,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "assistant"]
             },
             "description": "Upload a contract file and get a quick review with red flags identified"
           }
@@ -64,13 +59,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "assistant"]
             },
             "description": "Paste contract text directly for review"
           }
@@ -102,13 +92,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "assistant"]
             },
             "description": "Request a detailed risk assessment with specific focus areas"
           }
@@ -141,13 +126,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "assistant"]
             },
             "description": "Continue conversation and request specific clause analysis"
           }
@@ -179,13 +159,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "assistant"]
             },
             "description": "Evaluate contract fairness and balance"
           }
@@ -217,13 +192,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "assistant"]
             },
             "description": "Review contract for legal compliance"
           }
@@ -255,13 +225,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "assistant"]
             },
             "description": "Get amendment suggestions for negotiation"
           }
@@ -293,13 +258,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "assistant"]
             },
             "description": "Generate executive summary of the contract"
           }
@@ -346,13 +306,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "review"]
             },
             "description": "Standard comprehensive contract review"
           }
@@ -409,13 +364,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "review"]
             },
             "description": "Detailed risk assessment with specific aspects"
           }
@@ -477,13 +427,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "review"]
             },
             "description": "Comprehensive clause-by-clause analysis"
           }
@@ -530,13 +475,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "review"]
             },
             "description": "Compliance check with regulatory requirements"
           }
@@ -578,13 +518,8 @@
             },
             "url": {
               "raw": "{{base_url}}/legal-contract-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "legal-contract-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["legal-contract-review", "review"]
             },
             "description": "Evaluate fairness and balance of contract terms"
           }
@@ -607,9 +542,7 @@
             ],
             "url": {
               "raw": "{{base_url}}/legal-contract-review/conversation/:conversationId",
-              "host": [
-                "{{base_url}}"
-              ],
+              "host": ["{{base_url}}"],
               "path": [
                 "legal-contract-review",
                 "conversation",

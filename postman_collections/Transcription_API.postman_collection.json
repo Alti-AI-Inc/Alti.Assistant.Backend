@@ -80,13 +80,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe"]
         },
         "description": "Upload and transcribe an audio file"
       },
@@ -131,13 +126,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe"]
         },
         "description": "Transcribe a specific time segment of audio"
       },
@@ -170,13 +160,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe"]
         },
         "description": "Get a detailed description of audio content"
       },
@@ -209,13 +194,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe"]
         },
         "description": "Get a summary of audio content"
       },
@@ -248,13 +228,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe"]
         },
         "description": "Analyze audio for themes, speakers, and sentiment"
       },
@@ -276,14 +251,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe/inline",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe",
-            "inline"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe", "inline"]
         },
         "description": "Process base64-encoded audio data directly"
       },
@@ -322,14 +291,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe/batch",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe",
-            "batch"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe", "batch"]
         },
         "description": "Process multiple audio files in one request (max 10)"
       },
@@ -351,14 +314,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/analyze/segments",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "analyze",
-            "segments"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "analyze", "segments"]
         },
         "description": "Analyze specific time segments of an uploaded audio file"
       },
@@ -371,13 +328,8 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/transcription/stats",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "stats"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "stats"]
         },
         "description": "Get transcription statistics for authenticated user"
       },
@@ -408,13 +360,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe"]
         },
         "description": "Test guest user access (no authentication)"
       },
@@ -447,13 +394,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/transcription/transcribe",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "transcription",
-            "transcribe"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["transcription", "transcribe"]
         },
         "description": "Ask questions about audio content"
       },

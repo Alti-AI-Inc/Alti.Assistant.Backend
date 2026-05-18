@@ -1,14 +1,14 @@
-import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import config from "../../../../../config/index.js";
-import { logger } from "../../../../shared/logger.js";
-import { composioIntegrationService } from "../services/composioIntegration.service.js";
+import { ChatOpenAI } from '@langchain/openai';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import config from '../../../../../config/index.js';
+import { logger } from '../../../../shared/logger.js';
+import { composioIntegrationService } from '../services/composioIntegration.service.js';
 
 // Initialize LLM
 const llm = new ChatOpenAI({
-  model: "gpt-4o-mini",
+  model: 'gpt-4o-mini',
   temperature: 0,
-  openAIApiKey: config.openai_secret_key
+  openAIApiKey: config.openai_secret_key,
 });
 
 /**
@@ -16,11 +16,14 @@ const llm = new ChatOpenAI({
  */
 export const analyzeIntentNode = async (state) => {
   try {
-    logger.info("Starting intent analysis");
+    logger.info('Starting intent analysis');
 
     // Get available apps for this context
-    const availableAppsResult = await composioIntegrationService.getAvailableAppsForDetection();
-    const availableApps = availableAppsResult.success ? availableAppsResult.availableApps : [];
+    const availableAppsResult =
+      await composioIntegrationService.getAvailableAppsForDetection();
+    const availableApps = availableAppsResult.success
+      ? availableAppsResult.availableApps
+      : [];
 
     const systemPrompt = `You are an AI assistant that analyzes user requests for workflow automation.
 
@@ -45,7 +48,7 @@ Respond with a JSON object only.`;
 
     const response = await llm.invoke([
       new SystemMessage(systemPrompt),
-      new HumanMessage(state.userPrompt)
+      new HumanMessage(state.userPrompt),
     ]);
 
     let cleanedResult = response.content;
@@ -61,7 +64,6 @@ Respond with a JSON object only.`;
         .replace(/\s*```$/, '');
     }
 
-
     // console.log('Cleaned Result:', cleanedResult);
 
     const match = cleanedResult.match(/```json([\s\S]*?)```/);
@@ -72,10 +74,11 @@ Respond with a JSON object only.`;
     const analysis = JSON.parse(cleanedResult);
 
     // Validate detected apps against available apps
-    const validationResult = await composioIntegrationService.validateDetectedApps(
-      analysis.detectedApps || [],
-      state.userId
-    );
+    const validationResult =
+      await composioIntegrationService.validateDetectedApps(
+        analysis.detectedApps || [],
+        state.userId
+      );
     console.log({
       userIntent: analysis.userIntent,
       taskType: analysis.taskType,
@@ -84,7 +87,7 @@ Respond with a JSON object only.`;
       invalidApps: validationResult.invalidApps,
       availableApps: validationResult.availableApps,
       connectionStatus: validationResult.connectionStatus,
-      currentStage: "intent_analyzed"
+      currentStage: 'intent_analyzed',
     });
 
     return {
@@ -95,14 +98,13 @@ Respond with a JSON object only.`;
       invalidApps: validationResult.invalidApps,
       availableApps: validationResult.availableApps,
       connectionStatus: validationResult.connectionStatus,
-      currentStage: "intent_analyzed"
+      currentStage: 'intent_analyzed',
     };
-
   } catch (error) {
-    logger.error("Error in intent analysis:", error);
+    logger.error('Error in intent analysis:', error);
     return {
       error: `Intent analysis failed: ${error.message}`,
-      currentStage: "intent_analysis_error"
+      currentStage: 'intent_analysis_error',
     };
   }
 };
@@ -112,7 +114,7 @@ Respond with a JSON object only.`;
  */
 export const planWorkflowNode = async (state) => {
   try {
-    logger.info("Starting workflow planning");
+    logger.info('Starting workflow planning');
 
     // Get available tools for the user's connected apps
     const userTools = await composioIntegrationService.getUserAvailableTools(
@@ -120,11 +122,13 @@ export const planWorkflowNode = async (state) => {
       state.detectedApps
     );
 
-    const availableToolsInfo = userTools.success ?
-      Object.entries(userTools.toolsByApp).map(([app, tools]) =>
-        `${app}: ${tools.map(t => t.name).join(', ')}`
-      ).join('\n') :
-      'No tools available for connected apps';
+    const availableToolsInfo = userTools.success
+      ? Object.entries(userTools.toolsByApp)
+          .map(
+            ([app, tools]) => `${app}: ${tools.map((t) => t.name).join(', ')}`
+          )
+          .join('\n')
+      : 'No tools available for connected apps';
 
     const systemPrompt = `You are a workflow planning expert. Create a detailed execution plan for the user's automation request.
 
@@ -164,10 +168,10 @@ Respond with a JSON object containing:
 
     const response = await llm.invoke([
       new SystemMessage(systemPrompt),
-      new HumanMessage(state.userPrompt)
+      new HumanMessage(state.userPrompt),
     ]);
 
-    let cleanedResult = response.content
+    let cleanedResult = response.content;
     if (cleanedResult.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = cleanedResult.replace(regex, '').trim();
@@ -179,7 +183,6 @@ Respond with a JSON object containing:
         .replace(/\s*```$/, '');
     }
 
-
     // console.log('Cleaned Result:', cleanedResult);
 
     console.log('Cleaned Result:', cleanedResult);
@@ -187,37 +190,43 @@ Respond with a JSON object containing:
     if (match) {
       try {
         const cleanedResult = JSON.parse(match[0]);
-        console.log("Extracted JSON:", cleanedResult);
+        console.log('Extracted JSON:', cleanedResult);
       } catch (e) {
-        console.error("Invalid JSON:", e);
+        console.error('Invalid JSON:', e);
       }
     } else {
-      console.error("No JSON found in string");
+      console.error('No JSON found in string');
     }
 
-    const plan = cleanedResult
+    const plan = cleanedResult;
 
     // Validate the planned apps against available ones
-    const validationResult = await composioIntegrationService.validateDetectedApps(
-      plan.requiredApps || [],
-      state.userId
-    );
+    const validationResult =
+      await composioIntegrationService.validateDetectedApps(
+        plan.requiredApps || [],
+        state.userId
+      );
 
     return {
       workflowSteps: plan.workflowSteps,
-      detectedApps: [...(state.detectedApps || []), ...(validationResult.validApps || [])],
+      detectedApps: [
+        ...(state.detectedApps || []),
+        ...(validationResult.validApps || []),
+      ],
       scheduleRequired: plan.scheduleRequired,
       workflowPlan: plan,
       availableTools: userTools.success ? userTools.toolsByApp : {},
-      missingConnections: plan.missingConnections || validationResult.connectionStatus?.missingConnections || [],
-      currentStage: "workflow_planned"
+      missingConnections:
+        plan.missingConnections ||
+        validationResult.connectionStatus?.missingConnections ||
+        [],
+      currentStage: 'workflow_planned',
     };
-
   } catch (error) {
-    logger.error("Error in workflow planning:", error);
+    logger.error('Error in workflow planning:', error);
     return {
       error: `Workflow planning failed: ${error.message}`,
-      currentStage: "planning_error"
+      currentStage: 'planning_error',
     };
   }
 };
@@ -227,12 +236,12 @@ Respond with a JSON object containing:
  */
 export const scheduleDetectionNode = async (state) => {
   try {
-    logger.info("Analyzing scheduling requirements");
+    logger.info('Analyzing scheduling requirements');
 
     if (!state.scheduleRequired) {
       return {
-        triggerType: "manual",
-        currentStage: "schedule_analyzed"
+        triggerType: 'manual',
+        currentStage: 'schedule_analyzed',
       };
     }
 
@@ -261,9 +270,9 @@ Respond with JSON only.`;
 
     const response = await llm.invoke([
       new SystemMessage(systemPrompt),
-      new HumanMessage(state.userPrompt)
+      new HumanMessage(state.userPrompt),
     ]);
-    let cleanedResult = response.content
+    let cleanedResult = response.content;
     if (cleanedResult.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = cleanedResult.replace(regex, '').trim();
@@ -274,7 +283,6 @@ Respond with JSON only.`;
         .replace(/```json\s*/, '')
         .replace(/\s*```$/, '');
     }
-
 
     // console.log('Cleaned Result:', cleanedResult);
 
@@ -287,15 +295,14 @@ Respond with JSON only.`;
     return {
       scheduleConfig: scheduleConfig.scheduleConfig,
       triggerType: scheduleConfig.triggerType,
-      currentStage: "schedule_analyzed"
+      currentStage: 'schedule_analyzed',
     };
-
   } catch (error) {
-    logger.error("Error in schedule detection:", error);
+    logger.error('Error in schedule detection:', error);
     return {
       error: `Schedule detection failed: ${error.message}`,
-      triggerType: "manual",
-      currentStage: "schedule_error"
+      triggerType: 'manual',
+      currentStage: 'schedule_error',
     };
   }
 };
@@ -305,7 +312,7 @@ Respond with JSON only.`;
  */
 export const extractParametersNode = async (state) => {
   try {
-    logger.info("Extracting parameters from user input");
+    logger.info('Extracting parameters from user input');
 
     const systemPrompt = `Extract specific parameters from the user's request that are needed for the workflow.
 
@@ -340,9 +347,11 @@ Respond with JSON:
 
     const response = await llm.invoke([
       new SystemMessage(systemPrompt),
-      new HumanMessage(`${state.userPrompt}\n\nWorkflow: ${JSON.stringify(state.workflowSteps)}`)
+      new HumanMessage(
+        `${state.userPrompt}\n\nWorkflow: ${JSON.stringify(state.workflowSteps)}`
+      ),
     ]);
-    let cleanedResult = response.content
+    let cleanedResult = response.content;
     if (cleanedResult.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
       cleanedResult = cleanedResult.replace(regex, '').trim();
@@ -353,7 +362,6 @@ Respond with JSON:
         .replace(/```json\s*/, '')
         .replace(/\s*```$/, '');
     }
-
 
     // console.log('Cleaned Result:', cleanedResult);
 
@@ -366,14 +374,13 @@ Respond with JSON:
     return {
       extractedParameters: paramData.extractedParameters,
       missingParameters: paramData.missingParameters || [],
-      currentStage: "parameters_extracted"
+      currentStage: 'parameters_extracted',
     };
-
   } catch (error) {
-    logger.error("Error in parameter extraction:", error);
+    logger.error('Error in parameter extraction:', error);
     return {
       error: `Parameter extraction failed: ${error.message}`,
-      currentStage: "parameter_error"
+      currentStage: 'parameter_error',
     };
   }
 };
@@ -383,20 +390,21 @@ Respond with JSON:
  */
 export const validateWorkflowNode = async (state) => {
   try {
-    logger.info("Validating workflow configuration");
+    logger.info('Validating workflow configuration');
 
     const validation = {
       isValid: true,
       issues: [],
-      warnings: []
+      warnings: [],
     };
 
     // Check app connections if user ID is available
     if (state.userId && state.detectedApps?.length > 0) {
-      const connectionCheck = await composioIntegrationService.checkAppConnections(
-        state.userId,
-        state.detectedApps
-      );
+      const connectionCheck =
+        await composioIntegrationService.checkAppConnections(
+          state.userId,
+          state.detectedApps
+        );
 
       if (connectionCheck.success) {
         if (!connectionCheck.allConnected) {
@@ -409,50 +417,63 @@ export const validateWorkflowNode = async (state) => {
           // Generate connection URLs for missing apps
           for (const appName of connectionCheck.missingConnections) {
             try {
-              const connectionResult = await composioIntegrationService.getConnectionUrl(
-                state.userId,
-                appName
-              );
-              if (connectionResult.success && !connectionResult.alreadyConnected) {
-                validation.connectionUrls[appName] = connectionResult.connectionUrl;
+              const connectionResult =
+                await composioIntegrationService.getConnectionUrl(
+                  state.userId,
+                  appName
+                );
+              if (
+                connectionResult.success &&
+                !connectionResult.alreadyConnected
+              ) {
+                validation.connectionUrls[appName] =
+                  connectionResult.connectionUrl;
               }
             } catch (urlError) {
-              logger.warn(`Could not generate connection URL for ${appName}:`, urlError);
+              logger.warn(
+                `Could not generate connection URL for ${appName}:`,
+                urlError
+              );
             }
           }
         }
       } else {
-        validation.issues.push(`Failed to check app connections: ${connectionCheck.error}`);
+        validation.issues.push(
+          `Failed to check app connections: ${connectionCheck.error}`
+        );
       }
     }
 
     // Check for missing required parameters
     if (state.missingParameters?.length > 0) {
-      validation.warnings.push(`Missing parameters: ${state.missingParameters.join(', ')}`);
+      validation.warnings.push(
+        `Missing parameters: ${state.missingParameters.join(', ')}`
+      );
     }
 
     // Validate workflow steps
     if (!state.workflowSteps || state.workflowSteps.length === 0) {
-      validation.issues.push("No workflow steps defined");
+      validation.issues.push('No workflow steps defined');
       validation.isValid = false;
     }
 
     // Check for invalid apps
     if (state.invalidApps?.length > 0) {
-      validation.warnings.push(`Unsupported apps detected: ${state.invalidApps.join(', ')}`);
+      validation.warnings.push(
+        `Unsupported apps detected: ${state.invalidApps.join(', ')}`
+      );
     }
 
     return {
       validationResult: validation,
       needsConfirmation: !validation.isValid || validation.warnings.length > 0,
-      currentStage: "workflow_validated"
+      currentStage: 'workflow_validated',
     };
-
   } catch (error) {
-    logger.error("Error in workflow validation:", error);
+    logger.error('Error in workflow validation:', error);
     return {
       error: `Workflow validation failed: ${error.message}`,
-      currentStage: "validation_error"
+      currentStage: 'validation_error',
     };
   }
 };
@@ -462,36 +483,40 @@ export const validateWorkflowNode = async (state) => {
  */
 export const generateResponseNode = async (state) => {
   try {
-    logger.info("Generating response for user");
+    logger.info('Generating response for user');
 
     if (state.error) {
       return {
         response: `I encountered an error: ${state.error}. Please try rephrasing your request or contact support if the issue persists.`,
-        responseType: "error",
-        currentStage: "response_generated"
+        responseType: 'error',
+        currentStage: 'response_generated',
       };
     }
 
     if (state.needsConfirmation) {
       const issues = state.validationResult?.issues || [];
       const warnings = state.validationResult?.warnings || [];
-      const missingConnections = state.validationResult?.missingConnections || state.missingConnections || [];
+      const missingConnections =
+        state.validationResult?.missingConnections ||
+        state.missingConnections ||
+        [];
       const connectionUrls = state.validationResult?.connectionUrls || {};
 
-      let confirmationMessage = "I've analyzed your request and created a workflow plan. ";
+      let confirmationMessage =
+        "I've analyzed your request and created a workflow plan. ";
 
       if (issues.length > 0) {
-        confirmationMessage += `However, there are some issues that need to be resolved:\n${issues.map(issue => `• ${issue}`).join('\n')}\n\n`;
+        confirmationMessage += `However, there are some issues that need to be resolved:\n${issues.map((issue) => `• ${issue}`).join('\n')}\n\n`;
       }
 
       if (warnings.length > 0) {
-        confirmationMessage += `Please note:\n${warnings.map(warning => `• ${warning}`).join('\n')}\n\n`;
+        confirmationMessage += `Please note:\n${warnings.map((warning) => `• ${warning}`).join('\n')}\n\n`;
       }
 
       // Add connection requirements
       if (missingConnections.length > 0) {
         confirmationMessage += `**App Connections Needed:**\n`;
-        missingConnections.forEach(app => {
+        missingConnections.forEach((app) => {
           confirmationMessage += `• ${app}`;
           if (connectionUrls[app]) {
             confirmationMessage += ` - [Connect here](${connectionUrls[app]})`;
@@ -523,16 +548,17 @@ export const generateResponseNode = async (state) => {
 
       return {
         response: confirmationMessage,
-        responseType: "confirmation",
+        responseType: 'confirmation',
         confirmationMessage: confirmationMessage,
         missingConnections,
         connectionUrls,
-        currentStage: "awaiting_confirmation"
+        currentStage: 'awaiting_confirmation',
       };
     }
 
     // Success response
-    let successMessage = "Great! I've successfully created your workflow automation.\n\n";
+    let successMessage =
+      "Great! I've successfully created your workflow automation.\n\n";
     successMessage += `**Workflow Details:**\n`;
     successMessage += `• Name: ${state.userIntent}\n`;
     successMessage += `• Type: ${state.taskType}\n`;
@@ -557,16 +583,16 @@ export const generateResponseNode = async (state) => {
 
     return {
       response: successMessage,
-      responseType: "success",
-      currentStage: "completed"
+      responseType: 'success',
+      currentStage: 'completed',
     };
-
   } catch (error) {
-    logger.error("Error in response generation:", error);
+    logger.error('Error in response generation:', error);
     return {
-      response: "I apologize, but I encountered an error while generating the response. Please try again.",
-      responseType: "error",
-      currentStage: "response_error"
+      response:
+        'I apologize, but I encountered an error while generating the response. Please try again.',
+      responseType: 'error',
+      currentStage: 'response_error',
     };
   }
 };

@@ -89,10 +89,7 @@ ChatShareSchema.statics.findActiveShare = function (shareId) {
   return this.findOne({
     shareId,
     isActive: true,
-    $or: [
-      { expiresAt: null },
-      { expiresAt: { $gt: new Date() } }
-    ]
+    $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
   }).populate('conversationId');
 };
 
@@ -104,10 +101,7 @@ ChatShareSchema.statics.findUserShares = function (userId, options = {}) {
 
   if (status === 'active') {
     query.isActive = true;
-    query.$or = [
-      { expiresAt: null },
-      { expiresAt: { $gt: new Date() } }
-    ];
+    query.$or = [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }];
   } else if (status === 'expired') {
     query.expiresAt = { $lte: new Date() };
   } else if (status === 'revoked') {
@@ -117,7 +111,10 @@ ChatShareSchema.statics.findUserShares = function (userId, options = {}) {
   const skip = (page - 1) * limit;
 
   return this.find(query)
-    .populate('conversationId', 'title conversationId lastActivity messageCount')
+    .populate(
+      'conversationId',
+      'title conversationId lastActivity messageCount'
+    )
     .sort({ createdAt: -1 })
     .limit(limit)
     .skip(skip);

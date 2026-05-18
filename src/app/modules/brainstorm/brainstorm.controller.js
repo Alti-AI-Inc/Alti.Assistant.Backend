@@ -26,10 +26,16 @@ const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
+      createdAt: -1,
+    });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
+      ? await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        )
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -100,7 +106,9 @@ const generateBrainstorm = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
+      createdAt: -1,
+    });
 
     if (userSubscription && userSubscription.usage <= 0) {
       return sendResponse(res, {
@@ -121,7 +129,11 @@ const generateBrainstorm = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await brainstormService.generateStructuredBrainstorm(userId, req.body, req);
+    const result = await brainstormService.generateStructuredBrainstorm(
+      userId,
+      req.body,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -149,7 +161,11 @@ const getConversationHistory = catchAsync(async (req, res) => {
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
-    const result = await brainstormService.getConversationHistory(conversationId, userId, req);
+    const result = await brainstormService.getConversationHistory(
+      conversationId,
+      userId,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -171,7 +187,11 @@ const getConversationHistory = catchAsync(async (req, res) => {
  * Export brainstorm session
  */
 const exportBrainstorm = catchAsync(async (req, res) => {
-  const { conversationId, format = 'markdown', includeHistory = true } = req.body;
+  const {
+    conversationId,
+    format = 'markdown',
+    includeHistory = true,
+  } = req.body;
   const userId = req.user?.userId || req.user?._id;
 
   logger.info(`Exporting brainstorm session ${conversationId} as ${format}`);

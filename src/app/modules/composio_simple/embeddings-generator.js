@@ -1,7 +1,7 @@
 /**
  * Utility script to generate embeddings for tools in the database
  * Run this script to backfill embeddings for existing tools
- * 
+ *
  * Usage: node embeddings-generator.js
  */
 
@@ -41,11 +41,13 @@ async function generateEmbeddingsForTools() {
       $or: [
         { embedding: { $exists: false } },
         { embedding: null },
-        { embedding: [] }
-      ]
+        { embedding: [] },
+      ],
     }).limit(100); // Process in batches
 
-    console.log(`\n📊 Found ${toolsWithoutEmbeddings.length} tools without embeddings`);
+    console.log(
+      `\n📊 Found ${toolsWithoutEmbeddings.length} tools without embeddings`
+    );
 
     if (toolsWithoutEmbeddings.length === 0) {
       console.log('✅ All tools already have embeddings!');
@@ -62,7 +64,9 @@ async function generateEmbeddingsForTools() {
       // Create embedding text from tool name and description
       const embeddingText = `${tool.name} - ${tool.description || ''}`;
 
-      console.log(`\n[${i + 1}/${toolsWithoutEmbeddings.length}] Processing: ${tool.name}`);
+      console.log(
+        `\n[${i + 1}/${toolsWithoutEmbeddings.length}] Processing: ${tool.name}`
+      );
       console.log(`  App: ${tool.appName || tool.slug || 'unknown'}`);
 
       // Generate embedding
@@ -75,16 +79,18 @@ async function generateEmbeddingsForTools() {
           {
             $set: {
               embedding: embedding,
-              appName: tool.appName || tool.slug // Ensure appName is set
-            }
+              appName: tool.appName || tool.slug, // Ensure appName is set
+            },
           }
         );
 
-        console.log(`  ✅ Generated embedding (${embedding.length} dimensions)`);
+        console.log(
+          `  ✅ Generated embedding (${embedding.length} dimensions)`
+        );
         successCount++;
 
         // Rate limiting - wait a bit between requests
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       } else {
         console.log(`  ❌ Failed to generate embedding`);
         errorCount++;

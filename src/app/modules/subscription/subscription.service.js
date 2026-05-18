@@ -4,7 +4,10 @@ import SubscriptionModel from './subscription.model.js';
 import ProductModel from '../products/products.model.js';
 import UserModel from '../auth/auth.model.js';
 import TenantModel from '../tenant/tenant.model.js';
-import { getPlanDetails, getPlanLimits } from '../../../../config/subscription-plans.js';
+import {
+  getPlanDetails,
+  getPlanLimits,
+} from '../../../../config/subscription-plans.js';
 import ApiError from '../../../errors/ApiError.js';
 import httpStatus from 'http-status';
 import { logger } from '../../../shared/logger.js';
@@ -43,8 +46,12 @@ const syncTenantWithSubscription = async (tenantId, subscription) => {
       updateData.status = 'trial';
     }
 
-    const tenant = await TenantModel.findByIdAndUpdate(tenantId, updateData, { new: true });
-    logger.info(`Synced tenant ${tenantId} with subscription ${subscription._id}`);
+    const tenant = await TenantModel.findByIdAndUpdate(tenantId, updateData, {
+      new: true,
+    });
+    logger.info(
+      `Synced tenant ${tenantId} with subscription ${subscription._id}`
+    );
     return tenant;
   } catch (error) {
     logger.error('Error syncing tenant with subscription:', error);
@@ -128,7 +135,7 @@ const createFreeSubscription = async (userId, tenantId = null) => {
  * 1. If user has existing paid subscription -> Update the plan in Stripe
  * 2. If user has saved payment method -> Create subscription directly (no redirect)
  * 3. If no saved payment method -> Fall back to Checkout Session
- * 
+ *
  * @param {string} userId - User ID
  * @param {Object} planIdentifier - Object containing stripeProductId or planName
  * @param {string} planIdentifier.stripeProductId - Stripe Product ID (preferred)
@@ -137,7 +144,12 @@ const createFreeSubscription = async (userId, tenantId = null) => {
  * @param {number} initialSeats - Initial number of seats (default: 1)
  * @returns {Promise<Object>} Subscription result or checkout session
  */
-const upgradeSubscription = async (userId, planIdentifier, tenantId = null, initialSeats = 1) => {
+const upgradeSubscription = async (
+  userId,
+  planIdentifier,
+  tenantId = null,
+  initialSeats = 1
+) => {
   try {
     const { stripeProductId, planName } = planIdentifier;
 
@@ -146,19 +158,31 @@ const upgradeSubscription = async (userId, planIdentifier, tenantId = null, init
     if (stripeProductId) {
       plan = await ProductModel.findByStripeProductId(stripeProductId);
       if (!plan) {
-        throw new ApiError(httpStatus.NOT_FOUND, `Plan with Stripe Product ID '${stripeProductId}' not found`);
+        throw new ApiError(
+          httpStatus.NOT_FOUND,
+          `Plan with Stripe Product ID '${stripeProductId}' not found`
+        );
       }
     } else if (planName) {
       // Validate plan name
       if (planName === 'free') {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot upgrade to free plan. Use cancel instead.');
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          'Cannot upgrade to free plan. Use cancel instead.'
+        );
       }
       plan = await ProductModel.findByPlan(planName);
       if (!plan) {
-        throw new ApiError(httpStatus.NOT_FOUND, `Plan '${planName}' not found`);
+        throw new ApiError(
+          httpStatus.NOT_FOUND,
+          `Plan '${planName}' not found`
+        );
       }
     } else {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Either stripeProductId or planName is required');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Either stripeProductId or planName is required'
+      );
     }
 
     // Validate plan is active and not free
@@ -166,7 +190,10 @@ const upgradeSubscription = async (userId, planIdentifier, tenantId = null, init
       throw new ApiError(httpStatus.BAD_REQUEST, 'Plan is not active');
     }
     if (plan.plan === 'free') {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot upgrade to free plan. Use cancel instead.');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Cannot upgrade to free plan. Use cancel instead.'
+      );
     }
 
     // Get user
@@ -186,10 +213,15 @@ const upgradeSubscription = async (userId, planIdentifier, tenantId = null, init
     if (existingPaidSubscription) {
       // Check if trying to switch to the same plan
       if (existingPaidSubscription.plan === plan.plan) {
-        throw new ApiError(httpStatus.BAD_REQUEST, `Already subscribed to ${plan.plan} plan`);
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Already subscribed to ${plan.plan} plan`
+        );
       }
 
-      logger.info(`Changing plan for user ${userId} from ${existingPaidSubscription.plan} to ${plan.plan}`);
+      logger.info(
+        `Changing plan for user ${userId} from ${existingPaidSubscription.plan} to ${plan.plan}`
+      );
       return await changePlan(existingPaidSubscription, plan, initialSeats);
     }
 
@@ -213,18 +245,35 @@ const upgradeSubscription = async (userId, planIdentifier, tenantId = null, init
 
     // Check if customer has a default payment method
     const customer = await stripe.customers.retrieve(customerId);
-    const defaultPaymentMethod = customer.invoice_settings?.default_payment_method;
+    const defaultPaymentMethod =
+      customer.invoice_settings?.default_payment_method;
 
     // CASE 2: User has saved payment method -> Create subscription directly
     if (defaultPaymentMethod) {
-      logger.info(`Creating subscription directly for user ${userId} with saved payment method`);
-      return await createSubscriptionDirectly(userId, customerId, plan, tenantId, initialSeats, defaultPaymentMethod);
+      logger.info(
+        `Creating subscription directly for user ${userId} with saved payment method`
+      );
+      return await createSubscriptionDirectly(
+        userId,
+        customerId,
+        plan,
+        tenantId,
+        initialSeats,
+        defaultPaymentMethod
+      );
     }
 
     // CASE 3: No saved payment method -> Fall back to Checkout Session
-    logger.info(`Creating checkout session for user ${userId} (no saved payment method)`);
-    return await createCheckoutSession(userId, customerId, plan, tenantId, initialSeats);
-
+    logger.info(
+      `Creating checkout session for user ${userId} (no saved payment method)`
+    );
+    return await createCheckoutSession(
+      userId,
+      customerId,
+      plan,
+      tenantId,
+      initialSeats
+    );
   } catch (error) {
     logger.error('Error upgrading subscription:', error);
     throw error;
@@ -244,25 +293,30 @@ const changePlan = async (existingSubscription, newPlan, seats = null) => {
     const seatCount = seats || existingSubscription.seats.used;
 
     // Update subscription in Stripe - switch to new price
-    const stripeSubscription = await stripe.subscriptions.retrieve(existingSubscription.stripeSubscriptionId);
+    const stripeSubscription = await stripe.subscriptions.retrieve(
+      existingSubscription.stripeSubscriptionId
+    );
     const subscriptionItemId = stripeSubscription.items.data[0].id;
 
     // Update the subscription item with new price
     // proration_behavior: 'create_prorations' will charge/credit the difference
-    const updatedStripeSubscription = await stripe.subscriptions.update(existingSubscription.stripeSubscriptionId, {
-      items: [
-        {
-          id: subscriptionItemId,
-          price: newPlan.stripePriceId,
-          quantity: seatCount,
+    const updatedStripeSubscription = await stripe.subscriptions.update(
+      existingSubscription.stripeSubscriptionId,
+      {
+        items: [
+          {
+            id: subscriptionItemId,
+            price: newPlan.stripePriceId,
+            quantity: seatCount,
+          },
+        ],
+        proration_behavior: 'create_prorations', // Charge/credit difference immediately
+        metadata: {
+          planName: newPlan.plan,
+          stripeProductId: newPlan.stripeProductId,
         },
-      ],
-      proration_behavior: 'create_prorations', // Charge/credit difference immediately
-      metadata: {
-        planName: newPlan.plan,
-        stripeProductId: newPlan.stripeProductId,
-      },
-    });
+      }
+    );
 
     // Update local subscription
     const updatedSubscription = await SubscriptionModel.findByIdAndUpdate(
@@ -281,8 +335,12 @@ const changePlan = async (existingSubscription, newPlan, seats = null) => {
           canInviteTeam: newPlan.features.canInviteTeam,
           unlimitedSeats: newPlan.features.unlimitedSeats,
         },
-        'billingCycle.currentPeriodStart': new Date(updatedStripeSubscription.current_period_start * 1000),
-        'billingCycle.currentPeriodEnd': new Date(updatedStripeSubscription.current_period_end * 1000),
+        'billingCycle.currentPeriodStart': new Date(
+          updatedStripeSubscription.current_period_start * 1000
+        ),
+        'billingCycle.currentPeriodEnd': new Date(
+          updatedStripeSubscription.current_period_end * 1000
+        ),
       },
       { new: true }
     );
@@ -292,7 +350,9 @@ const changePlan = async (existingSubscription, newPlan, seats = null) => {
       currentPlan: newPlan.plan,
     });
 
-    logger.info(`Changed plan for subscription ${existingSubscription._id} to ${newPlan.plan}`);
+    logger.info(
+      `Changed plan for subscription ${existingSubscription._id} to ${newPlan.plan}`
+    );
 
     return {
       type: 'plan_changed',
@@ -323,7 +383,14 @@ const changePlan = async (existingSubscription, newPlan, seats = null) => {
  * @param {string} paymentMethodId - Stripe payment method ID
  * @returns {Promise<Object>} Created subscription
  */
-const createSubscriptionDirectly = async (userId, customerId, plan, tenantId, seats, paymentMethodId) => {
+const createSubscriptionDirectly = async (
+  userId,
+  customerId,
+  plan,
+  tenantId,
+  seats,
+  paymentMethodId
+) => {
   try {
     // Create subscription in Stripe
     const stripeSubscription = await stripe.subscriptions.create({
@@ -350,7 +417,9 @@ const createSubscriptionDirectly = async (userId, customerId, plan, tenantId, se
 
     if (paymentIntent && paymentIntent.status === 'requires_action') {
       // Payment requires 3D Secure authentication
-      logger.info(`Subscription ${stripeSubscription.id} requires payment confirmation (3DS)`);
+      logger.info(
+        `Subscription ${stripeSubscription.id} requires payment confirmation (3DS)`
+      );
       return {
         type: 'requires_action',
         subscriptionId: stripeSubscription.id,
@@ -368,7 +437,10 @@ const createSubscriptionDirectly = async (userId, customerId, plan, tenantId, se
 
     if (paymentIntent && paymentIntent.status === 'requires_payment_method') {
       // Payment failed - need a different payment method
-      throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Payment failed. Please try a different payment method.');
+      throw new ApiError(
+        httpStatus.PAYMENT_REQUIRED,
+        'Payment failed. Please try a different payment method.'
+      );
     }
 
     // Payment successful - create local subscription
@@ -410,8 +482,12 @@ const createSubscriptionDirectly = async (userId, customerId, plan, tenantId, se
         lastResetAt: new Date(),
       },
       billingCycle: {
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date(
+          stripeSubscription.current_period_start * 1000
+        ),
+        currentPeriodEnd: new Date(
+          stripeSubscription.current_period_end * 1000
+        ),
       },
     });
 
@@ -429,7 +505,9 @@ const createSubscriptionDirectly = async (userId, customerId, plan, tenantId, se
       });
     }
 
-    logger.info(`Created subscription directly for user ${userId}, subscription ${subscription._id}`);
+    logger.info(
+      `Created subscription directly for user ${userId}, subscription ${subscription._id}`
+    );
 
     return {
       type: 'subscription_created',
@@ -458,7 +536,13 @@ const createSubscriptionDirectly = async (userId, customerId, plan, tenantId, se
  * @param {number} seats - Number of seats
  * @returns {Promise<Object>} Checkout session details
  */
-const createCheckoutSession = async (userId, customerId, plan, tenantId, seats) => {
+const createCheckoutSession = async (
+  userId,
+  customerId,
+  plan,
+  tenantId,
+  seats
+) => {
   try {
     const subscriptionMetadata = {
       userId: userId.toString(),
@@ -532,7 +616,10 @@ const processStripeCheckout = async (sessionId) => {
     const stripeSubscription = session.subscription;
 
     if (typeof stripeSubscription === 'string') {
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Subscription not expanded');
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        'Subscription not expanded'
+      );
     }
 
     // Get plan details
@@ -580,8 +667,12 @@ const processStripeCheckout = async (sessionId) => {
         lastResetAt: new Date(),
       },
       billingCycle: {
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date(
+          stripeSubscription.current_period_start * 1000
+        ),
+        currentPeriodEnd: new Date(
+          stripeSubscription.current_period_end * 1000
+        ),
       },
     });
 
@@ -599,7 +690,9 @@ const processStripeCheckout = async (sessionId) => {
       });
     }
 
-    logger.info(`Processed checkout for user ${userId}, subscription ${subscription._id}`);
+    logger.info(
+      `Processed checkout for user ${userId}, subscription ${subscription._id}`
+    );
 
     return subscription;
   } catch (error) {
@@ -623,11 +716,17 @@ const cancelSubscription = async (subscriptionId, immediate = false) => {
     }
 
     if (subscription.plan === 'free') {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot cancel free subscription');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Cannot cancel free subscription'
+      );
     }
 
     if (subscription.status === 'cancelled') {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Subscription already cancelled');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Subscription already cancelled'
+      );
     }
 
     // Cancel in Stripe
@@ -644,7 +743,9 @@ const cancelSubscription = async (subscriptionId, immediate = false) => {
     // Update subscription
     const updateData = {
       status: immediate ? 'cancelled' : 'active',
-      'billingCycle.cancelAt': immediate ? null : subscription.billingCycle.currentPeriodEnd,
+      'billingCycle.cancelAt': immediate
+        ? null
+        : subscription.billingCycle.currentPeriodEnd,
       'billingCycle.canceledAt': immediate ? new Date() : null,
     };
 
@@ -675,7 +776,9 @@ const cancelSubscription = async (subscriptionId, immediate = false) => {
       });
     }
 
-    logger.info(`Cancelled subscription ${subscriptionId}, immediate: ${immediate}`);
+    logger.info(
+      `Cancelled subscription ${subscriptionId}, immediate: ${immediate}`
+    );
 
     return updatedSubscription;
   } catch (error) {
@@ -699,25 +802,40 @@ const addSeatToSubscription = async (subscriptionId, userId) => {
     }
 
     if (subscription.plan === 'free') {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot add seats to free plan');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Cannot add seats to free plan'
+      );
     }
 
     if (subscription.status !== 'active') {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot add seats to inactive subscription');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Cannot add seats to inactive subscription'
+      );
     }
 
-    if (!subscription.stripeSubscriptionId || !subscription.stripeSubscriptionItemId) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'No Stripe subscription found');
+    if (
+      !subscription.stripeSubscriptionId ||
+      !subscription.stripeSubscriptionItemId
+    ) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'No Stripe subscription found'
+      );
     }
 
     // Calculate new seat count
     const newSeatCount = subscription.seats.used + 1;
 
     // Update Stripe subscription item quantity for billing
-    await stripe.subscriptionItems.update(subscription.stripeSubscriptionItemId, {
-      quantity: newSeatCount,
-      proration_behavior: 'always_invoice', // Charge immediately for the new seat
-    });
+    await stripe.subscriptionItems.update(
+      subscription.stripeSubscriptionItemId,
+      {
+        quantity: newSeatCount,
+        proration_behavior: 'always_invoice', // Charge immediately for the new seat
+      }
+    );
 
     // Update local subscription
     const updatedSubscription = await SubscriptionModel.findByIdAndUpdate(
@@ -730,7 +848,9 @@ const addSeatToSubscription = async (subscriptionId, userId) => {
       { new: true }
     );
 
-    logger.info(`Added seat to subscription ${subscriptionId} for user ${userId}. New quantity: ${newSeatCount}`);
+    logger.info(
+      `Added seat to subscription ${subscriptionId} for user ${userId}. New quantity: ${newSeatCount}`
+    );
 
     return updatedSubscription;
   } catch (error) {
@@ -754,17 +874,25 @@ const removeSeatFromSubscription = async (subscriptionId, userId) => {
     }
 
     if (subscription.plan === 'free') {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot remove seats from free plan');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Cannot remove seats from free plan'
+      );
     }
 
     if (subscription.seats.used <= 1) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot remove last seat (owner required)');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Cannot remove last seat (owner required)'
+      );
     }
 
     // Call instance method to remove seat (handles Stripe update)
     await subscription.removeSeat();
 
-    logger.info(`Removed seat from subscription ${subscriptionId} for user ${userId}`);
+    logger.info(
+      `Removed seat from subscription ${subscriptionId} for user ${userId}`
+    );
 
     return subscription;
   } catch (error) {
@@ -788,7 +916,8 @@ const checkUsageLimit = async (userId, limitType) => {
       return {
         allowed: false,
         remaining: 0,
-        limit: limitType === 'webSearch' ? freePlan.features.dailyWebSearchLimit : 0,
+        limit:
+          limitType === 'webSearch' ? freePlan.features.dailyWebSearchLimit : 0,
         message: 'No active subscription. Please upgrade.',
       };
     }
@@ -811,7 +940,9 @@ const checkUsageLimit = async (userId, limitType) => {
       remaining: Math.max(0, limit - used),
       limit,
       used,
-      message: hasReached ? `Daily ${limitType} limit reached` : 'Usage allowed',
+      message: hasReached
+        ? `Daily ${limitType} limit reached`
+        : 'Usage allowed',
     };
   } catch (error) {
     logger.error('Error checking usage limit:', error);
@@ -893,16 +1024,33 @@ const getSubscriptionWithUsage = async (userId) => {
         webSearch: {
           used: subscription.usage.webSearchUsedToday,
           limit: subscription.limits.dailyWebSearchLimit,
-          remaining: Math.max(0, subscription.limits.dailyWebSearchLimit - subscription.usage.webSearchUsedToday),
-          percentage: (subscription.usage.webSearchUsedToday / subscription.limits.dailyWebSearchLimit * 100).toFixed(1),
+          remaining: Math.max(
+            0,
+            subscription.limits.dailyWebSearchLimit -
+              subscription.usage.webSearchUsedToday
+          ),
+          percentage: (
+            (subscription.usage.webSearchUsedToday /
+              subscription.limits.dailyWebSearchLimit) *
+            100
+          ).toFixed(1),
         },
         deepResearch: {
           used: subscription.usage.deepResearchUsedToday,
           limit: subscription.limits.dailyDeepResearchLimit,
-          remaining: Math.max(0, subscription.limits.dailyDeepResearchLimit - subscription.usage.deepResearchUsedToday),
-          percentage: subscription.limits.dailyDeepResearchLimit > 0
-            ? (subscription.usage.deepResearchUsedToday / subscription.limits.dailyDeepResearchLimit * 100).toFixed(1)
-            : 0,
+          remaining: Math.max(
+            0,
+            subscription.limits.dailyDeepResearchLimit -
+              subscription.usage.deepResearchUsedToday
+          ),
+          percentage:
+            subscription.limits.dailyDeepResearchLimit > 0
+              ? (
+                  (subscription.usage.deepResearchUsedToday /
+                    subscription.limits.dailyDeepResearchLimit) *
+                  100
+                ).toFixed(1)
+              : 0,
         },
       },
       seats: {
@@ -956,16 +1104,24 @@ const updateSubscriptionFromStripe = async (stripeSubscription) => {
       status,
       'seats.total': quantity,
       'seats.used': quantity,
-      'billingCycle.currentPeriodStart': new Date(stripeSubscription.current_period_start * 1000),
-      'billingCycle.currentPeriodEnd': new Date(stripeSubscription.current_period_end * 1000),
+      'billingCycle.currentPeriodStart': new Date(
+        stripeSubscription.current_period_start * 1000
+      ),
+      'billingCycle.currentPeriodEnd': new Date(
+        stripeSubscription.current_period_end * 1000
+      ),
     };
 
     if (stripeSubscription.cancel_at) {
-      updateData['billingCycle.cancelAt'] = new Date(stripeSubscription.cancel_at * 1000);
+      updateData['billingCycle.cancelAt'] = new Date(
+        stripeSubscription.cancel_at * 1000
+      );
     }
 
     if (stripeSubscription.canceled_at) {
-      updateData['billingCycle.canceledAt'] = new Date(stripeSubscription.canceled_at * 1000);
+      updateData['billingCycle.canceledAt'] = new Date(
+        stripeSubscription.canceled_at * 1000
+      );
     }
 
     const updatedSubscription = await SubscriptionModel.findByIdAndUpdate(
@@ -978,7 +1134,10 @@ const updateSubscriptionFromStripe = async (stripeSubscription) => {
 
     // Sync tenant if applicable
     if (subscription.tenantId) {
-      await syncTenantWithSubscription(subscription.tenantId, updatedSubscription);
+      await syncTenantWithSubscription(
+        subscription.tenantId,
+        updatedSubscription
+      );
     }
 
     return updatedSubscription;
@@ -996,12 +1155,19 @@ const updateSubscriptionFromStripe = async (stripeSubscription) => {
  * @param {string} tenantId - Optional tenant ID
  * @returns {Promise<Object>} Activated subscription
  */
-const confirmSubscriptionPayment = async (subscriptionId, userId, tenantId = null) => {
+const confirmSubscriptionPayment = async (
+  subscriptionId,
+  userId,
+  tenantId = null
+) => {
   try {
     // Retrieve subscription from Stripe
-    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId, {
-      expand: ['latest_invoice.payment_intent'],
-    });
+    const stripeSubscription = await stripe.subscriptions.retrieve(
+      subscriptionId,
+      {
+        expand: ['latest_invoice.payment_intent'],
+      }
+    );
 
     // Check payment status
     const paymentIntent = stripeSubscription.latest_invoice?.payment_intent;
@@ -1064,8 +1230,12 @@ const confirmSubscriptionPayment = async (subscriptionId, userId, tenantId = nul
         lastResetAt: new Date(),
       },
       billingCycle: {
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date(
+          stripeSubscription.current_period_start * 1000
+        ),
+        currentPeriodEnd: new Date(
+          stripeSubscription.current_period_end * 1000
+        ),
       },
     });
 
@@ -1119,7 +1289,8 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
       invoice.lines?.data?.[0]?.metadata ||
       {};
 
-    const { userId, tenantId, planName, stripeProductId, initialSeats } = metadata;
+    const { userId, tenantId, planName, stripeProductId, initialSeats } =
+      metadata;
 
     logger.info('Processing invoice.payment_succeeded', {
       invoiceId: invoice.id,
@@ -1142,7 +1313,9 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
       // If found, update with Stripe subscription ID
       if (subscription) {
         subscription.stripeSubscriptionId = stripeSubscriptionId;
-        logger.info(`Found existing subscription by tenantId, updating stripeSubscriptionId`);
+        logger.info(
+          `Found existing subscription by tenantId, updating stripeSubscriptionId`
+        );
       }
     }
 
@@ -1156,9 +1329,11 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
       : null;
 
     // Extract Stripe IDs from line item
-    const subscriptionItemId = lineItem?.parent?.subscription_item_details?.subscription_item;
+    const subscriptionItemId =
+      lineItem?.parent?.subscription_item_details?.subscription_item;
     const stripePriceId = lineItem?.pricing?.price_details?.price;
-    const stripeProductIdFromInvoice = lineItem?.pricing?.price_details?.product || stripeProductId;
+    const stripeProductIdFromInvoice =
+      lineItem?.pricing?.price_details?.product || stripeProductId;
     const quantity = lineItem?.quantity || parseInt(initialSeats) || 1;
 
     // If no subscription found, create a new one
@@ -1168,22 +1343,28 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
         return null;
       }
 
-      logger.info(`Creating new subscription for user ${userId} from invoice webhook`);
+      logger.info(
+        `Creating new subscription for user ${userId} from invoice webhook`
+      );
 
       // Get plan details from database
       let plan;
       if (planName) {
         plan = await ProductModel.findByPlan(planName);
       } else if (stripeProductIdFromInvoice) {
-        plan = await ProductModel.findByStripeProductId(stripeProductIdFromInvoice);
+        plan = await ProductModel.findByStripeProductId(
+          stripeProductIdFromInvoice
+        );
       }
 
       if (!plan) {
-        logger.error(`Plan not found for planName: ${planName}, productId: ${stripeProductIdFromInvoice}`);
+        logger.error(
+          `Plan not found for planName: ${planName}, productId: ${stripeProductIdFromInvoice}`
+        );
         // Use default values if plan not found
         plan = {
           plan: planName || 'explore',
-          price: (invoice.amount_paid / 100) / quantity,
+          price: invoice.amount_paid / 100 / quantity,
           stripeProductId: stripeProductIdFromInvoice,
           features: {
             dailyWebSearchLimit: 100,
@@ -1216,7 +1397,7 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
           used: quantity,
           available: 0,
         },
-        pricePerSeat: plan.price || (invoice.amount_paid / 100) / quantity,
+        pricePerSeat: plan.price || invoice.amount_paid / 100 / quantity,
         limits: {
           dailyWebSearchLimit: plan.features?.dailyWebSearchLimit || 100,
           dailyDeepResearchLimit: plan.features?.dailyDeepResearchLimit || 10,
@@ -1252,7 +1433,9 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
         });
       }
 
-      logger.info(`Created new subscription ${subscription._id} from invoice.payment_succeeded`);
+      logger.info(
+        `Created new subscription ${subscription._id} from invoice.payment_succeeded`
+      );
 
       return subscription;
     }
@@ -1290,16 +1473,22 @@ const handleInvoicePaymentSucceeded = async (invoice) => {
       { new: true }
     );
 
-    logger.info(`Updated subscription ${subscription._id} from invoice.payment_succeeded`, {
-      invoiceId: invoice.id,
-      amountPaid: invoice.amount_paid,
-      periodStart,
-      periodEnd,
-    });
+    logger.info(
+      `Updated subscription ${subscription._id} from invoice.payment_succeeded`,
+      {
+        invoiceId: invoice.id,
+        amountPaid: invoice.amount_paid,
+        periodStart,
+        periodEnd,
+      }
+    );
 
     // Sync tenant if applicable
     if (subscription.tenantId) {
-      await syncTenantWithSubscription(subscription.tenantId, updatedSubscription);
+      await syncTenantWithSubscription(
+        subscription.tenantId,
+        updatedSubscription
+      );
     }
 
     return updatedSubscription;
@@ -1330,7 +1519,9 @@ const handleInvoicePaymentFailed = async (invoice) => {
     });
 
     if (!subscription) {
-      logger.warn(`No subscription found for Stripe subscription ID: ${stripeSubscriptionId}`);
+      logger.warn(
+        `No subscription found for Stripe subscription ID: ${stripeSubscriptionId}`
+      );
       return null;
     }
 
@@ -1343,13 +1534,19 @@ const handleInvoicePaymentFailed = async (invoice) => {
       { new: true }
     );
 
-    logger.warn(`Subscription ${subscription._id} marked as past_due due to payment failure`, {
-      invoiceId: invoice.id,
-    });
+    logger.warn(
+      `Subscription ${subscription._id} marked as past_due due to payment failure`,
+      {
+        invoiceId: invoice.id,
+      }
+    );
 
     // Sync tenant
     if (subscription.tenantId) {
-      await syncTenantWithSubscription(subscription.tenantId, updatedSubscription);
+      await syncTenantWithSubscription(
+        subscription.tenantId,
+        updatedSubscription
+      );
     }
 
     return updatedSubscription;

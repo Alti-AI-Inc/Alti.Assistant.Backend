@@ -1,7 +1,10 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { LEGAL_CONTRACT_REVIEW_CONFIG, STORAGE_CONFIG } from '../legal_contract_review.constant.js';
+import {
+  LEGAL_CONTRACT_REVIEW_CONFIG,
+  STORAGE_CONFIG,
+} from '../legal_contract_review.constant.js';
 
 // Ensure upload directory exists
 const uploadDir = STORAGE_CONFIG.TEMP_FOLDER;

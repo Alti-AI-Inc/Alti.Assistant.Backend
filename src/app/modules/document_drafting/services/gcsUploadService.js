@@ -19,7 +19,9 @@ try {
       projectId: GCS_CONFIG.PROJECT_ID,
     });
   } else {
-    logger.warn('GCS credentials not configured. Document uploads will be stored locally only.');
+    logger.warn(
+      'GCS credentials not configured. Document uploads will be stored locally only.'
+    );
   }
 
   if (storage && GCS_CONFIG.BUCKET_NAME) {
@@ -32,7 +34,10 @@ try {
 /**
  * Upload document file to Google Cloud Storage
  */
-export const uploadDocumentToGCS = async (localFilePath, documentMetadata = {}) => {
+export const uploadDocumentToGCS = async (
+  localFilePath,
+  documentMetadata = {}
+) => {
   try {
     if (!storage || !bucket) {
       logger.warn('GCS not configured. Returning local file path.');
@@ -104,7 +109,8 @@ const getContentType = (fileName) => {
   const ext = path.extname(fileName).toLowerCase();
   const contentTypes = {
     '.pdf': 'application/pdf',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.docx':
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.doc': 'application/msword',
     '.txt': 'text/plain',
     '.html': 'text/html',

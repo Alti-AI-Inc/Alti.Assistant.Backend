@@ -12,22 +12,24 @@ const optionalAuth = () => {
   return async (req, res, next) => {
     try {
       const authHeader = req.headers.authorization;
-      
+
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.split(' ')[1];
-        
+
         try {
           const verifiedUser = jwtHelpers.verifyToken(
             token,
-            config.jwt.access_token,
+            config.jwt.access_token
           );
-          
+
           // Set authenticated user
           req.user = verifiedUser;
           req.isGuest = false;
-          
         } catch (tokenError) {
-          logger.warn('Invalid token provided, treating as guest:', tokenError.message);
+          logger.warn(
+            'Invalid token provided, treating as guest:',
+            tokenError.message
+          );
           // Set as guest user if token is invalid
           req.user = null;
           req.isGuest = true;
@@ -37,7 +39,7 @@ const optionalAuth = () => {
         req.user = null;
         req.isGuest = true;
       }
-      
+
       next();
     } catch (error) {
       // Even if there's an error, continue as guest

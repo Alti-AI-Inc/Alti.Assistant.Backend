@@ -5,6 +5,7 @@ A comprehensive translation module for the ASON Core Service Backend that provid
 ## Features
 
 ### 🌍 Multi-Language Support
+
 - **40+ Languages** supported including:
   - European: English, Spanish, French, German, Italian, Portuguese, Russian, etc.
   - Asian: Chinese (Simplified & Traditional), Japanese, Korean, Hindi, Thai, Vietnamese, etc.
@@ -13,6 +14,7 @@ A comprehensive translation module for the ASON Core Service Backend that provid
   - And many more!
 
 ### 📄 Document Translation
+
 - Support for multiple file formats:
   - Plain text (`.txt`, `.md`)
   - Microsoft Word (`.docx`)
@@ -25,6 +27,7 @@ A comprehensive translation module for the ASON Core Service Backend that provid
 - Preserves formatting where possible
 
 ### 💬 Conversational Interface
+
 - Natural language processing for user requests
 - AI-powered intent recognition using Gemini
 - Context-aware conversations
@@ -33,6 +36,7 @@ A comprehensive translation module for the ASON Core Service Backend that provid
 - Conversation history with summarization
 
 ### 🔐 Flexible Authentication
+
 - Supports both authenticated and guest users
 - Usage tracking for subscribed users
 - Rate limiting protection
@@ -41,15 +45,18 @@ A comprehensive translation module for the ASON Core Service Backend that provid
 ### 🎯 Multiple Endpoints
 
 1. **Conversational Assistant** (`POST /api/v1/translation/assistant`)
+
    - Main entry point for natural language translation requests
    - Optional file upload
    - Handles complex, multi-turn conversations
 
 2. **Direct Translation** (`POST /api/v1/translation/translate`)
+
    - Direct text translation without conversation
    - Programmatic access for integrations
 
 3. **Language Detection** (`POST /api/v1/translation/detect`)
+
    - Automatically detect the language of provided text
    - Returns language code, name, and confidence score
 
@@ -60,6 +67,7 @@ A comprehensive translation module for the ASON Core Service Backend that provid
 ## Architecture
 
 ### Module Structure
+
 ```
 translation/
 ├── services/
@@ -76,18 +84,21 @@ translation/
 ### Key Components
 
 #### 1. Conversation Analyzer
+
 - Uses Google Gemini 2.5 Flash for intent recognition
 - Extracts translation parameters from natural language
 - Handles conversation summarization for long chats
 - Normalizes language codes to ISO 639-1 format
 
 #### 2. Translation API Client
+
 - Integrates with Google Cloud Translation API
 - Supports language detection
 - Batch translation capabilities
 - Validates language codes
 
 #### 3. File Extraction Service
+
 - Extracts text from various document formats
 - Uses specialized libraries:
   - `mammoth` for DOCX files
@@ -96,6 +107,7 @@ translation/
 - Automatic cleanup of temporary files
 
 #### 4. Translation Service
+
 - Orchestrates conversation flow
 - Manages conversation state
 - Handles different translation intents
@@ -110,6 +122,7 @@ translation/
 **Description:** Main conversational endpoint that handles natural language translation requests with optional file uploads.
 
 **Request:**
+
 ```javascript
 // Multipart form-data
 {
@@ -121,6 +134,7 @@ translation/
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -175,6 +189,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 **Description:** Direct text translation without conversation context. For programmatic access.
 
 **Request:**
+
 ```json
 {
   "text": "Hello, world!",
@@ -184,6 +199,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -209,6 +225,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 **Description:** Detect the language of provided text.
 
 **Request:**
+
 ```json
 {
   "text": "Bonjour, comment allez-vous?"
@@ -216,6 +233,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -238,6 +256,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 **Description:** Get list of all supported languages.
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -248,7 +267,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
     "languages": [
       { "code": "en", "name": "English" },
       { "code": "es", "name": "Spanish" },
-      { "code": "fr", "name": "French" },
+      { "code": "fr", "name": "French" }
       // ... more languages
     ],
     "count": 40
@@ -259,6 +278,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 ## Usage Examples
 
 ### Example 1: Simple Text Translation
+
 ```javascript
 // User: "Translate 'Good morning' to Spanish"
 // Assistant extracts:
@@ -269,6 +289,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 ```
 
 ### Example 2: File Translation
+
 ```javascript
 // User uploads document.pdf and says: "Translate this to French"
 // Assistant:
@@ -279,6 +300,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 ```
 
 ### Example 3: Multi-turn Conversation
+
 ```javascript
 // Turn 1
 // User: "I need to translate something"
@@ -294,6 +316,7 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 ```
 
 ### Example 4: Language Detection
+
 ```javascript
 // User: "What language is this: 'Guten Morgen'"
 // Assistant: "Detected language: German (de) with 99.5% confidence."
@@ -323,7 +346,14 @@ export const FILE_SIZE_LIMITS = {
 };
 
 export const SUPPORTED_DOCUMENT_FORMATS = [
-  '.txt', '.docx', '.pdf', '.html', '.md', '.json', '.csv', '.xlsx'
+  '.txt',
+  '.docx',
+  '.pdf',
+  '.html',
+  '.md',
+  '.json',
+  '.csv',
+  '.xlsx',
 ];
 ```
 
@@ -365,6 +395,7 @@ The module provides comprehensive error handling:
 ## Rate Limiting
 
 Configurable rate limits (currently commented out in routes):
+
 - Conversational Assistant: 30 requests per 15 minutes
 - Direct Translation: 20 requests per 15 minutes
 - Language Detection: 30 requests per 15 minutes
@@ -372,6 +403,7 @@ Configurable rate limits (currently commented out in routes):
 ## Subscription Integration
 
 For authenticated users:
+
 - Tracks usage against subscription limits
 - Prevents translation when limits are exceeded
 - Suggests plan upgrades when necessary
@@ -419,14 +451,17 @@ curl -X GET http://localhost:5000/api/v1/translation/languages
 ### Common Issues
 
 1. **"Translation API not initialized"**
+
    - Ensure `GOOGLE_APPLICATION_CREDENTIALS` is set correctly
    - Verify service account has Translation API access
 
 2. **"Invalid language code"**
+
    - Use ISO 639-1 format (e.g., 'en', 'es', 'fr')
    - Check supported languages list
 
 3. **"File extraction failed"**
+
    - Ensure document is not corrupted
    - Check file format is supported
    - Verify file size is under 10MB

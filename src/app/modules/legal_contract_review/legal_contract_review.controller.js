@@ -20,13 +20,13 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   // Handle file upload if present
   const fileInfo = req.file
     ? {
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      location: req.file.location || req.file.path,
-    }
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        location: req.file.location || req.file.path,
+      }
     : null;
 
   logger.info(
@@ -55,14 +55,15 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await legalContractReviewService.processConversationalRequest(
-      userId,
-      message,
-      conversationId,
-      fileInfo,
-      outputFormat || 'text',
-      isGuest
-    );
+    const result =
+      await legalContractReviewService.processConversationalRequest(
+        userId,
+        message,
+        conversationId,
+        fileInfo,
+        outputFormat || 'text',
+        isGuest
+      );
 
     logger.info('Legal contract review assistant response:', {
       conversationId: result.conversationId,
@@ -105,13 +106,13 @@ export const reviewContract = catchAsync(async (req, res) => {
   // Handle file upload if present
   const fileInfo = req.file
     ? {
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      location: req.file.location || req.file.path,
-    }
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        location: req.file.location || req.file.path,
+      }
     : null;
 
   if (!fileInfo && !reviewParams.contractText) {
@@ -166,7 +167,11 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation) {
       return sendResponse(res, {

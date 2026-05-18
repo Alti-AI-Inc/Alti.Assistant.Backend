@@ -16,7 +16,7 @@ const getUserWorkflowsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -25,8 +25,7 @@ const getUserWorkflowsController = catchAsync(async (req, res) => {
     if (status) filter.status = status;
     if (category) filter.category = category;
 
-    const workflows = await Workflow
-      .find(filter)
+    const workflows = await Workflow.find(filter)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(offset))
@@ -42,16 +41,15 @@ const getUserWorkflowsController = catchAsync(async (req, res) => {
         workflows,
         total,
         limit: parseInt(limit),
-        offset: parseInt(offset)
-      }
+        offset: parseInt(offset),
+      },
     });
-
   } catch (error) {
     logger.error('Error in getUserWorkflowsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to get workflows'
+      message: error.message || 'Failed to get workflows',
     });
   }
 });
@@ -67,7 +65,7 @@ const getWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -75,7 +73,7 @@ const getWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
@@ -86,7 +84,7 @@ const getWorkflowController = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Workflow not found'
+        message: 'Workflow not found',
       });
     }
 
@@ -94,15 +92,14 @@ const getWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Workflow retrieved successfully',
-      data: workflow
+      data: workflow,
     });
-
   } catch (error) {
     logger.error('Error in getWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to get workflow'
+      message: error.message || 'Failed to get workflow',
     });
   }
 });
@@ -119,7 +116,7 @@ const updateWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -127,21 +124,27 @@ const updateWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
   try {
     // Remove fields that shouldn't be updated directly
-    const { _id, userId: userIdField, createdAt, updatedAt, ...allowedUpdates } = updateData;
+    const {
+      _id,
+      userId: userIdField,
+      createdAt,
+      updatedAt,
+      ...allowedUpdates
+    } = updateData;
 
     const workflow = await Workflow.findOneAndUpdate(
       { _id: workflowId, userId },
       {
         $set: {
           ...allowedUpdates,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       },
       { new: true, runValidators: true }
     );
@@ -150,7 +153,7 @@ const updateWorkflowController = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Workflow not found'
+        message: 'Workflow not found',
       });
     }
 
@@ -160,15 +163,14 @@ const updateWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Workflow updated successfully',
-      data: workflow
+      data: workflow,
     });
-
   } catch (error) {
     logger.error('Error in updateWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to update workflow'
+      message: error.message || 'Failed to update workflow',
     });
   }
 });
@@ -184,7 +186,7 @@ const deleteWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -192,18 +194,21 @@ const deleteWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
   try {
-    const workflow = await Workflow.findOneAndDelete({ _id: workflowId, userId });
+    const workflow = await Workflow.findOneAndDelete({
+      _id: workflowId,
+      userId,
+    });
 
     if (!workflow) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Workflow not found'
+        message: 'Workflow not found',
       });
     }
 
@@ -212,15 +217,14 @@ const deleteWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: 'Workflow deleted successfully'
+      message: 'Workflow deleted successfully',
     });
-
   } catch (error) {
     logger.error('Error in deleteWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to delete workflow'
+      message: error.message || 'Failed to delete workflow',
     });
   }
 });
@@ -237,7 +241,7 @@ const toggleWorkflowStatusController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -245,7 +249,7 @@ const toggleWorkflowStatusController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
@@ -253,7 +257,7 @@ const toggleWorkflowStatusController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Valid status is required (active, inactive, paused)'
+      message: 'Valid status is required (active, inactive, paused)',
     });
   }
 
@@ -263,8 +267,8 @@ const toggleWorkflowStatusController = catchAsync(async (req, res) => {
       {
         $set: {
           status,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       },
       { new: true }
     );
@@ -273,7 +277,7 @@ const toggleWorkflowStatusController = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Workflow not found'
+        message: 'Workflow not found',
       });
     }
 
@@ -283,15 +287,14 @@ const toggleWorkflowStatusController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: `Workflow ${status === 'active' ? 'activated' : status === 'inactive' ? 'deactivated' : 'paused'} successfully`,
-      data: workflow
+      data: workflow,
     });
-
   } catch (error) {
     logger.error('Error in toggleWorkflowStatusController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to update workflow status'
+      message: error.message || 'Failed to update workflow status',
     });
   }
 });
@@ -311,8 +314,7 @@ const getWorkflowTemplatesController = catchAsync(async (req, res) => {
       filter.tags = { $in: tagArray };
     }
 
-    const templates = await WorkflowTemplate
-      .find(filter)
+    const templates = await WorkflowTemplate.find(filter)
       .sort({ 'rating.average': -1, usageCount: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(offset))
@@ -329,16 +331,15 @@ const getWorkflowTemplatesController = catchAsync(async (req, res) => {
         templates,
         total,
         limit: parseInt(limit),
-        offset: parseInt(offset)
-      }
+        offset: parseInt(offset),
+      },
     });
-
   } catch (error) {
     logger.error('Error in getWorkflowTemplatesController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to get workflow templates'
+      message: error.message || 'Failed to get workflow templates',
     });
   }
 });
@@ -355,7 +356,7 @@ const createFromTemplateController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -363,7 +364,7 @@ const createFromTemplateController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Template ID is required'
+      message: 'Template ID is required',
     });
   }
 
@@ -374,7 +375,7 @@ const createFromTemplateController = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Template not found'
+        message: 'Template not found',
       });
     }
 
@@ -387,12 +388,15 @@ const createFromTemplateController = catchAsync(async (req, res) => {
       steps: template.steps,
       trigger: customizations.trigger || { triggerType: 'manual' },
       category: template.category,
-      requiredApps: template.requiredApps.map(app => ({ app, connected: false })),
+      requiredApps: template.requiredApps.map((app) => ({
+        app,
+        connected: false,
+      })),
       metadata: {
         templateId: template._id,
         createdFromTemplate: true,
-        ...customizations.metadata
-      }
+        ...customizations.metadata,
+      },
     };
 
     const workflow = new Workflow(workflowData);
@@ -404,21 +408,22 @@ const createFromTemplateController = catchAsync(async (req, res) => {
       { $inc: { usageCount: 1 } }
     );
 
-    logger.info(`Workflow created from template ${templateId}: ${workflow._id}`);
+    logger.info(
+      `Workflow created from template ${templateId}: ${workflow._id}`
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.CREATED,
       success: true,
       message: 'Workflow created from template successfully',
-      data: workflow
+      data: workflow,
     });
-
   } catch (error) {
     logger.error('Error in createFromTemplateController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to create workflow from template'
+      message: error.message || 'Failed to create workflow from template',
     });
   }
 });
@@ -430,5 +435,5 @@ export const workflowController = {
   deleteWorkflowController,
   toggleWorkflowStatusController,
   getWorkflowTemplatesController,
-  createFromTemplateController
+  createFromTemplateController,
 };

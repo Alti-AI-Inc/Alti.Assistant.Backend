@@ -5,7 +5,8 @@ A comprehensive AI-powered legal contract review module that analyzes contracts,
 ## 🎯 Features
 
 - **Conversational Contract Review**: Natural language interface for contract analysis
-- **Multiple Review Types**: 
+- **Multiple Review Types**:
+
   - General comprehensive review
   - Clause-by-clause analysis
   - Risk assessment with severity levels
@@ -17,11 +18,13 @@ A comprehensive AI-powered legal contract review module that analyzes contracts,
   - Executive summary generation
 
 - **Flexible Input Methods**:
+
   - Upload contract files (PDF, DOCX, DOC, TXT)
   - Paste contract text directly
   - Use cached contracts from previous conversations
 
 - **Intelligent Analysis**:
+
   - AI-powered intent detection
   - Context-aware conversation handling
   - Automatic parameter extraction
@@ -36,11 +39,13 @@ A comprehensive AI-powered legal contract review module that analyzes contracts,
 ## 📋 API Endpoints
 
 ### 1. Conversational Assistant (Recommended)
+
 **POST** `/api/legal-contract-review/assistant`
 
 The main endpoint for natural language contract review requests.
 
 #### Request
+
 ```javascript
 // With file upload (multipart/form-data)
 {
@@ -60,6 +65,7 @@ The main endpoint for natural language contract review requests.
 ```
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -88,11 +94,13 @@ The main endpoint for natural language contract review requests.
 ```
 
 ### 2. Direct Review Endpoint
+
 **POST** `/api/legal-contract-review/review`
 
 Programmatic endpoint with explicit parameters (no conversation).
 
 #### Request
+
 ```javascript
 {
   "reviewType": "risk_assessment",
@@ -111,6 +119,7 @@ Programmatic endpoint with explicit parameters (no conversation).
 ```
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -127,7 +136,12 @@ Programmatic endpoint with explicit parameters (no conversation).
       "reviewType": "risk_assessment",
       "reviewDepth": "detailed",
       "contractType": "nda",
-      "aspects": ["confidentiality", "obligations", "termination", "liabilities"]
+      "aspects": [
+        "confidentiality",
+        "obligations",
+        "termination",
+        "liabilities"
+      ]
     },
     "outputFormat": "markdown"
   }
@@ -135,11 +149,13 @@ Programmatic endpoint with explicit parameters (no conversation).
 ```
 
 ### 3. Get Conversation History
+
 **GET** `/api/legal-contract-review/conversation/:conversationId`
 
 Retrieve all messages and metadata from a contract review conversation.
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -182,6 +198,7 @@ Retrieve all messages and metadata from a contract review conversation.
 ## 🔧 Request Parameters
 
 ### Review Types
+
 - `general_review` - Comprehensive legal contract review (default)
 - `clause_analysis` - Detailed clause-by-clause analysis
 - `risk_assessment` - Risk identification and severity assessment
@@ -193,12 +210,14 @@ Retrieve all messages and metadata from a contract review conversation.
 - `summary` - Executive summary generation
 
 ### Review Depth
+
 - `quick` - Quick overview of key clauses and red flags
 - `standard` - Comprehensive review (default)
 - `detailed` - Detailed clause-by-clause analysis
 - `comprehensive` - Most thorough analysis with risk matrix
 
 ### Contract Types
+
 - `employment` - Employment contracts
 - `nda` - Non-disclosure agreements
 - `service_agreement` - Service agreements
@@ -213,6 +232,7 @@ Retrieve all messages and metadata from a contract review conversation.
 - `general` - General contracts (default)
 
 ### Reviewable Aspects
+
 - `obligations` - Party obligations
 - `rights` - Rights and entitlements
 - `liabilities` - Liability provisions
@@ -229,6 +249,7 @@ Retrieve all messages and metadata from a contract review conversation.
 - `notice_provisions` - Notice requirements
 
 ### Output Formats
+
 - `text` - Plain text (default)
 - `markdown` - Markdown formatted
 - `pdf` - PDF-ready format
@@ -237,6 +258,7 @@ Retrieve all messages and metadata from a contract review conversation.
 ## 💡 Usage Examples
 
 ### Example 1: Quick Review of NDA
+
 ```bash
 curl -X POST http://localhost:80/api/legal-contract-review/assistant \
   -H "Content-Type: multipart/form-data" \
@@ -246,6 +268,7 @@ curl -X POST http://localhost:80/api/legal-contract-review/assistant \
 ```
 
 ### Example 2: Detailed Risk Assessment
+
 ```bash
 curl -X POST http://localhost:80/api/legal-contract-review/assistant \
   -H "Content-Type: multipart/form-data" \
@@ -255,6 +278,7 @@ curl -X POST http://localhost:80/api/legal-contract-review/assistant \
 ```
 
 ### Example 3: Review Pasted Contract Text
+
 ```bash
 curl -X POST http://localhost:80/api/legal-contract-review/assistant \
   -H "Content-Type: application/json" \
@@ -265,6 +289,7 @@ curl -X POST http://localhost:80/api/legal-contract-review/assistant \
 ```
 
 ### Example 4: Continue Previous Conversation
+
 ```bash
 curl -X POST http://localhost:80/api/legal-contract-review/assistant \
   -H "Content-Type: application/json" \
@@ -275,6 +300,7 @@ curl -X POST http://localhost:80/api/legal-contract-review/assistant \
 ```
 
 ### Example 5: Direct Review with Explicit Parameters
+
 ```bash
 curl -X POST http://localhost:80/api/legal-contract-review/review \
   -H "Content-Type: multipart/form-data" \
@@ -295,10 +321,13 @@ curl -X POST http://localhost:80/api/legal-contract-review/review \
 - **Subscription Limits**: Authenticated users are subject to their subscription plan limits
 
 ### Guest Usage
+
 Guests can use the API without authentication by omitting auth headers. A temporary userId will be generated.
 
 ### Authenticated Usage
+
 Include the authentication token in headers:
+
 ```bash
 curl -X POST http://localhost:80/api/legal-contract-review/assistant \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -310,6 +339,7 @@ curl -X POST http://localhost:80/api/legal-contract-review/assistant \
 ## 📝 Response Structure
 
 ### Successful Review Response
+
 All reviews include a legal disclaimer and comprehensive analysis structured as:
 
 1. **Executive Summary** - Key findings overview
@@ -328,6 +358,7 @@ All reviews include a legal disclaimer and comprehensive analysis structured as:
 ### Common Errors
 
 #### 400 Bad Request
+
 ```json
 {
   "success": false,
@@ -336,6 +367,7 @@ All reviews include a legal disclaimer and comprehensive analysis structured as:
 ```
 
 #### 403 Forbidden
+
 ```json
 {
   "success": false,
@@ -344,6 +376,7 @@ All reviews include a legal disclaimer and comprehensive analysis structured as:
 ```
 
 #### 404 Not Found
+
 ```json
 {
   "success": false,
@@ -352,6 +385,7 @@ All reviews include a legal disclaimer and comprehensive analysis structured as:
 ```
 
 #### 413 Payload Too Large
+
 ```json
 {
   "success": false,
@@ -360,6 +394,7 @@ All reviews include a legal disclaimer and comprehensive analysis structured as:
 ```
 
 #### 500 Internal Server Error
+
 ```json
 {
   "success": false,
@@ -392,11 +427,13 @@ All reviews include a legal disclaimer and comprehensive analysis structured as:
 ## 📊 File Support
 
 ### Supported Formats
+
 - PDF (`.pdf`)
 - Word Documents (`.docx`, `.doc`)
 - Plain Text (`.txt`)
 
 ### File Limits
+
 - Maximum file size: 10MB
 - Text extraction with OCR support for scanned PDFs
 - Automatic caching of extracted text for conversation continuity
@@ -420,8 +457,8 @@ async function reviewContract(filePath, message) {
     {
       headers: {
         ...form.getHeaders(),
-        'Authorization': 'Bearer YOUR_TOKEN'
-      }
+        Authorization: 'Bearer YOUR_TOKEN',
+      },
     }
   );
 

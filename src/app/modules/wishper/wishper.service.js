@@ -3,8 +3,7 @@ import FormData from 'form-data';
 import fs from 'fs';
 import config from '../../../../config/index.js'; // Adjust the path as necessary
 
-
-const transcribeAudioToTextService = async audioPath => {
+const transcribeAudioToTextService = async (audioPath) => {
   const formData = new FormData();
   formData.append('file', fs.createReadStream(audioPath));
   formData.append('model', 'whisper-1');
@@ -18,7 +17,7 @@ const transcribeAudioToTextService = async audioPath => {
         ...formData.getHeaders(),
         Authorization: `Bearer ${config.openai_secret_key}`,
       },
-    },
+    }
   );
 
   return response.data.text;

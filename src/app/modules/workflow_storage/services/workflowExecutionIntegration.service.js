@@ -4,12 +4,11 @@ import { logger } from '../../../../shared/logger.js';
 
 /**
  * Integration Service between Workflow Storage and Composio v2 Execution
- * 
+ *
  * This service provides methods to execute stored workflows using the
  * existing Composio v2 workflow execution infrastructure.
  */
 class WorkflowExecutionIntegrationService {
-
   /**
    * Execute a stored workflow using Composio v2
    * @param {string} workflowId - Stored workflow ID
@@ -22,19 +21,20 @@ class WorkflowExecutionIntegrationService {
       const {
         triggerSource = 'user_click',
         scheduleType = null,
-        executionMetadata = {}
+        executionMetadata = {},
       } = options;
 
       console.log(`Starting execution of stored workflow: ${workflowId}`);
 
       // Step 1: Get stored workflow
-      const storedWorkflowResult = await workflowStorageService.getStoredWorkflow(workflowId, userId);
-      
+      const storedWorkflowResult =
+        await workflowStorageService.getStoredWorkflow(workflowId, userId);
+
       if (!storedWorkflowResult.success) {
         return {
           success: false,
           error: 'Stored workflow not found',
-          details: storedWorkflowResult.error
+          details: storedWorkflowResult.error,
         };
       }
 
@@ -48,8 +48,8 @@ class WorkflowExecutionIntegrationService {
           details: {
             status: storedWorkflow.status,
             missingConnections: storedWorkflow.missingConnections,
-            requiredApps: storedWorkflow.requiredApps
-          }
+            requiredApps: storedWorkflow.requiredApps,
+          },
         };
       }
 
@@ -69,30 +69,33 @@ class WorkflowExecutionIntegrationService {
             ...executionMetadata,
             sourceWorkflowId: workflowId,
             sourceModule: 'workflow_storage',
-            executionTime: new Date()
-          }
+            executionTime: new Date(),
+          },
         },
         originalUserInput: storedWorkflow.originalUserInput,
         conversationId: storedWorkflow.conversationId,
-        conversationContext: storedWorkflow.conversationContext || {}
+        conversationContext: storedWorkflow.conversationContext || {},
       };
 
       // Step 4: Create and execute workflow in Composio v2
       console.log('Creating workflow in Composio v2...');
-      const composioWorkflowResult = await workflowService.createWorkflow(executionData);
+      const composioWorkflowResult =
+        await workflowService.createWorkflow(executionData);
 
       if (!composioWorkflowResult.success) {
         return {
           success: false,
           error: 'Failed to create workflow in Composio v2',
-          details: composioWorkflowResult.error
+          details: composioWorkflowResult.error,
         };
       }
 
       const composioWorkflow = composioWorkflowResult.data;
 
       // Step 5: Trigger execution
-      console.log(`Triggering execution for Composio v2 workflow: ${composioWorkflow.workflowId}`);
+      console.log(
+        `Triggering execution for Composio v2 workflow: ${composioWorkflow.workflowId}`
+      );
       const executionResult = await workflowService.triggerWorkflow(
         composioWorkflow.workflowId,
         userId,
@@ -118,12 +121,11 @@ class WorkflowExecutionIntegrationService {
             executionTime: new Date(),
             workflowTitle: storedWorkflow.title,
             workflowType: storedWorkflow.workflowType,
-            totalSteps: storedWorkflow.totalSteps
-          }
+            totalSteps: storedWorkflow.totalSteps,
+          },
         },
-        message: 'Stored workflow execution started successfully'
+        message: 'Stored workflow execution started successfully',
       };
-
     } catch (error) {
       logger.error('Error executing stored workflow:', error);
       return {
@@ -132,8 +134,8 @@ class WorkflowExecutionIntegrationService {
         details: {
           stack: error.stack,
           workflowId,
-          userId
-        }
+          userId,
+        },
       };
     }
   }
@@ -150,10 +152,12 @@ class WorkflowExecutionIntegrationService {
       const {
         concurrent = false,
         maxConcurrency = 3,
-        continueOnError = true
+        continueOnError = true,
       } = options;
 
-      console.log(`Starting batch execution of ${workflowIds.length} stored workflows`);
+      console.log(
+        `Starting batch execution of ${workflowIds.length} stored workflows`
+      );
 
       const results = [];
       const errors = [];
@@ -162,7 +166,11 @@ class WorkflowExecutionIntegrationService {
         // Execute workflows concurrently
         const promises = workflowIds.map(async (workflowId) => {
           try {
-            const result = await this.executeStoredWorkflow(workflowId, userId, options);
+            const result = await this.executeStoredWorkflow(
+              workflowId,
+              userId,
+              options
+            );
             return { workflowId, result };
           } catch (error) {
             return { workflowId, error: error.message };
@@ -173,7 +181,7 @@ class WorkflowExecutionIntegrationService {
         for (let i = 0; i < promises.length; i += maxConcurrency) {
           const batch = promises.slice(i, i + maxConcurrency);
           const batchResults = await Promise.all(batch);
-          
+
           batchResults.forEach(({ workflowId, result, error }) => {
             if (error) {
               errors.push({ workflowId, error });
@@ -186,16 +194,20 @@ class WorkflowExecutionIntegrationService {
         // Execute workflows sequentially
         for (const workflowId of workflowIds) {
           try {
-            const result = await this.executeStoredWorkflow(workflowId, userId, options);
+            const result = await this.executeStoredWorkflow(
+              workflowId,
+              userId,
+              options
+            );
             results.push({ workflowId, result });
-            
+
             if (!result.success && !continueOnError) {
               errors.push({ workflowId, error: result.error });
               break;
             }
           } catch (error) {
             errors.push({ workflowId, error: error.message });
-            
+
             if (!continueOnError) {
               break;
             }
@@ -203,7 +215,7 @@ class WorkflowExecutionIntegrationService {
         }
       }
 
-      const successCount = results.filter(r => r.result.success).length;
+      const successCount = results.filter((r) => r.result.success).length;
       const failureCount = results.length - successCount + errors.length;
 
       return {
@@ -213,16 +225,15 @@ class WorkflowExecutionIntegrationService {
           successCount,
           failureCount,
           results,
-          errors
+          errors,
         },
-        message: `Batch execution completed: ${successCount} succeeded, ${failureCount} failed`
+        message: `Batch execution completed: ${successCount} succeeded, ${failureCount} failed`,
       };
-
     } catch (error) {
       logger.error('Error in batch execution:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -239,12 +250,13 @@ class WorkflowExecutionIntegrationService {
       console.log(`Scheduling stored workflow: ${workflowId}`);
 
       // Step 1: Get stored workflow
-      const storedWorkflowResult = await workflowStorageService.getStoredWorkflow(workflowId, userId);
-      
+      const storedWorkflowResult =
+        await workflowStorageService.getStoredWorkflow(workflowId, userId);
+
       if (!storedWorkflowResult.success) {
         return {
           success: false,
-          error: 'Stored workflow not found'
+          error: 'Stored workflow not found',
         };
       }
 
@@ -256,8 +268,8 @@ class WorkflowExecutionIntegrationService {
           success: false,
           error: 'Workflow is not executable',
           details: {
-            missingConnections: storedWorkflow.missingConnections
-          }
+            missingConnections: storedWorkflow.missingConnections,
+          },
         };
       }
 
@@ -274,18 +286,22 @@ class WorkflowExecutionIntegrationService {
           ...scheduleConfig,
           isActive: true,
           sourceWorkflowId: workflowId,
-          sourceModule: 'workflow_storage'
+          sourceModule: 'workflow_storage',
         },
         originalUserInput: storedWorkflow.originalUserInput,
         conversationId: storedWorkflow.conversationId,
-        conversationContext: storedWorkflow.conversationContext || {}
+        conversationContext: storedWorkflow.conversationContext || {},
       };
 
       // Step 4: Create scheduled workflow in Composio v2
-      const scheduledResult = await workflowService.createWorkflow(scheduledWorkflowData);
+      const scheduledResult = await workflowService.createWorkflow(
+        scheduledWorkflowData
+      );
 
       if (scheduledResult.success) {
-        console.log(`Successfully scheduled workflow: ${scheduledResult.data.workflowId}`);
+        console.log(
+          `Successfully scheduled workflow: ${scheduledResult.data.workflowId}`
+        );
       }
 
       return {
@@ -294,17 +310,18 @@ class WorkflowExecutionIntegrationService {
           storedWorkflowId: workflowId,
           scheduledWorkflowId: scheduledResult.data?.workflowId,
           scheduleConfig,
-          nextExecution: scheduledResult.data?.nextExecution
+          nextExecution: scheduledResult.data?.nextExecution,
         },
         error: scheduledResult.error,
-        message: scheduledResult.success ? 'Workflow scheduled successfully' : 'Failed to schedule workflow'
+        message: scheduledResult.success
+          ? 'Workflow scheduled successfully'
+          : 'Failed to schedule workflow',
       };
-
     } catch (error) {
       logger.error('Error scheduling stored workflow:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -321,23 +338,31 @@ class WorkflowExecutionIntegrationService {
       const { limit = 20, offset = 0 } = options;
 
       // Get stored workflow to verify ownership
-      const storedWorkflowResult = await workflowStorageService.getStoredWorkflow(workflowId, userId);
-      
+      const storedWorkflowResult =
+        await workflowStorageService.getStoredWorkflow(workflowId, userId);
+
       if (!storedWorkflowResult.success) {
         return {
           success: false,
-          error: 'Stored workflow not found'
+          error: 'Stored workflow not found',
         };
       }
 
       // Get execution history from Composio v2
       // This would need to be implemented in Composio v2 service to filter by source workflow ID
-      const historyResult = await workflowService.getUserWorkflows(userId, null, limit, offset);
+      const historyResult = await workflowService.getUserWorkflows(
+        userId,
+        null,
+        limit,
+        offset
+      );
 
       if (historyResult.success) {
         // Filter executions that originated from this stored workflow
-        const filteredExecutions = historyResult.data.workflows.filter(execution => 
-          execution.scheduleConfig?.executionMetadata?.sourceWorkflowId === workflowId
+        const filteredExecutions = historyResult.data.workflows.filter(
+          (execution) =>
+            execution.scheduleConfig?.executionMetadata?.sourceWorkflowId ===
+            workflowId
         );
 
         return {
@@ -345,18 +370,17 @@ class WorkflowExecutionIntegrationService {
           data: {
             storedWorkflowId: workflowId,
             executions: filteredExecutions,
-            totalExecutions: filteredExecutions.length
-          }
+            totalExecutions: filteredExecutions.length,
+          },
         };
       }
 
       return historyResult;
-
     } catch (error) {
       logger.error('Error getting execution history:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -368,22 +392,27 @@ class WorkflowExecutionIntegrationService {
    * @param {Object} templateConfig - Template configuration
    * @returns {Object} Template creation result
    */
-  async convertStoredWorkflowToTemplate(workflowId, userId, templateConfig = {}) {
+  async convertStoredWorkflowToTemplate(
+    workflowId,
+    userId,
+    templateConfig = {}
+  ) {
     try {
       const {
         templateTitle,
         templateDescription,
         isPublic = false,
-        category = 'template'
+        category = 'template',
       } = templateConfig;
 
       // Get stored workflow
-      const storedWorkflowResult = await workflowStorageService.getStoredWorkflow(workflowId, userId);
-      
+      const storedWorkflowResult =
+        await workflowStorageService.getStoredWorkflow(workflowId, userId);
+
       if (!storedWorkflowResult.success) {
         return {
           success: false,
-          error: 'Stored workflow not found'
+          error: 'Stored workflow not found',
         };
       }
 
@@ -395,7 +424,9 @@ class WorkflowExecutionIntegrationService {
         _id: undefined,
         workflowId: undefined,
         title: templateTitle || `${storedWorkflow.title} (Template)`,
-        description: templateDescription || `Template created from: ${storedWorkflow.description}`,
+        description:
+          templateDescription ||
+          `Template created from: ${storedWorkflow.description}`,
         isTemplate: true,
         status: 'ready',
         category,
@@ -404,18 +435,19 @@ class WorkflowExecutionIntegrationService {
         createdAt: new Date(),
         updatedAt: new Date(),
         executionCount: 0,
-        lastExecuted: null
+        lastExecuted: null,
       };
 
       // Store as new template workflow
-      const templateResult = await workflowStorageService.analyzeAndStoreWorkflow({
-        userInput: storedWorkflow.originalUserInput,
-        userId: isPublic ? 'template_user' : userId,
-        title: templateData.title,
-        description: templateData.description,
-        tags: templateData.tags,
-        category: templateData.category
-      });
+      const templateResult =
+        await workflowStorageService.analyzeAndStoreWorkflow({
+          userInput: storedWorkflow.originalUserInput,
+          userId: isPublic ? 'template_user' : userId,
+          title: templateData.title,
+          description: templateData.description,
+          tags: templateData.tags,
+          category: templateData.category,
+        });
 
       return {
         success: templateResult.success,
@@ -423,22 +455,24 @@ class WorkflowExecutionIntegrationService {
           originalWorkflowId: workflowId,
           templateWorkflowId: templateResult.data?.workflowId,
           templateTitle: templateData.title,
-          isPublic
+          isPublic,
         },
         error: templateResult.error,
-        message: templateResult.success ? 'Template created successfully' : 'Failed to create template'
+        message: templateResult.success
+          ? 'Template created successfully'
+          : 'Failed to create template',
       };
-
     } catch (error) {
       logger.error('Error converting to template:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
 }
 
 // Export singleton instance
-export const workflowExecutionIntegrationService = new WorkflowExecutionIntegrationService();
+export const workflowExecutionIntegrationService =
+  new WorkflowExecutionIntegrationService();
 export default workflowExecutionIntegrationService;

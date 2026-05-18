@@ -5,5 +5,4 @@ const generateSessionId = () => {
   return crypto.randomBytes(24).toString('hex');
 };
 
-
 export default generateSessionId;

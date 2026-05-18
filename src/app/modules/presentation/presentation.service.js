@@ -34,7 +34,13 @@ const generateConversationId = () => {
 /**
  * Handle presentation conversation (create or retrieve)
  */
-const handlePresentationConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handlePresentationConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
@@ -45,12 +51,18 @@ const handlePresentationConversation = async (userId, conversationId, userMessag
           userId,
           req
         );
-        console.log("Fetched conversation with ID:", conversationId, conversation);
+        console.log(
+          'Fetched conversation with ID:',
+          conversationId,
+          conversation
+        );
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
-    console.log("Final conversation object:", conversation);
+    console.log('Final conversation object:', conversation);
     if (!conversation) {
       const newConversationId = conversationId || generateConversationId();
 
@@ -70,20 +82,33 @@ const handlePresentationConversation = async (userId, conversationId, userMessag
         req
       );
 
-      logger.info(`Created new presentation conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new presentation conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling presentation conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -93,21 +118,39 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
     };
 
     // Use conversationService for both guest and authenticated users
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
 /**
  * Update conversation metadata (store collected parameters)
  */
-const updateConversationMetadata = async (conversationId, userId, params, req = null) => {
+const updateConversationMetadata = async (
+  conversationId,
+  userId,
+  params,
+  req = null
+) => {
   try {
-    await conversationService.updateConversationMetadata(conversationId, userId, {
-      collectedParams: params,
-    }, req);
+    await conversationService.updateConversationMetadata(
+      conversationId,
+      userId,
+      {
+        collectedParams: params,
+      },
+      req
+    );
   } catch (error) {
     logger.warn('Error updating conversation metadata:', error);
   }
@@ -116,9 +159,18 @@ const updateConversationMetadata = async (conversationId, userId, params, req = 
 /**
  * Save conversation summary to metadata
  */
-const saveConversationSummary = async (conversationId, userId, summary, req = null) => {
+const saveConversationSummary = async (
+  conversationId,
+  userId,
+  summary,
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (conversation) {
       conversation.metadata = {
@@ -142,7 +194,13 @@ const saveConversationSummary = async (conversationId, userId, summary, req = nu
 /**
  * Main conversational handler - processes user messages intelligently
  */
-const processConversationalRequest = async (userId, userMessage, conversationId, isGuest = false, req = null) => {
+const processConversationalRequest = async (
+  userId,
+  userMessage,
+  conversationId,
+  isGuest = false,
+  req = null
+) => {
   try {
     console.log('Processing conversational request for user:', userId);
     console.log('User message:', userMessage);
@@ -163,16 +221,28 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
       role: msg.role,
       content: msg.content,
     }));
-    console.log(`Conversation history has ${conversation?.presentation_metadata} messages`);
+    console.log(
+      `Conversation history has ${conversation?.presentation_metadata} messages`
+    );
     // Get existing parameters from metadata
-    const existingParams = {
-      ...conversation?.presentation_metadata,
-      ...conversation.metadata?.collectedParams
-    } || {};
-    let conversationSummary = conversation.metadata?.conversationSummary || null;
+    const existingParams =
+      {
+        ...conversation?.presentation_metadata,
+        ...conversation.metadata?.collectedParams,
+      } || {};
+    let conversationSummary =
+      conversation.metadata?.conversationSummary || null;
 
     // Add user message
-    await addMessage(actualConversationId, userId, 'user', userMessage, {}, isGuest, req);
+    await addMessage(
+      actualConversationId,
+      userId,
+      'user',
+      userMessage,
+      {},
+      isGuest,
+      req
+    );
 
     // Log what we're sending to the analyzer
     logger.info('Conversation context for analysis', {
@@ -197,8 +267,12 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
     });
 
     // If tokens exceed threshold and we don't have a recent summary, create one
-    if (estimatedTokens > 5000 && (!conversationSummary ||
-      conversation.metadata?.summarizedMessageCount < conversationHistory.length - 5)) {
+    if (
+      estimatedTokens > 5000 &&
+      (!conversationSummary ||
+        conversation.metadata?.summarizedMessageCount <
+          conversationHistory.length - 5)
+    ) {
       logger.info('Token limit approaching, summarizing conversation...');
 
       conversationSummary = await conversationAnalyzer.summarizeConversation(
@@ -206,7 +280,12 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
         existingParams
       );
 
-      await saveConversationSummary(actualConversationId, userId, conversationSummary, req);
+      await saveConversationSummary(
+        actualConversationId,
+        userId,
+        conversationSummary,
+        req
+      );
     }
 
     // Analyze intent and extract parameters
@@ -228,7 +307,12 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
     const updatedParams = { ...existingParams, ...analysis.parameters };
     console.log('Updated parameters after analysis:', updatedParams);
     // Update metadata with collected parameters
-    await updateConversationMetadata(actualConversationId, userId, updatedParams, req);
+    await updateConversationMetadata(
+      actualConversationId,
+      userId,
+      updatedParams,
+      req
+    );
 
     // Handle different intents
     let response;
@@ -327,7 +411,14 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 /**
  * Handle generate presentation intent
  */
-const handleGenerateIntent = async (analysis, params, conversationId, userId, isGuest, req = null) => {
+const handleGenerateIntent = async (
+  analysis,
+  params,
+  conversationId,
+  userId,
+  isGuest,
+  req = null
+) => {
   const requiredParams = REQUIRED_PARAMS[PRESENTATION_INTENTS.GENERATE];
   const missingParams = requiredParams.filter((param) => !params[param]);
 
@@ -345,12 +436,20 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
       analysis.followUpQuestion ||
       `I need a bit more information. What topic would you like your presentation to be about?`;
 
-    await addMessage(conversationId, userId, 'assistant', followUpQuestion, {}, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      followUpQuestion,
+      {},
+      isGuest
+    );
 
     return {
       needsMoreInfo: true,
       message: followUpQuestion,
-      missingParameters: missingParams.length > 0 ? missingParams : analysis.missingRequired,
+      missingParameters:
+        missingParams.length > 0 ? missingParams : analysis.missingRequired,
       collectedParameters: params,
     };
   }
@@ -364,22 +463,41 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
   try {
     let result;
     const isAsync = true;
-    console.log('Generating presentation with params:', analysis.intent, 'Async:', isAsync);
+    console.log(
+      'Generating presentation with params:',
+      analysis.intent,
+      'Async:',
+      isAsync
+    );
     if (isAsync) {
-      result = await presentonAPIClient.generatePresentationAsync(generationParams);
+      result =
+        await presentonAPIClient.generatePresentationAsync(generationParams);
       const responseMessage = `Great! I've started generating your presentation. Your task ID is: ${result.id}\n\nStatus: ${result.status}\nCreated at: ${result.created_at}\n\nI'll keep track of this for you. You can ask me to check the status anytime!`;
 
-      await addMessage(conversationId, userId, 'assistant', responseMessage, { taskId: result.id, generationParams }, isGuest, req);
+      await addMessage(
+        conversationId,
+        userId,
+        'assistant',
+        responseMessage,
+        { taskId: result.id, generationParams },
+        isGuest,
+        req
+      );
 
       // Save taskId in conversation metadata for later retrieval
-      await conversationService.updateConversationMetadata(conversationId, userId, {
-        presentation_metadata: {
-          taskId: result.id,
-          status: result.status,
-          created_at: result.created_at,
-          generationParams,
+      await conversationService.updateConversationMetadata(
+        conversationId,
+        userId,
+        {
+          presentation_metadata: {
+            taskId: result.id,
+            status: result.status,
+            created_at: result.created_at,
+            generationParams,
+          },
         },
-      }, req);
+        req
+      );
 
       return {
         success: true,
@@ -396,7 +514,9 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
       let uploadResult = null;
       try {
         // Extract filename from path or create one
-        const fileName = path.basename(result.path) || `presentation_${result.presentation_id}.pptx`;
+        const fileName =
+          path.basename(result.path) ||
+          `presentation_${result.presentation_id}.pptx`;
 
         // Upload to GCS
         uploadResult = await uploadPresentationToGCS(
@@ -409,11 +529,16 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
         publicUrl = uploadResult.publicUrl;
 
         // Update conversation metadata with the public URL
-        await updateConversationMetadata(conversationId, userId, {
-          presentationUrl: publicUrl,
-          gcsPath: uploadResult.gcsPath,
-          uploadedAt: new Date().toISOString(),
-        }, req);
+        await updateConversationMetadata(
+          conversationId,
+          userId,
+          {
+            presentationUrl: publicUrl,
+            gcsPath: uploadResult.gcsPath,
+            uploadedAt: new Date().toISOString(),
+          },
+          req
+        );
 
         logger.info(`Presentation uploaded to GCS: ${publicUrl}`);
       } catch (uploadError) {
@@ -423,16 +548,16 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
 
       const responseMessage = publicUrl
         ? `🎉 Your presentation is ready!\n\n` +
-        `📊 Presentation ID: ${result.presentation_id}\n` +
-        `🔗 Public URL: ${publicUrl}\n` +
-        `📥 Download: ${result.path}\n` +
-        `✏️ Edit online: ${result.edit_path}\n` +
-        `💳 Credits used: ${result.credits_consumed}`
+          `📊 Presentation ID: ${result.presentation_id}\n` +
+          `🔗 Public URL: ${publicUrl}\n` +
+          `📥 Download: ${result.path}\n` +
+          `✏️ Edit online: ${result.edit_path}\n` +
+          `💳 Credits used: ${result.credits_consumed}`
         : `🎉 Your presentation is ready!\n\n` +
-        `📊 Presentation ID: ${result.presentation_id}\n` +
-        `📥 Download: ${result.path}\n` +
-        `✏️ Edit online: ${result.edit_path}\n` +
-        `💳 Credits used: ${result.credits_consumed}`;
+          `📊 Presentation ID: ${result.presentation_id}\n` +
+          `📥 Download: ${result.path}\n` +
+          `✏️ Edit online: ${result.edit_path}\n` +
+          `💳 Credits used: ${result.credits_consumed}`;
 
       await addMessage(
         conversationId,
@@ -444,7 +569,7 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
           result,
           generationParams,
           publicUrl,
-          uploadResult
+          uploadResult,
         },
         isGuest,
         req
@@ -462,20 +587,47 @@ const handleGenerateIntent = async (analysis, params, conversationId, userId, is
     }
   } catch (error) {
     const errorMessage = `I encountered an error while generating your presentation: ${error.message || 'Unknown error'}`;
-    await addMessage(conversationId, userId, 'assistant', errorMessage, { error: error.message }, isGuest, req);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      errorMessage,
+      { error: error.message },
+      isGuest,
+      req
+    );
 
-    throw new ApiError(error.status || httpStatus.INTERNAL_SERVER_ERROR, errorMessage);
+    throw new ApiError(
+      error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      errorMessage
+    );
   }
 };
 
 /**
  * Handle check status intent
  */
-const handleCheckStatusIntent = async (analysis, params, conversationId, userId, isGuest, req = null) => {
+const handleCheckStatusIntent = async (
+  analysis,
+  params,
+  conversationId,
+  userId,
+  isGuest,
+  req = null
+) => {
   if (!params.taskId) {
-    const followUpQuestion = analysis.followUpQuestion || "I need the task ID to check the status. What's your task ID?";
+    const followUpQuestion =
+      analysis.followUpQuestion ||
+      "I need the task ID to check the status. What's your task ID?";
 
-    await addMessage(conversationId, userId, 'assistant', followUpQuestion, {}, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      followUpQuestion,
+      {},
+      isGuest
+    );
 
     return {
       needsMoreInfo: true,
@@ -490,7 +642,8 @@ const handleCheckStatusIntent = async (analysis, params, conversationId, userId,
     let responseMessage = `Task Status: ${result.status}\n\n`;
 
     if (result.status === TASK_STATUS.COMPLETED) {
-      responseMessage += `🎉 Your presentation is ready!\n\n` +
+      responseMessage +=
+        `🎉 Your presentation is ready!\n\n` +
         `📊 Presentation ID: ${result.data.presentation_id}\n` +
         `📥 Download: ${result.data.path}\n` +
         `✏️ Edit online: ${result.data.edit_path}\n` +
@@ -503,7 +656,14 @@ const handleCheckStatusIntent = async (analysis, params, conversationId, userId,
       responseMessage += `📋 ${result.message}`;
     }
 
-    await addMessage(conversationId, userId, 'assistant', responseMessage, { taskStatus: result }, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      responseMessage,
+      { taskStatus: result },
+      isGuest
+    );
 
     return {
       success: true,
@@ -514,16 +674,33 @@ const handleCheckStatusIntent = async (analysis, params, conversationId, userId,
     };
   } catch (error) {
     const errorMessage = `I couldn't check the status: ${error.message || 'Unknown error'}`;
-    await addMessage(conversationId, userId, 'assistant', errorMessage, { error: error.message }, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      errorMessage,
+      { error: error.message },
+      isGuest
+    );
 
-    throw new ApiError(error.status || httpStatus.INTERNAL_SERVER_ERROR, errorMessage);
+    throw new ApiError(
+      error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      errorMessage
+    );
   }
 };
 
 /**
  * Handle edit presentation intent
  */
-const handleEditIntent = async (analysis, params, conversationId, userId, isGuest, req = null) => {
+const handleEditIntent = async (
+  analysis,
+  params,
+  conversationId,
+  userId,
+  isGuest,
+  req = null
+) => {
   const requiredParams = REQUIRED_PARAMS[PRESENTATION_INTENTS.EDIT];
   const missingParams = requiredParams.filter((param) => !params[param]);
 
@@ -532,7 +709,14 @@ const handleEditIntent = async (analysis, params, conversationId, userId, isGues
       analysis.followUpQuestion ||
       "To edit a presentation, I need the presentation ID and the changes you'd like to make. What would you like to edit?";
 
-    await addMessage(conversationId, userId, 'assistant', followUpQuestion, {}, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      followUpQuestion,
+      {},
+      isGuest
+    );
 
     return {
       needsMoreInfo: true,
@@ -548,7 +732,9 @@ const handleEditIntent = async (analysis, params, conversationId, userId, isGues
     let publicUrl = null;
     let uploadResult = null;
     try {
-      const fileName = path.basename(result.path) || `presentation_${result.presentation_id}_edited.pptx`;
+      const fileName =
+        path.basename(result.path) ||
+        `presentation_${result.presentation_id}_edited.pptx`;
       console.log('Uploading edited presentation with fileName:', fileName);
       uploadResult = await uploadPresentationToGCS(
         result.path,
@@ -572,16 +758,23 @@ const handleEditIntent = async (analysis, params, conversationId, userId, isGues
 
     const responseMessage = publicUrl
       ? `✅ Presentation updated!\n\n` +
-      `📊 New Presentation ID: ${result.presentation_id}\n` +
-      `🔗 Public URL: ${publicUrl}\n` +
-      `📥 Download: ${result.path}\n` +
-      `✏️ Edit online: ${result.edit_path}`
+        `📊 New Presentation ID: ${result.presentation_id}\n` +
+        `🔗 Public URL: ${publicUrl}\n` +
+        `📥 Download: ${result.path}\n` +
+        `✏️ Edit online: ${result.edit_path}`
       : `✅ Presentation updated!\n\n` +
-      `📊 New Presentation ID: ${result.presentation_id}\n` +
-      `📥 Download: ${result.path}\n` +
-      `✏️ Edit online: ${result.edit_path}`;
+        `📊 New Presentation ID: ${result.presentation_id}\n` +
+        `📥 Download: ${result.path}\n` +
+        `✏️ Edit online: ${result.edit_path}`;
 
-    await addMessage(conversationId, userId, 'assistant', responseMessage, { result, publicUrl, uploadResult }, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      responseMessage,
+      { result, publicUrl, uploadResult },
+      isGuest
+    );
 
     return {
       success: true,
@@ -593,16 +786,33 @@ const handleEditIntent = async (analysis, params, conversationId, userId, isGues
     };
   } catch (error) {
     const errorMessage = `I couldn't edit the presentation: ${error.message || 'Unknown error'}`;
-    await addMessage(conversationId, userId, 'assistant', errorMessage, { error: error.message }, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      errorMessage,
+      { error: error.message },
+      isGuest
+    );
 
-    throw new ApiError(error.status || httpStatus.INTERNAL_SERVER_ERROR, errorMessage);
+    throw new ApiError(
+      error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      errorMessage
+    );
   }
 };
 
 /**
  * Handle derive presentation intent
  */
-const handleDeriveIntent = async (analysis, params, conversationId, userId, isGuest, req = null) => {
+const handleDeriveIntent = async (
+  analysis,
+  params,
+  conversationId,
+  userId,
+  isGuest,
+  req = null
+) => {
   const requiredParams = REQUIRED_PARAMS[PRESENTATION_INTENTS.DERIVE];
   //If params has n_slides, rename to slides
   if (params.n_slides && !params.slides) {
@@ -618,7 +828,14 @@ const handleDeriveIntent = async (analysis, params, conversationId, userId, isGu
       analysis.followUpQuestion ||
       "To create a new presentation from an existing one, I need the presentation ID and the changes. What's the presentation ID?";
 
-    await addMessage(conversationId, userId, 'assistant', followUpQuestion, {}, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      followUpQuestion,
+      {},
+      isGuest
+    );
 
     return {
       needsMoreInfo: true,
@@ -634,7 +851,9 @@ const handleDeriveIntent = async (analysis, params, conversationId, userId, isGu
     let publicUrl = null;
     let uploadResult = null;
     try {
-      const fileName = path.basename(result.path) || `presentation_${result.presentation_id}_derived.pptx`;
+      const fileName =
+        path.basename(result.path) ||
+        `presentation_${result.presentation_id}_derived.pptx`;
 
       uploadResult = await uploadPresentationToGCS(
         result.path,
@@ -658,16 +877,23 @@ const handleDeriveIntent = async (analysis, params, conversationId, userId, isGu
 
     const responseMessage = publicUrl
       ? `🎉 New presentation created!\n\n` +
-      `📊 Presentation ID: ${result.presentation_id}\n` +
-      `🔗 Public URL: ${publicUrl}\n` +
-      `📥 Download: ${result.path}\n` +
-      `✏️ Edit online: ${result.edit_path}`
+        `📊 Presentation ID: ${result.presentation_id}\n` +
+        `🔗 Public URL: ${publicUrl}\n` +
+        `📥 Download: ${result.path}\n` +
+        `✏️ Edit online: ${result.edit_path}`
       : `🎉 New presentation created!\n\n` +
-      `📊 Presentation ID: ${result.presentation_id}\n` +
-      `📥 Download: ${result.path}\n` +
-      `✏️ Edit online: ${result.edit_path}`;
+        `📊 Presentation ID: ${result.presentation_id}\n` +
+        `📥 Download: ${result.path}\n` +
+        `✏️ Edit online: ${result.edit_path}`;
 
-    await addMessage(conversationId, userId, 'assistant', responseMessage, { result, publicUrl, uploadResult }, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      responseMessage,
+      { result, publicUrl, uploadResult },
+      isGuest
+    );
 
     return {
       success: true,
@@ -679,20 +905,46 @@ const handleDeriveIntent = async (analysis, params, conversationId, userId, isGu
     };
   } catch (error) {
     const errorMessage = `I couldn't create the new presentation: ${error.message || 'Unknown error'}`;
-    await addMessage(conversationId, userId, 'assistant', errorMessage, { error: error.message }, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      errorMessage,
+      { error: error.message },
+      isGuest
+    );
 
-    throw new ApiError(error.status || httpStatus.INTERNAL_SERVER_ERROR, errorMessage);
+    throw new ApiError(
+      error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      errorMessage
+    );
   }
 };
 
 /**
  * Handle get info intent
  */
-const handleGetInfoIntent = async (analysis, params, conversationId, userId, isGuest, req = null) => {
+const handleGetInfoIntent = async (
+  analysis,
+  params,
+  conversationId,
+  userId,
+  isGuest,
+  req = null
+) => {
   if (!params.presentationId) {
-    const followUpQuestion = analysis.followUpQuestion || "Which presentation would you like information about? Please provide the presentation ID.";
+    const followUpQuestion =
+      analysis.followUpQuestion ||
+      'Which presentation would you like information about? Please provide the presentation ID.';
 
-    await addMessage(conversationId, userId, 'assistant', followUpQuestion, {}, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      followUpQuestion,
+      {},
+      isGuest
+    );
 
     return {
       needsMoreInfo: true,
@@ -702,11 +954,20 @@ const handleGetInfoIntent = async (analysis, params, conversationId, userId, isG
   }
 
   try {
-    const result = await presentonAPIClient.getPresentation(params.presentationId);
-    const responseMessage = `📊 Presentation Information:\n\n` +
-      JSON.stringify(result, null, 2);
+    const result = await presentonAPIClient.getPresentation(
+      params.presentationId
+    );
+    const responseMessage =
+      `📊 Presentation Information:\n\n` + JSON.stringify(result, null, 2);
 
-    await addMessage(conversationId, userId, 'assistant', responseMessage, { result }, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      responseMessage,
+      { result },
+      isGuest
+    );
 
     return {
       success: true,
@@ -715,18 +976,38 @@ const handleGetInfoIntent = async (analysis, params, conversationId, userId, isG
     };
   } catch (error) {
     const errorMessage = `I couldn't retrieve the presentation information: ${error.message || 'Unknown error'}`;
-    await addMessage(conversationId, userId, 'assistant', errorMessage, { error: error.message }, isGuest);
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      errorMessage,
+      { error: error.message },
+      isGuest
+    );
 
-    throw new ApiError(error.status || httpStatus.INTERNAL_SERVER_ERROR, errorMessage);
+    throw new ApiError(
+      error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      errorMessage
+    );
   }
 };
 
 /**
  * Handle general questions
  */
-const handleGeneralQuestion = async (userMessage, conversationHistory, conversationId, userId, isGuest, req = null) => {
+const handleGeneralQuestion = async (
+  userMessage,
+  conversationHistory,
+  conversationId,
+  userId,
+  isGuest,
+  req = null
+) => {
   try {
-    const answer = await conversationAnalyzer.answerGeneralQuestion(userMessage, conversationHistory);
+    const answer = await conversationAnalyzer.answerGeneralQuestion(
+      userMessage,
+      conversationHistory
+    );
 
     await addMessage(conversationId, userId, 'assistant', answer, {}, isGuest);
 
@@ -736,8 +1017,16 @@ const handleGeneralQuestion = async (userMessage, conversationHistory, conversat
       isGeneralQuestion: true,
     };
   } catch (error) {
-    const errorMessage = "I'm here to help you create presentations! What would you like to know?";
-    await addMessage(conversationId, userId, 'assistant', errorMessage, {}, isGuest);
+    const errorMessage =
+      "I'm here to help you create presentations! What would you like to know?";
+    await addMessage(
+      conversationId,
+      userId,
+      'assistant',
+      errorMessage,
+      {},
+      isGuest
+    );
 
     return {
       success: true,

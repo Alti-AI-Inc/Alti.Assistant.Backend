@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import { RAGSystem } from 'rag-system-pgvector'
+import { RAGSystem } from 'rag-system-pgvector';
 import { knowledgebaseService } from './knowledgebase.service.js';
 import UserUsageModel from '../usage/userUsage.model.js';
 import path from 'path';
@@ -46,17 +46,31 @@ const uploadFile = catchAsync(async (req, res) => {
   const uploadedFile = req.files[0];
 
   // Extract file extension from filename
-  const fileExtension = path.extname(uploadedFile.originalname).toLowerCase().substring(1); // Remove the dot and convert to lowercase
+  const fileExtension = path
+    .extname(uploadedFile.originalname)
+    .toLowerCase()
+    .substring(1); // Remove the dot and convert to lowercase
 
   try {
     // For now, just return success message
     // You can add the actual processing logic later
-    logger.info(`File upload attempted by user: ${userId}, file: ${uploadedFile.originalname}, type: ${fileExtension}, size: ${uploadedFile.size} bytes`);
-    const response = await knowledgebaseService.processUploadedFile(uploadedFile, knowledgebotId, userId, req);
+    logger.info(
+      `File upload attempted by user: ${userId}, file: ${uploadedFile.originalname}, type: ${fileExtension}, size: ${uploadedFile.size} bytes`
+    );
+    const response = await knowledgebaseService.processUploadedFile(
+      uploadedFile,
+      knowledgebotId,
+      userId,
+      req
+    );
 
     // Track storage usage
     const tenantId = req.currentTenantId ?? null;
-    await UserUsageModel.updateStorage(userId, tenantId, uploadedFile.size).catch(err =>
+    await UserUsageModel.updateStorage(
+      userId,
+      tenantId,
+      uploadedFile.size
+    ).catch((err) =>
       logger.error('[Knowledgebase] Storage increment error:', err)
     );
 
@@ -67,7 +81,7 @@ const uploadFile = catchAsync(async (req, res) => {
       data: response,
     });
   } catch (error) {
-    logger.error("File upload error:", error);
+    logger.error('File upload error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
@@ -83,7 +97,8 @@ const deleteKnowledgeBase = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'Knowledge base deletion is only available for authenticated users',
+      message:
+        'Knowledge base deletion is only available for authenticated users',
     });
   }
   const userId = req.user?.userId || req.user?._id;
@@ -103,7 +118,11 @@ const deleteKnowledgeBase = catchAsync(async (req, res) => {
     });
   }
   try {
-    const result = await knowledgebaseService.deleteKnowledgeBase(knowledgebaseId, userId, req);
+    const result = await knowledgebaseService.deleteKnowledgeBase(
+      knowledgebaseId,
+      userId,
+      req
+    );
     if (!result) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
@@ -117,7 +136,7 @@ const deleteKnowledgeBase = catchAsync(async (req, res) => {
       message: 'Knowledge base deleted successfully',
     });
   } catch (error) {
-    logger.error("Delete knowledge base error:", error);
+    logger.error('Delete knowledge base error:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
@@ -154,7 +173,11 @@ const getUserFiles = catchAsync(async (req, res) => {
   const { knowledgebotId } = req.query;
 
   try {
-    const files = await knowledgebaseService.getUserFiles(userId, knowledgebotId, req);
+    const files = await knowledgebaseService.getUserFiles(
+      userId,
+      knowledgebotId,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -167,7 +190,7 @@ const getUserFiles = catchAsync(async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error("Get user files error:", error);
+    logger.error('Get user files error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
@@ -187,7 +210,8 @@ const createKnowledgeBase = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'Creating knowledge base is only available for authenticated users',
+      message:
+        'Creating knowledge base is only available for authenticated users',
     });
   }
 
@@ -212,7 +236,11 @@ const createKnowledgeBase = catchAsync(async (req, res) => {
   }
 
   try {
-    const knowledgeBase = await knowledgebaseService.createKnowledgeBase(req.body, userId, req);
+    const knowledgeBase = await knowledgebaseService.createKnowledgeBase(
+      req.body,
+      userId,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
@@ -221,12 +249,13 @@ const createKnowledgeBase = catchAsync(async (req, res) => {
       data: knowledgeBase,
     });
   } catch (error) {
-    logger.error("Create knowledge base error:", error);
+    logger.error('Create knowledge base error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while creating the knowledge base',
+      message:
+        error.message || 'An error occurred while creating the knowledge base',
     });
   }
 });
@@ -241,7 +270,8 @@ const getUserKnowledgeBases = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'Access to knowledge bases is only available for authenticated users',
+      message:
+        'Access to knowledge bases is only available for authenticated users',
     });
   }
 
@@ -256,7 +286,10 @@ const getUserKnowledgeBases = catchAsync(async (req, res) => {
   }
 
   try {
-    const knowledgeBases = await knowledgebaseService.getUserKnowledgeBases(userId, req);
+    const knowledgeBases = await knowledgebaseService.getUserKnowledgeBases(
+      userId,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -268,7 +301,7 @@ const getUserKnowledgeBases = catchAsync(async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error("Get user knowledge bases error:", error);
+    logger.error('Get user knowledge bases error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
@@ -280,14 +313,14 @@ const getUserKnowledgeBases = catchAsync(async (req, res) => {
 
 const invokeRagSystem = async (req, res) => {
   const response = await knowledgebaseService.invokeRagSystem();
-  console.log("RAG Response:", response);
+  console.log('RAG Response:', response);
   return sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'RAG system invoked successfully',
     data: response,
   });
-}
+};
 
 /**
  * Chat with knowledge base
@@ -299,7 +332,8 @@ const chatWithKnowledgeBase = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'Chat with knowledge base is only available for authenticated users',
+      message:
+        'Chat with knowledge base is only available for authenticated users',
     });
   }
 
@@ -333,7 +367,10 @@ const chatWithKnowledgeBase = catchAsync(async (req, res) => {
 
   try {
     // Verify knowledge base exists and belongs to user
-    const knowledgeBase = await knowledgebaseService.getKnowledgeBaseById(knowledgebaseId, userId);
+    const knowledgeBase = await knowledgebaseService.getKnowledgeBaseById(
+      knowledgebaseId,
+      userId
+    );
     if (!knowledgeBase) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
@@ -348,12 +385,19 @@ const chatWithKnowledgeBase = catchAsync(async (req, res) => {
 
     if (conversationId) {
       // Find existing conversation
-      conversation = await Conversation.findByConversationId(conversationId, userId);
-      if (!conversation || conversation.knowledgebaseId?.toString() !== knowledgebaseId) {
+      conversation = await Conversation.findByConversationId(
+        conversationId,
+        userId
+      );
+      if (
+        !conversation ||
+        conversation.knowledgebaseId?.toString() !== knowledgebaseId
+      ) {
         return sendResponse(res, {
           statusCode: httpStatus.NOT_FOUND,
           success: false,
-          message: 'Conversation not found or does not belong to this knowledge base',
+          message:
+            'Conversation not found or does not belong to this knowledge base',
         });
       }
     } else {
@@ -407,12 +451,13 @@ const chatWithKnowledgeBase = catchAsync(async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error("Chat with knowledge base error:", error);
+    logger.error('Chat with knowledge base error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while processing your message',
+      message:
+        error.message || 'An error occurred while processing your message',
     });
   }
 });
@@ -427,7 +472,8 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'Access to conversations is only available for authenticated users',
+      message:
+        'Access to conversations is only available for authenticated users',
     });
   }
 
@@ -452,7 +498,10 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
 
   try {
     // Verify knowledge base exists and belongs to user
-    const knowledgeBase = await knowledgebaseService.getKnowledgeBaseById(knowledgebaseId, userId);
+    const knowledgeBase = await knowledgebaseService.getKnowledgeBaseById(
+      knowledgebaseId,
+      userId
+    );
     if (!knowledgeBase) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
@@ -465,9 +514,11 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
     const conversations = await Conversation.find({
       userId: userId,
       knowledgebaseId: knowledgebaseId,
-      status: 'active'
+      status: 'active',
     })
-      .select('conversationId title lastActivity messageCount createdAt updatedAt metadata')
+      .select(
+        'conversationId title lastActivity messageCount createdAt updatedAt metadata'
+      )
       .sort({ lastActivity: -1 })
       .limit(50);
 
@@ -483,7 +534,7 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error("Get knowledge base conversations error:", error);
+    logger.error('Get knowledge base conversations error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
@@ -519,7 +570,11 @@ const deleteFile = catchAsync(async (req, res) => {
     });
   }
   try {
-    const result = await knowledgebaseService.deleteUserFile(fileId, userId, req);
+    const result = await knowledgebaseService.deleteUserFile(
+      fileId,
+      userId,
+      req
+    );
     if (!result) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
@@ -530,7 +585,11 @@ const deleteFile = catchAsync(async (req, res) => {
 
     // Decrement storage usage
     const tenantId = req.currentTenantId ?? null;
-    await UserUsageModel.updateStorage(userId, tenantId, -(result.fileSize || 0)).catch(err =>
+    await UserUsageModel.updateStorage(
+      userId,
+      tenantId,
+      -(result.fileSize || 0)
+    ).catch((err) =>
       logger.error('[Knowledgebase] Storage decrement error:', err)
     );
 
@@ -539,9 +598,8 @@ const deleteFile = catchAsync(async (req, res) => {
       success: true,
       message: 'File deleted successfully',
     });
-  }
-  catch (error) {
-    logger.error("Delete user file error:", error);
+  } catch (error) {
+    logger.error('Delete user file error:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
@@ -560,7 +618,8 @@ const getConversationMessages = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'Access to conversation messages is only available for authenticated users',
+      message:
+        'Access to conversation messages is only available for authenticated users',
     });
   }
 
@@ -585,8 +644,10 @@ const getConversationMessages = catchAsync(async (req, res) => {
 
   try {
     // Find conversation
-    const conversation = await Conversation.findByConversationId(conversationId, userId)
-      .populate('knowledgebaseId', 'name description');
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    ).populate('knowledgebaseId', 'name description');
 
     if (!conversation) {
       return sendResponse(res, {
@@ -613,7 +674,7 @@ const getConversationMessages = catchAsync(async (req, res) => {
       },
     });
   } catch (error) {
-    logger.error("Get conversation messages error:", error);
+    logger.error('Get conversation messages error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,

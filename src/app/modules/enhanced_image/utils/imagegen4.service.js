@@ -1,18 +1,20 @@
-import { GoogleGenAI } from "@google/genai";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import dotenv from "dotenv";
-import { GCPStorageService } from "../services/gcpStorageService.js";
-import config from "../../../../../config/index.js";
+import { GoogleGenAI } from '@google/genai';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import dotenv from 'dotenv';
+import { GCPStorageService } from '../services/gcpStorageService.js';
+import config from '../../../../../config/index.js';
 
 dotenv.config();
 
 // Initialize GCP Storage
-const gcpKeyPath = path.join(process.cwd(), "alti_gcp.json");
-const gcpStorage = new GCPStorageService("alti_assistant_generated_photo", gcpKeyPath);
+const gcpKeyPath = path.join(process.cwd(), 'alti_gcp.json');
+const gcpStorage = new GCPStorageService(
+  'alti_assistant_generated_photo',
+  gcpKeyPath
+);
 
 export async function imagegen_4(prompt, download_path) {
-
   const ai = new GoogleGenAI({
     apiKey: config.gemini_secret_key,
   });
@@ -32,13 +34,15 @@ export async function imagegen_4(prompt, download_path) {
 
   for (const generatedImage of response.generatedImages) {
     let imgBytes = generatedImage.image.imageBytes;
-    const buffer = Buffer.from(imgBytes, "base64");
+    const buffer = Buffer.from(imgBytes, 'base64');
 
     // Extract filename from download_path
-    const filename = download_path ? path.basename(download_path) : `imagen-${idx}.png`;
+    const filename = download_path
+      ? path.basename(download_path)
+      : `imagen-${idx}.png`;
 
     // Upload to GCP bucket
-    uploadedUrl = await gcpStorage.uploadBuffer(buffer, filename, "image/png");
+    uploadedUrl = await gcpStorage.uploadBuffer(buffer, filename, 'image/png');
     idx++;
   }
 

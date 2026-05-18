@@ -1,6 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import config from "../../../../../config/index.js";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import config from '../../../../../config/index.js';
+import { GoogleGenAI } from '@google/genai';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 /**
  * Gemini Grounding Service with Native Google Search
@@ -14,14 +14,14 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * @param {string} modelName - Model to use (default: gemini-3-flash-preview)
  * @returns {GenerativeModel} Configured model instance
  */
-export function createGroundedModel(modelName = "gemini-3-flash-preview") {
+export function createGroundedModel(modelName = 'gemini-3-flash-preview') {
   return genAI.getGenerativeModel({
     model: modelName,
     tools: [
       {
-        googleSearch: {} // Native Google Search grounding tool
-      }
-    ]
+        googleSearch: {}, // Native Google Search grounding tool
+      },
+    ],
   });
 }
 
@@ -37,15 +37,21 @@ async function estimateTokens(messages) {
     const content = msg.content || '';
     return sum + content.length;
   }, 0);
-  let makeASingleMessage = ''
+  let makeASingleMessage = '';
 
-  messages.forEach(msg => {
+  messages.forEach((msg) => {
     makeASingleMessage += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
   });
   const countingModel = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
-  console.log('Making a single message for token estimation: ', makeASingleMessage);
-  const totalToken = await countingModel.models.countTokens({ contents: makeASingleMessage, model: 'gemini-2.5-flash' });
+  console.log(
+    'Making a single message for token estimation: ',
+    makeASingleMessage
+  );
+  const totalToken = await countingModel.models.countTokens({
+    contents: makeASingleMessage,
+    model: 'gemini-2.5-flash',
+  });
 
   // Rough estimate: 1 token ≈ 4 characters
   return totalToken.totalTokens;
@@ -58,12 +64,16 @@ async function estimateTokens(messages) {
  * @returns {Object} Summarized history with summary message
  */
 async function summarizeHistory(conversationHistory, ai) {
-  console.log(`📝 Summarizing ${conversationHistory.length} messages in conversation history`);
+  console.log(
+    `📝 Summarizing ${conversationHistory.length} messages in conversation history`
+  );
 
   try {
     // Extract conversation text
     const conversationText = conversationHistory
-      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .map(
+        (msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+      )
       .join('\n\n');
 
     // Create summary request
@@ -75,23 +85,28 @@ ${conversationText}
 Summary:`;
 
     const summaryResult = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{
-        role: 'user',
-        parts: [{ text: summaryPrompt }]
-      }]
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: summaryPrompt }],
+        },
+      ],
     });
 
-    const summaryText = summaryResult.candidates[0].content.parts.map(part => part.text).join('');
+    const summaryText = summaryResult.candidates[0].content.parts
+      .map((part) => part.text)
+      .join('');
 
     console.log(`✅ History summarized: ${summaryText.length} characters`);
 
     // Return as a single summary message
-    return [{
-      role: 'user',
-      content: `Previous conversation summary: ${summaryText}`
-    }];
-
+    return [
+      {
+        role: 'user',
+        content: `Previous conversation summary: ${summaryText}`,
+      },
+    ];
   } catch (error) {
     console.error('❌ Error summarizing history:', error);
     // Fallback: keep only last 3 messages if summarization fails
@@ -202,7 +217,10 @@ FINAL REMINDER: Minimal, direct answers. Essential details only. No fluff.
  * @yields {Object} Chunks containing thinking or text parts
  * @returns {AsyncGenerator} Stream of response chunks
  */
-export async function* executeGroundedSearchStream(query, conversationHistory = []) {
+export async function* executeGroundedSearchStream(
+  query,
+  conversationHistory = []
+) {
   console.log(`🔍 Executing streaming grounded search: "${query}"`);
 
   const MAX_RETRIES = 3;
@@ -222,33 +240,39 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
       let processedHistory = conversationHistory;
       const historyTokens = await estimateTokens(conversationHistory);
 
-      console.log(`📊 History tokens: ${historyTokens} / ${MAX_HISTORY_TOKENS}`);
+      console.log(
+        `📊 History tokens: ${historyTokens} / ${MAX_HISTORY_TOKENS}`
+      );
 
       if (historyTokens > MAX_HISTORY_TOKENS) {
-        console.log(`⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`);
+        console.log(
+          `⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`
+        );
         processedHistory = await summarizeHistory(conversationHistory, ai);
 
         const summaryTokens = estimateTokens(processedHistory);
         if (summaryTokens > MAX_HISTORY_TOKENS) {
-          console.log(`⚠️ Summary still too large, truncating to last message only`);
+          console.log(
+            `⚠️ Summary still too large, truncating to last message only`
+          );
           processedHistory = conversationHistory.slice(-1);
         }
       }
 
       // Build contents with proper format for Google GenAI
       const contents = [
-        ...processedHistory.map(msg => ({
+        ...processedHistory.map((msg) => ({
           role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
+          parts: [{ text: msg.content }],
         })),
         {
           role: 'user',
-          parts: [{ text: query }]
-        }
+          parts: [{ text: query }],
+        },
       ];
 
       const stream = await ai.models.generateContentStream({
-        model: "gemini-3-flash-preview",
+        model: 'gemini-3-flash-preview',
         contents: contents,
         config: {
           temperature: 0.2,
@@ -256,8 +280,8 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
           // systemInstruction: systemPrompt,
           tools: [{ googleSearch: {} }],
           thinkingConfig: {
-            thinkingLevel: 'LOW'
-          }
+            thinkingLevel: 'LOW',
+          },
         },
       });
 
@@ -280,7 +304,7 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
                 yield {
                   type: 'thinking',
                   content: part.thought,
-                  timestamp: Date.now()
+                  timestamp: Date.now(),
                 };
               }
 
@@ -288,11 +312,13 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
               if (part.text) {
                 hasReceivedContent = true;
                 fullText += part.text;
-                console.log(`💬 Streaming text chunk: ${part.text.substring(0, 50)}...`);
+                console.log(
+                  `💬 Streaming text chunk: ${part.text.substring(0, 50)}...`
+                );
                 yield {
                   type: 'text',
                   content: part.text,
-                  timestamp: Date.now()
+                  timestamp: Date.now(),
                 };
               }
             }
@@ -310,16 +336,22 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
 
       // Check if we got content
       if (!hasReceivedContent || fullText.trim().length === 0) {
-        console.warn(`⚠️ Attempt ${attemptCount}/${MAX_RETRIES}: Stream completed but no content received. Retrying...`);
+        console.warn(
+          `⚠️ Attempt ${attemptCount}/${MAX_RETRIES}: Stream completed but no content received. Retrying...`
+        );
 
         if (attemptCount < MAX_RETRIES) {
           const waitTime = Math.pow(2, attemptCount) * 1000;
           console.log(`⏳ Waiting ${waitTime}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
           continue;
         } else {
-          console.error(`❌ All ${MAX_RETRIES} attempts failed with empty streams`);
-          throw new Error('Model stream completed but no content received after 3 attempts');
+          console.error(
+            `❌ All ${MAX_RETRIES} attempts failed with empty streams`
+          );
+          throw new Error(
+            'Model stream completed but no content received after 3 attempts'
+          );
         }
       }
 
@@ -338,13 +370,13 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
               references.push({
                 url: chunk.web.uri,
                 domain: chunk.web.title || url.hostname.replace('www.', ''),
-                title: chunk.web.title
+                title: chunk.web.title,
               });
             } catch {
               references.push({
                 url: chunk.web.uri,
                 domain: chunk.web.title || 'unknown',
-                title: chunk.web.title
+                title: chunk.web.title,
               });
             }
           }
@@ -357,23 +389,32 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
         index: index + 1,
         url: ref.url,
         domain: ref.domain,
-        title: ref.title
+        title: ref.title,
       }));
 
-      const citationMetadata = groundingMetadata ? {
-        searchQueries: groundingMetadata.webSearchQueries || [],
-        searchTimestamp: new Date().toISOString(),
-        model: "gemini-3-flash-preview",
-        groundingSupports: groundingMetadata.groundingSupports?.length || 0,
-        totalSources: groundingMetadata.groundingChunks?.length || 0
-      } : null;
+      const citationMetadata = groundingMetadata
+        ? {
+            searchQueries: groundingMetadata.webSearchQueries || [],
+            searchTimestamp: new Date().toISOString(),
+            model: 'gemini-3-flash-preview',
+            groundingSupports: groundingMetadata.groundingSupports?.length || 0,
+            totalSources: groundingMetadata.groundingChunks?.length || 0,
+          }
+        : null;
 
-      console.log(`✅ Streaming grounded search completed on attempt ${attemptCount}`);
-      console.log(`📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`);
+      console.log(
+        `✅ Streaming grounded search completed on attempt ${attemptCount}`
+      );
+      console.log(
+        `📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`
+      );
       console.log(`📚 Found ${references.length} sources`);
 
       if (groundingMetadata?.webSearchQueries) {
-        console.log(`🔎 Search queries used:`, groundingMetadata.webSearchQueries);
+        console.log(
+          `🔎 Search queries used:`,
+          groundingMetadata.webSearchQueries
+        );
       }
 
       // Yield final metadata
@@ -383,13 +424,15 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
         reference: limitedReferences,
         citations: citations,
         citationMetadata: citationMetadata,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       return; // Success, exit retry loop
-
     } catch (error) {
-      console.error(`❌ Error in streaming grounded search (attempt ${attemptCount}/${MAX_RETRIES}):`, error);
+      console.error(
+        `❌ Error in streaming grounded search (attempt ${attemptCount}/${MAX_RETRIES}):`,
+        error
+      );
 
       if (attemptCount >= MAX_RETRIES) {
         throw error;
@@ -397,11 +440,13 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
 
       const waitTime = Math.pow(2, attemptCount) * 1000;
       console.log(`⏳ Waiting ${waitTime}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
   }
 
-  throw new Error('Unexpected: Exhausted all retry attempts without returning or throwing');
+  throw new Error(
+    'Unexpected: Exhausted all retry attempts without returning or throwing'
+  );
 }
 
 /**
@@ -411,8 +456,6 @@ export async function* executeGroundedSearchStream(query, conversationHistory = 
  * @returns {Object} Formatted response with answer, references, and citations
  */
 export async function executeGroundedSearch(query, conversationHistory = []) {
-
-
   console.log(`🔍 Executing grounded search: "${query}"`);
 
   const MAX_RETRIES = 3;
@@ -432,35 +475,41 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
       let processedHistory = conversationHistory;
       const historyTokens = await estimateTokens(conversationHistory);
 
-      console.log(`📊 History tokens: ${historyTokens} / ${MAX_HISTORY_TOKENS}`);
+      console.log(
+        `📊 History tokens: ${historyTokens} / ${MAX_HISTORY_TOKENS}`
+      );
 
       if (historyTokens > MAX_HISTORY_TOKENS) {
-        console.log(`⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`);
+        console.log(
+          `⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`
+        );
         processedHistory = await summarizeHistory(conversationHistory, ai);
 
         // Check if even summary is too large
         const summaryTokens = estimateTokens(processedHistory);
         if (summaryTokens > MAX_HISTORY_TOKENS) {
-          console.log(`⚠️ Summary still too large, truncating to last message only`);
+          console.log(
+            `⚠️ Summary still too large, truncating to last message only`
+          );
           processedHistory = conversationHistory.slice(-1);
         }
       }
 
       // Build contents with proper format for Google GenAI
       const contents = [
-        ...processedHistory.map(msg => ({
+        ...processedHistory.map((msg) => ({
           role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
+          parts: [{ text: msg.content }],
         })),
         {
           role: 'user',
-          parts: [{ text: query }]
-        }
+          parts: [{ text: query }],
+        },
       ];
       console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
 
       const result = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: 'gemini-3-flash-preview',
         contents: contents,
         config: {
           temperature: 0.2,
@@ -480,8 +529,8 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
       if (response.content?.parts && response.content.parts.length > 0) {
         // Check if we have meaningful text content
         const textParts = response.content.parts
-          .filter(part => part.text && !part.thought)
-          .map(part => part.text.trim());
+          .filter((part) => part.text && !part.thought)
+          .map((part) => part.text.trim());
 
         const fullText = textParts.join('').trim();
 
@@ -489,34 +538,51 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
         // 1. Text has meaningful length (> 10 chars)
         // 2. Text is not just incomplete JSON structure
         // 3. Text doesn't look like a partial response
-        const isIncompleteJson = /^{\s*"?\s*$/.test(fullText) || fullText === '{' || fullText === '{\n';
+        const isIncompleteJson =
+          /^{\s*"?\s*$/.test(fullText) ||
+          fullText === '{' ||
+          fullText === '{\n';
         const isMeaningful = fullText.length > 2 && !isIncompleteJson;
 
         hasContent = isMeaningful;
 
         if (!hasContent) {
-          console.warn(`⚠️ Detected incomplete/meaningless response: "${fullText.substring(0, 50)}..."`);
+          console.warn(
+            `⚠️ Detected incomplete/meaningless response: "${fullText.substring(0, 50)}..."`
+          );
         }
       }
 
       if (response.finishReason === 'STOP' && !hasContent) {
-        console.warn(`⚠️ Attempt ${attemptCount}/${MAX_RETRIES}: Got STOP but no valid content. Retrying...`);
-        console.log('Empty/incomplete response details:', JSON.stringify(result, null, 2));
+        console.warn(
+          `⚠️ Attempt ${attemptCount}/${MAX_RETRIES}: Got STOP but no valid content. Retrying...`
+        );
+        console.log(
+          'Empty/incomplete response details:',
+          JSON.stringify(result, null, 2)
+        );
 
         if (attemptCount < MAX_RETRIES) {
           // Wait before retry (exponential backoff)
           const waitTime = Math.pow(2, attemptCount) * 1000; // 2s, 4s, 8s
           console.log(`⏳ Waiting ${waitTime}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
           continue; // Retry
         } else {
-          console.error(`❌ All ${MAX_RETRIES} attempts failed with empty/incomplete responses`);
-          throw new Error('Model returned STOP but no valid content after 3 attempts');
+          console.error(
+            `❌ All ${MAX_RETRIES} attempts failed with empty/incomplete responses`
+          );
+          throw new Error(
+            'Model returned STOP but no valid content after 3 attempts'
+          );
         }
       }
 
       console.log('Full response object:', JSON.stringify(result, null, 2));
-      console.log('Response content:', JSON.stringify(response.content, null, 2));
+      console.log(
+        'Response content:',
+        JSON.stringify(response.content, null, 2)
+      );
       console.log('Response parts:', response.content?.parts);
 
       // Log thinking process if available
@@ -532,8 +598,8 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
 
       // Extract only the text parts (not thinking)
       const text = response.content.parts
-        .filter(part => part.text)
-        .map(part => part.text)
+        .filter((part) => part.text)
+        .map((part) => part.text)
         .join('');
 
       // Extract grounding metadata
@@ -554,13 +620,13 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
               references.push({
                 url: chunk.web.uri,
                 domain: chunk.web.title || url.hostname.replace('www.', ''),
-                title: chunk.web.title
+                title: chunk.web.title,
               });
             } catch {
               references.push({
                 url: chunk.web.uri,
                 domain: chunk.web.title || 'unknown',
-                title: chunk.web.title
+                title: chunk.web.title,
               });
             }
           }
@@ -574,35 +640,44 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
         index: index + 1,
         url: ref.url,
         domain: ref.domain,
-        title: ref.title
+        title: ref.title,
       }));
 
       // Build citation metadata
-      const citationMetadata = groundingMetadata ? {
-        searchQueries: groundingMetadata.webSearchQueries || [],
-        searchTimestamp: new Date().toISOString(),
-        model: "gemini-2.5-flash",
-        groundingSupports: groundingMetadata.groundingSupports?.length || 0,
-        totalSources: groundingMetadata.groundingChunks?.length || 0
-      } : null;
+      const citationMetadata = groundingMetadata
+        ? {
+            searchQueries: groundingMetadata.webSearchQueries || [],
+            searchTimestamp: new Date().toISOString(),
+            model: 'gemini-2.5-flash',
+            groundingSupports: groundingMetadata.groundingSupports?.length || 0,
+            totalSources: groundingMetadata.groundingChunks?.length || 0,
+          }
+        : null;
 
       console.log(`✅ Grounded search completed on attempt ${attemptCount}`);
-      console.log(`📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`);
+      console.log(
+        `📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`
+      );
       console.log(`📚 Found ${references.length} sources`);
 
       if (groundingMetadata?.webSearchQueries) {
-        console.log(`🔎 Search queries used:`, groundingMetadata.webSearchQueries);
+        console.log(
+          `🔎 Search queries used:`,
+          groundingMetadata.webSearchQueries
+        );
       }
 
       return {
         answer: text,
         reference: limitedReferences,
         citations: citations,
-        citationMetadata: citationMetadata
+        citationMetadata: citationMetadata,
       };
-
     } catch (error) {
-      console.error(`❌ Error in grounded search (attempt ${attemptCount}/${MAX_RETRIES}):`, error);
+      console.error(
+        `❌ Error in grounded search (attempt ${attemptCount}/${MAX_RETRIES}):`,
+        error
+      );
 
       // If we've exhausted retries, throw the error
       if (attemptCount >= MAX_RETRIES) {
@@ -612,12 +687,14 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
       // Wait before retry (exponential backoff)
       const waitTime = Math.pow(2, attemptCount) * 1000;
       console.log(`⏳ Waiting ${waitTime}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
   }
 
   // Should never reach here, but just in case
-  throw new Error('Unexpected: Exhausted all retry attempts without returning or throwing');
+  throw new Error(
+    'Unexpected: Exhausted all retry attempts without returning or throwing'
+  );
 }
 
 /**
@@ -627,14 +704,18 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
  * @param {string} modelName - Specific model to use
  * @returns {Object} Formatted response
  */
-export async function executeGroundedSearchWithModel(query, conversationHistory = [], modelName = "gemini-3-flash-preview") {
+export async function executeGroundedSearchWithModel(
+  query,
+  conversationHistory = [],
+  modelName = 'gemini-3-flash-preview'
+) {
   const model = createGroundedModel(modelName);
 
   const chat = model.startChat({
-    history: conversationHistory.map(msg => ({
+    history: conversationHistory.map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }))
+      parts: [{ text: msg.content }],
+    })),
   });
 
   console.log(`🔍 Executing grounded search with ${modelName}: "${query}"`);
@@ -659,13 +740,13 @@ export async function executeGroundedSearchWithModel(query, conversationHistory 
             references.push({
               url: chunk.web.uri,
               domain: chunk.web.title || url.hostname.replace('www.', ''),
-              title: chunk.web.title
+              title: chunk.web.title,
             });
           } catch {
             references.push({
               url: chunk.web.uri,
               domain: chunk.web.title || 'unknown',
-              title: chunk.web.title
+              title: chunk.web.title,
             });
           }
         }
@@ -678,28 +759,31 @@ export async function executeGroundedSearchWithModel(query, conversationHistory 
       index: index + 1,
       url: ref.url,
       domain: ref.domain,
-      title: ref.title
+      title: ref.title,
     }));
 
-    const citationMetadata = groundingMetadata ? {
-      searchQueries: groundingMetadata.webSearchQueries || [],
-      searchTimestamp: new Date().toISOString(),
-      model: modelName,
-      groundingSupports: groundingMetadata.groundingSupports?.length || 0,
-      totalSources: groundingMetadata.groundingChunks?.length || 0
-    } : null;
+    const citationMetadata = groundingMetadata
+      ? {
+          searchQueries: groundingMetadata.webSearchQueries || [],
+          searchTimestamp: new Date().toISOString(),
+          model: modelName,
+          groundingSupports: groundingMetadata.groundingSupports?.length || 0,
+          totalSources: groundingMetadata.groundingChunks?.length || 0,
+        }
+      : null;
 
     console.log(`✅ Grounded search completed with ${modelName}`);
-    console.log(`📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`);
+    console.log(
+      `📊 Used ${groundingMetadata?.webSearchQueries?.length || 0} search queries`
+    );
     console.log(`📚 Found ${references.length} sources`);
 
     return {
       answer: text,
       reference: limitedReferences,
       citations: citations,
-      citationMetadata: citationMetadata
+      citationMetadata: citationMetadata,
     };
-
   } catch (error) {
     console.error(`❌ Error in grounded search with ${modelName}:`, error);
     throw error;
@@ -710,5 +794,5 @@ export default {
   createGroundedModel,
   executeGroundedSearch,
   executeGroundedSearchStream,
-  executeGroundedSearchWithModel
+  executeGroundedSearchWithModel,
 };

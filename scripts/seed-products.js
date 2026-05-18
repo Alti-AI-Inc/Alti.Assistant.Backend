@@ -80,7 +80,12 @@ async function seedProducts() {
     console.log('✅ Connected to MongoDB\n');
 
     // Load stripe-products.json
-    const stripeProductsPath = join(__dirname, '..', 'config', 'stripe-products.json');
+    const stripeProductsPath = join(
+      __dirname,
+      '..',
+      'config',
+      'stripe-products.json'
+    );
     let stripeProducts;
 
     try {
@@ -92,7 +97,9 @@ async function seedProducts() {
       process.exit(1);
     }
 
-    console.log(`📦 Found ${stripeProducts.plans.length} plans in stripe-products.json\n`);
+    console.log(
+      `📦 Found ${stripeProducts.plans.length} plans in stripe-products.json\n`
+    );
 
     // Check for existing products
     const existingCount = await ProductModel.countDocuments();
@@ -104,7 +111,9 @@ async function seedProducts() {
     }
 
     if (forceUpdate && existingCount > 0) {
-      console.log(`🗑️  Force mode: Deleting ${existingCount} existing products...\n`);
+      console.log(
+        `🗑️  Force mode: Deleting ${existingCount} existing products...\n`
+      );
       await ProductModel.deleteMany({});
     }
 
@@ -156,7 +165,9 @@ async function seedProducts() {
           console.log(`   Price: $${planData.price}/${planData.interval}`);
           console.log(`   Product ID: ${planData.productId}`);
           console.log(`   Price ID: ${planData.priceId}`);
-          console.log(`   Features: ${productData.featuresList.length} listed\n`);
+          console.log(
+            `   Features: ${productData.featuresList.length} listed\n`
+          );
         }
       } catch (error) {
         failed++;
@@ -176,7 +187,9 @@ async function seedProducts() {
     const allProducts = await ProductModel.find().sort({ sortOrder: 1 });
     console.log('📋 Products in database:');
     allProducts.forEach((product) => {
-      console.log(`   ${product.sortOrder + 1}. ${product.name} - $${product.price}/${product.interval}`);
+      console.log(
+        `   ${product.sortOrder + 1}. ${product.name} - $${product.price}/${product.interval}`
+      );
     });
 
     console.log('\n✅ Product seeding completed successfully!\n');

@@ -4,7 +4,7 @@ import multerS3 from 'multer-s3';
 import path from 'path';
 import config from '../../../../config/index.js';
 
-const imgUploader = options => {
+const imgUploader = (options) => {
   const { folder, acl, supportedExtensions, maxFileSize } = options;
 
   const spacesEndpoint = new aws.Endpoint('nyc3.digitaloceanspaces.com');

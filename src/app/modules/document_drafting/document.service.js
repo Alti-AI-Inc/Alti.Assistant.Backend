@@ -49,16 +49,28 @@ const generateConversationId = () => {
 /**
  * Handle document conversation (create or retrieve)
  */
-const handleDocumentConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleDocumentConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Retrieved existing conversation: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -81,20 +93,33 @@ const handleDocumentConversation = async (userId, conversationId, userMessage, i
         req
       );
 
-      logger.info(`Created new document conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new document conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling document conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -103,21 +128,39 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
 /**
  * Update conversation metadata
  */
-const updateConversationMetadata = async (conversationId, userId, params, req = null) => {
+const updateConversationMetadata = async (
+  conversationId,
+  userId,
+  params,
+  req = null
+) => {
   try {
-    await conversationService.updateConversationMetadata(conversationId, userId, {
-      collectedParams: params,
-    }, req);
+    await conversationService.updateConversationMetadata(
+      conversationId,
+      userId,
+      {
+        collectedParams: params,
+      },
+      req
+    );
   } catch (error) {
     logger.warn('Error updating conversation metadata:', error);
   }
@@ -126,9 +169,18 @@ const updateConversationMetadata = async (conversationId, userId, params, req = 
 /**
  * Save conversation summary
  */
-const saveConversationSummary = async (conversationId, userId, summary, req = null) => {
+const saveConversationSummary = async (
+  conversationId,
+  userId,
+  summary,
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (conversation) {
       conversation.metadata = {
@@ -194,14 +246,23 @@ Generate the complete document content now:`;
     return documentContent;
   } catch (error) {
     logger.error('Error generating document content:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate document content');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to generate document content'
+    );
   }
 };
 
 /**
  * Handle draft intent
  */
-const handleDraftIntent = async (analysis, updatedParams, conversationId, userId, isGuest) => {
+const handleDraftIntent = async (
+  analysis,
+  updatedParams,
+  conversationId,
+  userId,
+  isGuest
+) => {
   try {
     // Check if we can proceed
     if (!analysis.canProceed) {
@@ -230,15 +291,21 @@ const handleDraftIntent = async (analysis, updatedParams, conversationId, userId
 
     // Prepare metadata for export
     const metadata = {
-      title: updatedParams.title || `${updatedParams.documentType || 'Document'}`,
+      title:
+        updatedParams.title || `${updatedParams.documentType || 'Document'}`,
       documentType: updatedParams.documentType,
       includeDate: updatedParams.includeDate !== false,
       includeTitle: updatedParams.includeTitle !== false,
     };
 
     // Export to specified format
-    const outputFormat = updatedParams.outputFormat || DEFAULT_PARAMS.outputFormat;
-    const exportResult = await exportDocument(documentContent, outputFormat, metadata);
+    const outputFormat =
+      updatedParams.outputFormat || DEFAULT_PARAMS.outputFormat;
+    const exportResult = await exportDocument(
+      documentContent,
+      outputFormat,
+      metadata
+    );
 
     // Upload to GCS
     const uploadResult = await uploadDocumentToGCS(exportResult.filePath, {
@@ -301,13 +368,27 @@ const handleDraftIntent = async (analysis, updatedParams, conversationId, userId
 /**
  * Handle export intent
  */
-const handleExportIntent = async (analysis, updatedParams, conversationId, userId, isGuest) => {
+const handleExportIntent = async (
+  analysis,
+  updatedParams,
+  conversationId,
+  userId,
+  isGuest
+) => {
   try {
     const { content, outputFormat, title, documentType } = updatedParams;
 
     if (!content) {
-      const message = 'I need the document content to export. Could you provide it?';
-      await addMessage(conversationId, userId, 'assistant', message, {}, isGuest);
+      const message =
+        'I need the document content to export. Could you provide it?';
+      await addMessage(
+        conversationId,
+        userId,
+        'assistant',
+        message,
+        {},
+        isGuest
+      );
 
       return {
         conversationId,
@@ -320,8 +401,16 @@ const handleExportIntent = async (analysis, updatedParams, conversationId, userI
     }
 
     if (!outputFormat) {
-      const message = 'What format would you like to export to? (PDF, DOCX, TXT, HTML, or MD)';
-      await addMessage(conversationId, userId, 'assistant', message, {}, isGuest);
+      const message =
+        'What format would you like to export to? (PDF, DOCX, TXT, HTML, or MD)';
+      await addMessage(
+        conversationId,
+        userId,
+        'assistant',
+        message,
+        {},
+        isGuest
+      );
 
       return {
         conversationId,
@@ -381,7 +470,12 @@ const handleExportIntent = async (analysis, updatedParams, conversationId, userI
 /**
  * Main conversational handler
  */
-const processConversationalRequest = async (userId, userMessage, conversationId, isGuest = false) => {
+const processConversationalRequest = async (
+  userId,
+  userMessage,
+  conversationId,
+  isGuest = false
+) => {
   try {
     logger.info('Processing conversational request for document drafting', {
       userId,
@@ -406,10 +500,18 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 
     // Get existing parameters
     const existingParams = conversation.metadata?.collectedParams || {};
-    let conversationSummary = conversation.metadata?.conversationSummary || null;
+    let conversationSummary =
+      conversation.metadata?.conversationSummary || null;
 
     // Add user message
-    await addMessage(actualConversationId, userId, 'user', userMessage, {}, isGuest);
+    await addMessage(
+      actualConversationId,
+      userId,
+      'user',
+      userMessage,
+      {},
+      isGuest
+    );
 
     // Check if we need to summarize
     const estimatedTokens = conversationAnalyzer._calculateConversationTokens(
@@ -420,14 +522,19 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
     if (
       estimatedTokens > 5000 &&
       (!conversationSummary ||
-        conversation.metadata?.summarizedMessageCount < conversationHistory.length - 5)
+        conversation.metadata?.summarizedMessageCount <
+          conversationHistory.length - 5)
     ) {
       logger.info('Summarizing conversation...');
       conversationSummary = await conversationAnalyzer.summarizeConversation(
         recentHistory,
         existingParams
       );
-      await saveConversationSummary(actualConversationId, userId, conversationSummary);
+      await saveConversationSummary(
+        actualConversationId,
+        userId,
+        conversationSummary
+      );
     }
 
     // Analyze intent
@@ -446,7 +553,11 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 
     // Merge parameters
     const updatedParams = { ...existingParams, ...analysis.parameters };
-    await updateConversationMetadata(actualConversationId, userId, updatedParams);
+    await updateConversationMetadata(
+      actualConversationId,
+      userId,
+      updatedParams
+    );
 
     // Handle different intents
     let response;
@@ -524,7 +635,12 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 /**
  * Direct document generation (non-conversational)
  */
-const generateDocument = async (params, userId, isGuest = false, req = null) => {
+const generateDocument = async (
+  params,
+  userId,
+  isGuest = false,
+  req = null
+) => {
   try {
     logger.info('Direct document generation', { params });
 
@@ -541,7 +657,11 @@ const generateDocument = async (params, userId, isGuest = false, req = null) => 
 
     // Export to format
     const outputFormat = params.outputFormat || DEFAULT_PARAMS.outputFormat;
-    const exportResult = await exportDocument(documentContent, outputFormat, metadata);
+    const exportResult = await exportDocument(
+      documentContent,
+      outputFormat,
+      metadata
+    );
 
     // Upload to GCS
     const uploadResult = await uploadDocumentToGCS(exportResult.filePath, {
@@ -562,7 +682,10 @@ const generateDocument = async (params, userId, isGuest = false, req = null) => 
     };
   } catch (error) {
     logger.error('Error generating document:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate document');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to generate document'
+    );
   }
 };
 

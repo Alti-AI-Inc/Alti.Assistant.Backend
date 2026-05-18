@@ -1,19 +1,35 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { StructuredOutputParser } from "@langchain/core/output_parsers";
-import { z } from "zod";
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { StructuredOutputParser } from '@langchain/core/output_parsers';
+import { z } from 'zod';
 
 // Define the image intent schema
 const imageIntentSchema = z.object({
-  isEditable: z.boolean().describe("Whether the user wants to edit an existing image"),
-  intent: z.enum(["edit", "generate", "unclear"]).describe("User's primary intent"),
-  editType: z.string().nullable().describe("Type of edit requested (background change, color adjustment, object removal, style transfer, etc.) or null if not editing"),
-  reasoning: z.string().describe("Explanation of why this intent was determined"),
-  needsMoreInfo: z.boolean().describe("Whether more information is needed to proceed"),
-  questions: z.array(z.string()).describe("Questions to ask user if more info is needed"),
+  isEditable: z
+    .boolean()
+    .describe('Whether the user wants to edit an existing image'),
+  intent: z
+    .enum(['edit', 'generate', 'unclear'])
+    .describe("User's primary intent"),
+  editType: z
+    .string()
+    .nullable()
+    .describe(
+      'Type of edit requested (background change, color adjustment, object removal, style transfer, etc.) or null if not editing'
+    ),
+  reasoning: z
+    .string()
+    .describe('Explanation of why this intent was determined'),
+  needsMoreInfo: z
+    .boolean()
+    .describe('Whether more information is needed to proceed'),
+  questions: z
+    .array(z.string())
+    .describe('Questions to ask user if more info is needed'),
 });
 
-const imageIntentParser = StructuredOutputParser.fromZodSchema(imageIntentSchema);
+const imageIntentParser =
+  StructuredOutputParser.fromZodSchema(imageIntentSchema);
 
 // Prompt template for image intent detection
 const imageIntentPromptTemplate = PromptTemplate.fromTemplate(
@@ -52,10 +68,10 @@ Analyze the request and determine the user's intent.`
 export async function analyzeImageIntent(
   request,
   hasImage = false,
-  context = "No previous context.",
-  { apiKey, modelName = "gemini-2.5-flash" } = {}
+  context = 'No previous context.',
+  { apiKey, modelName = 'gemini-2.5-flash' } = {}
 ) {
-  console.log("Analyzing image intent for request:", apiKey);
+  console.log('Analyzing image intent for request:', apiKey);
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
     apiKey,
@@ -66,7 +82,7 @@ export async function analyzeImageIntent(
 
   const result = await chain.invoke({
     request,
-    hasImage: hasImage ? "Yes" : "No",
+    hasImage: hasImage ? 'Yes' : 'No',
     context,
     format_instructions: imageIntentParser.getFormatInstructions(),
   });

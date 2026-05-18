@@ -36,7 +36,9 @@ export const parsePDFFile = async (filePath) => {
     // const data = await pdfParse(dataBuffer);
 
     // For now, return a placeholder
-    logger.warn('PDF parsing not fully implemented. Install pdf-parse package.');
+    logger.warn(
+      'PDF parsing not fully implemented. Install pdf-parse package.'
+    );
     return {
       content: 'PDF content extraction requires pdf-parse package',
       metadata: {
@@ -56,7 +58,7 @@ export const parsePDFFile = async (filePath) => {
 export const parseCSVFile = async (filePath) => {
   try {
     const content = await readFile(filePath, 'utf-8');
-    const lines = content.split('\n').filter(line => line.trim());
+    const lines = content.split('\n').filter((line) => line.trim());
 
     if (lines.length === 0) {
       return {
@@ -67,9 +69,9 @@ export const parseCSVFile = async (filePath) => {
       };
     }
 
-    const headers = lines[0].split(',').map(h => h.trim());
-    const data = lines.slice(1).map(line => {
-      const values = line.split(',').map(v => v.trim());
+    const headers = lines[0].split(',').map((h) => h.trim());
+    const data = lines.slice(1).map((line) => {
+      const values = line.split(',').map((v) => v.trim());
       const row = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
@@ -197,11 +199,15 @@ export const validateFile = (file, maxSize, allowedFormats) => {
   const ext = path.extname(file.originalname).toLowerCase().substring(1);
 
   if (!allowedFormats.includes(ext)) {
-    throw new Error(`File format .${ext} is not supported. Allowed formats: ${allowedFormats.join(', ')}`);
+    throw new Error(
+      `File format .${ext} is not supported. Allowed formats: ${allowedFormats.join(', ')}`
+    );
   }
 
   if (file.size > maxSize) {
-    throw new Error(`File size ${(file.size / 1024 / 1024).toFixed(2)}MB exceeds maximum ${(maxSize / 1024 / 1024).toFixed(2)}MB`);
+    throw new Error(
+      `File size ${(file.size / 1024 / 1024).toFixed(2)}MB exceeds maximum ${(maxSize / 1024 / 1024).toFixed(2)}MB`
+    );
   }
 
   return true;

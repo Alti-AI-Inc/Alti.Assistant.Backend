@@ -1,4 +1,4 @@
-import express from "express";
+import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
@@ -7,8 +7,8 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { checkWebSearchLimit } from '../../middlewares/checkSubscriptionLimits.js';
-import { searchController } from "./search.controller.js";
-import { SearchValidation } from "./search.validation.js";
+import { searchController } from './search.controller.js';
+import { SearchValidation } from './search.validation.js';
 
 const router = express.Router();
 

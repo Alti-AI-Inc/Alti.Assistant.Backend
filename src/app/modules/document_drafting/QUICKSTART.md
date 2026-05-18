@@ -3,6 +3,7 @@
 ## Installation
 
 No additional dependencies need to be installed - the module uses existing packages:
+
 - `@google/generative-ai` (already installed)
 - `pdfkit` (already installed)
 - `@google-cloud/storage` (already installed)
@@ -10,11 +11,13 @@ No additional dependencies need to be installed - the module uses existing packa
 ## Setup
 
 1. **Ensure Gemini API Key is configured**
+
    ```env
    GEMINI_SECRET_KEY=your-gemini-api-key
    ```
 
 2. **(Optional) Configure Google Cloud Storage**
+
    ```env
    GCS_BUCKET_NAME=ason-documents
    GCP_PROJECT_ID=your-project-id
@@ -29,6 +32,7 @@ No additional dependencies need to be installed - the module uses existing packa
 ## Testing
 
 ### 1. Start the server
+
 ```bash
 npm run dev
 ```
@@ -36,6 +40,7 @@ npm run dev
 ### 2. Test with simple request
 
 **Using cURL:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/documents/assistant \
   -H "Content-Type: application/json" \
@@ -45,6 +50,7 @@ curl -X POST http://localhost:5000/api/v1/documents/assistant \
 ```
 
 **Using Postman:**
+
 - Import the collection: `postman_collections/Document_Drafting_API.postman_collection.json`
 - Set base_url variable: `http://localhost:5000/api/v1`
 - Run "Start New Document Conversation" request
@@ -52,6 +58,7 @@ curl -X POST http://localhost:5000/api/v1/documents/assistant \
 ### 3. Test draft-first conversational flow
 
 **Request 1: Minimal info**
+
 ```json
 POST /api/v1/documents/assistant
 {
@@ -60,6 +67,7 @@ POST /api/v1/documents/assistant
 ```
 
 **Response:** Draft generated with refinement questions
+
 ```json
 {
   "isDraft": true,
@@ -78,6 +86,7 @@ POST /api/v1/documents/assistant
 ```
 
 **Request 2: Provide refinement**
+
 ```json
 POST /api/v1/documents/assistant
 {
@@ -87,6 +96,7 @@ POST /api/v1/documents/assistant
 ```
 
 **Response:** Refined document generated
+
 ```json
 {
   "isDraft": false,
@@ -115,6 +125,7 @@ curl -X POST http://localhost:5000/api/v1/documents/generate \
 ## Common Use Cases
 
 ### Use Case 1: Cover Letter
+
 ```javascript
 {
   "message": "Write a professional cover letter for a Senior Developer position at Google. Highlight 7 years of experience in React and Node.js. Export as PDF."
@@ -122,6 +133,7 @@ curl -X POST http://localhost:5000/api/v1/documents/generate \
 ```
 
 ### Use Case 2: Business Report
+
 ```javascript
 {
   "content": "Quarterly sales report for Q4 2024. Include revenue analysis, top performing products, and market trends.",
@@ -133,6 +145,7 @@ curl -X POST http://localhost:5000/api/v1/documents/generate \
 ```
 
 ### Use Case 3: Technical Documentation
+
 ```javascript
 {
   "content": "API documentation for user authentication endpoints. Include OAuth 2.0 flow, token management, and security best practices.",
@@ -144,6 +157,7 @@ curl -X POST http://localhost:5000/api/v1/documents/generate \
 ```
 
 ### Use Case 4: Academic Essay
+
 ```javascript
 {
   "message": "Write an academic essay about climate change impacts on agriculture. 1500 words, academic tone, include citations format."
@@ -153,10 +167,12 @@ curl -X POST http://localhost:5000/api/v1/documents/generate \
 ## Checking Generated Documents
 
 Generated documents are saved in:
+
 - **Local:** `output/documents/`
 - **GCS:** Available via URL in response
 
 Example response structure:
+
 ```json
 {
   "document": {
@@ -179,12 +195,12 @@ Example response structure:
 
 ## Available Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/documents/assistant` | POST | Conversational interface (recommended) |
-| `/api/v1/documents/generate` | POST | Direct generation with all params |
-| `/api/v1/documents/export` | POST | Export to different format |
-| `/api/v1/documents/edit` | POST | Edit existing document |
+| Endpoint                      | Method | Description                            |
+| ----------------------------- | ------ | -------------------------------------- |
+| `/api/v1/documents/assistant` | POST   | Conversational interface (recommended) |
+| `/api/v1/documents/generate`  | POST   | Direct generation with all params      |
+| `/api/v1/documents/export`    | POST   | Export to different format             |
+| `/api/v1/documents/edit`      | POST   | Edit existing document                 |
 
 ## Supported Formats
 
@@ -198,21 +214,25 @@ Example response structure:
 ## Tips for Best Results
 
 1. **Start with minimal info - let it draft first!**
+
    - Good: "Write a cover letter for software engineer position"
    - The system will create a draft and ask refinement questions
    - You don't need to provide all details upfront
 
 2. **Use the refinement questions**
+
    - After getting the draft, answer the suggested questions
    - This helps improve the document iteratively
    - You can skip questions or provide free-form feedback
 
 3. **Conversational assistant is the main interface**
+
    - It generates drafts quickly with minimal info
    - Then offers targeted questions for improvement
    - Continue the conversation to refine
 
 4. **Use direct generation when you have complete requirements**
+
    - Faster for repeated tasks
    - Better for programmatic access
    - Bypasses the draft-refine flow
@@ -225,21 +245,25 @@ Example response structure:
 ## Troubleshooting
 
 ### Issue: Documents not generating
+
 - Check Gemini API key is configured
 - Check output directory exists
 - Check server logs for errors
 
 ### Issue: Files not uploading to GCS
+
 - Verify GCS credentials are configured
 - Check bucket name is correct
 - Documents will still save locally as fallback
 
 ### Issue: AI asking too many questions
+
 - Provide more details in initial message
 - Use direct generation endpoint instead
 - Specify all parameters upfront
 
 ### Issue: Generated content too short/long
+
 - Explicitly specify word count
 - Use length parameter: short/medium/long
 - Add instruction: "Make it approximately X words"
@@ -256,6 +280,7 @@ Example response structure:
 ## Support
 
 For issues or questions:
+
 - Check README.md for detailed documentation
 - Review error logs in `logs/errors/`
 - Test with Postman collection
@@ -264,6 +289,7 @@ For issues or questions:
 ## Production Considerations
 
 Before deploying to production:
+
 1. ✅ Configure GCS properly
 2. ✅ Set appropriate rate limits
 3. ⚠️ Enhance DOCX export using 'docx' package

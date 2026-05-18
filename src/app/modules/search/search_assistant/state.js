@@ -1,4 +1,4 @@
-import { fi } from "zod/v4/locales";
+import { fi } from 'zod/v4/locales';
 
 export const researchAgentState = {
   // The user's current query/message.
@@ -67,7 +67,7 @@ export const researchAgentState = {
       // If both exist, concatenate them
       return x.concat(y);
     },
-    default: () => []
+    default: () => [],
   },
 
   conversationId: { value: null },

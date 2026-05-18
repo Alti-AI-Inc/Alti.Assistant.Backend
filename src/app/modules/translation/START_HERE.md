@@ -17,11 +17,13 @@ npm run dev
 Once the server is running, test the translation module:
 
 ### 1. Get Supported Languages
+
 ```bash
 curl http://localhost:5000/api/v1/translation/languages
 ```
 
 ### 2. Simple Translation Test
+
 ```powershell
 # PowerShell
 $body = @{
@@ -36,6 +38,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/v1/translation/translate" `
 ```
 
 ### 3. Conversational Test
+
 ```powershell
 # PowerShell
 $form = @{
@@ -60,6 +63,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/v1/translation/assistant" `
 ## 🔍 Verify Setup
 
 Run the test script after starting the server:
+
 ```bash
 node scripts/test-translation.js
 ```
@@ -76,18 +80,21 @@ All endpoints are now available at:
 ## 💡 Example Use Cases
 
 ### 1. Translate User Messages
+
 ```javascript
 // User: "Translate 'Hello' to Spanish"
 // Response: "Hola"
 ```
 
 ### 2. Translate Documents
+
 ```javascript
 // User uploads PDF and says: "Translate this to French"
 // System extracts text from PDF and translates
 ```
 
 ### 3. Multi-turn Conversation
+
 ```javascript
 // User: "I need to translate something"
 // Bot: "What language would you like to translate to?"
@@ -107,6 +114,7 @@ All endpoints are now available at:
 ## ⚠️ Important Note
 
 Make sure the **Cloud Translation API** is enabled in your Google Cloud project:
+
 - Go to: https://console.cloud.google.com/apis/library/translate.googleapis.com
 - Select project: `alti-assistant-prod`
 - Click "Enable" if not already enabled

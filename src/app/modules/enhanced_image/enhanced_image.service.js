@@ -34,21 +34,35 @@ const generateGuestUserId = () => {
  * @param {string} category - 'image_generation' or 'image_editing'
  * @returns {Promise<Object>}
  */
-const handleImageConversation = async (userId, conversationId, prompt, isGuest = false, category = 'image_generation', req = null) => {
+const handleImageConversation = async (
+  userId,
+  conversationId,
+  prompt,
+  isGuest = false,
+  category = 'image_generation',
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          isGuest ? null : userId,
+          req
+        );
 
         if (isGuest && conversation.metadata?.userType !== 'guest') {
-          logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
+          logger.warn(
+            `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
+          );
           conversation = null;
         }
-
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+        );
       }
     }
 
@@ -86,13 +100,18 @@ const handleImageConversation = async (userId, conversationId, prompt, isGuest =
         );
       }
 
-      console.log(`Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`);
+      console.log(
+        `Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling image conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle image conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle image conversation'
+    );
   }
 };
 
@@ -105,9 +124,18 @@ const handleImageConversation = async (userId, conversationId, prompt, isGuest =
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addImageRequestMessage = async (conversationId, userId, prompt, metadata = {}, isGuest = false, req = null) => {
+const addImageRequestMessage = async (
+  conversationId,
+  userId,
+  prompt,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding image request message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding image request message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     const savedMessage = await conversationService.addMessageToConversation(
       conversationId,
@@ -138,14 +166,20 @@ const addImageRequestMessage = async (conversationId, userId, prompt, metadata =
           sector: 'episodic',
         });
       } catch (memoryError) {
-        logger.warn('Failed to persist image request in OpenMemory', memoryError);
+        logger.warn(
+          'Failed to persist image request in OpenMemory',
+          memoryError
+        );
       }
     }
 
     return savedMessage;
   } catch (error) {
     logger.error('Error adding image request message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add image request to conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add image request to conversation'
+    );
   }
 };
 
@@ -158,9 +192,18 @@ const addImageRequestMessage = async (conversationId, userId, prompt, metadata =
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addImageResultMessage = async (conversationId, userId, result, metadata = {}, isGuest = false, req = null) => {
+const addImageResultMessage = async (
+  conversationId,
+  userId,
+  result,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding image result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding image result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     const savedMessage = await conversationService.addMessageToConversation(
       conversationId,
@@ -191,14 +234,20 @@ const addImageResultMessage = async (conversationId, userId, result, metadata = 
           sector: 'semantic',
         });
       } catch (memoryError) {
-        logger.warn('Failed to persist image result in OpenMemory', memoryError);
+        logger.warn(
+          'Failed to persist image result in OpenMemory',
+          memoryError
+        );
       }
     }
 
     return savedMessage;
   } catch (error) {
     logger.error('Error adding image result message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add image result to conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add image result to conversation'
+    );
   }
 };
 
@@ -211,9 +260,18 @@ const addImageResultMessage = async (conversationId, userId, result, metadata = 
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false, req = null) => {
+const addErrorMessage = async (
+  conversationId,
+  userId,
+  errorMessage,
+  originalError,
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     return await conversationService.addMessageToConversation(
       conversationId,
@@ -240,22 +298,33 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
  * @param {Object} options
  * @returns {Promise<Object>}
  */
-const generateImage = async (prompt, filename, options = {
-  referenceImage: null,
-  aspectRatio: null,
-  negativePrompt: null,
-}) => {
+const generateImage = async (
+  prompt,
+  filename,
+  options = {
+    referenceImage: null,
+    aspectRatio: null,
+    negativePrompt: null,
+  }
+) => {
   try {
     const apiKey = config.gemini_secret_key;
     const result = await routeImageGenRequest(prompt, { apiKey });
 
-    const imagesDir = path.join(__dirname, '..', '..', '..', 'uploads', 'images');
+    const imagesDir = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'uploads',
+      'images'
+    );
     const filepath = path.join(imagesDir, filename);
     let publicUrl;
 
-    if (result.service === "imagen4") {
+    if (result.service === 'imagen4') {
       publicUrl = await imagegen_4(prompt, filepath);
-    } else if (result.service === "gemini2.5flash") {
+    } else if (result.service === 'gemini2.5flash') {
       publicUrl = await imagen3(prompt, options.referenceImage, filename);
     }
 
@@ -268,7 +337,10 @@ const generateImage = async (prompt, filename, options = {
     };
   } catch (error) {
     logger.error('Error generating image:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate image');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to generate image'
+    );
   }
 };
 
@@ -283,7 +355,12 @@ const generateImage = async (prompt, filename, options = {
 const editImage = async (prompt, imageBase64, filename, options = {}) => {
   try {
     const apiKey = config.gemini_secret_key;
-    const imageResult = await editImageWithImagen3(prompt, imageBase64, filename, apiKey);
+    const imageResult = await editImageWithImagen3(
+      prompt,
+      imageBase64,
+      filename,
+      apiKey
+    );
 
     return {
       filename,
@@ -292,7 +369,10 @@ const editImage = async (prompt, imageBase64, filename, options = {}) => {
     };
   } catch (error) {
     logger.error('Error editing image:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to edit image');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to edit image'
+    );
   }
 };
 
@@ -304,11 +384,16 @@ const editImage = async (prompt, imageBase64, filename, options = {}) => {
 const analyzeImageIntent = async (prompt) => {
   try {
     const apiKey = config.gemini_secret_key;
-    const result = await analyzeIntent(prompt, false, "No previous context.", { apiKey });
+    const result = await analyzeIntent(prompt, false, 'No previous context.', {
+      apiKey,
+    });
     return result;
   } catch (error) {
     logger.error('Error analyzing image intent:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to analyze image intent');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to analyze image intent'
+    );
   }
 };
 
@@ -322,12 +407,19 @@ const analyzeImageIntent = async (prompt) => {
 const analyzeImageIntentWithContext = async (prompt, hasImage, context) => {
   try {
     const apiKey = config.gemini_secret_key;
-    const { analyzeImageIntent: analyzeIntentFull } = await import('./utils/imageIntentAnalyzer.js');
-    const result = await analyzeIntentFull(prompt, hasImage, context, { apiKey });
+    const { analyzeImageIntent: analyzeIntentFull } = await import(
+      './utils/imageIntentAnalyzer.js'
+    );
+    const result = await analyzeIntentFull(prompt, hasImage, context, {
+      apiKey,
+    });
     return result;
   } catch (error) {
     logger.error('Error analyzing image intent with context:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to analyze image intent');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to analyze image intent'
+    );
   }
 };
 
@@ -340,12 +432,17 @@ const analyzeImageIntentWithContext = async (prompt, hasImage, context) => {
 const evaluatePromptQuality = async (prompt, history) => {
   try {
     const apiKey = config.gemini_secret_key;
-    const { evaluatePromptQuality: evaluatePrompt } = await import('./utils/promptEvaluator.js');
+    const { evaluatePromptQuality: evaluatePrompt } = await import(
+      './utils/promptEvaluator.js'
+    );
     const result = await evaluatePrompt(prompt, history, { apiKey });
     return result;
   } catch (error) {
     logger.error('Error evaluating prompt quality:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to evaluate prompt quality');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to evaluate prompt quality'
+    );
   }
 };
 
@@ -362,7 +459,10 @@ const buildEnhancedPromptFromHistory = async (conversationHistory) => {
     return result;
   } catch (error) {
     logger.error('Error building enhanced prompt:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to build enhanced prompt');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to build enhanced prompt'
+    );
   }
 };
 
@@ -381,17 +481,23 @@ const generateImageConversationId = () => {
  */
 const getImageStats = async (userId, req = null) => {
   try {
-    const imageConversations = await conversationHelpers.getUserConversations(userId, {
-      page: 1,
-      limit: 1000,
-      category: 'image_generation',
-    });
+    const imageConversations = await conversationHelpers.getUserConversations(
+      userId,
+      {
+        page: 1,
+        limit: 1000,
+        category: 'image_generation',
+      }
+    );
 
-    const editConversations = await conversationHelpers.getUserConversations(userId, {
-      page: 1,
-      limit: 1000,
-      category: 'image_editing',
-    });
+    const editConversations = await conversationHelpers.getUserConversations(
+      userId,
+      {
+        page: 1,
+        limit: 1000,
+        category: 'image_editing',
+      }
+    );
 
     const totalGenerations = imageConversations.conversations.length;
     const totalEdits = editConversations.conversations.length;
@@ -401,8 +507,15 @@ const getImageStats = async (userId, req = null) => {
       totalImageConversations: totalImages,
       totalGenerations,
       totalEdits,
-      totalMessages: imageConversations.conversations.reduce((sum, conv) => sum + conv.messageCount, 0) +
-        editConversations.conversations.reduce((sum, conv) => sum + conv.messageCount, 0),
+      totalMessages:
+        imageConversations.conversations.reduce(
+          (sum, conv) => sum + conv.messageCount,
+          0
+        ) +
+        editConversations.conversations.reduce(
+          (sum, conv) => sum + conv.messageCount,
+          0
+        ),
     };
   } catch (error) {
     logger.error('Error getting image stats:', error);

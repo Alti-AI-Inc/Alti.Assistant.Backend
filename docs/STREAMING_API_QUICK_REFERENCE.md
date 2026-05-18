@@ -25,26 +25,31 @@ Accept: text/event-stream
 ## Response Format (SSE)
 
 ### 1. Connected
+
 ```json
 data: {"type":"connected","conversationId":"search_xxx","timestamp":1702345678901}
 ```
 
 ### 2. Thinking (Multiple)
+
 ```json
 data: {"type":"thinking","content":"Model's reasoning...","timestamp":1702345678902}
 ```
 
 ### 3. Text (Multiple)
+
 ```json
 data: {"type":"text","content":"Response chunk...","timestamp":1702345678903}
 ```
 
 ### 4. Metadata
+
 ```json
 data: {"type":"metadata","reference":[...],"citations":[...],"citationMetadata":{...},"timestamp":1702345678904}
 ```
 
 ### 5. Done
+
 ```json
 data: {"type":"done","conversationId":"search_xxx","messageCount":2,"userType":"guest","timestamp":1702345678905}
 ```
@@ -61,12 +66,14 @@ curl -N -X POST http://localhost:5000/api/v1/search/stream \
 ## Quick Test (JavaScript)
 
 ```javascript
-const eventSource = new EventSource('http://localhost:5000/api/v1/search/stream');
+const eventSource = new EventSource(
+  'http://localhost:5000/api/v1/search/stream'
+);
 
 eventSource.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log(data.type, data);
-  
+
   if (data.type === 'done') {
     eventSource.close();
   }
@@ -81,7 +88,7 @@ connected → thinking* → text* → metadata → done
          (error - if something fails)
 ```
 
-*Multiple events may be sent
+\*Multiple events may be sent
 
 ## Key Features
 

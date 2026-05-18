@@ -1,6 +1,4 @@
-import {
-  runIntelligentSearch,
-} from '../llm.js';
+import { runIntelligentSearch } from '../llm.js';
 
 /**
  * NEXT-GEN Node: Tool-based intelligent search using LLM with search tools
@@ -28,7 +26,7 @@ export const toolBasedSearchNode = async (state) => {
         searchCompleted: true,
         searchMethod: result.searchMethod || 'tool_based',
         searchDuration: duration,
-        timestamp: result.timestamp || new Date().toISOString()
+        timestamp: result.timestamp || new Date().toISOString(),
       };
     } else {
       // Fallback for legacy string response
@@ -39,22 +37,22 @@ export const toolBasedSearchNode = async (state) => {
         searchCompleted: true,
         searchMethod: 'tool_based',
         searchDuration: duration,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
-
   } catch (error) {
     console.error('❌ Error in toolBasedSearchNode:', error);
 
     // Return error state instead of calling non-existent function
     return {
       ...state,
-      answer: 'I encountered an error while processing your search. Please try rephrasing your question.',
+      answer:
+        'I encountered an error while processing your search. Please try rephrasing your question.',
       reference: [],
       searchCompleted: false,
       searchMethod: 'error',
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 };

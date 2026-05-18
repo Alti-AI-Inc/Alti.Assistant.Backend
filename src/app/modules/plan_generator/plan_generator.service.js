@@ -41,16 +41,28 @@ const generateConversationId = () => {
 /**
  * Handle plan generation conversation (create or retrieve)
  */
-const handlePlanConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handlePlanConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -78,20 +90,32 @@ const handlePlanConversation = async (userId, conversationId, userMessage, isGue
         req
       );
 
-      logger.info(`Created new plan generation conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new plan generation conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling plan generation conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -100,37 +124,57 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
 /**
  * Store uploaded file in conversation metadata with text extraction
  */
-const storeFileInConversation = async (conversationId, userId, fileInfo, req = null) => {
+const storeFileInConversation = async (
+  conversationId,
+  userId,
+  fileInfo,
+  req = null
+) => {
   try {
     logger.info('Storing file in conversation', {
       conversationId,
       filename: fileInfo.originalName,
-      size: fileInfo.size
+      size: fileInfo.size,
     });
 
     // 1. Extract text from file
     const extractedText = await fileProcessor.extractTextFromFile(fileInfo);
 
     if (!extractedText || extractedText.trim().length === 0) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Unable to extract text from the file');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Unable to extract text from the file'
+      );
     }
 
     // 2. Upload to GCS and get public URL (with metadata)
-    const uploadResult = await fileProcessor.uploadToGCS(fileInfo.path, fileInfo.filename, {
-      userId: userId,
-      originalName: fileInfo.originalName,
-      documentType: 'plan_generator'
-    });
+    const uploadResult = await fileProcessor.uploadToGCS(
+      fileInfo.path,
+      fileInfo.filename,
+      {
+        userId: userId,
+        originalName: fileInfo.originalName,
+        documentType: 'plan_generator',
+      }
+    );
 
     // 3. Create file data object
     const fileData = {
@@ -145,11 +189,15 @@ const storeFileInConversation = async (conversationId, userId, fileInfo, req = n
       size: fileInfo.size,
       mimetype: fileInfo.mimetype,
       uploadedAt: new Date(),
-      extractedAt: new Date()
+      extractedAt: new Date(),
     };
 
     // 4. Update conversation metadata
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation.metadata.uploadedFiles) {
       conversation.metadata.uploadedFiles = [];
@@ -157,15 +205,20 @@ const storeFileInConversation = async (conversationId, userId, fileInfo, req = n
 
     conversation.metadata.uploadedFiles.push(fileData);
 
-    await conversationService.updadtePlanMetadata(conversationId, userId, {
-      uploadedFiles: conversation.metadata.uploadedFiles,
-    }, req);
+    await conversationService.updadtePlanMetadata(
+      conversationId,
+      userId,
+      {
+        uploadedFiles: conversation.metadata.uploadedFiles,
+      },
+      req
+    );
 
     logger.info('File stored successfully in conversation', {
       fileId: fileData.id,
       textLength: fileData.textLength,
       publicUrl: fileData.publicUrl,
-      storageType: fileData.storageType
+      storageType: fileData.storageType,
     });
 
     // 5. Cleanup temporary local file
@@ -187,18 +240,31 @@ const storeFileInConversation = async (conversationId, userId, fileInfo, req = n
 /**
  * Conversational assistant - Main entry point
  */
-const conversationalAssistant = async (userId, message, conversationId = null, isGuest = false, fileInfo = null, req = null) => {
+const conversationalAssistant = async (
+  userId,
+  message,
+  conversationId = null,
+  isGuest = false,
+  fileInfo = null,
+  req = null
+) => {
   try {
     logger.info('Plan generator conversational assistant request:', {
       userId,
       messageLength: message.length,
       conversationId,
       isGuest,
-      fileInfo
+      fileInfo,
     });
 
     // Get or create conversation
-    const conversation = await handlePlanConversation(userId, conversationId, message, isGuest, req);
+    const conversation = await handlePlanConversation(
+      userId,
+      conversationId,
+      message,
+      isGuest,
+      req
+    );
 
     // Get conversation metadata
     const metadata = conversation.plan_metadata || {};
@@ -207,11 +273,16 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
     let fileContent = '';
     if (fileInfo) {
       try {
-        const fileData = await storeFileInConversation(conversation.conversationId, userId, fileInfo, req);
+        const fileData = await storeFileInConversation(
+          conversation.conversationId,
+          userId,
+          fileInfo,
+          req
+        );
         fileContent = fileData.extractedText;
         logger.info('File content extracted successfully', {
           filename: fileData.originalName,
-          textLength: fileContent.length
+          textLength: fileContent.length,
         });
       } catch (error) {
         logger.error('Failed to extract file content:', error);
@@ -220,16 +291,19 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
       }
     } else if (metadata.uploadedFiles && metadata.uploadedFiles.length > 0) {
       // Retrieve previously uploaded file content from conversation metadata
-      const latestFile = metadata.uploadedFiles[metadata.uploadedFiles.length - 1];
+      const latestFile =
+        metadata.uploadedFiles[metadata.uploadedFiles.length - 1];
       fileContent = latestFile.extractedText || '';
       logger.info('Using cached file content from previous upload', {
         filename: latestFile.originalName,
-        textLength: fileContent.length
+        textLength: fileContent.length,
       });
     }
 
     // Add user message
-    await addMessage(conversation.conversationId, userId, 'user', message, { fileInfo });
+    await addMessage(conversation.conversationId, userId, 'user', message, {
+      fileInfo,
+    });
     const planStage = metadata.planStage || PLAN_STAGES.IDEA_ANALYSIS;
     const existingAnalysis = metadata.analysis;
     const existingBrainstorm = metadata.brainstorm;
@@ -242,12 +316,16 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
     switch (planStage) {
       case PLAN_STAGES.IDEA_ANALYSIS: {
         // Analyze the idea - include file content if available
-        let ideaText = metadata.ideaDescription ? `${metadata.ideaDescription} ${message}` : message;
+        let ideaText = metadata.ideaDescription
+          ? `${metadata.ideaDescription} ${message}`
+          : message;
 
         // Append extracted file content to idea text
         if (fileContent) {
           ideaText += `\n\n--- Attached Document Content ---\n${fileContent}`;
-          logger.info('Appended file content to idea text', { totalLength: ideaText.length });
+          logger.info('Appended file content to idea text', {
+            totalLength: ideaText.length,
+          });
         }
         const analysis = await ideaAnalyzer.analyzeIdea(ideaText, {
           previousMessages: conversation.messages || [],
@@ -263,7 +341,12 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
         if (isFirstMessage && ideaAnalyzer.needsClarification(analysis)) {
           // First message - ask clarifying questions ONCE
           const questions = ideaAnalyzer.generateClarifyingQuestions(analysis);
-          assistantResponse = `I understand you want to create a ${analysis.plan_type.replace(/_/g, ' ')}. To create the best plan for you, I have a few questions:\n\n${questions.slice(0, 3).map((q, i) => `${i + 1}. ${q}`).join('\n')}\n\nPlease share what you can, and I'll generate a comprehensive plan for you!`;
+          assistantResponse = `I understand you want to create a ${analysis.plan_type.replace(/_/g, ' ')}. To create the best plan for you, I have a few questions:\n\n${questions
+            .slice(0, 3)
+            .map((q, i) => `${i + 1}. ${q}`)
+            .join(
+              '\n'
+            )}\n\nPlease share what you can, and I'll generate a comprehensive plan for you!`;
 
           // Mark that we asked questions, next response will generate plan
           updatedMetadata.askedQuestions = true;
@@ -318,7 +401,7 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
             '- Adjust the timeline or budget constraints?',
             '- Add more details to specific phases?',
             '- Explore alternative approaches?',
-            '- Get more information on risks and mitigation strategies?'
+            '- Get more information on risks and mitigation strategies?',
           ];
           assistantResponse += refinementQuestions.join('\n');
           assistantResponse += `\n\nJust let me know what you'd like to adjust, or ask me anything about the plan!`;
@@ -335,7 +418,10 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
         if (lowerMessage.includes('export')) {
           assistantResponse = `To export your plan, please use the export endpoint or let me know your preferred format (PDF, DOCX, Markdown, JSON).`;
         } else if (lowerMessage.includes('alternative')) {
-          const alternatives = await planRefiner.addAlternatives(existingPlan, metadata.ideaDescription);
+          const alternatives = await planRefiner.addAlternatives(
+            existingPlan,
+            metadata.ideaDescription
+          );
           updatedMetadata.generatedPlan = { ...existingPlan, alternatives };
 
           assistantResponse = `**Alternative Approaches:**\n\n`;
@@ -384,16 +470,27 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
       }
 
       default:
-        assistantResponse = 'I can help you create a comprehensive plan for your idea. Please describe your idea to get started!';
+        assistantResponse =
+          'I can help you create a comprehensive plan for your idea. Please describe your idea to get started!';
     }
 
     // Update conversation metadata
-    await conversationService.updateConversationMetadata(conversation.conversationId, userId, updatedMetadata);
+    await conversationService.updateConversationMetadata(
+      conversation.conversationId,
+      userId,
+      updatedMetadata
+    );
 
     // Add assistant response
-    await addMessage(conversation.conversationId, userId, 'assistant', assistantResponse, {
-      planStage: updatedMetadata.planStage,
-    });
+    await addMessage(
+      conversation.conversationId,
+      userId,
+      'assistant',
+      assistantResponse,
+      {
+        planStage: updatedMetadata.planStage,
+      }
+    );
 
     return {
       success: true,
@@ -406,7 +503,10 @@ const conversationalAssistant = async (userId, message, conversationId = null, i
     };
   } catch (error) {
     logger.error('Error in conversational assistant:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message || 'Failed to process request');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      error.message || 'Failed to process request'
+    );
   }
 };
 
@@ -425,7 +525,11 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
       brainstormAspects = [],
     } = params;
 
-    logger.info('Direct plan generation request:', { planType, complexity, planDepth });
+    logger.info('Direct plan generation request:', {
+      planType,
+      complexity,
+      planDepth,
+    });
 
     // Step 1: Analyze idea
     const analysis = await ideaAnalyzer.analyzeIdea(idea);
@@ -436,12 +540,23 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
     if (domains.length > 0) analysis.domains = domains;
 
     // Step 2: Generate brainstorm
-    const brainstorm = await brainstormEngine.generateBrainstorm(idea, analysis, brainstormAspects, {
-      constraints,
-    });
+    const brainstorm = await brainstormEngine.generateBrainstorm(
+      idea,
+      analysis,
+      brainstormAspects,
+      {
+        constraints,
+      }
+    );
 
     // Step 3: Generate plan
-    const plan = await planGenerator.generatePlan(idea, analysis, brainstorm, planDepth, constraints);
+    const plan = await planGenerator.generatePlan(
+      idea,
+      analysis,
+      brainstorm,
+      planDepth,
+      constraints
+    );
 
     return {
       success: true,
@@ -452,7 +567,10 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
     };
   } catch (error) {
     logger.error('Error in direct plan generation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message || 'Failed to generate plan');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      error.message || 'Failed to generate plan'
+    );
   }
 };
 
@@ -461,7 +579,11 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     return {
       success: true,
@@ -476,13 +598,25 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
 /**
  * Export plan in various formats
  */
-const exportPlan = async (conversationId, userId, format = 'markdown', req = null) => {
+const exportPlan = async (
+  conversationId,
+  userId,
+  format = 'markdown',
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
     const plan = conversation.metadata?.generatedPlan;
 
     if (!plan) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'No plan found in this conversation');
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        'No plan found in this conversation'
+      );
     }
 
     let exportedContent = '';
@@ -511,7 +645,10 @@ const exportPlan = async (conversationId, userId, format = 'markdown', req = nul
     };
   } catch (error) {
     logger.error('Error exporting plan:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to export plan');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to export plan'
+    );
   }
 };
 

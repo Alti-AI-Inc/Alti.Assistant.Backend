@@ -30,29 +30,43 @@ const generateDeepResearchConversationId = () => {
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleDeepResearchConversation = async (userId, conversationId, researchQuery, isGuest = false, req = null) => {
+const handleDeepResearchConversation = async (
+  userId,
+  conversationId,
+  researchQuery,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          isGuest ? null : userId,
+          req
+        );
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
         if (isGuest && conversation.metadata?.userType !== 'guest') {
-          logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
+          logger.warn(
+            `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
+          );
           conversation = null; // Force creation of new conversation
         }
-
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+        );
       }
     }
 
     // Create conversation if it doesn't exist
     if (!conversation) {
-      const newConversationId = conversationId || generateDeepResearchConversationId();
+      const newConversationId =
+        conversationId || generateDeepResearchConversationId();
 
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
@@ -91,13 +105,18 @@ const handleDeepResearchConversation = async (userId, conversationId, researchQu
         );
       }
 
-      console.log(`Created new deep research conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`);
+      console.log(
+        `Created new deep research conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling deep research conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle deep research conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle deep research conversation'
+    );
   }
 };
 
@@ -109,9 +128,17 @@ const handleDeepResearchConversation = async (userId, conversationId, researchQu
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addDeepResearchQueryMessage = async (conversationId, userId, researchQuery, isGuest = false, req = null) => {
+const addDeepResearchQueryMessage = async (
+  conversationId,
+  userId,
+  researchQuery,
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding deep research query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding deep research query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the message in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
@@ -129,7 +156,10 @@ const addDeepResearchQueryMessage = async (conversationId, userId, researchQuery
     );
   } catch (error) {
     logger.error('Error adding deep research query message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add deep research query to conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add deep research query to conversation'
+    );
   }
 };
 
@@ -142,9 +172,18 @@ const addDeepResearchQueryMessage = async (conversationId, userId, researchQuery
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addDeepResearchResultMessage = async (conversationId, userId, researchResult, metadata = {}, isGuest = false, req = null) => {
+const addDeepResearchResultMessage = async (
+  conversationId,
+  userId,
+  researchResult,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding deep research result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding deep research result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the result in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
@@ -164,7 +203,10 @@ const addDeepResearchResultMessage = async (conversationId, userId, researchResu
     );
   } catch (error) {
     logger.error('Error adding deep research result message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add deep research result to conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add deep research result to conversation'
+    );
   }
 };
 
@@ -177,9 +219,18 @@ const addDeepResearchResultMessage = async (conversationId, userId, researchResu
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false, req = null) => {
+const addErrorMessage = async (
+  conversationId,
+  userId,
+  errorMessage,
+  originalError,
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the error in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
@@ -209,22 +260,29 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
  * @param {number} limit
  * @returns {Promise<Array>}
  */
-const getDeepResearchHistory = async (conversationId, userId, limit = 5, req = null) => {
+const getDeepResearchHistory = async (
+  conversationId,
+  userId,
+  limit = 5,
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation || !conversation.messages) {
       return [];
     }
 
     // Get recent messages and format for deep research context
-    return conversation.messages
-      .slice(-limit)
-      .map(msg => ({
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp,
-      }));
+    return conversation.messages.slice(-limit).map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp,
+    }));
   } catch (error) {
     logger.error('Error getting deep research history:', error);
     return [];
@@ -239,16 +297,29 @@ const getDeepResearchHistory = async (conversationId, userId, limit = 5, req = n
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const updateConversationTitle = async (conversationId, userId, researchQuery, isGuest = false, req = null) => {
+const updateConversationTitle = async (
+  conversationId,
+  userId,
+  researchQuery,
+  isGuest = false,
+  req = null
+) => {
   try {
     if (isGuest) {
       // For guest users, just log the title update
-      logger.info(`Guest user ${userId} conversation ${conversationId} title update: ${researchQuery.substring(0, 50)}...`);
+      logger.info(
+        `Guest user ${userId} conversation ${conversationId} title update: ${researchQuery.substring(0, 50)}...`
+      );
       return { success: true, isGuest: true };
     }
 
     const newTitle = `Deep Research: ${researchQuery.substring(0, 50)}...`;
-    return await conversationService.updateConversationTitle(conversationId, userId, newTitle, req);
+    return await conversationService.updateConversationTitle(
+      conversationId,
+      userId,
+      newTitle,
+      req
+    );
   } catch (error) {
     logger.error('Error updating conversation title:', error);
     // Don't throw here as it's not critical
@@ -264,10 +335,15 @@ const updateConversationTitle = async (conversationId, userId, researchQuery, is
 const getDeepResearchStats = async (userId, req = null) => {
   try {
     // Get all deep research conversations for the user
-    const deepResearchConversations = await conversationHelpers.getUserConversations(userId, {
-      limit: 1000, // Get all for stats
-      category: 'deep_research',
-    }, req);
+    const deepResearchConversations =
+      await conversationHelpers.getUserConversations(
+        userId,
+        {
+          limit: 1000, // Get all for stats
+          category: 'deep_research',
+        },
+        req
+      );
 
     const totalDeepResearches = deepResearchConversations.conversations.length;
     const totalMessages = deepResearchConversations.conversations.reduce(
@@ -278,7 +354,10 @@ const getDeepResearchStats = async (userId, req = null) => {
     return {
       totalDeepResearchConversations: totalDeepResearches,
       totalDeepResearchMessages: totalMessages,
-      averageMessagesPerConversation: totalDeepResearches > 0 ? Math.round(totalMessages / totalDeepResearches) : 0,
+      averageMessagesPerConversation:
+        totalDeepResearches > 0
+          ? Math.round(totalMessages / totalDeepResearches)
+          : 0,
     };
   } catch (error) {
     logger.error('Error getting deep research stats:', error);

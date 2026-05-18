@@ -65,10 +65,7 @@ router.post(
  * Download generated report
  * Public endpoint for downloading reports
  */
-router.get(
-  '/download/:filename',
-  reportController.downloadReport
-);
+router.get('/download/:filename', reportController.downloadReport);
 
 /**
  * Export existing report to different format

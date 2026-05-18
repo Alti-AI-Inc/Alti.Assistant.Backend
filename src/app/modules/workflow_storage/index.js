@@ -1,10 +1,10 @@
 /**
  * Workflow Storage Module
- * 
+ *
  * This module provides functionality to analyze user input using Composio v2's planWorkflow
  * and store the resulting workflows without executing them. Users can then execute these
  * stored workflows later by clicking a button.
- * 
+ *
  * Features:
  * - Analyze user input to create single-step or multi-step workflows
  * - Store workflows with metadata and planning information
@@ -15,7 +15,7 @@
  * - Execute stored workflows using composio v2 infrastructure
  * - Batch execution and scheduling capabilities
  * - Workflow statistics and analytics
- * 
+ *
  * Author: GitHub Copilot
  * Created: August 20, 2025
  */
@@ -29,12 +29,12 @@ export {
   workflowStorageRoutes,
   workflowStorageService,
   workflowExecutionIntegrationService,
-  StoredWorkflow
+  StoredWorkflow,
 };
 
 export default {
   routes: workflowStorageRoutes,
   storageService: workflowStorageService,
   executionService: workflowExecutionIntegrationService,
-  model: StoredWorkflow
+  model: StoredWorkflow,
 };

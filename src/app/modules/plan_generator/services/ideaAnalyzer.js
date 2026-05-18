@@ -20,7 +20,9 @@ export const analyzeIdea = async (ideaText, contextData = {}) => {
   try {
     logger.info('Analyzing idea:', { ideaLength: ideaText.length });
 
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const analysisPrompt = `${SYSTEM_PROMPTS.IDEA_ANALYSIS}
 
@@ -59,14 +61,19 @@ Only return valid JSON, no additional text.`;
     console.log('Analysis Response Text:', analysisText);
 
     // Remove markdown code block markers if present
-    analysisText = analysisText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    analysisText = analysisText
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '');
 
     // Extract JSON from response - find first { and last }
     const firstBrace = analysisText.indexOf('{');
     const lastBrace = analysisText.lastIndexOf('}');
 
     if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
-      logger.error('Failed to find valid JSON boundaries in response:', analysisText.substring(0, 200));
+      logger.error(
+        'Failed to find valid JSON boundaries in response:',
+        analysisText.substring(0, 200)
+      );
       throw new Error('Failed to extract JSON from analysis');
     }
 
@@ -112,13 +119,18 @@ export const generateClarifyingQuestions = (analysis) => {
   const questions = [];
 
   // Use analysis-generated questions first
-  if (analysis.clarifying_questions && analysis.clarifying_questions.length > 0) {
+  if (
+    analysis.clarifying_questions &&
+    analysis.clarifying_questions.length > 0
+  ) {
     questions.push(...analysis.clarifying_questions);
   }
 
   // Add template questions based on plan type
   const planType = analysis.plan_type || PLAN_TYPES.GENERAL;
-  const templateQuestions = CLARIFICATION_QUESTIONS[planType.toUpperCase()] || CLARIFICATION_QUESTIONS.GENERAL;
+  const templateQuestions =
+    CLARIFICATION_QUESTIONS[planType.toUpperCase()] ||
+    CLARIFICATION_QUESTIONS.GENERAL;
 
   // Add missing information as questions
   if (analysis.missing_information && analysis.missing_information.length > 0) {
@@ -138,12 +150,19 @@ export const generateClarifyingQuestions = (analysis) => {
 /**
  * Extract key requirements and constraints from idea text and context
  */
-export const extractRequirements = (ideaText, analysis, userConstraints = {}) => {
+export const extractRequirements = (
+  ideaText,
+  analysis,
+  userConstraints = {}
+) => {
   const requirements = {
     planType: analysis.plan_type || PLAN_TYPES.GENERAL,
     complexity: analysis.complexity || COMPLEXITY_LEVELS.MODERATE,
     domains: analysis.domains || [],
-    timeline: analysis.estimated_timeline || userConstraints.timeline || 'Not specified',
+    timeline:
+      analysis.estimated_timeline ||
+      userConstraints.timeline ||
+      'Not specified',
     budget: userConstraints.budget || 'Not specified',
     teamSize: userConstraints.teamSize || 'Not specified',
     resources: userConstraints.resources || [],
@@ -172,22 +191,29 @@ export const assessFeasibility = (analysis, constraints = {}) => {
   // Adjust based on complexity
   if (analysis.complexity === COMPLEXITY_LEVELS.ENTERPRISE) {
     feasibility.overall_score -= 0.2;
-    feasibility.concerns.push('Enterprise-level complexity requires significant resources and time');
+    feasibility.concerns.push(
+      'Enterprise-level complexity requires significant resources and time'
+    );
   }
 
   // Check if budget is sufficient (rough estimate)
   if (constraints.budget) {
-    const budgetNum = typeof constraints.budget === 'number' ? constraints.budget : 0;
+    const budgetNum =
+      typeof constraints.budget === 'number' ? constraints.budget : 0;
     if (budgetNum < 10000 && analysis.complexity !== COMPLEXITY_LEVELS.SIMPLE) {
       feasibility.financial_feasibility -= 0.3;
-      feasibility.concerns.push('Budget may be insufficient for the complexity level');
+      feasibility.concerns.push(
+        'Budget may be insufficient for the complexity level'
+      );
     }
   }
 
   // Domain expertise check
   if (analysis.domains && analysis.domains.length > 3) {
     feasibility.resource_feasibility -= 0.2;
-    feasibility.recommendations.push('Consider building a diverse team with expertise in multiple domains');
+    feasibility.recommendations.push(
+      'Consider building a diverse team with expertise in multiple domains'
+    );
   }
 
   // Calculate overall score

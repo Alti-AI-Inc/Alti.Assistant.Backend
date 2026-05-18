@@ -190,7 +190,11 @@ JSON response:`;
       }
 
       // Validate source language if provided
-      if (sourceLanguage && sourceLanguage !== 'auto' && !this._isValidLanguageCode(sourceLanguage)) {
+      if (
+        sourceLanguage &&
+        sourceLanguage !== 'auto' &&
+        !this._isValidLanguageCode(sourceLanguage)
+      ) {
         throw new Error(ERROR_MESSAGES.INVALID_LANGUAGE);
       }
 
@@ -202,13 +206,18 @@ JSON response:`;
 
       // Check if text needs to be chunked (roughly 80k characters = ~20k tokens)
       if (text.length > 80000) {
-        return await this._translateLargeText(text, targetLanguage, sourceLanguage);
+        return await this._translateLargeText(
+          text,
+          targetLanguage,
+          sourceLanguage
+        );
       }
 
       const targetLanguageName = LANGUAGE_NAMES[targetLanguage];
-      const sourceLanguageName = sourceLanguage && sourceLanguage !== 'auto'
-        ? LANGUAGE_NAMES[sourceLanguage]
-        : null;
+      const sourceLanguageName =
+        sourceLanguage && sourceLanguage !== 'auto'
+          ? LANGUAGE_NAMES[sourceLanguage]
+          : null;
 
       // Build translation prompt
       const prompt = sourceLanguageName
@@ -265,7 +274,8 @@ Translated text:`;
         originalText: text,
         translatedText: translation,
         sourceLanguage: detectedSourceLanguage,
-        sourceLanguageName: LANGUAGE_NAMES[detectedSourceLanguage] || detectedSourceLanguage,
+        sourceLanguageName:
+          LANGUAGE_NAMES[detectedSourceLanguage] || detectedSourceLanguage,
         targetLanguage,
         targetLanguageName: LANGUAGE_NAMES[targetLanguage],
         characterCount: text.length,
@@ -334,7 +344,7 @@ Translated text:`;
 
         // Small delay between chunks to avoid rate limits
         if (i < chunks.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
 
@@ -354,7 +364,8 @@ Translated text:`;
         originalText: text,
         translatedText: fullTranslation,
         sourceLanguage: detectedSourceLanguage,
-        sourceLanguageName: LANGUAGE_NAMES[detectedSourceLanguage] || detectedSourceLanguage,
+        sourceLanguageName:
+          LANGUAGE_NAMES[detectedSourceLanguage] || detectedSourceLanguage,
         targetLanguage,
         targetLanguageName: LANGUAGE_NAMES[targetLanguage],
         characterCount: text.length,
@@ -401,7 +412,11 @@ Translated text:`;
       // LLM batch translation is less reliable than individual calls
       const results = await Promise.all(
         texts.map(async (text) => {
-          const result = await this.translateText(text, targetLanguage, sourceLanguage);
+          const result = await this.translateText(
+            text,
+            targetLanguage,
+            sourceLanguage
+          );
           return {
             originalText: text,
             translatedText: result.translatedText,

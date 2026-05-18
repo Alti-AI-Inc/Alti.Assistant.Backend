@@ -3,9 +3,11 @@
 ## 🚀 Quick Setup
 
 ### 1. Package Update
+
 The module uses `rag-system-pgvector@2.4.9`. Already updated in package.json.
 
 ### 2. Environment Variables
+
 Ensure these are set in your `.env`:
 
 ```env
@@ -23,6 +25,7 @@ GCP_PROJECT_ID=your_project_id
 ```
 
 ### 3. Module Structure
+
 ```
 src/app/modules/knowledge/
 ├── knowledge.constant.js      # Configuration constants
@@ -45,10 +48,12 @@ src/app/modules/knowledge/
 ## 💡 Key Concepts
 
 ### Owner Types
+
 - **`user`** - Personal files (Knowledge Bank replacement)
 - **`bot`** - Bot knowledge files (Knowledge Base replacement)
 
 ### Processing Flow
+
 ```
 Upload → GCS Storage → Text Extraction → Chunking → Embedding → Vector DB → Ready
 ```
@@ -58,6 +63,7 @@ Upload → GCS Storage → Text Extraction → Chunking → Embedding → Vector
 ## 📋 Common Tasks
 
 ### Upload User File
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/knowledge/upload \
   -H "Authorization: Bearer TOKEN" \
@@ -67,6 +73,7 @@ curl -X POST http://localhost:5000/api/v1/knowledge/upload \
 ```
 
 ### Upload Bot Knowledge File
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/knowledge/upload \
   -H "Authorization: Bearer TOKEN" \
@@ -76,12 +83,14 @@ curl -X POST http://localhost:5000/api/v1/knowledge/upload \
 ```
 
 ### Get User's Files
+
 ```bash
 curl -X GET "http://localhost:5000/api/v1/knowledge/files?ownerType=user" \
   -H "Authorization: Bearer TOKEN"
 ```
 
 ### Create Folder
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/knowledge/folders \
   -H "Authorization: Bearer TOKEN" \
@@ -90,6 +99,7 @@ curl -X POST http://localhost:5000/api/v1/knowledge/folders \
 ```
 
 ### Get Storage Stats
+
 ```bash
 curl -X GET "http://localhost:5000/api/v1/knowledge/stats?ownerType=user" \
   -H "Authorization: Bearer TOKEN"
@@ -100,6 +110,7 @@ curl -X GET "http://localhost:5000/api/v1/knowledge/stats?ownerType=user" \
 ## 🎯 API Endpoints Summary
 
 ### Files
+
 - `POST /api/v1/knowledge/upload` - Upload file
 - `POST /api/v1/knowledge/process/:fileId` - Process with RAG
 - `GET /api/v1/knowledge/files` - List files
@@ -108,6 +119,7 @@ curl -X GET "http://localhost:5000/api/v1/knowledge/stats?ownerType=user" \
 - `GET /api/v1/knowledge/stats` - Storage statistics
 
 ### Folders (User files only)
+
 - `POST /api/v1/knowledge/folders` - Create folder
 - `GET /api/v1/knowledge/folders` - List folders
 - `GET /api/v1/knowledge/folders/:folderId` - Get folder
@@ -138,23 +150,26 @@ export const KNOWLEDGE_CONFIG = {
 
 ✅ PDF, DOCX, DOC, TXT, MD  
 ✅ CSV, JSON, XML, HTML  
-✅ XLSX, XLS, PPTX, PPT  
+✅ XLSX, XLS, PPTX, PPT
 
 ---
 
 ## 🐛 Troubleshooting
 
 ### File upload fails
+
 - Check file size limit (50MB)
 - Verify file type is supported
 - Ensure GCS credentials are configured
 
 ### Processing stuck at "pending"
+
 - Call `/process/:fileId` endpoint manually
 - Check RAG database connectivity
 - Verify Gemini API key is valid
 
 ### Folder operations not working
+
 - Folders are only for `ownerType=user`
 - Check folder exists before upload
 - Verify parentFolderId is valid
@@ -164,16 +179,20 @@ export const KNOWLEDGE_CONFIG = {
 ## 🔄 Migration Guide
 
 ### From Knowledge Bank
+
 ```javascript
 // OLD
-POST /api/v1/knowledge-bank/upload
+POST / api / v1 / knowledge - bank / upload;
 
 // NEW
-POST /api/v1/knowledge/upload
-{ ownerType: 'user' }
+POST / api / v1 / knowledge / upload;
+{
+  ownerType: 'user';
+}
 ```
 
 ### From Knowledge Base
+
 ```javascript
 // OLD
 POST /api/v1/knowledge-base/upload
@@ -212,8 +231,9 @@ POST /api/v1/knowledge/upload
 ## 🎉 That's It!
 
 You now have a unified knowledge system that handles both personal files and bot knowledge bases with:
+
 - ✅ Smart RAG processing
-- ✅ Folder organization  
+- ✅ Folder organization
 - ✅ Semantic search ready
 - ✅ Cloud storage
 - ✅ Gemini AI powered

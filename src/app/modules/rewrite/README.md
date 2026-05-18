@@ -31,6 +31,7 @@ Natural language interface for rewriting. Users can chat naturally and the syste
 ```
 
 #### Form Data (Multipart)
+
 - `message` (required): Natural language request
 - `conversationId` (optional): To continue a conversation
 - `textContent` (optional): Direct text to rewrite
@@ -39,6 +40,7 @@ Natural language interface for rewriting. Users can chat naturally and the syste
 #### Examples
 
 **Example 1: Rewrite text in formal tone**
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
   -H "Content-Type: application/json" \
@@ -49,6 +51,7 @@ curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
 ```
 
 **Example 2: Upload file and request rewrite**
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
   -F "message=Rewrite this document in a professional style" \
@@ -56,6 +59,7 @@ curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
 ```
 
 **Example 3: Request file output**
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
   -F "message=Simplify this and create a file" \
@@ -116,6 +120,7 @@ Direct rewriting with explicit parameters. Best for programmatic access.
 ```
 
 #### Form Data (Multipart)
+
 - `textContent` (optional if file provided): Text to rewrite
 - `file` (optional): Document to rewrite
 - `intent` (optional): Rewrite intent (see options below)
@@ -126,6 +131,7 @@ Direct rewriting with explicit parameters. Best for programmatic access.
 - `outputFormat` (optional): `text`, `file`, or `both`
 
 #### Intent Options
+
 - `general_rewrite` - General improvement
 - `formal` - Formal tone
 - `casual` - Casual/friendly tone
@@ -141,6 +147,7 @@ Direct rewriting with explicit parameters. Best for programmatic access.
 - `paraphrase` - Complete rewrite
 
 #### Style Options
+
 - `formal` - Formal writing
 - `casual` - Casual/conversational
 - `professional` - Professional/business
@@ -151,6 +158,7 @@ Direct rewriting with explicit parameters. Best for programmatic access.
 - `persuasive` - Persuasive writing
 
 #### Mode Options
+
 - `preserve_meaning` - Keep original meaning (default)
 - `improve_clarity` - Focus on clarity
 - `simplify` - Make it simpler
@@ -236,8 +244,8 @@ const response = await fetch('/api/v1/rewrite/assistant', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     message: 'Make this professional',
-    textContent: 'Thanks for the help! Really appreciate it.'
-  })
+    textContent: 'Thanks for the help! Really appreciate it.',
+  }),
 });
 ```
 
@@ -250,7 +258,7 @@ formData.append('file', documentFile);
 
 const response = await fetch('/api/v1/rewrite/assistant', {
   method: 'POST',
-  body: formData
+  body: formData,
 });
 ```
 
@@ -265,8 +273,8 @@ const response = await fetch('/api/v1/rewrite/rewrite', {
     intent: 'formal',
     style: 'academic',
     mode: 'expand',
-    outputFormat: 'both'
-  })
+    outputFormat: 'both',
+  }),
 });
 ```
 
@@ -279,8 +287,8 @@ const firstResponse = await fetch('/api/v1/rewrite/assistant', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     message: 'Rewrite this formally',
-    textContent: 'Hey! Great work on the project.'
-  })
+    textContent: 'Hey! Great work on the project.',
+  }),
 });
 
 const { conversationId } = await firstResponse.json();
@@ -291,8 +299,8 @@ const secondResponse = await fetch('/api/v1/rewrite/assistant', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     message: 'Now make it more casual',
-    conversationId: conversationId
-  })
+    conversationId: conversationId,
+  }),
 });
 ```
 
@@ -333,6 +341,7 @@ All errors follow a consistent format:
 ```
 
 Common error codes:
+
 - `400` - Bad request (missing parameters, invalid file)
 - `401` - Unauthorized (authentication required)
 - `403` - Forbidden (usage limit reached)
@@ -369,6 +378,7 @@ The module uploads generated files to Google Cloud Storage (GCS) for reliable st
 - **Fallback**: If GCS is not configured, files are stored locally
 
 Environment variables needed for GCS:
+
 ```bash
 GCS_BUCKET_NAME=alti_files
 GCP_PROJECT_ID=your-project-id
@@ -405,7 +415,9 @@ app.use('/api/v1/rewrite', rewriteRoutes);
 ```
 
 ## Dependencies
+
 @google-cloud/storage` - Google Cloud Storage for file uploads
+
 - `
 - `@google/generative-ai` - AI text generation
 - `multer` - File upload handling

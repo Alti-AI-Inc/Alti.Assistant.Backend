@@ -8,7 +8,8 @@ import httpStatus from 'http-status';
 
 // Initialize Google Cloud Storage
 const storage = new Storage({
-  keyFilename: config.google?.google_application_credentials || './alti_gcp.json',
+  keyFilename:
+    config.google?.google_application_credentials || './alti_gcp.json',
   projectId: config.google?.gcp_project_id,
 });
 
@@ -60,7 +61,10 @@ const uploadAudioToBucket = async (filePath, originalName, mimeType) => {
     };
   } catch (error) {
     logger.error('Error uploading audio to GCP bucket:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to upload audio to GCP storage');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to upload audio to GCP storage'
+    );
   }
 };
 
@@ -85,7 +89,10 @@ const getSignedUrl = async (fileName, expiresIn = 3600) => {
     return signedUrl;
   } catch (error) {
     logger.error('Error generating signed URL:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate access URL');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to generate access URL'
+    );
   }
 };
 
@@ -119,7 +126,10 @@ const audioExistsInBucket = async (fileName) => {
     return exists;
   } catch (error) {
     logger.error('Error checking audio existence:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to check audio existence');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to check audio existence'
+    );
   }
 };
 
@@ -143,7 +153,10 @@ const getAudioMetadata = async (fileName) => {
     };
   } catch (error) {
     logger.error('Error getting audio metadata:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve audio metadata');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve audio metadata'
+    );
   }
 };
 

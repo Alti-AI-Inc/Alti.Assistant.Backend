@@ -101,7 +101,7 @@ export const uploadReportFiles = (req, res, next) => {
         const sizeLimit = getSizeLimit(file.originalname);
         if (file.size > sizeLimit) {
           // Clean up uploaded files
-          req.files.forEach(f => {
+          req.files.forEach((f) => {
             if (fs.existsSync(f.path)) {
               fs.unlinkSync(f.path);
             }
@@ -127,7 +127,7 @@ export const cleanupUploadedFiles = (files) => {
     return;
   }
 
-  files.forEach(file => {
+  files.forEach((file) => {
     try {
       if (file.path && fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);

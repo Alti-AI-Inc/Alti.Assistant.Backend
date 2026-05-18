@@ -16,7 +16,7 @@ const strategy = new GoogleStrategy(
     } catch (err) {
       return done(err, null);
     }
-  },
+  }
 );
 
 export default strategy;

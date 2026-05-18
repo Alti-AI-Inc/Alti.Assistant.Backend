@@ -27,7 +27,9 @@ export function sanitizeToolForGemini(tool) {
           cleanedValue.properties = cleanProperties(cleanedValue.properties);
         }
         if (cleanedValue.items?.properties) {
-          cleanedValue.items.properties = cleanProperties(cleanedValue.items.properties);
+          cleanedValue.items.properties = cleanProperties(
+            cleanedValue.items.properties
+          );
         }
 
         cleaned[key] = cleanedValue;
@@ -45,8 +47,8 @@ export function sanitizeToolForGemini(tool) {
     parameters: {
       ...tool.parameters,
       type: 'object',
-      properties: cleanProperties(tool.input_parameters.properties)
-    }
+      properties: cleanProperties(tool.input_parameters.properties),
+    },
   };
 
   return cleanedFunction;

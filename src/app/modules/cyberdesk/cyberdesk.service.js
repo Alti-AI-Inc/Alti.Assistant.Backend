@@ -18,13 +18,13 @@ const launchDesktop = async () => {
   if ('error' in result)
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      result.error.message || 'Cyberdesk API Error',
+      result.error.message || 'Cyberdesk API Error'
     );
   return result;
 };
 
 // Get desktop info
-const getDesktopInfo = async desktopId => {
+const getDesktopInfo = async (desktopId) => {
   const result = await cyberdesk.getDesktop({ path: { id: desktopId } });
   if ('error' in result) throw new Error(result.error);
   return result;
@@ -44,7 +44,7 @@ const clickMouse = async (desktopId, x, y) => {
   if ('error' in result) {
     console.error(
       'Cyberdesk Action Error:',
-      JSON.stringify(result.error, null, 2),
+      JSON.stringify(result.error, null, 2)
     );
     throw new Error(result.error.message || 'Unknown Cyberdesk Error');
   }
@@ -68,7 +68,7 @@ const executeBash = async (desktopId, command) => {
 };
 
 // Terminate desktop
-const terminateDesktop = async desktopId => {
+const terminateDesktop = async (desktopId) => {
   const result = await cyberdesk.terminateDesktop({ path: { id: desktopId } });
   return result;
 };

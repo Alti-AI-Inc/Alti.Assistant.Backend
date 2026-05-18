@@ -10,6 +10,7 @@ npm install @google-cloud/translate @langchain/google-genai mammoth pdf-parse xl
 ## Setup
 
 1. **Configure Google Cloud Translation API:**
+
 ```bash
 # Set environment variable
 export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
@@ -17,6 +18,7 @@ export GOOGLE_CLOUD_PROJECT_ID="your-project-id"
 ```
 
 2. **Configure Gemini API:**
+
 ```bash
 export GEMINI_SECRET_KEY="your-gemini-api-key"
 ```
@@ -90,14 +92,14 @@ async function translateText(text, targetLanguage) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       text,
-      targetLanguage
-    })
+      targetLanguage,
+    }),
   });
-  
+
   const result = await response.json();
   return result.data.translatedText;
 }
@@ -114,15 +116,15 @@ async function translateFile(file, targetLanguage, message) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('message', message);
-  
+
   const response = await fetch('/api/v1/translation/assistant', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
-    body: formData
+    body: formData,
   });
-  
+
   const result = await response.json();
   return result.data;
 }
@@ -140,30 +142,30 @@ class TranslationConversation {
   constructor() {
     this.conversationId = null;
   }
-  
+
   async sendMessage(message, file = null) {
     const formData = new FormData();
     formData.append('message', message);
-    
+
     if (this.conversationId) {
       formData.append('conversationId', this.conversationId);
     }
-    
+
     if (file) {
       formData.append('file', file);
     }
-    
+
     const response = await fetch('/api/v1/translation/assistant', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
-      body: formData
+      body: formData,
     });
-    
+
     const result = await response.json();
     this.conversationId = result.data.conversationId;
-    
+
     return result.data;
   }
 }
@@ -208,10 +210,10 @@ function TranslationWidget() {
         },
         body: JSON.stringify({
           text,
-          targetLanguage: targetLang
-        })
+          targetLanguage: targetLang,
+        }),
       });
-      
+
       const result = await response.json();
       setTranslation(result.data.translatedText);
     } catch (error) {
@@ -228,19 +230,22 @@ function TranslationWidget() {
         onChange={(e) => setText(e.target.value)}
         placeholder="Enter text to translate"
       />
-      
-      <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)}>
+
+      <select
+        value={targetLang}
+        onChange={(e) => setTargetLang(e.target.value)}
+      >
         <option value="es">Spanish</option>
         <option value="fr">French</option>
         <option value="de">German</option>
         <option value="it">Italian</option>
         <option value="pt">Portuguese</option>
       </select>
-      
+
       <button onClick={handleTranslate} disabled={loading}>
         {loading ? 'Translating...' : 'Translate'}
       </button>
-      
+
       {translation && (
         <div className="translation-result">
           <h3>Translation:</h3>
@@ -268,7 +273,7 @@ def translate_text(text, target_language, source_language=None):
     }
     if source_language:
         payload['sourceLanguage'] = source_language
-    
+
     response = requests.post(url, json=payload)
     result = response.json()
     return result['data']['translatedText']
@@ -280,11 +285,11 @@ print(translated)  # ¡Hola, mundo!
 # File translation
 def translate_file(file_path, target_language, message):
     url = 'http://localhost:5000/api/v1/translation/assistant'
-    
+
     with open(file_path, 'rb') as f:
         files = {'file': f}
         data = {'message': message}
-        
+
         response = requests.post(url, files=files, data=data)
         result = response.json()
         return result['data']
@@ -296,27 +301,27 @@ print(result['translation']['translatedText'])
 
 ## Common Language Codes
 
-| Language | Code |
-|----------|------|
-| English | en |
-| Spanish | es |
-| French | fr |
-| German | de |
-| Italian | it |
-| Portuguese | pt |
-| Russian | ru |
-| Japanese | ja |
-| Korean | ko |
-| Chinese (Simplified) | zh-CN |
+| Language              | Code  |
+| --------------------- | ----- |
+| English               | en    |
+| Spanish               | es    |
+| French                | fr    |
+| German                | de    |
+| Italian               | it    |
+| Portuguese            | pt    |
+| Russian               | ru    |
+| Japanese              | ja    |
+| Korean                | ko    |
+| Chinese (Simplified)  | zh-CN |
 | Chinese (Traditional) | zh-TW |
-| Arabic | ar |
-| Hindi | hi |
-| Turkish | tr |
-| Vietnamese | vi |
-| Thai | th |
-| Dutch | nl |
-| Polish | pl |
-| Swedish | sv |
+| Arabic                | ar    |
+| Hindi                 | hi    |
+| Turkish               | tr    |
+| Vietnamese            | vi    |
+| Thai                  | th    |
+| Dutch                 | nl    |
+| Polish                | pl    |
+| Swedish               | sv    |
 
 ## Supported File Formats
 
@@ -340,15 +345,15 @@ async function translateWithErrorHandling(text, targetLanguage) {
     const response = await fetch('/api/v1/translation/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, targetLanguage })
+      body: JSON.stringify({ text, targetLanguage }),
     });
-    
+
     const result = await response.json();
-    
+
     if (!result.success) {
       throw new Error(result.message);
     }
-    
+
     return result.data.translatedText;
   } catch (error) {
     if (error.message.includes('language code')) {

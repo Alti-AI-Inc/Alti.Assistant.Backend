@@ -1,7 +1,7 @@
 /**
  * Quick test script for Brainstorm API
  * Run this to verify the module is working correctly
- * 
+ *
  * Usage:
  * node scripts/test-brainstorm.js
  */
@@ -22,7 +22,8 @@ async function testBrainstormAPI() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: 'Help me brainstorm ideas for a productivity app for remote workers'
+        message:
+          'Help me brainstorm ideas for a productivity app for remote workers',
       }),
     });
 
@@ -31,8 +32,14 @@ async function testBrainstormAPI() {
     if (data.success) {
       console.log('✅ Success!');
       console.log('Conversation ID:', data.data.conversationId);
-      console.log('Total Ideas Generated:', data.data.metadata?.totalIdeasGenerated || 'N/A');
-      console.log('Technique Used:', data.data.metadata?.techniqueUsed || 'N/A');
+      console.log(
+        'Total Ideas Generated:',
+        data.data.metadata?.totalIdeasGenerated || 'N/A'
+      );
+      console.log(
+        'Technique Used:',
+        data.data.metadata?.techniqueUsed || 'N/A'
+      );
       console.log('\nFirst 500 characters of response:');
       console.log(data.data.response.substring(0, 500) + '...\n');
 
@@ -58,7 +65,7 @@ async function testBrainstormAPI() {
         },
         body: JSON.stringify({
           conversationId: global.conversationId,
-          message: 'Can you focus on the technical implementation?'
+          message: 'Can you focus on the technical implementation?',
         }),
       });
 
@@ -92,7 +99,7 @@ async function testBrainstormAPI() {
         brainstormType: 'product_idea',
         technique: 'swot',
         perspective: ['business', 'user_centric'],
-        depth: 'standard'
+        depth: 'standard',
       }),
     });
 
@@ -101,7 +108,10 @@ async function testBrainstormAPI() {
     if (data.success) {
       console.log('✅ Success!');
       console.log('Conversation ID:', data.data.conversationId);
-      console.log('Brainstorm Type:', data.data.metadata?.brainstormType || 'N/A');
+      console.log(
+        'Brainstorm Type:',
+        data.data.metadata?.brainstormType || 'N/A'
+      );
       console.log('\nFirst 400 characters of response:');
       console.log(data.data.response.substring(0, 400) + '...\n');
     } else {
@@ -123,7 +133,7 @@ async function testBrainstormAPI() {
       },
       body: JSON.stringify({
         idea: 'Marketing campaign for a new coffee brand',
-        depth: 'quick'
+        depth: 'quick',
       }),
     });
 
@@ -131,7 +141,10 @@ async function testBrainstormAPI() {
 
     if (data.success) {
       console.log('✅ Success!');
-      console.log('Ideas Generated:', data.data.metadata?.totalIdeasGenerated || 'N/A');
+      console.log(
+        'Ideas Generated:',
+        data.data.metadata?.totalIdeasGenerated || 'N/A'
+      );
       console.log('Depth Level:', data.data.metadata?.depthLevel || 'N/A');
       console.log('\nFirst 300 characters of response:');
       console.log(data.data.response.substring(0, 300) + '...\n');
@@ -144,9 +157,13 @@ async function testBrainstormAPI() {
 
   console.log('\n✨ All tests completed!');
   console.log('\nNext steps:');
-  console.log('1. Import the Postman collection from postman_collections/Brainstorm_API.postman_collection.json');
+  console.log(
+    '1. Import the Postman collection from postman_collections/Brainstorm_API.postman_collection.json'
+  );
   console.log('2. Try different techniques and perspectives');
-  console.log('3. Test with authenticated users for export and refine features');
+  console.log(
+    '3. Test with authenticated users for export and refine features'
+  );
   console.log('\nFor full documentation, see:');
   console.log('- src/app/modules/brainstorm/README.md');
   console.log('- src/app/modules/brainstorm/QUICKSTART.md');

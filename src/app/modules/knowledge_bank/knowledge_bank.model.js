@@ -176,7 +176,10 @@ KnowledgeBankFileSchema.virtual('fileExtension').get(function () {
 });
 
 // Static method to find user's files
-KnowledgeBankFileSchema.statics.findByUserId = async function (userId, options = {}) {
+KnowledgeBankFileSchema.statics.findByUserId = async function (
+  userId,
+  options = {}
+) {
   const query = { userId, isActive: true };
 
   // Add optional filters
@@ -200,7 +203,10 @@ KnowledgeBankFileSchema.statics.findByUserId = async function (userId, options =
 };
 
 // Static method to count user's files
-KnowledgeBankFileSchema.statics.countByUserId = async function (userId, activeOnly = true) {
+KnowledgeBankFileSchema.statics.countByUserId = async function (
+  userId,
+  activeOnly = true
+) {
   const query = { userId };
   if (activeOnly) {
     query.isActive = true;
@@ -209,7 +215,10 @@ KnowledgeBankFileSchema.statics.countByUserId = async function (userId, activeOn
 };
 
 // Static method to get total storage used by user
-KnowledgeBankFileSchema.statics.getTotalStorageByUserId = async function (userId, activeOnly = true) {
+KnowledgeBankFileSchema.statics.getTotalStorageByUserId = async function (
+  userId,
+  activeOnly = true
+) {
   const query = { userId };
   if (activeOnly) {
     query.isActive = true;
@@ -217,14 +226,18 @@ KnowledgeBankFileSchema.statics.getTotalStorageByUserId = async function (userId
 
   const result = await this.aggregate([
     { $match: query },
-    { $group: { _id: null, totalSize: { $sum: '$fileSize' } } }
+    { $group: { _id: null, totalSize: { $sum: '$fileSize' } } },
   ]);
 
   return result.length > 0 ? result[0].totalSize : 0;
 };
 
 // Instance method to mark as processed
-KnowledgeBankFileSchema.methods.markAsProcessed = async function (documentId, chunkCount, title) {
+KnowledgeBankFileSchema.methods.markAsProcessed = async function (
+  documentId,
+  chunkCount,
+  title
+) {
   this.isProcessed = true;
   this.processingStatus = 'completed';
   this.documentId = documentId;
@@ -255,6 +268,9 @@ KnowledgeBankFileSchema.pre('save', function (next) {
   next();
 });
 
-const KnowledgeBankFile = mongoose.model('KnowledgeBankFile', KnowledgeBankFileSchema);
+const KnowledgeBankFile = mongoose.model(
+  'KnowledgeBankFile',
+  KnowledgeBankFileSchema
+);
 
 export default KnowledgeBankFile;

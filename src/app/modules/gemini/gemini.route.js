@@ -8,12 +8,12 @@ const router = express.Router();
 router.post(
   '/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  GeminiAiController.GeminiAiGetResponse,
+  GeminiAiController.GeminiAiGetResponse
 );
 router.post(
   '/flash/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  GeminiAiController.Gemini25PreviewAiGetResponse,
+  GeminiAiController.Gemini25PreviewAiGetResponse
 );
 
 export const geminiAiRoutes = router;

@@ -9,13 +9,18 @@ import { IMAGE_ASSISTANT_CONSTANTS } from './image.constant.js';
  * @param {number} messageCount
  * @returns {Object}
  */
-export const formatImageResponse = (response, imageData, conversationId, messageCount) => {
+export const formatImageResponse = (
+  response,
+  imageData,
+  conversationId,
+  messageCount
+) => {
   try {
     return {
       responseMessage: {
         text: response,
         images: imageData || [],
-        type: 'generation'
+        type: 'generation',
       },
       conversationId,
       messageCount,
@@ -26,7 +31,7 @@ export const formatImageResponse = (response, imageData, conversationId, message
       responseMessage: {
         text: response,
         images: [],
-        type: 'generation'
+        type: 'generation',
       },
       conversationId,
       messageCount,
@@ -41,12 +46,16 @@ export const formatImageResponse = (response, imageData, conversationId, message
  * @param {number} messageCount
  * @returns {Object}
  */
-export const formatAnalysisResponse = (response, conversationId, messageCount) => {
+export const formatAnalysisResponse = (
+  response,
+  conversationId,
+  messageCount
+) => {
   try {
     return {
       responseMessage: {
         text: response,
-        type: 'analysis'
+        type: 'analysis',
       },
       conversationId,
       messageCount,
@@ -56,7 +65,7 @@ export const formatAnalysisResponse = (response, conversationId, messageCount) =
     return {
       responseMessage: {
         text: response,
-        type: 'analysis'
+        type: 'analysis',
       },
       conversationId,
       messageCount,
@@ -103,21 +112,28 @@ export const validateImageQuery = (message) => {
  * @returns {string}
  */
 export const formatErrorMessage = (error, originalQuery) => {
-  const baseMessage = "I apologize, but I encountered an error while processing your image request.";
-  
+  const baseMessage =
+    'I apologize, but I encountered an error while processing your image request.';
+
   // Don't expose internal error details to users
-  if (error.message?.includes('rate limit') || error.message?.includes('quota')) {
+  if (
+    error.message?.includes('rate limit') ||
+    error.message?.includes('quota')
+  ) {
     return `${baseMessage} It seems we've reached our service limits. Please try again in a few minutes.`;
   }
-  
+
   if (error.message?.includes('invalid') || error.message?.includes('format')) {
     return `${baseMessage} Please check your image format or prompt and try again.`;
   }
-  
-  if (error.message?.includes('network') || error.message?.includes('timeout')) {
+
+  if (
+    error.message?.includes('network') ||
+    error.message?.includes('timeout')
+  ) {
     return `${baseMessage} There seems to be a connectivity issue. Please try again.`;
   }
-  
+
   return `${baseMessage} Please try rephrasing your request or try again later.`;
 };
 
@@ -131,36 +147,62 @@ export const extractImageSpecs = (query) => {
     size: 'standard',
     style: 'realistic',
     aspectRatio: '1:1',
-    quality: 'standard'
+    quality: 'standard',
   };
 
   const lowerQuery = query.toLowerCase();
 
   // Extract size preferences
-  if (lowerQuery.includes('large') || lowerQuery.includes('big') || lowerQuery.includes('1024')) {
+  if (
+    lowerQuery.includes('large') ||
+    lowerQuery.includes('big') ||
+    lowerQuery.includes('1024')
+  ) {
     specs.size = 'large';
-  } else if (lowerQuery.includes('small') || lowerQuery.includes('tiny') || lowerQuery.includes('512')) {
+  } else if (
+    lowerQuery.includes('small') ||
+    lowerQuery.includes('tiny') ||
+    lowerQuery.includes('512')
+  ) {
     specs.size = 'small';
   }
 
   // Extract style preferences
-  if (lowerQuery.includes('cartoon') || lowerQuery.includes('anime') || lowerQuery.includes('comic')) {
+  if (
+    lowerQuery.includes('cartoon') ||
+    lowerQuery.includes('anime') ||
+    lowerQuery.includes('comic')
+  ) {
     specs.style = 'cartoon';
-  } else if (lowerQuery.includes('abstract') || lowerQuery.includes('artistic')) {
+  } else if (
+    lowerQuery.includes('abstract') ||
+    lowerQuery.includes('artistic')
+  ) {
     specs.style = 'abstract';
-  } else if (lowerQuery.includes('photorealistic') || lowerQuery.includes('photo')) {
+  } else if (
+    lowerQuery.includes('photorealistic') ||
+    lowerQuery.includes('photo')
+  ) {
     specs.style = 'photorealistic';
   }
 
   // Extract aspect ratio
   if (lowerQuery.includes('portrait') || lowerQuery.includes('vertical')) {
     specs.aspectRatio = '3:4';
-  } else if (lowerQuery.includes('landscape') || lowerQuery.includes('horizontal') || lowerQuery.includes('wide')) {
+  } else if (
+    lowerQuery.includes('landscape') ||
+    lowerQuery.includes('horizontal') ||
+    lowerQuery.includes('wide')
+  ) {
     specs.aspectRatio = '4:3';
   }
 
   // Extract quality preferences
-  if (lowerQuery.includes('high quality') || lowerQuery.includes('detailed') || lowerQuery.includes('hd')) {
+  if (
+    lowerQuery.includes('high quality') ||
+    lowerQuery.includes('detailed') ||
+    lowerQuery.includes('hd')
+  ) {
     specs.quality = 'high';
   }
 
@@ -176,11 +218,11 @@ export const extractImageSpecs = (query) => {
 export const generateConversationTitle = (query, type = 'generation') => {
   const prefix = type === 'generation' ? 'Generate' : 'Analyze';
   const maxLength = 50;
-  
+
   if (query.length <= maxLength) {
     return `${prefix}: ${query}`;
   }
-  
+
   return `${prefix}: ${query.substring(0, maxLength - 3)}...`;
 };
 
@@ -196,9 +238,15 @@ export const validateImagePreferences = (preferences = {}) => {
 
   const validated = {
     size: validSizes.includes(preferences.size) ? preferences.size : 'standard',
-    style: validStyles.includes(preferences.style) ? preferences.style : 'realistic',
-    aspectRatio: validAspectRatios.includes(preferences.aspectRatio) ? preferences.aspectRatio : '1:1',
-    quality: ['standard', 'high'].includes(preferences.quality) ? preferences.quality : 'standard',
+    style: validStyles.includes(preferences.style)
+      ? preferences.style
+      : 'realistic',
+    aspectRatio: validAspectRatios.includes(preferences.aspectRatio)
+      ? preferences.aspectRatio
+      : '1:1',
+    quality: ['standard', 'high'].includes(preferences.quality)
+      ? preferences.quality
+      : 'standard',
   };
 
   return validated;

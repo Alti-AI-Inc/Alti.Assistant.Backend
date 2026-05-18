@@ -23,7 +23,16 @@ const storage = multer.diskStorage({
 // File filter
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
-  const supportedExtensions = ['.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt'];
+  const supportedExtensions = [
+    '.pdf',
+    '.docx',
+    '.doc',
+    '.txt',
+    '.xlsx',
+    '.xls',
+    '.pptx',
+    '.ppt',
+  ];
 
   if (supportedExtensions.includes(ext)) {
     cb(null, true);

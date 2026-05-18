@@ -193,7 +193,9 @@ export const incrementTenantUsage = (usageType, amount = 1) => {
 
       if (tenant) {
         await tenant.incrementUsage(usageType, amount);
-        logger.info(`Tenant usage incremented: ${usageType} +${amount} for tenant ${req.tenantId}`);
+        logger.info(
+          `Tenant usage incremented: ${usageType} +${amount} for tenant ${req.tenantId}`
+        );
       }
 
       next();
@@ -214,10 +216,15 @@ export const validateInvitationToken = async (req, res, next) => {
     const { token } = req.params;
 
     if (!token) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Invitation token is required');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Invitation token is required'
+      );
     }
 
-    const TenantInvitation = (await import('../../modules/tenant/tenantInvitation.model.js')).default;
+    const TenantInvitation = (
+      await import('../../modules/tenant/tenantInvitation.model.js')
+    ).default;
 
     const invitation = await TenantInvitation.findByToken(token);
 

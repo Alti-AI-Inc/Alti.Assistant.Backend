@@ -60,7 +60,7 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
       logger.error('Error in incrementPromptsUsed:', error);
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        error.message || 'An error occurred while updating prompt usage.',
+        error.message || 'An error occurred while updating prompt usage.'
       );
     }
 
@@ -93,7 +93,7 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
     if (payload) {
       await RedisClient.publish(
         DEEPSEEK_RESPONSE_SERVICE_POST,
-        JSON.stringify(payload),
+        JSON.stringify(payload)
       );
     }
     return payload;

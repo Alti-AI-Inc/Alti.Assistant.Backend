@@ -14,8 +14,14 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 /**
  * Build analysis prompt based on type and format
  */
-const buildAnalysisPrompt = (content, analysisType, outputFormat, userMessage) => {
-  const systemPrompt = SYSTEM_PROMPTS[analysisType] || SYSTEM_PROMPTS[ANALYSIS_TYPES.GENERAL];
+const buildAnalysisPrompt = (
+  content,
+  analysisType,
+  outputFormat,
+  userMessage
+) => {
+  const systemPrompt =
+    SYSTEM_PROMPTS[analysisType] || SYSTEM_PROMPTS[ANALYSIS_TYPES.GENERAL];
 
   let prompt = `${systemPrompt}\n\n`;
 
@@ -37,9 +43,16 @@ const buildAnalysisPrompt = (content, analysisType, outputFormat, userMessage) =
 /**
  * Analyze content using Gemini 3.5 Flash
  */
-const analyzeWithGemini = async (content, analysisType = ANALYSIS_TYPES.GENERAL, outputFormat = OUTPUT_FORMATS.NARRATIVE, userMessage = null) => {
+const analyzeWithGemini = async (
+  content,
+  analysisType = ANALYSIS_TYPES.GENERAL,
+  outputFormat = OUTPUT_FORMATS.NARRATIVE,
+  userMessage = null
+) => {
   try {
-    logger.info(`Starting analysis with type: ${analysisType}, format: ${outputFormat}`);
+    logger.info(
+      `Starting analysis with type: ${analysisType}, format: ${outputFormat}`
+    );
 
     // Initialize the model
     const model = genAI.getGenerativeModel({
@@ -47,7 +60,12 @@ const analyzeWithGemini = async (content, analysisType = ANALYSIS_TYPES.GENERAL,
     });
 
     // Build the prompt
-    const prompt = buildAnalysisPrompt(content, analysisType, outputFormat, userMessage);
+    const prompt = buildAnalysisPrompt(
+      content,
+      analysisType,
+      outputFormat,
+      userMessage
+    );
 
     // Generate content
     const result = await model.generateContent({
@@ -61,7 +79,9 @@ const analyzeWithGemini = async (content, analysisType = ANALYSIS_TYPES.GENERAL,
     const response = result.response;
     const analysisResult = response.text();
 
-    logger.info(`Analysis completed successfully (${analysisResult.length} characters)`);
+    logger.info(
+      `Analysis completed successfully (${analysisResult.length} characters)`
+    );
 
     return {
       success: true,
@@ -100,14 +120,19 @@ const analyzeWithContext = async (
     const messages = [];
 
     // Add system prompt
-    const systemPrompt = SYSTEM_PROMPTS[analysisType] || SYSTEM_PROMPTS[ANALYSIS_TYPES.GENERAL];
+    const systemPrompt =
+      SYSTEM_PROMPTS[analysisType] || SYSTEM_PROMPTS[ANALYSIS_TYPES.GENERAL];
     messages.push({
       role: 'user',
       parts: [{ text: `System Context: ${systemPrompt}` }],
     });
     messages.push({
       role: 'model',
-      parts: [{ text: 'I understand. I will analyze content according to these guidelines.' }],
+      parts: [
+        {
+          text: 'I understand. I will analyze content according to these guidelines.',
+        },
+      ],
     });
 
     // Add recent conversation history (last 5 exchanges)

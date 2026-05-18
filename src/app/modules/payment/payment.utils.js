@@ -1,11 +1,10 @@
 import moment from 'moment';
 
-
 export const purchasePlanTemplate = async (email, user, subscription) => {
-    const mailData = {
-      userEmail: email,
-      sub: 'Subscription Activated Successfully',
-      message: `
+  const mailData = {
+    userEmail: email,
+    sub: 'Subscription Activated Successfully',
+    message: `
         <div style="max-width: 800px; font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; margin: auto; width: 50%;">
           <div style="max-width: 100%; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
             <h2 style="color: #333333; text-align: center;">Subscription Confirmation</h2>
@@ -27,6 +26,6 @@ export const purchasePlanTemplate = async (email, user, subscription) => {
           </p>
         </div>
       `,
-    };
-    return mailData;
+  };
+  return mailData;
 };

@@ -10,16 +10,13 @@ import { workflowExecutionIntegrationService } from '../services/workflowExecuti
 const executeStoredWorkflowController = catchAsync(async (req, res) => {
   const { workflowId } = req.params;
   const userId = req.user?._id || req.userId;
-  const {
-    triggerSource = 'user_click',
-    executionMetadata = {}
-  } = req.body;
+  const { triggerSource = 'user_click', executionMetadata = {} } = req.body;
 
   if (!userId) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -27,42 +24,42 @@ const executeStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
   try {
-    const result = await workflowExecutionIntegrationService.executeStoredWorkflow(
-      workflowId,
-      userId,
-      {
-        triggerSource,
-        executionMetadata
-      }
-    );
+    const result =
+      await workflowExecutionIntegrationService.executeStoredWorkflow(
+        workflowId,
+        userId,
+        {
+          triggerSource,
+          executionMetadata,
+        }
+      );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: result.message,
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
         message: result.error,
-        data: result.details
+        data: result.details,
       });
     }
-
   } catch (error) {
     logger.error('Error in executeStoredWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to execute stored workflow'
+      message: 'Failed to execute stored workflow',
     });
   }
 });
@@ -78,14 +75,14 @@ const executeBatchStoredWorkflowsController = catchAsync(async (req, res) => {
     maxConcurrency = 3,
     continueOnError = true,
     triggerSource = 'batch_execution',
-    executionMetadata = {}
+    executionMetadata = {},
   } = req.body;
 
   if (!userId) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -93,44 +90,44 @@ const executeBatchStoredWorkflowsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow IDs array is required'
+      message: 'Workflow IDs array is required',
     });
   }
 
   try {
-    const result = await workflowExecutionIntegrationService.executeBatchStoredWorkflows(
-      workflowIds,
-      userId,
-      {
-        concurrent,
-        maxConcurrency,
-        continueOnError,
-        triggerSource,
-        executionMetadata
-      }
-    );
+    const result =
+      await workflowExecutionIntegrationService.executeBatchStoredWorkflows(
+        workflowIds,
+        userId,
+        {
+          concurrent,
+          maxConcurrency,
+          continueOnError,
+          triggerSource,
+          executionMetadata,
+        }
+      );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: result.message,
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in executeBatchStoredWorkflowsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to execute batch workflows'
+      message: 'Failed to execute batch workflows',
     });
   }
 });
@@ -147,7 +144,7 @@ const scheduleStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -155,7 +152,7 @@ const scheduleStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
@@ -163,39 +160,39 @@ const scheduleStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Schedule configuration with frequency is required'
+      message: 'Schedule configuration with frequency is required',
     });
   }
 
   try {
-    const result = await workflowExecutionIntegrationService.scheduleStoredWorkflow(
-      workflowId,
-      userId,
-      scheduleConfig
-    );
+    const result =
+      await workflowExecutionIntegrationService.scheduleStoredWorkflow(
+        workflowId,
+        userId,
+        scheduleConfig
+      );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
         message: result.message,
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
         message: result.error,
-        data: result.details
+        data: result.details,
       });
     }
-
   } catch (error) {
     logger.error('Error in scheduleStoredWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to schedule stored workflow'
+      message: 'Failed to schedule stored workflow',
     });
   }
 });
@@ -203,132 +200,142 @@ const scheduleStoredWorkflowController = catchAsync(async (req, res) => {
 /**
  * Get execution history for a stored workflow
  */
-const getStoredWorkflowExecutionHistoryController = catchAsync(async (req, res) => {
-  const { workflowId } = req.params;
-  const userId = req.user?._id || req.userId;
-  const { limit = 20, offset = 0 } = req.query;
+const getStoredWorkflowExecutionHistoryController = catchAsync(
+  async (req, res) => {
+    const { workflowId } = req.params;
+    const userId = req.user?._id || req.userId;
+    const { limit = 20, offset = 0 } = req.query;
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'User authentication required'
-    });
-  }
-
-  if (!workflowId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'Workflow ID is required'
-    });
-  }
-
-  try {
-    const result = await workflowExecutionIntegrationService.getStoredWorkflowExecutionHistory(
-      workflowId,
-      userId,
-      {
-        limit: parseInt(limit),
-        offset: parseInt(offset)
-      }
-    );
-
-    if (result.success) {
+    if (!userId) {
       return sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Execution history retrieved successfully',
-        data: result.data
-      });
-    } else {
-      return sendResponse(res, {
-        statusCode: httpStatus.BAD_REQUEST,
+        statusCode: httpStatus.UNAUTHORIZED,
         success: false,
-        message: result.error
+        message: 'User authentication required',
       });
     }
 
-  } catch (error) {
-    logger.error('Error in getStoredWorkflowExecutionHistoryController:', error);
-    return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: 'Failed to retrieve execution history'
-    });
+    if (!workflowId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Workflow ID is required',
+      });
+    }
+
+    try {
+      const result =
+        await workflowExecutionIntegrationService.getStoredWorkflowExecutionHistory(
+          workflowId,
+          userId,
+          {
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+          }
+        );
+
+      if (result.success) {
+        return sendResponse(res, {
+          statusCode: httpStatus.OK,
+          success: true,
+          message: 'Execution history retrieved successfully',
+          data: result.data,
+        });
+      } else {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: result.error,
+        });
+      }
+    } catch (error) {
+      logger.error(
+        'Error in getStoredWorkflowExecutionHistoryController:',
+        error
+      );
+      return sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: 'Failed to retrieve execution history',
+      });
+    }
   }
-});
+);
 
 /**
  * Convert stored workflow to template
  */
-const convertStoredWorkflowToTemplateController = catchAsync(async (req, res) => {
-  const { workflowId } = req.params;
-  const userId = req.user?._id || req.userId;
-  const {
-    templateTitle,
-    templateDescription,
-    isPublic = false,
-    category = 'template'
-  } = req.body;
+const convertStoredWorkflowToTemplateController = catchAsync(
+  async (req, res) => {
+    const { workflowId } = req.params;
+    const userId = req.user?._id || req.userId;
+    const {
+      templateTitle,
+      templateDescription,
+      isPublic = false,
+      category = 'template',
+    } = req.body;
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'User authentication required'
-    });
-  }
-
-  if (!workflowId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'Workflow ID is required'
-    });
-  }
-
-  try {
-    const result = await workflowExecutionIntegrationService.convertStoredWorkflowToTemplate(
-      workflowId,
-      userId,
-      {
-        templateTitle,
-        templateDescription,
-        isPublic,
-        category
-      }
-    );
-
-    if (result.success) {
+    if (!userId) {
       return sendResponse(res, {
-        statusCode: httpStatus.CREATED,
-        success: true,
-        message: result.message,
-        data: result.data
-      });
-    } else {
-      return sendResponse(res, {
-        statusCode: httpStatus.BAD_REQUEST,
+        statusCode: httpStatus.UNAUTHORIZED,
         success: false,
-        message: result.error
+        message: 'User authentication required',
       });
     }
 
-  } catch (error) {
-    logger.error('Error in convertStoredWorkflowToTemplateController:', error);
-    return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: 'Failed to convert workflow to template'
-    });
+    if (!workflowId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Workflow ID is required',
+      });
+    }
+
+    try {
+      const result =
+        await workflowExecutionIntegrationService.convertStoredWorkflowToTemplate(
+          workflowId,
+          userId,
+          {
+            templateTitle,
+            templateDescription,
+            isPublic,
+            category,
+          }
+        );
+
+      if (result.success) {
+        return sendResponse(res, {
+          statusCode: httpStatus.CREATED,
+          success: true,
+          message: result.message,
+          data: result.data,
+        });
+      } else {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: result.error,
+        });
+      }
+    } catch (error) {
+      logger.error(
+        'Error in convertStoredWorkflowToTemplateController:',
+        error
+      );
+      return sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: 'Failed to convert workflow to template',
+      });
+    }
   }
-});
+);
 
 export {
   executeStoredWorkflowController,
   executeBatchStoredWorkflowsController,
   scheduleStoredWorkflowController,
   getStoredWorkflowExecutionHistoryController,
-  convertStoredWorkflowToTemplateController
+  convertStoredWorkflowToTemplateController,
 };

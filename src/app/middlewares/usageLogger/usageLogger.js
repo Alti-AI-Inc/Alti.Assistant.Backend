@@ -43,12 +43,13 @@ const usageLogger = (req, res, next) => {
 
       // Extract user and tenant from request (set by auth middleware)
       const userId = req.user?._id || req.user?.id || null;
-      const tenantId = req.tenant?._id
-        || req.tenant?.id
-        || req.user?.currentTenantId
-        || req.user?.activeTenantId
-        || req.user?.tenantId
-        || null;
+      const tenantId =
+        req.tenant?._id ||
+        req.tenant?.id ||
+        req.user?.currentTenantId ||
+        req.user?.activeTenantId ||
+        req.user?.tenantId ||
+        null;
 
       // Skip logging if no user (some public endpoints)
       if (!userId) {
@@ -61,18 +62,28 @@ const usageLogger = (req, res, next) => {
       const statusCode = res.statusCode;
 
       // Get IP and User Agent
-      const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+      const ipAddress =
+        req.ip ||
+        req.connection.remoteAddress ||
+        req.headers['x-forwarded-for'];
       const userAgent = req.headers['user-agent'];
 
       // Calculate request/response sizes
-      const inputSize = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
-      const outputSize = res.get('content-length') ? parseInt(res.get('content-length')) : 0;
+      const inputSize = req.headers['content-length']
+        ? parseInt(req.headers['content-length'])
+        : 0;
+      const outputSize = res.get('content-length')
+        ? parseInt(res.get('content-length'))
+        : 0;
 
       // Extract error message if error response
       let errorMessage = null;
       if (statusCode >= 400 && responseBody) {
         try {
-          const parsed = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+          const parsed =
+            typeof responseBody === 'string'
+              ? JSON.parse(responseBody)
+              : responseBody;
           errorMessage = parsed.message || parsed.error || null;
         } catch (e) {
           // Ignore parse errors
@@ -86,7 +97,10 @@ const usageLogger = (req, res, next) => {
 
       if (responseBody) {
         try {
-          const parsed = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+          const parsed =
+            typeof responseBody === 'string'
+              ? JSON.parse(responseBody)
+              : responseBody;
 
           // Check for AI usage data in common locations
           if (parsed.usage?.total_tokens) {

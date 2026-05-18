@@ -50,7 +50,9 @@ export const generatePDFReport = async (reportData, outputPath) => {
           doc.moveDown(1);
         }
 
-        doc.fontSize(12).text(new Date().toLocaleDateString(), { align: 'center' });
+        doc
+          .fontSize(12)
+          .text(new Date().toLocaleDateString(), { align: 'center' });
         doc.addPage();
       }
 
@@ -142,7 +144,7 @@ export const generateDOCXReport = async (reportData, outputPath) => {
     }
 
     if (reportData.sections) {
-      reportData.sections.forEach(section => {
+      reportData.sections.forEach((section) => {
         content += `${section.title}\n\n`;
         content += `${section.content}\n\n`;
       });
@@ -174,11 +176,12 @@ export const generateCSVReport = async (reportData, outputPath) => {
         const headers = Object.keys(reportData.data[0]);
         csvContent += headers.join(',') + '\n';
 
-        reportData.data.forEach(row => {
-          const values = headers.map(header => {
+        reportData.data.forEach((row) => {
+          const values = headers.map((header) => {
             const value = row[header] || '';
             // Escape values with commas or quotes
-            return typeof value === 'string' && (value.includes(',') || value.includes('"'))
+            return typeof value === 'string' &&
+              (value.includes(',') || value.includes('"'))
               ? `"${value.replace(/"/g, '""')}"`
               : value;
           });
@@ -270,7 +273,7 @@ export const generateMDReport = async (reportData, outputPath) => {
     }
 
     if (reportData.sections) {
-      reportData.sections.forEach(section => {
+      reportData.sections.forEach((section) => {
         content += `## ${section.title}\n\n`;
         content += `${section.content}\n\n`;
       });
@@ -330,7 +333,7 @@ export const generateHTMLReport = async (reportData, outputPath) => {
     html += `  <p class="date">${new Date().toLocaleDateString()}</p>\n\n`;
 
     if (reportData.sections) {
-      reportData.sections.forEach(section => {
+      reportData.sections.forEach((section) => {
         html += `  <div class="section">\n`;
         html += `    <h2>${section.title}</h2>\n`;
         html += `    <p>${section.content.replace(/\n/g, '<br>')}</p>\n`;

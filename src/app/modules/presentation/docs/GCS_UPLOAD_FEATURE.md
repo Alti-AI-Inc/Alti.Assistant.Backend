@@ -22,6 +22,7 @@ GCS_PRESENTATION_BUCKET=alti_assistant_presentation
 The module uses the `alti_assistant_presentation` bucket (configurable via `GCS_PRESENTATION_BUCKET` env var).
 
 **Bucket Structure:**
+
 ```
 alti_assistant_presentation/
   ├── {userId}/
@@ -54,6 +55,7 @@ All presentation operations now include GCS upload:
 ### Error Handling
 
 If GCS upload fails:
+
 - The error is logged but doesn't block the response
 - Users still receive the Presenton download URL
 - The system continues to function normally
@@ -103,12 +105,12 @@ Presentation URLs are stored in conversation metadata:
     presentationUrl: "https://storage.googleapis.com/alti_assistant_presentation/.../presentation.pptx",
     gcsPath: "userId/conversationId/presentation.pptx",
     uploadedAt: "2024-01-15T10:30:00.000Z",
-    
+
     // For edited presentations
     editedPresentationUrl: "https://...",
     editedGcsPath: "...",
     editedAt: "2024-01-15T11:00:00.000Z",
-    
+
     // For derived presentations
     derivedPresentationUrl: "https://...",
     derivedGcsPath: "...",
@@ -136,6 +138,7 @@ The system automatically sets correct content types:
 ## Public Access
 
 All uploaded files are made publicly accessible via:
+
 - Direct URL: `https://storage.googleapis.com/{bucket}/{path}`
 - No authentication required for access
 - URLs can be shared with anyone
@@ -151,10 +154,10 @@ Located at: `src/app/modules/presentation/services/gcsUploadService.js`
 ```javascript
 // Upload presentation to GCS
 await uploadPresentationToGCS(
-  presentonUrl,    // URL from Presenton API
-  fileName,        // Name for the file
-  userId,          // User ID
-  conversationId   // Conversation ID
+  presentonUrl, // URL from Presenton API
+  fileName, // Name for the file
+  userId, // User ID
+  conversationId // Conversation ID
 );
 
 // Delete file from GCS
@@ -164,6 +167,7 @@ await deleteFromGCS(gcsPath);
 ### Integration in Service Layer
 
 The upload is integrated in:
+
 - `handleGenerateIntent()` - For new presentations
 - `handleEditIntent()` - For edited presentations
 - `handleDeriveIntent()` - For derived presentations
@@ -228,12 +232,14 @@ POST /api/presentation/generate
 ## Monitoring
 
 Check logs for upload status:
+
 - Success: `Presentation uploaded to GCS: {url}`
 - Failure: `Error uploading presentation to GCS: {error}`
 
 ## Future Enhancements
 
 Potential improvements:
+
 - Private file access with signed URLs
 - Automatic file cleanup/expiration
 - File compression before upload

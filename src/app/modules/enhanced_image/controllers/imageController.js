@@ -1,6 +1,10 @@
-import config from "../../../../../config/index.js";
+import config from '../../../../../config/index.js';
 
-export const createImageController = (sessionManager, imageService, promptService) => {
+export const createImageController = (
+  sessionManager,
+  imageService,
+  promptService
+) => {
   return {
     editImage: async (req, res) => {
       try {
@@ -9,26 +13,33 @@ export const createImageController = (sessionManager, imageService, promptServic
         if (!prompt) {
           return res.status(400).json({
             success: false,
-            error: "prompt is required",
+            error: 'prompt is required',
           });
         }
 
         if (!imageBase64) {
           return res.status(400).json({
             success: false,
-            error: "imageBase64 is required",
+            error: 'imageBase64 is required',
           });
         }
 
         // Import imagen3 service
-        const { editImageWithImagen3 } = await import("../utils/imagen3.service.js");
+        const { editImageWithImagen3 } = await import(
+          '../utils/imagen3.service.js'
+        );
         const apiKey = config.gemini_secret_key;
 
         const timestamp = Date.now();
         const filename = `image-edit-${timestamp}.png`;
 
         // Edit image using Imagen3
-        const imageResult = await editImageWithImagen3(prompt, imageBase64, filename, apiKey);
+        const imageResult = await editImageWithImagen3(
+          prompt,
+          imageBase64,
+          filename,
+          apiKey
+        );
 
         res.json({
           success: true,
@@ -36,7 +47,7 @@ export const createImageController = (sessionManager, imageService, promptServic
           prompt,
         });
       } catch (error) {
-        console.error("Error editing image:", error);
+        console.error('Error editing image:', error);
         res.status(500).json({
           success: false,
           error: error.message,
@@ -51,7 +62,7 @@ export const createImageController = (sessionManager, imageService, promptServic
         if (!sessionId) {
           return res.status(400).json({
             success: false,
-            error: "sessionId is required",
+            error: 'sessionId is required',
           });
         }
 
@@ -59,22 +70,27 @@ export const createImageController = (sessionManager, imageService, promptServic
         if (!session) {
           return res.status(404).json({
             success: false,
-            error: "Session not found",
+            error: 'Session not found',
           });
         }
 
         // Use custom prompt or build enhanced prompt
         let finalPrompt = customPrompt;
         if (!finalPrompt) {
-          const conversationHistory = sessionManager.getConversationHistory(sessionId);
-          finalPrompt = await promptService.buildEnhancedPrompt(conversationHistory);
+          const conversationHistory =
+            sessionManager.getConversationHistory(sessionId);
+          finalPrompt =
+            await promptService.buildEnhancedPrompt(conversationHistory);
         }
 
         const timestamp = Date.now();
         const filename = `image-${sessionId}-${timestamp}.png`;
 
         // Generate image
-        const imageResult = await imageService.generateImage(finalPrompt, filename);
+        const imageResult = await imageService.generateImage(
+          finalPrompt,
+          filename
+        );
 
         // Clean up session
         sessionManager.deleteSession(sessionId);
@@ -85,7 +101,7 @@ export const createImageController = (sessionManager, imageService, promptServic
           prompt: finalPrompt,
         });
       } catch (error) {
-        console.error("Error generating image:", error);
+        console.error('Error generating image:', error);
         res.status(500).json({
           success: false,
           error: error.message,
@@ -100,7 +116,7 @@ export const createImageController = (sessionManager, imageService, promptServic
         if (!prompt) {
           return res.status(400).json({
             success: false,
-            error: "prompt is required",
+            error: 'prompt is required',
           });
         }
 
@@ -116,7 +132,7 @@ export const createImageController = (sessionManager, imageService, promptServic
           prompt,
         });
       } catch (error) {
-        console.error("Error generating image:", error);
+        console.error('Error generating image:', error);
         res.status(500).json({
           success: false,
           error: error.message,

@@ -12,20 +12,20 @@ Successfully implemented a fully functional conversational AI-powered creative w
 
 ### 1. Core Files
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `creative_writing.constant.js` | 226 | Configuration, constants, writing types, styles, tones, and prompts |
-| `creative_writing.service.js` | 389 | Core business logic, AI integration, conversation handling |
-| `creative_writing.controller.js` | 131 | Request handlers and response formatting |
-| `creative_writing.route.js` | 36 | API route definitions and middleware setup |
-| `creative_writing.validation.js` | 37 | Request validation schemas using Joi |
+| File                             | Lines | Purpose                                                             |
+| -------------------------------- | ----- | ------------------------------------------------------------------- |
+| `creative_writing.constant.js`   | 226   | Configuration, constants, writing types, styles, tones, and prompts |
+| `creative_writing.service.js`    | 389   | Core business logic, AI integration, conversation handling          |
+| `creative_writing.controller.js` | 131   | Request handlers and response formatting                            |
+| `creative_writing.route.js`      | 36    | API route definitions and middleware setup                          |
+| `creative_writing.validation.js` | 37    | Request validation schemas using Joi                                |
 
 ### 2. Documentation Files
 
-| File | Purpose |
-|------|---------|
-| `README.md` | Comprehensive API documentation with examples |
-| `QUICKSTART.md` | Quick start guide for developers |
+| File            | Purpose                                       |
+| --------------- | --------------------------------------------- |
+| `README.md`     | Comprehensive API documentation with examples |
+| `QUICKSTART.md` | Quick start guide for developers              |
 
 ### 3. Integration Files
 
@@ -35,6 +35,7 @@ Successfully implemented a fully functional conversational AI-powered creative w
 ## Key Features Implemented
 
 ### ✅ Writing Types Support (17 Types)
+
 - Poems (general, haiku, sonnet, free verse)
 - Stories (short story, novel chapter, flash fiction)
 - Scripts and dialogue
@@ -44,17 +45,20 @@ Successfully implemented a fully functional conversational AI-powered creative w
 - And more...
 
 ### ✅ Style Options (17 Styles)
+
 - Dramatic, Romantic, Comedic, Tragic
 - Suspenseful, Mysterious, Inspirational
 - Dark, Whimsical, Realistic, Surreal
 - And more...
 
 ### ✅ Tone Options (15 Tones)
+
 - Joyful, Melancholic, Hopeful, Nostalgic
 - Passionate, Humorous, Serious, Playful
 - And more...
 
 ### ✅ Intent Detection (10 Intents)
+
 - Create new writing
 - Continue story
 - Revise and improve
@@ -65,6 +69,7 @@ Successfully implemented a fully functional conversational AI-powered creative w
 - And more...
 
 ### ✅ Advanced Features
+
 - Natural language understanding
 - Conversational context maintenance
 - Word count control
@@ -77,9 +82,11 @@ Successfully implemented a fully functional conversational AI-powered creative w
 ## API Endpoints
 
 ### 1. POST `/api/v1/creative-writing/assistant`
+
 **Purpose:** Main conversational endpoint for creative writing
 
 **Features:**
+
 - Supports guest and authenticated users
 - Natural language message processing
 - Conversation context handling
@@ -87,6 +94,7 @@ Successfully implemented a fully functional conversational AI-powered creative w
 - AI-powered generation
 
 **Request:**
+
 ```json
 {
   "message": "Write a romantic poem about the moon",
@@ -95,6 +103,7 @@ Successfully implemented a fully functional conversational AI-powered creative w
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -108,6 +117,7 @@ Successfully implemented a fully functional conversational AI-powered creative w
 ```
 
 ### 2. GET `/api/v1/creative-writing/conversation/:conversationId`
+
 **Purpose:** Retrieve conversation history
 
 **Authentication:** Required
@@ -121,24 +131,28 @@ Successfully implemented a fully functional conversational AI-powered creative w
 **Key Functions:**
 
 1. **processConversationalRequest**
+
    - Main orchestration function
    - Handles message analysis
    - Manages conversation flow
    - Generates creative writing
 
 2. **analyzeUserMessage**
+
    - Detects writing intent
    - Identifies writing type
    - Extracts parameters (style, tone, word count)
    - Uses keyword matching algorithms
 
 3. **buildWritingPrompt**
+
    - Constructs AI prompts
    - Includes system prompts for each writing type
    - Adds conversation context
    - Incorporates constraints
 
 4. **generateCreativeWriting**
+
    - Calls Google Gemini AI
    - High temperature (0.9) for creativity
    - Handles AI responses
@@ -153,6 +167,7 @@ Successfully implemented a fully functional conversational AI-powered creative w
 **Key Functions:**
 
 1. **conversationalAssistant**
+
    - Request validation
    - User authentication handling
    - Subscription limit checking
@@ -166,31 +181,35 @@ Successfully implemented a fully functional conversational AI-powered creative w
 ### AI Configuration
 
 ```javascript
-MODEL: 'gemini-2.5-flash'
-TEMPERATURE: 0.9  // High for creativity
-MAX_OUTPUT_TOKENS: 8192
+MODEL: 'gemini-2.5-flash';
+TEMPERATURE: 0.9; // High for creativity
+MAX_OUTPUT_TOKENS: 8192;
 ```
 
 ## Integration Points
 
 ### 1. Conversation Service
+
 - Uses existing conversation management system
 - Stores messages in MongoDB
 - Maintains conversation context
 - Tracks metadata and writing history
 
 ### 2. Authentication System
+
 - Supports optional authentication
 - Guest user ID generation
 - JWT token validation
 - Role-based access control
 
 ### 3. Subscription System
+
 - Checks usage limits for authenticated users
 - Enforces plan restrictions
 - Handles limit exceeded scenarios
 
 ### 4. Google Gemini AI
+
 - Direct integration with @google/generative-ai
 - Configured for creative writing
 - High temperature for varied outputs
@@ -200,16 +219,19 @@ MAX_OUTPUT_TOKENS: 8192
 Using Joi validation schemas:
 
 **conversationalRequestSchema:**
+
 - message: required, 1-5000 characters
 - conversationId: optional string
 - userId: optional string
 
 **getConversationHistorySchema:**
+
 - conversationId: required in URL params
 
 ## Error Handling
 
 Comprehensive error handling for:
+
 - Invalid requests (400)
 - Authentication failures (401)
 - Subscription limits (403)
@@ -221,6 +243,7 @@ Comprehensive error handling for:
 ### Postman Collection Includes:
 
 12 Pre-configured requests covering:
+
 - ✅ Poem creation
 - ✅ Short story writing
 - ✅ Story continuation
@@ -283,14 +306,14 @@ Comprehensive error handling for:
 
 ## Comparison with Document Review Module
 
-| Feature | Document Review | Creative Writing |
-|---------|----------------|------------------|
-| File Upload | Yes | No (text-based) |
-| AI Temperature | 0.7 | 0.9 (higher creativity) |
-| Main Focus | Analysis & Review | Creation & Generation |
-| File Processing | Yes (PDF, DOCX) | No |
-| Writing Types | N/A | 17+ types |
-| Styles/Tones | N/A | 17 styles, 15 tones |
+| Feature         | Document Review   | Creative Writing        |
+| --------------- | ----------------- | ----------------------- |
+| File Upload     | Yes               | No (text-based)         |
+| AI Temperature  | 0.7               | 0.9 (higher creativity) |
+| Main Focus      | Analysis & Review | Creation & Generation   |
+| File Processing | Yes (PDF, DOCX)   | No                      |
+| Writing Types   | N/A               | 17+ types               |
+| Styles/Tones    | N/A               | 17 styles, 15 tones     |
 
 ## Testing Checklist
 
@@ -316,6 +339,7 @@ Comprehensive error handling for:
 ## Usage Examples
 
 ### Creating a Poem
+
 ```bash
 POST /api/v1/creative-writing/assistant
 {
@@ -324,6 +348,7 @@ POST /api/v1/creative-writing/assistant
 ```
 
 ### Continuing a Story
+
 ```bash
 POST /api/v1/creative-writing/assistant
 {
@@ -333,6 +358,7 @@ POST /api/v1/creative-writing/assistant
 ```
 
 ### Getting Ideas
+
 ```bash
 POST /api/v1/creative-writing/assistant
 {
@@ -360,7 +386,8 @@ The implementation follows best practices, maintains consistency with existing m
 
 **Status:** ✅ Complete and Ready for Testing
 
-**Next Steps:** 
+**Next Steps:**
+
 1. Manual testing with Postman collection
 2. Integration testing with frontend
 3. Performance testing under load

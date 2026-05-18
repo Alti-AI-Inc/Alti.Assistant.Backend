@@ -35,15 +35,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/customer",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "customer"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "customer"]
             },
             "description": "Create a new customer in Stripe.\n\n**Request Body:**\n- name (required): Customer's full name\n- email (required): Customer's email address\n- phone (optional): Customer's phone number\n- address (optional): Customer's address object"
           },
@@ -56,16 +49,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/customer/:customerId",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "customer",
-                ":customerId"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "customer", ":customerId"],
               "variable": [
                 {
                   "key": "customerId",
@@ -85,15 +70,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/customers",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "customers"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "customers"]
             },
             "description": "Retrieve a list of all customers in Stripe."
           },
@@ -115,16 +93,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/customer/:customerId",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "customer",
-                ":customerId"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "customer", ":customerId"],
               "variable": [
                 {
                   "key": "customerId",
@@ -144,16 +114,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/customer/:customerId",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "customer",
-                ":customerId"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "customer", ":customerId"],
               "variable": [
                 {
                   "key": "customerId",
@@ -188,15 +150,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/products",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "products"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "products"]
             },
             "description": "Create all subscription products and their prices in Stripe. This will create:\n\n**Base Plan** ($99/month or $1,009/year)\n- Up to 3 connectors\n- 100 GB storage\n\n**Professional Plan** ($249/month or $2,541/year)\n- Up to 10 connectors\n- 500 GB storage\n\n**Enterprise Plan** ($499/month or $5,089/year)\n- Unlimited connectors\n- 1 TB+ storage\n\nAnnual plans include 15% discount. Products are also saved to the local database."
           },
@@ -209,15 +164,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/products",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "products"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "products"]
             },
             "description": "Retrieve a list of all products from Stripe."
           },
@@ -230,16 +178,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/products/:productId",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "products",
-                ":productId"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "products", ":productId"],
               "variable": [
                 {
                   "key": "productId",
@@ -259,15 +199,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/prices?productId=prod_xxxxxxxxxxxxx",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "prices"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "prices"],
               "query": [
                 {
                   "key": "productId",
@@ -302,15 +235,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/payment-intent",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "payment-intent"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "payment-intent"]
             },
             "description": "Create a payment intent for processing a payment.\n\n**Request Body:**\n- amount (required): Amount in cents (e.g., 9900 for $99.00)\n- currency (required): Three-letter ISO currency code (e.g., 'usd')\n- customerId (optional): Stripe customer ID. If not provided, uses authenticated user's Stripe account ID\n\n**Response:**\n- clientSecret: Use this on the frontend to complete the payment"
           },
@@ -332,15 +258,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/payment-method",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "payment-method"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "payment-method"]
             },
             "description": "Attach a payment method to a customer and set it as default.\n\n**Request Body:**\n- paymentMethodId (required): Stripe payment method ID (obtained from Stripe.js on frontend)\n- customerId (optional): Stripe customer ID. If not provided, uses authenticated user's Stripe account ID\n\nThis endpoint will:\n1. Attach the payment method to the customer\n2. Set it as the default payment method for invoices"
           },
@@ -353,9 +272,7 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/payment-methods/:customerId/:type",
-              "host": [
-                "{{base_url}}"
-              ],
+              "host": ["{{base_url}}"],
               "path": [
                 "api",
                 "v1",
@@ -403,15 +320,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/subscription",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "subscription"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "subscription"]
             },
             "description": "Create a new subscription for a customer.\n\n**Request Body:**\n- customerId (required): Stripe customer ID\n- priceId (required): Stripe price ID (from the pricing plans)\n\n**Note:** Customer must have a default payment method attached before creating a subscription.\n\n**Response includes:**\n- Subscription details\n- Expanded latest invoice with payment intent"
           },
@@ -424,9 +334,7 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/subscription/:subscriptionId",
-              "host": [
-                "{{base_url}}"
-              ],
+              "host": ["{{base_url}}"],
               "path": [
                 "api",
                 "v1",
@@ -453,15 +361,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/subscriptions",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "stripe",
-                "subscriptions"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "stripe", "subscriptions"]
             },
             "description": "Retrieve a list of all subscriptions in Stripe."
           },
@@ -474,9 +375,7 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/stripe/subscription/:subscriptionId",
-              "host": [
-                "{{base_url}}"
-              ],
+              "host": ["{{base_url}}"],
               "path": [
                 "api",
                 "v1",

@@ -1,11 +1,11 @@
-import Workflow from "../models/workflow.model.js";
-import WorkflowExecution from "../models/workflowExecution.model.js";
-import { composioIntegrationService } from "./composioIntegration.service.js";
-import { Composio } from "@composio/core";
-import config from "../../../../../config/index.js";
-import { logger } from "../../../../shared/logger.js";
-import { v4 as uuidv4 } from "uuid";
-import cron from "node-cron";
+import Workflow from '../models/workflow.model.js';
+import WorkflowExecution from '../models/workflowExecution.model.js';
+import { composioIntegrationService } from './composioIntegration.service.js';
+import { Composio } from '@composio/core';
+import config from '../../../../../config/index.js';
+import { logger } from '../../../../shared/logger.js';
+import { v4 as uuidv4 } from 'uuid';
+import cron from 'node-cron';
 
 // Initialize Composio
 const composio = new Composio({
@@ -16,7 +16,6 @@ const composio = new Composio({
  * Service for executing workflows and managing their lifecycle
  */
 class WorkflowExecutionService {
-
   constructor() {
     this.scheduledJobs = new Map(); // Store scheduled cron jobs
     this.executingWorkflows = new Map(); // Track currently executing workflows
@@ -47,7 +46,7 @@ class WorkflowExecutionService {
         executionId,
         triggerType: 'manual',
         totalSteps: workflow.steps.length,
-        context
+        context,
       });
 
       await execution.save();
@@ -60,21 +59,20 @@ class WorkflowExecutionService {
         { _id: workflowId },
         {
           $inc: { executionCount: 1 },
-          $set: { lastExecuted: new Date() }
+          $set: { lastExecuted: new Date() },
         }
       );
 
       return {
         success: true,
         executionId,
-        result
+        result,
       };
-
     } catch (error) {
       logger.error(`Error executing workflow ${workflowId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -94,17 +92,17 @@ class WorkflowExecutionService {
         {
           status: 'running',
           startTime: new Date(),
-          steps: steps.map(step => ({
+          steps: steps.map((step) => ({
             stepId: step.stepId,
-            status: 'pending'
-          }))
+            status: 'pending',
+          })),
         }
       );
 
       this.executingWorkflows.set(execution.executionId, {
         workflow,
         execution,
-        status: 'running'
+        status: 'running',
       });
 
       for (let i = 0; i < steps.length; i++) {
@@ -115,10 +113,19 @@ class WorkflowExecutionService {
           logger.info(`Executing step ${step.stepId}: ${step.description}`);
 
           // Update step status to running
-          await this.updateStepStatus(execution._id, step.stepId, 'running', stepStartTime);
+          await this.updateStepStatus(
+            execution._id,
+            step.stepId,
+            'running',
+            stepStartTime
+          );
 
           // Execute the step
-          const stepResult = await this.executeStep(step, currentContext, workflow.userId);
+          const stepResult = await this.executeStep(
+            step,
+            currentContext,
+            workflow.userId
+          );
 
           const stepEndTime = new Date();
           const duration = stepEndTime - stepStartTime;
@@ -138,12 +145,11 @@ class WorkflowExecutionService {
             stepId: step.stepId,
             success: true,
             result: stepResult,
-            duration
+            duration,
           });
 
           // Update context with step results
           currentContext = { ...currentContext, ...stepResult.contextUpdates };
-
         } catch (stepError) {
           logger.error(`Error in step ${step.stepId}:`, stepError);
 
@@ -166,12 +172,14 @@ class WorkflowExecutionService {
             stepId: step.stepId,
             success: false,
             error: stepError.message,
-            duration
+            duration,
           });
 
           // Decide whether to continue or stop
           if (step.continueOnError !== true) {
-            throw new Error(`Workflow stopped at step ${step.stepId}: ${stepError.message}`);
+            throw new Error(
+              `Workflow stopped at step ${step.stepId}: ${stepError.message}`
+            );
           }
         }
       }
@@ -179,8 +187,8 @@ class WorkflowExecutionService {
       // Update execution as completed
       const endTime = new Date();
       const totalDuration = endTime - execution.startTime;
-      const completedSteps = stepResults.filter(r => r.success).length;
-      const failedSteps = stepResults.filter(r => !r.success).length;
+      const completedSteps = stepResults.filter((r) => r.success).length;
+      const failedSteps = stepResults.filter((r) => !r.success).length;
 
       await WorkflowExecution.updateOne(
         { _id: execution._id },
@@ -193,8 +201,8 @@ class WorkflowExecutionService {
           result: {
             success: failedSteps === 0,
             data: stepResults,
-            summary: `Completed ${completedSteps}/${steps.length} steps successfully`
-          }
+            summary: `Completed ${completedSteps}/${steps.length} steps successfully`,
+          },
         }
       );
 
@@ -206,11 +214,10 @@ class WorkflowExecutionService {
         failedSteps,
         totalSteps: steps.length,
         results: stepResults,
-        duration: totalDuration
+        duration: totalDuration,
       };
-
     } catch (error) {
-      logger.error("Error running workflow steps:", error);
+      logger.error('Error running workflow steps:', error);
 
       // Update execution as failed
       await WorkflowExecution.updateOne(
@@ -220,8 +227,8 @@ class WorkflowExecutionService {
           endTime: new Date(),
           error: {
             message: error.message,
-            stack: error.stack
-          }
+            stack: error.stack,
+          },
         }
       );
 
@@ -244,33 +251,42 @@ class WorkflowExecutionService {
       );
 
       if (!userTools.success) {
-        throw new Error(`Failed to get tools for app ${step.app}: ${userTools.error}`);
+        throw new Error(
+          `Failed to get tools for app ${step.app}: ${userTools.error}`
+        );
       }
 
       const appTools = userTools.toolsByApp[step.app];
       if (!appTools || appTools.length === 0) {
-        throw new Error(`No tools available for app ${step.app}. Please check if the app is connected.`);
+        throw new Error(
+          `No tools available for app ${step.app}. Please check if the app is connected.`
+        );
       }
 
       // Find the specific action tool
-      const tool = appTools.find(t =>
-        t.name.toLowerCase().includes(step.action.toLowerCase()) ||
-        t.slug.toLowerCase().includes(step.action.toLowerCase()) ||
-        t.description.toLowerCase().includes(step.action.toLowerCase())
+      const tool = appTools.find(
+        (t) =>
+          t.name.toLowerCase().includes(step.action.toLowerCase()) ||
+          t.slug.toLowerCase().includes(step.action.toLowerCase()) ||
+          t.description.toLowerCase().includes(step.action.toLowerCase())
       );
 
       if (!tool) {
-        throw new Error(`Tool not found for ${step.app}.${step.action}. Available tools: ${appTools.map(t => t.name).join(', ')}`);
+        throw new Error(
+          `Tool not found for ${step.app}.${step.action}. Available tools: ${appTools.map((t) => t.name).join(', ')}`
+        );
       }
 
       // Get Composio tools for execution
-      const composioTools = await composio.getTools({
-        apps: [step.app]
-      }, userId);
+      const composioTools = await composio.getTools(
+        {
+          apps: [step.app],
+        },
+        userId
+      );
 
-      const executableTool = composioTools.find(t =>
-        t.name === tool.name ||
-        t.slug === tool.slug
+      const executableTool = composioTools.find(
+        (t) => t.name === tool.name || t.slug === tool.slug
       );
 
       if (!executableTool) {
@@ -289,9 +305,8 @@ class WorkflowExecutionService {
         success: true,
         data: result,
         contextUpdates: this.extractContextUpdates(result, step),
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-
     } catch (error) {
       logger.error(`Error executing step ${step.stepId}:`, error);
       throw new Error(`Step execution failed: ${error.message}`);
@@ -345,11 +360,20 @@ class WorkflowExecutionService {
   /**
    * Update step status in execution record
    */
-  async updateStepStatus(executionId, stepId, status, startTime, endTime = null, duration = null, result = null, error = null) {
+  async updateStepStatus(
+    executionId,
+    stepId,
+    status,
+    startTime,
+    endTime = null,
+    duration = null,
+    result = null,
+    error = null
+  ) {
     try {
       const update = {
         'steps.$.status': status,
-        'steps.$.startTime': startTime
+        'steps.$.startTime': startTime,
       };
 
       if (endTime) update['steps.$.endTime'] = endTime;
@@ -358,7 +382,7 @@ class WorkflowExecutionService {
       if (error) {
         update['steps.$.error'] = {
           message: error.message,
-          stack: error.stack
+          stack: error.stack,
         };
       }
 
@@ -366,9 +390,8 @@ class WorkflowExecutionService {
         { _id: executionId, 'steps.stepId': stepId },
         { $set: update }
       );
-
     } catch (updateError) {
-      logger.error("Error updating step status:", updateError);
+      logger.error('Error updating step status:', updateError);
     }
   }
 
@@ -393,33 +416,35 @@ class WorkflowExecutionService {
       this.unscheduleWorkflow(workflowId);
 
       // Schedule new job
-      const job = cron.schedule(cronExpression, async () => {
-        try {
-          logger.info(`Executing scheduled workflow: ${workflowId}`);
-          await this.executeWorkflow(workflowId, workflow.userId, {
-            triggeredBy: 'schedule',
-            scheduledAt: new Date()
-          });
-        } catch (error) {
-          logger.error(`Error in scheduled workflow ${workflowId}:`, error);
+      const job = cron.schedule(
+        cronExpression,
+        async () => {
+          try {
+            logger.info(`Executing scheduled workflow: ${workflowId}`);
+            await this.executeWorkflow(workflowId, workflow.userId, {
+              triggeredBy: 'schedule',
+              scheduledAt: new Date(),
+            });
+          } catch (error) {
+            logger.error(`Error in scheduled workflow ${workflowId}:`, error);
+          }
+        },
+        {
+          scheduled: true,
+          timezone: scheduleConfig.timezone || 'UTC',
         }
-      }, {
-        scheduled: true,
-        timezone: scheduleConfig.timezone || 'UTC'
-      });
+      );
 
       this.scheduledJobs.set(workflowId, job);
 
       // Update workflow with next execution time
       const nextExecution = this.calculateNextExecution(scheduleConfig);
-      await Workflow.updateOne(
-        { _id: workflowId },
-        { nextExecution }
+      await Workflow.updateOne({ _id: workflowId }, { nextExecution });
+
+      logger.info(
+        `Workflow ${workflowId} scheduled with cron: ${cronExpression}`
       );
-
-      logger.info(`Workflow ${workflowId} scheduled with cron: ${cronExpression}`);
       return { success: true, cronExpression, nextExecution };
-
     } catch (error) {
       logger.error(`Error scheduling workflow ${workflowId}:`, error);
       throw new Error(`Failed to schedule workflow: ${error.message}`);
@@ -535,17 +560,15 @@ class WorkflowExecutionService {
    */
   async getExecutionHistory(workflowId, userId, limit = 50, offset = 0) {
     try {
-      const executions = await WorkflowExecution
-        .find({ workflowId, userId })
+      const executions = await WorkflowExecution.find({ workflowId, userId })
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip(offset)
         .exec();
 
       return executions;
-
     } catch (error) {
-      logger.error("Error getting execution history:", error);
+      logger.error('Error getting execution history:', error);
       throw new Error(`Failed to get execution history: ${error.message}`);
     }
   }
@@ -555,15 +578,13 @@ class WorkflowExecutionService {
    */
   async getExecutionDetails(executionId, userId) {
     try {
-      const execution = await WorkflowExecution
-        .findOne({ executionId, userId })
+      const execution = await WorkflowExecution.findOne({ executionId, userId })
         .populate('workflowId')
         .exec();
 
       return execution;
-
     } catch (error) {
-      logger.error("Error getting execution details:", error);
+      logger.error('Error getting execution details:', error);
       throw new Error(`Failed to get execution details: ${error.message}`);
     }
   }
@@ -573,7 +594,10 @@ class WorkflowExecutionService {
    */
   async cancelExecution(executionId, userId) {
     try {
-      const execution = await WorkflowExecution.findOne({ executionId, userId });
+      const execution = await WorkflowExecution.findOne({
+        executionId,
+        userId,
+      });
       if (!execution) {
         throw new Error('Execution not found');
       }
@@ -587,7 +611,7 @@ class WorkflowExecutionService {
         { executionId },
         {
           status: 'cancelled',
-          endTime: new Date()
+          endTime: new Date(),
         }
       );
 
@@ -596,7 +620,6 @@ class WorkflowExecutionService {
 
       logger.info(`Execution cancelled: ${executionId}`);
       return { success: true, message: 'Execution cancelled successfully' };
-
     } catch (error) {
       logger.error(`Error cancelling execution ${executionId}:`, error);
       throw new Error(`Failed to cancel execution: ${error.message}`);
@@ -608,11 +631,11 @@ class WorkflowExecutionService {
    */
   async initializeScheduledWorkflows() {
     try {
-      logger.info("Initializing scheduled workflows...");
+      logger.info('Initializing scheduled workflows...');
 
       const scheduledWorkflows = await Workflow.find({
         status: 'active',
-        'trigger.triggerType': 'schedule'
+        'trigger.triggerType': 'schedule',
       });
 
       for (const workflow of scheduledWorkflows) {
@@ -624,9 +647,8 @@ class WorkflowExecutionService {
       }
 
       logger.info(`Initialized ${this.scheduledJobs.size} scheduled workflows`);
-
     } catch (error) {
-      logger.error("Error initializing scheduled workflows:", error);
+      logger.error('Error initializing scheduled workflows:', error);
     }
   }
 }

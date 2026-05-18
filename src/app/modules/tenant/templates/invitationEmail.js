@@ -14,7 +14,13 @@
  * @returns {string} HTML email template
  */
 export const generateInvitationEmailHTML = (data) => {
-  const { inviterName, tenantName, invitationLink, role, expiryDays = 7 } = data;
+  const {
+    inviterName,
+    tenantName,
+    invitationLink,
+    role,
+    expiryDays = 7,
+  } = data;
 
   return `
 <!DOCTYPE html>
@@ -191,7 +197,13 @@ export const generateInvitationEmailHTML = (data) => {
  * @returns {string} Plain text email template
  */
 export const generateInvitationEmailText = (data) => {
-  const { inviterName, tenantName, invitationLink, role, expiryDays = 7 } = data;
+  const {
+    inviterName,
+    tenantName,
+    invitationLink,
+    role,
+    expiryDays = 7,
+  } = data;
 
   return `
 You're Invited to ${tenantName}!

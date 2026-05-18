@@ -4,160 +4,160 @@ export const workflowAutomationState = {
   messages: { value: null },
   userPrompt: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
   userId: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
   conversationId: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
 
   // Intent analysis
   userIntent: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
   taskType: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
   complexity: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
 
   // App and action detection
   detectedApps: {
     reducer: (x, y) => [...(x || []), ...(y || [])],
-    default: () => []
+    default: () => [],
   },
   requiredActions: {
     reducer: (x, y) => [...(x || []), ...(y || [])],
-    default: () => []
+    default: () => [],
   },
 
   // Workflow planning
   workflowPlan: {
     reducer: (x, y) => y ?? x,
-    default: () => ({})
+    default: () => ({}),
   },
   workflowSteps: {
     reducer: (x, y) => [...(x || []), ...(y || [])],
-    default: () => []
+    default: () => [],
   },
 
   // Schedule detection
   scheduleRequired: {
     reducer: (x, y) => y ?? x,
-    default: () => false
+    default: () => false,
   },
   scheduleConfig: {
     reducer: (x, y) => y ?? x,
-    default: () => ({})
+    default: () => ({}),
   },
   triggerType: {
     reducer: (x, y) => y ?? x,
-    default: () => "manual"
+    default: () => 'manual',
   },
 
   // Parameter extraction
   extractedParameters: {
     reducer: (x, y) => y ?? x,
-    default: () => ({})
+    default: () => ({}),
   },
   missingParameters: {
     reducer: (x, y) => [...(x || []), ...(y || [])],
-    default: () => []
+    default: () => [],
   },
 
   // Validation and confirmation
   validationResult: {
     reducer: (x, y) => y ?? x,
-    default: () => ({})
+    default: () => ({}),
   },
   needsConfirmation: {
     reducer: (x, y) => y ?? x,
-    default: () => false
+    default: () => false,
   },
   confirmationMessage: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
 
   // Workflow creation
   createdWorkflow: {
     reducer: (x, y) => y ?? x,
-    default: () => null
+    default: () => null,
   },
   workflowId: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
 
   // Execution context
   executionContext: {
     reducer: (x, y) => y ?? x,
-    default: () => ({})
+    default: () => ({}),
   },
   currentStep: {
     reducer: (x, y) => y ?? x,
-    default: () => 0
+    default: () => 0,
   },
   stepResults: {
     reducer: (x, y) => [...(x || []), ...(y || [])],
-    default: () => []
+    default: () => [],
   },
 
   // Error handling
   error: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
   errors: {
     reducer: (x, y) => [...(x || []), ...(y || [])],
-    default: () => []
+    default: () => [],
   },
 
   // Response generation
   response: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
   responseType: {
     reducer: (x, y) => y ?? x,
-    default: () => "info"
+    default: () => 'info',
   },
   suggestions: {
     reducer: (x, y) => [...(x || []), ...(y || [])],
-    default: () => []
+    default: () => [],
   },
 
   // Chat context
   chatHistory: {
     reducer: (x, y) => [...(x || []), ...(y || [])],
-    default: () => []
+    default: () => [],
   },
 
   // Workflow management
   workflowStatus: {
     reducer: (x, y) => y ?? x,
-    default: () => "draft"
+    default: () => 'draft',
   },
   nextAction: {
     reducer: (x, y) => y ?? x,
-    default: () => ""
+    default: () => '',
   },
 
   // Debug and logging
   debugInfo: {
     reducer: (x, y) => y ?? x,
-    default: () => ({})
+    default: () => ({}),
   },
   currentStage: {
     reducer: (x, y) => y ?? x,
-    default: () => "init"
-  }
+    default: () => 'init',
+  },
 };

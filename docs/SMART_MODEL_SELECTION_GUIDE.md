@@ -11,7 +11,7 @@ The smart selector analyzes multiple factors:
 ### Analysis Factors
 
 1. **Query Length** - Longer queries often need more processing
-2. **Analytical Keywords** - Words like "analyze", "compare", "evaluate" 
+2. **Analytical Keywords** - Words like "analyze", "compare", "evaluate"
 3. **Multi-step Questions** - Questions with multiple parts
 4. **Technical Context** - Programming/code-related queries
 5. **Creative Writing** - Content generation requests
@@ -23,6 +23,7 @@ The smart selector analyzes multiple factors:
 ### Model Selection Logic
 
 **Gemini 3 Pro Preview** is used for:
+
 - Complex analytical queries (compare, evaluate, analyze)
 - Multi-step research questions
 - Deep search mode
@@ -31,6 +32,7 @@ The smart selector analyzes multiple factors:
 - Complexity score >= 6
 
 **Gemini 2.5 Flash** is used for:
+
 - Simple factual queries (What is...? When is...?)
 - Quick lookups
 - Speed-critical operations
@@ -44,19 +46,22 @@ The smart selector analyzes multiple factors:
 The smart selection happens automatically in the search flow:
 
 ```javascript
-import { selectModelSmart, createToolEnabledLLM } from './services/geminiService.js';
+import {
+  selectModelSmart,
+  createToolEnabledLLM,
+} from './services/geminiService.js';
 
 // Automatically selects the best model based on query
-const query = "Compare the investment potential of Bitcoin vs Ethereum";
+const query = 'Compare the investment potential of Bitcoin vs Ethereum';
 const llm = selectModelSmart(query, {
   conversationHistory: previousMessages,
-  searchDepth: 'deep'
+  searchDepth: 'deep',
 });
 
 // Or for tool-enabled LLM
 const toolLLM = createToolEnabledLLM(query, {
   conversationHistory: previousMessages,
-  searchDepth: 'standard'
+  searchDepth: 'standard',
 });
 ```
 
@@ -68,7 +73,7 @@ import { analyzeAndLogModelSelection } from './utils/modelSelector.js';
 const analysis = analyzeAndLogModelSelection(query, {
   conversationHistory: messages,
   searchDepth: 'deep',
-  requiresReasoning: true
+  requiresReasoning: true,
 });
 
 console.log(`Selected: ${analysis.modelName}`);
@@ -79,7 +84,11 @@ console.log(`Complexity: ${analysis.complexityScore}/10`);
 ### 3. Manual Override (When Needed)
 
 ```javascript
-import { gemini2_5Flash, gemini3ProPreview, createToolEnabledLLMExplicit } from './services/geminiService.js';
+import {
+  gemini2_5Flash,
+  gemini3ProPreview,
+  createToolEnabledLLMExplicit,
+} from './services/geminiService.js';
 
 // Force use of specific model
 const flashLLM = gemini2_5Flash;
@@ -98,13 +107,14 @@ const llm = selectModel({
   complexity: ModelComplexity.COMPLEX,
   inputLength: 15000,
   requiresReasoning: true,
-  speedPriority: false
+  speedPriority: false,
 });
 ```
 
 ## Query Examples & Model Selection
 
 ### Simple Queries → Gemini 2.5 Flash
+
 ```
 ❓ "What time is the next Detroit Red Wings game?"
 ❓ "Weather in New York today"
@@ -113,6 +123,7 @@ const llm = selectModel({
 ```
 
 ### Complex Queries → Gemini 3 Pro Preview
+
 ```
 ❓ "Analyze the investment potential of Bitcoin for the next 6 months"
 ❓ "Compare React vs Vue.js for enterprise applications, considering performance, ecosystem, and team scalability"
@@ -132,11 +143,11 @@ The smart selection is automatically integrated in:
 
 ```javascript
 const context = {
-  conversationHistory: [],      // Array of previous messages
-  searchDepth: 'standard',      // 'standard' or 'deep'
-  previousToolCalls: 0,         // Number of previous tool calls
-  responseLength: 0,            // Expected response length
-  requiresReasoning: false      // Explicit reasoning flag
+  conversationHistory: [], // Array of previous messages
+  searchDepth: 'standard', // 'standard' or 'deep'
+  previousToolCalls: 0, // Number of previous tool calls
+  responseLength: 0, // Expected response length
+  requiresReasoning: false, // Explicit reasoning flag
 };
 ```
 
@@ -205,11 +216,13 @@ When smart selection runs, you'll see:
 ## Migration Guide
 
 ### Before (Manual Selection)
+
 ```javascript
 const llm = createToolEnabledLLM({ complexity: ModelComplexity.COMPLEX });
 ```
 
 ### After (Smart Selection)
+
 ```javascript
 const llm = createToolEnabledLLM(query, { conversationHistory, searchDepth });
 ```

@@ -21,13 +21,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Generate a simple article without authentication (guest mode)"
       },
@@ -53,13 +48,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Generate an article with specific type, tone, and length"
       },
@@ -107,13 +97,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Generate an article based on an uploaded file"
       },
@@ -139,13 +124,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Continue an existing conversation to refine the article"
       },
@@ -167,13 +147,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Generate a how-to guide article"
       },
@@ -195,13 +170,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Generate a list-based article"
       },
@@ -227,13 +197,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Generate an opinion/editorial piece"
       },
@@ -255,13 +220,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Generate a short article (300-500 words)"
       },
@@ -287,13 +247,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/article-writer/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "assistant"]
         },
         "description": "Generate a comprehensive article (2000+ words)"
       },
@@ -311,14 +266,8 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/article-writer/conversation/{{conversationId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "article-writer",
-            "conversation",
-            "{{conversationId}}"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["article-writer", "conversation", "{{conversationId}}"]
         },
         "description": "Retrieve conversation history for a specific conversation"
       },

@@ -21,9 +21,9 @@ const extractTextFromPDF = async (filePath) => {
     const dataBuffer = fs.readFileSync(filePath);
     const data = new PDFParse({
       data: dataBuffer,
-    })
-    const textData = await data.getText()
-    return textData.pages.map(page => page.text).join('\n');
+    });
+    const textData = await data.getText();
+    return textData.pages.map((page) => page.text).join('\n');
   } catch (error) {
     logger.error('Error extracting text from PDF:', error);
     throw new Error(`Failed to extract text from PDF: ${error.message}`);
@@ -61,9 +61,13 @@ const extractTextFromTXT = async (filePath) => {
 export const extractTextFromFile = async (fileInfo) => {
   try {
     const filePath = fileInfo.path || fileInfo.location;
-    const ext = path.extname(fileInfo.originalName || fileInfo.filename).toLowerCase();
+    const ext = path
+      .extname(fileInfo.originalName || fileInfo.filename)
+      .toLowerCase();
 
-    logger.info(`Extracting text from file: ${fileInfo.originalName}, type: ${ext}`);
+    logger.info(
+      `Extracting text from file: ${fileInfo.originalName}, type: ${ext}`
+    );
 
     let text = '';
 
@@ -121,17 +125,20 @@ export const uploadToGCS = async (fileData, fileName, metadata = {}) => {
     const contentTypeMap = {
       '.pdf': 'application/pdf',
       '.doc': 'application/msword',
-      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.docx':
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       '.txt': 'text/plain',
       '.csv': 'text/csv',
       '.json': 'application/json',
       '.xml': 'application/xml',
       '.html': 'text/html',
       '.md': 'text/markdown',
-      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.xlsx':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       '.xls': 'application/vnd.ms-excel',
       '.ppt': 'application/vnd.ms-powerpoint',
-      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.pptx':
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     };
     const contentType = contentTypeMap[ext] || 'application/octet-stream';
 

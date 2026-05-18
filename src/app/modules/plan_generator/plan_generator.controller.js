@@ -23,16 +23,14 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   // Handle file upload if present
   const fileInfo = req.file
     ? {
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      location: req.file.location || req.file.path,
-    }
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        location: req.file.location || req.file.path,
+      }
     : null;
-
-
 
   logger.info(
     `Plan generator request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`,
@@ -52,9 +50,7 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   );
 
   // Include userId in response for guest users
-  const responseData = isGuest
-    ? { ...result, userId }
-    : result;
+  const responseData = isGuest ? { ...result, userId } : result;
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -80,13 +76,13 @@ export const conversationalAssistantAsync = catchAsync(async (req, res) => {
   // Handle file upload if present
   const fileInfo = req.file
     ? {
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      location: req.file.location || req.file.path,
-    }
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        location: req.file.location || req.file.path,
+      }
     : null;
 
   logger.info(
@@ -101,16 +97,18 @@ export const conversationalAssistantAsync = catchAsync(async (req, res) => {
   const task = taskManager.createTask(userId, conversationId);
 
   // Start async processing (don't await)
-  taskManager.processTask(
-    task.taskId,
-    userId,
-    message,
-    conversationId,
-    isGuest,
-    fileInfo
-  ).catch(error => {
-    logger.error('Async task processing error:', error);
-  });
+  taskManager
+    .processTask(
+      task.taskId,
+      userId,
+      message,
+      conversationId,
+      isGuest,
+      fileInfo
+    )
+    .catch((error) => {
+      logger.error('Async task processing error:', error);
+    });
 
   // Return immediately with task ID
   const responseData = {
@@ -179,9 +177,15 @@ export const generatePlan = catchAsync(async (req, res) => {
 
   const params = req.body;
 
-  logger.info(`Direct plan generation from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`);
+  logger.info(
+    `Direct plan generation from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+  );
 
-  const result = await planGeneratorService.generatePlanDirect(params, userId, isGuest);
+  const result = await planGeneratorService.generatePlanDirect(
+    params,
+    userId,
+    isGuest
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -200,7 +204,11 @@ export const getConversationHistory = catchAsync(async (req, res) => {
 
   logger.info(`Fetching conversation history: ${conversationId}`);
 
-  const result = await planGeneratorService.getConversationHistory(conversationId, userId, req);
+  const result = await planGeneratorService.getConversationHistory(
+    conversationId,
+    userId,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -215,15 +223,18 @@ export const getConversationHistory = catchAsync(async (req, res) => {
  */
 export const exportPlan = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  const userId = isGuest
-    ? req.body.userId
-    : req.user?.userId || req.user?._id;
+  const userId = isGuest ? req.body.userId : req.user?.userId || req.user?._id;
 
   const { conversationId, format = 'markdown' } = req.body;
 
   logger.info(`Exporting plan: ${conversationId} in ${format} format`);
 
-  const result = await planGeneratorService.exportPlan(conversationId, userId, format, req);
+  const result = await planGeneratorService.exportPlan(
+    conversationId,
+    userId,
+    format,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -243,7 +254,9 @@ export const brainstormIdea = catchAsync(async (req, res) => {
     ? planGeneratorService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
 
-  logger.info(`Brainstorm request from ${isGuest ? 'guest' : 'authenticated'} user`);
+  logger.info(
+    `Brainstorm request from ${isGuest ? 'guest' : 'authenticated'} user`
+  );
 
   // Import services
   const { ideaAnalyzer } = await import('./services/ideaAnalyzer.js');

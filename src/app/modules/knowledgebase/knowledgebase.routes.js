@@ -18,7 +18,7 @@ const fileFilter = (req, file, cb) => {
   console.log('File upload attempt:', {
     originalname: file.originalname,
     mimetype: file.mimetype,
-    fieldname: file.fieldname
+    fieldname: file.fieldname,
   });
 
   // Allow all file types
@@ -34,15 +34,71 @@ const upload = multer({
 });
 
 // Routes
-router.post('/create', auth(), extractTenantContext, checkRAGFeature, knowledgebaseController.createKnowledgeBase);
-router.get('/list', auth(), extractTenantContext, knowledgebaseController.getUserKnowledgeBases);
-router.post('/upload', optionalAuth(), extractTenantContext, checkStorageLimit, upload.any(), checkRAGFeature, knowledgebaseController.uploadFile);
-router.get('/files', auth(), extractTenantContext, knowledgebaseController.getUserFiles);
-router.delete('/files/:fileId', auth(), extractTenantContext, knowledgebaseController.deleteFile);
-router.delete('/:knowledgebaseId', auth(), extractTenantContext, knowledgebaseController.deleteKnowledgeBase);
-router.post('/invoke-rag', optionalAuth(), extractTenantContext, checkRAGFeature, knowledgebaseController.invokeRagSystem);
-router.post('/chat', auth(), extractTenantContext, checkRAGFeature, knowledgebaseController.chatWithKnowledgeBase);
-router.get('/:knowledgebaseId/conversations', auth(), extractTenantContext, knowledgebaseController.getKnowledgeBaseConversations);
-router.get('/conversations/:conversationId/messages', auth(), extractTenantContext, knowledgebaseController.getConversationMessages);
+router.post(
+  '/create',
+  auth(),
+  extractTenantContext,
+  checkRAGFeature,
+  knowledgebaseController.createKnowledgeBase
+);
+router.get(
+  '/list',
+  auth(),
+  extractTenantContext,
+  knowledgebaseController.getUserKnowledgeBases
+);
+router.post(
+  '/upload',
+  optionalAuth(),
+  extractTenantContext,
+  checkStorageLimit,
+  upload.any(),
+  checkRAGFeature,
+  knowledgebaseController.uploadFile
+);
+router.get(
+  '/files',
+  auth(),
+  extractTenantContext,
+  knowledgebaseController.getUserFiles
+);
+router.delete(
+  '/files/:fileId',
+  auth(),
+  extractTenantContext,
+  knowledgebaseController.deleteFile
+);
+router.delete(
+  '/:knowledgebaseId',
+  auth(),
+  extractTenantContext,
+  knowledgebaseController.deleteKnowledgeBase
+);
+router.post(
+  '/invoke-rag',
+  optionalAuth(),
+  extractTenantContext,
+  checkRAGFeature,
+  knowledgebaseController.invokeRagSystem
+);
+router.post(
+  '/chat',
+  auth(),
+  extractTenantContext,
+  checkRAGFeature,
+  knowledgebaseController.chatWithKnowledgeBase
+);
+router.get(
+  '/:knowledgebaseId/conversations',
+  auth(),
+  extractTenantContext,
+  knowledgebaseController.getKnowledgeBaseConversations
+);
+router.get(
+  '/conversations/:conversationId/messages',
+  auth(),
+  extractTenantContext,
+  knowledgebaseController.getConversationMessages
+);
 
 export default router;

@@ -25,7 +25,7 @@ const sendNotification = catchAsync(async (req, res) => {
 // Controller for getting notifications
 const getNotification = catchAsync(async (req, res) => {
   const result = await NotificationService.getNotificationService();
- 
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -44,7 +44,7 @@ const sendNotificationById = catchAsync(async (req, res) => {
   }
   const result = await NotificationService.sendNotificationByIdService(
     userId,
-    data,
+    data
   );
 
   sendResponse(res, {
@@ -81,7 +81,7 @@ const updateNotificationById = catchAsync(async (req, res) => {
 
   const result = await NotificationService.updateNotificationByIdService(
     notificationId,
-    data,
+    data
   );
 
   if (!result.modifiedCount === 1) {

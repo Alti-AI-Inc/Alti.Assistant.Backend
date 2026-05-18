@@ -18,7 +18,7 @@ const createWorkflowController = catchAsync(async (req, res) => {
     scheduleConfig,
     originalUserInput,
     conversationId,
-    conversationContext
+    conversationContext,
   } = req.body;
 
   const userId = req.user?._id || req.userId;
@@ -27,7 +27,7 @@ const createWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -35,7 +35,8 @@ const createWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Missing required fields: title, executionPlan, workflowType, requiredApps'
+      message:
+        'Missing required fields: title, executionPlan, workflowType, requiredApps',
     });
   }
 
@@ -50,7 +51,7 @@ const createWorkflowController = catchAsync(async (req, res) => {
     scheduleConfig,
     originalUserInput,
     conversationId,
-    conversationContext
+    conversationContext,
   });
 
   if (result.success) {
@@ -59,14 +60,14 @@ const createWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.CREATED,
       success: true,
       message: result.message,
-      data: result.data
+      data: result.data,
     });
   } else {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
       message: result.message || 'Failed to create workflow',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -82,7 +83,7 @@ const getUserWorkflowsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -98,14 +99,14 @@ const getUserWorkflowsController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Workflows retrieved successfully',
-      data: result.data
+      data: result.data,
     });
   } else {
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to retrieve workflows',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -121,7 +122,7 @@ const getWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -132,15 +133,18 @@ const getWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Workflow retrieved successfully',
-      data: result.data
+      data: result.data,
     });
   } else {
-    const statusCode = result.error === 'Workflow not found' ? httpStatus.NOT_FOUND : httpStatus.INTERNAL_SERVER_ERROR;
+    const statusCode =
+      result.error === 'Workflow not found'
+        ? httpStatus.NOT_FOUND
+        : httpStatus.INTERNAL_SERVER_ERROR;
     return sendResponse(res, {
       statusCode,
       success: false,
       message: result.message || 'Failed to retrieve workflow',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -157,11 +161,15 @@ const updateWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
-  const result = await workflowService.updateWorkflow(workflowId, userId, updates);
+  const result = await workflowService.updateWorkflow(
+    workflowId,
+    userId,
+    updates
+  );
 
   if (result.success) {
     logger.info(`Workflow updated via API: ${workflowId}`);
@@ -169,15 +177,18 @@ const updateWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: result.message,
-      data: result.data
+      data: result.data,
     });
   } else {
-    const statusCode = result.error === 'Workflow not found' ? httpStatus.NOT_FOUND : httpStatus.BAD_REQUEST;
+    const statusCode =
+      result.error === 'Workflow not found'
+        ? httpStatus.NOT_FOUND
+        : httpStatus.BAD_REQUEST;
     return sendResponse(res, {
       statusCode,
       success: false,
       message: result.message || 'Failed to update workflow',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -193,7 +204,7 @@ const deleteWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -204,15 +215,18 @@ const deleteWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: result.message
+      message: result.message,
     });
   } else {
-    const statusCode = result.error === 'Workflow not found' ? httpStatus.NOT_FOUND : httpStatus.BAD_REQUEST;
+    const statusCode =
+      result.error === 'Workflow not found'
+        ? httpStatus.NOT_FOUND
+        : httpStatus.BAD_REQUEST;
     return sendResponse(res, {
       statusCode,
       success: false,
       message: result.message || 'Failed to delete workflow',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -228,11 +242,15 @@ const triggerWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
-  const result = await workflowService.triggerWorkflow(workflowId, userId, 'api_call');
+  const result = await workflowService.triggerWorkflow(
+    workflowId,
+    userId,
+    'api_call'
+  );
 
   if (result.success) {
     logger.info(`Workflow triggered via API: ${workflowId}`);
@@ -240,15 +258,18 @@ const triggerWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: result.message,
-      data: result.data
+      data: result.data,
     });
   } else {
-    const statusCode = result.error === 'Workflow not found' ? httpStatus.NOT_FOUND : httpStatus.BAD_REQUEST;
+    const statusCode =
+      result.error === 'Workflow not found'
+        ? httpStatus.NOT_FOUND
+        : httpStatus.BAD_REQUEST;
     return sendResponse(res, {
       statusCode,
       success: false,
       message: result.message || 'Failed to trigger workflow',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -264,7 +285,7 @@ const pauseWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -276,15 +297,18 @@ const pauseWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: result.message,
-      data: result.data
+      data: result.data,
     });
   } else {
-    const statusCode = result.error === 'Workflow not found' ? httpStatus.NOT_FOUND : httpStatus.BAD_REQUEST;
+    const statusCode =
+      result.error === 'Workflow not found'
+        ? httpStatus.NOT_FOUND
+        : httpStatus.BAD_REQUEST;
     return sendResponse(res, {
       statusCode,
       success: false,
       message: result.message || 'Failed to pause workflow',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -300,7 +324,7 @@ const resumeWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -312,15 +336,18 @@ const resumeWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: result.message,
-      data: result.data
+      data: result.data,
     });
   } else {
-    const statusCode = result.error === 'Workflow not found' ? httpStatus.NOT_FOUND : httpStatus.BAD_REQUEST;
+    const statusCode =
+      result.error === 'Workflow not found'
+        ? httpStatus.NOT_FOUND
+        : httpStatus.BAD_REQUEST;
     return sendResponse(res, {
       statusCode,
       success: false,
       message: result.message || 'Failed to resume workflow',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -337,26 +364,33 @@ const getWorkflowExecutionsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
-  const result = await workflowService.getWorkflowExecutions(workflowId, userId, parseInt(limit));
+  const result = await workflowService.getWorkflowExecutions(
+    workflowId,
+    userId,
+    parseInt(limit)
+  );
 
   if (result.success) {
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Execution history retrieved successfully',
-      data: result.data
+      data: result.data,
     });
   } else {
-    const statusCode = result.error === 'Workflow not found' ? httpStatus.NOT_FOUND : httpStatus.INTERNAL_SERVER_ERROR;
+    const statusCode =
+      result.error === 'Workflow not found'
+        ? httpStatus.NOT_FOUND
+        : httpStatus.INTERNAL_SERVER_ERROR;
     return sendResponse(res, {
       statusCode,
       success: false,
       message: 'Failed to retrieve execution history',
-      error: result.error
+      error: result.error,
     });
   }
 });
@@ -372,23 +406,25 @@ const getExecutionController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
   try {
-    const WorkflowExecution = (await import('../models/workflowExecution.model.js')).default;
-    
-    const execution = await WorkflowExecution.findOne({ 
-      executionId, 
-      userId 
+    const WorkflowExecution = (
+      await import('../models/workflowExecution.model.js')
+    ).default;
+
+    const execution = await WorkflowExecution.findOne({
+      executionId,
+      userId,
     });
 
     if (!execution) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Execution not found'
+        message: 'Execution not found',
       });
     }
 
@@ -396,16 +432,15 @@ const getExecutionController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Execution details retrieved successfully',
-      data: execution
+      data: execution,
     });
-
   } catch (error) {
     logger.error(`Error fetching execution: ${error.message}`);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to retrieve execution details',
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -420,5 +455,5 @@ export const workflowController = {
   pauseWorkflowController,
   resumeWorkflowController,
   getWorkflowExecutionsController,
-  getExecutionController
+  getExecutionController,
 };

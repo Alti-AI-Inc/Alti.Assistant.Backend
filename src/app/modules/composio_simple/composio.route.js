@@ -47,10 +47,6 @@ router.get(
 );
 
 // Comparison endpoint - runs same request through both systems
-router.post(
-  '/compare',
-  auth(),
-  composioSimpleController.compareController
-);
+router.post('/compare', auth(), composioSimpleController.compareController);
 
 export const composioSimpleRoutes = router;

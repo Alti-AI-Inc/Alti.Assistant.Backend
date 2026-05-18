@@ -3,7 +3,10 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { composioService } from './composio.service.js';
-import { conversationService, generateConversationId } from './composio.conversation.js';
+import {
+  conversationService,
+  generateConversationId,
+} from './composio.conversation.js';
 import SubscriptionModel from '../subscription/subscription.model.js';
 
 /**
@@ -31,7 +34,9 @@ export const chatController = catchAsync(async (req, res) => {
   }
 
   // Check subscription limits (optional - can be removed if not needed)
-  const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+  const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
+    createdAt: -1,
+  });
   if (userSubscription && userSubscription.usage <= 0) {
     return sendResponse(res, {
       statusCode: httpStatus.FORBIDDEN,
@@ -73,7 +78,7 @@ export const chatController = catchAsync(async (req, res) => {
         result.data.response,
         {
           toolsUsed: result.data.toolsUsed || [],
-          executionTime: result.data.executionTime
+          executionTime: result.data.executionTime,
         }
       );
 
@@ -85,7 +90,7 @@ export const chatController = catchAsync(async (req, res) => {
         message: 'Request processed successfully',
         data: {
           ...result.data,
-          conversationId: conversation.conversationId
+          conversationId: conversation.conversationId,
         },
       });
     } else {
@@ -98,7 +103,9 @@ export const chatController = catchAsync(async (req, res) => {
         { error: true }
       );
 
-      logger.error(`Composio Simple: Failed execution for user ${userId}: ${result.error}`);
+      logger.error(
+        `Composio Simple: Failed execution for user ${userId}: ${result.error}`
+      );
 
       return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
@@ -115,8 +122,8 @@ export const chatController = catchAsync(async (req, res) => {
       success: false,
       message: 'An unexpected error occurred',
       data: {
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 });
@@ -150,7 +157,7 @@ export const initiateAuthController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to initiate authentication',
-      data: { error: result.error }
+      data: { error: result.error },
     });
   }
 });
@@ -183,7 +190,7 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to establish connection',
-      data: { error: result.error }
+      data: { error: result.error },
     });
   }
 });
@@ -201,7 +208,10 @@ export const getConversationsController = catchAsync(async (req, res) => {
     sortOrder: parseInt(req.query.sortOrder) || -1,
   };
 
-  const result = await conversationService.getUserConversations(userId, options);
+  const result = await conversationService.getUserConversations(
+    userId,
+    options
+  );
 
   return sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -252,7 +262,7 @@ export const getConnectedAccountsController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to retrieve connected accounts',
-      data: { error: result.error }
+      data: { error: result.error },
     });
   }
 });
@@ -293,7 +303,10 @@ export const compareController = catchAsync(async (req, res) => {
   try {
     logger.info(`Comparison: Running simplified system for user ${userId}`);
     const simpleStart = Date.now();
-    simplifiedResult = await composioService.executeUserRequest(message, userId);
+    simplifiedResult = await composioService.executeUserRequest(
+      message,
+      userId
+    );
     simplifiedTime = Date.now() - simpleStart;
     logger.info(`Comparison: Simplified completed in ${simplifiedTime}ms`);
   } catch (error) {
@@ -308,7 +321,9 @@ export const compareController = catchAsync(async (req, res) => {
     const complexStart = Date.now();
 
     // Import v2 service dynamically
-    const { executeComposio } = await import('../composio_v2/composio.service.js');
+    const { executeComposio } = await import(
+      '../composio_v2/composio.service.js'
+    );
     complexResult = await executeComposio(message, { userId });
     complexTime = Date.now() - complexStart;
     logger.info(`Comparison: V2 completed in ${complexTime}ms`);
@@ -320,9 +335,10 @@ export const compareController = catchAsync(async (req, res) => {
 
   // Calculate improvements
   const timeSaved = complexTime - simplifiedTime;
-  const percentageFaster = complexTime > 0
-    ? Math.round(((complexTime - simplifiedTime) / complexTime) * 100)
-    : 0;
+  const percentageFaster =
+    complexTime > 0
+      ? Math.round(((complexTime - simplifiedTime) / complexTime) * 100)
+      : 0;
 
   // Return comparison
   return sendResponse(res, {
@@ -337,23 +353,24 @@ export const compareController = catchAsync(async (req, res) => {
         toolsUsed: simplifiedResult?.data?.toolsUsed || [],
         executionTime: `${simplifiedTime}ms`,
         error: simplifiedError,
-        conversationId: simplifiedResult?.data?.conversationId || null
+        conversationId: simplifiedResult?.data?.conversationId || null,
       },
       v2: {
         success: complexResult?.success || false,
         response: complexResult?.data?.result || complexResult?.result || null,
         executionTime: `${complexTime}ms`,
-        error: complexError
+        error: complexError,
       },
       comparison: {
         timeSaved: `${timeSaved}ms`,
         percentageFaster: `${percentageFaster}%`,
         simplifiedWon: simplifiedTime < complexTime,
-        improvement: timeSaved > 0
-          ? `Simplified is ${timeSaved}ms (${percentageFaster}%) faster`
-          : `V2 is ${Math.abs(timeSaved)}ms faster`
-      }
-    }
+        improvement:
+          timeSaved > 0
+            ? `Simplified is ${timeSaved}ms (${percentageFaster}%) faster`
+            : `V2 is ${Math.abs(timeSaved)}ms faster`,
+      },
+    },
   });
 });
 
@@ -364,5 +381,5 @@ export const composioSimpleController = {
   getConversationsController,
   getConversationController,
   getConnectedAccountsController,
-  compareController
+  compareController,
 };

@@ -1,8 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from '@google/genai';
 
 export const searchWithGemini = async (query) => {
-
-
   const ai = new GoogleGenAI({});
 
   const groundingTool = {
@@ -14,11 +12,10 @@ export const searchWithGemini = async (query) => {
   };
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: 'gemini-2.5-flash',
     contents: query,
     config,
   });
 
   console.log(response.text);
-}
-
+};

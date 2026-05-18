@@ -18,7 +18,7 @@ export const classifyQueryFast = (query) => {
     /^where is [a-zA-Z0-9\s]+\?*$/,
     /^how many [a-zA-Z0-9\s]+\?*$/,
     /^define [a-zA-Z0-9\s]+$/,
-    /^meaning of [a-zA-Z0-9\s]+$/
+    /^meaning of [a-zA-Z0-9\s]+$/,
   ];
 
   // Time-sensitive queries - need search
@@ -26,14 +26,14 @@ export const classifyQueryFast = (query) => {
     /\b(today|now|current|latest|recent|2024|2025)\b/,
     /\b(next|upcoming|when is the next)\b/,
     /\b(schedule|game|match|event)\b.*\b(today|tomorrow|this week|next)\b/,
-    /\b(stock price|weather|news)\b/
+    /\b(stock price|weather|news)\b/,
   ];
 
   // Video-related queries
   const videoPatterns = [
     /\b(video|tutorial|how to|guide|demo|watch)\b/,
     /\b(youtube|show me|explain|walkthrough)\b/,
-    /\b(\d+\s*(video|tutorial|clip|demo)s?)\b/
+    /\b(\d+\s*(video|tutorial|clip|demo)s?)\b/,
   ];
 
   // Complex queries that need full workflow
@@ -41,7 +41,7 @@ export const classifyQueryFast = (query) => {
     /\b(compare|vs|versus|difference between)\b/,
     /\b(analyze|research|detailed|comprehensive)\b/,
     /\b(pros and cons|advantages|disadvantages)\b/,
-    /\w+.*\w+.*\w+.*\w+.*\w+/ // More than 5 meaningful words
+    /\w+.*\w+.*\w+.*\w+.*\w+/, // More than 5 meaningful words
   ];
 
   // Check for simple factual queries
@@ -51,7 +51,7 @@ export const classifyQueryFast = (query) => {
         isSimple: true,
         queryType: 'factual',
         confidence: 0.9,
-        recommendedAction: 'direct_answer'
+        recommendedAction: 'direct_answer',
       };
     }
   }
@@ -63,7 +63,7 @@ export const classifyQueryFast = (query) => {
         isSimple: false,
         queryType: 'time_sensitive',
         confidence: 0.95,
-        recommendedAction: 'search_required'
+        recommendedAction: 'search_required',
       };
     }
   }
@@ -75,7 +75,7 @@ export const classifyQueryFast = (query) => {
         isSimple: false,
         queryType: 'video',
         confidence: 0.85,
-        recommendedAction: 'video_search'
+        recommendedAction: 'video_search',
       };
     }
   }
@@ -87,7 +87,7 @@ export const classifyQueryFast = (query) => {
         isSimple: false,
         queryType: 'complex',
         confidence: 0.8,
-        recommendedAction: 'full_search'
+        recommendedAction: 'full_search',
       };
     }
   }
@@ -101,7 +101,7 @@ export const classifyQueryFast = (query) => {
       isSimple: true,
       queryType: 'simple',
       confidence: 0.7,
-      recommendedAction: 'direct_answer'
+      recommendedAction: 'direct_answer',
     };
   }
 
@@ -109,7 +109,7 @@ export const classifyQueryFast = (query) => {
     isSimple: false,
     queryType: 'unknown',
     confidence: 0.6,
-    recommendedAction: 'llm_classify'
+    recommendedAction: 'llm_classify',
   };
 };
 
@@ -129,7 +129,13 @@ export const updateQueryWithCurrentYear = (query) => {
   const currentDateFormatted = `${currentMonthName} ${currentDay}, ${currentYear}`;
   const todayFormatted = `today ${currentDateFormatted}`;
 
-  const previousYears = [currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4, currentYear - 5];
+  const previousYears = [
+    currentYear - 1,
+    currentYear - 2,
+    currentYear - 3,
+    currentYear - 4,
+    currentYear - 5,
+  ];
   const previousMonths = [];
 
   // Generate previous months for the current year
@@ -140,19 +146,28 @@ export const updateQueryWithCurrentYear = (query) => {
       year: prevDate.getFullYear(),
       month: prevDate.getMonth() + 1,
       monthName: prevDate.toLocaleString('default', { month: 'long' }),
-      monthShort: prevDate.toLocaleString('default', { month: 'short' })
+      monthShort: prevDate.toLocaleString('default', { month: 'short' }),
     });
   }
 
   let updatedQuery = query;
 
   // 1. Update outdated years
-  previousYears.forEach(year => {
+  previousYears.forEach((year) => {
     const patterns = [
       // Basic year patterns
-      new RegExp(`\\b${year}\\b(?=\\s*(game|schedule|season|event|news|latest|upcoming|next|when|match|today|now|current))`, 'gi'),
-      new RegExp(`\\b(schedule|game|season|event|news|latest|upcoming|next|when|match|today|now|current)\\s+${year}\\b`, 'gi'),
-      new RegExp(`\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming|next|when|match|today|now|current)\\b`, 'gi'),
+      new RegExp(
+        `\\b${year}\\b(?=\\s*(game|schedule|season|event|news|latest|upcoming|next|when|match|today|now|current))`,
+        'gi'
+      ),
+      new RegExp(
+        `\\b(schedule|game|season|event|news|latest|upcoming|next|when|match|today|now|current)\\s+${year}\\b`,
+        'gi'
+      ),
+      new RegExp(
+        `\\b${year}\\s+(schedule|game|season|event|news|latest|upcoming|next|when|match|today|now|current)\\b`,
+        'gi'
+      ),
       // Sports specific patterns
       new RegExp(`\\b${year}[-/]\\d{2}\\b`, 'gi'), // Match 2023-24 season format
       new RegExp(`\\b\\d{2}[-/]${year}\\b`, 'gi'), // Match 23-2024 season format
@@ -161,7 +176,7 @@ export const updateQueryWithCurrentYear = (query) => {
       new RegExp(`\\b\\d{1,2}[-/]\\d{1,2}[-/]${year}\\b`, 'gi'), // MM/DD/YYYY or DD/MM/YYYY
     ];
 
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       updatedQuery = updatedQuery.replace(pattern, (match) => {
         return match.replace(year.toString(), currentYear.toString());
       });
@@ -172,18 +187,42 @@ export const updateQueryWithCurrentYear = (query) => {
   const timeReplacements = [
     // Today/now references
     { pattern: /\b(today|now)\b(?!\s+\d{4})/gi, replacement: todayFormatted },
-    { pattern: /\bcurrent\s+(month|week|day)\b/gi, replacement: `current $1 ${currentMonthName} ${currentYear}` },
-    { pattern: /\bthis\s+(month|week|year)\b/gi, replacement: `this $1 ${currentMonthName} ${currentYear}` },
-    { pattern: /\blatest\s+(news|updates|information)\b/gi, replacement: `latest $1 ${currentMonthName} ${currentYear}` },
+    {
+      pattern: /\bcurrent\s+(month|week|day)\b/gi,
+      replacement: `current $1 ${currentMonthName} ${currentYear}`,
+    },
+    {
+      pattern: /\bthis\s+(month|week|year)\b/gi,
+      replacement: `this $1 ${currentMonthName} ${currentYear}`,
+    },
+    {
+      pattern: /\blatest\s+(news|updates|information)\b/gi,
+      replacement: `latest $1 ${currentMonthName} ${currentYear}`,
+    },
 
     // Recent time references
-    { pattern: /\brecent\b(?!\s+\d{4})/gi, replacement: `recent ${currentYear}` },
-    { pattern: /\bupcoming\b(?!\s+\d{4})/gi, replacement: `upcoming ${currentYear}` },
-    { pattern: /\bnext\s+(week|month)\b(?!\s+\d{4})/gi, replacement: `next $1 ${currentYear}` },
+    {
+      pattern: /\brecent\b(?!\s+\d{4})/gi,
+      replacement: `recent ${currentYear}`,
+    },
+    {
+      pattern: /\bupcoming\b(?!\s+\d{4})/gi,
+      replacement: `upcoming ${currentYear}`,
+    },
+    {
+      pattern: /\bnext\s+(week|month)\b(?!\s+\d{4})/gi,
+      replacement: `next $1 ${currentYear}`,
+    },
 
     // Yesterday/tomorrow references
-    { pattern: /\byesterday\b/gi, replacement: `yesterday ${currentDateFormatted}` },
-    { pattern: /\btomorrow\b/gi, replacement: `tomorrow ${currentDateFormatted}` },
+    {
+      pattern: /\byesterday\b/gi,
+      replacement: `yesterday ${currentDateFormatted}`,
+    },
+    {
+      pattern: /\btomorrow\b/gi,
+      replacement: `tomorrow ${currentDateFormatted}`,
+    },
   ];
 
   timeReplacements.forEach(({ pattern, replacement }) => {
@@ -200,7 +239,7 @@ export const updateQueryWithCurrentYear = (query) => {
         new RegExp(`\\b${year}\\s+${monthShort}\\b`, 'gi'),
       ];
 
-      monthPatterns.forEach(pattern => {
+      monthPatterns.forEach((pattern) => {
         updatedQuery = updatedQuery.replace(pattern, (match) => {
           return match.replace(year.toString(), currentYear.toString());
         });
@@ -210,19 +249,32 @@ export const updateQueryWithCurrentYear = (query) => {
 
   // 4. Add current context for time-sensitive keywords
   const timeSensitiveKeywords = [
-    'next game', 'upcoming game', 'when is', 'schedule', 'next match',
-    'latest news', 'current events', 'breaking news', 'today\'s',
-    'stock price', 'weather', 'forecast', 'happening now'
+    'next game',
+    'upcoming game',
+    'when is',
+    'schedule',
+    'next match',
+    'latest news',
+    'current events',
+    'breaking news',
+    "today's",
+    'stock price',
+    'weather',
+    'forecast',
+    'happening now',
   ];
 
-  const hasTimeSensitiveKeyword = timeSensitiveKeywords.some(keyword =>
+  const hasTimeSensitiveKeyword = timeSensitiveKeywords.some((keyword) =>
     updatedQuery.toLowerCase().includes(keyword.toLowerCase())
   );
 
   // Add current year/date context if not already present
   if (hasTimeSensitiveKeyword) {
     const hasYearContext = /\b\d{4}\b/.test(updatedQuery);
-    const hasDateContext = /\b(today|now|current|latest|recent|upcoming|next)\s+\d{4}\b/i.test(updatedQuery);
+    const hasDateContext =
+      /\b(today|now|current|latest|recent|upcoming|next)\s+\d{4}\b/i.test(
+        updatedQuery
+      );
 
     if (!hasYearContext && !hasDateContext) {
       updatedQuery += ` ${currentYear}`;
@@ -230,7 +282,10 @@ export const updateQueryWithCurrentYear = (query) => {
   }
 
   // 5. Special handling for "latest" or "current" queries
-  if (/\b(latest|current|newest|most recent)\b/i.test(updatedQuery) && !/\b\d{4}\b/.test(updatedQuery)) {
+  if (
+    /\b(latest|current|newest|most recent)\b/i.test(updatedQuery) &&
+    !/\b\d{4}\b/.test(updatedQuery)
+  ) {
     updatedQuery += ` ${currentYear}`;
   }
 
@@ -243,7 +298,6 @@ export const updateQueryWithCurrentYear = (query) => {
     updatedQuery = `${updatedQuery} For context today is: ${currentDateFormatted}`;
 
     console.log(`Final contextualized query: "${updatedQuery}"`);
-
   }
 
   return updatedQuery;

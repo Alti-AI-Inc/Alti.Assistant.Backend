@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const TokenSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     token: {
@@ -17,15 +17,15 @@ const TokenSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["emailVerification", "passwordReset", "deleteAccount"],
+      enum: ['emailVerification', 'passwordReset', 'deleteAccount'],
       required: true,
-    }
+    },
   },
   {
     timestamps: true,
   }
 );
 
-const Token = mongoose.model("Token", TokenSchema);
+const Token = mongoose.model('Token', TokenSchema);
 
 export default Token;

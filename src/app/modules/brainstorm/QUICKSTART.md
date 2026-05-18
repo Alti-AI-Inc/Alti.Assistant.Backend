@@ -15,6 +15,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 ```
 
 That's it! The AI will:
+
 - Analyze your idea
 - Generate creative concepts
 - Provide opportunities and challenges
@@ -25,6 +26,7 @@ That's it! The AI will:
 ### Use Case 1: Product Ideation
 
 **Request:**
+
 ```json
 {
   "message": "I want to create a productivity tool for remote workers"
@@ -32,6 +34,7 @@ That's it! The AI will:
 ```
 
 **What you get:**
+
 - 20+ product feature ideas
 - User-centric perspectives
 - Market opportunities
@@ -40,6 +43,7 @@ That's it! The AI will:
 ### Use Case 2: Business Strategy
 
 **Request:**
+
 ```json
 {
   "idea": "Subscription box for sustainable living products",
@@ -50,6 +54,7 @@ That's it! The AI will:
 ```
 
 **What you get:**
+
 - Strengths analysis
 - Weaknesses to address
 - Market opportunities
@@ -58,6 +63,7 @@ That's it! The AI will:
 ### Use Case 3: Marketing Campaign
 
 **Request:**
+
 ```json
 {
   "message": "Brainstorm marketing ideas for launching a new coffee brand targeting Gen Z"
@@ -65,6 +71,7 @@ That's it! The AI will:
 ```
 
 **What you get:**
+
 - Campaign concepts
 - Channel strategies
 - Content ideas
@@ -73,6 +80,7 @@ That's it! The AI will:
 ### Use Case 4: Problem Solving
 
 **Request:**
+
 ```json
 {
   "idea": "Our mobile app has low user retention",
@@ -83,6 +91,7 @@ That's it! The AI will:
 ```
 
 **What you get:**
+
 - Root cause analysis
 - Solution alternatives
 - Implementation strategies
@@ -91,6 +100,7 @@ That's it! The AI will:
 ## Multi-Turn Conversation
 
 ### Step 1: Start Brainstorm
+
 ```json
 {
   "message": "Help me brainstorm a food delivery startup idea"
@@ -100,6 +110,7 @@ That's it! The AI will:
 **Save the conversationId from response!**
 
 ### Step 2: Continue Conversation
+
 ```json
 {
   "conversationId": "brainstorm_1234567890_abc",
@@ -108,6 +119,7 @@ That's it! The AI will:
 ```
 
 ### Step 3: Refine Ideas
+
 ```json
 {
   "conversationId": "brainstorm_1234567890_abc",
@@ -118,7 +130,9 @@ That's it! The AI will:
 ## Using Different Techniques
 
 ### SCAMPER Technique
+
 Great for improving existing ideas:
+
 ```json
 {
   "idea": "Traditional calendar app",
@@ -127,13 +141,16 @@ Great for improving existing ideas:
 ```
 
 Gets you variations:
+
 - **Substitute**: What if we substitute paper with AR?
 - **Combine**: Combine calendar with task management
 - **Adapt**: Adapt gaming mechanics for scheduling
 - etc.
 
 ### Mind Mapping
+
 Great for exploring connections:
+
 ```json
 {
   "idea": "Educational platform for kids",
@@ -142,7 +159,9 @@ Great for exploring connections:
 ```
 
 ### Six Thinking Hats
+
 Great for comprehensive analysis:
+
 ```json
 {
   "idea": "AI chatbot for customer service",
@@ -153,44 +172,52 @@ Great for comprehensive analysis:
 ## Setting Depth Levels
 
 ### Quick (5-10 min)
+
 ```json
 {
   "message": "Quick ideas for team building activities",
   "depth": "quick"
 }
 ```
+
 - ~10 ideas
 - Brief descriptions
 - Fast results
 
 ### Standard (10-15 min)
+
 ```json
 {
   "depth": "standard"
 }
 ```
+
 - ~20 ideas
 - Good detail
 - Balanced approach
 - **Default option**
 
 ### Deep (15-25 min)
+
 ```json
 {
   "depth": "deep"
 }
 ```
+
 - ~35 ideas
 - Detailed analysis
 - Multiple perspectives
 - Rich insights
 
 ### Comprehensive (25+ min)
+
 ```json
 {
   "depth": "comprehensive"
 }
 ```
+
 - 50+ ideas
 - Exhaustive analysis
 - All perspectives
@@ -226,6 +253,7 @@ Prioritize specific aspects:
 ```
 
 Available focus areas:
+
 - `innovation` - Novel approaches
 - `feasibility` - Practical implementation
 - `marketability` - Market appeal
@@ -248,16 +276,20 @@ After brainstorming, export for documentation:
 ```
 
 Download as:
+
 - Markdown for documentation
 - JSON for further processing
 
 ## Authentication
 
 ### For Testing (Guest)
+
 No authentication needed! Just send requests.
 
 ### For Production (Authenticated)
+
 Add your JWT token:
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
@@ -291,6 +323,7 @@ You'll get:
 ## Common Patterns
 
 ### Pattern 1: Broad to Narrow
+
 ```
 1. Start: "Brainstorm SaaS ideas"
 2. Focus: "Focus on B2B SaaS"
@@ -298,6 +331,7 @@ You'll get:
 ```
 
 ### Pattern 2: Multiple Perspectives
+
 ```
 1. Business view: "From business perspective"
 2. Technical view: "Now technical feasibility"
@@ -305,6 +339,7 @@ You'll get:
 ```
 
 ### Pattern 3: Technique Combination
+
 ```
 1. Generate: Use free_association for many ideas
 2. Analyze: Switch to SWOT for evaluation
@@ -314,7 +349,9 @@ You'll get:
 ## Troubleshooting
 
 ### "Needs more info"
+
 Add more context:
+
 ```json
 {
   "message": "E-commerce platform for handmade crafts targeting millennial women, budget under $5k"
@@ -322,7 +359,9 @@ Add more context:
 ```
 
 ### Too generic results
+
 Be more specific:
+
 ```json
 {
   "message": "Yoga app",
@@ -331,7 +370,9 @@ Be more specific:
 ```
 
 ### Want different style
+
 Try different techniques:
+
 - Too scattered? Use `mind_map`
 - Need evaluation? Use `swot`
 - Want variations? Use `scamper`
@@ -387,6 +428,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/export \
 ## Tips for Success
 
 ✅ **DO:**
+
 - Be specific about your idea
 - Mention your target audience
 - Include constraints (budget, timeline)
@@ -395,6 +437,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/export \
 - Export valuable sessions
 
 ❌ **DON'T:**
+
 - Be too vague ("an app")
 - Skip context
 - Ignore the generated insights

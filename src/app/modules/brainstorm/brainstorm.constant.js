@@ -125,7 +125,12 @@ Guidelines:
 
 Be conversational and helpful. If intent is unclear, ask clarifying questions.`,
 
-  IDEA_GENERATOR: (type, depth, technique, perspectives) => `Generate creative brainstorm ideas for a ${type} using ${technique} technique.
+  IDEA_GENERATOR: (
+    type,
+    depth,
+    technique,
+    perspectives
+  ) => `Generate creative brainstorm ideas for a ${type} using ${technique} technique.
 
 Analyze from these perspectives: ${perspectives.join(', ')}
 Depth level: ${depth}
@@ -163,13 +168,17 @@ Provide specific, actionable refinement suggestions.`,
 
 // Response Messages
 export const RESPONSE_MESSAGES = {
-  WELCOME: 'Hello! I\'m your brainstorming assistant. Share your idea, and I\'ll help you explore it from multiple angles.',
-  NEED_IDEA: 'Please share the idea or topic you\'d like to brainstorm about.',
-  NEED_MORE_INFO: '🤔 Great start! I can help you brainstorm better with a bit more context.',
-  IDEA_RECEIVED: 'Great idea! Let me generate some brainstorm concepts for you.',
+  WELCOME:
+    "Hello! I'm your brainstorming assistant. Share your idea, and I'll help you explore it from multiple angles.",
+  NEED_IDEA: "Please share the idea or topic you'd like to brainstorm about.",
+  NEED_MORE_INFO:
+    '🤔 Great start! I can help you brainstorm better with a bit more context.',
+  IDEA_RECEIVED:
+    'Great idea! Let me generate some brainstorm concepts for you.',
   REFINING: 'Let me refine and expand on that idea.',
-  ANALYZING: 'I\'ll analyze your idea from multiple perspectives.',
-  ERROR_PROCESSING: 'I encountered an issue while processing your request. Please try again.',
+  ANALYZING: "I'll analyze your idea from multiple perspectives.",
+  ERROR_PROCESSING:
+    'I encountered an issue while processing your request. Please try again.',
 };
 
 // Clarification Suggestions
@@ -192,7 +201,8 @@ export const CLARIFICATION_SUGGESTIONS = {
       '🔍 **Deep** - Detailed analysis (~35 ideas, 15-25 min)',
       '🚀 **Comprehensive** - Exhaustive exploration (50+ ideas)',
     ],
-    example: 'Just say "quick brainstorm" or "deep dive" - or I\'ll use Standard mode!',
+    example:
+      'Just say "quick brainstorm" or "deep dive" - or I\'ll use Standard mode!',
   },
   focusAreas: {
     question: 'What should we focus on?',
@@ -202,7 +212,8 @@ export const CLARIFICATION_SUGGESTIONS = {
       '📈 **Marketability** - Market appeal and demand',
       '🎯 **Feasibility** - Practical implementation',
     ],
-    example: 'e.g., "Focus on innovation and profitability" or let me cover all angles!',
+    example:
+      'e.g., "Focus on innovation and profitability" or let me cover all angles!',
   },
   constraints: {
     question: 'Any constraints I should know about?',
@@ -212,7 +223,8 @@ export const CLARIFICATION_SUGGESTIONS = {
       '🎯 Target audience (e.g., "millennials, ages 25-35")',
       '🛠️ Technology stack (e.g., "React Native, Python")',
     ],
-    example: 'e.g., "Budget is $15k, timeline 6 months" or skip if no constraints!',
+    example:
+      'e.g., "Budget is $15k, timeline 6 months" or skip if no constraints!',
   },
 };
 
@@ -220,7 +232,8 @@ export const CLARIFICATION_SUGGESTIONS = {
 export const TECHNIQUE_DESCRIPTIONS = {
   [TECHNIQUES.SCAMPER]: {
     name: 'SCAMPER',
-    description: 'Substitute, Combine, Adapt, Modify, Put to other uses, Eliminate, Reverse',
+    description:
+      'Substitute, Combine, Adapt, Modify, Put to other uses, Eliminate, Reverse',
     useCase: 'Best for improving existing ideas or products',
   },
   [TECHNIQUES.MIND_MAP]: {
@@ -230,7 +243,8 @@ export const TECHNIQUE_DESCRIPTIONS = {
   },
   [TECHNIQUES.SIX_THINKING_HATS]: {
     name: 'Six Thinking Hats',
-    description: 'Analyze from six different thinking modes (facts, emotions, caution, benefits, creativity, process)',
+    description:
+      'Analyze from six different thinking modes (facts, emotions, caution, benefits, creativity, process)',
     useCase: 'Best for comprehensive analysis from multiple viewpoints',
   },
   [TECHNIQUES.SWOT_ANALYSIS]: {
@@ -265,7 +279,7 @@ export const TECHNIQUE_DESCRIPTIONS = {
   },
   [TECHNIQUES.ROLE_STORMING]: {
     name: 'Role Storming',
-    description: 'Think from different personas or stakeholders\' perspectives',
+    description: "Think from different personas or stakeholders' perspectives",
     useCase: 'Best for understanding different viewpoints',
   },
 };

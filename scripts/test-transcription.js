@@ -16,7 +16,12 @@ async function testSimpleTranscription() {
 
   try {
     // Create a test audio file path (you'll need to provide a real audio file)
-    const audioFilePath = path.join(process.cwd(), 'test', 'data', 'sample.mp3');
+    const audioFilePath = path.join(
+      process.cwd(),
+      'test',
+      'data',
+      'sample.mp3'
+    );
 
     if (!fs.existsSync(audioFilePath)) {
       console.log('⚠️  No test audio file found at:', audioFilePath);
@@ -35,7 +40,7 @@ async function testSimpleTranscription() {
       {
         headers: {
           ...formData.getHeaders(),
-          'Authorization': `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${API_KEY}`,
         },
       }
     );
@@ -44,7 +49,11 @@ async function testSimpleTranscription() {
     console.log('Conversation ID:', response.data.data.conversationId);
     console.log('Result:', response.data.data.result.substring(0, 200) + '...');
     console.log('Token Count:', response.data.data.metadata.tokenCount);
-    console.log('Duration:', response.data.data.metadata.estimatedDuration, 'seconds');
+    console.log(
+      'Duration:',
+      response.data.data.metadata.estimatedDuration,
+      'seconds'
+    );
   } catch (error) {
     console.error('❌ Error:', error.response?.data || error.message);
   }
@@ -58,7 +67,12 @@ async function testDescribeAudio() {
   console.log('=================================');
 
   try {
-    const audioFilePath = path.join(process.cwd(), 'test', 'data', 'sample.mp3');
+    const audioFilePath = path.join(
+      process.cwd(),
+      'test',
+      'data',
+      'sample.mp3'
+    );
 
     if (!fs.existsSync(audioFilePath)) {
       console.log('⚠️  No test audio file found');
@@ -68,7 +82,10 @@ async function testDescribeAudio() {
     const formData = new FormData();
     formData.append('audio', fs.createReadStream(audioFilePath));
     formData.append('processingType', 'describe');
-    formData.append('prompt', 'Describe all sounds, music, and speech in this audio');
+    formData.append(
+      'prompt',
+      'Describe all sounds, music, and speech in this audio'
+    );
 
     const response = await axios.post(
       `${BASE_URL}/transcription/transcribe`,
@@ -76,7 +93,7 @@ async function testDescribeAudio() {
       {
         headers: {
           ...formData.getHeaders(),
-          'Authorization': `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${API_KEY}`,
         },
       }
     );
@@ -96,7 +113,12 @@ async function testSegmentAnalysis() {
   console.log('=================================');
 
   try {
-    const audioFilePath = path.join(process.cwd(), 'test', 'data', 'sample.mp3');
+    const audioFilePath = path.join(
+      process.cwd(),
+      'test',
+      'data',
+      'sample.mp3'
+    );
 
     if (!fs.existsSync(audioFilePath)) {
       console.log('⚠️  No test audio file found');
@@ -116,7 +138,7 @@ async function testSegmentAnalysis() {
       {
         headers: {
           ...formData.getHeaders(),
-          'Authorization': `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${API_KEY}`,
         },
       }
     );
@@ -136,7 +158,12 @@ async function testInlineAudio() {
   console.log('=================================');
 
   try {
-    const audioFilePath = path.join(process.cwd(), 'test', 'data', 'sample.mp3');
+    const audioFilePath = path.join(
+      process.cwd(),
+      'test',
+      'data',
+      'sample.mp3'
+    );
 
     if (!fs.existsSync(audioFilePath)) {
       console.log('⚠️  No test audio file found');
@@ -158,7 +185,7 @@ async function testInlineAudio() {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${API_KEY}`,
         },
       }
     );
@@ -178,14 +205,11 @@ async function testGetStats() {
   console.log('=================================');
 
   try {
-    const response = await axios.get(
-      `${BASE_URL}/transcription/stats`,
-      {
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-        },
-      }
-    );
+    const response = await axios.get(`${BASE_URL}/transcription/stats`, {
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+      },
+    });
 
     console.log('✅ Success!');
     console.log('Statistics:', JSON.stringify(response.data.data, null, 2));
@@ -202,7 +226,12 @@ async function testAnalyzeAudio() {
   console.log('=================================');
 
   try {
-    const audioFilePath = path.join(process.cwd(), 'test', 'data', 'sample.mp3');
+    const audioFilePath = path.join(
+      process.cwd(),
+      'test',
+      'data',
+      'sample.mp3'
+    );
 
     if (!fs.existsSync(audioFilePath)) {
       console.log('⚠️  No test audio file found');
@@ -220,7 +249,7 @@ async function testAnalyzeAudio() {
       {
         headers: {
           ...formData.getHeaders(),
-          'Authorization': `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${API_KEY}`,
         },
       }
     );
@@ -240,7 +269,12 @@ async function testGuestAccess() {
   console.log('=================================');
 
   try {
-    const audioFilePath = path.join(process.cwd(), 'test', 'data', 'sample.mp3');
+    const audioFilePath = path.join(
+      process.cwd(),
+      'test',
+      'data',
+      'sample.mp3'
+    );
 
     if (!fs.existsSync(audioFilePath)) {
       console.log('⚠️  No test audio file found');
@@ -281,27 +315,29 @@ async function runTests() {
   if (!fs.existsSync(testDataDir)) {
     console.log('\n⚠️  Creating test/data directory...');
     fs.mkdirSync(testDataDir, { recursive: true });
-    console.log('✅ Directory created. Please add a sample.mp3 file to test/data/');
+    console.log(
+      '✅ Directory created. Please add a sample.mp3 file to test/data/'
+    );
   }
 
   // Run tests
   await testSimpleTranscription();
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   await testDescribeAudio();
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   await testSegmentAnalysis();
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   await testInlineAudio();
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   await testAnalyzeAudio();
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   await testGuestAccess();
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   await testGetStats();
 

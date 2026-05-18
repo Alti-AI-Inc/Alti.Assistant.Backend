@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
@@ -11,8 +10,11 @@ const FAILURE_REDIRECT_URL = `${FRONTEND_URL}?showLogin=true&error=authenticatio
 
 function sendTokenResponse(user, res) {
   if (!user || !user._id) {
-    console.error('Token generation error: Invalid user object received.', user);
-     const errorRedirectUrl = `${FRONTEND_URL}/?showLogin=true&error=invalid_user_data`;
+    console.error(
+      'Token generation error: Invalid user object received.',
+      user
+    );
+    const errorRedirectUrl = `${FRONTEND_URL}/?showLogin=true&error=invalid_user_data`;
     return res.redirect(errorRedirectUrl);
   }
 
@@ -31,10 +33,9 @@ function sendTokenResponse(user, res) {
 
     const redirectUrl = `${FRONTEND_URL}/auth/social-callback?token=${token}`;
     return res.redirect(redirectUrl);
-
   } catch (error) {
     console.error('Token generation error:', error);
-     const errorRedirectUrl = `${FRONTEND_URL}/?showLogin=true&error=token_generation_failed`;
+    const errorRedirectUrl = `${FRONTEND_URL}/?showLogin=true&error=token_generation_failed`;
     return res.redirect(errorRedirectUrl);
   }
 }
@@ -53,15 +54,22 @@ function sendTokenResponse(user, res) {
 function handleSocialAuthCallback(strategy) {
   return (req, res, next) => {
     passport.authenticate(strategy, { session: false }, (err, user, info) => {
-      
       // ✅ ADD THIS CHECK for your new password error rule
-      if (err && err.message && err.message.includes('This email is registered with a password')) {
+      if (
+        err &&
+        err.message &&
+        err.message.includes('This email is registered with a password')
+      ) {
         const errorRedirectUrl = `${FRONTEND_URL}/?showLogin=true&error=email_has_password`;
         return res.redirect(errorRedirectUrl);
       }
 
       // This is the existing check for social-vs-social conflicts
-      if (err && err.message && err.message.includes('This email is already linked to a')) {
+      if (
+        err &&
+        err.message &&
+        err.message.includes('This email is already linked to a')
+      ) {
         const providerInError = err.message.split('a ')[1].split(' account')[0];
         const errorCode = `email_exists_${providerInError}`;
         const errorRedirectUrl = `${FRONTEND_URL}/?showLogin=true&error=${errorCode}`;
@@ -78,25 +86,39 @@ function handleSocialAuthCallback(strategy) {
         return res.redirect(FAILURE_REDIRECT_URL);
       }
       return sendTokenResponse(user.user, res);
-      
     })(req, res, next);
   };
 }
 
 // Google
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
+router.get(
+  '/google',
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    session: false,
+  })
+);
 router.get('/google/callback', handleSocialAuthCallback('google'));
 
 // Apple (Note: Apple often uses POST for callbacks)
-router.get('/apple', passport.authenticate('apple', { session: false, scope: ['name', 'email'] }));
+router.get(
+  '/apple',
+  passport.authenticate('apple', { session: false, scope: ['name', 'email'] })
+);
 router.post('/apple/callback', handleSocialAuthCallback('apple'));
 
 // Microsoft
-router.get('/microsoft', passport.authenticate('microsoft', { scope: ['user.read'], session: false }));
+router.get(
+  '/microsoft',
+  passport.authenticate('microsoft', { scope: ['user.read'], session: false })
+);
 router.get('/microsoft/callback', handleSocialAuthCallback('microsoft'));
 
 // Facebook
-router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
+router.get(
+  '/facebook',
+  passport.authenticate('facebook', { scope: ['email'], session: false })
+);
 router.get('/facebook/callback', handleSocialAuthCallback('facebook'));
 
 // Twitter
@@ -104,13 +126,20 @@ router.get('/twitter', passport.authenticate('twitter', { session: false }));
 router.get('/twitter/callback', handleSocialAuthCallback('twitter'));
 
 // Discord
-router.get('/discord', passport.authenticate('discord', { scope: ['identify', 'email'], session: false }));
+router.get(
+  '/discord',
+  passport.authenticate('discord', {
+    scope: ['identify', 'email'],
+    session: false,
+  })
+);
 router.get('/discord/callback', handleSocialAuthCallback('discord'));
 
 // GitHub
-router.get('/github', passport.authenticate('github', { scope: ['user:email'], session: false }));
+router.get(
+  '/github',
+  passport.authenticate('github', { scope: ['user:email'], session: false })
+);
 router.get('/github/callback', handleSocialAuthCallback('github'));
-
-
 
 export const socialLoginRotes = router;

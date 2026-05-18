@@ -12,16 +12,21 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:5000/api/v1';
 const API_TOKEN = process.env.API_TOKEN || ''; // Optional for testing with auth
 
 // Helper function to make requests
-async function makeRequest(endpoint, method = 'GET', data = null, isFormData = false) {
+async function makeRequest(
+  endpoint,
+  method = 'GET',
+  data = null,
+  isFormData = false
+) {
   const headers = {
-    ...(API_TOKEN && { 'Authorization': `Bearer ${API_TOKEN}` }),
-    ...(data && !isFormData && { 'Content-Type': 'application/json' })
+    ...(API_TOKEN && { Authorization: `Bearer ${API_TOKEN}` }),
+    ...(data && !isFormData && { 'Content-Type': 'application/json' }),
   };
 
   const config = {
     method,
     url: `${BASE_URL}${endpoint}`,
-    headers
+    headers,
   };
 
   if (data) {
@@ -32,7 +37,10 @@ async function makeRequest(endpoint, method = 'GET', data = null, isFormData = f
     const response = await axios(config);
     return response.data;
   } catch (error) {
-    console.error(`Error in ${endpoint}:`, error.response?.data || error.message);
+    console.error(
+      `Error in ${endpoint}:`,
+      error.response?.data || error.message
+    );
     throw error;
   }
 }
@@ -57,7 +65,7 @@ async function testDirectTranslation() {
 
   const data = {
     text: 'Hello, how are you today? I hope you are doing well.',
-    targetLanguage: 'es'
+    targetLanguage: 'es',
   };
 
   try {
@@ -65,7 +73,9 @@ async function testDirectTranslation() {
     console.log('✓ Success!');
     console.log('Original:', result.data.originalText);
     console.log('Translated:', result.data.translatedText);
-    console.log(`Source: ${result.data.sourceLanguageName} → Target: ${result.data.targetLanguageName}`);
+    console.log(
+      `Source: ${result.data.sourceLanguageName} → Target: ${result.data.targetLanguageName}`
+    );
   } catch (error) {
     console.log('✗ Failed');
   }
@@ -79,15 +89,19 @@ async function testLanguageDetection() {
     'Bonjour, comment allez-vous?',
     'Guten Morgen, wie geht es Ihnen?',
     'こんにちは、お元気ですか？',
-    'Hola, ¿cómo estás?'
+    'Hola, ¿cómo estás?',
   ];
 
   for (const text of testTexts) {
     try {
       const result = await makeRequest('/translation/detect', 'POST', { text });
       console.log(`✓ "${text.substring(0, 30)}..."`);
-      console.log(`  Detected: ${result.data.languageName} (${result.data.languageCode})`);
-      console.log(`  Confidence: ${(result.data.confidence * 100).toFixed(1)}%`);
+      console.log(
+        `  Detected: ${result.data.languageName} (${result.data.languageCode})`
+      );
+      console.log(
+        `  Confidence: ${(result.data.confidence * 100).toFixed(1)}%`
+      );
     } catch (error) {
       console.log(`✗ Failed for "${text}"`);
     }
@@ -99,10 +113,18 @@ async function testConversationalSimple() {
   console.log('\n=== Test 4: Conversational Assistant (Simple) ===');
 
   const formData = new FormData();
-  formData.append('message', 'Translate "Good morning, have a great day!" to French');
+  formData.append(
+    'message',
+    'Translate "Good morning, have a great day!" to French'
+  );
 
   try {
-    const result = await makeRequest('/translation/assistant', 'POST', formData, true);
+    const result = await makeRequest(
+      '/translation/assistant',
+      'POST',
+      formData,
+      true
+    );
     console.log('✓ Success!');
     console.log('Assistant Response:', result.data.message);
     if (result.data.translation) {
@@ -126,7 +148,12 @@ async function testConversationalMultiTurn() {
     const formData1 = new FormData();
     formData1.append('message', 'I need to translate something');
 
-    const result1 = await makeRequest('/translation/assistant', 'POST', formData1, true);
+    const result1 = await makeRequest(
+      '/translation/assistant',
+      'POST',
+      formData1,
+      true
+    );
     conversationId = result1.data.conversationId;
     console.log('Assistant:', result1.data.message);
   } catch (error) {
@@ -141,7 +168,12 @@ async function testConversationalMultiTurn() {
     formData2.append('message', 'Spanish');
     formData2.append('conversationId', conversationId);
 
-    const result2 = await makeRequest('/translation/assistant', 'POST', formData2, true);
+    const result2 = await makeRequest(
+      '/translation/assistant',
+      'POST',
+      formData2,
+      true
+    );
     console.log('Assistant:', result2.data.message);
   } catch (error) {
     console.log('✗ Turn 2 failed');
@@ -155,11 +187,19 @@ async function testConversationalMultiTurn() {
     formData3.append('message', 'Thank you for your help!');
     formData3.append('conversationId', conversationId);
 
-    const result3 = await makeRequest('/translation/assistant', 'POST', formData3, true);
+    const result3 = await makeRequest(
+      '/translation/assistant',
+      'POST',
+      formData3,
+      true
+    );
     console.log('✓ Multi-turn conversation complete!');
     console.log('Assistant:', result3.data.message);
     if (result3.data.translation) {
-      console.log('Final Translation:', result3.data.translation.translatedText);
+      console.log(
+        'Final Translation:',
+        result3.data.translation.translatedText
+      );
     }
   } catch (error) {
     console.log('✗ Turn 3 failed');
@@ -172,7 +212,8 @@ async function testFileTranslation() {
 
   // Create a simple test file
   const testFilePath = path.join(process.cwd(), 'test-translation-doc.txt');
-  const testContent = 'This is a test document.\nIt has multiple lines.\nWe will translate it to French.';
+  const testContent =
+    'This is a test document.\nIt has multiple lines.\nWe will translate it to French.';
 
   try {
     // Create test file
@@ -183,12 +224,23 @@ async function testFileTranslation() {
     formData.append('message', 'Translate this document to French');
     formData.append('file', fs.createReadStream(testFilePath));
 
-    const result = await makeRequest('/translation/assistant', 'POST', formData, true);
+    const result = await makeRequest(
+      '/translation/assistant',
+      'POST',
+      formData,
+      true
+    );
     console.log('✓ Success!');
     console.log('Assistant:', result.data.message);
     if (result.data.translation) {
-      console.log('Original text length:', result.data.translation.originalText.length);
-      console.log('Translated text:', result.data.translation.translatedText.substring(0, 100) + '...');
+      console.log(
+        'Original text length:',
+        result.data.translation.originalText.length
+      );
+      console.log(
+        'Translated text:',
+        result.data.translation.translatedText.substring(0, 100) + '...'
+      );
     }
 
     // Cleanup
@@ -213,7 +265,7 @@ async function testMultipleLanguages() {
     { code: 'fr', name: 'French' },
     { code: 'de', name: 'German' },
     { code: 'ja', name: 'Japanese' },
-    { code: 'zh-CN', name: 'Chinese' }
+    { code: 'zh-CN', name: 'Chinese' },
   ];
 
   console.log(`Original text: "${text}"\n`);
@@ -222,7 +274,7 @@ async function testMultipleLanguages() {
     try {
       const result = await makeRequest('/translation/translate', 'POST', {
         text,
-        targetLanguage: lang.code
+        targetLanguage: lang.code,
       });
       console.log(`✓ ${lang.name}: ${result.data.translatedText}`);
     } catch (error) {

@@ -15,10 +15,17 @@ export const generateConversationId = () => {
 /**
  * Create or get conversation
  */
-export const getOrCreateConversation = async (userId, conversationId, initialMessage) => {
+export const getOrCreateConversation = async (
+  userId,
+  conversationId,
+  initialMessage
+) => {
   if (conversationId) {
     // Try to get existing conversation
-    const existing = await Conversation.findByConversationId(conversationId, userId);
+    const existing = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
     if (existing) return existing;
   }
 
@@ -27,15 +34,16 @@ export const getOrCreateConversation = async (userId, conversationId, initialMes
   const conversation = new Conversation({
     conversationId: newConversationId,
     userId: userId,
-    title: initialMessage.length > 50
-      ? `${initialMessage.substring(0, 50)}...`
-      : initialMessage,
+    title:
+      initialMessage.length > 50
+        ? `${initialMessage.substring(0, 50)}...`
+        : initialMessage,
     messages: [],
     metadata: {
       category: 'composio_simple',
-      version: '1.0'
+      version: '1.0',
     },
-    status: 'active'
+    status: 'active',
   });
 
   await conversation.save();
@@ -47,16 +55,19 @@ export const getOrCreateConversation = async (userId, conversationId, initialMes
  */
 export const getRecentMessages = async (conversationId, userId, limit = 5) => {
   try {
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
     if (!conversation || !conversation.messages) return [];
 
     // Return last N messages in chronological order
     const recentMessages = conversation.messages.slice(-limit);
 
-    return recentMessages.map(msg => ({
+    return recentMessages.map((msg) => ({
       role: msg.role,
       content: msg.content,
-      timestamp: msg.timestamp
+      timestamp: msg.timestamp,
     }));
   } catch (error) {
     console.error('Error getting recent messages:', error);
@@ -67,9 +78,18 @@ export const getRecentMessages = async (conversationId, userId, limit = 5) => {
 /**
  * Save message to conversation
  */
-export const saveMessage = async (conversationId, userId, role, content, metadata = {}) => {
+export const saveMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {}
+) => {
   try {
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
     if (!conversation) {
       throw new Error('Conversation not found');
     }
@@ -78,7 +98,7 @@ export const saveMessage = async (conversationId, userId, role, content, metadat
       role: role,
       content: content,
       timestamp: new Date(),
-      metadata: metadata
+      metadata: metadata,
     });
 
     conversation.lastActivity = new Date();
@@ -87,9 +107,11 @@ export const saveMessage = async (conversationId, userId, role, content, metadat
     await conversation.save();
 
     // Check if summarization is needed (async, don't wait)
-    conversationSummaryService.checkAndSummarizeIfNeeded(conversationId, userId).catch(err => {
-      console.error('Error in background summarization:', err);
-    });
+    conversationSummaryService
+      .checkAndSummarizeIfNeeded(conversationId, userId)
+      .catch((err) => {
+        console.error('Error in background summarization:', err);
+      });
 
     return conversation;
   } catch (error) {
@@ -106,14 +128,14 @@ export const getUserConversations = async (userId, options = {}) => {
     page = 1,
     limit = 20,
     sortBy = 'lastActivity',
-    sortOrder = -1
+    sortOrder = -1,
   } = options;
 
   const skip = (page - 1) * limit;
 
   const conversations = await Conversation.find({
     userId: userId,
-    'metadata.category': 'composio_simple'
+    'metadata.category': 'composio_simple',
   })
     .sort({ [sortBy]: sortOrder })
     .skip(skip)
@@ -122,7 +144,7 @@ export const getUserConversations = async (userId, options = {}) => {
 
   const total = await Conversation.countDocuments({
     userId: userId,
-    'metadata.category': 'composio_simple'
+    'metadata.category': 'composio_simple',
   });
 
   return {
@@ -131,8 +153,8 @@ export const getUserConversations = async (userId, options = {}) => {
       page,
       limit,
       total,
-      pages: Math.ceil(total / limit)
-    }
+      pages: Math.ceil(total / limit),
+    },
   };
 };
 
@@ -140,7 +162,10 @@ export const getUserConversations = async (userId, options = {}) => {
  * Get conversation with summary context
  */
 export const getConversationWithContext = async (conversationId, userId) => {
-  return conversationSummaryService.getConversationContext(conversationId, userId);
+  return conversationSummaryService.getConversationContext(
+    conversationId,
+    userId
+  );
 };
 
 export const conversationService = {
@@ -149,5 +174,5 @@ export const conversationService = {
   getRecentMessages,
   saveMessage,
   getUserConversations,
-  getConversationWithContext
+  getConversationWithContext,
 };

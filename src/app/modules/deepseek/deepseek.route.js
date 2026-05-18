@@ -8,7 +8,7 @@ const router = express.Router();
 router.post(
   '/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  DeepseekAiController.DeepseekAiGetResponse,
+  DeepseekAiController.DeepseekAiGetResponse
 );
 
 export const deepseekAiRoutes = router;

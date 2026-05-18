@@ -1,6 +1,6 @@
-import { JsonOutputParser } from "@langchain/core/output_parsers";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { llm } from "./llm.js";
+import { JsonOutputParser } from '@langchain/core/output_parsers';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { llm } from './llm.js';
 
 /**
  * Analyzes the user's initial prompt and generates clarifying questions for video generation.
@@ -30,14 +30,14 @@ export const generateVideoClarifyingQuestions = async (initialPrompt) => {
     });
     return result.questions || [];
   } catch (error) {
-    console.error("Error generating video clarifying questions:", error);
+    console.error('Error generating video clarifying questions:', error);
     return [
-      "What is the main subject or scene in your video?",
-      "What visual style do you prefer (realistic, animated, cinematic, artistic)?",
-      "How long should the video be (in seconds)?",
-      "What kind of movement or action should happen in the video?",
+      'What is the main subject or scene in your video?',
+      'What visual style do you prefer (realistic, animated, cinematic, artistic)?',
+      'How long should the video be (in seconds)?',
+      'What kind of movement or action should happen in the video?',
       "What's the desired mood or atmosphere?",
-      "Should there be any specific camera movements or angles?"
+      'Should there be any specific camera movements or angles?',
     ];
   }
 };
@@ -70,10 +70,12 @@ export const isUserFinishedVideo = async (userResponse) => {
       userResponse: userResponse,
     });
 
-    const cleanResult = result.content ? result.content.trim().toLowerCase() : result.trim().toLowerCase();
-    return cleanResult === "true";
+    const cleanResult = result.content
+      ? result.content.trim().toLowerCase()
+      : result.trim().toLowerCase();
+    return cleanResult === 'true';
   } catch (error) {
-    console.error("Error checking if user is finished with video:", error);
+    console.error('Error checking if user is finished with video:', error);
     // If there's an error, assume they're not finished
     return false;
   }
@@ -86,7 +88,11 @@ export const isUserFinishedVideo = async (userResponse) => {
  * @param {Array} conversationHistory - The full conversation history.
  * @returns {Promise<string>} - The updated refined prompt.
  */
-export const updateVideoRefinedPrompt = async (currentPrompt, userResponse, conversationHistory) => {
+export const updateVideoRefinedPrompt = async (
+  currentPrompt,
+  userResponse,
+  conversationHistory
+) => {
   const prompt = PromptTemplate.fromTemplate(
     `You are helping to refine a video generation prompt. 
         
@@ -116,7 +122,7 @@ export const updateVideoRefinedPrompt = async (currentPrompt, userResponse, conv
 
     return result.content || result;
   } catch (error) {
-    console.error("Error updating video refined prompt:", error);
+    console.error('Error updating video refined prompt:', error);
     // Fallback: simple concatenation
     return `${currentPrompt}. ${userResponse}`;
   }
@@ -154,7 +160,7 @@ export const compileVideoFinalPrompt = async (refinedPrompt) => {
 
     return result.content || result;
   } catch (error) {
-    console.error("Error compiling final video prompt:", error);
+    console.error('Error compiling final video prompt:', error);
     // Fallback: return the refined prompt as-is
     return refinedPrompt;
   }

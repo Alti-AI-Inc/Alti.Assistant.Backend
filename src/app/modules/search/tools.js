@@ -1,7 +1,7 @@
 import { DynamicStructuredTool, StructuredTool } from '@langchain/core/tools';
 import { GoogleCustomSearch } from '@langchain/community/tools/google_custom_search';
 import { z } from 'zod';
-import config from "../../../../config/index.js";
+import config from '../../../../config/index.js';
 
 const rawGoogle = new GoogleCustomSearch({
   maxResults: 20, // Default max results
@@ -11,9 +11,8 @@ const rawGoogle = new GoogleCustomSearch({
 
 // Structured wrapper so the LLM won’t pass [object Object]
 export const googleSearch = new DynamicStructuredTool({
-  name: "google_search",
-  description:
-    `
+  name: 'google_search',
+  description: `
       Advanced web search tool with intelligent sports query enhancement. Use this tool when you need current, real-time information, news, facts, or data that requires web search. 
   
   WHEN TO USE:
@@ -42,7 +41,9 @@ export const googleSearch = new DynamicStructuredTool({
   The tool automatically updates queries with current date context for time-sensitive searches.
     `,
   schema: z.object({
-    query: z.string().describe("Plain-text search query, e.g., 'next SpaceX launch schedule'"),
+    query: z
+      .string()
+      .describe("Plain-text search query, e.g., 'next SpaceX launch schedule'"),
     dateRestrict: z
       .string()
       .optional()
@@ -50,13 +51,13 @@ export const googleSearch = new DynamicStructuredTool({
     tz: z.string().describe("IANA timezone, e.g., 'Asia/Dhaka'"),
     gl: z.string().optional().describe("Geolocation region code, e.g., 'us'"),
     lr: z.string().optional().describe("Language restrict, e.g., 'lang_en'"),
-    safe: z.string().optional().describe("safe, off, or active"),
+    safe: z.string().optional().describe('safe, off, or active'),
     num: z
       .number()
       .min(1)
       .max(50)
       .default(20)
-      .describe("Number of search results to return, 1–50"),
+      .describe('Number of search results to return, 1–50'),
   }),
   func: async ({ query, ...params }) => {
     console.log('Params are', params);
@@ -65,21 +66,49 @@ export const googleSearch = new DynamicStructuredTool({
     const isSportsQuery = (searchQuery) => {
       const sportsKeywords = [
         // Team names
-        'detroit red wings', 'detroit tigers', 'detroit lions', 'detroit pistons',
-        'red wings', 'tigers', 'lions', 'pistons',
+        'detroit red wings',
+        'detroit tigers',
+        'detroit lions',
+        'detroit pistons',
+        'red wings',
+        'tigers',
+        'lions',
+        'pistons',
         // General sports terms
-        'game', 'schedule', 'season', 'match', 'playoff', 'championship',
-        'home game', 'away game', 'next game', 'upcoming game',
-        'regular season', 'preseason', 'postseason',
+        'game',
+        'schedule',
+        'season',
+        'match',
+        'playoff',
+        'championship',
+        'home game',
+        'away game',
+        'next game',
+        'upcoming game',
+        'regular season',
+        'preseason',
+        'postseason',
         // Sports types
-        'hockey', 'baseball', 'football', 'basketball', 'soccer',
-        'nhl', 'mlb', 'nfl', 'nba', 'mls',
+        'hockey',
+        'baseball',
+        'football',
+        'basketball',
+        'soccer',
+        'nhl',
+        'mlb',
+        'nfl',
+        'nba',
+        'mls',
         // Sport-specific terms
-        'roster', 'standings', 'stats', 'score', 'result'
+        'roster',
+        'standings',
+        'stats',
+        'score',
+        'result',
       ];
 
       const lowerQuery = searchQuery.toLowerCase();
-      return sportsKeywords.some(keyword => lowerQuery.includes(keyword));
+      return sportsKeywords.some((keyword) => lowerQuery.includes(keyword));
     };
 
     // Helper function to enhance sports queries with site restrictions
@@ -94,7 +123,11 @@ export const googleSearch = new DynamicStructuredTool({
 
       // Add current season context
       if (!enhancedQuery.includes(currentYear.toString())) {
-        if (enhancedQuery.toLowerCase().includes('red wings') || enhancedQuery.toLowerCase().includes('hockey') || enhancedQuery.toLowerCase().includes('nhl')) {
+        if (
+          enhancedQuery.toLowerCase().includes('red wings') ||
+          enhancedQuery.toLowerCase().includes('hockey') ||
+          enhancedQuery.toLowerCase().includes('nhl')
+        ) {
           enhancedQuery += ` ${currentYear}-${currentYear + 1} season`;
         } else {
           enhancedQuery += ` ${currentYear}`;
@@ -107,7 +140,8 @@ export const googleSearch = new DynamicStructuredTool({
       }
 
       // Add site restrictions for sports queries
-      const sportsSites = 'site:espn.com OR site:nhl.com OR www.viagogo.com OR site:mlb.com OR site:nfl.com OR site:nba.com OR site:detroitredwings.com OR site:detroittigers.com OR site:detroitlions.com OR site:detroitpistons.com';
+      const sportsSites =
+        'site:espn.com OR site:nhl.com OR www.viagogo.com OR site:mlb.com OR site:nfl.com OR site:nba.com OR site:detroitredwings.com OR site:detroittigers.com OR site:detroitlions.com OR site:detroitpistons.com';
       enhancedQuery += ` (${sportsSites})`;
 
       console.log(`🏒 Enhanced sports query: "${enhancedQuery}"`);
@@ -122,26 +156,38 @@ export const googleSearch = new DynamicStructuredTool({
     }
 
     // pass extra params to CSE if you want recency/locale control
-    if (Object.keys(params).length) (rawGoogle).params = params;
+    if (Object.keys(params).length) rawGoogle.params = params;
     console.log('The final query before invoke', finalQuery);
 
     const results = await rawGoogle.invoke(finalQuery);
     const parsedResults = JSON.parse(results);
-    const actualResultCount = Array.isArray(parsedResults) ? parsedResults.length : (parsedResults.items ? parsedResults.items.length : 0);
+    const actualResultCount = Array.isArray(parsedResults)
+      ? parsedResults.length
+      : parsedResults.items
+        ? parsedResults.items.length
+        : 0;
     const requestedResults = params.num || 20;
 
-    console.log(`Google Search Results: ${actualResultCount} results returned (requested: ${requestedResults})`);
+    console.log(
+      `Google Search Results: ${actualResultCount} results returned (requested: ${requestedResults})`
+    );
 
     // Provide helpful information about result limitations
     if (actualResultCount < requestedResults) {
-      console.log(`📊 Note: Google Custom Search API returned fewer results than requested. This is normal due to:`);
-      console.log(`   • API limitations (free tier often limited to 10 results per query)`);
+      console.log(
+        `📊 Note: Google Custom Search API returned fewer results than requested. This is normal due to:`
+      );
+      console.log(
+        `   • API limitations (free tier often limited to 10 results per query)`
+      );
       console.log(`   • Search result availability for the specific query`);
       console.log(`   • Custom Search Engine configuration limits`);
     }
 
     if (isSportsQuery(query)) {
-      console.log(`🏒 Sports query results: ${actualResultCount} from sports-specific sources`);
+      console.log(
+        `🏒 Sports query results: ${actualResultCount} from sports-specific sources`
+      );
     }
 
     return results; // ToolMessages must be strings
@@ -166,10 +212,25 @@ export class YouTubeSearchTool extends StructuredTool {
   DO NOT USE for simple factual questions that can be answered with text.`;
 
   schema = z.object({
-    query: z.string().describe("YouTube search query - be specific about what type of video content is needed"),
-    maxResults: z.number().min(1).max(20).default(5).describe("Maximum number of video results to return (1-20)"),
-    order: z.enum(['relevance', 'date', 'viewCount', 'rating']).default('relevance').describe("Sort order for results"),
-    duration: z.enum(['any', 'short', 'medium', 'long']).default('any').describe("Video duration filter")
+    query: z
+      .string()
+      .describe(
+        'YouTube search query - be specific about what type of video content is needed'
+      ),
+    maxResults: z
+      .number()
+      .min(1)
+      .max(20)
+      .default(5)
+      .describe('Maximum number of video results to return (1-20)'),
+    order: z
+      .enum(['relevance', 'date', 'viewCount', 'rating'])
+      .default('relevance')
+      .describe('Sort order for results'),
+    duration: z
+      .enum(['any', 'short', 'medium', 'long'])
+      .default('any')
+      .describe('Video duration filter'),
   });
 
   constructor() {
@@ -180,13 +241,18 @@ export class YouTubeSearchTool extends StructuredTool {
     }
   }
 
-  async _call({ query, maxResults = 5, order = 'relevance', duration = 'any' }) {
+  async _call({
+    query,
+    maxResults = 5,
+    order = 'relevance',
+    duration = 'any',
+  }) {
     try {
       if (!this.apiKey) {
         return JSON.stringify({
           success: false,
           error: 'YouTube API key not configured',
-          query: query
+          query: query,
         });
       }
 
@@ -201,7 +267,7 @@ export class YouTubeSearchTool extends StructuredTool {
         order: order,
         key: this.apiKey,
         safeSearch: 'moderate',
-        relevanceLanguage: 'en'
+        relevanceLanguage: 'en',
       });
 
       if (duration !== 'any') {
@@ -211,7 +277,9 @@ export class YouTubeSearchTool extends StructuredTool {
       const response = await fetch(`${searchURL}?${params}`);
 
       if (!response.ok) {
-        throw new Error(`YouTube API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `YouTube API error: ${response.status} ${response.statusText}`
+        );
       }
 
       const data = await response.json();
@@ -227,18 +295,21 @@ export class YouTubeSearchTool extends StructuredTool {
           publishedAt: snippet.publishedAt,
           thumbnails: snippet.thumbnails,
           source: 'youtube',
-          citationIndex: index + 1
+          citationIndex: index + 1,
         };
       });
 
-      return JSON.stringify({
-        success: true,
-        query: query,
-        results: videoResults,
-        totalResults: videoResults.length,
-        source: 'youtube'
-      }, null, 2);
-
+      return JSON.stringify(
+        {
+          success: true,
+          query: query,
+          results: videoResults,
+          totalResults: videoResults.length,
+          source: 'youtube',
+        },
+        null,
+        2
+      );
     } catch (error) {
       console.error('❌ YouTubeSearchTool Error:', error);
 
@@ -246,10 +317,8 @@ export class YouTubeSearchTool extends StructuredTool {
         success: false,
         error: 'Failed to search YouTube',
         errorDetails: error.message,
-        query: query
+        query: query,
       });
     }
   }
-
-
 }

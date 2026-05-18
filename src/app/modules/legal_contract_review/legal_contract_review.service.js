@@ -40,16 +40,28 @@ const generateConversationId = () => {
 /**
  * Handle legal contract review conversation (create or retrieve)
  */
-const handleLegalContractReviewConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleLegalContractReviewConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -73,20 +85,33 @@ const handleLegalContractReviewConversation = async (userId, conversationId, use
         req
       );
 
-      logger.info(`Created new legal contract review conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new legal contract review conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling legal contract review conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -95,21 +120,39 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
 /**
  * Update conversation metadata
  */
-const updateConversationMetadata = async (conversationId, userId, params, req = null) => {
+const updateConversationMetadata = async (
+  conversationId,
+  userId,
+  params,
+  req = null
+) => {
   try {
-    await conversationService.updateConversationMetadata(conversationId, userId, {
-      collectedParams: params,
-    }, req);
+    await conversationService.updateConversationMetadata(
+      conversationId,
+      userId,
+      {
+        collectedParams: params,
+      },
+      req
+    );
   } catch (error) {
     logger.warn('Error updating conversation metadata:', error);
   }
@@ -118,27 +161,39 @@ const updateConversationMetadata = async (conversationId, userId, params, req = 
 /**
  * Store uploaded contract in conversation metadata with text extraction and GCS upload
  */
-const storeContractInConversation = async (conversationId, userId, fileInfo, req = null) => {
+const storeContractInConversation = async (
+  conversationId,
+  userId,
+  fileInfo,
+  req = null
+) => {
   try {
     logger.info('Storing contract in conversation', {
       conversationId,
       filename: fileInfo.originalName,
-      size: fileInfo.size
+      size: fileInfo.size,
     });
 
     // 1. Extract text from contract
     const extractedText = await fileProcessor.extractTextFromFile(fileInfo);
 
     if (!extractedText || extractedText.trim().length === 0) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Unable to extract text from the contract');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Unable to extract text from the contract'
+      );
     }
 
     // 2. Upload to GCS and get public URL (with metadata)
-    const uploadResult = await fileProcessor.uploadToGCS(fileInfo.path, fileInfo.filename, {
-      userId: userId,
-      originalName: fileInfo.originalName,
-      documentType: 'legal_contract_review'
-    });
+    const uploadResult = await fileProcessor.uploadToGCS(
+      fileInfo.path,
+      fileInfo.filename,
+      {
+        userId: userId,
+        originalName: fileInfo.originalName,
+        documentType: 'legal_contract_review',
+      }
+    );
 
     // 3. Create contract data object
     const contractData = {
@@ -148,19 +203,30 @@ const storeContractInConversation = async (conversationId, userId, fileInfo, req
       publicUrl: uploadResult.publicUrl || uploadResult.localPath,
       gcsPath: uploadResult.gcsPath,
       storageType: uploadResult.storageType,
-      extractedText: extractedText.length <= LEGAL_CONTRACT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE
-        ? extractedText
-        : extractedText.substring(0, LEGAL_CONTRACT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE),
+      extractedText:
+        extractedText.length <=
+        LEGAL_CONTRACT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE
+          ? extractedText
+          : extractedText.substring(
+              0,
+              LEGAL_CONTRACT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE
+            ),
       textLength: extractedText.length,
-      textTruncated: extractedText.length > LEGAL_CONTRACT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE,
+      textTruncated:
+        extractedText.length >
+        LEGAL_CONTRACT_REVIEW_CONFIG.MAX_CACHED_TEXT_SIZE,
       size: fileInfo.size,
       mimetype: fileInfo.mimetype,
       uploadedAt: new Date(),
-      extractedAt: new Date()
+      extractedAt: new Date(),
     };
 
     // 4. Update conversation metadata
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation.metadata.contracts) {
       conversation.metadata.contracts = [];
@@ -169,21 +235,24 @@ const storeContractInConversation = async (conversationId, userId, fileInfo, req
     conversation.metadata.contracts.push(contractData);
     conversation.metadata.currentContractId = contractData.id;
 
-    await Conversation.updateOne({ conversationId }, {
-      $set: {
-        contracts_metadata: {
-          contracts: conversation.metadata.contracts,
-          currentContractId: contractData.id
-        }
+    await Conversation.updateOne(
+      { conversationId },
+      {
+        $set: {
+          contracts_metadata: {
+            contracts: conversation.metadata.contracts,
+            currentContractId: contractData.id,
+          },
+        },
       }
-    });
+    );
 
     logger.info('Contract stored successfully in conversation', {
       contractId: contractData.id,
       textLength: contractData.textLength,
       textTruncated: contractData.textTruncated,
       publicUrl: contractData.publicUrl,
-      storageType: contractData.storageType
+      storageType: contractData.storageType,
     });
 
     // 5. Cleanup temporary local file
@@ -205,7 +274,12 @@ const storeContractInConversation = async (conversationId, userId, fileInfo, req
 /**
  * Process contract and perform review using cached contract data
  */
-const performContractReview = async (contractData, reviewParams, conversationHistory = [], outputFormat = 'text') => {
+const performContractReview = async (
+  contractData,
+  reviewParams,
+  conversationHistory = [],
+  outputFormat = 'text'
+) => {
   try {
     logger.info('Starting legal contract review', {
       filename: contractData?.originalName || 'text input',
@@ -213,34 +287,41 @@ const performContractReview = async (contractData, reviewParams, conversationHis
       reviewDepth: reviewParams.reviewDepth,
       contractType: reviewParams.contractType,
       usingCachedText: !!contractData,
-      textLength: contractData?.textLength
+      textLength: contractData?.textLength,
     });
 
     // Use cached extracted text from contract or direct text input
-    const contractContent = contractData?.extractedText || reviewParams.contractText;
+    const contractContent =
+      contractData?.extractedText || reviewParams.contractText;
 
     if (!contractContent || contractContent.trim().length === 0) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Contract has no extractable text content');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Contract has no extractable text content'
+      );
     }
 
     // Log if text was truncated
     if (contractData?.textTruncated) {
       logger.warn('Contract text was truncated for caching', {
         originalLength: contractData.textLength,
-        cachedLength: contractContent.length
+        cachedLength: contractContent.length,
       });
     }
 
     // Determine review intent and system prompt
-    const reviewType = reviewParams.reviewType || CONTRACT_REVIEW_INTENTS.GENERAL_REVIEW;
-    const systemPrompt = SYSTEM_PROMPTS[reviewType] || SYSTEM_PROMPTS.CONVERSATIONAL_ASSISTANT;
+    const reviewType =
+      reviewParams.reviewType || CONTRACT_REVIEW_INTENTS.GENERAL_REVIEW;
+    const systemPrompt =
+      SYSTEM_PROMPTS[reviewType] || SYSTEM_PROMPTS.CONVERSATIONAL_ASSISTANT;
 
     // Build context from conversation history
     let contextPrompt = '';
     if (conversationHistory.length > 0) {
       const recentMessages = conversationHistory.slice(-5);
-      contextPrompt = '\n\nPrevious conversation context:\n' +
-        recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      contextPrompt =
+        '\n\nPrevious conversation context:\n' +
+        recentMessages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
     }
 
     // Build review instructions
@@ -250,14 +331,17 @@ const performContractReview = async (contractData, reviewParams, conversationHis
     let formatInstruction = '';
     switch (outputFormat) {
       case 'markdown':
-        formatInstruction = '\n\nPlease format your response using Markdown with appropriate headings, lists, and emphasis.';
+        formatInstruction =
+          '\n\nPlease format your response using Markdown with appropriate headings, lists, and emphasis.';
         break;
       case 'pdf':
       case 'docx':
-        formatInstruction = '\n\nPlease format your response in a professional document structure suitable for conversion to a formal report.';
+        formatInstruction =
+          '\n\nPlease format your response in a professional document structure suitable for conversion to a formal report.';
         break;
       default:
-        formatInstruction = '\n\nPlease provide your response in clear, well-structured plain text.';
+        formatInstruction =
+          '\n\nPlease provide your response in clear, well-structured plain text.';
     }
 
     // Create comprehensive prompt
@@ -300,13 +384,15 @@ ${RESPONSE_MESSAGES.DISCLAIMER}`;
     return {
       success: true,
       review: reviewText,
-      contractInfo: contractData ? {
-        filename: contractData.originalName,
-        size: contractData.size,
-        contentLength: contractData.textLength,
-        publicUrl: contractData.publicUrl,
-        contractId: contractData.id
-      } : null,
+      contractInfo: contractData
+        ? {
+            filename: contractData.originalName,
+            size: contractData.size,
+            contentLength: contractData.textLength,
+            publicUrl: contractData.publicUrl,
+            contractId: contractData.id,
+          }
+        : null,
       reviewParams,
       outputFormat,
     };
@@ -338,10 +424,14 @@ const buildContractReviewInstructions = (params) => {
   }
 
   const depthInstructions = {
-    quick: 'Provide a quick overview of key clauses, main obligations, and any obvious red flags.',
-    standard: 'Provide a comprehensive review covering main clauses, obligations, rights, liabilities, and potential risks.',
-    detailed: 'Provide a detailed clause-by-clause analysis with specific risk assessments and practical recommendations.',
-    comprehensive: 'Provide the most thorough analysis possible including detailed clause analysis, comprehensive risk assessment with severity levels, compliance considerations, fairness evaluation, and extensive actionable recommendations for negotiation.',
+    quick:
+      'Provide a quick overview of key clauses, main obligations, and any obvious red flags.',
+    standard:
+      'Provide a comprehensive review covering main clauses, obligations, rights, liabilities, and potential risks.',
+    detailed:
+      'Provide a detailed clause-by-clause analysis with specific risk assessments and practical recommendations.',
+    comprehensive:
+      'Provide the most thorough analysis possible including detailed clause analysis, comprehensive risk assessment with severity levels, compliance considerations, fairness evaluation, and extensive actionable recommendations for negotiation.',
   };
 
   instructions += `\n\nReview Depth: ${depthInstructions[params.reviewDepth] || depthInstructions.standard}`;
@@ -364,9 +454,19 @@ const buildContractReviewInstructions = (params) => {
 /**
  * Main conversational handler - processes user messages intelligently
  */
-const processConversationalRequest = async (userId, userMessage, conversationId, fileInfo = null, outputFormat = 'text', isGuest = false) => {
+const processConversationalRequest = async (
+  userId,
+  userMessage,
+  conversationId,
+  fileInfo = null,
+  outputFormat = 'text',
+  isGuest = false
+) => {
   try {
-    logger.info('Processing conversational contract review request for user:', userId);
+    logger.info(
+      'Processing conversational contract review request for user:',
+      userId
+    );
 
     // Handle or create conversation
     const conversation = await handleLegalContractReviewConversation(
@@ -388,36 +488,53 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
     const existingParams = conversation.metadata?.collectedParams || {};
 
     // Add user message
-    await addMessage(actualConversationId, userId, 'user', userMessage, {
-      hasFile: !!fileInfo,
-    }, isGuest);
+    await addMessage(
+      actualConversationId,
+      userId,
+      'user',
+      userMessage,
+      {
+        hasFile: !!fileInfo,
+      },
+      isGuest
+    );
 
     // If a file is uploaded, store it with text extraction and GCS upload
     let newContractData = null;
     if (fileInfo) {
-      newContractData = await storeContractInConversation(actualConversationId, userId, fileInfo);
+      newContractData = await storeContractInConversation(
+        actualConversationId,
+        userId,
+        fileInfo
+      );
       logger.info('New contract uploaded and stored', {
         contractId: newContractData.id,
-        filename: newContractData.originalName
+        filename: newContractData.originalName,
       });
     }
 
     // Retrieve current contract from metadata
-    const currentContractId = conversation.contracts_metadata?.currentContractId;
+    const currentContractId =
+      conversation.contracts_metadata?.currentContractId;
     let contractData = null;
 
     if (newContractData) {
       // Use newly uploaded contract
       contractData = newContractData;
-    } else if (currentContractId && conversation.contracts_metadata?.contracts) {
+    } else if (
+      currentContractId &&
+      conversation.contracts_metadata?.contracts
+    ) {
       // Retrieve from cached contracts
-      contractData = conversation.contracts_metadata.contracts.find(doc => doc.id === currentContractId);
+      contractData = conversation.contracts_metadata.contracts.find(
+        (doc) => doc.id === currentContractId
+      );
 
       if (contractData) {
         logger.info('Using cached contract from conversation', {
           contractId: contractData.id,
           filename: contractData.originalName,
-          cachedTextLength: contractData.extractedText?.length
+          cachedTextLength: contractData.extractedText?.length,
         });
       }
     }
@@ -428,7 +545,14 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
     // If no contract is available (no file and no cached), check if message contains contract text
     if (!contractData && !hasContractText) {
       const responseMessage = RESPONSE_MESSAGES.NEED_CONTRACT;
-      await addMessage(actualConversationId, userId, 'assistant', responseMessage, {}, isGuest);
+      await addMessage(
+        actualConversationId,
+        userId,
+        'assistant',
+        responseMessage,
+        {},
+        isGuest
+      );
 
       return {
         success: true,
@@ -457,11 +581,15 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
       ...DEFAULT_PARAMS,
       ...existingParams,
       ...analysis.parameters,
-      contractText: hasContractText && !contractData ? userMessage : null
+      contractText: hasContractText && !contractData ? userMessage : null,
     };
 
     // Update metadata with collected parameters
-    await updateConversationMetadata(actualConversationId, userId, updatedParams);
+    await updateConversationMetadata(
+      actualConversationId,
+      userId,
+      updatedParams
+    );
 
     // Perform contract review using cached contract data or provided text
     const reviewResult = await performContractReview(
@@ -507,7 +635,12 @@ const processConversationalRequest = async (userId, userMessage, conversationId,
 /**
  * Direct review endpoint (non-conversational)
  */
-const reviewContract = async (fileInfo, reviewParams, userId, isGuest = false) => {
+const reviewContract = async (
+  fileInfo,
+  reviewParams,
+  userId,
+  isGuest = false
+) => {
   try {
     logger.info('Direct contract review request', {
       filename: fileInfo?.originalName,
@@ -530,7 +663,12 @@ const reviewContract = async (fileInfo, reviewParams, userId, isGuest = false) =
     }
 
     // Perform review
-    const reviewResult = await performContractReview(contractData, params, [], params.outputFormat || 'text');
+    const reviewResult = await performContractReview(
+      contractData,
+      params,
+      [],
+      params.outputFormat || 'text'
+    );
 
     // Cleanup file
     if (fileInfo) {

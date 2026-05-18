@@ -19,9 +19,11 @@ const getContentType = (filePath) => {
   const ext = path.extname(filePath).toLowerCase();
   const contentTypeMap = {
     '.pdf': 'application/pdf',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.docx':
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.doc': 'application/msword',
-    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xlsx':
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     '.xls': 'application/vnd.ms-excel',
     '.csv': 'text/csv',
     '.txt': 'text/plain',

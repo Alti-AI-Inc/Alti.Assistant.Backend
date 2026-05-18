@@ -14,7 +14,7 @@ The Knowledge Bank now supports **folders** for organizing files. Users can crea
 ✅ **Folder Statistics** - Track file count, size, and subfolder count  
 ✅ **Folder Metadata** - Add description, color, icon, and tags  
 ✅ **Breadcrumb Navigation** - Automatic path generation and ancestor tracking  
-✅ **Recursive Delete** - Option to delete folder with all contents  
+✅ **Recursive Delete** - Option to delete folder with all contents
 
 ---
 
@@ -31,6 +31,7 @@ The Knowledge Bank now supports **folders** for organizing files. Users can crea
 Create a new folder in the knowledge bank. Can be a root folder or nested within another folder.
 
 ### Request Body
+
 ```json
 {
   "name": "Project Documents",
@@ -43,6 +44,7 @@ Create a new folder in the knowledge bank. Can be a root folder or nested within
 ```
 
 ### Parameters
+
 - `name` (string, required): Folder name (max 100 characters)
 - `parentFolderId` (string, optional): Parent folder ID (null for root folder)
 - `description` (string, optional): Folder description (max 500 characters)
@@ -51,6 +53,7 @@ Create a new folder in the knowledge bank. Can be a root folder or nested within
 - `tags` (array, optional): Array of tag strings
 
 ### Example Request
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/knowledge-bank/folders \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -63,6 +66,7 @@ curl -X POST http://localhost:5000/api/v1/knowledge-bank/folders \
 ```
 
 ### Response
+
 ```json
 {
   "statusCode": 201,
@@ -97,6 +101,7 @@ curl -X POST http://localhost:5000/api/v1/knowledge-bank/folders \
 Retrieve folders with optional filtering by parent folder.
 
 ### Query Parameters
+
 - `parentFolderId` (string, optional): Filter by parent folder
   - Omit to get all folders
   - Use `"root"` to get only root-level folders
@@ -105,24 +110,28 @@ Retrieve folders with optional filtering by parent folder.
 ### Example Requests
 
 **Get all folders:**
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/knowledge-bank/folders \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **Get root folders only:**
+
 ```bash
 curl -X GET "http://localhost:5000/api/v1/knowledge-bank/folders?parentFolderId=root" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **Get subfolders of a specific folder:**
+
 ```bash
 curl -X GET "http://localhost:5000/api/v1/knowledge-bank/folders?parentFolderId=674b1c2d3e4f5g6h7i8j9k0l" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Response
+
 ```json
 {
   "statusCode": 200,
@@ -162,15 +171,18 @@ curl -X GET "http://localhost:5000/api/v1/knowledge-bank/folders?parentFolderId=
 Get detailed folder information including ancestors and breadcrumb trail.
 
 ### Path Parameters
+
 - `folderId` (string, required): Folder ID
 
 ### Example Request
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h7i8j9k0l \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Response
+
 ```json
 {
   "statusCode": 200,
@@ -222,9 +234,11 @@ curl -X GET http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h
 Update folder properties.
 
 ### Path Parameters
+
 - `folderId` (string, required): Folder ID
 
 ### Request Body
+
 ```json
 {
   "name": "Updated Folder Name",
@@ -236,6 +250,7 @@ Update folder properties.
 ```
 
 ### Example Request
+
 ```bash
 curl -X PUT http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h7i8j9k0l \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -247,6 +262,7 @@ curl -X PUT http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h
 ```
 
 ### Response
+
 ```json
 {
   "statusCode": 200,
@@ -279,26 +295,31 @@ curl -X PUT http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h
 Delete a folder (soft delete). Use `?recursive=true` to delete all contents.
 
 ### Path Parameters
+
 - `folderId` (string, required): Folder ID
 
 ### Query Parameters
+
 - `recursive` (boolean, optional): If `true`, deletes all subfolders and files
 
 ### Example Requests
 
 **Delete empty folder:**
+
 ```bash
 curl -X DELETE http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h7i8j9k0l \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **Delete folder with all contents:**
+
 ```bash
 curl -X DELETE "http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h7i8j9k0l?recursive=true" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Response (Success)
+
 ```json
 {
   "statusCode": 200,
@@ -308,6 +329,7 @@ curl -X DELETE "http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f
 ```
 
 ### Response (Error - Not Empty)
+
 ```json
 {
   "statusCode": 500,
@@ -325,23 +347,27 @@ curl -X DELETE "http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f
 Get all files and subfolders in a folder.
 
 ### Path Parameters
+
 - `folderId` (string, required): Folder ID (use `"root"` for root level)
 
 ### Example Requests
 
 **Get root contents:**
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/knowledge-bank/folders/root/contents \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **Get specific folder contents:**
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h7i8j9k0l/contents \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Response
+
 ```json
 {
   "statusCode": 200,
@@ -400,6 +426,7 @@ curl -X GET http://localhost:5000/api/v1/knowledge-bank/folders/674b1c2d3e4f5g6h
 Upload a file to a specific folder by including `folderId` in the request body.
 
 ### Request Body (multipart/form-data)
+
 - `files` (file, required): The file to upload
 - `folderId` (string, optional): Target folder ID (omit for root)
 - `description` (string, optional): File description
@@ -407,6 +434,7 @@ Upload a file to a specific folder by including `folderId` in the request body.
 - `processImmediately` (boolean string, optional): Process with RAG
 
 ### Example Request
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/knowledge-bank/upload \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -417,6 +445,7 @@ curl -X POST http://localhost:5000/api/v1/knowledge-bank/upload \
 ```
 
 ### Response
+
 ```json
 {
   "statusCode": 200,
@@ -446,24 +475,28 @@ curl -X POST http://localhost:5000/api/v1/knowledge-bank/upload \
 Get all files in a specific folder.
 
 ### Query Parameters
+
 - `folderId` (string, optional): Folder ID (use `"null"` for root files)
 - Other filters: `fileType`, `processingStatus`, `isProcessed`, `limit`, `skip`
 
 ### Example Requests
 
 **Get files in root (no folder):**
+
 ```bash
 curl -X GET "http://localhost:5000/api/v1/knowledge-bank/files?folderId=null" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **Get files in specific folder:**
+
 ```bash
 curl -X GET "http://localhost:5000/api/v1/knowledge-bank/files?folderId=674b1c2d3e4f5g6h7i8j9k0l" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Response
+
 ```json
 {
   "statusCode": 200,
@@ -522,12 +555,14 @@ Knowledge Bank (Root)
 ## Folder Statistics
 
 Folder statistics are automatically updated when:
+
 - Files are uploaded to the folder
 - Files are deleted from the folder
 - Subfolders are created
 - Subfolders are deleted
 
 Statistics include:
+
 - `fileCount`: Number of files in folder (direct children only)
 - `subfolderCount`: Number of immediate subfolders
 - `totalSize`: Total size of all files in folder and subfolders
@@ -547,14 +582,14 @@ Statistics include:
 
 ## Error Codes
 
-| Status Code | Description |
-|------------|-------------|
-| 201 | Folder created successfully |
-| 200 | Success |
-| 400 | Bad Request (invalid input, duplicate name) |
-| 401 | Unauthorized (missing/invalid token) |
-| 404 | Not Found (folder doesn't exist or doesn't belong to user) |
-| 500 | Internal Server Error |
+| Status Code | Description                                                |
+| ----------- | ---------------------------------------------------------- |
+| 201         | Folder created successfully                                |
+| 200         | Success                                                    |
+| 400         | Bad Request (invalid input, duplicate name)                |
+| 401         | Unauthorized (missing/invalid token)                       |
+| 404         | Not Found (folder doesn't exist or doesn't belong to user) |
+| 500         | Internal Server Error                                      |
 
 ---
 
@@ -577,13 +612,13 @@ Statistics include:
 const workDocsResponse = await fetch('/api/v1/knowledge-bank/folders', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
     name: 'Work Documents',
-    color: '#52c41a'
-  })
+    color: '#52c41a',
+  }),
 });
 
 const { data: workDocsFolder } = await workDocsResponse.json();
@@ -592,14 +627,14 @@ const { data: workDocsFolder } = await workDocsResponse.json();
 const projectsResponse = await fetch('/api/v1/knowledge-bank/folders', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
     name: 'Projects',
     parentFolderId: workDocsFolder.id,
-    color: '#1890ff'
-  })
+    color: '#1890ff',
+  }),
 });
 
 const { data: projectsFolder } = await projectsResponse.json();
@@ -611,8 +646,8 @@ formData.append('folderId', projectsFolder.id);
 
 await fetch('/api/v1/knowledge-bank/upload', {
   method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}` },
-  body: formData
+  headers: { Authorization: `Bearer ${token}` },
+  body: formData,
 });
 ```
 
@@ -622,13 +657,13 @@ await fetch('/api/v1/knowledge-bank/upload', {
 // Get root folders
 const rootResponse = await fetch(
   '/api/v1/knowledge-bank/folders?parentFolderId=root',
-  { headers: { 'Authorization': `Bearer ${token}` } }
+  { headers: { Authorization: `Bearer ${token}` } }
 );
 
 // Get folder contents
 const contentsResponse = await fetch(
   `/api/v1/knowledge-bank/folders/${folderId}/contents`,
-  { headers: { 'Authorization': `Bearer ${token}` } }
+  { headers: { Authorization: `Bearer ${token}` } }
 );
 
 const { data } = await contentsResponse.json();

@@ -1,36 +1,51 @@
-import { Composio } from "@composio/core";
-import config from "../../../../config/index.js";
-import ComposionAuth from './composio.model.js'
-import AuthConfig from "./authConfig.model.js";
+import { Composio } from '@composio/core';
+import config from '../../../../config/index.js';
+import ComposionAuth from './composio.model.js';
+import AuthConfig from './authConfig.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import Conversation from '../conversations/conversation.model.js';
-import { aiClassificationService } from "./aiClassification.service.js";
-import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
+import { aiClassificationService } from './aiClassification.service.js';
+import {
+  withTenantContext,
+  withTenantFilter,
+} from '../../helpers/tenantQuery.js';
 
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
-})
+});
 
 const initiateComposioAuth = async (body, req = null) => {
   const { app_name, user_id } = body;
 
   try {
-
     const auth_config = await AuthConfig.findOne({ app: app_name });
     console.log(`Found Auth Config for app ${app_name}:`, auth_config);
 
     const auth_config_id = auth_config ? auth_config.authConfigId : null;
     console.log(`Auth Config ID for app ${app_name}:`, auth_config_id);
-    const existingAuthQuery = { userId: user_id, authConfigId: auth_config_id, status: 'ACTIVE' };
+    const existingAuthQuery = {
+      userId: user_id,
+      authConfigId: auth_config_id,
+      status: 'ACTIVE',
+    };
     const existingComposioAuth = await ComposionAuth.findOne(
       req ? withTenantFilter(req, existingAuthQuery) : existingAuthQuery
     );
-    console.log(`Existing Composio Auth for user ${user_id} and app ${app_name}:`, existingComposioAuth);
+    console.log(
+      `Existing Composio Auth for user ${user_id} and app ${app_name}:`,
+      existingComposioAuth
+    );
 
     if (existingComposioAuth) {
-      console.log(`Found existing Composio auth for user ${user_id}:`, existingComposioAuth);
+      console.log(
+        `Found existing Composio auth for user ${user_id}:`,
+        existingComposioAuth
+      );
       // You may want to handle re-authentication or token refresh here
-      return { authConfig: existingComposioAuth, message: 'User is already authenticated' };
+      return {
+        authConfig: existingComposioAuth,
+        message: 'User is already authenticated',
+      };
     }
     const connectionUrl = await composio.connectedAccounts.initiate(
       user_id,
@@ -38,27 +53,29 @@ const initiateComposioAuth = async (body, req = null) => {
     );
     // await connectionUrl.waitForConnection();
     const composioAuth = new ComposionAuth(
-      req ? withTenantContext(req, {
-        userId: user_id,
-        authConfigId: auth_config_id,
-        connectedAccountId: connectionUrl.id,
-        integrationId: connectionUrl.integrationId,
-        redirectUrl: connectionUrl.redirectUrl,
-        status: 'pending',
-        toolkit: {
-          slug: app_name,
-        }
-      }) : {
-        userId: user_id,
-        authConfigId: auth_config_id,
-        connectedAccountId: connectionUrl.id,
-        integrationId: connectionUrl.integrationId,
-        redirectUrl: connectionUrl.redirectUrl,
-        status: 'pending',
-        toolkit: {
-          slug: app_name,
-        }
-      }
+      req
+        ? withTenantContext(req, {
+            userId: user_id,
+            authConfigId: auth_config_id,
+            connectedAccountId: connectionUrl.id,
+            integrationId: connectionUrl.integrationId,
+            redirectUrl: connectionUrl.redirectUrl,
+            status: 'pending',
+            toolkit: {
+              slug: app_name,
+            },
+          })
+        : {
+            userId: user_id,
+            authConfigId: auth_config_id,
+            connectedAccountId: connectionUrl.id,
+            integrationId: connectionUrl.integrationId,
+            redirectUrl: connectionUrl.redirectUrl,
+            status: 'pending',
+            toolkit: {
+              slug: app_name,
+            },
+          }
     );
     await composioAuth.save();
     console.log('Composio connection initiated successfully', connectionUrl);
@@ -71,11 +88,18 @@ const initiateComposioAuth = async (body, req = null) => {
 
 const waitForConnection = async (connectedAccountId) => {
   try {
-    const connection = await composio.connectedAccounts.waitForConnection(connectedAccountId);
+    const connection =
+      await composio.connectedAccounts.waitForConnection(connectedAccountId);
     console.log('Composio connection established successfully', connection);
     await ComposionAuth.updateOne(
       { connectedAccountId: connectedAccountId },
-      { status: connection.data.status, accessToken: connection.data.accessToken, refreshToken: connection.data.refreshToken, idToken: connection.data.idToken, toolkit: connection.toolkit },
+      {
+        status: connection.data.status,
+        accessToken: connection.data.accessToken,
+        refreshToken: connection.data.refreshToken,
+        idToken: connection.data.idToken,
+        toolkit: connection.toolkit,
+      },
       { upsert: true }
     );
     // Return the connection details
@@ -104,19 +128,27 @@ const generateGuestUserId = () => {
 
 /**
  * Handle Composio conversation creation or retrieval
- * @param {string} userId 
- * @param {string} conversationId 
- * @param {string} message 
- * @param {boolean} isGuest 
+ * @param {string} userId
+ * @param {string} conversationId
+ * @param {string} message
+ * @param {boolean} isGuest
  * @returns {Object} conversation object
  */
-const handleComposioConversation = async (userId, conversationId, message, isGuest = false) => {
+const handleComposioConversation = async (
+  userId,
+  conversationId,
+  message,
+  isGuest = false
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       // Try to find existing conversation
-      conversation = await Conversation.findByConversationId(conversationId, userId);
+      conversation = await Conversation.findByConversationId(
+        conversationId,
+        userId
+      );
 
       if (!conversation) {
         throw new Error('Conversation not found');
@@ -133,9 +165,9 @@ const handleComposioConversation = async (userId, conversationId, message, isGue
         metadata: {
           category: 'composio',
           userType: isGuest ? 'guest' : 'authenticated',
-          isGuest: isGuest
+          isGuest: isGuest,
         },
-        status: 'active'
+        status: 'active',
       });
 
       await conversation.save();
@@ -150,14 +182,22 @@ const handleComposioConversation = async (userId, conversationId, message, isGue
 
 /**
  * Add user message to conversation
- * @param {string} conversationId 
- * @param {string} userId 
- * @param {string} message 
- * @param {boolean} isGuest 
+ * @param {string} conversationId
+ * @param {string} userId
+ * @param {string} message
+ * @param {boolean} isGuest
  */
-const addComposioQueryMessage = async (conversationId, userId, message, isGuest = false) => {
+const addComposioQueryMessage = async (
+  conversationId,
+  userId,
+  message,
+  isGuest = false
+) => {
   try {
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
 
     if (conversation) {
       conversation.messages.push({
@@ -166,8 +206,8 @@ const addComposioQueryMessage = async (conversationId, userId, message, isGuest 
         timestamp: new Date(),
         metadata: {
           isGuest: isGuest,
-          type: 'composio_query'
-        }
+          type: 'composio_query',
+        },
       });
 
       conversation.lastActivity = new Date();
@@ -183,15 +223,24 @@ const addComposioQueryMessage = async (conversationId, userId, message, isGuest 
 
 /**
  * Add assistant response to conversation
- * @param {string} conversationId 
- * @param {string} userId 
- * @param {string} response 
- * @param {Object} metadata 
- * @param {boolean} isGuest 
+ * @param {string} conversationId
+ * @param {string} userId
+ * @param {string} response
+ * @param {Object} metadata
+ * @param {boolean} isGuest
  */
-const addComposioResponseMessage = async (conversationId, userId, response, metadata = {}, isGuest = false) => {
+const addComposioResponseMessage = async (
+  conversationId,
+  userId,
+  response,
+  metadata = {},
+  isGuest = false
+) => {
   try {
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
 
     if (conversation) {
       conversation.messages.push({
@@ -201,8 +250,8 @@ const addComposioResponseMessage = async (conversationId, userId, response, meta
         metadata: {
           isGuest: isGuest,
           type: 'composio_response',
-          ...metadata
-        }
+          ...metadata,
+        },
       });
 
       conversation.lastActivity = new Date();
@@ -218,19 +267,23 @@ const addComposioResponseMessage = async (conversationId, userId, response, meta
 
 /**
  * Process Composio conversation using AI classification
- * @param {Object} inputs 
+ * @param {Object} inputs
  * @returns {Object} processing result
  */
 const processComposioConversation = async (inputs) => {
   try {
-    const { query, conversationContext, history, userId, conversationId } = inputs;
+    const { query, conversationContext, history, userId, conversationId } =
+      inputs;
 
     // Use the existing AI classification service to process the user input
-    const result = await aiClassificationService.processUserInputService(query, {
-      userId,
-      conversationId,
-      history: conversationContext
-    });
+    const result = await aiClassificationService.processUserInputService(
+      query,
+      {
+        userId,
+        conversationId,
+        history: conversationContext,
+      }
+    );
 
     if (result.success) {
       return {
@@ -239,27 +292,28 @@ const processComposioConversation = async (inputs) => {
           identifiedApp: result.data.identifiedApp,
           identifiedAction: result.data.identifiedAction,
           confidence: result.data.confidence,
-          executionResult: result.data.executionResult
+          executionResult: result.data.executionResult,
         },
-        executionResult: result.data.executionResult
+        executionResult: result.data.executionResult,
       };
     } else {
       return {
         response: result.error || 'Failed to process your request',
         metadata: {
-          error: result.error
+          error: result.error,
         },
-        executionResult: null
+        executionResult: null,
       };
     }
   } catch (error) {
     console.error('Error processing composio conversation:', error);
     return {
-      response: 'I encountered an error while processing your request. Please try again.',
+      response:
+        'I encountered an error while processing your request. Please try again.',
       metadata: {
-        error: error.message
+        error: error.message,
       },
-      executionResult: null
+      executionResult: null,
     };
   }
 };
@@ -272,5 +326,5 @@ export const composioService = {
   handleComposioConversation,
   addComposioQueryMessage,
   addComposioResponseMessage,
-  processComposioConversation
+  processComposioConversation,
 };

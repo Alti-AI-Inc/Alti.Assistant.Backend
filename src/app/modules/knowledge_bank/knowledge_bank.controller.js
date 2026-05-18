@@ -31,7 +31,9 @@ const uploadFile = catchAsync(async (req, res) => {
   const uploadedFile = req.files[0];
 
   try {
-    logger.info(`[KnowledgeBank] File upload by user: ${userId}, file: ${uploadedFile.originalname}`);
+    logger.info(
+      `[KnowledgeBank] File upload by user: ${userId}, file: ${uploadedFile.originalname}`
+    );
 
     // Extract optional metadata from request body
     const options = {
@@ -44,20 +46,37 @@ const uploadFile = catchAsync(async (req, res) => {
     };
 
     // Upload file
-    const result = await knowledgeBankService.uploadFile(uploadedFile, userId, options, req);
+    const result = await knowledgeBankService.uploadFile(
+      uploadedFile,
+      userId,
+      options,
+      req
+    );
 
     // Track storage usage
     const tenantId = req.currentTenantId ?? null;
-    await UserUsageModel.updateStorage(userId, tenantId, uploadedFile.size).catch(err =>
+    await UserUsageModel.updateStorage(
+      userId,
+      tenantId,
+      uploadedFile.size
+    ).catch((err) =>
       logger.error('[KnowledgeBank] Storage increment error:', err)
     );
 
     // Optionally trigger processing in background (async)
     if (req.body.processImmediately === 'true') {
       // Process file asynchronously without waiting
-      knowledgeBankService.processUploadedFile(result.fileId, req)
-        .then(() => logger.info(`[KnowledgeBank] File processed: ${result.fileId}`))
-        .catch(err => logger.error(`[KnowledgeBank] Error processing file: ${result.fileId}`, err));
+      knowledgeBankService
+        .processUploadedFile(result.fileId, req)
+        .then(() =>
+          logger.info(`[KnowledgeBank] File processed: ${result.fileId}`)
+        )
+        .catch((err) =>
+          logger.error(
+            `[KnowledgeBank] Error processing file: ${result.fileId}`,
+            err
+          )
+        );
     }
 
     sendResponse(res, {
@@ -96,7 +115,12 @@ const getUserFiles = catchAsync(async (req, res) => {
     const filters = {
       fileType: req.query.fileType,
       processingStatus: req.query.processingStatus,
-      isProcessed: req.query.isProcessed === 'true' ? true : req.query.isProcessed === 'false' ? false : undefined,
+      isProcessed:
+        req.query.isProcessed === 'true'
+          ? true
+          : req.query.isProcessed === 'false'
+            ? false
+            : undefined,
       folderId: req.query.folderId === 'null' ? null : req.query.folderId,
       limit: parseInt(req.query.limit) || 100,
       skip: parseInt(req.query.skip) || 0,
@@ -216,7 +240,11 @@ const deleteFile = catchAsync(async (req, res) => {
 
     // Decrement storage usage
     const tenantId = req.currentTenantId ?? null;
-    await UserUsageModel.updateStorage(userId, tenantId, -(result.fileSize || 0)).catch(err =>
+    await UserUsageModel.updateStorage(
+      userId,
+      tenantId,
+      -(result.fileSize || 0)
+    ).catch((err) =>
       logger.error('[KnowledgeBank] Storage decrement error:', err)
     );
 
@@ -371,7 +399,11 @@ const createFolder = catchAsync(async (req, res) => {
       tags,
     };
 
-    const folder = await knowledgeBankService.createFolder(userId, folderData, req);
+    const folder = await knowledgeBankService.createFolder(
+      userId,
+      folderData,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.CREATED,
@@ -406,10 +438,15 @@ const getUserFolders = catchAsync(async (req, res) => {
 
   try {
     const options = {
-      parentFolderId: req.query.parentFolderId === 'root' ? null : req.query.parentFolderId,
+      parentFolderId:
+        req.query.parentFolderId === 'root' ? null : req.query.parentFolderId,
     };
 
-    const folders = await knowledgeBankService.getUserFolders(userId, options, req);
+    const folders = await knowledgeBankService.getUserFolders(
+      userId,
+      options,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -455,7 +492,11 @@ const getFolderById = catchAsync(async (req, res) => {
   }
 
   try {
-    const folder = await knowledgeBankService.getFolderById(folderId, userId, req);
+    const folder = await knowledgeBankService.getFolderById(
+      folderId,
+      userId,
+      req
+    );
 
     if (!folder) {
       return sendResponse(res, {
@@ -514,7 +555,12 @@ const updateFolder = catchAsync(async (req, res) => {
       tags: req.body.tags,
     };
 
-    const folder = await knowledgeBankService.updateFolder(folderId, userId, updateData, req);
+    const folder = await knowledgeBankService.updateFolder(
+      folderId,
+      userId,
+      updateData,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -558,7 +604,12 @@ const deleteFolder = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeBankService.deleteFolder(folderId, userId, recursive, req);
+    const result = await knowledgeBankService.deleteFolder(
+      folderId,
+      userId,
+      recursive,
+      req
+    );
 
     if (!result) {
       return sendResponse(res, {
@@ -601,7 +652,11 @@ const getFolderContents = catchAsync(async (req, res) => {
 
   try {
     const folderIdValue = folderId === 'root' ? null : folderId;
-    const contents = await knowledgeBankService.getFolderContents(folderIdValue, userId, req);
+    const contents = await knowledgeBankService.getFolderContents(
+      folderIdValue,
+      userId,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

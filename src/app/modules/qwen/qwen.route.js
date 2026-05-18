@@ -8,12 +8,12 @@ const router = express.Router();
 router.post(
   '/coder/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  QwenAiController.QwenAiGetResponse,
+  QwenAiController.QwenAiGetResponse
 );
 router.post(
   '/qwq/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  QwenAiController.QwenQWQAiGetResponse,
+  QwenAiController.QwenQWQAiGetResponse
 );
 
 export const qwenAiRoutes = router;

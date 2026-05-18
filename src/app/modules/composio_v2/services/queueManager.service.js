@@ -6,7 +6,6 @@ import workflowExecutor from './workflowExecutor.service.js';
  * Queue Management Service - Handles workflow execution queuing and concurrency
  */
 class QueueManager {
-  
   constructor() {
     this.queue = [];
     this.runningExecutions = new Map();
@@ -16,7 +15,7 @@ class QueueManager {
       totalQueued: 0,
       totalProcessed: 0,
       totalErrors: 0,
-      averageExecutionTime: 0
+      averageExecutionTime: 0,
     };
   }
 
@@ -26,25 +25,26 @@ class QueueManager {
   async initialize(config = {}) {
     try {
       this.maxConcurrentExecutions = config.maxConcurrentExecutions || 5;
-      
+
       // Start queue processor
       this.startQueueProcessor();
 
       // Clean up any stale executions on startup
       await this.cleanupStaleExecutions();
 
-      logger.info(`Queue manager initialized with max concurrent executions: ${this.maxConcurrentExecutions}`);
-      
+      logger.info(
+        `Queue manager initialized with max concurrent executions: ${this.maxConcurrentExecutions}`
+      );
+
       return {
         success: true,
-        message: 'Queue manager initialized'
+        message: 'Queue manager initialized',
       };
-
     } catch (error) {
       logger.error('Error initializing queue manager:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -65,14 +65,16 @@ class QueueManager {
         triggerSource: metadata.triggerSource || 'queue',
         retryCount: 0,
         maxRetries: metadata.maxRetries || 3,
-        metadata: metadata
+        metadata: metadata,
       };
 
       // Insert based on priority
       this.insertByPriority(queueItem);
       this.stats.totalQueued++;
 
-      logger.info(`Workflow queued: ${workflow.workflowId} (Priority: ${priority}, Queue size: ${this.queue.length})`);
+      logger.info(
+        `Workflow queued: ${workflow.workflowId} (Priority: ${priority}, Queue size: ${this.queue.length})`
+      );
 
       // Trigger queue processing
       this.processQueue();
@@ -80,15 +82,15 @@ class QueueManager {
       return {
         success: true,
         queueId: queueItem.id,
-        queuePosition: this.queue.findIndex(item => item.id === queueItem.id) + 1,
-        estimatedWaitTime: this.estimateWaitTime()
+        queuePosition:
+          this.queue.findIndex((item) => item.id === queueItem.id) + 1,
+        estimatedWaitTime: this.estimateWaitTime(),
       };
-
     } catch (error) {
       logger.error('Error queuing workflow:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -101,7 +103,7 @@ class QueueManager {
     const itemPriority = priorityOrder[queueItem.priority] || 1;
 
     let insertIndex = this.queue.length;
-    
+
     for (let i = 0; i < this.queue.length; i++) {
       const existingPriority = priorityOrder[this.queue[i].priority] || 1;
       if (itemPriority < existingPriority) {
@@ -120,7 +122,7 @@ class QueueManager {
     if (this.processing) return;
 
     this.processing = true;
-    
+
     const processInterval = setInterval(async () => {
       if (!this.processing) {
         clearInterval(processInterval);
@@ -151,7 +153,6 @@ class QueueManager {
 
       // Start execution
       await this.executeQueuedWorkflow(queueItem);
-
     } catch (error) {
       logger.error('Error processing queue:', error);
     }
@@ -162,7 +163,7 @@ class QueueManager {
    */
   async executeQueuedWorkflow(queueItem) {
     const startTime = Date.now();
-    
+
     try {
       logger.info(`Starting execution from queue: ${queueItem.workflowId}`);
 
@@ -170,7 +171,7 @@ class QueueManager {
       this.runningExecutions.set(queueItem.id, {
         ...queueItem,
         startTime: new Date(),
-        status: 'running'
+        status: 'running',
       });
 
       // Execute workflow
@@ -188,30 +189,36 @@ class QueueManager {
       this.updateStats(result.success, executionTime);
 
       if (result.success) {
-        logger.info(`Queue execution completed: ${queueItem.workflowId} (${executionTime}ms)`);
+        logger.info(
+          `Queue execution completed: ${queueItem.workflowId} (${executionTime}ms)`
+        );
       } else {
-        logger.error(`Queue execution failed: ${queueItem.workflowId} - ${result.error}`);
-        
+        logger.error(
+          `Queue execution failed: ${queueItem.workflowId} - ${result.error}`
+        );
+
         // Retry if configured
         await this.handleFailedExecution(queueItem, result.error);
       }
 
       // Continue processing queue
       this.processQueue();
-
     } catch (error) {
-      logger.error(`Error executing queued workflow ${queueItem.workflowId}:`, error);
-      
+      logger.error(
+        `Error executing queued workflow ${queueItem.workflowId}:`,
+        error
+      );
+
       // Remove from running executions
       this.runningExecutions.delete(queueItem.id);
-      
+
       // Update stats
       const executionTime = Date.now() - startTime;
       this.updateStats(false, executionTime);
 
       // Handle retry
       await this.handleFailedExecution(queueItem, error.message);
-      
+
       // Continue processing
       this.processQueue();
     }
@@ -225,19 +232,21 @@ class QueueManager {
       if (queueItem.retryCount < queueItem.maxRetries) {
         queueItem.retryCount++;
         queueItem.lastError = error;
-        queueItem.retryAt = new Date(Date.now() + (queueItem.retryCount * 30000)); // Exponential backoff
+        queueItem.retryAt = new Date(Date.now() + queueItem.retryCount * 30000); // Exponential backoff
 
         // Re-queue with delay
         setTimeout(() => {
           this.queue.unshift(queueItem); // Add to front for retry
-          logger.info(`Retry queued for workflow ${queueItem.workflowId} (attempt ${queueItem.retryCount}/${queueItem.maxRetries})`);
+          logger.info(
+            `Retry queued for workflow ${queueItem.workflowId} (attempt ${queueItem.retryCount}/${queueItem.maxRetries})`
+          );
         }, queueItem.retryCount * 30000);
-
       } else {
-        logger.error(`Max retries exceeded for workflow ${queueItem.workflowId}`);
+        logger.error(
+          `Max retries exceeded for workflow ${queueItem.workflowId}`
+        );
         this.stats.totalErrors++;
       }
-
     } catch (retryError) {
       logger.error('Error handling failed execution:', retryError);
     }
@@ -248,14 +257,15 @@ class QueueManager {
    */
   updateStats(success, executionTime) {
     this.stats.totalProcessed++;
-    
+
     if (!success) {
       this.stats.totalErrors++;
     }
 
     // Update average execution time
-    this.stats.averageExecutionTime = 
-      (this.stats.averageExecutionTime * (this.stats.totalProcessed - 1) + executionTime) / 
+    this.stats.averageExecutionTime =
+      (this.stats.averageExecutionTime * (this.stats.totalProcessed - 1) +
+        executionTime) /
       this.stats.totalProcessed;
   }
 
@@ -266,12 +276,15 @@ class QueueManager {
     const avgTime = this.stats.averageExecutionTime || 30000; // Default 30 seconds
     const queueSize = this.queue.length;
     const runningCount = this.runningExecutions.size;
-    const availableSlots = Math.max(0, this.maxConcurrentExecutions - runningCount);
-    
+    const availableSlots = Math.max(
+      0,
+      this.maxConcurrentExecutions - runningCount
+    );
+
     if (availableSlots > 0) {
       return Math.ceil(queueSize / availableSlots) * avgTime;
     }
-    
+
     return queueSize * avgTime;
   }
 
@@ -285,12 +298,12 @@ class QueueManager {
       maxConcurrentExecutions: this.maxConcurrentExecutions,
       stats: this.stats,
       estimatedWaitTime: this.estimateWaitTime(),
-      nextItems: this.queue.slice(0, 5).map(item => ({
+      nextItems: this.queue.slice(0, 5).map((item) => ({
         workflowId: item.workflowId,
         priority: item.priority,
         queuedAt: item.queuedAt,
-        retryCount: item.retryCount
-      }))
+        retryCount: item.retryCount,
+      })),
     };
   }
 
@@ -298,13 +311,13 @@ class QueueManager {
    * Get running executions
    */
   getRunningExecutions() {
-    return Array.from(this.runningExecutions.values()).map(execution => ({
+    return Array.from(this.runningExecutions.values()).map((execution) => ({
       queueId: execution.id,
       workflowId: execution.workflowId,
       userId: execution.userId,
       startTime: execution.startTime,
       status: execution.status,
-      executionType: execution.executionType
+      executionType: execution.executionType,
     }));
   }
 
@@ -313,32 +326,31 @@ class QueueManager {
    */
   async cancelQueuedWorkflow(queueId, userId) {
     try {
-      const queueIndex = this.queue.findIndex(item => 
-        item.id === queueId && item.userId === userId
+      const queueIndex = this.queue.findIndex(
+        (item) => item.id === queueId && item.userId === userId
       );
 
       if (queueIndex === -1) {
         return {
           success: false,
-          error: 'Queued workflow not found'
+          error: 'Queued workflow not found',
         };
       }
 
       const cancelledItem = this.queue.splice(queueIndex, 1)[0];
-      
+
       logger.info(`Cancelled queued workflow: ${cancelledItem.workflowId}`);
 
       return {
         success: true,
         message: 'Queued workflow cancelled',
-        workflowId: cancelledItem.workflowId
+        workflowId: cancelledItem.workflowId,
       };
-
     } catch (error) {
       logger.error('Error cancelling queued workflow:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -349,31 +361,32 @@ class QueueManager {
   async cancelRunningExecution(queueId, userId) {
     try {
       const runningExecution = this.runningExecutions.get(queueId);
-      
+
       if (!runningExecution || runningExecution.userId !== userId) {
         return {
           success: false,
-          error: 'Running execution not found'
+          error: 'Running execution not found',
         };
       }
 
       // Note: This is a simplified cancellation
       // In production, you'd need more sophisticated cancellation logic
       this.runningExecutions.delete(queueId);
-      
-      logger.info(`Cancelled running execution: ${runningExecution.workflowId}`);
+
+      logger.info(
+        `Cancelled running execution: ${runningExecution.workflowId}`
+      );
 
       return {
         success: true,
         message: 'Running execution cancelled',
-        workflowId: runningExecution.workflowId
+        workflowId: runningExecution.workflowId,
       };
-
     } catch (error) {
       logger.error('Error cancelling running execution:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -384,30 +397,31 @@ class QueueManager {
   async clearQueue(userId = null) {
     try {
       const beforeCount = this.queue.length;
-      
+
       if (userId) {
         // Clear only specific user's workflows
-        this.queue = this.queue.filter(item => item.userId !== userId);
+        this.queue = this.queue.filter((item) => item.userId !== userId);
       } else {
         // Clear all
         this.queue = [];
       }
 
       const clearedCount = beforeCount - this.queue.length;
-      
-      logger.warn(`Cleared ${clearedCount} items from queue${userId ? ` for user ${userId}` : ''}`);
+
+      logger.warn(
+        `Cleared ${clearedCount} items from queue${userId ? ` for user ${userId}` : ''}`
+      );
 
       return {
         success: true,
         cleared: clearedCount,
-        remaining: this.queue.length
+        remaining: this.queue.length,
       };
-
     } catch (error) {
       logger.error('Error clearing queue:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -420,20 +434,19 @@ class QueueManager {
       // Find executions that were running but app was restarted
       const staleExecutions = await WorkflowExecution.find({
         status: 'running',
-        updatedAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) } // 5 minutes old
+        updatedAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) }, // 5 minutes old
       });
 
       for (const execution of staleExecutions) {
         await execution.completeExecution(false, {
           error: 'Execution interrupted by system restart',
-          cleanupReason: 'stale_execution_cleanup'
+          cleanupReason: 'stale_execution_cleanup',
         });
       }
 
       if (staleExecutions.length > 0) {
         logger.info(`Cleaned up ${staleExecutions.length} stale executions`);
       }
-
     } catch (error) {
       logger.error('Error cleaning up stale executions:', error);
     }
@@ -445,31 +458,35 @@ class QueueManager {
   async stop() {
     try {
       this.processing = false;
-      
+
       // Wait for running executions to complete (with timeout)
       const timeout = 30000; // 30 seconds
       const startTime = Date.now();
-      
-      while (this.runningExecutions.size > 0 && (Date.now() - startTime) < timeout) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+
+      while (
+        this.runningExecutions.size > 0 &&
+        Date.now() - startTime < timeout
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       if (this.runningExecutions.size > 0) {
-        logger.warn(`Force stopping with ${this.runningExecutions.size} executions still running`);
+        logger.warn(
+          `Force stopping with ${this.runningExecutions.size} executions still running`
+        );
       }
 
       logger.info('Queue manager stopped');
-      
+
       return {
         success: true,
-        message: 'Queue manager stopped'
+        message: 'Queue manager stopped',
       };
-
     } catch (error) {
       logger.error('Error stopping queue manager:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -483,7 +500,7 @@ class QueueManager {
       queueSize: this.queue.length,
       runningExecutions: this.runningExecutions.size,
       stats: this.stats,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }

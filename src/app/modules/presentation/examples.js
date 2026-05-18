@@ -1,6 +1,6 @@
 /**
  * Example usage of the Presentation Module
- * 
+ *
  * This file demonstrates how to interact with the conversational presentation API
  */
 
@@ -11,8 +11,8 @@ const example1_SimpleConversation = {
     method: 'POST',
     url: '/api/presentation/assistant',
     body: {
-      message: 'I want to create a presentation about artificial intelligence'
-    }
+      message: 'I want to create a presentation about artificial intelligence',
+    },
   },
   response1: {
     success: true,
@@ -22,9 +22,9 @@ const example1_SimpleConversation = {
       message: 'Great! How many slides would you like in your AI presentation?',
       missingParameters: ['n_slides'],
       collectedParameters: {
-        content: 'artificial intelligence'
-      }
-    }
+        content: 'artificial intelligence',
+      },
+    },
   },
 
   // Second message - User provides number of slides
@@ -33,21 +33,22 @@ const example1_SimpleConversation = {
     url: '/api/presentation/assistant',
     body: {
       message: '10 slides please',
-      conversationId: 'pres_1234567890_abc'
-    }
+      conversationId: 'pres_1234567890_abc',
+    },
   },
   response2: {
     success: true,
     data: {
       conversationId: 'pres_1234567890_abc',
       needsMoreInfo: true,
-      message: 'Perfect! What style would you prefer? Professional, casual, educational, or something else?',
+      message:
+        'Perfect! What style would you prefer? Professional, casual, educational, or something else?',
       missingParameters: ['tone'],
       collectedParameters: {
         content: 'artificial intelligence',
-        n_slides: 10
-      }
-    }
+        n_slides: 10,
+      },
+    },
   },
 
   // Third message - User provides tone
@@ -56,21 +57,23 @@ const example1_SimpleConversation = {
     url: '/api/presentation/assistant',
     body: {
       message: 'Make it professional',
-      conversationId: 'pres_1234567890_abc'
-    }
+      conversationId: 'pres_1234567890_abc',
+    },
   },
   response3: {
     success: true,
     data: {
       conversationId: 'pres_1234567890_abc',
       success: true,
-      message: '🎉 Your presentation is ready!\n\n📊 Presentation ID: d3000f96-096c-4768-b67b-e99aed029b57\n📥 Download: https://api.presenton.ai/static/...\n✏️ Edit online: https://presenton.ai/presentation?id=...\n💳 Credits consumed: 10',
+      message:
+        '🎉 Your presentation is ready!\n\n📊 Presentation ID: d3000f96-096c-4768-b67b-e99aed029b57\n📥 Download: https://api.presenton.ai/static/...\n✏️ Edit online: https://presenton.ai/presentation?id=...\n💳 Credits consumed: 10',
       presentationId: 'd3000f96-096c-4768-b67b-e99aed029b57',
       downloadUrl: 'https://api.presenton.ai/static/user_data/...',
-      editUrl: 'https://presenton.ai/presentation?id=d3000f96-096c-4768-b67b-e99aed029b57',
-      creditsConsumed: 10
-    }
-  }
+      editUrl:
+        'https://presenton.ai/presentation?id=d3000f96-096c-4768-b67b-e99aed029b57',
+      creditsConsumed: 10,
+    },
+  },
 };
 
 // Example 2: Complete request in one message
@@ -79,8 +82,9 @@ const example2_CompleteRequest = {
     method: 'POST',
     url: '/api/presentation/assistant',
     body: {
-      message: 'Create a professional presentation about Machine Learning with 15 slides using the modern template and professional-blue theme. Use stock images and include a table of contents.'
-    }
+      message:
+        'Create a professional presentation about Machine Learning with 15 slides using the modern template and professional-blue theme. Use stock images and include a table of contents.',
+    },
   },
   response: {
     success: true,
@@ -91,9 +95,9 @@ const example2_CompleteRequest = {
       presentationId: 'a1b2c3d4-5678-90ab-cdef-123456789012',
       downloadUrl: 'https://api.presenton.ai/static/...',
       editUrl: 'https://presenton.ai/presentation?id=...',
-      creditsConsumed: 15
-    }
-  }
+      creditsConsumed: 15,
+    },
+  },
 };
 
 // Example 3: Async generation for large presentations
@@ -102,20 +106,22 @@ const example3_AsyncGeneration = {
     method: 'POST',
     url: '/api/presentation/assistant',
     body: {
-      message: 'Create a detailed 50-slide presentation about Quantum Computing. Make it educational, text-heavy, and generate it asynchronously.'
-    }
+      message:
+        'Create a detailed 50-slide presentation about Quantum Computing. Make it educational, text-heavy, and generate it asynchronously.',
+    },
   },
   response: {
     success: true,
     data: {
       conversationId: 'pres_5555555555_aaa',
       success: true,
-      message: '🚀 Presentation generation started!\n\nTask ID: task-9a827c13f4\nStatus: pending\nCreated: 12/2/2025, 10:30:00 AM\n\nYou can check the status anytime by asking me!',
+      message:
+        '🚀 Presentation generation started!\n\nTask ID: task-9a827c13f4\nStatus: pending\nCreated: 12/2/2025, 10:30:00 AM\n\nYou can check the status anytime by asking me!',
       taskId: 'task-9a827c13f4',
       status: 'pending',
-      async: true
-    }
-  }
+      async: true,
+    },
+  },
 };
 
 // Example 4: Check async task status
@@ -125,25 +131,26 @@ const example4_CheckStatus = {
     url: '/api/presentation/assistant',
     body: {
       message: 'Check status of task-9a827c13f4',
-      conversationId: 'pres_5555555555_aaa'
-    }
+      conversationId: 'pres_5555555555_aaa',
+    },
   },
   response: {
     success: true,
     data: {
       conversationId: 'pres_5555555555_aaa',
       success: true,
-      message: '📋 Task Status: COMPLETED\n\n🎉 Your presentation is ready!\n\n📊 Presentation ID: ...\n📥 Download: ...\n✏️ Edit online: ...\n💳 Credits consumed: 50',
+      message:
+        '📋 Task Status: COMPLETED\n\n🎉 Your presentation is ready!\n\n📊 Presentation ID: ...\n📥 Download: ...\n✏️ Edit online: ...\n💳 Credits consumed: 50',
       taskId: 'task-9a827c13f4',
       status: 'completed',
       data: {
         presentation_id: 'xyz-123-abc',
         path: 'https://api.presenton.ai/static/...',
         edit_path: 'https://presenton.ai/presentation?id=...',
-        credits_consumed: 50
-      }
-    }
-  }
+        credits_consumed: 50,
+      },
+    },
+  },
 };
 
 // Example 5: Edit existing presentation
@@ -152,21 +159,23 @@ const example5_EditPresentation = {
     method: 'POST',
     url: '/api/presentation/assistant',
     body: {
-      message: 'Edit presentation d3000f96-096c-4768-b67b-e99aed029b57, change slide 3 title to "New Title" and slide 5 company name to "TechCorp"',
-      conversationId: 'pres_1234567890_abc'
-    }
+      message:
+        'Edit presentation d3000f96-096c-4768-b67b-e99aed029b57, change slide 3 title to "New Title" and slide 5 company name to "TechCorp"',
+      conversationId: 'pres_1234567890_abc',
+    },
   },
   response: {
     success: true,
     data: {
       conversationId: 'pres_1234567890_abc',
       success: true,
-      message: '✅ Presentation updated!\n\n📊 New Presentation ID: new-id-here\n📥 Download: ...\n✏️ Edit online: ...',
+      message:
+        '✅ Presentation updated!\n\n📊 New Presentation ID: new-id-here\n📥 Download: ...\n✏️ Edit online: ...',
       presentationId: 'new-id-here',
       downloadUrl: 'https://api.presenton.ai/static/...',
-      editUrl: 'https://presenton.ai/presentation?id=...'
-    }
-  }
+      editUrl: 'https://presenton.ai/presentation?id=...',
+    },
+  },
 };
 
 // Example 6: Ask general questions
@@ -175,18 +184,19 @@ const example6_GeneralQuestion = {
     method: 'POST',
     url: '/api/presentation/assistant',
     body: {
-      message: 'What templates are available?'
-    }
+      message: 'What templates are available?',
+    },
   },
   response: {
     success: true,
     data: {
       conversationId: 'pres_7777777777_bbb',
       success: true,
-      message: 'We have 4 templates available:\n\n1. **general** - Versatile and suitable for most presentations\n2. **modern** - Contemporary design with clean lines\n3. **standard** - Classic professional layout\n4. **swift** - Minimalist and efficient design\n\nYou can also choose from 5 themes to customize the colors and styling. Would you like to create a presentation?',
-      isGeneralQuestion: true
-    }
-  }
+      message:
+        'We have 4 templates available:\n\n1. **general** - Versatile and suitable for most presentations\n2. **modern** - Contemporary design with clean lines\n3. **standard** - Classic professional layout\n4. **swift** - Minimalist and efficient design\n\nYou can also choose from 5 themes to customize the colors and styling. Would you like to create a presentation?',
+      isGeneralQuestion: true,
+    },
+  },
 };
 
 // Example 7: Direct generation (non-conversational)
@@ -207,8 +217,8 @@ const example7_DirectGeneration = {
       web_search: false,
       include_table_of_contents: true,
       include_title_slide: true,
-      async: false
-    }
+      async: false,
+    },
   },
   response: {
     success: true,
@@ -217,9 +227,9 @@ const example7_DirectGeneration = {
       presentation_id: 'abc-def-ghi',
       path: 'https://api.presenton.ai/static/...',
       edit_path: 'https://presenton.ai/presentation?id=abc-def-ghi',
-      credits_consumed: 12
-    }
-  }
+      credits_consumed: 12,
+    },
+  },
 };
 
 // Example 8: Edit presentation (direct endpoint)
@@ -233,15 +243,15 @@ const example8_DirectEdit = {
         {
           index: 0,
           content: {
-            title: 'Updated Introduction'
-          }
+            title: 'Updated Introduction',
+          },
         },
         {
           index: 3,
           content: {
             companyName: 'New Company Inc',
-            revenue: 5000000
-          }
+            revenue: 5000000,
+          },
         },
         {
           index: 7,
@@ -249,13 +259,13 @@ const example8_DirectEdit = {
             bullets: [
               'First updated point',
               'Second updated point',
-              'Third updated point'
-            ]
-          }
-        }
+              'Third updated point',
+            ],
+          },
+        },
       ],
-      export_as: 'pptx'
-    }
+      export_as: 'pptx',
+    },
   },
   response: {
     success: true,
@@ -263,16 +273,16 @@ const example8_DirectEdit = {
     data: {
       presentation_id: 'new-presentation-id',
       path: '/app_data/exports/Updated_Presentation.pptx',
-      edit_path: '/presentation?id=new-presentation-id'
-    }
-  }
+      edit_path: '/presentation?id=new-presentation-id',
+    },
+  },
 };
 
 // Example 9: Get presentation details
 const example9_GetDetails = {
   request: {
     method: 'GET',
-    url: '/api/presentation/d3000f96-096c-4768-b67b-e99aed029b57'
+    url: '/api/presentation/d3000f96-096c-4768-b67b-e99aed029b57',
   },
   response: {
     success: true,
@@ -284,17 +294,19 @@ const example9_GetDetails = {
         {
           index: 0,
           type: 'title',
-          content: { /* slide content */ }
+          content: {
+            /* slide content */
+          },
         },
         // ... more slides
       ],
       metadata: {
         template: 'modern',
         theme: 'professional-blue',
-        created_at: '2025-12-02T10:00:00Z'
-      }
-    }
-  }
+        created_at: '2025-12-02T10:00:00Z',
+      },
+    },
+  },
 };
 
 // Example 10: Error handling - Missing API key
@@ -303,17 +315,18 @@ const example10_ErrorHandling = {
     method: 'POST',
     url: '/api/presentation/assistant',
     body: {
-      message: 'Create a presentation'
-    }
+      message: 'Create a presentation',
+    },
   },
   response: {
     success: false,
-    message: 'I encountered an error while generating your presentation: Unauthorized - Invalid API key',
+    message:
+      'I encountered an error while generating your presentation: Unauthorized - Invalid API key',
     data: {
       conversationId: 'pres_xxx',
-      error: 'Unauthorized'
-    }
-  }
+      error: 'Unauthorized',
+    },
+  },
 };
 
 export const examples = {
@@ -326,7 +339,7 @@ export const examples = {
   example7_DirectGeneration,
   example8_DirectEdit,
   example9_GetDetails,
-  example10_ErrorHandling
+  example10_ErrorHandling,
 };
 
 /**
@@ -366,5 +379,5 @@ curl -X GET http://localhost:3000/api/presentation/status/task-9a827c13f4 \\
 export const curlExamples = {
   curlExample1,
   curlExample2,
-  curlExample3
+  curlExample3,
 };

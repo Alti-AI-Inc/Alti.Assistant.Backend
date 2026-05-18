@@ -52,10 +52,15 @@ import { legalContractReviewRoutes } from '../modules/legal_contract_review/lega
 import { creativeWritingRoutes } from '../modules/creative_writing/creative_writing.route.js';
 import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
+import { massiveRoutes } from '../modules/massive/massive.route.js';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/massive',
+    route: massiveRoutes,
+  },
   {
     path: '/tenant',
     route: tenantRoutes,
@@ -166,111 +171,111 @@ const moduleRoutes = [
   },
   {
     path: '/writing',
-    route: writingRoutes
+    route: writingRoutes,
   },
   {
     path: '/summary',
-    route: summaryRoutes
+    route: summaryRoutes,
   },
   {
     path: '/search',
-    route: searchRoute
+    route: searchRoute,
   },
   {
     path: '/deep-research',
-    route: deepResearchRoute
+    route: deepResearchRoute,
   },
   {
     path: '/conversations',
-    route: conversationRoutes
+    route: conversationRoutes,
   },
   {
     path: '/image',
-    route: imageRoutes
+    route: imageRoutes,
   },
   {
     path: '/video',
-    route: videoRoutes
+    route: videoRoutes,
   },
   {
     path: '/knowledgebase',
-    route: knowledgebaseRoutes
+    route: knowledgebaseRoutes,
   },
   {
     path: '/knowledge-bank',
-    route: knowledgeBankRoutes
+    route: knowledgeBankRoutes,
   },
   {
     path: '/stripe',
-    route: stripeRoutes
+    route: stripeRoutes,
   },
   {
     path: '/enhanced-image',
-    route: enhancedImageRoute
+    route: enhancedImageRoute,
   },
   {
     path: '/transcription',
-    route: TranscriptionRoutes
+    route: TranscriptionRoutes,
   },
   {
     path: '/presentation',
-    route: presentationRoutes
+    route: presentationRoutes,
   },
   {
     path: '/reports',
-    route: reportRoutes
+    route: reportRoutes,
   },
   {
     path: '/documents',
-    route: documentRoutes
+    route: documentRoutes,
   },
   {
     path: '/document-review',
-    route: documentReviewRoutes
+    route: documentReviewRoutes,
   },
   {
     path: '/brainstorm',
-    route: brainstormRoutes
+    route: brainstormRoutes,
   },
   {
     path: '/translation',
-    route: translationRoutes
+    route: translationRoutes,
   },
   {
     path: '/rewrite',
-    route: rewriteRoutes
+    route: rewriteRoutes,
   },
   {
     path: '/plan-generator',
-    route: planGeneratorRoutes
+    route: planGeneratorRoutes,
   },
   {
     path: '/document-analysis',
-    route: documentAnalysisRoutes
+    route: documentAnalysisRoutes,
   },
   {
     path: '/article-writer',
-    route: articleWriterRoutes
+    route: articleWriterRoutes,
   },
   {
     path: '/legal-contract',
-    route: legalContractRoutes
+    route: legalContractRoutes,
   },
   {
     path: '/legal-contract-review',
-    route: legalContractReviewRoutes
+    route: legalContractReviewRoutes,
   },
   {
     path: '/creative-writing',
-    route: creativeWritingRoutes
+    route: creativeWritingRoutes,
   },
   {
     path: '/knowledge',
-    route: knowledgeRoutes
-  }
+    route: knowledgeRoutes,
+  },
 ];
 
-moduleRoutes.forEach(route => {
+moduleRoutes.forEach((route) => {
   console.log(`Registering route: ${route.path}`);
 
   return router.use(route.path, route.route);

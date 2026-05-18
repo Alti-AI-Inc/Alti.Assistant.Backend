@@ -1,9 +1,9 @@
 /**
  * Video Assistant Constants
- * 
+ *
  * This file contains all constants used throughout the video assistant module
  * to maintain consistency and make configuration changes easier.
- * 
+ *
  * @module VideoAssistantConstants
  */
 
@@ -12,15 +12,16 @@ export const VIDEO_ASSISTANT_CONSTANTS = {
   MESSAGE: {
     MIN_LENGTH: 3,
     MAX_LENGTH: 2000,
-    DEFAULT_ERROR: 'I apologize, but I encountered an error while processing your video request.',
+    DEFAULT_ERROR:
+      'I apologize, but I encountered an error while processing your video request.',
   },
 
   // Video specifications
   VIDEO_SPECS: {
     DURATIONS: {
-      SHORT: 5,        // 5 seconds
-      STANDARD: 10,    // 10 seconds
-      LONG: 30,        // 30 seconds
+      SHORT: 5, // 5 seconds
+      STANDARD: 10, // 10 seconds
+      LONG: 30, // 30 seconds
     },
     STYLES: {
       REALISTIC: 'realistic',

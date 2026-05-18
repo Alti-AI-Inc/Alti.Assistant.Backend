@@ -266,8 +266,8 @@ export const getTenantUsage = async (req, res, next) => {
             tenant.limits.maxApiCalls === -1
               ? 0
               : Math.round(
-                (tenant.usage.apiCallsUsed / tenant.limits.maxApiCalls) * 100
-              ),
+                  (tenant.usage.apiCallsUsed / tenant.limits.maxApiCalls) * 100
+                ),
         },
         storage: {
           used: tenant.usage.storageUsed,
@@ -276,8 +276,8 @@ export const getTenantUsage = async (req, res, next) => {
             tenant.limits.maxStorage === -1
               ? 0
               : Math.round(
-                (tenant.usage.storageUsed / tenant.limits.maxStorage) * 100
-              ),
+                  (tenant.usage.storageUsed / tenant.limits.maxStorage) * 100
+                ),
           usedFormatted: formatBytes(tenant.usage.storageUsed),
           limitFormatted:
             tenant.limits.maxStorage === -1
@@ -291,8 +291,8 @@ export const getTenantUsage = async (req, res, next) => {
             tenant.limits.maxUsers === -1
               ? 0
               : Math.round(
-                (tenant.usage.usersCount / tenant.limits.maxUsers) * 100
-              ),
+                  (tenant.usage.usersCount / tenant.limits.maxUsers) * 100
+                ),
         },
         plan: tenant.plan,
         status: tenant.status,

@@ -14,7 +14,16 @@ export const REWRITE_CONFIG = {
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/vnd.ms-powerpoint',
   ],
-  SUPPORTED_FILE_EXTENSIONS: ['.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt'],
+  SUPPORTED_FILE_EXTENSIONS: [
+    '.pdf',
+    '.docx',
+    '.doc',
+    '.txt',
+    '.xlsx',
+    '.xls',
+    '.pptx',
+    '.ppt',
+  ],
 };
 
 // Storage configuration
@@ -133,17 +142,53 @@ export const RESPONSE_MESSAGES = {
 
 // Intent detection keywords
 export const INTENT_KEYWORDS = {
-  [REWRITE_INTENTS.FORMAL]: ['formal', 'official', 'professional tone', 'business'],
-  [REWRITE_INTENTS.CASUAL]: ['casual', 'informal', 'friendly', 'conversational'],
+  [REWRITE_INTENTS.FORMAL]: [
+    'formal',
+    'official',
+    'professional tone',
+    'business',
+  ],
+  [REWRITE_INTENTS.CASUAL]: [
+    'casual',
+    'informal',
+    'friendly',
+    'conversational',
+  ],
   [REWRITE_INTENTS.PROFESSIONAL]: ['professional', 'business', 'corporate'],
   [REWRITE_INTENTS.ACADEMIC]: ['academic', 'scholarly', 'research', 'thesis'],
   [REWRITE_INTENTS.CREATIVE]: ['creative', 'artistic', 'engaging', 'vivid'],
-  [REWRITE_INTENTS.SIMPLIFY]: ['simplify', 'simple', 'easier', 'plain language'],
+  [REWRITE_INTENTS.SIMPLIFY]: [
+    'simplify',
+    'simple',
+    'easier',
+    'plain language',
+  ],
   [REWRITE_INTENTS.EXPAND]: ['expand', 'elaborate', 'more detail', 'longer'],
-  [REWRITE_INTENTS.SHORTEN]: ['shorten', 'condense', 'shorter', 'summarize', 'brief'],
-  [REWRITE_INTENTS.IMPROVE_CLARITY]: ['clarity', 'clear', 'clearer', 'understandable'],
-  [REWRITE_INTENTS.FIX_GRAMMAR]: ['grammar', 'fix errors', 'correct', 'spelling'],
-  [REWRITE_INTENTS.PARAPHRASE]: ['paraphrase', 'rephrase', 'reword', 'say differently'],
+  [REWRITE_INTENTS.SHORTEN]: [
+    'shorten',
+    'condense',
+    'shorter',
+    'summarize',
+    'brief',
+  ],
+  [REWRITE_INTENTS.IMPROVE_CLARITY]: [
+    'clarity',
+    'clear',
+    'clearer',
+    'understandable',
+  ],
+  [REWRITE_INTENTS.FIX_GRAMMAR]: [
+    'grammar',
+    'fix errors',
+    'correct',
+    'spelling',
+  ],
+  [REWRITE_INTENTS.PARAPHRASE]: [
+    'paraphrase',
+    'rephrase',
+    'reword',
+    'say differently',
+  ],
 };
 
 // File generation keywords

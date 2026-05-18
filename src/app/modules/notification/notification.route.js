@@ -5,7 +5,9 @@ import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js'
 import { NotificationController } from './notification.controller.js';
 const router = express.Router();
 
-router.route('/user/:userId').post(extractTenantContext, NotificationController.sendNotificationById);
+router
+  .route('/user/:userId')
+  .post(extractTenantContext, NotificationController.sendNotificationById);
 
 router
   .route('/get-notification/:userId')
@@ -16,7 +18,7 @@ router
   .put(
     auth(ENUM_USER_ROLE.ADMIN),
     extractTenantContext,
-    NotificationController.updateNotificationById,
+    NotificationController.updateNotificationById
   );
 
 router
@@ -24,7 +26,7 @@ router
   .delete(
     auth(ENUM_USER_ROLE.ADMIN),
     extractTenantContext,
-    NotificationController.deleteNotificationById,
+    NotificationController.deleteNotificationById
   );
 
 router
@@ -32,7 +34,7 @@ router
   .delete(
     auth(ENUM_USER_ROLE.ADMIN),
     extractTenantContext,
-    NotificationController.deleteAllNotification,
+    NotificationController.deleteAllNotification
   );
 
 router

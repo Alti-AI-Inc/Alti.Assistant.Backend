@@ -12,12 +12,15 @@ import config from '../../../../../config/index.js';
 export const isVideoOnlyQuery = async (query, conversationContext = []) => {
   try {
     // Build conversation context for better classification
-    let conversationHistory = "";
+    let conversationHistory = '';
     if (Array.isArray(conversationContext) && conversationContext.length > 0) {
       const recentMessages = conversationContext.slice(-3);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
+      conversationHistory = `Previous conversation:\n${recentMessages
+        .map(
+          (msg) =>
+            `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+        )
+        .join('\n')}\n\n`;
     }
 
     const systemPrompt = `You are an intelligent query classifier that determines if a user is specifically asking for video content.
@@ -51,21 +54,26 @@ Respond with ONLY "VIDEO_ONLY" or "NOT_VIDEO_ONLY" - no explanations, no thinkin
 
     const messages = [
       {
-        role: "system",
+        role: 'system',
         content: systemPrompt,
       },
       {
-        role: "user",
+        role: 'user',
         content: `${conversationHistory}Current query: "${query}"
 
-Determine if this is a video-only query:`
-      }
+Determine if this is a video-only query:`,
+      },
     ];
 
     const response = await llm.invoke(messages);
     let rawContent = response.content.trim();
 
-    console.log("LLM video-only classification for query:", query, "→", rawContent);
+    console.log(
+      'LLM video-only classification for query:',
+      query,
+      '→',
+      rawContent
+    );
 
     // Handle thinking tags - extract the actual decision
     let cleanedContent = rawContent;
@@ -75,15 +83,14 @@ Determine if this is a video-only query:`
     }
 
     const finalDecision = cleanedContent.toUpperCase().trim();
-    console.log("Cleaned video-only decision:", finalDecision);
+    console.log('Cleaned video-only decision:', finalDecision);
 
-    const isNotVideoOnly = finalDecision.includes("NOT_VIDEO_ONLY");
+    const isNotVideoOnly = finalDecision.includes('NOT_VIDEO_ONLY');
     console.log(`Video-only query result: ${isNotVideoOnly}`);
 
     return isNotVideoOnly ? false : true;
-
   } catch (error) {
-    console.error("Error detecting video-only query with LLM:", error);
+    console.error('Error detecting video-only query with LLM:', error);
     return false; // Default to not video-only on error
   }
 };
@@ -94,12 +101,15 @@ Determine if this is a video-only query:`
 export const extractVideoCount = async (query, conversationContext = []) => {
   try {
     // Build conversation context for better analysis
-    let conversationHistory = "";
+    let conversationHistory = '';
     if (Array.isArray(conversationContext) && conversationContext.length > 0) {
       const recentMessages = conversationContext.slice(-3);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
+      conversationHistory = `Previous conversation:\n${recentMessages
+        .map(
+          (msg) =>
+            `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+        )
+        .join('\n')}\n\n`;
     }
 
     const systemPrompt = `You are an expert at extracting the number of videos requested from user queries.
@@ -142,21 +152,26 @@ IMPORTANT:
 
     const messages = [
       {
-        role: "system",
+        role: 'system',
         content: systemPrompt,
       },
       {
-        role: "user",
+        role: 'user',
         content: `${conversationHistory}Current query: "${query}"
 
-Extract the number of videos requested:`
-      }
+Extract the number of videos requested:`,
+      },
     ];
 
     const response = await llm.invoke(messages);
     let rawContent = response.content.trim();
 
-    console.log("LLM video count extraction for query:", query, "→", rawContent);
+    console.log(
+      'LLM video count extraction for query:',
+      query,
+      '→',
+      rawContent
+    );
 
     // Handle thinking tags - extract the actual decision
     let cleanedContent = rawContent;
@@ -178,9 +193,8 @@ Extract the number of videos requested:`
 
     console.log(`Extracted video count: ${count}`);
     return count;
-
   } catch (error) {
-    console.error("Error extracting video count with LLM:", error);
+    console.error('Error extracting video count with LLM:', error);
     return 1; // Default to 1 on error
   }
 };
@@ -201,12 +215,13 @@ export const analyzeVideoQuery = async (query, conversationContext = []) => {
       videoCount = await extractVideoCount(query, conversationContext);
     }
 
-    console.log(`LLM Video query analysis - Query: "${query}", IsVideoOnly: ${isVideoOnly}, Count: ${videoCount}`);
+    console.log(
+      `LLM Video query analysis - Query: "${query}", IsVideoOnly: ${isVideoOnly}, Count: ${videoCount}`
+    );
 
     return { isVideoOnly, videoCount };
-
   } catch (error) {
-    console.error("Error analyzing video query with LLM:", error);
+    console.error('Error analyzing video query with LLM:', error);
     return { isVideoOnly: false, videoCount: 1 };
   }
 };
@@ -217,12 +232,15 @@ export const analyzeVideoQuery = async (query, conversationContext = []) => {
 export const shouldSearchYouTube = async (query, conversationContext = []) => {
   try {
     // Build conversation context for better classification
-    let conversationHistory = "";
+    let conversationHistory = '';
     if (Array.isArray(conversationContext) && conversationContext.length > 0) {
       const recentMessages = conversationContext.slice(-3);
-      conversationHistory = `Previous conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
+      conversationHistory = `Previous conversation:\n${recentMessages
+        .map(
+          (msg) =>
+            `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+        )
+        .join('\n')}\n\n`;
     }
 
     const systemPrompt = `You are an intelligent query classifier that determines when YouTube video content would be valuable for answering a query.
@@ -256,21 +274,26 @@ Respond with ONLY "RELEVANT" or "NOT_RELEVANT" - no explanations, no thinking ta
 
     const messages = [
       {
-        role: "system",
+        role: 'system',
         content: systemPrompt,
       },
       {
-        role: "user",
+        role: 'user',
         content: `${conversationHistory}Current query: "${query}"
 
-Determine if YouTube search would be relevant:`
-      }
+Determine if YouTube search would be relevant:`,
+      },
     ];
 
     const response = await llm.invoke(messages);
     let rawContent = response.content.trim();
 
-    console.log("YouTube relevance analysis for query:", query, "→", rawContent);
+    console.log(
+      'YouTube relevance analysis for query:',
+      query,
+      '→',
+      rawContent
+    );
 
     // Handle thinking tags - extract the actual decision
     let cleanedContent = rawContent;
@@ -280,12 +303,11 @@ Determine if YouTube search would be relevant:`
     }
 
     const finalDecision = cleanedContent.toUpperCase().trim();
-    console.log("Cleaned YouTube relevance decision:", finalDecision);
+    console.log('Cleaned YouTube relevance decision:', finalDecision);
 
-    return !finalDecision.includes("NOT_RELEVANT");
-
+    return !finalDecision.includes('NOT_RELEVANT');
   } catch (error) {
-    console.error("Error checking YouTube relevance:", error);
+    console.error('Error checking YouTube relevance:', error);
     return false; // Default to no YouTube search on error
   }
 };
@@ -293,15 +315,21 @@ Determine if YouTube search would be relevant:`
 /**
  * Creates an optimized YouTube search query from the original query and context
  */
-export const createOptimizedYouTubeQuery = async (query, conversationContext = []) => {
+export const createOptimizedYouTubeQuery = async (
+  query,
+  conversationContext = []
+) => {
   try {
     // Build conversation history
-    let conversationHistory = "";
+    let conversationHistory = '';
     if (conversationContext && conversationContext.length > 0) {
       const recentMessages = conversationContext.slice(-3);
-      conversationHistory = `Recent conversation:\n${recentMessages.map(msg =>
-        `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      ).join('\n')}\n\n`;
+      conversationHistory = `Recent conversation:\n${recentMessages
+        .map(
+          (msg) =>
+            `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+        )
+        .join('\n')}\n\n`;
     }
 
     const systemPrompt = `You are an expert at creating optimized YouTube search queries that will find the most relevant and high-quality video content.
@@ -336,15 +364,15 @@ Output ONLY the optimized YouTube search query, nothing else.`;
 
     const messages = [
       {
-        role: "system",
+        role: 'system',
         content: systemPrompt,
       },
       {
-        role: "user",
+        role: 'user',
         content: `${conversationHistory}Original query: "${query}"
 
-Create an optimized YouTube search query:`
-      }
+Create an optimized YouTube search query:`,
+      },
     ];
 
     const response = await llm.invoke(messages);
@@ -362,9 +390,8 @@ Create an optimized YouTube search query:`
     console.log(`YouTube query optimization: "${query}" → "${optimizedQuery}"`);
 
     return optimizedQuery;
-
   } catch (error) {
-    console.error("Error optimizing YouTube query:", error);
+    console.error('Error optimizing YouTube query:', error);
     // Fallback to original query
     return query;
   }
@@ -373,17 +400,24 @@ Create an optimized YouTube search query:`
 /**
  * Performs YouTube search using YouTube Data API v3
  */
-export const searchYouTube = async (query, maxResults = 5, conversationContext = []) => {
+export const searchYouTube = async (
+  query,
+  maxResults = 5,
+  conversationContext = []
+) => {
   try {
     const youtubeApiKey = config.youtube_api_key;
 
     if (!youtubeApiKey) {
-      console.warn("YouTube API key not configured, skipping YouTube search");
+      console.warn('YouTube API key not configured, skipping YouTube search');
       return [];
     }
 
     // Optimize the query for better YouTube results
-    const optimizedQuery = await createOptimizedYouTubeQuery(query, conversationContext);
+    const optimizedQuery = await createOptimizedYouTubeQuery(
+      query,
+      conversationContext
+    );
 
     const searchUrl = `https://www.googleapis.com/youtube/v3/search`;
     const params = new URLSearchParams({
@@ -394,22 +428,26 @@ export const searchYouTube = async (query, maxResults = 5, conversationContext =
       order: 'relevance',
       key: youtubeApiKey,
       safeSearch: 'moderate',
-      relevanceLanguage: 'en'
+      relevanceLanguage: 'en',
     });
 
-    console.log(`Searching YouTube for: "${optimizedQuery}" (original: "${query}")`);
+    console.log(
+      `Searching YouTube for: "${optimizedQuery}" (original: "${query}")`
+    );
 
     const response = await fetch(`${searchUrl}?${params}`);
 
     if (!response.ok) {
-      console.error(`YouTube API error: ${response.status} ${response.statusText}`);
+      console.error(
+        `YouTube API error: ${response.status} ${response.statusText}`
+      );
       return [];
     }
 
     const data = await response.json();
 
     if (!data.items || data.items.length === 0) {
-      console.log("No YouTube results found");
+      console.log('No YouTube results found');
       return [];
     }
 
@@ -427,15 +465,14 @@ export const searchYouTube = async (query, maxResults = 5, conversationContext =
         thumbnails: snippet.thumbnails,
         relevanceScore: (maxResults - index) / maxResults, // Simple relevance scoring
         source: 'youtube',
-        citationIndex: index + 1
+        citationIndex: index + 1,
       };
     });
 
     console.log(`Found ${youtubeResults.length} YouTube results`);
     return youtubeResults;
-
   } catch (error) {
-    console.error("Error searching YouTube:", error);
+    console.error('Error searching YouTube:', error);
     return [];
   }
 };

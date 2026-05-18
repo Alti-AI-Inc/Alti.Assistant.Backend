@@ -6,13 +6,13 @@ The Knowledge Bank is a file management system that allows users to upload, stor
 
 ### Key Differences
 
-| Feature | Knowledge Bank | Knowledgebot |
-|---------|---------------|--------------|
-| **Purpose** | Personal file storage for users | Bot-specific knowledge base |
-| **Ownership** | Files belong to user | Files belong to specific bot/knowledge base |
-| **GCS Bucket** | `alti_knowledge_bank_files` | `alti_assistant_knowledge_bot_files` |
-| **Use Case** | General document management | AI chatbot training data |
-| **API Endpoint** | `/api/v1/knowledge-bank` | `/api/v1/knowledgebase` |
+| Feature          | Knowledge Bank                  | Knowledgebot                                |
+| ---------------- | ------------------------------- | ------------------------------------------- |
+| **Purpose**      | Personal file storage for users | Bot-specific knowledge base                 |
+| **Ownership**    | Files belong to user            | Files belong to specific bot/knowledge base |
+| **GCS Bucket**   | `alti_knowledge_bank_files`     | `alti_assistant_knowledge_bot_files`        |
+| **Use Case**     | General document management     | AI chatbot training data                    |
+| **API Endpoint** | `/api/v1/knowledge-bank`        | `/api/v1/knowledgebase`                     |
 
 ## Architecture
 
@@ -33,7 +33,7 @@ knowledge_bank/
 ✅ **File Deletion**: Soft delete files (mark as inactive)  
 ✅ **RAG Processing**: Process files with RAG system for AI interactions  
 ✅ **Storage Statistics**: Track user's storage usage  
-✅ **Authentication**: All endpoints require user authentication  
+✅ **Authentication**: All endpoints require user authentication
 
 ## API Endpoints
 
@@ -60,9 +60,9 @@ formData.append('processImmediately', 'true');
 const response = await fetch('/api/v1/knowledge-bank/upload', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   },
-  body: formData
+  body: formData,
 });
 
 const result = await response.json();
@@ -72,11 +72,14 @@ const result = await response.json();
 ### 2. Get User's Files
 
 ```javascript
-const response = await fetch('/api/v1/knowledge-bank/files?fileType=pdf&limit=20', {
-  headers: {
-    'Authorization': `Bearer ${token}`
+const response = await fetch(
+  '/api/v1/knowledge-bank/files?fileType=pdf&limit=20',
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   }
-});
+);
 
 const result = await response.json();
 // result.data.files - array of file objects
@@ -88,8 +91,8 @@ const result = await response.json();
 const response = await fetch(`/api/v1/knowledge-bank/files/${fileId}/process`, {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`
-  }
+    Authorization: `Bearer ${token}`,
+  },
 });
 
 const result = await response.json();
@@ -102,8 +105,8 @@ const result = await response.json();
 const response = await fetch(`/api/v1/knowledge-bank/files/${fileId}`, {
   method: 'DELETE',
   headers: {
-    'Authorization': `Bearer ${token}`
-  }
+    Authorization: `Bearer ${token}`,
+  },
 });
 
 const result = await response.json();
@@ -216,16 +219,19 @@ OPENAI_API_KEY=your_openai_key
 ## Troubleshooting
 
 ### Upload Fails
+
 - Check file size (must be under 50MB)
 - Verify GCS bucket permissions
 - Ensure service account JSON key is valid
 
 ### Processing Fails
+
 - Check RAG database connection
 - Verify OpenAI API key
 - Review `processingError` field in file record
 
 ### File Not Found
+
 - Ensure user owns the file
 - Check if file is active (not soft deleted)
 - Verify fileId is correct

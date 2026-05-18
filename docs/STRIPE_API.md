@@ -32,6 +32,7 @@ Retrieves a list of all Stripe customers.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -39,12 +40,14 @@ Authorization: Bearer <JWT_TOKEN>
 **Query Parameters**: None
 
 **Example Request**:
+
 ```bash
 curl -X GET https://your-api.com/api/stripe/customers \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "accounts": {
@@ -97,6 +100,7 @@ Creates a new Stripe customer using authenticated user information.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 Content-Type: application/json
@@ -105,10 +109,12 @@ Content-Type: application/json
 **Request Body**: None (uses authenticated user data)
 
 **User Data Used**:
+
 - `req.user.name` - Customer name
 - `req.user.email` - Customer email
 
 **Example Request**:
+
 ```bash
 curl -X POST https://your-api.com/api/stripe/customer \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -116,6 +122,7 @@ curl -X POST https://your-api.com/api/stripe/customer \
 ```
 
 **Response**: `201 Created`
+
 ```json
 {
   "customer": {
@@ -161,6 +168,7 @@ Retrieves a specific Stripe customer by ID.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -171,12 +179,14 @@ Authorization: Bearer <JWT_TOKEN>
 | `customerId` | string | Yes | Stripe customer ID (e.g., `cus_xxxxxxxxxxxxxxxx`) |
 
 **Example Request**:
+
 ```bash
 curl -X GET https://your-api.com/api/stripe/customer/cus_xxxxxxxxxxxxxxxx \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "customer": {
@@ -222,6 +232,7 @@ Updates an existing Stripe customer's information.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 Content-Type: application/json
@@ -233,6 +244,7 @@ Content-Type: application/json
 | `customerId` | string | Yes | Stripe customer ID (e.g., `cus_xxxxxxxxxxxxxxxx`) |
 
 **Request Body**:
+
 ```json
 {
   "name": "Jane Doe",
@@ -265,6 +277,7 @@ Content-Type: application/json
 | `shipping` | object | No | Customer's shipping information |
 
 **Example Request**:
+
 ```bash
 curl -X PUT https://your-api.com/api/stripe/customer/cus_xxxxxxxxxxxxxxxx \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -276,6 +289,7 @@ curl -X PUT https://your-api.com/api/stripe/customer/cus_xxxxxxxxxxxxxxxx \
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "customer": {
@@ -321,6 +335,7 @@ Permanently deletes a Stripe customer.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -331,12 +346,14 @@ Authorization: Bearer <JWT_TOKEN>
 | `customerId` | string | Yes | Stripe customer ID (e.g., `cus_xxxxxxxxxxxxxxxx`) |
 
 **Example Request**:
+
 ```bash
 curl -X DELETE https://your-api.com/api/stripe/customer/cus_xxxxxxxxxxxxxxxx \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "confirmation": {
@@ -360,6 +377,7 @@ Retrieves a list of all products from Stripe.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -367,12 +385,14 @@ Authorization: Bearer <JWT_TOKEN>
 **Query Parameters**: None
 
 **Example Request**:
+
 ```bash
 curl -X GET https://your-api.com/api/stripe/products \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "products": {
@@ -472,6 +492,7 @@ Initializes all subscription products and their pricing tiers in Stripe. This en
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 Content-Type: application/json
@@ -482,12 +503,14 @@ Content-Type: application/json
 **Products Created**:
 
 1. **Base Plan**
+
    - 3 connectors
    - 100 GB storage
    - Monthly: $99.00
    - Yearly: $1,009.80 (15% discount)
 
 2. **Professional Plan**
+
    - 10 connectors
    - 500 GB storage
    - Monthly: $249.00
@@ -500,6 +523,7 @@ Content-Type: application/json
    - Yearly: $5,089.80 (15% discount)
 
 **Example Request**:
+
 ```bash
 curl -X POST https://your-api.com/api/stripe/products \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -507,6 +531,7 @@ curl -X POST https://your-api.com/api/stripe/products \
 ```
 
 **Response**: `201 Created`
+
 ```json
 {
   "message": "Products and prices created successfully"
@@ -514,6 +539,7 @@ curl -X POST https://your-api.com/api/stripe/products \
 ```
 
 **Note**: This endpoint:
+
 - Deletes all existing products from the database (MongoDB)
 - Creates new products in both Stripe and MongoDB
 - Each product has metadata including plan level, connector limits, and storage limits
@@ -530,6 +556,7 @@ Retrieves detailed information about a specific product from Stripe.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -540,12 +567,14 @@ Authorization: Bearer <JWT_TOKEN>
 | `productId` | string | Yes | Stripe product ID (e.g., `prod_xxxxxxxxxxxxxxxx`) |
 
 **Example Request**:
+
 ```bash
 curl -X GET https://your-api.com/api/stripe/products/prod_xxxxxxxxxxxxxxxx \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "product": {
@@ -587,6 +616,7 @@ Retrieves a list of all prices from Stripe, optionally filtered by product.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -597,18 +627,21 @@ Authorization: Bearer <JWT_TOKEN>
 | `productId` | string | No | Filter prices by product ID (e.g., `prod_xxxxxxxxxxxxxxxx`) |
 
 **Example Request (All Prices)**:
+
 ```bash
 curl -X GET https://your-api.com/api/stripe/prices \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Example Request (Filtered by Product)**:
+
 ```bash
 curl -X GET "https://your-api.com/api/stripe/prices?productId=prod_xxxxxxxxxxxxxxxx" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "prices": {
@@ -784,10 +817,11 @@ curl -X GET "https://your-api.com/api/stripe/prices?productId=prod_xxxxxxxxxxxxx
 ```
 
 **Use Cases**:
+
 - Display all available pricing options in your UI
 - Filter prices by product to show only relevant pricing tiers
 - Get price IDs for creating subscriptions
-**Use Cases**:
+  **Use Cases**:
 - Display all available pricing options in your UI
 - Filter prices by product to show only relevant pricing tiers
 - Get price IDs for creating subscriptions
@@ -804,6 +838,7 @@ Retrieves a list of all prices from Stripe, optionally filtered by product.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -814,18 +849,21 @@ Authorization: Bearer <JWT_TOKEN>
 | `productId` | string | No | Filter prices by product ID (e.g., `prod_xxxxxxxxxxxxxxxx`) |
 
 **Example Request (All Prices)**:
+
 ```bash
 curl -X GET https://your-api.com/api/stripe/prices \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Example Request (Filtered by Product)**:
+
 ```bash
 curl -X GET "https://your-api.com/api/stripe/prices?productId=prod_xxxxxxxxxxxxxxxx" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "prices": {
@@ -1001,6 +1039,7 @@ curl -X GET "https://your-api.com/api/stripe/prices?productId=prod_xxxxxxxxxxxxx
 ```
 
 **Use Cases**:
+
 - Display all available pricing options in your UI
 - Filter prices by product to show only relevant pricing tiers
 - Get price IDs for creating subscriptions
@@ -1008,6 +1047,7 @@ curl -X GET "https://your-api.com/api/stripe/prices?productId=prod_xxxxxxxxxxxxx
 - Build a dynamic pricing table
 
 **Notes**:
+
 - Returns 6 prices by default (3 products × 2 billing intervals each)
 - When `productId` is provided, only returns prices for that specific product
 - Use the returned price IDs when creating subscriptions
@@ -1026,12 +1066,14 @@ Creates a payment intent for one-time payments. The payment intent is automatica
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 Content-Type: application/json
 ```
 
 **Request Body**:
+
 ```json
 {
   "amount": 9900,
@@ -1046,6 +1088,7 @@ Content-Type: application/json
 | `currency` | string | Yes | Three-letter ISO currency code (e.g., "usd", "eur", "gbp") |
 
 **Example Request**:
+
 ```bash
 curl -X POST https://your-api.com/api/stripe/payment-intent \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -1057,6 +1100,7 @@ curl -X POST https://your-api.com/api/stripe/payment-intent \
 ```
 
 **Response**: `201 Created`
+
 ```json
 {
   "paymentIntent": {
@@ -1072,12 +1116,13 @@ curl -X POST https://your-api.com/api/stripe/payment-intent \
 
 **Usage**:
 The `clientSecret` should be passed to the frontend where Stripe Elements can use it to confirm the payment:
+
 ```javascript
 const result = await stripe.confirmCardPayment(clientSecret, {
   payment_method: {
     card: cardElement,
-    billing_details: { name: 'Customer Name' }
-  }
+    billing_details: { name: 'Customer Name' },
+  },
 });
 ```
 
@@ -1092,12 +1137,14 @@ Attaches a payment method to the authenticated user's Stripe customer account an
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 Content-Type: application/json
 ```
 
 **Request Body**:
+
 ```json
 {
   "paymentMethodId": "pm_xxxxxxxxxxxxxxxx"
@@ -1110,6 +1157,7 @@ Content-Type: application/json
 | `paymentMethodId` | string | Yes | Stripe payment method ID (e.g., `pm_xxxxxxxxxxxxxxxx`) |
 
 **Example Request**:
+
 ```bash
 curl -X POST https://your-api.com/api/stripe/payment-method \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -1125,8 +1173,10 @@ Retrieves a list of all subscriptions from Stripe.
 
 **Headers**:
 ```
+
 Authorization: Bearer <JWT_TOKEN>
-```
+
+````
 
 **Query Parameters**: None
 
@@ -1134,9 +1184,10 @@ Authorization: Bearer <JWT_TOKEN>
 ```bash
 curl -X GET https://your-api.com/api/stripe/subscriptions \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
+````
 
 **Response**: `200 OK`
+
 ```json
 {
   "subscriptions": {
@@ -1230,6 +1281,7 @@ Retrieves detailed information about a specific subscription by ID.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -1240,12 +1292,14 @@ Authorization: Bearer <JWT_TOKEN>
 | `subscriptionId` | string | Yes | Stripe subscription ID (e.g., `sub_xxxxxxxxxxxxxxxx`) |
 
 **Example Request**:
+
 ```bash
 curl -X GET https://your-api.com/api/stripe/subscription/sub_xxxxxxxxxxxxxxxx \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "subscription": {
@@ -1359,25 +1413,29 @@ curl -X GET https://your-api.com/api/stripe/subscription/sub_xxxxxxxxxxxxxxxx \
 ---
 
 ### "paymentMethodId": "pm_xxxxxxxxxxxxxxxx"
-  }'
-```
+
+}'
+
+````
 
 **Response**: `200 OK`
 ```json
 {
   "paymentMethod": true
 }
-```
+````
 
 **What happens**:
+
 1. The payment method is attached to the customer
 2. The payment method is set as the default for future invoices
 3. Returns `true` on success
 
 **Obtaining a Payment Method ID**:
 Payment method IDs are typically created on the frontend using Stripe.js:
+
 ```javascript
-const {paymentMethod} = await stripe.createPaymentMethod({
+const { paymentMethod } = await stripe.createPaymentMethod({
   type: 'card',
   card: cardElement,
 });
@@ -1395,6 +1453,7 @@ Retrieves all payment methods associated with a customer.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -1408,12 +1467,14 @@ Authorization: Bearer <JWT_TOKEN>
 **Note**: The `type` parameter is defined in the route but not currently utilized in the service implementation. The service always fetches card payment methods.
 
 **Example Request**:
+
 ```bash
 curl -X GET https://your-api.com/api/stripe/payment-methods/cus_xxxxxxxxxxxxxxxx/card \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "paymentMethods": [
@@ -1479,12 +1540,14 @@ Creates a new subscription for a customer with a specific price plan.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 Content-Type: application/json
 ```
 
 **Request Body**:
+
 ```json
 {
   "customerId": "cus_xxxxxxxxxxxxxxxx",
@@ -1499,6 +1562,7 @@ Content-Type: application/json
 | `priceId` | string | Yes | Stripe price ID (e.g., `price_xxxxxxxxxxxxxxxx`) |
 
 **Example Request**:
+
 ```bash
 curl -X POST https://your-api.com/api/stripe/subscription \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -1510,6 +1574,7 @@ curl -X POST https://your-api.com/api/stripe/subscription \
 ```
 
 **Response**: `201 Created`
+
 ```json
 {
   "subscription": {
@@ -1677,6 +1742,7 @@ Cancels an active subscription immediately.
 **Authentication**: Required
 
 **Headers**:
+
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
@@ -1687,12 +1753,14 @@ Authorization: Bearer <JWT_TOKEN>
 | `subscriptionId` | string | Yes | Stripe subscription ID (e.g., `sub_xxxxxxxxxxxxxxxx`) |
 
 **Example Request**:
+
 ```bash
 curl -X DELETE https://your-api.com/api/stripe/subscription/sub_xxxxxxxxxxxxxxxx \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 **Response**: `200 OK`
+
 ```json
 {
   "confirmation": {
@@ -1804,6 +1872,7 @@ curl -X DELETE https://your-api.com/api/stripe/subscription/sub_xxxxxxxxxxxxxxxx
 ```
 
 **Key Changes After Cancellation**:
+
 - `status` changes to `"canceled"`
 - `canceled_at` timestamp is set
 - `ended_at` timestamp is set
@@ -1817,12 +1886,14 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ### Error Response Structure
 
 **Status Codes**:
+
 - `400` - Bad Request (invalid parameters)
 - `401` - Unauthorized (missing or invalid authentication)
 - `404` - Not Found (resource doesn't exist)
 - `500` - Internal Server Error (Stripe API errors, server errors)
 
 **Error Response Format**:
+
 ```json
 {
   "error": {
@@ -1844,6 +1915,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ### Common Error Scenarios
 
 #### 1. Invalid Customer ID
+
 ```json
 {
   "error": {
@@ -1855,6 +1927,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ```
 
 #### 2. Missing Authentication Token
+
 ```json
 {
   "error": {
@@ -1865,6 +1938,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ```
 
 #### 3. Invalid Payment Method
+
 ```json
 {
   "error": {
@@ -1876,6 +1950,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ```
 
 #### 4. Insufficient Funds
+
 ```json
 {
   "error": {
@@ -1892,6 +1967,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ```
 
 #### 5. Missing Required Fields
+
 ```json
 {
   "error": {
@@ -1906,6 +1982,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ## Response Structures
 
 ### Customer Object
+
 ```typescript
 {
   id: string;                    // Unique identifier (e.g., "cus_xxx")
@@ -1939,6 +2016,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ```
 
 ### Product Object
+
 ```typescript
 {
   id: string;                   // Unique identifier (e.g., "prod_xxx")
@@ -1968,37 +2046,39 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ```
 
 ### Price Object
+
 ```typescript
 {
-  id: string;                   // Unique identifier (e.g., "price_xxx")
-  object: "price";
+  id: string; // Unique identifier (e.g., "price_xxx")
+  object: 'price';
   active: boolean;
-  billing_scheme: "per_unit" | "tiered";
-  created: number;              // Unix timestamp
-  currency: string;             // Three-letter ISO code
+  billing_scheme: 'per_unit' | 'tiered';
+  created: number; // Unix timestamp
+  currency: string; // Three-letter ISO code
   custom_unit_amount: any | null;
   livemode: boolean;
   lookup_key: string | null;
   metadata: Record<string, string>;
-  nickname: string;             // e.g., "Professional Monthly"
-  product: string;              // Product ID
+  nickname: string; // e.g., "Professional Monthly"
+  product: string; // Product ID
   recurring: {
     aggregate_usage: string | null;
-    interval: "day" | "week" | "month" | "year";
+    interval: 'day' | 'week' | 'month' | 'year';
     interval_count: number;
     trial_period_days: number | null;
-    usage_type: "licensed" | "metered";
-  };
+    usage_type: 'licensed' | 'metered';
+  }
   tax_behavior: string;
   tiers_mode: string | null;
   transform_quantity: any | null;
-  type: "one_time" | "recurring";
-  unit_amount: number;          // Amount in cents
-  unit_amount_decimal: string;  // Decimal string representation
+  type: 'one_time' | 'recurring';
+  unit_amount: number; // Amount in cents
+  unit_amount_decimal: string; // Decimal string representation
 }
 ```
 
 ### Payment Method Object
+
 ```typescript
 {
   id: string;                   // Unique identifier (e.g., "pm_xxx")
@@ -2048,6 +2128,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ```
 
 ### Subscription Object
+
 ```typescript
 {
   id: string;                   // Unique identifier (e.g., "sub_xxx")
@@ -2125,12 +2206,14 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
 ### Complete Subscription Flow
 
 #### Step 1: Create Customer
+
 ```bash
 POST /api/stripe/customer
 Authorization: Bearer <token>
 ```
 
 #### Step 2: Get Available Products
+
 ```bash
 GET /api/stripe/products
 Authorization: Bearer <token>
@@ -2139,6 +2222,7 @@ Authorization: Bearer <token>
 Response will include all available plans with their price IDs.
 
 #### Step 3: Add Payment Method
+
 ```bash
 POST /api/stripe/payment-method
 Authorization: Bearer <token>
@@ -2150,6 +2234,7 @@ Content-Type: application/json
 ```
 
 #### Step 4: Create Subscription
+
 ```bash
 POST /api/stripe/subscription
 Authorization: Bearer <token>
@@ -2164,12 +2249,14 @@ Content-Type: application/json
 ### One-Time Payment Flow
 
 #### Step 1: Create Customer (if needed)
+
 ```bash
 POST /api/stripe/customer
 Authorization: Bearer <token>
 ```
 
 #### Step 2: Create Payment Intent
+
 ```bash
 POST /api/stripe/payment-intent
 Authorization: Bearer <token>
@@ -2182,13 +2269,15 @@ Content-Type: application/json
 ```
 
 #### Step 3: Confirm Payment (Frontend)
+
 Use the returned `clientSecret` with Stripe.js:
+
 ```javascript
 const result = await stripe.confirmCardPayment(clientSecret, {
   payment_method: {
     card: cardElement,
-    billing_details: { name: 'Customer Name' }
-  }
+    billing_details: { name: 'Customer Name' },
+  },
 });
 ```
 
@@ -2203,9 +2292,10 @@ STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
 ```
 
 This is configured in `config/index.js`:
+
 ```javascript
 stripe: {
-  stripe_secret_key: process.env.STRIPE_SECRET_KEY
+  stripe_secret_key: process.env.STRIPE_SECRET_KEY;
 }
 ```
 
@@ -2257,9 +2347,10 @@ The module uses Stripe API version `2022-11-15`. This is hardcoded in all servic
 ### User Model Reference
 
 Users should have a `stripeAccountId` field to link with Stripe customers:
+
 ```javascript
 {
-  stripeAccountId: String  // Stripe customer ID
+  stripeAccountId: String; // Stripe customer ID
 }
 ```
 
@@ -2270,6 +2361,7 @@ Users should have a `stripeAccountId` field to link with Stripe customers:
 ### Test Mode
 
 When using test mode (`livemode: false`), use test API keys:
+
 - Secret Key: `sk_test_...`
 - Publishable Key: `pk_test_...`
 
@@ -2277,11 +2369,11 @@ When using test mode (`livemode: false`), use test API keys:
 
 Use these test card numbers for different scenarios:
 
-| Card Number | Scenario |
-|-------------|----------|
-| 4242 4242 4242 4242 | Success |
-| 4000 0000 0000 0002 | Declined |
-| 4000 0000 0000 9995 | Insufficient funds |
+| Card Number         | Scenario                          |
+| ------------------- | --------------------------------- |
+| 4242 4242 4242 4242 | Success                           |
+| 4000 0000 0000 0002 | Declined                          |
+| 4000 0000 0000 9995 | Insufficient funds                |
 | 4000 0025 0000 3155 | 3D Secure authentication required |
 
 **Expiration Date**: Any future date  

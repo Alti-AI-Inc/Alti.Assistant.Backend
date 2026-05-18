@@ -3,13 +3,15 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { videoService } from './video.service.js';
-import { videoApp } from "./video_assistant/workflow.js";
+import { videoApp } from './video_assistant/workflow.js';
 import { videoHelpers } from './video.helper.js';
 
 // Generate video similar to image module flow
 export const generateVideo = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? videoService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+  let userId = isGuest
+    ? videoService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
   userId = req.body?.userId || userId;
 
   const { message, conversationId } = req.body;
@@ -30,7 +32,8 @@ export const generateVideo = catchAsync(async (req, res) => {
     });
   }
 
-  const thread_id = conversationId || videoService.generateVideoConversationId();
+  const thread_id =
+    conversationId || videoService.generateVideoConversationId();
 
   try {
     const conversation = await videoService.handleVideoConversation(
@@ -43,12 +46,20 @@ export const generateVideo = catchAsync(async (req, res) => {
     const actualConversationId = conversation.conversationId || thread_id;
 
     // Add user message to conversation
-    await videoService.addVideoQueryMessage(actualConversationId, userId, message, isGuest, req);
+    await videoService.addVideoQueryMessage(
+      actualConversationId,
+      userId,
+      message,
+      isGuest,
+      req
+    );
 
     // Determine if this is the first message or a subsequent message
     const isFirstMessage = conversation.messageCount === 0 || !conversationId;
 
-    logger.info(`Video generation for conversation ${actualConversationId}: isFirstMessage=${isFirstMessage}, messageCount=${conversation.messageCount}`);
+    logger.info(
+      `Video generation for conversation ${actualConversationId}: isFirstMessage=${isFirstMessage}, messageCount=${conversation.messageCount}`
+    );
 
     let inputs;
     if (isFirstMessage) {
@@ -59,27 +70,32 @@ export const generateVideo = catchAsync(async (req, res) => {
     } else {
       // For subsequent messages, use userResponse
       inputs = {
-        userResponse: message
+        userResponse: message,
       };
     }
 
-    const result = await videoApp.invoke(inputs, { configurable: { thread_id: actualConversationId } });
-    logger.info(`Video Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
+    const result = await videoApp.invoke(inputs, {
+      configurable: { thread_id: actualConversationId },
+    });
+    logger.info(
+      `Video Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+    );
 
-    let fullResponse = "";
+    let fullResponse = '';
     let videoData = null;
 
     // Handle different response types from the video assistant
     if (result.videoUrl) {
       // If video was generated
-      fullResponse = result.response || "Video generated successfully";
+      fullResponse = result.response || 'Video generated successfully';
       videoData = result.videoUrl;
     } else if (result.responseMessage) {
       // If it's a clarification or question
       fullResponse = result.responseMessage;
     } else {
       // Fallback
-      fullResponse = "I'm processing your video request. Could you provide more details?";
+      fullResponse =
+        "I'm processing your video request. Could you provide more details?";
     }
 
     // Add assistant response to conversation
@@ -89,7 +105,7 @@ export const generateVideo = catchAsync(async (req, res) => {
       fullResponse,
       {
         video: videoData,
-        preferences: inputs.preferences
+        preferences: inputs.preferences,
       },
       isGuest,
       req
@@ -114,7 +130,8 @@ export const generateVideo = catchAsync(async (req, res) => {
     logger.error('Video Assistant Error:', error);
 
     // Try to save error message to conversation if possible
-    const errorConversationId = conversationId || videoService.generateVideoConversationId();
+    const errorConversationId =
+      conversationId || videoService.generateVideoConversationId();
     try {
       if (errorConversationId && userId) {
         await videoService.addErrorMessage(
@@ -164,7 +181,7 @@ const getVideoStats = catchAsync(async (req, res) => {
 const getVideoConversation = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
   const isGuest = req.isGuest || !req.user;
-  const userId = isGuest ? null : (req.user?.userId || req.user?._id);
+  const userId = isGuest ? null : req.user?.userId || req.user?._id;
 
   if (!conversationId) {
     return sendResponse(res, {
@@ -177,9 +194,16 @@ const getVideoConversation = catchAsync(async (req, res) => {
   try {
     let conversation;
     if (isGuest) {
-      conversation = await videoService.getGuestConversation(conversationId, req);
+      conversation = await videoService.getGuestConversation(
+        conversationId,
+        req
+      );
     } else {
-      conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+      conversation = await conversationHelpers.getConversationById(
+        conversationId,
+        userId,
+        req
+      );
     }
 
     return sendResponse(res, {
@@ -206,7 +230,10 @@ const getGuestConversations = catchAsync(async (req, res) => {
       message: 'Guest user ID is required',
     });
   }
-  const conversations = await videoService.getGuestConversations(guestUserId, req);
+  const conversations = await videoService.getGuestConversations(
+    guestUserId,
+    req
+  );
   return sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

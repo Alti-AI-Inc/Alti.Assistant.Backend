@@ -1,15 +1,15 @@
 /**
  * Image Assistant Service Module
- * 
+ *
  * This service handles all image-related operations including:
  * - Managing image conversations and chat history
  * - Integration with the conversation system for persistent storage
  * - Image query processing and result handling
  * - User statistics and usage tracking
  * - Error handling and recovery
- * 
+ *
  * Structure follows the same pattern as the search and code modules for consistency.
- * 
+ *
  * @module ImageService
  */
 
@@ -46,27 +46,47 @@ const generateImageConversationId = () => {
  * @param {Object} req
  * @returns {Promise<Object>}
  */
-const handleImageConversation = async (userId, conversationId, imageQuery, isGuest = false, req = null) => {
+const handleImageConversation = async (
+  userId,
+  conversationId,
+  imageQuery,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
-        console.log(`Found existing conversation ${conversationId} for user ${userId}`);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          isGuest ? null : userId,
+          req
+        );
+        console.log(
+          `Found existing conversation ${conversationId} for user ${userId}`
+        );
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
         if (isGuest && conversation.metadata?.userType !== 'guest') {
-          logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
+          logger.warn(
+            `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
+          );
           conversation = null; // Force creation of new conversation
         }
-
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+        );
       }
     }
-    console.log('Parameters for conversation:', { userId, conversationId, imageQuery, isGuest });
+    console.log('Parameters for conversation:', {
+      userId,
+      conversationId,
+      imageQuery,
+      isGuest,
+    });
 
     // Create conversation if it doesn't exist
     if (!conversation) {
@@ -109,13 +129,18 @@ const handleImageConversation = async (userId, conversationId, imageQuery, isGue
         );
       }
 
-      console.log(`Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`);
+      console.log(
+        `Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling image conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle image conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle image conversation'
+    );
   }
 };
 
@@ -128,10 +153,17 @@ const handleImageConversation = async (userId, conversationId, imageQuery, isGue
  * @param {Object} req
  * @returns {Promise<Object>}
  */
-const addImageQueryMessage = async (conversationId, userId, imageQuery, isGuest = false, req = null) => {
+const addImageQueryMessage = async (
+  conversationId,
+  userId,
+  imageQuery,
+  isGuest = false,
+  req = null
+) => {
   try {
-
-    console.log(`Adding image query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding image query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the message in the conversation for both guest and authenticated users
     const message = await conversationService.addMessageToConversation(
@@ -148,11 +180,16 @@ const addImageQueryMessage = async (conversationId, userId, imageQuery, isGuest 
       req
     );
 
-    logger.info(`Added image query message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`);
+    logger.info(
+      `Added image query message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+    );
     return message;
   } catch (error) {
     logger.error('Error adding image query message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add image query message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add image query message'
+    );
   }
 };
 
@@ -166,7 +203,14 @@ const addImageQueryMessage = async (conversationId, userId, imageQuery, isGuest 
  * @param {Object} req
  * @returns {Promise<Object>}
  */
-const addImageResultMessage = async (conversationId, userId, imageResult, metadata = {}, isGuest = false, req = null) => {
+const addImageResultMessage = async (
+  conversationId,
+  userId,
+  imageResult,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
     // Store the result in the conversation for both guest and authenticated users
     const message = await conversationService.addMessageToConversation(
@@ -174,7 +218,10 @@ const addImageResultMessage = async (conversationId, userId, imageResult, metada
       userId,
       {
         role: 'assistant',
-        content: typeof imageResult === 'string' ? imageResult : JSON.stringify(imageResult),
+        content:
+          typeof imageResult === 'string'
+            ? imageResult
+            : JSON.stringify(imageResult),
         metadata: {
           messageType: 'image_result',
           timestamp: new Date().toISOString(),
@@ -185,11 +232,16 @@ const addImageResultMessage = async (conversationId, userId, imageResult, metada
       req
     );
 
-    logger.info(`Added image result message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`);
+    logger.info(
+      `Added image result message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+    );
     return message;
   } catch (error) {
     logger.error('Error adding image result message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add image result message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add image result message'
+    );
   }
 };
 
@@ -203,7 +255,14 @@ const addImageResultMessage = async (conversationId, userId, imageResult, metada
  * @param {Object} req
  * @returns {Promise<Object>}
  */
-const addErrorMessage = async (conversationId, userId, errorMessage, error, isGuest = false, req = null) => {
+const addErrorMessage = async (
+  conversationId,
+  userId,
+  errorMessage,
+  error,
+  isGuest = false,
+  req = null
+) => {
   try {
     // Store the error in the conversation for both guest and authenticated users
     const message = await conversationService.addMessageToConversation(
@@ -217,14 +276,17 @@ const addErrorMessage = async (conversationId, userId, errorMessage, error, isGu
           timestamp: new Date().toISOString(),
           error: {
             message: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+            stack:
+              process.env.NODE_ENV === 'development' ? error.stack : undefined,
           },
         },
       },
       req
     );
 
-    logger.info(`Added error message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`);
+    logger.info(
+      `Added error message to conversation ${conversationId} for ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+    );
     return message;
   } catch (convError) {
     logger.error('Error adding error message to conversation:', convError);
@@ -241,21 +303,30 @@ const addErrorMessage = async (conversationId, userId, errorMessage, error, isGu
  */
 const getGuestConversations = async (guestUserId, req = null) => {
   try {
-    const conversations = await conversationHelpers.getUserConversations(guestUserId, {
-      category: 'image',
-      limit: 100, // Limit guest conversations
-    }, req);
+    const conversations = await conversationHelpers.getUserConversations(
+      guestUserId,
+      {
+        category: 'image',
+        limit: 100, // Limit guest conversations
+      },
+      req
+    );
 
     // Filter to only return guest conversations
     const guestConversations = conversations.conversations.filter(
-      conv => conv.metadata?.userType === 'guest'
+      (conv) => conv.metadata?.userType === 'guest'
     );
 
-    logger.info(`Retrieved ${guestConversations.length} guest conversations for user ${guestUserId}`);
+    logger.info(
+      `Retrieved ${guestConversations.length} guest conversations for user ${guestUserId}`
+    );
     return guestConversations;
   } catch (error) {
     logger.error('Error getting guest conversations:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve guest conversations');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve guest conversations'
+    );
   }
 };
 
@@ -266,9 +337,17 @@ const getGuestConversations = async (guestUserId, req = null) => {
  * @param {Object} req
  * @returns {Promise<Object>}
  */
-const getGuestConversation = async (conversationId, guestUserId, req = null) => {
+const getGuestConversation = async (
+  conversationId,
+  guestUserId,
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, guestUserId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      guestUserId,
+      req
+    );
 
     // Verify it's a guest conversation
     if (conversation && conversation.metadata?.userType === 'guest') {
@@ -291,10 +370,14 @@ const getGuestConversation = async (conversationId, guestUserId, req = null) => 
 const getImageStats = async (userId, req = null) => {
   try {
     // Get conversation count for image category
-    const imageConversations = await conversationHelpers.getUserConversations(userId, {
-      category: 'image',
-      limit: 1000, // Get all for counting
-    }, req);
+    const imageConversations = await conversationHelpers.getUserConversations(
+      userId,
+      {
+        category: 'image',
+        limit: 1000, // Get all for counting
+      },
+      req
+    );
 
     // Calculate total messages across all image conversations
     let totalMessages = 0;
@@ -310,9 +393,10 @@ const getImageStats = async (userId, req = null) => {
       totalConversations: imageConversations.totalCount,
       totalMessages,
       totalImages,
-      averageMessagesPerConversation: imageConversations.totalCount > 0
-        ? (totalMessages / imageConversations.totalCount).toFixed(2)
-        : 0,
+      averageMessagesPerConversation:
+        imageConversations.totalCount > 0
+          ? (totalMessages / imageConversations.totalCount).toFixed(2)
+          : 0,
       lastActivity: imageConversations.conversations[0]?.lastActivity || null,
     };
 
@@ -320,7 +404,10 @@ const getImageStats = async (userId, req = null) => {
     return stats;
   } catch (error) {
     logger.error('Error getting image stats:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve image statistics');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve image statistics'
+    );
   }
 };
 

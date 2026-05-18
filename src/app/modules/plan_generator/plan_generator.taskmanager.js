@@ -77,7 +77,12 @@ export const updateTaskProgress = (taskId, updates) => {
   Object.assign(task, updates, { updatedAt: new Date() });
   tasks.set(taskId, task);
 
-  logger.info('Task updated:', { taskId, status: task.status, stage: task.stage, progress: task.progress });
+  logger.info('Task updated:', {
+    taskId,
+    status: task.status,
+    stage: task.stage,
+    progress: task.progress,
+  });
 
   return task;
 };
@@ -85,7 +90,14 @@ export const updateTaskProgress = (taskId, updates) => {
 /**
  * Process plan generation task asynchronously
  */
-export const processTask = async (taskId, userId, message, conversationId, isGuest, fileInfo) => {
+export const processTask = async (
+  taskId,
+  userId,
+  message,
+  conversationId,
+  isGuest,
+  fileInfo
+) => {
   const task = tasks.get(taskId);
   if (!task) {
     logger.error('Task not found:', taskId);
@@ -158,7 +170,10 @@ export const processTask = async (taskId, userId, message, conversationId, isGue
       completedAt: new Date(),
     });
 
-    logger.info('Task completed successfully:', { taskId, conversationId: result.conversationId });
+    logger.info('Task completed successfully:', {
+      taskId,
+      conversationId: result.conversationId,
+    });
   } catch (error) {
     logger.error('Task failed:', { taskId, error: error.message });
 
@@ -181,7 +196,11 @@ export const cleanupOldTasks = (maxAgeMinutes = 60) => {
 
   for (const [taskId, task] of tasks.entries()) {
     const age = (now - task.createdAt) / (1000 * 60); // age in minutes
-    if (age > maxAgeMinutes && (task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.FAILED)) {
+    if (
+      age > maxAgeMinutes &&
+      (task.status === TASK_STATUS.COMPLETED ||
+        task.status === TASK_STATUS.FAILED)
+    ) {
       tasks.delete(taskId);
       cleaned++;
     }

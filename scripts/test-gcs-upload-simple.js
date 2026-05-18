@@ -32,7 +32,6 @@ async function testUpload() {
     console.log('GCS Path:', uploadResult.gcsPath);
     console.log('Bucket:', uploadResult.bucket);
     console.log('Size:', uploadResult.size, 'bytes');
-
   } catch (error) {
     console.error('❌ Upload failed:', error.message);
     console.error(error.stack);

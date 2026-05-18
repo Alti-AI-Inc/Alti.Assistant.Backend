@@ -35,7 +35,6 @@ class CronManager {
 
       this.isInitialized = true;
       logger.info('CronManager initialized successfully');
-
     } catch (error) {
       logger.error('Failed to initialize CronManager:', error);
       throw error;
@@ -75,19 +74,22 @@ class CronManager {
         // Convert to cron expression for the specific date/time
         cronExpression = this.dateTimeToCron(triggerTime);
         description = `One-time execution at ${triggerTime.toISOString()}`;
-
       } else if (workflow.triggerType === 'recurring') {
         // Recurring scheduled execution
         if (!scheduleConfig.cronExpression) {
-          throw new Error('Cron expression is required for recurring workflows');
+          throw new Error(
+            'Cron expression is required for recurring workflows'
+          );
         }
 
         cronExpression = scheduleConfig.cronExpression;
         description = `Recurring execution: ${cronExpression}`;
-
       } else {
         // Manual trigger workflows don't need cron scheduling
-        return { success: true, message: 'Manual trigger workflow, no scheduling needed' };
+        return {
+          success: true,
+          message: 'Manual trigger workflow, no scheduling needed',
+        };
       }
 
       // Validate cron expression
@@ -96,27 +98,31 @@ class CronManager {
       }
 
       // Create and start the cron job
-      const cronJob = cron.schedule(cronExpression, async () => {
-        await this.executeCronJob(workflowId);
-      }, {
-        scheduled: true,
-        timezone: scheduleConfig.timezone || 'UTC'
-      });
+      const cronJob = cron.schedule(
+        cronExpression,
+        async () => {
+          await this.executeCronJob(workflowId);
+        },
+        {
+          scheduled: true,
+          timezone: scheduleConfig.timezone || 'UTC',
+        }
+      );
 
       // Store the cron job
       this.activeCronJobs.set(workflowId, {
         job: cronJob,
         cronExpression,
         description,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       // Update next execution time in database
-      const nextExecution = this.getNextExecutionTime(cronExpression, scheduleConfig.timezone);
-      await ScheduledWorkflow.updateOne(
-        { workflowId },
-        { nextExecution }
+      const nextExecution = this.getNextExecutionTime(
+        cronExpression,
+        scheduleConfig.timezone
       );
+      await ScheduledWorkflow.updateOne({ workflowId }, { nextExecution });
 
       logger.info(`Workflow ${workflowId} scheduled: ${description}`);
 
@@ -126,15 +132,17 @@ class CronManager {
         data: {
           cronExpression,
           description,
-          nextExecution
-        }
+          nextExecution,
+        },
       };
-
     } catch (error) {
-      logger.error(`Failed to schedule workflow ${workflow.workflowId}:`, error);
+      logger.error(
+        `Failed to schedule workflow ${workflow.workflowId}:`,
+        error
+      );
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -145,12 +153,12 @@ class CronManager {
   async unscheduleWorkflow(workflowId) {
     try {
       const cronJobData = this.activeCronJobs.get(workflowId);
-      
+
       if (cronJobData) {
         cronJobData.job.stop();
         cronJobData.job.destroy();
         this.activeCronJobs.delete(workflowId);
-        
+
         logger.info(`Workflow ${workflowId} unscheduled`);
       }
 
@@ -161,12 +169,11 @@ class CronManager {
       );
 
       return { success: true };
-
     } catch (error) {
       logger.error(`Failed to unschedule workflow ${workflowId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -179,12 +186,14 @@ class CronManager {
       // First unschedule, then schedule again
       await this.unscheduleWorkflow(workflow.workflowId);
       return await this.scheduleWorkflow(workflow);
-
     } catch (error) {
-      logger.error(`Failed to reschedule workflow ${workflow.workflowId}:`, error);
+      logger.error(
+        `Failed to reschedule workflow ${workflow.workflowId}:`,
+        error
+      );
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -198,7 +207,7 @@ class CronManager {
 
       // Get workflow from database
       const workflow = await ScheduledWorkflow.findOne({ workflowId });
-      
+
       if (!workflow) {
         logger.error(`Workflow not found: ${workflowId}`);
         this.unscheduleWorkflow(workflowId); // Clean up orphaned cron job
@@ -211,32 +220,40 @@ class CronManager {
       }
 
       // Execute the workflow
-      const executionResult = await workflowExecutor.executeWorkflow(workflow, 'scheduled', 'cron_job');
+      const executionResult = await workflowExecutor.executeWorkflow(
+        workflow,
+        'scheduled',
+        'cron_job'
+      );
 
       // Handle one-time scheduled workflows
       if (workflow.triggerType === 'scheduled') {
         // Mark as completed and unschedule
-        await workflow.updateOne({ 
+        await workflow.updateOne({
           status: 'completed',
-          'scheduleConfig.isActive': false 
+          'scheduleConfig.isActive': false,
         });
         await this.unscheduleWorkflow(workflowId);
-        
-        logger.info(`One-time scheduled workflow ${workflowId} completed and unscheduled`);
+
+        logger.info(
+          `One-time scheduled workflow ${workflowId} completed and unscheduled`
+        );
       } else {
         // For recurring workflows, update next execution time
         const nextExecution = this.getNextExecutionTime(
-          workflow.scheduleConfig.cronExpression, 
+          workflow.scheduleConfig.cronExpression,
           workflow.scheduleConfig.timezone
         );
-        
+
         await workflow.updateOne({ nextExecution });
       }
 
       logger.info(`Cron job execution completed for workflow: ${workflowId}`);
-
     } catch (error) {
-      logger.error(`Error executing cron job for workflow ${workflowId}:`, error);
+      logger.error(
+        `Error executing cron job for workflow ${workflowId}:`,
+        error
+      );
     }
   }
 
@@ -248,7 +265,7 @@ class CronManager {
       const activeWorkflows = await ScheduledWorkflow.find({
         status: 'active',
         'scheduleConfig.isActive': true,
-        triggerType: { $in: ['scheduled', 'recurring'] }
+        triggerType: { $in: ['scheduled', 'recurring'] },
       });
 
       logger.info(`Loading ${activeWorkflows.length} active workflows`);
@@ -258,7 +275,6 @@ class CronManager {
       }
 
       logger.info(`Loaded and scheduled ${activeWorkflows.length} workflows`);
-
     } catch (error) {
       logger.error('Failed to load active workflows:', error);
     }
@@ -269,32 +285,37 @@ class CronManager {
    */
   setupCleanupJob() {
     // Run cleanup every hour
-    cron.schedule('0 * * * *', async () => {
-      try {
-        logger.info('Running workflow cleanup job');
+    cron.schedule(
+      '0 * * * *',
+      async () => {
+        try {
+          logger.info('Running workflow cleanup job');
 
-        // Find completed one-time workflows older than 24 hours
-        const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        
-        const completedWorkflows = await ScheduledWorkflow.find({
-          triggerType: 'scheduled',
-          status: 'completed',
-          updatedAt: { $lt: cutoffDate }
-        });
+          // Find completed one-time workflows older than 24 hours
+          const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-        for (const workflow of completedWorkflows) {
-          // Ensure cron job is removed
-          await this.unscheduleWorkflow(workflow.workflowId);
+          const completedWorkflows = await ScheduledWorkflow.find({
+            triggerType: 'scheduled',
+            status: 'completed',
+            updatedAt: { $lt: cutoffDate },
+          });
+
+          for (const workflow of completedWorkflows) {
+            // Ensure cron job is removed
+            await this.unscheduleWorkflow(workflow.workflowId);
+          }
+
+          logger.info(
+            `Cleanup completed: processed ${completedWorkflows.length} completed workflows`
+          );
+        } catch (error) {
+          logger.error('Error in cleanup job:', error);
         }
-
-        logger.info(`Cleanup completed: processed ${completedWorkflows.length} completed workflows`);
-
-      } catch (error) {
-        logger.error('Error in cleanup job:', error);
+      },
+      {
+        timezone: 'UTC',
       }
-    }, {
-      timezone: 'UTC'
-    });
+    );
 
     logger.info('Cleanup job scheduled');
   }
@@ -304,12 +325,18 @@ class CronManager {
    */
   setupHealthCheckJob() {
     // Health check every 5 minutes
-    cron.schedule('*/5 * * * *', () => {
-      const activeJobsCount = this.activeCronJobs.size;
-      logger.debug(`CronManager health check: ${activeJobsCount} active jobs`);
-    }, {
-      timezone: 'UTC'
-    });
+    cron.schedule(
+      '*/5 * * * *',
+      () => {
+        const activeJobsCount = this.activeCronJobs.size;
+        logger.debug(
+          `CronManager health check: ${activeJobsCount} active jobs`
+        );
+      },
+      {
+        timezone: 'UTC',
+      }
+    );
 
     logger.info('Health check job scheduled');
   }
@@ -319,12 +346,12 @@ class CronManager {
    */
   dateTimeToCron(dateTime) {
     const date = new Date(dateTime);
-    
+
     const minute = date.getMinutes();
     const hour = date.getHours();
     const day = date.getDate();
     const month = date.getMonth() + 1; // JavaScript months are 0-indexed
-    
+
     // For one-time execution: specific minute, hour, day, month, any day of week
     return `${minute} ${hour} ${day} ${month} *`;
   }
@@ -337,11 +364,10 @@ class CronManager {
       // This is a simplified implementation
       // In production, you might want to use a library like 'cron-parser'
       const now = new Date();
-      
+
       // For demo purposes, add 1 hour to current time
       // Real implementation would parse the cron expression
       return new Date(now.getTime() + 60 * 60 * 1000);
-      
     } catch (error) {
       logger.error('Error calculating next execution time:', error);
       return null;
@@ -352,18 +378,20 @@ class CronManager {
    * Get status of all active cron jobs
    */
   getStatus() {
-    const jobs = Array.from(this.activeCronJobs.entries()).map(([workflowId, jobData]) => ({
-      workflowId,
-      cronExpression: jobData.cronExpression,
-      description: jobData.description,
-      createdAt: jobData.createdAt,
-      isRunning: jobData.job.running
-    }));
+    const jobs = Array.from(this.activeCronJobs.entries()).map(
+      ([workflowId, jobData]) => ({
+        workflowId,
+        cronExpression: jobData.cronExpression,
+        description: jobData.description,
+        createdAt: jobData.createdAt,
+        isRunning: jobData.job.running,
+      })
+    );
 
     return {
       isInitialized: this.isInitialized,
       activeJobsCount: this.activeCronJobs.size,
-      jobs
+      jobs,
     };
   }
 
@@ -383,7 +411,6 @@ class CronManager {
       this.isInitialized = false;
 
       logger.info('CronManager shutdown completed');
-
     } catch (error) {
       logger.error('Error during CronManager shutdown:', error);
     }
@@ -395,28 +422,31 @@ class CronManager {
   async triggerScheduledWorkflow(workflowId) {
     try {
       const workflow = await ScheduledWorkflow.findOne({ workflowId });
-      
+
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
       // Execute the workflow manually
-      const executionResult = await workflowExecutor.executeWorkflow(workflow, 'manual', 'user_trigger');
+      const executionResult = await workflowExecutor.executeWorkflow(
+        workflow,
+        'manual',
+        'user_trigger'
+      );
 
       return {
         success: true,
         data: executionResult,
-        message: 'Workflow triggered successfully'
+        message: 'Workflow triggered successfully',
       };
-
     } catch (error) {
       logger.error(`Error triggering scheduled workflow ${workflowId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

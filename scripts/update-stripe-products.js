@@ -36,7 +36,7 @@ const UPDATED_PLANS = [
       '10 requests/day',
       'No Team Collaboration',
       'No document storage',
-      'Basic support'
+      'Basic support',
     ],
     metadata: {
       plan: 'free',
@@ -60,7 +60,7 @@ const UPDATED_PLANS = [
       'Basic Text Document RAG',
       '10GB storage per user',
       'Invite Your Team',
-      'Email support'
+      'Email support',
     ],
     metadata: {
       plan: 'explore',
@@ -85,7 +85,7 @@ const UPDATED_PLANS = [
       '50GB storage per user',
       'Invite Your Team',
       'Priority email support',
-      'Advanced analytics'
+      'Advanced analytics',
     ],
     metadata: {
       plan: 'execute',
@@ -111,7 +111,7 @@ const UPDATED_PLANS = [
       'Invite Your Team',
       'Priority support with dedicated account manager',
       'Advanced analytics',
-      'Custom integrations'
+      'Custom integrations',
     ],
     metadata: {
       plan: 'command',
@@ -127,11 +127,13 @@ const UPDATED_PLANS = [
  */
 function loadExistingProducts() {
   const configPath = path.join(process.cwd(), 'config', 'stripe-products.json');
-  
+
   if (!fs.existsSync(configPath)) {
-    throw new Error(`Config file not found: ${configPath}. Products must exist before updating.`);
+    throw new Error(
+      `Config file not found: ${configPath}. Products must exist before updating.`
+    );
   }
-  
+
   const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
   return config.plans;
 }
@@ -142,17 +144,20 @@ function loadExistingProducts() {
 async function updateStripeProduct(productId, planData) {
   try {
     console.log(`\n📦 Updating Stripe product: ${planData.name}...`);
-    
+
     const updatedProduct = await stripe.products.update(productId, {
       name: planData.name,
       description: planData.description,
       metadata: planData.metadata,
     });
-    
+
     console.log(`✅ Stripe product updated: ${updatedProduct.id}`);
     return updatedProduct;
   } catch (error) {
-    console.error(`❌ Error updating Stripe product ${productId}:`, error.message);
+    console.error(
+      `❌ Error updating Stripe product ${productId}:`,
+      error.message
+    );
     throw error;
   }
 }
@@ -163,11 +168,11 @@ async function updateStripeProduct(productId, planData) {
 async function updateStripePrice(priceId, planData) {
   try {
     console.log(`💰 Updating Stripe price metadata: ${priceId}...`);
-    
+
     const updatedPrice = await stripe.prices.update(priceId, {
       metadata: planData.metadata,
     });
-    
+
     console.log(`✅ Stripe price metadata updated: ${updatedPrice.id}`);
     return updatedPrice;
   } catch (error) {
@@ -182,14 +187,14 @@ async function updateStripePrice(priceId, planData) {
 async function updateProductInDatabase(existingProduct, updatedPlanData) {
   try {
     console.log(`💾 Updating database product: ${updatedPlanData.name}...`);
-    
+
     const sortOrderMap = {
-      'free': 0,
-      'explore': 1,
-      'execute': 2,
-      'command': 3,
+      free: 0,
+      explore: 1,
+      execute: 2,
+      command: 3,
     };
-    
+
     const updateData = {
       name: updatedPlanData.name,
       displayName: updatedPlanData.name,
@@ -206,18 +211,20 @@ async function updateProductInDatabase(existingProduct, updatedPlanData) {
       isVisible: updatedPlanData.plan !== 'free',
       sortOrder: sortOrderMap[updatedPlanData.plan] || 999,
     };
-    
+
     const updatedProduct = await Product.findOneAndUpdate(
       { plan: updatedPlanData.plan },
       updateData,
       { new: true, upsert: false }
     );
-    
+
     if (!updatedProduct) {
-      console.log(`⚠️  Product not found in database for plan: ${updatedPlanData.plan}, skipping...`);
+      console.log(
+        `⚠️  Product not found in database for plan: ${updatedPlanData.plan}, skipping...`
+      );
       return null;
     }
-    
+
     console.log(`✅ Database product updated: ${updatedProduct.plan}`);
     return updatedProduct;
   } catch (error) {
@@ -254,8 +261,12 @@ function saveToConfig(results) {
 async function updateStripeProducts() {
   console.log('🔄 Starting Stripe Products Update Script...\n');
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Stripe API Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Found' : '❌ Missing'}`);
-  console.log(`MongoDB URI: ${process.env.DATABASE_LOCAL ? '✅ Found' : '❌ Missing'}\n`);
+  console.log(
+    `Stripe API Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Found' : '❌ Missing'}`
+  );
+  console.log(
+    `MongoDB URI: ${process.env.DATABASE_LOCAL ? '✅ Found' : '❌ Missing'}\n`
+  );
 
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('❌ STRIPE_SECRET_KEY not found in environment variables');
@@ -288,10 +299,14 @@ async function updateStripeProducts() {
       console.log('='.repeat(60));
 
       // Find existing product for this plan
-      const existingProduct = existingProducts.find(p => p.plan === updatedPlan.plan);
+      const existingProduct = existingProducts.find(
+        (p) => p.plan === updatedPlan.plan
+      );
 
       if (!existingProduct) {
-        console.log(`⚠️  No existing product found for ${updatedPlan.plan}, skipping...`);
+        console.log(
+          `⚠️  No existing product found for ${updatedPlan.plan}, skipping...`
+        );
         continue;
       }
 
@@ -329,7 +344,9 @@ async function updateStripeProducts() {
     console.log('\n' + '='.repeat(60));
     console.log('✅ UPDATE COMPLETED SUCCESSFULLY!');
     console.log('='.repeat(60));
-    console.log(`\n📊 Updated ${updatedCount} out of ${UPDATED_PLANS.length} plans\n`);
+    console.log(
+      `\n📊 Updated ${updatedCount} out of ${UPDATED_PLANS.length} plans\n`
+    );
 
     results.forEach((result) => {
       console.log(`${result.name}:`);
@@ -337,19 +354,24 @@ async function updateStripeProducts() {
       console.log(`  Product ID: ${result.productId}`);
       console.log(`  Price ID: ${result.priceId}`);
       console.log(`  Features:`);
-      console.log(`    - Daily Request Limit: ${result.features.dailyRequestLimit}`);
+      console.log(
+        `    - Daily Request Limit: ${result.features.dailyRequestLimit}`
+      );
       console.log(`    - RAG Type: ${result.features.ragType}`);
-      console.log(`    - Storage Per User: ${(result.features.storagePerUser / 1073741824).toFixed(0)}GB`);
+      console.log(
+        `    - Storage Per User: ${(result.features.storagePerUser / 1073741824).toFixed(0)}GB`
+      );
       console.log(`    - Can Invite Team: ${result.features.canInviteTeam}`);
       console.log('');
     });
 
     console.log('📝 Next Steps:');
-    console.log('   1. Verify updates in Stripe Dashboard: https://dashboard.stripe.com/products');
+    console.log(
+      '   1. Verify updates in Stripe Dashboard: https://dashboard.stripe.com/products'
+    );
     console.log('   2. Test GET /api/v1/stripe/products endpoint');
     console.log('   3. Update subscription creation logic to use new features');
     console.log('   4. Deploy limit enforcement middleware\n');
-
   } catch (error) {
     console.error('\n❌ Update failed:', error.message);
     console.error('Stack trace:', error.stack);

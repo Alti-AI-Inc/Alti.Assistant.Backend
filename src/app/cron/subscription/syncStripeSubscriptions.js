@@ -73,9 +73,7 @@ const syncStripeSubscriptions = async () => {
 
         if (Math.abs(stripePeriodEnd - dbPeriodEnd) > 1000) {
           // Allow 1 second difference
-          logger.warn(
-            `Billing period mismatch for subscription ${dbSub._id}`
-          );
+          logger.warn(`Billing period mismatch for subscription ${dbSub._id}`);
           needsUpdate = true;
           updates['billingCycle.currentPeriodStart'] = new Date(
             stripeSub.current_period_start * 1000
@@ -86,18 +84,13 @@ const syncStripeSubscriptions = async () => {
         // Update if needed
         if (needsUpdate) {
           await SubscriptionModel.findByIdAndUpdate(dbSub._id, updates);
-          logger.info(
-            `Updated subscription ${dbSub._id} with Stripe data`
-          );
+          logger.info(`Updated subscription ${dbSub._id} with Stripe data`);
           updated++;
         }
 
         synced++;
       } catch (error) {
-        logger.error(
-          `Error syncing subscription ${dbSub._id}:`,
-          error.message
-        );
+        logger.error(`Error syncing subscription ${dbSub._id}:`, error.message);
         errors++;
 
         // If subscription not found in Stripe, mark as cancelled
@@ -135,7 +128,9 @@ export const startStripeSyncCron = () => {
     timezone: 'UTC',
   });
 
-  logger.info('Stripe subscription sync cron job scheduled (every hour at :00)');
+  logger.info(
+    'Stripe subscription sync cron job scheduled (every hour at :00)'
+  );
 
   // Optional: Run on startup after 5 minutes
   // setTimeout(() => {

@@ -5,6 +5,7 @@ Get started with the Rewrite module in 5 minutes!
 ## What It Does
 
 The Rewrite module allows users to:
+
 - ✍️ Rewrite text or uploaded documents
 - 🎨 Choose different writing styles (formal, casual, professional, academic, etc.)
 - 📁 Optionally generate downloadable files
@@ -15,6 +16,7 @@ The Rewrite module allows users to:
 ### 1. Simple Text Rewrite (Conversational)
 
 **Request:**
+
 ```bash
 POST /api/v1/rewrite/assistant
 Content-Type: application/json
@@ -26,6 +28,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -37,6 +40,7 @@ Content-Type: application/json
 ### 2. Upload File and Rewrite
 
 **Request:**
+
 ```bash
 POST /api/v1/rewrite/assistant
 Content-Type: multipart/form-data
@@ -46,6 +50,7 @@ file: [document.pdf]
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -57,6 +62,7 @@ file: [document.pdf]
 ### 3. Generate Downloadable File
 
 **Request:**
+
 ```bash
 POST /api/v1/rewrite/assistant
 Content-Type: application/json
@@ -68,6 +74,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -82,6 +89,7 @@ Content-Type: application/json
 ### 4. Direct/Programmatic Rewrite
 
 **Request:**
+
 ```bash
 POST /api/v1/rewrite/rewrite
 Content-Type: application/json
@@ -98,6 +106,7 @@ Content-Type: application/json
 ## Common Use Cases
 
 ### Use Case 1: Email Tone Adjustment
+
 ```javascript
 // Make an informal email professional
 {
@@ -107,6 +116,7 @@ Content-Type: application/json
 ```
 
 ### Use Case 2: Academic Paper Simplification
+
 ```javascript
 // Simplify complex academic text
 {
@@ -116,6 +126,7 @@ Content-Type: application/json
 ```
 
 ### Use Case 3: Content Expansion
+
 ```javascript
 // Expand brief notes into detailed content
 {
@@ -125,6 +136,7 @@ Content-Type: application/json
 ```
 
 ### Use Case 4: Grammar Correction
+
 ```javascript
 // Fix grammar and improve readability
 {
@@ -149,6 +161,7 @@ Simply mention these in your message:
 ## File Generation
 
 To get a downloadable file, include keywords like:
+
 - "create a file"
 - "generate file"
 - "save as file"
@@ -158,6 +171,7 @@ To get a downloadable file, include keywords like:
 ## Testing with cURL
 
 ### Test 1: Basic Text Rewrite
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
   -H "Content-Type: application/json" \
@@ -168,6 +182,7 @@ curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
 ```
 
 ### Test 2: File Upload
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
   -F "message=Rewrite this professionally" \
@@ -175,6 +190,7 @@ curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
 ```
 
 ### Test 3: With File Output
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/rewrite/assistant \
   -H "Content-Type: application/json" \
@@ -194,18 +210,18 @@ async function rewriteText(text, style) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message: `Rewrite in ${style} style`,
-      textContent: text
-    })
+      textContent: text,
+    }),
   });
-  
+
   const result = await response.json();
   return result.data.rewrittenContent;
 }
 
 // Usage
 const professional = await rewriteText(
-  "Hey! Thanks for the update.",
-  "professional"
+  'Hey! Thanks for the update.',
+  'professional'
 );
 console.log(professional);
 // Output: "Thank you for the update."
@@ -229,10 +245,10 @@ function RewriteTool() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: `Make this ${style}`,
-          textContent: text
-        })
+          textContent: text,
+        }),
       });
-      
+
       const data = await response.json();
       setResult(data.data.rewrittenContent);
     } catch (error) {
@@ -243,18 +259,25 @@ function RewriteTool() {
 
   return (
     <div>
-      <textarea 
-        value={text} 
+      <textarea
+        value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Enter text to rewrite..."
       />
-      
+
       <button onClick={() => handleRewrite('formal')}>Formal</button>
       <button onClick={() => handleRewrite('casual')}>Casual</button>
-      <button onClick={() => handleRewrite('professional')}>Professional</button>
-      
+      <button onClick={() => handleRewrite('professional')}>
+        Professional
+      </button>
+
       {loading && <p>Rewriting...</p>}
-      {result && <div><h3>Result:</h3><p>{result}</p></div>}
+      {result && (
+        <div>
+          <h3>Result:</h3>
+          <p>{result}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -270,7 +293,7 @@ async function rewriteFile(file, instructions) {
 
   const response = await fetch('/api/v1/rewrite/assistant', {
     method: 'POST',
-    body: formData
+    body: formData,
   });
 
   const result = await response.json();
@@ -280,7 +303,7 @@ async function rewriteFile(file, instructions) {
 // Usage
 const fileInput = document.querySelector('input[type="file"]');
 const file = fileInput.files[0];
-const result = await rewriteFile(file, "Rewrite in professional style");
+const result = await rewriteFile(file, 'Rewrite in professional style');
 console.log(result.rewrittenContent);
 ```
 
@@ -292,9 +315,9 @@ const response1 = await fetch('/api/v1/rewrite/assistant', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    message: "Make this formal",
-    textContent: "Hey! Great work on the project."
-  })
+    message: 'Make this formal',
+    textContent: 'Hey! Great work on the project.',
+  }),
 });
 
 const { conversationId } = await response1.json();
@@ -304,24 +327,28 @@ const response2 = await fetch('/api/v1/rewrite/assistant', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    message: "Now make it more casual",
-    conversationId: conversationId
-  })
+    message: 'Now make it more casual',
+    conversationId: conversationId,
+  }),
 });
 ```
 
 ## Troubleshooting
 
 ### Issue: "Content is required"
+
 **Solution:** Provide either `textContent` or upload a `file`
 
 ### Issue: "File type not supported"
+
 **Solution:** Use supported formats: PDF, DOCX, DOC, TXT, XLSX, XLS, PPTX, PPT
 
 ### Issue: File too large
+
 **Solution:** Ensure file is under 10 MB
 
 ### Issue: No file generated when requested
+
 **Solution:** Include file keywords in message: "create file", "generate file", etc.
 
 ## Next Steps
@@ -334,6 +361,7 @@ const response2 = await fetch('/api/v1/rewrite/assistant', {
 ## Support
 
 For issues or questions:
+
 1. Check the full [README.md](README.md)
 2. Review error messages for specific guidance
 3. Contact the development team
@@ -341,6 +369,7 @@ For issues or questions:
 ## Summary
 
 You now know how to:
+
 - ✅ Rewrite text using natural language
 - ✅ Upload and rewrite documents
 - ✅ Generate downloadable files

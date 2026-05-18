@@ -18,11 +18,16 @@ const checkSubscriptionLimit = (limitType) => {
       const userId = req.user?._id || req.user?.id;
 
       if (!userId) {
-        return next(new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated'));
+        return next(
+          new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated')
+        );
       }
 
       // Check limit
-      const limitCheck = await subscriptionService.checkUsageLimit(userId, limitType);
+      const limitCheck = await subscriptionService.checkUsageLimit(
+        userId,
+        limitType
+      );
 
       if (!limitCheck.allowed) {
         logger.warn(`User ${userId} reached ${limitType} limit`);

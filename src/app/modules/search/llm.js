@@ -14,7 +14,7 @@ export {
   selectModelSmart,
   gemini2_5Flash,
   gemini3ProPreview,
-  ModelComplexity
+  ModelComplexity,
 } from './services/geminiService.js';
 
 // ==================== MODEL SELECTION UTILITIES ====================
@@ -22,13 +22,13 @@ export {
   analyzeQueryForModel,
   selectOptimalModel,
   analyzeAndLogModelSelection,
-  QueryCategory
+  QueryCategory,
 } from './utils/modelSelector.js';
 
 // ==================== QUERY UTILITIES ====================
 export {
   classifyQueryFast,
-  updateQueryWithCurrentYear
+  updateQueryWithCurrentYear,
 } from './utils/queryUtils.js';
 
 // ==================== HISTORY MANAGEMENT ====================
@@ -37,7 +37,7 @@ export {
   needsHistoryManagement,
   createIntelligentSummary,
   manageConversationHistoryIntelligent,
-  prepareConversationContext
+  prepareConversationContext,
 } from './utils/historyManager.js';
 
 // ==================== VIDEO UTILITIES ====================
@@ -47,7 +47,7 @@ export {
   analyzeVideoQuery,
   shouldSearchYouTube,
   createOptimizedYouTubeQuery,
-  searchYouTube
+  searchYouTube,
 } from './utils/videoUtils.js';
 
 // ==================== SEARCH FUNCTIONS ====================

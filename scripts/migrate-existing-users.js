@@ -2,16 +2,16 @@
 
 /**
  * Migration Script: Assign Free Subscriptions to Existing Users
- * 
+ *
  * Purpose:
  * - Find all users without subscriptions
  * - Create free subscriptions for them
  * - Update User.subscriptionId and User.currentPlan
- * 
+ *
  * Usage:
  *   npm run migrate:users           # Run actual migration
  *   npm run migrate:users -- --dry-run    # Preview changes without applying
- * 
+ *
  * Safety Features:
  * - Dry-run mode to preview changes
  * - Transaction-like behavior (rollback on error)
@@ -41,12 +41,14 @@ async function createFreeSubscriptionForUser(user, freePlan) {
   try {
     // Check if user already has a subscription
     if (user.subscriptionId) {
-      const existingSubscription = await SubscriptionModel.findById(user.subscriptionId);
+      const existingSubscription = await SubscriptionModel.findById(
+        user.subscriptionId
+      );
       if (existingSubscription) {
         return {
           status: 'skipped',
           reason: 'Already has subscription',
-          subscription: existingSubscription
+          subscription: existingSubscription,
         };
       }
     }
@@ -54,7 +56,7 @@ async function createFreeSubscriptionForUser(user, freePlan) {
     // Check if subscription exists by userId (orphaned subscription)
     const existingSubscription = await SubscriptionModel.findOne({
       userId: user._id,
-      status: { $in: ['active', 'trialing'] }
+      status: { $in: ['active', 'trialing'] },
     });
 
     if (existingSubscription) {
@@ -69,7 +71,7 @@ async function createFreeSubscriptionForUser(user, freePlan) {
       return {
         status: 'linked',
         reason: 'Linked orphaned subscription',
-        subscription: existingSubscription
+        subscription: existingSubscription,
       };
     }
 
@@ -111,9 +113,8 @@ async function createFreeSubscriptionForUser(user, freePlan) {
     return {
       status: 'created',
       reason: 'New free subscription created',
-      subscription: newSubscription
+      subscription: newSubscription,
     };
-
   } catch (error) {
     logger.error('Error creating subscription for user:', {
       userId: user._id,
@@ -123,7 +124,7 @@ async function createFreeSubscriptionForUser(user, freePlan) {
     return {
       status: 'error',
       reason: error.message,
-      subscription: null
+      subscription: null,
     };
   }
 }
@@ -136,7 +137,9 @@ async function migrateUsers() {
 
   logger.info('========================================');
   logger.info('User Subscription Migration Script');
-  logger.info(`Mode: ${isDryRun ? '🔍 DRY RUN (no changes will be made)' : '✅ LIVE MODE'}`);
+  logger.info(
+    `Mode: ${isDryRun ? '🔍 DRY RUN (no changes will be made)' : '✅ LIVE MODE'}`
+  );
   logger.info('========================================\n');
 
   try {
@@ -147,12 +150,16 @@ async function migrateUsers() {
     // Get free plan details
     const freePlan = await ProductModel.findByPlan('free');
     if (!freePlan) {
-      throw new Error('Free plan not found in Products collection. Run seed:products first.');
+      throw new Error(
+        'Free plan not found in Products collection. Run seed:products first.'
+      );
     }
     logger.info(`📦 Free plan loaded: ${freePlan.displayName}\n`);
 
     // Find all users
-    const allUsers = await UserModel.find({}).select('_id email name subscriptionId currentPlan tenantId');
+    const allUsers = await UserModel.find({}).select(
+      '_id email name subscriptionId currentPlan tenantId'
+    );
     logger.info(`📊 Total users in database: ${allUsers.length}\n`);
 
     // Categorize users
@@ -168,11 +175,17 @@ async function migrateUsers() {
     }
 
     logger.info('User Statistics:');
-    logger.info(`  ✅ Users with subscriptions: ${usersWithSubscription.length}`);
-    logger.info(`  ⚠️  Users without subscriptions: ${usersWithoutSubscription.length}\n`);
+    logger.info(
+      `  ✅ Users with subscriptions: ${usersWithSubscription.length}`
+    );
+    logger.info(
+      `  ⚠️  Users without subscriptions: ${usersWithoutSubscription.length}\n`
+    );
 
     if (usersWithoutSubscription.length === 0) {
-      logger.info('🎉 All users already have subscriptions. Nothing to migrate.\n');
+      logger.info(
+        '🎉 All users already have subscriptions. Nothing to migrate.\n'
+      );
       return;
     }
 
@@ -197,19 +210,27 @@ async function migrateUsers() {
       switch (result.status) {
         case 'created':
           results.created++;
-          logger.info(`${prefix} ${progressStr} ✅ Created subscription for ${user.email}`);
+          logger.info(
+            `${prefix} ${progressStr} ✅ Created subscription for ${user.email}`
+          );
           break;
         case 'linked':
           results.linked++;
-          logger.info(`${prefix} ${progressStr} 🔗 Linked orphaned subscription for ${user.email}`);
+          logger.info(
+            `${prefix} ${progressStr} 🔗 Linked orphaned subscription for ${user.email}`
+          );
           break;
         case 'skipped':
           results.skipped++;
-          logger.info(`${prefix} ${progressStr} ⏭️  Skipped ${user.email} (${result.reason})`);
+          logger.info(
+            `${prefix} ${progressStr} ⏭️  Skipped ${user.email} (${result.reason})`
+          );
           break;
         case 'error':
           results.errors++;
-          logger.error(`${prefix} ${progressStr} ❌ Error for ${user.email}: ${result.reason}`);
+          logger.error(
+            `${prefix} ${progressStr} ❌ Error for ${user.email}: ${result.reason}`
+          );
           break;
       }
     }
@@ -227,12 +248,13 @@ async function migrateUsers() {
     logger.info(`  ❌ Errors: ${results.errors}`);
 
     if (isDryRun) {
-      logger.info('\n🔍 This was a DRY RUN. No changes were made to the database.');
+      logger.info(
+        '\n🔍 This was a DRY RUN. No changes were made to the database.'
+      );
       logger.info('Run without --dry-run to apply changes.\n');
     } else {
       logger.info('\n✅ Migration completed successfully!\n');
     }
-
   } catch (error) {
     logger.error('❌ Migration failed:', error);
     process.exit(1);

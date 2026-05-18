@@ -21,6 +21,7 @@ AI-powered document and text analysis agent using Gemini 3.5 Flash. Analyze text
 Analyze text or uploaded documents with AI.
 
 **Request:**
+
 ```
 Content-Type: multipart/form-data
 
@@ -34,6 +35,7 @@ Fields:
 ```
 
 **Analysis Types:**
+
 - `general` (default) - Comprehensive analysis
 - `sentiment` - Emotional tone and sentiment
 - `summary` - Concise summary
@@ -43,6 +45,7 @@ Fields:
 - `language_detection` - Identify language and style
 
 **Output Formats:**
+
 - `narrative` (default) - Natural language response
 - `structured` - Organized with headings and sections
 
@@ -51,6 +54,7 @@ Fields:
 ### Use Cases
 
 #### 1. Analyze Text Message
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
   -H "Content-Type: application/json" \
@@ -60,6 +64,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 #### 2. Analyze Uploaded File
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -67,6 +72,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 #### 3. Analyze File with Specific Request
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
   -F "file=@contract.pdf" \
@@ -75,6 +81,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 #### 4. Sentiment Analysis
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
   -H "Content-Type: application/json" \
@@ -86,6 +93,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 #### 5. Continue Conversation
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
   -H "Content-Type: application/json" \
@@ -100,6 +108,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ### Response Format
 
 **Success Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -129,12 +138,14 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 Retrieve full conversation history.
 
 **Example:**
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/document-analysis/conversation/analysis_1734567890_abc123 \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -174,10 +185,12 @@ curl -X GET http://localhost:5000/api/v1/document-analysis/conversation/analysis
 ## Configuration
 
 ### File Limits
+
 - **Max file size**: 10 MB
 - **Supported formats**: PDF, DOCX, DOC, TXT, XLSX, XLS, PPTX, PPT
 
 ### Model Settings
+
 - **Model**: Gemini 3.5 Flash
 - **Temperature**: 0.7
 - **Max tokens**: 4096
@@ -187,6 +200,7 @@ curl -X GET http://localhost:5000/api/v1/document-analysis/conversation/analysis
 ## Error Handling
 
 **No Content Provided:**
+
 ```json
 {
   "statusCode": 400,
@@ -196,6 +210,7 @@ curl -X GET http://localhost:5000/api/v1/document-analysis/conversation/analysis
 ```
 
 **File Too Large:**
+
 ```json
 {
   "statusCode": 400,
@@ -205,6 +220,7 @@ curl -X GET http://localhost:5000/api/v1/document-analysis/conversation/analysis
 ```
 
 **Unsupported File:**
+
 ```json
 {
   "statusCode": 400,
@@ -218,16 +234,19 @@ curl -X GET http://localhost:5000/api/v1/document-analysis/conversation/analysis
 ## Example Workflows
 
 ### Workflow 1: Quick Text Analysis
+
 1. Send text message with `analysisType=summary`
 2. Get instant summary
 
 ### Workflow 2: Deep Document Analysis
+
 1. Upload document without message (general analysis)
 2. Review analysis
 3. Ask follow-up: "What are the financial implications?"
 4. Continue conversation with specific questions
 
 ### Workflow 3: Entity Extraction Pipeline
+
 1. Upload contract with `analysisType=entity_extraction`
 2. Extract all entities
 3. Ask: "List all dates in chronological order"

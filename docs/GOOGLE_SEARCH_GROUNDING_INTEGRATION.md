@@ -7,6 +7,7 @@ This guide explains how to integrate Google's native `google_search` grounding t
 ## Problem Solved
 
 **Previous Error:**
+
 ```
 GoogleGenerativeAIFetchError: Function call is missing a thought_signature in functionCall parts
 ```
@@ -46,7 +47,9 @@ User Query
 ### When to Use Each Method
 
 #### Native Grounding (Gemini 2.0/1.5 + google_search)
+
 ✅ **Use for:**
+
 - Simple factual queries
 - Single-step information retrieval
 - General knowledge questions
@@ -54,13 +57,16 @@ User Query
 - News and current events
 
 ❌ **Don't use for:**
+
 - Multi-step reasoning (compare, analyze)
 - Requires filtering (home vs away games)
 - Complex decision-making
 - Needs verification from multiple sources
 
 #### ReAct Agent (Gemini 1.5 Pro + Custom Tools)
+
 ✅ **Use for:**
+
 - Multi-step reasoning
 - Comparison queries ("A vs B")
 - Prediction/analysis requests
@@ -68,6 +74,7 @@ User Query
 - Verification across sources
 
 ❌ **Don't use for:**
+
 - Simple lookups (slower, unnecessary)
 
 ## Implementation
@@ -95,18 +102,18 @@ export function createGroundedModel(modelName = "gemini-2.5-flash") {
 export async function executeGroundedSearch(query, conversationHistory = []) {
   const model = createGroundedModel();
   const chat = model.startChat({ history: [...] });
-  
+
   const result = await chat.sendMessage(query);
   const response = await result.response;
-  
+
   // Extract grounding metadata
   const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
-  
+
   // groundingMetadata contains:
   // - webSearchQueries: Array of search queries used
   // - groundingChunks: Web sources (uri, title)
   // - groundingSupports: Links text segments to sources
-  
+
   return {
     answer: response.text(),
     references: extractReferences(groundingMetadata),
@@ -120,9 +127,13 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
 **File:** `src/app/modules/search/services/smartSearchRouter.js`
 
 ```javascript
-export async function executeSmartSearch(query, conversationHistory = [], options = {}) {
+export async function executeSmartSearch(
+  query,
+  conversationHistory = [],
+  options = {}
+) {
   const analysis = analyzeQueryComplexity(query, conversationHistory);
-  
+
   if (analysis.isComplex) {
     // Use ReAct Agent for complex queries
     return await executeToolBasedConversation(messages, options);
@@ -134,6 +145,7 @@ export async function executeSmartSearch(query, conversationHistory = [], option
 ```
 
 **Complexity Analysis Criteria:**
+
 - Multi-step indicators: "compare", "vs", "should I", "recommend"
 - Specific criteria: "home game", "away game", "only", "specifically"
 - Multi-source needs: "verify", "confirm", "check multiple"
@@ -148,7 +160,7 @@ export async function executeSmartSearch(query, conversationHistory = [], option
 ```javascript
 // Changed from gemini-3-pro-preview to stable model
 export const llm = new ChatGoogleGenerativeAI({
-  model: "gemini-1.5-pro", // Stable model
+  model: 'gemini-1.5-pro', // Stable model
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
@@ -166,14 +178,13 @@ import { executeSmartSearch } from './services/smartSearchRouter.js';
 
 export const performSearch = catchAsync(async (req, res) => {
   // ... existing validation ...
-  
+
   // Replace current search with smart router
-  const result = await executeSmartSearch(
-    message,
-    conversationHistory,
-    { userId, conversationId: actualConversationId }
-  );
-  
+  const result = await executeSmartSearch(message, conversationHistory, {
+    userId,
+    conversationId: actualConversationId,
+  });
+
   return sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -183,11 +194,11 @@ export const performSearch = catchAsync(async (req, res) => {
         answer: result.answer,
         reference: result.reference,
         citations: result.citations,
-        citationMetadata: result.citationMetadata
+        citationMetadata: result.citationMetadata,
       },
       conversationId: actualConversationId,
-      searchMethod: result.citationMetadata?.method // 'native_grounding' or 'react_agent'
-    }
+      searchMethod: result.citationMetadata?.method, // 'native_grounding' or 'react_agent'
+    },
   });
 });
 ```
@@ -207,16 +218,16 @@ router.post(
 // In search.controller.js
 export const performGroundedSearch = catchAsync(async (req, res) => {
   const { message, conversationId } = req.body;
-  
+
   const result = await executeGroundedSearch(message, conversationHistory);
-  
+
   return sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     data: {
       responseMessage: result,
-      searchMethod: 'native_grounding'
-    }
+      searchMethod: 'native_grounding',
+    },
   });
 });
 ```
@@ -224,6 +235,7 @@ export const performGroundedSearch = catchAsync(async (req, res) => {
 ## Benefits of Native Grounding
 
 ### 1. **Automatic Everything**
+
 - ✅ Model decides when to search
 - ✅ Generates optimal search queries
 - ✅ Executes searches automatically
@@ -231,16 +243,17 @@ export const performGroundedSearch = catchAsync(async (req, res) => {
 - ✅ No `thought_signature` issues
 
 ### 2. **Better Citations**
+
 ```json
 {
   "groundingMetadata": {
     "webSearchQueries": ["UEFA Euro 2024 winner"],
     "groundingChunks": [
-      {"web": {"uri": "https://...", "title": "aljazeera.com"}}
+      { "web": { "uri": "https://...", "title": "aljazeera.com" } }
     ],
     "groundingSupports": [
       {
-        "segment": {"text": "Spain won Euro 2024..."},
+        "segment": { "text": "Spain won Euro 2024..." },
         "groundingChunkIndices": [0]
       }
     ]
@@ -249,11 +262,13 @@ export const performGroundedSearch = catchAsync(async (req, res) => {
 ```
 
 ### 3. **Inline Citation Support**
+
 - Links specific text segments to sources
 - `startIndex` and `endIndex` for precise attribution
 - Can build inline citations: `Text [1][2]`
 
 ### 4. **Supported Models**
+
 - ✅ Gemini 2.5 Pro/Flash/Flash-Lite
 - ✅ Gemini 2.0 Flash (latest)
 - ✅ Gemini 1.5 Pro/Flash
@@ -267,12 +282,14 @@ export const performGroundedSearch = catchAsync(async (req, res) => {
 ## Migration Path
 
 ### Phase 1: Test (Current)
+
 1. ✅ Create `geminiGroundingService.js`
 2. ✅ Create `smartSearchRouter.js`
 3. ✅ Fix ReAct agent (change to `gemini-1.5-pro`)
 4. ⏳ Test via new endpoint `/search-grounded`
 
 ### Phase 2: A/B Testing
+
 1. Route 50% traffic to native grounding
 2. Compare:
    - Response times
@@ -281,6 +298,7 @@ export const performGroundedSearch = catchAsync(async (req, res) => {
    - Cost per query
 
 ### Phase 3: Full Deployment
+
 1. Make smart router default
 2. Keep ReAct agent for complex queries
 3. Monitor performance
@@ -308,7 +326,9 @@ curl -X POST http://localhost:5000/api/v1/search/assistant \
 ## Troubleshooting
 
 ### Issue: Model doesn't search
+
 **Solution:** Query might not need search. Add explicit instruction:
+
 ```javascript
 const result = await chat.sendMessage(
   `Search for: ${query}\nProvide sources for your answer.`
@@ -316,15 +336,19 @@ const result = await chat.sendMessage(
 ```
 
 ### Issue: No grounding metadata
+
 **Solution:** Model didn't perform search. Check:
+
 - Is query factual/current?
 - Does it require web information?
 - Try more explicit phrasing
 
 ### Issue: Still getting thought_signature error
+
 **Solution:** You're still using custom tools. Switch to:
+
 ```javascript
-tools: [{ googleSearch: {} }]  // Not bindTools()
+tools: [{ googleSearch: {} }]; // Not bindTools()
 ```
 
 ## Best Practices

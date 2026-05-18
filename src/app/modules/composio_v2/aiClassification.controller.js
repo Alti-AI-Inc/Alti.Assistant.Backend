@@ -1,8 +1,8 @@
-import { aiClassificationService } from "./aiClassification.service.js";
+import { aiClassificationService } from './aiClassification.service.js';
 
-import httpStatus from "http-status";
-import sendResponse from "../../../shared/sendResponse.js";
-import catchAsync from "../../../shared/catchAsync.js";
+import httpStatus from 'http-status';
+import sendResponse from '../../../shared/sendResponse.js';
+import catchAsync from '../../../shared/catchAsync.js';
 
 /**
  * Controller for AI-powered user input classification and tool execution
@@ -10,7 +10,7 @@ import catchAsync from "../../../shared/catchAsync.js";
 const classifyAndExecuteController = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? null : (req.user?.userId || req.user?._id);
+  let userId = isGuest ? null : req.user?.userId || req.user?._id;
   const { message, conversationId } = req.body;
   userId = req.body?.userId || userId; // Allow overriding userId from request body
 
@@ -25,11 +25,15 @@ const classifyAndExecuteController = catchAsync(async (req, res) => {
   try {
     // For authenticated users, check if they have any connected accounts
 
-    const result = await aiClassificationService.processUserInputService(message, {
-      userId,
-      conversationId,
-      isGuest
-    }, req);
+    const result = await aiClassificationService.processUserInputService(
+      message,
+      {
+        userId,
+        conversationId,
+        isGuest,
+      },
+      req
+    );
 
     console.log('AI classification result:', result);
 
@@ -38,14 +42,14 @@ const classifyAndExecuteController = catchAsync(async (req, res) => {
         statusCode: httpStatus.OK,
         success: true,
         message: result.message || 'Request processed successfully',
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         message: result.message || 'Failed to process request',
-        data: result.data
+        data: result.data,
       });
     }
   } catch (error) {
@@ -57,13 +61,13 @@ const classifyAndExecuteController = catchAsync(async (req, res) => {
       data: {
         responseMessage: {
           text: `Sorry, I encountered an unexpected error: ${error.message}`,
-          type: 'error'
+          type: 'error',
         },
         conversationId: conversationId || null,
         messageCount: 1,
         userType: isGuest ? 'guest' : 'authenticated',
         userId: isGuest ? userId : undefined,
-      }
+      },
     });
   }
 });
@@ -76,60 +80,100 @@ const getSupportedAppsController = catchAsync(async (req, res) => {
     gmail: {
       name: 'Gmail',
       description: 'Send and manage emails',
-      actions: ['send_email', 'read_email', 'delete_email', 'mark_as_read', 'search_email']
+      actions: [
+        'send_email',
+        'read_email',
+        'delete_email',
+        'mark_as_read',
+        'search_email',
+      ],
     },
     github: {
       name: 'GitHub',
       description: 'Manage repositories and issues',
-      actions: ['create_issue', 'create_pr', 'list_repos', 'create_repo', 'star_repo', 'fork_repo']
+      actions: [
+        'create_issue',
+        'create_pr',
+        'list_repos',
+        'create_repo',
+        'star_repo',
+        'fork_repo',
+      ],
     },
     calendar: {
       name: 'Google Calendar',
       description: 'Manage calendar events',
-      actions: ['create_event', 'list_events', 'update_event', 'delete_event', 'find_available_time']
+      actions: [
+        'create_event',
+        'list_events',
+        'update_event',
+        'delete_event',
+        'find_available_time',
+      ],
     },
     linkedin: {
       name: 'LinkedIn',
       description: 'Professional networking and posting',
-      actions: ['post_update', 'send_message', 'connect_user', 'share_article']
+      actions: ['post_update', 'send_message', 'connect_user', 'share_article'],
     },
     twitter: {
       name: 'Twitter/X',
       description: 'Social media posting and interaction',
-      actions: ['post_tweet', 'delete_tweet', 'follow_user', 'send_dm', 'like_tweet']
+      actions: [
+        'post_tweet',
+        'delete_tweet',
+        'follow_user',
+        'send_dm',
+        'like_tweet',
+      ],
     },
     youtube: {
       name: 'YouTube',
       description: 'Video platform interaction',
-      actions: ['search_videos', 'upload_video', 'like_video', 'subscribe_channel']
+      actions: [
+        'search_videos',
+        'upload_video',
+        'like_video',
+        'subscribe_channel',
+      ],
     },
     notion: {
       name: 'Notion',
       description: 'Note-taking and database management',
-      actions: ['create_page', 'update_page', 'create_database', 'add_to_database']
+      actions: [
+        'create_page',
+        'update_page',
+        'create_database',
+        'add_to_database',
+      ],
     },
     amazon: {
       name: 'Amazon',
       description: 'E-commerce and shopping',
-      actions: ['search_product', 'add_to_cart', 'place_order', 'track_order']
+      actions: ['search_product', 'add_to_cart', 'place_order', 'track_order'],
     },
     slack: {
       name: 'Slack',
       description: 'Team communication',
-      actions: ['send_message', 'create_channel', 'invite_user', 'post_announcement']
+      actions: [
+        'send_message',
+        'create_channel',
+        'invite_user',
+        'post_announcement',
+      ],
     },
     discord: {
       name: 'Discord',
       description: 'Community and gaming communication',
-      actions: ['send_message', 'create_channel', 'manage_server']
-    }
+      actions: ['send_message', 'create_channel', 'manage_server'],
+    },
   };
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Supported apps and actions retrieved successfully',
-    data: supportedApps
+    data: supportedApps,
   });
 });
 
@@ -148,7 +192,9 @@ const testClassificationController = catchAsync(async (req, res) => {
   }
 
   try {
-    const { classifyUserIntent } = await import("./services/aiClassificationService.js");
+    const { classifyUserIntent } = await import(
+      './services/aiClassificationService.js'
+    );
 
     const classification = await classifyUserIntent(userInput, []);
 
@@ -156,7 +202,7 @@ const testClassificationController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Classification completed successfully',
-      data: classification
+      data: classification,
     });
   } catch (error) {
     console.error('Error in testClassificationController:', error);
@@ -165,8 +211,8 @@ const testClassificationController = catchAsync(async (req, res) => {
       success: false,
       message: 'Failed to classify user input',
       data: {
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 });
@@ -176,7 +222,7 @@ const testClassificationController = catchAsync(async (req, res) => {
  */
 const getUserConnectionsController = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? null : (req.user?.userId || req.user?._id);
+  let userId = isGuest ? null : req.user?.userId || req.user?._id;
   console.log(`User ID for connections: ${userId}`);
 
   if (!userId) {
@@ -188,7 +234,11 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await aiClassificationService.getUserConnectedAccountsService(userId, req);
+    const result =
+      await aiClassificationService.getUserConnectedAccountsService(
+        userId,
+        req
+      );
     console.log(`User connections for ${userId}:`, result);
 
     if (result.success) {
@@ -196,7 +246,7 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
         statusCode: httpStatus.OK,
         success: true,
         message: 'User connections retrieved successfully',
-        data: result.data
+        data: result.data,
       });
     } else {
       sendResponse(res, {
@@ -204,8 +254,8 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
         success: false,
         message: 'Failed to retrieve user connections',
         data: {
-          error: result.error
-        }
+          error: result.error,
+        },
       });
     }
   } catch (error) {
@@ -215,8 +265,8 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
       success: false,
       message: 'Internal server error while retrieving connections',
       data: {
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 });
@@ -226,7 +276,7 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
  */
 const getConversationHistoryController = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? null : (req.user?.userId || req.user?._id);
+  let userId = isGuest ? null : req.user?.userId || req.user?._id;
   const { conversationId, limit } = req.query;
   userId = req.query?.userId || userId;
 
@@ -239,17 +289,24 @@ const getConversationHistoryController = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await aiClassificationService.getComposioConversationHistoryService(userId, {
-      conversationId,
-      limit: limit ? parseInt(limit) : 20
-    }, req);
+    const result =
+      await aiClassificationService.getComposioConversationHistoryService(
+        userId,
+        {
+          conversationId,
+          limit: limit ? parseInt(limit) : 20,
+        },
+        req
+      );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: conversationId ? 'Conversation history retrieved successfully' : 'Conversation stats retrieved successfully',
-        data: result.data
+        message: conversationId
+          ? 'Conversation history retrieved successfully'
+          : 'Conversation stats retrieved successfully',
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
@@ -257,8 +314,8 @@ const getConversationHistoryController = catchAsync(async (req, res) => {
         success: false,
         message: 'Failed to retrieve conversation data',
         data: {
-          error: result.error
-        }
+          error: result.error,
+        },
       });
     }
   } catch (error) {
@@ -268,8 +325,8 @@ const getConversationHistoryController = catchAsync(async (req, res) => {
       success: false,
       message: 'Internal server error while retrieving conversation data',
       data: {
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 });
@@ -279,5 +336,5 @@ export const aiClassificationController = {
   getSupportedAppsController,
   testClassificationController,
   getUserConnectionsController,
-  getConversationHistoryController
+  getConversationHistoryController,
 };

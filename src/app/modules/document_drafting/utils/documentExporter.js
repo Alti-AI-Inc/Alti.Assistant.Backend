@@ -57,9 +57,12 @@ const exportToPDF = async (content, metadata = {}) => {
 
         // Add document metadata
         if (metadata.documentType) {
-          doc.fontSize(10).font('Helvetica-Oblique').text(`Type: ${metadata.documentType}`, {
-            align: 'right',
-          });
+          doc
+            .fontSize(10)
+            .font('Helvetica-Oblique')
+            .text(`Type: ${metadata.documentType}`, {
+              align: 'right',
+            });
           doc.moveDown(0.5);
         }
 
@@ -142,7 +145,9 @@ const exportToDocx = async (content, metadata = {}) => {
     fs.writeFileSync(filePath, documentContent, 'utf8');
 
     logger.info(`DOCX document created successfully: ${filePath}`);
-    logger.warn('Note: Current DOCX export is simplified. Consider implementing with "docx" package.');
+    logger.warn(
+      'Note: Current DOCX export is simplified. Consider implementing with "docx" package.'
+    );
 
     return {
       filePath,

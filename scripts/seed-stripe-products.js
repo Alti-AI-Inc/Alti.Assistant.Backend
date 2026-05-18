@@ -30,7 +30,7 @@ const PLANS = [
       '10 requests/day',
       'No Team Collaboration',
       'No document storage',
-      'Basic support'
+      'Basic support',
     ],
     metadata: {
       plan: 'free',
@@ -57,7 +57,7 @@ const PLANS = [
       'Basic Text Document RAG',
       '10GB storage per user',
       'Invite Your Team',
-      'Email support'
+      'Email support',
     ],
     metadata: {
       plan: 'explore',
@@ -85,7 +85,7 @@ const PLANS = [
       '50GB storage per user',
       'Invite Your Team',
       'Priority email support',
-      'Advanced analytics'
+      'Advanced analytics',
     ],
     metadata: {
       plan: 'execute',
@@ -114,7 +114,7 @@ const PLANS = [
       'Invite Your Team',
       'Priority support with dedicated account manager',
       'Advanced analytics',
-      'Custom integrations'
+      'Custom integrations',
     ],
     metadata: {
       plan: 'command',
@@ -179,7 +179,9 @@ async function createPrice(plan, productId) {
 
     const price = await stripe.prices.create(priceData);
 
-    console.log(`✅ Price created: ${price.id} ($${plan.price}/${plan.interval})`);
+    console.log(
+      `✅ Price created: ${price.id} ($${plan.price}/${plan.interval})`
+    );
     return price;
   } catch (error) {
     console.error(`❌ Error creating price for ${plan.name}:`, error.message);
@@ -216,7 +218,9 @@ async function checkExistingProducts() {
   try {
     const products = await stripe.products.list({ limit: 100 });
     const existingPlans = PLANS.map((p) => p.name);
-    const existing = products.data.filter((p) => existingPlans.includes(p.name));
+    const existing = products.data.filter((p) =>
+      existingPlans.includes(p.name)
+    );
 
     if (existing.length > 0) {
       console.log('\n⚠️  Found existing products:');
@@ -252,7 +256,9 @@ async function deleteExistingProducts(products) {
 async function seedStripeProducts() {
   console.log('🚀 Starting Stripe Products Seeder...\n');
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Stripe API Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Found' : '❌ Missing'}\n`);
+  console.log(
+    `Stripe API Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Found' : '❌ Missing'}\n`
+  );
 
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('❌ STRIPE_SECRET_KEY not found in environment variables');
@@ -264,8 +270,12 @@ async function seedStripeProducts() {
     const existing = await checkExistingProducts();
 
     if (existing.length > 0) {
-      console.log('\n❓ Do you want to archive existing products and create new ones?');
-      console.log('   Run with --force flag to archive and recreate: node scripts/seed-stripe-products.js --force');
+      console.log(
+        '\n❓ Do you want to archive existing products and create new ones?'
+      );
+      console.log(
+        '   Run with --force flag to archive and recreate: node scripts/seed-stripe-products.js --force'
+      );
 
       if (!process.argv.includes('--force')) {
         console.log('\n⏹️  Seeding cancelled. Use --force to proceed.');
@@ -317,15 +327,21 @@ async function seedStripeProducts() {
       console.log(`  Price ID: ${result.priceId}`);
       console.log(`  Price: $${result.price}/${result.interval}`);
       console.log(`  Features:`);
-      console.log(`    - Daily Request Limit: ${result.features.dailyRequestLimit}`);
+      console.log(
+        `    - Daily Request Limit: ${result.features.dailyRequestLimit}`
+      );
       console.log(`    - RAG Type: ${result.features.ragType}`);
-      console.log(`    - Storage Per User: ${(result.features.storagePerUser / 1073741824).toFixed(0)}GB`);
+      console.log(
+        `    - Storage Per User: ${(result.features.storagePerUser / 1073741824).toFixed(0)}GB`
+      );
       console.log(`    - Can Invite Team: ${result.features.canInviteTeam}`);
       console.log('');
     });
 
     console.log('📝 Next Steps:');
-    console.log('   1. Verify products in Stripe Dashboard: https://dashboard.stripe.com/products');
+    console.log(
+      '   1. Verify products in Stripe Dashboard: https://dashboard.stripe.com/products'
+    );
     console.log('   2. Update your application with the new product/price IDs');
     console.log('   3. Run database migration for existing users\n');
   } catch (error) {

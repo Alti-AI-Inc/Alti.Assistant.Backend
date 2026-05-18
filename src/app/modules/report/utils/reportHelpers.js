@@ -19,12 +19,12 @@ export const generateTitleFromContent = (content) => {
  */
 export const extractCSVData = (csvContent) => {
   try {
-    const lines = csvContent.split('\n').filter(line => line.trim());
+    const lines = csvContent.split('\n').filter((line) => line.trim());
     if (lines.length === 0) return { headers: [], data: [] };
 
-    const headers = lines[0].split(',').map(h => h.trim());
-    const data = lines.slice(1).map(line => {
-      const values = line.split(',').map(v => v.trim());
+    const headers = lines[0].split(',').map((h) => h.trim());
+    const data = lines.slice(1).map((line) => {
+      const values = line.split(',').map((v) => v.trim());
       const row = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
@@ -45,9 +45,11 @@ export const extractCSVData = (csvContent) => {
 export const formatFileInfo = (files) => {
   if (!files || files.length === 0) return '';
 
-  return files.map((file, index) => {
-    return `File ${index + 1}: ${file.filename} (${file.metadata?.type || 'unknown'} format, ${file.content?.length || 0} characters)`;
-  }).join('\n');
+  return files
+    .map((file, index) => {
+      return `File ${index + 1}: ${file.filename} (${file.metadata?.type || 'unknown'} format, ${file.content?.length || 0} characters)`;
+    })
+    .join('\n');
 };
 
 /**
@@ -57,9 +59,9 @@ export const normalizeContent = (content) => {
   if (!content) return '';
 
   return content
-    .replace(/\r\n/g, '\n')           // Normalize line endings
-    .replace(/\t/g, '    ')           // Replace tabs with spaces
-    .replace(/\n{3,}/g, '\n\n')       // Max 2 consecutive newlines
+    .replace(/\r\n/g, '\n') // Normalize line endings
+    .replace(/\t/g, '    ') // Replace tabs with spaces
+    .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
     .trim();
 };
 
@@ -89,8 +91,11 @@ export const generateDataStats = (data) => {
   };
 
   // Calculate numeric column statistics
-  stats.columns.forEach(col => {
-    const values = data.map(row => row[col]).filter(v => v && !isNaN(v)).map(Number);
+  stats.columns.forEach((col) => {
+    const values = data
+      .map((row) => row[col])
+      .filter((v) => v && !isNaN(v))
+      .map(Number);
 
     if (values.length > 0) {
       const sum = values.reduce((a, b) => a + b, 0);
@@ -98,9 +103,10 @@ export const generateDataStats = (data) => {
       const sorted = [...values].sort((a, b) => a - b);
       const min = sorted[0];
       const max = sorted[sorted.length - 1];
-      const median = sorted.length % 2 === 0
-        ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-        : sorted[Math.floor(sorted.length / 2)];
+      const median =
+        sorted.length % 2 === 0
+          ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+          : sorted[Math.floor(sorted.length / 2)];
 
       stats[col] = { min, max, mean, median, count: values.length };
     }
@@ -119,15 +125,50 @@ export const validateReportParams = (params) => {
     errors.push('Either content or files must be provided');
   }
 
-  if (params.outputFormat && !['pdf', 'docx', 'doc', 'csv', 'xlsx', 'txt', 'md', 'html', 'json'].includes(params.outputFormat.toLowerCase())) {
+  if (
+    params.outputFormat &&
+    ![
+      'pdf',
+      'docx',
+      'doc',
+      'csv',
+      'xlsx',
+      'txt',
+      'md',
+      'html',
+      'json',
+    ].includes(params.outputFormat.toLowerCase())
+  ) {
     errors.push('Invalid output format');
   }
 
-  if (params.reportType && !['executive_summary', 'analytical', 'financial', 'technical', 'research', 'business', 'comparison', 'custom'].includes(params.reportType)) {
+  if (
+    params.reportType &&
+    ![
+      'executive_summary',
+      'analytical',
+      'financial',
+      'technical',
+      'research',
+      'business',
+      'comparison',
+      'custom',
+    ].includes(params.reportType)
+  ) {
     errors.push('Invalid report type');
   }
 
-  if (params.tone && !['professional', 'formal', 'technical', 'casual', 'academic', 'persuasive'].includes(params.tone)) {
+  if (
+    params.tone &&
+    ![
+      'professional',
+      'formal',
+      'technical',
+      'casual',
+      'academic',
+      'persuasive',
+    ].includes(params.tone)
+  ) {
     errors.push('Invalid tone');
   }
 
@@ -163,8 +204,11 @@ export const splitContentIntoSections = (content, maxSectionLength = 5000) => {
   let currentSection = '';
   let sectionIndex = 1;
 
-  paragraphs.forEach(paragraph => {
-    if (currentSection.length + paragraph.length > maxSectionLength && currentSection.length > 0) {
+  paragraphs.forEach((paragraph) => {
+    if (
+      currentSection.length + paragraph.length > maxSectionLength &&
+      currentSection.length > 0
+    ) {
       sections.push({
         title: `Section ${sectionIndex}`,
         content: currentSection.trim(),

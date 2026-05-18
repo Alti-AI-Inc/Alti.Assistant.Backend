@@ -5,7 +5,9 @@ import UserModel from '../../modules/auth/auth.model.js';
 cron.schedule(
   '0 0 * * *', // Runs at midnight (12:00 AM) Bangladesh Time
   async () => {
-    console.log(`⏳ Running scheduled task at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })}`);
+    console.log(
+      `⏳ Running scheduled task at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })}`
+    );
 
     // ✅ 1. Reset daily usage for all active subscriptions (paid & not expired)
     const activeSubscriptions = await SubscriptionModel.find({
@@ -19,7 +21,9 @@ cron.schedule(
       await subscription.save();
     }
 
-    console.log(`✅ Reset prompts & images for ${activeSubscriptions.length} active subscriptions.`);
+    console.log(
+      `✅ Reset prompts & images for ${activeSubscriptions.length} active subscriptions.`
+    );
 
     // ✅ 2. Expire subscriptions that have reached their expiry date:-
     const expiredSubscriptions = await SubscriptionModel.find({

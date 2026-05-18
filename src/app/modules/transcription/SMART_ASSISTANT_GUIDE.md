@@ -13,7 +13,7 @@ POST /transcription/assistant
 The endpoint **smartly detects** what you want to do:
 
 1. **Upload single audio file** → Transcribes/processes the audio
-2. **Upload multiple audio files** → Batch processes all files  
+2. **Upload multiple audio files** → Batch processes all files
 3. **Send text message** → Chats about previous transcriptions
 4. **No file, no message** → Returns error
 
@@ -30,8 +30,8 @@ formData.append('conversationId', 'optional-conversation-id');
 
 const response = await fetch('/transcription/assistant', {
   method: 'POST',
-  headers: { 'Authorization': 'Bearer TOKEN' },
-  body: formData
+  headers: { Authorization: 'Bearer TOKEN' },
+  body: formData,
 });
 ```
 
@@ -46,8 +46,8 @@ formData.append('conversationId', 'optional-conversation-id');
 
 const response = await fetch('/transcription/assistant', {
   method: 'POST',
-  headers: { 'Authorization': 'Bearer TOKEN' },
-  body: formData
+  headers: { Authorization: 'Bearer TOKEN' },
+  body: formData,
 });
 ```
 
@@ -57,13 +57,13 @@ const response = await fetch('/transcription/assistant', {
 const response = await fetch('/transcription/assistant', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer TOKEN',
-    'Content-Type': 'application/json'
+    Authorization: 'Bearer TOKEN',
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
     message: 'What was discussed at the 2 minute mark?',
-    conversationId: 'your-conversation-id' // Required for chat
-  })
+    conversationId: 'your-conversation-id', // Required for chat
+  }),
 });
 ```
 
@@ -80,14 +80,15 @@ formData.append('prompt', 'Focus on the speaker emotions');
 
 const response = await fetch('/transcription/assistant', {
   method: 'POST',
-  headers: { 'Authorization': 'Bearer TOKEN' },
-  body: formData
+  headers: { Authorization: 'Bearer TOKEN' },
+  body: formData,
 });
 ```
 
 ## 📥 Response Format
 
 ### Audio Upload Response
+
 ```json
 {
   "statusCode": 200,
@@ -108,6 +109,7 @@ const response = await fetch('/transcription/assistant', {
 ```
 
 ### Chat Response
+
 ```json
 {
   "statusCode": 200,
@@ -123,6 +125,7 @@ const response = await fetch('/transcription/assistant', {
 ```
 
 ### Batch Upload Response
+
 ```json
 {
   "statusCode": 200,
@@ -151,14 +154,14 @@ const response = await fetch('/transcription/assistant', {
 
 ## 🎨 Processing Types
 
-| Type | Description | Example Use |
-|------|-------------|-------------|
-| `transcribe` | Generate text transcript | Convert speech to text |
-| `describe` | Describe all audio content | "Describe sounds and music" |
-| `summarize` | Summarize main points | "What's this about?" |
-| `analyze` | Deep analysis of content | "Identify themes and tone" |
-| `segment` | Break into time segments | "Split by topics" |
-| `question` | Answer specific questions | "Who are the speakers?" |
+| Type         | Description                | Example Use                 |
+| ------------ | -------------------------- | --------------------------- |
+| `transcribe` | Generate text transcript   | Convert speech to text      |
+| `describe`   | Describe all audio content | "Describe sounds and music" |
+| `summarize`  | Summarize main points      | "What's this about?"        |
+| `analyze`    | Deep analysis of content   | "Identify themes and tone"  |
+| `segment`    | Break into time segments   | "Split by topics"           |
+| `question`   | Answer specific questions  | "Who are the speakers?"     |
 
 ## 💬 Chat Capabilities
 
@@ -170,7 +173,7 @@ const formData = new FormData();
 formData.append('audio', audioFile);
 const uploadResponse = await fetch('/transcription/assistant', {
   method: 'POST',
-  body: formData
+  body: formData,
 });
 const { conversationId } = uploadResponse.data;
 
@@ -180,8 +183,8 @@ const chatResponse = await fetch('/transcription/assistant', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     conversationId,
-    message: 'What are the key takeaways?'
-  })
+    message: 'What are the key takeaways?',
+  }),
 });
 
 // 3. Continue conversation
@@ -190,8 +193,8 @@ const followUp = await fetch('/transcription/assistant', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     conversationId,
-    message: 'Can you elaborate on the second point?'
-  })
+    message: 'Can you elaborate on the second point?',
+  }),
 });
 ```
 
@@ -203,11 +206,12 @@ const followUp = await fetch('/transcription/assistant', {
 ✅ **Batch Support** - Process multiple files at once  
 ✅ **Timestamp Support** - Work with specific time ranges  
 ✅ **Guest Access** - Works without authentication  
-✅ **File Cleanup** - Auto-deletes temp files  
+✅ **File Cleanup** - Auto-deletes temp files
 
 ## 🚀 Quick Start Examples
 
 ### Simple Transcription
+
 ```bash
 curl -X POST http://localhost:5000/transcription/assistant \
   -F "audio=@audio.mp3" \
@@ -215,6 +219,7 @@ curl -X POST http://localhost:5000/transcription/assistant \
 ```
 
 ### Batch Processing
+
 ```bash
 curl -X POST http://localhost:5000/transcription/assistant \
   -F "audios=@file1.mp3" \
@@ -223,6 +228,7 @@ curl -X POST http://localhost:5000/transcription/assistant \
 ```
 
 ### Chat Message
+
 ```bash
 curl -X POST http://localhost:5000/transcription/assistant \
   -H "Content-Type: application/json" \
@@ -234,22 +240,23 @@ curl -X POST http://localhost:5000/transcription/assistant \
 
 ## ⚙️ Configuration
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `audio` | File | - | Single audio file |
-| `audios` | Files | - | Multiple audio files |
-| `message` | String | - | Chat message |
-| `processingType` | String | `transcribe` | Processing type |
-| `conversationId` | String | auto-generated | Conversation ID |
-| `prompt` | String | - | Custom instructions |
-| `startTimestamp` | String | - | Start time (MM:SS) |
-| `endTimestamp` | String | - | End time (MM:SS) |
-| `includeTimestamps` | Boolean | `false` | Add timestamps |
-| `outputFormat` | String | `text` | Output format |
+| Parameter           | Type    | Default        | Description          |
+| ------------------- | ------- | -------------- | -------------------- |
+| `audio`             | File    | -              | Single audio file    |
+| `audios`            | Files   | -              | Multiple audio files |
+| `message`           | String  | -              | Chat message         |
+| `processingType`    | String  | `transcribe`   | Processing type      |
+| `conversationId`    | String  | auto-generated | Conversation ID      |
+| `prompt`            | String  | -              | Custom instructions  |
+| `startTimestamp`    | String  | -              | Start time (MM:SS)   |
+| `endTimestamp`      | String  | -              | End time (MM:SS)     |
+| `includeTimestamps` | Boolean | `false`        | Add timestamps       |
+| `outputFormat`      | String  | `text`         | Output format        |
 
 ## 🔒 Authentication
 
 **Optional** - Works with or without auth:
+
 - **Authenticated**: Full features, tracked usage
 - **Guest**: Limited features, temporary sessions
 
@@ -269,6 +276,7 @@ Authorization: Bearer YOUR_TOKEN
 ```
 
 Returns:
+
 ```json
 {
   "totalTranscriptions": 45,
@@ -287,32 +295,35 @@ Returns:
 ## 🎯 Use Cases
 
 ### 1. Meeting Transcription + Q&A
+
 ```javascript
 // Transcribe meeting
 const { conversationId } = await uploadAudio(meetingRecording);
 
 // Ask questions
-await chat(conversationId, "What decisions were made?");
-await chat(conversationId, "List all action items");
+await chat(conversationId, 'What decisions were made?');
+await chat(conversationId, 'List all action items');
 ```
 
 ### 2. Podcast Analysis
+
 ```javascript
 // Upload episode
 const { conversationId } = await uploadAudio(podcast);
 
 // Analyze
-await chat(conversationId, "What are the main topics?");
-await chat(conversationId, "Who are the guests?");
+await chat(conversationId, 'What are the main topics?');
+await chat(conversationId, 'Who are the guests?');
 ```
 
 ### 3. Interview Processing
+
 ```javascript
 // Batch upload interviews
 await batchUpload([interview1, interview2, interview3]);
 
 // Get insights
-await chat(conversationId, "Common themes across all interviews?");
+await chat(conversationId, 'Common themes across all interviews?');
 ```
 
 ## 🐛 Error Handling
@@ -321,11 +332,11 @@ await chat(conversationId, "Common themes across all interviews?");
 try {
   const response = await fetch('/transcription/assistant', {
     method: 'POST',
-    body: formData
+    body: formData,
   });
-  
+
   const data = await response.json();
-  
+
   if (data.success) {
     console.log('✅', data.data.result);
   } else {

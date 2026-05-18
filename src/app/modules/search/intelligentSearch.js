@@ -1,30 +1,38 @@
 // intelligentSearch.js - Main intelligent search orchestrator
-import config from "../../../../config/index.js";
+import config from '../../../../config/index.js';
 import { updateQueryWithCurrentYear } from './utils/queryUtils.js';
 import { prepareConversationContext } from './utils/historyManager.js';
-import { classifyQuery, classifyWritingRequest } from './services/queryClassifier.js';
+import {
+  classifyQuery,
+  classifyWritingRequest,
+} from './services/queryClassifier.js';
 import { ClaudeService } from './services/claudeService.js';
 import { executeToolBasedConversation } from './services/reactAgent.js';
-import Conversation from "../conversations/conversation.model.js";
+import Conversation from '../conversations/conversation.model.js';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
 
 /**
  * Enhanced search function that uses tool-enabled LLM for intelligent search decisions
- * 
+ *
  * ROUTING LOGIC:
  * 1. Writing requests (confidence >= 0.4) → Claude Direct (no search)
  * 2. Code requests (confidence >= 0.5) → Claude with ReAct search capability
  * 3. General/factual queries → Gemini with full tool-based search
- * 
+ *
  * @param {Object} state - Contains query, conversationId, conversationContext, etc.
  * @param {boolean} stream - Whether to stream the response
  * @returns {Object} - Search result with answer, references, and metadata
  */
 export const runIntelligentSearch = async (state, stream = false) => {
   try {
-    console.log("🔍 Running intelligent search with INTELLIGENT history management", state.conversationId);
+    console.log(
+      '🔍 Running intelligent search with INTELLIGENT history management',
+      state.conversationId
+    );
 
-    const query = updateQueryWithCurrentYear(state.currentQuery || state.query || "");
+    const query = updateQueryWithCurrentYear(
+      state.currentQuery || state.query || ''
+    );
 
     // Handle test scenarios where conversationId might be null or we have direct context
     let conversationContext;
@@ -33,18 +41,20 @@ export const runIntelligentSearch = async (state, stream = false) => {
     if (state.conversationContext !== undefined) {
       // If conversationContext is explicitly provided (e.g., in tests), use it directly
       conversationContext = state.conversationContext;
-      console.log("Using provided conversation context");
+      console.log('Using provided conversation context');
     } else if (state.conversationId) {
       // Otherwise, fetch from database if conversationId is provided
-      const conversation = await Conversation.findOne({ conversationId: state.conversationId });
+      const conversation = await Conversation.findOne({
+        conversationId: state.conversationId,
+      });
       conversationContext = conversation ? conversation.messages : [];
     } else {
       // No conversationId and no context provided - start fresh
       conversationContext = [];
-      console.log("No conversation context available - starting fresh");
+      console.log('No conversation context available - starting fresh');
     }
 
-    console.log("Length of conversation context:", conversationContext.length);
+    console.log('Length of conversation context:', conversationContext.length);
 
     conversationContext = conversationContext.filter((item, index, arr) => {
       if (index === 0) return true;
@@ -53,8 +63,14 @@ export const runIntelligentSearch = async (state, stream = false) => {
     });
 
     // 🧠 INTELLIGENT HISTORY MANAGEMENT - Automatically handle token limits
-    console.log(`📊 Processing conversation with ${conversationContext.length} messages`);
-    const contextResult = await prepareConversationContext(conversationContext, existingSummary, query);
+    console.log(
+      `📊 Processing conversation with ${conversationContext.length} messages`
+    );
+    const contextResult = await prepareConversationContext(
+      conversationContext,
+      existingSummary,
+      query
+    );
 
     // Use the intelligently managed conversation context
     const conversationHistory = contextResult.formattedContext;
@@ -64,42 +80,58 @@ export const runIntelligentSearch = async (state, stream = false) => {
 
     if (openMemoryClient?.enabled && userId) {
       try {
-        const memoryMatches = await openMemoryClient.queryMemories({ query, userId });
+        const memoryMatches = await openMemoryClient.queryMemories({
+          query,
+          userId,
+        });
         if (memoryMatches.length) {
-          console.log(`🧠 OpenMemory: retrieved ${memoryMatches.length} memories for user ${userId}`);
+          console.log(
+            `🧠 OpenMemory: retrieved ${memoryMatches.length} memories for user ${userId}`
+          );
           const memoryHeader = '## Retrieved Memories:\n';
           const memoryLines = memoryMatches
             .map((match, idx) => {
-              const sector = match?.primary_sector || match?.metadata?.sector || 'semantic';
+              const sector =
+                match?.primary_sector || match?.metadata?.sector || 'semantic';
               return `Memory ${idx + 1} (${sector}): ${match?.content}`;
             })
             .join('\n');
 
           conversationHistoryWithMemory = `${memoryHeader}${memoryLines}\n\n${conversationHistory}`;
           classificationContext = [
-            ...memoryMatches.map(match => ({
+            ...memoryMatches.map((match) => ({
               role: 'assistant',
-              content: `Referenced memory (${match?.primary_sector || match?.metadata?.sector || 'semantic'}): ${match?.content}`
+              content: `Referenced memory (${match?.primary_sector || match?.metadata?.sector || 'semantic'}): ${match?.content}`,
             })),
-            ...conversationContext
+            ...conversationContext,
           ];
 
-          memoryMatches.forEach(match => {
+          memoryMatches.forEach((match) => {
             if (match?.id) {
-              openMemoryClient.reinforceMemory(match.id).catch(err => {
-                console.warn(`⚠️ Failed to reinforce OpenMemory id ${match.id}`, err?.message || err);
+              openMemoryClient.reinforceMemory(match.id).catch((err) => {
+                console.warn(
+                  `⚠️ Failed to reinforce OpenMemory id ${match.id}`,
+                  err?.message || err
+                );
               });
             }
           });
         }
       } catch (memoryError) {
-        console.warn('⚠️ OpenMemory query failed, continuing without memory context', memoryError);
+        console.warn(
+          '⚠️ OpenMemory query failed, continuing without memory context',
+          memoryError
+        );
       }
     }
 
-    console.log(`✅ Context prepared: ${contextResult.contextTokens} tokens (managed: ${contextResult.isOptimized})`);
+    console.log(
+      `✅ Context prepared: ${contextResult.contextTokens} tokens (managed: ${contextResult.isOptimized})`
+    );
     if (contextResult.historyManaged) {
-      console.log(`🔄 History optimized: ${contextResult.reductionPercentage}% token reduction`);
+      console.log(
+        `🔄 History optimized: ${contextResult.reductionPercentage}% token reduction`
+      );
     }
 
     // 🎯 SMART ROUTING: Classify query to determine routing
@@ -119,16 +151,21 @@ export const runIntelligentSearch = async (state, stream = false) => {
         isCodeRelated: classification.isCodeRelated,
         codeConfidence: classification.confidence,
         primaryCategory: classification.primaryCategory,
-        matchedKeywords: classification.matchedKeywords?.slice(0, 5)
+        matchedKeywords: classification.matchedKeywords?.slice(0, 5),
       });
 
       // 📝 Route to Claude for WRITING requests (without search)
-      if (writingClassification?.isWritingRequest && writingClassification.confidence >= 0.4) {
-        console.log(`✍️ Routing to Claude Sonnet 4.5 for WRITING (confidence: ${writingClassification.confidence})`);
+      if (
+        writingClassification?.isWritingRequest &&
+        writingClassification.confidence >= 0.4
+      ) {
+        console.log(
+          `✍️ Routing to Claude Sonnet 4.5 for WRITING (confidence: ${writingClassification.confidence})`
+        );
         console.log(`📌 Writing Classification:`, {
           hasWritingAction: writingClassification.hasWritingAction,
           contentTypes: writingClassification.contentTypeMatches,
-          reasoning: writingClassification.reason
+          reasoning: writingClassification.reason,
         });
 
         try {
@@ -140,15 +177,18 @@ export const runIntelligentSearch = async (state, stream = false) => {
           const claudeMessages = [];
 
           // Add conversation history if available
-          if (conversationHistoryWithMemory && conversationHistoryWithMemory.length > 0) {
+          if (
+            conversationHistoryWithMemory &&
+            conversationHistoryWithMemory.length > 0
+          ) {
             claudeMessages.push({
               role: 'user',
-              content: `Previous conversation context:\n${conversationHistoryWithMemory}\n\nCurrent request: ${query}`
+              content: `Previous conversation context:\n${conversationHistoryWithMemory}\n\nCurrent request: ${query}`,
             });
           } else {
             claudeMessages.push({
               role: 'user',
-              content: query
+              content: query,
             });
           }
 
@@ -194,16 +234,19 @@ DO NOT:
           console.log(`📤 Sending writing request to Claude...`);
           const startTime = Date.now();
 
-          const claudeResponse = await claudeService.callClaude(claudeMessages, {
-            system: writingSystemPrompt,
-            maxTokens: config.claude.maxTokens || 4096,
-            temperature: 0.7 // Higher temperature for more creative writing
-          });
+          const claudeResponse = await claudeService.callClaude(
+            claudeMessages,
+            {
+              system: writingSystemPrompt,
+              maxTokens: config.claude.maxTokens || 4096,
+              temperature: 0.7, // Higher temperature for more creative writing
+            }
+          );
 
           // Extract text content from Claude response
           const answerText = claudeResponse.content
-            .filter(block => block.type === 'text')
-            .map(block => block.text)
+            .filter((block) => block.type === 'text')
+            .map((block) => block.text)
             .join('');
 
           const duration = Date.now() - startTime;
@@ -216,14 +259,13 @@ DO NOT:
             classification: {
               isWritingRequest: true,
               confidence: writingClassification.confidence,
-              type: 'writing'
+              type: 'writing',
             },
             references: [],
             searchMethod: 'claude_direct_writing',
             timestamp: new Date().toISOString(),
-            responseTime: duration
+            responseTime: duration,
           };
-
         } catch (error) {
           console.error(`❌ Error routing to Claude for writing:`, error);
           console.log(`⚠️ Falling back to Gemini due to Claude error`);
@@ -232,12 +274,17 @@ DO NOT:
       }
 
       // 💻 Route to Claude for CODE requests (with search capability via ReAct)
-      if (classification.isCodeRelated && classification.confidence >= config.routing.codeQueryThreshold) {
-        console.log(`🚀 Routing to Claude Sonnet 4.5 (confidence: ${classification.confidence})`);
+      if (
+        classification.isCodeRelated &&
+        classification.confidence >= config.routing.codeQueryThreshold
+      ) {
+        console.log(
+          `🚀 Routing to Claude Sonnet 4.5 (confidence: ${classification.confidence})`
+        );
         console.log(`📌 Classification details:`, {
           primaryCategory: classification.primaryCategory,
           categories: classification.categories,
-          reasoning: classification.reasoning
+          reasoning: classification.reasoning,
         });
 
         try {
@@ -249,15 +296,18 @@ DO NOT:
           const claudeMessages = [];
 
           // Add conversation history if available
-          if (conversationHistoryWithMemory && conversationHistoryWithMemory.length > 0) {
+          if (
+            conversationHistoryWithMemory &&
+            conversationHistoryWithMemory.length > 0
+          ) {
             claudeMessages.push({
               role: 'user',
-              content: `Previous conversation context:\n${conversationHistoryWithMemory}\n\nCurrent question: ${query}`
+              content: `Previous conversation context:\n${conversationHistoryWithMemory}\n\nCurrent question: ${query}`,
             });
           } else {
             claudeMessages.push({
               role: 'user',
-              content: query
+              content: query,
             });
           }
 
@@ -287,16 +337,19 @@ QUALITY STANDARDS:
           console.log(`📤 Sending query to Claude...`);
           const startTime = Date.now();
 
-          const claudeResponse = await claudeService.callClaude(claudeMessages, {
-            system: codeSystemPrompt,
-            maxTokens: config.claude.maxTokens || 4096,
-            temperature: config.claude.temperature || 0.7
-          });
+          const claudeResponse = await claudeService.callClaude(
+            claudeMessages,
+            {
+              system: codeSystemPrompt,
+              maxTokens: config.claude.maxTokens || 4096,
+              temperature: config.claude.temperature || 0.7,
+            }
+          );
 
           // Extract text content from Claude response
           const answerText = claudeResponse.content
-            .filter(block => block.type === 'text')
-            .map(block => block.text)
+            .filter((block) => block.type === 'text')
+            .map((block) => block.text)
             .join('');
 
           const duration = Date.now() - startTime;
@@ -309,22 +362,25 @@ QUALITY STANDARDS:
             classification: {
               isCodeRelated: true,
               confidence: classification.confidence,
-              primaryCategory: classification.primaryCategory
+              primaryCategory: classification.primaryCategory,
             },
             references: [],
             searchMethod: 'claude_direct',
             timestamp: new Date().toISOString(),
-            responseTime: duration
+            responseTime: duration,
           };
-
         } catch (error) {
           console.error(`❌ Error routing to Claude:`, error);
           console.log(`⚠️ Falling back to Gemini due to Claude error`);
           // Fall through to Gemini if Claude fails
         }
       } else {
-        console.log(`📍 Routing to Gemini (not code-related or low confidence: ${classification.confidence})`);
-        console.log(`📊 Classification: ${classification.primaryCategory} | Code-related: ${classification.isCodeRelated}`);
+        console.log(
+          `📍 Routing to Gemini (not code-related or low confidence: ${classification.confidence})`
+        );
+        console.log(
+          `📊 Classification: ${classification.primaryCategory} | Code-related: ${classification.isCodeRelated}`
+        );
       }
     }
 
@@ -488,11 +544,11 @@ CRITICAL: Provide minimal, direct answers with only essential details. Remove al
     // Initial messages for Gemini-based tool search
     const messages = [
       {
-        role: "system",
-        content: systemPrompt
+        role: 'system',
+        content: systemPrompt,
       },
       {
-        role: "user",
+        role: 'user',
         content: `This is the current conversation history: ${conversationHistoryWithMemory}
 
 Current question: ${query}
@@ -577,8 +633,8 @@ For analytical/business questions, provide a detailed analysis covering:
 - Risk assessment and mitigation strategies
 - Cite all sources used in your analysis
 
-Provide a well-researched, detailed response with proper source references. Use multiple search queries if needed to build a complete analysis.`
-      }
+Provide a well-researched, detailed response with proper source references. Use multiple search queries if needed to build a complete analysis.`,
+      },
     ];
 
     const startTime = Date.now();
@@ -586,7 +642,7 @@ Provide a well-researched, detailed response with proper source references. Use 
       userId,
       conversationId: state.conversationId,
       searchDepth: state.depth || 'standard',
-      query: query // Pass query for smart model selection
+      query: query, // Pass query for smart model selection
     });
 
     const duration = Date.now() - startTime;
@@ -601,17 +657,17 @@ Provide a well-researched, detailed response with proper source references. Use 
       citations: searchResult?.responseMessage?.citations || [],
       citationMetadata: searchResult?.responseMessage?.citationMetadata || null,
       searchMethod: 'intelligent_search',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-
   } catch (error) {
-    console.error("❌ Error in intelligent search:", error);
+    console.error('❌ Error in intelligent search:', error);
     return {
-      answer: "I encountered an error while processing your search request. Please try again.",
+      answer:
+        'I encountered an error while processing your search request. Please try again.',
       references: [],
       searchMethod: 'error',
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 };

@@ -15,7 +15,7 @@ try {
 } catch (error) {
   console.error('Error loading stripe-products.json:', error.message);
   throw new Error(
-    'Stripe products configuration not found. Please run: npm run seed:stripe',
+    'Stripe products configuration not found. Please run: npm run seed:stripe'
   );
 }
 
@@ -124,7 +124,7 @@ export function getAllPlans() {
  */
 export function getPlanByProductId(productId) {
   return Object.values(SUBSCRIPTION_PLANS).find(
-    (plan) => plan.stripeProductId === productId,
+    (plan) => plan.stripeProductId === productId
   );
 }
 
@@ -133,7 +133,7 @@ export function getPlanByProductId(productId) {
  */
 export function getPlanByPriceId(priceId) {
   return Object.values(SUBSCRIPTION_PLANS).find(
-    (plan) => plan.stripePriceId === priceId,
+    (plan) => plan.stripePriceId === priceId
   );
 }
 

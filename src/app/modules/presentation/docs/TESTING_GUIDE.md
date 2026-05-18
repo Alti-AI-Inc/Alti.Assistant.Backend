@@ -3,15 +3,17 @@
 ## Prerequisites
 
 1. **Google Cloud Storage Setup**
+
    ```bash
    # Ensure alti_gcp.json credentials file exists
    ls alti_gcp.json
-   
+
    # Verify GCS bucket exists or create it
    gsutil ls gs://alti_assistant_presentation || gsutil mb gs://alti_assistant_presentation
    ```
 
 2. **Environment Configuration**
+
    ```env
    # In .env file
    GCP_PROJECT_ID=your-project-id
@@ -20,6 +22,7 @@
    ```
 
 3. **Server Running**
+
    ```bash
    npm start
    # Server should be running on configured port (default: 3000)
@@ -34,6 +37,7 @@
 ## Test 1: Conversational API - New Presentation
 
 ### Request
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/assistant \
   -H "Content-Type: application/json" \
@@ -43,6 +47,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Expected Response
+
 ```json
 {
   "statusCode": 200,
@@ -62,18 +67,20 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Verification Steps
+
 1. ✅ Check response contains `publicUrl` field
 2. ✅ Verify URL format: `https://storage.googleapis.com/alti_assistant_presentation/...`
 3. ✅ Access the `publicUrl` in browser - should download presentation
 4. ✅ Check conversation in database:
    ```javascript
-   db.conversations.findOne({ conversationId: "pres_..." })
+   db.conversations.findOne({ conversationId: 'pres_...' });
    // Should have metadata.presentationUrl
    ```
 
 ## Test 2: Conversational API - Continue Conversation
 
 ### Request 1: Start
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/assistant \
   -H "Content-Type: application/json" \
@@ -83,6 +90,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Request 2: Follow Up
+
 ```bash
 # Use conversationId from previous response
 curl -X POST http://localhost:3000/api/presentation/assistant \
@@ -94,6 +102,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Expected Behavior
+
 - First request: AI asks for more details (n_slides, etc.)
 - Second request: Generates presentation with public URL
 - Both requests use same `conversationId`
@@ -101,6 +110,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ## Test 3: Direct API - Generate Presentation
 
 ### Request
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/generate \
   -H "Content-Type: application/json" \
@@ -114,6 +124,7 @@ curl -X POST http://localhost:3000/api/presentation/generate \
 ```
 
 ### Expected Response
+
 ```json
 {
   "statusCode": 200,
@@ -130,6 +141,7 @@ curl -X POST http://localhost:3000/api/presentation/generate \
 ```
 
 ### Verification Steps
+
 1. ✅ Response includes `publicUrl`
 2. ✅ URL is accessible and downloads presentation
 3. ✅ File exists in GCS at expected path
@@ -137,6 +149,7 @@ curl -X POST http://localhost:3000/api/presentation/generate \
 ## Test 4: Edit Presentation
 
 ### Request
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/assistant \
   -H "Content-Type: application/json" \
@@ -147,6 +160,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Expected Response
+
 - Success message with edited presentation details
 - New `publicUrl` for edited version
 - Conversation metadata updated with `editedPresentationUrl`
@@ -154,6 +168,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ## Test 5: Derive Presentation
 
 ### Request
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/assistant \
   -H "Content-Type: application/json" \
@@ -164,6 +179,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Expected Response
+
 - Success message with new presentation details
 - `publicUrl` for derived presentation
 - Conversation metadata updated with `derivedPresentationUrl`
@@ -171,6 +187,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ## Test 6: Guest User
 
 ### Request
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/assistant \
   -H "Content-Type: application/json" \
@@ -180,6 +197,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Expected Behavior
+
 - Works without authentication
 - Generates guest userId
 - Creates conversation with guest flag
@@ -189,6 +207,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ## Test 7: Error Handling - GCS Failure
 
 ### Simulate GCS Failure
+
 1. Temporarily rename `alti_gcp.json` to break GCS credentials
 2. Make a presentation request
 3. Should receive response with Presenton URLs but no public URL
@@ -196,6 +215,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 5. Restore `alti_gcp.json`
 
 ### Expected Behavior
+
 - Request succeeds despite GCS failure
 - Response includes `downloadUrl` and `editUrl` from Presenton
 - `publicUrl` is null or missing
@@ -204,6 +224,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ## Test 8: Verify File Structure in GCS
 
 ### Using gsutil
+
 ```bash
 # List all files in bucket
 gsutil ls -r gs://alti_assistant_presentation/
@@ -215,6 +236,7 @@ gsutil ls -r gs://alti_assistant_presentation/
 ```
 
 ### Using GCS Console
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/storage)
 2. Navigate to `alti_assistant_presentation` bucket
 3. Verify folder structure matches user/conversation pattern
@@ -223,10 +245,11 @@ gsutil ls -r gs://alti_assistant_presentation/
 ## Test 9: Verify Metadata Storage
 
 ### Query Database
+
 ```javascript
 // In MongoDB shell or via app
-const conversation = await Conversation.findOne({ 
-  conversationId: "pres_1234567890_abc123" 
+const conversation = await Conversation.findOne({
+  conversationId: "pres_1234567890_abc123"
 });
 
 console.log(conversation.metadata);
@@ -248,6 +271,7 @@ console.log(conversation.metadata);
 ## Test 10: Performance Test
 
 ### Measure Upload Time
+
 ```bash
 time curl -X POST http://localhost:3000/api/presentation/assistant \
   -H "Content-Type: application/json" \
@@ -255,6 +279,7 @@ time curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Expected Performance
+
 - Small presentations (5-10 slides): < 5 seconds total
 - Medium presentations (10-20 slides): < 10 seconds total
 - Large presentations (30+ slides): < 20 seconds total
@@ -263,6 +288,7 @@ time curl -X POST http://localhost:3000/api/presentation/assistant \
 ## Test 11: Concurrent Requests
 
 ### Load Test Script
+
 ```bash
 # Run 5 concurrent requests
 for i in {1..5}; do
@@ -274,6 +300,7 @@ wait
 ```
 
 ### Expected Behavior
+
 - All requests succeed
 - Each gets unique conversation ID
 - Files uploaded to separate paths
@@ -282,12 +309,14 @@ wait
 ## Test 12: Using Test Script
 
 ### Run Automated Test
+
 ```bash
 cd d:\ason\ASON-Core-Service-Backend
 node scripts/test-gcs-upload.js
 ```
 
 ### Expected Output
+
 ```
 🧪 Testing GCS Upload Service...
 
@@ -313,14 +342,18 @@ node scripts/test-gcs-upload.js
 ## Troubleshooting
 
 ### Issue: "Failed to upload presentation to GCS"
+
 **Solutions:**
+
 1. Check `alti_gcp.json` exists and has correct permissions
 2. Verify `GCP_PROJECT_ID` in `.env`
 3. Check bucket exists: `gsutil ls gs://alti_assistant_presentation`
 4. Verify service account has Storage Object Creator role
 
 ### Issue: "Public URL not accessible"
+
 **Solutions:**
+
 1. Check file permissions: `gsutil iam get gs://alti_assistant_presentation`
 2. Make bucket publicly readable:
    ```bash
@@ -329,14 +362,18 @@ node scripts/test-gcs-upload.js
 3. Verify file is public: `gsutil acl get gs://alti_assistant_presentation/path/to/file.pptx`
 
 ### Issue: "No publicUrl in response"
+
 **Solutions:**
+
 1. Check server logs for upload errors
 2. Verify upload didn't fail silently
 3. Check if `path` exists in Presenton response
 4. Test with simple request first
 
 ### Issue: "Wrong file path in GCS"
+
 **Solutions:**
+
 1. Check userId is being passed correctly
 2. Verify conversationId generation
 3. Check for special characters in IDs

@@ -13,7 +13,13 @@ class OpenMemoryClient {
     });
   }
 
-  async addMemory({ content, userId, tags = [], metadata = {}, sector = 'semantic' }) {
+  async addMemory({
+    content,
+    userId,
+    tags = [],
+    metadata = {},
+    sector = 'semantic',
+  }) {
     if (!this.enabled || !content) return null;
     const payload = {
       content,
@@ -25,7 +31,12 @@ class OpenMemoryClient {
     return data;
   }
 
-  async queryMemories({ query, userId, k = config.openMemory.defaultTopK, filters = {} }) {
+  async queryMemories({
+    query,
+    userId,
+    k = config.openMemory.defaultTopK,
+    filters = {},
+  }) {
     if (!this.enabled || !query) return [];
     const payload = {
       query,

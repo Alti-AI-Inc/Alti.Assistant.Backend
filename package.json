@@ -42,6 +42,7 @@
     "@langchain/openai": "^0.4.9",
     "@langchain/tavily": "^0.1.4",
     "@llamaindex/openai": "^0.4.5",
+    "@massive.com/client-js": "^10.7.0",
     "@tavily/core": "^0.0.2",
     "ai": "^4.3.16",
     "aws-sdk": "^2.1692.0",

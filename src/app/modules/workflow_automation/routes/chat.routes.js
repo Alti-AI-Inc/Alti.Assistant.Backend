@@ -7,12 +7,35 @@ import checkDailyRequestLimit from '../../../middlewares/checkDailyRequestLimit/
 const router = express.Router();
 
 // Chat-based workflow creation routes
-router.post('/create', optionalAuth(), checkDailyRequestLimit, chatController.createWorkflowFromPromptController);
-router.post('/confirm', optionalAuth(), checkDailyRequestLimit, chatController.confirmWorkflowCreationController);
-router.post('/continue', optionalAuth(), checkDailyRequestLimit, chatController.continueConversationController);
+router.post(
+  '/create',
+  optionalAuth(),
+  checkDailyRequestLimit,
+  chatController.createWorkflowFromPromptController
+);
+router.post(
+  '/confirm',
+  optionalAuth(),
+  checkDailyRequestLimit,
+  chatController.confirmWorkflowCreationController
+);
+router.post(
+  '/continue',
+  optionalAuth(),
+  checkDailyRequestLimit,
+  chatController.continueConversationController
+);
 
 // Conversation management routes
-router.get('/conversations', optionalAuth(), chatController.getUserConversationsController);
-router.get('/conversations/:conversationId', optionalAuth(), chatController.getConversationController);
+router.get(
+  '/conversations',
+  optionalAuth(),
+  chatController.getUserConversationsController
+);
+router.get(
+  '/conversations/:conversationId',
+  optionalAuth(),
+  chatController.getConversationController
+);
 
 export const chatRoutes = router;

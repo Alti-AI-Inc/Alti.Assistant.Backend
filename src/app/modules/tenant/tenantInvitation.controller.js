@@ -48,7 +48,8 @@ const acceptInvitation = catchAsync(async (req, res) => {
   const userId = req.user?.id || req.user?._id;
 
   // Get invitation to get the token
-  const TenantInvitation = (await import('./tenantInvitation.model.js')).default;
+  const TenantInvitation = (await import('./tenantInvitation.model.js'))
+    .default;
   const invitation = await TenantInvitation.findById(inviteId);
 
   if (!invitation) {
@@ -59,7 +60,10 @@ const acceptInvitation = catchAsync(async (req, res) => {
     });
   }
 
-  const result = await tenantInvitationService.acceptInvitation(invitation.token, userId);
+  const result = await tenantInvitationService.acceptInvitation(
+    invitation.token,
+    userId
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

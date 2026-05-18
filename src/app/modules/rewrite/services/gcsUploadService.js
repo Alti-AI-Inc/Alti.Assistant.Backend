@@ -19,20 +19,28 @@ try {
       projectId: GCS_CONFIG.PROJECT_ID,
     });
   } else {
-    logger.warn('GCS credentials not configured. Rewrite file uploads will be stored locally only.');
+    logger.warn(
+      'GCS credentials not configured. Rewrite file uploads will be stored locally only.'
+    );
   }
 
   if (storage && GCS_CONFIG.BUCKET_NAME) {
     bucket = storage.bucket(GCS_CONFIG.BUCKET_NAME);
   }
 } catch (error) {
-  logger.error('Failed to initialize Google Cloud Storage for rewrite module:', error);
+  logger.error(
+    'Failed to initialize Google Cloud Storage for rewrite module:',
+    error
+  );
 }
 
 /**
  * Upload rewritten document file to Google Cloud Storage
  */
-export const uploadRewriteToGCS = async (localFilePath, rewriteMetadata = {}) => {
+export const uploadRewriteToGCS = async (
+  localFilePath,
+  rewriteMetadata = {}
+) => {
   try {
     if (!storage || !bucket) {
       logger.warn('GCS not configured. Returning local file path.');
@@ -73,7 +81,9 @@ export const uploadRewriteToGCS = async (localFilePath, rewriteMetadata = {}) =>
       expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    logger.info(`Rewritten document uploaded successfully to GCS: ${destination}`);
+    logger.info(
+      `Rewritten document uploaded successfully to GCS: ${destination}`
+    );
 
     return {
       success: true,
@@ -104,7 +114,8 @@ const getContentType = (fileName) => {
   const ext = path.extname(fileName).toLowerCase();
   const contentTypes = {
     '.pdf': 'application/pdf',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.docx':
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.doc': 'application/msword',
     '.txt': 'text/plain',
     '.html': 'text/html',

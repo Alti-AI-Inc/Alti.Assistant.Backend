@@ -1,8 +1,8 @@
 import express from 'express';
-import { 
-  runAIClassificationAgent, 
-  getConversationHistory, 
-  clearConversationHistory 
+import {
+  runAIClassificationAgent,
+  getConversationHistory,
+  clearConversationHistory,
 } from '../../../modules/composio_v2/ai_classification/workflow.js';
 
 const router = express.Router();
@@ -13,24 +13,24 @@ const router = express.Router();
  */
 router.post('/message', async (req, res) => {
   try {
-    const { 
-      message, 
-      userId, 
-      conversationId, 
-      retrieveHistory = true 
+    const {
+      message,
+      userId,
+      conversationId,
+      retrieveHistory = true,
     } = req.body;
 
     if (!message || !userId) {
       return res.status(400).json({
         success: false,
-        error: 'Message and userId are required'
+        error: 'Message and userId are required',
       });
     }
 
     const result = await runAIClassificationAgent(message, {
       userId,
       conversationId,
-      retrieveHistory
+      retrieveHistory,
     });
 
     res.json(result);
@@ -38,7 +38,7 @@ router.post('/message', async (req, res) => {
     console.error('Error in conversation message:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -57,7 +57,7 @@ router.get('/:conversationId/history', async (req, res) => {
     console.error('Error retrieving conversation history:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -76,7 +76,7 @@ router.delete('/:conversationId/history', async (req, res) => {
     console.error('Error clearing conversation history:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -92,7 +92,7 @@ router.post('/new', async (req, res) => {
     if (!userId || !initialMessage) {
       return res.status(400).json({
         success: false,
-        error: 'UserId and initialMessage are required'
+        error: 'UserId and initialMessage are required',
       });
     }
 
@@ -102,18 +102,18 @@ router.post('/new', async (req, res) => {
     const result = await runAIClassificationAgent(initialMessage, {
       userId,
       conversationId,
-      retrieveHistory: false // New conversation, no history to retrieve
+      retrieveHistory: false, // New conversation, no history to retrieve
     });
 
     res.json({
       ...result,
-      conversationId: result.conversationId || conversationId
+      conversationId: result.conversationId || conversationId,
     });
   } catch (error) {
     console.error('Error starting new conversation:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });

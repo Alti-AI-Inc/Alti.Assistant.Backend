@@ -15,7 +15,7 @@ const client = twilio(accountSid, authToken);
 client.verify.v2
   .services(serviceId)
   .verifications.create({ to: '+88001862812422', channel: 'sms' })
-  .then(verification => logger.info(verification.sid));
+  .then((verification) => logger.info(verification.sid));
 
 export const sendOTP = catchAsync(async (req, res) => {
   const phoneNumber = '01969452868';

@@ -25,15 +25,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "assistant"]
             },
             "description": "Start a new brainstorming session with a simple message. The AI will analyze your idea and generate creative concepts."
           },
@@ -59,15 +52,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "assistant"]
             },
             "description": "Continue an existing brainstorming conversation by providing the conversationId from the previous response."
           },
@@ -89,15 +75,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "assistant"]
             },
             "description": "Brainstorm business strategy with context and constraints."
           },
@@ -119,15 +98,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "assistant"]
             },
             "description": "Generate marketing campaign ideas."
           },
@@ -154,15 +126,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Apply SCAMPER technique to improve an existing idea."
           },
@@ -184,15 +149,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Perform SWOT analysis on your idea."
           },
@@ -214,15 +172,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Comprehensive product ideation with all parameters."
           },
@@ -244,15 +195,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Explore technical solutions using mind mapping."
           },
@@ -274,15 +218,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Use Five Whys technique for root cause analysis."
           },
@@ -304,15 +241,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Quick brainstorm for fast results (~10 ideas)."
           },
@@ -335,9 +265,7 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/conversation/{{conversationId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -375,15 +303,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/refine",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "refine"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "refine"]
             },
             "description": "Refine and improve specific ideas from an existing brainstorm session."
           },
@@ -414,15 +335,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/export",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "export"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "export"]
             },
             "description": "Export brainstorm session as Markdown format."
           },
@@ -448,15 +362,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/export",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "export"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "export"]
             },
             "description": "Export brainstorm session as JSON format."
           },
@@ -483,15 +390,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Analyze idea from six different thinking modes."
           },
@@ -513,15 +413,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Use reverse brainstorming to find unconventional solutions."
           },
@@ -543,15 +436,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Explore all aspects using Who, What, Where, When, Why, How questions."
           },
@@ -573,15 +459,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/brainstorm/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "brainstorm",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "brainstorm", "generate"]
             },
             "description": "Generate creative content ideas."
           },

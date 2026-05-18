@@ -57,11 +57,12 @@ Each audio upload message now includes:
 
 ```javascript
 // Get conversation
-const conversation = await conversationHelpers.getConversationById(conversationId);
+const conversation =
+  await conversationHelpers.getConversationById(conversationId);
 
 // Find audio upload message
 const audioMessage = conversation.messages.find(
-  msg => msg.metadata?.type === 'audio_upload'
+  (msg) => msg.metadata?.type === 'audio_upload'
 );
 
 const gsUri = audioMessage.metadata.gsUri;
@@ -111,6 +112,7 @@ console.log(metadata);
 Uploads audio file to bucket.
 
 **Returns:**
+
 ```javascript
 {
   gsUri: 'gs://alti_assistant_transcription/transcriptions/...',  // GCS URI for Gemini
@@ -128,6 +130,7 @@ Uploads audio file to bucket.
 Generates temporary access URL for private files.
 
 **Parameters:**
+
 - `fileName` - GCS file path from metadata
 - `expiresIn` - Seconds until expiration (default: 3600 = 1 hour)
 
@@ -159,7 +162,7 @@ const bucketKey = audioMessage.metadata.bucketKey;
 if (await bucketUploadService.audioExistsInBucket(bucketKey)) {
   // Get signed URL
   const url = await bucketUploadService.getSignedUrl(bucketKey);
-  
+
   // Download and re-process
   const audioBuffer = await downloadFromUrl(url);
   // Process with different settings...
@@ -178,7 +181,7 @@ const shareUrl = await bucketUploadService.getSignedUrl(
 res.json({
   message: 'Audio file shared',
   audioUrl: shareUrl,
-  expiresIn: '24 hours'
+  expiresIn: '24 hours',
 });
 ```
 
@@ -189,7 +192,7 @@ const transcription = {
   text: result.text,
   audioUrl: await bucketUploadService.getSignedUrl(bucketKey),
   timestamp: new Date(),
-  processingType: 'transcribe'
+  processingType: 'transcribe',
 };
 ```
 
@@ -198,7 +201,7 @@ const transcription = {
 ```javascript
 // Get old conversations
 const oldConversations = await Conversation.find({
-  createdAt: { $lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } // 90 days
+  createdAt: { $lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) }, // 90 days
 });
 
 // Delete audio files
@@ -216,11 +219,13 @@ for (const conv of oldConversations) {
 Currently using DigitalOcean Spaces (S3-compatible). For Google Cloud Storage:
 
 **Benefits:**
+
 - Gemini can read `gs://bucket/file` URIs directly
 - No need to upload to File API
 - Faster processing
 
 **Implementation:**
+
 ```javascript
 // Instead of uploading to Gemini File API
 const bucketUrl = `gs://your-gcs-bucket/alti_assistant_transcription/${filename}`;
@@ -234,6 +239,7 @@ const result = await geminiAudioService.processAudioWithGemini(
 ```
 
 **Requirements:**
+
 - GCS bucket in same Google Cloud project as Gemini API key
 - Proper IAM permissions
 - Update `bucketUpload.service.js` to use GCS SDK instead of S3
@@ -275,6 +281,7 @@ Each file is named: `{timestamp}-{originalFileName}`
 **Bandwidth:** ~$0.01/GB (outbound)
 
 **Tips:**
+
 - Set lifecycle rules to delete files after X days
 - Use lower bitrate for long-term storage
 - Compress audio files before upload
@@ -311,6 +318,6 @@ console.log('Deleted');
 ✅ **Private by default** - Secure with signed URLs  
 ✅ **Conversation integration** - URLs stored in metadata  
 ✅ **Future-ready** - Can switch to GCS for direct Gemini access  
-✅ **Cost-effective** - Minimal storage costs  
+✅ **Cost-effective** - Minimal storage costs
 
 Audio files are now safely stored and accessible whenever needed!

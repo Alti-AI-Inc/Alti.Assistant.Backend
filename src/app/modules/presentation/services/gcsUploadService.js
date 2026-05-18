@@ -18,7 +18,8 @@ const PRESENTATION_BUCKET = config.gcs.presentation_bucket;
 const getContentType = (filePath) => {
   const ext = path.extname(filePath).toLowerCase();
   const contentTypeMap = {
-    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.pptx':
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     '.pdf': 'application/pdf',
     '.json': 'application/json',
   };
@@ -74,7 +75,10 @@ export const uploadPresentationToGCS = async (
       let filePath;
 
       // Map Presenton's /app_data path to our shared volume mount at /app/presenton_files
-      filePath = presentonPathOrUrl.replace('/app_data', '/app/presenton_files');
+      filePath = presentonPathOrUrl.replace(
+        '/app_data',
+        '/app/presenton_files'
+      );
 
       console.log('Resolved file path:', filePath);
       fileBuffer = await fs.readFile(filePath);

@@ -44,16 +44,28 @@ const generateConversationId = () => {
 /**
  * Handle rewrite conversation (create or retrieve)
  */
-const handleRewriteConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleRewriteConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -78,20 +90,32 @@ const handleRewriteConversation = async (userId, conversationId, userMessage, is
         req
       );
 
-      logger.info(`Created new rewrite conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new rewrite conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling rewrite conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -100,21 +124,39 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
 /**
  * Update conversation metadata
  */
-const updateConversationMetadata = async (conversationId, userId, params, req = null) => {
+const updateConversationMetadata = async (
+  conversationId,
+  userId,
+  params,
+  req = null
+) => {
   try {
-    await conversationService.updateConversationMetadata(conversationId, userId, {
-      collectedParams: params,
-    }, req);
+    await conversationService.updateConversationMetadata(
+      conversationId,
+      userId,
+      {
+        collectedParams: params,
+      },
+      req
+    );
   } catch (error) {
     logger.warn('Error updating conversation metadata:', error);
   }
@@ -125,7 +167,10 @@ const updateConversationMetadata = async (conversationId, userId, params, req = 
  */
 const storeFileInConversation = async (conversationId, userId, fileInfo) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId
+    );
 
     if (conversation) {
       const uploadedFiles = conversation.metadata?.uploadedFiles || [];
@@ -157,7 +202,10 @@ const storeFileInConversation = async (conversationId, userId, fileInfo) => {
  */
 const storeTextInConversation = async (conversationId, userId, textContent) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId
+    );
 
     if (conversation) {
       conversation.metadata = {
@@ -181,7 +229,7 @@ const detectIntent = (message) => {
 
   // Check for specific intents based on keywords
   for (const [intent, keywords] of Object.entries(INTENT_KEYWORDS)) {
-    if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+    if (keywords.some((keyword) => lowerMessage.includes(keyword))) {
       return intent;
     }
   }
@@ -203,7 +251,7 @@ const detectIntent = (message) => {
  */
 const shouldGenerateFile = (message) => {
   const lowerMessage = message.toLowerCase();
-  return FILE_KEYWORDS.some(keyword => lowerMessage.includes(keyword));
+  return FILE_KEYWORDS.some((keyword) => lowerMessage.includes(keyword));
 };
 
 /**
@@ -225,26 +273,33 @@ const buildRewriteInstructions = (rewriteParams, userMessage = '') => {
   }
 
   if (rewriteParams.additionalInstructions) {
-    instructions.push(`Additional Instructions: ${rewriteParams.additionalInstructions}`);
+    instructions.push(
+      `Additional Instructions: ${rewriteParams.additionalInstructions}`
+    );
   }
 
   if (userMessage) {
     instructions.push(`User Request: ${userMessage}`);
   }
 
-  return instructions.length > 0 ? instructions.join('\n') : 'Please rewrite the content.';
+  return instructions.length > 0
+    ? instructions.join('\n')
+    : 'Please rewrite the content.';
 };
 
 /**
  * Perform content rewrite using AI
  */
-const performRewrite = async (content, rewriteParams, conversationHistory = []) => {
+const performRewrite = async (
+  content,
+  rewriteParams,
+  conversationHistory = []
+) => {
   try {
-
     //If no content provided, use the conversation history to rewrite. Get the context from there. Content could be anywhere in the history. So we need full history to be passed.
     if (!content || content.trim().length === 0) {
       let combinedContent = '';
-      conversationHistory.forEach(msg => {
+      conversationHistory.forEach((msg) => {
         if (msg.role === 'user' || msg.role === 'assistant') {
           combinedContent += `${msg.content}\n`;
         }
@@ -259,7 +314,8 @@ const performRewrite = async (content, rewriteParams, conversationHistory = []) 
 
     // Determine intent and system prompt
     const intent = rewriteParams.intent || REWRITE_INTENTS.GENERAL_REWRITE;
-    const systemPrompt = SYSTEM_PROMPTS[intent] || SYSTEM_PROMPTS[REWRITE_INTENTS.GENERAL_REWRITE];
+    const systemPrompt =
+      SYSTEM_PROMPTS[intent] || SYSTEM_PROMPTS[REWRITE_INTENTS.GENERAL_REWRITE];
 
     // Build context from conversation history
     let contextPrompt = '';
@@ -267,7 +323,7 @@ const performRewrite = async (content, rewriteParams, conversationHistory = []) 
       const recentMessages = conversationHistory.slice(-5);
       contextPrompt =
         '\n\nPrevious conversation context:\n' +
-        recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+        recentMessages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
     }
 
     // Build rewrite instructions
@@ -329,7 +385,12 @@ Please provide the rewritten version.`;
 /**
  * Generate file from rewritten content
  */
-const generateRewriteFile = async (rewrittenContent, originalFilename = null, userId = null, metadata = {}) => {
+const generateRewriteFile = async (
+  rewrittenContent,
+  originalFilename = null,
+  userId = null,
+  metadata = {}
+) => {
   try {
     // Ensure output directory exists
     await fs.mkdir(STORAGE_CONFIG.OUTPUT_FOLDER, { recursive: true });
@@ -375,7 +436,10 @@ const generateRewriteFile = async (rewrittenContent, originalFilename = null, us
     };
   } catch (error) {
     logger.error('Error generating rewrite file:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate file');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to generate file'
+    );
   }
 };
 
@@ -404,10 +468,17 @@ const processConversationalRequest = async (
     const convId = conversation.conversationId;
 
     // Add user message to conversation
-    await addMessage(convId, userId, 'user', message, {
-      hasFile: !!fileInfo,
-      hasText: !!textContent,
-    }, req);
+    await addMessage(
+      convId,
+      userId,
+      'user',
+      message,
+      {
+        hasFile: !!fileInfo,
+        hasText: !!textContent,
+      },
+      req
+    );
 
     // Detect intent and file generation preference
     const intent = detectIntent(message);
@@ -429,7 +500,8 @@ const processConversationalRequest = async (
         await storeFileInConversation(convId, userId, fileInfo);
       } catch (error) {
         logger.error('Error extracting text from file:', error);
-        const errorMessage = 'Unable to extract text from the file. Please ensure the file is in a supported format.';
+        const errorMessage =
+          'Unable to extract text from the file. Please ensure the file is in a supported format.';
         await addMessage(convId, userId, 'assistant', errorMessage, {}, req);
         return {
           success: false,
@@ -449,33 +521,59 @@ const processConversationalRequest = async (
       console.log('conversation.metadata:', conversation);
       if (conversation.metadata?.textContent) {
         contentToRewrite = conversation.metadata.textContent;
-        logger.info('Using previously stored text content from conversation metadata');
+        logger.info(
+          'Using previously stored text content from conversation metadata'
+        );
       }
       // Check for previously uploaded files
       else if (conversation.metadata?.currentFile) {
         try {
-          contentToRewrite = await fileProcessor.extractTextFromFile(conversation.metadata.currentFile);
-          logger.info('Using previously uploaded file from conversation metadata');
+          contentToRewrite = await fileProcessor.extractTextFromFile(
+            conversation.metadata.currentFile
+          );
+          logger.info(
+            'Using previously uploaded file from conversation metadata'
+          );
         } catch (error) {
           logger.error('Error extracting text from previous file:', error);
         }
       }
       // Check the uploadedFiles array if currentFile is not set
-      else if (conversation.metadata?.uploadedFiles && conversation.metadata.uploadedFiles.length > 0) {
+      else if (
+        conversation.metadata?.uploadedFiles &&
+        conversation.metadata.uploadedFiles.length > 0
+      ) {
         try {
-          const lastFile = conversation.metadata.uploadedFiles[conversation.metadata.uploadedFiles.length - 1];
+          const lastFile =
+            conversation.metadata.uploadedFiles[
+              conversation.metadata.uploadedFiles.length - 1
+            ];
           contentToRewrite = await fileProcessor.extractTextFromFile(lastFile);
           logger.info('Using last uploaded file from conversation history');
         } catch (error) {
-          logger.error('Error extracting text from conversation file history:', error);
+          logger.error(
+            'Error extracting text from conversation file history:',
+            error
+          );
         }
       }
     }
 
     // Check if we still don't have content to rewrite
-    if ((!contentToRewrite || contentToRewrite.trim().length === 0) && !conversationId) {
-      const needContentMessage = 'Please provide the text you want to rewrite or upload a document.';
-      await addMessage(convId, userId, 'assistant', needContentMessage, {}, req);
+    if (
+      (!contentToRewrite || contentToRewrite.trim().length === 0) &&
+      !conversationId
+    ) {
+      const needContentMessage =
+        'Please provide the text you want to rewrite or upload a document.';
+      await addMessage(
+        convId,
+        userId,
+        'assistant',
+        needContentMessage,
+        {},
+        req
+      );
       return {
         success: false,
         conversationId: convId,
@@ -500,7 +598,8 @@ const processConversationalRequest = async (
     const messageLower = message.toLowerCase();
     if (messageLower.includes('formal')) rewriteParams.style = 'formal';
     if (messageLower.includes('casual')) rewriteParams.style = 'casual';
-    if (messageLower.includes('professional')) rewriteParams.style = 'professional';
+    if (messageLower.includes('professional'))
+      rewriteParams.style = 'professional';
     if (messageLower.includes('academic')) rewriteParams.style = 'academic';
     if (messageLower.includes('simplify')) rewriteParams.mode = 'simplify';
     if (messageLower.includes('expand')) rewriteParams.mode = 'expand';
@@ -532,7 +631,10 @@ const processConversationalRequest = async (
           }
         );
       } catch (error) {
-        logger.warn('Error generating file, continuing with text response:', error);
+        logger.warn(
+          'Error generating file, continuing with text response:',
+          error
+        );
       }
     }
 
@@ -541,10 +643,17 @@ const processConversationalRequest = async (
       ? `${rewriteResult.rewrittenContent}\n\n${RESPONSE_MESSAGES.FILE_GENERATED}: ${fileGenerated.filename}`
       : rewriteResult.rewrittenContent;
 
-    await addMessage(convId, userId, 'assistant', assistantMessage, {
-      rewriteMetadata: rewriteResult.metadata,
-      fileGenerated: fileGenerated ? true : false,
-    }, req);
+    await addMessage(
+      convId,
+      userId,
+      'assistant',
+      assistantMessage,
+      {
+        rewriteMetadata: rewriteResult.metadata,
+        fileGenerated: fileGenerated ? true : false,
+      },
+      req
+    );
 
     return {
       success: true,
@@ -565,7 +674,12 @@ const processConversationalRequest = async (
 /**
  * Direct rewrite (non-conversational)
  */
-const rewriteContent = async (content, rewriteParams, userId, isGuest = false) => {
+const rewriteContent = async (
+  content,
+  rewriteParams,
+  userId,
+  isGuest = false
+) => {
   try {
     // Perform rewrite
     const rewriteResult = await performRewrite(content, rewriteParams);

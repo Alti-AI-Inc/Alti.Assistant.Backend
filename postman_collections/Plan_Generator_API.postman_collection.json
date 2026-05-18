@@ -25,13 +25,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "assistant"]
             },
             "description": "Start a new planning conversation. AI will analyze your idea and may ask clarifying questions."
           },
@@ -53,13 +48,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "assistant"]
             },
             "description": "Continue an existing conversation with more details or refinement requests."
           },
@@ -87,13 +77,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "assistant"]
             },
             "description": "Upload a document (PDF, DOCX, TXT) to provide additional context for plan generation."
           },
@@ -115,13 +100,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "assistant"]
             },
             "description": "Request refinements to specific sections of your plan."
           },
@@ -143,13 +123,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "assistant"]
             },
             "description": "Request alternative strategies and approaches for your plan."
           },
@@ -176,13 +151,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "generate"]
             },
             "description": "Generate a complete business plan with all parameters specified."
           },
@@ -204,13 +174,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "generate"]
             },
             "description": "Generate a product launch plan with specific brainstorming aspects."
           },
@@ -232,13 +197,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "generate"]
             },
             "description": "Generate an event planning document."
           },
@@ -260,13 +220,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "generate"]
             },
             "description": "Generate a marketing campaign plan."
           },
@@ -288,13 +243,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "generate"]
             },
             "description": "Generate a quick project plan without detailed constraints."
           },
@@ -321,13 +271,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/brainstorm",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "brainstorm"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "brainstorm"]
             },
             "description": "Generate comprehensive brainstorming insights for an idea."
           },
@@ -349,13 +294,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/brainstorm",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "brainstorm"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "brainstorm"]
             },
             "description": "Generate only SWOT analysis for quick insights."
           },
@@ -377,13 +317,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/brainstorm",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "brainstorm"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "brainstorm"]
             },
             "description": "Generate brainstorm with additional context for better insights."
           },
@@ -410,13 +345,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/export",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "export"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "export"]
             },
             "description": "Export plan in Markdown format."
           },
@@ -438,13 +368,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/export",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "export"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "export"]
             },
             "description": "Export plan as structured JSON."
           },
@@ -466,13 +391,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/export",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "export"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "export"]
             },
             "description": "Export plan as HTML document."
           },
@@ -490,14 +410,8 @@
             ],
             "url": {
               "raw": "{{base_url}}/plan-generator/conversation/{{conversationId}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "conversation",
-                "{{conversationId}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "conversation", "{{conversationId}}"]
             },
             "description": "Retrieve full conversation history including all messages, analysis, brainstorm, and generated plan."
           },
@@ -524,13 +438,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "generate"]
             },
             "description": "Complete enterprise-level startup plan with all aspects."
           },
@@ -552,13 +461,8 @@
             },
             "url": {
               "raw": "{{base_url}}/plan-generator/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "plan-generator",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["plan-generator", "assistant"]
             },
             "description": "Test guest user access without authentication."
           },

@@ -1,8 +1,8 @@
-import { runAIClassificationAgent } from "./ai_classification/workflow.js";
-import { composioConversationService } from "./composio.conversation.service.js";
+import { runAIClassificationAgent } from './ai_classification/workflow.js';
+import { composioConversationService } from './composio.conversation.service.js';
 import { logger } from '../../../shared/logger.js';
-import ComposioAuth from "./composio.model.js";
-import mongoose from "mongoose";
+import ComposioAuth from './composio.model.js';
+import mongoose from 'mongoose';
 
 /**
  * Main service for AI-powered user input classification and tool execution
@@ -11,47 +11,56 @@ import mongoose from "mongoose";
 /**
  * Process user input through AI classification and execute the identified action
  */
-export const processUserInputService = async (userInput, options = {}, req = null) => {
+export const processUserInputService = async (
+  userInput,
+  options = {},
+  req = null
+) => {
   const {
     userId = null,
     conversationId = null,
     history = [],
-    isGuest = false
+    isGuest = false,
   } = options;
 
   // Generate userId for guest users if not provided
-  const effectiveUserId = userId || (isGuest ? composioConversationService.generateGuestUserId() : null);
+  const effectiveUserId =
+    userId ||
+    (isGuest ? composioConversationService.generateGuestUserId() : null);
 
   if (!effectiveUserId) {
     return {
       success: false,
       message: 'User ID is required for tool execution',
-      error: 'Missing user identifier'
+      error: 'Missing user identifier',
     };
   }
 
   try {
-    console.log(`Processing user input: "${userInput}" for user: ${effectiveUserId} (guest: ${isGuest})`);
+    console.log(
+      `Processing user input: "${userInput}" for user: ${effectiveUserId} (guest: ${isGuest})`
+    );
 
     // Handle conversation creation/retrieval
-    const conversation = await composioConversationService.handleComposioConversation(
-      effectiveUserId,
-      conversationId,
-      userInput,
-      isGuest
-    );
-    const actualConversationId = conversation.conversationId || composioConversationService.generateComposioConversationId();
+    const conversation =
+      await composioConversationService.handleComposioConversation(
+        effectiveUserId,
+        conversationId,
+        userInput,
+        isGuest
+      );
+    const actualConversationId =
+      conversation.conversationId ||
+      composioConversationService.generateComposioConversationId();
 
     // Get conversation history for context-aware processing
     let conversationHistory = [];
     if (conversationId && conversation.messages) {
       // Get last 10 messages for context (excluding the current message)
-      conversationHistory = conversation.messages
-        .slice(-10)
-        .map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
+      conversationHistory = conversation.messages.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
     }
 
     // Add user message to conversation
@@ -66,14 +75,18 @@ export const processUserInputService = async (userInput, options = {}, req = nul
     const result = await runAIClassificationAgent(userInput, {
       userId: effectiveUserId,
       conversationId: actualConversationId,
-      history: conversationHistory.length > 0 ? conversationHistory : history
+      history: conversationHistory.length > 0 ? conversationHistory : history,
     });
 
     if (result.success) {
-      console.log(`Successfully processed input. Workflow: ${result.data?.responseMessage?.metadata?.workflowType}`);
+      console.log(
+        `Successfully processed input. Workflow: ${result.data?.responseMessage?.metadata?.workflowType}`
+      );
 
       // Extract the response text from the new format
-      const responseText = result.data?.responseMessage?.message || 'Action completed successfully';
+      const responseText =
+        result.data?.responseMessage?.message ||
+        'Action completed successfully';
       const metadata = result.data?.responseMessage?.metadata || {};
 
       // Add assistant response to conversation with enhanced metadata
@@ -85,7 +98,7 @@ export const processUserInputService = async (userInput, options = {}, req = nul
         totalSteps: metadata.totalSteps,
         executionResult: result.data?.responseMessage?.executionResult,
         toolResults: result.data?.responseMessage?.toolResults,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       await composioConversationService.addComposioResultMessage(
@@ -114,13 +127,15 @@ export const processUserInputService = async (userInput, options = {}, req = nul
           messageCount: conversation.messageCount + 2, // User message + assistant response
           userType: isGuest ? 'guest' : 'authenticated',
           userId: isGuest ? effectiveUserId : undefined, // Include userId for guest users for frontend tracking
-        }
+        },
       };
     } else {
       console.error(`Failed to process input: ${result.error}`);
 
       // Add error message to conversation
-      const errorMessage = result.data?.responseMessage?.text || `Sorry, I encountered an error while processing your request: ${result.error}`;
+      const errorMessage =
+        result.data?.responseMessage?.text ||
+        `Sorry, I encountered an error while processing your request: ${result.error}`;
       await composioConversationService.addComposioErrorMessage(
         actualConversationId,
         effectiveUserId,
@@ -137,7 +152,7 @@ export const processUserInputService = async (userInput, options = {}, req = nul
           messageCount: conversation.messageCount + 2,
           userType: isGuest ? 'guest' : 'authenticated',
           userId: isGuest ? effectiveUserId : undefined,
-        }
+        },
       };
     }
   } catch (error) {
@@ -148,12 +163,13 @@ export const processUserInputService = async (userInput, options = {}, req = nul
     if (effectiveUserId) {
       try {
         if (!finalConversationId) {
-          const conversation = await composioConversationService.handleComposioConversation(
-            effectiveUserId,
-            null,
-            userInput,
-            isGuest
-          );
+          const conversation =
+            await composioConversationService.handleComposioConversation(
+              effectiveUserId,
+              null,
+              userInput,
+              isGuest
+            );
           finalConversationId = conversation.conversationId;
         }
 
@@ -176,13 +192,13 @@ export const processUserInputService = async (userInput, options = {}, req = nul
       data: {
         responseMessage: {
           text: `Sorry, I encountered an unexpected error while processing your request: ${error.message}`,
-          type: 'error'
+          type: 'error',
         },
         conversationId: finalConversationId,
         messageCount: 1,
         userType: isGuest ? 'guest' : 'authenticated',
         userId: isGuest ? effectiveUserId : undefined,
-      }
+      },
     };
   }
 };
@@ -190,25 +206,27 @@ export const processUserInputService = async (userInput, options = {}, req = nul
 /**
  * Get user's connected accounts for apps
  */
-export const getUserConnectedAccountsService = async (userId, status, req = null) => {
+export const getUserConnectedAccountsService = async (
+  userId,
+  status,
+  req = null
+) => {
   try {
-
     const accounts = await ComposioAuth.find({
-      userId: userId
+      userId: userId,
     });
 
     console.log(`User connected accounts for ${userId}:`, accounts);
 
-
     return {
       success: true,
-      data: accounts
+      data: accounts,
     };
   } catch (error) {
     console.error('Error in getUserConnectedAccountsService:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -216,18 +234,23 @@ export const getUserConnectedAccountsService = async (userId, status, req = null
 /**
  * Check if user has required connections for an app
  */
-export const checkUserConnectionsService = async (userId, appName, req = null) => {
+export const checkUserConnectionsService = async (
+  userId,
+  appName,
+  req = null
+) => {
   try {
     const ComposionAuth = (await import('./composio.model.js')).default;
 
     const accounts = await ComposionAuth.find({
       userId: userId,
-      status: 'active'
+      status: 'active',
     });
 
-    const hasConnection = accounts.some(account =>
-      account.integrationId &&
-      account.integrationId.toLowerCase().includes(appName.toLowerCase())
+    const hasConnection = accounts.some(
+      (account) =>
+        account.integrationId &&
+        account.integrationId.toLowerCase().includes(appName.toLowerCase())
     );
 
     return {
@@ -235,17 +258,18 @@ export const checkUserConnectionsService = async (userId, appName, req = null) =
       data: {
         hasConnection,
         appName,
-        connectedAccounts: accounts.filter(account =>
-          account.integrationId &&
-          account.integrationId.toLowerCase().includes(appName.toLowerCase())
-        )
-      }
+        connectedAccounts: accounts.filter(
+          (account) =>
+            account.integrationId &&
+            account.integrationId.toLowerCase().includes(appName.toLowerCase())
+        ),
+      },
     };
   } catch (error) {
     console.error('Error in checkUserConnectionsService:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -253,34 +277,46 @@ export const checkUserConnectionsService = async (userId, appName, req = null) =
 /**
  * Get composio conversation history for a user
  */
-export const getComposioConversationHistoryService = async (userId, options = {}, req = null) => {
+export const getComposioConversationHistoryService = async (
+  userId,
+  options = {},
+  req = null
+) => {
   try {
     const { limit = 20, conversationId = null } = options;
 
     if (conversationId) {
       // Get specific conversation history
-      const history = await composioConversationService.getComposioHistory(conversationId, userId, limit, req);
+      const history = await composioConversationService.getComposioHistory(
+        conversationId,
+        userId,
+        limit,
+        req
+      );
       return {
         success: true,
         data: {
           conversationId,
           messages: history,
-          messageCount: history.length
-        }
+          messageCount: history.length,
+        },
       };
     } else {
       // Get conversation stats
-      const stats = await composioConversationService.getComposioStats(userId, req);
+      const stats = await composioConversationService.getComposioStats(
+        userId,
+        req
+      );
       return {
         success: true,
-        data: stats
+        data: stats,
       };
     }
   } catch (error) {
     console.error('Error in getComposioConversationHistoryService:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };

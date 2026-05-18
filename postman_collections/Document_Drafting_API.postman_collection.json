@@ -24,13 +24,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "assistant"]
             },
             "description": "Start a new conversational document drafting session"
           },
@@ -52,13 +47,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "assistant"]
             },
             "description": "Continue an existing conversation with additional details"
           },
@@ -80,13 +70,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "assistant"]
             },
             "description": "Single message with all details for quick document generation"
           },
@@ -108,13 +93,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "assistant"]
             },
             "description": "Generate an academic essay"
           },
@@ -141,13 +121,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "generate"]
             },
             "description": "Generate a business proposal with all parameters specified"
           },
@@ -169,13 +144,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "generate"]
             },
             "description": "Generate a professional cover letter"
           },
@@ -197,13 +167,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "generate"]
             },
             "description": "Generate technical documentation"
           },
@@ -225,13 +190,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "generate"]
             },
             "description": "Generate a blog post in markdown format"
           },
@@ -253,13 +213,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "generate"]
             },
             "description": "Generate an academic research paper"
           },
@@ -281,13 +236,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "generate"]
             },
             "description": "Generate a formal business letter"
           },
@@ -309,13 +259,8 @@
             },
             "url": {
               "raw": "{{base_url}}/documents/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "documents",
-                "generate"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["documents", "generate"]
             },
             "description": "Generate an internal memo"
           },
@@ -339,13 +284,8 @@
         },
         "url": {
           "raw": "{{base_url}}/documents/export",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "documents",
-            "export"
-          ]
+          "host": ["{{base_url}}"],
+          "path": ["documents", "export"]
         },
         "description": "Export an existing document to a different format (Not yet implemented)"
       },
@@ -367,13 +307,8 @@
         },
         "url": {
           "raw": "{{base_url}}/documents/edit",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "documents",
-            "edit"
-          ]
+          "host": ["{{base_url}}"],
+          "path": ["documents", "edit"]
         },
         "description": "Edit or refine an existing document (Not yet implemented)"
       },

@@ -5,6 +5,7 @@
 The Knowledge Bank is a file management system that allows users to upload, store, retrieve, and process their files. It's **separate from the knowledgebot** functionality. Files are stored in Google Cloud Storage (GCS) and metadata is saved in MongoDB. Files can be processed using the RAG (Retrieval-Augmented Generation) system for semantic search and AI-powered interactions.
 
 ### Key Features
+
 - ✅ Upload files to GCS bucket
 - ✅ Store file metadata in database
 - ✅ Retrieve user's files with filtering
@@ -14,12 +15,14 @@ The Knowledge Bank is a file management system that allows users to upload, stor
 - ✅ Authentication required for all operations
 
 ### Differences: Knowledge Bank vs Knowledgebot
+
 - **Knowledge Bank**: General user file storage system, files belong to the user
 - **Knowledgebot**: Bot-specific knowledge base, files belong to a specific bot/knowledge base
 
 ---
 
 ## Base URL
+
 ```
 /api/v1/knowledge-bank
 ```
@@ -27,7 +30,9 @@ The Knowledge Bank is a file management system that allows users to upload, stor
 ---
 
 ## Authentication
+
 All endpoints require authentication. Include the JWT token in the Authorization header:
+
 ```
 Authorization: Bearer <your_jwt_token>
 ```
@@ -43,6 +48,7 @@ Authorization: Bearer <your_jwt_token>
 Upload a file to the knowledge bank. Files are stored in GCS and metadata is saved to the database.
 
 #### Request
+
 - **Content-Type**: `multipart/form-data`
 - **Body Parameters**:
   - `files` (file, required): The file to upload
@@ -53,6 +59,7 @@ Upload a file to the knowledge bank. Files are stored in GCS and metadata is sav
   - `metadata` (JSON object string, optional): Additional metadata
 
 #### Example Request (cURL)
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/knowledge-bank/upload \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -63,6 +70,7 @@ curl -X POST http://localhost:5000/api/v1/knowledge-bank/upload \
 ```
 
 #### Example Request (JavaScript/Fetch)
+
 ```javascript
 const formData = new FormData();
 formData.append('files', fileInput.files[0]);
@@ -73,15 +81,16 @@ formData.append('processImmediately', 'true');
 const response = await fetch('/api/v1/knowledge-bank/upload', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   },
-  body: formData
+  body: formData,
 });
 
 const result = await response.json();
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -110,6 +119,7 @@ const result = await response.json();
 Retrieve all files uploaded by the authenticated user with optional filtering.
 
 #### Query Parameters
+
 - `fileType` (string, optional): Filter by file type (e.g., "pdf", "docx")
 - `processingStatus` (string, optional): Filter by status ("pending", "processing", "completed", "failed")
 - `isProcessed` (boolean, optional): Filter by processing status (true/false)
@@ -117,12 +127,14 @@ Retrieve all files uploaded by the authenticated user with optional filtering.
 - `skip` (number, optional): Number to skip for pagination (default: 0)
 
 #### Example Request
+
 ```bash
 curl -X GET "http://localhost:5000/api/v1/knowledge-bank/files?fileType=pdf&isProcessed=true&limit=20" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -169,15 +181,18 @@ curl -X GET "http://localhost:5000/api/v1/knowledge-bank/files?fileType=pdf&isPr
 Retrieve details of a specific file by its ID.
 
 #### Path Parameters
+
 - `fileId` (string, required): The file's unique identifier
 
 #### Example Request
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6g7h8i9j0k \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -216,15 +231,18 @@ curl -X GET http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6g7h
 Delete a file from the knowledge bank (soft delete - file is marked as inactive).
 
 #### Path Parameters
+
 - `fileId` (string, required): The file's unique identifier
 
 #### Example Request
+
 ```bash
 curl -X DELETE http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6g7h8i9j0k \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -234,6 +252,7 @@ curl -X DELETE http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6
 ```
 
 #### Error Response (File Not Found)
+
 ```json
 {
   "statusCode": 404,
@@ -251,15 +270,18 @@ curl -X DELETE http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6
 Process a file by adding it to the RAG system for semantic search and AI interactions.
 
 #### Path Parameters
+
 - `fileId` (string, required): The file's unique identifier
 
 #### Example Request
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6g7h8i9j0k/process \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -278,6 +300,7 @@ curl -X POST http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6g7
 ```
 
 #### Error Response (Already Processed)
+
 ```json
 {
   "statusCode": 400,
@@ -299,12 +322,14 @@ curl -X POST http://localhost:5000/api/v1/knowledge-bank/files/674a1b2c3d4e5f6g7
 Get the authenticated user's storage statistics.
 
 #### Example Request
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/knowledge-bank/stats \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -327,20 +352,24 @@ curl -X GET http://localhost:5000/api/v1/knowledge-bank/stats \
 The Knowledge Bank supports various file types:
 
 ### Documents
+
 - PDF (`.pdf`)
 - Microsoft Word (`.doc`, `.docx`)
 - Plain Text (`.txt`)
 - Markdown (`.md`)
 
 ### Data Files
+
 - CSV (`.csv`)
 - JSON (`.json`)
 - XML (`.xml`)
 
 ### Web Files
+
 - HTML (`.html`)
 
 ### Spreadsheets & Presentations
+
 - Microsoft Excel (`.xls`, `.xlsx`)
 - Microsoft PowerPoint (`.ppt`, `.pptx`)
 
@@ -359,13 +388,13 @@ Files can have the following processing statuses:
 
 ## Error Codes
 
-| Status Code | Description |
-|------------|-------------|
-| 200 | Success |
-| 400 | Bad Request (invalid input) |
-| 401 | Unauthorized (invalid or missing token) |
-| 404 | Not Found (file doesn't exist or doesn't belong to user) |
-| 500 | Internal Server Error |
+| Status Code | Description                                              |
+| ----------- | -------------------------------------------------------- |
+| 200         | Success                                                  |
+| 400         | Bad Request (invalid input)                              |
+| 401         | Unauthorized (invalid or missing token)                  |
+| 404         | Not Found (file doesn't exist or doesn't belong to user) |
+| 500         | Internal Server Error                                    |
 
 ---
 
@@ -446,25 +475,28 @@ uploadFormData.append('tags', JSON.stringify(['work', 'project']));
 
 const uploadResponse = await fetch('/api/v1/knowledge-bank/upload', {
   method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}` },
-  body: uploadFormData
+  headers: { Authorization: `Bearer ${token}` },
+  body: uploadFormData,
 });
 
 const { data: uploadData } = await uploadResponse.json();
 const fileId = uploadData.fileId;
 
 // 2. Process file
-const processResponse = await fetch(`/api/v1/knowledge-bank/files/${fileId}/process`, {
-  method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}` }
-});
+const processResponse = await fetch(
+  `/api/v1/knowledge-bank/files/${fileId}/process`,
+  {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  }
+);
 
 const { data: processData } = await processResponse.json();
 console.log('Document ID:', processData.documentId);
 
 // 3. Get file details
 const fileResponse = await fetch(`/api/v1/knowledge-bank/files/${fileId}`, {
-  headers: { 'Authorization': `Bearer ${token}` }
+  headers: { Authorization: `Bearer ${token}` },
 });
 
 const { data: fileData } = await fileResponse.json();

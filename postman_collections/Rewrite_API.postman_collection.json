@@ -37,13 +37,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Rewrite text in a formal style using natural language"
           },
@@ -77,13 +72,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Rewrite text in a professional style"
           },
@@ -117,13 +107,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Simplify complex text for better understanding"
           },
@@ -157,13 +142,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Expand brief text with additional details and context"
           },
@@ -197,13 +177,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Condense text to essential points"
           },
@@ -238,13 +213,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Upload a document and rewrite it using natural language"
           },
@@ -278,13 +248,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Rewrite text and generate a downloadable file"
           },
@@ -318,13 +283,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Continue an existing conversation with follow-up rewrite requests"
           },
@@ -358,13 +318,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Rewrite text in academic/scholarly style"
           },
@@ -398,13 +353,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Fix grammar and spelling errors while improving readability"
           },
@@ -438,13 +388,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Completely paraphrase text using different words and structure"
           },
@@ -483,13 +428,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/rewrite",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "rewrite"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "rewrite"]
             },
             "description": "Direct rewrite with explicit parameters - formal style"
           },
@@ -523,13 +463,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/rewrite",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "rewrite"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "rewrite"]
             },
             "description": "Direct rewrite with simplify mode"
           },
@@ -563,13 +498,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/rewrite",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "rewrite"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "rewrite"]
             },
             "description": "Direct rewrite with expand mode and target audience"
           },
@@ -603,13 +533,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/rewrite",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "rewrite"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "rewrite"]
             },
             "description": "Direct rewrite with academic style and additional instructions"
           },
@@ -643,13 +568,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/rewrite",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "rewrite"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "rewrite"]
             },
             "description": "Direct rewrite with file generation (outputFormat: both)"
           },
@@ -699,13 +619,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/rewrite",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "rewrite"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "rewrite"]
             },
             "description": "Direct rewrite with file upload and explicit parameters"
           },
@@ -739,13 +654,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/rewrite",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "rewrite"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "rewrite"]
             },
             "description": "Direct rewrite with creative style for engaging content"
           },
@@ -769,14 +679,8 @@
             ],
             "url": {
               "raw": "{{base_url}}/rewrite/conversation/{{conversation_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "conversation",
-                "{{conversation_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "conversation", "{{conversation_id}}"]
             },
             "description": "Retrieve the full history of a rewrite conversation"
           },
@@ -815,13 +719,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Use case: Making casual email professional"
           },
@@ -855,13 +754,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Use case: Expanding brief notes into detailed summary"
           },
@@ -895,13 +789,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Use case: Converting casual social media post to professional"
           },
@@ -935,13 +824,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Use case: Simplifying technical documentation for general audience"
           },
@@ -975,13 +859,8 @@
             },
             "url": {
               "raw": "{{base_url}}/rewrite/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "rewrite",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["rewrite", "assistant"]
             },
             "description": "Use case: Enhancing cover letter for job application"
           },

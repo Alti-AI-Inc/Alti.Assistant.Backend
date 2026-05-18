@@ -38,6 +38,7 @@ OpenMemory is a self-hosted AI memory engine that could significantly enhance ou
 ```
 
 **Key Components:**
+
 - **LangGraph Workflow** (`search_assistant/workflow.js`)
 - **Tool-Based Search Node** (`search_assistant/nodes.js`)
 - **Conversation Service** (MongoDB storage)
@@ -45,6 +46,7 @@ OpenMemory is a self-hosted AI memory engine that could significantly enhance ou
 - **Intelligent Search** with citations and references
 
 **Strengths:**
+
 - ✅ Fast real-time search with LLM tool integration
 - ✅ Conversation history within sessions
 - ✅ Citation tracking and metadata
@@ -52,6 +54,7 @@ OpenMemory is a self-hosted AI memory engine that could significantly enhance ou
 - ✅ Subscription-based usage limits
 
 **Limitations:**
+
 - ❌ No cross-session memory persistence
 - ❌ No context from previous conversations
 - ❌ All conversations treated equally (no importance scoring)
@@ -99,20 +102,20 @@ OpenMemory is a self-hosted AI memory engine that could significantly enhance ou
 
 ## Feature Comparison
 
-| Feature | Current ASON System | With OpenMemory Integration |
-|---------|--------------------|-----------------------------|
-| **Memory Type** | Flat conversation history | 5 cognitive memory sectors |
-| **Cross-Session Context** | ❌ None | ✅ Full historical context |
-| **Memory Persistence** | Per conversation only | Across all user interactions |
-| **Importance Scoring** | ❌ All equal | ✅ Salience-based (0-1 scale) |
-| **Memory Decay** | ❌ Static | ✅ Automatic time-based decay |
-| **Associative Links** | ❌ None | ✅ Waypoint graph (related memories) |
-| **Deduplication** | ❌ None | ✅ Automatic via simhash |
-| **Retrieval Method** | Text search | Composite: 60% similarity + 20% salience + 10% recency + 10% links |
-| **Learning Over Time** | ❌ No | ✅ Reinforcement on recall |
-| **Storage** | MongoDB documents | SQLite + Vector embeddings |
-| **Query Latency** | ~500ms | ~650ms (+150ms for memory) |
-| **Cost per 1M tokens** | ~$2-3 (search) | +$0.30-0.40 (embeddings) |
+| Feature                   | Current ASON System       | With OpenMemory Integration                                        |
+| ------------------------- | ------------------------- | ------------------------------------------------------------------ |
+| **Memory Type**           | Flat conversation history | 5 cognitive memory sectors                                         |
+| **Cross-Session Context** | ❌ None                   | ✅ Full historical context                                         |
+| **Memory Persistence**    | Per conversation only     | Across all user interactions                                       |
+| **Importance Scoring**    | ❌ All equal              | ✅ Salience-based (0-1 scale)                                      |
+| **Memory Decay**          | ❌ Static                 | ✅ Automatic time-based decay                                      |
+| **Associative Links**     | ❌ None                   | ✅ Waypoint graph (related memories)                               |
+| **Deduplication**         | ❌ None                   | ✅ Automatic via simhash                                           |
+| **Retrieval Method**      | Text search               | Composite: 60% similarity + 20% salience + 10% recency + 10% links |
+| **Learning Over Time**    | ❌ No                     | ✅ Reinforcement on recall                                         |
+| **Storage**               | MongoDB documents         | SQLite + Vector embeddings                                         |
+| **Query Latency**         | ~500ms                    | ~650ms (+150ms for memory)                                         |
+| **Cost per 1M tokens**    | ~$2-3 (search)            | +$0.30-0.40 (embeddings)                                           |
 
 ---
 
@@ -121,6 +124,7 @@ OpenMemory is a self-hosted AI memory engine that could significantly enhance ou
 ### 1. **Persistent Cross-Session Memory**
 
 **Current Behavior:**
+
 ```javascript
 // Session 1 (Monday)
 User: "What's Docker?"
@@ -132,6 +136,7 @@ System: [Searches, no context that user asked about Docker]
 ```
 
 **With OpenMemory:**
+
 ```javascript
 // Session 1 (Monday)
 User: "What's Docker?"
@@ -155,22 +160,22 @@ OpenMemory automatically categorizes memories by type:
     primary_sector: "semantic",      // Factual knowledge
     additional_sectors: ["procedural"] // Often includes how-to
   },
-  
+
   "Yesterday I deployed to AWS": {
     primary_sector: "episodic",      // Personal experience
     additional_sectors: ["procedural"]
   },
-  
+
   "I'm frustrated with this bug": {
     primary_sector: "emotional",     // Sentiment
     additional_sectors: ["episodic"]
   },
-  
+
   "How to optimize React": {
     primary_sector: "procedural",    // How-to knowledge
     additional_sectors: ["semantic"]
   },
-  
+
   "I realize I should learn TypeScript": {
     primary_sector: "reflective",    // Meta-cognition
     additional_sectors: ["semantic"]
@@ -179,17 +184,19 @@ OpenMemory automatically categorizes memories by type:
 ```
 
 **Decay Rates by Sector:**
+
 ```javascript
-episodic:   decay_lambda = 0.015  // Fades in ~46 days
-semantic:   decay_lambda = 0.005  // Lasts ~138 days
-procedural: decay_lambda = 0.008  // Lasts ~86 days
-emotional:  decay_lambda = 0.020  // Fades in ~35 days
-reflective: decay_lambda = 0.001  // Nearly permanent (693 days)
+episodic: decay_lambda = 0.015; // Fades in ~46 days
+semantic: decay_lambda = 0.005; // Lasts ~138 days
+procedural: decay_lambda = 0.008; // Lasts ~86 days
+emotional: decay_lambda = 0.02; // Fades in ~35 days
+reflective: decay_lambda = 0.001; // Nearly permanent (693 days)
 ```
 
 ### 3. **Salience & Reinforcement**
 
 **Importance Tracking:**
+
 ```javascript
 // Initial storage
 Memory: "How to deploy Node.js app"
@@ -211,6 +218,7 @@ Salience: 1.0 (max - becomes "muscle memory")
 ### 4. **Waypoint Graph - Associative Memory**
 
 **Linking Related Memories:**
+
 ```
 Memory Graph Example:
 
@@ -230,12 +238,14 @@ Retrieved:
 ### 5. **Composite Scoring - Better Relevance**
 
 **Current System:**
+
 ```javascript
 // Simple text/embedding similarity
-score = similarity(query, memory)
+score = similarity(query, memory);
 ```
 
 **With OpenMemory:**
+
 ```javascript
 // Multi-factor scoring
 score = 0.6 × similarity      // How well it matches
@@ -260,6 +270,7 @@ Result: Memory B ranks higher (more important + recent + connected)
 ### Use Case 1: Developer Learning Path Tracking
 
 **Scenario:**
+
 ```
 Week 1:
 - User: "What is Node.js?"
@@ -278,17 +289,19 @@ Week 4:
 ```
 
 **Without OpenMemory:**
+
 ```
 System: "I'll help with your API. What specifically do you need?"
 (No context about their learning journey)
 ```
 
 **With OpenMemory:**
+
 ```
-System: "I see you've been building a Node.js + Express + MongoDB API. 
+System: "I see you've been building a Node.js + Express + MongoDB API.
 Based on your recent queries about deployment, would you like help with:
 - Deployment debugging
-- API performance optimization  
+- API performance optimization
 - Database connection issues
 - Authentication implementation"
 
@@ -302,6 +315,7 @@ Context Retrieved:
 ### Use Case 2: Contextual Search Refinement
 
 **Scenario:**
+
 ```javascript
 // Previous interactions stored in OpenMemory
 Memory 1: "User is a React developer" (salience: 0.8)
@@ -324,6 +338,7 @@ With OpenMemory:
 ### Use Case 3: Reduced Redundant Searches
 
 **Scenario:**
+
 ```javascript
 // Week 1
 User: "How to optimize database queries?"
@@ -332,15 +347,15 @@ OpenMemory: Stores comprehensive answer (salience: 0.6)
 
 // Week 2 (User asks similar question)
 User: "My database is slow, how to speed it up?"
-OpenMemory: 
+OpenMemory:
   - Recognizes similarity to previous query (0.85 match)
   - Recalls stored answer about query optimization
   - Boosts salience to 0.7 (reinforcement)
-  
-System: "Based on your previous question about query optimization, 
+
+System: "Based on your previous question about query optimization,
 here's a deeper dive into indexing strategies for your specific case..."
 
-Result: 
+Result:
 - Faster response (no redundant search)
 - Better answer (builds on previous context)
 - Lower costs (no duplicate API calls)
@@ -349,6 +364,7 @@ Result:
 ### Use Case 4: Emotional State Tracking
 
 **Scenario:**
+
 ```javascript
 // OpenMemory tracks emotional sector
 Session 1: "I'm stuck with this bug" (emotional: frustration)
@@ -361,7 +377,7 @@ Without OpenMemory:
 
 With OpenMemory:
 → Detects emotional pattern
-→ Adjusts tone: "I understand this has been frustrating. 
+→ Adjusts tone: "I understand this has been frustrating.
    Let's break this down step-by-step together..."
 → Prioritizes simpler, more direct solutions
 → Offers additional resources proactively
@@ -420,35 +436,36 @@ export class OpenMemoryService {
   constructor() {
     this.client = new OpenMemory({
       baseUrl: process.env.OPENMEMORY_URL || 'http://localhost:8080',
-      apiKey: process.env.OPENMEMORY_API_KEY
+      apiKey: process.env.OPENMEMORY_API_KEY,
     });
   }
 
   // Retrieve context before search
   async getSearchContext(userId, query, options = {}) {
-    const { topK = 5, sectors = ['semantic', 'procedural', 'episodic'] } = options;
-    
+    const { topK = 5, sectors = ['semantic', 'procedural', 'episodic'] } =
+      options;
+
     const memories = await this.client.memory.query({
       query,
       topK,
       filters: {
         sectors,
         minSalience: 0.3,
-        user_id: userId
-      }
+        user_id: userId,
+      },
     });
 
     return {
       relevantMemories: memories.items,
       userContext: this.extractUserContext(memories.items),
-      relatedTopics: this.extractTopics(memories.items)
+      relatedTopics: this.extractTopics(memories.items),
     };
   }
 
   // Store interaction after search
   async storeSearchInteraction(userId, query, response, metadata = {}) {
     const memoryContent = this.formatForStorage(query, response, metadata);
-    
+
     return await this.client.memory.add({
       content: memoryContent,
       tags: ['search', 'conversation', metadata.category],
@@ -457,8 +474,8 @@ export class OpenMemoryService {
         conversationId: metadata.conversationId,
         timestamp: new Date().toISOString(),
         model: metadata.model,
-        searchType: metadata.searchType
-      }
+        searchType: metadata.searchType,
+      },
     });
   }
 
@@ -466,7 +483,7 @@ export class OpenMemoryService {
   async reinforceMemory(memoryId) {
     return await this.client.memory.reinforce({
       id: memoryId,
-      boost: 0.1
+      boost: 0.1,
     });
   }
 
@@ -475,7 +492,7 @@ export class OpenMemoryService {
     const memories = await this.client.memory.all({
       filters: { user_id: userId },
       sort: 'created_at',
-      limit: 100
+      limit: 100,
     });
 
     return this.analyzeProgressionPattern(memories.items);
@@ -498,8 +515,8 @@ Context:
     // Extract patterns from memories
     const topics = new Set();
     const preferences = {};
-    
-    memories.forEach(mem => {
+
+    memories.forEach((mem) => {
       if (mem.tags) topics.add(...mem.tags);
       if (mem.metadata?.preferences) {
         Object.assign(preferences, mem.metadata.preferences);
@@ -511,47 +528,49 @@ Context:
 
   extractTopics(memories) {
     return memories
-      .filter(m => m.salience > 0.5)
-      .map(m => m.primary_sector);
+      .filter((m) => m.salience > 0.5)
+      .map((m) => m.primary_sector);
   }
 
   analyzeProgressionPattern(memories) {
     // Analyze user's learning journey
-    const timeline = memories.map(m => ({
+    const timeline = memories.map((m) => ({
       date: m.created_at,
       topic: m.primary_sector,
-      salience: m.salience
+      salience: m.salience,
     }));
 
     return {
       learningPath: timeline,
       currentFocus: this.getCurrentFocus(timeline),
-      progression: this.calculateProgression(timeline)
+      progression: this.calculateProgression(timeline),
     };
   }
 
   getCurrentFocus(timeline) {
     const recent = timeline.slice(-10);
     const topicCounts = {};
-    
-    recent.forEach(item => {
+
+    recent.forEach((item) => {
       topicCounts[item.topic] = (topicCounts[item.topic] || 0) + 1;
     });
 
-    return Object.entries(topicCounts)
-      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'general';
+    return (
+      Object.entries(topicCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+      'general'
+    );
   }
 
   calculateProgression(timeline) {
     // Simple heuristic: increasing salience = learning
-    const avgSalienceFirst = timeline.slice(0, 10)
-      .reduce((sum, m) => sum + m.salience, 0) / 10;
-    const avgSalienceLast = timeline.slice(-10)
-      .reduce((sum, m) => sum + m.salience, 0) / 10;
-    
+    const avgSalienceFirst =
+      timeline.slice(0, 10).reduce((sum, m) => sum + m.salience, 0) / 10;
+    const avgSalienceLast =
+      timeline.slice(-10).reduce((sum, m) => sum + m.salience, 0) / 10;
+
     return {
       trend: avgSalienceLast > avgSalienceFirst ? 'improving' : 'stable',
-      score: avgSalienceLast
+      score: avgSalienceLast,
     };
   }
 }
@@ -567,8 +586,9 @@ const openMemory = new OpenMemoryService();
 
 export const performSearchWithMemory = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? searchService.generateGuestUserId() : 
-               (req.user?.userId || req.user?._id);
+  let userId = isGuest
+    ? searchService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
   const { message, conversationId, deepSearch } = req.body;
 
   // STEP 1: Get context from OpenMemory (skip for guests initially)
@@ -577,7 +597,7 @@ export const performSearchWithMemory = catchAsync(async (req, res) => {
     try {
       memoryContext = await openMemory.getSearchContext(userId, message, {
         topK: 5,
-        sectors: ['semantic', 'procedural', 'episodic']
+        sectors: ['semantic', 'procedural', 'episodic'],
       });
       console.log('Retrieved memory context:', memoryContext);
     } catch (error) {
@@ -593,12 +613,12 @@ export const performSearchWithMemory = catchAsync(async (req, res) => {
     depth: deepSearch ? deepSearch : 'standard',
     memoryContext: memoryContext?.userContext,
     relevantMemories: memoryContext?.relevantMemories || [],
-    relatedTopics: memoryContext?.relatedTopics || []
+    relatedTopics: memoryContext?.relatedTopics || [],
   };
 
   // STEP 3: Perform search with enhanced context
   const result = await researchAgentApp.invoke(enrichedInputs, {
-    configurable: { thread_id: conversationId }
+    configurable: { thread_id: conversationId },
   });
 
   const answer = result.answer;
@@ -606,10 +626,10 @@ export const performSearchWithMemory = catchAsync(async (req, res) => {
 
   // STEP 4: Store in MongoDB (existing functionality)
   await searchService.addSearchResultMessage(
-    conversationId, 
-    userId, 
-    answer, 
-    { reference, /* ... */ }, 
+    conversationId,
+    userId,
+    answer,
+    { reference /* ... */ },
     isGuest
   );
 
@@ -621,7 +641,7 @@ export const performSearchWithMemory = catchAsync(async (req, res) => {
         model: result.model || 'research-agent',
         searchType: 'assistant',
         citations: reference,
-        category: detectCategory(message) // 'technical', 'general', etc.
+        category: detectCategory(message), // 'technical', 'general', etc.
       });
       console.log('Stored interaction in OpenMemory');
     } catch (error) {
@@ -642,24 +662,26 @@ export const performSearchWithMemory = catchAsync(async (req, res) => {
         citations: reference.map((ref, idx) => ({
           index: idx + 1,
           url: ref.url,
-          domain: ref.domain
+          domain: ref.domain,
         })),
-        memoryInsights: !isGuest ? {
-          contextUsed: memoryContext?.relevantMemories.length || 0,
-          relatedTopics: memoryContext?.relatedTopics || [],
-          userFocus: memoryContext?.userContext?.topics || []
-        } : null
+        memoryInsights: !isGuest
+          ? {
+              contextUsed: memoryContext?.relevantMemories.length || 0,
+              relatedTopics: memoryContext?.relatedTopics || [],
+              userFocus: memoryContext?.userContext?.topics || [],
+            }
+          : null,
       },
       conversationId,
-      userType: isGuest ? 'guest' : 'authenticated'
-    }
+      userType: isGuest ? 'guest' : 'authenticated',
+    },
   });
 });
 
 function detectCategory(query) {
   // Simple categorization logic
   const techKeywords = ['code', 'programming', 'api', 'database', 'deploy'];
-  const istech = techKeywords.some(kw => query.toLowerCase().includes(kw));
+  const istech = techKeywords.some((kw) => query.toLowerCase().includes(kw));
   return istech ? 'technical' : 'general';
 }
 ```
@@ -766,12 +788,14 @@ For 10,000 active users:
 ### Phase 1: Foundation (Week 1-2)
 
 **Deliverables:**
+
 1. Deploy OpenMemory service (Docker)
 2. Create OpenMemoryService wrapper class
 3. Implement basic memory storage after searches
 4. Add user_id namespacing
 
 **Tasks:**
+
 ```bash
 # Setup
 □ Deploy OpenMemory via Docker Compose
@@ -792,6 +816,7 @@ For 10,000 active users:
 ```
 
 **Success Metrics:**
+
 - OpenMemory successfully stores 100% of search interactions
 - Average storage latency < 100ms
 - No impact on existing functionality
@@ -799,12 +824,14 @@ For 10,000 active users:
 ### Phase 2: Context Retrieval (Week 3-4)
 
 **Deliverables:**
+
 1. Pre-search context retrieval
 2. Context enrichment in LangGraph workflow
 3. Memory-aware response generation
 4. Basic analytics dashboard
 
 **Tasks:**
+
 ```bash
 # Context Integration
 □ Implement getSearchContext function
@@ -824,6 +851,7 @@ For 10,000 active users:
 ```
 
 **Success Metrics:**
+
 - 70% of searches use memory context
 - 20% reduction in redundant searches
 - User satisfaction score +10%
@@ -831,12 +859,14 @@ For 10,000 active users:
 ### Phase 3: Advanced Features (Month 2)
 
 **Deliverables:**
+
 1. Salience-based ranking
 2. Waypoint graph utilization
 3. Learning path tracking
 4. Personalized search results
 
 **Tasks:**
+
 ```bash
 # Advanced Retrieval
 □ Implement composite scoring
@@ -858,6 +888,7 @@ For 10,000 active users:
 ```
 
 **Success Metrics:**
+
 - Context relevance score > 0.8
 - 30% reduction in clarification questions
 - User retention +15%
@@ -865,12 +896,14 @@ For 10,000 active users:
 ### Phase 4: Optimization (Month 3+)
 
 **Deliverables:**
+
 1. Performance tuning
 2. Cost optimization
 3. Advanced memory management
 4. ML-based improvements
 
 **Tasks:**
+
 ```bash
 # Performance
 □ Parallel memory operations
@@ -892,6 +925,7 @@ For 10,000 active users:
 ```
 
 **Success Metrics:**
+
 - P95 latency < 600ms
 - Cost per search < current baseline
 - 99.9% uptime
@@ -903,24 +937,24 @@ For 10,000 active users:
 
 ### Technical Risks
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| **Increased latency** | High | High | Parallel operations, caching, async storage |
-| **OpenMemory downtime** | High | Medium | Graceful degradation, fallback to stateless |
-| **Memory storage failures** | Medium | Low | Non-blocking storage, retry logic |
-| **Embedding costs exceed budget** | Medium | Medium | Rate limiting, batch processing |
-| **Poor memory quality** | Medium | Medium | Salience thresholds, regular cleanup |
-| **SQLite scaling limits** | High | Low | PostgreSQL migration path, sharding |
+| Risk                              | Impact | Probability | Mitigation                                  |
+| --------------------------------- | ------ | ----------- | ------------------------------------------- |
+| **Increased latency**             | High   | High        | Parallel operations, caching, async storage |
+| **OpenMemory downtime**           | High   | Medium      | Graceful degradation, fallback to stateless |
+| **Memory storage failures**       | Medium | Low         | Non-blocking storage, retry logic           |
+| **Embedding costs exceed budget** | Medium | Medium      | Rate limiting, batch processing             |
+| **Poor memory quality**           | Medium | Medium      | Salience thresholds, regular cleanup        |
+| **SQLite scaling limits**         | High   | Low         | PostgreSQL migration path, sharding         |
 
 ### Operational Risks
 
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| **Complex debugging** | Medium | High | Comprehensive logging, memory introspection tools |
-| **Team learning curve** | Low | High | Documentation, training sessions |
-| **Infrastructure costs** | Medium | Medium | Cost monitoring, optimization automation |
-| **Data privacy concerns** | High | Low | User-level encryption, opt-out options |
-| **Memory pollution** | Medium | Medium | Automatic decay, user memory reset |
+| Risk                      | Impact | Probability | Mitigation                                        |
+| ------------------------- | ------ | ----------- | ------------------------------------------------- |
+| **Complex debugging**     | Medium | High        | Comprehensive logging, memory introspection tools |
+| **Team learning curve**   | Low    | High        | Documentation, training sessions                  |
+| **Infrastructure costs**  | Medium | Medium      | Cost monitoring, optimization automation          |
+| **Data privacy concerns** | High   | Low         | User-level encryption, opt-out options            |
+| **Memory pollution**      | Medium | Medium      | Automatic decay, user memory reset                |
 
 ---
 
@@ -929,6 +963,7 @@ For 10,000 active users:
 ### When to Use OpenMemory
 
 ✅ **STRONGLY RECOMMENDED if:**
+
 - Your users are **repeat users** (not one-time searches)
 - Queries are **contextual** and build on previous knowledge
 - Users are **learning** or **researching** over time
@@ -936,18 +971,21 @@ For 10,000 active users:
 - **Developer tools**, **educational platforms**, or **technical support**
 
 ✅ **RECOMMENDED if:**
+
 - You have budget for +$250-500/month infrastructure
 - You can accept +100-150ms latency
 - You have engineering resources for integration
 - You value **explainability** in AI systems
 
 ⚠️ **CONSIDER ALTERNATIVES if:**
+
 - Users are mostly one-time visitors
 - Searches are completely independent
 - Ultra-low latency is critical (< 300ms)
 - Budget is extremely constrained
 
 ❌ **NOT RECOMMENDED if:**
+
 - Your search is purely transactional (e.g., product search)
 - No repeat user patterns
 - Real-time requirements < 500ms
@@ -979,24 +1017,28 @@ If Total Score < 2.5: Defer until metrics improve
 ## Recommended Next Steps
 
 ### Immediate (This Week)
+
 1. ✅ **Review this analysis** with technical team
 2. ✅ **Deploy OpenMemory locally** for testing
 3. ✅ **Run benchmark tests** with sample queries
 4. ✅ **Estimate infrastructure costs** for production
 
 ### Short-term (Next 2 Weeks)
+
 1. 🔄 **Pilot program**: Enable for 5-10% of users
 2. 🔄 **Collect metrics**: latency, quality, satisfaction
 3. 🔄 **Iterate on implementation** based on feedback
 4. 🔄 **Cost/benefit analysis** with real data
 
 ### Medium-term (Month 2-3)
+
 1. 📋 **Scale to 50% of users** if pilot successful
 2. 📋 **Implement advanced features** (waypoints, salience tuning)
 3. 📋 **Build analytics dashboard** for memory insights
 4. 📋 **Optimize performance** and costs
 
 ### Long-term (Quarter 2)
+
 1. 🎯 **Full rollout** to all users
 2. 🎯 **Custom sector classification** for your domain
 3. 🎯 **Cross-user insights** (privacy-safe patterns)
@@ -1015,6 +1057,7 @@ OpenMemory represents a significant architectural enhancement that could transfo
 5. **Personalization** - Without explicit user profiling
 
 **Trade-offs:**
+
 - +18% latency (optimized) to +34% (naive implementation)
 - +11% costs ($250/month for 1M searches)
 - Engineering effort: ~4-6 weeks for full integration
@@ -1066,7 +1109,7 @@ volumes:
 
 ```sql
 -- Get memory statistics per user
-SELECT 
+SELECT
   user_id,
   primary_sector,
   COUNT(*) as memory_count,
@@ -1096,23 +1139,23 @@ ORDER BY weight DESC;
 // Benchmark script
 const benchmarkOpenMemory = async () => {
   const queries = [
-    "What is React?",
-    "How to deploy Node.js?",
-    "MongoDB indexing strategies"
+    'What is React?',
+    'How to deploy Node.js?',
+    'MongoDB indexing strategies',
   ];
 
   for (const query of queries) {
     const start = Date.now();
-    
+
     // Query memory
     const context = await openMemory.getSearchContext(userId, query);
     const contextTime = Date.now() - start;
-    
+
     // Store memory
     const storeStart = Date.now();
-    await openMemory.storeSearchInteraction(userId, query, "Sample response");
+    await openMemory.storeSearchInteraction(userId, query, 'Sample response');
     const storeTime = Date.now() - storeStart;
-    
+
     console.log(`Query: ${query}`);
     console.log(`  Context retrieval: ${contextTime}ms`);
     console.log(`  Memory storage: ${storeTime}ms`);

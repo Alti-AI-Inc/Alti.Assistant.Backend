@@ -51,13 +51,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/legal-contract/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "assistant"]
         },
         "description": "Main conversational endpoint for contract generation. AI will ask essential questions before generating the contract."
       },
@@ -92,13 +87,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/legal-contract/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "assistant"]
         },
         "description": "Continue the conversation by answering the AI's questions"
       },
@@ -120,13 +110,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/legal-contract/generate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "generate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "generate"]
         },
         "description": "Direct contract generation without conversational flow - for programmatic access"
       },
@@ -144,14 +129,8 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/legal-contract/conversation/:conversationId",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "conversation",
-            ":conversationId"
-          ],
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "conversation", ":conversationId"],
           "variable": [
             {
               "key": "conversationId",
@@ -175,14 +154,8 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/legal-contract/download/:conversationId?format=text",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "download",
-            ":conversationId"
-          ],
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "download", ":conversationId"],
           "query": [
             {
               "key": "format",
@@ -221,13 +194,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/legal-contract/modify",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "modify"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "modify"]
         },
         "description": "Request modifications to an existing contract"
       },
@@ -255,13 +223,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/legal-contract/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "assistant"]
         },
         "description": "Example request for NDA generation"
       },
@@ -289,13 +252,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/legal-contract/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "assistant"]
         },
         "description": "Example request for service agreement"
       },
@@ -323,13 +281,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/legal-contract/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "legal-contract",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["legal-contract", "assistant"]
         },
         "description": "Example request for freelance contract"
       },

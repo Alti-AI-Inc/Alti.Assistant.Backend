@@ -10,7 +10,7 @@ const DeepseekAiGetResponse = catchAsync(async (req, res) => {
   const result = await deepseekServices.deepseekResponseService(
     prompt,
     userId,
-    sessionId,
+    sessionId
   );
 
   sendResponse(res, {

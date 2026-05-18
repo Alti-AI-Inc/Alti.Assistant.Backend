@@ -23,13 +23,13 @@ export const analyzeDocument = catchAsync(async (req, res) => {
   // Handle file upload if present
   const fileInfo = req.file
     ? {
-      filename: req.file.filename,
-      originalname: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      location: req.file.location || req.file.path,
-    }
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        location: req.file.location || req.file.path,
+      }
     : null;
 
   logger.info(
@@ -44,10 +44,16 @@ export const analyzeDocument = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
+      createdAt: -1,
+    });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
+      ? await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        )
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -86,9 +92,15 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
   const userId = req.user?.userId || req.user?._id;
 
-  logger.info(`Fetching conversation history: ${conversationId} for user ${userId}`);
+  logger.info(
+    `Fetching conversation history: ${conversationId} for user ${userId}`
+  );
 
-  const conversation = await documentAnalysisService.getConversationHistory(conversationId, userId, req);
+  const conversation = await documentAnalysisService.getConversationHistory(
+    conversationId,
+    userId,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

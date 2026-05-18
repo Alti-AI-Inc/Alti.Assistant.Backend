@@ -7,7 +7,7 @@ export const createPromptController = (sessionManager, promptService) => {
         if (!sessionId || !prompt) {
           return res.status(400).json({
             success: false,
-            error: "sessionId and prompt are required",
+            error: 'sessionId and prompt are required',
           });
         }
 
@@ -36,7 +36,7 @@ export const createPromptController = (sessionManager, promptService) => {
           conversationHistory: sessionManager.getConversationHistory(sessionId),
         });
       } catch (error) {
-        console.error("Error evaluating prompt:", error);
+        console.error('Error evaluating prompt:', error);
         res.status(500).json({
           success: false,
           error: error.message,
@@ -51,7 +51,7 @@ export const createPromptController = (sessionManager, promptService) => {
         if (!sessionId || !detail) {
           return res.status(400).json({
             success: false,
-            error: "sessionId and detail are required",
+            error: 'sessionId and detail are required',
           });
         }
 
@@ -59,18 +59,19 @@ export const createPromptController = (sessionManager, promptService) => {
         if (!session) {
           return res.status(404).json({
             success: false,
-            error: "Session not found",
+            error: 'Session not found',
           });
         }
 
         // Add detail to conversation
         sessionManager.addToHistory(sessionId, detail);
         const history = sessionManager.getHistory(sessionId);
-        const conversationHistory = sessionManager.getConversationHistory(sessionId);
+        const conversationHistory =
+          sessionManager.getConversationHistory(sessionId);
 
         // Re-evaluate quality
         const evaluation = await promptService.evaluatePrompt(
-          conversationHistory.join(". "),
+          conversationHistory.join('. '),
           history
         );
 
@@ -85,7 +86,7 @@ export const createPromptController = (sessionManager, promptService) => {
           conversationHistory,
         });
       } catch (error) {
-        console.error("Error adding detail:", error);
+        console.error('Error adding detail:', error);
         res.status(500).json({
           success: false,
           error: error.message,
@@ -100,7 +101,7 @@ export const createPromptController = (sessionManager, promptService) => {
         if (!sessionId) {
           return res.status(400).json({
             success: false,
-            error: "sessionId is required",
+            error: 'sessionId is required',
           });
         }
 
@@ -108,14 +109,16 @@ export const createPromptController = (sessionManager, promptService) => {
         if (!session) {
           return res.status(404).json({
             success: false,
-            error: "Session not found",
+            error: 'Session not found',
           });
         }
 
-        const conversationHistory = sessionManager.getConversationHistory(sessionId);
+        const conversationHistory =
+          sessionManager.getConversationHistory(sessionId);
 
         // Build enhanced prompt
-        const enhancedPrompt = await promptService.buildEnhancedPrompt(conversationHistory);
+        const enhancedPrompt =
+          await promptService.buildEnhancedPrompt(conversationHistory);
 
         res.json({
           success: true,
@@ -123,7 +126,7 @@ export const createPromptController = (sessionManager, promptService) => {
           conversationHistory,
         });
       } catch (error) {
-        console.error("Error finalizing prompt:", error);
+        console.error('Error finalizing prompt:', error);
         res.status(500).json({
           success: false,
           error: error.message,

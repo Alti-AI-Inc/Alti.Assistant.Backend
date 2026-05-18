@@ -12,7 +12,7 @@ const QwenAiGetResponse = catchAsync(async (req, res) => {
   const result = await QwenAiServices.QwenAiGetResponseService(
     prompt,
     userId,
-    sessionId,
+    sessionId
   );
   logger.info('✅ Service result:', result); // log result
   sendResponse(res, {
@@ -29,7 +29,7 @@ const QwenQWQAiGetResponse = catchAsync(async (req, res) => {
   const result = await QwenAiServices.QwenQWQAiGetResponseService(
     prompt,
     userId,
-    sessionId,
+    sessionId
   );
   logger.info('✅ Service result:', result); // log result
   sendResponse(res, {

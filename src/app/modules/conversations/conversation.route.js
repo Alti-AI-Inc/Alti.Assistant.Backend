@@ -20,13 +20,13 @@ router
     checkApiCallLimit, // Check tenant API call limit
     createRateLimiter(50, 15), // 50 requests per 15 minutes
     validateRequest(ConversationValidation.createConversationSchema),
-    conversationController.createConversation,
+    conversationController.createConversation
   )
   .get(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
     // validateRequest(ConversationValidation.getUserConversationsSchema),
-    conversationController.getUserConversations,
+    conversationController.getUserConversations
   );
 
 // Get conversation statistics
@@ -35,7 +35,7 @@ router
   .get(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
-    conversationController.getConversationStats,
+    conversationController.getConversationStats
   );
 
 // Get recent conversations
@@ -44,7 +44,7 @@ router
   .get(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
-    conversationController.getRecentConversations,
+    conversationController.getRecentConversations
   );
 
 // Get deep search conversations
@@ -54,107 +54,89 @@ router
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
     validateRequest(ConversationValidation.getUserConversationsSchema),
-    conversationController.getDeepSearchConversations,
+    conversationController.getDeepSearchConversations
   );
 
 // Search conversations
-router
-  .route('/search')
-  .get(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    // validateRequest(ConversationValidation.searchConversationsSchema),
-    conversationController.searchConversations,
-  );
+router.route('/search').get(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  // validateRequest(ConversationValidation.searchConversationsSchema),
+  conversationController.searchConversations
+);
 
-router.route('/rename/:conversationId')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    // createRateLimiter(30, 15), // 30 rename operations per 15 minutes
-    // validateRequest(ConversationValidation.renameChatSchema),
-    conversationController.renameChatConversation,
-  );
+router.route('/rename/:conversationId').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  // createRateLimiter(30, 15), // 30 rename operations per 15 minutes
+  // validateRequest(ConversationValidation.renameChatSchema),
+  conversationController.renameChatConversation
+);
 
-router.route('/save/:conversationId')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    // createRateLimiter(30, 15), // 30 save operations per 15 minutes
-    conversationController.saveChatConversation,
-  );
+router.route('/save/:conversationId').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  // createRateLimiter(30, 15), // 30 save operations per 15 minutes
+  conversationController.saveChatConversation
+);
 
 router
   .route('/saved')
   .get(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
-    conversationController.getAllSavedConversations,
+    conversationController.getAllSavedConversations
   );
 
 // Bulk operations
-router
-  .route('/bulk/archive')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    createRateLimiter(10, 15), // 10 requests per 15 minutes
-    validateRequest(ConversationValidation.bulkOperationSchema),
-    conversationController.bulkArchiveConversations,
-  );
+router.route('/bulk/archive').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  createRateLimiter(10, 15), // 10 requests per 15 minutes
+  validateRequest(ConversationValidation.bulkOperationSchema),
+  conversationController.bulkArchiveConversations
+);
 
-router
-  .route('/bulk/delete')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    createRateLimiter(5, 15), // 5 requests per 15 minutes
-    validateRequest(ConversationValidation.bulkOperationSchema),
-    conversationController.bulkDeleteConversations,
-  );
+router.route('/bulk/delete').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  createRateLimiter(5, 15), // 5 requests per 15 minutes
+  validateRequest(ConversationValidation.bulkOperationSchema),
+  conversationController.bulkDeleteConversations
+);
 
 // Get conversations by category
 router
   .route('/category/:category')
-  .get(
-    optionalAuth(),
-    conversationController.getConversationsByCategory,
-  );
+  .get(optionalAuth(), conversationController.getConversationsByCategory);
 
 // Specific conversation operations
 router
   .route('/:conversationId')
-  .get(
-    optionalAuth(),
-    conversationController.getConversationById,
-  )
+  .get(optionalAuth(), conversationController.getConversationById)
   .delete(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
     createRateLimiter(20, 15), // 20 deletions per 15 minutes
-    conversationController.deleteConversation,
+    conversationController.deleteConversation
   );
 
 // Update conversation title
-router
-  .route('/:conversationId/title')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    createRateLimiter(30, 15), // 30 title updates per 15 minutes
-    validateRequest(ConversationValidation.updateTitleSchema),
-    conversationController.updateTitle,
-  );
+router.route('/:conversationId/title').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  createRateLimiter(30, 15), // 30 title updates per 15 minutes
+  validateRequest(ConversationValidation.updateTitleSchema),
+  conversationController.updateTitle
+);
 
 // Update conversation metadata
-router
-  .route('/:conversationId/metadata')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    createRateLimiter(30, 15), // 30 metadata updates per 15 minutes
-    conversationController.updateMetadata,
-  );
+router.route('/:conversationId/metadata').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  createRateLimiter(30, 15), // 30 metadata updates per 15 minutes
+  conversationController.updateMetadata
+);
 
 // Get conversation messages
 router
@@ -163,7 +145,7 @@ router
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
     validateRequest(ConversationValidation.getConversationMessagesSchema),
-    conversationController.getConversationMessages,
+    conversationController.getConversationMessages
   )
   .post(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
@@ -171,56 +153,48 @@ router
     checkApiCallLimit, // Check tenant API call limit for message sending
     createRateLimiter(100, 15), // 100 messages per 15 minutes
     validateRequest(ConversationValidation.addMessageSchema),
-    conversationController.addMessage,
+    conversationController.addMessage
   )
   .delete(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
     createRateLimiter(10, 15), // 10 clear operations per 15 minutes
     validateRequest(ConversationValidation.conversationParamsSchema),
-    conversationController.clearMessages,
+    conversationController.clearMessages
   );
 
 // Archive conversation
-router
-  .route('/:conversationId/archive')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    createRateLimiter(30, 15), // 30 archive operations per 15 minutes
-    conversationController.archiveConversation,
-  );
+router.route('/:conversationId/archive').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  createRateLimiter(30, 15), // 30 archive operations per 15 minutes
+  conversationController.archiveConversation
+);
 
 // Restore conversation
-router
-  .route('/:conversationId/restore')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    createRateLimiter(30, 15), // 30 restore operations per 15 minutes
-    conversationController.restoreConversation,
-  );
+router.route('/:conversationId/restore').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  createRateLimiter(30, 15), // 30 restore operations per 15 minutes
+  conversationController.restoreConversation
+);
 
 // Permanently delete conversation
-router
-  .route('/:conversationId/permanent')
-  .delete(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    createRateLimiter(5, 15), // 5 permanent deletions per 15 minutes
-    conversationController.permanentlyDeleteConversation,
-  );
+router.route('/:conversationId/permanent').delete(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  createRateLimiter(5, 15), // 5 permanent deletions per 15 minutes
+  conversationController.permanentlyDeleteConversation
+);
 
 // Add tags to conversation
-router
-  .route('/:conversationId/tags')
-  .patch(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    extractTenantContext,
-    createRateLimiter(50, 15), // 50 tag operations per 15 minutes
-    validateRequest(ConversationValidation.addTagsSchema),
-    conversationController.addTags,
-  );
+router.route('/:conversationId/tags').patch(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  createRateLimiter(50, 15), // 50 tag operations per 15 minutes
+  validateRequest(ConversationValidation.addTagsSchema),
+  conversationController.addTags
+);
 
 // Share chat conversation
 router
@@ -230,20 +204,20 @@ router
     extractTenantContext,
     createRateLimiter(20, 15), // 20 share operations per 15 minutes
     validateRequest(ConversationValidation.shareChatSchema),
-    conversationController.shareChatConversation,
+    conversationController.shareChatConversation
   )
   .patch(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
     createRateLimiter(30, 15), // 30 share updates per 15 minutes
     validateRequest(ConversationValidation.updateShareSettingsSchema),
-    conversationController.updateChatShareSettings,
+    conversationController.updateChatShareSettings
   )
   .delete(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
     createRateLimiter(10, 15), // 10 revoke operations per 15 minutes
-    conversationController.revokeChatShare,
+    conversationController.revokeChatShare
   );
 
 // Get user's shared chats
@@ -252,14 +226,12 @@ router
   .get(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
     extractTenantContext,
-    conversationController.getUserSharedChats,
+    conversationController.getUserSharedChats
   );
 
 // Get public shared chat (no auth required)
 router
   .route('/shared/:shareId')
-  .get(
-    conversationController.getSharedChatConversation,
-  );
+  .get(conversationController.getSharedChatConversation);
 
 export const conversationRoutes = router;

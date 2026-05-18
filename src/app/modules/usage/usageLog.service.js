@@ -10,14 +10,24 @@ const mapEndpointToModule = (endpoint, method) => {
   const path = endpoint.toLowerCase();
 
   // Module mapping
-  if (path.includes('/auth') || path.includes('/login') || path.includes('/register')) {
-    return { module: 'auth', action: method === 'POST' ? 'authenticate' : 'query' };
+  if (
+    path.includes('/auth') ||
+    path.includes('/login') ||
+    path.includes('/register')
+  ) {
+    return {
+      module: 'auth',
+      action: method === 'POST' ? 'authenticate' : 'query',
+    };
   }
   if (path.includes('/tenant')) {
     return { module: 'tenant', action: extractAction(path, method) };
   }
   if (path.includes('/legal-contract-review')) {
-    return { module: 'legal-contract-review', action: extractAction(path, method) };
+    return {
+      module: 'legal-contract-review',
+      action: extractAction(path, method),
+    };
   }
   if (path.includes('/legal-contract')) {
     return { module: 'legal-contract', action: extractAction(path, method) };

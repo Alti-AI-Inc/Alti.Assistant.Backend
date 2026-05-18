@@ -9,11 +9,13 @@ The Knowledge Module provides a unified system for managing and querying documen
 ## Conversational Features
 
 ### 1. Chat with Your Knowledge Base
+
 **POST** `/api/v1/knowledge/chat`
 
 Have a natural conversation with your uploaded documents. Maintains conversation history and context.
 
 #### Request Body
+
 ```json
 {
   "message": "What are the key findings in my research papers?",
@@ -25,6 +27,7 @@ Have a natural conversation with your uploaded documents. Maintains conversation
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -50,18 +53,19 @@ Have a natural conversation with your uploaded documents. Maintains conversation
 ```
 
 #### Example Usage
+
 ```javascript
 // Start a new conversation
 const response = await fetch('/api/v1/knowledge/chat', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    message: "Summarize the main points from my project documents",
-    ownerType: "user"
-  })
+    message: 'Summarize the main points from my project documents',
+    ownerType: 'user',
+  }),
 });
 
 const { data } = await response.json();
@@ -71,25 +75,27 @@ const conversationId = data.conversationId;
 const followUp = await fetch('/api/v1/knowledge/chat', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    message: "Can you elaborate on the first point?",
-    ownerType: "user",
-    conversationId: conversationId
-  })
+    message: 'Can you elaborate on the first point?',
+    ownerType: 'user',
+    conversationId: conversationId,
+  }),
 });
 ```
 
 ---
 
 ### 2. Direct Query (One-off Questions)
+
 **POST** `/api/v1/knowledge/query`
 
 Ask a single question without maintaining conversation history.
 
 #### Request Body
+
 ```json
 {
   "query": "What is the definition of machine learning in my notes?",
@@ -100,6 +106,7 @@ Ask a single question without maintaining conversation history.
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -118,11 +125,13 @@ Ask a single question without maintaining conversation history.
 ---
 
 ### 3. Semantic Search
+
 **POST** `/api/v1/knowledge/search`
 
 Find relevant document chunks based on semantic similarity.
 
 #### Request Body
+
 ```json
 {
   "query": "budget planning strategies",
@@ -132,6 +141,7 @@ Find relevant document chunks based on semantic similarity.
 ```
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -158,11 +168,13 @@ Find relevant document chunks based on semantic similarity.
 ---
 
 ### 4. Get Conversation History
+
 **GET** `/api/v1/knowledge/conversations/:conversationId`
 
 Retrieve the full history of a conversation.
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -205,23 +217,27 @@ Retrieve the full history of a conversation.
 ## Owner Types
 
 ### User Files (Knowledge Bank)
+
 ```json
 {
   "ownerType": "user",
   "ownerId": "optional-defaults-to-current-user"
 }
 ```
+
 - Personal document library
 - Supports folders and organization
 - Private by default
 
 ### Bot Files (Knowledge Base)
+
 ```json
 {
   "ownerType": "bot",
   "ownerId": "bot_id_12345"
 }
 ```
+
 - Shared knowledge for AI bots
 - Multiple users can query the same bot's knowledge
 - Used for building custom AI assistants
@@ -239,8 +255,8 @@ formData.append('processImmediately', 'true');
 
 const uploadRes = await fetch('/api/v1/knowledge/upload', {
   method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}` },
-  body: formData
+  headers: { Authorization: `Bearer ${token}` },
+  body: formData,
 });
 
 // 2. Wait for processing (or check status)
@@ -251,13 +267,13 @@ console.log('File uploaded:', fileData.fileId);
 const chatRes = await fetch('/api/v1/knowledge/chat', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    message: "What is this document about?",
-    ownerType: "user"
-  })
+    message: 'What is this document about?',
+    ownerType: 'user',
+  }),
 });
 
 const { data: chatData } = await chatRes.json();
@@ -268,21 +284,21 @@ console.log('Conversation ID:', chatData.conversationId);
 const followUpRes = await fetch('/api/v1/knowledge/chat', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    message: "Can you provide more details about section 2?",
-    ownerType: "user",
-    conversationId: chatData.conversationId
-  })
+    message: 'Can you provide more details about section 2?',
+    ownerType: 'user',
+    conversationId: chatData.conversationId,
+  }),
 });
 
 // 5. Get conversation history
 const historyRes = await fetch(
   `/api/v1/knowledge/conversations/${chatData.conversationId}`,
   {
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
   }
 );
 ```
@@ -297,13 +313,14 @@ const historyRes = await fetch(
 ✅ **Conversation History**: Track and retrieve past conversations  
 ✅ **Semantic Search**: Find relevant content across all documents  
 ✅ **Multi-format Support**: PDF, DOCX, TXT, CSV, JSON, MD, and more  
-✅ **Unified System**: Works for both personal files and bot knowledge  
+✅ **Unified System**: Works for both personal files and bot knowledge
 
 ---
 
 ## Error Handling
 
 ### No Processed Files
+
 ```json
 {
   "data": {
@@ -316,7 +333,9 @@ const historyRes = await fetch(
 ```
 
 ### Processing in Progress
+
 Upload files with `processImmediately: true` or manually trigger processing:
+
 ```bash
 POST /api/v1/knowledge/process/:fileId
 ```

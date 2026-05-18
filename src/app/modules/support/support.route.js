@@ -11,33 +11,33 @@ router
   .post(
     validateRequest(supportValidationSchema),
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    SupportController.reqForSupport,
+    SupportController.reqForSupport
   );
 
 router
   .route('/:id')
   .get(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    SupportController.getSupportById,
+    SupportController.getSupportById
   );
 router
   .route('/update-support-req/:id')
   .patch(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    SupportController.updateSupportReq,
+    SupportController.updateSupportReq
   );
 router
   .route('/delete-support-req/:id')
   .delete(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    SupportController.deleteSupportReq,
+    SupportController.deleteSupportReq
   );
 
 router
   .route('/all-support')
   .get(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    SupportController.getAllSupportReq,
+    SupportController.getAllSupportReq
   );
 
 router.route('/bulk-delete').delete(SupportController.bulkDeleteSupportReq);

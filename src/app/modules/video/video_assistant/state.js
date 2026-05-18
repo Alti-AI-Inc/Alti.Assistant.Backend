@@ -9,7 +9,7 @@ export const videoGeneratorState = {
   // The evolving, detailed prompt that gets updated with user feedback. This is our "memory".
   refinedPrompt: {
     value: (x, y) => y, // Always take the new, updated version
-    default: () => "",
+    default: () => '',
   },
 
   // A list of clarifying questions to ask the user.

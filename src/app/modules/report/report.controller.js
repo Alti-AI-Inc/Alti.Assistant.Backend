@@ -68,7 +68,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while processing your request',
+      message:
+        error.message || 'An error occurred while processing your request',
       data: {
         conversationId,
         error: error.message,
@@ -90,7 +91,11 @@ export const generateReport = catchAsync(async (req, res) => {
   logger.info(`Direct report generation request from user ${userId}`);
 
   try {
-    const result = await reportService.generateReport(req.body, userId, isGuest);
+    const result = await reportService.generateReport(
+      req.body,
+      userId,
+      isGuest
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -121,7 +126,9 @@ export const analyzeFiles = catchAsync(async (req, res) => {
   const files = req.files || [];
   const { analysisType, instructions, conversationId } = req.body;
 
-  logger.info(`File analysis request from user ${userId}, files: ${files.length}`);
+  logger.info(
+    `File analysis request from user ${userId}, files: ${files.length}`
+  );
 
   if (files.length === 0) {
     return sendResponse(res, {
@@ -179,9 +186,11 @@ export const downloadReport = catchAsync(async (req, res) => {
   const ext = path.extname(filename).toLowerCase();
   const contentTypes = {
     '.pdf': 'application/pdf',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.docx':
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.doc': 'application/msword',
-    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xlsx':
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     '.xls': 'application/vnd.ms-excel',
     '.csv': 'text/csv',
     '.txt': 'text/plain',
@@ -248,7 +257,13 @@ export const getReport = catchAsync(async (req, res) => {
  */
 export const listReports = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { page = 1, limit = 10, reportType, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    reportType,
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
+  } = req.query;
 
   logger.info(`List reports for user ${userId}`);
 
@@ -256,7 +271,8 @@ export const listReports = catchAsync(async (req, res) => {
   return sendResponse(res, {
     statusCode: httpStatus.NOT_IMPLEMENTED,
     success: false,
-    message: 'List reports functionality requires report storage implementation',
+    message:
+      'List reports functionality requires report storage implementation',
   });
 });
 
@@ -273,7 +289,8 @@ export const modifyReport = catchAsync(async (req, res) => {
   return sendResponse(res, {
     statusCode: httpStatus.NOT_IMPLEMENTED,
     success: false,
-    message: 'Modify report functionality requires report storage implementation',
+    message:
+      'Modify report functionality requires report storage implementation',
   });
 });
 

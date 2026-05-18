@@ -1,21 +1,21 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const AuthConfigSchema = mongoose.Schema({
   app: {
     type: String,
-    required: true
+    required: true,
   },
   authConfigId: {
     type: String,
-    required: true
+    required: true,
   },
   authSchema: {
     type: String,
-    required: false
+    required: false,
   },
   isComposioManaged: {
     type: Boolean,
-    default: false
+    default: false,
   },
 
   // Multi-tenant support
@@ -25,8 +25,8 @@ const AuthConfigSchema = mongoose.Schema({
     default: null,
     index: true,
   },
-})
+});
 
-const AuthConfig = mongoose.model("AuthConfig", AuthConfigSchema);
+const AuthConfig = mongoose.model('AuthConfig', AuthConfigSchema);
 
 export default AuthConfig;

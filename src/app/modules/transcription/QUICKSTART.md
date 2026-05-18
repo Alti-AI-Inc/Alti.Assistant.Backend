@@ -39,6 +39,7 @@ GOOGLE_API_KEY=your_gemini_api_key_here
 ### 2. Install Dependencies (if needed)
 
 The required packages should already be installed:
+
 - `@google/generative-ai` ✅
 - `multer` ✅
 - `zod` ✅
@@ -50,6 +51,7 @@ npm run dev
 ```
 
 The transcription endpoints will be available at:
+
 ```
 http://localhost:5000/transcription/*
 ```
@@ -87,6 +89,7 @@ curl -X POST http://localhost:5000/transcription/transcribe \
 ## 🎯 Key Features
 
 ### Processing Types
+
 1. **Transcribe** - Generate text transcripts
 2. **Describe** - Describe audio content (sounds, music, speech)
 3. **Summarize** - Create summaries
@@ -95,12 +98,14 @@ curl -X POST http://localhost:5000/transcription/transcribe \
 6. **Question** - Answer questions about content
 
 ### Audio Support
+
 - WAV, MP3, AIFF, AAC, OGG, FLAC
 - Up to 20MB per file
 - Max 9.5 hours of audio
 - 32 tokens per second
 
 ### User Support
+
 - ✅ Authenticated users (full features)
 - ✅ Guest users (limited features)
 - ✅ Conversation tracking
@@ -108,25 +113,27 @@ curl -X POST http://localhost:5000/transcription/transcribe \
 
 ## 📋 API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/transcription/transcribe` | Upload & process audio file |
-| POST | `/transcription/transcribe/inline` | Process base64 audio data |
-| POST | `/transcription/transcribe/batch` | Process multiple files |
-| POST | `/transcription/analyze/segments` | Analyze specific segments |
-| GET | `/transcription/stats` | Get user statistics |
+| Method | Endpoint                           | Description                 |
+| ------ | ---------------------------------- | --------------------------- |
+| POST   | `/transcription/transcribe`        | Upload & process audio file |
+| POST   | `/transcription/transcribe/inline` | Process base64 audio data   |
+| POST   | `/transcription/transcribe/batch`  | Process multiple files      |
+| POST   | `/transcription/analyze/segments`  | Analyze specific segments   |
+| GET    | `/transcription/stats`             | Get user statistics         |
 
 ## 🔧 Configuration
 
 ### Rate Limits (in constants)
+
 ```javascript
 TRANSCRIPTION_RATE_LIMITS = {
   TRANSCRIPTION_REQUESTS: { requests: 20, window: 15 }, // 20 per 15 min
-  GUEST_REQUESTS: { requests: 5, window: 60 },          // 5 per hour
-}
+  GUEST_REQUESTS: { requests: 5, window: 60 }, // 5 per hour
+};
 ```
 
 ### File Limits
+
 ```javascript
 MAX_INLINE_SIZE: 20MB
 MAX_AUDIO_LENGTH: 9.5 hours
@@ -136,6 +143,7 @@ MAX_GUEST_AUDIO_LENGTH: 5 minutes
 ## 📝 Usage Examples
 
 ### Simple Transcription
+
 ```javascript
 const formData = new FormData();
 formData.append('audio', audioFile);
@@ -143,12 +151,13 @@ formData.append('processingType', 'transcribe');
 
 const response = await fetch('/transcription/transcribe', {
   method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}` },
-  body: formData
+  headers: { Authorization: `Bearer ${token}` },
+  body: formData,
 });
 ```
 
 ### With Timestamps
+
 ```javascript
 formData.append('startTimestamp', '02:30');
 formData.append('endTimestamp', '03:29');
@@ -156,6 +165,7 @@ formData.append('prompt', 'Transcribe this segment');
 ```
 
 ### Describe Audio
+
 ```javascript
 formData.append('processingType', 'describe');
 formData.append('prompt', 'Describe all sounds and music');
@@ -166,18 +176,22 @@ formData.append('prompt', 'Describe all sounds and music');
 ### Common Issues
 
 1. **No audio file found error**
+
    - Ensure file path is correct
    - Check file format (must be supported audio format)
 
 2. **File too large**
+
    - Compress audio or use lower bitrate
    - Use Files API for files > 20MB
 
 3. **Invalid timestamp format**
+
    - Use MM:SS format (e.g., "02:30")
    - Ensure timestamps are within audio duration
 
 4. **API key not set**
+
    - Check `.env` file has `GOOGLE_API_KEY`
    - Restart server after updating env
 
@@ -209,11 +223,13 @@ formData.append('prompt', 'Describe all sounds and music');
 ## 🎨 Integration Points
 
 ### With Conversations Module
+
 - All transcriptions create/update conversations
 - History tracked for authenticated users
 - Guest conversations have limited persistence
 
 ### With Payment/Subscription Module
+
 - Usage limits checked for authenticated users
 - Token counting for billing
 - Statistics for usage tracking

@@ -103,7 +103,17 @@ const UsageLogSchema = new mongoose.Schema(
     },
     errorType: {
       type: String,
-      enum: ['validation', 'authentication', 'authorization', 'rate-limit', 'server', 'external-service', 'timeout', 'not-found', null],
+      enum: [
+        'validation',
+        'authentication',
+        'authorization',
+        'rate-limit',
+        'server',
+        'external-service',
+        'timeout',
+        'not-found',
+        null,
+      ],
       default: null,
     },
     errorMessage: {
@@ -177,7 +187,10 @@ UsageLogSchema.index({ status: 1, timestamp: -1 }); // Error tracking
 UsageLogSchema.index({ tenantId: 1, module: 1, timestamp: -1 }); // Tenant module usage
 
 // TTL Index - Auto-delete logs older than 90 days
-UsageLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+UsageLogSchema.index(
+  { timestamp: 1 },
+  { expireAfterSeconds: 90 * 24 * 60 * 60 }
+);
 
 // Static method to create log asynchronously
 UsageLogSchema.statics.logAsync = function (logData) {
@@ -190,7 +203,11 @@ UsageLogSchema.statics.logAsync = function (logData) {
 };
 
 // Static method to get tenant usage summary
-UsageLogSchema.statics.getTenantUsageSummary = async function (tenantId, startDate, endDate) {
+UsageLogSchema.statics.getTenantUsageSummary = async function (
+  tenantId,
+  startDate,
+  endDate
+) {
   return this.aggregate([
     {
       $match: {
@@ -232,7 +249,11 @@ UsageLogSchema.statics.getTenantUsageSummary = async function (tenantId, startDa
 };
 
 // Static method to get user usage summary
-UsageLogSchema.statics.getUserUsageSummary = async function (userId, startDate, endDate) {
+UsageLogSchema.statics.getUserUsageSummary = async function (
+  userId,
+  startDate,
+  endDate
+) {
   return this.aggregate([
     {
       $match: {

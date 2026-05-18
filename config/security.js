@@ -1,6 +1,6 @@
 import helmet from 'helmet';
 
-export const applySecurityMiddleware = app => {
+export const applySecurityMiddleware = (app) => {
   app.use(helmet());
 
   app.use(
@@ -23,7 +23,7 @@ export const applySecurityMiddleware = app => {
         blockAllMixedContent: [],
         frameAncestors: ["'none'"],
       },
-    }),
+    })
   );
 
   app.use(helmet.referrerPolicy({ policy: 'same-origin' }));

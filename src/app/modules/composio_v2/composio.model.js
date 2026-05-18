@@ -1,4 +1,4 @@
-import mongoose, { connect } from "mongoose";
+import mongoose, { connect } from 'mongoose';
 
 const ComposioAuthSchema = new mongoose.Schema({
   userId: {
@@ -8,18 +8,18 @@ const ComposioAuthSchema = new mongoose.Schema({
   authConfigId: {
     type: String,
     required: true,
-    index: true
+    index: true,
   },
 
   connectedAccountId: {
-    type: String
+    type: String,
   },
   integrationId: {
     type: String,
   },
   redirectUrl: {
     type: String,
-    required: true
+    required: true,
   },
   status: {
     type: String,
@@ -34,7 +34,7 @@ const ComposioAuthSchema = new mongoose.Schema({
     type: String,
   },
   toolkit: {
-    type: Object
+    type: Object,
   },
 
   // Multi-tenant support
@@ -46,6 +46,6 @@ const ComposioAuthSchema = new mongoose.Schema({
   },
 });
 
-const ComposioAuth = mongoose.model("ComposioAuth", ComposioAuthSchema);
+const ComposioAuth = mongoose.model('ComposioAuth', ComposioAuthSchema);
 
 export default ComposioAuth;

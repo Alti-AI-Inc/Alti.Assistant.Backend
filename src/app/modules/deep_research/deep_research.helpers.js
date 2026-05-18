@@ -6,7 +6,12 @@
  * @param {Object} additionalData - Additional response data
  * @returns {Object}
  */
-export const formatDeepResearchResponse = (answer, conversationId, messageCount, additionalData = {}) => {
+export const formatDeepResearchResponse = (
+  answer,
+  conversationId,
+  messageCount,
+  additionalData = {}
+) => {
   return {
     answer,
     conversationId,

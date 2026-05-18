@@ -105,7 +105,10 @@ const exportBrainstormSchema = z.object({
     conversationId: z.string({
       required_error: 'Conversation ID is required',
     }),
-    format: z.enum(['json', 'markdown', 'pdf', 'html']).optional().default('markdown'),
+    format: z
+      .enum(['json', 'markdown', 'pdf', 'html'])
+      .optional()
+      .default('markdown'),
     includeHistory: z.boolean().optional().default(true),
   }),
 });

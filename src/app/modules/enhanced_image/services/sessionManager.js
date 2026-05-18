@@ -8,7 +8,7 @@ export class SessionManager {
 
     this.sessions.set(sessionId, {
       conversationHistory: [],
-      history: "",
+      history: '',
       createdAt: new Date(),
     });
 

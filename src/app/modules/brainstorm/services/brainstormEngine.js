@@ -39,17 +39,25 @@ const generateIdeas = async (params) => {
       },
     });
 
-    const techniqueInfo = TECHNIQUE_DESCRIPTIONS[technique] || TECHNIQUE_DESCRIPTIONS[TECHNIQUES.FREE_ASSOCIATION];
+    const techniqueInfo =
+      TECHNIQUE_DESCRIPTIONS[technique] ||
+      TECHNIQUE_DESCRIPTIONS[TECHNIQUES.FREE_ASSOCIATION];
 
     let constraintsText = '';
     if (Object.keys(constraints).length > 0) {
       constraintsText = '\n\nConsider these constraints:\n';
-      if (constraints.budget) constraintsText += `- Budget: ${constraints.budget}\n`;
-      if (constraints.timeline) constraintsText += `- Timeline: ${constraints.timeline}\n`;
-      if (constraints.technology?.length) constraintsText += `- Technology: ${constraints.technology.join(', ')}\n`;
-      if (constraints.targetAudience) constraintsText += `- Target Audience: ${constraints.targetAudience}\n`;
-      if (constraints.industry) constraintsText += `- Industry: ${constraints.industry}\n`;
-      if (constraints.competitors?.length) constraintsText += `- Competitors: ${constraints.competitors.join(', ')}\n`;
+      if (constraints.budget)
+        constraintsText += `- Budget: ${constraints.budget}\n`;
+      if (constraints.timeline)
+        constraintsText += `- Timeline: ${constraints.timeline}\n`;
+      if (constraints.technology?.length)
+        constraintsText += `- Technology: ${constraints.technology.join(', ')}\n`;
+      if (constraints.targetAudience)
+        constraintsText += `- Target Audience: ${constraints.targetAudience}\n`;
+      if (constraints.industry)
+        constraintsText += `- Industry: ${constraints.industry}\n`;
+      if (constraints.competitors?.length)
+        constraintsText += `- Competitors: ${constraints.competitors.join(', ')}\n`;
     }
 
     let focusText = '';

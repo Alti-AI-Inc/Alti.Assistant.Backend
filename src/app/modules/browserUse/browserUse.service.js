@@ -6,9 +6,12 @@ import httpStatus from 'http-status';
 import BrowserSession from './browserUse.model.js';
 import User from '../auth/auth.model.js';
 
-
-
-const initiateTaskInSessionService = async (userId, sessionId, prompt, structuredOutputSchema) => {
+const initiateTaskInSessionService = async (
+  userId,
+  sessionId,
+  prompt,
+  structuredOutputSchema
+) => {
   const apiBody = {
     task: prompt,
     secrets: {},
@@ -32,14 +35,14 @@ const initiateTaskInSessionService = async (userId, sessionId, prompt, structure
         Authorization: `Bearer ${config.browser_use_secret_key}`,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
   const apiData = apiResponse.data;
 
   if (!apiData.id) {
     throw new ApiError(httpStatus.NOT_FOUND, 'API did not return a task ID');
   }
-  
+
   // --- CORRECTED: Save ALL initial data from the API response ---
   const newResponseObject = {
     taskId: apiData.id,
@@ -100,15 +103,16 @@ const updateTaskStatusService = async (sessionId, taskId) => {
   );
 
   if (!updatedSession) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Task to update was not found in the session.');
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      'Task to update was not found in the session.'
+    );
   }
 
   return updatedSession;
 };
 
-
-
-const getSessionsForUserService = async userId => {
+const getSessionsForUserService = async (userId) => {
   const sessions = await BrowserSession.find({ user: userId })
     .select({
       'responses.prompt': { $slice: 1 }, // Only get the first element of the responses array
@@ -138,7 +142,7 @@ const getSessionByIdService = async (sessionId, userId) => {
   if (!session) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
-      'Session not found or access denied.',
+      'Session not found or access denied.'
     );
   }
   return session;

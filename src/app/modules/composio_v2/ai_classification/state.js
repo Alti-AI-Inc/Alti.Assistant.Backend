@@ -43,15 +43,15 @@ export const aiClassificationState = {
   workflowType: { value: null },
 
   // Multi-step workflow fields
-  executionPlan: { value: null },           // Array of planned steps
-  currentStep: { value: 0 },                // Current execution step index
-  stepResults: { value: [] },               // Results from completed steps
-  stepSummaries: { value: null },             // Summaries of completed steps for context
-  dependencyGraph: { value: null },         // Step dependencies and data flow
-  planningMetadata: { value: null },        // Planning context and reasoning
-  requiredApps: { value: null },            // All apps identified for the workflow
-  crossStepParameters: { value: {} },       // Parameters that flow between steps
-  workflowComplete: { value: false },       // Flag to indicate workflow completion
+  executionPlan: { value: null }, // Array of planned steps
+  currentStep: { value: 0 }, // Current execution step index
+  stepResults: { value: [] }, // Results from completed steps
+  stepSummaries: { value: null }, // Summaries of completed steps for context
+  dependencyGraph: { value: null }, // Step dependencies and data flow
+  planningMetadata: { value: null }, // Planning context and reasoning
+  requiredApps: { value: null }, // All apps identified for the workflow
+  crossStepParameters: { value: {} }, // Parameters that flow between steps
+  workflowComplete: { value: false }, // Flag to indicate workflow completion
 
   // Conversation history - accumulates over time with proper memory management
   history: {
@@ -63,7 +63,7 @@ export const aiClassificationState = {
       // If both exist, merge them maintaining chronological order
       return [...x, ...y];
     },
-    default: () => []
+    default: () => [],
   },
 
   // Current conversation messages (current turn)
@@ -73,7 +73,7 @@ export const aiClassificationState = {
       if (!y) return x;
       return [...x, ...y];
     },
-    default: () => []
+    default: () => [],
   },
 
   // Conversation context for better understanding
@@ -85,9 +85,9 @@ export const aiClassificationState = {
       lastParameters: null,
       recentTools: [],
       userPreferences: {},
-      conversationSummary: "",
-      turnCount: 0
-    })
+      conversationSummary: '',
+      turnCount: 0,
+    }),
   },
 
   // User ID for personalized tool access
@@ -105,33 +105,33 @@ export const aiClassificationState = {
   lastStepResult: { value: null },
 
   // Scheduling and workflow storage fields
-  schedulingRequirements: { value: null },    // Detected schedule info from user input
-  workflowTemplate: { value: null },          // Template for later execution
-  triggerType: { value: "immediate" },       // immediate|manual|scheduled|recurring
-  scheduleExpression: { value: null },       // Parsed schedule expression
-  scheduleConfig: { value: null },           // Full schedule configuration
-  workflowSaved: { value: false },           // Whether workflow was saved
-  workflowId: { value: null },               // Generated workflow ID if saved
-  shouldSaveWorkflow: { value: false },      // Flag to save instead of execute
-  originalUserInput: { value: null },       // Original user input for workflow storage
+  schedulingRequirements: { value: null }, // Detected schedule info from user input
+  workflowTemplate: { value: null }, // Template for later execution
+  triggerType: { value: 'immediate' }, // immediate|manual|scheduled|recurring
+  scheduleExpression: { value: null }, // Parsed schedule expression
+  scheduleConfig: { value: null }, // Full schedule configuration
+  workflowSaved: { value: false }, // Whether workflow was saved
+  workflowId: { value: null }, // Generated workflow ID if saved
+  shouldSaveWorkflow: { value: false }, // Flag to save instead of execute
+  originalUserInput: { value: null }, // Original user input for workflow storage
 
   // Schedule detection fields from nodes.js
-  needsScheduling: { value: false },         // Whether scheduling is required
-  schedulingDetected: { value: false },     // Whether scheduling was detected
-  scheduleType: { value: null },            // Type of schedule (recurring, one_time, etc.)
-  cronExpression: { value: null },          // Cron expression for recurring schedules
-  oneTimeDate: { value: null },            // Date for one-time scheduled execution
-  timezone: { value: null },               // Timezone for scheduled execution
-  scheduleDescription: { value: null },     // Human-readable schedule description
-  scheduleMetadata: { value: null },        // Additional metadata about the schedule
+  needsScheduling: { value: false }, // Whether scheduling is required
+  schedulingDetected: { value: false }, // Whether scheduling was detected
+  scheduleType: { value: null }, // Type of schedule (recurring, one_time, etc.)
+  cronExpression: { value: null }, // Cron expression for recurring schedules
+  oneTimeDate: { value: null }, // Date for one-time scheduled execution
+  timezone: { value: null }, // Timezone for scheduled execution
+  scheduleDescription: { value: null }, // Human-readable schedule description
+  scheduleMetadata: { value: null }, // Additional metadata about the schedule
 
   // Execution mode - determines if we execute immediately or save for later
   executionMode: {
-    value: "immediate",                      // immediate|save_and_execute|save_only
-    default: () => "immediate"
+    value: 'immediate', // immediate|save_and_execute|save_only
+    default: () => 'immediate',
   },
 
   // Workflow title and description for saved workflows
   workflowTitle: { value: null },
-  workflowDescription: { value: null }
+  workflowDescription: { value: null },
 };

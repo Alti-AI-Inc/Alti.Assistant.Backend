@@ -11,9 +11,13 @@ import Llama from '../groq/groq.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { GEMINI_RESPONSE_SERVICE_POST } from './gemini.constant.js';
 import { RedisClient } from '../../../shared/redis.js';
+import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
-const model = client.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+const model = client.getGenerativeModel({
+  model: 'gemini-3.1-flash',
+  generationConfig: { temperature: 0.1 },
+});
 
 const sessionMemoryStore = {};
 
@@ -29,10 +33,14 @@ const geminiService = async (sessionId, prompt, userId) => {
   }
 
   try {
+    // Enhance prompt using massiveSmartRouter for real-time market data
+    const enhancedPrompt =
+      await massiveSmartRouter.routeAndEnhancePrompt(prompt);
+
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
     // Call Gemini AI to generate a response
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(enhancedPrompt);
     const reply =
       result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
       'No reply generated';
@@ -48,7 +56,7 @@ const geminiService = async (sessionId, prompt, userId) => {
       logger.error('Error in incrementPromptsUsed:', error);
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        error.message || 'An error occurred while updating prompt usage.',
+        error.message || 'An error occurred while updating prompt usage.'
       );
     }
 
@@ -56,7 +64,7 @@ const geminiService = async (sessionId, prompt, userId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash',
       reply,
       total_time: result?.usage?.total_time || 0,
     };
@@ -81,7 +89,7 @@ const geminiService = async (sessionId, prompt, userId) => {
     if (payload) {
       await RedisClient.publish(
         GEMINI_RESPONSE_SERVICE_POST,
-        JSON.stringify(payload),
+        JSON.stringify(payload)
       );
     }
     return payload;
@@ -89,13 +97,14 @@ const geminiService = async (sessionId, prompt, userId) => {
     logger.error('Gemini Service Error:', err);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      'Gemini Service failed',
+      'Gemini Service failed'
     );
   }
 };
 
 const model1 = client.getGenerativeModel({
-  model: 'gemini-3-flash-preview',
+  model: 'gemini-3.1-flash',
+  generationConfig: { temperature: 0.1 },
 });
 
 const sessionMemoryStore25Preview = {};
@@ -112,10 +121,14 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
   }
 
   try {
+    // Enhance prompt using massiveSmartRouter for real-time market data
+    const enhancedPrompt =
+      await massiveSmartRouter.routeAndEnhancePrompt(prompt);
+
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
     // Call Gemini AI to generate a response
-    const result = await model1.generateContent(prompt);
+    const result = await model1.generateContent(enhancedPrompt);
     const reply =
       result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
       'No reply generated';
@@ -131,7 +144,7 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
       logger.error('Error in incrementPromptsUsed:', error);
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        error.message || 'An error occurred while updating prompt usage.',
+        error.message || 'An error occurred while updating prompt usage.'
       );
     }
 
@@ -139,7 +152,7 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-3-flash-preview-preview',
+      model: 'gemini-3.1-flash',
       reply,
       total_time: result?.usage?.total_time || 0,
     };
@@ -166,7 +179,7 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
     logger.error('Gemini Service Error:', err);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      'Gemini Service failed',
+      'Gemini Service failed'
     );
   }
 };

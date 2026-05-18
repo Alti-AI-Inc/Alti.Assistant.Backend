@@ -14,7 +14,16 @@ export const DOCUMENT_ANALYSIS_CONFIG = {
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/vnd.ms-powerpoint',
   ],
-  SUPPORTED_FILE_EXTENSIONS: ['.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt'],
+  SUPPORTED_FILE_EXTENSIONS: [
+    '.pdf',
+    '.docx',
+    '.doc',
+    '.txt',
+    '.xlsx',
+    '.xls',
+    '.pptx',
+    '.ppt',
+  ],
 };
 
 // Analysis types
@@ -98,9 +107,11 @@ Provide detailed linguistic insights.`,
 // Response messages
 export const RESPONSE_MESSAGES = {
   SUCCESS: 'Analysis completed successfully',
-  NO_CONTENT: 'No content provided for analysis. Please provide text or upload a file.',
+  NO_CONTENT:
+    'No content provided for analysis. Please provide text or upload a file.',
   FILE_TOO_LARGE: 'File size exceeds the maximum limit of 10MB',
-  UNSUPPORTED_FILE_TYPE: 'Unsupported file type. Please upload PDF, DOCX, TXT, XLSX, or PPTX files.',
+  UNSUPPORTED_FILE_TYPE:
+    'Unsupported file type. Please upload PDF, DOCX, TXT, XLSX, or PPTX files.',
   PROCESSING_ERROR: 'Error processing document',
   ANALYSIS_ERROR: 'Error analyzing content',
   CONVERSATION_ERROR: 'Error handling conversation',

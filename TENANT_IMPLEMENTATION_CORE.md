@@ -20,6 +20,7 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
 ## Phase 1: Foundation Setup
 
 ### 1.1 Create Tenant Module Structure
+
 - [x] Create directory: `src/app/modules/tenant/`
 - [x] Create `tenant.model.js` with schema
 - [x] Create `tenantInvitation.model.js` with invitation schema
@@ -32,6 +33,7 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
 - [x] Create email template: `src/app/templates/emails/tenantInvitation.html`
 
 ### 1.2 Create Middleware
+
 - [x] Create `src/app/middlewares/tenant/tenantContext.js`
 - [x] Implement `extractTenantContext()` function
 - [x] Implement `requireTenant()` middleware
@@ -41,6 +43,7 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
 - [x] Implement `validateInvitationToken()` middleware for invitation links
 
 ### 1.3 Create Helper Utilities
+
 - [x] Create `src/app/helpers/tenantQuery.js`
 - [x] Implement `withTenantFilter()` helper
 - [x] Implement `withTenantContext()` helper
@@ -50,6 +53,7 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
 - [x] Add JSDoc documentation
 
 ### 1.4 Register Routes
+
 - [x] Import tenant routes in `src/app/routes/index.js`
 - [x] Register `/tenant` path
 
@@ -58,13 +62,16 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
 ## Phase 2: Database Schema Updates
 
 ### 2.1 Update User Model
+
 - [x] Add `tenantId` field to User schema
 - [x] Add `tenantRole` field (owner/admin/member)
 - [x] Add `tenantPermissions` array
 - [x] Create index on `tenantId`
 
 ### 2.1.1 Create Tenant Invitation Model
+
 - [x] Create `tenantInvitation.model.js` with schema (COMPLETED IN PHASE 1):
+
 ```javascript
 {
   tenantId: { type: ObjectId, ref: 'Tenant', required: true, index: true },
@@ -72,11 +79,11 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
   role: { type: String, enum: ['admin', 'member'], required: true },
   invitedBy: { type: ObjectId, ref: 'User', required: true },
   token: { type: String, required: true, unique: true, index: true },
-  status: { 
-    type: String, 
-    enum: ['pending', 'accepted', 'expired', 'cancelled'], 
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'expired', 'cancelled'],
     default: 'pending',
-    index: true 
+    index: true
   },
   expiresAt: { type: Date, required: true, index: true },
   acceptedAt: { type: Date },
@@ -84,11 +91,14 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
   metadata: { type: Mixed }
 }
 ```
+
 - [ ] Add TTL index on `expiresAt` for auto-cleanup
 - [ ] Create compound index on `(email, tenantId, status)`
 
 ### 2.2 Update Core Models (Add tenantId)
+
 **Core Business Models:**
+
 - [x] `src/app/modules/conversations/conversation.model.js`
 - [x] `src/app/modules/knowledge/knowledge.model.js`
 - [x] `src/app/modules/knowledge/knowledge_folder.model.js`
@@ -99,21 +109,25 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
 - [x] `src/app/modules/payment/payment.model.js`
 
 **Integration & Composio Models:**
+
 - [x] `src/app/modules/composio_v2/composio.model.js`
 - [x] `src/app/modules/composio_v2/authConfig.model.js`
 - [x] `src/app/modules/composio_v2/tools.model.js`
 
 **AI & Processing Models:**
+
 - [x] `src/app/modules/code/model/code.model.js`
 - [x] `src/app/modules/wishper/wishper.model.js`
 
 **System Models:**
+
 - [x] `src/app/modules/notification/notification.model.js`
 - [x] `src/app/modules/forum/forum.model.js`
 - [x] `src/app/modules/stripe/products/products.model.js`
 - [x] `src/app/modules/aiModelServices/aiEndpoint.Model.js`
 
 **Excluded Modules (Not in Scope):**
+
 - ~~browserUse~~ (Excluded)
 - ~~cyberdesk~~ (Excluded)
 - ~~deepseek~~ (Excluded)
@@ -132,15 +146,19 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
 - ~~workflow_storage~~ (Excluded)
 
 ### 2.3 Update Content Generation Models
+
 - [x] Check article_writer, creative_writing, document_drafting, document_review, legal_contract, presentation, report modules for persistent models
 - **Result:** No persistent models found - these modules use Conversation model
 
 ### 2.4 Update Media Models
+
 - [x] Check image, video, transcription modules for persistent models
 - **Result:** No persistent models found
 
 ### 2.5 Create Database Indexes
+
 - [x] Add indexed tenantId field to all models:
+
 ```javascript
 {
   tenantId: { type: ObjectId, ref: 'Tenant', index: true, default: null }
@@ -152,15 +170,18 @@ This guide focuses on the core implementation tasks for multi-tenant functionali
 ## Phase 3: Controller & Service Updates
 
 ### 3.1 Update Core Controllers
+
 Use `withTenantFilter()` and `withTenantContext()` in:
 
 **Conversations & Chat:**
+
 - [x] `src/app/modules/conversations/conversation.controller.js`
 - [x] `src/app/modules/conversations/conversation.service.js`
 - [x] `src/app/modules/conversations/conversation.helpers.js`
 - [x] `src/app/modules/conversations/conversation.route.js` (add middleware)
 
 **Knowledge Management:**
+
 - [x] `src/app/modules/knowledge/knowledge.controller.js`
 - [x] `src/app/modules/knowledge/knowledge.service.js`
 - [x] `src/app/modules/knowledge/knowledge.route.js` (add middleware)
@@ -172,6 +193,7 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/knowledgebase/knowledgebase.routes.js` (add middleware)
 
 **AI & Processing:**
+
 - [x] `src/app/modules/code/code.controller.js`
 - [x] `src/app/modules/code/code.service.js`
 - [x] `src/app/modules/code/code.route.js` (add middleware)
@@ -180,6 +202,7 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/wishper/wishper.route.js` (add middleware)
 
 **Content Generation:**
+
 - [x] `src/app/modules/article_writer/article_writer.controller.js`
 - [x] `src/app/modules/article_writer/article_writer.service.js`
 - [x] `src/app/modules/article_writer/article_writer.route.js` (add middleware)
@@ -197,6 +220,7 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/summary/summary.route.js` (add middleware)
 
 **Document Processing:**
+
 - [x] `src/app/modules/document_analysis/document_analysis.controller.js`
 - [x] `src/app/modules/document_analysis/document_analysis.route.js` (add middleware)
 - [x] `src/app/modules/document_drafting/document.controller.js`
@@ -205,12 +229,14 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/document_review/document_review.route.js` (add middleware)
 
 **Legal:**
+
 - [x] `src/app/modules/legal_contract/legal_contract.controller.js`
 - [x] `src/app/modules/legal_contract/legal_contract.route.js` (add middleware)
 - [x] `src/app/modules/legal_contract_review/legal_contract_review.controller.js`
 - [x] `src/app/modules/legal_contract_review/legal_contract_review.route.js` (add middleware)
 
 **Research & Analysis:**
+
 - [x] `src/app/modules/deep_research/deep_research.controller.js`
 - [x] `src/app/modules/deep_research/deep_research.service.js`
 - [x] `src/app/modules/deep_research/deep_research.route.js` (add middleware)
@@ -219,6 +245,7 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/search/search.route.js` (add middleware)
 
 **Presentation & Reports:**
+
 - [x] `src/app/modules/presentation/presentation.controller.js`
 - [x] `src/app/modules/presentation/presentation.route.js` (add middleware)
 - [x] `src/app/modules/report/report.controller.js`
@@ -227,6 +254,7 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/plan_generator/plan_generator.route.js` (add middleware)
 
 **Media Processing:**
+
 - [x] `src/app/modules/image/image.controller.js` (partially - needs 2 more req params in analyzeImage)
 - [x] `src/app/modules/image/image.service.js`
 - [x] `src/app/modules/image/image.route.js` (add middleware)
@@ -244,6 +272,7 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/translation/translation.route.js` (add middleware)
 
 **Composio Integration:**
+
 - [x] `src/app/modules/composio_v2/composio.controller.js`
 - [x] `src/app/modules/composio_v2/composio.service.js`
 - [x] `src/app/modules/composio_v2/composio.conversation.service.js`
@@ -252,6 +281,7 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/composio_v2/composio.route.js` (add middleware)
 
 **System & Community:**
+
 - [x] `src/app/modules/notification/notification.controller.js`
 - [x] `src/app/modules/notification/notification.service.js`
 - [x] `src/app/modules/notification/notification.route.js` (add middleware)
@@ -260,6 +290,7 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/forum/forum.route.js` (add middleware)
 
 **Billing & Payments:**
+
 - [x] `src/app/modules/payment/payment.controller.js`
 - [x] `src/app/modules/payment/payment.service.js`
 - [x] `src/app/modules/payment/payment.route.js` (add middleware)
@@ -271,12 +302,14 @@ Use `withTenantFilter()` and `withTenantContext()` in:
 - [x] `src/app/modules/stripe/stripe.route.js` (add middleware)
 
 **AI Model Services:**
+
 - [x] `src/app/modules/aiModelServices/aiEndpoint.controller.js`
 - [x] `src/app/modules/aiModelServices/aiEndpoint.route.js` (add middleware)
 
 **Excluded from scope:** browserUse, cyberdesk, deepseek, groq, llama4, llamaindex, notes, qwen, serper, social-login, streaming, support, tavily, togetherAi, workflow_automation, workflow_storage
 
 ### 3.2 Update Services
+
 Add tenant filtering to all database queries:
 
 - [x] `src/app/modules/conversations/conversation.service.js`
@@ -307,6 +340,7 @@ Add tenant filtering to all database queries:
 **Progress:** 21/23 (91%) - 2 services require Phase 2 model schema updates first
 
 **Aggregation Pipelines Updated:**
+
 - [x] `conversation.helpers.js` - getConversationStats (already using withTenantPipeline)
 - [x] `workflowStorage.service.js` - getWorkflowStatistics (added withTenantPipeline)
 - [x] `researchStorageService.js` - getResearchStatistics (added withTenantPipeline)
@@ -316,6 +350,7 @@ Add tenant filtering to all database queries:
 - [ ] `workflowExecution.model.js` - getExecutionStats (requires Phase 2 model updates)
 
 ### 3.3 Implementation Pattern
+
 ```javascript
 // Service (conversation.service.js)
 import { withTenantContext } from '../../helpers/tenantQuery.js';
@@ -332,15 +367,17 @@ import { withTenantFilter } from '../../helpers/tenantQuery.js';
 
 const getUserConversations = async (userId, options, req = null) => {
   const query = { userId, status: 'active' };
-  return await Conversation.find(
-    req ? withTenantFilter(req, query) : query
-  );
+  return await Conversation.find(req ? withTenantFilter(req, query) : query);
 };
 
 // Controller (conversation.controller.js)
 const getUserConversations = catchAsync(async (req, res) => {
   const userId = req.user._id;
-  const result = await conversationHelpers.getUserConversations(userId, options, req);
+  const result = await conversationHelpers.getUserConversations(
+    userId,
+    options,
+    req
+  );
   sendResponse(res, { data: result });
 });
 
@@ -355,7 +392,9 @@ router.get('/', auth(), extractTenantContext, controller.getUserConversations);
 ## Phase 4: Route Middleware Updates
 
 ### 4.1 Add Tenant Routes
+
 - [x] Register tenant routes in `src/app/routes/index.js`
+
 ```javascript
 {
   path: '/tenant',
@@ -364,21 +403,24 @@ router.get('/', auth(), extractTenantContext, controller.getUserConversations);
 ```
 
 ### 4.2 Apply Middleware to Existing Routes
+
 Add `extractTenantContext` middleware after `auth()`:
+
 - [x] Conversation routes
 - [x] Search routes
-- [x] Writing routes  
+- [x] Writing routes
 - [x] Document routes
 - [x] Knowledge routes
 - [x] Image generation routes
 - [x] All other user-content routes
 
 **Pattern:**
+
 ```javascript
 router.post(
   '/assistant',
   auth(),
-  extractTenantContext,  // Add this
+  extractTenantContext, // Add this
   checkDailyRequestLimit,
   controller.method
 );
@@ -387,6 +429,7 @@ router.post(
 **Status:** ✅ Complete - All middleware already applied during Phase 3.1
 
 **Routes Verified:**
+
 - Conversation routes (conversation.route.js) ✅
 - Search routes (search.route.js) ✅
 - Code routes (code.route.js) ✅
@@ -417,12 +460,14 @@ router.post(
 ## Phase 5: Tenant Management APIs
 
 ### 5.1 Tenant CRUD
+
 - [x] POST `/api/v1/tenant/create` - Create tenant
 - [x] GET `/api/v1/tenant/current` - Get current tenant
 - [x] PATCH `/api/v1/tenant/settings` - Update settings
 - [x] DELETE `/api/v1/tenant/:tenantId` - Delete tenant (admin)
 
 ### 5.2 Member Management
+
 - [x] GET `/api/v1/tenant/members` - List members
 - [x] POST `/api/v1/tenant/members/invite` - Invite member via email
 - [x] PATCH `/api/v1/tenant/members/:userId/role` - Update role
@@ -434,6 +479,7 @@ router.post(
 - [x] POST `/api/v1/tenant/members/invitations/:inviteId/resend` - Resend invitation email
 
 **Invitation Flow Implementation:**
+
 1. Admin/Owner sends invitation with email address and role ✅
 2. System generates secure invitation token (JWT with 7-day expiry) ✅
 3. System creates pending invitation record in database ✅
@@ -444,12 +490,14 @@ router.post(
 8. Update invitation status to 'accepted' or 'expired' ✅
 
 ### 5.3 Usage & Limits
+
 - [x] GET `/api/v1/tenant/usage` - Get usage statistics
 - [x] GET `/api/v1/tenant/limits` - Get plan limits
 - [ ] Implement usage tracking middleware
 - [ ] Add limit enforcement checks
 
 ### 5.4 Admin APIs
+
 - [x] GET `/api/v1/admin/tenants` - List all tenants
 - [x] GET `/api/v1/admin/tenants/:tenantId` - Get tenant details
 - [x] PATCH `/api/v1/admin/tenants/:tenantId/status` - Update status
@@ -459,6 +507,7 @@ router.post(
 **Status:** ✅ 95% Complete - All APIs implemented, usage tracking middleware pending
 
 **Implementation Details:**
+
 - All tenant CRUD endpoints in [tenant.controller.js](src/app/modules/tenant/tenant.controller.js) ✅
 - All member management in [tenant.route.js](src/app/modules/tenant/tenant.route.js) ✅
 - Invitation system in [tenantInvitation.controller.js](src/app/modules/tenant/tenantInvitation.controller.js) ✅
@@ -470,6 +519,7 @@ router.post(
 ## Phase 5.5: Email Integration for Invitations
 
 ### 5.5.1 Email Service Setup
+
 - [x] Verify existing email service in `src/app/middlewares/sendEmail/`
 - [x] Create invitation email template with variables:
   - `{inviterName}` - Name of person sending invite
@@ -484,6 +534,7 @@ router.post(
 - [x] Log all invitation emails sent
 
 ### 5.5.2 Email Template Design
+
 - [x] Create HTML email template with responsive design
 - [x] Add plain text fallback
 - [x] Include branding (colors, styling)
@@ -495,6 +546,7 @@ router.post(
 **Status:** ✅ 95% Complete - All features implemented, cross-client testing pending
 
 **Implementation Details:**
+
 - Email templates in [templates/invitationEmail.js](src/app/modules/tenant/templates/invitationEmail.js) ✅
 - Email service with retry/rate limiting in [tenantInvitation.email.js](src/app/modules/tenant/tenantInvitation.email.js) ✅
 - Integration with invitation service in [tenantInvitation.service.js](src/app/modules/tenant/tenantInvitation.service.js) ✅
@@ -509,6 +561,7 @@ router.post(
 ## Phase 6: Billing Integration
 
 ### 6.1 Update Stripe Integration
+
 - [x] Create tenant-level Stripe customers
 - [x] Link subscriptions to tenants (not individual users)
 - [x] Update `payment.service.js` for tenant billing
@@ -516,6 +569,7 @@ router.post(
 - [x] Update webhook handlers for tenant subscriptions
 
 ### 6.2 Plan Limits Enforcement
+
 - [x] Create `src/app/middlewares/tenant/checkTenantLimits.js`
 - [x] Implement API call limit checking (`checkApiCallLimit`)
 - [x] Implement storage limit checking (`checkStorageLimit`)
@@ -525,6 +579,7 @@ router.post(
 - [x] Return clear error messages with upgrade guidance
 
 ### 6.3 Usage Tracking
+
 - [x] Track API calls per tenant (incremented on each call)
 - [x] Track storage usage per tenant (incremented on uploads)
 - [x] Track user count per tenant (managed by invitation system)
@@ -534,6 +589,7 @@ router.post(
 - [x] Create `resetUsage.js` for tenant usage management
 
 ### 6.4 Apply Limits to Routes
+
 - [x] Add `checkApiCallLimit` to conversation routes
   - `/api/v1/conversations` (POST) - conversation creation
   - `/api/v1/conversations/:conversationId/messages` (POST) - message sending
@@ -547,6 +603,7 @@ router.post(
 **Status:** ✅ 100% Complete
 
 **Implementation Details:**
+
 - Plan limits configured in [payment.service.js](src/app/modules/payment/payment.service.js) ✅
   - Free: 1K API calls, 5GB storage, 5 users
   - Explore: 10K API calls, 50GB storage, 10 users
@@ -562,13 +619,12 @@ router.post(
 - Applied to 5 key routes (conversation, messages, plan generator, invitations) ✅
 - Comprehensive documentation in [TENANT_BILLING_LIMITS.md](docs/TENANT_BILLING_LIMITS.md) ✅
 
-
-
 ---
 
 ## Phase 7: Deployment & Monitoring
 
 ### 7.1 Deployment
+
 - [ ] Deploy to staging
 - [ ] Run smoke tests
 - [ ] Deploy to production
@@ -576,6 +632,7 @@ router.post(
 - [ ] Verify all services running
 
 ### 7.2 Monitoring Setup
+
 - [ ] Add tenant metrics to logging
 - [ ] Create Grafana dashboards for tenant stats
 - [ ] Set up alerts for limit violations
@@ -583,6 +640,7 @@ router.post(
 - [ ] Track tenant signup rate
 
 ### 7.3 Post-Launch
+
 - [ ] Monitor error rates
 - [ ] Check customer feedback
 - [ ] Fix critical bugs
@@ -594,6 +652,7 @@ router.post(
 ## Phase 8: Feature Rollout
 
 ### 8.1 Beta Testing
+
 - [ ] Select beta customers
 - [ ] Send invitations
 - [ ] Provide onboarding support
@@ -601,6 +660,7 @@ router.post(
 - [ ] Iterate on features
 
 ### 8.2 Marketing
+
 - [ ] Create announcement blog post
 - [ ] Update website with tenant features
 - [ ] Email existing customers
@@ -608,6 +668,7 @@ router.post(
 - [ ] Create demo video
 
 ### 8.3 Customer Support
+
 - [ ] Train support team
 - [ ] Create support documentation
 - [ ] Prepare FAQ responses
@@ -676,16 +737,16 @@ Track these metrics to measure success:
 
 ## Implementation Timeline
 
-| Phase | Duration | Dependencies |
-|-------|----------|--------------|
-| Phase 1: Foundation | 1 week | None |
-| Phase 2: Schema Updates | 1 week | Phase 1 |
-| Phase 3: Controllers | 1 week | Phase 2 |
-| Phase 4: Routes | 3 days | Phase 3 |
-| Phase 5: APIs | 1 week | Phase 4 |
-| Phase 6: Billing | 1 week | Phase 5 |
-| Phase 7: Deployment | 2 days | Phase 6 |
-| Phase 8: Rollout | 2 weeks | Phase 7 |
+| Phase                   | Duration | Dependencies |
+| ----------------------- | -------- | ------------ |
+| Phase 1: Foundation     | 1 week   | None         |
+| Phase 2: Schema Updates | 1 week   | Phase 1      |
+| Phase 3: Controllers    | 1 week   | Phase 2      |
+| Phase 4: Routes         | 3 days   | Phase 3      |
+| Phase 5: APIs           | 1 week   | Phase 4      |
+| Phase 6: Billing        | 1 week   | Phase 5      |
+| Phase 7: Deployment     | 2 days   | Phase 6      |
+| Phase 8: Rollout        | 2 weeks  | Phase 7      |
 
 **Total Estimated Time**: 6-7 weeks (excluding testing, documentation, and migration)
 

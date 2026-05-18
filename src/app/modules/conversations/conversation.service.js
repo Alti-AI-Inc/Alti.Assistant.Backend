@@ -5,7 +5,10 @@ import Conversation from './conversation.model.js';
 import ChatShare from './chatShare.model.js';
 import { conversationHelpers } from './conversation.helpers.js';
 import mongoose from 'mongoose';
-import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
+import {
+  withTenantContext,
+  withTenantFilter,
+} from '../../helpers/tenantQuery.js';
 
 /**
  * Create a new conversation
@@ -14,7 +17,11 @@ import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.j
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const createConversation = async (conversationData, conversationId, req = null) => {
+const createConversation = async (
+  conversationData,
+  conversationId,
+  req = null
+) => {
   try {
     const {
       userId,
@@ -62,7 +69,10 @@ const createConversation = async (conversationData, conversationId, req = null) 
     };
   } catch (error) {
     logger.error('Error creating conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to create conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to create conversation'
+    );
   }
 };
 
@@ -74,16 +84,26 @@ const createConversation = async (conversationData, conversationId, req = null) 
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const addMessageToConversation = async (conversationId, userId, messageData, req = null) => {
+const addMessageToConversation = async (
+  conversationId,
+  userId,
+  messageData,
+  req = null
+) => {
   try {
     const { role, content, metadata = {} } = messageData;
 
     if (!role || !content) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Message role and content are required');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Message role and content are required'
+      );
     }
 
-    console.log(`Adding message to conversation ${conversationId} for user ${userId}:`, { role, content, metadata });
-
+    console.log(
+      `Adding message to conversation ${conversationId} for user ${userId}:`,
+      { role, content, metadata }
+    );
 
     const query = { conversationId, userId };
     const conversation = await Conversation.findOne(
@@ -124,7 +144,12 @@ const addMessageToConversation = async (conversationId, userId, messageData, req
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const updateConversationTitle = async (conversationId, userId, title, req = null) => {
+const updateConversationTitle = async (
+  conversationId,
+  userId,
+  title,
+  req = null
+) => {
   try {
     if (!title || title.trim().length === 0) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Title cannot be empty');
@@ -158,17 +183,25 @@ const updateConversationTitle = async (conversationId, userId, title, req = null
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const updateConversationMetadata = async (conversationId, userId, metadata, req = null) => {
+const updateConversationMetadata = async (
+  conversationId,
+  userId,
+  metadata,
+  req = null
+) => {
   try {
-    console.log(`Updating metadata for conversation ${conversationId} for user ${userId}:`, metadata);
+    console.log(
+      `Updating metadata for conversation ${conversationId} for user ${userId}:`,
+      metadata
+    );
     const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       {
         $set: {
           metadata: { ...metadata },
-          lastActivity: new Date()
-        }
+          lastActivity: new Date(),
+        },
       },
       { new: true, runValidators: true }
     ).select('conversationId metadata lastActivity');
@@ -186,17 +219,25 @@ const updateConversationMetadata = async (conversationId, userId, metadata, req 
   }
 };
 
-const updadtePlanMetadata = async (conversationId, userId, planMetadata, req = null) => {
+const updadtePlanMetadata = async (
+  conversationId,
+  userId,
+  planMetadata,
+  req = null
+) => {
   try {
-    console.log(`Updating plan metadata for conversation ${conversationId} for user ${userId}:`, planMetadata);
+    console.log(
+      `Updating plan metadata for conversation ${conversationId} for user ${userId}:`,
+      planMetadata
+    );
     const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       {
         $set: {
           plan_metadata: { ...planMetadata },
-          lastActivity: new Date()
-        }
+          lastActivity: new Date(),
+        },
       },
       { new: true, runValidators: true }
     ).select('conversationId plan_metadata lastActivity');
@@ -213,25 +254,38 @@ const updadtePlanMetadata = async (conversationId, userId, planMetadata, req = n
   }
 };
 
-const updatePresentationMetadata = async (conversationId, userId, presentationMetadata, req = null) => {
+const updatePresentationMetadata = async (
+  conversationId,
+  userId,
+  presentationMetadata,
+  req = null
+) => {
   try {
-    console.log(`Updating presentation metadata for conversation ${conversationId} for user ${userId}:`, presentationMetadata);
+    console.log(
+      `Updating presentation metadata for conversation ${conversationId} for user ${userId}:`,
+      presentationMetadata
+    );
     const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       {
         $set: {
           presentation_metadata: { ...presentationMetadata },
-          lastActivity: new Date()
-        }
+          lastActivity: new Date(),
+        },
       },
       { new: true, runValidators: true }
     ).select('conversationId presentation_metadata lastActivity');
-    console.log('Updated presentation metadata:', conversation?.presentation_metadata);
+    console.log(
+      'Updated presentation metadata:',
+      conversation?.presentation_metadata
+    );
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
-    logger.info(`Conversation presentation metadata updated: ${conversationId}`);
+    logger.info(
+      `Conversation presentation metadata updated: ${conversationId}`
+    );
 
     return conversation;
   } catch (error) {
@@ -286,7 +340,10 @@ const restoreConversation = async (conversationId, userId, req = null) => {
     ).select('conversationId status lastActivity');
 
     if (!conversation) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Archived conversation not found');
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        'Archived conversation not found'
+      );
     }
 
     logger.info(`Conversation restored: ${conversationId}`);
@@ -337,7 +394,11 @@ const deleteConversation = async (conversationId, userId, req = null) => {
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<void>}
  */
-const permanentlyDeleteConversation = async (conversationId, userId, req = null) => {
+const permanentlyDeleteConversation = async (
+  conversationId,
+  userId,
+  req = null
+) => {
   try {
     const query = { conversationId, userId };
     const result = await Conversation.deleteOne(
@@ -364,7 +425,11 @@ const permanentlyDeleteConversation = async (conversationId, userId, req = null)
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const clearConversationMessages = async (conversationId, userId, req = null) => {
+const clearConversationMessages = async (
+  conversationId,
+  userId,
+  req = null
+) => {
   try {
     const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
@@ -372,7 +437,7 @@ const clearConversationMessages = async (conversationId, userId, req = null) => 
       {
         messages: [],
         messageCount: 0,
-        lastActivity: new Date()
+        lastActivity: new Date(),
       },
       { new: true }
     ).select('conversationId messageCount lastActivity');
@@ -397,22 +462,28 @@ const clearConversationMessages = async (conversationId, userId, req = null) => 
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const bulkArchiveConversations = async (conversationIds, userId, req = null) => {
+const bulkArchiveConversations = async (
+  conversationIds,
+  userId,
+  req = null
+) => {
   try {
     const query = {
       conversationId: { $in: conversationIds },
       userId,
-      status: 'active'
+      status: 'active',
     };
     const result = await Conversation.updateMany(
       req ? withTenantFilter(req, query) : query,
       {
         status: 'archived',
-        lastActivity: new Date()
+        lastActivity: new Date(),
       }
     );
 
-    logger.info(`Bulk archived ${result.modifiedCount} conversations for user: ${userId}`);
+    logger.info(
+      `Bulk archived ${result.modifiedCount} conversations for user: ${userId}`
+    );
 
     return {
       message: `${result.modifiedCount} conversations archived successfully`,
@@ -420,7 +491,10 @@ const bulkArchiveConversations = async (conversationIds, userId, req = null) => 
     };
   } catch (error) {
     logger.error('Error bulk archiving conversations:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to archive conversations');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to archive conversations'
+    );
   }
 };
 
@@ -435,17 +509,19 @@ const bulkDeleteConversations = async (conversationIds, userId, req = null) => {
   try {
     const query = {
       conversationId: { $in: conversationIds },
-      userId
+      userId,
     };
     const result = await Conversation.updateMany(
       req ? withTenantFilter(req, query) : query,
       {
         status: 'deleted',
-        lastActivity: new Date()
+        lastActivity: new Date(),
       }
     );
 
-    logger.info(`Bulk deleted ${result.modifiedCount} conversations for user: ${userId}`);
+    logger.info(
+      `Bulk deleted ${result.modifiedCount} conversations for user: ${userId}`
+    );
 
     return {
       message: `${result.modifiedCount} conversations deleted successfully`,
@@ -453,7 +529,10 @@ const bulkDeleteConversations = async (conversationIds, userId, req = null) => {
     };
   } catch (error) {
     logger.error('Error bulk deleting conversations:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to delete conversations');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to delete conversations'
+    );
   }
 };
 
@@ -465,10 +544,18 @@ const bulkDeleteConversations = async (conversationIds, userId, req = null) => {
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const addConversationTags = async (conversationId, userId, tags, req = null) => {
+const addConversationTags = async (
+  conversationId,
+  userId,
+  tags,
+  req = null
+) => {
   try {
     if (!Array.isArray(tags) || tags.length === 0) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Tags must be a non-empty array');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Tags must be a non-empty array'
+      );
     }
 
     const query = { conversationId, userId };
@@ -476,7 +563,7 @@ const addConversationTags = async (conversationId, userId, tags, req = null) => 
       req ? withTenantFilter(req, query) : query,
       {
         $addToSet: { 'metadata.tags': { $each: tags } },
-        lastActivity: new Date()
+        lastActivity: new Date(),
       },
       { new: true }
     ).select('conversationId metadata.tags lastActivity');
@@ -502,11 +589,19 @@ const addConversationTags = async (conversationId, userId, tags, req = null) => 
  */
 const shareChatConversation = async (shareData, req = null) => {
   try {
-    const { conversationId, userId, shareType, expiresAt, allowComments } = shareData;
-    console.log(`Sharing conversation ${conversationId} for user ${userId}:`, { shareType, expiresAt, allowComments });
+    const { conversationId, userId, shareType, expiresAt, allowComments } =
+      shareData;
+    console.log(`Sharing conversation ${conversationId} for user ${userId}:`, {
+      shareType,
+      expiresAt,
+      allowComments,
+    });
 
     // Check if conversation exists and belongs to user
-    const query = { _id: new mongoose.Types.ObjectId(conversationId), userId: new mongoose.Types.ObjectId(userId) };
+    const query = {
+      _id: new mongoose.Types.ObjectId(conversationId),
+      userId: new mongoose.Types.ObjectId(userId),
+    };
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
     );
@@ -518,7 +613,7 @@ const shareChatConversation = async (shareData, req = null) => {
     const shareQuery = {
       conversationId,
       userId,
-      isActive: true
+      isActive: true,
     };
     let existingShare = await ChatShare.findOne(
       req ? withTenantFilter(req, shareQuery) : shareQuery
@@ -531,7 +626,9 @@ const shareChatConversation = async (shareData, req = null) => {
       existingShare.allowComments = allowComments;
       await existingShare.save();
 
-      logger.info(`Chat conversation share updated: ${conversationId} by user: ${userId}`);
+      logger.info(
+        `Chat conversation share updated: ${conversationId} by user: ${userId}`
+      );
 
       return {
         shareId: existingShare.shareId,
@@ -557,7 +654,9 @@ const shareChatConversation = async (shareData, req = null) => {
 
     await chatShare.save();
 
-    logger.info(`Chat conversation shared: ${conversationId} by user: ${userId}`);
+    logger.info(
+      `Chat conversation shared: ${conversationId} by user: ${userId}`
+    );
 
     return {
       shareId: chatShare.shareId,
@@ -587,16 +686,22 @@ const getSharedChatConversation = async (shareId, req = null) => {
     );
 
     if (!chatShare) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Shared chat not found or expired');
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        'Shared chat not found or expired'
+      );
     }
 
     if (!chatShare.isAccessible()) {
-      throw new ApiError(httpStatus.FORBIDDEN, 'Shared chat is no longer accessible');
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Shared chat is no longer accessible'
+      );
     }
 
     // Get the conversation details
     const convQuery = {
-      _id: chatShare.conversationId
+      _id: chatShare.conversationId,
     };
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, convQuery) : convQuery
@@ -639,7 +744,12 @@ const getSharedChatConversation = async (shareId, req = null) => {
   }
 };
 
-const renameChatConversation = async (conversationId, userId, newTitle, req = null) => {
+const renameChatConversation = async (
+  conversationId,
+  userId,
+  newTitle,
+  req = null
+) => {
   try {
     if (!newTitle || newTitle.trim().length === 0) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Title cannot be empty');
@@ -660,7 +770,12 @@ const renameChatConversation = async (conversationId, userId, newTitle, req = nu
   }
 };
 
-const saveChatConversation = async (conversationId, userId, is_saved, req = null) => {
+const saveChatConversation = async (
+  conversationId,
+  userId,
+  is_saved,
+  req = null
+) => {
   try {
     const query = { conversationId, userId };
     const conversation = await Conversation.updateOne(
@@ -687,12 +802,19 @@ const saveChatConversation = async (conversationId, userId, is_saved, req = null
  */
 const updateChatShareSettings = async (updateData, req = null) => {
   try {
-    const { conversationId, userId, shareType, expiresAt, allowComments, isActive } = updateData;
+    const {
+      conversationId,
+      userId,
+      shareType,
+      expiresAt,
+      allowComments,
+      isActive,
+    } = updateData;
 
     // Find the chat share
     const query = {
       conversationId,
-      userId
+      userId,
     };
     const chatShare = await ChatShare.findOne(
       req ? withTenantFilter(req, query) : query
@@ -710,7 +832,9 @@ const updateChatShareSettings = async (updateData, req = null) => {
 
     await chatShare.save();
 
-    logger.info(`Chat share settings updated: ${conversationId} by user: ${userId}`);
+    logger.info(
+      `Chat share settings updated: ${conversationId} by user: ${userId}`
+    );
 
     return {
       shareId: chatShare.shareId,
@@ -737,16 +861,17 @@ const getUserSharedChats = async (queryData, req = null) => {
   try {
     const { userId, page, limit, status } = queryData;
 
-    const chatShares = await ChatShare.findUserShares(userId, { page, limit, status }, req);
+    const chatShares = await ChatShare.findUserShares(
+      userId,
+      { page, limit, status },
+      req
+    );
 
     const countQuery = {
       userId,
       ...(status === 'active' && {
         isActive: true,
-        $or: [
-          { expiresAt: null },
-          { expiresAt: { $gt: new Date() } }
-        ]
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
       }),
       ...(status === 'expired' && { expiresAt: { $lte: new Date() } }),
       ...(status === 'revoked' && { isActive: false }),
@@ -757,10 +882,12 @@ const getUserSharedChats = async (queryData, req = null) => {
 
     const totalPages = Math.ceil(totalShares / limit);
 
-    logger.info(`Retrieved ${chatShares.length} shared chats for user: ${userId}`);
+    logger.info(
+      `Retrieved ${chatShares.length} shared chats for user: ${userId}`
+    );
 
     return {
-      shares: chatShares.map(share => ({
+      shares: chatShares.map((share) => ({
         shareId: share.shareId,
         shareUrl: `/chat/shared/${share.shareId}`,
         conversation: {
@@ -803,7 +930,7 @@ const revokeChatShare = async (revokeData, req = null) => {
 
     const query = {
       conversationId,
-      userId
+      userId,
     };
     const chatShare = await ChatShare.findOne(
       req ? withTenantFilter(req, query) : query

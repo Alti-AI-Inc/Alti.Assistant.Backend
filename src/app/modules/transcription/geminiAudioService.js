@@ -7,7 +7,7 @@ import {
   TRANSCRIPTION_CONSTANTS,
   SUPPORTED_AUDIO_FORMATS,
   PROCESSING_TYPES,
-  ERROR_MESSAGES
+  ERROR_MESSAGES,
 } from './transcription.constant.js';
 import { transcriptionService } from './transcription.service.js';
 import fs from 'fs';
@@ -43,7 +43,10 @@ const uploadAudioFile = async (filePath, mimeType) => {
     };
   } catch (error) {
     logger.error('Error uploading audio file:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to upload audio file');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to upload audio file'
+    );
   }
 };
 
@@ -55,10 +58,15 @@ const uploadAudioFile = async (filePath, mimeType) => {
  * @param {Object} options - Additional options
  * @returns {Promise<Object>}
  */
-const processAudioWithGemini = async (audioFile, prompt, processingType, options = {}) => {
+const processAudioWithGemini = async (
+  audioFile,
+  prompt,
+  processingType,
+  options = {}
+) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: TRANSCRIPTION_CONSTANTS.MODEL
+      model: TRANSCRIPTION_CONSTANTS.MODEL,
     });
 
     // Build the prompt based on processing type
@@ -100,7 +108,10 @@ const processAudioWithGemini = async (audioFile, prompt, processingType, options
     };
   } catch (error) {
     logger.error('Error processing audio with Gemini:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, ERROR_MESSAGES.PROCESSING_FAILED);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      ERROR_MESSAGES.PROCESSING_FAILED
+    );
   }
 };
 
@@ -113,10 +124,16 @@ const processAudioWithGemini = async (audioFile, prompt, processingType, options
  * @param {Object} options - Additional options
  * @returns {Promise<Object>}
  */
-const processInlineAudio = async (audioBuffer, mimeType, prompt, processingType, options = {}) => {
+const processInlineAudio = async (
+  audioBuffer,
+  mimeType,
+  prompt,
+  processingType,
+  options = {}
+) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: TRANSCRIPTION_CONSTANTS.MODEL
+      model: TRANSCRIPTION_CONSTANTS.MODEL,
     });
 
     let systemPrompt = buildPromptForType(processingType, options);
@@ -150,7 +167,10 @@ const processInlineAudio = async (audioBuffer, mimeType, prompt, processingType,
     };
   } catch (error) {
     logger.error('Error processing inline audio:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, ERROR_MESSAGES.PROCESSING_FAILED);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      ERROR_MESSAGES.PROCESSING_FAILED
+    );
   }
 };
 
@@ -167,30 +187,36 @@ const buildPromptForType = (processingType, options = {}) => {
 
   switch (processingType) {
     case PROCESSING_TYPES.TRANSCRIBE:
-      basePrompt = 'Generate a detailed transcript of the speech in this audio file.';
+      basePrompt =
+        'Generate a detailed transcript of the speech in this audio file.';
       if (includeTimestamps) {
         basePrompt += ' Include timestamps for each segment.';
       }
       break;
 
     case PROCESSING_TYPES.DESCRIBE:
-      basePrompt = 'Describe this audio clip in detail. Include information about speech, sounds, music, and any other audio elements.';
+      basePrompt =
+        'Describe this audio clip in detail. Include information about speech, sounds, music, and any other audio elements.';
       break;
 
     case PROCESSING_TYPES.SUMMARIZE:
-      basePrompt = 'Provide a concise summary of the content in this audio file.';
+      basePrompt =
+        'Provide a concise summary of the content in this audio file.';
       break;
 
     case PROCESSING_TYPES.ANALYZE:
-      basePrompt = 'Analyze this audio clip. Identify key themes, topics, speakers, tone, and any significant audio elements.';
+      basePrompt =
+        'Analyze this audio clip. Identify key themes, topics, speakers, tone, and any significant audio elements.';
       break;
 
     case PROCESSING_TYPES.SEGMENT:
-      basePrompt = 'Break down this audio into distinct segments and provide a summary of each segment with timestamps.';
+      basePrompt =
+        'Break down this audio into distinct segments and provide a summary of each segment with timestamps.';
       break;
 
     case PROCESSING_TYPES.QUESTION:
-      basePrompt = 'Answer questions about this audio clip based on its content.';
+      basePrompt =
+        'Answer questions about this audio clip based on its content.';
       break;
 
     default:
@@ -217,7 +243,7 @@ const buildPromptForType = (processingType, options = {}) => {
 const countAudioTokens = async (audioFile) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: TRANSCRIPTION_CONSTANTS.MODEL
+      model: TRANSCRIPTION_CONSTANTS.MODEL,
     });
 
     const result = await model.countTokens([
@@ -234,7 +260,10 @@ const countAudioTokens = async (audioFile) => {
     };
   } catch (error) {
     logger.error('Error counting audio tokens:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to count tokens');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to count tokens'
+    );
   }
 };
 
@@ -267,7 +296,10 @@ const processBatchAudio = async (audioFiles, options = {}) => {
     return results;
   } catch (error) {
     logger.error('Error processing batch audio:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to process batch audio');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to process batch audio'
+    );
   }
 };
 
@@ -302,16 +334,20 @@ const isValidAudioFormat = (mimeType) => {
  * @param {string} audioFileUri - Optional audio file URI for context
  * @returns {Promise<Object>}
  */
-const processChatMessage = async (message, conversationHistory, audioFileUri = null) => {
+const processChatMessage = async (
+  message,
+  conversationHistory,
+  audioFileUri = null
+) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: TRANSCRIPTION_CONSTANTS.MODEL
+      model: TRANSCRIPTION_CONSTANTS.MODEL,
     });
 
     // Build chat context
     const chatHistory = conversationHistory
-      .filter(msg => msg.role !== 'system')
-      .map(msg => ({
+      .filter((msg) => msg.role !== 'system')
+      .map((msg) => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }],
       }));
@@ -352,7 +388,10 @@ const processChatMessage = async (message, conversationHistory, audioFileUri = n
     };
   } catch (error) {
     logger.error('Error processing chat message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to process chat message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to process chat message'
+    );
   }
 };
 

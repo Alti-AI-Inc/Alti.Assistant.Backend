@@ -22,7 +22,7 @@ const getAvailablePlans = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: 'Plans retrieved successfully',
-    data: plans.map(plan => plan.toPublicJSON()),
+    data: plans.map((plan) => plan.toPublicJSON()),
   });
 });
 
@@ -33,7 +33,8 @@ const getAvailablePlans = catchAsync(async (req, res) => {
 const getMySubscription = catchAsync(async (req, res) => {
   const userId = req.user._id;
 
-  const subscriptionData = await subscriptionService.getSubscriptionWithUsage(userId);
+  const subscriptionData =
+    await subscriptionService.getSubscriptionWithUsage(userId);
 
   if (!subscriptionData) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No subscription found');
@@ -54,13 +55,19 @@ const getMySubscription = catchAsync(async (req, res) => {
 const getTenantSubscription = catchAsync(async (req, res) => {
   const { tenantId } = req.params;
 
-  const subscription = await subscriptionService.getTenantSubscription(tenantId);
+  const subscription =
+    await subscriptionService.getTenantSubscription(tenantId);
 
   if (!subscription) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'No subscription found for this tenant');
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      'No subscription found for this tenant'
+    );
   }
 
-  const subscriptionData = await subscriptionService.getSubscriptionWithUsage(subscription.userId);
+  const subscriptionData = await subscriptionService.getSubscriptionWithUsage(
+    subscription.userId
+  );
 
   sendResponse(res, {
     success: true,
@@ -78,7 +85,10 @@ const createFreeSubscription = catchAsync(async (req, res) => {
   const userId = req.user._id;
   const { tenantId } = req.body;
 
-  const subscription = await subscriptionService.createFreeSubscription(userId, tenantId);
+  const subscription = await subscriptionService.createFreeSubscription(
+    userId,
+    tenantId
+  );
 
   sendResponse(res, {
     success: true,
@@ -91,7 +101,7 @@ const createFreeSubscription = catchAsync(async (req, res) => {
 /**
  * Upgrade subscription (hybrid approach)
  * POST /api/v1/subscription/upgrade
- * 
+ *
  * Response types:
  * - type: 'plan_changed' - Plan was updated (existing subscription)
  * - type: 'subscription_created' - New subscription created with saved payment method
@@ -104,7 +114,10 @@ const upgradeSubscription = catchAsync(async (req, res) => {
 
   // Require either stripeProductId or planName
   if (!stripeProductId && !planName) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Either stripeProductId or planName is required');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Either stripeProductId or planName is required'
+    );
   }
 
   const initialSeats = seats || 1;
@@ -136,7 +149,9 @@ const upgradeSubscription = catchAsync(async (req, res) => {
       statusCode = httpStatus.ACCEPTED;
       break;
     case 'checkout_session':
-      message = result.message || 'Checkout session created - redirect to complete payment';
+      message =
+        result.message ||
+        'Checkout session created - redirect to complete payment';
       break;
     default:
       message = 'Subscription updated';
@@ -187,7 +202,8 @@ const processCheckout = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Session ID is required');
   }
 
-  const subscription = await subscriptionService.processStripeCheckout(sessionId);
+  const subscription =
+    await subscriptionService.processStripeCheckout(sessionId);
 
   sendResponse(res, {
     success: true,
@@ -253,7 +269,8 @@ const addSeat = catchAsync(async (req, res) => {
       subscription: updatedSubscription,
       seatsUsed: updatedSubscription.seats.used,
       seatsAvailable: updatedSubscription.seats.available,
-      totalCost: updatedSubscription.pricePerSeat * updatedSubscription.seats.used,
+      totalCost:
+        updatedSubscription.pricePerSeat * updatedSubscription.seats.used,
     },
   });
 });
@@ -272,10 +289,11 @@ const removeSeat = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'No active subscription found');
   }
 
-  const updatedSubscription = await subscriptionService.removeSeatFromSubscription(
-    subscription._id,
-    removeUserId
-  );
+  const updatedSubscription =
+    await subscriptionService.removeSeatFromSubscription(
+      subscription._id,
+      removeUserId
+    );
 
   sendResponse(res, {
     success: true,
@@ -285,7 +303,8 @@ const removeSeat = catchAsync(async (req, res) => {
       subscription: updatedSubscription,
       seatsUsed: updatedSubscription.seats.used,
       seatsAvailable: updatedSubscription.seats.available,
-      totalCost: updatedSubscription.pricePerSeat * updatedSubscription.seats.used,
+      totalCost:
+        updatedSubscription.pricePerSeat * updatedSubscription.seats.used,
     },
   });
 });
@@ -302,7 +321,10 @@ const checkUsageLimit = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid limit type');
   }
 
-  const usageInfo = await subscriptionService.checkUsageLimit(userId, limitType);
+  const usageInfo = await subscriptionService.checkUsageLimit(
+    userId,
+    limitType
+  );
 
   sendResponse(res, {
     success: true,
@@ -352,16 +374,33 @@ const getUsageStats = catchAsync(async (req, res) => {
     webSearch: {
       used: subscription.usage.webSearchUsedToday,
       limit: subscription.limits.dailyWebSearchLimit,
-      remaining: Math.max(0, subscription.limits.dailyWebSearchLimit - subscription.usage.webSearchUsedToday),
-      percentage: ((subscription.usage.webSearchUsedToday / subscription.limits.dailyWebSearchLimit) * 100).toFixed(1),
+      remaining: Math.max(
+        0,
+        subscription.limits.dailyWebSearchLimit -
+          subscription.usage.webSearchUsedToday
+      ),
+      percentage: (
+        (subscription.usage.webSearchUsedToday /
+          subscription.limits.dailyWebSearchLimit) *
+        100
+      ).toFixed(1),
     },
     deepResearch: {
       used: subscription.usage.deepResearchUsedToday,
       limit: subscription.limits.dailyDeepResearchLimit,
-      remaining: Math.max(0, subscription.limits.dailyDeepResearchLimit - subscription.usage.deepResearchUsedToday),
-      percentage: subscription.limits.dailyDeepResearchLimit > 0
-        ? ((subscription.usage.deepResearchUsedToday / subscription.limits.dailyDeepResearchLimit) * 100).toFixed(1)
-        : 0,
+      remaining: Math.max(
+        0,
+        subscription.limits.dailyDeepResearchLimit -
+          subscription.usage.deepResearchUsedToday
+      ),
+      percentage:
+        subscription.limits.dailyDeepResearchLimit > 0
+          ? (
+              (subscription.usage.deepResearchUsedToday /
+                subscription.limits.dailyDeepResearchLimit) *
+              100
+            ).toFixed(1)
+          : 0,
     },
     lastResetAt: subscription.usage.lastResetAt,
   };
@@ -380,18 +419,29 @@ const getUsageStats = catchAsync(async (req, res) => {
  */
 const handleStripeWebhook = catchAsync(async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const webhookSecret = config.stripe.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret =
+    config.stripe.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
 
   console.log('Webhook received - signature present:', !!sig);
   console.log('Webhook secret configured:', !!webhookSecret);
-  console.log('Body type:', typeof req.body, Buffer.isBuffer(req.body) ? 'Buffer' : 'Not Buffer');
+  console.log(
+    'Body type:',
+    typeof req.body,
+    Buffer.isBuffer(req.body) ? 'Buffer' : 'Not Buffer'
+  );
 
   if (!webhookSecret) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Webhook secret not configured');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Webhook secret not configured'
+    );
   }
 
   if (!sig) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Missing stripe-signature header');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Missing stripe-signature header'
+    );
   }
 
   let event;
@@ -403,7 +453,10 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
     console.log('Webhook verified successfully:', event.type);
   } catch (err) {
     console.error('Webhook verification error:', err.message);
-    throw new ApiError(httpStatus.BAD_REQUEST, `Webhook signature verification failed: ${err.message}`);
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Webhook signature verification failed: ${err.message}`
+    );
   }
 
   // Handle the event

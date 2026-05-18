@@ -1,5 +1,4 @@
-import { claudeSummarizer } from "./claudeService.js";
-
+import { claudeSummarizer } from './claudeService.js';
 
 /**
  * Generates a summary for the given content using Claude.
@@ -8,7 +7,7 @@ import { claudeSummarizer } from "./claudeService.js";
  * @returns {Promise<string>} - The summary text.
  */
 export const generateSummary = async (content, history) => {
-    const systemPrompt = `You are an expert summarization assistant. Your task is to provide a clear, concise, and accurate summary of the provided website content.
+  const systemPrompt = `You are an expert summarization assistant. Your task is to provide a clear, concise, and accurate summary of the provided website content.
 - Identify the key points, main arguments, and important conclusions.
 - The summary should be neutral and objective.
 - Structure the summary in well-organized paragraphs.
@@ -19,5 +18,5 @@ ${content}
 ---
 `;
 
-    return claudeSummarizer(history, systemPrompt);
+  return claudeSummarizer(history, systemPrompt);
 };

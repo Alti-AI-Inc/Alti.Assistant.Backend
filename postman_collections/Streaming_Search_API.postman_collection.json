@@ -43,13 +43,8 @@
             },
             "url": {
               "raw": "{{base_url}}/search/stream",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "search",
-                "stream"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["search", "stream"]
             },
             "description": "Test streaming search with a simple weather query. You'll see:\n1. 'connected' event with conversationId\n2. 'thinking' events showing the model's reasoning\n3. 'text' events with response chunks\n4. 'metadata' event with references and citations\n5. 'done' event signaling completion"
           },
@@ -82,13 +77,8 @@
             },
             "url": {
               "raw": "{{base_url}}/search/stream",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "search",
-                "stream"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["search", "stream"]
             },
             "description": "Test streaming search with a sports schedule query. Watch for multiple search queries and grounding metadata."
           },
@@ -121,13 +111,8 @@
             },
             "url": {
               "raw": "{{base_url}}/search/stream",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "search",
-                "stream"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["search", "stream"]
             },
             "description": "Test streaming search with a complex investment query. This should trigger multiple thinking events as the model analyzes market data."
           },
@@ -160,13 +145,8 @@
             },
             "url": {
               "raw": "{{base_url}}/search/stream",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "search",
-                "stream"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["search", "stream"]
             },
             "description": "Continue an existing conversation with streaming. Replace PASTE_CONVERSATION_ID_HERE with the conversationId from a previous response."
           },
@@ -200,13 +180,8 @@
             },
             "url": {
               "raw": "{{base_url}}/search/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "search",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["search", "assistant"]
             },
             "description": "Same query using non-streaming endpoint for comparison. Returns complete response in single JSON payload."
           },

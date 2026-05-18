@@ -9,11 +9,15 @@ export const checkFreePlanLimits = async (userId, type, session = null) => {
 
   if (!user.isSubscribed) {
     if (type === 'prompt' && user.freePlanUsage.promptsUsed >= 10) {
-      throw new Error('Free plan prompt limit reached. Please subscribe to continue.');
+      throw new Error(
+        'Free plan prompt limit reached. Please subscribe to continue.'
+      );
     }
 
     if (type === 'image' && user.freePlanUsage.imagesUsed >= 1) {
-      throw new Error('Free plan image limit reached. Please subscribe to continue.');
+      throw new Error(
+        'Free plan image limit reached. Please subscribe to continue.'
+      );
     }
   }
 

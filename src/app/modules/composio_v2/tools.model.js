@@ -1,40 +1,43 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const ToolSchema = mongoose.Schema({
-  slug: {
-    type: String,
-    required: true
-  },
-  name: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String,
-    required: false
-  },
-  appName: {
-    type: String,
-    required: false
-  },
-  // Embedding field for vector search
-  embedding: {
-    type: [Number],
-    required: false
-    // Note: Vector index should be created in MongoDB Atlas, not here
-  },
+const ToolSchema = mongoose.Schema(
+  {
+    slug: {
+      type: String,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: false,
+    },
+    appName: {
+      type: String,
+      required: false,
+    },
+    // Embedding field for vector search
+    embedding: {
+      type: [Number],
+      required: false,
+      // Note: Vector index should be created in MongoDB Atlas, not here
+    },
 
-  // Multi-tenant support
-  tenantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Tenant',
-    default: null,
-    index: true,
+    // Multi-tenant support
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      default: null,
+      index: true,
+    },
   },
-}, {
-  strict: false // Allow additional fields that might come from Composio
-});
+  {
+    strict: false, // Allow additional fields that might come from Composio
+  }
+);
 
-const Tool = mongoose.model("Tool", ToolSchema);
+const Tool = mongoose.model('Tool', ToolSchema);
 
 export default Tool;

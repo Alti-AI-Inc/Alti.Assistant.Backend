@@ -1,9 +1,16 @@
 const paginationHelpers = require('../../helpers/paginationHelpers');
 const Forum = require('./forum.model');
 const UserForumActivities = require('./forumUserActivities.model');
-const { withTenantContext, withTenantFilter } = require('../../helpers/tenantQuery');
+const {
+  withTenantContext,
+  withTenantFilter,
+} = require('../../helpers/tenantQuery');
 
-module.exports.getForumService = async (filters, paginationOptions, req = null) => {
+module.exports.getForumService = async (
+  filters,
+  paginationOptions,
+  req = null
+) => {
   const { searchTerm, ...filtersData } = filters;
 
   const productsSearchAbleFields = ['title', 'category'];
@@ -16,7 +23,7 @@ module.exports.getForumService = async (filters, paginationOptions, req = null) 
 
   if (searchTerm) {
     andConditions.push({
-      $or: productsSearchAbleFields.map(field => ({
+      $or: productsSearchAbleFields.map((field) => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     });
@@ -48,7 +55,6 @@ module.exports.getForumService = async (filters, paginationOptions, req = null) 
     .skip(skip)
     .limit(limit);
 
-
   // logger.info(blogData)
   const countQuery = req ? withTenantFilter(req, {}) : {};
   const total = await Forum.countDocuments(countQuery);
@@ -64,9 +70,7 @@ module.exports.getForumService = async (filters, paginationOptions, req = null) 
 
 module.exports.addForumServices = async (data, req = null) => {
   // logger.info(data, 'blog dataaa')
-  const result = await Forum.create(
-    req ? withTenantContext(req, data) : data
-  );
+  const result = await Forum.create(req ? withTenantContext(req, data) : data);
   // logger.info(result, "dataasss")
   return result;
 };
@@ -82,9 +86,7 @@ module.exports.getForumServiceById = async (id, req = null) => {
 
 module.exports.getForumServiceByEmail = async (email, req = null) => {
   const query = { authorEmail: email };
-  const result = await Forum.find(
-    req ? withTenantFilter(req, query) : query
-  );
+  const result = await Forum.find(req ? withTenantFilter(req, query) : query);
   // logger.info(result, 'resultt blog details')
   return result;
 };
@@ -94,7 +96,7 @@ module.exports.updateForumService = async (storeId, data, req = null) => {
   const result = await Forum.updateOne(
     req ? withTenantFilter(req, query) : query,
     { $set: data },
-    { runValidators: true },
+    { runValidators: true }
   );
 
   return result;
@@ -149,4 +151,3 @@ module.exports.deleteCommentServices = async (id, req = null) => {
   );
   return result;
 };
-

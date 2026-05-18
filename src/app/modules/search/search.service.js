@@ -23,29 +23,43 @@ const generateGuestUserId = () => {
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleSearchConversation = async (userId, conversationId, searchQuery, isGuest = false, req = null) => {
+const handleSearchConversation = async (
+  userId,
+  conversationId,
+  searchQuery,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          isGuest ? null : userId,
+          req
+        );
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
         if (isGuest && conversation.metadata?.userType !== 'guest') {
-          logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
+          logger.warn(
+            `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
+          );
           conversation = null; // Force creation of new conversation
         }
-
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+        );
       }
     }
 
     // Create conversation if it doesn't exist
     if (!conversation) {
-      const newConversationId = conversationId || generateSearchConversationId();
+      const newConversationId =
+        conversationId || generateSearchConversationId();
 
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
@@ -84,13 +98,18 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
         );
       }
 
-      console.log(`Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`);
+      console.log(
+        `Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling search conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message || 'Failed to handle search conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      error.message || 'Failed to handle search conversation'
+    );
   }
 };
 
@@ -102,9 +121,17 @@ const handleSearchConversation = async (userId, conversationId, searchQuery, isG
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGuest = false, req = null) => {
+const addSearchQueryMessage = async (
+  conversationId,
+  userId,
+  searchQuery,
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding search query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding search query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the message in the conversation for both guest and authenticated users
     const savedMessage = await conversationService.addMessageToConversation(
@@ -136,14 +163,20 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
           sector: 'episodic',
         });
       } catch (memoryError) {
-        logger.warn('Failed to persist search query in OpenMemory', memoryError);
+        logger.warn(
+          'Failed to persist search query in OpenMemory',
+          memoryError
+        );
       }
     }
 
     return savedMessage;
   } catch (error) {
     logger.error('Error adding search query message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add search query to conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add search query to conversation'
+    );
   }
 };
 
@@ -156,9 +189,18 @@ const addSearchQueryMessage = async (conversationId, userId, searchQuery, isGues
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addSearchResultMessage = async (conversationId, userId, searchResult, metadata = {}, isGuest = false, req = null) => {
+const addSearchResultMessage = async (
+  conversationId,
+  userId,
+  searchResult,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding search result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding search result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the result in the conversation for both guest and authenticated users
     const savedMessage = await conversationService.addMessageToConversation(
@@ -192,14 +234,20 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
           sector: metadata?.sector || 'semantic',
         });
       } catch (memoryError) {
-        logger.warn('Failed to persist search result in OpenMemory', memoryError);
+        logger.warn(
+          'Failed to persist search result in OpenMemory',
+          memoryError
+        );
       }
     }
 
     return savedMessage;
   } catch (error) {
     logger.error('Error adding search result message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add search result to conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add search result to conversation'
+    );
   }
 };
 
@@ -212,9 +260,18 @@ const addSearchResultMessage = async (conversationId, userId, searchResult, meta
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false, req = null) => {
+const addErrorMessage = async (
+  conversationId,
+  userId,
+  errorMessage,
+  originalError,
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the error in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
@@ -244,22 +301,29 @@ const addErrorMessage = async (conversationId, userId, errorMessage, originalErr
  * @param {number} limit
  * @returns {Promise<Array>}
  */
-const getSearchHistory = async (conversationId, userId, limit = 10, req = null) => {
+const getSearchHistory = async (
+  conversationId,
+  userId,
+  limit = 10,
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation || !conversation.messages) {
       return [];
     }
 
     // Get recent messages and format for search context
-    return conversation.messages
-      .slice(-limit)
-      .map(msg => ({
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp,
-      }));
+    return conversation.messages.slice(-limit).map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp,
+    }));
   } catch (error) {
     logger.error('Error getting search history:', error);
     return [];
@@ -273,10 +337,20 @@ const getSearchHistory = async (conversationId, userId, limit = 10, req = null) 
  * @param {string} searchQuery
  * @returns {Promise<void>}
  */
-const updateConversationTitle = async (conversationId, userId, searchQuery, req = null) => {
+const updateConversationTitle = async (
+  conversationId,
+  userId,
+  searchQuery,
+  req = null
+) => {
   try {
     const title = `Search: ${searchQuery.substring(0, 50)}${searchQuery.length > 50 ? '...' : ''}`;
-    await conversationService.updateConversationTitle(conversationId, userId, title, req);
+    await conversationService.updateConversationTitle(
+      conversationId,
+      userId,
+      title,
+      req
+    );
   } catch (error) {
     logger.warn('Failed to update conversation title:', error);
     // Don't throw as this is not critical
@@ -298,11 +372,14 @@ const generateSearchConversationId = () => {
  */
 const getSearchStats = async (userId, req = null) => {
   try {
-    const searchConversations = await conversationHelpers.getUserConversations(userId, {
-      page: 1,
-      limit: 1000, // Get all for stats
-      category: 'search',
-    });
+    const searchConversations = await conversationHelpers.getUserConversations(
+      userId,
+      {
+        page: 1,
+        limit: 1000, // Get all for stats
+        category: 'search',
+      }
+    );
 
     const totalSearches = searchConversations.conversations.length;
     const totalMessages = searchConversations.conversations.reduce(
@@ -313,7 +390,8 @@ const getSearchStats = async (userId, req = null) => {
     return {
       totalSearchConversations: totalSearches,
       totalSearchMessages: totalMessages,
-      averageMessagesPerConversation: totalSearches > 0 ? Math.round(totalMessages / totalSearches) : 0,
+      averageMessagesPerConversation:
+        totalSearches > 0 ? Math.round(totalMessages / totalSearches) : 0,
     };
   } catch (error) {
     logger.error('Error getting search stats:', error);

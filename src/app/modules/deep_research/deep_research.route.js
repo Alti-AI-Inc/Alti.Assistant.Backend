@@ -1,4 +1,4 @@
-import express from "express";
+import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
@@ -6,8 +6,8 @@ import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js'
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { checkDeepResearchLimit } from '../../middlewares/checkSubscriptionLimits.js';
-import { deepResearchController } from "./deep_research.controller.js";
-import { DeepResearchValidation } from "./deep_research.validation.js";
+import { deepResearchController } from './deep_research.controller.js';
+import { DeepResearchValidation } from './deep_research.validation.js';
 
 const router = express.Router();
 

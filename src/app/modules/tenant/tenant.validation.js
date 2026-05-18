@@ -13,13 +13,21 @@ export const createTenantSchema = z.object({
       .string()
       .min(2, 'Slug must be at least 2 characters')
       .max(50, 'Slug cannot exceed 50 characters')
-      .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
+      .regex(
+        /^[a-z0-9-]+$/,
+        'Slug can only contain lowercase letters, numbers, and hyphens'
+      ),
     subdomain: z
       .string()
       .min(2, 'Subdomain must be at least 2 characters')
       .max(50, 'Subdomain cannot exceed 50 characters')
-      .regex(/^[a-z0-9-]+$/, 'Subdomain can only contain lowercase letters, numbers, and hyphens'),
-    plan: z.enum(['free', 'explore', 'analyze', 'execute', 'command', 'enterprise']).optional(),
+      .regex(
+        /^[a-z0-9-]+$/,
+        'Subdomain can only contain lowercase letters, numbers, and hyphens'
+      ),
+    plan: z
+      .enum(['free', 'explore', 'analyze', 'execute', 'command', 'enterprise'])
+      .optional(),
   }),
 });
 
@@ -37,7 +45,10 @@ export const updateTenantSchema = z.object({
         customBranding: z
           .object({
             logo: z.string().url().optional(),
-            primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+            primaryColor: z
+              .string()
+              .regex(/^#[0-9A-Fa-f]{6}$/)
+              .optional(),
           })
           .optional(),
       })
@@ -126,6 +137,9 @@ export const checkSubdomainSchema = z.object({
       .string()
       .min(2, 'Subdomain must be at least 2 characters')
       .max(50, 'Subdomain cannot exceed 50 characters')
-      .regex(/^[a-z0-9-]+$/, 'Subdomain can only contain lowercase letters, numbers, and hyphens'),
+      .regex(
+        /^[a-z0-9-]+$/,
+        'Subdomain can only contain lowercase letters, numbers, and hyphens'
+      ),
   }),
 });

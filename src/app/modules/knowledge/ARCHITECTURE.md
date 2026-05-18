@@ -407,6 +407,7 @@ knowledge/
 ---
 
 This architecture provides:
+
 - ✅ **Scalability** - Cloud storage + vector DB
 - ✅ **Performance** - Efficient embeddings + indexes
 - ✅ **Flexibility** - Unified ownership model

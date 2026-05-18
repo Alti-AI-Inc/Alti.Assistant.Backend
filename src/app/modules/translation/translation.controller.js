@@ -34,12 +34,18 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   // Check subscription limits for authenticated users
   if (!isGuest && conversationId) {
     try {
-      const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-        createdAt: -1,
-      });
+      const userSubscription = await SubscriptionModel.findOne({ userId }).sort(
+        {
+          createdAt: -1,
+        }
+      );
       const promptUsage = userSubscription ? userSubscription.usage : 0;
       const totalConversationWithConvId = conversationId
-        ? await conversationHelpers.getConversationById(conversationId, userId, req)
+        ? await conversationHelpers.getConversationById(
+            conversationId,
+            userId,
+            req
+          )
         : 0;
 
       if (promptUsage <= totalConversationWithConvId) {
@@ -99,7 +105,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while processing your request',
+      message:
+        error.message || 'An error occurred while processing your request',
       data: {
         conversationId,
         error: error.message,
@@ -182,7 +189,9 @@ export const getSupportedLanguages = catchAsync(async (req, res) => {
   logger.info('Get supported languages request');
 
   try {
-    const { translationAPIClient } = await import('./services/translationAPIClient.js');
+    const { translationAPIClient } = await import(
+      './services/translationAPIClient.js'
+    );
     const result = await translationAPIClient.getSupportedLanguages();
 
     return sendResponse(res, {

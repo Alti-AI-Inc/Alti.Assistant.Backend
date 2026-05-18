@@ -24,7 +24,7 @@ const supportSchema = new mongoose.Schema(
   },
   {
     timestamps: true, // adds createdAt and updatedAt
-  },
+  }
 );
 
 const Support = mongoose.model('Support', supportSchema);

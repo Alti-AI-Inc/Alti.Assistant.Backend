@@ -83,7 +83,8 @@ export default {
   },
   routing: {
     enableSmartRouting: process.env.ENABLE_SMART_ROUTING === 'true',
-    codeQueryThreshold: parseFloat(process.env.CODE_QUERY_CONFIDENCE_THRESHOLD) || 0.7,
+    codeQueryThreshold:
+      parseFloat(process.env.CODE_QUERY_CONFIDENCE_THRESHOLD) || 0.7,
   },
   google: {
     google_application_credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS,
@@ -94,14 +95,18 @@ export default {
     model_id: process.env.MODEL_ID,
   },
   gcs: {
-    knowledge_bank_bucket: process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'alti_knowledge_bank_files',
-    knowledgebot_bucket: process.env.GCS_KNOWLEDGEBOT_BUCKET || 'alti_assistant_knowledge_bot_files',
-    presentation_bucket: process.env.GCS_PRESENTATION_BUCKET || 'alti_assistant_presentation',
+    knowledge_bank_bucket:
+      process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'alti_knowledge_bank_files',
+    knowledgebot_bucket:
+      process.env.GCS_KNOWLEDGEBOT_BUCKET ||
+      'alti_assistant_knowledge_bot_files',
+    presentation_bucket:
+      process.env.GCS_PRESENTATION_BUCKET || 'alti_assistant_presentation',
   },
   mail: {
     google_smtp_password: process.env.GOOGLE_SMTP_PASSWORD,
     google_smtp_user: process.env.GOOGLE_SMTP_USER,
     google_smtp_host: process.env.GOOGLE_SMTP_HOST,
     google_smtp_port: process.env.GOOGLE_SMTP_PORT,
-  }
+  },
 };

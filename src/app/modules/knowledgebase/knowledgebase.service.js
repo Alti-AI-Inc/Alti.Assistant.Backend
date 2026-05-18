@@ -7,7 +7,10 @@ import KnowledgebaseFile from './knowledgebase.files.model.js';
 import { OpenAI } from 'openai';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { Storage } from '@google-cloud/storage';
-import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
+import {
+  withTenantContext,
+  withTenantFilter,
+} from '../../helpers/tenantQuery.js';
 const embeddings = new OpenAIEmbeddings({
   openAIApiKey: config.openai_secret_key,
   modelName: 'text-embedding-ada-002',
@@ -25,7 +28,7 @@ const ragConfig = {
     port: 5432,
     database: 'rag_database',
     username: 'postgres',
-    password: 'Em0nd4r0ck@2'
+    password: 'Em0nd4r0ck@2',
   },
 
   embeddings: embeddings,
@@ -42,7 +45,7 @@ const openai = new OpenAI({
 // Initialize Google Cloud Storage
 const storage = new Storage({
   projectId: config.google?.gcp_project_id,
-  keyFilename: 'alti_gcp.json'
+  keyFilename: 'alti_gcp.json',
 });
 
 const BUCKET_NAME = 'alti_assistant_knowledge_bot_files';
@@ -75,19 +78,22 @@ class KnowledgebaseService {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that summarizes conversation history. Preserve the key context and important details while making it concise. Focus on maintaining the flow of the conversation and any important information that might be relevant for future responses.'
+            content:
+              'You are a helpful assistant that summarizes conversation history. Preserve the key context and important details while making it concise. Focus on maintaining the flow of the conversation and any important information that might be relevant for future responses.',
           },
           {
             role: 'user',
-            content: `Please summarize the following conversation history, keeping it under 2500 tokens while preserving important context and details:\n\n${contextString}`
-          }
+            content: `Please summarize the following conversation history, keeping it under 2500 tokens while preserving important context and details:\n\n${contextString}`,
+          },
         ],
         max_tokens: 2500,
-        temperature: 0.3
+        temperature: 0.3,
       });
 
       const summarizedContext = response.choices[0].message.content;
-      logger.info(`Context summarized: ${estimateTokenCount(contextString)} tokens -> ${estimateTokenCount(summarizedContext)} tokens`);
+      logger.info(
+        `Context summarized: ${estimateTokenCount(contextString)} tokens -> ${estimateTokenCount(summarizedContext)} tokens`
+      );
 
       return summarizedContext;
     } catch (error) {
@@ -105,15 +111,17 @@ class KnowledgebaseService {
   async formatConversationContext(conversationHistory) {
     try {
       // Convert messages to string format
-      let contextString = conversationHistory.map(msg =>
-        `${msg.role.toUpperCase()}: ${msg.content}`
-      ).join('\n\n');
+      let contextString = conversationHistory
+        .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
+        .join('\n\n');
 
       // Check token count
       const tokenCount = estimateTokenCount(contextString);
 
       if (tokenCount > 4000) {
-        logger.info(`Context exceeds 4000 tokens (${tokenCount}), summarizing...`);
+        logger.info(
+          `Context exceeds 4000 tokens (${tokenCount}), summarizing...`
+        );
         contextString = await this.summarizeContext(contextString);
       }
 
@@ -147,7 +155,8 @@ class KnowledgebaseService {
       const contentTypeMap = {
         '.pdf': 'application/pdf',
         '.doc': 'application/msword',
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.docx':
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         '.txt': 'text/plain',
         '.csv': 'text/csv',
         '.json': 'application/json',
@@ -155,7 +164,8 @@ class KnowledgebaseService {
         '.html': 'text/html',
         '.md': 'text/markdown',
       };
-      const contentType = contentTypeMap[fileExtension] || 'application/octet-stream';
+      const contentType =
+        contentTypeMap[fileExtension] || 'application/octet-stream';
 
       // Upload the buffer
       await file.save(buffer, {
@@ -164,8 +174,8 @@ class KnowledgebaseService {
           metadata: {
             knowledgebotId: knowledgebotId,
             originalName: fileName,
-            uploadedAt: new Date().toISOString()
-          }
+            uploadedAt: new Date().toISOString(),
+          },
         },
         resumable: false,
       });
@@ -205,7 +215,9 @@ class KnowledgebaseService {
         const fileStats = await fs.stat(file);
         const fileExtension = path.extname(file).toLowerCase().substring(1);
 
-        logger.info(`Processing file from path for knowledgebot: ${knowledgebotId}, file: ${fileName}`);
+        logger.info(
+          `Processing file from path for knowledgebot: ${knowledgebotId}, file: ${fileName}`
+        );
 
         // Read file buffer and upload to GCS
         const fileBuffer = await fs.readFile(file);
@@ -217,10 +229,12 @@ class KnowledgebaseService {
         // Process with RAG system
         result = await rag.addDocuments(file, {
           knowledgebotId: knowledgebotId,
-          gcsUrl: gcsUrl
+          gcsUrl: gcsUrl,
         });
 
-        logger.info(`Successfully processed and stored document from path: ${fileName}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`);
+        logger.info(
+          `Successfully processed and stored document from path: ${fileName}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`
+        );
 
         // Save file information to MongoDB
         const fileData = {
@@ -259,13 +273,22 @@ class KnowledgebaseService {
         };
       } else if (file.buffer) {
         // It's a buffer from file upload - upload to GCS first, then process
-        const fileExtension = path.extname(file.originalname).toLowerCase().substring(1);
-        logger.info(`Processing file upload from buffer for knowledgebot: ${knowledgebotId}, file: ${file.originalname}, type: ${fileExtension}, size: ${file.size} bytes`);
+        const fileExtension = path
+          .extname(file.originalname)
+          .toLowerCase()
+          .substring(1);
+        logger.info(
+          `Processing file upload from buffer for knowledgebot: ${knowledgebotId}, file: ${file.originalname}, type: ${fileExtension}, size: ${file.size} bytes`
+        );
 
         // Upload to Google Cloud Storage
         const timestamp = Date.now();
         gcsFileName = `${knowledgebotId}/${timestamp}_${file.originalname}`;
-        gcsUrl = await this.uploadToGCS(file.buffer, file.originalname, knowledgebotId);
+        gcsUrl = await this.uploadToGCS(
+          file.buffer,
+          file.originalname,
+          knowledgebotId
+        );
         logger.info(`File uploaded to GCS: ${gcsUrl}`);
 
         // Process the file with RAG system
@@ -275,11 +298,13 @@ class KnowledgebaseService {
           fileExtension,
           {
             knowledgebotId: knowledgebotId,
-            gcsUrl: gcsUrl // Store GCS URL in metadata
+            gcsUrl: gcsUrl, // Store GCS URL in metadata
           }
         );
 
-        logger.info(`Successfully processed and stored document from buffer: ${file.originalname}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`);
+        logger.info(
+          `Successfully processed and stored document from buffer: ${file.originalname}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`
+        );
 
         // Save file information to MongoDB
         const fileRecord = new KnowledgebaseFile({
@@ -313,7 +338,9 @@ class KnowledgebaseService {
           uploadedAt: new Date().toISOString(),
         };
       } else {
-        throw new Error('Invalid file input: must be either a file path string or a file object with buffer');
+        throw new Error(
+          'Invalid file input: must be either a file path string or a file object with buffer'
+        );
       }
     } catch (error) {
       logger.error('Error processing uploaded file:', error);
@@ -321,13 +348,16 @@ class KnowledgebaseService {
     }
   }
 
-
-  async invokeRagSystem(query = "What are the core features does E-Commerce Platform have?", knowledgebotId = "111", contextString = "") {
+  async invokeRagSystem(
+    query = 'What are the core features does E-Commerce Platform have?',
+    knowledgebotId = '111',
+    contextString = ''
+  ) {
     await rag.initialize();
     const response = await rag.query(query, {
       filter: { knowledgebotId: knowledgebotId },
     });
-    console.log("RAG Response:", response);
+    console.log('RAG Response:', response);
     return response;
   }
   /**
@@ -339,19 +369,21 @@ class KnowledgebaseService {
    */
   async getUserFiles(userId, knowledgebotId = null, req = null) {
     try {
-      logger.info(`Retrieving files for user: ${userId}${knowledgebotId ? `, knowledgebot: ${knowledgebotId}` : ''}`);
+      logger.info(
+        `Retrieving files for user: ${userId}${knowledgebotId ? `, knowledgebot: ${knowledgebotId}` : ''}`
+      );
 
       const query = {
         userId: userId,
         isActive: true,
-        ...(knowledgebotId && { knowledgebotId })
+        ...(knowledgebotId && { knowledgebotId }),
       };
 
       const files = await KnowledgebaseFile.find(
         req ? withTenantFilter(req, query) : query
       );
 
-      return files.map(file => ({
+      return files.map((file) => ({
         id: file._id,
         fileName: file.originalName,
         fileType: file.fileType,
@@ -383,13 +415,13 @@ class KnowledgebaseService {
 
       const query = {
         knowledgebotId: knowledgebotId,
-        isActive: true
+        isActive: true,
       };
       const files = await KnowledgebaseFile.find(
         req ? withTenantFilter(req, query) : query
       );
 
-      return files.map(file => ({
+      return files.map((file) => ({
         id: file._id,
         fileName: file.originalName,
         fileType: file.fileType,
@@ -422,13 +454,13 @@ class KnowledgebaseService {
 
       const query = {
         userId: userId,
-        isActive: true
+        isActive: true,
       };
       const knowledgeBases = await KnowledgeBase.find(
         req ? withTenantFilter(req, query) : query
       );
 
-      return knowledgeBases.map(kb => ({
+      return knowledgeBases.map((kb) => ({
         id: kb._id,
         name: kb.name,
         description: kb.description,
@@ -503,7 +535,6 @@ class KnowledgebaseService {
     }
   }
 
-
   /**
    * Get knowledge base by ID
    * @param {string} knowledgebaseId - The knowledge base ID
@@ -513,12 +544,14 @@ class KnowledgebaseService {
    */
   async getKnowledgeBaseById(knowledgebaseId, userId, req = null) {
     try {
-      logger.info(`Retrieving knowledge base: ${knowledgebaseId} for user: ${userId}`);
+      logger.info(
+        `Retrieving knowledge base: ${knowledgebaseId} for user: ${userId}`
+      );
 
       const query = {
         _id: knowledgebaseId,
         userId: userId,
-        isActive: true
+        isActive: true,
       };
       const knowledgeBase = await KnowledgeBase.findOne(
         req ? withTenantFilter(req, query) : query
@@ -554,9 +587,16 @@ class KnowledgebaseService {
    * @param {Array} conversationHistory - Previous messages for context
    * @returns {Promise<Object>} - RAG response
    */
-  async chatWithKnowledgeBase(message, knowledgebaseId, conversationId, conversationHistory = []) {
+  async chatWithKnowledgeBase(
+    message,
+    knowledgebaseId,
+    conversationId,
+    conversationHistory = []
+  ) {
     try {
-      logger.info(`Processing chat message for knowledge base: ${knowledgebaseId}, conversation: ${conversationId}`);
+      logger.info(
+        `Processing chat message for knowledge base: ${knowledgebaseId}, conversation: ${conversationId}`
+      );
 
       // Initialize RAG system
       await rag.initialize();
@@ -569,19 +609,23 @@ class KnowledgebaseService {
         persistSession: true,
         knowledgebotId: knowledgebaseId,
         limit: 10,
-        threshold: 0.1
+        threshold: 0.1,
       });
 
-      logger.info(`RAG response generated for knowledge base: ${knowledgebaseId}`);
+      logger.info(
+        `RAG response generated for knowledge base: ${knowledgebaseId}`
+      );
 
       return {
-        answer: ragResponse.answer || 'I apologize, but I couldn\'t find relevant information in the knowledge base to answer your question.',
+        answer:
+          ragResponse.answer ||
+          "I apologize, but I couldn't find relevant information in the knowledge base to answer your question.",
         sources: ragResponse.sources || [],
         confidence: ragResponse.confidence || 0.8,
         model: ragResponse.model || 'gpt-4o-mini',
         tokensUsed: ragResponse.tokensUsed || ragResponse.token_usage || 0,
         chatHistory: ragResponse.chatHistory || conversationHistory,
-        sessionId: ragResponse.sessionId || conversationId
+        sessionId: ragResponse.sessionId || conversationId,
       };
     } catch (error) {
       logger.error('Error in chat with knowledge base:', error);
@@ -591,10 +635,12 @@ class KnowledgebaseService {
 
   async deleteKnowledgeBase(knowledgebaseId, userId, req = null) {
     try {
-      logger.info(`Deleting knowledge base: ${knowledgebaseId} for user: ${userId}`);
+      logger.info(
+        `Deleting knowledge base: ${knowledgebaseId} for user: ${userId}`
+      );
       const query = {
         _id: knowledgebaseId,
-        userId: userId
+        userId: userId,
       };
       const knowledgeBase = await KnowledgeBase.findOne(
         req ? withTenantFilter(req, query) : query

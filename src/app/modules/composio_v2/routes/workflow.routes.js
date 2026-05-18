@@ -54,7 +54,10 @@ router.delete('/:workflowId', workflowController.deleteWorkflowController);
  * @access  Private
  * @params  workflowId
  */
-router.post('/:workflowId/trigger', workflowController.triggerWorkflowController);
+router.post(
+  '/:workflowId/trigger',
+  workflowController.triggerWorkflowController
+);
 
 /**
  * @route   POST /workflows/:workflowId/pause
@@ -79,7 +82,10 @@ router.post('/:workflowId/resume', workflowController.resumeWorkflowController);
  * @params  workflowId
  * @query   limit?
  */
-router.get('/:workflowId/executions', workflowController.getWorkflowExecutionsController);
+router.get(
+  '/:workflowId/executions',
+  workflowController.getWorkflowExecutionsController
+);
 
 // Execution Routes
 
@@ -89,6 +95,9 @@ router.get('/:workflowId/executions', workflowController.getWorkflowExecutionsCo
  * @access  Private
  * @params  executionId
  */
-router.get('/executions/:executionId', workflowController.getExecutionController);
+router.get(
+  '/executions/:executionId',
+  workflowController.getExecutionController
+);
 
 export const workflowRoutes = router;

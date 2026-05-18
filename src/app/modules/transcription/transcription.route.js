@@ -1,6 +1,6 @@
-import express from "express";
-import multer from "multer";
-import path from "path";
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
@@ -10,8 +10,8 @@ import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js'
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
 import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
-import { TranscriptionValidation } from "./transcription.validation.js";
-import { transcriptionController } from "./transcription.controller.js";
+import { TranscriptionValidation } from './transcription.validation.js';
+import { transcriptionController } from './transcription.controller.js';
 
 const router = express.Router();
 
@@ -21,9 +21,9 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/audio/');
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, 'audio-' + uniqueSuffix + path.extname(file.originalname));
-  }
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -40,7 +40,12 @@ const fileFilter = (req, file, cb) => {
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid audio format. Supported: WAV, MP3, AIFF, AAC, OGG, FLAC'), false);
+    cb(
+      new Error(
+        'Invalid audio format. Supported: WAV, MP3, AIFF, AAC, OGG, FLAC'
+      ),
+      false
+    );
   }
 };
 
@@ -49,7 +54,7 @@ const upload = multer({
   fileFilter,
   limits: {
     fileSize: 20 * 1024 * 1024, // 20MB
-  }
+  },
 });
 
 // Smart transcription assistant - unified endpoint
@@ -63,7 +68,7 @@ router.post(
   checkStorageLimit,
   upload.fields([
     { name: 'audio', maxCount: 1 },
-    { name: 'audios', maxCount: 10 }
+    { name: 'audios', maxCount: 10 },
   ]),
   checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes

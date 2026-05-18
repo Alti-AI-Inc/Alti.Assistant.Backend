@@ -13,6 +13,7 @@
 **Test:** Create a simple poem
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -22,6 +23,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Result:**
+
 - ✅ Status: 200 OK
 - ✅ Response contains a poem
 - ✅ conversationId is returned
@@ -34,6 +36,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 **Test:** Create a story with style and word count
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -43,6 +46,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Result:**
+
 - ✅ Status: 200 OK
 - ✅ Response contains a story
 - ✅ Story has mysterious tone
@@ -57,6 +61,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 **Test:** Continue an existing conversation
 
 **Step 1:** Create initial content
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -66,6 +71,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Step 2:** Continue the story (save conversationId from Step 1)
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -76,6 +82,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Result:**
+
 - ✅ Status: 200 OK
 - ✅ Continuation maintains context
 - ✅ Same conversationId returned
@@ -88,6 +95,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 **Test:** Revise existing content
 
 **Step 1:** Create initial content
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -97,6 +105,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Step 2:** Request revision
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -107,6 +116,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Result:**
+
 - ✅ Status: 200 OK
 - ✅ Revised version has melancholic tone
 - ✅ More dramatic style applied
@@ -117,6 +127,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ### Scenario 5: Multiple Writing Types
 
 **Test 5a: Song Lyrics**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -126,6 +137,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Test 5b: Haiku**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -135,6 +147,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Test 5c: Script Scene**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -144,6 +157,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Results:**
+
 - ✅ Each returns appropriate writing type
 - ✅ Format matches the requested type
 - ✅ writingType correctly detected
@@ -155,6 +169,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 **Test:** Get creative ideas
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -164,6 +179,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Result:**
+
 - ✅ Status: 200 OK
 - ✅ Response contains multiple ideas
 - ✅ intent detected as "get_ideas" or "brainstorm"
@@ -176,6 +192,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 **Test:** System asks for clarification
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -185,6 +202,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Result:**
+
 - ✅ Status: 200 OK
 - ✅ needsClarification: true
 - ✅ Response asks what type of writing
@@ -197,12 +215,14 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 **Test:** Retrieve full conversation
 
 **Request:**
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/CONVERSATION_ID \
   -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 ```
 
 **Expected Result:**
+
 - ✅ Status: 200 OK
 - ✅ Full message history returned
 - ✅ Metadata includes writing types used
@@ -213,6 +233,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/CONVERSAT
 ### Scenario 9: Error Handling
 
 **Test 9a: Missing Message**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -220,16 +241,19 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Result:**
+
 - ✅ Status: 400 Bad Request
 - ✅ Error message: "Message is required"
 
 **Test 9b: Invalid Conversation ID**
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/invalid_id \
   -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 ```
 
 **Expected Result:**
+
 - ✅ Status: 404 Not Found
 - ✅ Error message: "Conversation not found"
 
@@ -240,6 +264,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/invalid_i
 **Test:** Use without authentication
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -249,6 +274,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Expected Result:**
+
 - ✅ Status: 200 OK
 - ✅ Works without auth token
 - ✅ Guest userId generated
@@ -268,6 +294,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ### Configure Variables
 
 Set these collection variables:
+
 - `baseUrl`: `http://localhost:5000/api/v1`
 - `authToken`: Your JWT token (for authenticated tests)
 - `conversationId`: Will be auto-populated from responses
@@ -298,6 +325,7 @@ Set these collection variables:
 ## Validation Checklist
 
 ### ✅ Functional Tests
+
 - [ ] All writing types work correctly
 - [ ] Style detection works
 - [ ] Tone detection works
@@ -308,6 +336,7 @@ Set these collection variables:
 - [ ] Idea generation provides multiple ideas
 
 ### ✅ Edge Cases
+
 - [ ] Vague requests trigger clarification
 - [ ] Very long messages (up to 5000 chars) work
 - [ ] Empty conversation ID handled
@@ -315,18 +344,21 @@ Set these collection variables:
 - [ ] Missing message returns 400
 
 ### ✅ Authentication
+
 - [ ] Guest users can access endpoint
 - [ ] Authenticated users can access endpoint
 - [ ] Only authenticated users can get history
 - [ ] Invalid tokens rejected
 
 ### ✅ Performance
+
 - [ ] Responses within 10 seconds
 - [ ] Handles concurrent requests
 - [ ] Memory usage reasonable
 - [ ] No crashes on errors
 
 ### ✅ Integration
+
 - [ ] Conversations stored in database
 - [ ] Messages saved correctly
 - [ ] Metadata updated properly
@@ -337,18 +369,23 @@ Set these collection variables:
 ## Common Issues & Solutions
 
 ### Issue 1: Connection Refused
+
 **Solution:** Ensure server is running on port 5000
 
 ### Issue 2: 401 Unauthorized
+
 **Solution:** Include valid JWT token in Authorization header
 
 ### Issue 3: Slow Response
+
 **Solution:** Normal for AI generation (5-10 seconds), check Gemini API status
 
 ### Issue 4: Empty Response
+
 **Solution:** Check Gemini API key configuration in environment variables
 
 ### Issue 5: Conversation Not Found
+
 **Solution:** Verify conversationId exists and belongs to user
 
 ---
@@ -356,6 +393,7 @@ Set these collection variables:
 ## Performance Benchmarks
 
 Expected response times:
+
 - Simple poem: 3-5 seconds
 - Short story: 5-8 seconds
 - Long-form content: 8-12 seconds
@@ -397,21 +435,27 @@ const axios = require('axios');
 
 async function testCreativeWriting() {
   const baseURL = 'http://localhost:5000/api/v1/creative-writing/assistant';
-  
+
   // Test 1: Create poem
   const response1 = await axios.post(baseURL, {
-    message: 'Write a poem about the moon'
+    message: 'Write a poem about the moon',
   });
-  console.log('Test 1:', response1.data.data.writingParams.writingType === 'poem' ? 'PASS' : 'FAIL');
-  
+  console.log(
+    'Test 1:',
+    response1.data.data.writingParams.writingType === 'poem' ? 'PASS' : 'FAIL'
+  );
+
   const conversationId = response1.data.data.conversationId;
-  
+
   // Test 2: Continue
   const response2 = await axios.post(baseURL, {
     message: 'Make it more romantic',
-    conversationId
+    conversationId,
   });
-  console.log('Test 2:', response2.data.data.conversationId === conversationId ? 'PASS' : 'FAIL');
+  console.log(
+    'Test 2:',
+    response2.data.data.conversationId === conversationId ? 'PASS' : 'FAIL'
+  );
 }
 
 testCreativeWriting();
@@ -422,6 +466,7 @@ testCreativeWriting();
 ## Support
 
 If tests fail:
+
 1. Check server logs
 2. Verify environment variables
 3. Confirm Gemini API access

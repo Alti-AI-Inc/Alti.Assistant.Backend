@@ -4,10 +4,31 @@ import UserModel from '../auth/auth.model.js';
 import Tenant from '../tenant/tenant.model.js';
 import ApiError from '../../../errors/ApiError.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import { createCustomerService, deleteCustomerService, retrieveAllCustomersService, retrieveAllProductsService, retrieveAllSubscriptionsService, retrieveCustomerService, updateCustomerService } from "./customer/stripe.service.js";
-import { createPaymentIntentService, getAllPaymentMethodsService, savePaymentMethodService } from "./paymentMethod.service.js";
-import { createProductService, retrieveAllPricesService, retrieveProductService } from "./products/product.service.js";
-import { cancelSubscriptionService, createSubscriptionService, retrieveSubscriptionService, getCustomerSubscriptionsService } from "./subscription.service.js";
+import {
+  createCustomerService,
+  deleteCustomerService,
+  retrieveAllCustomersService,
+  retrieveAllProductsService,
+  retrieveAllSubscriptionsService,
+  retrieveCustomerService,
+  updateCustomerService,
+} from './customer/stripe.service.js';
+import {
+  createPaymentIntentService,
+  getAllPaymentMethodsService,
+  savePaymentMethodService,
+} from './paymentMethod.service.js';
+import {
+  createProductService,
+  retrieveAllPricesService,
+  retrieveProductService,
+} from './products/product.service.js';
+import {
+  cancelSubscriptionService,
+  createSubscriptionService,
+  retrieveSubscriptionService,
+  getCustomerSubscriptionsService,
+} from './subscription.service.js';
 import webhookController from './webhook.controller.js';
 import Product from '../products/products.model.js';
 import Subscription from '../subscription/subscription.model.js';
@@ -49,7 +70,7 @@ const getStripeCustomerId = async (req, createIfMissing = true) => {
     }
 
     if (!customerId && createIfMissing) {
-      const owner = await UserModel.findById(tenant.ownerId) || req.user;
+      const owner = (await UserModel.findById(tenant.ownerId)) || req.user;
       const customer = await stripe.customers.create({
         email: owner.email,
         name: tenant.name,
@@ -59,7 +80,7 @@ const getStripeCustomerId = async (req, createIfMissing = true) => {
         },
       });
       customerId = customer.id;
-      
+
       // If owner is the current user, save it
       if (owner._id.toString() === req.user._id.toString()) {
         owner.stripeAccountId = customerId;
@@ -161,7 +182,11 @@ const createPaymentIntentController = catchAsync(async (req, res, next) => {
   const { amount, currency } = req.body;
   const { customerId, context } = await getStripeCustomerId(req);
 
-  const paymentIntent = await createPaymentIntentService(amount, currency, customerId);
+  const paymentIntent = await createPaymentIntentService(
+    amount,
+    currency,
+    customerId
+  );
 
   return sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -179,7 +204,10 @@ const addPaymentMethodController = catchAsync(async (req, res, next) => {
   const { paymentMethodId } = req.body;
   const { customerId, context } = await getStripeCustomerId(req);
 
-  const paymentMethod = await savePaymentMethodService(customerId, paymentMethodId);
+  const paymentMethod = await savePaymentMethodService(
+    customerId,
+    paymentMethodId
+  );
 
   return sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -241,13 +269,17 @@ const createSubscriptionController = catchAsync(async (req, res, next) => {
 
   const product = await Product.findOne({ stripePriceId: priceId });
   const query = { stripeSubscriptionId: subscription.id };
-  const existingSubscription = await Subscription.findOne(req ? withTenantFilter(req, query) : query);
+  const existingSubscription = await Subscription.findOne(
+    req ? withTenantFilter(req, query) : query
+  );
 
   if (existingSubscription) {
     existingSubscription.stripeSubscriptionId = subscription.id;
     existingSubscription.status = subscription.status;
     existingSubscription.stripePriceId = priceId;
-    existingSubscription.stripeProductId = product ? product.stripeProductId : null;
+    existingSubscription.stripeProductId = product
+      ? product.stripeProductId
+      : null;
     existingSubscription.pricePerSeat = product ? product.price : 0;
     await existingSubscription.save();
   } else {
@@ -259,17 +291,19 @@ const createSubscriptionController = catchAsync(async (req, res, next) => {
       stripePriceId: priceId,
       stripeProductId: product ? product.stripeProductId : null,
       pricePerSeat: product ? product.price : 0,
-      limits: product ? {
-        dailyWebSearchLimit: product.features.dailyWebSearchLimit,
-        dailyDeepResearchLimit: product.features.dailyDeepResearchLimit,
-        canInviteTeam: product.features.canInviteTeam,
-        unlimitedSeats: product.features.unlimitedSeats,
-      } : {
-        dailyWebSearchLimit: 10,
-        dailyDeepResearchLimit: 0,
-        canInviteTeam: false,
-        unlimitedSeats: false,
-      },
+      limits: product
+        ? {
+            dailyWebSearchLimit: product.features.dailyWebSearchLimit,
+            dailyDeepResearchLimit: product.features.dailyDeepResearchLimit,
+            canInviteTeam: product.features.canInviteTeam,
+            unlimitedSeats: product.features.unlimitedSeats,
+          }
+        : {
+            dailyWebSearchLimit: 10,
+            dailyDeepResearchLimit: 0,
+            canInviteTeam: false,
+            unlimitedSeats: false,
+          },
     });
     await newSubscription.save();
   }
@@ -372,5 +406,5 @@ export {
   getSingleSubscription,
   listPricesController,
   handleWebhook,
-  testWebhook
+  testWebhook,
 };

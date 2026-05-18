@@ -37,13 +37,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "assistant"]
             },
             "description": "Upload a document and request a review using natural language"
           },
@@ -77,13 +72,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "assistant"]
             },
             "description": "Continue an existing conversation with follow-up requests"
           },
@@ -122,13 +112,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "assistant"]
             },
             "description": "Upload a new document in an existing conversation"
           },
@@ -162,13 +147,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "assistant"]
             },
             "description": "Request a grammar check using natural language"
           },
@@ -202,13 +182,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "assistant"]
             },
             "description": "Request content analysis using natural language"
           },
@@ -242,13 +217,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "assistant"]
             },
             "description": "Request a document summary"
           },
@@ -297,13 +267,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "review"]
             },
             "description": "Direct general review with explicit parameters"
           },
@@ -342,13 +307,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "review"]
             },
             "description": "Detailed grammar check"
           },
@@ -397,13 +357,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "review"]
             },
             "description": "Comprehensive review for business documents"
           },
@@ -447,13 +402,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "review"]
             },
             "description": "Review academic papers and research documents"
           },
@@ -492,13 +442,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/review",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "review"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "review"]
             },
             "description": "Analyze document tone and style"
           },
@@ -522,14 +467,8 @@
             ],
             "url": {
               "raw": "{{base_url}}/document-review/conversation/{{conversation_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "conversation",
-                "{{conversation_id}}"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "conversation", "{{conversation_id}}"]
             },
             "description": "Retrieve full conversation history including all messages and metadata"
           },
@@ -568,13 +507,8 @@
             },
             "url": {
               "raw": "{{base_url}}/document-review/assistant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "document-review",
-                "assistant"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["document-review", "assistant"]
             },
             "description": "Guest users can use the service without authentication"
           },

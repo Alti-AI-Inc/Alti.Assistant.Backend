@@ -64,22 +64,31 @@ conversationSummarySchema.index({ conversationId: 1, userId: 1 });
 conversationSummarySchema.index({ conversationId: 1, status: 1 });
 
 // Static method to find active summary for a conversation
-conversationSummarySchema.statics.findActiveForConversation = function (conversationId, userId) {
+conversationSummarySchema.statics.findActiveForConversation = function (
+  conversationId,
+  userId
+) {
   return this.findOne({
     conversationId,
     userId,
-    status: 'active'
+    status: 'active',
   }).sort({ createdAt: -1 });
 };
 
 // Static method to get all summaries for a conversation
-conversationSummarySchema.statics.getAllForConversation = function (conversationId, userId) {
+conversationSummarySchema.statics.getAllForConversation = function (
+  conversationId,
+  userId
+) {
   return this.find({
     conversationId,
-    userId
+    userId,
   }).sort({ 'messageRange.startIndex': 1 });
 };
 
-const ConversationSummary = model('ConversationSummary', conversationSummarySchema);
+const ConversationSummary = model(
+  'ConversationSummary',
+  conversationSummarySchema
+);
 
 export default ConversationSummary;

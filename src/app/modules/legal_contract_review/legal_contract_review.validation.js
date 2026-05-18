@@ -11,7 +11,10 @@ const conversationalRequestSchema = z.object({
       .max(5000, 'Message too long'),
     conversationId: z.string().optional(),
     userId: z.string().optional(), // For guest users
-    outputFormat: z.enum(['text', 'markdown', 'pdf', 'docx']).optional().default('text'),
+    outputFormat: z
+      .enum(['text', 'markdown', 'pdf', 'docx'])
+      .optional()
+      .default('text'),
   }),
 });
 
@@ -30,7 +33,9 @@ const reviewContractSchema = z.object({
         'summary',
       ])
       .optional(),
-    reviewDepth: z.enum(['quick', 'standard', 'detailed', 'comprehensive']).optional(),
+    reviewDepth: z
+      .enum(['quick', 'standard', 'detailed', 'comprehensive'])
+      .optional(),
     contractType: z
       .enum([
         'employment',
@@ -68,7 +73,10 @@ const reviewContractSchema = z.object({
       )
       .optional(),
     additionalInstructions: z.string().optional(),
-    outputFormat: z.enum(['text', 'markdown', 'pdf', 'docx']).optional().default('text'),
+    outputFormat: z
+      .enum(['text', 'markdown', 'pdf', 'docx'])
+      .optional()
+      .default('text'),
   }),
 });
 

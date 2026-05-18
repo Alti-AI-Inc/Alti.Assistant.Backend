@@ -3,12 +3,14 @@
 ## Quick Start
 
 ### 1. Basic Employment Contract
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/legal-contract/assistant \
   -F "message=I need an employment contract for a software engineer"
 ```
 
 ### 2. Continue with Answers
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/legal-contract/assistant \
   -F "message=Company: TechCorp, Position: Developer, Salary: $100k, Start: Jan 1" \
@@ -17,31 +19,31 @@ curl -X POST http://localhost:5000/api/v1/legal-contract/assistant \
 
 ## Endpoints Summary
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/legal-contract/assistant` | Optional | Main conversational endpoint |
-| POST | `/legal-contract/generate` | Optional | Direct generation (no questions) |
-| GET | `/legal-contract/conversation/:id` | Required | Get conversation history |
-| GET | `/legal-contract/download/:id` | Required | Download contract file |
-| POST | `/legal-contract/modify` | Required | Modify existing contract |
+| Method | Endpoint                           | Auth     | Description                      |
+| ------ | ---------------------------------- | -------- | -------------------------------- |
+| POST   | `/legal-contract/assistant`        | Optional | Main conversational endpoint     |
+| POST   | `/legal-contract/generate`         | Optional | Direct generation (no questions) |
+| GET    | `/legal-contract/conversation/:id` | Required | Get conversation history         |
+| GET    | `/legal-contract/download/:id`     | Required | Download contract file           |
+| POST   | `/legal-contract/modify`           | Required | Modify existing contract         |
 
 ## Supported Contract Types
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| `employment` | Employment agreements | Hiring employees |
-| `nda` | Non-disclosure agreements | Protecting confidential info |
-| `service_agreement` | Service contracts | Professional services |
-| `freelance` | Freelancer contracts | Independent contractors |
-| `consulting` | Consulting agreements | Advisory services |
-| `lease` | Rental agreements | Property leasing |
-| `partnership` | Partnership agreements | Business partnerships |
-| `sales` | Sales contracts | Buying/selling goods |
-| `license` | License agreements | Software/IP licensing |
-| `vendor` | Vendor agreements | Supplier contracts |
-| `loan` | Loan agreements | Lending money |
-| `independent_contractor` | IC agreements | Contractor relationships |
-| `general` | General purpose | Custom contracts |
+| Type                     | Description               | Use Case                     |
+| ------------------------ | ------------------------- | ---------------------------- |
+| `employment`             | Employment agreements     | Hiring employees             |
+| `nda`                    | Non-disclosure agreements | Protecting confidential info |
+| `service_agreement`      | Service contracts         | Professional services        |
+| `freelance`              | Freelancer contracts      | Independent contractors      |
+| `consulting`             | Consulting agreements     | Advisory services            |
+| `lease`                  | Rental agreements         | Property leasing             |
+| `partnership`            | Partnership agreements    | Business partnerships        |
+| `sales`                  | Sales contracts           | Buying/selling goods         |
+| `license`                | License agreements        | Software/IP licensing        |
+| `vendor`                 | Vendor agreements         | Supplier contracts           |
+| `loan`                   | Loan agreements           | Lending money                |
+| `independent_contractor` | IC agreements             | Contractor relationships     |
+| `general`                | General purpose           | Custom contracts             |
 
 ## Response Flow
 
@@ -66,7 +68,7 @@ User Can Download/Modify
 ✅ **Guest Mode**: Works without authentication  
 ✅ **Conversation History**: Full tracking of interactions  
 ✅ **Multiple Formats**: Text (DOCX/PDF coming soon)  
-✅ **Modification**: Request changes to generated contracts  
+✅ **Modification**: Request changes to generated contracts
 
 ## Configuration
 
@@ -99,42 +101,46 @@ User Can Download/Modify
 ## Common Use Cases
 
 ### 1. Startup Hiring
+
 ```javascript
-contractType: 'employment'
-complexity: 'standard'
-jurisdiction: 'us_state'
+contractType: 'employment';
+complexity: 'standard';
+jurisdiction: 'us_state';
 ```
 
 ### 2. Business Partnership
+
 ```javascript
-contractType: 'partnership'
-complexity: 'detailed'
-jurisdiction: 'international'
+contractType: 'partnership';
+complexity: 'detailed';
+jurisdiction: 'international';
 ```
 
 ### 3. Freelance Project
+
 ```javascript
-contractType: 'freelance'
-complexity: 'simple'
-jurisdiction: 'us_federal'
+contractType: 'freelance';
+complexity: 'simple';
+jurisdiction: 'us_federal';
 ```
 
 ### 4. Software License
+
 ```javascript
-contractType: 'license'
-complexity: 'standard'
-jurisdiction: 'international'
+contractType: 'license';
+complexity: 'standard';
+jurisdiction: 'international';
 ```
 
 ## Error Handling
 
-| Error | Status | Solution |
-|-------|--------|----------|
-| File too large | 413 | Reduce file size to <10MB |
-| Invalid format | 400 | Use .pdf, .docx, .doc, or .txt |
-| Missing message | 400 | Provide message field |
-| Conversation not found | 404 | Check conversation ID |
-| Limit exceeded | 403 | Upgrade subscription |
+| Error                  | Status | Solution                       |
+| ---------------------- | ------ | ------------------------------ |
+| File too large         | 413    | Reduce file size to <10MB      |
+| Invalid format         | 400    | Use .pdf, .docx, .doc, or .txt |
+| Missing message        | 400    | Provide message field          |
+| Conversation not found | 404    | Check conversation ID          |
+| Limit exceeded         | 403    | Upgrade subscription           |
 
 ## Best Practices
 
@@ -151,11 +157,13 @@ jurisdiction: 'international'
 ## Testing
 
 Run test suite:
+
 ```bash
 node scripts/test-legal-contract.js
 ```
 
 Import Postman collection:
+
 ```
 postman_collections/Legal_Contract_API.postman_collection.json
 ```
@@ -182,7 +190,7 @@ import FormData from 'form-data';
 async function createContract(userMessage, conversationId = null) {
   const formData = new FormData();
   formData.append('message', userMessage);
-  
+
   if (conversationId) {
     formData.append('conversationId', conversationId);
   }

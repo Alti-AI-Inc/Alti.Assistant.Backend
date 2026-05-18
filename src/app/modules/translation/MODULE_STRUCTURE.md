@@ -133,6 +133,7 @@ src/app/modules/translation/
 ## Data Flow
 
 ### Text Translation Request
+
 ```
 User Input: "Translate 'Hello' to Spanish"
     │
@@ -153,6 +154,7 @@ User Input: "Translate 'Hello' to Spanish"
 ```
 
 ### File Translation Request
+
 ```
 User Input: "Translate this PDF to French" + [file.pdf]
     │
@@ -178,6 +180,7 @@ User Input: "Translate this PDF to French" + [file.pdf]
 ```
 
 ### Multi-turn Conversation
+
 ```
 Turn 1: "I need to translate something"
     ├─→ Intent: GENERAL_QUESTION

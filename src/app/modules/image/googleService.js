@@ -89,7 +89,11 @@ export const generateImageUsingVertexAI = async (prompt) => {
   }
 
   const imageData = await response.json();
-  if (!imageData || !imageData.predictions || imageData.predictions.length === 0) {
+  if (
+    !imageData ||
+    !imageData.predictions ||
+    imageData.predictions.length === 0
+  ) {
     throw new Error('No predictions returned from Vertex AI.');
   }
   console.log('Received response from Vertex AI:', data);

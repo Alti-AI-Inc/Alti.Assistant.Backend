@@ -23,9 +23,19 @@ export const KNOWLEDGE_CONFIG = {
     'text/markdown',
   ],
   SUPPORTED_FILE_EXTENSIONS: [
-    '.pdf', '.docx', '.doc', '.txt',
-    '.xlsx', '.xls', '.pptx', '.ppt',
-    '.csv', '.json', '.xml', '.html', '.md'
+    '.pdf',
+    '.docx',
+    '.doc',
+    '.txt',
+    '.xlsx',
+    '.xls',
+    '.pptx',
+    '.ppt',
+    '.csv',
+    '.json',
+    '.xml',
+    '.html',
+    '.md',
   ],
   CHUNK_SIZE: 1000,
   CHUNK_OVERLAP: 200,
@@ -71,40 +81,83 @@ export const SEARCH_TYPES = {
 
 // Query modes
 export const QUERY_MODES = {
-  SIMPLE: 'simple',           // Basic Q&A
+  SIMPLE: 'simple', // Basic Q&A
   CONVERSATIONAL: 'conversational', // With context
-  SUMMARIZE: 'summarize',     // Document summary
-  EXTRACT: 'extract',         // Information extraction
+  SUMMARIZE: 'summarize', // Document summary
+  EXTRACT: 'extract', // Information extraction
 };
 
 // Complexity detection keywords (indicates complex queries)
 export const COMPLEXITY_INDICATORS = {
   HIGH_COMPLEXITY_KEYWORDS: [
-    'analyze', 'compare', 'contrast', 'evaluate', 'assess', 'examine',
-    'synthesize', 'integrate', 'relationship', 'correlation', 'implications',
-    'comprehensive', 'detailed analysis', 'pros and cons', 'advantages and disadvantages',
-    'critical analysis', 'in-depth', 'complex', 'multi-faceted', 'nuanced',
-    'strategic', 'recommend', 'recommendation', 'strategy', 'approach',
-    'cross-reference', 'conflicting', 'inconsistencies', 'patterns across',
+    'analyze',
+    'compare',
+    'contrast',
+    'evaluate',
+    'assess',
+    'examine',
+    'synthesize',
+    'integrate',
+    'relationship',
+    'correlation',
+    'implications',
+    'comprehensive',
+    'detailed analysis',
+    'pros and cons',
+    'advantages and disadvantages',
+    'critical analysis',
+    'in-depth',
+    'complex',
+    'multi-faceted',
+    'nuanced',
+    'strategic',
+    'recommend',
+    'recommendation',
+    'strategy',
+    'approach',
+    'cross-reference',
+    'conflicting',
+    'inconsistencies',
+    'patterns across',
   ],
   MEDIUM_COMPLEXITY_KEYWORDS: [
-    'explain', 'describe', 'summarize', 'outline', 'discuss',
-    'how does', 'why', 'what are the differences', 'multiple',
+    'explain',
+    'describe',
+    'summarize',
+    'outline',
+    'discuss',
+    'how does',
+    'why',
+    'what are the differences',
+    'multiple',
   ],
   SIMPLE_KEYWORDS: [
-    'what', 'when', 'where', 'who', 'list', 'find', 'show', 'tell me',
+    'what',
+    'when',
+    'where',
+    'who',
+    'list',
+    'find',
+    'show',
+    'tell me',
   ],
 };
 
 // File visibility
 export const FILE_VISIBILITY = {
-  PRIVATE: 'private',   // Only owner
-  SHARED: 'shared',     // Shared with specific users
-  PUBLIC: 'public',     // Public access
+  PRIVATE: 'private', // Only owner
+  SHARED: 'shared', // Shared with specific users
+  PUBLIC: 'public', // Public access
 };
 
 // Folder colors
 export const FOLDER_COLORS = [
-  '#1890ff', '#52c41a', '#faad14', '#f5222d',
-  '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16',
+  '#1890ff',
+  '#52c41a',
+  '#faad14',
+  '#f5222d',
+  '#722ed1',
+  '#13c2c2',
+  '#eb2f96',
+  '#fa8c16',
 ];

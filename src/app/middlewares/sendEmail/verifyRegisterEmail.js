@@ -7,11 +7,11 @@ import { logger } from '../../../shared/logger';
 const oAuth2Client = new google.auth.OAuth2(
   config.client_id,
   config.client_secret,
-  'https://developers.google.com/oauthplayground',
+  'https://developers.google.com/oauthplayground'
 );
 oAuth2Client.setCredentials({ refresh_token: config.refresh_token });
 
-export const sendMailForRegisterWithGmail = async data => {
+export const sendMailForRegisterWithGmail = async (data) => {
   const accessToken = await oAuth2Client.getAccessToken();
 
   let transporter = nodemailer.createTransport({

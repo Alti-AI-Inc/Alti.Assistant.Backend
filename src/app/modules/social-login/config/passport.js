@@ -7,7 +7,7 @@ import AppleStrategy from './strategies/apple.js';
 import DiscordStrategy from './strategies/discord.js';
 import UserModel from '../../auth/auth.model.js';
 
-export default passport => {
+export default (passport) => {
   // Google Strategy
   passport.use(GoogleStrategy);
 
@@ -39,20 +39,3 @@ export default passport => {
     }
   });
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

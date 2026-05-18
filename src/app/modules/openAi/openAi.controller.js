@@ -11,7 +11,7 @@ const Gpt4oMiniGetResponse = catchAsync(async (req, res) => {
   const result = await openAIAiServices.openAiResponseService(
     prompt,
     userId,
-    sessionId,
+    sessionId
   );
 
   sendResponse(res, {
@@ -28,7 +28,7 @@ const Gpt4NanoGetResponse = catchAsync(async (req, res) => {
   const result = await openAIAiServices.openAi4NanoResponseService(
     prompt,
     userId,
-    sessionId,
+    sessionId
   );
 
   sendResponse(res, {
@@ -41,5 +41,5 @@ const Gpt4NanoGetResponse = catchAsync(async (req, res) => {
 
 export const openAIAiController = {
   Gpt4oMiniGetResponse,
-  Gpt4NanoGetResponse
+  Gpt4NanoGetResponse,
 };

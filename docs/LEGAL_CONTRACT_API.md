@@ -41,6 +41,7 @@ The Legal Contract Generation module is an AI-powered system that creates profes
 **Authentication:** Optional (supports both guests and authenticated users)
 
 **Request:**
+
 ```javascript
 // Form Data
 {
@@ -53,6 +54,7 @@ The Legal Contract Generation module is an AI-powered system that creates profes
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -88,6 +90,7 @@ The Legal Contract Generation module is an AI-powered system that creates profes
 **Endpoint:** `POST /api/v1/legal-contract/assistant`
 
 **Request:**
+
 ```javascript
 // Form Data
 {
@@ -97,6 +100,7 @@ The Legal Contract Generation module is an AI-powered system that creates profes
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -119,6 +123,7 @@ The Legal Contract Generation module is an AI-powered system that creates profes
 **Authentication:** Optional
 
 **Request:**
+
 ```json
 {
   "contractType": "employment",
@@ -157,6 +162,7 @@ The Legal Contract Generation module is an AI-powered system that creates profes
 **Authentication:** Required
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -188,6 +194,7 @@ The Legal Contract Generation module is an AI-powered system that creates profes
 **Authentication:** Required
 
 **Query Parameters:**
+
 - `format`: text, docx, or pdf (currently only text supported)
 
 **Response:** File download
@@ -199,6 +206,7 @@ The Legal Contract Generation module is an AI-powered system that creates profes
 **Authentication:** Required
 
 **Request:**
+
 ```json
 {
   "conversationId": "contract_1234567890_abc123",
@@ -299,12 +307,14 @@ src/app/modules/legal_contract/
 ## Smart Question Generation
 
 The AI dynamically generates questions based on:
+
 - **Contract Type**: Different questions for employment vs. NDA vs. service agreements
 - **Context**: Uploaded documents reduce questions needed
 - **Conversation History**: Avoids re-asking for information already provided
 - **Legal Requirements**: Focuses on legally essential information
 
 Example for Employment Contract:
+
 ```javascript
 {
   "questions": [
@@ -339,6 +349,7 @@ Example for Employment Contract:
 Use the provided Postman collection: `postman_collections/Legal_Contract_API.postman_collection.json`
 
 Test scenarios:
+
 1. Create employment contract from scratch
 2. Generate NDA with uploaded reference document
 3. Quick freelance contract with direct generation
@@ -367,6 +378,7 @@ Test scenarios:
 ## Error Handling
 
 The module includes comprehensive error handling:
+
 - Invalid file types/sizes
 - Missing required information
 - AI generation failures
@@ -376,6 +388,7 @@ The module includes comprehensive error handling:
 ## Contributing
 
 When adding new contract types:
+
 1. Add type to `CONTRACT_TYPES`
 2. Create system prompt in `SYSTEM_PROMPTS`
 3. Update validation schema
@@ -384,6 +397,7 @@ When adding new contract types:
 ## Support
 
 For issues or questions:
+
 - Check conversation history for context
 - Review generated questions for clarity
 - Ensure file uploads meet size/type requirements

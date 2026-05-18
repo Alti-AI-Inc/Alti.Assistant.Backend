@@ -2,7 +2,7 @@
 import { GoogleGenAI } from '@google/genai';
 
 const gemini = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
+  apiKey: process.env.GEMINI_API_KEY,
 });
 
 const EMBED_MODEL = process.env.EMBED_MODEL || 'text-embedding-3-small';
@@ -16,8 +16,8 @@ export async function embedText(text) {
     model: EMBED_MODEL,
     contents: input,
     config: {
-      outputDimensionality: 1536
-    }
+      outputDimensionality: 1536,
+    },
   });
   console.log(`Embedded text: ${input}`);
   return res.embeddings[0].values;
@@ -30,11 +30,13 @@ export async function generateContent(model, contents, config = {}) {
   const response = await gemini.models.generateContent({
     model,
     contents,
-    config: config ? config : {
-      thinkingConfig: {
-        includeThoughts: false,
-      }
-    }
+    config: config
+      ? config
+      : {
+          thinkingConfig: {
+            includeThoughts: false,
+          },
+        },
   });
   return response;
 }

@@ -3,12 +3,14 @@
 ## 🚀 Testing the New Module
 
 ### Prerequisites
+
 - Server running on http://localhost:3000 (or your configured port)
 - Valid `GOOGLE_API_KEY` in environment variables
 
 ### 1. Test Image Generation (Guest User)
 
 **Without Conversation:**
+
 ```bash
 curl -X POST http://localhost:3000/enhanced-image/generate \
   -H "Content-Type: application/json" \
@@ -18,6 +20,7 @@ curl -X POST http://localhost:3000/enhanced-image/generate \
 ```
 
 **With Conversation (Context-Aware):**
+
 ```bash
 # First request
 curl -X POST http://localhost:3000/enhanced-image/generate \
@@ -36,6 +39,7 @@ curl -X POST http://localhost:3000/enhanced-image/generate \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -81,6 +85,7 @@ curl -X POST http://localhost:3000/enhanced-image/edit \
 ### 3. Test with Authentication
 
 **First, get your auth token:**
+
 ```bash
 # Login to get JWT token
 curl -X POST http://localhost:3000/auth/login \
@@ -92,6 +97,7 @@ curl -X POST http://localhost:3000/auth/login \
 ```
 
 **Then use the token:**
+
 ```bash
 curl -X POST http://localhost:3000/enhanced-image/generate \
   -H "Content-Type: application/json" \
@@ -113,6 +119,7 @@ curl -X POST http://localhost:3000/enhanced-image/analyze-intent \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -135,6 +142,7 @@ curl -X GET http://localhost:3000/enhanced-image/stats \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -152,23 +160,27 @@ curl -X GET http://localhost:3000/enhanced-image/stats \
 ## 🧪 Testing Scenarios
 
 ### Scenario 1: Guest User Journey
+
 1. Generate an image without auth
 2. Save the `conversationId` from response
 3. Generate another image with same `conversationId`
 4. Verify conversation continuity
 
 ### Scenario 2: Authenticated User Journey
+
 1. Login and get JWT token
 2. Generate multiple images
 3. Check stats endpoint
 4. Verify subscription limits
 
 ### Scenario 3: Subscription Limits
+
 1. Use authenticated account near limit
 2. Attempt image generation
 3. Should receive limit warning/error
 
 ### Scenario 4: Error Handling
+
 1. Send request with empty prompt
 2. Send edit request without imageBase64
 3. Verify proper error responses
@@ -176,18 +188,23 @@ curl -X GET http://localhost:3000/enhanced-image/stats \
 ## 🔍 Verifying Database Changes
 
 ### Check MongoDB Conversations
+
 ```javascript
 // In MongoDB shell or Compass
-db.conversations.find({
-  "metadata.category": { $in: ["image_generation", "image_editing"] }
-}).sort({ createdAt: -1 }).limit(10)
+db.conversations
+  .find({
+    'metadata.category': { $in: ['image_generation', 'image_editing'] },
+  })
+  .sort({ createdAt: -1 })
+  .limit(10);
 ```
 
 ### Verify Conversation Messages
+
 ```javascript
 db.conversations.findOne({
-  conversationId: "image-1732632000-abc123xyz"
-})
+  conversationId: 'image-1732632000-abc123xyz',
+});
 ```
 
 ## 📊 Expected Database Structure
@@ -239,15 +256,19 @@ db.conversations.findOne({
 ## ⚠️ Common Issues & Solutions
 
 ### Issue 1: "Conversation not found"
+
 **Solution:** Make sure to use the exact `conversationId` from the previous response.
 
 ### Issue 2: "Failed to generate image"
+
 **Solution:** Verify `GOOGLE_API_KEY` is set in environment variables.
 
 ### Issue 3: "Subscription limit reached"
+
 **Solution:** This is expected behavior for users who exceeded their limits. Upgrade subscription or test with different user.
 
 ### Issue 4: 401 Unauthorized on stats endpoint
+
 **Solution:** Stats endpoint requires authentication. Include valid JWT token in Authorization header.
 
 ## 🎯 Success Criteria
@@ -259,7 +280,7 @@ db.conversations.findOne({
 ✅ Stats endpoint returns correct data  
 ✅ Error messages are clear and helpful  
 ✅ Database stores all conversations correctly  
-✅ Response format matches documentation  
+✅ Response format matches documentation
 
 ## 📝 Notes
 
@@ -288,6 +309,7 @@ db.conversations.findOne({
 ## 🚦 Ready for Production?
 
 Before deploying to production:
+
 - [ ] All tests passing
 - [ ] Frontend integration complete
 - [ ] Error handling verified

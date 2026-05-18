@@ -9,11 +9,13 @@ Phase 6 implements comprehensive billing integration with Stripe and enforces te
 ### Components
 
 1. **Billing Integration** (`src/app/modules/payment/payment.service.js`)
+
    - Tenant-level Stripe customers
    - Subscription lifecycle management
    - Plan limits configuration
 
 2. **Limits Middleware** (`src/app/middlewares/tenant/checkTenantLimits.js`)
+
    - API call rate limiting
    - Storage quota enforcement
    - User count restrictions
@@ -30,12 +32,14 @@ Phase 6 implements comprehensive billing integration with Stripe and enforces te
 Subscriptions are now tied to tenants (workspaces) rather than individual users:
 
 **Benefits:**
+
 - Single subscription covers all team members
 - Owner manages billing for entire workspace
 - Simplified billing for teams
 - Centralized plan management
 
 **Implementation:**
+
 ```javascript
 // Create Stripe customer for tenant
 const customer = await stripe.customers.create({
@@ -60,16 +64,17 @@ tenant.subscription = {
 
 Each plan tier includes specific resource limits:
 
-| Plan | API Calls/Month | Storage | Max Users | Price |
-|------|----------------|---------|-----------|-------|
-| **Free** | 1,000 | 5 GB | 5 | $0 |
-| **Explore** | 10,000 | 50 GB | 10 | $29/mo |
-| **Analyze** | 50,000 | 100 GB | 25 | $99/mo |
-| **Execute** | 200,000 | 500 GB | 100 | $299/mo |
-| **Command** | Unlimited | 1 TB | Unlimited | $999/mo |
-| **Enterprise** | Unlimited | Unlimited | Unlimited | Custom |
+| Plan           | API Calls/Month | Storage   | Max Users | Price   |
+| -------------- | --------------- | --------- | --------- | ------- |
+| **Free**       | 1,000           | 5 GB      | 5         | $0      |
+| **Explore**    | 10,000          | 50 GB     | 10        | $29/mo  |
+| **Analyze**    | 50,000          | 100 GB    | 25        | $99/mo  |
+| **Execute**    | 200,000         | 500 GB    | 100       | $299/mo |
+| **Command**    | Unlimited       | 1 TB      | Unlimited | $999/mo |
+| **Enterprise** | Unlimited       | Unlimited | Unlimited | Custom  |
 
 **Configuration:**
+
 ```javascript
 const PLAN_LIMITS = {
   free: {
@@ -95,18 +100,21 @@ Three types of limits are enforced:
 **Middleware:** `checkApiCallLimit`
 
 Applied to AI endpoints that consume computational resources:
+
 - Conversation creation
 - Message sending
 - Plan generation
 - Document analysis
 
 **Behavior:**
+
 - Checks current usage vs. limit before request
 - Increments counter after check passes
 - Returns 429 error if limit reached
 - Provides clear upgrade messaging
 
 **Usage:**
+
 ```javascript
 router.post(
   '/assistant',
@@ -118,6 +126,7 @@ router.post(
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -138,17 +147,20 @@ router.post(
 **Middleware:** `checkStorageLimit(fileSize)`
 
 Applied to file upload endpoints:
+
 - Document uploads
 - Image uploads
 - Attachment uploads
 
 **Behavior:**
+
 - Checks if adding file would exceed limit
 - Parameterized with expected file size
 - Tracks actual usage after successful upload
 - Prevents uploads that would exceed quota
 
 **Usage:**
+
 ```javascript
 router.post(
   '/upload',
@@ -162,6 +174,7 @@ router.post(
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -182,15 +195,18 @@ router.post(
 **Middleware:** `checkUserLimit`
 
 Applied to user invitation endpoints:
+
 - Tenant member invitations
 - User additions
 
 **Behavior:**
+
 - Checks current user count vs. limit
 - Prevents invitations if limit reached
 - Provides upgrade messaging
 
 **Usage:**
+
 ```javascript
 router.post(
   '/members/invite',
@@ -201,6 +217,7 @@ router.post(
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -222,6 +239,7 @@ router.post(
 **Cron Schedule:** `0 0 1 * *` (Midnight on 1st of each month)
 
 Resets API call counters for all active tenants:
+
 ```javascript
 await Tenant.updateMany(
   { deletedAt: null },
@@ -241,6 +259,7 @@ await Tenant.updateMany(
 **Cron Schedule:** `0 2 * * *` (Daily at 2 AM)
 
 Suspends tenants whose trial period has ended:
+
 ```javascript
 await Tenant.updateMany(
   {
@@ -256,14 +275,12 @@ await Tenant.updateMany(
 **Cron Schedule:** `0 10 * * *` (Daily at 10 AM)
 
 Sends warnings to tenants at 80% of their API limit:
+
 ```javascript
 const tenantsNearLimit = await Tenant.find({
   $expr: {
-    $gte: [
-      '$usage.apiCallsUsed',
-      { $multiply: ['$limits.maxApiCalls', 0.8] }
-    ]
-  }
+    $gte: ['$usage.apiCallsUsed', { $multiply: ['$limits.maxApiCalls', 0.8] }],
+  },
 });
 // TODO: Send warning emails
 ```
@@ -273,6 +290,7 @@ const tenantsNearLimit = await Tenant.find({
 ### 1. New Subscription
 
 **Flow:**
+
 1. User clicks "Upgrade" in UI
 2. Backend creates Stripe checkout session with tenant metadata
 3. User completes payment
@@ -281,11 +299,12 @@ const tenantsNearLimit = await Tenant.find({
 6. User gains access to new features immediately
 
 **Code:**
+
 ```javascript
 // Webhook handler
 if (event.type === 'checkout.session.completed') {
   const tenant = await Tenant.findById(metadata.tenantId);
-  
+
   // Update tenant
   tenant.plan = metadata.plan_name;
   tenant.status = 'active';
@@ -296,7 +315,7 @@ if (event.type === 'checkout.session.completed') {
     status: 'active',
     currentPeriodEnd: expirationDate,
   };
-  
+
   await tenant.save();
 }
 ```
@@ -304,6 +323,7 @@ if (event.type === 'checkout.session.completed') {
 ### 2. Subscription Renewal
 
 Handled automatically by Stripe:
+
 - Stripe charges card on renewal date
 - No backend changes needed
 - `currentPeriodEnd` updated via webhook
@@ -311,6 +331,7 @@ Handled automatically by Stripe:
 ### 3. Subscription Cancellation
 
 **Flow:**
+
 1. User cancels subscription in Stripe dashboard
 2. Stripe webhook `customer.subscription.deleted` fires
 3. Backend reverts tenant to free plan
@@ -318,16 +339,17 @@ Handled automatically by Stripe:
 5. User retains access until period end
 
 **Code:**
+
 ```javascript
 if (event.type === 'customer.subscription.deleted') {
   const tenant = await Tenant.findById(subscription.tenantId);
-  
+
   // Revert to free plan
   tenant.plan = 'free';
   tenant.status = 'active';
   tenant.limits = PLAN_LIMITS.free;
   tenant.subscription.status = 'cancelled';
-  
+
   await tenant.save();
 }
 ```
@@ -335,6 +357,7 @@ if (event.type === 'customer.subscription.deleted') {
 ### 4. Failed Payment
 
 Handled by Stripe's built-in retry logic:
+
 - Stripe retries failed charges automatically
 - Tenant status remains active during retry period
 - After final failure, subscription cancelled
@@ -349,6 +372,7 @@ Get tenant usage information:
 **Middleware:** `getTenantUsage`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -389,10 +413,10 @@ Get tenant usage information:
 for (let i = 0; i < 1001; i++) {
   const response = await fetch('/api/v1/conversations', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ message: 'Test' })
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ message: 'Test' }),
   });
-  
+
   if (i < 1000) {
     expect(response.status).toBe(200);
   } else {
@@ -408,7 +432,7 @@ for (let i = 0; i < 1001; i++) {
 const fileSize = 1073741824; // 1GB
 for (let i = 0; i < 6; i++) {
   const response = await uploadFile(fileSize);
-  
+
   if (i < 5) {
     expect(response.status).toBe(200);
   } else {
@@ -423,7 +447,7 @@ for (let i = 0; i < 6; i++) {
 // Invite users until limit reached
 for (let i = 0; i < 6; i++) {
   const response = await inviteUser(`user${i}@test.com`);
-  
+
   if (i < 5) {
     expect(response.status).toBe(200);
   } else {
@@ -442,7 +466,7 @@ expect(session.url).toContain('stripe.com');
 // Simulate webhook
 await handleStripeWebhook({
   type: 'checkout.session.completed',
-  data: { object: mockSession }
+  data: { object: mockSession },
 });
 
 // Verify tenant updated
@@ -456,16 +480,19 @@ expect(tenant.limits.maxApiCalls).toBe(10000);
 ### Key Metrics
 
 1. **API Call Usage by Plan**
+
    - Track average usage per plan tier
    - Identify underutilized/overutilized plans
    - Adjust pricing based on usage patterns
 
 2. **Storage Usage Growth**
+
    - Monitor storage growth rate
    - Predict capacity needs
    - Identify storage-heavy users
 
 3. **Plan Upgrade Conversion Rate**
+
    - Track free → paid conversions
    - Measure upgrade timing (days after signup)
    - A/B test pricing and features
@@ -493,6 +520,7 @@ logger.warn('Tenant API call limit reached', {
 ### Limit Exceeded Errors
 
 All limit errors include:
+
 - **Status Code:** 429 (API), 413 (Storage), 403 (Users)
 - **Error Message:** Clear explanation
 - **Usage Data:** Current usage and limits
@@ -532,6 +560,7 @@ All limit errors include:
 For users created before tenant system:
 
 1. **Create Default Tenant:**
+
 ```javascript
 // Migration script
 for (const user of existingUsers) {
@@ -542,25 +571,26 @@ for (const user of existingUsers) {
     plan: user.isSubscribed ? user.subscription.plan_name : 'free',
     status: user.isSubscribed ? 'active' : 'trial',
   });
-  
+
   user.tenantId = tenant._id;
   await user.save();
 }
 ```
 
 2. **Migrate Subscriptions:**
+
 ```javascript
 // Link existing Stripe subscriptions to tenants
 for (const subscription of existingSubscriptions) {
   const user = await User.findById(subscription.userId);
   const tenant = await Tenant.findById(user.tenantId);
-  
+
   tenant.subscription = {
     stripeCustomerId: /* fetch from Stripe */,
     stripeSubscriptionId: subscription.transactionId,
     status: 'active',
   };
-  
+
   await tenant.save();
 }
 ```

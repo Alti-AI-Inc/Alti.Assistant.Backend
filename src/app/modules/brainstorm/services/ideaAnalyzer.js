@@ -15,7 +15,11 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 /**
  * Analyze user intent from message
  */
-const analyzeIntent = async (userMessage, conversationHistory = [], existingParams = {}) => {
+const analyzeIntent = async (
+  userMessage,
+  conversationHistory = [],
+  existingParams = {}
+) => {
   try {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash-exp',
@@ -128,7 +132,9 @@ Respond in JSON format only:
       confidence: 0.5,
       parameters: {},
       needsMoreInfo: true,
-      missingInfo: ['Please provide more details about what you want to brainstorm'],
+      missingInfo: [
+        'Please provide more details about what you want to brainstorm',
+      ],
       reasoning: 'Failed to analyze intent',
     };
   }
@@ -187,7 +193,10 @@ Provide analysis in JSON format:
       keyThemes: [],
       implicitRequirements: [],
       suggestedTechniques: [TECHNIQUES.FREE_ASSOCIATION],
-      recommendedPerspectives: [PERSPECTIVES.BUSINESS, PERSPECTIVES.USER_CENTRIC],
+      recommendedPerspectives: [
+        PERSPECTIVES.BUSINESS,
+        PERSPECTIVES.USER_CENTRIC,
+      ],
       recommendedDepth: DEPTH_LEVELS.STANDARD,
       estimatedIdeaCount: 20,
       reasoning: 'Default analysis due to error',
@@ -253,7 +262,9 @@ const hasValidIdea = (message, existingParams = {}) => {
   ];
 
   const lowerMessage = message.toLowerCase();
-  const hasKeyword = ideaKeywords.some((keyword) => lowerMessage.includes(keyword));
+  const hasKeyword = ideaKeywords.some((keyword) =>
+    lowerMessage.includes(keyword)
+  );
   const hasLength = message.length >= 15;
 
   return hasKeyword && hasLength;

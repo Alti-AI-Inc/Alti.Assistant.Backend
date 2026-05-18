@@ -6,13 +6,12 @@ import { logger } from '../../../shared/logger.js';
 import nodemailer from 'nodemailer';
 const mailgun = new Mailgun(formData);
 
-
 const mg = mailgun.client({
   username: 'api',
   key: `${config.mailgun?.mailgun_key}`,
 });
 
-export const sendMailWithMailGun = async mailData => {
+export const sendMailWithMailGun = async (mailData) => {
   const { sub, message, userEmail } = mailData;
 
   return new Promise((resolve, reject) => {
@@ -23,18 +22,18 @@ export const sendMailWithMailGun = async mailData => {
         subject: sub,
         html: message,
       })
-      .then(msg => {
+      .then((msg) => {
         logger.info(msg); // logs response data
         resolve(msg);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err); // logs any error
         reject(err);
       });
   });
 };
 
-export const sendMailWithNodeMailer = async mailData => {
+export const sendMailWithNodeMailer = async (mailData) => {
   const { sub, message, userEmail } = mailData;
 
   // Create a transporter object using SMTP transport
@@ -57,4 +56,4 @@ export const sendMailWithNodeMailer = async mailData => {
   });
   logger.info('Message sent: %s', info.messageId);
   return info;
-}
+};

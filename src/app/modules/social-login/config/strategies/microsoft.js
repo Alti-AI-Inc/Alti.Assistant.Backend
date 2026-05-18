@@ -16,7 +16,7 @@ const strategy = new MicrosoftStrategy(
     } catch (err) {
       return done(err, null);
     }
-  },
+  }
 );
 
 export default strategy;

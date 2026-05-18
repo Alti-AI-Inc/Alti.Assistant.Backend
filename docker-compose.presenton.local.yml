@@ -8,7 +8,7 @@ services:
     container_name: alti-backend
     restart: unless-stopped
     ports:
-      - "5100:5100"
+      - '5100:5100'
     env_file:
       - .env
     environment:
@@ -30,7 +30,7 @@ services:
     container_name: presenton
     restart: unless-stopped
     ports:
-      - "5200:80"
+      - '5200:80'
     environment:
       - LLM=google
       - GOOGLE_API_KEY=AIzaSyATOQRmcM0DMO83Z9jEuuC4DIgna60TSJQ

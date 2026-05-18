@@ -28,7 +28,9 @@ try {
       projectId: projectId,
     });
   } else {
-    logger.warn('GCS credentials not configured. Document uploads will be stored locally only.');
+    logger.warn(
+      'GCS credentials not configured. Document uploads will be stored locally only.'
+    );
   }
 
   if (storage && bucketName) {
@@ -51,7 +53,10 @@ const extractTextFromPDF = async (filePath) => {
     return pdfContent.text;
   } catch (error) {
     logger.error('Error extracting text from PDF:', error);
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Failed to extract text from PDF');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Failed to extract text from PDF'
+    );
   }
 };
 
@@ -64,7 +69,10 @@ const extractTextFromDOCX = async (filePath) => {
     return result.value;
   } catch (error) {
     logger.error('Error extracting text from DOCX:', error);
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Failed to extract text from DOCX');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Failed to extract text from DOCX'
+    );
   }
 };
 
@@ -115,7 +123,9 @@ const extractTextFromFile = async (fileInfo) => {
         );
     }
 
-    logger.info(`Successfully extracted ${text.length} characters from ${fileInfo.originalName}`);
+    logger.info(
+      `Successfully extracted ${text.length} characters from ${fileInfo.originalName}`
+    );
     return text;
   } catch (error) {
     logger.error('Error in extractTextFromFile:', error);
@@ -233,13 +243,16 @@ const getMimeType = (filename) => {
   const ext = path.extname(filename).toLowerCase();
   const mimeTypes = {
     '.pdf': 'application/pdf',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.docx':
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.doc': 'application/msword',
     '.txt': 'text/plain',
-    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xlsx':
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     '.xls': 'application/vnd.ms-excel',
-    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    '.ppt': 'application/vnd.ms-powerpoint'
+    '.pptx':
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.ppt': 'application/vnd.ms-powerpoint',
   };
   return mimeTypes[ext] || 'application/octet-stream';
 };

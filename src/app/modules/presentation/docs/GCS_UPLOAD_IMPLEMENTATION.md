@@ -3,9 +3,11 @@
 ## Changes Made
 
 ### 1. Created GCS Upload Service
+
 **File**: `src/app/modules/presentation/services/gcsUploadService.js`
 
 **Features**:
+
 - Download presentations from Presenton API
 - Upload to Google Cloud Storage
 - Organize files by userId/conversationId structure
@@ -14,13 +16,16 @@
 - Proper content-type mapping for PPTX, PDF, JSON
 
 **Functions**:
+
 - `uploadPresentationToGCS(presentonUrl, fileName, userId, conversationId)` - Main upload function
 - `deleteFromGCS(gcsPath)` - Delete file from GCS
 
 ### 2. Updated Configuration
+
 **File**: `config/index.js`
 
 **Addition**:
+
 ```javascript
 gcs: {
   knowledge_bank_bucket: 'alti_knowledge_bank_files',
@@ -30,15 +35,18 @@ gcs: {
 ```
 
 ### 3. Updated Presentation Service
+
 **File**: `src/app/modules/presentation/presentation.service.js`
 
 **Changes**:
+
 - Added import for `uploadPresentationToGCS` and `path`
 - Updated `handleGenerateIntent()` to upload sync-generated presentations
 - Updated `handleEditIntent()` to upload edited presentations
 - Updated `handleDeriveIntent()` to upload derived presentations
 
 **For each function**:
+
 1. Generate/Edit/Derive presentation via Presenton API
 2. Upload file to GCS
 3. Save public URL to conversation metadata
@@ -46,14 +54,17 @@ gcs: {
 5. Continue even if upload fails (graceful degradation)
 
 **Response Enhancements**:
+
 - Added `publicUrl` field to return objects
 - Updated response messages to include public URL
 - Stored URL in conversation metadata
 
 ### 4. Updated Direct API Controller
+
 **File**: `src/app/modules/presentation/presentation.controller.js`
 
 **Changes**:
+
 - Updated `generatePresentation()` controller
 - Added GCS upload for synchronous generation
 - Returns `publicUrl` in response data
@@ -62,16 +73,17 @@ gcs: {
 ### 5. Updated Conversation Metadata Storage
 
 **New Metadata Fields**:
+
 ```javascript
 {
   presentationUrl: "https://storage.googleapis.com/.../presentation.pptx",
   gcsPath: "userId/conversationId/presentation.pptx",
   uploadedAt: "2024-01-15T10:30:00.000Z",
-  
+
   editedPresentationUrl: "...",
   editedGcsPath: "...",
   editedAt: "...",
-  
+
   derivedPresentationUrl: "...",
   derivedGcsPath: "...",
   derivedAt: "..."
@@ -79,13 +91,16 @@ gcs: {
 ```
 
 ### 6. Created Documentation
+
 **Files Created**:
+
 - `docs/GCS_UPLOAD_FEATURE.md` - Comprehensive feature documentation
 - Updated `README.md` - Added GCS integration section
 
 ## API Response Changes
 
 ### Conversational API Response (Before)
+
 ```json
 {
   "success": true,
@@ -98,6 +113,7 @@ gcs: {
 ```
 
 ### Conversational API Response (After)
+
 ```json
 {
   "success": true,
@@ -105,12 +121,13 @@ gcs: {
   "presentationId": "abc123",
   "downloadUrl": "http://localhost:5000/download/abc123",
   "editUrl": "http://localhost:5000/edit/abc123",
-  "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/...",  // NEW
+  "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/...", // NEW
   "creditsConsumed": 10
 }
 ```
 
 ### Direct API Response (Before)
+
 ```json
 {
   "data": {
@@ -123,13 +140,14 @@ gcs: {
 ```
 
 ### Direct API Response (After)
+
 ```json
 {
   "data": {
     "presentation_id": "abc123",
     "path": "http://localhost:5000/download/abc123",
     "edit_path": "http://localhost:5000/edit/abc123",
-    "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/...",  // NEW
+    "publicUrl": "https://storage.googleapis.com/alti_assistant_presentation/...", // NEW
     "credits_consumed": 10
   }
 }
@@ -154,8 +172,9 @@ alti_assistant_presentation/
 ## Integration Points
 
 ### 1. Conversational Flow
+
 ```
-User Message 
+User Message
   → Gemini Analysis
   → Handle Intent
   → Generate/Edit/Derive via Presenton API
@@ -165,6 +184,7 @@ User Message
 ```
 
 ### 2. Direct API Flow
+
 ```
 Direct API Request
   → Validate Parameters
@@ -176,7 +196,9 @@ Direct API Request
 ## Error Handling
 
 ### Graceful Degradation
+
 If GCS upload fails:
+
 - Error is logged
 - Original Presenton download URL is still provided
 - Response message excludes public URL section
@@ -184,6 +206,7 @@ If GCS upload fails:
 - System continues to function normally
 
 ### Error Logging
+
 ```javascript
 logger.error('Error uploading presentation to GCS:', uploadError);
 ```
@@ -202,6 +225,7 @@ GCS_PRESENTATION_BUCKET=alti_assistant_presentation
 ## Dependencies
 
 All required dependencies already exist:
+
 - `@google-cloud/storage` - GCS SDK
 - `axios` - HTTP client for downloading files
 - `path` - Path manipulation
@@ -211,6 +235,7 @@ All required dependencies already exist:
 ### Test the Upload Feature
 
 1. **Via Conversational API**:
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/assistant \
   -H "Content-Type: application/json" \
@@ -218,6 +243,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 2. **Via Direct API**:
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/generate \
   -H "Content-Type: application/json" \
@@ -225,11 +251,13 @@ curl -X POST http://localhost:3000/api/presentation/generate \
 ```
 
 3. **Verify in Response**:
+
 - Check for `publicUrl` field
 - Verify URL format: `https://storage.googleapis.com/alti_assistant_presentation/...`
 - Access the URL to confirm file is downloadable
 
 4. **Check Conversation Metadata**:
+
 ```javascript
 // Fetch conversation
 const conversation = await Conversation.findOne({ conversationId });
@@ -248,6 +276,7 @@ console.log(conversation.metadata.presentationUrl);
 ## Future Enhancements
 
 Potential improvements:
+
 - [ ] Private file access with signed URLs
 - [ ] Automatic file cleanup/expiration policies
 - [ ] File compression before upload
@@ -259,6 +288,7 @@ Potential improvements:
 ## Rollback Plan
 
 If issues occur:
+
 1. The system will fallback to Presenton URLs automatically
 2. No breaking changes to existing API contracts
 3. Can disable upload by catching errors at service level
@@ -267,6 +297,7 @@ If issues occur:
 ## Monitoring
 
 Log patterns to watch:
+
 - `Presentation uploaded to GCS: {url}` - Success
 - `Error uploading presentation to GCS: {error}` - Failure
 - Monitor upload success rate

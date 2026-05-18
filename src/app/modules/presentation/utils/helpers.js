@@ -101,7 +101,8 @@ export const sanitizeInput = (input) => {
  */
 export const extractPresentationId = (text) => {
   // Match UUID format
-  const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  const uuidRegex =
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
   const match = text.match(uuidRegex);
   return match ? match[0] : null;
 };

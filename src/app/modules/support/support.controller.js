@@ -71,7 +71,7 @@ const bulkDeleteSupportReq = catchAsync(async (req, res) => {
   logger.info(ids, 'controller idddddddddddd');
 
   // Validate IDs
-  if (!ids.every(id => mongoose.Types.ObjectId.isValid(id))) {
+  if (!ids.every((id) => mongoose.Types.ObjectId.isValid(id))) {
     throw { message: 'Invalid IDs provided' };
   }
 

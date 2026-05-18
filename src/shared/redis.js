@@ -15,7 +15,7 @@ const redisSubClient = createClient({
   url: config.redis.url,
 });
 
-redisClient.on('error', error => logger.info('RedisError', error));
+redisClient.on('error', (error) => logger.info('RedisError', error));
 redisClient.on('connect', () => logger.info('Redis Connected'));
 
 const connect = async () => {
@@ -28,11 +28,11 @@ const set = async (key, value, options) => {
   await redisClient.set(key, value, options);
 };
 
-const get = async key => {
+const get = async (key) => {
   return await redisClient.get(key);
 };
 
-const del = async key => {
+const del = async (key) => {
   await redisClient.del(key);
 };
 
@@ -41,12 +41,12 @@ const setAccessToken = async (userId, token) => {
   await redisClient.set(key, token, { EX: Number(config.redis.expires_in) });
 };
 
-const getAccessToken = async userId => {
+const getAccessToken = async (userId) => {
   const key = `access-token:${userId}`;
   return await redisClient.get(key);
 };
 
-const delAccessToken = async userId => {
+const delAccessToken = async (userId) => {
   const key = `access-token:${userId}`;
   await redisClient.del(key);
 };

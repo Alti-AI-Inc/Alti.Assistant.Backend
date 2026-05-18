@@ -30,7 +30,11 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
+      ? await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        )
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -85,7 +89,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while processing your request',
+      message:
+        error.message || 'An error occurred while processing your request',
       data: {
         conversationId,
         error: error.message,
@@ -122,13 +127,19 @@ export const generateDocument = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
-        message: 'You have reached your document generation limit. Please upgrade your plan.',
+        message:
+          'You have reached your document generation limit. Please upgrade your plan.',
       });
     }
   }
 
   try {
-    const result = await documentService.generateDocument(params, userId, isGuest, req);
+    const result = await documentService.generateDocument(
+      params,
+      userId,
+      isGuest,
+      req
+    );
 
     logger.info('Document generated successfully', {
       userId,
@@ -175,7 +186,8 @@ export const exportDocument = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.NOT_IMPLEMENTED,
       success: false,
-      message: 'Document export from stored documents is not yet implemented. Please use the generate endpoint with your content.',
+      message:
+        'Document export from stored documents is not yet implemented. Please use the generate endpoint with your content.',
     });
   } catch (error) {
     logger.error('Error exporting document:', error);
@@ -209,7 +221,8 @@ export const editDocument = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.NOT_IMPLEMENTED,
       success: false,
-      message: 'Document editing is not yet implemented. Please use the conversational assistant for document modifications.',
+      message:
+        'Document editing is not yet implemented. Please use the conversational assistant for document modifications.',
     });
   } catch (error) {
     logger.error('Error editing document:', error);

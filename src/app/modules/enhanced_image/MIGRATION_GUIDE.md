@@ -1,20 +1,23 @@
 # Enhanced Image Module - Migration to Standard Architecture
 
 ## Overview
+
 The enhanced_image module has been refactored to match the standard module architecture used across the application (similar to the search module). This ensures consistency, maintainability, and proper integration with the conversation system.
 
 ## Key Changes
 
 ### 1. **Removed Buffer Memory / Session Manager**
+
 - **Before**: Used in-memory SessionManager for storing conversation history
 - **After**: Uses the Conversation schema (MongoDB) for persistent storage
-- **Benefits**: 
+- **Benefits**:
   - Data persists across server restarts
   - Consistent with other modules
   - Better scalability
   - Supports conversation history and analytics
 
 ### 2. **Standardized Response Structure**
+
 - **Before**: Custom response format `{ success, image, prompt, error }`
 - **After**: Standard `sendResponse()` format with:
   ```javascript
@@ -36,23 +39,27 @@ The enhanced_image module has been refactored to match the standard module archi
   ```
 
 ### 3. **Guest User Support**
+
 - Supports both authenticated and guest users
 - Uses `optionalAuth()` middleware
 - Guest users get temporary MongoDB ObjectId for tracking
 - Conversations marked with `isGuest` flag
 
 ### 4. **Subscription Limits Integration**
+
 - Checks user subscription limits before processing
 - Integrates with payment/subscription module
 - Returns appropriate error messages when limits exceeded
 
 ### 5. **Conversation Integration**
+
 - All image generation/editing creates or continues conversations
 - Messages stored with proper metadata
 - Supports conversation history for context-aware operations
 - Each conversation has unique ID following pattern: `image-{timestamp}-{random}`
 
 ### 6. **File Structure Cleanup**
+
 ```
 enhanced_image/
 ├── enhanced_image.controller.js    # Main controller (NEW)
@@ -77,20 +84,23 @@ enhanced_image/
 ### Base Path: `/enhanced-image`
 
 #### 1. Generate Image (POST `/generate`)
+
 Generate an image from a text prompt.
 
 **Request Body:**
+
 ```json
 {
   "prompt": "A beautiful sunset over mountains",
   "conversationId": "optional-conversation-id",
-  "aspectRatio": "16:9",  // optional
-  "negativePrompt": "blurry, low quality",  // optional
-  "userId": "optional-for-guest-tracking"  // optional
+  "aspectRatio": "16:9", // optional
+  "negativePrompt": "blurry, low quality", // optional
+  "userId": "optional-for-guest-tracking" // optional
 }
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -124,25 +134,29 @@ Generate an image from a text prompt.
 ```
 
 #### 2. Edit Image (POST `/edit`)
+
 Edit an existing image with a text prompt.
 
 **Request Body:**
+
 ```json
 {
   "prompt": "Add a rainbow to the sky",
   "imageBase64": "data:image/png;base64,...",
   "conversationId": "optional-conversation-id",
-  "aspectRatio": "16:9",  // optional
-  "userId": "optional-for-guest-tracking"  // optional
+  "aspectRatio": "16:9", // optional
+  "userId": "optional-for-guest-tracking" // optional
 }
 ```
 
 **Response:** Similar to generate endpoint
 
 #### 3. Analyze Intent (POST `/analyze-intent`)
+
 Analyze the intent of an image generation prompt.
 
 **Request Body:**
+
 ```json
 {
   "prompt": "Create a professional logo for a tech company"
@@ -150,6 +164,7 @@ Analyze the intent of an image generation prompt.
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -165,9 +180,11 @@ Analyze the intent of an image generation prompt.
 ```
 
 #### 4. Get Statistics (GET `/stats`)
+
 Get image generation statistics (authenticated users only).
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -187,14 +204,17 @@ Get image generation statistics (authenticated users only).
 ### For Frontend Developers
 
 1. **Update API Base Path**
+
    - Old: Various paths (`/image/...`)
    - New: `/enhanced-image/...`
 
 2. **Update Request Format**
+
    - Add `conversationId` to continue existing conversations
    - Include `userId` for guest user tracking (optional)
 
 3. **Update Response Handling**
+
    - Response now nested under `data.responseMessage`
    - Access image via `data.responseMessage.image`
    - Get conversation info from `data.conversationId` and `data.messageCount`
@@ -206,12 +226,14 @@ Get image generation statistics (authenticated users only).
 ### For Backend Developers
 
 1. **Controller Changes**
+
    - All controllers use `catchAsync()` wrapper
    - All responses use `sendResponse()` helper
    - Subscription checks integrated
    - Guest user support enabled
 
 2. **Service Changes**
+
    - All services interact with conversation schema
    - OpenMemory integration for memory persistence
    - Error handling improved with proper ApiError throwing
@@ -223,6 +245,7 @@ Get image generation statistics (authenticated users only).
 ## Environment Variables
 
 Required environment variables:
+
 ```env
 GOOGLE_API_KEY=your-google-api-key-here
 ```
@@ -238,6 +261,7 @@ GOOGLE_API_KEY=your-google-api-key-here
 ## Testing
 
 ### Test Image Generation
+
 ```bash
 curl -X POST http://localhost:3000/enhanced-image/generate \
   -H "Content-Type: application/json" \
@@ -247,6 +271,7 @@ curl -X POST http://localhost:3000/enhanced-image/generate \
 ```
 
 ### Test Image Editing
+
 ```bash
 curl -X POST http://localhost:3000/enhanced-image/edit \
   -H "Content-Type: application/json" \
@@ -257,6 +282,7 @@ curl -X POST http://localhost:3000/enhanced-image/edit \
 ```
 
 ### Test with Authentication
+
 ```bash
 curl -X POST http://localhost:3000/enhanced-image/generate \
   -H "Content-Type: application/json" \

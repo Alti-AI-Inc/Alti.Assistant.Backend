@@ -133,53 +133,123 @@ export const SYSTEM_PROMPTS = {
 
 // Response templates
 export const RESPONSE_MESSAGES = {
-  GREETING: 'Hello! I\'m your creative writing assistant. What would you like to write today? I can help you with poems, stories, scripts, song lyrics, and much more!',
-  CLARIFICATION_NEEDED: 'Could you tell me more about what you\'d like to write? What type of creative writing are you interested in?',
-  WRITING_COMPLETE: 'Here\'s what I\'ve written for you:',
-  READY_TO_CREATE: 'Great! I\'m ready to create that for you. Let me work on it.',
-  CONTINUE_PROMPT: 'Would you like me to continue, revise, or try a different approach?',
+  GREETING:
+    "Hello! I'm your creative writing assistant. What would you like to write today? I can help you with poems, stories, scripts, song lyrics, and much more!",
+  CLARIFICATION_NEEDED:
+    "Could you tell me more about what you'd like to write? What type of creative writing are you interested in?",
+  WRITING_COMPLETE: "Here's what I've written for you:",
+  READY_TO_CREATE:
+    "Great! I'm ready to create that for you. Let me work on it.",
+  CONTINUE_PROMPT:
+    'Would you like me to continue, revise, or try a different approach?',
   IDEAS_PROVIDED: 'Here are some ideas to get you started:',
-  REVISION_COMPLETE: 'I\'ve revised the text based on your feedback.',
-  ERROR: 'I encountered an error while creating your writing. Please try again.',
+  REVISION_COMPLETE: "I've revised the text based on your feedback.",
+  ERROR:
+    'I encountered an error while creating your writing. Please try again.',
 };
 
 // Intent detection keywords
 export const INTENT_KEYWORDS = {
   [WRITING_INTENTS.CREATE_NEW]: [
-    'write', 'create', 'make', 'compose', 'craft', 'generate', 'produce',
-    'new', 'fresh', 'start', 'begin', 'I want', 'I need', 'can you write'
+    'write',
+    'create',
+    'make',
+    'compose',
+    'craft',
+    'generate',
+    'produce',
+    'new',
+    'fresh',
+    'start',
+    'begin',
+    'I want',
+    'I need',
+    'can you write',
   ],
   [WRITING_INTENTS.CONTINUE_STORY]: [
-    'continue', 'keep going', 'what happens next', 'more', 'extend',
-    'carry on', 'go on', 'keep writing', 'add more', 'next part'
+    'continue',
+    'keep going',
+    'what happens next',
+    'more',
+    'extend',
+    'carry on',
+    'go on',
+    'keep writing',
+    'add more',
+    'next part',
   ],
   [WRITING_INTENTS.REVISE]: [
-    'revise', 'improve', 'better', 'fix', 'change', 'modify', 'edit',
-    'rewrite', 'rework', 'enhance', 'polish', 'refine'
+    'revise',
+    'improve',
+    'better',
+    'fix',
+    'change',
+    'modify',
+    'edit',
+    'rewrite',
+    'rework',
+    'enhance',
+    'polish',
+    'refine',
   ],
   [WRITING_INTENTS.EXPAND]: [
-    'expand', 'elaborate', 'add more', 'make longer', 'develop',
-    'flesh out', 'more details', 'extend', 'lengthen'
+    'expand',
+    'elaborate',
+    'add more',
+    'make longer',
+    'develop',
+    'flesh out',
+    'more details',
+    'extend',
+    'lengthen',
   ],
   [WRITING_INTENTS.CHANGE_STYLE]: [
-    'change style', 'different style', 'another style', 'rewrite in',
-    'make it more', 'convert to', 'transform'
+    'change style',
+    'different style',
+    'another style',
+    'rewrite in',
+    'make it more',
+    'convert to',
+    'transform',
   ],
   [WRITING_INTENTS.ADD_DETAILS]: [
-    'add details', 'more descriptive', 'more vivid', 'describe',
-    'imagery', 'sensory', 'paint a picture'
+    'add details',
+    'more descriptive',
+    'more vivid',
+    'describe',
+    'imagery',
+    'sensory',
+    'paint a picture',
   ],
   [WRITING_INTENTS.SHORTEN]: [
-    'shorten', 'make shorter', 'condense', 'brief', 'concise',
-    'cut down', 'reduce', 'trim', 'shorter version'
+    'shorten',
+    'make shorter',
+    'condense',
+    'brief',
+    'concise',
+    'cut down',
+    'reduce',
+    'trim',
+    'shorter version',
   ],
   [WRITING_INTENTS.GET_IDEAS]: [
-    'ideas', 'suggestions', 'help me think', 'what should',
-    'inspire me', 'brainstorm', 'topics', 'themes'
+    'ideas',
+    'suggestions',
+    'help me think',
+    'what should',
+    'inspire me',
+    'brainstorm',
+    'topics',
+    'themes',
   ],
   [WRITING_INTENTS.BRAINSTORM]: [
-    'brainstorm', 'think of', 'come up with', 'generate ideas',
-    'creative ideas', 'possibilities', 'options'
+    'brainstorm',
+    'think of',
+    'come up with',
+    'generate ideas',
+    'creative ideas',
+    'possibilities',
+    'options',
   ],
 };
 
@@ -192,7 +262,11 @@ export const TYPE_KEYWORDS = {
   [WRITING_TYPES.SCRIPT]: ['script', 'screenplay', 'play', 'scene'],
   [WRITING_TYPES.SONG_LYRICS]: ['lyrics', 'song', 'song lyrics', 'music'],
   [WRITING_TYPES.DIALOGUE]: ['dialogue', 'conversation', 'exchange'],
-  [WRITING_TYPES.FLASH_FICTION]: ['flash fiction', 'micro story', 'very short story'],
+  [WRITING_TYPES.FLASH_FICTION]: [
+    'flash fiction',
+    'micro story',
+    'very short story',
+  ],
   [WRITING_TYPES.HAIKU]: ['haiku'],
   [WRITING_TYPES.SONNET]: ['sonnet'],
   [WRITING_TYPES.FREE_VERSE]: ['free verse'],

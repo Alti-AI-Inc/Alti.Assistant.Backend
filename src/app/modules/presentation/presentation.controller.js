@@ -20,7 +20,9 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   const { message, conversationId } = req.body;
   userId = req.body.userId || userId;
 
-  logger.info(`Presentation assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`);
+  logger.info(
+    `Presentation assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
+  );
 
   if (!message) {
     return sendResponse(res, {
@@ -65,7 +67,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while processing your request',
+      message:
+        error.message || 'An error occurred while processing your request',
       data: {
         conversationId,
         error: error.message,
@@ -113,8 +116,12 @@ export const generatePresentation = catchAsync(async (req, res) => {
   };
 
   try {
-    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
-    const { uploadPresentationToGCS } = await import('./services/gcsUploadService.js');
+    const { presentonAPIClient } = await import(
+      './services/presentonAPIClient.js'
+    );
+    const { uploadPresentationToGCS } = await import(
+      './services/gcsUploadService.js'
+    );
     const path = await import('path');
 
     let result;
@@ -128,7 +135,9 @@ export const generatePresentation = catchAsync(async (req, res) => {
         try {
           const userId = req.user?.userId || req.user?._id || 'direct_api';
           const conversationId = `direct_${Date.now()}`;
-          const fileName = path.default.basename(result.downloadUrl) || `presentation_${result.presentation_id}.pptx`;
+          const fileName =
+            path.default.basename(result.downloadUrl) ||
+            `presentation_${result.presentation_id}.pptx`;
           const uploadResult = await uploadPresentationToGCS(
             result.downloadUrl,
             fileName,
@@ -137,7 +146,9 @@ export const generatePresentation = catchAsync(async (req, res) => {
           );
 
           result.publicUrl = uploadResult.publicUrl;
-          logger.info(`Presentation uploaded to GCS: ${uploadResult.publicUrl}`);
+          logger.info(
+            `Presentation uploaded to GCS: ${uploadResult.publicUrl}`
+          );
         } catch (uploadError) {
           logger.error('Error uploading presentation to GCS:', uploadError);
           // Continue even if upload fails
@@ -148,7 +159,9 @@ export const generatePresentation = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: async ? 'Presentation generation started' : 'Presentation generated successfully',
+      message: async
+        ? 'Presentation generation started'
+        : 'Presentation generated successfully',
       data: result,
     });
   } catch (error) {
@@ -176,7 +189,11 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
   // If conversationId is provided, fetch taskId from conversation metadata
   if (conversationId && !taskId) {
     try {
-      const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+      const conversation = await conversationHelpers.getConversationById(
+        conversationId,
+        userId,
+        req
+      );
       taskId = conversation.metadata?.presentation_metadata?.taskId;
 
       if (!taskId) {
@@ -187,7 +204,9 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
         });
       }
 
-      logger.info(`Retrieved taskId ${taskId} from conversation ${conversationId}`);
+      logger.info(
+        `Retrieved taskId ${taskId} from conversation ${conversationId}`
+      );
     } catch (error) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
@@ -200,8 +219,12 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
   logger.info(`Checking status for task ${taskId}`);
 
   try {
-    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
-    const { uploadPresentationToGCS } = await import('./services/gcsUploadService.js');
+    const { presentonAPIClient } = await import(
+      './services/presentonAPIClient.js'
+    );
+    const { uploadPresentationToGCS } = await import(
+      './services/gcsUploadService.js'
+    );
     const path = await import('path');
 
     const result = await presentonAPIClient.checkTaskStatus(taskId);
@@ -212,7 +235,9 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
 
     if (result.status === 'completed' && result.data?.path) {
       try {
-        const fileName = path.default.basename(result.data.path) || `presentation_${result.data.presentation_id}.pptx`;
+        const fileName =
+          path.default.basename(result.data.path) ||
+          `presentation_${result.data.presentation_id}.pptx`;
         const uploadConversationId = conversationId || `task_${taskId}`;
 
         try {
@@ -224,28 +249,45 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
           );
 
           publicUrl = uploadResult.publicUrl;
-          logger.info(`Task ${taskId} presentation uploaded to GCS: ${publicUrl}`);
+          logger.info(
+            `Task ${taskId} presentation uploaded to GCS: ${publicUrl}`
+          );
         } catch (uploadError) {
-          logger.error('Error uploading task presentation to GCS:', uploadError);
+          logger.error(
+            'Error uploading task presentation to GCS:',
+            uploadError
+          );
         }
 
         // Update conversation metadata with completion info if conversationId provided
         if (conversationId) {
           try {
-            console.log('Updating conversation metadata with presentation completion info');
-            await conversationService.updatePresentationMetadata(conversationId, userId, {
-              taskId,
-              status: 'completed',
-              presentationId: result.data.presentation_id,
-              publicUrl,
-              downloadPath: result.data.path,
-              editPath: result.data.edit_path,
-              completedAt: new Date().toISOString(),
-              uploadResult,
-            }, req);
-            logger.info(`Updated conversation ${conversationId} with completion metadata`);
+            console.log(
+              'Updating conversation metadata with presentation completion info'
+            );
+            await conversationService.updatePresentationMetadata(
+              conversationId,
+              userId,
+              {
+                taskId,
+                status: 'completed',
+                presentationId: result.data.presentation_id,
+                publicUrl,
+                downloadPath: result.data.path,
+                editPath: result.data.edit_path,
+                completedAt: new Date().toISOString(),
+                uploadResult,
+              },
+              req
+            );
+            logger.info(
+              `Updated conversation ${conversationId} with completion metadata`
+            );
           } catch (metadataError) {
-            logger.error('Error updating conversation metadata:', metadataError);
+            logger.error(
+              'Error updating conversation metadata:',
+              metadataError
+            );
           }
         }
       } catch (uploadError) {
@@ -284,7 +326,9 @@ export const editPresentation = catchAsync(async (req, res) => {
   logger.info(`Editing presentation ${presentationId}`);
 
   try {
-    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const { presentonAPIClient } = await import(
+      './services/presentonAPIClient.js'
+    );
     const result = await presentonAPIClient.editPresentation({
       presentationId,
       slides,
@@ -317,7 +361,9 @@ export const derivePresentation = catchAsync(async (req, res) => {
   logger.info(`Deriving presentation from ${presentationId}`);
 
   try {
-    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const { presentonAPIClient } = await import(
+      './services/presentonAPIClient.js'
+    );
     const result = await presentonAPIClient.derivePresentation({
       presentationId,
       slides,
@@ -350,7 +396,9 @@ export const getPresentation = catchAsync(async (req, res) => {
   logger.info(`Getting presentation ${presentationId}`);
 
   try {
-    const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const { presentonAPIClient } = await import(
+      './services/presentonAPIClient.js'
+    );
     const result = await presentonAPIClient.getPresentation(presentationId);
 
     return sendResponse(res, {

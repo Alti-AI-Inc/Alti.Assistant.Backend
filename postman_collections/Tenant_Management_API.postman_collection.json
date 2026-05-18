@@ -128,13 +128,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/tenant/check-subdomain?subdomain=test-workspace",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "tenant",
-                "check-subdomain"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["tenant", "check-subdomain"],
               "query": [
                 {
                   "key": "subdomain",
@@ -228,13 +223,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/tenant/check-subdomain?subdomain=test-workspace",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "tenant",
-                "check-subdomain"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["tenant", "check-subdomain"],
               "query": [
                 {
                   "key": "subdomain",

@@ -10,20 +10,70 @@ import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/che
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 
 // Original composio v2 routes
-router.post('/initiate', optionalAuth(), extractTenantContext, composioController.composioInitiateController);
-router.post('/wait-for-connection', optionalAuth(), extractTenantContext, composioController.composioWaitForConnectionController);
+router.post(
+  '/initiate',
+  optionalAuth(),
+  extractTenantContext,
+  composioController.composioInitiateController
+);
+router.post(
+  '/wait-for-connection',
+  optionalAuth(),
+  extractTenantContext,
+  composioController.composioWaitForConnectionController
+);
 
 // Conversational Composio routes
-router.post('/chat', optionalAuth(), extractTenantContext, checkDailyRequestLimit, composioController.composioConversationController);
-router.get('/conversation/:conversationId', optionalAuth(), extractTenantContext, composioController.getComposioConversationController);
-router.get('/conversations', optionalAuth(), extractTenantContext, composioController.getUserComposioConversationsController);
+router.post(
+  '/chat',
+  optionalAuth(),
+  extractTenantContext,
+  checkDailyRequestLimit,
+  composioController.composioConversationController
+);
+router.get(
+  '/conversation/:conversationId',
+  optionalAuth(),
+  extractTenantContext,
+  composioController.getComposioConversationController
+);
+router.get(
+  '/conversations',
+  optionalAuth(),
+  extractTenantContext,
+  composioController.getUserComposioConversationsController
+);
 
 // AI Classification routes
-router.post('/classify-and-execute', optionalAuth(), extractTenantContext, checkDailyRequestLimit, aiClassificationController.classifyAndExecuteController);
-router.get('/supported-apps', extractTenantContext, aiClassificationController.getSupportedAppsController);
-router.post('/test-classification', extractTenantContext, aiClassificationController.testClassificationController);
-router.get('/user-connections', optionalAuth(), extractTenantContext, aiClassificationController.getUserConnectionsController);
-router.get('/conversation-history', optionalAuth(), extractTenantContext, aiClassificationController.getConversationHistoryController);
+router.post(
+  '/classify-and-execute',
+  optionalAuth(),
+  extractTenantContext,
+  checkDailyRequestLimit,
+  aiClassificationController.classifyAndExecuteController
+);
+router.get(
+  '/supported-apps',
+  extractTenantContext,
+  aiClassificationController.getSupportedAppsController
+);
+router.post(
+  '/test-classification',
+  extractTenantContext,
+  aiClassificationController.testClassificationController
+);
+router.get(
+  '/user-connections',
+  optionalAuth(),
+  extractTenantContext,
+  aiClassificationController.getUserConnectionsController
+);
+router.get(
+  '/conversation-history',
+  optionalAuth(),
+  extractTenantContext,
+  aiClassificationController.getConversationHistoryController
+);
 
 // Scheduled Workflow routes
 router.use('/workflows', workflowRoutes);

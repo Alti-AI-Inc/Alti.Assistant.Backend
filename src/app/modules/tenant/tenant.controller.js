@@ -110,7 +110,8 @@ const switchTenant = catchAsync(async (req, res) => {
   let { tenantId } = req.body;
 
   // Handle personal mode switching
-  const isPersonalMode = !tenantId || tenantId === 'personal' || tenantId === 'null';
+  const isPersonalMode =
+    !tenantId || tenantId === 'personal' || tenantId === 'null';
 
   if (isPersonalMode) {
     tenantId = null;
@@ -121,12 +122,12 @@ const switchTenant = catchAsync(async (req, res) => {
   // Fetch all user's tenants for the token payload
   const tenantMemberships = await TenantMember.find({
     userId,
-    status: 'active'
+    status: 'active',
   }).select('tenantId role');
 
-  const tenants = tenantMemberships.map(membership => ({
+  const tenants = tenantMemberships.map((membership) => ({
     tenantId: membership.tenantId,
-    role: membership.role
+    role: membership.role,
   }));
 
   // Generate new access token with currentTenantId in payload (null for personal mode)
@@ -144,7 +145,9 @@ const switchTenant = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: isPersonalMode ? 'Switched to personal mode successfully' : 'Tenant switched successfully',
+    message: isPersonalMode
+      ? 'Switched to personal mode successfully'
+      : 'Tenant switched successfully',
     data: {
       ...result,
       accessToken,
@@ -160,7 +163,10 @@ const getTenantMembers = catchAsync(async (req, res) => {
   const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const { page = 1, limit = 20 } = req.query;
 
-  const result = await tenantService.getTenantMembers(tenantId, { page, limit });
+  const result = await tenantService.getTenantMembers(tenantId, {
+    page,
+    limit,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

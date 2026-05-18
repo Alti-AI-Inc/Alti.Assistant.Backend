@@ -13,24 +13,31 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 /**
  * Generate comprehensive brainstorming insights for an idea
  */
-export const generateBrainstorm = async (ideaText, analysis, requestedAspects = [], contextData = {}) => {
+export const generateBrainstorm = async (
+  ideaText,
+  analysis,
+  requestedAspects = [],
+  contextData = {}
+) => {
   try {
     console.log('Starting brainstorming session:', {
       ideaLength: ideaText.length,
       aspects: requestedAspects.length,
     });
 
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     // Determine which aspects to brainstorm - REDUCED for speed
     const aspects =
       requestedAspects.length > 0
         ? requestedAspects
         : [
-          BRAINSTORM_ASPECTS.SWOT_ANALYSIS,
-          BRAINSTORM_ASPECTS.RESOURCE_NEEDS,
-          BRAINSTORM_ASPECTS.TIMELINE_ESTIMATION,
-        ];
+            BRAINSTORM_ASPECTS.SWOT_ANALYSIS,
+            BRAINSTORM_ASPECTS.RESOURCE_NEEDS,
+            BRAINSTORM_ASPECTS.TIMELINE_ESTIMATION,
+          ];
 
     const brainstormPrompt = `${SYSTEM_PROMPTS.BRAINSTORMING}
 
@@ -104,7 +111,9 @@ Only return valid JSON, no additional text. Keep responses concise.`;
  */
 export const generateSWOT = async (ideaText) => {
   try {
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const prompt = `Perform a quick SWOT analysis for this idea:
 
@@ -212,7 +221,8 @@ export const estimateResources = (brainstorm, complexity) => {
     team: brainstorm.resource_needs?.team_composition || [],
     tools: brainstorm.resource_needs?.tools_and_technology || [],
     infrastructure: brainstorm.resource_needs?.infrastructure || [],
-    timeline: brainstorm.timeline_estimation?.total_duration || 'To be determined',
+    timeline:
+      brainstorm.timeline_estimation?.total_duration || 'To be determined',
   };
 
   return resources;

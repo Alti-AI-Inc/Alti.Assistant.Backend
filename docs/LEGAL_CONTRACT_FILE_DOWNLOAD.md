@@ -1,6 +1,7 @@
 # Legal Contract File Download Feature
 
 ## Overview
+
 This feature allows users to generate and download legal contracts as files, with automatic upload to Google Cloud Storage (GCS) and public URL generation.
 
 ## Architecture
@@ -8,12 +9,14 @@ This feature allows users to generate and download legal contracts as files, wit
 ### Components
 
 1. **GCS Upload Service** (`services/gcsUploadService.js`)
+
    - Uploads contract files to GCS bucket: `alti_assistant_documents`
    - Folder structure: `contract/{userId}/{filename}`
    - Generates public URLs for downloads
    - Fallback to local storage if GCS not configured
 
 2. **File Generation Service** (`services/fileGenerationService.js`)
+
    - Creates contract files in TXT format (DOCX coming soon)
    - Saves to `output/contracts/` directory
    - Handles file cleanup after upload
@@ -28,6 +31,7 @@ This feature allows users to generate and download legal contracts as files, wit
 ### 1. User Requests Download
 
 Users can request file downloads in various ways:
+
 - "make it a file"
 - "give me a download link"
 - "can I download this?"
@@ -37,6 +41,7 @@ Users can request file downloads in various ways:
 ### 2. AI Detection
 
 The system uses `detectDownloadIntent()` function to:
+
 - Analyze user message with Gemini AI
 - Determine if file download is requested
 - Identify desired format
@@ -45,6 +50,7 @@ The system uses `detectDownloadIntent()` function to:
 ### 3. File Generation
 
 When download is detected:
+
 1. Contract content is saved to a local file
 2. File is uploaded to GCS bucket
 3. Public URL is generated
@@ -53,6 +59,7 @@ When download is detected:
 ### 4. Response
 
 User receives:
+
 - Public download URL
 - File name
 - Format information
@@ -65,6 +72,7 @@ User receives:
 The main flow in `processConversationalRequest()` now includes:
 
 **Scenario 3: Download Request**
+
 ```javascript
 if (downloadIntent.wantsFile && currentContract) {
   const fileUploadResult = await generateAndUploadContractFile(
@@ -76,7 +84,7 @@ if (downloadIntent.wantsFile && currentContract) {
       conversationId: actualConversationId,
     }
   );
-  
+
   // Return download link
 }
 ```
@@ -86,6 +94,7 @@ if (downloadIntent.wantsFile && currentContract) {
 ### GCS Settings
 
 Set these environment variables:
+
 ```bash
 GCS_BUCKET_NAME=alti_assistant_documents
 GCP_PROJECT_ID=your-project-id
@@ -95,6 +104,7 @@ GCS_KEY_FILE=/path/to/service-account-key.json
 ### Folder Structure
 
 GCS folder structure:
+
 ```
 alti_assistant_documents/
   contract/
@@ -104,6 +114,7 @@ alti_assistant_documents/
 ```
 
 Local output:
+
 ```
 output/
   contracts/
@@ -113,9 +124,11 @@ output/
 ## File Formats
 
 ### Currently Supported
+
 - **TXT** - Plain text format (default)
 
 ### Coming Soon
+
 - **DOCX** - Microsoft Word format (requires `docx` library)
 - **PDF** - PDF format (requires PDF generation library)
 
@@ -126,6 +139,7 @@ output/
 **User:** "give me a download link"
 
 **Response:**
+
 ```
 Here's your contract file!
 
@@ -140,6 +154,7 @@ Format: TXT
 ### When Contract is Complete
 
 After all enhancement questions:
+
 ```
 Contract fully enhanced!
 
@@ -148,23 +163,26 @@ FINAL CONTRACT:
 
 ---
 
-All enhancement questions have been answered. Your contract is complete! 
+All enhancement questions have been answered. Your contract is complete!
 Say "give me a download link" or "make it a file" to get a downloadable version.
 ```
 
 ## Error Handling
 
 ### GCS Not Configured
+
 - Falls back to local storage
 - Returns local file path
 - Logs warning message
 
 ### File Generation Failure
+
 - Returns error message
 - Logs detailed error
 - Contract text still available
 
 ### Upload Failure
+
 - Keeps local file
 - Returns local path
 - Logs error for investigation
@@ -174,37 +192,35 @@ Say "give me a download link" or "make it a file" to get a downloadable version.
 ### Test Download Intent Detection
 
 ```javascript
-const intent = await detectDownloadIntent("give me a pdf");
+const intent = await detectDownloadIntent('give me a pdf');
 // Returns: { wantsFile: true, format: 'pdf' }
 
-const intent2 = await detectDownloadIntent("update the contract");
+const intent2 = await detectDownloadIntent('update the contract');
 // Returns: { wantsFile: false, format: 'none' }
 ```
 
 ### Test File Generation
 
 ```javascript
-const result = await generateAndUploadContractFile(
-  contractContent,
-  userId,
-  {
-    format: 'txt',
-    contractType: 'employment',
-    conversationId: 'contract_123',
-  }
-);
+const result = await generateAndUploadContractFile(contractContent, userId, {
+  format: 'txt',
+  contractType: 'employment',
+  conversationId: 'contract_123',
+});
 // Returns public URL and file info
 ```
 
 ## Security Considerations
 
 ### Public URLs
+
 - Files are made publicly accessible
 - Anyone with the URL can download
 - No authentication required
 - URLs are long and random (hard to guess)
 
 ### Future Enhancements
+
 - Add signed URLs with expiration
 - Implement access control
 - Add download tracking
@@ -213,12 +229,14 @@ const result = await generateAndUploadContractFile(
 ## Monitoring
 
 ### Key Metrics
+
 - Download request detection accuracy
 - GCS upload success rate
 - File generation errors
 - Storage usage
 
 ### Logs
+
 - File upload operations
 - Download intent decisions
 - Error tracking
@@ -243,6 +261,7 @@ const result = await generateAndUploadContractFile(
 ## Future Enhancements
 
 ### Planned Features
+
 1. **DOCX Generation** - Full Microsoft Word support with formatting
 2. **PDF Generation** - Professional PDF documents
 3. **Template Support** - Pre-designed contract templates
@@ -252,6 +271,7 @@ const result = await generateAndUploadContractFile(
 7. **Digital Signatures** - Integration with signature services
 
 ### Infrastructure
+
 - CDN integration for faster downloads
 - Automatic file expiration/cleanup
 - Download analytics dashboard
@@ -262,20 +282,25 @@ const result = await generateAndUploadContractFile(
 ### Common Issues
 
 **Issue:** "GCS not configured"
+
 - **Solution:** Set environment variables for GCS credentials
 
 **Issue:** "File not uploading"
+
 - **Solution:** Check GCS bucket permissions and authentication
 
 **Issue:** "Download intent not detected"
+
 - **Solution:** Use explicit keywords like "download" or "file"
 
 **Issue:** "Local file not cleaned up"
+
 - **Solution:** Check file permissions and disk space
 
 ## Support
 
 For issues or questions:
+
 - Check logs in `logs/` directory
 - Review GCS bucket permissions
 - Verify environment configuration

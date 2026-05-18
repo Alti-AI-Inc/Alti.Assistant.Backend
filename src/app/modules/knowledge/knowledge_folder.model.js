@@ -132,11 +132,14 @@ KnowledgeFolderSchema.virtual('formattedTotalSize').get(function () {
 
 // Virtual for depth level
 KnowledgeFolderSchema.virtual('depth').get(function () {
-  return this.path.split('/').filter(p => p).length;
+  return this.path.split('/').filter((p) => p).length;
 });
 
 // Static methods
-KnowledgeFolderSchema.statics.findByUserId = async function (userId, options = {}) {
+KnowledgeFolderSchema.statics.findByUserId = async function (
+  userId,
+  options = {}
+) {
   const query = { userId, isActive: true };
 
   if (options.parentFolderId !== undefined) {
@@ -157,7 +160,10 @@ KnowledgeFolderSchema.statics.findRootFolders = async function (userId) {
   }).sort({ name: 1 });
 };
 
-KnowledgeFolderSchema.statics.findSubfolders = async function (parentFolderId, userId) {
+KnowledgeFolderSchema.statics.findSubfolders = async function (
+  parentFolderId,
+  userId
+) {
   return this.find({
     userId,
     parentFolderId,
@@ -165,7 +171,11 @@ KnowledgeFolderSchema.statics.findSubfolders = async function (parentFolderId, u
   }).sort({ name: 1 });
 };
 
-KnowledgeFolderSchema.statics.nameExistsInParent = async function (userId, name, parentFolderId) {
+KnowledgeFolderSchema.statics.nameExistsInParent = async function (
+  userId,
+  name,
+  parentFolderId
+) {
   const count = await this.countDocuments({
     userId,
     name,
@@ -175,7 +185,10 @@ KnowledgeFolderSchema.statics.nameExistsInParent = async function (userId, name,
   return count > 0;
 };
 
-KnowledgeFolderSchema.statics.getFolderWithAncestors = async function (folderId, userId) {
+KnowledgeFolderSchema.statics.getFolderWithAncestors = async function (
+  folderId,
+  userId
+) {
   const folder = await this.findOne({ _id: folderId, userId, isActive: true });
   if (!folder) return null;
 
@@ -189,7 +202,10 @@ KnowledgeFolderSchema.statics.getFolderWithAncestors = async function (folderId,
     currentFolder = parent;
   }
 
-  const breadcrumb = ancestors.map(a => a.name).concat([folder.name]).join(' > ');
+  const breadcrumb = ancestors
+    .map((a) => a.name)
+    .concat([folder.name])
+    .join(' > ');
 
   return {
     folder,
@@ -199,7 +215,10 @@ KnowledgeFolderSchema.statics.getFolderWithAncestors = async function (folderId,
 };
 
 // Instance methods
-KnowledgeFolderSchema.methods.updateStats = async function (fileCountDelta = 0, sizeDelta = 0) {
+KnowledgeFolderSchema.methods.updateStats = async function (
+  fileCountDelta = 0,
+  sizeDelta = 0
+) {
   this.fileCount = Math.max(0, this.fileCount + fileCountDelta);
   this.totalSize = Math.max(0, this.totalSize + sizeDelta);
   return this.save();
@@ -213,7 +232,11 @@ KnowledgeFolderSchema.methods.softDelete = async function () {
 
 // Pre-save hook to update path
 KnowledgeFolderSchema.pre('save', async function (next) {
-  if (this.isNew || this.isModified('parentFolderId') || this.isModified('name')) {
+  if (
+    this.isNew ||
+    this.isModified('parentFolderId') ||
+    this.isModified('name')
+  ) {
     if (!this.parentFolderId) {
       this.path = `/${this.name}`;
     } else {
@@ -226,5 +249,8 @@ KnowledgeFolderSchema.pre('save', async function (next) {
   next();
 });
 
-const KnowledgeFolder = mongoose.model('KnowledgeFolder', KnowledgeFolderSchema);
+const KnowledgeFolder = mongoose.model(
+  'KnowledgeFolder',
+  KnowledgeFolderSchema
+);
 export default KnowledgeFolder;

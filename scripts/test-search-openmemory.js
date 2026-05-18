@@ -16,7 +16,9 @@ const formatAxiosError = (error) => {
   return error.message;
 };
 
-const baseUrl = process.env.SEARCH_TEST_BASE_URL || `http://localhost:${process.env.PORT || config.port || 5100}/api/v1`;
+const baseUrl =
+  process.env.SEARCH_TEST_BASE_URL ||
+  `http://localhost:${process.env.PORT || config.port || 5100}/api/v1`;
 const searchEndpoint = `${baseUrl}/search/assistant`;
 
 const createObjectIdString = () => new mongoose.Types.ObjectId().toString();
@@ -30,7 +32,9 @@ const resolveUserId = () => {
   try {
     return new mongoose.Types.ObjectId(provided).toString();
   } catch (error) {
-    throw new Error(`SEARCH_TEST_USER must be a valid 24-char hex ObjectId. Received "${provided}"`);
+    throw new Error(
+      `SEARCH_TEST_USER must be a valid 24-char hex ObjectId. Received "${provided}"`
+    );
   }
 };
 
@@ -41,7 +45,7 @@ const uniqueToken = process.env.SEARCH_TEST_TOKEN || `token-${randomUUID()}`;
 const messageToStore = `Please remember this unique token verbatim: ${uniqueToken}. Just acknowledge.`;
 const recallMessage = `What unique token did I tell you to remember earlier? Quote it exactly.`;
 
-const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const logSection = (title, payload) => {
   console.log(`\n=== ${title} ===`);
@@ -53,7 +57,7 @@ async function invokeSearch(message) {
     message,
     conversationId,
     userId,
-    deepSearch: false
+    deepSearch: false,
   };
 
   logSection('Request payload', payload);
@@ -61,29 +65,33 @@ async function invokeSearch(message) {
   try {
     const { data } = await axios.post(searchEndpoint, payload, {
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      timeout: Number(process.env.SEARCH_TEST_TIMEOUT || 60000)
+      timeout: Number(process.env.SEARCH_TEST_TIMEOUT || 60000),
     });
 
     return data?.data?.responseMessage || data?.data || data;
   } catch (error) {
-    throw new Error(`Search request failed: ${formatAxiosError(error)}\nPayload: ${JSON.stringify(payload, null, 2)}`);
+    throw new Error(
+      `Search request failed: ${formatAxiosError(error)}\nPayload: ${JSON.stringify(payload, null, 2)}`
+    );
   }
 }
 
 async function verifyOpenMemoryStorage() {
   if (!openMemoryClient.enabled) {
-    throw new Error('OpenMemory is disabled (OPENMEMORY_ENABLED must be true).');
+    throw new Error(
+      'OpenMemory is disabled (OPENMEMORY_ENABLED must be true).'
+    );
   }
 
   const matches = await openMemoryClient.queryMemories({
     query: uniqueToken,
     userId,
-    k: 10
+    k: 10,
   });
 
-  const stored = matches.some(match => match?.content?.includes(uniqueToken));
+  const stored = matches.some((match) => match?.content?.includes(uniqueToken));
   return { stored, matches };
 }
 
@@ -95,7 +103,9 @@ async function main() {
   console.log('Token:', uniqueToken);
 
   if (!openMemoryClient.enabled) {
-    throw new Error('OpenMemory is disabled. Set OPENMEMORY_ENABLED=true first.');
+    throw new Error(
+      'OpenMemory is disabled. Set OPENMEMORY_ENABLED=true first.'
+    );
   }
 
   // Phase 1: Send memory seed message
@@ -111,7 +121,9 @@ async function main() {
   const recallResponse = await invokeSearch(recallMessage);
   logSection('Phase 2 response', recallResponse);
 
-  const recallMentionsToken = typeof recallResponse?.answer === 'string' && recallResponse.answer.includes(uniqueToken);
+  const recallMentionsToken =
+    typeof recallResponse?.answer === 'string' &&
+    recallResponse.answer.includes(uniqueToken);
 
   // Phase 3: Directly verify OpenMemory contents
   console.log('\n➡️  Phase 3: Verifying OpenMemory storage');
@@ -124,19 +136,25 @@ async function main() {
     memoryStored: stored,
     guidance: recallMentionsToken
       ? 'Search module appears to leverage OpenMemory context.'
-      : 'Token not found in answer. Check OpenMemory matches to confirm persistence.'
+      : 'Token not found in answer. Check OpenMemory matches to confirm persistence.',
   };
 
   logSection('Summary', summary);
 
   if (!stored) {
-    throw new Error('Token not found in OpenMemory. Ensure Step 7 persistence is wired correctly.');
+    throw new Error(
+      'Token not found in OpenMemory. Ensure Step 7 persistence is wired correctly.'
+    );
   }
 
   if (!recallMentionsToken) {
-    console.warn('\n⚠️ Token not echoed in search response. This might be expected depending on LLM routing, but confirms persistence via OpenMemory.');
+    console.warn(
+      '\n⚠️ Token not echoed in search response. This might be expected depending on LLM routing, but confirms persistence via OpenMemory.'
+    );
   } else {
-    console.log('\n✅ Search module recalled the token via OpenMemory context.');
+    console.log(
+      '\n✅ Search module recalled the token via OpenMemory context.'
+    );
   }
 }
 

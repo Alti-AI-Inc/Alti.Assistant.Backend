@@ -58,9 +58,10 @@ const extractTextFromFile = async (filePath, mimetype) => {
         data: dataBuffer,
       });
       const textData = await pdfData.getText();
-      extractedText = textData.pages.map(page => page.text).join('\n');
+      extractedText = textData.pages.map((page) => page.text).join('\n');
     } else if (
-      mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      mimetype ===
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       mimetype === 'application/msword'
     ) {
       const buffer = await fs.readFile(filePath);
@@ -73,7 +74,10 @@ const extractTextFromFile = async (filePath, mimetype) => {
     return extractedText.trim();
   } catch (error) {
     logger.error('Error extracting text from file:', error);
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Failed to extract text from file');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Failed to extract text from file'
+    );
   }
 };
 
@@ -140,8 +144,19 @@ Respond ONLY in this exact JSON format:
 
     // Fallback: check for common keywords
     const message = userMessage.toLowerCase();
-    const fileKeywords = ['file', 'download', 'export', 'save', 'link', 'pdf', 'docx', 'document'];
-    const hasFileKeyword = fileKeywords.some(keyword => message.includes(keyword));
+    const fileKeywords = [
+      'file',
+      'download',
+      'export',
+      'save',
+      'link',
+      'pdf',
+      'docx',
+      'document',
+    ];
+    const hasFileKeyword = fileKeywords.some((keyword) =>
+      message.includes(keyword)
+    );
 
     let format = 'txt';
     if (message.includes('docx') || message.includes('word')) format = 'docx';
@@ -156,7 +171,7 @@ Respond ONLY in this exact JSON format:
     // Fallback to keyword detection
     const message = userMessage.toLowerCase();
     const fileKeywords = ['file', 'download', 'export', 'save', 'link'];
-    const wantsFile = fileKeywords.some(keyword => message.includes(keyword));
+    const wantsFile = fileKeywords.some((keyword) => message.includes(keyword));
     return {
       wantsFile,
       format: wantsFile ? 'txt' : 'none',
@@ -167,7 +182,11 @@ Respond ONLY in this exact JSON format:
 /**
  * Generate contract file and upload to GCS
  */
-const generateAndUploadContractFile = async (contractContent, userId, metadata = {}) => {
+const generateAndUploadContractFile = async (
+  contractContent,
+  userId,
+  metadata = {}
+) => {
   try {
     const format = metadata.format || 'txt';
 
@@ -201,7 +220,8 @@ const generateAndUploadContractFile = async (contractContent, userId, metadata =
       downloadLink: uploadResult.publicUrl,
       storageType: uploadResult.storageType,
       format: fileResult.fileType,
-      localPath: uploadResult.storageType === 'local' ? uploadResult.localPath : null,
+      localPath:
+        uploadResult.storageType === 'local' ? uploadResult.localPath : null,
     };
   } catch (error) {
     logger.error('Error generating and uploading contract file:', error);
@@ -212,16 +232,28 @@ const generateAndUploadContractFile = async (contractContent, userId, metadata =
 /**
  * Handle contract conversation (create or retrieve)
  */
-const handleContractConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleContractConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -251,20 +283,32 @@ const handleContractConversation = async (userId, conversationId, userMessage, i
         req
       );
 
-      logger.info(`Created new contract conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new contract conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling contract conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -273,19 +317,34 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
 /**
  * Store uploaded document in conversation
  */
-const storeDocumentInConversation = async (conversationId, userId, fileInfo) => {
+const storeDocumentInConversation = async (
+  conversationId,
+  userId,
+  fileInfo
+) => {
   try {
-    const extractedText = await extractTextFromFile(fileInfo.path, fileInfo.mimetype);
+    const extractedText = await extractTextFromFile(
+      fileInfo.path,
+      fileInfo.mimetype
+    );
 
     const documentData = {
       id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -295,9 +354,13 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo) => 
       extractedText:
         extractedText.length <= LEGAL_CONTRACT_CONFIG.MAX_CACHED_TEXT_SIZE
           ? extractedText
-          : extractedText.substring(0, LEGAL_CONTRACT_CONFIG.MAX_CACHED_TEXT_SIZE),
+          : extractedText.substring(
+              0,
+              LEGAL_CONTRACT_CONFIG.MAX_CACHED_TEXT_SIZE
+            ),
       textLength: extractedText.length,
-      textTruncated: extractedText.length > LEGAL_CONTRACT_CONFIG.MAX_CACHED_TEXT_SIZE,
+      textTruncated:
+        extractedText.length > LEGAL_CONTRACT_CONFIG.MAX_CACHED_TEXT_SIZE,
       size: fileInfo.size,
       mimetype: fileInfo.mimetype,
       uploadedAt: new Date(),
@@ -311,7 +374,9 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo) => 
       }
     );
 
-    logger.info('Document stored successfully', { documentId: documentData.id });
+    logger.info('Document stored successfully', {
+      documentId: documentData.id,
+    });
 
     // Cleanup temp file
     await cleanupFile(fileInfo.path);
@@ -396,7 +461,11 @@ Return a JSON response with this format:
 /**
  * Generate enhancement questions after contract is created
  */
-const generateEnhancementQuestions = async (contractType, currentContract, conversationHistory) => {
+const generateEnhancementQuestions = async (
+  contractType,
+  currentContract,
+  conversationHistory
+) => {
   try {
     const model = genAI.getGenerativeModel({
       model: LEGAL_CONTRACT_CONFIG.MODEL,
@@ -414,7 +483,10 @@ Current Contract Preview:
 ${currentContract.substring(0, 1500)}
 
 Previous conversation:
-${conversationHistory.slice(-4).map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+${conversationHistory
+  .slice(-4)
+  .map((msg) => `${msg.role}: ${msg.content}`)
+  .join('\n')}
 
 Generate specific questions to enhance the contract. Focus on:
 1. Missing important clauses or terms
@@ -454,9 +526,15 @@ Return JSON format:
 /**
  * Generate initial legal contract from user request
  */
-const generateInitialContract = async (userMessage, contractType, fileContext = null, extractedInfo = {}) => {
+const generateInitialContract = async (
+  userMessage,
+  contractType,
+  fileContext = null,
+  extractedInfo = {}
+) => {
   try {
-    const systemPrompt = SYSTEM_PROMPTS[contractType] || SYSTEM_PROMPTS[CONTRACT_TYPES.GENERAL];
+    const systemPrompt =
+      SYSTEM_PROMPTS[contractType] || SYSTEM_PROMPTS[CONTRACT_TYPES.GENERAL];
 
     const model = genAI.getGenerativeModel({
       model: LEGAL_CONTRACT_CONFIG.MODEL,
@@ -470,9 +548,10 @@ const generateInitialContract = async (userMessage, contractType, fileContext = 
       ? `\n\nReference Document Content:\n${fileContext}`
       : '';
 
-    const extractedInfoPrompt = Object.keys(extractedInfo).length > 0
-      ? `\n\nExtracted Information:\n${JSON.stringify(extractedInfo, null, 2)}`
-      : '';
+    const extractedInfoPrompt =
+      Object.keys(extractedInfo).length > 0
+        ? `\n\nExtracted Information:\n${JSON.stringify(extractedInfo, null, 2)}`
+        : '';
 
     const prompt = `${systemPrompt}
 
@@ -508,14 +587,22 @@ Format the contract professionally with proper numbering and structure.`;
     };
   } catch (error) {
     logger.error('Error generating initial contract:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate contract');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to generate contract'
+    );
   }
 };
 
 /**
  * Update contract based on user answer
  */
-const updateContractWithAnswer = async (currentContract, question, answer, contractType) => {
+const updateContractWithAnswer = async (
+  currentContract,
+  question,
+  answer,
+  contractType
+) => {
   try {
     const model = genAI.getGenerativeModel({
       model: LEGAL_CONTRACT_CONFIG.MODEL,
@@ -549,14 +636,21 @@ Return ONLY the updated contract text, no explanations.`;
     return updatedContract;
   } catch (error) {
     logger.error('Error updating contract:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update contract');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to update contract'
+    );
   }
 };
 
 /**
  * Modify contract based on user's general modification request
  */
-const modifyContractWithRequest = async (currentContract, modificationRequest, contractType) => {
+const modifyContractWithRequest = async (
+  currentContract,
+  modificationRequest,
+  contractType
+) => {
   try {
     const model = genAI.getGenerativeModel({
       model: LEGAL_CONTRACT_CONFIG.MODEL,
@@ -596,7 +690,10 @@ Return ONLY the updated contract text, no explanations or additional commentary.
     return updatedContract;
   } catch (error) {
     logger.error('Error modifying contract:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to modify contract');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to modify contract'
+    );
   }
 };
 
@@ -615,40 +712,59 @@ const processConversationalRequest = async (
   isGuest = false
 ) => {
   try {
-    logger.info('Processing conversational contract request', { userId, isGuest });
+    logger.info('Processing conversational contract request', {
+      userId,
+      isGuest,
+    });
 
     // Handle conversation
-    const conversation = await handleContractConversation(userId, conversationId, userMessage, isGuest);
+    const conversation = await handleContractConversation(
+      userId,
+      conversationId,
+      userMessage,
+      isGuest
+    );
     const actualConversationId = conversation.conversationId;
 
     // Get conversation history
     const conversationHistory = conversation.messages || [];
-    const recentHistory = conversationHistory.slice(-10).map(msg => ({
+    const recentHistory = conversationHistory.slice(-10).map((msg) => ({
       role: msg.role,
       content: msg.content,
     }));
 
     // Add user message
-    await addMessage(actualConversationId, userId, 'user', userMessage, { hasFile: !!fileInfo });
+    await addMessage(actualConversationId, userId, 'user', userMessage, {
+      hasFile: !!fileInfo,
+    });
 
     // Handle file upload if present
     let documentData = null;
     if (fileInfo) {
-      documentData = await storeDocumentInConversation(actualConversationId, userId, fileInfo);
+      documentData = await storeDocumentInConversation(
+        actualConversationId,
+        userId,
+        fileInfo
+      );
     } else if (conversation.contractMetadata?.currentDocumentId) {
       // Use existing document
       documentData = conversation.contractMetadata.uploadedFiles?.find(
-        doc => doc.id === conversation.contractMetadata.currentDocumentId
+        (doc) => doc.id === conversation.contractMetadata.currentDocumentId
       );
     }
 
     const fileContext = documentData?.extractedText || null;
 
     // Get existing parameters
-    const existingParams = conversation.contractMetadata?.contractParams || { ...DEFAULT_PARAMS };
-    const currentContract = conversation.contractMetadata?.generatedContract || null;
-    const pendingQuestions = conversation.contractMetadata?.pendingQuestions || [];
-    const currentQuestionIndex = conversation.contractMetadata?.currentQuestionIndex || 0;
+    const existingParams = conversation.contractMetadata?.contractParams || {
+      ...DEFAULT_PARAMS,
+    };
+    const currentContract =
+      conversation.contractMetadata?.generatedContract || null;
+    const pendingQuestions =
+      conversation.contractMetadata?.pendingQuestions || [];
+    const currentQuestionIndex =
+      conversation.contractMetadata?.currentQuestionIndex || 0;
 
     // Check for download intent FIRST (before other scenarios)
     const downloadIntent = await detectDownloadIntent(userMessage);
@@ -658,7 +774,12 @@ const processConversationalRequest = async (
     if (downloadIntent.wantsFile && !currentContract) {
       const responseMessage = `I don't have a contract generated yet for this conversation. Please first describe what type of contract you need, and I'll generate it for you. Then you can request a download link.`;
 
-      await addMessage(actualConversationId, userId, 'assistant', responseMessage);
+      await addMessage(
+        actualConversationId,
+        userId,
+        'assistant',
+        responseMessage
+      );
 
       return {
         success: false,
@@ -683,10 +804,16 @@ const processConversationalRequest = async (
 
       const responseMessage = `Here's your contract file!\n\nDownload Link: ${fileUploadResult.downloadLink}\n\nFile Name: ${fileUploadResult.fileName}\nFormat: ${fileUploadResult.format.toUpperCase()}\n\n${RESPONSE_MESSAGES.DISCLAIMER}`;
 
-      await addMessage(actualConversationId, userId, 'assistant', responseMessage, {
-        fileGenerated: true,
-        downloadLink: fileUploadResult.downloadLink,
-      });
+      await addMessage(
+        actualConversationId,
+        userId,
+        'assistant',
+        responseMessage,
+        {
+          fileGenerated: true,
+          downloadLink: fileUploadResult.downloadLink,
+        }
+      );
 
       return {
         success: true,
@@ -702,7 +829,11 @@ const processConversationalRequest = async (
     }
 
     // SCENARIO 1: Contract exists and user is answering enhancement questions
-    if (currentContract && pendingQuestions.length > 0 && currentQuestionIndex < pendingQuestions.length) {
+    if (
+      currentContract &&
+      pendingQuestions.length > 0 &&
+      currentQuestionIndex < pendingQuestions.length
+    ) {
       const currentQuestion = pendingQuestions[currentQuestionIndex];
 
       // Update contract with the answer
@@ -731,10 +862,16 @@ const processConversationalRequest = async (
         const nextQuestion = pendingQuestions[nextQuestionIndex];
         const responseMessage = `Contract updated!\n\nUPDATED CONTRACT:\n\n${updatedContract}\n\n${RESPONSE_MESSAGES.DISCLAIMER}\n\n---\n\nEnhancement Question ${nextQuestionIndex + 1}/${pendingQuestions.length}:\n${nextQuestion.question}\n\n(Reason: ${nextQuestion.reason})`;
 
-        await addMessage(actualConversationId, userId, 'assistant', responseMessage, {
-          contractUpdated: true,
-          currentQuestion: nextQuestion,
-        });
+        await addMessage(
+          actualConversationId,
+          userId,
+          'assistant',
+          responseMessage,
+          {
+            contractUpdated: true,
+            currentQuestion: nextQuestion,
+          }
+        );
 
         return {
           success: true,
@@ -750,9 +887,15 @@ const processConversationalRequest = async (
         // All questions answered - generate download link automatically
         const responseMessage = `Contract fully enhanced!\n\nFINAL CONTRACT:\n\n${updatedContract}\n\n${RESPONSE_MESSAGES.DISCLAIMER}\n\n---\n\nAll enhancement questions have been answered. Your contract is complete! Say "give me a download link" or "make it a file" to get a downloadable version.`;
 
-        await addMessage(actualConversationId, userId, 'assistant', responseMessage, {
-          contractComplete: true,
-        });
+        await addMessage(
+          actualConversationId,
+          userId,
+          'assistant',
+          responseMessage,
+          {
+            contractComplete: true,
+          }
+        );
 
         await Conversation.updateOne(
           { conversationId: actualConversationId },
@@ -826,15 +969,22 @@ const processConversationalRequest = async (
         const firstQuestion = enhancementQuestions[0];
         responseMessage += `\n\n---\n\nEnhancement Question 1/${enhancementQuestions.length}:\n${firstQuestion.question}\n\n(Reason: ${firstQuestion.reason})\n\nPlease provide your answer to enhance the contract, or say "skip" to move to the next question.`;
 
-        await addMessage(actualConversationId, userId, 'assistant', responseMessage, {
-          contractGenerated: true,
-          currentQuestion: firstQuestion,
-        });
+        await addMessage(
+          actualConversationId,
+          userId,
+          'assistant',
+          responseMessage,
+          {
+            contractGenerated: true,
+            currentQuestion: firstQuestion,
+          }
+        );
 
         return {
           success: true,
           conversationId: actualConversationId,
-          response: 'Contract generated! Please answer the enhancement questions.',
+          response:
+            'Contract generated! Please answer the enhancement questions.',
           contract: contractResult.contract,
           contractType: analysis.contractType,
           summary: analysis.summary,
@@ -845,9 +995,15 @@ const processConversationalRequest = async (
         };
       } else {
         // No enhancement questions
-        await addMessage(actualConversationId, userId, 'assistant', responseMessage, {
-          contractGenerated: true,
-        });
+        await addMessage(
+          actualConversationId,
+          userId,
+          'assistant',
+          responseMessage,
+          {
+            contractGenerated: true,
+          }
+        );
 
         return {
           success: true,
@@ -886,10 +1042,16 @@ const processConversationalRequest = async (
 
     const responseMessage = `Contract updated based on your request!\n\nMODIFIED CONTRACT:\n\n${modifiedContract}\n\n${RESPONSE_MESSAGES.DISCLAIMER}\n\nYou can request further modifications or say "give me a download link" to get a file.`;
 
-    await addMessage(actualConversationId, userId, 'assistant', responseMessage, {
-      contractModified: true,
-      modificationRequest: userMessage,
-    });
+    await addMessage(
+      actualConversationId,
+      userId,
+      'assistant',
+      responseMessage,
+      {
+        contractModified: true,
+        modificationRequest: userMessage,
+      }
+    );
 
     return {
       success: true,
@@ -908,7 +1070,12 @@ const processConversationalRequest = async (
 /**
  * Direct contract generation (non-conversational)
  */
-const generateContractDirect = async (params, userId, isGuest = false, req = null) => {
+const generateContractDirect = async (
+  params,
+  userId,
+  isGuest = false,
+  req = null
+) => {
   try {
     const contractParams = {
       ...DEFAULT_PARAMS,
@@ -971,7 +1138,11 @@ const generateContractDirect = async (params, userId, isGuest = false, req = nul
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     return {
       conversationId,

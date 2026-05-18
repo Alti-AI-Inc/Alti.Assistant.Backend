@@ -57,18 +57,21 @@ touch README.md
 **Action:** Reuse existing models (auth connections) from composio_v2
 
 **Option A - Symlink (Recommended):**
+
 ```bash
 # From composio_simple directory
 # We'll just import from composio_v2 in code
 ```
 
 **Option B - Copy if needed:**
+
 ```bash
 cp ../composio_v2/composio.model.js ./composio.model.js
 cp ../composio_v2/authConfig.model.js ./authConfig.model.js
 ```
 
 **Decision:** We'll import from composio_v2 to avoid duplication:
+
 ```javascript
 // In composio_simple files
 import ComposioAuth from '../composio_v2/composio.model.js';
@@ -104,10 +107,17 @@ export const generateConversationId = () => {
 /**
  * Create or get conversation
  */
-export const getOrCreateConversation = async (userId, conversationId, initialMessage) => {
+export const getOrCreateConversation = async (
+  userId,
+  conversationId,
+  initialMessage
+) => {
   if (conversationId) {
     // Try to get existing conversation
-    const existing = await Conversation.findByConversationId(conversationId, userId);
+    const existing = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
     if (existing) return existing;
   }
 
@@ -116,15 +126,16 @@ export const getOrCreateConversation = async (userId, conversationId, initialMes
   const conversation = new Conversation({
     conversationId: newConversationId,
     userId: userId,
-    title: initialMessage.length > 50 
-      ? `${initialMessage.substring(0, 50)}...` 
-      : initialMessage,
+    title:
+      initialMessage.length > 50
+        ? `${initialMessage.substring(0, 50)}...`
+        : initialMessage,
     messages: [],
     metadata: {
       category: 'composio_simple',
-      version: '1.0'
+      version: '1.0',
     },
-    status: 'active'
+    status: 'active',
   });
 
   await conversation.save();
@@ -136,16 +147,19 @@ export const getOrCreateConversation = async (userId, conversationId, initialMes
  */
 export const getRecentMessages = async (conversationId, userId, limit = 5) => {
   try {
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
     if (!conversation || !conversation.messages) return [];
 
     // Return last N messages in chronological order
     const recentMessages = conversation.messages.slice(-limit);
-    
-    return recentMessages.map(msg => ({
+
+    return recentMessages.map((msg) => ({
       role: msg.role,
       content: msg.content,
-      timestamp: msg.timestamp
+      timestamp: msg.timestamp,
     }));
   } catch (error) {
     console.error('Error getting recent messages:', error);
@@ -156,9 +170,18 @@ export const getRecentMessages = async (conversationId, userId, limit = 5) => {
 /**
  * Save message to conversation
  */
-export const saveMessage = async (conversationId, userId, role, content, metadata = {}) => {
+export const saveMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {}
+) => {
   try {
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
     if (!conversation) {
       throw new Error('Conversation not found');
     }
@@ -167,7 +190,7 @@ export const saveMessage = async (conversationId, userId, role, content, metadat
       role: role,
       content: content,
       timestamp: new Date(),
-      metadata: metadata
+      metadata: metadata,
     });
 
     conversation.lastActivity = new Date();
@@ -189,14 +212,14 @@ export const getUserConversations = async (userId, options = {}) => {
     page = 1,
     limit = 20,
     sortBy = 'lastActivity',
-    sortOrder = -1
+    sortOrder = -1,
   } = options;
 
   const skip = (page - 1) * limit;
 
   const conversations = await Conversation.find({
     userId: userId,
-    'metadata.category': 'composio_simple'
+    'metadata.category': 'composio_simple',
   })
     .sort({ [sortBy]: sortOrder })
     .skip(skip)
@@ -205,7 +228,7 @@ export const getUserConversations = async (userId, options = {}) => {
 
   const total = await Conversation.countDocuments({
     userId: userId,
-    'metadata.category': 'composio_simple'
+    'metadata.category': 'composio_simple',
   });
 
   return {
@@ -214,8 +237,8 @@ export const getUserConversations = async (userId, options = {}) => {
       page,
       limit,
       total,
-      pages: Math.ceil(total / limit)
-    }
+      pages: Math.ceil(total / limit),
+    },
   };
 };
 
@@ -224,7 +247,7 @@ export const conversationService = {
   getOrCreateConversation,
   getRecentMessages,
   saveMessage,
-  getUserConversations
+  getUserConversations,
 };
 ```
 
@@ -258,7 +281,11 @@ const openai = new OpenAI({
 /**
  * Main execution function - handles both single and multi-step actions
  */
-export const executeUserRequest = async (userMessage, userId, conversationId = null) => {
+export const executeUserRequest = async (
+  userMessage,
+  userId,
+  conversationId = null
+) => {
   const startTime = Date.now();
 
   try {
@@ -271,7 +298,7 @@ export const executeUserRequest = async (userMessage, userId, conversationId = n
     const actualConversationId = conversation.conversationId;
 
     // 2. Get recent conversation history for context
-    const recentMessages = conversationId 
+    const recentMessages = conversationId
       ? await conversationService.getRecentMessages(conversationId, userId, 5)
       : [];
 
@@ -287,20 +314,20 @@ export const executeUserRequest = async (userMessage, userId, conversationId = n
       {
         role: 'system',
         content: `You are a helpful assistant that can use various integrated apps and tools to help users.
-Available tools: ${tools.map(t => t.function.name).join(', ')}
+Available tools: ${tools.map((t) => t.function.name).join(', ')}
 
 IMPORTANT RULES:
 1. Always provide complete, non-null values for all required parameters
 2. For missing information, use reasonable defaults or ask the user
 3. Execute tools confidently when you have enough information
 4. Chain multiple tools if the task requires it
-5. Be concise and action-oriented`
+5. Be concise and action-oriented`,
       },
       ...recentMessages,
       {
         role: 'user',
-        content: userMessage
-      }
+        content: userMessage,
+      },
     ];
 
     // 5. Call OpenAI with function calling
@@ -326,8 +353,10 @@ IMPORTANT RULES:
       console.log(`Executed ${toolResults.length} tool(s)`);
 
       // Extract result content
-      const resultContent = toolResults.map(r => r.content).join('\n');
-      const toolNames = response.choices[0].message.tool_calls.map(tc => tc.function.name);
+      const resultContent = toolResults.map((r) => r.content).join('\n');
+      const toolNames = response.choices[0].message.tool_calls.map(
+        (tc) => tc.function.name
+      );
 
       // 7. Save messages to conversation
       await conversationService.saveMessage(
@@ -346,7 +375,7 @@ IMPORTANT RULES:
         {
           toolsUsed: toolNames,
           executionTime: `${Date.now() - startTime}ms`,
-          timestamp: new Date()
+          timestamp: new Date(),
         }
       );
 
@@ -358,8 +387,8 @@ IMPORTANT RULES:
           conversationId: actualConversationId,
           toolsUsed: toolNames,
           executionTime: `${Date.now() - startTime}ms`,
-          messageCount: conversation.messageCount + 2
-        }
+          messageCount: conversation.messageCount + 2,
+        },
       };
     } else {
       // No tool calls - just conversation
@@ -387,21 +416,21 @@ IMPORTANT RULES:
           conversationId: actualConversationId,
           toolsUsed: [],
           executionTime: `${Date.now() - startTime}ms`,
-          messageCount: conversation.messageCount + 2
-        }
+          messageCount: conversation.messageCount + 2,
+        },
       };
     }
   } catch (error) {
     console.error('Error executing user request:', error);
-    
+
     return {
       success: false,
       error: error.message,
       data: {
         response: `Sorry, I encountered an error: ${error.message}`,
         conversationId: conversationId,
-        executionTime: `${Date.now() - startTime}ms`
-      }
+        executionTime: `${Date.now() - startTime}ms`,
+      },
     };
   }
 };
@@ -411,8 +440,11 @@ IMPORTANT RULES:
  */
 export const initiateAuth = async (appName, userId) => {
   try {
-    const connectionUrl = await composio.connectedAccounts.initiate(userId, appName);
-    
+    const connectionUrl = await composio.connectedAccounts.initiate(
+      userId,
+      appName
+    );
+
     // Save to database
     const composioAuth = new ComposioAuth({
       userId: userId,
@@ -423,20 +455,20 @@ export const initiateAuth = async (appName, userId) => {
       redirectUrl: connectionUrl.redirectUrl,
       toolkit: {
         slug: appName,
-      }
+      },
     });
-    
+
     await composioAuth.save();
-    
+
     return {
       success: true,
-      data: connectionUrl
+      data: connectionUrl,
     };
   } catch (error) {
     console.error('Error initiating auth:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -446,8 +478,9 @@ export const initiateAuth = async (appName, userId) => {
  */
 export const waitForConnection = async (connectedAccountId) => {
   try {
-    const connection = await composio.connectedAccounts.waitForConnection(connectedAccountId);
-    
+    const connection =
+      await composio.connectedAccounts.waitForConnection(connectedAccountId);
+
     // Update database
     await ComposioAuth.updateOne(
       { connectedAccountId: connectedAccountId },
@@ -455,19 +488,19 @@ export const waitForConnection = async (connectedAccountId) => {
         status: connection.data.status,
         accessToken: connection.data.accessToken,
         refreshToken: connection.data.refreshToken,
-        toolkit: connection.toolkit
+        toolkit: connection.toolkit,
       }
     );
-    
+
     return {
       success: true,
-      data: connection
+      data: connection,
     };
   } catch (error) {
     console.error('Error waiting for connection:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -479,18 +512,18 @@ export const getUserConnectedAccounts = async (userId) => {
   try {
     const accounts = await ComposioAuth.find({
       userId: userId,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     }).lean();
-    
+
     return {
       success: true,
-      data: accounts
+      data: accounts,
     };
   } catch (error) {
     console.error('Error getting connected accounts:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -499,7 +532,7 @@ export const composioService = {
   executeUserRequest,
   initiateAuth,
   waitForConnection,
-  getUserConnectedAccounts
+  getUserConnectedAccounts,
 };
 ```
 
@@ -550,7 +583,9 @@ export const chatController = catchAsync(async (req, res) => {
   }
 
   // Check subscription limits (optional - can be removed if not needed)
-  const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+  const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
+    createdAt: -1,
+  });
   if (userSubscription && userSubscription.usage <= 0) {
     return sendResponse(res, {
       statusCode: httpStatus.FORBIDDEN,
@@ -561,11 +596,15 @@ export const chatController = catchAsync(async (req, res) => {
 
   try {
     // Execute the request
-    const result = await composioService.executeUserRequest(message, userId, conversationId);
+    const result = await composioService.executeUserRequest(
+      message,
+      userId,
+      conversationId
+    );
 
     if (result.success) {
       logger.info(`Composio Simple: Successful execution for user ${userId}`);
-      
+
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -573,8 +612,10 @@ export const chatController = catchAsync(async (req, res) => {
         data: result.data,
       });
     } else {
-      logger.error(`Composio Simple: Failed execution for user ${userId}: ${result.error}`);
-      
+      logger.error(
+        `Composio Simple: Failed execution for user ${userId}: ${result.error}`
+      );
+
       return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
@@ -584,14 +625,14 @@ export const chatController = catchAsync(async (req, res) => {
     }
   } catch (error) {
     logger.error(`Composio Simple: Error in chat controller: ${error.message}`);
-    
+
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An unexpected error occurred',
       data: {
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 });
@@ -625,7 +666,7 @@ export const initiateAuthController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to initiate authentication',
-      data: { error: result.error }
+      data: { error: result.error },
     });
   }
 });
@@ -658,7 +699,7 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to establish connection',
-      data: { error: result.error }
+      data: { error: result.error },
     });
   }
 });
@@ -668,7 +709,7 @@ export const waitForConnectionController = catchAsync(async (req, res) => {
  */
 export const getConversationsController = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  
+
   const options = {
     page: parseInt(req.query.page) || 1,
     limit: parseInt(req.query.limit) || 20,
@@ -676,7 +717,10 @@ export const getConversationsController = catchAsync(async (req, res) => {
     sortOrder: parseInt(req.query.sortOrder) || -1,
   };
 
-  const result = await conversationService.getUserConversations(userId, options);
+  const result = await conversationService.getUserConversations(
+    userId,
+    options
+  );
 
   return sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -694,7 +738,7 @@ export const getConversationController = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
 
   const conversation = await conversationService.getOrCreateConversation(
-    userId, 
+    userId,
     conversationId,
     ''
   );
@@ -727,7 +771,7 @@ export const getConnectedAccountsController = catchAsync(async (req, res) => {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'Failed to retrieve connected accounts',
-      data: { error: result.error }
+      data: { error: result.error },
     });
   }
 });
@@ -738,7 +782,7 @@ export const composioSimpleController = {
   waitForConnectionController,
   getConversationsController,
   getConversationController,
-  getConnectedAccountsController
+  getConnectedAccountsController,
 };
 ```
 
@@ -847,12 +891,12 @@ router.use('/composio', composioV2Routes); // or whatever the current route is
 ```javascript
 export default {
   // ... existing config ...
-  
+
   composio: {
     orgApiKey: process.env.COMPOSIO_API_KEY,
     useSimplified: process.env.USE_SIMPLIFIED_COMPOSIO === 'true', // Feature flag
   },
-  
+
   // ... rest of config ...
 };
 ```
@@ -891,13 +935,21 @@ export const compareController = catchAsync(async (req, res) => {
 
   // Run simplified version
   const simpleStart = Date.now();
-  const simpleResult = await composioService.executeUserRequest(message, userId);
+  const simpleResult = await composioService.executeUserRequest(
+    message,
+    userId
+  );
   const simpleTime = Date.now() - simpleStart;
 
   // Run complex version (import from v2)
-  const { aiClassificationService } = await import('../composio_v2/aiClassification.service.js');
+  const { aiClassificationService } = await import(
+    '../composio_v2/aiClassification.service.js'
+  );
   const complexStart = Date.now();
-  const complexResult = await aiClassificationService.processUserInputService(message, { userId });
+  const complexResult = await aiClassificationService.processUserInputService(
+    message,
+    { userId }
+  );
   const complexTime = Date.now() - complexStart;
 
   // Return comparison
@@ -908,17 +960,17 @@ export const compareController = catchAsync(async (req, res) => {
     data: {
       simplified: {
         result: simpleResult,
-        executionTime: `${simpleTime}ms`
+        executionTime: `${simpleTime}ms`,
       },
       complex: {
         result: complexResult,
-        executionTime: `${complexTime}ms`
+        executionTime: `${complexTime}ms`,
       },
       improvement: {
         timeSaved: `${complexTime - simpleTime}ms`,
-        percentageFaster: `${Math.round(((complexTime - simpleTime) / complexTime) * 100)}%`
-      }
-    }
+        percentageFaster: `${Math.round(((complexTime - simpleTime) / complexTime) * 100)}%`,
+      },
+    },
   });
 });
 ```
@@ -927,11 +979,7 @@ export const compareController = catchAsync(async (req, res) => {
 
 ```javascript
 // In composio.route.js
-router.post(
-  '/compare',
-  auth(),
-  composioSimpleController.compareController
-);
+router.post('/compare', auth(), composioSimpleController.compareController);
 ```
 
 **Result:** Can directly compare performance and results
@@ -1092,22 +1140,24 @@ async function runPerformanceTest() {
 
   for (const testCase of testCases) {
     const startTime = Date.now();
-    
+
     try {
       const response = await axios.post(
         `${BASE_URL}/chat`,
         { message: testCase.message },
         {
-          headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+          headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
         }
       );
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       console.log(`✅ ${testCase.name}`);
       console.log(`   Time: ${duration}ms`);
-      console.log(`   Tools: ${response.data.data.toolsUsed?.join(', ') || 'none'}`);
+      console.log(
+        `   Tools: ${response.data.data.toolsUsed?.join(', ') || 'none'}`
+      );
       console.log(`   Success: ${response.data.success}`);
       console.log();
     } catch (error) {
@@ -1128,6 +1178,7 @@ node src/app/modules/composio_simple/test-performance.js
 ```
 
 **Expected Results:**
+
 - Simple actions: <2 seconds
 - Multi-step actions: <4 seconds
 - All tests pass
@@ -1149,7 +1200,7 @@ async function compareSystem() {
 
   console.log('Testing Message:', testMessage);
   console.log('\n--- SIMPLIFIED SYSTEM ---');
-  
+
   // Test simplified
   const simpleStart = Date.now();
   const simpleResponse = await axios.post(
@@ -1158,13 +1209,13 @@ async function compareSystem() {
     { headers: { Authorization: `Bearer ${AUTH_TOKEN}` } }
   );
   const simpleTime = Date.now() - simpleStart;
-  
+
   console.log('Time:', simpleTime, 'ms');
   console.log('Success:', simpleResponse.data.success);
   console.log('Tools:', simpleResponse.data.data.toolsUsed);
 
   console.log('\n--- COMPLEX SYSTEM (V2) ---');
-  
+
   // Test complex
   const complexStart = Date.now();
   const complexResponse = await axios.post(
@@ -1173,13 +1224,17 @@ async function compareSystem() {
     { headers: { Authorization: `Bearer ${AUTH_TOKEN}` } }
   );
   const complexTime = Date.now() - complexStart;
-  
+
   console.log('Time:', complexTime, 'ms');
   console.log('Success:', complexResponse.data.success);
 
   console.log('\n--- RESULTS ---');
   console.log('Time Saved:', complexTime - simpleTime, 'ms');
-  console.log('Percentage Faster:', Math.round(((complexTime - simpleTime) / complexTime) * 100), '%');
+  console.log(
+    'Percentage Faster:',
+    Math.round(((complexTime - simpleTime) / complexTime) * 100),
+    '%'
+  );
 }
 
 compareSystem();
@@ -1232,31 +1287,37 @@ node src/app/modules/composio_simple/compare-systems.js
 ## Summary Checklist
 
 ### ✅ Phase 1: Setup
+
 - [ ] Created `composio_simple/` directory
 - [ ] Created all files with basic structure
 - [ ] Added README documentation
 
-### ✅ Phase 2: Core Implementation  
+### ✅ Phase 2: Core Implementation
+
 - [ ] Built conversation service (~150 lines)
 - [ ] Built main service (~250 lines)
 - [ ] Tested service functions work
 
 ### ✅ Phase 3: API Layer
+
 - [ ] Created controllers (~200 lines)
 - [ ] Created routes (~50 lines)
 - [ ] Verified all endpoints defined
 
 ### ✅ Phase 4: Integration
+
 - [ ] Registered routes in main app
 - [ ] Added feature flag support
 - [ ] Created comparison endpoint
 
 ### ✅ Phase 5: Testing
+
 - [ ] Manual testing of all endpoints
 - [ ] Performance testing
 - [ ] Comparison with V2
 
 ### ✅ Phase 6: Rollout
+
 - [ ] Soft launch completed
 - [ ] Performance monitoring active
 - [ ] Full migration successful
@@ -1281,16 +1342,16 @@ TOTAL: ~750 lines (vs 5,000+ in composio_v2)
 
 ## Key Differences from V2
 
-| Aspect | V2 (Complex) | Simple | 
-|--------|--------------|--------|
-| Files | 25+ files | 6 core files |
-| Lines of Code | 5,000+ | ~700 |
-| LLM Calls | 6-9 per request | 1 per request |
-| Response Time | 6-10 seconds | 1-3 seconds |
-| State Management | LangGraph with 40+ fields | Simple conversation storage |
-| Dependencies | LangGraph, complex workflow | Composio + OpenAI only |
-| Debugging | Very complex | Simple linear flow |
-| Maintenance | High effort | Low effort |
+| Aspect           | V2 (Complex)                | Simple                      |
+| ---------------- | --------------------------- | --------------------------- |
+| Files            | 25+ files                   | 6 core files                |
+| Lines of Code    | 5,000+                      | ~700                        |
+| LLM Calls        | 6-9 per request             | 1 per request               |
+| Response Time    | 6-10 seconds                | 1-3 seconds                 |
+| State Management | LangGraph with 40+ fields   | Simple conversation storage |
+| Dependencies     | LangGraph, complex workflow | Composio + OpenAI only      |
+| Debugging        | Very complex                | Simple linear flow          |
+| Maintenance      | High effort                 | Low effort                  |
 
 ---
 
@@ -1302,7 +1363,7 @@ After implementation, you should see:
 ✅ **Cost:** 85% cheaper token usage ($0.02 vs $0.12 per request)  
 ✅ **Code:** 90% less code (700 vs 5,000+ lines)  
 ✅ **Reliability:** Same or better success rate  
-✅ **Simplicity:** New developers understand in 1 day vs 1 week  
+✅ **Simplicity:** New developers understand in 1 day vs 1 week
 
 ---
 
@@ -1320,6 +1381,7 @@ After implementation, you should see:
 **Questions or Issues?**
 
 Common pitfalls to avoid:
+
 - ❌ Don't try to port all V2 features - most aren't needed
 - ❌ Don't over-think the implementation - keep it simple
 - ❌ Don't skip testing - verify each endpoint works

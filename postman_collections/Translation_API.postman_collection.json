@@ -13,13 +13,8 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/translation/languages",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "languages"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "languages"]
         },
         "description": "Get a list of all supported languages with their codes and names"
       },
@@ -41,13 +36,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         },
         "description": "Direct translation endpoint without conversation context"
       },
@@ -69,13 +59,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         },
         "description": "Translate with automatic source language detection"
       },
@@ -97,13 +82,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/detect",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "detect"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "detect"]
         },
         "description": "Detect the language of provided text"
       },
@@ -126,13 +106,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "assistant"]
         },
         "description": "Natural language translation request"
       },
@@ -171,13 +146,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "assistant"]
         },
         "description": "Start a multi-turn conversation - Step 1"
       },
@@ -205,13 +175,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "assistant"]
         },
         "description": "Continue conversation - Specify target language"
       },
@@ -239,13 +204,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "assistant"]
         },
         "description": "Complete conversation - Provide text to translate"
       },
@@ -273,13 +233,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/assistant",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "assistant"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "assistant"]
         },
         "description": "Upload and translate a document"
       },
@@ -301,13 +256,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         }
       },
       "response": []
@@ -328,13 +278,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         }
       },
       "response": []
@@ -355,13 +300,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         }
       },
       "response": []
@@ -382,13 +322,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         }
       },
       "response": []
@@ -409,13 +344,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         }
       },
       "response": []
@@ -436,13 +366,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         },
         "description": "Test error handling for invalid language codes"
       },
@@ -464,13 +389,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/translation/translate",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "translation",
-            "translate"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["translation", "translate"]
         },
         "description": "Test validation for missing target language"
       },

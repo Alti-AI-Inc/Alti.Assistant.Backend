@@ -1,15 +1,15 @@
-import { GoogleGenAI } from "@google/genai";
-import { Storage } from "@google-cloud/storage";
+import { GoogleGenAI } from '@google/genai';
+import { Storage } from '@google-cloud/storage';
 import globalConfig from '../../../../config/index.js';
-import path from "path";
-import { pipeline } from "stream/promises";
-import fetch from "node-fetch";
-import { GoogleAuth } from "google-auth-library";
+import path from 'path';
+import { pipeline } from 'stream/promises';
+import fetch from 'node-fetch';
+import { GoogleAuth } from 'google-auth-library';
 /**
  * Generates a video using the specified parameters.
  * This is a placeholder implementation - you'll need to integrate with your preferred video generation API
  * (e.g., RunwayML, Stability AI, Pika Labs, etc.)
- * 
+ *
  * @param {Object} options - Video generation options
  * @param {string} options.prompt - The detailed prompt for video generation
  * @param {number} options.duration - Duration in seconds (default: 5)
@@ -17,45 +17,61 @@ import { GoogleAuth } from "google-auth-library";
  * @param {string} options.resolution - Video resolution (default: "1024x576")
  * @returns {Promise<Object>} - Object containing videoUrl and metadata
  */
-export const generateVideo = async ({ prompt, duration = 5, style = "realistic", resolution = "1024x576" }) => {
-  console.log("Generating video with parameters:", { prompt, duration, style, resolution });
+export const generateVideo = async ({
+  prompt,
+  duration = 5,
+  style = 'realistic',
+  resolution = '1024x576',
+}) => {
+  console.log('Generating video with parameters:', {
+    prompt,
+    duration,
+    style,
+    resolution,
+  });
 
   try {
-
     const ai = new GoogleGenAI({ apiKey: globalConfig.gemini_secret_key });
     let operation = await ai.models.generateVideos({
-      model: "veo-3.0-fast-generate-001",
+      model: 'veo-3.0-fast-generate-001',
       prompt: prompt,
       config: {
         durationSeconds: 8,
-        resolution: "720p",
-      }
+        resolution: '720p',
+      },
     });
-
-
-
 
     // Poll the operation status until the video is ready.
     while (!operation.done) {
-      console.log("Waiting for video generation to complete...")
+      console.log('Waiting for video generation to complete...');
       await new Promise((resolve) => setTimeout(resolve, 10000));
       operation = await ai.operations.getVideosOperation({
         operation: operation,
       });
     }
-    console.log("Video generation operation completed:", JSON.stringify(operation.response.generatedVideos[0].video.uri, null, 2));
+    console.log(
+      'Video generation operation completed:',
+      JSON.stringify(operation.response.generatedVideos[0].video.uri, null, 2)
+    );
 
     // Upload the generated video directly to bucket without local save
     const fileName = `generated_video_${Date.now()}.mp4`;
 
-    console.log('Video file from operation:', JSON.stringify(operation.response.generatedVideos[0].video, null, 2));
+    console.log(
+      'Video file from operation:',
+      JSON.stringify(operation.response.generatedVideos[0].video, null, 2)
+    );
 
-    const url = await uploadVideoDirectlyToBucket(operation.response.generatedVideos[0].video, fileName, ai);
+    const url = await uploadVideoDirectlyToBucket(
+      operation.response.generatedVideos[0].video,
+      fileName,
+      ai
+    );
 
     console.log(`Video uploaded directly to storage:`, url);
 
-    console.log("Simulating video generation...");
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate processing time
+    console.log('Simulating video generation...');
+    await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulate processing time
 
     // Mock successful response
     const mockVideoResult = {
@@ -65,19 +81,23 @@ export const generateVideo = async ({ prompt, duration = 5, style = "realistic",
       resolution: resolution,
       style: style,
       generatedAt: new Date().toISOString(),
-      prompt: prompt
+      prompt: prompt,
     };
 
-    console.log("Video generation completed:", mockVideoResult);
+    console.log('Video generation completed:', mockVideoResult);
     return mockVideoResult;
-
   } catch (error) {
-    console.error("Error generating video:", error);
+    console.error('Error generating video:', error);
     throw new Error(`Video generation failed: ${error.message}`);
   }
 };
 
-export const generateVideoWithVertexAI = async ({ prompt, duration = 5, style = "realistic", resolution = "1024x576" }) => {
+export const generateVideoWithVertexAI = async ({
+  prompt,
+  duration = 5,
+  style = 'realistic',
+  resolution = '1024x576',
+}) => {
   const imageEndpoint = globalConfig.google.vertex_ai_endpoint;
   const location = globalConfig.google.vertex_ai_region;
   const modelId = 'veo-3.0-fast-generate-001';
@@ -103,7 +123,7 @@ export const generateVideoWithVertexAI = async ({ prompt, duration = 5, style = 
   };
   console.log('Endpoint and request data:', {
     endpoint: `https://${imageEndpoint}/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predictLongRunning`,
-    data
+    data,
   });
 
   const response = await fetch(
@@ -132,8 +152,7 @@ export const generateVideoWithVertexAI = async ({ prompt, duration = 5, style = 
   // return videoData.predictions[0].bytesBase64Encoded
   //   ? `data:image/png;base64,${videoData.predictions[0].bytesBase64Encoded}`
   //   : null;
-}
-
+};
 
 export const getOperationStatus = async (operationName) => {
   const imageEndpoint = globalConfig.google.vertex_ai_endpoint;
@@ -173,7 +192,7 @@ export const getOperationStatus = async (operationName) => {
     }
   }
   return operationStatus;
-}
+};
 
 const convertGcsUriToPublicUrl = (gcsUri) => {
   if (!gcsUri.startsWith('gs://')) {
@@ -183,10 +202,13 @@ const convertGcsUriToPublicUrl = (gcsUri) => {
   const bucketName = parts.shift();
   const filePath = parts.join('/');
   return `https://storage.googleapis.com/${bucketName}/${filePath}`;
-}
+};
 
 const uploadFileToStorage = async (filePath) => {
-  const storage = new Storage({ projectId: globalConfig.google.gcp_project_id, keyFilename: 'alti_gcp.json' });
+  const storage = new Storage({
+    projectId: globalConfig.google.gcp_project_id,
+    keyFilename: 'alti_gcp.json',
+  });
   const fileName = path.basename(filePath);
   const bucketName = 'ai_video_alti';
   try {
@@ -194,7 +216,7 @@ const uploadFileToStorage = async (filePath) => {
       destination: fileName,
       gzip: true,
       metadata: {
-        cacheControl: "public, max-age=31536000",
+        cacheControl: 'public, max-age=31536000',
       },
     });
     console.log(`✅ File uploaded: ${fileName}`);
@@ -204,7 +226,7 @@ const uploadFileToStorage = async (filePath) => {
     console.log(`🌍 Public URL: ${publicUrl}`);
     return publicUrl;
   } catch (error) {
-    console.error("Error uploading file to storage:", error);
+    console.error('Error uploading file to storage:', error);
     throw new Error(`Failed to upload file to storage: ${error.message}`);
   }
 };
@@ -219,7 +241,7 @@ const uploadFileToStorage = async (filePath) => {
 const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
   const storage = new Storage({
     projectId: globalConfig.google.gcp_project_id,
-    keyFilename: 'alti_gcp.json'
+    keyFilename: 'alti_gcp.json',
   });
   const bucketName = 'ai_video_alti';
 
@@ -233,7 +255,9 @@ const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
       // If the video file has a URI, fetch the content
       const response = await fetch(videoFile.uri);
       if (!response.ok) {
-        throw new Error(`Failed to fetch video from URI: ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch video from URI: ${response.statusText}`
+        );
       }
 
       const videoBuffer = await response.buffer();
@@ -242,12 +266,11 @@ const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
       const file = storage.bucket(bucketName).file(fileName);
       await file.save(videoBuffer, {
         metadata: {
-          contentType: "video/mp4",
-          cacheControl: "public, max-age=31536000",
+          contentType: 'video/mp4',
+          cacheControl: 'public, max-age=31536000',
         },
         resumable: false,
       });
-
     } else {
       // Alternative: try to download using the ai.files.download method to a buffer
       const videoBuffer = await ai.files.downloadAsBuffer({ file: videoFile });
@@ -255,8 +278,8 @@ const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
       const file = storage.bucket(bucketName).file(fileName);
       await file.save(videoBuffer, {
         metadata: {
-          contentType: "video/mp4",
-          cacheControl: "public, max-age=31536000",
+          contentType: 'video/mp4',
+          cacheControl: 'public, max-age=31536000',
         },
         resumable: false,
       });
@@ -268,10 +291,11 @@ const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
     const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
     console.log(`🌍 Public URL: ${publicUrl}`);
     return publicUrl;
-
   } catch (error) {
-    console.error("Error uploading video directly to storage:", error);
-    throw new Error(`Failed to upload video directly to storage: ${error.message}`);
+    console.error('Error uploading video directly to storage:', error);
+    throw new Error(
+      `Failed to upload video directly to storage: ${error.message}`
+    );
   }
 };
 
@@ -294,14 +318,15 @@ export const checkVideoGenerationStatus = async (jobId) => {
 
     // PLACEHOLDER IMPLEMENTATION
     return {
-      status: "completed",
+      status: 'completed',
       videoUrl: `https://example.com/generated-videos/video_${jobId}.mp4`,
-      progress: 100
+      progress: 100,
     };
-
   } catch (error) {
-    console.error("Error checking video generation status:", error);
-    throw new Error(`Failed to check video generation status: ${error.message}`);
+    console.error('Error checking video generation status:', error);
+    throw new Error(
+      `Failed to check video generation status: ${error.message}`
+    );
   }
 };
 
@@ -316,32 +341,31 @@ export const getAvailableVideoModels = async () => {
     // PLACEHOLDER IMPLEMENTATION
     return [
       {
-        id: "realistic",
-        name: "Realistic",
-        description: "Photorealistic video generation",
+        id: 'realistic',
+        name: 'Realistic',
+        description: 'Photorealistic video generation',
         maxDuration: 10,
-        resolutions: ["1024x576", "1280x720", "1920x1080"]
+        resolutions: ['1024x576', '1280x720', '1920x1080'],
       },
       {
-        id: "animated",
-        name: "Animated",
-        description: "Cartoon/animated style video generation",
+        id: 'animated',
+        name: 'Animated',
+        description: 'Cartoon/animated style video generation',
         maxDuration: 15,
-        resolutions: ["1024x576", "1280x720"]
+        resolutions: ['1024x576', '1280x720'],
       },
       {
-        id: "cinematic",
-        name: "Cinematic",
-        description: "Movie-like cinematic video generation",
+        id: 'cinematic',
+        name: 'Cinematic',
+        description: 'Movie-like cinematic video generation',
         maxDuration: 8,
-        resolutions: ["1920x1080", "2560x1440"]
-      }
+        resolutions: ['1920x1080', '2560x1440'],
+      },
     ];
 
     // eslint-disable-next-line no-unreachable
   } catch (error) {
-    console.error("Error getting available video models:", error);
+    console.error('Error getting available video models:', error);
     return [];
   }
-
 };

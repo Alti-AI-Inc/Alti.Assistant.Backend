@@ -74,13 +74,19 @@ KnowledgeBaseSchema.virtual('formattedFileSize').get(function () {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   if (this.totalFileSize === 0) return '0 Bytes';
   const i = parseInt(Math.floor(Math.log(this.totalFileSize) / Math.log(1024)));
-  return Math.round(this.totalFileSize / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  return (
+    Math.round((this.totalFileSize / Math.pow(1024, i)) * 100) / 100 +
+    ' ' +
+    sizes[i]
+  );
 });
 
 // Instance method to check if can add more documents
 KnowledgeBaseSchema.methods.canAddDocument = function (fileSize = 0) {
-  return this.documentsCount < this.settings.maxDocuments &&
-    (this.totalFileSize + fileSize) <= this.settings.maxFileSize;
+  return (
+    this.documentsCount < this.settings.maxDocuments &&
+    this.totalFileSize + fileSize <= this.settings.maxFileSize
+  );
 };
 
 // Static method to find user's knowledge bases

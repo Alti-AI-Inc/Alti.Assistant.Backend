@@ -65,7 +65,10 @@ UserUsageSchema.index({ userId: 1, tenantId: 1, date: 1 }, { unique: true });
  * @param {ObjectId|null} tenantId
  * @returns {Promise<UserUsage>}
  */
-UserUsageSchema.statics.getOrCreateToday = async function (userId, tenantId = null) {
+UserUsageSchema.statics.getOrCreateToday = async function (
+  userId,
+  tenantId = null
+) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0); // normalize to UTC midnight
 
@@ -83,7 +86,10 @@ UserUsageSchema.statics.getOrCreateToday = async function (userId, tenantId = nu
  * @param {ObjectId|null} tenantId
  * @returns {Promise<UserUsage>}
  */
-UserUsageSchema.statics.incrementRequest = async function (userId, tenantId = null) {
+UserUsageSchema.statics.incrementRequest = async function (
+  userId,
+  tenantId = null
+) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
@@ -101,7 +107,10 @@ UserUsageSchema.statics.incrementRequest = async function (userId, tenantId = nu
  * @param {ObjectId|null} tenantId
  * @returns {Promise<number>}
  */
-UserUsageSchema.statics.getTodayRequests = async function (userId, tenantId = null) {
+UserUsageSchema.statics.getTodayRequests = async function (
+  userId,
+  tenantId = null
+) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
@@ -110,14 +119,18 @@ UserUsageSchema.statics.getTodayRequests = async function (userId, tenantId = nu
 };
 
 /**
- * Update storage used (add or subtract bytes).  
+ * Update storage used (add or subtract bytes).
  * Pass negative value to subtract when files are deleted.
  * @param {ObjectId} userId
  * @param {ObjectId|null} tenantId
  * @param {number} bytes  - positive to add, negative to subtract
  * @returns {Promise<UserUsage>}
  */
-UserUsageSchema.statics.updateStorage = async function (userId, tenantId = null, bytes) {
+UserUsageSchema.statics.updateStorage = async function (
+  userId,
+  tenantId = null,
+  bytes
+) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
@@ -144,7 +157,10 @@ UserUsageSchema.statics.updateStorage = async function (userId, tenantId = null,
  * @param {ObjectId|null} tenantId
  * @returns {Promise<number>} bytes
  */
-UserUsageSchema.statics.getTotalStorage = async function (userId, tenantId = null) {
+UserUsageSchema.statics.getTotalStorage = async function (
+  userId,
+  tenantId = null
+) {
   const latest = await this.findOne({ userId, tenantId }).sort({ date: -1 });
   return latest ? latest.storageUsed : 0;
 };

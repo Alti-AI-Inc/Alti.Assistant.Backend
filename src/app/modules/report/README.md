@@ -52,6 +52,7 @@ Generate reports through natural language conversation with optional file upload
 **Authentication**: Optional (supports guest users)
 
 **Request Body**:
+
 ```json
 {
   "message": "Generate a sales report based on the uploaded data",
@@ -63,6 +64,7 @@ Generate reports through natural language conversation with optional file upload
 ```
 
 **With File Upload**:
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/reports/assistant \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -73,6 +75,7 @@ curl -X POST http://localhost:5000/api/v1/reports/assistant \
 ```
 
 **Response**:
+
 ```json
 {
   "statusCode": 200,
@@ -100,6 +103,7 @@ curl -X POST http://localhost:5000/api/v1/reports/assistant \
 ```
 
 **If More Information Needed**:
+
 ```json
 {
   "statusCode": 200,
@@ -123,6 +127,7 @@ Generate reports programmatically with all parameters provided.
 **Authentication**: Optional
 
 **Request Body**:
+
 ```json
 {
   "content": "Your report content here...",
@@ -148,6 +153,7 @@ Generate reports programmatically with all parameters provided.
 ```
 
 **Response**:
+
 ```json
 {
   "statusCode": 200,
@@ -177,6 +183,7 @@ Analyze uploaded files and extract insights.
 **Authentication**: Optional
 
 **Request Body** (multipart/form-data):
+
 ```
 files: [file1.csv, file2.pdf, file3.xlsx]
 analysisType: "detailed"  // Options: summary, detailed, comparison, extraction
@@ -185,6 +192,7 @@ conversationId: "report_1234567890_abc123"
 ```
 
 **Response**:
+
 ```json
 {
   "statusCode": 200,
@@ -215,6 +223,7 @@ Download a generated report file.
 **Authentication**: None required
 
 **Example**:
+
 ```bash
 curl -O http://localhost:5000/api/v1/reports/download/report_1234567890_xyz789.pdf
 ```
@@ -228,6 +237,7 @@ Export an existing report to a different format.
 **Authentication**: Required
 
 **Request Body**:
+
 ```json
 {
   "reportId": "report_1234567890_xyz789",
@@ -293,15 +303,16 @@ const response = await fetch('http://localhost:5000/api/v1/reports/generate', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_TOKEN'
+    Authorization: 'Bearer YOUR_TOKEN',
   },
   body: JSON.stringify({
-    content: 'Our Q4 sales increased by 25% compared to Q3. Key drivers include...',
+    content:
+      'Our Q4 sales increased by 25% compared to Q3. Key drivers include...',
     title: 'Q4 Sales Report',
     reportType: 'business',
     outputFormat: 'pdf',
-    tone: 'professional'
-  })
+    tone: 'professional',
+  }),
 });
 
 const data = await response.json();
@@ -312,7 +323,10 @@ console.log('Download URL:', data.data.report.downloadUrl);
 
 ```javascript
 const formData = new FormData();
-formData.append('message', 'Analyze these sales files and create a comprehensive report');
+formData.append(
+  'message',
+  'Analyze these sales files and create a comprehensive report'
+);
 formData.append('files', file1);
 formData.append('files', file2);
 formData.append('outputFormat', 'pdf');
@@ -320,9 +334,9 @@ formData.append('outputFormat', 'pdf');
 const response = await fetch('http://localhost:5000/api/v1/reports/assistant', {
   method: 'POST',
   headers: {
-    'Authorization': 'Bearer YOUR_TOKEN'
+    Authorization: 'Bearer YOUR_TOKEN',
   },
-  body: formData
+  body: formData,
 });
 
 const data = await response.json();
@@ -335,11 +349,11 @@ const data = await response.json();
 let response = await fetch('http://localhost:5000/api/v1/reports/assistant', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    message: 'I need a report'
-  })
+    message: 'I need a report',
+  }),
 });
 
 let data = await response.json();
@@ -349,12 +363,12 @@ let data = await response.json();
 response = await fetch('http://localhost:5000/api/v1/reports/assistant', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   },
   body: JSON.stringify({
     message: 'An analytical report about sales trends',
-    conversationId: data.data.conversationId
-  })
+    conversationId: data.data.conversationId,
+  }),
 });
 
 data = await response.json();
@@ -372,7 +386,7 @@ formData.append('instructions', 'Compare data trends across both files');
 
 const response = await fetch('http://localhost:5000/api/v1/reports/analyze', {
   method: 'POST',
-  body: formData
+  body: formData,
 });
 
 const data = await response.json();
@@ -382,10 +396,12 @@ console.log('Analysis:', data.data.analysis);
 ## Supported Formats
 
 ### Input Formats
+
 - **Documents**: PDF, DOC, DOCX, TXT, MD, HTML
 - **Data**: CSV, XLSX, XLS, JSON
 
 ### Output Formats
+
 - **Documents**: PDF, DOCX, DOC, TXT, MD, HTML
 - **Data**: CSV, XLSX, XLS, JSON
 
@@ -458,6 +474,7 @@ Common error responses:
 The module uses several npm packages. Some advanced features require additional packages:
 
 ### Required (already in package.json):
+
 - `openai`
 - `multer`
 - `pdfkit`
@@ -519,16 +536,19 @@ curl -O http://localhost:5000/api/v1/reports/download/report_xxx.pdf
 ### Common Issues
 
 1. **File upload fails**
+
    - Check file size limits
    - Verify file format is supported
    - Ensure `uploads/reports` directory exists
 
 2. **PDF generation fails**
+
    - Verify PDFKit is installed
    - Check output directory permissions
    - Review report data structure
 
 3. **AI generation errors**
+
    - Verify `OPENAI_API_KEY` is set
    - Check API quota/limits
    - Review content length

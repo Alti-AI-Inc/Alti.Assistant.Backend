@@ -47,7 +47,9 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
   let maxMatches = 0;
 
   for (const [intent, keywords] of Object.entries(INTENT_KEYWORDS)) {
-    const matches = keywords.filter(keyword => lowerMessage.includes(keyword.toLowerCase())).length;
+    const matches = keywords.filter((keyword) =>
+      lowerMessage.includes(keyword.toLowerCase())
+    ).length;
     if (matches > maxMatches) {
       maxMatches = matches;
       detectedIntent = intent;
@@ -55,14 +57,19 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
   }
 
   // Default to CREATE_NEW if no intent detected and no conversation history
-  if (detectedIntent === WRITING_INTENTS.UNKNOWN && conversationHistory.length === 0) {
+  if (
+    detectedIntent === WRITING_INTENTS.UNKNOWN &&
+    conversationHistory.length === 0
+  ) {
     detectedIntent = WRITING_INTENTS.CREATE_NEW;
   }
 
   // Detect writing type
   let detectedType = null;
   for (const [type, keywords] of Object.entries(TYPE_KEYWORDS)) {
-    if (keywords.some(keyword => lowerMessage.includes(keyword.toLowerCase()))) {
+    if (
+      keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+    ) {
       detectedType = type;
       break;
     }
@@ -86,7 +93,7 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
   };
 
   for (const [style, keywords] of Object.entries(styleKeywords)) {
-    if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+    if (keywords.some((keyword) => lowerMessage.includes(keyword))) {
       detectedStyle = style;
       break;
     }
@@ -104,16 +111,28 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
 /**
  * Handle creative writing conversation (create or retrieve)
  */
-const handleCreativeWritingConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleCreativeWritingConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -137,20 +156,32 @@ const handleCreativeWritingConversation = async (userId, conversationId, userMes
         req
       );
 
-      logger.info(`Created new creative writing conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new creative writing conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling creative writing conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -159,10 +190,18 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
@@ -173,14 +212,16 @@ const buildWritingPrompt = (userMessage, params, conversationHistory = []) => {
   const { writingType, style, tone, wordCount, intent } = params;
 
   // Get system prompt based on writing type
-  const systemPrompt = SYSTEM_PROMPTS[writingType] || SYSTEM_PROMPTS[WRITING_TYPES.GENERAL];
+  const systemPrompt =
+    SYSTEM_PROMPTS[writingType] || SYSTEM_PROMPTS[WRITING_TYPES.GENERAL];
 
   // Build context from conversation history
   let contextPrompt = '';
   if (conversationHistory.length > 0) {
     const recentMessages = conversationHistory.slice(-4);
-    contextPrompt = '\n\nPrevious conversation context:\n' +
-      recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n') +
+    contextPrompt =
+      '\n\nPrevious conversation context:\n' +
+      recentMessages.map((msg) => `${msg.role}: ${msg.content}`).join('\n') +
       '\n';
   }
 
@@ -196,40 +237,50 @@ const buildWritingPrompt = (userMessage, params, conversationHistory = []) => {
     constraints.push(`Tone: ${tone}`);
   }
 
-  const constraintsText = constraints.length > 0
-    ? `\n\nConstraints:\n- ${constraints.join('\n- ')}\n`
-    : '';
+  const constraintsText =
+    constraints.length > 0
+      ? `\n\nConstraints:\n- ${constraints.join('\n- ')}\n`
+      : '';
 
   // Handle different intents
   let intentInstruction = '';
   switch (intent) {
     case WRITING_INTENTS.CONTINUE_STORY:
-      intentInstruction = 'Continue the following story naturally, maintaining the same style, characters, and narrative thread:';
+      intentInstruction =
+        'Continue the following story naturally, maintaining the same style, characters, and narrative thread:';
       break;
     case WRITING_INTENTS.REVISE:
-      intentInstruction = 'Revise and improve the following text based on the user\'s feedback:';
+      intentInstruction =
+        "Revise and improve the following text based on the user's feedback:";
       break;
     case WRITING_INTENTS.EXPAND:
-      intentInstruction = 'Expand on the following text, adding more detail, depth, and development:';
+      intentInstruction =
+        'Expand on the following text, adding more detail, depth, and development:';
       break;
     case WRITING_INTENTS.CHANGE_STYLE:
-      intentInstruction = 'Rewrite the following text in a different style as requested:';
+      intentInstruction =
+        'Rewrite the following text in a different style as requested:';
       break;
     case WRITING_INTENTS.ADD_DETAILS:
-      intentInstruction = 'Add more vivid details and descriptive elements to the following:';
+      intentInstruction =
+        'Add more vivid details and descriptive elements to the following:';
       break;
     case WRITING_INTENTS.SHORTEN:
-      intentInstruction = 'Condense the following text while preserving its essential meaning and impact:';
+      intentInstruction =
+        'Condense the following text while preserving its essential meaning and impact:';
       break;
     case WRITING_INTENTS.GET_IDEAS:
-      intentInstruction = 'Provide creative ideas and suggestions based on the following request:';
+      intentInstruction =
+        'Provide creative ideas and suggestions based on the following request:';
       break;
     case WRITING_INTENTS.BRAINSTORM:
-      intentInstruction = 'Brainstorm multiple creative ideas and possibilities for:';
+      intentInstruction =
+        'Brainstorm multiple creative ideas and possibilities for:';
       break;
     case WRITING_INTENTS.CREATE_NEW:
     default:
-      intentInstruction = 'Create original creative writing based on the following request:';
+      intentInstruction =
+        'Create original creative writing based on the following request:';
       break;
   }
 
@@ -250,7 +301,10 @@ Please create engaging, original creative writing that fulfills this request. Be
 /**
  * Generate creative writing using AI
  */
-const generateCreativeWriting = async (prompt, temperature = CREATIVE_WRITING_CONFIG.TEMPERATURE) => {
+const generateCreativeWriting = async (
+  prompt,
+  temperature = CREATIVE_WRITING_CONFIG.TEMPERATURE
+) => {
   try {
     const model = genAI.getGenerativeModel({
       model: CREATIVE_WRITING_CONFIG.MODEL,
@@ -277,9 +331,18 @@ const generateCreativeWriting = async (prompt, temperature = CREATIVE_WRITING_CO
 /**
  * Store writing in conversation history
  */
-const storeWritingInConversation = async (conversationId, userId, writingData, req = null) => {
+const storeWritingInConversation = async (
+  conversationId,
+  userId,
+  writingData,
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation.metadata.writingHistory) {
       conversation.metadata.writingHistory = [];
@@ -290,10 +353,15 @@ const storeWritingInConversation = async (conversationId, userId, writingData, r
       timestamp: new Date(),
     });
 
-    await conversationService.updateConversationMetadata(conversationId, userId, {
-      writingHistory: conversation.metadata.writingHistory,
-      lastWritingType: writingData.writingType,
-    }, req);
+    await conversationService.updateConversationMetadata(
+      conversationId,
+      userId,
+      {
+        writingHistory: conversation.metadata.writingHistory,
+        lastWritingType: writingData.writingType,
+      },
+      req
+    );
 
     logger.info('Writing stored in conversation history', {
       conversationId,
@@ -310,8 +378,13 @@ const storeWritingInConversation = async (conversationId, userId, writingData, r
 const needsClarification = (analysis, conversationHistory) => {
   // If it's the first message and very vague
   if (conversationHistory.length === 0) {
-    const vaguePhrases = ['write something', 'help me write', 'create', 'make something'];
-    const isVague = vaguePhrases.some(phrase =>
+    const vaguePhrases = [
+      'write something',
+      'help me write',
+      'create',
+      'make something',
+    ];
+    const isVague = vaguePhrases.some((phrase) =>
       analysis.originalMessage.toLowerCase().includes(phrase)
     );
 
@@ -337,7 +410,13 @@ const generateClarificationQuestion = (analysis) => {
 /**
  * Main function to process conversational creative writing request
  */
-const processConversationalRequest = async (userId, message, conversationId, isGuest = false, req = null) => {
+const processConversationalRequest = async (
+  userId,
+  message,
+  conversationId,
+  isGuest = false,
+  req = null
+) => {
   try {
     // Handle or create conversation
     const conversation = await handleCreativeWritingConversation(
@@ -371,9 +450,16 @@ const processConversationalRequest = async (userId, message, conversationId, isG
     if (needsClarification(analysis, conversationHistory)) {
       const clarificationMessage = generateClarificationQuestion(analysis);
 
-      await addMessage(actualConversationId, userId, 'assistant', clarificationMessage, {
-        needsClarification: true,
-      }, req);
+      await addMessage(
+        actualConversationId,
+        userId,
+        'assistant',
+        clarificationMessage,
+        {
+          needsClarification: true,
+        },
+        req
+      );
 
       return {
         success: true,
@@ -394,7 +480,11 @@ const processConversationalRequest = async (userId, message, conversationId, isG
     };
 
     // Build writing prompt
-    const prompt = buildWritingPrompt(message, writingParams, conversationHistory);
+    const prompt = buildWritingPrompt(
+      message,
+      writingParams,
+      conversationHistory
+    );
 
     logger.info('Generating creative writing', {
       conversationId: actualConversationId,
@@ -403,24 +493,39 @@ const processConversationalRequest = async (userId, message, conversationId, isG
     });
 
     // Generate creative writing
-    const generatedText = await generateCreativeWriting(prompt, writingParams.temperature);
+    const generatedText = await generateCreativeWriting(
+      prompt,
+      writingParams.temperature
+    );
 
     // Store the writing
-    await storeWritingInConversation(actualConversationId, userId, {
-      userRequest: message,
-      generatedText,
-      writingType: writingParams.writingType,
-      style: writingParams.style,
-      wordCount: writingParams.wordCount,
-      intent: writingParams.intent,
-    }, req);
+    await storeWritingInConversation(
+      actualConversationId,
+      userId,
+      {
+        userRequest: message,
+        generatedText,
+        writingType: writingParams.writingType,
+        style: writingParams.style,
+        wordCount: writingParams.wordCount,
+        intent: writingParams.intent,
+      },
+      req
+    );
 
     // Add assistant response to conversation
-    await addMessage(actualConversationId, userId, 'assistant', generatedText, {
-      writingType: writingParams.writingType,
-      style: writingParams.style,
-      intent: writingParams.intent,
-    }, req);
+    await addMessage(
+      actualConversationId,
+      userId,
+      'assistant',
+      generatedText,
+      {
+        writingType: writingParams.writingType,
+        style: writingParams.style,
+        intent: writingParams.intent,
+      },
+      req
+    );
 
     logger.info('Creative writing generated successfully', {
       conversationId: actualConversationId,
@@ -435,7 +540,10 @@ const processConversationalRequest = async (userId, message, conversationId, isG
       analysis,
     };
   } catch (error) {
-    logger.error('Error processing conversational creative writing request:', error);
+    logger.error(
+      'Error processing conversational creative writing request:',
+      error
+    );
     throw error;
   }
 };
@@ -445,7 +553,11 @@ const processConversationalRequest = async (userId, message, conversationId, isG
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     return {
       conversationId: conversation.conversationId,

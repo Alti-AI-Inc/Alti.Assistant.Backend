@@ -1,29 +1,29 @@
 // codeGeneration.js - Dedicated code generation endpoint using Claude Sonnet 4.5
 import { prepareConversationContext } from './utils/historyManager.js';
 import { executeToolBasedConversation } from './services/reactAgent.js';
-import Conversation from "../conversations/conversation.model.js";
+import Conversation from '../conversations/conversation.model.js';
 
 /**
  * Dedicated code generation function using Claude Sonnet 4.5
- * 
+ *
  * APPROACH:
  * - 95% of requests: Generate code directly from knowledge base
  * - 5% of requests: Use search only when absolutely necessary (bleeding-edge tech, explicit "latest" requests)
  * - Optional search via ReAct agent with Google Custom Search and WebBrowser tools
- * 
+ *
  * DECISION FRAMEWORK:
  * - Generate directly for: Standard frameworks, common patterns, established libraries, CRUD, APIs, auth
  * - Search only for: Very recent releases (<6 months), explicit "latest" requests, genuine uncertainty
- * 
+ *
  * @param {Object} state - Contains query, conversationId, conversationContext, etc.
  * @param {boolean} stream - Whether to stream the response
  * @returns {Object} - Code generation result with answer, references, and metadata
  */
 export const runCodeGeneration = async (state, stream = false) => {
   try {
-    console.log("🔧 Running dedicated code generation with Claude Sonnet 4.5");
+    console.log('🔧 Running dedicated code generation with Claude Sonnet 4.5');
 
-    const query = state.currentQuery || state.query || "";
+    const query = state.currentQuery || state.query || '';
     const userId = state.userId || state.authUserId || state?.user?.id || null;
 
     // Handle conversation context
@@ -33,7 +33,9 @@ export const runCodeGeneration = async (state, stream = false) => {
     if (state.conversationContext !== undefined) {
       conversationContext = state.conversationContext;
     } else if (state.conversationId) {
-      const conversation = await Conversation.findOne({ conversationId: state.conversationId })
+      const conversation = await Conversation.findOne({
+        conversationId: state.conversationId,
+      })
         .select('messages conversationSummary')
         .lean();
       conversationContext = conversation?.messages || [];
@@ -42,19 +44,26 @@ export const runCodeGeneration = async (state, stream = false) => {
       conversationContext = [];
     }
 
-    console.log("Length of conversation context:", conversationContext.length);
+    console.log('Length of conversation context:', conversationContext.length);
 
     // Filter and prepare context - remove duplicate consecutive user messages
     conversationContext = conversationContext.filter((item, index, arr) => {
-      if (item.role === 'user') return index === 0 || arr[index - 1]?.role !== 'user';
+      if (item.role === 'user')
+        return index === 0 || arr[index - 1]?.role !== 'user';
       return true;
     });
 
     // Manage conversation history intelligently
-    const contextResult = await prepareConversationContext(conversationContext, existingSummary, query);
+    const contextResult = await prepareConversationContext(
+      conversationContext,
+      existingSummary,
+      query
+    );
     const conversationHistory = contextResult.formattedContext;
 
-    console.log(`✅ Context prepared: ${contextResult.contextTokens} tokens (managed: ${contextResult.isOptimized})`);
+    console.log(
+      `✅ Context prepared: ${contextResult.contextTokens} tokens (managed: ${contextResult.isOptimized})`
+    );
 
     // Get current date context
     const currentDate = new Date();
@@ -235,11 +244,11 @@ Always provide the COMPLETE, WORKING implementation with proper documentation.`;
     // Prepare messages for code generation with ReAct agent
     const messages = [
       {
-        role: "system",
-        content: systemPrompt
+        role: 'system',
+        content: systemPrompt,
       },
       {
-        role: "user",
+        role: 'user',
         content: `${conversationHistory}
 
 Current request: ${query}
@@ -258,17 +267,17 @@ Generate high-quality, production-ready code with:
 - Modern syntax and patterns
 - Usage examples
 
-**DEFAULT: Generate code directly. Only use search tools if you have a specific, compelling reason.**`
-      }
+**DEFAULT: Generate code directly. Only use search tools if you have a specific, compelling reason.**`,
+      },
     ];
 
     const startTime = Date.now();
-    console.log("🚀 Starting code generation with tool-based conversation...");
+    console.log('🚀 Starting code generation with tool-based conversation...');
 
     // Use executeToolBasedConversation from reactAgent.js with optional search
     const codeResult = await executeToolBasedConversation(messages, {
       userId,
-      conversationId: state.conversationId
+      conversationId: state.conversationId,
     });
 
     const duration = Date.now() - startTime;
@@ -276,11 +285,10 @@ Generate high-quality, production-ready code with:
     console.log(`Code Result:`, codeResult.responseMessage);
 
     return {
-      ...codeResult?.responseMessage
+      ...codeResult?.responseMessage,
     };
-
   } catch (error) {
-    console.error("❌ Error in code generation:", error);
+    console.error('❌ Error in code generation:', error);
 
     // Fallback response
     return {
@@ -290,8 +298,8 @@ Generate high-quality, production-ready code with:
       citationMetadata: {
         error: true,
         errorMessage: error.message,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 };

@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema } from 'mongoose';
 
 export const CodeChatSessionSchema = new mongoose.Schema({
   thread_id: {
@@ -8,11 +8,11 @@ export const CodeChatSessionSchema = new mongoose.Schema({
   },
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: 'User',
     required: true,
   },
   history: {
-    type: Schema.Types.Mixed
+    type: Schema.Types.Mixed,
   },
 
   // Multi-tenant support
@@ -22,4 +22,4 @@ export const CodeChatSessionSchema = new mongoose.Schema({
     default: null,
     index: true,
   },
-})
+});

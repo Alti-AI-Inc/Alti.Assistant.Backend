@@ -24,7 +24,7 @@ const getGmailIntegration = catchAsync(async (req, res) => {
 
 const getAllIntegrations = catchAsync(async (req, res) => {
   const result = await composioService.getAllIntegrationsService();
-  
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -33,11 +33,11 @@ const getAllIntegrations = catchAsync(async (req, res) => {
   });
 });
 
-
 const authorizeGmailIntegration = catchAsync(async (req, res) => {
   const { userEmail } = req.body;
 
-  const result = await composioService.authorizeGmailIntegrationService(userEmail);
+  const result =
+    await composioService.authorizeGmailIntegrationService(userEmail);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -49,7 +49,9 @@ const authorizeGmailIntegration = catchAsync(async (req, res) => {
 
 const sendEmailWithComposio = catchAsync(async (req, res) => {
   const { userEmail } = req.body;
-  const result = await composioService.sendGmailFromAuthorizedAccountService(req.body);
+  const result = await composioService.sendGmailFromAuthorizedAccountService(
+    req.body
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -138,7 +140,7 @@ const startLinkedInOAuth = async (req, res) => {
   try {
     const redirectUrl = await composioService.getOAuthRedirectUrlService(
       linkedInIntegrationId,
-      entityId,
+      entityId
     );
     res.redirect(redirectUrl);
   } catch (err) {
@@ -155,11 +157,11 @@ const handleLinkedInCallback = async (req, res) => {
     const connectedAccount = await composioService.exchangeCodeService(
       code,
       linkedInIntegrationId,
-      entityId,
+      entityId
     );
 
     res.send(
-      `LinkedIn Connected! Account ID: ${connectedAccount.connectedAccountId}`,
+      `LinkedIn Connected! Account ID: ${connectedAccount.connectedAccountId}`
     );
   } catch (err) {
     console.error('LinkedIn Callback Error:', err);
@@ -177,7 +179,7 @@ const postToLinkedIn = async (req, res) => {
     const result = await composioService.postToLinkedInService(
       linkedInIntegrationId,
       connectedAccountId,
-      content,
+      content
     );
 
     sendResponse(res, {
@@ -363,7 +365,7 @@ const getTwitterUserByUsername = catchAsync(async (req, res) => {
   });
 });
 const sendDMByUsername = catchAsync(async (req, res) => {
-  const result = await composioService.sendDMByUsernameService (req);
+  const result = await composioService.sendDMByUsernameService(req);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -413,5 +415,5 @@ export const composioController = {
   getAllIntegrations,
   authorizeGmailIntegration,
   sendEmailWithComposio,
-  getAllConnectedAccountsService
+  getAllConnectedAccountsService,
 };

@@ -44,7 +44,7 @@ class ConversationAnalyzer {
    */
   _calculateConversationTokens(conversationHistory, existingParams) {
     let totalTokens = 0;
-    conversationHistory.forEach(msg => {
+    conversationHistory.forEach((msg) => {
       totalTokens += this._estimateTokens(msg.content);
     });
     totalTokens += this._estimateTokens(JSON.stringify(existingParams));
@@ -58,7 +58,7 @@ class ConversationAnalyzer {
   async summarizeConversation(conversationHistory, existingParams) {
     try {
       const conversationText = conversationHistory
-        .map(msg => `${msg.role}: ${msg.content}`)
+        .map((msg) => `${msg.role}: ${msg.content}`)
         .join('\n');
 
       const prompt = `Summarize this translation conversation. Focus on:
@@ -81,7 +81,7 @@ Brief summary (max 200 words):`;
       logger.info('Conversation summarized', {
         originalMessages: conversationHistory.length,
         summaryLength: summary.length,
-        estimatedTokens: this._estimateTokens(summary)
+        estimatedTokens: this._estimateTokens(summary),
       });
 
       return summary;
@@ -145,19 +145,25 @@ You must respond with a valid JSON object with this exact structure:
   /**
    * Build user prompt
    */
-  _buildUserPrompt(userMessage, conversationHistory, existingParams, conversationSummary) {
+  _buildUserPrompt(
+    userMessage,
+    conversationHistory,
+    existingParams,
+    conversationSummary
+  ) {
     let contextSection = '';
 
     if (conversationSummary) {
       contextSection = `Previous conversation summary:\n${conversationSummary}\n\n`;
     } else if (conversationHistory.length > 0) {
       const recentHistory = conversationHistory.slice(-5);
-      contextSection = `Recent conversation:\n${recentHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\n`;
+      contextSection = `Recent conversation:\n${recentHistory.map((msg) => `${msg.role}: ${msg.content}`).join('\n')}\n\n`;
     }
 
-    const paramsSection = Object.keys(existingParams).length > 0
-      ? `Parameters collected so far:\n${JSON.stringify(existingParams, null, 2)}\n\n`
-      : '';
+    const paramsSection =
+      Object.keys(existingParams).length > 0
+        ? `Parameters collected so far:\n${JSON.stringify(existingParams, null, 2)}\n\n`
+        : '';
 
     return `${contextSection}${paramsSection}Current user message: "${userMessage}"
 
@@ -167,9 +173,17 @@ Analyze this message and respond with the JSON structure specified in the system
   /**
    * Analyze user message and extract intent + parameters
    */
-  async analyzeIntent(userMessage, conversationHistory = [], existingParams = {}, conversationSummary = null) {
+  async analyzeIntent(
+    userMessage,
+    conversationHistory = [],
+    existingParams = {},
+    conversationSummary = null
+  ) {
     try {
-      const estimatedTokens = this._calculateConversationTokens(conversationHistory, existingParams);
+      const estimatedTokens = this._calculateConversationTokens(
+        conversationHistory,
+        existingParams
+      );
 
       logger.info('Token estimation', {
         estimatedTokens,
@@ -199,12 +213,18 @@ Analyze this message and respond with the JSON structure specified in the system
       // Validate and normalize language codes
       if (analysisResult.extractedParams?.targetLanguage) {
         analysisResult.extractedParams.targetLanguage =
-          this._normalizeLanguageCode(analysisResult.extractedParams.targetLanguage);
+          this._normalizeLanguageCode(
+            analysisResult.extractedParams.targetLanguage
+          );
       }
-      if (analysisResult.extractedParams?.sourceLanguage &&
-        analysisResult.extractedParams.sourceLanguage !== 'auto') {
+      if (
+        analysisResult.extractedParams?.sourceLanguage &&
+        analysisResult.extractedParams.sourceLanguage !== 'auto'
+      ) {
         analysisResult.extractedParams.sourceLanguage =
-          this._normalizeLanguageCode(analysisResult.extractedParams.sourceLanguage);
+          this._normalizeLanguageCode(
+            analysisResult.extractedParams.sourceLanguage
+          );
       }
 
       logger.info('Intent analysis result', {
@@ -239,7 +259,8 @@ Analyze this message and respond with the JSON structure specified in the system
         missingParams: parsed.missingParams || [],
         needsMoreInfo: parsed.needsMoreInfo || false,
         followUpQuestion: parsed.followUpQuestion || null,
-        assistantResponse: parsed.assistantResponse || 'How can I help you with translation?',
+        assistantResponse:
+          parsed.assistantResponse || 'How can I help you with translation?',
         confidence: parsed.confidence || 0.5,
       };
     } catch (error) {
@@ -282,7 +303,8 @@ Analyze this message and respond with the JSON structure specified in the system
       missingParams: ['targetLanguage'],
       needsMoreInfo: true,
       followUpQuestion: 'What language would you like to translate to?',
-      assistantResponse: 'I can help you translate text or documents. Please specify the target language.',
+      assistantResponse:
+        'I can help you translate text or documents. Please specify the target language.',
       confidence: 0.3,
     };
   }
@@ -360,10 +382,13 @@ Respond with ONLY a JSON object:
           throw new Error('Invalid selectedIndex in response');
         }
       } catch (parseError) {
-        logger.warn('Failed to parse LLM file selection response, using most recent', {
-          error: parseError.message,
-          response: response.content,
-        });
+        logger.warn(
+          'Failed to parse LLM file selection response, using most recent',
+          {
+            error: parseError.message,
+            response: response.content,
+          }
+        );
 
         // Fallback to most recent file
         return {

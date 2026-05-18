@@ -63,7 +63,7 @@ const router = express.Router();
 router.post(
   '/whisper-transcribe',
   audioUploader.single('file'),
-  WishperAiController.transcribeAudioToTextController,
+  WishperAiController.transcribeAudioToTextController
 );
 
 export const wishperAiRoutes = router;

@@ -1,9 +1,9 @@
-import { Composio } from "@composio/core";
-import config from "../../../../../config/index.js";
-import ComposioAuth from "../../composio_v2/composio.model.js";
-import AuthConfig from "../../composio_v2/authConfig.model.js";
-import Tool from "../../composio_v2/tools.model.js";
-import { logger } from "../../../../shared/logger.js";
+import { Composio } from '@composio/core';
+import config from '../../../../../config/index.js';
+import ComposioAuth from '../../composio_v2/composio.model.js';
+import AuthConfig from '../../composio_v2/authConfig.model.js';
+import Tool from '../../composio_v2/tools.model.js';
+import { logger } from '../../../../shared/logger.js';
 
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
@@ -13,7 +13,6 @@ const composio = new Composio({
  * Service for managing Composio apps and tools for workflow automation
  */
 class ComposioIntegrationService {
-
   /**
    * Get user's connected and available apps
    */
@@ -26,24 +25,24 @@ class ComposioIntegrationService {
 
       // Get user's connected accounts
       const userConnections = await ComposioAuth.find({
-        userId: userId
+        userId: userId,
       });
 
       // Map connected accounts by app
       const connectedAppsMap = new Map();
-      userConnections.forEach(connection => {
+      userConnections.forEach((connection) => {
         if (connection.authConfigId) {
           connectedAppsMap.set(connection.authConfigId, {
             connectedAccountId: connection.connectedAccountId,
             status: connection.status,
             authConfigId: connection.authConfigId,
-            integrationId: connection.integrationId
+            integrationId: connection.integrationId,
           });
         }
       });
 
       // Build available apps list
-      const availableApps = authConfigs.map(config => {
+      const availableApps = authConfigs.map((config) => {
         const connection = connectedAppsMap.get(config.authConfigId);
         return {
           app: config.app,
@@ -51,25 +50,24 @@ class ComposioIntegrationService {
           isConnected: !!connection && connection.status === 'active',
           connectionStatus: connection?.status || 'not_connected',
           connectedAccountId: connection?.connectedAccountId,
-          integrationId: connection?.integrationId
+          integrationId: connection?.integrationId,
         };
       });
 
       return {
         success: true,
         apps: availableApps,
-        connectedApps: availableApps.filter(app => app.isConnected),
-        availableForConnection: availableApps.filter(app => !app.isConnected)
+        connectedApps: availableApps.filter((app) => app.isConnected),
+        availableForConnection: availableApps.filter((app) => !app.isConnected),
       };
-
     } catch (error) {
-      logger.error("Error getting user available apps:", error);
+      logger.error('Error getting user available apps:', error);
       return {
         success: false,
         error: error.message,
         apps: [],
         connectedApps: [],
-        availableForConnection: []
+        availableForConnection: [],
       };
     }
   }
@@ -92,7 +90,7 @@ class ComposioIntegrationService {
 
       // Filter by specific app names if provided
       if (appNames && appNames.length > 0) {
-        connectedApps = connectedApps.filter(app =>
+        connectedApps = connectedApps.filter((app) =>
           appNames.includes(app.app.toLowerCase())
         );
       }
@@ -103,18 +101,20 @@ class ComposioIntegrationService {
       for (const app of connectedApps) {
         try {
           // Get tools from Composio for this app
-          const tools = await composio.getTools({
-            apps: [app.app]
-          }, userId);
+          const tools = await composio.getTools(
+            {
+              apps: [app.app],
+            },
+            userId
+          );
 
-          toolsByApp[app.app] = tools.map(tool => ({
+          toolsByApp[app.app] = tools.map((tool) => ({
             name: tool.name,
             description: tool.description,
             app: app.app,
             parameters: tool.parameters || {},
-            slug: tool.slug || tool.name
+            slug: tool.slug || tool.name,
           }));
-
         } catch (toolError) {
           logger.warn(`Error getting tools for app ${app.app}:`, toolError);
           toolsByApp[app.app] = [];
@@ -127,24 +127,23 @@ class ComposioIntegrationService {
       return {
         success: true,
         toolsByApp,
-        connectedApps: connectedApps.map(app => app.app),
-        localTools: localTools.map(tool => ({
+        connectedApps: connectedApps.map((app) => app.app),
+        localTools: localTools.map((tool) => ({
           name: tool.name,
           description: tool.description,
-          slug: tool.slug
+          slug: tool.slug,
         })),
-        totalTools: Object.values(toolsByApp).flat().length
+        totalTools: Object.values(toolsByApp).flat().length,
       };
-
     } catch (error) {
-      logger.error("Error getting user available tools:", error);
+      logger.error('Error getting user available tools:', error);
       return {
         success: false,
         error: error.message,
         toolsByApp: {},
         connectedApps: [],
         localTools: [],
-        totalTools: 0
+        totalTools: 0,
       };
     }
   }
@@ -160,41 +159,48 @@ class ComposioIntegrationService {
         throw new Error(userApps.error);
       }
 
-      const connectedAppNames = userApps.connectedApps.map(app => app.app.toLowerCase());
+      const connectedAppNames = userApps.connectedApps.map((app) =>
+        app.app.toLowerCase()
+      );
 
-      const connectionStatus = requiredApps.map(appName => {
+      const connectionStatus = requiredApps.map((appName) => {
         const normalizedAppName = appName.toLowerCase();
         const isConnected = connectedAppNames.includes(normalizedAppName);
-        const appInfo = userApps.apps.find(app => app.app.toLowerCase() === normalizedAppName);
+        const appInfo = userApps.apps.find(
+          (app) => app.app.toLowerCase() === normalizedAppName
+        );
 
         return {
           app: appName,
           isConnected,
           status: appInfo?.connectionStatus || 'not_available',
           authConfigId: appInfo?.authConfigId,
-          connectedAccountId: appInfo?.connectedAccountId
+          connectedAccountId: appInfo?.connectedAccountId,
         };
       });
 
-      const missingConnections = connectionStatus.filter(app => !app.isConnected);
+      const missingConnections = connectionStatus.filter(
+        (app) => !app.isConnected
+      );
 
       return {
         success: true,
         allConnected: missingConnections.length === 0,
         connectionStatus,
-        missingConnections: missingConnections.map(app => app.app),
-        connectedApps: connectionStatus.filter(app => app.isConnected).map(app => app.app)
+        missingConnections: missingConnections.map((app) => app.app),
+        connectedApps: connectionStatus
+          .filter((app) => app.isConnected)
+          .map((app) => app.app),
       };
-
     } catch (error) {
-      logger.error("Error checking app connections:", error);
+      logger.error('Error checking app connections:', error);
       return {
         success: false,
         error: error.message,
         allConnected: false,
         connectionStatus: [],
         missingConnections: requiredApps,
-        connectedApps: []
+        connectedApps: [],
       };
     }
   }
@@ -208,14 +214,20 @@ class ComposioIntegrationService {
       const localTools = await Tool.find({});
 
       // Get app names from auth configs
-      const availableApps = authConfigs.map(config => config.app.toLowerCase());
+      const availableApps = authConfigs.map((config) =>
+        config.app.toLowerCase()
+      );
 
       // Get app names mentioned in tools
-      const toolApps = [...new Set(localTools.map(tool => {
-        // Extract app name from tool slug or name
-        const parts = tool.slug.split('_');
-        return parts[0].toLowerCase();
-      }))];
+      const toolApps = [
+        ...new Set(
+          localTools.map((tool) => {
+            // Extract app name from tool slug or name
+            const parts = tool.slug.split('_');
+            return parts[0].toLowerCase();
+          })
+        ),
+      ];
 
       // Combine and deduplicate
       const allAvailableApps = [...new Set([...availableApps, ...toolApps])];
@@ -224,17 +236,16 @@ class ComposioIntegrationService {
         success: true,
         availableApps: allAvailableApps,
         authConfigApps: availableApps,
-        toolApps: toolApps
+        toolApps: toolApps,
       };
-
     } catch (error) {
-      logger.error("Error getting available apps for detection:", error);
+      logger.error('Error getting available apps for detection:', error);
       return {
         success: false,
         error: error.message,
         availableApps: [],
         authConfigApps: [],
-        toolApps: []
+        toolApps: [],
       };
     }
   }
@@ -253,17 +264,20 @@ class ComposioIntegrationService {
       const { availableApps } = availableAppsResult;
 
       // Filter detected apps to only include available ones
-      const validApps = detectedApps.filter(app =>
+      const validApps = detectedApps.filter((app) =>
         availableApps.includes(app.toLowerCase())
       );
 
-      const invalidApps = detectedApps.filter(app =>
-        !availableApps.includes(app.toLowerCase())
+      const invalidApps = detectedApps.filter(
+        (app) => !availableApps.includes(app.toLowerCase())
       );
 
       let connectionStatus = null;
       if (userId && validApps.length > 0) {
-        const connectionCheck = await this.checkAppConnections(userId, validApps);
+        const connectionCheck = await this.checkAppConnections(
+          userId,
+          validApps
+        );
         connectionStatus = connectionCheck.success ? connectionCheck : null;
       }
 
@@ -272,18 +286,17 @@ class ComposioIntegrationService {
         validApps,
         invalidApps,
         availableApps,
-        connectionStatus
+        connectionStatus,
       };
-
     } catch (error) {
-      logger.error("Error validating detected apps:", error);
+      logger.error('Error validating detected apps:', error);
       return {
         success: false,
         error: error.message,
         validApps: [],
         invalidApps: detectedApps,
         availableApps: [],
-        connectionStatus: null
+        connectionStatus: null,
       };
     }
   }
@@ -294,7 +307,7 @@ class ComposioIntegrationService {
   async getConnectionUrl(userId, appName) {
     try {
       const authConfig = await AuthConfig.findOne({
-        app: { $regex: new RegExp(appName, 'i') }
+        app: { $regex: new RegExp(appName, 'i') },
       });
 
       if (!authConfig) {
@@ -305,7 +318,7 @@ class ComposioIntegrationService {
       const existingConnection = await ComposioAuth.findOne({
         userId: userId,
         authConfigId: authConfig.authConfigId,
-        status: 'active'
+        status: 'active',
       });
 
       if (existingConnection) {
@@ -313,7 +326,7 @@ class ComposioIntegrationService {
           success: true,
           alreadyConnected: true,
           message: `Already connected to ${appName}`,
-          connection: existingConnection
+          connection: existingConnection,
         };
       }
 
@@ -331,7 +344,7 @@ class ComposioIntegrationService {
         status: 'pending',
         integrationId: connectionUrl.integrationId,
         redirectUrl: connectionUrl.redirectUrl,
-        toolkit: {}
+        toolkit: {},
       });
 
       await composioAuth.save();
@@ -341,14 +354,13 @@ class ComposioIntegrationService {
         alreadyConnected: false,
         connectionUrl: connectionUrl.redirectUrl,
         connectedAccountId: connectionUrl.id,
-        authConfig: authConfig
+        authConfig: authConfig,
       };
-
     } catch (error) {
       logger.error(`Error getting connection URL for ${appName}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

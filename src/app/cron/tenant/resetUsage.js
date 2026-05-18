@@ -5,7 +5,7 @@ import Tenant from '../../modules/tenant/tenant.model.js';
 /**
  * Reset tenant usage counts on the first day of each month
  * Runs at midnight (00:00) on the 1st of every month
- * 
+ *
  * Cron schedule: '0 0 1 * *'
  * - Minute: 0
  * - Hour: 0

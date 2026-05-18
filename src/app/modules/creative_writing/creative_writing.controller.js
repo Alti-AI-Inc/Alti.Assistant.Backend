@@ -33,10 +33,16 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
+      createdAt: -1,
+    });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
+      ? await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        )
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -96,7 +102,9 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while processing your creative writing request',
+      message:
+        error.message ||
+        'An error occurred while processing your creative writing request',
     });
   }
 });
@@ -114,7 +122,11 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   });
 
   try {
-    const conversation = await creativeWritingService.getConversationHistory(conversationId, userId, req);
+    const conversation = await creativeWritingService.getConversationHistory(
+      conversationId,
+      userId,
+      req
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,

@@ -81,7 +81,7 @@ const forumSchema = mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 const Forum = mongoose.model('Forum', forumSchema);

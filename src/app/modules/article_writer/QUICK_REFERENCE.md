@@ -1,11 +1,13 @@
 # Article Writer API - Quick Reference Card
 
 ## Endpoint
+
 ```
 POST /article-writer/assistant
 ```
 
 ## Basic Request
+
 ```json
 {
   "message": "Write about [your topic]"
@@ -13,6 +15,7 @@ POST /article-writer/assistant
 ```
 
 ## Full Request Options
+
 ```json
 {
   "message": "Your writing instructions",
@@ -25,36 +28,41 @@ POST /article-writer/assistant
 ```
 
 ## Article Types
-| Type | Description |
-|------|-------------|
-| `blog_post` | Engaging, conversational |
-| `news_article` | Factual, objective |
-| `technical_article` | Technical, detailed |
-| `opinion_piece` | Persuasive viewpoint |
-| `how_to_guide` | Step-by-step |
-| `listicle` | List-based |
-| `case_study` | Analysis |
-| `research_article` | Academic |
-| `general` | Default, flexible |
+
+| Type                | Description              |
+| ------------------- | ------------------------ |
+| `blog_post`         | Engaging, conversational |
+| `news_article`      | Factual, objective       |
+| `technical_article` | Technical, detailed      |
+| `opinion_piece`     | Persuasive viewpoint     |
+| `how_to_guide`      | Step-by-step             |
+| `listicle`          | List-based               |
+| `case_study`        | Analysis                 |
+| `research_article`  | Academic                 |
+| `general`           | Default, flexible        |
 
 ## Tones
+
 `professional` | `casual` | `formal` | `conversational` | `persuasive` | `informative` | `entertaining` | `academic`
 
 ## Lengths
-| Length | Word Count |
-|--------|-----------|
-| `short` | 300-500 |
-| `medium` | 500-1000 |
-| `long` | 1000-2000 |
-| `comprehensive` | 2000+ |
+
+| Length          | Word Count |
+| --------------- | ---------- |
+| `short`         | 300-500    |
+| `medium`        | 500-1000   |
+| `long`          | 1000-2000  |
+| `comprehensive` | 2000+      |
 
 ## File Upload
+
 - **Field name**: `file`
 - **Max size**: 10MB
 - **Formats**: PDF, DOCX, DOC, TXT, XLSX, XLS, PPTX, PPT
 - **Content-Type**: multipart/form-data
 
 ## Response
+
 ```json
 {
   "statusCode": 200,
@@ -75,6 +83,7 @@ POST /article-writer/assistant
 ## Quick Examples
 
 ### Simple (Guest)
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -H "Content-Type: application/json" \
@@ -82,6 +91,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### With Parameters
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -H "Content-Type: application/json" \
@@ -95,6 +105,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### With File
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -H "Authorization: Bearer TOKEN" \
@@ -104,6 +115,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### Continue
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -H "Content-Type: application/json" \
@@ -114,6 +126,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ## Status Codes
+
 - `200` - Success
 - `400` - Bad request (missing message)
 - `403` - Limit reached
@@ -121,19 +134,23 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 - `500` - Server error
 
 ## Tips
+
 ✓ Be specific in your message  
 ✓ Upload files for context  
 ✓ Use appropriate article type  
 ✓ Match tone to audience  
-✓ Iterate with conversationId  
+✓ Iterate with conversationId
 
 ## Test
+
 ```bash
 node scripts/test-article-writer.js
 ```
 
 ## Postman
+
 Import: `postman_collections/Article_Writer_API.postman_collection.json`
 
 ---
+
 **Full docs**: `src/app/modules/article_writer/README.md`

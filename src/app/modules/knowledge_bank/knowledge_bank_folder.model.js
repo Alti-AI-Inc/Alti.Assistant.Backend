@@ -134,11 +134,14 @@ KnowledgeBankFolderSchema.virtual('formattedTotalSize').get(function () {
 
 // Virtual for depth level (number of slashes in path)
 KnowledgeBankFolderSchema.virtual('depth').get(function () {
-  return this.path.split('/').filter(p => p).length;
+  return this.path.split('/').filter((p) => p).length;
 });
 
 // Static method to find user's folders
-KnowledgeBankFolderSchema.statics.findByUserId = async function (userId, options = {}) {
+KnowledgeBankFolderSchema.statics.findByUserId = async function (
+  userId,
+  options = {}
+) {
   const query = { userId, isActive: true };
 
   // Filter by parent folder
@@ -157,31 +160,41 @@ KnowledgeBankFolderSchema.statics.findRootFolders = async function (userId) {
   return this.find({
     userId,
     parentFolderId: null,
-    isActive: true
+    isActive: true,
   }).sort({ name: 1 });
 };
 
 // Static method to find subfolders
-KnowledgeBankFolderSchema.statics.findSubfolders = async function (parentFolderId, userId) {
+KnowledgeBankFolderSchema.statics.findSubfolders = async function (
+  parentFolderId,
+  userId
+) {
   return this.find({
     userId,
     parentFolderId: parentFolderId,
-    isActive: true
+    isActive: true,
   }).sort({ name: 1 });
 };
 
 // Static method to check if folder name exists in parent
-KnowledgeBankFolderSchema.statics.nameExistsInParent = async function (userId, name, parentFolderId) {
+KnowledgeBankFolderSchema.statics.nameExistsInParent = async function (
+  userId,
+  name,
+  parentFolderId
+) {
   return this.exists({
     userId,
     name,
     parentFolderId: parentFolderId || null,
-    isActive: true
+    isActive: true,
   });
 };
 
 // Static method to get folder with all ancestors
-KnowledgeBankFolderSchema.statics.getFolderWithAncestors = async function (folderId, userId) {
+KnowledgeBankFolderSchema.statics.getFolderWithAncestors = async function (
+  folderId,
+  userId
+) {
   const folder = await this.findOne({ _id: folderId, userId, isActive: true });
   if (!folder) return null;
 
@@ -192,7 +205,7 @@ KnowledgeBankFolderSchema.statics.getFolderWithAncestors = async function (folde
     const parent = await this.findOne({
       _id: currentFolder.parentFolderId,
       userId,
-      isActive: true
+      isActive: true,
     });
     if (!parent) break;
     ancestors.unshift(parent);
@@ -202,13 +215,17 @@ KnowledgeBankFolderSchema.statics.getFolderWithAncestors = async function (folde
   return {
     folder,
     ancestors,
-    breadcrumb: ancestors.map(a => ({ id: a._id, name: a.name }))
-      .concat([{ id: folder._id, name: folder.name }])
+    breadcrumb: ancestors
+      .map((a) => ({ id: a._id, name: a.name }))
+      .concat([{ id: folder._id, name: folder.name }]),
   };
 };
 
 // Instance method to update statistics
-KnowledgeBankFolderSchema.methods.updateStats = async function (fileCountDelta = 0, sizeDelta = 0) {
+KnowledgeBankFolderSchema.methods.updateStats = async function (
+  fileCountDelta = 0,
+  sizeDelta = 0
+) {
   this.fileCount = Math.max(0, this.fileCount + fileCountDelta);
   this.totalSize = Math.max(0, this.totalSize + sizeDelta);
   await this.save();
@@ -223,7 +240,9 @@ KnowledgeBankFolderSchema.methods.updateStats = async function (fileCountDelta =
 };
 
 // Instance method to update subfolder count
-KnowledgeBankFolderSchema.methods.updateSubfolderCount = async function (delta = 1) {
+KnowledgeBankFolderSchema.methods.updateSubfolderCount = async function (
+  delta = 1
+) {
   this.subfolderCount = Math.max(0, this.subfolderCount + delta);
   await this.save();
 };
@@ -266,7 +285,11 @@ KnowledgeBankFolderSchema.methods.buildPath = async function () {
 
 // Pre-save middleware to build path
 KnowledgeBankFolderSchema.pre('save', async function (next) {
-  if (this.isNew || this.isModified('name') || this.isModified('parentFolderId')) {
+  if (
+    this.isNew ||
+    this.isModified('name') ||
+    this.isModified('parentFolderId')
+  ) {
     await this.buildPath();
   }
   next();
@@ -282,6 +305,9 @@ KnowledgeBankFolderSchema.post('save', async function (doc) {
   }
 });
 
-const KnowledgeBankFolder = mongoose.model('KnowledgeBankFolder', KnowledgeBankFolderSchema);
+const KnowledgeBankFolder = mongoose.model(
+  'KnowledgeBankFolder',
+  KnowledgeBankFolderSchema
+);
 
 export default KnowledgeBankFolder;

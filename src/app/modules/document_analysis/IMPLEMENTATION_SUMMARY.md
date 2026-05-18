@@ -9,6 +9,7 @@ A simple, powerful AI document analysis agent using **Gemini 3.5 Flash**.
 ## 📦 What Was Built
 
 ### **Core Module Files**
+
 1. ✅ **document_analysis.constant.js** - Configuration, analysis types, system prompts
 2. ✅ **document_analysis.validation.js** - Zod request validation schemas
 3. ✅ **document_analysis.service.js** - Main business logic
@@ -16,20 +17,25 @@ A simple, powerful AI document analysis agent using **Gemini 3.5 Flash**.
 5. ✅ **document_analysis.route.js** - Express routes
 
 ### **Supporting Services**
+
 6. ✅ **services/fileProcessor.js** - Text extraction from PDF, DOCX, TXT, XLSX, PPTX
 7. ✅ **services/textAnalyzer.js** - Gemini AI integration for analysis
 
 ### **Middleware**
+
 8. ✅ **middlewares/uploadDocumentAnalysis.js** - File upload configuration
 
 ### **Documentation**
+
 9. ✅ **README.md** - Comprehensive API documentation
 10. ✅ **QUICKSTART.md** - Quick start guide with examples
 
 ### **Testing**
+
 11. ✅ **Postman Collection** - 12 ready-to-use test cases
 
 ### **Infrastructure**
+
 12. ✅ **uploads/document_analysis/** - File storage directory
 13. ✅ **Route Integration** - Added to main app routes
 
@@ -38,12 +44,14 @@ A simple, powerful AI document analysis agent using **Gemini 3.5 Flash**.
 ## 🎯 Key Features
 
 ### **Simplicity**
+
 - ✅ Single endpoint: `/api/v1/document-analysis/analyze`
 - ✅ Works with text OR file OR both
 - ✅ No complex configuration required
 - ✅ Smart defaults for everything
 
 ### **Analysis Types**
+
 - ✅ General (comprehensive)
 - ✅ Sentiment analysis
 - ✅ Summary generation
@@ -53,6 +61,7 @@ A simple, powerful AI document analysis agent using **Gemini 3.5 Flash**.
 - ✅ Language detection
 
 ### **File Support**
+
 - ✅ PDF documents
 - ✅ Word documents (DOCX, DOC)
 - ✅ Plain text (TXT)
@@ -61,12 +70,14 @@ A simple, powerful AI document analysis agent using **Gemini 3.5 Flash**.
 - ✅ 10MB max file size
 
 ### **Conversation Memory**
+
 - ✅ Maintains conversation context
 - ✅ Follow-up questions supported
 - ✅ Full history retrieval
 - ✅ Guest and authenticated users
 
 ### **Output Formats**
+
 - ✅ Narrative (natural language)
 - ✅ Structured (organized with headings)
 
@@ -75,6 +86,7 @@ A simple, powerful AI document analysis agent using **Gemini 3.5 Flash**.
 ## 🔌 API Endpoints
 
 ### **1. Analyze (Main Endpoint)**
+
 ```
 POST /api/v1/document-analysis/analyze
 
@@ -88,6 +100,7 @@ Parameters:
 ```
 
 ### **2. Get Conversation History**
+
 ```
 GET /api/v1/document-analysis/conversation/:conversationId
 
@@ -100,11 +113,13 @@ Returns: Full conversation with all messages
 ## 🔧 Technical Architecture
 
 ### **Model**
+
 - Gemini 3.5 Flash (as required)
 - Temperature: 0.7
 - Max tokens: 4096
 
 ### **Dependencies Used**
+
 - ✅ `@google/generative-ai` - Gemini API
 - ✅ `pdf-parse` - PDF text extraction
 - ✅ `mammoth` - DOCX text extraction
@@ -113,6 +128,7 @@ Returns: Full conversation with all messages
 - ✅ `zod` - Request validation
 
 ### **Integration Points**
+
 - ✅ Conversations module (history tracking)
 - ✅ Subscription module (usage limits)
 - ✅ Auth middleware (optional authentication)
@@ -123,6 +139,7 @@ Returns: Full conversation with all messages
 ## 📊 Usage Examples
 
 ### **Example 1: Simple Text Analysis**
+
 ```bash
 POST /analyze
 {
@@ -131,6 +148,7 @@ POST /analyze
 ```
 
 ### **Example 2: File Upload**
+
 ```bash
 POST /analyze
 FormData:
@@ -138,6 +156,7 @@ FormData:
 ```
 
 ### **Example 3: File + Instructions**
+
 ```bash
 POST /analyze
 FormData:
@@ -147,6 +166,7 @@ FormData:
 ```
 
 ### **Example 4: Conversation Follow-up**
+
 ```bash
 POST /analyze
 {
@@ -160,18 +180,21 @@ POST /analyze
 ## 🎨 Design Decisions
 
 ### **Why Simple?**
+
 1. **User doesn't want complexity** - One endpoint handles everything
 2. **Optional everything** - No required fields except content
 3. **Smart routing** - System figures out what user wants
 4. **Natural interaction** - Like chatting with an assistant
 
 ### **Why This Structure?**
+
 - Follows established `document_review` pattern
 - Consistent with existing codebase
 - Easy to maintain and extend
 - Clear separation of concerns
 
 ### **Why Gemini 3.5 Flash?**
+
 - As specified by user requirements
 - Fast response times
 - Cost-effective for high volume
@@ -182,6 +205,7 @@ POST /analyze
 ## 🚀 How It Works
 
 ### **Flow Diagram**
+
 ```
 User Request (text/file)
     ↓
@@ -199,6 +223,7 @@ Return Response
 ```
 
 ### **File Processing Flow**
+
 ```
 Upload File
     ↓
@@ -214,6 +239,7 @@ Send to Gemini
 ```
 
 ### **Context Management**
+
 ```
 New Request
     ↓
@@ -229,6 +255,7 @@ Save exchange
 ---
 
 ## 📁 File Structure
+
 ```
 src/app/modules/document_analysis/
 ├── document_analysis.constant.js       # Config & prompts
@@ -255,6 +282,7 @@ postman_collections/
 ## ✨ Highlights
 
 ### **What Makes It Special**
+
 1. **Zero Learning Curve** - Just send text or file
 2. **Conversation Memory** - Remembers context
 3. **Multi-format Support** - 7 file types supported
@@ -263,6 +291,7 @@ postman_collections/
 6. **Production Ready** - Error handling, validation, logging
 
 ### **Developer Experience**
+
 - Clear code structure
 - Comprehensive documentation
 - Ready-to-use Postman collection
@@ -274,6 +303,7 @@ postman_collections/
 ## 🧪 Testing
 
 ### **Postman Collection Includes**
+
 1. ✅ Text analysis
 2. ✅ Sentiment analysis
 3. ✅ Key points extraction
@@ -317,6 +347,7 @@ postman_collections/
 ## 🎯 Success Metrics
 
 **Implementation Complete:**
+
 - 13 files created
 - 2 endpoints functional
 - 7 analysis types supported
@@ -324,6 +355,7 @@ postman_collections/
 - 100% test coverage in Postman
 
 **User Experience:**
+
 - 1 endpoint to remember
 - 0 complex configuration
 - ∞ flexibility

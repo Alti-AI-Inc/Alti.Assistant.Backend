@@ -88,7 +88,7 @@ const SerperAiGetResponse = catchAsync(async (req, res) => {
     // Extract top 3 search results
     const searchSummary = searchResults?.organic
       ?.slice(0, 3)
-      .map(r => r.snippet)
+      .map((r) => r.snippet)
       .join(' ');
 
     const formattedSearchResults =
@@ -109,5 +109,3 @@ const SerperAiGetResponse = catchAsync(async (req, res) => {
 export const SerperAiController = {
   SerperAiGetResponse,
 };
-
-

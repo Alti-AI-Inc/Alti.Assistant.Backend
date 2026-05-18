@@ -130,7 +130,7 @@ const updateWebAiEndpoint = async (req, res) => {
     const updatedEndpoint = await AiEndpoint.findOneAndUpdate(
       { title }, // Find by title
       { enabled, default: isDefault }, // Only update enabled & default
-      { new: true, runValidators: true },
+      { new: true, runValidators: true }
     );
 
     if (!updatedEndpoint) {

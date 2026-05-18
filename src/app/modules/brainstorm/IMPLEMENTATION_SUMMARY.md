@@ -3,6 +3,7 @@
 ## ✅ What's Been Created
 
 ### Module Files (8 files)
+
 1. **brainstorm.constant.js** - All configurations, techniques, perspectives, prompts
 2. **brainstorm.validation.js** - Zod validation schemas for all endpoints
 3. **brainstorm.controller.js** - Request handlers for 5 endpoints
@@ -13,11 +14,13 @@
 8. **services/outputFormatter.js** - Response formatting utilities
 
 ### Documentation (3 files)
+
 1. **README.md** - Complete API documentation with all features
 2. **QUICKSTART.md** - Quick start guide with examples
 3. **Brainstorm_API.postman_collection.json** - Postman collection with 15+ requests
 
 ### Integration
+
 - ✅ Route registered in main router (`/api/v1/brainstorm`)
 - ✅ Follows existing architecture pattern from document_review module
 - ✅ Compatible with existing conversation system
@@ -26,6 +29,7 @@
 ## 🎯 Features Implemented
 
 ### 5 API Endpoints
+
 1. **POST /assistant** - Conversational brainstorming (supports guest users)
 2. **POST /generate** - Structured brainstorm with explicit parameters
 3. **GET /conversation/:id** - Get conversation history (auth required)
@@ -33,6 +37,7 @@
 5. **POST /refine** - Refine existing brainstorms (auth required)
 
 ### 10 Brainstorming Techniques
+
 - SCAMPER (Substitute, Combine, Adapt, Modify, Put to other uses, Eliminate, Reverse)
 - Mind Mapping
 - Six Thinking Hats
@@ -45,6 +50,7 @@
 - Role Storming
 
 ### 8 Analysis Perspectives
+
 - Business (ROI, market fit)
 - Technical (feasibility, architecture)
 - Creative (innovation)
@@ -55,12 +61,14 @@
 - Competitive (market positioning)
 
 ### 4 Depth Levels
+
 - Quick (~10 ideas, 5-10 min)
 - Standard (~20 ideas, 10-15 min) - Default
 - Deep (~35 ideas, 15-25 min)
 - Comprehensive (50+ ideas, 25+ min)
 
 ### 8 Brainstorm Types
+
 - Product Idea
 - Business Strategy
 - Marketing Campaign
@@ -73,6 +81,7 @@
 ## 🚀 How to Test
 
 ### 1. Start Your Server
+
 ```bash
 npm start
 # or
@@ -80,6 +89,7 @@ npm run dev
 ```
 
 ### 2. Test with cURL (Guest User)
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
   -H "Content-Type: application/json" \
@@ -89,12 +99,14 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 ```
 
 ### 3. Import Postman Collection
+
 1. Open Postman
 2. Import `postman_collections/Brainstorm_API.postman_collection.json`
 3. Set environment variable `baseUrl` to `http://localhost:5000`
 4. Try "Simple Brainstorm" request
 
 ### 4. Multi-Turn Conversation
+
 ```bash
 # 1. First request
 curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
@@ -115,6 +127,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 ## 📋 Next Steps
 
 ### Immediate Testing
+
 1. ✅ Route is registered - module accessible at `/api/v1/brainstorm`
 2. ✅ Test conversational endpoint (no auth required for guests)
 3. ✅ Test structured generation endpoint
@@ -122,6 +135,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 5. ✅ Test with authenticated users
 
 ### Optional Enhancements (Future)
+
 - [ ] Add streaming responses for real-time idea generation
 - [ ] Implement collaborative brainstorming (multiple users)
 - [ ] Add visual mind map generation
@@ -133,6 +147,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 ## 🔑 Key Integration Points
 
 ### With Existing Systems
+
 - **Conversation Service**: Reuses existing conversation management
 - **Subscription Model**: Checks usage limits for authenticated users
 - **Authentication**: Works with optionalAuth middleware (supports guests)
@@ -140,7 +155,9 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 - **Logger**: Comprehensive logging throughout
 
 ### Environment Variables Needed
+
 Ensure these are set in your `.env`:
+
 ```env
 GEMINI_SECRET_KEY=your_gemini_api_key
 ```
@@ -148,8 +165,9 @@ GEMINI_SECRET_KEY=your_gemini_api_key
 ## 📊 Usage Limits (Subscription-Based)
 
 Default limits in controller:
+
 - **Free Tier**: 5 brainstorm sessions/month
-- **Pro Tier**: 50 sessions/month  
+- **Pro Tier**: 50 sessions/month
 - **Enterprise**: Unlimited
 
 Configurable in payment/subscription model.
@@ -157,6 +175,7 @@ Configurable in payment/subscription model.
 ## 🎨 Example Requests
 
 ### Quick Product Ideation
+
 ```json
 {
   "message": "Brainstorm mobile app ideas for pet owners"
@@ -164,6 +183,7 @@ Configurable in payment/subscription model.
 ```
 
 ### Detailed Business Analysis
+
 ```json
 {
   "idea": "Online marketplace for handmade crafts",
@@ -179,6 +199,7 @@ Configurable in payment/subscription model.
 ```
 
 ### Technical Problem Solving
+
 ```json
 {
   "idea": "Our API response time is too slow (avg 2 seconds)",
@@ -191,16 +212,19 @@ Configurable in payment/subscription model.
 ## 🐛 Troubleshooting
 
 ### Module not loading
+
 1. Check import in `/src/app/routes/index.js`
 2. Verify all files are in correct location
 3. Check for syntax errors in console
 
 ### AI not responding
+
 1. Verify `GEMINI_SECRET_KEY` is set
 2. Check API quota/limits
 3. Review logs for error messages
 
 ### Conversation not saving
+
 1. Verify conversation service is working
 2. Check database connection
 3. Review conversation model schema

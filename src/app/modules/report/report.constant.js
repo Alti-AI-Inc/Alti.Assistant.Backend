@@ -143,14 +143,7 @@ export const REPORT_TEMPLATES = {
 };
 
 // Chart types for data visualization
-export const CHART_TYPES = [
-  'bar',
-  'line',
-  'pie',
-  'scatter',
-  'area',
-  'table',
-];
+export const CHART_TYPES = ['bar', 'line', 'pie', 'scatter', 'area', 'table'];
 
 // Export configuration
 export const EXPORT_CONFIG = {

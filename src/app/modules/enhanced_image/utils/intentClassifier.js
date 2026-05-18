@@ -1,15 +1,15 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { StructuredOutputParser } from "@langchain/core/output_parsers";
-import { z } from "zod";
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { StructuredOutputParser } from '@langchain/core/output_parsers';
+import { z } from 'zod';
 
 // Define the output schema
 const intentSchema = z.object({
-  service: z.enum(["imagen4", "gemini2.5flash"]).describe(
-    "The image generation service to use"
-  ),
-  reasoning: z.string().describe("Brief explanation for the choice"),
-  confidence: z.number().min(0).max(1).describe("Confidence score (0-1)"),
+  service: z
+    .enum(['imagen4', 'gemini2.5flash'])
+    .describe('The image generation service to use'),
+  reasoning: z.string().describe('Brief explanation for the choice'),
+  confidence: z.number().min(0).max(1).describe('Confidence score (0-1)'),
 });
 
 const parser = StructuredOutputParser.fromZodSchema(intentSchema);
@@ -29,12 +29,15 @@ class SimpleMemory {
 
   async loadMemoryVariables() {
     if (this.history.length === 0) {
-      return { history: "No previous conversation." };
+      return { history: 'No previous conversation.' };
     }
 
     const formatted = this.history
-      .map((item, idx) => `${idx + 1}. User: ${item.input}\n   Assistant: ${item.output}`)
-      .join("\n");
+      .map(
+        (item, idx) =>
+          `${idx + 1}. User: ${item.input}\n   Assistant: ${item.output}`
+      )
+      .join('\n');
 
     return { history: formatted };
   }
@@ -75,7 +78,7 @@ Analyze the request and determine the appropriate service based on the current r
  */
 export async function classifyImageGenIntent(
   userRequest,
-  { apiKey, modelName = "gemini-3-flash-preview", memory = null } = {}
+  { apiKey, modelName = 'gemini-3-flash-preview', memory = null } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
@@ -93,7 +96,7 @@ export async function classifyImageGenIntent(
 
   // Get conversation history
   const historyContext = await activeMemory.loadMemoryVariables({});
-  const history = historyContext.history || "No previous conversation.";
+  const history = historyContext.history || 'No previous conversation.';
 
   const chain = promptTemplate.pipe(model).pipe(parser);
 
@@ -106,7 +109,9 @@ export async function classifyImageGenIntent(
   // Save to memory
   await activeMemory.saveContext(
     { input: userRequest },
-    { output: `Selected service: ${result.service}. Reasoning: ${result.reasoning}` }
+    {
+      output: `Selected service: ${result.service}. Reasoning: ${result.reasoning}`,
+    }
   );
 
   return result;
@@ -125,8 +130,8 @@ export async function routeImageGenRequest(userRequest, options = {}) {
     service: intent.service,
     reasoning: intent.reasoning,
     confidence: intent.confidence,
-    shouldUseImagen4: intent.service === "imagen4",
-    shouldUseGemini25Flash: intent.service === "gemini2.5flash",
+    shouldUseImagen4: intent.service === 'imagen4',
+    shouldUseGemini25Flash: intent.service === 'gemini2.5flash',
   };
 }
 
@@ -142,7 +147,7 @@ export function resetConversationMemory() {
  * @returns {Promise<string>} Conversation history
  */
 export async function getConversationHistory() {
-  if (!conversationMemory) return "No conversation history.";
+  if (!conversationMemory) return 'No conversation history.';
   const context = await conversationMemory.loadMemoryVariables({});
-  return context.history || "No conversation history.";
+  return context.history || 'No conversation history.';
 }

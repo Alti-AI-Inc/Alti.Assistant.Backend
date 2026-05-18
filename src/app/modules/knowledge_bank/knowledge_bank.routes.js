@@ -17,7 +17,7 @@ const fileFilter = (req, file, cb) => {
     originalname: file.originalname,
     mimetype: file.mimetype,
     fieldname: file.fieldname,
-    size: file.size
+    size: file.size,
   });
 
   // Define allowed file types (can be made configurable)

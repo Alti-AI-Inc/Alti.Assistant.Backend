@@ -1,5 +1,8 @@
 import axios from 'axios';
-import { PRESENTON_CONFIG, PRESENTON_ENDPOINTS } from '../presentation.constant.js';
+import {
+  PRESENTON_CONFIG,
+  PRESENTON_ENDPOINTS,
+} from '../presentation.constant.js';
 import { logger } from '../../../../shared/logger.js';
 
 /**
@@ -24,7 +27,9 @@ class PresentonAPIClient {
     // Add response interceptor for logging
     this.client.interceptors.response.use(
       (response) => {
-        logger.info(`Presenton API Success: ${response.config.method?.toUpperCase()} ${response.config.url}`);
+        logger.info(
+          `Presenton API Success: ${response.config.method?.toUpperCase()} ${response.config.url}`
+        );
         return response;
       },
       (error) => {
@@ -44,7 +49,10 @@ class PresentonAPIClient {
    */
   async generatePresentation(params) {
     try {
-      const response = await this.client.post(PRESENTON_ENDPOINTS.GENERATE, params);
+      const response = await this.client.post(
+        PRESENTON_ENDPOINTS.GENERATE,
+        params
+      );
       return response.data;
     } catch (error) {
       console.log('Error in generatePresentation:', error);
@@ -57,7 +65,10 @@ class PresentonAPIClient {
    */
   async generatePresentationAsync(params) {
     try {
-      const response = await this.client.post(PRESENTON_ENDPOINTS.GENERATE_ASYNC, params);
+      const response = await this.client.post(
+        PRESENTON_ENDPOINTS.GENERATE_ASYNC,
+        params
+      );
       return response.data;
     } catch (error) {
       this._handleError(error, 'generatePresentationAsync');
@@ -69,7 +80,9 @@ class PresentonAPIClient {
    */
   async checkTaskStatus(taskId) {
     try {
-      const response = await this.client.get(`${PRESENTON_ENDPOINTS.CHECK_STATUS}/${taskId}`);
+      const response = await this.client.get(
+        `${PRESENTON_ENDPOINTS.CHECK_STATUS}/${taskId}`
+      );
       return response.data;
     } catch (error) {
       this._handleError(error, 'checkTaskStatus');
@@ -81,7 +94,9 @@ class PresentonAPIClient {
    */
   async getPresentation(presentationId) {
     try {
-      const response = await this.client.get(`${PRESENTON_ENDPOINTS.GET_PRESENTATION}/${presentationId}`);
+      const response = await this.client.get(
+        `${PRESENTON_ENDPOINTS.GET_PRESENTATION}/${presentationId}`
+      );
       return response.data;
     } catch (error) {
       this._handleError(error, 'getPresentation');
@@ -101,7 +116,6 @@ class PresentonAPIClient {
       const response = await this.client.post(PRESENTON_ENDPOINTS.EDIT, params);
       console.log('Edit presentation response:', JSON.stringify(response.data));
       return response.data;
-
     } catch (error) {
       this._handleError(error, 'editPresentation');
     }
@@ -121,12 +135,22 @@ class PresentonAPIClient {
 
       // Add valid generation parameters
       const validParams = [
-        'content', 'title', 'n_slides', 'language', 'template',
-        'theme', 'tone', 'verbosity', 'image_type', 'export_as',
-        'web_search', 'include_table_of_contents', 'include_title_slide'
+        'content',
+        'title',
+        'n_slides',
+        'language',
+        'template',
+        'theme',
+        'tone',
+        'verbosity',
+        'image_type',
+        'export_as',
+        'web_search',
+        'include_table_of_contents',
+        'include_title_slide',
       ];
 
-      validParams.forEach(param => {
+      validParams.forEach((param) => {
         if (params[param] !== undefined && params[param] !== null) {
           apiParams[param] = params[param];
         }
@@ -138,7 +162,10 @@ class PresentonAPIClient {
       }
 
       console.log('Cleaned API params:', apiParams);
-      const response = await this.client.post(PRESENTON_ENDPOINTS.DERIVE, apiParams);
+      const response = await this.client.post(
+        PRESENTON_ENDPOINTS.DERIVE,
+        apiParams
+      );
       return response.data;
     } catch (error) {
       this._handleError(error, 'derivePresentation');
@@ -149,7 +176,8 @@ class PresentonAPIClient {
    * Handle API errors
    */
   _handleError(error, method) {
-    const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+    const errorMessage =
+      error.response?.data?.message || error.message || 'Unknown error';
     const statusCode = error.response?.status || 500;
 
     logger.error(`Presenton API ${method} failed:`, {

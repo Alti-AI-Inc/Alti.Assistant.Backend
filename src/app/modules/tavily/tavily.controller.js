@@ -47,14 +47,6 @@
 //   });
 // });
 
-
-
-
-
-
-
-
-
 import { Groq } from 'groq-sdk';
 import httpStatus from 'http-status';
 import { tavily } from '@tavily/core';
@@ -64,7 +56,6 @@ import sendResponse from '../../../shared/sendResponse.js';
 import generateSessionId from '../../../shared/sessionGenerate.js';
 import UserModel from '../auth/auth.model.js';
 import Llama from '../groq/groq.model.js';
-
 
 const tvly = new tavily({ apiKey: process.env.TAVILY_API_KEY });
 const groq = new Groq({ apiKey: config.groq_api_key });
@@ -112,7 +103,7 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
     // Step 2: Extract Search Data
     const context = searchResults
       .map(
-        (result, index) => `${index + 1}. ${result.title}: ${result.snippet}`,
+        (result, index) => `${index + 1}. ${result.title}: ${result.snippet}`
       )
       .join('\n');
 
@@ -189,14 +180,6 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
     });
   }
 });
-
-
-
-
-
-
-
-
 
 export const TavilyAiController = {
   TavilyAiGetResponseAnonymously,

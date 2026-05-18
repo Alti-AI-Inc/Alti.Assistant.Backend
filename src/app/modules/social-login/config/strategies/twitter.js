@@ -174,15 +174,6 @@
 //     }
 // };
 
-
-
-
-
-
-
-
-
-
 import { Strategy as TwitterStrategy } from 'passport-twitter-oauth2';
 import { findOrCreateUserModel } from '../../social-login.utils.js';
 
@@ -214,7 +205,7 @@ const strategy = new TwitterStrategy(
     } catch (err) {
       return done(err, null);
     }
-  },
+  }
 );
 
 export default strategy;

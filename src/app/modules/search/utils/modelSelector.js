@@ -7,12 +7,12 @@
  * Query Analysis Categories
  */
 export const QueryCategory = {
-  SIMPLE_FACTUAL: 'simple_factual',       // Quick facts, dates, simple lookups
+  SIMPLE_FACTUAL: 'simple_factual', // Quick facts, dates, simple lookups
   COMPLEX_ANALYTICAL: 'complex_analytical', // Analysis, reasoning, comparisons
-  CREATIVE_WRITING: 'creative_writing',    // Content generation, creative tasks
-  TECHNICAL_CODE: 'technical_code',        // Programming, technical questions
-  CONVERSATIONAL: 'conversational',        // Chat, follow-up questions
-  MULTI_STEP_RESEARCH: 'multi_step_research' // Deep research, multiple sources
+  CREATIVE_WRITING: 'creative_writing', // Content generation, creative tasks
+  TECHNICAL_CODE: 'technical_code', // Programming, technical questions
+  CONVERSATIONAL: 'conversational', // Chat, follow-up questions
+  MULTI_STEP_RESEARCH: 'multi_step_research', // Deep research, multiple sources
 };
 
 /**
@@ -27,7 +27,7 @@ export const analyzeQueryForModel = (query, context = {}) => {
     searchDepth = 'standard',
     previousToolCalls = 0,
     responseLength = 0,
-    requiresReasoning = false
+    requiresReasoning = false,
   } = context;
 
   const queryLower = query.toLowerCase();
@@ -52,16 +52,47 @@ export const analyzeQueryForModel = (query, context = {}) => {
 
   // 2. Analytical Keywords
   const analyticalKeywords = [
-    'analyze', 'compare', 'evaluate', 'assess', 'determine', 'investigate',
-    'examine', 'research', 'study', 'explain why', 'what makes', 'how does',
-    'pros and cons', 'advantages and disadvantages', 'better', 'worse',
-    'implications', 'impact', 'consequences', 'relationship between',
-    'correlation', 'causation', 'trend', 'pattern', 'predict', 'forecast',
-    'strategy', 'recommend', 'suggest', 'advise', 'should i', 'which is better',
-    'comprehensive', 'detailed', 'in-depth', 'thorough'
+    'analyze',
+    'compare',
+    'evaluate',
+    'assess',
+    'determine',
+    'investigate',
+    'examine',
+    'research',
+    'study',
+    'explain why',
+    'what makes',
+    'how does',
+    'pros and cons',
+    'advantages and disadvantages',
+    'better',
+    'worse',
+    'implications',
+    'impact',
+    'consequences',
+    'relationship between',
+    'correlation',
+    'causation',
+    'trend',
+    'pattern',
+    'predict',
+    'forecast',
+    'strategy',
+    'recommend',
+    'suggest',
+    'advise',
+    'should i',
+    'which is better',
+    'comprehensive',
+    'detailed',
+    'in-depth',
+    'thorough',
   ];
 
-  const analyticalCount = analyticalKeywords.filter(kw => queryLower.includes(kw)).length;
+  const analyticalCount = analyticalKeywords.filter((kw) =>
+    queryLower.includes(kw)
+  ).length;
   if (analyticalCount >= 2) {
     complexityScore += 3;
     category = QueryCategory.COMPLEX_ANALYTICAL;
@@ -74,12 +105,24 @@ export const analyzeQueryForModel = (query, context = {}) => {
 
   // 3. Multi-step or Multi-part Questions
   const multiPartIndicators = [
-    'first', 'second', 'third', 'then', 'after that', 'next',
-    'and also', 'additionally', 'furthermore', 'moreover',
-    'step by step', 'walk me through', 'explain in detail'
+    'first',
+    'second',
+    'third',
+    'then',
+    'after that',
+    'next',
+    'and also',
+    'additionally',
+    'furthermore',
+    'moreover',
+    'step by step',
+    'walk me through',
+    'explain in detail',
   ];
 
-  const hasMultiPart = multiPartIndicators.some(ind => queryLower.includes(ind));
+  const hasMultiPart = multiPartIndicators.some((ind) =>
+    queryLower.includes(ind)
+  );
   const hasMultipleQuestions = (query.match(/\?/g) || []).length > 1;
 
   if (hasMultiPart || hasMultipleQuestions) {
@@ -90,13 +133,32 @@ export const analyzeQueryForModel = (query, context = {}) => {
 
   // 4. Technical/Code Related
   const technicalKeywords = [
-    'code', 'function', 'algorithm', 'implement', 'debug', 'error',
-    'api', 'database', 'query', 'python', 'javascript', 'react',
-    'node', 'sql', 'mongodb', 'typescript', 'programming', 'syntax',
-    'framework', 'library', 'package', 'dependency', 'optimize'
+    'code',
+    'function',
+    'algorithm',
+    'implement',
+    'debug',
+    'error',
+    'api',
+    'database',
+    'query',
+    'python',
+    'javascript',
+    'react',
+    'node',
+    'sql',
+    'mongodb',
+    'typescript',
+    'programming',
+    'syntax',
+    'framework',
+    'library',
+    'package',
+    'dependency',
+    'optimize',
   ];
 
-  const hasTechnical = technicalKeywords.some(kw => queryLower.includes(kw));
+  const hasTechnical = technicalKeywords.some((kw) => queryLower.includes(kw));
   if (hasTechnical) {
     complexityScore += 1;
     category = QueryCategory.TECHNICAL_CODE;
@@ -105,12 +167,25 @@ export const analyzeQueryForModel = (query, context = {}) => {
 
   // 5. Creative Writing
   const creativeKeywords = [
-    'write', 'create', 'draft', 'compose', 'generate',
-    'story', 'essay', 'article', 'blog', 'email', 'letter',
-    'poem', 'narrative', 'content', 'copy', 'description'
+    'write',
+    'create',
+    'draft',
+    'compose',
+    'generate',
+    'story',
+    'essay',
+    'article',
+    'blog',
+    'email',
+    'letter',
+    'poem',
+    'narrative',
+    'content',
+    'copy',
+    'description',
   ];
 
-  const hasCreative = creativeKeywords.some(kw => queryLower.includes(kw));
+  const hasCreative = creativeKeywords.some((kw) => queryLower.includes(kw));
   if (hasCreative && !hasTechnical) {
     complexityScore += 1;
     category = QueryCategory.CREATIVE_WRITING;
@@ -128,10 +203,11 @@ export const analyzeQueryForModel = (query, context = {}) => {
     /^what's the /i,
     /next game/i,
     /weather in/i,
-    /temperature/i
+    /temperature/i,
   ];
 
-  const isSimpleFactual = simplePatterns.some(pattern => pattern.test(query)) && wordCount < 15;
+  const isSimpleFactual =
+    simplePatterns.some((pattern) => pattern.test(query)) && wordCount < 15;
   if (isSimpleFactual && analyticalCount === 0) {
     complexityScore = Math.max(0, complexityScore - 2);
     category = QueryCategory.SIMPLE_FACTUAL;
@@ -180,7 +256,10 @@ export const analyzeQueryForModel = (query, context = {}) => {
     recommendedModel = 'gemini-3-flash-preview';
     modelName = 'Gemini 3 Pro Preview';
     modelReason = 'High complexity requires advanced reasoning';
-  } else if (complexityScore >= 4 && category === QueryCategory.COMPLEX_ANALYTICAL) {
+  } else if (
+    complexityScore >= 4 &&
+    category === QueryCategory.COMPLEX_ANALYTICAL
+  ) {
     recommendedModel = 'gemini-3-flash-preview';
     modelName = 'Gemini 3 Pro Preview';
     modelReason = 'Analytical query requires deeper reasoning';
@@ -213,8 +292,8 @@ export const analyzeQueryForModel = (query, context = {}) => {
       isSimpleFactual,
       hasAnalyticalKeywords: analyticalCount > 0,
       hasTechnicalContext: hasTechnical,
-      hasCreativeContext: hasCreative
-    }
+      hasCreativeContext: hasCreative,
+    },
   };
 };
 
@@ -239,13 +318,15 @@ export const analyzeAndLogModelSelection = (query, context = {}) => {
   const analysis = analyzeQueryForModel(query, context);
 
   console.log('\n🧠 === SMART MODEL SELECTION ===');
-  console.log(`📝 Query: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`);
+  console.log(
+    `📝 Query: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`
+  );
   console.log(`📊 Category: ${analysis.category}`);
   console.log(`🎯 Complexity Score: ${analysis.complexityScore}/10`);
   console.log(`🤖 Selected Model: ${analysis.modelName}`);
   console.log(`💡 Reason: ${analysis.modelReason}`);
   console.log(`📋 Reasoning Factors:`);
-  analysis.reasoning.forEach(r => console.log(`   - ${r}`));
+  analysis.reasoning.forEach((r) => console.log(`   - ${r}`));
   console.log('================================\n');
 
   return analysis;

@@ -46,7 +46,9 @@ const resetDailyUsage = async () => {
       }
     );
 
-    logger.info(`Updated lastResetAt for ${allResult.modifiedCount} total subscriptions`);
+    logger.info(
+      `Updated lastResetAt for ${allResult.modifiedCount} total subscriptions`
+    );
   } catch (error) {
     logger.error('Error resetting daily usage:', error);
   } finally {

@@ -142,7 +142,7 @@ class FileExtractionService {
       const workbook = XLSX.readFile(filePath);
       let text = '';
 
-      workbook.SheetNames.forEach(sheetName => {
+      workbook.SheetNames.forEach((sheetName) => {
         const worksheet = workbook.Sheets[sheetName];
         text += XLSX.utils.sheet_to_csv(worksheet) + '\n\n';
       });
@@ -150,7 +150,9 @@ class FileExtractionService {
       return text;
     } catch (error) {
       logger.error('XLSX extraction error:', error);
-      throw new Error('Failed to extract text from XLSX file. Please ensure the file is not corrupted.');
+      throw new Error(
+        'Failed to extract text from XLSX file. Please ensure the file is not corrupted.'
+      );
     }
   }
 

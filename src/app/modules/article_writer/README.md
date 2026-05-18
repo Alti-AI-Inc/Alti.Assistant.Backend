@@ -1,9 +1,11 @@
 # Article Writer Module
 
 ## Overview
+
 The Article Writer module provides an AI-powered article writing service that allows users to generate high-quality articles based on text input or uploaded files. Users can specify the article type, tone, and length to get customized content.
 
 ## Features
+
 - 🤖 AI-powered article generation using Google Gemini
 - 📄 Support for file uploads (PDF, DOCX, TXT, etc.)
 - 💬 Conversational interface with conversation history
@@ -15,15 +17,19 @@ The Article Writer module provides an AI-powered article writing service that al
 ## Endpoints
 
 ### 1. Generate Article (Conversational)
+
 **POST** `/article-writer/assistant`
 
 Generate an article based on user input with optional file upload.
 
 #### Request
+
 **Headers:**
+
 - `Authorization: Bearer <token>` (optional for authenticated users)
 
 **Body (multipart/form-data):**
+
 ```json
 {
   "message": "Write an article about artificial intelligence in healthcare",
@@ -36,11 +42,13 @@ Generate an article based on user input with optional file upload.
 ```
 
 **Optional File Upload:**
+
 - Field name: `file`
 - Supported formats: PDF, DOCX, DOC, TXT, XLSX, XLS, PPTX, PPT
 - Max size: 10MB
 
 #### Article Types
+
 - `blog_post` - Engaging blog post
 - `news_article` - Factual news article
 - `technical_article` - Technical documentation
@@ -52,6 +60,7 @@ Generate an article based on user input with optional file upload.
 - `general` - General article (default)
 
 #### Writing Tones
+
 - `professional` (default)
 - `casual`
 - `formal`
@@ -62,12 +71,14 @@ Generate an article based on user input with optional file upload.
 - `academic`
 
 #### Article Lengths
+
 - `short` - 300-500 words
 - `medium` - 500-1000 words (default)
 - `long` - 1000-2000 words
 - `comprehensive` - 2000+ words
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -86,15 +97,19 @@ Generate an article based on user input with optional file upload.
 ```
 
 ### 2. Get Conversation History
+
 **GET** `/article-writer/conversation/:conversationId`
 
 Retrieve the full conversation history for a specific conversation.
 
 #### Request
+
 **Headers:**
+
 - `Authorization: Bearer <token>` (required)
 
 #### Response
+
 ```json
 {
   "statusCode": 200,
@@ -136,6 +151,7 @@ Retrieve the full conversation history for a specific conversation.
 ## Usage Examples
 
 ### Example 1: Simple Article Generation
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -H "Content-Type: application/json" \
@@ -145,6 +161,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### Example 2: Article with Specifications
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -158,6 +175,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### Example 3: Article from Uploaded File
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -168,6 +186,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### Example 4: Continue Conversation
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -193,6 +212,7 @@ The module uses the following configuration (in `article_writer.constant.js`):
 ### Common Error Responses
 
 #### 400 Bad Request
+
 ```json
 {
   "statusCode": 400,
@@ -202,6 +222,7 @@ The module uses the following configuration (in `article_writer.constant.js`):
 ```
 
 #### 403 Forbidden
+
 ```json
 {
   "statusCode": 403,
@@ -211,6 +232,7 @@ The module uses the following configuration (in `article_writer.constant.js`):
 ```
 
 #### 404 Not Found
+
 ```json
 {
   "statusCode": 404,
@@ -220,6 +242,7 @@ The module uses the following configuration (in `article_writer.constant.js`):
 ```
 
 #### 500 Internal Server Error
+
 ```json
 {
   "statusCode": 500,
@@ -229,6 +252,7 @@ The module uses the following configuration (in `article_writer.constant.js`):
 ```
 
 ## File Structure
+
 ```
 article_writer/
 ├── article_writer.constant.js     # Configuration and constants
@@ -244,6 +268,7 @@ article_writer/
 ## Integration with Conversations Module
 
 The Article Writer module integrates with the conversations module to:
+
 - Create and manage conversation sessions
 - Store message history
 - Track uploaded files

@@ -8,17 +8,17 @@ const strategy = new AppleStrategy(
     keyID: process.env.APPLE_KEY_ID,
     // Ensure newline characters are correctly parsed from the environment variable
     privateKeyString: process.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    callbackURL: "/api/v1/auth-social/apple/callback",
+    callbackURL: '/api/v1/auth-social/apple/callback',
     scope: ['name', 'email'],
   },
   async (accessToken, refreshToken, idToken, profile, done) => {
     try {
-        const result = await findOrCreateUserModel(profile, 'apple');
-        return done(null, result); // Pass the {user, status, message} object.
+      const result = await findOrCreateUserModel(profile, 'apple');
+      return done(null, result); // Pass the {user, status, message} object.
     } catch (err) {
-        return done(err, null);
+      return done(err, null);
     }
-  },
+  }
 );
 
 export default strategy;

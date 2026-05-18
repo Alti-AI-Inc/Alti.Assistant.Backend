@@ -19,34 +19,58 @@ function analyzeQueryComplexity(query, conversationHistory = []) {
   const complexIndicators = {
     // Multiple step reasoning
     multiStep: [
-      'compare', 'comparison', 'vs', 'versus', 'better than',
-      'should i', 'recommend', 'analysis', 'analyze',
-      'pros and cons', 'advantages', 'disadvantages'
+      'compare',
+      'comparison',
+      'vs',
+      'versus',
+      'better than',
+      'should i',
+      'recommend',
+      'analysis',
+      'analyze',
+      'pros and cons',
+      'advantages',
+      'disadvantages',
     ],
 
     // Requires filtering/specific criteria
     specificCriteria: [
-      'home game', 'away game', 'next home', 'next away',
-      'only', 'specifically', 'exactly', 'precisely'
+      'home game',
+      'away game',
+      'next home',
+      'next away',
+      'only',
+      'specifically',
+      'exactly',
+      'precisely',
     ],
 
     // Requires synthesis from multiple sources
     multiSource: [
-      'verify', 'confirm', 'check multiple',
-      'cross-reference', 'validate'
+      'verify',
+      'confirm',
+      'check multiple',
+      'cross-reference',
+      'validate',
     ],
 
     // Prediction/analysis requests
     prediction: [
-      'predict', 'forecast', 'who will win', 'chances',
-      'likely', 'probability', 'odds', 'bet'
-    ]
+      'predict',
+      'forecast',
+      'who will win',
+      'chances',
+      'likely',
+      'probability',
+      'odds',
+      'bet',
+    ],
   };
 
   // Check for complex indicators
   const hasComplexIndicators = Object.values(complexIndicators)
     .flat()
-    .some(indicator => lowerQuery.includes(indicator));
+    .some((indicator) => lowerQuery.includes(indicator));
 
   // Long conversation history suggests need for context-aware reasoning
   const hasLongHistory = conversationHistory.length > 5;
@@ -73,7 +97,7 @@ function analyzeQueryComplexity(query, conversationHistory = []) {
         : hasLongHistory
           ? 'Long conversation history requires context-aware processing'
           : 'Simple factual query',
-    method: score >= 2 ? 'react_agent' : 'native_grounding'
+    method: score >= 2 ? 'react_agent' : 'native_grounding',
   };
 }
 
@@ -84,7 +108,11 @@ function analyzeQueryComplexity(query, conversationHistory = []) {
  * @param {Object} options - Additional options (userId, etc.)
  * @returns {Object} Formatted response with answer, references, and citations
  */
-export async function executeSmartSearch(query, conversationHistory = [], options = {}) {
+export async function executeSmartSearch(
+  query,
+  conversationHistory = [],
+  options = {}
+) {
   const analysis = analyzeQueryComplexity(query, conversationHistory);
 
   console.log(`\n🧠 Smart Router Analysis:`);
@@ -99,14 +127,14 @@ export async function executeSmartSearch(query, conversationHistory = [], option
       // Build messages for ReAct agent
       const messages = [
         {
-          role: "system",
-          content: `You are a helpful AI assistant with access to search tools. Provide accurate, well-researched answers with proper citations.`
+          role: 'system',
+          content: `You are a helpful AI assistant with access to search tools. Provide accurate, well-researched answers with proper citations.`,
         },
         ...conversationHistory,
         {
-          role: "user",
-          content: query
-        }
+          role: 'user',
+          content: query,
+        },
       ];
 
       const result = await executeToolBasedConversation(messages, options);
@@ -118,10 +146,9 @@ export async function executeSmartSearch(query, conversationHistory = [], option
         citationMetadata: {
           ...result.responseMessage.citationMetadata,
           method: 'react_agent',
-          complexity: analysis.score
-        }
+          complexity: analysis.score,
+        },
       };
-
     } else {
       console.log(`\n⚡ Using Native Google Grounding (Simple Query)`);
 
@@ -134,11 +161,10 @@ export async function executeSmartSearch(query, conversationHistory = [], option
         citationMetadata: {
           ...result.citationMetadata,
           method: 'native_grounding',
-          complexity: analysis.score
-        }
+          complexity: analysis.score,
+        },
       };
     }
-
   } catch (error) {
     console.error(`❌ Error in ${analysis.method}:`, error);
 
@@ -154,25 +180,27 @@ export async function executeSmartSearch(query, conversationHistory = [], option
           citationMetadata: {
             ...result.citationMetadata,
             method: 'native_grounding_fallback',
-            originalMethod: 'react_agent'
-          }
+            originalMethod: 'react_agent',
+          },
         };
       } catch (fallbackError) {
-        throw new Error(`Both methods failed: ${error.message}, ${fallbackError.message}`);
+        throw new Error(
+          `Both methods failed: ${error.message}, ${fallbackError.message}`
+        );
       }
     } else {
       console.log(`\n🔄 Falling back to ReAct Agent...`);
       try {
         const messages = [
           {
-            role: "system",
-            content: `You are a helpful AI assistant with access to search tools.`
+            role: 'system',
+            content: `You are a helpful AI assistant with access to search tools.`,
           },
           ...conversationHistory,
           {
-            role: "user",
-            content: query
-          }
+            role: 'user',
+            content: query,
+          },
         ];
 
         const result = await executeToolBasedConversation(messages, options);
@@ -183,11 +211,13 @@ export async function executeSmartSearch(query, conversationHistory = [], option
           citationMetadata: {
             ...result.responseMessage.citationMetadata,
             method: 'react_agent_fallback',
-            originalMethod: 'native_grounding'
-          }
+            originalMethod: 'native_grounding',
+          },
         };
       } catch (fallbackError) {
-        throw new Error(`Both methods failed: ${error.message}, ${fallbackError.message}`);
+        throw new Error(
+          `Both methods failed: ${error.message}, ${fallbackError.message}`
+        );
       }
     }
   }
@@ -196,7 +226,10 @@ export async function executeSmartSearch(query, conversationHistory = [], option
 /**
  * Force use of native grounding (bypass router)
  */
-export async function executeWithNativeGrounding(query, conversationHistory = []) {
+export async function executeWithNativeGrounding(
+  query,
+  conversationHistory = []
+) {
   console.log(`\n⚡ Forced: Using Native Google Grounding`);
   const result = await executeGroundedSearch(query, conversationHistory);
   return {
@@ -205,27 +238,31 @@ export async function executeWithNativeGrounding(query, conversationHistory = []
     citations: result.citations || [],
     citationMetadata: {
       ...result.citationMetadata,
-      method: 'native_grounding_forced'
-    }
+      method: 'native_grounding_forced',
+    },
   };
 }
 
 /**
  * Force use of ReAct agent (bypass router)
  */
-export async function executeWithReActAgent(query, conversationHistory = [], options = {}) {
+export async function executeWithReActAgent(
+  query,
+  conversationHistory = [],
+  options = {}
+) {
   console.log(`\n🔄 Forced: Using ReAct Agent`);
 
   const messages = [
     {
-      role: "system",
-      content: `You are a helpful AI assistant with access to search tools.`
+      role: 'system',
+      content: `You are a helpful AI assistant with access to search tools.`,
     },
     ...conversationHistory,
     {
-      role: "user",
-      content: query
-    }
+      role: 'user',
+      content: query,
+    },
   ];
 
   const result = await executeToolBasedConversation(messages, options);
@@ -235,8 +272,8 @@ export async function executeWithReActAgent(query, conversationHistory = [], opt
     citations: result.responseMessage.citations || [],
     citationMetadata: {
       ...result.responseMessage.citationMetadata,
-      method: 'react_agent_forced'
-    }
+      method: 'react_agent_forced',
+    },
   };
 }
 
@@ -244,5 +281,5 @@ export default {
   executeSmartSearch,
   executeWithNativeGrounding,
   executeWithReActAgent,
-  analyzeQueryComplexity
+  analyzeQueryComplexity,
 };

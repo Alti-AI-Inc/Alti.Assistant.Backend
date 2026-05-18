@@ -10,7 +10,7 @@ env:
   IMAGE_NAME: alti-assistant-backend
   VM_USER: emondarock
   VM_HOST: 35.239.192.33
-  COMPOSE_DIR: "~"
+  COMPOSE_DIR: '~'
   COMPOSE_FILE: docker-compose.yml
 
 jobs:

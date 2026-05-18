@@ -1,14 +1,21 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
-import { CONTRACT_REVIEW_INTENTS, INTENT_KEYWORDS } from '../legal_contract_review.constant.js';
+import {
+  CONTRACT_REVIEW_INTENTS,
+  INTENT_KEYWORDS,
+} from '../legal_contract_review.constant.js';
 
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Analyze user intent from message for legal contract review
  */
-const analyzeIntent = async (userMessage, conversationHistory = [], existingParams = {}) => {
+const analyzeIntent = async (
+  userMessage,
+  conversationHistory = [],
+  existingParams = {}
+) => {
   try {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
@@ -22,8 +29,9 @@ const analyzeIntent = async (userMessage, conversationHistory = [], existingPara
     let historyContext = '';
     if (conversationHistory.length > 0) {
       const recentMessages = conversationHistory.slice(-3);
-      historyContext = '\n\nRecent conversation:\n' +
-        recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      historyContext =
+        '\n\nRecent conversation:\n' +
+        recentMessages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
     }
 
     // Build existing parameters context
@@ -99,8 +107,11 @@ Respond in JSON format only:
     // Clean up parameters - remove null values
     const cleanedParams = {};
     for (const [key, value] of Object.entries(analysis.parameters || {})) {
-      if (value !== null && value !== 'null' &&
-        !(Array.isArray(value) && value.length === 0)) {
+      if (
+        value !== null &&
+        value !== 'null' &&
+        !(Array.isArray(value) && value.length === 0)
+      ) {
         cleanedParams[key] = value;
       }
     }
@@ -127,7 +138,9 @@ Respond in JSON format only:
     for (const [intent, keywords] of Object.entries(INTENT_KEYWORDS)) {
       for (const keyword of keywords) {
         if (lowerMessage.includes(keyword.toLowerCase())) {
-          logger.info('Using fallback keyword-based intent detection', { intent });
+          logger.info('Using fallback keyword-based intent detection', {
+            intent,
+          });
           return {
             intent,
             confidence: 0.6,

@@ -1,4 +1,3 @@
-
 import WorkflowExecution from '../models/workflowExecution.model.js';
 import ComposioAuth from '../composio.model.js';
 import ScheduledWorkflow from '../models/scheduledWorkflow.model.js';
@@ -8,7 +7,6 @@ import { logger } from '../../../../shared/logger.js';
  * Workflow Service - Core business logic for scheduled workflows
  */
 class WorkflowService {
-
   /**
    * Create a new scheduled workflow
    */
@@ -25,14 +23,17 @@ class WorkflowService {
         scheduleConfig = {},
         originalUserInput,
         conversationId,
-        conversationContext
+        conversationContext,
       } = workflowData;
 
       // Generate unique workflow ID
       const workflowId = ScheduledWorkflow.generateWorkflowId();
 
       // Get user's connected accounts for required apps
-      const connectedAccounts = await this.getUserConnectedAccounts(userId, requiredApps);
+      const connectedAccounts = await this.getUserConnectedAccounts(
+        userId,
+        requiredApps
+      );
 
       // Create workflow document
       const workflow = new ScheduledWorkflow({
@@ -48,13 +49,13 @@ class WorkflowService {
         scheduleConfig: {
           isActive: true,
           timezone: 'UTC',
-          ...scheduleConfig
+          ...scheduleConfig,
         },
         originalUserInput,
         conversationId,
         conversationContext,
         connectedAccounts,
-        status: triggerType === 'manual' ? 'pending' : 'active'
+        status: triggerType === 'manual' ? 'pending' : 'active',
       });
 
       // Set next execution time if scheduled
@@ -68,15 +69,14 @@ class WorkflowService {
       return {
         success: true,
         data: workflow,
-        message: 'Workflow created successfully'
+        message: 'Workflow created successfully',
       };
-
     } catch (error) {
       logger.error(`Error creating workflow: ${error.message}`);
       return {
         success: false,
         error: error.message,
-        message: 'Failed to create workflow'
+        message: 'Failed to create workflow',
       };
     }
   }
@@ -105,16 +105,15 @@ class WorkflowService {
             total,
             limit,
             offset,
-            hasMore: offset + limit < total
-          }
-        }
+            hasMore: offset + limit < total,
+          },
+        },
       };
-
     } catch (error) {
       logger.error(`Error fetching user workflows: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -133,12 +132,15 @@ class WorkflowService {
         return {
           success: false,
           error: 'Workflow not found',
-          message: 'The requested workflow does not exist'
+          message: 'The requested workflow does not exist',
         };
       }
 
       // Get recent executions
-      const recentExecutions = await WorkflowExecution.findByWorkflow(workflowId, 10);
+      const recentExecutions = await WorkflowExecution.findByWorkflow(
+        workflowId,
+        10
+      );
 
       return {
         success: true,
@@ -149,16 +151,15 @@ class WorkflowService {
             totalExecutions: workflow.executionCount,
             successRate: workflow.successRate,
             lastExecution: workflow.lastExecution,
-            nextExecution: workflow.nextExecution
-          }
-        }
+            nextExecution: workflow.nextExecution,
+          },
+        },
       };
-
     } catch (error) {
       logger.error(`Error fetching workflow: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -174,7 +175,7 @@ class WorkflowService {
         return {
           success: false,
           error: 'Workflow not found',
-          message: 'The requested workflow does not exist'
+          message: 'The requested workflow does not exist',
         };
       }
 
@@ -183,16 +184,25 @@ class WorkflowService {
         return {
           success: false,
           error: 'Cannot update running workflow',
-          message: 'Please stop the workflow before making changes'
+          message: 'Please stop the workflow before making changes',
         };
       }
 
       // Update allowed fields
-      const allowedFields = ['title', 'description', 'scheduleConfig', 'triggerType', 'status'];
-      Object.keys(updates).forEach(key => {
+      const allowedFields = [
+        'title',
+        'description',
+        'scheduleConfig',
+        'triggerType',
+        'status',
+      ];
+      Object.keys(updates).forEach((key) => {
         if (allowedFields.includes(key)) {
           if (key === 'scheduleConfig') {
-            workflow.scheduleConfig = { ...workflow.scheduleConfig, ...updates[key] };
+            workflow.scheduleConfig = {
+              ...workflow.scheduleConfig,
+              ...updates[key],
+            };
           } else {
             workflow[key] = updates[key];
           }
@@ -210,14 +220,13 @@ class WorkflowService {
       return {
         success: true,
         data: workflow,
-        message: 'Workflow updated successfully'
+        message: 'Workflow updated successfully',
       };
-
     } catch (error) {
       logger.error(`Error updating workflow: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -232,7 +241,7 @@ class WorkflowService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
@@ -241,7 +250,7 @@ class WorkflowService {
         return {
           success: false,
           error: 'Cannot delete running workflow',
-          message: 'Please stop the workflow before deleting'
+          message: 'Please stop the workflow before deleting',
         };
       }
 
@@ -253,14 +262,13 @@ class WorkflowService {
       console.log(`Workflow deleted: ${workflowId}`);
       return {
         success: true,
-        message: 'Workflow deleted successfully'
+        message: 'Workflow deleted successfully',
       };
-
     } catch (error) {
       logger.error(`Error deleting workflow: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -275,7 +283,7 @@ class WorkflowService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
@@ -283,7 +291,7 @@ class WorkflowService {
         return {
           success: false,
           error: 'Workflow is not active',
-          message: 'Please activate the workflow before triggering'
+          message: 'Please activate the workflow before triggering',
         };
       }
 
@@ -294,7 +302,11 @@ class WorkflowService {
       }
 
       // Create execution record
-      const executionResult = await this.createExecution(workflow, 'manual', triggerSource);
+      const executionResult = await this.createExecution(
+        workflow,
+        'manual',
+        triggerSource
+      );
 
       if (!executionResult.success) {
         return executionResult;
@@ -308,16 +320,15 @@ class WorkflowService {
         success: true,
         data: {
           executionId: executionResult.data.executionId,
-          status: 'queued'
+          status: 'queued',
         },
-        message: 'Workflow execution started'
+        message: 'Workflow execution started',
       };
-
     } catch (error) {
       logger.error(`Error triggering workflow: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -332,7 +343,7 @@ class WorkflowService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
@@ -341,14 +352,13 @@ class WorkflowService {
       return {
         success: true,
         data: workflow,
-        message: 'Workflow paused successfully'
+        message: 'Workflow paused successfully',
       };
-
     } catch (error) {
       logger.error(`Error pausing workflow: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -363,7 +373,7 @@ class WorkflowService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
@@ -372,14 +382,13 @@ class WorkflowService {
       return {
         success: true,
         data: workflow,
-        message: 'Workflow resumed successfully'
+        message: 'Workflow resumed successfully',
       };
-
     } catch (error) {
       logger.error(`Error resuming workflow: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -394,22 +403,24 @@ class WorkflowService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
-      const executions = await WorkflowExecution.findByWorkflow(workflowId, limit);
+      const executions = await WorkflowExecution.findByWorkflow(
+        workflowId,
+        limit
+      );
 
       return {
         success: true,
-        data: executions
+        data: executions,
       };
-
     } catch (error) {
       logger.error(`Error fetching workflow executions: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -428,21 +439,20 @@ class WorkflowService {
         executionType,
         triggerSource,
         totalSteps: workflow.totalSteps,
-        connectedAccountsUsed: workflow.connectedAccounts
+        connectedAccountsUsed: workflow.connectedAccounts,
       });
 
       await execution.save();
 
       return {
         success: true,
-        data: execution
+        data: execution,
       };
-
     } catch (error) {
       logger.error(`Error creating execution: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -452,10 +462,16 @@ class WorkflowService {
    */
   async validateWorkflowConnections(workflow) {
     try {
-      const connectedAccounts = await this.getUserConnectedAccounts(workflow.userId, workflow.requiredApps);
+      const connectedAccounts = await this.getUserConnectedAccounts(
+        workflow.userId,
+        workflow.requiredApps
+      );
 
-      const missingApps = workflow.requiredApps.filter(app =>
-        !connectedAccounts.some(account => account.app === app && account.status === 'active')
+      const missingApps = workflow.requiredApps.filter(
+        (app) =>
+          !connectedAccounts.some(
+            (account) => account.app === app && account.status === 'active'
+          )
       );
 
       if (missingApps.length > 0) {
@@ -463,19 +479,18 @@ class WorkflowService {
           success: false,
           error: 'Missing app connections',
           message: `Please connect these apps: ${missingApps.join(', ')}`,
-          data: { missingApps }
+          data: { missingApps },
         };
       }
 
       return {
         success: true,
-        data: { connectedAccounts }
+        data: { connectedAccounts },
       };
-
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -487,17 +502,18 @@ class WorkflowService {
     try {
       const accounts = await ComposioAuth.find({
         userId: userId,
-        status: 'active'
+        status: 'active',
       });
 
       return accounts
-        .filter(account => requiredApps.includes(account.integrationId?.toLowerCase()))
-        .map(account => ({
+        .filter((account) =>
+          requiredApps.includes(account.integrationId?.toLowerCase())
+        )
+        .map((account) => ({
           app: account.integrationId?.toLowerCase(),
           connectedAccountId: account.connectedAccountId,
-          status: account.status
+          status: account.status,
         }));
-
     } catch (error) {
       logger.error(`Error fetching connected accounts: ${error.message}`);
       return [];
@@ -512,13 +528,13 @@ class WorkflowService {
       const dueWorkflows = await ScheduledWorkflow.findDueForExecution();
       return {
         success: true,
-        data: dueWorkflows
+        data: dueWorkflows,
       };
     } catch (error) {
       logger.error(`Error fetching due workflows: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

@@ -23,6 +23,7 @@ POST /api/v1/search/code
 ## Request Format
 
 ### Headers
+
 ```json
 {
   "Content-Type": "application/json",
@@ -31,6 +32,7 @@ POST /api/v1/search/code
 ```
 
 ### Request Body
+
 ```json
 {
   "message": "Write a Node.js script for JWT authentication",
@@ -41,11 +43,11 @@ POST /api/v1/search/code
 
 ### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `message` | string | Yes | The code generation request |
-| `conversationId` | string | No | ID to continue existing conversation |
-| `userId` | string | No | User ID (auto-generated for guests) |
+| Parameter        | Type   | Required | Description                          |
+| ---------------- | ------ | -------- | ------------------------------------ |
+| `message`        | string | Yes      | The code generation request          |
+| `conversationId` | string | No       | ID to continue existing conversation |
+| `userId`         | string | No       | User ID (auto-generated for guests)  |
 
 ## Response Format
 
@@ -101,6 +103,7 @@ POST /api/v1/search/code
 ### Example 1: Simple Code Generation
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/search/code \
   -H "Content-Type: application/json" \
@@ -110,7 +113,8 @@ curl -X POST http://localhost:5000/api/v1/search/code \
 ```
 
 **Response:**
-```json
+
+````json
 {
   "statusCode": 200,
   "success": true,
@@ -120,11 +124,12 @@ curl -X POST http://localhost:5000/api/v1/search/code \
     }
   }
 }
-```
+````
 
 ### Example 2: Node.js Authentication Script
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/search/code \
   -H "Content-Type: application/json" \
@@ -136,6 +141,7 @@ curl -X POST http://localhost:5000/api/v1/search/code \
 ### Example 3: Continuing a Conversation
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/search/code \
   -H "Content-Type: application/json" \
@@ -147,14 +153,14 @@ curl -X POST http://localhost:5000/api/v1/search/code \
 
 ## Key Differences from `/assistant` Endpoint
 
-| Feature | `/code` Endpoint | `/assistant` Endpoint |
-|---------|------------------|----------------------|
-| **Model** | Always Claude Sonnet 4.5 | Smart routing (Claude/Gemini) |
-| **Purpose** | Code generation only | General search & research |
-| **Output** | Complete code implementations | Search results, explanations |
-| **Search** | Can search for documentation | Web & YouTube search |
-| **Token Limit** | 8000 tokens | 4000 tokens |
-| **Temperature** | 0.3 (consistent code) | 0.7 (creative responses) |
+| Feature         | `/code` Endpoint              | `/assistant` Endpoint         |
+| --------------- | ----------------------------- | ----------------------------- |
+| **Model**       | Always Claude Sonnet 4.5      | Smart routing (Claude/Gemini) |
+| **Purpose**     | Code generation only          | General search & research     |
+| **Output**      | Complete code implementations | Search results, explanations  |
+| **Search**      | Can search for documentation  | Web & YouTube search          |
+| **Token Limit** | 8000 tokens                   | 4000 tokens                   |
+| **Temperature** | 0.3 (consistent code)         | 0.7 (creative responses)      |
 
 ## Supported Languages
 
@@ -210,16 +216,16 @@ async function generateCode(request) {
       },
       body: JSON.stringify({
         message: request,
-        conversationId: localStorage.getItem('codeConversationId')
-      })
+        conversationId: localStorage.getItem('codeConversationId'),
+      }),
     });
 
     const data = await response.json();
-    
+
     if (data.success) {
       // Save conversation ID for follow-up requests
       localStorage.setItem('codeConversationId', data.data.conversationId);
-      
+
       // Display generated code
       console.log(data.data.responseMessage.answer);
     }
@@ -229,7 +235,7 @@ async function generateCode(request) {
 }
 
 // Usage
-generateCode("Write a React component for a login form");
+generateCode('Write a React component for a login form');
 ```
 
 ## Notes

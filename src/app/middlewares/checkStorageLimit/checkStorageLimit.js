@@ -152,7 +152,8 @@ const checkStorageLimit = async (req, res, next) => {
         : { userId, tenantId: null, paymentStatus: 'paid' }
     );
 
-    const storageLimit = subscription?.limits?.storagePerUser ?? FREE_PLAN_STORAGE_LIMIT_BYTES;
+    const storageLimit =
+      subscription?.limits?.storagePerUser ?? FREE_PLAN_STORAGE_LIMIT_BYTES;
     const planName = subscription?.plan_name ?? 'free';
 
     // ── 2. Free plan — no storage at all ─────────────────────────────────────
@@ -175,16 +176,16 @@ const checkStorageLimit = async (req, res, next) => {
 
     logger.info(
       `Storage check — user: ${userId}, plan: ${planName}, ` +
-      `used: ${formatBytes(storageUsed)}, incoming: ${formatBytes(incomingSize)}, ` +
-      `limit: ${formatBytes(storageLimit)}`
+        `used: ${formatBytes(storageUsed)}, incoming: ${formatBytes(incomingSize)}, ` +
+        `limit: ${formatBytes(storageLimit)}`
     );
 
     // ── 5. Enforce limit ──────────────────────────────────────────────────────
     if (storageUsed + incomingSize > storageLimit) {
       logger.warn(
         `Storage limit exceeded — user: ${userId}, plan: ${planName}, ` +
-        `used: ${formatBytes(storageUsed)}, incoming: ${formatBytes(incomingSize)}, ` +
-        `limit: ${formatBytes(storageLimit)}`
+          `used: ${formatBytes(storageUsed)}, incoming: ${formatBytes(incomingSize)}, ` +
+          `limit: ${formatBytes(storageLimit)}`
       );
 
       throw new ApiError(
@@ -203,7 +204,10 @@ const checkStorageLimit = async (req, res, next) => {
     // Set informational headers (useful for clients / debugging)
     res.setHeader('X-Storage-Used-Bytes', storageUsed);
     res.setHeader('X-Storage-Limit-Bytes', storageLimit);
-    res.setHeader('X-Storage-Remaining-Bytes', Math.max(0, storageLimit - storageUsed));
+    res.setHeader(
+      'X-Storage-Remaining-Bytes',
+      Math.max(0, storageLimit - storageUsed)
+    );
 
     next();
   } catch (error) {

@@ -22,16 +22,21 @@ router.post(
   videoController.generateVideo
 );
 
-
-router.post('/operations',
+router.post(
+  '/operations',
   optionalAuth(),
   extractTenantContext,
   // createRateLimiter(20, 1), // 20 requests per 1 minute
   videoController.getOperationStatus
-)
+);
 
 // Video stats (auth only)
-router.get('/stats', auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER), extractTenantContext, videoController.getVideoStats);
+router.get(
+  '/stats',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  extractTenantContext,
+  videoController.getVideoStats
+);
 
 // Get conversation (guest-compatible)
 router.get(
@@ -52,4 +57,3 @@ router.get(
 );
 
 export const videoRoutes = router;
-

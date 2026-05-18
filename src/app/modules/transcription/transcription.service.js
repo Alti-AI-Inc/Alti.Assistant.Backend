@@ -4,7 +4,11 @@ import { logger } from '../../../shared/logger.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import mongoose from 'mongoose';
-import { TRANSCRIPTION_CONSTANTS, AUDIO_PROCESSING, ERROR_MESSAGES } from './transcription.constant.js';
+import {
+  TRANSCRIPTION_CONSTANTS,
+  AUDIO_PROCESSING,
+  ERROR_MESSAGES,
+} from './transcription.constant.js';
 
 /**
  * Generate unique guest user ID
@@ -30,25 +34,40 @@ const generateTranscriptionConversationId = () => {
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleTranscriptionConversation = async (userId, conversationId, fileName, isGuest = false, req = null) => {
+const handleTranscriptionConversation = async (
+  userId,
+  conversationId,
+  fileName,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          isGuest ? null : userId,
+          req
+        );
 
         if (isGuest && conversation.metadata?.userType !== 'guest') {
-          logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
+          logger.warn(
+            `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
+          );
           conversation = null;
         }
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+        );
       }
     }
 
     if (!conversation) {
-      const newConversationId = conversationId || generateTranscriptionConversationId();
+      const newConversationId =
+        conversationId || generateTranscriptionConversationId();
 
       conversation = await conversationService.createConversation(
         {
@@ -65,13 +84,18 @@ const handleTranscriptionConversation = async (userId, conversationId, fileName,
         newConversationId
       );
 
-      logger.info(`Created new transcription conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`);
+      logger.info(
+        `Created new transcription conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling transcription conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle transcription conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle transcription conversation'
+    );
   }
 };
 
@@ -84,7 +108,14 @@ const handleTranscriptionConversation = async (userId, conversationId, fileName,
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addAudioUploadMessage = async (conversationId, userId, fileName, metadata = {}, isGuest = false, req = null) => {
+const addAudioUploadMessage = async (
+  conversationId,
+  userId,
+  fileName,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
     const messageData = {
       role: 'user',
@@ -103,7 +134,10 @@ const addAudioUploadMessage = async (conversationId, userId, fileName, metadata 
     );
   } catch (error) {
     logger.error('Error adding audio upload message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to record audio upload');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to record audio upload'
+    );
   }
 };
 
@@ -115,7 +149,13 @@ const addAudioUploadMessage = async (conversationId, userId, fileName, metadata 
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addTranscriptionResult = async (conversationId, userId, result, isGuest = false, req = null) => {
+const addTranscriptionResult = async (
+  conversationId,
+  userId,
+  result,
+  isGuest = false,
+  req = null
+) => {
   try {
     const messageData = {
       role: 'assistant',
@@ -137,7 +177,10 @@ const addTranscriptionResult = async (conversationId, userId, result, isGuest = 
     );
   } catch (error) {
     logger.error('Error adding transcription result:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to save transcription result');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to save transcription result'
+    );
   }
 };
 
@@ -174,7 +217,10 @@ const parseTimestamp = (timestamp) => {
 
   const match = timestamp.match(/^(\d{2}):(\d{2})$/);
   if (!match) {
-    throw new ApiError(httpStatus.BAD_REQUEST, ERROR_MESSAGES.INVALID_TIMESTAMP);
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_TIMESTAMP
+    );
   }
 
   const minutes = parseInt(match[1], 10);
@@ -201,9 +247,12 @@ const formatTimestamp = (seconds) => {
  */
 const getTranscriptionStats = async (userId, req = null) => {
   try {
-    const conversations = await conversationHelpers.getUserConversations(userId, {
-      'metadata.category': TRANSCRIPTION_CONSTANTS.CATEGORY,
-    });
+    const conversations = await conversationHelpers.getUserConversations(
+      userId,
+      {
+        'metadata.category': TRANSCRIPTION_CONSTANTS.CATEGORY,
+      }
+    );
 
     let totalTranscriptions = 0;
     let totalDuration = 0;
@@ -229,13 +278,17 @@ const getTranscriptionStats = async (userId, req = null) => {
       totalTranscriptions,
       totalDuration,
       totalTokens,
-      averageDuration: totalTranscriptions > 0 ? totalDuration / totalTranscriptions : 0,
+      averageDuration:
+        totalTranscriptions > 0 ? totalDuration / totalTranscriptions : 0,
       processingTypes,
       conversationCount: conversations.length,
     };
   } catch (error) {
     logger.error('Error getting transcription stats:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve transcription statistics');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve transcription statistics'
+    );
   }
 };
 
@@ -248,7 +301,14 @@ const getTranscriptionStats = async (userId, req = null) => {
  * @param {string} role
  * @returns {Promise<Object>}
  */
-const addChatMessage = async (conversationId, userId, message, isGuest = false, role = 'user', req = null) => {
+const addChatMessage = async (
+  conversationId,
+  userId,
+  message,
+  isGuest = false,
+  role = 'user',
+  req = null
+) => {
   try {
     const messageData = {
       role,
@@ -266,7 +326,10 @@ const addChatMessage = async (conversationId, userId, message, isGuest = false, 
     );
   } catch (error) {
     logger.error('Error adding chat message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add chat message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add chat message'
+    );
   }
 };
 

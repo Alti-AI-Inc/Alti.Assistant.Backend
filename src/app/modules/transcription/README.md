@@ -5,6 +5,7 @@ This module provides comprehensive audio processing capabilities using Google's 
 ## Features
 
 ### Audio Processing Types
+
 - **Transcribe**: Generate detailed transcripts of speech
 - **Describe**: Describe audio content including sounds, music, and speech
 - **Summarize**: Provide concise summaries of audio content
@@ -13,6 +14,7 @@ This module provides comprehensive audio processing capabilities using Google's 
 - **Question**: Answer questions about audio content
 
 ### Supported Audio Formats
+
 - WAV (`audio/wav`)
 - MP3 (`audio/mp3`)
 - AIFF (`audio/aiff`)
@@ -21,6 +23,7 @@ This module provides comprehensive audio processing capabilities using Google's 
 - FLAC (`audio/flac`)
 
 ### Key Capabilities
+
 - **File Upload**: Upload audio files up to 20MB
 - **Inline Processing**: Process base64-encoded audio data directly
 - **Batch Processing**: Process multiple audio files in one request
@@ -32,15 +35,18 @@ This module provides comprehensive audio processing capabilities using Google's 
 ## API Endpoints
 
 ### 1. Transcribe Audio File
+
 **POST** `/transcription/transcribe`
 
 Upload and process an audio file.
 
 **Headers:**
+
 - `Authorization: Bearer <token>` (optional for guests)
 - `Content-Type: multipart/form-data`
 
 **Body (form-data):**
+
 - `audio` (file, required): Audio file
 - `prompt` (string, optional): Additional instructions
 - `processingType` (string, optional): One of `transcribe`, `describe`, `summarize`, `analyze`, `segment`, `question` (default: `transcribe`)
@@ -51,6 +57,7 @@ Upload and process an audio file.
 - `includeTimestamps` (boolean, optional): Include timestamps in output
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:5000/transcription/transcribe \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -60,6 +67,7 @@ curl -X POST http://localhost:5000/transcription/transcribe \
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -80,15 +88,18 @@ curl -X POST http://localhost:5000/transcription/transcribe \
 ```
 
 ### 2. Transcribe Inline Audio
+
 **POST** `/transcription/transcribe/inline`
 
 Process base64-encoded audio data directly.
 
 **Headers:**
+
 - `Authorization: Bearer <token>` (optional)
 - `Content-Type: application/json`
 
 **Body:**
+
 ```json
 {
   "audioData": "base64_encoded_audio_data",
@@ -102,21 +113,25 @@ Process base64-encoded audio data directly.
 ```
 
 ### 3. Batch Transcribe
+
 **POST** `/transcription/transcribe/batch`
 
 Process multiple audio files in one request (max 10 files).
 
 **Headers:**
+
 - `Authorization: Bearer <token>` (optional)
 - `Content-Type: multipart/form-data`
 
 **Body (form-data):**
+
 - `audio` (files): Multiple audio files
 - `audioFiles` (JSON string): Configuration for each file
 - `conversationId` (string, optional)
 - `outputFormat` (string, optional)
 
 **Example audioFiles JSON:**
+
 ```json
 [
   {
@@ -133,15 +148,18 @@ Process multiple audio files in one request (max 10 files).
 ```
 
 ### 4. Analyze Segments
+
 **POST** `/transcription/analyze/segments`
 
 Analyze specific time segments of an audio file.
 
 **Headers:**
+
 - `Authorization: Bearer <token>` (optional)
 - `Content-Type: application/json`
 
 **Body:**
+
 ```json
 {
   "fileId": "previously-uploaded-file-uri",
@@ -162,14 +180,17 @@ Analyze specific time segments of an audio file.
 ```
 
 ### 5. Get Statistics
+
 **GET** `/transcription/stats`
 
 Get transcription statistics for authenticated users only.
 
 **Headers:**
+
 - `Authorization: Bearer <token>` (required)
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -193,21 +214,25 @@ Get transcription statistics for authenticated users only.
 ## Technical Details
 
 ### Token Calculation
+
 - **32 tokens per second** of audio
 - 1 minute of audio = 1,920 tokens
 - 9.5 hours maximum audio length per request
 
 ### File Size Limits
+
 - **20MB maximum** for inline requests
 - For larger files, use the upload endpoint with Files API
 - Guest users limited to 5 minutes of audio
 
 ### Audio Processing
+
 - Downsampled to 16 Kbps
 - Multi-channel audio combined to single channel
 - Supports non-speech sounds (music, effects, ambient noise)
 
 ### Rate Limits
+
 - **Authenticated users**: 20 requests per 15 minutes
 - **Guest users**: 5 requests per 60 minutes
 - **Batch requests**: 10 per 15 minutes
@@ -215,6 +240,7 @@ Get transcription statistics for authenticated users only.
 ## Usage Examples
 
 ### Example 1: Simple Transcription
+
 ```javascript
 const formData = new FormData();
 formData.append('audio', audioFile);
@@ -223,9 +249,9 @@ formData.append('processingType', 'transcribe');
 const response = await fetch('/transcription/transcribe', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   },
-  body: formData
+  body: formData,
 });
 
 const result = await response.json();
@@ -233,21 +259,24 @@ console.log(result.data.result);
 ```
 
 ### Example 2: Segment Analysis
+
 ```javascript
 const response = await fetch('/transcription/transcribe', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'multipart/form-data'
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'multipart/form-data',
   },
-  body: formData.append('audio', file)
+  body: formData
+    .append('audio', file)
     .append('startTimestamp', '02:30')
     .append('endTimestamp', '03:29')
-    .append('prompt', 'Transcribe this segment')
+    .append('prompt', 'Transcribe this segment'),
 });
 ```
 
 ### Example 3: Audio Description
+
 ```javascript
 const formData = new FormData();
 formData.append('audio', audioFile);
@@ -256,14 +285,15 @@ formData.append('prompt', 'Describe all sounds and music in this audio');
 
 const response = await fetch('/transcription/transcribe', {
   method: 'POST',
-  headers: { 'Authorization': `Bearer ${token}` },
-  body: formData
+  headers: { Authorization: `Bearer ${token}` },
+  body: formData,
 });
 ```
 
 ## Architecture
 
 ### Module Structure
+
 ```
 transcription/
 ├── transcription.constant.js      # Constants and configuration
@@ -277,23 +307,27 @@ transcription/
 ### Key Components
 
 #### Constants
+
 - Processing types, audio formats, rate limits
 - Validation rules and error messages
 - Guest user configuration
 
 #### Service Layer
+
 - Conversation management
 - Token calculation
 - Timestamp parsing
 - Statistics aggregation
 
 #### Gemini Service
+
 - File upload to Gemini Files API
 - Audio processing with different prompts
 - Inline audio handling
 - Token counting
 
 #### Controller
+
 - Request validation
 - Subscription checking
 - File cleanup
@@ -320,6 +354,7 @@ The module provides detailed error messages:
 ## Integration with Conversations
 
 All transcription activities are tracked in the conversation system:
+
 - Each audio upload creates or updates a conversation
 - Processing results are stored as messages
 - Metadata includes file info, tokens, and processing type

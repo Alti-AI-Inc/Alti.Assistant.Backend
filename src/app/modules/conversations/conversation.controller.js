@@ -58,10 +58,19 @@ const getUserConversations = catchAsync(async (req, res) => {
     sortOrder: parseInt(sortOrder),
     search,
     category,
-    is_deep_search: is_deep_search === 'true' ? true : is_deep_search === 'false' ? false : null,
+    is_deep_search:
+      is_deep_search === 'true'
+        ? true
+        : is_deep_search === 'false'
+          ? false
+          : null,
   };
 
-  const result = await conversationHelpers.getUserConversations(userId, options, req);
+  const result = await conversationHelpers.getUserConversations(
+    userId,
+    options,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -80,7 +89,11 @@ const getConversationById = catchAsync(async (req, res) => {
   if (user_id) {
     userId = user_id; // Use user_id from params if provided
   }
-  const result = await conversationHelpers.getConversationById(conversationId, userId, req);
+  const result = await conversationHelpers.getConversationById(
+    conversationId,
+    userId,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -195,7 +208,11 @@ const archiveConversation = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { conversationId } = req.params;
 
-  const result = await conversationService.archiveConversation(conversationId, userId, req);
+  const result = await conversationService.archiveConversation(
+    conversationId,
+    userId,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -212,7 +229,11 @@ const restoreConversation = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { conversationId } = req.params;
 
-  const result = await conversationService.restoreConversation(conversationId, userId, req);
+  const result = await conversationService.restoreConversation(
+    conversationId,
+    userId,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -229,7 +250,11 @@ const deleteConversation = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { conversationId } = req.params;
 
-  const result = await conversationService.deleteConversation(conversationId, userId, req);
+  const result = await conversationService.deleteConversation(
+    conversationId,
+    userId,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -524,7 +549,11 @@ const getDeepSearchConversations = catchAsync(async (req, res) => {
     is_deep_search: true, // Filter only deep search conversations
   };
 
-  const result = await conversationHelpers.getUserConversations(userId, options, req);
+  const result = await conversationHelpers.getUserConversations(
+    userId,
+    options,
+    req
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -563,7 +592,11 @@ const addTags = catchAsync(async (req, res) => {
 const shareChatConversation = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
   const userId = req.user?.userId || req.user?._id;
-  const { shareType = 'public', expiresAt = null, allowComments = false } = req.body;
+  const {
+    shareType = 'public',
+    expiresAt = null,
+    allowComments = false,
+  } = req.body;
 
   if (!userId) {
     return sendResponse(res, {

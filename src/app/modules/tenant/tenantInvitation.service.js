@@ -55,10 +55,15 @@ const createInvitation = async (invitationData) => {
         expiryDays: 7,
       });
 
-      logger.info(`Invitation email sent successfully: ${invitation._id} for ${email}`);
+      logger.info(
+        `Invitation email sent successfully: ${invitation._id} for ${email}`
+      );
     } catch (emailError) {
       // Log error but don't fail invitation creation
-      logger.error(`Failed to send invitation email for ${invitation._id}:`, emailError);
+      logger.error(
+        `Failed to send invitation email for ${invitation._id}:`,
+        emailError
+      );
       // Update invitation status to indicate email pending
       invitation.status = 'pending_email';
       await invitation.save();
@@ -95,7 +100,9 @@ const verifyInvitationToken = async (token) => {
     throw new ApiError(httpStatus.GONE, 'Invitation has expired');
   }
 
-  const isUserExistWithEmail = await UserModel.exists({ email: invitation.email });
+  const isUserExistWithEmail = await UserModel.exists({
+    email: invitation.email,
+  });
   return {
     id: invitation._id,
     email: invitation.email,
@@ -141,7 +148,10 @@ const acceptInvitation = async (token, userId) => {
   // Update user with tenant info
   user.tenantId = invitation.tenantId;
   user.tenantRole = invitation.role;
-  user.tenantPermissions = invitation.role === 'admin' ? ['manage_members', 'manage_content'] : ['view_content'];
+  user.tenantPermissions =
+    invitation.role === 'admin'
+      ? ['manage_members', 'manage_content']
+      : ['view_content'];
   await user.save();
 
   // Update tenant user count
@@ -153,10 +163,18 @@ const acceptInvitation = async (token, userId) => {
 
   // Add seat to subscription if paid plan
   try {
-    const subscription = await subscriptionService.getTenantSubscription(invitation.tenantId);
-    if (subscription && subscription.plan !== 'free' && subscription.status === 'active') {
+    const subscription = await subscriptionService.getTenantSubscription(
+      invitation.tenantId
+    );
+    if (
+      subscription &&
+      subscription.plan !== 'free' &&
+      subscription.status === 'active'
+    ) {
       await subscriptionService.addSeatToSubscription(subscription._id, userId);
-      logger.info(`Added seat to subscription ${subscription._id} for user ${userId}`);
+      logger.info(
+        `Added seat to subscription ${subscription._id} for user ${userId}`
+      );
     }
   } catch (seatError) {
     logger.error('Error adding seat after invitation acceptance:', seatError);
@@ -186,7 +204,10 @@ const cancelInvitation = async (invitationId) => {
   }
 
   if (invitation.status !== 'pending') {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Can only cancel pending invitations');
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Can only cancel pending invitations'
+    );
   }
 
   await invitation.cancel();
@@ -204,12 +225,21 @@ const resendInvitation = async (invitationId) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Invitation not found');
   }
 
-  if (invitation.status !== 'pending' && invitation.status !== 'pending_email') {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Can only resend pending invitations');
+  if (
+    invitation.status !== 'pending' &&
+    invitation.status !== 'pending_email'
+  ) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Can only resend pending invitations'
+    );
   }
 
   if (invitation.isExpired()) {
-    throw new ApiError(httpStatus.GONE, 'Invitation has expired. Please create a new one');
+    throw new ApiError(
+      httpStatus.GONE,
+      'Invitation has expired. Please create a new one'
+    );
   }
 
   // Resend email with retry logic
@@ -231,7 +261,10 @@ const resendInvitation = async (invitationId) => {
 
     logger.info(`Invitation resent successfully: ${invitationId}`);
   } catch (emailError) {
-    logger.error(`Failed to resend invitation email for ${invitationId}:`, emailError);
+    logger.error(
+      `Failed to resend invitation email for ${invitationId}:`,
+      emailError
+    );
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to send invitation email. Please try again later.'

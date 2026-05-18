@@ -8,7 +8,6 @@ import { withTenantPipeline } from '../../../helpers/tenantQuery.js';
  * Workflow Storage Service - Analyzes user input and stores workflows without execution
  */
 class WorkflowStorageService {
-
   /**
    * Analyze user input and create a stored workflow
    * @param {Object} inputs - Analysis inputs
@@ -24,13 +23,13 @@ class WorkflowStorageService {
         conversationId,
         conversationContext = {},
         tags = [],
-        category = 'other'
+        category = 'other',
       } = inputs;
 
       if (!userInput || !userId) {
         return {
           success: false,
-          error: 'User input and user ID are required'
+          error: 'User input and user ID are required',
         };
       }
       console.log('User input:', userInput);
@@ -45,7 +44,7 @@ class WorkflowStorageService {
         history: conversationContext.history || [],
         conversationContext,
         connectedAccounts,
-        userId
+        userId,
       };
 
       console.log('Starting workflow analysis for user:', userId);
@@ -58,21 +57,26 @@ class WorkflowStorageService {
         return {
           success: false,
           error: planResult.error.message,
-          details: planResult.error
+          details: planResult.error,
         };
       }
 
       // Generate workflow title if not provided
-      const workflowTitle = title || await this.generateWorkflowTitle(userInput, planResult);
+      const workflowTitle =
+        title || (await this.generateWorkflowTitle(userInput, planResult));
 
       // Generate workflow ID
       const workflowId = StoredWorkflow.generateWorkflowId();
 
       // Determine missing connections
-      const connectedAppSlugs = connectedAccounts?.map(acc => acc.toolkit?.slug || acc.app) || [];
+      const connectedAppSlugs =
+        connectedAccounts?.map((acc) => acc.toolkit?.slug || acc.app) || [];
       console.log('Connected app slugs:', connectedAppSlugs, connectedAccounts);
 
-      const missingConnections = planResult.requiredApps?.filter(app => !connectedAppSlugs.includes(app)) || [];
+      const missingConnections =
+        planResult.requiredApps?.filter(
+          (app) => !connectedAppSlugs.includes(app)
+        ) || [];
 
       // Determine initial status
       const status = missingConnections.length === 0 ? 'ready' : 'draft';
@@ -87,7 +91,8 @@ class WorkflowStorageService {
         status,
         requiredApps: planResult.requiredApps || [],
         executionPlan: planResult.executionPlan || [],
-        totalSteps: planResult.totalSteps || (planResult.executionPlan?.length || 1),
+        totalSteps:
+          planResult.totalSteps || planResult.executionPlan?.length || 1,
         crossStepParameters: planResult.crossStepParameters || {},
         originalUserInput: userInput,
         planningMetadata: planResult.planningMetadata || {},
@@ -96,7 +101,7 @@ class WorkflowStorageService {
         connectedAccounts,
         missingConnections,
         tags: Array.isArray(tags) ? tags : [tags].filter(Boolean),
-        category
+        category,
       };
 
       // Save to database
@@ -117,11 +122,10 @@ class WorkflowStorageService {
           missingConnections,
           isExecutable: missingConnections.length === 0,
           planningMetadata: planResult.planningMetadata,
-          createdAt: storedWorkflow.createdAt
+          createdAt: storedWorkflow.createdAt,
         },
-        message: 'Workflow analyzed and stored successfully'
+        message: 'Workflow analyzed and stored successfully',
       };
-
     } catch (error) {
       logger.error('Error in analyzeAndStoreWorkflow:', error);
       return {
@@ -129,8 +133,8 @@ class WorkflowStorageService {
         error: error.message,
         details: {
           stack: error.stack,
-          name: error.name
-        }
+          name: error.name,
+        },
       };
     }
   }
@@ -151,7 +155,7 @@ class WorkflowStorageService {
         limit = 50,
         offset = 0,
         sortBy = 'createdAt',
-        sortOrder = -1
+        sortOrder = -1,
       } = options;
 
       const workflows = await StoredWorkflow.findByUserId(userId, {
@@ -161,15 +165,15 @@ class WorkflowStorageService {
         limit,
         offset,
         sortBy,
-        sortOrder
+        sortOrder,
       });
 
       // Filter by tags if provided
       let filteredWorkflows = workflows;
       if (tags && tags.length > 0) {
         const searchTags = Array.isArray(tags) ? tags : [tags];
-        filteredWorkflows = workflows.filter(workflow =>
-          searchTags.some(tag => (workflow.tags || []).includes(tag))
+        filteredWorkflows = workflows.filter((workflow) =>
+          searchTags.some((tag) => (workflow.tags || []).includes(tag))
         );
       }
 
@@ -177,7 +181,7 @@ class WorkflowStorageService {
         userId,
         ...(status && { status }),
         ...(workflowType && { workflowType }),
-        ...(category && { category })
+        ...(category && { category }),
       });
 
       return {
@@ -187,15 +191,14 @@ class WorkflowStorageService {
           totalCount,
           offset,
           limit,
-          hasMore: offset + filteredWorkflows.length < totalCount
-        }
+          hasMore: offset + filteredWorkflows.length < totalCount,
+        },
       };
-
     } catch (error) {
       logger.error('Error getting user stored workflows:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -213,20 +216,19 @@ class WorkflowStorageService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
       return {
         success: true,
-        data: workflow
+        data: workflow,
       };
-
     } catch (error) {
       logger.error('Error getting stored workflow:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -245,16 +247,20 @@ class WorkflowStorageService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
       // Apply allowed updates
       const allowedUpdates = [
-        'title', 'description', 'tags', 'category', 'status'
+        'title',
+        'description',
+        'tags',
+        'category',
+        'status',
       ];
 
-      Object.keys(updates).forEach(key => {
+      Object.keys(updates).forEach((key) => {
         if (allowedUpdates.includes(key)) {
           workflow[key] = updates[key];
         }
@@ -265,14 +271,13 @@ class WorkflowStorageService {
       return {
         success: true,
         data: workflow,
-        message: 'Workflow updated successfully'
+        message: 'Workflow updated successfully',
       };
-
     } catch (error) {
       logger.error('Error updating stored workflow:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -290,20 +295,19 @@ class WorkflowStorageService {
       if (result.deletedCount === 0) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
       return {
         success: true,
-        message: 'Workflow deleted successfully'
+        message: 'Workflow deleted successfully',
       };
-
     } catch (error) {
       logger.error('Error deleting stored workflow:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -317,22 +321,25 @@ class WorkflowStorageService {
    */
   async searchStoredWorkflows(userId, searchTerm, options = {}) {
     try {
-      const workflows = await StoredWorkflow.searchWorkflows(userId, searchTerm, options);
+      const workflows = await StoredWorkflow.searchWorkflows(
+        userId,
+        searchTerm,
+        options
+      );
 
       return {
         success: true,
         data: {
           workflows,
           searchTerm,
-          resultCount: workflows.length
-        }
+          resultCount: workflows.length,
+        },
       };
-
     } catch (error) {
       logger.error('Error searching stored workflows:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -350,15 +357,14 @@ class WorkflowStorageService {
         success: true,
         data: {
           workflows,
-          count: workflows.length
-        }
+          count: workflows.length,
+        },
       };
-
     } catch (error) {
       logger.error('Error getting executable workflows:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -376,7 +382,7 @@ class WorkflowStorageService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
@@ -392,16 +398,15 @@ class WorkflowStorageService {
           workflowId,
           status: workflow.status,
           missingConnections: workflow.missingConnections,
-          isExecutable: workflow.isExecutable
+          isExecutable: workflow.isExecutable,
         },
-        message: 'Workflow connections updated'
+        message: 'Workflow connections updated',
       };
-
     } catch (error) {
       logger.error('Error refreshing workflow connections:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -419,14 +424,16 @@ class WorkflowStorageService {
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
       if (!workflow.isExecutable) {
         return {
           success: false,
-          error: 'Workflow is not executable. Missing connections: ' + workflow.missingConnections.join(', ')
+          error:
+            'Workflow is not executable. Missing connections: ' +
+            workflow.missingConnections.join(', '),
         };
       }
 
@@ -441,20 +448,19 @@ class WorkflowStorageService {
         triggerType: 'manual', // Always manual for stored workflows
         originalUserInput: workflow.originalUserInput,
         conversationId: workflow.conversationId,
-        conversationContext: workflow.conversationContext
+        conversationContext: workflow.conversationContext,
       };
 
       return {
         success: true,
         data: executionData,
-        message: 'Workflow prepared for execution'
+        message: 'Workflow prepared for execution',
       };
-
     } catch (error) {
       logger.error('Error preparing workflow for execution:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -480,10 +486,11 @@ class WorkflowStorageService {
       }
 
       return title;
-
     } catch (error) {
       console.error('Error generating workflow title:', error);
-      return userInput.length > 50 ? userInput.substring(0, 47) + '...' : userInput;
+      return userInput.length > 50
+        ? userInput.substring(0, 47) + '...'
+        : userInput;
     }
   }
 
@@ -496,11 +503,10 @@ class WorkflowStorageService {
     try {
       const connectedAccounts = await ComposioAuth.find({
         userId,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
       });
 
       return connectedAccounts || [];
-
     } catch (error) {
       console.error('Error getting user connected accounts:', error);
       return [];
@@ -523,28 +529,28 @@ class WorkflowStorageService {
             totalWorkflows: { $sum: 1 },
             readyWorkflows: {
               $sum: {
-                $cond: [{ $eq: ['$status', 'ready'] }, 1, 0]
-              }
+                $cond: [{ $eq: ['$status', 'ready'] }, 1, 0],
+              },
             },
             draftWorkflows: {
               $sum: {
-                $cond: [{ $eq: ['$status', 'draft'] }, 1, 0]
-              }
+                $cond: [{ $eq: ['$status', 'draft'] }, 1, 0],
+              },
             },
             singleStepWorkflows: {
               $sum: {
-                $cond: [{ $eq: ['$workflowType', 'single_step'] }, 1, 0]
-              }
+                $cond: [{ $eq: ['$workflowType', 'single_step'] }, 1, 0],
+              },
             },
             multiStepWorkflows: {
               $sum: {
-                $cond: [{ $eq: ['$workflowType', 'multi_step'] }, 1, 0]
-              }
+                $cond: [{ $eq: ['$workflowType', 'multi_step'] }, 1, 0],
+              },
             },
             totalExecutions: { $sum: '$executionCount' },
-            averageSteps: { $avg: '$totalSteps' }
-          }
-        }
+            averageSteps: { $avg: '$totalSteps' },
+          },
+        },
       ];
 
       const tenantPipeline = req ? withTenantPipeline(req, pipeline) : pipeline;
@@ -557,19 +563,18 @@ class WorkflowStorageService {
         singleStepWorkflows: 0,
         multiStepWorkflows: 0,
         totalExecutions: 0,
-        averageSteps: 0
+        averageSteps: 0,
       };
 
       return {
         success: true,
-        data: result
+        data: result,
       };
-
     } catch (error) {
       logger.error('Error getting workflow statistics:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

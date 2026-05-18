@@ -100,11 +100,14 @@ fileSchema.virtual('formattedFileSize').get(function () {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 });
 
 // Static method to find files by knowledgebotId
-fileSchema.statics.findByKnowledgebotId = async function (knowledgebotId, activeOnly = true) {
+fileSchema.statics.findByKnowledgebotId = async function (
+  knowledgebotId,
+  activeOnly = true
+) {
   const query = { knowledgebotId };
   if (activeOnly) {
     query.isActive = true;
@@ -122,7 +125,11 @@ fileSchema.statics.findByUserId = async function (userId, activeOnly = true) {
 };
 
 // Static method to find files by both userId and knowledgebotId
-fileSchema.statics.findByUserAndKnowledgebot = async function (userId, knowledgebotId, activeOnly = true) {
+fileSchema.statics.findByUserAndKnowledgebot = async function (
+  userId,
+  knowledgebotId,
+  activeOnly = true
+) {
   const query = { userId, knowledgebotId };
   if (activeOnly) {
     query.isActive = true;

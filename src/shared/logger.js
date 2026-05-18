@@ -41,7 +41,7 @@ const baseFormat = combine(
   label({ label: 'ASON Core Service' }),
   timestamp(),
   myFormat,
-  prettyPrint(),
+  prettyPrint()
 );
 
 // Success logger
@@ -55,7 +55,7 @@ export const logger = winston.createLogger({
         process.cwd(),
         'logs',
         'successes',
-        'RH-%DATE%-success.log',
+        'RH-%DATE%-success.log'
       ),
       datePattern: 'YYYY-MM-DD-HH',
       zippedArchive: true,
@@ -77,7 +77,7 @@ export const errorlogger = winston.createLogger({
         process.cwd(),
         'logs',
         'errors',
-        'RH-%DATE%-error.log',
+        'RH-%DATE%-error.log'
       ),
       datePattern: 'YYYY-MM-DD-HH',
       zippedArchive: true,
@@ -87,4 +87,3 @@ export const errorlogger = winston.createLogger({
     // esTransport,
   ],
 });
-

@@ -51,10 +51,7 @@ router.post(
  * @desc    Check if subdomain is available
  * @access  Public
  */
-router.get(
-  '/check-subdomain',
-  tenantController.checkSubdomainAvailability
-);
+router.get('/check-subdomain', tenantController.checkSubdomainAvailability);
 
 /**
  * @route   GET /api/v1/tenant/current

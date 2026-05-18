@@ -24,11 +24,11 @@ const MIME_CATEGORIES = {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
     'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',       // .xlsx
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
-    'application/vnd.oasis.opendocument.text',                                  // .odt
-    'application/vnd.oasis.opendocument.spreadsheet',                           // .ods
+    'application/vnd.oasis.opendocument.text', // .odt
+    'application/vnd.oasis.opendocument.spreadsheet', // .ods
     'application/json',
     'application/xml',
     'application/rtf',
@@ -154,8 +154,8 @@ const checkRAGFeature = async (req, res, next) => {
       throw new ApiError(
         httpStatus.FORBIDDEN,
         'RAG and knowledge-bank features are not available on the Free plan. ' +
-        'Upgrade to Explore ($20/mo) for document search, or Execute ($50/mo) ' +
-        'for multimodal AI capabilities.'
+          'Upgrade to Explore ($20/mo) for document search, or Execute ($50/mo) ' +
+          'for multimodal AI capabilities.'
       );
     }
 
@@ -173,16 +173,20 @@ const checkRAGFeature = async (req, res, next) => {
           throw new ApiError(
             httpStatus.UNSUPPORTED_MEDIA_TYPE,
             `Unsupported file type: "${file.mimetype}". ` +
-            'Please upload a recognised document, image, audio, or video file.'
+              'Please upload a recognised document, image, audio, or video file.'
           );
         }
 
         if (!allowedCategories.includes(category)) {
-          const planUpgradeHint = buildUpgradeHint(ragType, category, file.originalname);
+          const planUpgradeHint = buildUpgradeHint(
+            ragType,
+            category,
+            file.originalname
+          );
 
           logger.warn(
             `File type blocked — user: ${userId}, plan: ${planName} (ragType: ${ragType}), ` +
-            `file: "${file.originalname}", category: ${category}`
+              `file: "${file.originalname}", category: ${category}`
           );
 
           throw new ApiError(httpStatus.FORBIDDEN, planUpgradeHint);
@@ -195,7 +199,9 @@ const checkRAGFeature = async (req, res, next) => {
 
     logger.info(
       `RAG access granted — user: ${userId}, plan: ${planName}, ragType: ${ragType}` +
-      (files.length ? `, files: ${files.map((f) => f.originalname).join(', ')}` : '')
+        (files.length
+          ? `, files: ${files.map((f) => f.originalname).join(', ')}`
+          : '')
     );
 
     next();

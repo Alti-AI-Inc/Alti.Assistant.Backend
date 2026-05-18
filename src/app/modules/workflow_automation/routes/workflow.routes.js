@@ -9,11 +9,27 @@ const router = express.Router();
 router.get('/', auth(), workflowController.getUserWorkflowsController);
 router.get('/:workflowId', auth(), workflowController.getWorkflowController);
 router.put('/:workflowId', auth(), workflowController.updateWorkflowController);
-router.delete('/:workflowId', auth(), workflowController.deleteWorkflowController);
-router.patch('/:workflowId/status', auth(), workflowController.toggleWorkflowStatusController);
+router.delete(
+  '/:workflowId',
+  auth(),
+  workflowController.deleteWorkflowController
+);
+router.patch(
+  '/:workflowId/status',
+  auth(),
+  workflowController.toggleWorkflowStatusController
+);
 
 // Template routes
-router.get('/templates/list', optionalAuth(), workflowController.getWorkflowTemplatesController);
-router.post('/templates/:templateId/create', auth(), workflowController.createFromTemplateController);
+router.get(
+  '/templates/list',
+  optionalAuth(),
+  workflowController.getWorkflowTemplatesController
+);
+router.post(
+  '/templates/:templateId/create',
+  auth(),
+  workflowController.createFromTemplateController
+);
 
 export const workflowRoutes = router;

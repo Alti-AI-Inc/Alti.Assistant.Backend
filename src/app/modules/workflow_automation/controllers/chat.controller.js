@@ -17,7 +17,7 @@ const createWorkflowFromPromptController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -25,7 +25,7 @@ const createWorkflowFromPromptController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Prompt is required'
+      message: 'Prompt is required',
     });
   }
 
@@ -41,22 +41,20 @@ const createWorkflowFromPromptController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: result.needsConfirmation ?
-        'Workflow plan created, awaiting confirmation' :
-        'Workflow created successfully',
-      data: result
+      message: result.needsConfirmation
+        ? 'Workflow plan created, awaiting confirmation'
+        : 'Workflow created successfully',
+      data: result,
     });
-
   } catch (error) {
     logger.error('Error in createWorkflowFromPromptController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to create workflow'
+      message: error.message || 'Failed to create workflow',
     });
   }
 });
-
 
 const generateConversationId = () => {
   return `vid-conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -72,7 +70,7 @@ const confirmWorkflowCreationController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -80,7 +78,7 @@ const confirmWorkflowCreationController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Conversation ID is required'
+      message: 'Conversation ID is required',
     });
   }
 
@@ -92,21 +90,22 @@ const confirmWorkflowCreationController = catchAsync(async (req, res) => {
       modifications
     );
 
-    logger.info(`Workflow confirmation processed for conversation ${conversationId}`);
+    logger.info(
+      `Workflow confirmation processed for conversation ${conversationId}`
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: result.message,
-      data: result
+      data: result,
     });
-
   } catch (error) {
     logger.error('Error in confirmWorkflowCreationController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to confirm workflow creation'
+      message: error.message || 'Failed to confirm workflow creation',
     });
   }
 });
@@ -122,7 +121,7 @@ const continueConversationController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -130,7 +129,7 @@ const continueConversationController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Conversation ID and message are required'
+      message: 'Conversation ID and message are required',
     });
   }
 
@@ -147,15 +146,14 @@ const continueConversationController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Conversation continued successfully',
-      data: result
+      data: result,
     });
-
   } catch (error) {
     logger.error('Error in continueConversationController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to continue conversation'
+      message: error.message || 'Failed to continue conversation',
     });
   }
 });
@@ -171,7 +169,7 @@ const getUserConversationsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -190,16 +188,15 @@ const getUserConversationsController = catchAsync(async (req, res) => {
         conversations,
         total: conversations.length,
         limit: parseInt(limit),
-        offset: parseInt(offset)
-      }
+        offset: parseInt(offset),
+      },
     });
-
   } catch (error) {
     logger.error('Error in getUserConversationsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to get conversations'
+      message: error.message || 'Failed to get conversations',
     });
   }
 });
@@ -215,7 +212,7 @@ const getConversationController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -223,7 +220,7 @@ const getConversationController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Conversation ID is required'
+      message: 'Conversation ID is required',
     });
   }
 
@@ -237,7 +234,7 @@ const getConversationController = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Conversation not found'
+        message: 'Conversation not found',
       });
     }
 
@@ -245,15 +242,14 @@ const getConversationController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Conversation retrieved successfully',
-      data: conversation
+      data: conversation,
     });
-
   } catch (error) {
     logger.error('Error in getConversationController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to get conversation'
+      message: error.message || 'Failed to get conversation',
     });
   }
 });
@@ -263,5 +259,5 @@ export const chatController = {
   confirmWorkflowCreationController,
   continueConversationController,
   getUserConversationsController,
-  getConversationController
+  getConversationController,
 };

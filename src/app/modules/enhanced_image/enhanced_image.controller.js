@@ -8,11 +8,14 @@ import { enhancedImageService } from './enhanced_image.service.js';
  * Generate image directly with prompt
  */
 export const generateImageDirect = catchAsync(async (req, res) => {
-  console.log("Direct image generation request:", req.user);
+  console.log('Direct image generation request:', req.user);
 
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
-  const { prompt, conversationId, imageBase64, aspectRatio, negativePrompt } = req.body;
+  let userId = isGuest
+    ? enhancedImageService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
+  const { prompt, conversationId, imageBase64, aspectRatio, negativePrompt } =
+    req.body;
   userId = req.body.userId || userId;
 
   if (!prompt) {
@@ -31,7 +34,8 @@ export const generateImageDirect = catchAsync(async (req, res) => {
     });
   }
 
-  const thread_id = conversationId || enhancedImageService.generateImageConversationId();
+  const thread_id =
+    conversationId || enhancedImageService.generateImageConversationId();
 
   try {
     // Handle conversation creation/retrieval
@@ -47,12 +51,10 @@ export const generateImageDirect = catchAsync(async (req, res) => {
     // Get conversation history for context-aware processing
     let conversationHistory = [];
     if (conversationId && conversation.messages) {
-      conversationHistory = conversation.messages
-        .slice(-10)
-        .map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
+      conversationHistory = conversation.messages.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
     }
 
     // Add user message to conversation
@@ -63,7 +65,7 @@ export const generateImageDirect = catchAsync(async (req, res) => {
       {
         type: 'image_generation',
         aspectRatio,
-        negativePrompt
+        negativePrompt,
       },
       isGuest
     );
@@ -71,7 +73,11 @@ export const generateImageDirect = catchAsync(async (req, res) => {
     // Generate image
     const timestamp = Date.now();
     const filename = `image-direct-${timestamp}.png`;
-    const imageResult = await enhancedImageService.generateImage(prompt, filename, { aspectRatio, negativePrompt, referenceImage: imageBase64 });
+    const imageResult = await enhancedImageService.generateImage(
+      prompt,
+      filename,
+      { aspectRatio, negativePrompt, referenceImage: imageBase64 }
+    );
 
     // Add assistant response to conversation
     const messageMetadata = {
@@ -82,7 +88,7 @@ export const generateImageDirect = catchAsync(async (req, res) => {
       confidence: imageResult.confidence,
       aspectRatio,
       negativePrompt,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     await enhancedImageService.addImageResultMessage(
@@ -102,7 +108,7 @@ export const generateImageDirect = catchAsync(async (req, res) => {
           answer: `Image generated successfully using ${imageResult.service}`,
           image: imageResult,
           prompt,
-          metadata: messageMetadata
+          metadata: messageMetadata,
         },
         conversationId: actualConversationId,
         messageCount: conversation.messageCount + 2,
@@ -110,11 +116,11 @@ export const generateImageDirect = catchAsync(async (req, res) => {
         userId: isGuest ? userId : undefined,
       },
     });
-
   } catch (error) {
-    logger.error("Image Generation Error:", error);
+    logger.error('Image Generation Error:', error);
 
-    const errorConversationId = conversationId || enhancedImageService.generateImageConversationId();
+    const errorConversationId =
+      conversationId || enhancedImageService.generateImageConversationId();
     try {
       if (errorConversationId && userId) {
         await enhancedImageService.addErrorMessage(
@@ -126,7 +132,7 @@ export const generateImageDirect = catchAsync(async (req, res) => {
         );
       }
     } catch (convError) {
-      logger.error("Failed to save error to conversation:", convError);
+      logger.error('Failed to save error to conversation:', convError);
     }
 
     return sendResponse(res, {
@@ -136,7 +142,7 @@ export const generateImageDirect = catchAsync(async (req, res) => {
       data: {
         conversationId: errorConversationId,
         userType: isGuest ? 'guest' : 'authenticated',
-        error: error.message
+        error: error.message,
       },
     });
   }
@@ -146,10 +152,12 @@ export const generateImageDirect = catchAsync(async (req, res) => {
  * Edit image with prompt and base64 image
  */
 export const editImage = catchAsync(async (req, res) => {
-  console.log("Image editing request:", req.user);
+  console.log('Image editing request:', req.user);
 
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+  let userId = isGuest
+    ? enhancedImageService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
   const { prompt, imageBase64, conversationId, aspectRatio } = req.body;
   userId = req.body.userId || userId;
 
@@ -177,7 +185,8 @@ export const editImage = catchAsync(async (req, res) => {
     });
   }
 
-  const thread_id = conversationId || enhancedImageService.generateImageConversationId();
+  const thread_id =
+    conversationId || enhancedImageService.generateImageConversationId();
 
   try {
     // Handle conversation creation/retrieval
@@ -198,7 +207,7 @@ export const editImage = catchAsync(async (req, res) => {
       {
         type: 'image_editing',
         aspectRatio,
-        hasSourceImage: true
+        hasSourceImage: true,
       },
       isGuest
     );
@@ -206,7 +215,12 @@ export const editImage = catchAsync(async (req, res) => {
     // Edit image
     const timestamp = Date.now();
     const filename = `image-edit-${timestamp}.png`;
-    const imageResult = await enhancedImageService.editImage(prompt, imageBase64, filename, { aspectRatio });
+    const imageResult = await enhancedImageService.editImage(
+      prompt,
+      imageBase64,
+      filename,
+      { aspectRatio }
+    );
 
     // Add assistant response to conversation
     const messageMetadata = {
@@ -214,7 +228,7 @@ export const editImage = catchAsync(async (req, res) => {
       filename: imageResult.filename,
       service: 'imagen3',
       aspectRatio,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     await enhancedImageService.addImageResultMessage(
@@ -234,7 +248,7 @@ export const editImage = catchAsync(async (req, res) => {
           answer: 'Image edited successfully using Imagen3',
           image: imageResult,
           prompt,
-          metadata: messageMetadata
+          metadata: messageMetadata,
         },
         conversationId: actualConversationId,
         messageCount: conversation.messageCount + 2,
@@ -242,11 +256,11 @@ export const editImage = catchAsync(async (req, res) => {
         userId: isGuest ? userId : undefined,
       },
     });
-
   } catch (error) {
-    logger.error("Image Editing Error:", error);
+    logger.error('Image Editing Error:', error);
 
-    const errorConversationId = conversationId || enhancedImageService.generateImageConversationId();
+    const errorConversationId =
+      conversationId || enhancedImageService.generateImageConversationId();
     try {
       if (errorConversationId && userId) {
         await enhancedImageService.addErrorMessage(
@@ -258,7 +272,7 @@ export const editImage = catchAsync(async (req, res) => {
         );
       }
     } catch (convError) {
-      logger.error("Failed to save error to conversation:", convError);
+      logger.error('Failed to save error to conversation:', convError);
     }
 
     return sendResponse(res, {
@@ -268,7 +282,7 @@ export const editImage = catchAsync(async (req, res) => {
       data: {
         conversationId: errorConversationId,
         userType: isGuest ? 'guest' : 'authenticated',
-        error: error.message
+        error: error.message,
       },
     });
   }
@@ -291,7 +305,9 @@ export const analyzeIntent = catchAsync(async (req, res) => {
 
   try {
     const isGuest = req.isGuest || !req.user;
-    let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    let userId = isGuest
+      ? enhancedImageService.generateGuestUserId()
+      : req.user?.userId || req.user?._id;
     userId = req.body.userId || userId;
     let conversation = null;
     // Create conversation if not exists
@@ -305,7 +321,10 @@ export const analyzeIntent = catchAsync(async (req, res) => {
         'intent_analysis'
       );
     } else {
-      conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+      conversation = await conversationHelpers.getConversationById(
+        conversationId,
+        isGuest ? null : userId
+      );
     }
 
     const result = await enhancedImageService.analyzeImageIntent(prompt);
@@ -321,16 +340,15 @@ export const analyzeIntent = catchAsync(async (req, res) => {
         userId: isGuest ? userId : undefined,
       },
     });
-
   } catch (error) {
-    logger.error("Intent Analysis Error:", error);
+    logger.error('Intent Analysis Error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An internal error occurred while analyzing intent',
       data: {
-        error: error.message
+        error: error.message,
       },
     });
   }
@@ -374,7 +392,7 @@ const getImageStats = catchAsync(async (req, res) => {
  * Analyze image intent (supports session context)
  */
 export const analyzeImageIntent = catchAsync(async (req, res) => {
-  console.log("Analyze Image Intent Request:", req.body);
+  console.log('Analyze Image Intent Request:', req.body);
   const { request, userMessage, sessionId } = req.body;
   let { conversationId } = req.body;
 
@@ -382,7 +400,12 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
   const hasImage = req.body.hasImage === true;
 
   const userRequest = request || userMessage;
-  console.log("Analyze Image Intent Request:", { userRequest, hasImage, sessionId, conversationId });
+  console.log('Analyze Image Intent Request:', {
+    userRequest,
+    hasImage,
+    sessionId,
+    conversationId,
+  });
   if (!userRequest) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
@@ -393,20 +416,29 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
 
   try {
     const isGuest = req.isGuest || !req.user;
-    let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    let userId = isGuest
+      ? enhancedImageService.generateGuestUserId()
+      : req.user?.userId || req.user?._id;
     userId = req.body.userId || userId;
 
     // Get conversation context if conversationId provided, otherwise create new conversation
-    let context = "No previous context.";
+    let context = 'No previous context.';
     let conversation = null;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
-        if (conversation && conversation.messages && conversation.messages.length > 0) {
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          isGuest ? null : userId
+        );
+        if (
+          conversation &&
+          conversation.messages &&
+          conversation.messages.length > 0
+        ) {
           context = conversation.messages
             .slice(-5)
-            .map(msg => `${msg.role}: ${msg.content}`)
+            .map((msg) => `${msg.role}: ${msg.content}`)
             .join('\n');
         }
       } catch (error) {
@@ -433,13 +465,17 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
       userRequest,
       {
         type: 'image_intent_analysis',
-        hasImage
+        hasImage,
       },
       isGuest
     );
 
     // Analyze intent with explicit hasImage value and retrieved context
-    const result = await enhancedImageService.analyzeImageIntentWithContext(userRequest, hasImage, context);
+    const result = await enhancedImageService.analyzeImageIntentWithContext(
+      userRequest,
+      hasImage,
+      context
+    );
 
     // Add assistant response to conversation
     await enhancedImageService.addImageResultMessage(
@@ -454,7 +490,7 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
         reasoning: result.reasoning,
         needsMoreInfo: result.needsMoreInfo,
         questions: result.questions,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       isGuest
     );
@@ -470,16 +506,15 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
         userId: isGuest ? userId : undefined,
       },
     });
-
   } catch (error) {
-    logger.error("Image Intent Analysis Error:", error);
+    logger.error('Image Intent Analysis Error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An internal error occurred while analyzing intent',
       data: {
-        error: error.message
+        error: error.message,
       },
     });
   }
@@ -502,19 +537,28 @@ export const evaluatePrompt = catchAsync(async (req, res) => {
 
   try {
     const isGuest = req.isGuest || !req.user;
-    let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    let userId = isGuest
+      ? enhancedImageService.generateGuestUserId()
+      : req.user?.userId || req.user?._id;
     userId = req.body.userId || userId;
 
     // Get conversation history if conversationId provided, otherwise create new conversation
-    let history = "No previous conversation.";
+    let history = 'No previous conversation.';
     let conversation = null;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
-        if (conversation && conversation.messages && conversation.messages.length > 0) {
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          isGuest ? null : userId
+        );
+        if (
+          conversation &&
+          conversation.messages &&
+          conversation.messages.length > 0
+        ) {
           history = conversation.messages
-            .map(msg => `${msg.role}: ${msg.content}`)
+            .map((msg) => `${msg.role}: ${msg.content}`)
             .join('\n');
         }
       } catch (error) {
@@ -541,7 +585,10 @@ export const evaluatePrompt = catchAsync(async (req, res) => {
       );
     }
 
-    const evaluation = await enhancedImageService.evaluatePromptQuality(prompt, history);
+    const evaluation = await enhancedImageService.evaluatePromptQuality(
+      prompt,
+      history
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -559,16 +606,15 @@ export const evaluatePrompt = catchAsync(async (req, res) => {
         userId: isGuest ? userId : undefined,
       },
     });
-
   } catch (error) {
-    logger.error("Prompt Evaluation Error:", error);
+    logger.error('Prompt Evaluation Error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An internal error occurred while evaluating prompt',
       data: {
-        error: error.message
+        error: error.message,
       },
     });
   }
@@ -590,12 +636,24 @@ export const addDetail = catchAsync(async (req, res) => {
 
   try {
     const isGuest = req.isGuest || !req.user;
-    let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    let userId = isGuest
+      ? enhancedImageService.generateGuestUserId()
+      : req.user?.userId || req.user?._id;
     userId = req.body.userId || userId;
 
-    const conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      isGuest ? null : userId
+    );
 
-    console.log("Add Detail to Conversation:", conversationId, "User:", userId, "Conversation Found:", conversation);
+    console.log(
+      'Add Detail to Conversation:',
+      conversationId,
+      'User:',
+      userId,
+      'Conversation Found:',
+      conversation
+    );
     if (!conversation) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
@@ -604,7 +662,14 @@ export const addDetail = catchAsync(async (req, res) => {
       });
     }
 
-    console.log("Adding detail to conversation:", conversationId, "User:", userId, "Detail:", detail);
+    console.log(
+      'Adding detail to conversation:',
+      conversationId,
+      'User:',
+      userId,
+      'Detail:',
+      detail
+    );
 
     // Add detail as user message
     await enhancedImageService.addImageRequestMessage(
@@ -617,14 +682,15 @@ export const addDetail = catchAsync(async (req, res) => {
 
     // Get all user messages
     const conversationHistory = conversation.messages
-      .filter(msg => msg.role === 'user')
-      .map(msg => msg.content);
+      .filter((msg) => msg.role === 'user')
+      .map((msg) => msg.content);
     conversationHistory.push(detail);
 
     // Get full history for context
-    const history = conversation.messages
-      .map(msg => `${msg.role}: ${msg.content}`)
-      .join('\n') + `\nuser: ${detail}`;
+    const history =
+      conversation.messages
+        .map((msg) => `${msg.role}: ${msg.content}`)
+        .join('\n') + `\nuser: ${detail}`;
 
     // Re-evaluate quality with new detail
     const evaluation = await enhancedImageService.evaluatePromptQuality(
@@ -645,20 +711,18 @@ export const addDetail = catchAsync(async (req, res) => {
         },
         conversationHistory,
         messageCount: conversation.messageCount + 1,
-        conversationId: conversationId
+        conversationId: conversationId,
       },
-
     });
-
   } catch (error) {
-    logger.error("Add Detail Error:", error);
+    logger.error('Add Detail Error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An internal error occurred while adding detail',
       data: {
-        error: error.message
+        error: error.message,
       },
     });
   }
@@ -680,11 +744,20 @@ export const finalizePrompt = catchAsync(async (req, res) => {
 
   try {
     const isGuest = req.isGuest || !req.user;
-    let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    let userId = isGuest
+      ? enhancedImageService.generateGuestUserId()
+      : req.user?.userId || req.user?._id;
     userId = req.body.userId || userId;
-    const conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      isGuest ? null : userId
+    );
 
-    if (!conversation || !conversation.messages || conversation.messages.length === 0) {
+    if (
+      !conversation ||
+      !conversation.messages ||
+      conversation.messages.length === 0
+    ) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
@@ -694,10 +767,13 @@ export const finalizePrompt = catchAsync(async (req, res) => {
 
     // Extract user messages to build enhanced prompt
     const conversationHistory = conversation.messages
-      .filter(msg => msg.role === 'user')
-      .map(msg => msg.content);
+      .filter((msg) => msg.role === 'user')
+      .map((msg) => msg.content);
 
-    const enhancedPrompt = await enhancedImageService.buildEnhancedPromptFromHistory(conversationHistory);
+    const enhancedPrompt =
+      await enhancedImageService.buildEnhancedPromptFromHistory(
+        conversationHistory
+      );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -706,20 +782,18 @@ export const finalizePrompt = catchAsync(async (req, res) => {
       data: {
         enhancedPrompt,
         conversationHistory,
-        conversationId: conversationId
+        conversationId: conversationId,
       },
-
     });
-
   } catch (error) {
-    logger.error("Finalize Prompt Error:", error);
+    logger.error('Finalize Prompt Error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An internal error occurred while finalizing prompt',
       data: {
-        error: error.message
+        error: error.message,
       },
     });
   }
@@ -741,11 +815,20 @@ export const buildEnhancedPrompt = catchAsync(async (req, res) => {
 
   try {
     const isGuest = req.isGuest || !req.user;
-    const userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+    const userId = isGuest
+      ? enhancedImageService.generateGuestUserId()
+      : req.user?.userId || req.user?._id;
 
-    const conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      isGuest ? null : userId
+    );
 
-    if (!conversation || !conversation.messages || conversation.messages.length === 0) {
+    if (
+      !conversation ||
+      !conversation.messages ||
+      conversation.messages.length === 0
+    ) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
@@ -755,10 +838,13 @@ export const buildEnhancedPrompt = catchAsync(async (req, res) => {
 
     // Extract user messages to build enhanced prompt
     const conversationHistory = conversation.messages
-      .filter(msg => msg.role === 'user')
-      .map(msg => msg.content);
+      .filter((msg) => msg.role === 'user')
+      .map((msg) => msg.content);
 
-    const enhancedPrompt = await enhancedImageService.buildEnhancedPromptFromHistory(conversationHistory);
+    const enhancedPrompt =
+      await enhancedImageService.buildEnhancedPromptFromHistory(
+        conversationHistory
+      );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -769,16 +855,15 @@ export const buildEnhancedPrompt = catchAsync(async (req, res) => {
         conversationHistory,
       },
     });
-
   } catch (error) {
-    logger.error("Build Enhanced Prompt Error:", error);
+    logger.error('Build Enhanced Prompt Error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
       message: 'An internal error occurred while building enhanced prompt',
       data: {
-        error: error.message
+        error: error.message,
       },
     });
   }
@@ -799,13 +884,22 @@ export const generateFromConversation = catchAsync(async (req, res) => {
   }
 
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? enhancedImageService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+  let userId = isGuest
+    ? enhancedImageService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
   userId = req.body.userId || userId;
 
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      isGuest ? null : userId
+    );
 
-    if (!conversation || !conversation.messages || conversation.messages.length === 0) {
+    if (
+      !conversation ||
+      !conversation.messages ||
+      conversation.messages.length === 0
+    ) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
@@ -815,15 +909,22 @@ export const generateFromConversation = catchAsync(async (req, res) => {
 
     // Extract user messages to build enhanced prompt
     const conversationHistory = conversation.messages
-      .filter(msg => msg.role === 'user')
-      .map(msg => msg.content);
+      .filter((msg) => msg.role === 'user')
+      .map((msg) => msg.content);
 
-    const enhancedPrompt = await enhancedImageService.buildEnhancedPromptFromHistory(conversationHistory);
+    const enhancedPrompt =
+      await enhancedImageService.buildEnhancedPromptFromHistory(
+        conversationHistory
+      );
 
     // Generate image with enhanced prompt
     const timestamp = Date.now();
     const filename = `image-conversation-${timestamp}.png`;
-    const imageResult = await enhancedImageService.generateImage(enhancedPrompt, filename, { aspectRatio, negativePrompt });
+    const imageResult = await enhancedImageService.generateImage(
+      enhancedPrompt,
+      filename,
+      { aspectRatio, negativePrompt }
+    );
 
     // Add message to conversation
     const messageMetadata = {
@@ -835,7 +936,7 @@ export const generateFromConversation = catchAsync(async (req, res) => {
       enhancedPrompt,
       aspectRatio,
       negativePrompt,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     await enhancedImageService.addImageResultMessage(
@@ -855,7 +956,7 @@ export const generateFromConversation = catchAsync(async (req, res) => {
           answer: `Image generated from conversation using ${imageResult.service}`,
           image: imageResult,
           enhancedPrompt,
-          metadata: messageMetadata
+          metadata: messageMetadata,
         },
         conversationId,
         messageCount: conversation.messageCount + 1,
@@ -863,18 +964,18 @@ export const generateFromConversation = catchAsync(async (req, res) => {
         userId: isGuest ? userId : undefined,
       },
     });
-
   } catch (error) {
-    logger.error("Generate From Conversation Error:", error);
+    logger.error('Generate From Conversation Error:', error);
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'An internal error occurred while generating image from conversation',
+      message:
+        'An internal error occurred while generating image from conversation',
       data: {
         conversationId,
         userType: isGuest ? 'guest' : 'authenticated',
-        error: error.message
+        error: error.message,
       },
     });
   }

@@ -19,9 +19,13 @@ cron.schedule('0 2 * * *', async () => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 90);
 
-    const usageResult = await UserUsageModel.deleteMany({ date: { $lt: cutoff } });
+    const usageResult = await UserUsageModel.deleteMany({
+      date: { $lt: cutoff },
+    });
 
-    logger.info(`[Cleanup Cron] Deleted ${usageResult.deletedCount} UserUsage records older than 90 days`);
+    logger.info(
+      `[Cleanup Cron] Deleted ${usageResult.deletedCount} UserUsage records older than 90 days`
+    );
   } catch (err) {
     logger.error('[Cleanup Cron] Error deleting old UserUsage records:', err);
   }
@@ -38,7 +42,9 @@ cron.schedule('0 2 * * *', async () => {
       }
     );
 
-    logger.info(`[Cleanup Cron] Expired ${expireResult.modifiedCount} subscriptions`);
+    logger.info(
+      `[Cleanup Cron] Expired ${expireResult.modifiedCount} subscriptions`
+    );
   } catch (err) {
     logger.error('[Cleanup Cron] Error expiring subscriptions:', err);
   }

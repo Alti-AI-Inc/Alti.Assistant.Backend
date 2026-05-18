@@ -1,15 +1,18 @@
-import { GoogleGenAI } from "@google/genai";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { fileURLToPath } from "url";
-import { GCPStorageService } from "../services/gcpStorageService.js";
+import { GoogleGenAI } from '@google/genai';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'url';
+import { GCPStorageService } from '../services/gcpStorageService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize GCP Storage
-const gcpKeyPath = path.join(process.cwd(), "alti_gcp.json");
-const gcpStorage = new GCPStorageService("alti_assistant_generated_photo", gcpKeyPath);
+const gcpKeyPath = path.join(process.cwd(), 'alti_gcp.json');
+const gcpStorage = new GCPStorageService(
+  'alti_assistant_generated_photo',
+  gcpKeyPath
+);
 
 /**
  * Edit an image using Gemini 3 Pro Image
@@ -18,8 +21,13 @@ const gcpStorage = new GCPStorageService("alti_assistant_generated_photo", gcpKe
  * @param {string} filename - Output filename
  * @param {string} apiKey - Google API key
  * @returns {Promise<Object>} - Generated image info
- */0
-export async function editImageWithImagen3(prompt, imageBase64, filename, apiKey) {
+ */ 0;
+export async function editImageWithImagen3(
+  prompt,
+  imageBase64,
+  filename,
+  apiKey
+) {
   const ai = new GoogleGenAI({ apiKey });
 
   // Remove data URL prefix if present (data:image/...;base64,)
@@ -30,40 +38,44 @@ export async function editImageWithImagen3(prompt, imageBase64, filename, apiKey
   // Create message with image and edit instruction
   const message = [
     {
-      text: prompt
+      text: prompt,
     },
     {
       inlineData: {
-        mimeType: "image/png",
+        mimeType: 'image/png',
         data: base64Data,
       },
     },
-  ]
+  ];
 
   let response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
-    contents: message
-  })
+    contents: message,
+  });
 
   // Process response and upload to GCP
   for (const part of response.candidates[0].content.parts) {
     if (part.inlineData) {
       const imageData = part.inlineData.data;
-      const buffer = Buffer.from(imageData, "base64");
+      const buffer = Buffer.from(imageData, 'base64');
 
       // Upload to GCP bucket
-      const publicUrl = await gcpStorage.uploadBuffer(buffer, filename, "image/png");
+      const publicUrl = await gcpStorage.uploadBuffer(
+        buffer,
+        filename,
+        'image/png'
+      );
 
       return {
         url: publicUrl,
         filename: filename,
-        service: "imagen3-edit",
-        reasoning: "Image edited using Gemini 3 Pro Image (Imagen 3)",
+        service: 'imagen3-edit',
+        reasoning: 'Image edited using Gemini 3 Pro Image (Imagen 3)',
       };
     }
   }
 
-  throw new Error("No image generated in response");
+  throw new Error('No image generated in response');
 }
 
 /**
@@ -77,7 +89,7 @@ export async function generateImageWithImagen3(prompt, filename, apiKey) {
   const ai = new GoogleGenAI({ apiKey });
 
   const chat = ai.chats.create({
-    model: "gemini-3-pro-image-preview",
+    model: 'gemini-3-pro-image-preview',
     config: {
       responseModalities: ['TEXT', 'IMAGE'],
       tools: [{ googleSearch: {} }],
@@ -90,20 +102,23 @@ export async function generateImageWithImagen3(prompt, filename, apiKey) {
   for (const part of response.candidates[0].content.parts) {
     if (part.inlineData) {
       const imageData = part.inlineData.data;
-      const buffer = Buffer.from(imageData, "base64");
+      const buffer = Buffer.from(imageData, 'base64');
 
       // Upload to GCP bucket
-      const publicUrl = await gcpStorage.uploadBuffer(buffer, filename, "image/png");
+      const publicUrl = await gcpStorage.uploadBuffer(
+        buffer,
+        filename,
+        'image/png'
+      );
 
       return {
         url: publicUrl,
         filename: filename,
-        service: "imagen3-generate",
-        reasoning: "Image generated using Gemini 3 Pro Image (Imagen 3)",
+        service: 'imagen3-generate',
+        reasoning: 'Image generated using Gemini 3 Pro Image (Imagen 3)',
       };
     }
   }
 
-  throw new Error("No image generated in response");
+  throw new Error('No image generated in response');
 }
-

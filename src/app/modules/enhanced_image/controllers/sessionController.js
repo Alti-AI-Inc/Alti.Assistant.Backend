@@ -7,7 +7,7 @@ export const createSessionController = (sessionManager) => {
         res.json({
           success: true,
           sessionId,
-          message: "New session started",
+          message: 'New session started',
         });
       } catch (error) {
         res.status(500).json({
@@ -24,12 +24,12 @@ export const createSessionController = (sessionManager) => {
         if (sessionManager.deleteSession(sessionId)) {
           res.json({
             success: true,
-            message: "Session deleted",
+            message: 'Session deleted',
           });
         } else {
           res.status(404).json({
             success: false,
-            error: "Session not found",
+            error: 'Session not found',
           });
         }
       } catch (error) {

@@ -3,6 +3,7 @@
 ## 🚀 Quick Start
 
 ### Basic Review (File Upload)
+
 ```bash
 POST /api/legal-contract-review/assistant
 Content-Type: multipart/form-data
@@ -12,6 +13,7 @@ file: contract.pdf
 ```
 
 ### Basic Review (Text Input)
+
 ```bash
 POST /api/legal-contract-review/assistant
 Content-Type: application/json
@@ -24,40 +26,49 @@ Content-Type: application/json
 ## 📋 Common Use Cases
 
 ### 1. General Contract Review
+
 **Request**: "Please review this employment contract"
 **What you get**: Comprehensive analysis of all key clauses, risks, obligations, and recommendations
 
 ### 2. Risk Assessment
+
 **Request**: "What are the risks in this NDA?"
 **What you get**: Risk matrix with severity levels, potential issues, and mitigation strategies
 
 ### 3. Clause Analysis
+
 **Request**: "Analyze the termination and non-compete clauses"
 **What you get**: Detailed breakdown of specific clauses with implications
 
 ### 4. Compliance Check
+
 **Request**: "Does this comply with California employment laws?"
 **What you get**: Legal compliance analysis with regulatory requirements
 
 ### 5. Fairness Evaluation
+
 **Request**: "Is this contract fair to both parties?"
 **What you get**: Balance assessment, one-sided provisions identification
 
 ### 6. Red Flags
+
 **Request**: "What are the red flags in this contract?"
 **What you get**: Critical issues, concerning clauses, deal-breakers
 
 ### 7. Amendment Suggestions
+
 **Request**: "How can I improve this contract?"
 **What you get**: Specific amendment recommendations for negotiation
 
 ### 8. Executive Summary
+
 **Request**: "Summarize this contract for non-legal audience"
 **What you get**: Clear, concise overview of key terms and obligations
 
 ## 🎯 Request Patterns
 
 ### Natural Language (Recommended)
+
 ```json
 {
   "message": "I need a detailed risk assessment of this service agreement, focusing on liability and payment terms"
@@ -65,6 +76,7 @@ Content-Type: application/json
 ```
 
 ### Explicit Parameters (Direct Endpoint)
+
 ```json
 {
   "reviewType": "risk_assessment",
@@ -76,24 +88,24 @@ Content-Type: application/json
 
 ## 📊 Review Depth Guide
 
-| Depth | Use When | Time | Detail Level |
-|-------|----------|------|--------------|
-| `quick` | Initial screening, time-sensitive | ~2 min | Key points only |
-| `standard` | Most contracts, balanced review | ~5 min | Comprehensive |
-| `detailed` | Important contracts, clause-level | ~10 min | Very thorough |
-| `comprehensive` | Critical deals, full risk analysis | ~15 min | Exhaustive |
+| Depth           | Use When                           | Time    | Detail Level    |
+| --------------- | ---------------------------------- | ------- | --------------- |
+| `quick`         | Initial screening, time-sensitive  | ~2 min  | Key points only |
+| `standard`      | Most contracts, balanced review    | ~5 min  | Comprehensive   |
+| `detailed`      | Important contracts, clause-level  | ~10 min | Very thorough   |
+| `comprehensive` | Critical deals, full risk analysis | ~15 min | Exhaustive      |
 
 ## 📄 Contract Type Examples
 
-| Type | Examples |
-|------|----------|
-| `employment` | Job offers, employment agreements |
-| `nda` | Non-disclosure agreements, confidentiality |
-| `service_agreement` | Consulting, freelance contracts |
-| `sales` | Purchase orders, sales contracts |
-| `lease` | Real estate, equipment leases |
-| `partnership` | Business partnerships, JV agreements |
-| `licensing` | Software licenses, IP licensing |
+| Type                | Examples                                   |
+| ------------------- | ------------------------------------------ |
+| `employment`        | Job offers, employment agreements          |
+| `nda`               | Non-disclosure agreements, confidentiality |
+| `service_agreement` | Consulting, freelance contracts            |
+| `sales`             | Purchase orders, sales contracts           |
+| `lease`             | Real estate, equipment leases              |
+| `partnership`       | Business partnerships, JV agreements       |
+| `licensing`         | Software licenses, IP licensing            |
 
 ## ⚡ Quick Tips
 
@@ -107,6 +119,7 @@ Content-Type: application/json
 ## 🔄 Conversation Flow Examples
 
 ### Example 1: Progressive Deep Dive
+
 ```
 1. "Review this NDA" → General overview
 2. "What about the confidentiality obligations?" → Specific analysis
@@ -115,6 +128,7 @@ Content-Type: application/json
 ```
 
 ### Example 2: Risk-Focused Review
+
 ```
 1. "Identify all risks in this contract" → Risk assessment
 2. "Which risks are most critical?" → Priority clarification
@@ -122,6 +136,7 @@ Content-Type: application/json
 ```
 
 ### Example 3: Negotiation Preparation
+
 ```
 1. "Review this vendor contract" → General review
 2. "Which clauses favor the vendor?" → Fairness check
@@ -132,16 +147,19 @@ Content-Type: application/json
 ## ⚠️ Important Notes
 
 ### Legal Disclaimer
+
 - **NOT legal advice** - for informational purposes only
 - Always consult a licensed attorney for specific legal matters
 - AI analysis should supplement, not replace, professional legal review
 
 ### File Requirements
+
 - **Formats**: PDF, DOCX, DOC, TXT
 - **Max Size**: 10MB
 - **Quality**: Clear, readable text (no handwritten contracts)
 
 ### Best Practices
+
 - ✅ DO: Provide context about your role (employer/employee, buyer/seller)
 - ✅ DO: Mention jurisdiction if relevant (e.g., "California employment law")
 - ✅ DO: Ask follow-up questions for clarification
@@ -151,16 +169,17 @@ Content-Type: application/json
 
 ## 🎨 Output Format Guide
 
-| Format | Best For | Features |
-|--------|----------|----------|
-| `text` | Quick reading, emails | Plain text, easy to copy |
+| Format     | Best For               | Features                  |
+| ---------- | ---------------------- | ------------------------- |
+| `text`     | Quick reading, emails  | Plain text, easy to copy  |
 | `markdown` | Documentation, sharing | Formatted, headers, lists |
-| `pdf` | Official reports | Professional presentation |
-| `docx` | Editing, collaboration | Editable document |
+| `pdf`      | Official reports       | Professional presentation |
+| `docx`     | Editing, collaboration | Editable document         |
 
 ## 📱 Integration Examples
 
 ### cURL
+
 ```bash
 curl -X POST http://localhost:80/api/legal-contract-review/assistant \
   -F "message=Review this NDA for risks" \
@@ -169,6 +188,7 @@ curl -X POST http://localhost:80/api/legal-contract-review/assistant \
 ```
 
 ### JavaScript (Node.js)
+
 ```javascript
 const FormData = require('form-data');
 const fs = require('fs');
@@ -179,13 +199,14 @@ form.append('file', fs.createReadStream('contract.pdf'));
 
 fetch('http://localhost:80/api/legal-contract-review/assistant', {
   method: 'POST',
-  body: form
+  body: form,
 })
-.then(res => res.json())
-.then(data => console.log(data.data.response));
+  .then((res) => res.json())
+  .then((data) => console.log(data.data.response));
 ```
 
 ### Python
+
 ```python
 import requests
 
@@ -203,13 +224,13 @@ print(response.json()['data']['response'])
 
 ## 🆘 Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| "Unable to extract text" | Ensure PDF is not scanned/image-based |
-| "File too large" | Compress or split contract into sections |
-| "Needs contract" | Upload file or paste contract text |
-| "Rate limit exceeded" | Wait 15 minutes or upgrade plan |
-| "Token limit" | Use shorter messages or split review |
+| Issue                    | Solution                                 |
+| ------------------------ | ---------------------------------------- |
+| "Unable to extract text" | Ensure PDF is not scanned/image-based    |
+| "File too large"         | Compress or split contract into sections |
+| "Needs contract"         | Upload file or paste contract text       |
+| "Rate limit exceeded"    | Wait 15 minutes or upgrade plan          |
+| "Token limit"            | Use shorter messages or split review     |
 
 ## 📞 Need Help?
 

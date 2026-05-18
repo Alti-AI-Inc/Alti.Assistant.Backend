@@ -11,9 +11,10 @@ import { CODE_ASSISTANT_CONSTANTS } from './code.constant.js';
 export const formatCodeResponse = (response, conversationId, messageCount) => {
   try {
     // Try to parse if it's JSON
-    const parsedResponse = response.startsWith("{") && response.endsWith("}") 
-      ? JSON.parse(response) 
-      : response;
+    const parsedResponse =
+      response.startsWith('{') && response.endsWith('}')
+        ? JSON.parse(response)
+        : response;
 
     return {
       responseMessage: parsedResponse,
@@ -21,7 +22,10 @@ export const formatCodeResponse = (response, conversationId, messageCount) => {
       messageCount,
     };
   } catch (error) {
-    logger.warn('Failed to parse code response as JSON, returning as string:', error);
+    logger.warn(
+      'Failed to parse code response as JSON, returning as string:',
+      error
+    );
     return {
       responseMessage: response,
       conversationId,
@@ -73,20 +77,43 @@ export const generateConversationTitle = (codeQuery) => {
  */
 export const extractProgrammingLanguage = (message) => {
   const languages = [
-    'javascript', 'python', 'java', 'typescript', 'php', 'ruby', 'go', 'rust',
-    'c++', 'c#', 'swift', 'kotlin', 'scala', 'html', 'css', 'sql', 'bash',
-    'powershell', 'react', 'vue', 'angular', 'node', 'express', 'django',
-    'flask', 'spring', 'laravel'
+    'javascript',
+    'python',
+    'java',
+    'typescript',
+    'php',
+    'ruby',
+    'go',
+    'rust',
+    'c++',
+    'c#',
+    'swift',
+    'kotlin',
+    'scala',
+    'html',
+    'css',
+    'sql',
+    'bash',
+    'powershell',
+    'react',
+    'vue',
+    'angular',
+    'node',
+    'express',
+    'django',
+    'flask',
+    'spring',
+    'laravel',
   ];
 
   const lowerMessage = message.toLowerCase();
-  
+
   for (const lang of languages) {
     if (lowerMessage.includes(lang)) {
       return lang;
     }
   }
-  
+
   return null;
 };
 
@@ -98,7 +125,7 @@ export const extractProgrammingLanguage = (message) => {
  */
 export const formatErrorMessage = (error, userMessage) => {
   logger.error(`Code Assistant Error for query: "${userMessage}":`, error);
-  
+
   // Return user-friendly error message
   return 'I apologize, but an error occurred while processing your code request. Please try again or rephrase your question.';
 };

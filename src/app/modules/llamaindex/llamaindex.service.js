@@ -4,7 +4,7 @@ const uploadAndIndexDocumentService = async (filePath) => {
   return await llama.createIndexFromFile(filePath);
 };
 
-const queryDocument = async query => {
+const queryDocument = async (query) => {
   return await llama.askQuery(query);
 };
 

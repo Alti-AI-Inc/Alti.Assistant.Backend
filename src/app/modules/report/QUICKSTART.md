@@ -5,6 +5,7 @@
 ### Prerequisites
 
 1. OpenAI API Key configured in `.env`:
+
    ```env
    OPENAI_API_KEY=your_openai_api_key_here
    ```
@@ -19,6 +20,7 @@
 #### 1. Generate a Simple Report
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/reports/generate \
   -H "Content-Type: application/json" \
@@ -31,6 +33,7 @@ curl -X POST http://localhost:5000/api/v1/reports/generate \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -45,6 +48,7 @@ curl -X POST http://localhost:5000/api/v1/reports/generate \
 #### 2. Conversational Report Generation
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/reports/assistant \
   -H "Content-Type: application/json" \
@@ -59,6 +63,7 @@ The AI will guide you through the process, asking for any missing information.
 #### 3. Generate Report from Files
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/reports/assistant \
   -F "message=Create a comprehensive analysis report" \
@@ -119,13 +124,16 @@ Upload these file types:
 ```javascript
 const formData = new FormData();
 formData.append('files', excelFile);
-formData.append('message', 'Generate a financial report with charts and insights');
+formData.append(
+  'message',
+  'Generate a financial report with charts and insights'
+);
 formData.append('reportType', 'financial');
 formData.append('outputFormat', 'pdf');
 
 fetch('http://localhost:5000/api/v1/reports/assistant', {
   method: 'POST',
-  body: formData
+  body: formData,
 });
 ```
 
@@ -159,8 +167,8 @@ const step1 = await fetch('/api/v1/reports/assistant', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    message: 'I need to create a report'
-  })
+    message: 'I need to create a report',
+  }),
 });
 
 const { conversationId } = await step1.json();
@@ -170,9 +178,10 @@ const step2 = await fetch('/api/v1/reports/assistant', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    message: 'It should be an analytical report about sales trends in PDF format',
-    conversationId
-  })
+    message:
+      'It should be an analytical report about sales trends in PDF format',
+    conversationId,
+  }),
 });
 ```
 
@@ -194,9 +203,9 @@ Modify `report.constant.js` to change:
 
 ```javascript
 export const REPORT_CONFIG = {
-  MODEL: 'gpt-4o',  // Change AI model
-  TEMPERATURE: 0.7,  // Creativity level
-  MAX_TOKENS: 4096,  // Response length
+  MODEL: 'gpt-4o', // Change AI model
+  TEMPERATURE: 0.7, // Creativity level
+  MAX_TOKENS: 4096, // Response length
 };
 
 export const DEFAULT_PARAMS = {
@@ -217,8 +226,8 @@ fetch('/api/v1/reports/assistant', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     message: 'Create report',
-    userId: 'guest_12345'  // Optional guest ID
-  })
+    userId: 'guest_12345', // Optional guest ID
+  }),
 });
 ```
 
@@ -229,11 +238,11 @@ fetch('/api/v1/reports/assistant', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_JWT_TOKEN'
+    Authorization: 'Bearer YOUR_JWT_TOKEN',
   },
   body: JSON.stringify({
-    message: 'Create report'
-  })
+    message: 'Create report',
+  }),
 });
 ```
 
@@ -250,6 +259,7 @@ Default rate limits (configurable in routes):
 ### Error: "OPENAI_API_KEY not set"
 
 **Solution:**
+
 ```bash
 echo "OPENAI_API_KEY=your_key_here" >> .env
 ```
@@ -265,6 +275,7 @@ echo "OPENAI_API_KEY=your_key_here" >> .env
 ### PDF Generation Issues
 
 **Solution:** Install PDFKit dependency:
+
 ```bash
 npm install pdfkit
 ```
@@ -272,6 +283,7 @@ npm install pdfkit
 ### File Parsing Issues
 
 **Solution:** Install optional dependencies:
+
 ```bash
 npm install pdf-parse mammoth xlsx docx
 ```

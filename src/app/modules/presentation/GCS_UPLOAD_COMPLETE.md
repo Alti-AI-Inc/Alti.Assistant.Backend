@@ -7,15 +7,18 @@ Successfully integrated Google Cloud Storage (GCS) upload functionality into the
 ## 🎯 Requirements Completed
 
 ✅ **Upload presentations to GCS bucket "alti_assistant_presentation"**
+
 - Implemented upload service with automatic file handling
 - Organized structure: `userId/conversationId/filename`
 
 ✅ **Save public URL to conversation model**
+
 - URLs stored in conversation metadata
 - Separate fields for generated, edited, and derived presentations
 - Timestamps included for tracking
 
 ✅ **Send URL in response**
+
 - Public URL included in all response objects
 - Added to response messages for user visibility
 - Works for both conversational and direct API endpoints
@@ -23,33 +26,42 @@ Successfully integrated Google Cloud Storage (GCS) upload functionality into the
 ## 📁 Files Created/Modified
 
 ### Created Files
+
 1. **`src/app/modules/presentation/services/gcsUploadService.js`**
+
    - GCS upload service
    - Functions: uploadPresentationToGCS, deleteFromGCS
 
 2. **`src/app/modules/presentation/docs/GCS_UPLOAD_FEATURE.md`**
+
    - Comprehensive feature documentation
 
 3. **`src/app/modules/presentation/docs/GCS_UPLOAD_IMPLEMENTATION.md`**
+
    - Implementation details and technical summary
 
 4. **`src/app/modules/presentation/docs/TESTING_GUIDE.md`**
+
    - Complete testing procedures and verification steps
 
 5. **`scripts/test-gcs-upload.js`**
    - Automated test script for upload functionality
 
 ### Modified Files
+
 1. **`config/index.js`**
+
    - Added `gcs.presentation_bucket` configuration
 
 2. **`src/app/modules/presentation/presentation.service.js`**
+
    - Integrated upload in handleGenerateIntent()
    - Integrated upload in handleEditIntent()
    - Integrated upload in handleDeriveIntent()
    - Added publicUrl to all return objects
 
 3. **`src/app/modules/presentation/presentation.controller.js`**
+
    - Added upload to generatePresentation() controller
 
 4. **`src/app/modules/presentation/README.md`**
@@ -58,6 +70,7 @@ Successfully integrated Google Cloud Storage (GCS) upload functionality into the
 ## 🔧 How It Works
 
 ### Flow Diagram
+
 ```
 User Request
     ↓
@@ -77,6 +90,7 @@ Return in Response
 ```
 
 ### File Organization
+
 ```
 gs://alti_assistant_presentation/
   ├── {userId}/
@@ -92,6 +106,7 @@ gs://alti_assistant_presentation/
 ## 📝 API Response Examples
 
 ### Conversational API
+
 ```json
 {
   "success": true,
@@ -105,6 +120,7 @@ gs://alti_assistant_presentation/
 ```
 
 ### Direct API
+
 ```json
 {
   "data": {
@@ -124,17 +140,17 @@ gs://alti_assistant_presentation/
   metadata: {
     category: "presentation",
     model: "gemini-2.5-flash",
-    
+
     // Generated presentation
     presentationUrl: "https://storage.googleapis.com/.../presentation.pptx",
     gcsPath: "userId/conversationId/presentation.pptx",
     uploadedAt: "2024-01-15T10:30:00.000Z",
-    
+
     // Edited presentation (if applicable)
     editedPresentationUrl: "https://storage.googleapis.com/.../presentation_edited.pptx",
     editedGcsPath: "userId/conversationId/presentation_edited.pptx",
     editedAt: "2024-01-15T11:00:00.000Z",
-    
+
     // Derived presentation (if applicable)
     derivedPresentationUrl: "https://storage.googleapis.com/.../presentation_derived.pptx",
     derivedGcsPath: "userId/conversationId/presentation_derived.pptx",
@@ -146,6 +162,7 @@ gs://alti_assistant_presentation/
 ## 🔐 Environment Configuration
 
 Required environment variables:
+
 ```env
 # GCS Configuration
 GCP_PROJECT_ID=your-project-id
@@ -158,6 +175,7 @@ GCS_PRESENTATION_BUCKET=alti_assistant_presentation
 ## 🧪 Testing
 
 ### Quick Test
+
 ```bash
 # Test conversational API
 curl -X POST http://localhost:3000/api/presentation/assistant \
@@ -169,9 +187,11 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Comprehensive Tests
+
 See: `docs/TESTING_GUIDE.md` for complete testing procedures
 
 ### Automated Test
+
 ```bash
 node scripts/test-gcs-upload.js
 ```
@@ -179,26 +199,31 @@ node scripts/test-gcs-upload.js
 ## ✨ Key Features
 
 1. **Automatic Upload**
+
    - All presentations automatically uploaded to GCS
    - No manual intervention required
    - Works for generate, edit, and derive operations
 
 2. **Public URLs**
+
    - Files are publicly accessible
    - Direct download links
    - CDN-backed for fast access
 
 3. **Organized Storage**
+
    - Structured by user and conversation
    - Easy to locate and manage files
    - Prevents naming conflicts
 
 4. **Metadata Tracking**
+
    - URLs saved to conversation history
    - Timestamps for all operations
    - Separate tracking for original, edited, and derived
 
 5. **Graceful Degradation**
+
    - If GCS upload fails, Presenton URLs still work
    - Errors logged but don't block responses
    - System remains functional
@@ -211,17 +236,20 @@ node scripts/test-gcs-upload.js
 ## 🛡️ Error Handling
 
 ### Upload Failure
+
 - Error logged: `Error uploading presentation to GCS: {error}`
 - Response still includes Presenton URLs
 - User can still download presentation
 - System continues normally
 
 ### Invalid Credentials
+
 - Caught and logged
 - Falls back to Presenton URLs
 - Admin notified via logs
 
 ### Network Issues
+
 - Timeout handling
 - Retry logic (if applicable)
 - Fallback to original URLs
@@ -238,6 +266,7 @@ node scripts/test-gcs-upload.js
 ## 🚀 Next Steps (Optional Enhancements)
 
 Future improvements to consider:
+
 - [ ] Private file access with signed URLs
 - [ ] Automatic file expiration/cleanup
 - [ ] File compression before upload
@@ -249,6 +278,7 @@ Future improvements to consider:
 ## 📚 Documentation
 
 Complete documentation available:
+
 1. **Feature Overview**: `docs/GCS_UPLOAD_FEATURE.md`
 2. **Implementation Details**: `docs/GCS_UPLOAD_IMPLEMENTATION.md`
 3. **Testing Guide**: `docs/TESTING_GUIDE.md`

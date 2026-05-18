@@ -1,10 +1,14 @@
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
-import { GoogleCustomSearch } from "@langchain/community/tools/google_custom_search";
-import { DynamicTool } from "@langchain/core/tools";
-import { WebBrowser } from "langchain/tools/webbrowser";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import config from "../../../../../config/index.js";
-import { selectModelSmart, gemini2_5Flash, gemini3ProPreview } from './geminiService.js';
+import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { GoogleCustomSearch } from '@langchain/community/tools/google_custom_search';
+import { DynamicTool } from '@langchain/core/tools';
+import { WebBrowser } from 'langchain/tools/webbrowser';
+import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import config from '../../../../../config/index.js';
+import {
+  selectModelSmart,
+  gemini2_5Flash,
+  gemini3ProPreview,
+} from './geminiService.js';
 import { openMemoryClient } from '../../../shared/openMemoryClient.js';
 
 /**
@@ -20,23 +24,30 @@ import { openMemoryClient } from '../../../shared/openMemoryClient.js';
  * @returns {Object} Formatted response with answer, references, and citations
  */
 export async function executeToolBasedConversation(messages, options = {}) {
-  const resolvedUserId = options?.userId || options?.authUserId || options?.user?.id || null;
+  const resolvedUserId =
+    options?.userId || options?.authUserId || options?.user?.id || null;
 
   // Extract query from messages for smart model selection
-  const userMessages = messages.filter(m => m.role === 'user');
-  const currentQuery = userMessages.length > 0
-    ? userMessages[userMessages.length - 1].content
-    : '';
+  const userMessages = messages.filter((m) => m.role === 'user');
+  const currentQuery =
+    userMessages.length > 0
+      ? userMessages[userMessages.length - 1].content
+      : '';
 
   // SMART MODEL SELECTION based on query
-  const conversationHistory = messages.filter(m => m.role === 'user' || m.role === 'assistant');
+  const conversationHistory = messages.filter(
+    (m) => m.role === 'user' || m.role === 'assistant'
+  );
   const selectedLLM = selectModelSmart(currentQuery, {
     conversationHistory,
     searchDepth: options.searchDepth || 'standard',
-    previousToolCalls: options.previousToolCalls || 0
+    previousToolCalls: options.previousToolCalls || 0,
   });
 
-  console.log('🤖 ReactAgent using selected model for tool-based conversation', selectModelSmart);
+  console.log(
+    '🤖 ReactAgent using selected model for tool-based conversation',
+    selectModelSmart
+  );
 
   const textSplitter = new RecursiveCharacterTextSplitter({
     chunkSize: 1000,
@@ -44,20 +55,24 @@ export async function executeToolBasedConversation(messages, options = {}) {
   });
 
   const tools = [
-    new GoogleCustomSearch({ apiKey: config.google_search_api_key, googleCSEId: config.google_engine_id }),
+    new GoogleCustomSearch({
+      apiKey: config.google_search_api_key,
+      googleCSEId: config.google_engine_id,
+    }),
     new WebBrowser({
       model: selectedLLM, // Use selected model
       embeddings: new GoogleGenerativeAIEmbeddings({
         apiKey: config.gemini_secret_key,
       }),
-      textSplitter
-    })
+      textSplitter,
+    }),
   ];
 
   if (openMemoryClient?.enabled) {
     const openMemoryTool = new DynamicTool({
       name: 'openmemory-query',
-      description: 'Retrieve long-term, user-scoped memories. Input must be JSON with {"query":"...","userId":"...","k":5,"filters":{}}.',
+      description:
+        'Retrieve long-term, user-scoped memories. Input must be JSON with {"query":"...","userId":"...","k":5,"filters":{}}.',
       async func(rawInput) {
         if (!openMemoryClient.enabled) {
           return JSON.stringify({ error: 'OpenMemory disabled' });
@@ -70,7 +85,10 @@ export async function executeToolBasedConversation(messages, options = {}) {
             try {
               payload = JSON.parse(trimmed);
             } catch (err) {
-              console.warn('⚠️ Failed to parse OpenMemory tool input, falling back to raw string', err?.message || err);
+              console.warn(
+                '⚠️ Failed to parse OpenMemory tool input, falling back to raw string',
+                err?.message || err
+              );
               payload = { query: rawInput };
             }
           } else {
@@ -89,7 +107,9 @@ export async function executeToolBasedConversation(messages, options = {}) {
         }
 
         if (!userId) {
-          return JSON.stringify({ error: 'Missing userId for OpenMemory tool' });
+          return JSON.stringify({
+            error: 'Missing userId for OpenMemory tool',
+          });
         }
 
         try {
@@ -97,7 +117,7 @@ export async function executeToolBasedConversation(messages, options = {}) {
             query,
             userId,
             k: topK,
-            filters: payload.filters || {}
+            filters: payload.filters || {},
           });
 
           if (!Array.isArray(matches) || matches.length === 0) {
@@ -106,26 +126,32 @@ export async function executeToolBasedConversation(messages, options = {}) {
 
           if (payload.reinforce !== false) {
             const reinforcePromises = matches
-              .filter(match => match?.id)
-              .map(match => openMemoryClient.reinforceMemory(match.id).catch(() => null));
+              .filter((match) => match?.id)
+              .map((match) =>
+                openMemoryClient.reinforceMemory(match.id).catch(() => null)
+              );
             await Promise.allSettled(reinforcePromises);
           }
 
-          const response = matches.map(match => ({
+          const response = matches.map((match) => ({
             id: match?.id,
             content: match?.content,
             score: match?.score,
-            sector: match?.primary_sector || match?.metadata?.sector || 'semantic',
+            sector:
+              match?.primary_sector || match?.metadata?.sector || 'semantic',
             metadata: match?.metadata || {},
-            createdAt: match?.created_at || match?.createdAt
+            createdAt: match?.created_at || match?.createdAt,
           }));
 
           return JSON.stringify(response);
         } catch (error) {
           console.warn('⚠️ OpenMemory tool query failed', error);
-          return JSON.stringify({ error: 'OpenMemory query failed', details: error.message });
+          return JSON.stringify({
+            error: 'OpenMemory query failed',
+            details: error.message,
+          });
         }
-      }
+      },
     });
 
     tools.push(openMemoryTool);
@@ -134,12 +160,14 @@ export async function executeToolBasedConversation(messages, options = {}) {
   const toolBasedLlm = selectedLLM.bindTools(tools); // Use selected model
 
   // Add ReAct agent instructions to the system message
-  const openMemoryInstruction = openMemoryClient?.enabled ? `
+  const openMemoryInstruction = openMemoryClient?.enabled
+    ? `
 
 OPENMEMORY MEMORY ACCESS:
 - Use the "openmemory-query" tool for user-specific recall.
 - ALWAYS pass JSON with "query" and "userId" (use "${resolvedUserId || '<provide_user_id>'}" if available).
-- Use this before web search when recalling prior user answers, uploaded docs, or preferences.` : '';
+- Use this before web search when recalling prior user answers, uploaded docs, or preferences.`
+    : '';
 
   const reactSystemPrompt = `${messages[0].content}
 
@@ -261,10 +289,10 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
   // Update the first message with ReAct instructions
   const reactMessages = [
     {
-      role: "system",
-      content: reactSystemPrompt
+      role: 'system',
+      content: reactSystemPrompt,
     },
-    ...messages.slice(1)
+    ...messages.slice(1),
   ];
 
   let currentMessages = [...reactMessages];
@@ -275,31 +303,37 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
 
   while (iterationCount < maxIterations) {
     iterationCount++;
-    console.log(`\n=== ReAct Agent Iteration ${iterationCount}/${maxIterations} ===`);
+    console.log(
+      `\n=== ReAct Agent Iteration ${iterationCount}/${maxIterations} ===`
+    );
 
     const res = await toolBasedLlm.invoke(currentMessages);
-    console.log("Response tool_calls:", res.tool_calls?.length || 0);
+    console.log('Response tool_calls:', res.tool_calls?.length || 0);
 
-    console.log("🧠 ReAct THINK:", res.content);
+    console.log('🧠 ReAct THINK:', res.content);
 
     // Log reasoning if present in the response
-    if (res.content && typeof res.content === 'string' && res.content.length > 0) {
+    if (
+      res.content &&
+      typeof res.content === 'string' &&
+      res.content.length > 0
+    ) {
       console.log(`💭 Agent Reasoning: ${res.content.substring(0, 200)}...`);
       reasoningLog.push({
         iteration: iterationCount,
         reasoning: res.content,
-        toolCalls: res.tool_calls?.length || 0
+        toolCalls: res.tool_calls?.length || 0,
       });
     }
 
     // If no tool calls, we have a final answer
     if (!res.tool_calls || res.tool_calls.length === 0) {
-      console.log("=== Final Answer ===");
+      console.log('=== Final Answer ===');
       console.log(res.content);
 
       // Format the response in the requested structure
       // Limit references to 3-5 items
-      const allReferences = Array.from(usedUrls).map(url => {
+      const allReferences = Array.from(usedUrls).map((url) => {
         try {
           const domain = new URL(url).hostname.replace('www.', '');
           return { url, domain };
@@ -314,7 +348,7 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
       const citations = references.map((ref, index) => ({
         index: index + 1,
         url: ref.url,
-        domain: ref.domain
+        domain: ref.domain,
       }));
 
       // Clean the answer by removing URLs and source sections
@@ -325,8 +359,8 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
       } else if (Array.isArray(res.content)) {
         // Concatenate all text blocks from the array
         cleanAnswer = res.content
-          .filter(block => block.type === 'text' && block.text)
-          .map(block => block.text)
+          .filter((block) => block.type === 'text' && block.text)
+          .map((block) => block.text)
           .join('');
       } else {
         cleanAnswer = 'No answer provided';
@@ -345,7 +379,10 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           const jsonMatch = cleanAnswer.match(/```json\s*([\s\S]*?)\s*```/);
           if (jsonMatch) {
             const jsonContent = JSON.parse(jsonMatch[1]);
-            if (jsonContent.responseMessage && jsonContent.responseMessage.answer) {
+            if (
+              jsonContent.responseMessage &&
+              jsonContent.responseMessage.answer
+            ) {
               cleanAnswer = jsonContent.responseMessage.answer;
             }
           }
@@ -371,24 +408,26 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           answer: cleanAnswer,
           reference: references,
           citations: citations,
-          citationMetadata: null
-        }
+          citationMetadata: null,
+        },
       };
 
-      console.log("\n=== ReAct Agent Summary ===");
+      console.log('\n=== ReAct Agent Summary ===');
       console.log(`Total iterations: ${iterationCount}`);
-      console.log(`Total tool calls: ${reasoningLog.reduce((sum, log) => sum + log.toolCalls, 0)}`);
+      console.log(
+        `Total tool calls: ${reasoningLog.reduce((sum, log) => sum + log.toolCalls, 0)}`
+      );
       console.log(`Sources verified: ${usedUrls.size}`);
-      console.log("\n=== Formatted Response ===");
+      console.log('\n=== Formatted Response ===');
       console.log(JSON.stringify(formattedResponse, null, 2));
       return formattedResponse;
     }
 
     // Add the assistant's message with tool calls
     currentMessages.push({
-      role: "assistant",
+      role: 'assistant',
       content: res.content,
-      tool_calls: res.tool_calls
+      tool_calls: res.tool_calls,
     });
 
     // Execute each tool call and add results
@@ -399,10 +438,10 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
       try {
         // Execute the tool based on its name
         let toolResult;
-        if (toolCall.name === "google-custom-search") {
+        if (toolCall.name === 'google-custom-search') {
           const googleSearch = new GoogleCustomSearch({
             apiKey: config.google_search_api_key,
-            googleCSEId: config.google_engine_id
+            googleCSEId: config.google_engine_id,
           });
 
           const startTime = Date.now();
@@ -415,8 +454,10 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           try {
             const searchResults = JSON.parse(toolResult);
             if (Array.isArray(searchResults)) {
-              console.log(`📊 ReAct OBSERVE: Found ${searchResults.length} search results`);
-              searchResults.forEach(result => {
+              console.log(
+                `📊 ReAct OBSERVE: Found ${searchResults.length} search results`
+              );
+              searchResults.forEach((result) => {
                 if (result.link) {
                   usedUrls.add(result.link);
                 }
@@ -426,17 +467,18 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
             // If not JSON, try to extract URLs with regex
             const urlRegex = /https?:\/\/[^\s"]+/g;
             const urls = toolResult.match(urlRegex) || [];
-            console.log(`📊 ReAct OBSERVE: Extracted ${urls.length} URLs from results`);
-            urls.forEach(url => usedUrls.add(url));
+            console.log(
+              `📊 ReAct OBSERVE: Extracted ${urls.length} URLs from results`
+            );
+            urls.forEach((url) => usedUrls.add(url));
           }
-
-        } else if (toolCall.name === "web-browser") {
+        } else if (toolCall.name === 'web-browser') {
           const browser = new WebBrowser({
             model: selectedLLM, // Use selected model
             embeddings: new GoogleGenerativeAIEmbeddings({
               apiKey: config.gemini_secret_key,
             }),
-            textSplitter
+            textSplitter,
           });
           toolResult = await browser.invoke(toolCall.args.input);
 
@@ -447,33 +489,35 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           }
         }
 
-        console.log(`Tool result preview:`, toolResult.substring(0, 400) + "...");
+        console.log(
+          `Tool result preview:`,
+          toolResult.substring(0, 400) + '...'
+        );
 
         // Add tool result to messages
         currentMessages.push({
-          role: "tool",
+          role: 'tool',
           content: toolResult,
           tool_call_id: toolCall.id,
-          name: toolCall.name
+          name: toolCall.name,
         });
-
       } catch (error) {
         console.error(`Error executing tool ${toolCall.name}:`, error.message);
         currentMessages.push({
-          role: "tool",
+          role: 'tool',
           content: `Error: ${error.message}`,
           tool_call_id: toolCall.id,
-          name: toolCall.name
+          name: toolCall.name,
         });
       }
     }
   }
 
-  console.log("Max iterations reached, returning last result");
+  console.log('Max iterations reached, returning last result');
 
   // If we reach max iterations, still format the response
   // Limit references to 3-5 items
-  const allReferences = Array.from(usedUrls).map(url => {
+  const allReferences = Array.from(usedUrls).map((url) => {
     try {
       const domain = new URL(url).hostname.replace('www.', '');
       return { url, domain };
@@ -488,19 +532,19 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
   const citations = references.map((ref, index) => ({
     index: index + 1,
     url: ref.url,
-    domain: ref.domain
+    domain: ref.domain,
   }));
 
   const formattedResponse = {
     responseMessage: {
-      answer: "Max iterations reached without final answer",
+      answer: 'Max iterations reached without final answer',
       reference: references,
       citations: citations,
-      citationMetadata: null
-    }
+      citationMetadata: null,
+    },
   };
 
-  console.log("\n=== Formatted Response (Max Iterations) ===");
+  console.log('\n=== Formatted Response (Max Iterations) ===');
   console.log(JSON.stringify(formattedResponse, null, 2));
   return formattedResponse;
 }

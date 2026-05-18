@@ -71,7 +71,7 @@ const detectQueryComplexity = (message, conversationHistory = '') => {
   let indicators = [];
 
   // Check for high complexity keywords
-  COMPLEXITY_INDICATORS.HIGH_COMPLEXITY_KEYWORDS.forEach(keyword => {
+  COMPLEXITY_INDICATORS.HIGH_COMPLEXITY_KEYWORDS.forEach((keyword) => {
     if (fullText.includes(keyword.toLowerCase())) {
       complexityScore += 0.15;
       indicators.push(keyword);
@@ -79,7 +79,7 @@ const detectQueryComplexity = (message, conversationHistory = '') => {
   });
 
   // Check for medium complexity keywords
-  COMPLEXITY_INDICATORS.MEDIUM_COMPLEXITY_KEYWORDS.forEach(keyword => {
+  COMPLEXITY_INDICATORS.MEDIUM_COMPLEXITY_KEYWORDS.forEach((keyword) => {
     if (fullText.includes(keyword.toLowerCase())) {
       complexityScore += 0.08;
       indicators.push(keyword);
@@ -89,7 +89,8 @@ const detectQueryComplexity = (message, conversationHistory = '') => {
   // Additional complexity factors
   const wordCount = message.split(' ').length;
   if (wordCount > 30) complexityScore += 0.1; // Long question
-  if (message.includes('?') && message.split('?').length > 2) complexityScore += 0.1; // Multiple questions
+  if (message.includes('?') && message.split('?').length > 2)
+    complexityScore += 0.1; // Multiple questions
   if (/\d+/.test(message)) complexityScore += 0.05; // Contains numbers (might be asking for calculations)
 
   // Conversation depth increases complexity
@@ -101,7 +102,9 @@ const detectQueryComplexity = (message, conversationHistory = '') => {
 
   const isComplex = complexityScore >= KNOWLEDGE_CONFIG.COMPLEXITY_THRESHOLD;
 
-  logger.info(`[Knowledge] Complexity detection: score=${complexityScore.toFixed(2)}, isComplex=${isComplex}, indicators=[${indicators.slice(0, 3).join(', ')}]`);
+  logger.info(
+    `[Knowledge] Complexity detection: score=${complexityScore.toFixed(2)}, isComplex=${isComplex}, indicators=[${indicators.slice(0, 3).join(', ')}]`
+  );
 
   return {
     isComplex,
@@ -120,16 +123,27 @@ const generateConversationId = () => {
 /**
  * Handle knowledge conversation
  */
-const handleKnowledgeConversation = async (userId, ownerType, ownerId, conversationId, userMessage) => {
+const handleKnowledgeConversation = async (
+  userId,
+  ownerType,
+  ownerId,
+  conversationId,
+  userMessage
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId
+        );
         logger.info(`[Knowledge] Fetched conversation: ${conversationId}`);
       } catch (error) {
-        logger.warn(`[Knowledge] Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `[Knowledge] Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -157,14 +171,23 @@ const handleKnowledgeConversation = async (userId, ownerType, ownerId, conversat
     return conversation;
   } catch (error) {
     logger.error('[Knowledge] Error handling conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {}
+) => {
   try {
     const message = {
       role,
@@ -173,10 +196,17 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message
+    );
   } catch (error) {
     logger.error('[Knowledge] Error adding message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
@@ -184,15 +214,22 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}) 
  * Format conversation history
  */
 const formatConversationHistory = (messages) => {
-  return messages.length > 0 ? messages
-    .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
-    .join('\n\n') : '';
+  return messages.length > 0
+    ? messages
+        .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
+        .join('\n\n')
+    : '';
 };
 
 /**
  * Query knowledge using RAG
  */
-export const queryKnowledge = async (query, ownerType, ownerId, options = {}) => {
+export const queryKnowledge = async (
+  query,
+  ownerType,
+  ownerId,
+  options = {}
+) => {
   try {
     logger.info(`[Knowledge] Querying knowledge for ${ownerType}: ${ownerId}`);
 
@@ -207,8 +244,10 @@ export const queryKnowledge = async (query, ownerType, ownerId, options = {}) =>
     if (processedFiles.length === 0) {
       return {
         success: false,
-        message: 'No processed files found. Please upload and process files first.',
-        answer: 'I don\'t have any documents to search through yet. Please upload some files first.',
+        message:
+          'No processed files found. Please upload and process files first.',
+        answer:
+          "I don't have any documents to search through yet. Please upload some files first.",
         sources: [],
       };
     }
@@ -228,7 +267,9 @@ export const queryKnowledge = async (query, ownerType, ownerId, options = {}) =>
       topK: options.topK || 5,
     });
 
-    logger.info(`[Knowledge] RAG query complete: ${ragResponse.sources?.length || 0} sources found`);
+    logger.info(
+      `[Knowledge] RAG query complete: ${ragResponse.sources?.length || 0} sources found`
+    );
 
     return {
       success: true,
@@ -255,7 +296,9 @@ export const conversationalQuery = async (
   options = {}
 ) => {
   try {
-    logger.info(`[Knowledge] Conversational query for ${ownerType}: ${ownerId}`);
+    logger.info(
+      `[Knowledge] Conversational query for ${ownerType}: ${ownerId}`
+    );
 
     // Handle conversation
     const conversation = await handleKnowledgeConversation(
@@ -270,20 +313,30 @@ export const conversationalQuery = async (
     await addMessage(conversation.conversationId, userId, 'user', message);
 
     // Get conversation history
-    const messages = await conversationHelpers.getConversationMessages(
-      conversation.conversationId,
-      userId
-    ) || [];
+    const messages =
+      (await conversationHelpers.getConversationMessages(
+        conversation.conversationId,
+        userId
+      )) || [];
 
     // Format history for context
     const conversationHistory = formatConversationHistory(messages); // Last 10 messages
 
     // Detect query complexity
-    const complexityAnalysis = detectQueryComplexity(message, conversationHistory);
-    const selectedModel = complexityAnalysis.isComplex ? KNOWLEDGE_CONFIG.COMPLEX_MODEL : KNOWLEDGE_CONFIG.MODEL;
+    const complexityAnalysis = detectQueryComplexity(
+      message,
+      conversationHistory
+    );
+    const selectedModel = complexityAnalysis.isComplex
+      ? KNOWLEDGE_CONFIG.COMPLEX_MODEL
+      : KNOWLEDGE_CONFIG.MODEL;
 
-    logger.info(`[Knowledge] 🤖 Model Selection - Complexity: ${complexityAnalysis.isComplex ? 'HIGH' : 'LOW'} (score: ${complexityAnalysis.score.toFixed(2)})`);
-    logger.info(`[Knowledge] 📊 Using Model: ${selectedModel} - Indicators: [${complexityAnalysis.indicators.join(', ')}]`);
+    logger.info(
+      `[Knowledge] 🤖 Model Selection - Complexity: ${complexityAnalysis.isComplex ? 'HIGH' : 'LOW'} (score: ${complexityAnalysis.score.toFixed(2)})`
+    );
+    logger.info(
+      `[Knowledge] 📊 Using Model: ${selectedModel} - Indicators: [${complexityAnalysis.indicators.join(', ')}]`
+    );
 
     // Check if there are processed files
     const processedFiles = await KnowledgeFile.find({
@@ -303,8 +356,9 @@ export const conversationalQuery = async (
     } else {
       // Initialize RAG with appropriate model
       const dynamicLLM = complexityAnalysis.isComplex ? claudeLLM : geminiLLM;
-      logger.info(`[Knowledge] 🔧 Initializing RAG with ${complexityAnalysis.isComplex ? 'Claude Opus 4.5' : 'Gemini 2.5 Flash'}`);
-
+      logger.info(
+        `[Knowledge] 🔧 Initializing RAG with ${complexityAnalysis.isComplex ? 'Claude Opus 4.5' : 'Gemini 2.5 Flash'}`
+      );
 
       // Update RAG config with selected model
       rag.llm = dynamicLLM;
@@ -324,9 +378,13 @@ export const conversationalQuery = async (
 
       answer = ragResponse.answer;
       sources = ragResponse.sources || [];
-      logger.info(`✅ Query complete using ${modelUsed}: ${sources.length} sources found, ${answer.length} chars generated`);
+      logger.info(
+        `✅ Query complete using ${modelUsed}: ${sources.length} sources found, ${answer.length} chars generated`
+      );
 
-      logger.info(`[Knowledge] Query complete using ${modelUsed}: ${sources.length} sources found`);
+      logger.info(
+        `[Knowledge] Query complete using ${modelUsed}: ${sources.length} sources found`
+      );
     }
 
     // Add assistant message
@@ -363,7 +421,12 @@ export const conversationalQuery = async (
 /**
  * Search files semantically
  */
-export const semanticSearch = async (query, ownerType, ownerId, options = {}) => {
+export const semanticSearch = async (
+  query,
+  ownerType,
+  ownerId,
+  options = {}
+) => {
   try {
     logger.info(`[Knowledge] Semantic search for ${ownerType}: ${ownerId}`);
 
@@ -396,7 +459,9 @@ export const semanticSearch = async (query, ownerType, ownerId, options = {}) =>
 
     // Map results to file information
     const results = searchResults.map((result) => {
-      const file = processedFiles.find((f) => f.documentId === result.documentId);
+      const file = processedFiles.find(
+        (f) => f.documentId === result.documentId
+      );
       return {
         ...result,
         fileName: file?.originalName,
@@ -422,8 +487,14 @@ export const semanticSearch = async (query, ownerType, ownerId, options = {}) =>
  */
 export const getConversationHistory = async (conversationId, userId) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
-    const messages = await conversationHelpers.getConversationMessages(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId
+    );
+    const messages = await conversationHelpers.getConversationMessages(
+      conversationId,
+      userId
+    );
 
     return {
       conversation,

@@ -1,7 +1,7 @@
 /**
  * Test script for vector search functionality
  * Tests embedding generation and vector search
- * 
+ *
  * Usage: node test-vector-search.js
  */
 
@@ -37,10 +37,13 @@ async function testVectorSearch() {
     console.log('✅ Connected to MongoDB\n');
 
     const testQueries = [
-      { query: "send an email to mr Michael about the meeting tomorrow", app: "gmail" },
-      { query: "list all branches in my repository", app: "github" },
-      { query: "create a new issue on GitHub", app: "github" },
-      { query: "get my calendar events for today", app: null }, // Test without app filter
+      {
+        query: 'send an email to mr Michael about the meeting tomorrow',
+        app: 'gmail',
+      },
+      { query: 'list all branches in my repository', app: 'github' },
+      { query: 'create a new issue on GitHub', app: 'github' },
+      { query: 'get my calendar events for today', app: null }, // Test without app filter
     ];
 
     for (const test of testQueries) {
@@ -59,21 +62,21 @@ async function testVectorSearch() {
       const pipeline = [
         {
           $vectorSearch: {
-            index: "vector_index",
-            path: "embedding",
+            index: 'vector_index',
+            path: 'embedding',
             queryVector: vector,
             numCandidates: 200,
-            limit: 5
-          }
+            limit: 5,
+          },
         },
         {
           $project: {
             name: 1,
             description: 1,
             appName: 1,
-            score: { $meta: "vectorSearchScore" }
-          }
-        }
+            score: { $meta: 'vectorSearchScore' },
+          },
+        },
       ];
 
       // Add app filter if specified
@@ -90,13 +93,16 @@ async function testVectorSearch() {
           console.log(`${index + 1}. ${result.name}`);
           console.log(`   App: ${result.appName || 'unknown'}`);
           console.log(`   Score: ${result.score?.toFixed(4)}`);
-          console.log(`   Description: ${result.description?.substring(0, 80)}...`);
+          console.log(
+            `   Description: ${result.description?.substring(0, 80)}...`
+          );
           console.log('');
         });
-
       } catch (searchError) {
         console.error('❌ Vector search failed:', searchError.message);
-        console.log('\n💡 Make sure you have created the vector_index in MongoDB Atlas!');
+        console.log(
+          '\n💡 Make sure you have created the vector_index in MongoDB Atlas!'
+        );
         console.log('   See embeddings-generator.js for instructions.');
       }
 

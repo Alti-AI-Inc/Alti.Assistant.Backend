@@ -21,15 +21,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Analyze plain text with general analysis type"
       }
@@ -50,15 +43,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Analyze sentiment and emotional tone"
       }
@@ -79,15 +65,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Extract main points and key information"
       }
@@ -108,15 +87,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Generate concise summary of content"
       }
@@ -137,15 +109,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Extract entities: people, places, organizations, dates, monetary values"
       }
@@ -166,15 +131,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Classify content topics and categories"
       }
@@ -201,15 +159,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Upload and analyze a document file (PDF, DOCX, TXT, etc.)"
       }
@@ -251,15 +202,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Analyze file with specific user instructions"
       }
@@ -284,15 +228,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Continue existing conversation with follow-up question"
       }
@@ -309,9 +246,7 @@
         ],
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/conversation/{{CONVERSATION_ID}}",
-          "host": [
-            "{{BASE_URL}}"
-          ],
+          "host": ["{{BASE_URL}}"],
           "path": [
             "api",
             "v1",
@@ -339,15 +274,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Detect language and analyze linguistic characteristics"
       }
@@ -368,15 +296,8 @@
         },
         "url": {
           "raw": "{{BASE_URL}}/api/v1/document-analysis/analyze",
-          "host": [
-            "{{BASE_URL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "document-analysis",
-            "analyze"
-          ]
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "v1", "document-analysis", "analyze"]
         },
         "description": "Analysis request from guest (unauthenticated) user"
       }

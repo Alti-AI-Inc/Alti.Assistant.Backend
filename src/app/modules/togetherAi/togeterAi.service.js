@@ -2,7 +2,7 @@ import Together from 'together-ai';
 
 const together = new Together();
 
-const TogetherAiImgGenerationService = async data => {
+const TogetherAiImgGenerationService = async (data) => {
   const { user, sessionId, prompt } = data;
   if (!prompt) throw new Error('Prompt is required for image generation.');
   const response = await together.images.create({

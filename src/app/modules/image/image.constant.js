@@ -1,9 +1,9 @@
 /**
  * Image Assistant Constants
- * 
+ *
  * This file contains all constants used throughout the image assistant module
  * to maintain consistency and make configuration changes easier.
- * 
+ *
  * @module ImageAssistantConstants
  */
 
@@ -12,15 +12,16 @@ export const IMAGE_ASSISTANT_CONSTANTS = {
   MESSAGE: {
     MIN_LENGTH: 3,
     MAX_LENGTH: 2000,
-    DEFAULT_ERROR: 'I apologize, but I encountered an error while processing your image request.',
+    DEFAULT_ERROR:
+      'I apologize, but I encountered an error while processing your image request.',
   },
 
   // Image specifications
   IMAGE_SPECS: {
     SIZES: {
-      SMALL: 'small',      // 512x512
+      SMALL: 'small', // 512x512
       STANDARD: 'standard', // 1024x1024
-      LARGE: 'large',      // 1792x1024 or larger
+      LARGE: 'large', // 1792x1024 or larger
     },
     STYLES: {
       REALISTIC: 'realistic',
@@ -50,7 +51,7 @@ export const IMAGE_ASSISTANT_CONSTANTS = {
       'image/jpg',
       'image/gif',
       'image/bmp',
-      'image/webp'
+      'image/webp',
     ],
   },
 
@@ -88,13 +89,17 @@ export const IMAGE_ASSISTANT_CONSTANTS = {
 
   // Error messages
   ERRORS: {
-    INVALID_IMAGE_FORMAT: 'Invalid image format. Please provide a valid image URL or base64 encoded image.',
+    INVALID_IMAGE_FORMAT:
+      'Invalid image format. Please provide a valid image URL or base64 encoded image.',
     IMAGE_TOO_LARGE: 'Image file is too large. Maximum size allowed is 10MB.',
     QUERY_TOO_SHORT: 'Image query is too short. Please provide more details.',
-    QUERY_TOO_LONG: 'Image query is too long. Please keep it under 2000 characters.',
+    QUERY_TOO_LONG:
+      'Image query is too long. Please keep it under 2000 characters.',
     RATE_LIMIT_EXCEEDED: 'Rate limit exceeded. Please try again later.',
-    SUBSCRIPTION_LIMIT: 'You have reached your image generation limit. Please upgrade your plan.',
-    NETWORK_ERROR: 'Network error occurred. Please check your connection and try again.',
+    SUBSCRIPTION_LIMIT:
+      'You have reached your image generation limit. Please upgrade your plan.',
+    NETWORK_ERROR:
+      'Network error occurred. Please check your connection and try again.',
     INVALID_PREFERENCES: 'Invalid image preferences provided.',
   },
 

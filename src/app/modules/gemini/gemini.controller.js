@@ -22,7 +22,11 @@ const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId, errorResponse } =
     await validatePromptRequest(req);
 
-  const result = await GeminiAiService.gemini25PreviewService(sessionId, prompt, userId);
+  const result = await GeminiAiService.gemini25PreviewService(
+    sessionId,
+    prompt,
+    userId
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -34,5 +38,5 @@ const Gemini25PreviewAiGetResponse = catchAsync(async (req, res) => {
 
 export const GeminiAiController = {
   GeminiAiGetResponse,
-  Gemini25PreviewAiGetResponse
+  Gemini25PreviewAiGetResponse,
 };

@@ -4,7 +4,7 @@ services:
     container_name: alti-backend
     restart: unless-stopped
     ports:
-      - "5100:5100"
+      - '5100:5100'
     env_file:
       - .env
     environment:
@@ -37,7 +37,7 @@ services:
       - app-network
     # Optionally expose Presenton port for debugging
     ports:
-      - "5200:80"
+      - '5200:80'
 
 networks:
   app-network:

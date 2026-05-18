@@ -67,7 +67,7 @@ const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
 
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        error.message || 'An error occurred while updating prompt usage.',
+        error.message || 'An error occurred while updating prompt usage.'
       );
     }
     // Store AI response in chat history
@@ -110,7 +110,7 @@ const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
     if (payload) {
       await RedisClient.publish(
         QWEN_RESPONSE_SERVICE_POST,
-        JSON.stringify(payload),
+        JSON.stringify(payload)
       );
     }
 
@@ -163,7 +163,7 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
       logger.error('Error in incrementPromptsUsed:', error);
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        error.message || 'An error occurred while updating prompt usage.',
+        error.message || 'An error occurred while updating prompt usage.'
       );
     }
 
@@ -207,7 +207,7 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
     if (payload) {
       await RedisClient.publish(
         QWEN_QWQ_RESPONSE_SERVICE_POST,
-        JSON.stringify(payload),
+        JSON.stringify(payload)
       );
     }
     return payload;

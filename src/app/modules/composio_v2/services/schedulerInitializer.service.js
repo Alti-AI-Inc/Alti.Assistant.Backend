@@ -7,7 +7,6 @@ import workflowExecutor from './workflowExecutor.service.js';
  * Scheduler Initialization Service - Handles app startup and shutdown for workflows
  */
 class SchedulerInitializer {
-  
   constructor() {
     this.initialized = false;
     this.gracefulShutdownHandlers = [];
@@ -35,14 +34,13 @@ class SchedulerInitializer {
       return {
         success: true,
         message: 'Scheduler initialized',
-        scheduledWorkflows: cronManager.getActiveJobsCount()
+        scheduledWorkflows: cronManager.getActiveJobsCount(),
       };
-
     } catch (error) {
       logger.error('Error initializing scheduler:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -57,7 +55,7 @@ class SchedulerInitializer {
       // Get all active scheduled workflows
       const activeWorkflows = await ScheduledWorkflow.find({
         isActive: true,
-        nextRun: { $gt: new Date() } // Only workflows with future runs
+        nextRun: { $gt: new Date() }, // Only workflows with future runs
       });
 
       let scheduledCount = 0;
@@ -76,15 +74,23 @@ class SchedulerInitializer {
 
             if (result.success) {
               scheduledCount++;
-              logger.info(`Scheduled workflow: ${workflow.workflowId} (${workflow.name})`);
+              logger.info(
+                `Scheduled workflow: ${workflow.workflowId} (${workflow.name})`
+              );
             } else {
               errorCount++;
-              logger.error(`Failed to schedule workflow ${workflow.workflowId}: ${result.error}`);
+              logger.error(
+                `Failed to schedule workflow ${workflow.workflowId}: ${result.error}`
+              );
             }
           }
 
           // Schedule one-time runs
-          if (workflow.oneTimeRun && workflow.oneTimeDate && workflow.oneTimeDate > new Date()) {
+          if (
+            workflow.oneTimeRun &&
+            workflow.oneTimeDate &&
+            workflow.oneTimeDate > new Date()
+          ) {
             const result = await cronManager.scheduleOneTimeWorkflow(
               workflow.workflowId,
               workflow.oneTimeDate,
@@ -94,27 +100,34 @@ class SchedulerInitializer {
 
             if (result.success) {
               scheduledCount++;
-              logger.info(`Scheduled one-time workflow: ${workflow.workflowId} for ${workflow.oneTimeDate}`);
+              logger.info(
+                `Scheduled one-time workflow: ${workflow.workflowId} for ${workflow.oneTimeDate}`
+              );
             } else {
               errorCount++;
-              logger.error(`Failed to schedule one-time workflow ${workflow.workflowId}: ${result.error}`);
+              logger.error(
+                `Failed to schedule one-time workflow ${workflow.workflowId}: ${result.error}`
+              );
             }
           }
-
         } catch (workflowError) {
           errorCount++;
-          logger.error(`Error processing workflow ${workflow.workflowId}:`, workflowError);
+          logger.error(
+            `Error processing workflow ${workflow.workflowId}:`,
+            workflowError
+          );
         }
       }
 
-      logger.info(`Loaded ${activeWorkflows.length} workflows, scheduled ${scheduledCount}, errors: ${errorCount}`);
+      logger.info(
+        `Loaded ${activeWorkflows.length} workflows, scheduled ${scheduledCount}, errors: ${errorCount}`
+      );
 
       return {
         total: activeWorkflows.length,
         scheduled: scheduledCount,
-        errors: errorCount
+        errors: errorCount,
       };
-
     } catch (error) {
       logger.error('Error loading active workflows:', error);
       throw error;
@@ -146,7 +159,6 @@ class SchedulerInitializer {
 
         logger.info('Graceful shutdown completed');
         process.exit(0);
-
       } catch (error) {
         logger.error('Error during graceful shutdown:', error);
         process.exit(1);
@@ -196,14 +208,13 @@ class SchedulerInitializer {
       return {
         success: true,
         data: result,
-        message: 'Workflows reloaded successfully'
+        message: 'Workflows reloaded successfully',
       };
-
     } catch (error) {
       logger.error('Error reloading workflows:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -218,7 +229,7 @@ class SchedulerInitializer {
       activeJobs: cronManager.getActiveJobsCount(),
       uptime: process.uptime(),
       memoryUsage: process.memoryUsage(),
-      shutdownHandlers: this.gracefulShutdownHandlers.length
+      shutdownHandlers: this.gracefulShutdownHandlers.length,
     };
   }
 
@@ -234,17 +245,16 @@ class SchedulerInitializer {
         healthy: this.initialized && cronHealth.healthy,
         status: {
           scheduler: status,
-          cronManager: cronHealth
+          cronManager: cronHealth,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-
     } catch (error) {
       logger.error('Health check failed:', error);
       return {
         healthy: false,
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -257,21 +267,20 @@ class SchedulerInitializer {
       logger.warn('Force cleanup initiated...');
 
       await cronManager.stopAllJobs(true); // Force stop
-      
+
       // Reset initialization state
       this.initialized = false;
 
       logger.info('Force cleanup completed');
       return {
         success: true,
-        message: 'Force cleanup completed'
+        message: 'Force cleanup completed',
       };
-
     } catch (error) {
       logger.error('Error during force cleanup:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -285,39 +294,38 @@ class SchedulerInitializer {
 
       // Get workflow
       const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
-      
+
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
       if (!workflow.isActive) {
         return {
           success: false,
-          error: 'Workflow is not active'
+          error: 'Workflow is not active',
         };
       }
 
       // Execute workflow
       const result = await workflowExecutor.executeWorkflow(
-        workflow, 
-        'manual', 
+        workflow,
+        'manual',
         `manual_trigger: ${reason}`
       );
 
       return {
         success: true,
         data: result,
-        message: 'Manual execution started'
+        message: 'Manual execution started',
       };
-
     } catch (error) {
       logger.error(`Error in manual execution for ${workflowId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -330,11 +338,11 @@ class SchedulerInitializer {
       logger.warn(`Emergency execution for workflow: ${workflowId}`);
 
       const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
-      
+
       if (!workflow) {
         return {
           success: false,
-          error: 'Workflow not found'
+          error: 'Workflow not found',
         };
       }
 
@@ -342,28 +350,27 @@ class SchedulerInitializer {
       if (!overrideChecks && !workflow.isActive) {
         return {
           success: false,
-          error: 'Workflow is not active and overrideChecks is false'
+          error: 'Workflow is not active and overrideChecks is false',
         };
       }
 
       // Execute immediately
       const result = await workflowExecutor.executeWorkflow(
-        workflow, 
-        'emergency', 
+        workflow,
+        'emergency',
         'emergency_trigger'
       );
 
       return {
         success: true,
         data: result,
-        message: 'Emergency execution completed'
+        message: 'Emergency execution completed',
       };
-
     } catch (error) {
       logger.error(`Error in emergency execution for ${workflowId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

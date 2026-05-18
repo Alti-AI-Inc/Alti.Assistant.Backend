@@ -91,5 +91,6 @@ export const ERROR_MESSAGES = {
   AUDIO_TOO_LONG: 'Audio duration exceeds maximum length',
   INVALID_TIMESTAMP: 'Invalid timestamp format. Use MM:SS',
   PROCESSING_FAILED: 'Failed to process audio file',
-  USAGE_LIMIT_REACHED: 'You have reached your transcription limit for this month',
+  USAGE_LIMIT_REACHED:
+    'You have reached your transcription limit for this month',
 };

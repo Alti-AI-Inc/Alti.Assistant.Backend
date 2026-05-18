@@ -33,29 +33,54 @@ const generateConversationId = () => {
 /**
  * Add a message to a conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   const message = {
     role,
     content,
     metadata,
   };
 
-  return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+  return await conversationService.addMessageToConversation(
+    conversationId,
+    userId,
+    message,
+    req
+  );
 };
 
 /**
  * Handle document analysis conversation (create or retrieve)
  */
-const handleAnalysisConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleAnalysisConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -78,20 +103,34 @@ const handleAnalysisConversation = async (userId, conversationId, userMessage, i
         req
       );
 
-      logger.info(`Created new analysis conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new analysis conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling analysis conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, RESPONSE_MESSAGES.CONVERSATION_ERROR);
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      RESPONSE_MESSAGES.CONVERSATION_ERROR
+    );
   }
 };
 
 /**
  * Main analysis service - processes text or file content
  */
-const analyzeContent = async (userId, message, fileInfo, conversationId, analysisType, outputFormat, isGuest = false, req = null) => {
+const analyzeContent = async (
+  userId,
+  message,
+  fileInfo,
+  conversationId,
+  analysisType,
+  outputFormat,
+  isGuest = false,
+  req = null
+) => {
   try {
     // Set defaults
     const finalAnalysisType = analysisType || DEFAULT_PARAMS.analysisType;
@@ -104,7 +143,10 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
 
     // Validate file if provided
     if (fileInfo) {
-      const validation = fileProcessor.validateFile(fileInfo, DOCUMENT_ANALYSIS_CONFIG.MAX_FILE_SIZE);
+      const validation = fileProcessor.validateFile(
+        fileInfo,
+        DOCUMENT_ANALYSIS_CONFIG.MAX_FILE_SIZE
+      );
       if (!validation.valid) {
         throw new ApiError(httpStatus.BAD_REQUEST, validation.error);
       }
@@ -125,7 +167,10 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
         logger.info(`Extracted ${fileContent.length} characters from file`);
       } catch (error) {
         logger.error('File processing error:', error);
-        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, `${RESPONSE_MESSAGES.PROCESSING_ERROR}: ${error.message}`);
+        throw new ApiError(
+          httpStatus.INTERNAL_SERVER_ERROR,
+          `${RESPONSE_MESSAGES.PROCESSING_ERROR}: ${error.message}`
+        );
       }
     }
 
@@ -143,8 +188,15 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
     }
 
     // Handle conversation
-    const displayMessage = message || `Analyze this document: ${fileName || 'uploaded file'}`;
-    const conversation = await handleAnalysisConversation(userId, conversationId, displayMessage, isGuest, req);
+    const displayMessage =
+      message || `Analyze this document: ${fileName || 'uploaded file'}`;
+    const conversation = await handleAnalysisConversation(
+      userId,
+      conversationId,
+      displayMessage,
+      isGuest,
+      req
+    );
 
     // Get conversation history for context
     const conversationHistory = conversation.messages || [];
@@ -172,21 +224,40 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
       }
     } catch (error) {
       logger.error('Analysis error:', error);
-      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, `${RESPONSE_MESSAGES.ANALYSIS_ERROR}: ${error.message}`);
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        `${RESPONSE_MESSAGES.ANALYSIS_ERROR}: ${error.message}`
+      );
     }
 
     // Save user message and AI response to conversation
-    await addMessage(conversation.conversationId, userId, 'user', displayMessage, {
-      hasFile: !!fileInfo,
-      fileName: fileName,
-      analysisType: finalAnalysisType,
-      outputFormat: finalOutputFormat,
-    }, isGuest, req);
+    await addMessage(
+      conversation.conversationId,
+      userId,
+      'user',
+      displayMessage,
+      {
+        hasFile: !!fileInfo,
+        fileName: fileName,
+        analysisType: finalAnalysisType,
+        outputFormat: finalOutputFormat,
+      },
+      isGuest,
+      req
+    );
 
-    await addMessage(conversation.conversationId, userId, 'assistant', analysisResult.analysis, {
-      model: CONVERSATION_MODEL,
-      ...analysisResult.metadata,
-    }, isGuest, req);
+    await addMessage(
+      conversation.conversationId,
+      userId,
+      'assistant',
+      analysisResult.analysis,
+      {
+        model: CONVERSATION_MODEL,
+        ...analysisResult.metadata,
+      },
+      isGuest,
+      req
+    );
 
     // Update conversation metadata with file info if applicable
     if (fileInfo) {
@@ -197,13 +268,20 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
         uploadedAt: new Date(),
       });
 
-      await conversationService.updateConversationMetadata(conversation.conversationId, userId, {
-        ...conversation.metadata,
-        uploadedFiles,
-      }, req);
+      await conversationService.updateConversationMetadata(
+        conversation.conversationId,
+        userId,
+        {
+          ...conversation.metadata,
+          uploadedFiles,
+        },
+        req
+      );
     }
 
-    logger.info(`Analysis completed for conversation ${conversation.conversationId}`);
+    logger.info(
+      `Analysis completed for conversation ${conversation.conversationId}`
+    );
 
     return {
       success: true,
@@ -223,7 +301,10 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
       throw error;
     }
     logger.error('Unexpected error in analyzeContent:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An unexpected error occurred during analysis');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An unexpected error occurred during analysis'
+    );
   }
 };
 
@@ -232,7 +313,11 @@ const analyzeContent = async (userId, message, fileInfo, conversationId, analysi
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -251,7 +336,10 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
       throw error;
     }
     logger.error('Error fetching conversation history:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch conversation history');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to fetch conversation history'
+    );
   }
 };
 

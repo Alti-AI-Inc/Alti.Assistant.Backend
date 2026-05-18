@@ -237,7 +237,9 @@ SubscriptionSchema.methods.hasReachedLimit = function (limitType) {
   if (limitType === 'webSearch') {
     return this.usage.webSearchUsedToday >= this.limits.dailyWebSearchLimit;
   } else if (limitType === 'deepResearch') {
-    return this.usage.deepResearchUsedToday >= this.limits.dailyDeepResearchLimit;
+    return (
+      this.usage.deepResearchUsedToday >= this.limits.dailyDeepResearchLimit
+    );
   }
 
   return false;
@@ -301,7 +303,9 @@ SubscriptionSchema.methods.addSeat = async function () {
 
     await this.save();
 
-    logger.info(`Added seat to subscription ${this._id}. New quantity: ${this.seats.used}`);
+    logger.info(
+      `Added seat to subscription ${this._id}. New quantity: ${this.seats.used}`
+    );
     return this;
   } catch (error) {
     logger.error('Error adding seat to subscription:', error);
@@ -336,7 +340,9 @@ SubscriptionSchema.methods.removeSeat = async function () {
 
     await this.save();
 
-    logger.info(`Removed seat from subscription ${this._id}. New quantity: ${this.seats.used}`);
+    logger.info(
+      `Removed seat from subscription ${this._id}. New quantity: ${this.seats.used}`
+    );
     return this;
   } catch (error) {
     logger.error('Error removing seat from subscription:', error);
@@ -381,7 +387,9 @@ SubscriptionSchema.statics.findActiveSubscriptions = function () {
 // Find subscriptions expiring soon
 SubscriptionSchema.statics.findExpiring = function (daysFromNow = 7) {
   const now = new Date();
-  const futureDate = new Date(now.getTime() + daysFromNow * 24 * 60 * 60 * 1000);
+  const futureDate = new Date(
+    now.getTime() + daysFromNow * 24 * 60 * 60 * 1000
+  );
 
   return this.find({
     status: 'active',

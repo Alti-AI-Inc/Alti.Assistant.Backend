@@ -42,16 +42,28 @@ const generateConversationId = () => {
 /**
  * Handle article writer conversation (create or retrieve)
  */
-const handleArticleWriterConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleArticleWriterConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -75,20 +87,32 @@ const handleArticleWriterConversation = async (userId, conversationId, userMessa
         req
       );
 
-      logger.info(`Created new article writer conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new article writer conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling article writer conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -97,10 +121,18 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
@@ -131,17 +163,27 @@ const processUploadedFile = async (fileInfo) => {
     };
   } catch (error) {
     logger.error('Error processing file:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to process uploaded file');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to process uploaded file'
+    );
   }
 };
 
 /**
  * Build article generation prompt based on parameters
  */
-const buildArticlePrompt = (message, articleType, tone, length, fileContent = null) => {
-  const typePrompt = articleType && articleType !== ARTICLE_TYPES.GENERAL
-    ? SYSTEM_PROMPTS[articleType]
-    : '';
+const buildArticlePrompt = (
+  message,
+  articleType,
+  tone,
+  length,
+  fileContent = null
+) => {
+  const typePrompt =
+    articleType && articleType !== ARTICLE_TYPES.GENERAL
+      ? SYSTEM_PROMPTS[articleType]
+      : '';
 
   const lengthGuidelines = {
     short: '300-500 words',
@@ -194,15 +236,18 @@ const generateArticle = async (prompt, fileData = null) => {
 
     if (fileData) {
       // Generate with file context
-      result = await model.generateContent([
-        {
-          fileData: {
-            mimeType: fileData.mimeType,
-            fileUri: fileData.fileUri,
+      result = await model.generateContent(
+        [
+          {
+            fileData: {
+              mimeType: fileData.mimeType,
+              fileUri: fileData.fileUri,
+            },
           },
-        },
-        { text: prompt },
-      ], generationConfig);
+          { text: prompt },
+        ],
+        generationConfig
+      );
     } else {
       // Generate without file
       result = await model.generateContent(prompt, generationConfig);
@@ -214,7 +259,10 @@ const generateArticle = async (prompt, fileData = null) => {
     return articleText;
   } catch (error) {
     logger.error('Error generating article with Gemini:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to generate article');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to generate article'
+    );
   }
 };
 
@@ -243,10 +291,17 @@ const processConversationalRequest = async (
     );
 
     // Add user message to conversation
-    await addMessage(conversation.conversationId, userId, 'user', message, {
-      hasFile: !!fileInfo,
-      fileName: fileInfo?.originalName,
-    }, req);
+    await addMessage(
+      conversation.conversationId,
+      userId,
+      'user',
+      message,
+      {
+        hasFile: !!fileInfo,
+        fileName: fileInfo?.originalName,
+      },
+      req
+    );
 
     // Process file if uploaded
     let fileData = null;
@@ -269,18 +324,31 @@ const processConversationalRequest = async (
     const finalLength = length || DEFAULT_PARAMS.length;
 
     // Build prompt
-    const prompt = buildArticlePrompt(message, finalArticleType, finalTone, finalLength, fileData);
+    const prompt = buildArticlePrompt(
+      message,
+      finalArticleType,
+      finalTone,
+      finalLength,
+      fileData
+    );
 
     // Generate article
     const articleText = await generateArticle(prompt, fileData);
 
     // Add AI response to conversation
-    await addMessage(conversation.conversationId, userId, 'assistant', articleText, {
-      articleType: finalArticleType,
-      tone: finalTone,
-      length: finalLength,
-      hasFile: !!fileData,
-    }, req);
+    await addMessage(
+      conversation.conversationId,
+      userId,
+      'assistant',
+      articleText,
+      {
+        articleType: finalArticleType,
+        tone: finalTone,
+        length: finalLength,
+        hasFile: !!fileData,
+      },
+      req
+    );
 
     // Clean up uploaded file if it exists
     if (fileInfo && fileInfo.path) {
@@ -313,7 +381,10 @@ const processConversationalRequest = async (
  */
 const getConversationHistory = async (conversationId, userId) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId
+    );
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');

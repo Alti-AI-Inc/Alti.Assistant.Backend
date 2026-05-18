@@ -1,43 +1,47 @@
 # Conversation API Tenant Filtering Implementation
 
 ## Overview
+
 Updated all conversation/chat history APIs to use `currentTenantId` from JWT token for tenant-aware data filtering. This ensures multi-tenant isolation across all conversation operations.
 
 ## Changes Made
 
 ### 1. Core Tenant Query Helper (`tenantQuery.js`)
+
 **File:** `src/app/helpers/tenantQuery.js`
 
 Updated `withTenantPipeline()` function to prioritize `currentTenantId` from JWT token:
+
 ```javascript
 export const withTenantPipeline = (req, pipeline = []) => {
   // Use currentTenantId from JWT token if available, otherwise use tenantId
   const tenantId = req.user?.currentTenantId || req.tenantId;
-  return [
-    { $match: { tenantId } },
-    ...pipeline,
-  ];
+  return [{ $match: { tenantId } }, ...pipeline];
 };
 ```
 
 This ensures consistency with `withTenantFilter` and `withTenantContext`.
 
 ### 2. Conversation Helper Functions (`conversation.helpers.js`)
+
 **File:** `src/app/modules/conversations/conversation.helpers.js`
 
 #### Updated Methods:
 
 **a) `getConversationById()` - Line 14**
+
 - Changed from using `Conversation.findByConversationId()` (no tenant filtering)
 - Now uses direct `Conversation.findOne()` with `withTenantFilter()`
 - Ensures conversation access is scoped to current tenant
 
 **b) `getConversationMessages()` - Line 117**
+
 - Changed from using `Conversation.findByConversationId()` (no tenant filtering)
 - Now uses direct `Conversation.findOne()` with `withTenantFilter()`
 - Message retrieval is now tenant-scoped
 
 **Already Implemented (No Changes Needed):**
+
 - `getUserConversations()` - Uses `withTenantFilter` ✓
 - `searchConversations()` - Uses `withTenantFilter` ✓
 - `getAllSavedConversations()` - Uses `withTenantFilter` ✓
@@ -47,16 +51,19 @@ This ensures consistency with `withTenantFilter` and `withTenantContext`.
 - `getRecentConversations()` - Uses `withTenantFilter` ✓
 
 ### 3. Conversation Service Functions (`conversation.service.js`)
+
 **File:** `src/app/modules/conversations/conversation.service.js`
 
 #### Updated Methods:
 
 **a) `addMessageToConversation()` - Line 77**
+
 - Changed from using `Conversation.findByConversationId()` (no tenant filtering)
 - Now uses direct `Conversation.findOne()` with `withTenantFilter()`
 - Message addition is now tenant-scoped
 
 **Already Implemented (No Changes Needed):**
+
 - `createConversation()` - Uses `withTenantContext` ✓
 - `updateConversationTitle()` - Uses `withTenantFilter` ✓
 - `updateConversationMetadata()` - Uses `withTenantFilter` ✓
@@ -73,9 +80,11 @@ This ensures consistency with `withTenantFilter` and `withTenantContext`.
 - `updateChatShareSettings()` - Uses `withTenantFilter` ✓
 
 ### 4. Conversation Controller (`conversation.controller.js`)
+
 **File:** `src/app/modules/conversations/conversation.controller.js`
 
 All controller methods properly pass `req` parameter to service/helper methods:
+
 - ✓ `createConversation()` - Passes req
 - ✓ `getUserConversations()` - Passes req
 - ✓ `getConversationById()` - Passes req
@@ -103,6 +112,7 @@ All controller methods properly pass `req` parameter to service/helper methods:
 ## How It Works
 
 1. **JWT Token Structure:**
+
    ```javascript
    {
      _id: "userId",
@@ -116,6 +126,7 @@ All controller methods properly pass `req` parameter to service/helper methods:
    ```
 
 2. **Tenant Filtering Flow:**
+
    - User makes request → JWT middleware extracts token
    - `req.user` contains JWT payload with `currentTenantId`
    - Controller passes `req` to service/helper functions
@@ -145,22 +156,22 @@ All the following patterns now automatically include tenant filtering:
 
 ```javascript
 // Pattern 1: Find operations
-Conversation.find(withTenantFilter(req, query))
-Conversation.findOne(withTenantFilter(req, query))
+Conversation.find(withTenantFilter(req, query));
+Conversation.findOne(withTenantFilter(req, query));
 
 // Pattern 2: Update operations
-Conversation.findOneAndUpdate(withTenantFilter(req, query), updates)
-Conversation.updateMany(withTenantFilter(req, query), updates)
+Conversation.findOneAndUpdate(withTenantFilter(req, query), updates);
+Conversation.updateMany(withTenantFilter(req, query), updates);
 
 // Pattern 3: Delete operations
-Conversation.deleteOne(withTenantFilter(req, query))
-Conversation.deleteMany(withTenantFilter(req, query))
+Conversation.deleteOne(withTenantFilter(req, query));
+Conversation.deleteMany(withTenantFilter(req, query));
 
 // Pattern 4: Aggregation pipeline
-Conversation.aggregate(withTenantPipeline(req, pipeline))
+Conversation.aggregate(withTenantPipeline(req, pipeline));
 
 // Pattern 5: New document creation
-new Conversation(withTenantContext(req, data))
+new Conversation(withTenantContext(req, data));
 ```
 
 ## Related Endpoints
@@ -168,6 +179,7 @@ new Conversation(withTenantContext(req, data))
 All conversation-related endpoints now support multi-tenant filtering:
 
 **Read Operations:**
+
 - GET `/api/v1/conversations` - Lists all user conversations for current tenant
 - GET `/api/v1/conversations/:conversationId` - Gets specific conversation
 - GET `/api/v1/conversations/:conversationId/messages` - Gets conversation messages
@@ -177,6 +189,7 @@ All conversation-related endpoints now support multi-tenant filtering:
 - GET `/api/v1/conversations/category/:category` - Gets conversations by category
 
 **Write Operations:**
+
 - POST `/api/v1/conversations` - Creates new conversation
 - POST `/api/v1/conversations/:conversationId/messages` - Adds message
 - PATCH `/api/v1/conversations/:conversationId/title` - Updates title
@@ -190,6 +203,7 @@ All conversation-related endpoints now support multi-tenant filtering:
 - PATCH `/api/v1/conversations/:conversationId/save` - Saves/unsaves conversation
 
 **Bulk Operations:**
+
 - POST `/api/v1/conversations/bulk/archive` - Archives multiple conversations
 - POST `/api/v1/conversations/bulk/delete` - Deletes multiple conversations
 
@@ -199,4 +213,3 @@ All conversation-related endpoints now support multi-tenant filtering:
 ✅ **Secure:** No data leakage between tenants
 ✅ **Automatic:** Tenant filtering happens transparently
 ✅ **Backward Compatible:** Existing API contracts unchanged
-

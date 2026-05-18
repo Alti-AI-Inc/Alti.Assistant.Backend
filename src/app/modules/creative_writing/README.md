@@ -16,21 +16,21 @@ A conversational AI-powered creative writing assistant that helps users create v
 
 ## Supported Writing Types
 
-| Type | Description |
-|------|-------------|
-| **Poem** | Various poetic forms with vivid imagery and emotion |
-| **Short Story** | Complete narratives with characters and plot |
-| **Novel Chapter** | Extended narrative segments for longer works |
-| **Essay** | Creative personal or reflective essays |
-| **Script** | Dramatic scenes with dialogue and stage directions |
-| **Song Lyrics** | Lyrical content with verses, choruses, and hooks |
-| **Dialogue** | Natural conversations between characters |
-| **Flash Fiction** | Ultra-short stories with impact |
-| **Haiku** | Traditional 5-7-5 syllable Japanese poetry |
-| **Sonnet** | 14-line poems with structured rhyme schemes |
-| **Free Verse** | Poetry without traditional structure |
-| **Monologue** | Single-character dramatic speeches |
-| **Letter** | Creative correspondence |
+| Type              | Description                                         |
+| ----------------- | --------------------------------------------------- |
+| **Poem**          | Various poetic forms with vivid imagery and emotion |
+| **Short Story**   | Complete narratives with characters and plot        |
+| **Novel Chapter** | Extended narrative segments for longer works        |
+| **Essay**         | Creative personal or reflective essays              |
+| **Script**        | Dramatic scenes with dialogue and stage directions  |
+| **Song Lyrics**   | Lyrical content with verses, choruses, and hooks    |
+| **Dialogue**      | Natural conversations between characters            |
+| **Flash Fiction** | Ultra-short stories with impact                     |
+| **Haiku**         | Traditional 5-7-5 syllable Japanese poetry          |
+| **Sonnet**        | 14-line poems with structured rhyme schemes         |
+| **Free Verse**    | Poetry without traditional structure                |
+| **Monologue**     | Single-character dramatic speeches                  |
+| **Letter**        | Creative correspondence                             |
 
 ## API Endpoints
 
@@ -41,6 +41,7 @@ A conversational AI-powered creative writing assistant that helps users create v
 The main endpoint for interacting with the creative writing assistant.
 
 **Request Body:**
+
 ```json
 {
   "message": "Write a romantic poem about moonlight",
@@ -49,6 +50,7 @@ The main endpoint for interacting with the creative writing assistant.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -75,10 +77,12 @@ The main endpoint for interacting with the creative writing assistant.
 
 **Endpoint:** `GET /api/v1/creative-writing/conversation/:conversationId`
 
-**Headers:** 
+**Headers:**
+
 - `Authorization: Bearer <token>` (required for authenticated users)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -170,6 +174,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 The API intelligently understands various ways of expressing creative writing requests:
 
 ### Writing Type Detection
+
 - "Write a **poem**" → Poem
 - "Tell me a **story**" → Short Story
 - "Create **lyrics**" → Song Lyrics
@@ -177,6 +182,7 @@ The API intelligently understands various ways of expressing creative writing re
 - "Make a **script**" → Script
 
 ### Intent Detection
+
 - "Write", "Create", "Make" → Create New
 - "Continue", "What happens next" → Continue Story
 - "Revise", "Improve", "Make it better" → Revise
@@ -185,6 +191,7 @@ The API intelligently understands various ways of expressing creative writing re
 - "Give me ideas", "Suggest" → Brainstorm
 
 ### Style & Tone Detection
+
 - "romantic", "love" → Romantic style
 - "funny", "comedic" → Comedic style
 - "mysterious", "suspense" → Mysterious style
@@ -199,7 +206,7 @@ Key configuration settings in `creative_writing.constant.js`:
 ```javascript
 export const CREATIVE_WRITING_CONFIG = {
   MODEL: 'gemini-2.5-flash',
-  TEMPERATURE: 0.9,  // High temperature for creativity
+  TEMPERATURE: 0.9, // High temperature for creativity
   MAX_OUTPUT_TOKENS: 8192,
 };
 ```
@@ -250,18 +257,22 @@ Import this collection to test all endpoints with pre-configured examples.
 ## Technical Details
 
 ### AI Model
+
 - **Model**: Google Gemini 2.5 Flash
 - **Temperature**: 0.9 (high creativity)
 - **Max Tokens**: 8192
 
 ### Conversation Management
+
 - Conversations are stored in MongoDB
 - Full message history maintained
 - Writing history tracked in metadata
 - Support for guest and authenticated users
 
 ### Message Analysis
+
 The system analyzes each user message to:
+
 - Detect writing intent (create, continue, revise, etc.)
 - Identify writing type (poem, story, script, etc.)
 - Extract style and tone preferences
@@ -281,7 +292,7 @@ async function createPoem(message) {
     { message },
     { headers: { 'Content-Type': 'application/json' } }
   );
-  
+
   return response.data.data;
 }
 
@@ -300,12 +311,12 @@ def create_story(message, conversation_id=None):
         'message': message,
         'conversationId': conversation_id
     }
-    
+
     response = requests.post(
         'http://localhost:5000/api/v1/creative-writing/assistant',
         json=payload
     )
-    
+
     return response.json()['data']
 
 # Usage

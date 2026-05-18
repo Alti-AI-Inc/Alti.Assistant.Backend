@@ -9,7 +9,8 @@ import { logger } from '../../../shared/logger.js';
 const testUserId = 'test_user_phase2_scheduling';
 const testWorkflowData = {
   name: 'Test Scheduled Workflow - Phase 2',
-  description: 'Send a summary email every Monday at 9 AM with last week\'s GitHub issues',
+  description:
+    "Send a summary email every Monday at 9 AM with last week's GitHub issues",
   userId: testUserId,
   workflowType: 'multi_step',
   executionPlan: [
@@ -20,9 +21,9 @@ const testWorkflowData = {
       parameters: {
         repo: 'test-repo',
         state: 'all',
-        since: 'last_week'
+        since: 'last_week',
       },
-      dependencies: []
+      dependencies: [],
     },
     {
       step: 2,
@@ -31,14 +32,14 @@ const testWorkflowData = {
       parameters: {
         to: 'manager@company.com',
         subject: 'Weekly GitHub Issues Summary',
-        body: 'from_step_1.issues_summary'
+        body: 'from_step_1.issues_summary',
       },
-      dependencies: [1]
-    }
+      dependencies: [1],
+    },
   ],
   requiredApps: ['github', 'gmail'],
   crossStepParameters: {
-    'issues_summary': 'step_1_output'
+    issues_summary: 'step_1_output',
   },
   totalSteps: 2,
   scheduleType: 'recurring',
@@ -46,8 +47,8 @@ const testWorkflowData = {
   timezone: 'UTC',
   planningMetadata: {
     complexity: 'medium',
-    estimatedDuration: 30000
-  }
+    estimatedDuration: 30000,
+  },
 };
 
 /**
@@ -59,51 +60,64 @@ export const testPhase2ServicesInitialization = async () => {
 
     // Test individual service imports
     const { cronManager } = await import('./services/cronManager.service.js');
-    const { workflowExecutor } = await import('./services/workflowExecutor.service.js');
-    const { schedulerInitializer } = await import('./services/schedulerInitializer.service.js');
+    const { workflowExecutor } = await import(
+      './services/workflowExecutor.service.js'
+    );
+    const { schedulerInitializer } = await import(
+      './services/schedulerInitializer.service.js'
+    );
     const { queueManager } = await import('./services/queueManager.service.js');
 
     // Test service initialization
     const results = {
       cronManager: {
         imported: !!cronManager,
-        hasRequiredMethods: !!(cronManager.initialize && cronManager.scheduleWorkflow)
+        hasRequiredMethods: !!(
+          cronManager.initialize && cronManager.scheduleWorkflow
+        ),
       },
       workflowExecutor: {
         imported: !!workflowExecutor,
-        hasRequiredMethods: !!(workflowExecutor.executeWorkflow && workflowExecutor.validateConnections)
+        hasRequiredMethods: !!(
+          workflowExecutor.executeWorkflow &&
+          workflowExecutor.validateConnections
+        ),
       },
       schedulerInitializer: {
         imported: !!schedulerInitializer,
-        hasRequiredMethods: !!(schedulerInitializer.initialize && schedulerInitializer.loadActiveWorkflows)
+        hasRequiredMethods: !!(
+          schedulerInitializer.initialize &&
+          schedulerInitializer.loadActiveWorkflows
+        ),
       },
       queueManager: {
         imported: !!queueManager,
-        hasRequiredMethods: !!(queueManager.queueWorkflow && queueManager.processQueue)
-      }
+        hasRequiredMethods: !!(
+          queueManager.queueWorkflow && queueManager.processQueue
+        ),
+      },
     };
 
-    const allServicesValid = Object.values(results).every(service => 
-      service.imported && service.hasRequiredMethods
+    const allServicesValid = Object.values(results).every(
+      (service) => service.imported && service.hasRequiredMethods
     );
 
     logger.info('✅ Phase 2 Services Initialization Test Results:', {
       success: allServicesValid,
-      details: results
+      details: results,
     });
 
     return {
       success: allServicesValid,
       testName: 'Phase 2 Services Initialization',
-      results
+      results,
     };
-
   } catch (error) {
     logger.error('❌ Phase 2 Services Initialization Test Failed:', error);
     return {
       success: false,
       testName: 'Phase 2 Services Initialization',
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -116,11 +130,13 @@ export const testWorkflowScheduling = async () => {
     logger.info('🧪 Testing Workflow Scheduling...');
 
     const { cronManager } = await import('./services/cronManager.service.js');
-    
+
     // Initialize cron manager
     const initResult = await cronManager.initialize();
     if (!initResult.success) {
-      throw new Error(`Cron manager initialization failed: ${initResult.error}`);
+      throw new Error(
+        `Cron manager initialization failed: ${initResult.error}`
+      );
     }
 
     // Test scheduling a workflow
@@ -135,37 +151,39 @@ export const testWorkflowScheduling = async () => {
     const jobStatus = cronManager.getJobStatus('test_workflow_123');
 
     // Test unscheduling
-    const unscheduleResult = await cronManager.unscheduleWorkflow('test_workflow_123');
+    const unscheduleResult =
+      await cronManager.unscheduleWorkflow('test_workflow_123');
 
     const results = {
       initialization: initResult.success,
       scheduling: scheduleResult.success,
       jobStatus: !!jobStatus,
-      unscheduling: unscheduleResult.success
+      unscheduling: unscheduleResult.success,
     };
 
-    const testSuccess = Object.values(results).every(result => result === true);
+    const testSuccess = Object.values(results).every(
+      (result) => result === true
+    );
 
     logger.info('✅ Workflow Scheduling Test Results:', {
       success: testSuccess,
       details: results,
       scheduleResult,
       jobStatus,
-      unscheduleResult
+      unscheduleResult,
     });
 
     return {
       success: testSuccess,
       testName: 'Workflow Scheduling',
-      results
+      results,
     };
-
   } catch (error) {
     logger.error('❌ Workflow Scheduling Test Failed:', error);
     return {
       success: false,
       testName: 'Workflow Scheduling',
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -177,18 +195,22 @@ export const testWorkflowExecution = async () => {
   try {
     logger.info('🧪 Testing Workflow Execution...');
 
-    const { workflowExecutor } = await import('./services/workflowExecutor.service.js');
-    const ScheduledWorkflow = (await import('./models/scheduledWorkflow.model.js')).default;
+    const { workflowExecutor } = await import(
+      './services/workflowExecutor.service.js'
+    );
+    const ScheduledWorkflow = (
+      await import('./models/scheduledWorkflow.model.js')
+    ).default;
 
     // Create a test workflow document
     const testWorkflow = new ScheduledWorkflow(testWorkflowData);
-    
+
     // Test single-step execution
     const singleStepWorkflow = {
       ...testWorkflowData,
       workflowType: 'single_step',
       executionPlan: [testWorkflowData.executionPlan[0]],
-      totalSteps: 1
+      totalSteps: 1,
     };
 
     const singleStepResult = await workflowExecutor.executeWorkflow(
@@ -205,36 +227,38 @@ export const testWorkflowExecution = async () => {
     );
 
     // Test connection validation
-    const connectionValidation = await workflowExecutor.validateConnections(testWorkflow);
+    const connectionValidation =
+      await workflowExecutor.validateConnections(testWorkflow);
 
     const results = {
       singleStepExecution: singleStepResult.success,
       multiStepExecution: multiStepResult.success,
-      connectionValidation: connectionValidation.success !== undefined
+      connectionValidation: connectionValidation.success !== undefined,
     };
 
-    const testSuccess = Object.values(results).every(result => result === true);
+    const testSuccess = Object.values(results).every(
+      (result) => result === true
+    );
 
     logger.info('✅ Workflow Execution Test Results:', {
       success: testSuccess,
       details: results,
       singleStepResult,
       multiStepResult,
-      connectionValidation
+      connectionValidation,
     });
 
     return {
       success: testSuccess,
       testName: 'Workflow Execution',
-      results
+      results,
     };
-
   } catch (error) {
     logger.error('❌ Workflow Execution Test Failed:', error);
     return {
       success: false,
       testName: 'Workflow Execution',
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -247,12 +271,16 @@ export const testQueueManagement = async () => {
     logger.info('🧪 Testing Queue Management...');
 
     const { queueManager } = await import('./services/queueManager.service.js');
-    const ScheduledWorkflow = (await import('./models/scheduledWorkflow.model.js')).default;
+    const ScheduledWorkflow = (
+      await import('./models/scheduledWorkflow.model.js')
+    ).default;
 
     // Initialize queue manager
     const initResult = await queueManager.initialize();
     if (!initResult.success) {
-      throw new Error(`Queue manager initialization failed: ${initResult.error}`);
+      throw new Error(
+        `Queue manager initialization failed: ${initResult.error}`
+      );
     }
 
     // Create test workflow
@@ -260,7 +288,10 @@ export const testQueueManagement = async () => {
 
     // Test queuing workflows
     const queueResult1 = await queueManager.queueWorkflow(testWorkflow, 'high');
-    const queueResult2 = await queueManager.queueWorkflow(testWorkflow, 'normal');
+    const queueResult2 = await queueManager.queueWorkflow(
+      testWorkflow,
+      'normal'
+    );
 
     // Test queue status
     const queueStatus = queueManager.getQueueStatus();
@@ -279,29 +310,30 @@ export const testQueueManagement = async () => {
       queueHighPriority: queueResult1.success,
       queueNormalPriority: queueResult2.success,
       queueStatusCheck: !!queueStatus.queueSize,
-      cancellation: cancelResult.success
+      cancellation: cancelResult.success,
     };
 
-    const testSuccess = Object.values(results).every(result => result === true);
+    const testSuccess = Object.values(results).every(
+      (result) => result === true
+    );
 
     logger.info('✅ Queue Management Test Results:', {
       success: testSuccess,
       details: results,
-      queueStatus
+      queueStatus,
     });
 
     return {
       success: testSuccess,
       testName: 'Queue Management',
-      results
+      results,
     };
-
   } catch (error) {
     logger.error('❌ Queue Management Test Failed:', error);
     return {
       success: false,
       testName: 'Queue Management',
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -313,14 +345,16 @@ export const testScheduleDetectionIntegration = async () => {
   try {
     logger.info('🧪 Testing Schedule Detection Integration...');
 
-    const { scheduleDetectionNode, saveWorkflowNode } = await import('./ai_classification/nodes.js');
+    const { scheduleDetectionNode, saveWorkflowNode } = await import(
+      './ai_classification/nodes.js'
+    );
 
     // Test schedule detection with various inputs
     const testInputs = [
       'Send me a daily report at 9 AM',
       'Remind me every Friday to review issues',
       'Schedule this for tomorrow at 2 PM',
-      'Run this workflow now' // Should not detect scheduling
+      'Run this workflow now', // Should not detect scheduling
     ];
 
     const detectionResults = [];
@@ -330,7 +364,7 @@ export const testScheduleDetectionIntegration = async () => {
         userInput: input,
         workflowType: 'single_step',
         executionPlan: [testWorkflowData.executionPlan[0]],
-        userId: testUserId
+        userId: testUserId,
       };
 
       const detectionResult = await scheduleDetectionNode(mockState);
@@ -338,7 +372,7 @@ export const testScheduleDetectionIntegration = async () => {
         input,
         needsScheduling: detectionResult.needsScheduling,
         scheduleType: detectionResult.scheduleType,
-        confidence: detectionResult.confidence
+        confidence: detectionResult.confidence,
       });
     }
 
@@ -355,23 +389,25 @@ export const testScheduleDetectionIntegration = async () => {
       scheduleDescription: 'Daily at 9 AM',
       scheduleMetadata: { workflowName: 'Daily Report' },
       planningMetadata: { complexity: 'low' },
-      crossStepParameters: {}
+      crossStepParameters: {},
     };
 
     const saveResult = await saveWorkflowNode(saveState);
 
     const results = {
       scheduleDetectionCount: detectionResults.length,
-      schedulingDetected: detectionResults.filter(r => r.needsScheduling).length,
+      schedulingDetected: detectionResults.filter((r) => r.needsScheduling)
+        .length,
       workflowSaved: saveResult.workflowSaved,
-      noErrorsInDetection: !detectionResults.some(r => r.error),
-      noErrorsInSaving: !saveResult.error
+      noErrorsInDetection: !detectionResults.some((r) => r.error),
+      noErrorsInSaving: !saveResult.error,
     };
 
-    const testSuccess = results.scheduleDetectionCount === 4 && 
-                       results.schedulingDetected >= 3 && 
-                       results.noErrorsInDetection && 
-                       results.noErrorsInSaving;
+    const testSuccess =
+      results.scheduleDetectionCount === 4 &&
+      results.schedulingDetected >= 3 &&
+      results.noErrorsInDetection &&
+      results.noErrorsInSaving;
 
     logger.info('✅ Schedule Detection Integration Test Results:', {
       success: testSuccess,
@@ -379,22 +415,21 @@ export const testScheduleDetectionIntegration = async () => {
       detectionResults,
       saveResult: {
         success: saveResult.workflowSaved,
-        workflowId: saveResult.savedWorkflowId
-      }
+        workflowId: saveResult.savedWorkflowId,
+      },
     });
 
     return {
       success: testSuccess,
       testName: 'Schedule Detection Integration',
-      results
+      results,
     };
-
   } catch (error) {
     logger.error('❌ Schedule Detection Integration Test Failed:', error);
     return {
       success: false,
       testName: 'Schedule Detection Integration',
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -411,7 +446,7 @@ export const runPhase2IntegrationTests = async () => {
       testWorkflowScheduling,
       testWorkflowExecution,
       testQueueManagement,
-      testScheduleDetectionIntegration
+      testScheduleDetectionIntegration,
     ];
 
     const results = [];
@@ -430,7 +465,7 @@ export const runPhase2IntegrationTests = async () => {
       totalTests: tests.length,
       passedTests,
       failedTests: tests.length - passedTests,
-      results
+      results,
     });
 
     return {
@@ -439,16 +474,15 @@ export const runPhase2IntegrationTests = async () => {
         totalTests: tests.length,
         passedTests,
         failedTests: tests.length - passedTests,
-        passRate: `${Math.round((passedTests / tests.length) * 100)}%`
+        passRate: `${Math.round((passedTests / tests.length) * 100)}%`,
       },
-      testResults: results
+      testResults: results,
     };
-
   } catch (error) {
     logger.error('❌ Phase 2 Integration Test Suite Failed:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };

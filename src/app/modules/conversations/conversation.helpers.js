@@ -11,9 +11,18 @@ import { withTenantFilter } from '../../helpers/tenantQuery.js';
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const getConversationById = async (conversationId, userId = null, req = null) => {
+const getConversationById = async (
+  conversationId,
+  userId = null,
+  req = null
+) => {
   try {
-    console.log("Fetching conversation with ID:", conversationId, "for user:", userId);
+    console.log(
+      'Fetching conversation with ID:',
+      conversationId,
+      'for user:',
+      userId
+    );
     // Build query with tenant filtering
     const query = { conversationId };
     if (userId) {
@@ -73,7 +82,10 @@ const getUserConversations = async (userId, options = {}, req = null) => {
     if (is_deep_search !== null) {
       query.is_deep_search = is_deep_search;
     }
-    console.log('Check currentTenantId in getUserConversations:', req && req.user ? withTenantFilter(req, query) : 'No req or user');
+    console.log(
+      'Check currentTenantId in getUserConversations:',
+      req && req.user ? withTenantFilter(req, query) : 'No req or user'
+    );
     // Get conversations without messages for list view
     const conversations = await Conversation.find(
       req ? withTenantFilter(req, query) : query
@@ -102,7 +114,10 @@ const getUserConversations = async (userId, options = {}, req = null) => {
     };
   } catch (error) {
     logger.error('Error fetching user conversations:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch conversations');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to fetch conversations'
+    );
   }
 };
 
@@ -114,7 +129,12 @@ const getUserConversations = async (userId, options = {}, req = null) => {
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const getConversationMessages = async (conversationId, userId, options = {}, req = null) => {
+const getConversationMessages = async (
+  conversationId,
+  userId,
+  options = {},
+  req = null
+) => {
   try {
     const { page = 1, limit = 50, beforeDate = null } = options;
 
@@ -131,7 +151,7 @@ const getConversationMessages = async (conversationId, userId, options = {}, req
 
     // Filter by date if provided
     if (beforeDate) {
-      messages = messages.filter(msg => msg.timestamp < new Date(beforeDate));
+      messages = messages.filter((msg) => msg.timestamp < new Date(beforeDate));
     }
 
     // Sort messages by timestamp (newest first for pagination)
@@ -172,7 +192,12 @@ const getConversationMessages = async (conversationId, userId, options = {}, req
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Array>}
  */
-const searchConversations = async (userId, searchTerm, options = {}, req = null) => {
+const searchConversations = async (
+  userId,
+  searchTerm,
+  options = {},
+  req = null
+) => {
   try {
     const { limit = 10, category = null } = options;
 
@@ -192,7 +217,6 @@ const searchConversations = async (userId, searchTerm, options = {}, req = null)
 
     console.log('Search Query:', JSON.stringify(query, null, 2));
 
-
     const conversations = await Conversation.find(
       req ? withTenantFilter(req, query) : query
     )
@@ -203,11 +227,19 @@ const searchConversations = async (userId, searchTerm, options = {}, req = null)
     return conversations;
   } catch (error) {
     logger.error('Error searching conversations:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to search conversations');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to search conversations'
+    );
   }
 };
 
-const getAllSavedConversations = async (userId, limit = 20, page = 1, req = null) => {
+const getAllSavedConversations = async (
+  userId,
+  limit = 20,
+  page = 1,
+  req = null
+) => {
   try {
     const query = {
       userId,
@@ -231,16 +263,17 @@ const getAllSavedConversations = async (userId, limit = 20, page = 1, req = null
       page,
       limit,
       pages: Math.ceil(total / limit),
-      hasNext: (page * limit) < total,
+      hasNext: page * limit < total,
       hasPrev: page > 1,
     };
   } catch (error) {
     logger.error('Error fetching all saved conversations:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch saved conversations');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to fetch saved conversations'
+    );
   }
 };
-
-
 
 /**
  * Get conversation statistics for a user
@@ -263,7 +296,10 @@ const getConversationStats = async (userId, req = null) => {
 
     // Apply tenant filtering using withTenantPipeline if req available
     const tenantPipeline = req
-      ? (await import('../../helpers/tenantQuery.js')).withTenantPipeline(req, pipeline)
+      ? (await import('../../helpers/tenantQuery.js')).withTenantPipeline(
+          req,
+          pipeline
+        )
       : pipeline;
 
     const stats = await Conversation.aggregate(tenantPipeline);
@@ -276,7 +312,7 @@ const getConversationStats = async (userId, req = null) => {
       totalMessages: 0,
     };
 
-    stats.forEach(stat => {
+    stats.forEach((stat) => {
       result[stat._id] = stat.count;
       result.total += stat.count;
       result.totalMessages += stat.totalMessages;
@@ -285,7 +321,10 @@ const getConversationStats = async (userId, req = null) => {
     return result;
   } catch (error) {
     logger.error('Error fetching conversation stats:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch conversation statistics');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to fetch conversation statistics'
+    );
   }
 };
 
@@ -297,7 +336,12 @@ const getConversationStats = async (userId, req = null) => {
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Array>}
  */
-const getConversationsByCategory = async (userId, category, options = {}, req = null) => {
+const getConversationsByCategory = async (
+  userId,
+  category,
+  options = {},
+  req = null
+) => {
   try {
     const { limit = 20, sortBy = 'lastActivity', sortOrder = -1 } = options;
 
@@ -318,7 +362,10 @@ const getConversationsByCategory = async (userId, category, options = {}, req = 
     return conversations;
   } catch (error) {
     logger.error('Error fetching conversations by category:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch conversations by category');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to fetch conversations by category'
+    );
   }
 };
 
@@ -370,7 +417,10 @@ const getRecentConversations = async (userId, limit = 5, req = null) => {
     return conversations;
   } catch (error) {
     logger.error('Error fetching recent conversations:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch recent conversations');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to fetch recent conversations'
+    );
   }
 };
 

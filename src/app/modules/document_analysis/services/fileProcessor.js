@@ -16,7 +16,7 @@ const extractTextFromPDF = async (filePath) => {
     });
     const parsedData = await data.getText();
 
-    let finalText = ''
+    let finalText = '';
     for (const item of parsedData.pages) {
       finalText += item.text + '\n';
     }
@@ -82,7 +82,10 @@ const extractTextFromPPTX = async (filePath) => {
     // For PPTX, we'll use mammoth which can extract some text
     // Note: For better PPTX support, consider using a dedicated library
     const result = await mammoth.extractRawText({ path: filePath });
-    return result.value || 'Unable to extract text from PowerPoint file. Please use PDF export for better results.';
+    return (
+      result.value ||
+      'Unable to extract text from PowerPoint file. Please use PDF export for better results.'
+    );
   } catch (error) {
     logger.error('Error extracting text from PPTX:', error);
     // Return a message instead of throwing to allow graceful degradation
@@ -98,8 +101,12 @@ const processFile = async (fileInfo) => {
     throw new Error('Invalid file information');
   }
 
-  const ext = path.extname(fileInfo.originalName || fileInfo.filename).toLowerCase();
-  logger.info(`Processing file: ${fileInfo.originalName || fileInfo.filename} (${ext})`);
+  const ext = path
+    .extname(fileInfo.originalName || fileInfo.filename)
+    .toLowerCase();
+  logger.info(
+    `Processing file: ${fileInfo.originalName || fileInfo.filename} (${ext})`
+  );
 
   let extractedText = '';
 
@@ -127,7 +134,9 @@ const processFile = async (fileInfo) => {
         throw new Error(`Unsupported file type: ${ext}`);
     }
 
-    logger.info(`Successfully extracted ${extractedText.length} characters from file`);
+    logger.info(
+      `Successfully extracted ${extractedText.length} characters from file`
+    );
     return extractedText.trim();
   } catch (error) {
     logger.error('File processing error:', error);
@@ -144,7 +153,10 @@ const validateFile = (fileInfo, maxSize) => {
   }
 
   if (fileInfo.size > maxSize) {
-    return { valid: false, error: `File size exceeds maximum limit of ${maxSize / (1024 * 1024)}MB` };
+    return {
+      valid: false,
+      error: `File size exceeds maximum limit of ${maxSize / (1024 * 1024)}MB`,
+    };
   }
 
   return { valid: true };

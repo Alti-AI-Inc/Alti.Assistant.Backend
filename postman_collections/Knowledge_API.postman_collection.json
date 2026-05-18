@@ -69,15 +69,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/upload",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "upload"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "upload"]
             },
             "description": "Upload a file to the knowledge system. Supports both user files (Knowledge Bank) and bot files (Knowledge Base).\n\n**Parameters:**\n- file (required): File to upload\n- ownerType (required): 'user' or 'bot'\n- ownerId (required): User ID or Bot ID\n- folderId (optional): Folder ID for user files only\n- tags (optional): Comma-separated tags\n- processImmediately (optional): true/false to process RAG immediately"
           },
@@ -95,16 +88,8 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/process/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "process",
-                ":id"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "process", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -124,15 +109,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/files?ownerType=user&ownerId={{user_id}}&folderId=&page=1&limit=20&sortBy=createdAt&order=desc",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "files"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "files"],
               "query": [
                 {
                   "key": "ownerType",
@@ -195,16 +173,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/files/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "files",
-                ":id"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "files", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -233,16 +203,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/files/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "files",
-                ":id"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "files", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -262,16 +224,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/files/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "files",
-                ":id"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "files", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -291,15 +245,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/stats?ownerType=user&ownerId={{user_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "stats"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "stats"],
               "query": [
                 {
                   "key": "ownerType",
@@ -339,15 +286,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/folders",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "folders"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "folders"]
             },
             "description": "Create a new folder for organizing user files. Folders are only available for user files (not bot files).\n\n**Note:** parentFolderId can be used to create nested folders."
           },
@@ -360,15 +300,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/folders?userId={{user_id}}&parentFolderId=",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "folders"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "folders"],
               "query": [
                 {
                   "key": "userId",
@@ -393,16 +326,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/folders/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "folders",
-                ":id"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "folders", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -431,16 +356,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/folders/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "folders",
-                ":id"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "folders", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -460,16 +377,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/folders/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "folders",
-                ":id"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "folders", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -489,17 +398,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/folders/:id/contents",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "folders",
-                ":id",
-                "contents"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "folders", ":id", "contents"],
               "variable": [
                 {
                   "key": "id",
@@ -534,15 +434,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/chat",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "chat"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "chat"]
             },
             "description": "Have a conversational interaction with your knowledge files using RAG and conversation history.\n\n**Parameters:**\n- message (required): Your question or message\n- ownerType (required): 'user' or 'bot'\n- ownerId (required): User ID or Bot ID\n- conversationId (optional): Continue existing conversation\n- folderId (optional): Limit search to specific folder\n- temperature (optional): AI creativity (0.0-1.0, default 0.2)\n- maxResults (optional): Max documents to retrieve (default 5)\n\n**Features:**\n- Maintains conversation history\n- RAG-based responses from your files\n- Context-aware follow-up questions"
           },
@@ -564,15 +457,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/query",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "query"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "query"]
             },
             "description": "Query your knowledge base with natural language questions. Returns AI-generated answer with source documents.\n\n**Parameters:**\n- query (required): Your question\n- ownerType (required): 'user' or 'bot'\n- ownerId (required): User ID or Bot ID\n- folderId (optional): Limit to specific folder\n- maxResults (optional): Max documents (default 5)\n- includeMetadata (optional): Include file metadata (default true)\n\n**Response includes:**\n- AI-generated answer\n- Relevant source documents\n- Similarity scores\n- File metadata"
           },
@@ -594,15 +480,8 @@
             },
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/search",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "search"
-              ]
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "search"]
             },
             "description": "Perform semantic vector similarity search across your knowledge files.\n\n**Parameters:**\n- query (required): Search query\n- ownerType (required): 'user' or 'bot'\n- ownerId (required): User ID or Bot ID\n- folderId (optional): Limit to folder\n- maxResults (optional): Max results (default 10)\n- minSimilarity (optional): Minimum similarity score 0-1 (default 0.5)\n\n**Returns:**\n- Matching text chunks\n- Similarity scores\n- Source file information\n- Document positions"
           },
@@ -615,16 +494,8 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/v1/knowledge/conversations/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "knowledge",
-                "conversations",
-                ":id"
-              ],
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "knowledge", "conversations", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -646,18 +517,14 @@
       "listen": "prerequest",
       "script": {
         "type": "text/javascript",
-        "exec": [
-          ""
-        ]
+        "exec": [""]
       }
     },
     {
       "listen": "test",
       "script": {
         "type": "text/javascript",
-        "exec": [
-          ""
-        ]
+        "exec": [""]
       }
     }
   ],

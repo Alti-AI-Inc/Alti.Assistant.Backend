@@ -14,32 +14,37 @@ export const initializeWorkflowScheduler = async (config = {}) => {
     // Initialize queue manager first
     const queueResult = await queueManager.initialize(config.queue || {});
     if (!queueResult.success) {
-      throw new Error(`Queue manager initialization failed: ${queueResult.error}`);
+      throw new Error(
+        `Queue manager initialization failed: ${queueResult.error}`
+      );
     }
 
     // Initialize scheduler
     const schedulerResult = await schedulerInitializer.initialize();
     if (!schedulerResult.success) {
-      throw new Error(`Scheduler initialization failed: ${schedulerResult.error}`);
+      throw new Error(
+        `Scheduler initialization failed: ${schedulerResult.error}`
+      );
     }
 
     logger.info('Workflow scheduling system initialized successfully');
-    logger.info(`Active scheduled workflows: ${schedulerResult.scheduledWorkflows}`);
+    logger.info(
+      `Active scheduled workflows: ${schedulerResult.scheduledWorkflows}`
+    );
 
     return {
       success: true,
       message: 'Workflow scheduling system initialized',
       data: {
         scheduler: schedulerResult,
-        queue: queueResult
-      }
+        queue: queueResult,
+      },
     };
-
   } catch (error) {
     logger.error('Failed to initialize workflow scheduling system:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -52,7 +57,7 @@ export const getSystemStatus = () => {
     scheduler: schedulerInitializer.getStatus(),
     queue: queueManager.getQueueStatus(),
     cronManager: cronManager.getStatus(),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 };
 
@@ -65,24 +70,24 @@ export const healthCheck = async () => {
     const queueHealth = queueManager.healthCheck();
     const cronHealth = await cronManager.healthCheck();
 
-    const overallHealth = schedulerHealth.healthy && queueHealth.healthy && cronHealth.healthy;
+    const overallHealth =
+      schedulerHealth.healthy && queueHealth.healthy && cronHealth.healthy;
 
     return {
       healthy: overallHealth,
       components: {
         scheduler: schedulerHealth,
         queue: queueHealth,
-        cronManager: cronHealth
+        cronManager: cronHealth,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-
   } catch (error) {
     logger.error('Health check failed:', error);
     return {
       healthy: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 };
@@ -103,14 +108,13 @@ export const shutdownWorkflowScheduler = async () => {
     logger.info('Workflow scheduling system shutdown complete');
     return {
       success: true,
-      message: 'Workflow scheduling system shutdown complete'
+      message: 'Workflow scheduling system shutdown complete',
     };
-
   } catch (error) {
     logger.error('Error during workflow scheduler shutdown:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };

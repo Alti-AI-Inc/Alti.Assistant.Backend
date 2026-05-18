@@ -22,6 +22,7 @@ An AI-powered brainstorming assistant that helps users explore, develop, and ref
 Natural language interface for brainstorming.
 
 **Request:**
+
 ```json
 {
   "message": "Help me brainstorm ideas for a fitness app",
@@ -30,6 +31,7 @@ Natural language interface for brainstorming.
 ```
 
 **Example Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -40,6 +42,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -75,6 +78,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 Generate brainstorm with explicit parameters for programmatic access.
 
 **Request:**
+
 ```json
 {
   "idea": "A platform connecting freelance designers with startups",
@@ -94,18 +98,19 @@ Generate brainstorm with explicit parameters for programmatic access.
 
 **Parameters:**
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `idea` | string | Yes | The seed idea to brainstorm (10-2000 chars) |
-| `brainstormType` | enum | No | Type of brainstorming (see types below) |
-| `technique` | enum | No | Brainstorming technique to apply |
-| `perspective` | array | No | Perspectives to analyze from |
-| `depth` | enum | No | Brainstorming depth level |
-| `focusAreas` | array | No | Specific areas to focus on |
-| `constraints` | object | No | Budget, timeline, technology constraints |
-| `additionalInstructions` | string | No | Any specific instructions |
+| Parameter                | Type   | Required | Description                                 |
+| ------------------------ | ------ | -------- | ------------------------------------------- |
+| `idea`                   | string | Yes      | The seed idea to brainstorm (10-2000 chars) |
+| `brainstormType`         | enum   | No       | Type of brainstorming (see types below)     |
+| `technique`              | enum   | No       | Brainstorming technique to apply            |
+| `perspective`            | array  | No       | Perspectives to analyze from                |
+| `depth`                  | enum   | No       | Brainstorming depth level                   |
+| `focusAreas`             | array  | No       | Specific areas to focus on                  |
+| `constraints`            | object | No       | Budget, timeline, technology constraints    |
+| `additionalInstructions` | string | No       | Any specific instructions                   |
 
 **Brainstorm Types:**
+
 - `product_idea` - New product or service ideas
 - `business_strategy` - Business planning and strategy
 - `marketing_campaign` - Marketing and promotional ideas
@@ -116,6 +121,7 @@ Generate brainstorm with explicit parameters for programmatic access.
 - `general` - General brainstorming
 
 **Techniques:**
+
 - `scamper` - Substitute, Combine, Adapt, Modify, Put to other uses, Eliminate, Reverse
 - `mind_map` - Hierarchical idea exploration
 - `six_thinking_hats` - Six different thinking modes
@@ -128,6 +134,7 @@ Generate brainstorm with explicit parameters for programmatic access.
 - `role_storming` - Different personas' perspectives
 
 **Perspectives:**
+
 - `business` - ROI, market fit, revenue
 - `technical` - Feasibility, architecture
 - `creative` - Innovation, uniqueness
@@ -138,6 +145,7 @@ Generate brainstorm with explicit parameters for programmatic access.
 - `competitive` - Market positioning
 
 **Depth Levels:**
+
 - `quick` - Fast overview (~10 ideas)
 - `standard` - Normal brainstorm (~20 ideas)
 - `deep` - In-depth analysis (~35 ideas)
@@ -150,12 +158,14 @@ Generate brainstorm with explicit parameters for programmatic access.
 Retrieve previous brainstorming session.
 
 **Example:**
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/brainstorm/conversation/brainstorm_123456_abc \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -182,6 +192,7 @@ curl -X GET http://localhost:5000/api/v1/brainstorm/conversation/brainstorm_1234
 Export brainstorm session in various formats.
 
 **Request:**
+
 ```json
 {
   "conversationId": "brainstorm_123456_abc",
@@ -191,12 +202,14 @@ Export brainstorm session in various formats.
 ```
 
 **Formats:**
+
 - `markdown` - Formatted Markdown file
 - `json` - Structured JSON data
 - `pdf` - PDF document (coming soon)
 - `html` - HTML document (coming soon)
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -218,6 +231,7 @@ Export brainstorm session in various formats.
 Refine and improve ideas from existing brainstorm session.
 
 **Request:**
+
 ```json
 {
   "conversationId": "brainstorm_123456_abc",
@@ -227,6 +241,7 @@ Refine and improve ideas from existing brainstorm session.
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -261,6 +276,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 ### Example 2: Multi-Turn Conversation
 
 **First Request:**
+
 ```json
 {
   "message": "I want to create a SaaS product for small businesses"
@@ -270,6 +286,7 @@ curl -X POST http://localhost:5000/api/v1/brainstorm/assistant \
 **Response includes:** `conversationId: "brainstorm_123456_abc"`
 
 **Second Request (continuing):**
+
 ```json
 {
   "conversationId": "brainstorm_123456_abc",
@@ -309,6 +326,7 @@ The formatted response includes:
 ## 💡 Main Ideas (20)
 
 ### 1. Idea Title
+
 Description of the idea...
 
 **Why this works:** Reasoning
@@ -329,7 +347,7 @@ Description of the idea...
 
 1. **Challenge title** (Severity: medium)
    Description...
-   *Mitigation:* How to address
+   _Mitigation:_ How to address
 
 ## 📋 Next Steps
 
@@ -357,13 +375,17 @@ Description of the idea...
 ## Authentication
 
 ### Authenticated Users
+
 Include JWT token in Authorization header:
+
 ```
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
 ### Guest Users
+
 No authentication required, but:
+
 - Limited features
 - No conversation history persistence beyond session
 - Rate limits apply
@@ -392,6 +414,7 @@ No authentication required, but:
 ```
 
 Common error codes:
+
 - `400` - Bad Request (validation error)
 - `401` - Unauthorized (missing/invalid token)
 - `403` - Forbidden (usage limit exceeded)
@@ -428,6 +451,7 @@ Common error codes:
 ## Support
 
 For issues or questions:
+
 - Check conversation history for context
 - Provide conversationId when reporting issues
 - Include error messages in bug reports

@@ -1,21 +1,30 @@
-import { GoogleGenAI } from "@google/genai";
-import Tool from "../composio_v2/tools.model.js";
-import { generateContent } from "./utils/gemini.js";
-import config from "../../../../config/index.js";
-import { sanitizeToolForGemini } from "./utils/toolSanitizer.js";
-import { Composio } from "@composio/core";
-import { GoogleProvider } from "@composio/google";
+import { GoogleGenAI } from '@google/genai';
+import Tool from '../composio_v2/tools.model.js';
+import { generateContent } from './utils/gemini.js';
+import config from '../../../../config/index.js';
+import { sanitizeToolForGemini } from './utils/toolSanitizer.js';
+import { Composio } from '@composio/core';
+import { GoogleProvider } from '@composio/google';
 
 const gemini = new GoogleGenAI({ apiKey: config.gemini_secret_key });
-import fs from "fs";
+import fs from 'fs';
 
-
-export async function findAppropriateApp(query, chatHistory = [], summarizedContext = '') {
+export async function findAppropriateApp(
+  query,
+  chatHistory = [],
+  summarizedContext = ''
+) {
   // Load available apps from JSON file
-  const appsData = fs.readFileSync('./src/app/modules/composio_simple/available_apps.json', 'utf-8');
+  const appsData = fs.readFileSync(
+    './src/app/modules/composio_simple/available_apps.json',
+    'utf-8'
+  );
   const apps = JSON.parse(appsData);
 
-  const toolKitsData = fs.readFileSync('./src/app/modules/composio_simple/toolkits.json', 'utf-8');
+  const toolKitsData = fs.readFileSync(
+    './src/app/modules/composio_simple/toolkits.json',
+    'utf-8'
+  );
   const toolKits = JSON.parse(toolKitsData);
 
   let prompt = `Given the following list of apps: ${apps.join(', ')}, identify the list of most appropriate app for the following user query: "${query}". 
@@ -34,13 +43,14 @@ export async function findAppropriateApp(query, chatHistory = [], summarizedCont
     prompt += `\n\nHere is the summarized context for additional information:\n${summarizedContext}\n`;
   }
 
-  const response = await generateContent(
-    'gemini-3-flash-preview',
-    [{ role: 'user', parts: [{ text: prompt }] }],
-  );
+  const response = await generateContent('gemini-3-flash-preview', [
+    { role: 'user', parts: [{ text: prompt }] },
+  ]);
 
   // Before parsing remove any extra text around the JSON array
-  const jsonArrayText = response.candidates[0].content.parts[0].text.trim().match(/\[.*\]/s)[0];
+  const jsonArrayText = response.candidates[0].content.parts[0].text
+    .trim()
+    .match(/\[.*\]/s)[0];
   const appList = JSON.parse(jsonArrayText);
   console.log('Identified apps:', appList);
 
@@ -52,15 +62,15 @@ export async function findAppropriateApp(query, chatHistory = [], summarizedCont
 
   return {
     toolKitVersions,
-    appList
+    appList,
   };
 }
 
 async function embedQuery(text) {
   const res = await gemini.models.embedContent({
-    model: "gemini-embedding-001",
-    contents: [{ role: "user", parts: [{ text }] }],
-    config: { outputDimensionality: 1536 }
+    model: 'gemini-embedding-001',
+    contents: [{ role: 'user', parts: [{ text }] }],
+    config: { outputDimensionality: 1536 },
   });
 
   return res.embeddings[0].values;
@@ -68,19 +78,19 @@ async function embedQuery(text) {
 
 export const getVectorSearchResults = async (query, topK = 5, apps) => {
   const vector = await embedQuery(query);
-  console.log("Vector length:", vector.length);
+  console.log('Vector length:', vector.length);
   console.log(vector.slice(0, 5));
   console.log('Apps filter:', apps);
   const result = await Tool.aggregate([
     {
       $vectorSearch: {
-        index: "vector_index",     // or your index name
-        path: "embedding",
+        index: 'vector_index', // or your index name
+        path: 'embedding',
         queryVector: vector,
         numCandidates: 200,
         limit: topK,
-        filter: { appName: { $in: apps } }
-      }
+        filter: { appName: { $in: apps } },
+      },
     },
     {
       $project: {
@@ -90,35 +100,50 @@ export const getVectorSearchResults = async (query, topK = 5, apps) => {
         version: 1,
         appName: 1,
         input_parameters: 1,
-        score: { $meta: "vectorSearchScore" }
-      }
-    }
-  ])
+        score: { $meta: 'vectorSearchScore' },
+      },
+    },
+  ]);
 
-  console.log("Search results:", JSON.stringify(result.map(r => ({ name: r.name, slug: r.slug, score: r.score })), null, 2));
-  return result;
-}
-
-export async function generateAndExecuteTools(query, tools, toolkitVersions, entityId) {
-  const cleanedTools = tools.map(tool => sanitizeToolForGemini(tool));
-  console.log('Entity ID for tool execution:', entityId);
-  const response = await generateContent(
-    'gemini-3-flash-preview',
-    query,
-    {
-      tools: [{ functionDeclarations: cleanedTools }],
-      thinkingConfig: {
-        includeThoughts: false,
-      }
-    }
+  console.log(
+    'Search results:',
+    JSON.stringify(
+      result.map((r) => ({ name: r.name, slug: r.slug, score: r.score })),
+      null,
+      2
+    )
   );
+  return result;
+};
+
+export async function generateAndExecuteTools(
+  query,
+  tools,
+  toolkitVersions,
+  entityId
+) {
+  const cleanedTools = tools.map((tool) => sanitizeToolForGemini(tool));
+  console.log('Entity ID for tool execution:', entityId);
+  const response = await generateContent('gemini-3-flash-preview', query, {
+    tools: [{ functionDeclarations: cleanedTools }],
+    thinkingConfig: {
+      includeThoughts: false,
+    },
+  });
 
   const contentParts = response.candidates[0].content.parts;
   console.log('Content parts:', JSON.stringify(contentParts, null, 2));
-  console.log('--- Used Tool Calls ---', JSON.stringify(response.functionCalls, null, 2));
+  console.log(
+    '--- Used Tool Calls ---',
+    JSON.stringify(response.functionCalls, null, 2)
+  );
 
   if (response.functionCalls && response.functionCalls.length > 0) {
-    const results = await executeMultipleTools(entityId, response.functionCalls, toolkitVersions);
+    const results = await executeMultipleTools(
+      entityId,
+      response.functionCalls,
+      toolkitVersions
+    );
     return { response, results };
   } else {
     console.log('No function calls in the response');
@@ -127,7 +152,11 @@ export async function generateAndExecuteTools(query, tools, toolkitVersions, ent
   }
 }
 
-export async function generateUserMessasgeFromContext(userMessage, historySummary = '', history = []) {
+export async function generateUserMessasgeFromContext(
+  userMessage,
+  historySummary = '',
+  history = []
+) {
   try {
     let prompt = `You are analyzing a conversation to create a comprehensive user request that combines the conversation history with the latest user input.
 
@@ -158,11 +187,11 @@ Examples:
 Output only the final comprehensive user request, nothing else:`;
 
     console.log('Generating user message with prompt:', prompt);
-    const response = await generateContent(
-      'gemini-3-flash-preview',
-      [{ role: 'user', parts: [{ text: prompt }] }]
-    );
-    const generatedMessage = response.candidates[0].content.parts[0].text.trim();
+    const response = await generateContent('gemini-3-flash-preview', [
+      { role: 'user', parts: [{ text: prompt }] },
+    ]);
+    const generatedMessage =
+      response.candidates[0].content.parts[0].text.trim();
     console.log('Generated user message response:', generatedMessage);
     return generatedMessage;
   } catch (error) {
@@ -171,12 +200,16 @@ Output only the final comprehensive user request, nothing else:`;
   }
 }
 
-export async function executeMultipleTools(entityId, functionCalls, toolkitVersions) {
+export async function executeMultipleTools(
+  entityId,
+  functionCalls,
+  toolkitVersions
+) {
   const results = [];
   const composio = new Composio({
     apiKey: config.composio.orgApiKey,
     provider: new GoogleProvider(),
-    toolkitVersions
+    toolkitVersions,
   });
 
   console.log('Entity before tool execution:', entityId);
@@ -186,7 +219,10 @@ export async function executeMultipleTools(entityId, functionCalls, toolkitVersi
       name: funcCall.name || '',
       args: funcCall.args || {},
     };
-    const result = await composio.provider.executeToolCall(entityId, functionCall);
+    const result = await composio.provider.executeToolCall(
+      entityId,
+      functionCall
+    );
     console.log(`Result:`, JSON.stringify(result, null, 2));
     results.push(result);
   }

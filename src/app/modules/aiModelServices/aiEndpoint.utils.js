@@ -48,6 +48,4 @@ const aiEndpoints = [
   // },
 ];
 
-
-
 export default aiEndpoints;

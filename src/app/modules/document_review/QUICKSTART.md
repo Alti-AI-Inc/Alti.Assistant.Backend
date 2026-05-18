@@ -3,11 +3,13 @@
 ## Quick Setup
 
 1. **Dependencies are already installed**
+
    - The module uses existing dependencies plus `pdf-parse` and `mammoth`
    - These have been added to package.json
 
 2. **Environment Variables**
    Ensure these are set in your `.env` file:
+
    ```env
    GEMINI_API_KEY=your_gemini_api_key
    GCS_BUCKET_NAME=your_bucket_name (optional)
@@ -22,6 +24,7 @@
 ### 1. Using cURL
 
 **Upload and review a document:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-review/assistant \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -30,6 +33,7 @@ curl -X POST http://localhost:5000/api/v1/document-review/assistant \
 ```
 
 **Continue conversation:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-review/assistant \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -43,6 +47,7 @@ curl -X POST http://localhost:5000/api/v1/document-review/assistant \
    `postman_collections/Document_Review_API.postman_collection.json`
 
 2. Set variables:
+
    - `base_url`: http://localhost:5000/api/v1
    - `auth_token`: Your JWT token
 
@@ -56,13 +61,16 @@ const formData = new FormData();
 formData.append('file', documentFile);
 formData.append('message', 'Please review this document');
 
-const response = await fetch('http://localhost:5000/api/v1/document-review/assistant', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${token}`
-  },
-  body: formData
-});
+const response = await fetch(
+  'http://localhost:5000/api/v1/document-review/assistant',
+  {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  }
+);
 
 const result = await response.json();
 console.log(result.data.response); // AI review response
@@ -72,6 +80,7 @@ console.log(result.data.conversationId); // Save for follow-up
 ## Example Workflows
 
 ### Workflow 1: Grammar Check
+
 ```bash
 # 1. Upload document
 curl -X POST http://localhost:5000/api/v1/document-review/assistant \
@@ -87,6 +96,7 @@ curl -X POST http://localhost:5000/api/v1/document-review/assistant \
 ```
 
 ### Workflow 2: Business Document Review
+
 ```bash
 # Direct review with parameters
 curl -X POST http://localhost:5000/api/v1/document-review/review \
@@ -98,6 +108,7 @@ curl -X POST http://localhost:5000/api/v1/document-review/review \
 ```
 
 ### Workflow 3: Academic Paper
+
 ```bash
 # Conversational approach
 curl -X POST http://localhost:5000/api/v1/document-review/assistant \
@@ -108,26 +119,31 @@ curl -X POST http://localhost:5000/api/v1/document-review/assistant \
 ## Common Use Cases
 
 ### Use Case 1: Quick Grammar Check
+
 ```
 Message: "Check this for grammar errors"
 ```
 
 ### Use Case 2: Comprehensive Review
+
 ```
 Message: "Give me a detailed review of this business proposal covering clarity, tone, and structure"
 ```
 
 ### Use Case 3: Content Improvement
+
 ```
 Message: "How can I improve this document? What are the weak points?"
 ```
 
 ### Use Case 4: Summary Generation
+
 ```
 Message: "Summarize this document for me"
 ```
 
 ### Use Case 5: Tone Analysis
+
 ```
 Message: "Is the tone appropriate for a professional audience?"
 ```
@@ -172,6 +188,7 @@ Message: "Is the tone appropriate for a professional audience?"
 ## Error Handling
 
 ### No file uploaded
+
 ```json
 {
   "success": true,
@@ -181,6 +198,7 @@ Message: "Is the tone appropriate for a professional audience?"
 ```
 
 ### Usage limit reached
+
 ```json
 {
   "statusCode": 403,
@@ -217,9 +235,9 @@ class DocumentReviewService {
     const response = await fetch(`${this.baseUrl}/document-review/assistant`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.token}`
+        Authorization: `Bearer ${this.token}`,
       },
-      body: formData
+      body: formData,
     });
 
     return await response.json();
@@ -233,9 +251,9 @@ class DocumentReviewService {
     const response = await fetch(`${this.baseUrl}/document-review/assistant`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.token}`
+        Authorization: `Bearer ${this.token}`,
       },
-      body: formData
+      body: formData,
     });
 
     return await response.json();
@@ -246,8 +264,8 @@ class DocumentReviewService {
       `${this.baseUrl}/document-review/conversation/${conversationId}`,
       {
         headers: {
-          'Authorization': `Bearer ${this.token}`
-        }
+          Authorization: `Bearer ${this.token}`,
+        },
       }
     );
 
@@ -256,15 +274,21 @@ class DocumentReviewService {
 }
 
 // Usage
-const service = new DocumentReviewService('http://localhost:5000/api/v1', token);
+const service = new DocumentReviewService(
+  'http://localhost:5000/api/v1',
+  token
+);
 
 // Review document
-const result = await service.reviewDocument(fileInput.files[0], 'Review this document');
+const result = await service.reviewDocument(
+  fileInput.files[0],
+  'Review this document'
+);
 console.log(result.data.response);
 
 // Follow-up
 const followUp = await service.continueConversation(
-  'What about the tone?', 
+  'What about the tone?',
   result.data.conversationId
 );
 ```
@@ -280,15 +304,19 @@ const followUp = await service.continueConversation(
 ## Troubleshooting
 
 ### Issue: "Failed to extract text from PDF"
+
 - **Solution**: Ensure PDF is not password-protected or corrupted
 
 ### Issue: "File type not supported"
+
 - **Solution**: Check file extension is in the supported list
 
 ### Issue: "Usage limit reached"
+
 - **Solution**: Check user subscription status
 
 ### Issue: Module not found errors
+
 - **Solution**: Ensure all dependencies are installed:
   ```bash
   npm install pdf-parse mammoth --legacy-peer-deps
@@ -297,6 +325,7 @@ const followUp = await service.continueConversation(
 ## Support
 
 For issues or questions:
+
 1. Check the README.md for detailed documentation
 2. Review the Postman collection for examples
 3. Check logs in `logs/` directory

@@ -36,27 +36,32 @@ legal_contract_review/
 ## API Endpoints
 
 ### 1. Conversational Assistant (Main Endpoint)
+
 `POST /api/legal-contract-review/assistant`
 
 Natural language interface for contract review.
 
 **Features**:
+
 - Supports file upload or text input
 - Maintains conversation context
 - Intelligent intent detection
 - Works for authenticated and guest users
 
 ### 2. Direct Review
+
 `POST /api/legal-contract-review/review`
 
 Programmatic endpoint with explicit parameters.
 
 **Features**:
+
 - Direct parameter specification
 - No conversation required
 - Suitable for API integrations
 
 ### 3. Get Conversation History
+
 `GET /api/legal-contract-review/conversation/:conversationId`
 
 Retrieve complete conversation with metadata.
@@ -64,6 +69,7 @@ Retrieve complete conversation with metadata.
 ## Usage Examples
 
 ### Quick Review
+
 ```bash
 POST /api/legal-contract-review/assistant
 {
@@ -73,6 +79,7 @@ POST /api/legal-contract-review/assistant
 ```
 
 ### Risk Assessment
+
 ```bash
 POST /api/legal-contract-review/assistant
 {
@@ -83,6 +90,7 @@ POST /api/legal-contract-review/assistant
 ```
 
 ### Continue Conversation
+
 ```bash
 POST /api/legal-contract-review/assistant
 {
@@ -94,12 +102,16 @@ POST /api/legal-contract-review/assistant
 ## Configuration
 
 ### Environment Variables
+
 Ensure these are set in your `env.yaml`:
+
 - `GEMINI_API_KEY` - Google Gemini API key for AI analysis
 - GCS credentials (if using cloud storage)
 
 ### Constants
+
 All configurations are in `legal_contract_review.constant.js`:
+
 - Model: `gemini-2.5-flash`
 - Temperature: `0.5` (lower for precise legal analysis)
 - Max file size: `10MB`
@@ -107,20 +119,21 @@ All configurations are in `legal_contract_review.constant.js`:
 
 ## Review Types
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| `general_review` | Comprehensive analysis | Initial contract review |
-| `clause_analysis` | Clause-by-clause breakdown | Detailed clause examination |
-| `risk_assessment` | Risk identification & severity | Due diligence, risk management |
-| `compliance_check` | Legal compliance review | Regulatory requirements |
-| `fairness_evaluation` | Balance & fairness assessment | Negotiation preparation |
-| `terminology_check` | Legal terminology review | Clarity improvement |
-| `amendment_suggestions` | Improvement recommendations | Contract negotiation |
-| `summary` | Executive summary | Quick overview |
+| Type                    | Description                    | Use Case                       |
+| ----------------------- | ------------------------------ | ------------------------------ |
+| `general_review`        | Comprehensive analysis         | Initial contract review        |
+| `clause_analysis`       | Clause-by-clause breakdown     | Detailed clause examination    |
+| `risk_assessment`       | Risk identification & severity | Due diligence, risk management |
+| `compliance_check`      | Legal compliance review        | Regulatory requirements        |
+| `fairness_evaluation`   | Balance & fairness assessment  | Negotiation preparation        |
+| `terminology_check`     | Legal terminology review       | Clarity improvement            |
+| `amendment_suggestions` | Improvement recommendations    | Contract negotiation           |
+| `summary`               | Executive summary              | Quick overview                 |
 
 ## Contract Types
 
 Specialized analysis for:
+
 - Employment contracts
 - NDAs (Non-Disclosure Agreements)
 - Service agreements
@@ -136,6 +149,7 @@ Specialized analysis for:
 ## Technical Details
 
 ### Dependencies
+
 - `@google/generative-ai` - AI analysis
 - `mongoose` - Database operations
 - `multer` - File upload handling
@@ -143,12 +157,15 @@ Specialized analysis for:
 - File processor service (shared with document_review)
 
 ### Integration Points
+
 - **Conversation Service**: Manages conversation state and history
 - **File Processor**: Handles file upload, text extraction, and GCS storage
 - **Subscription Service**: Checks usage limits for authenticated users
 
 ### AI Analysis
+
 Uses Gemini 2.5 Flash with specialized prompts for:
+
 - Intent detection and parameter extraction
 - Contract review and analysis
 - Risk assessment with severity classification
@@ -156,6 +173,7 @@ Uses Gemini 2.5 Flash with specialized prompts for:
 - Amendment suggestions
 
 ### Caching Strategy
+
 - Extracted contract text is cached in conversation metadata
 - Avoids re-processing files on follow-up questions
 - Maximum cached text: 1MB (configurable)
@@ -164,6 +182,7 @@ Uses Gemini 2.5 Flash with specialized prompts for:
 ## Response Structure
 
 All successful reviews include:
+
 1. Executive Summary
 2. Contract Overview
 3. Critical Clauses Analysis
@@ -178,6 +197,7 @@ All successful reviews include:
 ## Error Handling
 
 The module handles:
+
 - Invalid file formats
 - File size limits
 - Text extraction failures
@@ -188,15 +208,18 @@ The module handles:
 ## Testing
 
 ### Postman Collection
+
 Import: `postman_collections/Legal_Contract_Review_API.postman_collection.json`
 
 Includes test cases for:
+
 - All review types
 - File upload and text input
 - Conversation continuity
 - Error scenarios
 
 ### Manual Testing
+
 ```bash
 # Test with file
 curl -X POST http://localhost:80/api/legal-contract-review/assistant \
@@ -230,6 +253,7 @@ curl -X POST http://localhost:80/api/legal-contract-review/assistant \
 ## Future Enhancements
 
 Potential improvements:
+
 - [ ] Side-by-side contract comparison
 - [ ] Contract version diff analysis
 - [ ] Clause library and templates
@@ -242,6 +266,7 @@ Potential improvements:
 ## Support
 
 For issues or questions:
+
 - Check error logs for detailed messages
 - Review documentation in `/docs`
 - Test with Postman collection

@@ -17,7 +17,7 @@ const executeWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -25,7 +25,7 @@ const executeWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
@@ -36,23 +36,24 @@ const executeWorkflowController = catchAsync(async (req, res) => {
       context
     );
 
-    logger.info(`Workflow execution ${result.success ? 'completed' : 'failed'} for ${workflowId}`);
+    logger.info(
+      `Workflow execution ${result.success ? 'completed' : 'failed'} for ${workflowId}`
+    );
 
     return sendResponse(res, {
       statusCode: result.success ? httpStatus.OK : httpStatus.BAD_REQUEST,
       success: result.success,
-      message: result.success ?
-        'Workflow executed successfully' :
-        `Workflow execution failed: ${result.error}`,
-      data: result
+      message: result.success
+        ? 'Workflow executed successfully'
+        : `Workflow execution failed: ${result.error}`,
+      data: result,
     });
-
   } catch (error) {
     logger.error('Error in executeWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to execute workflow'
+      message: error.message || 'Failed to execute workflow',
     });
   }
 });
@@ -69,7 +70,7 @@ const getExecutionHistoryController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -77,7 +78,7 @@ const getExecutionHistoryController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
@@ -97,16 +98,15 @@ const getExecutionHistoryController = catchAsync(async (req, res) => {
         executions,
         total: executions.length,
         limit: parseInt(limit),
-        offset: parseInt(offset)
-      }
+        offset: parseInt(offset),
+      },
     });
-
   } catch (error) {
     logger.error('Error in getExecutionHistoryController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to get execution history'
+      message: error.message || 'Failed to get execution history',
     });
   }
 });
@@ -122,7 +122,7 @@ const getExecutionDetailsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -130,7 +130,7 @@ const getExecutionDetailsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Execution ID is required'
+      message: 'Execution ID is required',
     });
   }
 
@@ -144,7 +144,7 @@ const getExecutionDetailsController = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Execution not found'
+        message: 'Execution not found',
       });
     }
 
@@ -152,15 +152,14 @@ const getExecutionDetailsController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Execution details retrieved successfully',
-      data: execution
+      data: execution,
     });
-
   } catch (error) {
     logger.error('Error in getExecutionDetailsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to get execution details'
+      message: error.message || 'Failed to get execution details',
     });
   }
 });
@@ -176,7 +175,7 @@ const cancelExecutionController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -184,7 +183,7 @@ const cancelExecutionController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Execution ID is required'
+      message: 'Execution ID is required',
     });
   }
 
@@ -200,15 +199,14 @@ const cancelExecutionController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: result.message,
-      data: result
+      data: result,
     });
-
   } catch (error) {
     logger.error('Error in cancelExecutionController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to cancel execution'
+      message: error.message || 'Failed to cancel execution',
     });
   }
 });
@@ -224,7 +222,7 @@ const scheduleWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -232,7 +230,7 @@ const scheduleWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
@@ -243,7 +241,7 @@ const scheduleWorkflowController = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Workflow not found'
+        message: 'Workflow not found',
       });
     }
 
@@ -255,15 +253,14 @@ const scheduleWorkflowController = catchAsync(async (req, res) => {
       statusCode: httpStatus.OK,
       success: true,
       message: 'Workflow scheduled successfully',
-      data: result
+      data: result,
     });
-
   } catch (error) {
     logger.error('Error in scheduleWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to schedule workflow'
+      message: error.message || 'Failed to schedule workflow',
     });
   }
 });
@@ -279,7 +276,7 @@ const unscheduleWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -287,7 +284,7 @@ const unscheduleWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
@@ -298,32 +295,28 @@ const unscheduleWorkflowController = catchAsync(async (req, res) => {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: 'Workflow not found'
+        message: 'Workflow not found',
       });
     }
 
     workflowExecutionService.unscheduleWorkflow(workflowId);
 
     // Update workflow status
-    await Workflow.updateOne(
-      { _id: workflowId },
-      { nextExecution: null }
-    );
+    await Workflow.updateOne({ _id: workflowId }, { nextExecution: null });
 
     logger.info(`Workflow unscheduled: ${workflowId}`);
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: 'Workflow unscheduled successfully'
+      message: 'Workflow unscheduled successfully',
     });
-
   } catch (error) {
     logger.error('Error in unscheduleWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'Failed to unschedule workflow'
+      message: error.message || 'Failed to unschedule workflow',
     });
   }
 });
@@ -334,5 +327,5 @@ export const executionController = {
   getExecutionDetailsController,
   cancelExecutionController,
   scheduleWorkflowController,
-  unscheduleWorkflowController
+  unscheduleWorkflowController,
 };

@@ -7,31 +7,31 @@ const router = express.Router();
 router.put(
   '/update-user-role/:id',
   auth(ENUM_USER_ROLE.SUPER_ADMIN),
-  AdminController.updateUserRole,
+  AdminController.updateUserRole
 );
 
 router.delete(
   '/delete-user/:objectId',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.deleteUser,
+  AdminController.deleteUser
 );
 
 router.get(
   '/buyer/all-user',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.getAllBuyer,
+  AdminController.getAllBuyer
 );
 
 router.get(
   '/all-user',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.getAllUsers,
+  AdminController.getAllUsers
 );
 
 router.get(
   '/all-payment',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.getAllPayment,
+  AdminController.getAllPayment
 );
 
 router.get('/admin/:email', AdminController.getAdmin);
@@ -39,7 +39,7 @@ router.get('/admin/:email', AdminController.getAdmin);
 router.get(
   '/all-user/statistics',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.getUserStatisticsByMonth,
+  AdminController.getUserStatisticsByMonth
 );
 
 // ============= Tenant Management Routes (Admin) =============
@@ -52,7 +52,7 @@ router.get(
 router.get(
   '/tenants',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.getAllTenants,
+  AdminController.getAllTenants
 );
 
 /**
@@ -63,7 +63,7 @@ router.get(
 router.get(
   '/tenants/:tenantId',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.getTenantDetails,
+  AdminController.getTenantDetails
 );
 
 /**
@@ -74,7 +74,7 @@ router.get(
 router.patch(
   '/tenants/:tenantId/status',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.updateTenantStatus,
+  AdminController.updateTenantStatus
 );
 
 /**
@@ -85,7 +85,7 @@ router.patch(
 router.get(
   '/tenants/:tenantId/usage',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.getTenantUsageAdmin,
+  AdminController.getTenantUsageAdmin
 );
 
 /**
@@ -96,7 +96,7 @@ router.get(
 router.post(
   '/tenants/:tenantId/extend-trial',
   auth(ENUM_USER_ROLE.ADMIN),
-  AdminController.extendTenantTrial,
+  AdminController.extendTenantTrial
 );
 
 export const adminRoutes = router;

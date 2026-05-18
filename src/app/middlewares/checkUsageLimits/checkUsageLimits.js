@@ -27,7 +27,9 @@ export const checkUsageLimits = async (userId, session = null) => {
   }
 
   if (subscription.usage.imagesUsed >= planLimits.images) {
-    errors.push(`Your ${subscription.plan_name} plan image generation limit reached.`);
+    errors.push(
+      `Your ${subscription.plan_name} plan image generation limit reached.`
+    );
   }
 
   if (errors.length > 0) {

@@ -13,11 +13,21 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 /**
  * Refine a specific section of the plan
  */
-export const refineSection = async (plan, section, refinementRequest, context = {}) => {
+export const refineSection = async (
+  plan,
+  section,
+  refinementRequest,
+  context = {}
+) => {
   try {
-    logger.info('Refining plan section:', { section, request: refinementRequest });
+    logger.info('Refining plan section:', {
+      section,
+      request: refinementRequest,
+    });
 
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const currentSection = plan[section];
     if (!currentSection) {
@@ -75,7 +85,9 @@ export const adjustForConstraints = async (plan, newConstraints) => {
   try {
     logger.info('Adjusting plan for new constraints:', newConstraints);
 
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const adjustPrompt = `${SYSTEM_PROMPTS.REFINEMENT}
 
@@ -127,7 +139,9 @@ Return the complete updated plan in the same JSON structure. Only return valid J
  */
 export const addAlternatives = async (plan, ideaText) => {
   try {
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const altPrompt = `Based on this plan:
 
@@ -171,7 +185,9 @@ Generate 2-3 alternative approaches or variations. Return only JSON:
  */
 export const optimizeTimeline = async (plan, targetDuration) => {
   try {
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const optimizePrompt = `Current plan phases:
 ${JSON.stringify(plan.phases, null, 2)}
@@ -209,7 +225,9 @@ Return optimized phases in same JSON format.`;
  */
 export const optimizeBudget = async (plan, targetBudget) => {
   try {
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const optimizePrompt = `Current plan resources:
 ${JSON.stringify(plan.resources, null, 2)}
@@ -241,7 +259,9 @@ Optimize resource allocation to meet this budget. Return optimized resources in 
  */
 export const expandSection = async (plan, section) => {
   try {
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const expandPrompt = `Expand this section with more details:
 
@@ -277,7 +297,9 @@ Provide a more detailed, comprehensive version. Return in same JSON format.`;
  */
 export const simplifyPlan = async (plan) => {
   try {
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const simplifyPrompt = `Simplify this plan to make it more concise and easier to understand:
 
@@ -306,11 +328,19 @@ Keep all essential information but make it more accessible. Return in same JSON 
 /**
  * Apply iterative improvements based on feedback
  */
-export const applyFeedback = async (plan, feedback, conversationHistory = []) => {
+export const applyFeedback = async (
+  plan,
+  feedback,
+  conversationHistory = []
+) => {
   try {
-    logger.info('Applying feedback to plan:', { feedbackLength: feedback.length });
+    logger.info('Applying feedback to plan:', {
+      feedbackLength: feedback.length,
+    });
 
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const feedbackPrompt = `${SYSTEM_PROMPTS.REFINEMENT}
 

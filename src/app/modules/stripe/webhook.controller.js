@@ -14,11 +14,15 @@ const stripe = new Stripe(config.stripe.stripe_secret_key);
  */
 const handleStripeWebhook = catchAsync(async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const webhookSecret = config.stripe.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret =
+    config.stripe.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
     logger.error('Stripe webhook secret not configured');
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Webhook secret not configured');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Webhook secret not configured'
+    );
   }
 
   let event;
@@ -29,7 +33,10 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
     logger.info(`Webhook received: ${event.type}`);
   } catch (err) {
     logger.error('Webhook signature verification failed:', err.message);
-    throw new ApiError(httpStatus.BAD_REQUEST, `Webhook signature verification failed: ${err.message}`);
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Webhook signature verification failed: ${err.message}`
+    );
   }
 
   // Handle the event
@@ -137,7 +144,9 @@ const testWebhook = catchAsync(async (req, res) => {
       break;
 
     case 'customer.subscription.updated':
-      result = await subscriptionService.updateSubscriptionFromStripe(data.subscription);
+      result = await subscriptionService.updateSubscriptionFromStripe(
+        data.subscription
+      );
       break;
 
     default:

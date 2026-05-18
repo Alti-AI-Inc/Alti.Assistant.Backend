@@ -11,8 +11,9 @@ import { OWNER_TYPES } from './knowledge.constant.js';
  */
 export const uploadFile = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { ownerType, folderId, description, tags, processImmediately } = req.body;
-  const ownerId = userId
+  const { ownerType, folderId, description, tags, processImmediately } =
+    req.body;
+  const ownerId = userId;
   if (!userId) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
@@ -37,7 +38,8 @@ export const uploadFile = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  const finalOwnerId =
+    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   if (!finalOwnerId) {
     return sendResponse(res, {
@@ -48,7 +50,9 @@ export const uploadFile = catchAsync(async (req, res) => {
   }
 
   try {
-    logger.info(`[Knowledge] File upload by user: ${userId}, ownerType: ${ownerType}, ownerId: ${finalOwnerId}`);
+    logger.info(
+      `[Knowledge] File upload by user: ${userId}, ownerType: ${ownerType}, ownerId: ${finalOwnerId}`
+    );
 
     const options = {
       description: description || '',
@@ -58,12 +62,21 @@ export const uploadFile = catchAsync(async (req, res) => {
       ipAddress: req.ip,
     };
 
-    const result = await knowledgeService.uploadFile(req.file, ownerType, finalOwnerId, options, req);
+    const result = await knowledgeService.uploadFile(
+      req.file,
+      ownerType,
+      finalOwnerId,
+      options,
+      req
+    );
 
     // Process file immediately if requested (synchronously)
     if (processImmediately === 'true') {
       logger.info(`[Knowledge] Processing file immediately: ${result.fileId}`);
-      const processResult = await knowledgeService.processFile(result.fileId, req);
+      const processResult = await knowledgeService.processFile(
+        result.fileId,
+        req
+      );
 
       sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -78,7 +91,8 @@ export const uploadFile = catchAsync(async (req, res) => {
       sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: 'File uploaded successfully. Process manually or set processImmediately=true',
+        message:
+          'File uploaded successfully. Process manually or set processImmediately=true',
         data: result,
       });
     }
@@ -141,7 +155,16 @@ export const processFile = catchAsync(async (req, res) => {
  */
 export const getFiles = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { ownerType, ownerId, fileType, processingStatus, isProcessed, folderId, limit, skip } = req.query;
+  const {
+    ownerType,
+    ownerId,
+    fileType,
+    processingStatus,
+    isProcessed,
+    folderId,
+    limit,
+    skip,
+  } = req.query;
 
   if (!userId) {
     return sendResponse(res, {
@@ -159,7 +182,8 @@ export const getFiles = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  const finalOwnerId =
+    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   if (!finalOwnerId) {
     return sendResponse(res, {
@@ -173,13 +197,23 @@ export const getFiles = catchAsync(async (req, res) => {
     const filters = {
       fileType,
       processingStatus,
-      isProcessed: isProcessed === 'true' ? true : isProcessed === 'false' ? false : undefined,
+      isProcessed:
+        isProcessed === 'true'
+          ? true
+          : isProcessed === 'false'
+            ? false
+            : undefined,
       folderId: folderId === 'null' ? null : folderId,
       limit: parseInt(limit) || 100,
       skip: parseInt(skip) || 0,
     };
 
-    const files = await knowledgeService.getFiles(ownerType, finalOwnerId, filters, req);
+    const files = await knowledgeService.getFiles(
+      ownerType,
+      finalOwnerId,
+      filters,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -232,10 +266,16 @@ export const getFileById = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  const finalOwnerId =
+    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   try {
-    const file = await knowledgeService.getFileById(fileId, ownerType, finalOwnerId, req);
+    const file = await knowledgeService.getFileById(
+      fileId,
+      ownerType,
+      finalOwnerId,
+      req
+    );
 
     if (!file) {
       return sendResponse(res, {
@@ -286,10 +326,16 @@ export const deleteFile = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  const finalOwnerId =
+    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   try {
-    const result = await knowledgeService.deleteFile(fileId, ownerType, finalOwnerId, req);
+    const result = await knowledgeService.deleteFile(
+      fileId,
+      ownerType,
+      finalOwnerId,
+      req
+    );
 
     if (!result) {
       return sendResponse(res, {
@@ -338,10 +384,15 @@ export const getStorageStats = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  const finalOwnerId =
+    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   try {
-    const stats = await knowledgeService.getStorageStats(ownerType, finalOwnerId, req);
+    const stats = await knowledgeService.getStorageStats(
+      ownerType,
+      finalOwnerId,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -414,7 +465,10 @@ export const getFolders = catchAsync(async (req, res) => {
   try {
     const options = {};
     if (parentFolderId !== undefined) {
-      options.parentFolderId = parentFolderId === 'root' || parentFolderId === 'null' ? null : parentFolderId;
+      options.parentFolderId =
+        parentFolderId === 'root' || parentFolderId === 'null'
+          ? null
+          : parentFolderId;
     }
 
     const folders = await knowledgeService.getFolders(userId, options, req);
@@ -514,7 +568,12 @@ export const updateFolder = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeService.updateFolder(folderId, userId, req.body, req);
+    const result = await knowledgeService.updateFolder(
+      folderId,
+      userId,
+      req.body,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -558,7 +617,12 @@ export const deleteFolder = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeService.deleteFolder(folderId, userId, recursive === 'true' || recursive === true, req);
+    const result = await knowledgeService.deleteFolder(
+      folderId,
+      userId,
+      recursive === 'true' || recursive === true,
+      req
+    );
 
     if (!result) {
       return sendResponse(res, {
@@ -600,8 +664,13 @@ export const getFolderContents = catchAsync(async (req, res) => {
   }
 
   try {
-    const finalFolderId = folderId === 'root' || folderId === 'null' ? null : folderId;
-    const contents = await knowledgeService.getFolderContents(finalFolderId, userId, req);
+    const finalFolderId =
+      folderId === 'root' || folderId === 'null' ? null : folderId;
+    const contents = await knowledgeService.getFolderContents(
+      finalFolderId,
+      userId,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -653,7 +722,8 @@ export const conversationalQuery = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  const finalOwnerId =
+    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   if (!finalOwnerId) {
     return sendResponse(res, {
@@ -721,7 +791,8 @@ export const queryKnowledge = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  const finalOwnerId =
+    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   if (!finalOwnerId) {
     return sendResponse(res, {
@@ -732,9 +803,14 @@ export const queryKnowledge = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeQueryService.queryKnowledge(query, ownerType, finalOwnerId, {
-      topK,
-    });
+    const result = await knowledgeQueryService.queryKnowledge(
+      query,
+      ownerType,
+      finalOwnerId,
+      {
+        topK,
+      }
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -784,12 +860,18 @@ export const semanticSearch = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId = ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  const finalOwnerId =
+    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
 
   try {
-    const result = await knowledgeQueryService.semanticSearch(query, ownerType, finalOwnerId, {
-      limit,
-    });
+    const result = await knowledgeQueryService.semanticSearch(
+      query,
+      ownerType,
+      finalOwnerId,
+      {
+        limit,
+      }
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -832,7 +914,10 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   }
 
   try {
-    const result = await knowledgeQueryService.getConversationHistory(conversationId, userId);
+    const result = await knowledgeQueryService.getConversationHistory(
+      conversationId,
+      userId
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

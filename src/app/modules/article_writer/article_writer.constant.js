@@ -14,7 +14,16 @@ export const ARTICLE_WRITER_CONFIG = {
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/vnd.ms-powerpoint',
   ],
-  SUPPORTED_FILE_EXTENSIONS: ['.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt'],
+  SUPPORTED_FILE_EXTENSIONS: [
+    '.pdf',
+    '.docx',
+    '.doc',
+    '.txt',
+    '.xlsx',
+    '.xls',
+    '.pptx',
+    '.ppt',
+  ],
 };
 
 // Article types

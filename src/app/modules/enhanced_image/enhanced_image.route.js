@@ -1,12 +1,12 @@
-import express from "express";
+import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
-import { enhancedImageController } from "./enhanced_image.controller.js";
-import { EnhancedImageValidation } from "./enhanced_image.validation.js";
+import { enhancedImageController } from './enhanced_image.controller.js';
+import { EnhancedImageValidation } from './enhanced_image.validation.js';
 import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js';
 
 const router = express.Router();
@@ -54,7 +54,7 @@ router.post(
 router.post(
   '/evaluate-prompt',
   optionalAuth(),
-  extractTenantContext,  // validateRequest(EnhancedImageValidation.evaluatePromptSchema),
+  extractTenantContext, // validateRequest(EnhancedImageValidation.evaluatePromptSchema),
   enhancedImageController.evaluatePrompt
 );
 
@@ -62,7 +62,8 @@ router.post(
 router.post(
   '/add-detail',
   optionalAuth(),
-  extractTenantContext, validateRequest(EnhancedImageValidation.addDetailSchema),
+  extractTenantContext,
+  validateRequest(EnhancedImageValidation.addDetailSchema),
   enhancedImageController.addDetail
 );
 

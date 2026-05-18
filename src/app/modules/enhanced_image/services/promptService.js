@@ -1,4 +1,7 @@
-import { evaluatePromptQuality, buildEnhancedPrompt } from "../utils/promptEvaluator.js";
+import {
+  evaluatePromptQuality,
+  buildEnhancedPrompt,
+} from '../utils/promptEvaluator.js';
 
 export class PromptService {
   constructor(apiKey) {
@@ -6,10 +9,14 @@ export class PromptService {
   }
 
   async evaluatePrompt(prompt, history) {
-    return await evaluatePromptQuality(prompt, history, { apiKey: this.apiKey });
+    return await evaluatePromptQuality(prompt, history, {
+      apiKey: this.apiKey,
+    });
   }
 
   async buildEnhancedPrompt(conversationHistory) {
-    return await buildEnhancedPrompt(conversationHistory, { apiKey: this.apiKey });
+    return await buildEnhancedPrompt(conversationHistory, {
+      apiKey: this.apiKey,
+    });
   }
 }

@@ -28,7 +28,10 @@ const TenantSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       index: true,
-      match: [/^[a-z0-9-]+$/, 'Subdomain can only contain lowercase letters, numbers, and hyphens'],
+      match: [
+        /^[a-z0-9-]+$/,
+        'Subdomain can only contain lowercase letters, numbers, and hyphens',
+      ],
     },
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,

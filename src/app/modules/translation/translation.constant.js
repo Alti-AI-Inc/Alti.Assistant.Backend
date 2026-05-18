@@ -152,8 +152,10 @@ export const TASK_STATUS = {
 // Error messages
 export const ERROR_MESSAGES = {
   NO_TEXT_OR_FILE: 'Please provide text to translate or upload a document',
-  INVALID_LANGUAGE: 'Invalid language code. Use ISO 639-1 format (e.g., en, es, fr)',
-  UNSUPPORTED_FORMAT: 'Unsupported file format. Please upload txt, docx, pdf, html, md, json, csv, or xlsx files',
+  INVALID_LANGUAGE:
+    'Invalid language code. Use ISO 639-1 format (e.g., en, es, fr)',
+  UNSUPPORTED_FORMAT:
+    'Unsupported file format. Please upload txt, docx, pdf, html, md, json, csv, or xlsx files',
   FILE_TOO_LARGE: 'File size exceeds 10MB limit',
   TEXT_TOO_LONG: 'Text exceeds 100,000 character limit',
   TRANSLATION_FAILED: 'Translation service failed. Please try again',

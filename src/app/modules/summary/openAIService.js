@@ -1,8 +1,6 @@
-
-import { JsonOutputParser } from "@langchain/core/output_parsers";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { geminiClient, llm } from "./llm.js";
-
+import { JsonOutputParser } from '@langchain/core/output_parsers';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { geminiClient, llm } from './llm.js';
 
 export const getUrlFromUserInputUsingAi = async (userInput) => {
   const prompt = PromptTemplate.fromTemplate(
@@ -21,4 +19,4 @@ export const getUrlFromUserInputUsingAi = async (userInput) => {
   const chain = prompt.pipe(geminiClient);
   const result = await chain.invoke({ user_input: userInput });
   return result.content;
-}
+};

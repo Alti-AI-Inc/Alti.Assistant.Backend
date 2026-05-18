@@ -1,4 +1,4 @@
-const catchAsync = fn => {
+const catchAsync = (fn) => {
   return async (req, res, next) => {
     try {
       await fn(req, res, next);

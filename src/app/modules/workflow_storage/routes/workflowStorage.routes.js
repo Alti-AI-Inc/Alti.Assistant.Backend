@@ -10,14 +10,14 @@ import {
   getExecutableWorkflowsController,
   refreshWorkflowConnectionsController,
   prepareWorkflowForExecutionController,
-  getWorkflowStatisticsController
+  getWorkflowStatisticsController,
 } from '../controllers/workflowStorage.controller.js';
 import {
   executeStoredWorkflowController,
   executeBatchStoredWorkflowsController,
   scheduleStoredWorkflowController,
   getStoredWorkflowExecutionHistoryController,
-  convertStoredWorkflowToTemplateController
+  convertStoredWorkflowToTemplateController,
 } from '../controllers/workflowExecution.controller.js';
 
 const router = express.Router();
@@ -114,14 +114,22 @@ router.delete('/workflows/:workflowId', auth, deleteStoredWorkflowController);
  * @desc Refresh workflow connections and update status
  * @access Private
  */
-router.post('/workflows/:workflowId/refresh-connections', auth, refreshWorkflowConnectionsController);
+router.post(
+  '/workflows/:workflowId/refresh-connections',
+  auth,
+  refreshWorkflowConnectionsController
+);
 
 /**
  * @route POST /api/workflow-storage/workflows/:workflowId/prepare-execution
  * @desc Prepare workflow for execution (returns execution-ready format)
  * @access Private
  */
-router.post('/workflows/:workflowId/prepare-execution', auth, prepareWorkflowForExecutionController);
+router.post(
+  '/workflows/:workflowId/prepare-execution',
+  auth,
+  prepareWorkflowForExecutionController
+);
 
 // === WORKFLOW EXECUTION ROUTES ===
 
@@ -134,7 +142,11 @@ router.post('/workflows/:workflowId/prepare-execution', auth, prepareWorkflowFor
  *   executionMetadata?: object
  * }
  */
-router.post('/workflows/:workflowId/execute', auth, executeStoredWorkflowController);
+router.post(
+  '/workflows/:workflowId/execute',
+  auth,
+  executeStoredWorkflowController
+);
 
 /**
  * @route POST /api/workflow-storage/workflows/execute-batch
@@ -149,7 +161,11 @@ router.post('/workflows/:workflowId/execute', auth, executeStoredWorkflowControl
  *   executionMetadata?: object
  * }
  */
-router.post('/workflows/execute-batch', auth, executeBatchStoredWorkflowsController);
+router.post(
+  '/workflows/execute-batch',
+  auth,
+  executeBatchStoredWorkflowsController
+);
 
 /**
  * @route POST /api/workflow-storage/workflows/:workflowId/schedule
@@ -163,7 +179,11 @@ router.post('/workflows/execute-batch', auth, executeBatchStoredWorkflowsControl
  *   isActive?: boolean (default: true)
  * }
  */
-router.post('/workflows/:workflowId/schedule', auth, scheduleStoredWorkflowController);
+router.post(
+  '/workflows/:workflowId/schedule',
+  auth,
+  scheduleStoredWorkflowController
+);
 
 /**
  * @route GET /api/workflow-storage/workflows/:workflowId/execution-history
@@ -174,7 +194,11 @@ router.post('/workflows/:workflowId/schedule', auth, scheduleStoredWorkflowContr
  *   offset?: number (default: 0)
  * }
  */
-router.get('/workflows/:workflowId/execution-history', auth, getStoredWorkflowExecutionHistoryController);
+router.get(
+  '/workflows/:workflowId/execution-history',
+  auth,
+  getStoredWorkflowExecutionHistoryController
+);
 
 /**
  * @route POST /api/workflow-storage/workflows/:workflowId/convert-to-template
@@ -187,6 +211,10 @@ router.get('/workflows/:workflowId/execution-history', auth, getStoredWorkflowEx
  *   category?: string (default: 'template')
  * }
  */
-router.post('/workflows/:workflowId/convert-to-template', auth, convertStoredWorkflowToTemplateController);
+router.post(
+  '/workflows/:workflowId/convert-to-template',
+  auth,
+  convertStoredWorkflowToTemplateController
+);
 
 export default router;

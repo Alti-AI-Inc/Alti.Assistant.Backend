@@ -18,11 +18,13 @@ This module provides complete multi-tenancy support, allowing multiple organizat
 ## Models
 
 ### Tenant Model
+
 - **Fields**: name, slug, ownerId, status, plan, settings, limits, usage, subscription, metadata
 - **Statuses**: active, suspended, trial, cancelled
 - **Plans**: free, explore, analyze, execute, command, enterprise
 
 ### Tenant Invitation Model
+
 - **Fields**: tenantId, email, role, invitedBy, token, status, expiresAt
 - **Statuses**: pending, accepted, expired, cancelled
 - **Token Expiry**: 7 days by default
@@ -30,18 +32,21 @@ This module provides complete multi-tenancy support, allowing multiple organizat
 ## API Endpoints
 
 ### Tenant CRUD
+
 - `POST /api/v1/tenant/create` - Create a new tenant
 - `GET /api/v1/tenant/current` - Get current tenant
 - `PATCH /api/v1/tenant/settings` - Update tenant settings
 - `DELETE /api/v1/tenant/:tenantId` - Delete tenant (admin only)
 
 ### Member Management
+
 - `GET /api/v1/tenant/members` - List tenant members
 - `POST /api/v1/tenant/members/invite` - Invite member via email
 - `PATCH /api/v1/tenant/members/:userId/role` - Update member role
 - `DELETE /api/v1/tenant/members/:userId` - Remove member
 
 ### Invitations
+
 - `GET /api/v1/tenant/members/invitations` - List pending invitations
 - `POST /api/v1/tenant/members/invitations/:token/verify` - Verify invitation token
 - `POST /api/v1/tenant/members/invitations/:inviteId/accept` - Accept invitation
@@ -49,12 +54,14 @@ This module provides complete multi-tenancy support, allowing multiple organizat
 - `POST /api/v1/tenant/members/invitations/:inviteId/resend` - Resend invitation email
 
 ### Usage & Limits
+
 - `GET /api/v1/tenant/usage` - Get usage statistics
 - `GET /api/v1/tenant/limits` - Get plan limits and usage percentages
 
 ## Usage Example
 
 ### Creating a Tenant
+
 ```javascript
 POST /api/v1/tenant/create
 {
@@ -65,6 +72,7 @@ POST /api/v1/tenant/create
 ```
 
 ### Inviting a Member
+
 ```javascript
 POST /api/v1/tenant/members/invite
 {
@@ -74,6 +82,7 @@ POST /api/v1/tenant/members/invite
 ```
 
 ### Accepting an Invitation
+
 1. User receives email with invitation link
 2. User clicks link: `https://app.asonai.com/invite/{token}`
 3. Frontend calls: `POST /api/v1/tenant/members/invitations/:token/verify`
@@ -83,18 +92,21 @@ POST /api/v1/tenant/members/invite
 ## Roles & Permissions
 
 ### Owner
+
 - Full control over tenant
 - Cannot be removed
 - Can manage all members and settings
 - Access to billing
 
 ### Admin
+
 - Manage members (invite, remove, update roles)
 - Manage content and settings
 - View usage and limits
 - Cannot access billing
 
 ### Member
+
 - View and create content
 - No management permissions
 - Limited access to settings
@@ -105,6 +117,7 @@ Invitation emails are sent using the template at:
 `src/app/templates/emails/tenantInvitation.html`
 
 Template variables:
+
 - `{inviterName}` - Name of the person sending the invite
 - `{tenantName}` - Name of the workspace
 - `{invitationLink}` - Full URL with token
@@ -122,12 +135,14 @@ Template variables:
 ## Database Indexes
 
 ### Tenant Collection
+
 - `{ slug: 1 }` - Unique index
 - `{ ownerId: 1, status: 1 }`
 - `{ status: 1, plan: 1 }`
 - `{ createdAt: -1 }`
 
 ### Tenant Invitation Collection
+
 - `{ token: 1 }` - Unique index
 - `{ email: 1, tenantId: 1, status: 1 }` - Compound index
 - `{ token: 1, status: 1 }`

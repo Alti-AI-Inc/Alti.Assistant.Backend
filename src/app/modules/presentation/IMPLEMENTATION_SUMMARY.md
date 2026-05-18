@@ -3,6 +3,7 @@
 ## ✅ Completed Implementation
 
 ### Module Structure Created
+
 ```
 src/app/modules/presentation/
 ├── services/
@@ -22,11 +23,13 @@ src/app/modules/presentation/
 ```
 
 ### Routes Registered
+
 ✅ Added to `src/app/routes/index.js` at `/api/presentation`
 
 ## 🎯 Features Implemented
 
 ### 1. Conversational AI Assistant
+
 - ✅ Natural language understanding using Gemini 2.0 Flash
 - ✅ Intent detection (generate, edit, derive, check_status, etc.)
 - ✅ Intelligent parameter extraction from user messages
@@ -35,6 +38,7 @@ src/app/modules/presentation/
 - ✅ Smart parameter merging across messages
 
 ### 2. Presentation Generation
+
 - ✅ Synchronous generation (instant results)
 - ✅ Asynchronous generation (for large presentations)
 - ✅ Support for all Presenton API parameters:
@@ -49,6 +53,7 @@ src/app/modules/presentation/
   - Title slide customization
 
 ### 3. Presentation Management
+
 - ✅ Edit existing presentations
 - ✅ Derive new presentations from existing ones
 - ✅ Check async task status
@@ -56,6 +61,7 @@ src/app/modules/presentation/
 - ✅ Slide-level editing with index support
 
 ### 4. User Experience
+
 - ✅ Guest user support (no authentication required)
 - ✅ Authenticated user support with subscription limits
 - ✅ Conversation context persistence
@@ -63,6 +69,7 @@ src/app/modules/presentation/
 - ✅ Progress tracking for async operations
 
 ### 5. Code Quality
+
 - ✅ Request validation with Zod schemas
 - ✅ Error handling with ApiError
 - ✅ Logging with Winston logger
@@ -71,24 +78,26 @@ src/app/modules/presentation/
 
 ## 📝 API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/presentation/assistant` | POST | Main conversational interface |
-| `/api/presentation/generate` | POST | Direct generation (non-conversational) |
-| `/api/presentation/status/:taskId` | GET | Check async task status |
-| `/api/presentation/edit` | POST | Edit existing presentation |
-| `/api/presentation/derive` | POST | Derive new from existing |
-| `/api/presentation/:presentationId` | GET | Get presentation details |
+| Endpoint                            | Method | Description                            |
+| ----------------------------------- | ------ | -------------------------------------- |
+| `/api/presentation/assistant`       | POST   | Main conversational interface          |
+| `/api/presentation/generate`        | POST   | Direct generation (non-conversational) |
+| `/api/presentation/status/:taskId`  | GET    | Check async task status                |
+| `/api/presentation/edit`            | POST   | Edit existing presentation             |
+| `/api/presentation/derive`          | POST   | Derive new from existing               |
+| `/api/presentation/:presentationId` | GET    | Get presentation details               |
 
 ## 🔧 Configuration Required
 
 Add to `.env` file:
+
 ```env
 PRESENTON_API_URL=http://localhost:5000
 PRESENTON_API_KEY=sk-presenton-xxxxx
 ```
 
 Existing config already includes:
+
 - ✅ GEMINI_API_KEY (for Gemini)
 
 ## 💡 How It Works
@@ -96,14 +105,17 @@ Existing config already includes:
 ### Conversational Flow Example
 
 1. **User**: "Create a presentation about AI"
+
    - AI analyzes intent: `generate`
    - Extracts: `content: "AI"`
    - Identifies missing: `n_slides`, `tone`, etc.
 
 2. **AI**: "How many slides would you like?"
+
    - Stores collected params in conversation metadata
 
 3. **User**: "10 slides, professional tone"
+
    - AI extracts: `n_slides: 10`, `tone: "professional"`
    - Merges with existing params
 
@@ -115,6 +127,7 @@ Existing config already includes:
 ### Smart Parameter Inference
 
 The AI intelligently infers parameters:
+
 - "professional presentation" → `tone: "professional"`, `template: "modern"`
 - "detailed content" → `verbosity: "text-heavy"`
 - "quick overview" → `n_slides: 5`, `verbosity: "concise"`
@@ -123,6 +136,7 @@ The AI intelligently infers parameters:
 ## 🎨 Conversation Examples
 
 ### Example 1: Simple Generation
+
 ```
 User: "Make a presentation about Python"
 AI: "How many slides would you like?"
@@ -133,12 +147,14 @@ AI: "🎉 Your presentation is ready!"
 ```
 
 ### Example 2: Complete Request
+
 ```
 User: "Create a 15-slide professional presentation about Machine Learning using modern template"
 AI: "🎉 Your presentation is ready!"
 ```
 
 ### Example 3: Edit Request
+
 ```
 User: "Edit presentation abc-123, change slide 3 title"
 AI: "What should the new title be?"
@@ -149,6 +165,7 @@ AI: "✅ Presentation updated!"
 ## 🔄 Integration Points
 
 ### With Existing Modules
+
 - ✅ Uses `conversationService` for conversation management
 - ✅ Integrates with `SubscriptionModel` for usage tracking
 - ✅ Uses `conversationHelpers` for message handling
@@ -156,6 +173,7 @@ AI: "✅ Presentation updated!"
 - ✅ Compatible with `optionalAuth` middleware
 
 ### Database
+
 - ✅ Stores conversations in existing Conversation collection
 - ✅ Tracks collected parameters in conversation metadata
 - ✅ Supports both guest and authenticated users
@@ -163,8 +181,10 @@ AI: "✅ Presentation updated!"
 ## 🧪 Testing
 
 ### Manual Testing
+
 1. Start server: `npm start`
 2. Test conversational endpoint:
+
 ```bash
 curl -X POST http://localhost:3000/api/presentation/assistant \
   -H "Content-Type: application/json" \
@@ -172,6 +192,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ```
 
 ### Test Scenarios Covered
+
 - ✅ Simple conversation with multiple exchanges
 - ✅ Complete request in one message
 - ✅ Async generation and status checking
@@ -183,6 +204,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ## 📚 Documentation
 
 ### Created Documents
+
 1. **README.md** - Comprehensive module documentation
 2. **QUICKSTART.md** - Quick start guide for developers
 3. **examples.js** - 10 detailed usage examples
@@ -192,6 +214,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 ## 🚀 Next Steps (Optional Enhancements)
 
 ### Potential Future Features
+
 - [ ] Streaming support for real-time generation updates
 - [ ] Batch generation for multiple presentations
 - [ ] Template customization API
@@ -204,6 +227,7 @@ curl -X POST http://localhost:3000/api/presentation/assistant \
 - [ ] Voice input support
 
 ### Production Readiness
+
 - [ ] Enable rate limiting (currently commented out)
 - [ ] Add comprehensive logging
 - [ ] Implement caching for conversation context

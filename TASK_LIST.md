@@ -1,21 +1,23 @@
 # Implementation Task List
+
 **Updated:** February 24, 2026
 
 ---
 
 ## Architecture
 
-| Model | Purpose |
-|---|---|
+| Model                               | Purpose                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
 | `Subscription` (`payment.model.js`) | Plan limits only — `dailyRequestLimit`, `ragType`, `storagePerUser`, `canInviteTeam` |
-| `UserUsage` (`userUsage.model.js`) | Daily counters — `requestsUsed` per day, cumulative `storageUsed` |
-| `Product` (`products.model.js`) | Stripe product catalog with feature definitions |
+| `UserUsage` (`userUsage.model.js`)  | Daily counters — `requestsUsed` per day, cumulative `storageUsed`                    |
+| `Product` (`products.model.js`)     | Stripe product catalog with feature definitions                                      |
 
 ---
 
 ## 🔴 Phase 1 — Enforcement (3-5 days)
 
 ### 1. ~~Rewrite `checkDailyRequestLimit` Middleware~~ ✅
+
 **File:** `src/app/middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js`
 
 - [x] Detect context: personal (`tenantId = null`) vs org (`tenantId = ObjectId`) from `req.currentTenantId`
@@ -28,6 +30,7 @@
 ---
 
 ### 2. ~~Create `checkRAGFeature` Middleware~~ ✅
+
 **File:** `src/app/middlewares/checkRAGFeature/checkRAGFeature.js`
 
 - [x] Get subscription (context-aware: personal vs org)
@@ -40,6 +43,7 @@
 ---
 
 ### 3. ~~Create `checkStorageLimit` Middleware~~ ✅
+
 **File:** `src/app/middlewares/checkStorageLimit/checkStorageLimit.js`
 
 - [x] Get subscription (context-aware)
@@ -83,6 +87,7 @@
 ---
 
 ### 6. Team Invitation Check ✅
+
 **File:** `src/app/modules/tenant/tenant.service.js` (inviteMember method)
 
 - [x] Before calling `createInvitation()`, fetch the tenant's subscription
@@ -93,6 +98,7 @@
 ---
 
 ### 7. Cleanup Cron Job ✅
+
 **File:** `src/app/cron/usage/cleanupOldUsage.js`
 
 - [x] Schedule: `0 2 * * *` (2am daily)
@@ -119,6 +125,7 @@
 ## 🟡 Phase 2 — Stripe Webhooks (2-3 days)
 
 ### 9. Webhook Endpoint
+
 **File:** `src/app/modules/stripe/stripe.webhook.js`  
 **Route:** `POST /api/v1/stripe/webhook`
 
@@ -181,6 +188,7 @@
 ## 🟢 Phase 3 — User Experience (2-3 days)
 
 ### 16. Usage Stats API
+
 **Route:** `GET /api/v1/usage/stats`
 
 - [ ] Auth required
@@ -220,18 +228,18 @@
 
 ## Files Summary
 
-| Status | File | Change |
-|---|---|---|
-| ✅ Done | `src/app/modules/payment/payment.model.js` | Limits only, no usage fields |
-| ✅ Done | `src/app/modules/usage/userUsage.model.js` | New — daily usage per user per day |
-| ✅ Done | `src/app/modules/stripe/products/products.model.js` | New schema with RAG features |
-| ✅ Done | `scripts/update-stripe-products.js` | Update existing Stripe products |
-| ✅ Done | `scripts/seed-products-to-db.js` | Seed Product collection |
-| ✅ Done | `src/app/middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js` | Complete rewrite |
-| ✅ Done | `src/app/middlewares/checkRAGFeature/checkRAGFeature.js` | New middleware |
-| ✅ Done | `src/app/middlewares/checkStorageLimit/checkStorageLimit.js` | New middleware |
-| ✅ Done | `src/app/modules/tenant/tenant.service.js` | Add `canInviteTeam` check |
-| 🟡 TODO | `src/app/modules/stripe/stripe.webhook.js` | New webhook handler |
-| ✅ Done | `src/app/cron/usage/cleanupOldUsage.js` | New cleanup cron |
-| 🟢 TODO | `src/app/modules/usage/usage.controller.js` | Usage stats API |
-| 🟢 TODO | `src/app/modules/usage/usage.route.js` | Usage route |
+| Status  | File                                                                   | Change                             |
+| ------- | ---------------------------------------------------------------------- | ---------------------------------- |
+| ✅ Done | `src/app/modules/payment/payment.model.js`                             | Limits only, no usage fields       |
+| ✅ Done | `src/app/modules/usage/userUsage.model.js`                             | New — daily usage per user per day |
+| ✅ Done | `src/app/modules/stripe/products/products.model.js`                    | New schema with RAG features       |
+| ✅ Done | `scripts/update-stripe-products.js`                                    | Update existing Stripe products    |
+| ✅ Done | `scripts/seed-products-to-db.js`                                       | Seed Product collection            |
+| ✅ Done | `src/app/middlewares/checkDailyRequestLimit/checkDailyRequestLimit.js` | Complete rewrite                   |
+| ✅ Done | `src/app/middlewares/checkRAGFeature/checkRAGFeature.js`               | New middleware                     |
+| ✅ Done | `src/app/middlewares/checkStorageLimit/checkStorageLimit.js`           | New middleware                     |
+| ✅ Done | `src/app/modules/tenant/tenant.service.js`                             | Add `canInviteTeam` check          |
+| 🟡 TODO | `src/app/modules/stripe/stripe.webhook.js`                             | New webhook handler                |
+| ✅ Done | `src/app/cron/usage/cleanupOldUsage.js`                                | New cleanup cron                   |
+| 🟢 TODO | `src/app/modules/usage/usage.controller.js`                            | Usage stats API                    |
+| 🟢 TODO | `src/app/modules/usage/usage.route.js`                                 | Usage route                        |

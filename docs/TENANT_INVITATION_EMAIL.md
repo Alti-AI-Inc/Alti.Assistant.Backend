@@ -9,11 +9,13 @@ The tenant invitation email system provides a robust, production-ready solution 
 ### Components
 
 1. **Email Templates** (`src/app/modules/tenant/templates/invitationEmail.js`)
+
    - HTML email template with responsive design
    - Plain text fallback for email clients without HTML support
    - Dynamic template variables
 
 2. **Email Service** (`src/app/modules/tenant/tenantInvitation.email.js`)
+
    - Mailgun integration
    - Retry logic with exponential backoff
    - Rate limiting (5 emails per hour per address)
@@ -65,13 +67,13 @@ const MAX_EMAILS_PER_HOUR = 5;
 
 Dynamic email content based on invitation data:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `inviterName` | Name of person sending invite | "John Doe" |
-| `tenantName` | Workspace/tenant name | "Acme Corp" |
-| `invitationLink` | Unique acceptance link | "https://app.asonai.com/invite/abc123" |
-| `role` | Assigned role | "admin" or "member" |
-| `expiryDays` | Days until expiry | 7 |
+| Variable         | Description                   | Example                                |
+| ---------------- | ----------------------------- | -------------------------------------- |
+| `inviterName`    | Name of person sending invite | "John Doe"                             |
+| `tenantName`     | Workspace/tenant name         | "Acme Corp"                            |
+| `invitationLink` | Unique acceptance link        | "https://app.asonai.com/invite/abc123" |
+| `role`           | Assigned role                 | "admin" or "member"                    |
+| `expiryDays`     | Days until expiry             | 7                                      |
 
 ## Usage
 
@@ -87,9 +89,9 @@ try {
     tenantName: 'Acme Corp',
     token: 'unique-token-123',
     role: 'member',
-    expiryDays: 7
+    expiryDays: 7,
   });
-  
+
   console.log('Email sent:', result.messageId);
 } catch (error) {
   console.error('Failed to send email:', error.message);
@@ -99,12 +101,19 @@ try {
 ### Email Template Customization
 
 To customize the email template, edit:
+
 - HTML: `generateInvitationEmailHTML()` in `templates/invitationEmail.js`
 - Plain text: `generateInvitationEmailText()` in `templates/invitationEmail.js`
 
 ```javascript
 // HTML template structure
-export const generateInvitationEmailHTML = ({ inviterName, tenantName, invitationLink, role, expiryDays }) => {
+export const generateInvitationEmailHTML = ({
+  inviterName,
+  tenantName,
+  invitationLink,
+  role,
+  expiryDays,
+}) => {
   return `
 <!DOCTYPE html>
 <html>
@@ -154,6 +163,7 @@ throw new Error('Rate limit exceeded. Please try again later.');
 ```
 
 Response:
+
 ```json
 {
   "success": false,
@@ -164,13 +174,13 @@ Response:
 
 ## Invitation Statuses
 
-| Status | Description | Email Sent? |
-|--------|-------------|-------------|
-| `pending` | Invitation created and email sent | ✅ Yes |
-| `pending_email` | Invitation created but email failed | ❌ No |
-| `accepted` | User accepted invitation | ✅ Yes (originally) |
-| `expired` | Invitation past expiry date | ✅ Yes (originally) |
-| `cancelled` | Invitation cancelled by admin | ✅ Yes (originally) |
+| Status          | Description                         | Email Sent?         |
+| --------------- | ----------------------------------- | ------------------- |
+| `pending`       | Invitation created and email sent   | ✅ Yes              |
+| `pending_email` | Invitation created but email failed | ❌ No               |
+| `accepted`      | User accepted invitation            | ✅ Yes (originally) |
+| `expired`       | Invitation past expiry date         | ✅ Yes (originally) |
+| `cancelled`     | Invitation cancelled by admin       | ✅ Yes (originally) |
 
 ## Email Service Configuration
 
@@ -192,7 +202,7 @@ Set the frontend URL for invitation links:
 
 ```javascript
 app: {
-  frontend_url: process.env.FRONTEND_URL || 'https://app.asonai.com'
+  frontend_url: process.env.FRONTEND_URL || 'https://app.asonai.com';
 }
 ```
 
@@ -201,6 +211,7 @@ app: {
 ### Manual Testing
 
 1. **Create Invitation**:
+
 ```bash
 POST /api/v1/tenants/:tenantId/invitations
 {
@@ -214,6 +225,7 @@ POST /api/v1/tenants/:tenantId/invitations
 3. **Test Link**: Click invitation link to verify it works
 
 4. **Resend Email**:
+
 ```bash
 POST /api/v1/tenants/invitations/:invitationId/resend
 ```
@@ -262,6 +274,7 @@ Temporarily break Mailgun connection to test retries:
 - Avoid spam trigger words
 
 Current subject format:
+
 ```
 You've been invited to join [Workspace] by [Person]
 ```
@@ -365,6 +378,7 @@ if (!isValidEmail(email)) {
 Sends an invitation email with retry logic and rate limiting.
 
 **Parameters:**
+
 - `invitationData.email` (string, required): Recipient email address
 - `invitationData.inviterName` (string, required): Name of inviter
 - `invitationData.tenantName` (string, required): Workspace name
@@ -373,6 +387,7 @@ Sends an invitation email with retry logic and rate limiting.
 - `invitationData.expiryDays` (number, optional): Days until expiry (default: 7)
 
 **Returns:** `Promise<Object>`
+
 ```javascript
 {
   success: true,
@@ -389,6 +404,7 @@ Sends an invitation email with retry logic and rate limiting.
 Checks if an email address has exceeded the rate limit.
 
 **Parameters:**
+
 - `email` (string, required): Email address to check
 
 **Returns:** `boolean` - True if email can be sent, false if rate limited
@@ -398,6 +414,7 @@ Checks if an email address has exceeded the rate limit.
 Validates email address format.
 
 **Parameters:**
+
 - `email` (string, required): Email address to validate
 
 **Returns:** `boolean` - True if valid email format

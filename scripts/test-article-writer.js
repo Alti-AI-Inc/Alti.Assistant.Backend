@@ -34,17 +34,24 @@ function separator() {
 async function testSimpleArticle() {
   separator();
   log('Test 1: Simple Article Generation (Guest User)', 'cyan');
-  log('Description: Generate a simple blog post without authentication', 'yellow');
+  log(
+    'Description: Generate a simple blog post without authentication',
+    'yellow'
+  );
 
   try {
     const response = await axios.post(API_ENDPOINT, {
-      message: 'Write a short blog post about the benefits of morning meditation',
+      message:
+        'Write a short blog post about the benefits of morning meditation',
     });
 
     log('✓ Success!', 'green');
     log(`Status: ${response.status}`, 'blue');
     log(`Conversation ID: ${response.data.data.conversationId}`, 'blue');
-    log(`Article Length: ${response.data.data.article.length} characters`, 'blue');
+    log(
+      `Article Length: ${response.data.data.article.length} characters`,
+      'blue'
+    );
     log('\nGenerated Article Preview:', 'yellow');
     log(response.data.data.article.substring(0, 300) + '...', 'reset');
 
@@ -62,7 +69,10 @@ async function testSimpleArticle() {
 async function testArticleWithParameters() {
   separator();
   log('Test 2: Article with Custom Parameters', 'cyan');
-  log('Description: Generate a technical article with specific parameters', 'yellow');
+  log(
+    'Description: Generate a technical article with specific parameters',
+    'yellow'
+  );
 
   try {
     const response = await axios.post(API_ENDPOINT, {
@@ -77,7 +87,10 @@ async function testArticleWithParameters() {
     log(`Article Type: ${response.data.data.metadata.articleType}`, 'blue');
     log(`Tone: ${response.data.data.metadata.tone}`, 'blue');
     log(`Length: ${response.data.data.metadata.length}`, 'blue');
-    log(`Article Length: ${response.data.data.article.length} characters`, 'blue');
+    log(
+      `Article Length: ${response.data.data.article.length} characters`,
+      'blue'
+    );
     log('\nGenerated Article Preview:', 'yellow');
     log(response.data.data.article.substring(0, 300) + '...', 'reset');
 
@@ -110,8 +123,14 @@ async function testContinueConversation(conversationId) {
 
     log('✓ Success!', 'green');
     log(`Status: ${response.status}`, 'blue');
-    log(`Same Conversation ID: ${response.data.data.conversationId === conversationId}`, 'blue');
-    log(`Article Length: ${response.data.data.article.length} characters`, 'blue');
+    log(
+      `Same Conversation ID: ${response.data.data.conversationId === conversationId}`,
+      'blue'
+    );
+    log(
+      `Article Length: ${response.data.data.article.length} characters`,
+      'blue'
+    );
     log('\nRefined Article Preview:', 'yellow');
     log(response.data.data.article.substring(0, 300) + '...', 'reset');
   } catch (error) {
@@ -144,7 +163,10 @@ async function testDifferentArticleTypes() {
       });
 
       log(`✓ ${type} - Success!`, 'green');
-      log(`Article Length: ${response.data.data.article.length} characters`, 'blue');
+      log(
+        `Article Length: ${response.data.data.article.length} characters`,
+        'blue'
+      );
     } catch (error) {
       log(`✗ ${type} - Failed!`, 'red');
       log(error.response?.data?.message || error.message, 'red');
@@ -172,7 +194,10 @@ async function testDifferentTones() {
       });
 
       log(`✓ ${tone} tone - Success!`, 'green');
-      log(`Article Length: ${response.data.data.article.length} characters`, 'blue');
+      log(
+        `Article Length: ${response.data.data.article.length} characters`,
+        'blue'
+      );
     } catch (error) {
       log(`✗ ${tone} tone - Failed!`, 'red');
       log(error.response?.data?.message || error.message, 'red');
@@ -199,8 +224,14 @@ async function testDifferentLengths() {
       });
 
       log(`✓ ${length} length - Success!`, 'green');
-      log(`Article Length: ${response.data.data.article.length} characters`, 'blue');
-      log(`Word Count: ~${Math.round(response.data.data.article.split(/\s+/).length)} words`, 'blue');
+      log(
+        `Article Length: ${response.data.data.article.length} characters`,
+        'blue'
+      );
+      log(
+        `Word Count: ~${Math.round(response.data.data.article.split(/\s+/).length)} words`,
+        'blue'
+      );
     } catch (error) {
       log(`✗ ${length} length - Failed!`, 'red');
       log(error.response?.data?.message || error.message, 'red');
@@ -252,9 +283,18 @@ async function testErrorHandling() {
  * Run all tests
  */
 async function runAllTests() {
-  log('\n╔════════════════════════════════════════════════════════════════════════════╗', 'cyan');
-  log('║                   Article Writer Module - Test Suite                      ║', 'cyan');
-  log('╚════════════════════════════════════════════════════════════════════════════╝', 'cyan');
+  log(
+    '\n╔════════════════════════════════════════════════════════════════════════════╗',
+    'cyan'
+  );
+  log(
+    '║                   Article Writer Module - Test Suite                      ║',
+    'cyan'
+  );
+  log(
+    '╚════════════════════════════════════════════════════════════════════════════╝',
+    'cyan'
+  );
 
   log('\nStarting tests...', 'yellow');
   log(`Target: ${BASE_URL}`, 'blue');

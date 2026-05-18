@@ -17,7 +17,7 @@ const strategy = new FacebookStrategy(
     } catch (err) {
       return done(err, null);
     }
-  },
+  }
 );
 
 export default strategy;

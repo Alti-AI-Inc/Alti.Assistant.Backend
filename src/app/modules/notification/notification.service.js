@@ -2,7 +2,10 @@ import mongoose from 'mongoose';
 import UserModel from '../auth/auth.model.js';
 import Notification from './notification.model.js';
 import { logger } from '../../../shared/logger.js';
-import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
+import {
+  withTenantContext,
+  withTenantFilter,
+} from '../../helpers/tenantQuery.js';
 
 const sendNotificationService = async (data, req = null) => {
   // 1. Create the Notification first
@@ -14,7 +17,7 @@ const sendNotificationService = async (data, req = null) => {
   const userFilter = req ? withTenantFilter(req, {}) : {};
   await UserModel.updateMany(
     userFilter, // filter users by tenant
-    { $push: { notifications: newNotification._id } }, // 👈 push notification id into notifications array
+    { $push: { notifications: newNotification._id } } // 👈 push notification id into notifications array
   );
 
   return newNotification;
@@ -36,7 +39,7 @@ const sendNotificationByIdService = async (userId, data, req = null) => {
   const userQuery = { _id: userId };
   await UserModel.updateOne(
     req ? withTenantFilter(req, userQuery) : userQuery,
-    { $push: { notifications: newNotification._id } },
+    { $push: { notifications: newNotification._id } }
   );
   return newNotification;
 };
@@ -51,12 +54,16 @@ const getNotificationByIdService = async (userId, req = null) => {
   return result;
 };
 
-const updateNotificationByIdService = async (notificationId, data, req = null) => {
+const updateNotificationByIdService = async (
+  notificationId,
+  data,
+  req = null
+) => {
   const query = { _id: notificationId };
   const result = await Notification.updateOne(
     req ? withTenantFilter(req, query) : query, // filter condition
     { $set: data }, // update operation
-    { new: true }, // Return the updated document
+    { new: true } // Return the updated document
   );
 
   if (!result) {
@@ -88,7 +95,7 @@ const deleteAllNotificationService = async (req = null) => {
     await UserModel.updateMany(
       userQuery,
       { $set: { notifications: [] } },
-      { session },
+      { session }
     );
 
     // Commit the transaction if everything goes fine

@@ -66,13 +66,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "generate"]
             },
             "description": "Generate an image as a guest user without authentication. Creates a new conversation automatically."
           },
@@ -120,13 +115,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "generate"]
             },
             "description": "Generate an image with authentication. Checks subscription limits."
           },
@@ -148,13 +138,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "generate"]
             },
             "description": "Continue an existing conversation to generate a contextually-aware image."
           },
@@ -176,13 +161,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/generate-from-conversation",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "generate-from-conversation"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "generate-from-conversation"]
             },
             "description": "Generate an image using the entire conversation history to build an enhanced prompt automatically."
           },
@@ -228,13 +208,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/edit",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "edit"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "edit"]
             },
             "description": "Edit an existing image by providing base64 encoded image and edit instructions."
           },
@@ -266,13 +241,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/edit",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "edit"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "edit"]
             },
             "description": "Edit an image with authentication and continue an existing conversation."
           },
@@ -299,13 +269,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/analyze-intent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "analyze-intent"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "analyze-intent"]
             },
             "description": "Analyze the intent of an image generation prompt (simple version, no context)."
           },
@@ -327,13 +292,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/analyze-image-intent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "analyze-image-intent"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "analyze-image-intent"]
             },
             "description": "Analyze image intent with conversation context. Returns whether it's editable, intent type, and questions if more info needed."
           },
@@ -355,13 +315,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/evaluate-prompt",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "evaluate-prompt"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "evaluate-prompt"]
             },
             "description": "Evaluate the quality of a prompt and get suggestions for improvement. Returns score, missing elements, and suggestions."
           },
@@ -383,13 +338,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/add-detail",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "add-detail"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "add-detail"]
             },
             "description": "Add additional details to an existing conversation and re-evaluate the prompt quality. Returns updated evaluation with score and suggestions."
           },
@@ -411,13 +361,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/finalize-prompt",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "finalize-prompt"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "finalize-prompt"]
             },
             "description": "Finalize the prompt by building an enhanced version from all conversation messages. Returns the optimized prompt ready for image generation."
           },
@@ -439,13 +384,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/build-enhanced-prompt",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "build-enhanced-prompt"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "build-enhanced-prompt"]
             },
             "description": "Build an enhanced, optimized prompt from all user messages in a conversation."
           },
@@ -473,13 +413,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/enhanced-image/stats",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "enhanced-image",
-                "stats"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["enhanced-image", "stats"]
             },
             "description": "Get image generation statistics for the authenticated user. Requires authentication."
           },
@@ -524,13 +459,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/enhanced-image/generate",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "enhanced-image",
-                    "generate"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enhanced-image", "generate"]
                 },
                 "description": "Start a new conversation as a guest user"
               },
@@ -552,13 +482,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/enhanced-image/add-detail",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "enhanced-image",
-                    "add-detail"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enhanced-image", "add-detail"]
                 },
                 "description": "Add more details to the conversation"
               },
@@ -580,13 +505,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/enhanced-image/add-detail",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "enhanced-image",
-                    "add-detail"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enhanced-image", "add-detail"]
                 },
                 "description": "Add even more details to refine the prompt"
               },
@@ -608,13 +528,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/enhanced-image/generate-from-conversation",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "enhanced-image",
-                    "generate-from-conversation"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enhanced-image", "generate-from-conversation"]
                 },
                 "description": "Generate image using all conversation history"
               },
@@ -641,13 +556,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/enhanced-image/evaluate-prompt",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "enhanced-image",
-                    "evaluate-prompt"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enhanced-image", "evaluate-prompt"]
                 },
                 "description": "Check if prompt needs improvement"
               },
@@ -669,13 +579,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/enhanced-image/analyze-intent",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "enhanced-image",
-                    "analyze-intent"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enhanced-image", "analyze-intent"]
                 },
                 "description": "Analyze the improved prompt intent"
               },
@@ -697,13 +602,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/enhanced-image/generate",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "enhanced-image",
-                    "generate"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["enhanced-image", "generate"]
                 },
                 "description": "Generate with the enhanced prompt"
               },

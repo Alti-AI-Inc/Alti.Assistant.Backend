@@ -35,7 +35,7 @@ const app = express();
 // ✅ Use body-parser raw() FIRST for Stripe webhook before any JSON parsing
 app.use(
   '/api/v1/subscription/webhook',
-  express.raw({ type: 'application/json' }),
+  express.raw({ type: 'application/json' })
 );
 
 // app.use(cors({
@@ -50,10 +50,10 @@ app.use(
       'https://ason-web.netlify.app',
       'http://localhost:3000',
       'http://localhost:8080',
-      'http://localhost:3001'
+      'http://localhost:3001',
     ],
     credentials: true,
-  }),
+  })
 );
 
 // Middleware
@@ -68,8 +68,14 @@ app.use((req, res, next) => {
 
 // Raw body parser for Stripe webhooks
 app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
-app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' }));
-app.use('/api/v1/subscription/webhook', express.raw({ type: 'application/json' }));
+app.use(
+  '/api/v1/subscriptions/webhook',
+  express.raw({ type: 'application/json' })
+);
+app.use(
+  '/api/v1/subscription/webhook',
+  express.raw({ type: 'application/json' })
+);
 
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
@@ -97,7 +103,7 @@ app.use(
       blockAllMixedContent: [],
       frameAncestors: ["'none'"],
     },
-  }),
+  })
 );
 app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
 app.use(helmet.frameguard({ action: 'deny' }));
@@ -128,7 +134,7 @@ mongoose
     // Initialize cron jobs after database connection
     initializeCronJobs();
   })
-  .catch(err => {
+  .catch((err) => {
     logger.error('❌ Error connecting to the database:', err);
     process.exit(1); // Exit the application on database connection error
   });

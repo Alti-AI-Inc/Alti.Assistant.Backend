@@ -17,7 +17,10 @@ async function testEmploymentContract() {
   try {
     // Step 1: Initial request
     const formData1 = new FormData();
-    formData1.append('message', 'I need to create an employment contract for a software developer position');
+    formData1.append(
+      'message',
+      'I need to create an employment contract for a software developer position'
+    );
 
     const response1 = await axios.post(
       `${BASE_URL}/legal-contract/assistant`,
@@ -39,12 +42,13 @@ async function testEmploymentContract() {
     // Step 2: Provide answers
     const conversationId = response1.data.data.conversationId;
     const formData2 = new FormData();
-    formData2.append('message',
+    formData2.append(
+      'message',
       'The employer is TechCorp Inc. located at 123 Tech Street, San Francisco, CA 94105. ' +
-      'The position is Senior Software Developer. ' +
-      'The salary is $120,000 per year with benefits including health insurance, 401k, and 20 days PTO. ' +
-      'The start date is January 1, 2024. ' +
-      'The employment is at-will with a 2-week notice period.'
+        'The position is Senior Software Developer. ' +
+        'The salary is $120,000 per year with benefits including health insurance, 401k, and 20 days PTO. ' +
+        'The start date is January 1, 2024. ' +
+        'The employment is at-will with a 2-week notice period.'
     );
     formData2.append('conversationId', conversationId);
 
@@ -73,33 +77,31 @@ async function testNDADirect() {
   console.log('\n=== Test 2: NDA Contract (Direct Generation) ===\n');
 
   try {
-    const response = await axios.post(
-      `${BASE_URL}/legal-contract/generate`,
-      {
-        contractType: 'nda',
-        complexity: 'standard',
-        jurisdiction: 'us_federal',
-        parties: [
-          {
-            name: 'Acme Corporation',
-            role: 'disclosing_party',
-            address: '456 Business Ave, New York, NY 10001',
-          },
-          {
-            name: 'TechStart Inc.',
-            role: 'receiving_party',
-            address: '789 Startup Blvd, Austin, TX 78701',
-          },
-        ],
-        terms: {
-          type: 'mutual',
-          duration: '2 years',
-          purpose: 'Exploring potential business partnership',
-          confidentialInformation: 'Business plans, financial data, technical specifications',
+    const response = await axios.post(`${BASE_URL}/legal-contract/generate`, {
+      contractType: 'nda',
+      complexity: 'standard',
+      jurisdiction: 'us_federal',
+      parties: [
+        {
+          name: 'Acme Corporation',
+          role: 'disclosing_party',
+          address: '456 Business Ave, New York, NY 10001',
         },
-        additionalInstructions: 'Include standard remedies for breach',
-      }
-    );
+        {
+          name: 'TechStart Inc.',
+          role: 'receiving_party',
+          address: '789 Startup Blvd, Austin, TX 78701',
+        },
+      ],
+      terms: {
+        type: 'mutual',
+        duration: '2 years',
+        purpose: 'Exploring potential business partnership',
+        confidentialInformation:
+          'Business plans, financial data, technical specifications',
+      },
+      additionalInstructions: 'Include standard remedies for breach',
+    });
 
     console.log('Contract Generated:');
     console.log('Conversation ID:', response.data.data.conversationId);
@@ -120,7 +122,10 @@ async function testServiceAgreementWithFile() {
 
   try {
     const formData = new FormData();
-    formData.append('message', 'Create a service agreement for web development services');
+    formData.append(
+      'message',
+      'Create a service agreement for web development services'
+    );
 
     // If you have a test file, uncomment and update path:
     // const testFilePath = './test-files/sample-agreement.pdf';
@@ -154,7 +159,9 @@ async function testServiceAgreementWithFile() {
 // Test 4: Get Conversation History (requires auth)
 async function testGetHistory(conversationId) {
   if (!conversationId || !ACCESS_TOKEN) {
-    console.log('\n=== Test 4: Skipped (No conversation ID or auth token) ===\n');
+    console.log(
+      '\n=== Test 4: Skipped (No conversation ID or auth token) ===\n'
+    );
     return;
   }
 
@@ -173,7 +180,10 @@ async function testGetHistory(conversationId) {
     console.log('Conversation History:');
     console.log('Title:', response.data.data.title);
     console.log('Messages:', response.data.data.messages?.length);
-    console.log('Contract Generated:', response.data.data.metadata?.contractGenerated);
+    console.log(
+      'Contract Generated:',
+      response.data.data.metadata?.contractGenerated
+    );
   } catch (error) {
     console.error('Error:', error.response?.data || error.message);
   }
@@ -185,18 +195,20 @@ async function runAllTests() {
   console.log('=====================================');
 
   const conversationId1 = await testEmploymentContract();
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2s
 
   const conversationId2 = await testNDADirect();
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2s
 
   const conversationId3 = await testServiceAgreementWithFile();
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2s
 
   await testGetHistory(conversationId1);
 
   console.log('\n✅ All tests completed!');
-  console.log('\nNOTE: This is a draft testing script. Generated contracts should be reviewed by legal professionals.');
+  console.log(
+    '\nNOTE: This is a draft testing script. Generated contracts should be reviewed by legal professionals.'
+  );
 }
 
 // Execute tests

@@ -1,8 +1,8 @@
-import Stripe from "stripe";
-import config from "../../../../config/index.js";
+import Stripe from 'stripe';
+import config from '../../../../config/index.js';
 
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
-  apiVersion: "2022-11-15",
+  apiVersion: '2022-11-15',
 });
 
 const createPaymentIntentService = async (amount, currency, customerId) => {
@@ -23,11 +23,15 @@ const getAllPaymentMethodsService = async (customerId) => {
     type: 'card',
   });
   return paymentMethods.data;
-}
+};
 
 const savePaymentMethodService = async (customerId, paymentMethodId) => {
   // Attach the payment method to the customer
-  console.log('Attaching payment method to customer in Stripe...', customerId, paymentMethodId);
+  console.log(
+    'Attaching payment method to customer in Stripe...',
+    customerId,
+    paymentMethodId
+  );
   await stripe.paymentMethods.attach(paymentMethodId, {
     customer: customerId,
   });
@@ -36,10 +40,10 @@ const savePaymentMethodService = async (customerId, paymentMethodId) => {
     invoice_settings: { default_payment_method: paymentMethodId },
   });
   return true;
-}
+};
 
 export {
   createPaymentIntentService,
   getAllPaymentMethodsService,
-  savePaymentMethodService
+  savePaymentMethodService,
 };

@@ -12,9 +12,6 @@ const { sendResponse } = require('../../../shared/sendResponse');
 const { catchAsync } = require('../../../shared/catchAsync');
 const { logger } = require('../../../shared/logger');
 
-
-
-
 module.exports.addTask = catchAsync(async (req, res) => {
   // logger.info(req.body, "blog dataaaa");
   const data = req.body;
@@ -87,19 +84,16 @@ exports.deleteTask = catchAsync(async (req, res) => {
   });
 });
 
-
 exports.bulkDeleteTask = catchAsync(async (req, res) => {
-
   const ids = req.body?.ids || [];
   logger.info(ids, 'controller idddddddddddd');
 
   // Validate IDs
-  if (!ids.every(id => mongoose.Types.ObjectId.isValid(id))) {
-    throw { message: "Invalid IDs provided" };
+  if (!ids.every((id) => mongoose.Types.ObjectId.isValid(id))) {
+    throw { message: 'Invalid IDs provided' };
   }
 
   const result = await bulkDeleteTaskService(ids);
-
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -108,5 +102,3 @@ exports.bulkDeleteTask = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-

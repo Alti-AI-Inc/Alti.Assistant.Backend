@@ -15,7 +15,7 @@ const analyzeAndStoreWorkflowController = catchAsync(async (req, res) => {
     conversationId,
     conversationContext,
     tags,
-    category
+    category,
   } = req.body;
 
   const userId = req.user?._id || req.userId;
@@ -24,7 +24,7 @@ const analyzeAndStoreWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -32,7 +32,7 @@ const analyzeAndStoreWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'User input is required'
+      message: 'User input is required',
     });
   }
 
@@ -45,7 +45,7 @@ const analyzeAndStoreWorkflowController = catchAsync(async (req, res) => {
       conversationId,
       conversationContext,
       tags,
-      category
+      category,
     });
 
     if (result.success) {
@@ -53,23 +53,22 @@ const analyzeAndStoreWorkflowController = catchAsync(async (req, res) => {
         statusCode: httpStatus.CREATED,
         success: true,
         message: result.message,
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
         message: result.error,
-        data: result.details
+        data: result.details,
       });
     }
-
   } catch (error) {
     logger.error('Error in analyzeAndStoreWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to analyze and store workflow'
+      message: 'Failed to analyze and store workflow',
     });
   }
 });
@@ -87,14 +86,14 @@ const getUserStoredWorkflowsController = catchAsync(async (req, res) => {
     limit = 50,
     offset = 0,
     sortBy = 'createdAt',
-    sortOrder = -1
+    sortOrder = -1,
   } = req.query;
 
   if (!userId) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -107,7 +106,7 @@ const getUserStoredWorkflowsController = catchAsync(async (req, res) => {
       limit: parseInt(limit),
       offset: parseInt(offset),
       sortBy,
-      sortOrder: parseInt(sortOrder)
+      sortOrder: parseInt(sortOrder),
     });
 
     if (result.success) {
@@ -115,22 +114,21 @@ const getUserStoredWorkflowsController = catchAsync(async (req, res) => {
         statusCode: httpStatus.OK,
         success: true,
         message: 'Workflows retrieved successfully',
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in getUserStoredWorkflowsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to retrieve workflows'
+      message: 'Failed to retrieve workflows',
     });
   }
 });
@@ -146,7 +144,7 @@ const getStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -154,34 +152,36 @@ const getStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
   try {
-    const result = await workflowStorageService.getStoredWorkflow(workflowId, userId);
+    const result = await workflowStorageService.getStoredWorkflow(
+      workflowId,
+      userId
+    );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: 'Workflow retrieved successfully',
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in getStoredWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to retrieve workflow'
+      message: 'Failed to retrieve workflow',
     });
   }
 });
@@ -198,7 +198,7 @@ const updateStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -206,34 +206,37 @@ const updateStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
   try {
-    const result = await workflowStorageService.updateStoredWorkflow(workflowId, userId, updates);
+    const result = await workflowStorageService.updateStoredWorkflow(
+      workflowId,
+      userId,
+      updates
+    );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: result.message,
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in updateStoredWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to update workflow'
+      message: 'Failed to update workflow',
     });
   }
 });
@@ -249,7 +252,7 @@ const deleteStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -257,33 +260,35 @@ const deleteStoredWorkflowController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
   try {
-    const result = await workflowStorageService.deleteStoredWorkflow(workflowId, userId);
+    const result = await workflowStorageService.deleteStoredWorkflow(
+      workflowId,
+      userId
+    );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: result.message
+        message: result.message,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in deleteStoredWorkflowController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to delete workflow'
+      message: 'Failed to delete workflow',
     });
   }
 });
@@ -300,7 +305,7 @@ const searchStoredWorkflowsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -308,37 +313,40 @@ const searchStoredWorkflowsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Search term is required'
+      message: 'Search term is required',
     });
   }
 
   try {
-    const result = await workflowStorageService.searchStoredWorkflows(userId, searchTerm, {
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
+    const result = await workflowStorageService.searchStoredWorkflows(
+      userId,
+      searchTerm,
+      {
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+      }
+    );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: 'Search completed successfully',
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in searchStoredWorkflowsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to search workflows'
+      message: 'Failed to search workflows',
     });
   }
 });
@@ -353,7 +361,7 @@ const getExecutableWorkflowsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -365,22 +373,21 @@ const getExecutableWorkflowsController = catchAsync(async (req, res) => {
         statusCode: httpStatus.OK,
         success: true,
         message: 'Executable workflows retrieved successfully',
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in getExecutableWorkflowsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to retrieve executable workflows'
+      message: 'Failed to retrieve executable workflows',
     });
   }
 });
@@ -396,7 +403,7 @@ const refreshWorkflowConnectionsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -404,34 +411,36 @@ const refreshWorkflowConnectionsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
   try {
-    const result = await workflowStorageService.refreshWorkflowConnections(workflowId, userId);
+    const result = await workflowStorageService.refreshWorkflowConnections(
+      workflowId,
+      userId
+    );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: result.message,
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in refreshWorkflowConnectionsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to refresh workflow connections'
+      message: 'Failed to refresh workflow connections',
     });
   }
 });
@@ -447,7 +456,7 @@ const prepareWorkflowForExecutionController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -455,34 +464,36 @@ const prepareWorkflowForExecutionController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Workflow ID is required'
+      message: 'Workflow ID is required',
     });
   }
 
   try {
-    const result = await workflowStorageService.prepareWorkflowForExecution(workflowId, userId);
+    const result = await workflowStorageService.prepareWorkflowForExecution(
+      workflowId,
+      userId
+    );
 
     if (result.success) {
       return sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: result.message,
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in prepareWorkflowForExecutionController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to prepare workflow for execution'
+      message: 'Failed to prepare workflow for execution',
     });
   }
 });
@@ -497,7 +508,7 @@ const getWorkflowStatisticsController = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
       success: false,
-      message: 'User authentication required'
+      message: 'User authentication required',
     });
   }
 
@@ -509,22 +520,21 @@ const getWorkflowStatisticsController = catchAsync(async (req, res) => {
         statusCode: httpStatus.OK,
         success: true,
         message: 'Statistics retrieved successfully',
-        data: result.data
+        data: result.data,
       });
     } else {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: result.error
+        message: result.error,
       });
     }
-
   } catch (error) {
     logger.error('Error in getWorkflowStatisticsController:', error);
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to retrieve statistics'
+      message: 'Failed to retrieve statistics',
     });
   }
 });
@@ -539,5 +549,5 @@ export {
   getExecutableWorkflowsController,
   refreshWorkflowConnectionsController,
   prepareWorkflowForExecutionController,
-  getWorkflowStatisticsController
+  getWorkflowStatisticsController,
 };

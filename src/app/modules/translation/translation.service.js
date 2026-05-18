@@ -36,7 +36,13 @@ const generateConversationId = () => {
 /**
  * Handle translation conversation (create or retrieve)
  */
-const handleTranslationConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleTranslationConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
@@ -46,9 +52,11 @@ const handleTranslationConversation = async (userId, conversationId, userMessage
           conversationId,
           userId
         );
-        logger.info("Fetched conversation", { conversationId });
+        logger.info('Fetched conversation', { conversationId });
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -76,14 +84,24 @@ const handleTranslationConversation = async (userId, conversationId, userMessage
     return conversation;
   } catch (error) {
     logger.error('Error handling translation conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -92,22 +110,37 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
 /**
  * Store uploaded document in conversation with GCS upload
  */
-const storeDocumentInConversation = async (conversationId, userId, fileInfo, extractedText, translationParams = {}, req = null) => {
+const storeDocumentInConversation = async (
+  conversationId,
+  userId,
+  fileInfo,
+  extractedText,
+  translationParams = {},
+  req = null
+) => {
   try {
     logger.info('Storing translation document in conversation', {
       conversationId,
       filename: fileInfo.originalname,
-      size: fileInfo.size
+      size: fileInfo.size,
     });
 
     // Upload to GCS
@@ -131,9 +164,10 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo, ext
       publicUrl: uploadResult.publicUrl || uploadResult.localPath,
       gcsPath: uploadResult.gcsPath,
       storageType: uploadResult.storageType,
-      extractedText: extractedText.length <= STORAGE_CONFIG.MAX_CACHED_TEXT_SIZE
-        ? extractedText
-        : extractedText.substring(0, STORAGE_CONFIG.MAX_CACHED_TEXT_SIZE),
+      extractedText:
+        extractedText.length <= STORAGE_CONFIG.MAX_CACHED_TEXT_SIZE
+          ? extractedText
+          : extractedText.substring(0, STORAGE_CONFIG.MAX_CACHED_TEXT_SIZE),
       textLength: extractedText.length,
       textTruncated: extractedText.length > STORAGE_CONFIG.MAX_CACHED_TEXT_SIZE,
       size: fileInfo.size,
@@ -143,11 +177,15 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo, ext
       translationParams: {
         targetLanguage: translationParams.targetLanguage,
         sourceLanguage: translationParams.sourceLanguage,
-      }
+      },
     };
 
     // Update conversation documents_metadata
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
     const existingDocuments = conversation.documents_metadata?.documents || [];
 
     await Conversation.updateOne(
@@ -156,7 +194,7 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo, ext
         $set: {
           'documents_metadata.documents': [...existingDocuments, documentData],
           'documents_metadata.currentDocumentId': documentData.id,
-        }
+        },
       }
     );
 
@@ -180,22 +218,37 @@ const storeDocumentInConversation = async (conversationId, userId, fileInfo, ext
       logger.warn('Failed to cleanup file after error:', cleanupError);
     }
 
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to store document in conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to store document in conversation'
+    );
   }
 };
 
 /**
  * Fetch file from GCS when needed (for re-translation or reference)
  */
-const fetchDocumentFromGCS = async (conversationId, userId, documentId, req = null) => {
+const fetchDocumentFromGCS = async (
+  conversationId,
+  userId,
+  documentId,
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
     const documents = conversation.documents_metadata?.documents || [];
 
-    const document = documents.find(doc => doc.id === documentId);
+    const document = documents.find((doc) => doc.id === documentId);
 
     if (!document) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Document not found in conversation');
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        'Document not found in conversation'
+      );
     }
 
     // If stored locally, return the local path
@@ -209,7 +262,10 @@ const fetchDocumentFromGCS = async (conversationId, userId, documentId, req = nu
 
     // Download from GCS to temporary location
     const tempPath = `uploads/translations/temp_${Date.now()}_${document.filename}`;
-    const downloadResult = await fileProcessor.downloadFromGCS(document.gcsPath, tempPath);
+    const downloadResult = await fileProcessor.downloadFromGCS(
+      document.gcsPath,
+      tempPath
+    );
 
     logger.info('Document fetched from GCS', {
       documentId,
@@ -397,18 +453,25 @@ const processConversationalRequest = async (
 /**
  * Handle translate text intent
  */
-const handleTranslateText = async (conversationId, userId, params, analysis) => {
+const handleTranslateText = async (
+  conversationId,
+  userId,
+  params,
+  analysis
+) => {
   try {
     // Check if we have required parameters
     const requiredParams = REQUIRED_PARAMS[TRANSLATION_INTENTS.TRANSLATE_TEXT];
-    const missingParams = requiredParams.filter(param => !params[param]);
+    const missingParams = requiredParams.filter((param) => !params[param]);
 
     if (missingParams.length > 0 || analysis.needsMoreInfo) {
       return {
         conversationId,
         success: false,
         needsMoreInfo: true,
-        message: analysis.followUpQuestion || 'Please provide the text and target language.',
+        message:
+          analysis.followUpQuestion ||
+          'Please provide the text and target language.',
         missingParams,
         collectedParams: params,
       };
@@ -444,7 +507,13 @@ const handleTranslateText = async (conversationId, userId, params, analysis) => 
 /**
  * Handle translate file intent
  */
-const handleTranslateFile = async (conversationId, userId, uploadedFile, params, analysis) => {
+const handleTranslateFile = async (
+  conversationId,
+  userId,
+  uploadedFile,
+  params,
+  analysis
+) => {
   let tempFilePath = null;
   let selectionReason = ''; // Define at function scope
 
@@ -456,10 +525,17 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
 
     // If no new file uploaded, check for existing files in conversation
     if (!uploadedFile) {
-      logger.info('No new file uploaded, checking conversation for existing files');
+      logger.info(
+        'No new file uploaded, checking conversation for existing files'
+      );
 
-      const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
-      const existingDocuments = conversation.documents_metadata?.documents || [];
+      const conversation = await conversationHelpers.getConversationById(
+        conversationId,
+        userId,
+        req
+      );
+      const existingDocuments =
+        conversation.documents_metadata?.documents || [];
 
       if (existingDocuments.length === 0) {
         return {
@@ -478,14 +554,20 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
         // Only one file - use it
         selectedDocument = existingDocuments[0];
         selectionReason = 'Only one file available';
-        logger.info('Using the only file in conversation', { documentId: selectedDocument.id });
+        logger.info('Using the only file in conversation', {
+          documentId: selectedDocument.id,
+        });
       } else {
         // Multiple files - use LLM to intelligently select the right file
-        logger.info('Multiple files found, using LLM to select appropriate file', {
-          totalFiles: existingDocuments.length
-        });
+        logger.info(
+          'Multiple files found, using LLM to select appropriate file',
+          {
+            totalFiles: existingDocuments.length,
+          }
+        );
 
-        const userMessage = params.userMessage || 'translate to ' + params.targetLanguage;
+        const userMessage =
+          params.userMessage || 'translate to ' + params.targetLanguage;
         const selection = await conversationAnalyzer.selectFileFromMultiple(
           userMessage,
           existingDocuments
@@ -515,22 +597,28 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
         logger.info('Using cached extracted text from document metadata');
       } else {
         // Need to fetch file from GCS and extract text
-        logger.info('Fetching file from GCS for text extraction', { gcsPath: selectedDocument.gcsPath });
+        logger.info('Fetching file from GCS for text extraction', {
+          gcsPath: selectedDocument.gcsPath,
+        });
 
-        const fetchResult = await fetchDocumentFromGCS(conversationId, userId, selectedDocument.id);
+        const fetchResult = await fetchDocumentFromGCS(
+          conversationId,
+          userId,
+          selectedDocument.id
+        );
         tempFilePath = fetchResult.localPath;
 
         // Extract text from downloaded file
         const extractedTextFromFile = await fileProcessor.extractTextFromFile({
           path: fetchResult.localPath,
-          originalname: selectedDocument.originalName
+          originalname: selectedDocument.originalName,
         });
 
         extractedText = extractedTextFromFile;
         fileMetadata = {
           fileName: selectedDocument.originalName,
           characterCount: extractedTextFromFile.length,
-          fileSize: selectedDocument.size
+          fileSize: selectedDocument.size,
         };
 
         logger.info('Text extracted from fetched file', {
@@ -544,13 +632,13 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
       // New file uploaded - extract text from it
       extractedText = await fileProcessor.extractTextFromFile({
         path: uploadedFile.path,
-        originalname: uploadedFile.originalname
+        originalname: uploadedFile.originalname,
       });
 
       fileMetadata = {
         fileName: uploadedFile.originalname,
         characterCount: extractedText.length,
-        fileSize: uploadedFile.size
+        fileSize: uploadedFile.size,
       };
 
       logger.info('File text extracted from new upload', {
@@ -570,7 +658,9 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
         conversationId,
         success: false,
         needsMoreInfo: true,
-        message: analysis.followUpQuestion || 'What language would you like to translate the file to?',
+        message:
+          analysis.followUpQuestion ||
+          'What language would you like to translate the file to?',
         collectedParams: params,
       };
     }
@@ -656,7 +746,12 @@ const handleTranslateFile = async (conversationId, userId, uploadedFile, params,
 /**
  * Handle detect language intent
  */
-const handleDetectLanguage = async (conversationId, userId, params, analysis) => {
+const handleDetectLanguage = async (
+  conversationId,
+  userId,
+  params,
+  analysis
+) => {
   try {
     if (!params.text) {
       return {
@@ -698,7 +793,7 @@ const handleGetSupportedLanguages = async (conversationId, userId) => {
     const languagesResult = await translationAPIClient.getSupportedLanguages();
 
     const languageList = languagesResult.languages
-      .map(lang => `${lang.name} (${lang.code})`)
+      .map((lang) => `${lang.name} (${lang.code})`)
       .join(', ');
 
     return {
@@ -724,7 +819,11 @@ const handleGetSupportedLanguages = async (conversationId, userId) => {
 /**
  * Direct translation (non-conversational)
  */
-const translateTextDirect = async (text, targetLanguage, sourceLanguage = null) => {
+const translateTextDirect = async (
+  text,
+  targetLanguage,
+  sourceLanguage = null
+) => {
   try {
     logger.info('Direct translation request', {
       textLength: text.length,

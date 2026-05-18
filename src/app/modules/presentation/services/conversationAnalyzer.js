@@ -55,7 +55,7 @@ class ConversationAnalyzer {
     let totalTokens = 0;
 
     // Estimate tokens for conversation history
-    conversationHistory.forEach(msg => {
+    conversationHistory.forEach((msg) => {
       totalTokens += this._estimateTokens(msg.content);
     });
 
@@ -77,7 +77,7 @@ class ConversationAnalyzer {
   async summarizeConversation(conversationHistory, existingParams) {
     try {
       const conversationText = conversationHistory
-        .map(msg => `${msg.role}: ${msg.content}`)
+        .map((msg) => `${msg.role}: ${msg.content}`)
         .join('\n');
 
       const prompt = `Summarize the following conversation about presentation generation. Focus on:
@@ -102,7 +102,7 @@ Provide a brief summary (max 200 words):`;
       logger.info('Conversation summarized', {
         originalMessages: conversationHistory.length,
         summaryLength: summary.length,
-        estimatedTokens: this._estimateTokens(summary)
+        estimatedTokens: this._estimateTokens(summary),
       });
 
       return summary;
@@ -121,10 +121,18 @@ Provide a brief summary (max 200 words):`;
    * @param {string} conversationSummary - Optional pre-computed summary
    * @returns {Promise<Object>} - Analysis result with intent, parameters, missing fields, and follow-up question
    */
-  async analyzeIntent(userMessage, conversationHistory = [], existingParams = {}, conversationSummary = null) {
+  async analyzeIntent(
+    userMessage,
+    conversationHistory = [],
+    existingParams = {},
+    conversationSummary = null
+  ) {
     try {
       // Calculate token usage
-      const estimatedTokens = this._calculateConversationTokens(conversationHistory, existingParams);
+      const estimatedTokens = this._calculateConversationTokens(
+        conversationHistory,
+        existingParams
+      );
 
       logger.info('Token estimation', {
         estimatedTokens,
@@ -163,7 +171,7 @@ Provide a brief summary (max 200 words):`;
       logger.error('Error analyzing intent:', error);
       throw error;
     }
-  }  /**
+  } /**
    * Build system prompt for intent analysis
    */
   _buildSystemPrompt() {
@@ -379,7 +387,12 @@ Return your analysis as a JSON object with this structure:
   /**
    * Build user prompt with context
    */
-  _buildUserPrompt(userMessage, conversationHistory, existingParams, conversationSummary = null) {
+  _buildUserPrompt(
+    userMessage,
+    conversationHistory,
+    existingParams,
+    conversationSummary = null
+  ) {
     let prompt = '';
 
     // Use summary if provided, otherwise use full history
@@ -398,7 +411,8 @@ Return your analysis as a JSON object with this structure:
     } else {
       // Add full conversation history for context
       if (conversationHistory.length > 0) {
-        prompt += '**FULL CONVERSATION HISTORY (Extract parameters from ALL messages):**\n';
+        prompt +=
+          '**FULL CONVERSATION HISTORY (Extract parameters from ALL messages):**\n';
         conversationHistory.forEach((msg) => {
           prompt += `${msg.role}: ${msg.content}\n`;
         });
@@ -416,7 +430,8 @@ Return your analysis as a JSON object with this structure:
     prompt += '**Current User Message:**\n';
     prompt += userMessage + '\n\n';
 
-    prompt += '**IMPORTANT**: Extract ALL parameters from the conversation context above (summary + recent messages or full history), not just the current message. If the user mentioned the topic/content earlier, include it in the parameters even if they just said "generate now" in the current message.';
+    prompt +=
+      '**IMPORTANT**: Extract ALL parameters from the conversation context above (summary + recent messages or full history), not just the current message. If the user mentioned the topic/content earlier, include it in the parameters even if they just said "generate now" in the current message.';
 
     return prompt;
   }
@@ -427,7 +442,9 @@ Return your analysis as a JSON object with this structure:
   _parseResponse(content) {
     try {
       // Extract JSON from response (handle markdown code blocks)
-      const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
+      const jsonMatch =
+        content.match(/```json\n?([\s\S]*?)\n?```/) ||
+        content.match(/\{[\s\S]*\}/);
 
       if (!jsonMatch) {
         logger.warn('No JSON found in response, using defaults');
@@ -436,7 +453,8 @@ Return your analysis as a JSON object with this structure:
           confidence: 0.5,
           parameters: {},
           missingRequired: [],
-          followUpQuestion: "I'm not sure I understood that. Could you please clarify what you'd like to do?",
+          followUpQuestion:
+            "I'm not sure I understood that. Could you please clarify what you'd like to do?",
           reasoning: 'Unable to parse response',
         };
       }
@@ -460,7 +478,8 @@ Return your analysis as a JSON object with this structure:
         confidence: 0.3,
         parameters: {},
         missingRequired: [],
-        followUpQuestion: "I'm having trouble understanding. Could you please rephrase your request?",
+        followUpQuestion:
+          "I'm having trouble understanding. Could you please rephrase your request?",
         reasoning: 'Parse error',
       };
     }

@@ -17,7 +17,12 @@ const model = genAI.getGenerativeModel({ model: DOCUMENT_CONFIG.MODEL });
 /**
  * Analyze user intent from conversation
  */
-const analyzeIntent = async (userMessage, conversationHistory = [], existingParams = {}, conversationSummary = null) => {
+const analyzeIntent = async (
+  userMessage,
+  conversationHistory = [],
+  existingParams = {},
+  conversationSummary = null
+) => {
   try {
     logger.info('Analyzing document intent with AI', {
       messageLength: userMessage.length,
@@ -140,7 +145,8 @@ Be smart about inferring intent and parameters from context. If the user asks to
         'Would you like me to expand on any particular section?',
       ],
       canProceed: true,
-      suggestedResponse: 'I\'ll create a draft for you based on what you\'ve provided.',
+      suggestedResponse:
+        "I'll create a draft for you based on what you've provided.",
     };
   }
 };
@@ -148,7 +154,10 @@ Be smart about inferring intent and parameters from context. If the user asks to
 /**
  * Summarize long conversation history
  */
-const summarizeConversation = async (conversationHistory, collectedParams = {}) => {
+const summarizeConversation = async (
+  conversationHistory,
+  collectedParams = {}
+) => {
   try {
     logger.info('Summarizing conversation', {
       messageCount: conversationHistory.length,
@@ -190,9 +199,7 @@ Provide a concise summary:`;
  * Calculate estimated token count
  */
 const calculateConversationTokens = (conversationHistory, params = {}) => {
-  const messagesText = conversationHistory
-    .map((msg) => msg.content)
-    .join(' ');
+  const messagesText = conversationHistory.map((msg) => msg.content).join(' ');
   const paramsText = JSON.stringify(params);
 
   // Rough estimate: ~4 chars per token

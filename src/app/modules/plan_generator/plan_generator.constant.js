@@ -32,18 +32,18 @@ export const PLAN_TYPES = {
 
 // Complexity levels
 export const COMPLEXITY_LEVELS = {
-  SIMPLE: 'simple',        // 1-2 weeks execution
-  MODERATE: 'moderate',    // 1-3 months
-  COMPLEX: 'complex',      // 3-12 months
+  SIMPLE: 'simple', // 1-2 weeks execution
+  MODERATE: 'moderate', // 1-3 months
+  COMPLEX: 'complex', // 3-12 months
   ENTERPRISE: 'enterprise', // 12+ months
 };
 
 // Plan depth
 export const PLAN_DEPTH = {
-  QUICK: 'quick',              // High-level overview
-  STANDARD: 'standard',         // Detailed plan
+  QUICK: 'quick', // High-level overview
+  STANDARD: 'standard', // Detailed plan
   COMPREHENSIVE: 'comprehensive', // Deep dive with alternatives
-  STRATEGIC: 'strategic',       // Executive-level with financials
+  STRATEGIC: 'strategic', // Executive-level with financials
 };
 
 // Brainstorm aspects
@@ -158,7 +158,8 @@ export const RESPONSE_MESSAGES = {
   PLAN_GENERATED: 'Plan generated successfully',
   BRAINSTORM_COMPLETED: 'Brainstorming session completed',
   REFINEMENT_APPLIED: 'Plan refinement applied successfully',
-  CLARIFICATION_NEEDED: 'I need more information to create a comprehensive plan',
+  CLARIFICATION_NEEDED:
+    'I need more information to create a comprehensive plan',
   INVALID_IDEA: 'Please provide a more detailed description of your idea',
   FILE_UPLOADED: 'File uploaded and analyzed successfully',
   CONVERSATION_CREATED: 'New planning conversation created',
@@ -182,10 +183,10 @@ export const PLAN_SECTIONS = {
 
 // Clarity score thresholds
 export const CLARITY_THRESHOLDS = {
-  VERY_CLEAR: 0.8,    // Idea is well-defined, ready for planning
-  CLEAR: 0.6,         // Idea is understandable, minor clarifications needed
-  MODERATE: 0.4,      // Idea needs significant clarification
-  UNCLEAR: 0.2,       // Idea is too vague, major clarifications needed
+  VERY_CLEAR: 0.8, // Idea is well-defined, ready for planning
+  CLEAR: 0.6, // Idea is understandable, minor clarifications needed
+  MODERATE: 0.4, // Idea needs significant clarification
+  UNCLEAR: 0.2, // Idea is too vague, major clarifications needed
 };
 
 // Export formats
@@ -226,7 +227,7 @@ export const CLARIFICATION_QUESTIONS = {
     'How many attendees do you expect?',
     'What is your budget?',
     'When do you want to hold the event?',
-    'What is the event\'s main objective?',
+    "What is the event's main objective?",
   ],
   MARKETING_CAMPAIGN: [
     'What is your campaign objective?',

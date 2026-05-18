@@ -16,9 +16,11 @@ router
 router.route('/register').post(
   createRateLimiter(5, 2),
   // validateRequest(AuthValidation.UserValidationSchema),
-  authController.register,
+  authController.register
 );
-router.route('/register/resend-confirmation').post(authController.resendEmailConfirmation);
+router
+  .route('/register/resend-confirmation')
+  .post(authController.resendEmailConfirmation);
 router.route('/register/confirmation').post(authController.confirmEmail); // verify mail
 
 router.route('/login').post(createRateLimiter(5, 5), authController.login); // login in app
@@ -26,7 +28,7 @@ router.route('/login').post(createRateLimiter(5, 5), authController.login); // l
 router.post(
   '/refresh-token',
   validateRequest(AuthValidation.refreshTokenZodSchema),
-  authController.refreshToken,
+  authController.refreshToken
 );
 
 router
@@ -35,19 +37,17 @@ router
 router
   .route('/reset-password')
   .post(createRateLimiter(5, 1), authController.resetPassword);
-router
-  .route('/change-password')
-  .post(
-    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    // createRateLimiter(10, 1),
-    authController.changePassword,
-  );
+router.route('/change-password').post(
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  // createRateLimiter(10, 1),
+  authController.changePassword
+);
 
 router
   .route('/update-user/:userId')
   .put(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    authController.updateUser,
+    authController.updateUser
   ); // is to use update user profile
 router
   .route('/delete-account-otp/:id')
@@ -56,7 +56,7 @@ router
   .route('/delete-account/:id')
   .delete(
     auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-    authController.deleteUserAccount,
+    authController.deleteUserAccount
   ); // use to delete account
 
 export const authRoutes = router;

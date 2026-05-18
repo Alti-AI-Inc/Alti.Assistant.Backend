@@ -25,13 +25,13 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   // Handle file upload if present
   const fileInfo = req.file
     ? {
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      location: req.file.location || req.file.path,
-    }
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        location: req.file.location || req.file.path,
+      }
     : null;
 
   logger.info(
@@ -47,10 +47,16 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 });
+    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
+      createdAt: -1,
+    });
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(conversationId, userId, req)
+      ? await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        )
       : 0;
 
     if (promptUsage <= totalConversationWithConvId) {
@@ -92,7 +98,9 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       req
     );
 
-    logger.info(`Article generated successfully for conversation ${result.conversationId}`);
+    logger.info(
+      `Article generated successfully for conversation ${result.conversationId}`
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -124,7 +132,10 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
-    const conversation = await articleWriterService.getConversationHistory(conversationId, userId);
+    const conversation = await articleWriterService.getConversationHistory(
+      conversationId,
+      userId
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

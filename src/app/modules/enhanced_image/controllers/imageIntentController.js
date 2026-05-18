@@ -1,4 +1,4 @@
-import config from "../../../../../config/index.js";
+import config from '../../../../../config/index.js';
 
 export const createImageIntentController = (sessionManager) => {
   return {
@@ -12,21 +12,24 @@ export const createImageIntentController = (sessionManager) => {
         if (!userRequest) {
           return res.status(400).json({
             success: false,
-            error: "request or userMessage is required",
+            error: 'request or userMessage is required',
           });
         }
 
         // Get session context if sessionId provided
-        let context = "No previous context.";
+        let context = 'No previous context.';
         if (sessionId) {
           const session = sessionManager.getSession(sessionId);
           if (session) {
-            context = sessionManager.getHistory(sessionId) || "No previous context.";
+            context =
+              sessionManager.getHistory(sessionId) || 'No previous context.';
           }
         }
 
         // Import here to avoid circular dependencies
-        const { analyzeImageIntent } = await import("../utils/imageIntentAnalyzer.js");
+        const { analyzeImageIntent } = await import(
+          '../utils/imageIntentAnalyzer.js'
+        );
         const apiKey = config.gemini_secret_key;
 
         // Analyze intent
@@ -47,7 +50,7 @@ export const createImageIntentController = (sessionManager) => {
           questions: analysis.questions,
         });
       } catch (error) {
-        console.error("Error analyzing image intent:", error);
+        console.error('Error analyzing image intent:', error);
         res.status(500).json({
           success: false,
           error: error.message,

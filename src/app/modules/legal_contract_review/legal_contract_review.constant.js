@@ -49,9 +49,9 @@ export const CONTRACT_REVIEW_ASPECTS = {
 
 // Review depth levels
 export const REVIEW_DEPTH = {
-  QUICK: 'quick',           // Quick overview of key clauses
-  STANDARD: 'standard',     // Standard comprehensive review
-  DETAILED: 'detailed',     // Detailed clause-by-clause analysis
+  QUICK: 'quick', // Quick overview of key clauses
+  STANDARD: 'standard', // Standard comprehensive review
+  DETAILED: 'detailed', // Detailed clause-by-clause analysis
   COMPREHENSIVE: 'comprehensive', // Most thorough with risk matrix
 };
 
@@ -149,21 +149,28 @@ Remember: You provide legal information and analysis, but always clarify that th
 
 // Response messages
 export const RESPONSE_MESSAGES = {
-  NEED_CONTRACT: "I'd be happy to review a legal contract for you. Please provide the contract by either uploading the contract file (PDF, DOCX, DOC, or TXT) or by pasting the contract text in your message. What specific aspects of the contract would you like me to focus on?",
+  NEED_CONTRACT:
+    "I'd be happy to review a legal contract for you. Please provide the contract by either uploading the contract file (PDF, DOCX, DOC, or TXT) or by pasting the contract text in your message. What specific aspects of the contract would you like me to focus on?",
 
-  NEED_CLARIFICATION: "I understand you'd like a contract review. To provide the most helpful analysis, could you please clarify: {clarification_needed}",
+  NEED_CLARIFICATION:
+    "I understand you'd like a contract review. To provide the most helpful analysis, could you please clarify: {clarification_needed}",
 
   REVIEW_COMPLETE: "I've completed the contract review. Here's my analysis:",
 
-  FILE_UPLOADED: "I've received your contract file. What specific aspects would you like me to review? (e.g., obligations, risks, fairness, compliance, specific clauses)",
+  FILE_UPLOADED:
+    "I've received your contract file. What specific aspects would you like me to review? (e.g., obligations, risks, fairness, compliance, specific clauses)",
 
-  TEXT_PROVIDED: "I've received the contract text. What type of review would you like? (e.g., general review, risk assessment, clause analysis, fairness evaluation)",
+  TEXT_PROVIDED:
+    "I've received the contract text. What type of review would you like? (e.g., general review, risk assessment, clause analysis, fairness evaluation)",
 
-  UNKNOWN_INTENT: "I'm not sure I fully understand what you'd like me to review in the contract. Could you please be more specific? For example, you could ask me to:\n- Review the entire contract\n- Analyze specific clauses\n- Assess risks\n- Check for fairness\n- Evaluate compliance\n- Suggest amendments",
+  UNKNOWN_INTENT:
+    "I'm not sure I fully understand what you'd like me to review in the contract. Could you please be more specific? For example, you could ask me to:\n- Review the entire contract\n- Analyze specific clauses\n- Assess risks\n- Check for fairness\n- Evaluate compliance\n- Suggest amendments",
 
-  ERROR: "I apologize, but I encountered an error while processing your request. Please try again or rephrase your request.",
+  ERROR:
+    'I apologize, but I encountered an error while processing your request. Please try again or rephrase your request.',
 
-  DISCLAIMER: "\n\n---\n**Important Legal Disclaimer:** This review is provided for informational purposes only and does not constitute legal advice. For specific legal matters, please consult with a qualified attorney licensed to practice in your jurisdiction.",
+  DISCLAIMER:
+    '\n\n---\n**Important Legal Disclaimer:** This review is provided for informational purposes only and does not constitute legal advice. For specific legal matters, please consult with a qualified attorney licensed to practice in your jurisdiction.',
 };
 
 // Intent detection keywords

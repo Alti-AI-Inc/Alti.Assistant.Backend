@@ -71,7 +71,7 @@ const ConversationSchema = new mongoose.Schema(
       isGuest: {
         type: Boolean,
         default: false,
-      }
+      },
     },
     documents_metadata: {
       documents: {
@@ -126,7 +126,7 @@ const ConversationSchema = new mongoose.Schema(
   {
     timestamps: true, // Adds createdAt and updatedAt
     versionKey: false,
-    strict: false
+    strict: false,
   }
 );
 
@@ -154,7 +154,11 @@ ConversationSchema.virtual('url').get(function () {
 });
 
 // Instance method to add a message
-ConversationSchema.methods.addMessage = function (role, content, metadata = {}) {
+ConversationSchema.methods.addMessage = function (
+  role,
+  content,
+  metadata = {}
+) {
   this.messages.push({
     role,
     content,
@@ -168,19 +172,22 @@ ConversationSchema.methods.addMessage = function (role, content, metadata = {}) 
 
 // Instance method to get latest messages with limit
 ConversationSchema.methods.getRecentMessages = function (limit = 10) {
-  return this.messages
-    .slice(-limit)
-    .map(msg => ({
-      role: msg.role,
-      content: msg.content,
-      timestamp: msg.timestamp,
-      metadata: msg.metadata,
-    }));
+  return this.messages.slice(-limit).map((msg) => ({
+    role: msg.role,
+    content: msg.content,
+    timestamp: msg.timestamp,
+    metadata: msg.metadata,
+  }));
 };
 
 // Static method to find active conversations for a user
 ConversationSchema.statics.findActiveByUser = function (userId, options = {}) {
-  const { limit = 20, skip = 0, sortBy = 'lastActivity', sortOrder = -1 } = options;
+  const {
+    limit = 20,
+    skip = 0,
+    sortBy = 'lastActivity',
+    sortOrder = -1,
+  } = options;
 
   return this.find({ userId, status: 'active' })
     .sort({ [sortBy]: sortOrder })
@@ -190,7 +197,10 @@ ConversationSchema.statics.findActiveByUser = function (userId, options = {}) {
 };
 
 // Static method to find conversation by conversationId and userId
-ConversationSchema.statics.findByConversationId = function (conversationId, userId = null) {
+ConversationSchema.statics.findByConversationId = function (
+  conversationId,
+  userId = null
+) {
   const query = { conversationId };
   if (userId) {
     query.userId = userId;

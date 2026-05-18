@@ -3,7 +3,6 @@ import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
 import { jwtHelpers } from '../../helpers/jwtHelpers.js';
 
-
 const auth = (...requiredRoles) => {
   return async (req, res, next) => {
     try {
@@ -16,7 +15,7 @@ const auth = (...requiredRoles) => {
 
       const verifiedUser = jwtHelpers.verifyToken(
         token,
-        config.jwt.access_token,
+        config.jwt.access_token
       );
 
       // 👇 Assign user to request object

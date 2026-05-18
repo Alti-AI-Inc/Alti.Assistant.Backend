@@ -13,11 +13,22 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 /**
  * Generate a comprehensive plan from brainstorming insights
  */
-export const generatePlan = async (ideaText, analysis, brainstorm, planDepth = PLAN_DEPTH.STANDARD, constraints = {}) => {
+export const generatePlan = async (
+  ideaText,
+  analysis,
+  brainstorm,
+  planDepth = PLAN_DEPTH.STANDARD,
+  constraints = {}
+) => {
   try {
-    logger.info('Generating plan:', { planDepth, complexity: analysis.complexity });
+    logger.info('Generating plan:', {
+      planDepth,
+      complexity: analysis.complexity,
+    });
 
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const planPrompt = `${SYSTEM_PROMPTS.PLAN_GENERATION}
 
@@ -117,7 +128,10 @@ Only return the JSON object itself.`;
     const lastBrace = planText.lastIndexOf('}');
 
     if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
-      logger.error('Failed to find valid JSON boundaries in response:', planText.substring(0, 500));
+      logger.error(
+        'Failed to find valid JSON boundaries in response:',
+        planText.substring(0, 500)
+      );
       throw new Error('Failed to extract JSON from plan');
     }
 
@@ -129,18 +143,24 @@ Only return the JSON object itself.`;
     } catch (parseError) {
       logger.error('JSON parse error:', parseError.message);
       logger.error('JSON string length:', jsonString.length);
-      logger.error('Attempted to parse (first 1000 chars):', jsonString.substring(0, 1000));
-      logger.error('Attempted to parse (last 500 chars):', jsonString.substring(jsonString.length - 500));
+      logger.error(
+        'Attempted to parse (first 1000 chars):',
+        jsonString.substring(0, 1000)
+      );
+      logger.error(
+        'Attempted to parse (last 500 chars):',
+        jsonString.substring(jsonString.length - 500)
+      );
 
       // Attempt to repair common JSON issues
       logger.info('Attempting to repair JSON...');
       try {
         // Remove trailing commas before } or ]
         let repairedJson = jsonString
-          .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas
-          .replace(/([}\]])(\s*)([{"\w])/g, '$1,$2$3')  // Add missing commas between objects
-          .replace(/\n/g, ' ')  // Remove newlines that might break strings
-          .replace(/\r/g, '');  // Remove carriage returns
+          .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+          .replace(/([}\]])(\s*)([{"\w])/g, '$1,$2$3') // Add missing commas between objects
+          .replace(/\n/g, ' ') // Remove newlines that might break strings
+          .replace(/\r/g, ''); // Remove carriage returns
 
         plan = JSON.parse(repairedJson);
         logger.info('JSON repair successful!');
@@ -153,7 +173,9 @@ Only return the JSON object itself.`;
         await fs.writeFile(debugPath, jsonString, 'utf-8');
         logger.error('Problematic JSON saved to:', debugPath);
 
-        throw new Error('Failed to parse JSON from plan: ' + parseError.message);
+        throw new Error(
+          'Failed to parse JSON from plan: ' + parseError.message
+        );
       }
     }
 
@@ -171,7 +193,9 @@ Only return the JSON object itself.`;
  */
 export const generateQuickActionItems = async (ideaText, analysis) => {
   try {
-    const model = genAI.getGenerativeModel({ model: PLAN_GENERATOR_CONFIG.MODEL });
+    const model = genAI.getGenerativeModel({
+      model: PLAN_GENERATOR_CONFIG.MODEL,
+    });
 
     const prompt = `Generate 5-10 immediate action items for this idea:
 
@@ -227,12 +251,20 @@ export const createPhasedTimeline = (brainstorm, complexity) => {
       {
         name: 'Planning & Preparation',
         duration: '2-4 weeks',
-        key_activities: ['Define requirements', 'Assemble team', 'Set up infrastructure'],
+        key_activities: [
+          'Define requirements',
+          'Assemble team',
+          'Set up infrastructure',
+        ],
       },
       {
         name: 'Execution',
         duration: '4-12 weeks',
-        key_activities: ['Implement core features', 'Regular testing', 'Iterate based on feedback'],
+        key_activities: [
+          'Implement core features',
+          'Regular testing',
+          'Iterate based on feedback',
+        ],
       },
       {
         name: 'Launch & Deployment',

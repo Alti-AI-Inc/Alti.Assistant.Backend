@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
-import { OWNER_TYPES, PROCESSING_STATUS, FILE_VISIBILITY } from './knowledge.constant.js';
+import {
+  OWNER_TYPES,
+  PROCESSING_STATUS,
+  FILE_VISIBILITY,
+} from './knowledge.constant.js';
 
 /**
  * Unified Knowledge File Schema
@@ -175,9 +179,24 @@ const KnowledgeFileSchema = new mongoose.Schema(
 );
 
 // Compound indexes
-KnowledgeFileSchema.index({ ownerType: 1, ownerId: 1, isActive: 1, createdAt: -1 });
-KnowledgeFileSchema.index({ ownerType: 1, ownerId: 1, folderId: 1, isActive: 1 });
-KnowledgeFileSchema.index({ ownerType: 1, ownerId: 1, fileType: 1, isActive: 1 });
+KnowledgeFileSchema.index({
+  ownerType: 1,
+  ownerId: 1,
+  isActive: 1,
+  createdAt: -1,
+});
+KnowledgeFileSchema.index({
+  ownerType: 1,
+  ownerId: 1,
+  folderId: 1,
+  isActive: 1,
+});
+KnowledgeFileSchema.index({
+  ownerType: 1,
+  ownerId: 1,
+  fileType: 1,
+  isActive: 1,
+});
 KnowledgeFileSchema.index({ ownerType: 1, ownerId: 1, processingStatus: 1 });
 KnowledgeFileSchema.index({ documentId: 1 }, { sparse: true });
 
@@ -192,7 +211,11 @@ KnowledgeFileSchema.virtual('formattedFileSize').get(function () {
 });
 
 // Static methods
-KnowledgeFileSchema.statics.findByOwner = async function (ownerType, ownerId, options = {}) {
+KnowledgeFileSchema.statics.findByOwner = async function (
+  ownerType,
+  ownerId,
+  options = {}
+) {
   const query = {
     ownerType,
     ownerId,
@@ -200,8 +223,10 @@ KnowledgeFileSchema.statics.findByOwner = async function (ownerType, ownerId, op
   };
 
   if (options.fileType) query.fileType = options.fileType;
-  if (options.processingStatus) query.processingStatus = options.processingStatus;
-  if (options.isProcessed !== undefined) query.isProcessed = options.isProcessed;
+  if (options.processingStatus)
+    query.processingStatus = options.processingStatus;
+  if (options.isProcessed !== undefined)
+    query.isProcessed = options.isProcessed;
   if (options.folderId !== undefined) query.folderId = options.folderId;
 
   return this.find(query)
@@ -210,13 +235,21 @@ KnowledgeFileSchema.statics.findByOwner = async function (ownerType, ownerId, op
     .skip(options.skip || 0);
 };
 
-KnowledgeFileSchema.statics.countByOwner = async function (ownerType, ownerId, activeOnly = true) {
+KnowledgeFileSchema.statics.countByOwner = async function (
+  ownerType,
+  ownerId,
+  activeOnly = true
+) {
   const query = { ownerType, ownerId };
   if (activeOnly) query.isActive = true;
   return this.countDocuments(query);
 };
 
-KnowledgeFileSchema.statics.getTotalStorageByOwner = async function (ownerType, ownerId, activeOnly = true) {
+KnowledgeFileSchema.statics.getTotalStorageByOwner = async function (
+  ownerType,
+  ownerId,
+  activeOnly = true
+) {
   const query = { ownerType, ownerId };
   if (activeOnly) query.isActive = true;
 
@@ -229,7 +262,11 @@ KnowledgeFileSchema.statics.getTotalStorageByOwner = async function (ownerType, 
 };
 
 // Instance methods
-KnowledgeFileSchema.methods.markAsProcessed = async function (documentId, chunkCount, title) {
+KnowledgeFileSchema.methods.markAsProcessed = async function (
+  documentId,
+  chunkCount,
+  title
+) {
   this.documentId = documentId;
   this.chunkCount = chunkCount;
   this.title = title;

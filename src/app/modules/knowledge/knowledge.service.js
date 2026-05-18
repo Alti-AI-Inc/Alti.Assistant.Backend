@@ -9,7 +9,10 @@ import ApiError from '../../../errors/ApiError.js';
 import KnowledgeFile from './knowledge.model.js';
 import KnowledgeFolder from './knowledge_folder.model.js';
 import { fileProcessor } from './services/fileProcessor.js';
-import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
+import {
+  withTenantContext,
+  withTenantFilter,
+} from '../../helpers/tenantQuery.js';
 import {
   KNOWLEDGE_CONFIG,
   RAG_DATABASE_CONFIG,
@@ -70,7 +73,9 @@ class KnowledgeService {
    */
   async uploadFile(file, ownerType, ownerId, options = {}, req = null) {
     try {
-      logger.info(`[Knowledge] Uploading file for ${ownerType}: ${ownerId}, file: ${file.originalname}`);
+      logger.info(
+        `[Knowledge] Uploading file for ${ownerType}: ${ownerId}, file: ${file.originalname}`
+      );
 
       // Validate file
       if (!file || !file.buffer) {
@@ -79,7 +84,10 @@ class KnowledgeService {
 
       // Validate owner type
       if (!Object.values(OWNER_TYPES).includes(ownerType)) {
-        throw new ApiError(httpStatus.BAD_REQUEST, `Invalid owner type: ${ownerType}`);
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Invalid owner type: ${ownerType}`
+        );
       }
 
       // Validate folder for user files
@@ -93,7 +101,10 @@ class KnowledgeService {
           req ? withTenantFilter(req, folderQuery) : folderQuery
         );
         if (!folder) {
-          throw new ApiError(httpStatus.NOT_FOUND, 'Folder not found or does not belong to user');
+          throw new ApiError(
+            httpStatus.NOT_FOUND,
+            'Folder not found or does not belong to user'
+          );
         }
       }
 
@@ -103,14 +114,20 @@ class KnowledgeService {
       const fileName = `${timestamp}_${file.originalname}`;
 
       // Upload to GCS
-      const uploadResult = await fileProcessor.uploadToGCS(file.buffer, fileName, {
-        ownerType,
-        ownerId,
-        folderId: options.folderId,
-        originalName: file.originalname,
-      });
+      const uploadResult = await fileProcessor.uploadToGCS(
+        file.buffer,
+        fileName,
+        {
+          ownerType,
+          ownerId,
+          folderId: options.folderId,
+          originalName: file.originalname,
+        }
+      );
 
-      logger.info(`[Knowledge] File uploaded to GCS: ${uploadResult.publicUrl}`);
+      logger.info(
+        `[Knowledge] File uploaded to GCS: ${uploadResult.publicUrl}`
+      );
 
       // Save file record
       const fileData = {
@@ -194,7 +211,9 @@ class KnowledgeService {
       const file = bucket.file(fileRecord.gcsPath);
       const [buffer] = await file.download();
 
-      logger.info(`[Knowledge] Downloaded file from GCS: ${fileRecord.gcsPath}`);
+      logger.info(
+        `[Knowledge] Downloaded file from GCS: ${fileRecord.gcsPath}`
+      );
 
       // Process with RAG system
       const ragResult = await rag.addDocumentFromBuffer(
@@ -390,7 +409,9 @@ class KnowledgeService {
         try {
           await rag.initialize();
           await rag.deleteDocument(file.documentId);
-          logger.info(`[Knowledge] Document deleted from RAG: ${file.documentId}`);
+          logger.info(
+            `[Knowledge] Document deleted from RAG: ${file.documentId}`
+          );
         } catch (ragError) {
           logger.error('[Knowledge] Error deleting from RAG:', ragError);
         }
@@ -412,10 +433,20 @@ class KnowledgeService {
    */
   async getStorageStats(ownerType, ownerId, req = null) {
     try {
-      logger.info(`[Knowledge] Getting storage stats for ${ownerType}: ${ownerId}`);
+      logger.info(
+        `[Knowledge] Getting storage stats for ${ownerType}: ${ownerId}`
+      );
 
-      const totalFiles = await KnowledgeFile.countByOwner(ownerType, ownerId, true);
-      const totalStorage = await KnowledgeFile.getTotalStorageByOwner(ownerType, ownerId, true);
+      const totalFiles = await KnowledgeFile.countByOwner(
+        ownerType,
+        ownerId,
+        true
+      );
+      const totalStorage = await KnowledgeFile.getTotalStorageByOwner(
+        ownerType,
+        ownerId,
+        true
+      );
 
       const query1 = {
         ownerType,
@@ -453,7 +484,9 @@ class KnowledgeService {
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        return (
+          Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+        );
       };
 
       return {
@@ -480,7 +513,9 @@ class KnowledgeService {
    */
   async createFolder(userId, folderData, req = null) {
     try {
-      logger.info(`[Knowledge] Creating folder for user: ${userId}, name: ${folderData.name}`);
+      logger.info(
+        `[Knowledge] Creating folder for user: ${userId}, name: ${folderData.name}`
+      );
 
       // Validate parent folder
       if (folderData.parentFolderId) {
@@ -566,10 +601,16 @@ class KnowledgeService {
 
       let folders;
 
-      if (options.parentFolderId === null || options.parentFolderId === 'root') {
+      if (
+        options.parentFolderId === null ||
+        options.parentFolderId === 'root'
+      ) {
         folders = await KnowledgeFolder.findRootFolders(userId);
       } else if (options.parentFolderId) {
-        folders = await KnowledgeFolder.findSubfolders(options.parentFolderId, userId);
+        folders = await KnowledgeFolder.findSubfolders(
+          options.parentFolderId,
+          userId
+        );
       } else {
         folders = await KnowledgeFolder.findByUserId(userId, options);
       }
@@ -605,7 +646,10 @@ class KnowledgeService {
    */
   async getFolderById(folderId, userId, req = null) {
     try {
-      const result = await KnowledgeFolder.getFolderWithAncestors(folderId, userId);
+      const result = await KnowledgeFolder.getFolderWithAncestors(
+        folderId,
+        userId
+      );
 
       if (!result) {
         return null;
@@ -681,7 +725,8 @@ class KnowledgeService {
       }
 
       // Update other fields
-      if (updateData.description !== undefined) folder.description = updateData.description;
+      if (updateData.description !== undefined)
+        folder.description = updateData.description;
       if (updateData.color) folder.color = updateData.color;
       if (updateData.icon) folder.icon = updateData.icon;
       if (updateData.tags) folder.tags = updateData.tags;

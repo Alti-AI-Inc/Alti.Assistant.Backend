@@ -10,7 +10,6 @@ import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 const { ZepClient } = zepPackage;
 
-
 // =========================================================
 //          With Serper Groq and langchain
 // ==========================================================
@@ -180,7 +179,7 @@ const GroqAiGetResponse = catchAsync(async (req, res) => {
   const result = await LlamaAiService.getAiResponsesGroqService(
     prompt,
     userId,
-    sessionId,
+    sessionId
   );
   // logger.info('✅ Service result:', result); // log result
   sendResponse(res, {
@@ -197,7 +196,7 @@ const GroqAiGetResponseAnonymously = catchAsync(async (req, res) => {
 
   const responseData = await LlamaAiService.GroqAiGetResponseAnonymousService(
     prompt,
-    sessionId,
+    sessionId
   );
 
   sendResponse(res, {

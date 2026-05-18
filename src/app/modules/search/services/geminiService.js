@@ -1,7 +1,10 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import config from "../../../../../config/index.js";
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import config from '../../../../../config/index.js';
 import { googleSearch, YouTubeSearchTool } from '../tools.js';
-import { analyzeAndLogModelSelection, selectOptimalModel } from '../utils/modelSelector.js';
+import {
+  analyzeAndLogModelSelection,
+  selectOptimalModel,
+} from '../utils/modelSelector.js';
 
 /**
  * Gemini LLM Service
@@ -11,13 +14,13 @@ import { analyzeAndLogModelSelection, selectOptimalModel } from '../utils/modelS
 
 // Model selection criteria
 export const ModelComplexity = {
-  SIMPLE: 'simple',      // Fast, lightweight tasks
-  COMPLEX: 'complex'     // Advanced reasoning, complex tasks
+  SIMPLE: 'simple', // Fast, lightweight tasks
+  COMPLEX: 'complex', // Advanced reasoning, complex tasks
 };
 
 // Gemini 2.5 Flash - Fast and efficient for simple tasks
 export const gemini2_5Flash = new ChatGoogleGenerativeAI({
-  model: "gemini-2.5-flash", // Gemini 2.5 Flash for speed and efficiency
+  model: 'gemini-2.5-flash', // Gemini 2.5 Flash for speed and efficiency
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
@@ -25,13 +28,13 @@ export const gemini2_5Flash = new ChatGoogleGenerativeAI({
 
 // Gemini 3 Pro Preview - Advanced capabilities for complex tasks
 export const gemini3ProPreview = new ChatGoogleGenerativeAI({
-  model: "gemini-3-flash-preview", // Gemini 3 with advanced capabilities
+  model: 'gemini-3-flash-preview', // Gemini 3 with advanced capabilities
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
   thinkingConfig: {
-    thinkingLevel: 'LOW'
-  }
+    thinkingLevel: 'LOW',
+  },
 });
 
 /**
@@ -65,7 +68,7 @@ export const selectModel = (options = {}) => {
     requiresReasoning = false,
     speedPriority = false,
     query = null,
-    context = {}
+    context = {},
   } = options;
 
   // If query is provided, use SMART selection
@@ -74,7 +77,7 @@ export const selectModel = (options = {}) => {
     return selectModelSmart(query, {
       ...context,
       requiresReasoning,
-      inputLength
+      inputLength,
     });
   }
 
@@ -90,7 +93,9 @@ export const selectModel = (options = {}) => {
     requiresReasoning ||
     inputLength > 10000
   ) {
-    console.log('✅ Selected: Gemini 3 Pro Preview (Manual: Complex/Large/Reasoning)');
+    console.log(
+      '✅ Selected: Gemini 3 Pro Preview (Manual: Complex/Large/Reasoning)'
+    );
     return gemini3ProPreview;
   }
 
@@ -116,10 +121,7 @@ export const selectModel = (options = {}) => {
  * @returns {ChatGoogleGenerativeAI} Tool-enabled LLM instance
  */
 export const createToolEnabledLLM = (query = null, options = {}) => {
-  const searchTools = [
-    new YouTubeSearchTool(),
-    googleSearch
-  ];
+  const searchTools = [new YouTubeSearchTool(), googleSearch];
 
   // Use smart selection if query is provided
   const selectedModel = query
@@ -135,13 +137,12 @@ export const createToolEnabledLLM = (query = null, options = {}) => {
  * @returns {ChatGoogleGenerativeAI} Tool-enabled LLM instance
  */
 export const createToolEnabledLLMExplicit = (modelType = 'flash') => {
-  const searchTools = [
-    new YouTubeSearchTool(),
-    googleSearch
-  ];
+  const searchTools = [new YouTubeSearchTool(), googleSearch];
 
   const model = modelType === 'pro' ? gemini3ProPreview : gemini2_5Flash;
-  console.log(`✅ Explicit model selection: ${modelType === 'pro' ? 'Gemini 3 Pro Preview' : 'Gemini 2.5 Flash'}`);
+  console.log(
+    `✅ Explicit model selection: ${modelType === 'pro' ? 'Gemini 3 Pro Preview' : 'Gemini 2.5 Flash'}`
+  );
 
   return model.bindTools(searchTools);
 };

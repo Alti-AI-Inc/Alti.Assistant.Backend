@@ -9,15 +9,20 @@ import ComposioAuth from '../composio.model.js';
  * Workflow Executor Service - Executes saved workflows
  */
 class WorkflowExecutor {
-
   /**
    * Execute a saved workflow
    */
-  async executeWorkflow(workflow, executionType = 'manual', triggerSource = 'api_call') {
+  async executeWorkflow(
+    workflow,
+    executionType = 'manual',
+    triggerSource = 'api_call'
+  ) {
     const executionId = WorkflowExecution.generateExecutionId();
 
     try {
-      logger.info(`Starting workflow execution: ${workflow.workflowId} (${executionType})`);
+      logger.info(
+        `Starting workflow execution: ${workflow.workflowId} (${executionType})`
+      );
 
       // Create execution record
       const execution = new WorkflowExecution({
@@ -27,7 +32,7 @@ class WorkflowExecutor {
         executionType,
         triggerSource,
         totalSteps: workflow.totalSteps,
-        connectedAccountsUsed: workflow.connectedAccounts
+        connectedAccountsUsed: workflow.connectedAccounts,
       });
 
       await execution.save();
@@ -36,8 +41,13 @@ class WorkflowExecutor {
       // Validate connections before execution
       const connectionCheck = await this.validateConnections(workflow);
       if (!connectionCheck.success) {
-        await execution.addLog('error', `Connection validation failed: ${connectionCheck.error}`);
-        await execution.completeExecution(false, { error: connectionCheck.error });
+        await execution.addLog(
+          'error',
+          `Connection validation failed: ${connectionCheck.error}`
+        );
+        await execution.completeExecution(false, {
+          error: connectionCheck.error,
+        });
 
         // Update workflow failure count
         await workflow.updateExecutionStats(false);
@@ -46,38 +56,47 @@ class WorkflowExecutor {
           success: false,
           executionId,
           error: connectionCheck.error,
-          message: 'Workflow execution failed due to connection issues'
+          message: 'Workflow execution failed due to connection issues',
         };
       }
 
       // Execute workflow based on type
       let executionResult;
       if (workflow.workflowType === 'single_step') {
-        executionResult = await this.executeSingleStepWorkflow(workflow, execution);
+        executionResult = await this.executeSingleStepWorkflow(
+          workflow,
+          execution
+        );
       } else {
-        executionResult = await this.executeMultiStepWorkflow(workflow, execution);
+        executionResult = await this.executeMultiStepWorkflow(
+          workflow,
+          execution
+        );
       }
 
       // Complete execution
       await execution.completeExecution(executionResult.success, {
         summary: executionResult.summary || 'Workflow completed',
         data: executionResult.data,
-        outputData: executionResult.outputData
+        outputData: executionResult.outputData,
       });
 
       // Update workflow stats
       await workflow.updateExecutionStats(executionResult.success);
 
-      logger.info(`Workflow execution completed: ${workflow.workflowId} - ${executionResult.success ? 'Success' : 'Failed'}`);
+      logger.info(
+        `Workflow execution completed: ${workflow.workflowId} - ${executionResult.success ? 'Success' : 'Failed'}`
+      );
 
       return {
         success: executionResult.success,
         executionId,
         data: executionResult.data,
         summary: executionResult.summary,
-        message: executionResult.success ? 'Workflow executed successfully' : 'Workflow execution failed'
+        message: executionResult.success
+          ? 'Workflow executed successfully'
+          : 'Workflow execution failed',
       };
-
     } catch (error) {
       logger.error(`Error executing workflow ${workflow.workflowId}:`, error);
 
@@ -92,14 +111,17 @@ class WorkflowExecutor {
         // Update workflow failure count
         await workflow.updateExecutionStats(false);
       } catch (updateError) {
-        logger.error('Failed to update execution record with error:', updateError);
+        logger.error(
+          'Failed to update execution record with error:',
+          updateError
+        );
       }
 
       return {
         success: false,
         executionId,
         error: error.message,
-        message: 'Workflow execution failed'
+        message: 'Workflow execution failed',
       };
     }
   }
@@ -111,18 +133,24 @@ class WorkflowExecutor {
     try {
       const step = workflow.executionPlan[0];
 
-      await execution.addLog('info', `Executing single step: ${step.app} -> ${step.action}`);
+      await execution.addLog(
+        'info',
+        `Executing single step: ${step.app} -> ${step.action}`
+      );
       await execution.updateProgress(1, {
         step: 1,
         app: step.app,
         action: step.action,
         status: 'running',
         startTime: new Date(),
-        parameters: step.parameters
+        parameters: step.parameters,
       });
 
       // Get user's connected account for the app
-      const connectedAccount = await this.getConnectedAccount(workflow.userId, step.app);
+      const connectedAccount = await this.getConnectedAccount(
+        workflow.userId,
+        step.app
+      );
       if (!connectedAccount) {
         throw new Error(`No connected account found for ${step.app}`);
       }
@@ -145,16 +173,17 @@ class WorkflowExecutor {
         endTime: new Date(),
         duration: 1000, // Calculate actual duration
         result: result.data,
-        error: result.success ? null : { message: result.error }
+        error: result.success ? null : { message: result.error },
       });
 
       return {
         success: result.success,
         data: result.data,
-        summary: result.success ? `Successfully executed ${step.action} on ${step.app}` : `Failed to execute ${step.action}: ${result.error}`,
-        outputData: { stepResults: [result.data] }
+        summary: result.success
+          ? `Successfully executed ${step.action} on ${step.app}`
+          : `Failed to execute ${step.action}: ${result.error}`,
+        outputData: { stepResults: [result.data] },
       };
-
     } catch (error) {
       logger.error('Error in single-step execution:', error);
 
@@ -164,13 +193,13 @@ class WorkflowExecutor {
         action: workflow.executionPlan[0].action,
         status: 'failed',
         endTime: new Date(),
-        error: { message: error.message }
+        error: { message: error.message },
       });
 
       return {
         success: false,
         error: error.message,
-        summary: `Single-step execution failed: ${error.message}`
+        summary: `Single-step execution failed: ${error.message}`,
       };
     }
   }
@@ -183,18 +212,26 @@ class WorkflowExecutor {
     const stepOutputs = {}; // Store outputs for cross-step parameter mapping
 
     try {
-      await execution.addLog('info', `Executing multi-step workflow with ${workflow.executionPlan.length} steps`);
+      await execution.addLog(
+        'info',
+        `Executing multi-step workflow with ${workflow.executionPlan.length} steps`
+      );
 
       for (let i = 0; i < workflow.executionPlan.length; i++) {
         const step = workflow.executionPlan[i];
         const stepNumber = step.step;
 
-        await execution.addLog('info', `Starting step ${stepNumber}: ${step.app} -> ${step.action}`);
+        await execution.addLog(
+          'info',
+          `Starting step ${stepNumber}: ${step.app} -> ${step.action}`
+        );
 
         // Check dependencies
         if (step.dependencies && step.dependencies.length > 0) {
-          const dependenciesMet = step.dependencies.every(depStep =>
-            stepResults.some(sr => sr.step === depStep && sr.status === 'completed')
+          const dependenciesMet = step.dependencies.every((depStep) =>
+            stepResults.some(
+              (sr) => sr.step === depStep && sr.status === 'completed'
+            )
           );
 
           if (!dependenciesMet) {
@@ -209,7 +246,7 @@ class WorkflowExecutor {
           action: step.action,
           status: 'running',
           startTime: new Date(),
-          parameters: step.parameters
+          parameters: step.parameters,
         });
 
         try {
@@ -221,7 +258,10 @@ class WorkflowExecutor {
           );
 
           // Get connected account
-          const connectedAccount = await this.getConnectedAccount(workflow.userId, step.app);
+          const connectedAccount = await this.getConnectedAccount(
+            workflow.userId,
+            step.app
+          );
           if (!connectedAccount) {
             throw new Error(`No connected account found for ${step.app}`);
           }
@@ -237,9 +277,11 @@ class WorkflowExecutor {
 
           // Store step output for future steps
           if (step.outputMapping) {
-            Object.entries(step.outputMapping).forEach(([outputKey, targetKey]) => {
-              stepOutputs[outputKey] = result.data;
-            });
+            Object.entries(step.outputMapping).forEach(
+              ([outputKey, targetKey]) => {
+                stepOutputs[outputKey] = result.data;
+              }
+            );
           }
 
           // Update step result
@@ -251,7 +293,7 @@ class WorkflowExecutor {
             endTime: new Date(),
             duration: 1000, // Calculate actual duration
             result: result.data,
-            error: result.success ? null : { message: result.error }
+            error: result.success ? null : { message: result.error },
           };
 
           await execution.updateProgress(stepNumber, stepResult);
@@ -261,8 +303,10 @@ class WorkflowExecutor {
             throw new Error(`Step ${stepNumber} failed: ${result.error}`);
           }
 
-          await execution.addLog('info', `Step ${stepNumber} completed successfully`);
-
+          await execution.addLog(
+            'info',
+            `Step ${stepNumber} completed successfully`
+          );
         } catch (stepError) {
           logger.error(`Error in step ${stepNumber}:`, stepError);
 
@@ -272,13 +316,15 @@ class WorkflowExecutor {
             action: step.action,
             status: 'failed',
             endTime: new Date(),
-            error: { message: stepError.message }
+            error: { message: stepError.message },
           };
 
           await execution.updateProgress(stepNumber, failedStepResult);
           stepResults.push(failedStepResult);
 
-          throw new Error(`Multi-step execution failed at step ${stepNumber}: ${stepError.message}`);
+          throw new Error(
+            `Multi-step execution failed at step ${stepNumber}: ${stepError.message}`
+          );
         }
       }
 
@@ -287,11 +333,10 @@ class WorkflowExecutor {
         data: { stepResults },
         summary: `Multi-step workflow completed successfully (${workflow.executionPlan.length} steps)`,
         outputData: {
-          stepResults: stepResults.map(sr => sr.result),
-          crossStepOutputs: stepOutputs
-        }
+          stepResults: stepResults.map((sr) => sr.result),
+          crossStepOutputs: stepOutputs,
+        },
       };
-
     } catch (error) {
       logger.error('Error in multi-step execution:', error);
 
@@ -299,7 +344,7 @@ class WorkflowExecutor {
         success: false,
         error: error.message,
         summary: `Multi-step execution failed: ${error.message}`,
-        outputData: { stepResults: stepResults }
+        outputData: { stepResults: stepResults },
       };
     }
   }
@@ -307,7 +352,13 @@ class WorkflowExecutor {
   /**
    * Execute Composio action
    */
-  async executeComposioAction(userId, app, action, parameters, connectedAccount) {
+  async executeComposioAction(
+    userId,
+    app,
+    action,
+    parameters,
+    connectedAccount
+  ) {
     try {
       // Use existing Composio integration
       // This simulates the actual execution - in production, you'd call the real Composio API
@@ -323,23 +374,22 @@ class WorkflowExecutor {
           parameters,
           timestamp: new Date().toISOString(),
           result: `Mock result for ${action} on ${app}`,
-          executionId: `exec_${Date.now()}`
-        }
+          executionId: `exec_${Date.now()}`,
+        },
       };
 
       // Simulate some processing time
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       return mockResult;
 
       // In real implementation, you would use:
       // return await executeComposioWithGroq(userId, `Execute ${action}`, tools, app, historySummary, conversationContext);
-
     } catch (error) {
       logger.error(`Error executing Composio action ${app}.${action}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -367,11 +417,13 @@ class WorkflowExecutor {
 
     // Apply cross-step parameter mappings
     if (crossStepParameters) {
-      Object.entries(crossStepParameters).forEach(([targetKey, sourceValue]) => {
-        if (stepOutputs[sourceValue]) {
-          resolved[targetKey] = stepOutputs[sourceValue];
+      Object.entries(crossStepParameters).forEach(
+        ([targetKey, sourceValue]) => {
+          if (stepOutputs[sourceValue]) {
+            resolved[targetKey] = stepOutputs[sourceValue];
+          }
         }
-      });
+      );
     }
 
     return resolved;
@@ -395,16 +447,15 @@ class WorkflowExecutor {
         return {
           success: false,
           error: `Missing connections for: ${missingApps.join(', ')}`,
-          missingApps
+          missingApps,
         };
       }
 
       return { success: true };
-
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -417,15 +468,16 @@ class WorkflowExecutor {
       const account = await ComposioAuth.findOne({
         userId: userId,
         integrationId: { $regex: new RegExp(app, 'i') },
-        status: 'active'
+        status: 'active',
       });
 
-      return account ? {
-        connectedAccountId: account.connectedAccountId,
-        integrationId: account.integrationId,
-        status: account.status
-      } : null;
-
+      return account
+        ? {
+            connectedAccountId: account.connectedAccountId,
+            integrationId: account.integrationId,
+            status: account.status,
+          }
+        : null;
     } catch (error) {
       logger.error(`Error getting connected account for ${app}:`, error);
       return null;
@@ -440,13 +492,13 @@ class WorkflowExecutor {
       const stats = await WorkflowExecution.getExecutionStats(workflowId);
       return {
         success: true,
-        data: stats
+        data: stats,
       };
     } catch (error) {
       logger.error(`Error getting execution stats for ${workflowId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -456,19 +508,22 @@ class WorkflowExecutor {
    */
   async cancelExecution(executionId, userId) {
     try {
-      const execution = await WorkflowExecution.findOne({ executionId, userId });
+      const execution = await WorkflowExecution.findOne({
+        executionId,
+        userId,
+      });
 
       if (!execution) {
         return {
           success: false,
-          error: 'Execution not found'
+          error: 'Execution not found',
         };
       }
 
       if (!execution.isRunning) {
         return {
           success: false,
-          error: 'Execution is not running'
+          error: 'Execution is not running',
         };
       }
 
@@ -478,14 +533,13 @@ class WorkflowExecutor {
 
       return {
         success: true,
-        message: 'Execution cancelled successfully'
+        message: 'Execution cancelled successfully',
       };
-
     } catch (error) {
       logger.error(`Error cancelling execution ${executionId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -495,46 +549,54 @@ class WorkflowExecutor {
    */
   async retryExecution(executionId, userId) {
     try {
-      const execution = await WorkflowExecution.findOne({ executionId, userId });
+      const execution = await WorkflowExecution.findOne({
+        executionId,
+        userId,
+      });
 
       if (!execution) {
         return {
           success: false,
-          error: 'Execution not found'
+          error: 'Execution not found',
         };
       }
 
       if (execution.status !== 'failed') {
         return {
           success: false,
-          error: 'Only failed executions can be retried'
+          error: 'Only failed executions can be retried',
         };
       }
 
       // Get the original workflow
-      const workflow = await ScheduledWorkflow.findOne({ workflowId: execution.workflowId });
+      const workflow = await ScheduledWorkflow.findOne({
+        workflowId: execution.workflowId,
+      });
 
       if (!workflow) {
         return {
           success: false,
-          error: 'Original workflow not found'
+          error: 'Original workflow not found',
         };
       }
 
       // Execute the workflow again
-      const retryResult = await this.executeWorkflow(workflow, 'retry', 'user_retry');
+      const retryResult = await this.executeWorkflow(
+        workflow,
+        'retry',
+        'user_retry'
+      );
 
       return {
         success: true,
         data: retryResult,
-        message: 'Execution retry started'
+        message: 'Execution retry started',
       };
-
     } catch (error) {
       logger.error(`Error retrying execution ${executionId}:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

@@ -3,7 +3,10 @@
  * Run with: node scripts/test-gcs-upload.js
  */
 
-import { uploadPresentationToGCS, deleteFromGCS } from '../src/app/modules/presentation/services/gcsUploadService.js';
+import {
+  uploadPresentationToGCS,
+  deleteFromGCS,
+} from '../src/app/modules/presentation/services/gcsUploadService.js';
 import { logger } from '../src/shared/logger.js';
 
 // Test configuration

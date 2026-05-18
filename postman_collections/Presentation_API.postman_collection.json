@@ -24,14 +24,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "assistant"]
             },
             "description": "Start a new conversation to create a presentation"
           }
@@ -52,14 +46,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "assistant"]
             },
             "description": "Continue an existing conversation"
           }
@@ -80,14 +68,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "assistant"]
             },
             "description": "Provide all information in one message"
           }
@@ -108,14 +90,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "assistant"]
             },
             "description": "Ask questions about features"
           }
@@ -136,14 +112,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "assistant"]
             },
             "description": "Request async generation for large presentations"
           }
@@ -164,14 +134,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "assistant"]
             },
             "description": "Check the status of an async task"
           }
@@ -192,14 +156,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/assistant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "assistant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "assistant"]
             },
             "description": "Edit an existing presentation"
           }
@@ -226,14 +184,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "generate"]
             },
             "description": "Generate presentation synchronously"
           }
@@ -254,14 +206,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "generate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "generate"]
             },
             "description": "Generate presentation asynchronously"
           }
@@ -273,15 +219,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/presentation/status/{{taskId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "status",
-                "{{taskId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "status", "{{taskId}}"]
             },
             "description": "Check the status of an async task"
           }
@@ -302,14 +241,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/edit",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "edit"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "edit"]
             },
             "description": "Edit an existing presentation"
           }
@@ -330,14 +263,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/presentation/derive",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "derive"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "derive"]
             },
             "description": "Create a new presentation from an existing one"
           }
@@ -349,14 +276,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/presentation/{{presentationId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presentation",
-                "{{presentationId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "presentation", "{{presentationId}}"]
             },
             "description": "Get details of a presentation"
           }

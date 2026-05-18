@@ -8,7 +8,7 @@ import { bucketUploadService } from './bucketUpload.service.js';
 import {
   ERROR_MESSAGES,
   AUDIO_PROCESSING,
-  PROCESSING_TYPES
+  PROCESSING_TYPES,
 } from './transcription.constant.js';
 import fs from 'fs';
 
@@ -20,7 +20,7 @@ export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
   let userId = isGuest
     ? transcriptionService.generateGuestUserId()
-    : (req.user?.userId || req.user?._id);
+    : req.user?.userId || req.user?._id;
 
   const { message, conversationId } = req.body;
   userId = req.body.userId || userId;
@@ -31,7 +31,9 @@ export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
 
   // Determine action type
   const actionType = determineActionType(audioFile, audioFiles, message);
-  logger.info(`Smart transcription action: ${actionType}, conversationId: ${conversationId || 'new'}`);
+  logger.info(
+    `Smart transcription action: ${actionType}, conversationId: ${conversationId || 'new'}`
+  );
 
   console.log('Proceeding with action type:', actionType);
 
@@ -44,13 +46,21 @@ export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
         return await handleBatchUpload(req, res, userId, isGuest, audioFiles);
 
       case 'CHAT_MESSAGE':
-        return await handleChatMessage(req, res, userId, isGuest, message, conversationId);
+        return await handleChatMessage(
+          req,
+          res,
+          userId,
+          isGuest,
+          message,
+          conversationId
+        );
 
       default:
         return sendResponse(res, {
           statusCode: httpStatus.BAD_REQUEST,
           success: false,
-          message: 'Invalid request. Please provide either an audio file or a message.',
+          message:
+            'Invalid request. Please provide either an audio file or a message.',
         });
     }
   } catch (error) {
@@ -61,7 +71,7 @@ export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
       fs.unlinkSync(audioFile.path);
     }
     if (audioFiles) {
-      audioFiles.forEach(file => {
+      audioFiles.forEach((file) => {
         if (file.path && fs.existsSync(file.path)) {
           fs.unlinkSync(file.path);
         }
@@ -121,25 +131,24 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
 
   try {
     // Handle conversation
-    const conversation = await transcriptionService.handleTranscriptionConversation(
-      userId,
-      conversationId,
-      audioFile.originalname,
-      isGuest,
-      req
-    );
+    const conversation =
+      await transcriptionService.handleTranscriptionConversation(
+        userId,
+        conversationId,
+        audioFile.originalname,
+        isGuest,
+        req
+      );
     const actualConversationId = conversation.conversationId;
 
     // Get conversation history for context
     let conversationHistory = [];
     if (conversationId && conversation.messages) {
-      conversationHistory = conversation.messages
-        .slice(-10)
-        .map(msg => ({
-          role: msg.role,
-          content: msg.content,
-          metadata: msg.metadata
-        }));
+      conversationHistory = conversation.messages.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+        metadata: msg.metadata,
+      }));
     }
 
     // Upload audio file to GCS bucket for permanent storage
@@ -151,7 +160,9 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
     );
 
     // Upload to Gemini File API for processing (required for standard Gemini API)
-    logger.info(`Uploading audio to Gemini File API: ${audioFile.originalname}`);
+    logger.info(
+      `Uploading audio to Gemini File API: ${audioFile.originalname}`
+    );
     const uploadedFile = await geminiAudioService.uploadAudioFile(
       audioFile.path,
       audioFile.mimetype
@@ -201,8 +212,10 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
     );
 
     // Calculate tokens
-    const estimatedDuration = audioFile.size / (AUDIO_PROCESSING.SAMPLE_RATE * 2);
-    const tokenCount = transcriptionService.calculateAudioTokens(estimatedDuration);
+    const estimatedDuration =
+      audioFile.size / (AUDIO_PROCESSING.SAMPLE_RATE * 2);
+    const tokenCount =
+      transcriptionService.calculateAudioTokens(estimatedDuration);
 
     // Add result to conversation
     await transcriptionService.addTranscriptionResult(
@@ -221,7 +234,9 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
       fs.unlinkSync(audioFile.path);
     }
 
-    logger.info(`Audio processed successfully for conversation: ${actualConversationId}`);
+    logger.info(
+      `Audio processed successfully for conversation: ${actualConversationId}`
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -241,7 +256,6 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
         conversationHistory: conversationHistory.length,
       },
     });
-
   } catch (error) {
     if (fs.existsSync(audioFile.path)) fs.unlinkSync(audioFile.path);
     throw error;
@@ -263,13 +277,14 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
   }
 
   try {
-    const conversation = await transcriptionService.handleTranscriptionConversation(
-      userId,
-      conversationId,
-      `batch-${audioFiles.length}-files`,
-      isGuest,
-      req
-    );
+    const conversation =
+      await transcriptionService.handleTranscriptionConversation(
+        userId,
+        conversationId,
+        `batch-${audioFiles.length}-files`,
+        isGuest,
+        req
+      );
     const actualConversationId = conversation.conversationId;
 
     const results = [];
@@ -332,7 +347,7 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
       actualConversationId,
       userId,
       {
-        text: `Batch processing completed: ${results.filter(r => r.success).length}/${results.length} files successful`,
+        text: `Batch processing completed: ${results.filter((r) => r.success).length}/${results.length} files successful`,
         content: JSON.stringify(results),
         processingType: 'batch',
       },
@@ -347,14 +362,13 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
         conversationId: actualConversationId,
         results,
         totalFiles: audioFiles.length,
-        successCount: results.filter(r => r.success).length,
-        failureCount: results.filter(r => !r.success).length,
+        successCount: results.filter((r) => r.success).length,
+        failureCount: results.filter((r) => !r.success).length,
       },
     });
-
   } catch (error) {
     // Clean up files on error
-    audioFiles.forEach(file => {
+    audioFiles.forEach((file) => {
       if (fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);
       }
@@ -366,7 +380,14 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
 /**
  * Handle chat messages (questions about previous transcriptions)
  */
-async function handleChatMessage(req, res, userId, isGuest, message, conversationId) {
+async function handleChatMessage(
+  req,
+  res,
+  userId,
+  isGuest,
+  message,
+  conversationId
+) {
   if (!message) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
@@ -405,7 +426,7 @@ async function handleChatMessage(req, res, userId, isGuest, message, conversatio
     if (conversation.messages) {
       conversationHistory = conversation.messages
         .slice(-20) // Get last 20 messages for context
-        .map(msg => {
+        .map((msg) => {
           // Extract audio file URI if present
           if (msg.metadata?.type === 'audio_upload' && msg.metadata?.fileUri) {
             lastAudioFileUri = msg.metadata.fileUri;
@@ -413,7 +434,7 @@ async function handleChatMessage(req, res, userId, isGuest, message, conversatio
           return {
             role: msg.role,
             content: msg.content,
-            metadata: msg.metadata
+            metadata: msg.metadata,
           };
         });
     }
@@ -427,7 +448,11 @@ async function handleChatMessage(req, res, userId, isGuest, message, conversatio
     );
 
     // Build context-aware prompt
-    const contextPrompt = buildChatPrompt(message, conversationHistory, lastAudioFileUri);
+    const contextPrompt = buildChatPrompt(
+      message,
+      conversationHistory,
+      lastAudioFileUri
+    );
 
     // Use Gemini to answer based on context
     const result = await geminiAudioService.processChatMessage(
@@ -458,7 +483,6 @@ async function handleChatMessage(req, res, userId, isGuest, message, conversatio
         hasAudioContext: !!lastAudioFileUri,
       },
     });
-
   } catch (error) {
     logger.error('Chat message error:', error);
     throw error;
@@ -472,7 +496,8 @@ function buildChatPrompt(message, conversationHistory, audioFileUri) {
   let prompt = '';
 
   if (audioFileUri) {
-    prompt += 'You have access to the transcription and audio context from previous messages. ';
+    prompt +=
+      'You have access to the transcription and audio context from previous messages. ';
   }
 
   if (conversationHistory.length > 0) {
@@ -499,7 +524,6 @@ export const getTranscriptionStats = catchAsync(async (req, res) => {
       message: 'Transcription statistics retrieved successfully',
       data: stats,
     });
-
   } catch (error) {
     logger.error('Error getting transcription stats:', error);
     return sendResponse(res, {

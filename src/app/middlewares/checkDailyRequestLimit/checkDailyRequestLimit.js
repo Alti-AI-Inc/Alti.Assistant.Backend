@@ -16,7 +16,12 @@ const FREE_PLAN_DAILY_LIMIT = 10;
  */
 const checkDailyRequestLimit = async (req, res, next) => {
   try {
-    console.log('Checking daily request limit for user:', req.user._id, req.isGuest, !req.user._id);
+    console.log(
+      'Checking daily request limit for user:',
+      req.user._id,
+      req.isGuest,
+      !req.user._id
+    );
     // Skip check for guests / unauthenticated
     if (req.isGuest || !req.user._id) {
       return next();
@@ -32,9 +37,12 @@ const checkDailyRequestLimit = async (req, res, next) => {
         : { userId, tenantId: null, paymentStatus: 'paid' }
     );
 
-    const dailyLimit = subscription?.limits?.dailyRequestLimit ?? FREE_PLAN_DAILY_LIMIT;
+    const dailyLimit =
+      subscription?.limits?.dailyRequestLimit ?? FREE_PLAN_DAILY_LIMIT;
     const planName = subscription?.plan_name ?? 'free';
-    console.log(`User ${userId} on plan ${planName} has a daily request limit of ${dailyLimit}`);
+    console.log(
+      `User ${userId} on plan ${planName} has a daily request limit of ${dailyLimit}`
+    );
     // ── 2. Get today's request count from UserUsage ───────────────────────────
     const todayCount = await UserUsageModel.getTodayRequests(userId, tenantId);
 
@@ -44,15 +52,17 @@ const checkDailyRequestLimit = async (req, res, next) => {
       tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
       tomorrow.setUTCHours(0, 0, 0, 0);
 
-      logger.warn(`Daily limit reached for user ${userId} (plan: ${planName}) — ${todayCount}/${dailyLimit}`);
+      logger.warn(
+        `Daily limit reached for user ${userId} (plan: ${planName}) — ${todayCount}/${dailyLimit}`
+      );
 
       throw new ApiError(
         httpStatus.TOO_MANY_REQUESTS,
         `Daily request limit reached. You have used ${todayCount} of ${dailyLimit} requests today. ` +
-        `Your limit resets at midnight UTC. ` +
-        (planName === 'free'
-          ? 'Upgrade to Explore ($20/mo) for 1,000 requests/day.'
-          : `Your current plan: ${planName}.`)
+          `Your limit resets at midnight UTC. ` +
+          (planName === 'free'
+            ? 'Upgrade to Explore ($20/mo) for 1,000 requests/day.'
+            : `Your current plan: ${planName}.`)
       );
     }
 
@@ -60,7 +70,9 @@ const checkDailyRequestLimit = async (req, res, next) => {
     await UserUsageModel.incrementRequest(userId, tenantId);
     const used = todayCount + 1;
 
-    logger.info(`Request usage — user: ${userId}, plan: ${planName}, used: ${used}/${dailyLimit}`);
+    logger.info(
+      `Request usage — user: ${userId}, plan: ${planName}, used: ${used}/${dailyLimit}`
+    );
 
     // ── 5. Set info headers for the client ────────────────────────────────────
     res.setHeader('X-Daily-Requests-Used', used);
@@ -74,4 +86,3 @@ const checkDailyRequestLimit = async (req, res, next) => {
 };
 
 export default checkDailyRequestLimit;
-

@@ -18,12 +18,9 @@ const getAllBuyer = catchAsync(async (req, res) => {
   });
 });
 
-
-
 const deleteUser = catchAsync(async (req, res) => {
   const objectId = req.params?.objectId;
   const result = await AdminService.deleteUserService(objectId);
-
 
   if (!result.deletedCount) {
     return res.status(400).json({
@@ -41,7 +38,6 @@ const deleteUser = catchAsync(async (req, res) => {
 });
 
 const getAllUsers = catchAsync(async (req, res) => {
-
   const filters = pick(req.query, [
     'searchTerm',
     'email',
@@ -53,7 +49,7 @@ const getAllUsers = catchAsync(async (req, res) => {
 
   const users = await AdminService.getAllUsersService(
     filters,
-    paginationOptions,
+    paginationOptions
   );
 
   sendResponse(res, {
@@ -111,7 +107,7 @@ const getAllPayment = catchAsync(async (req, res) => {
 
   const result = await AdminService.getAllPaymentService(
     filters,
-    paginationOptions,
+    paginationOptions
   );
 
   sendResponse(res, {
@@ -129,7 +125,10 @@ const getAllTenants = catchAsync(async (req, res) => {
   const filters = pick(req.query, ['searchTerm', 'status', 'plan']);
   const paginationOptions = pick(req.query, paginationFields);
 
-  const result = await AdminService.getAllTenantsService(filters, paginationOptions);
+  const result = await AdminService.getAllTenantsService(
+    filters,
+    paginationOptions
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

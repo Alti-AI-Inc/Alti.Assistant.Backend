@@ -16,11 +16,11 @@ import TenantMember from '../tenant/tenantMember.model.js';
 import Tenant from '../tenant/tenant.model.js';
 import subscriptionService from '../subscription/subscription.service.js';
 
-const deleteUserAccountService = async userId => {
+const deleteUserAccountService = async (userId) => {
   const result = await UserModel.deleteOne({ _id: userId });
   return result;
 };
-const registerService = async req => {
+const registerService = async (req) => {
   const session = await mongoose.startSession();
 
   try {
@@ -44,36 +44,49 @@ const registerService = async req => {
         userData.activeTenantId = tenantId;
       }
 
-      const user = await UserModel.create(
-        [userData],
-        { session },
-      );
+      const user = await UserModel.create([userData], { session });
 
       let invitationAccepted = false;
 
       // Auto-accept invitation if token provided
       if (invitationToken) {
         try {
-          const invitation = await TenantInvitation.findOne({ token: invitationToken });
+          const invitation = await TenantInvitation.findOne({
+            token: invitationToken,
+          });
 
-          if (invitation && invitation.email.toLowerCase() === email.toLowerCase()) {
+          if (
+            invitation &&
+            invitation.email.toLowerCase() === email.toLowerCase()
+          ) {
             if (!invitation.isExpired() && invitation.status === 'pending') {
               // Create TenantMember record
-              await TenantMember.create([{
-                userId: user[0]._id,
-                tenantId: invitation.tenantId,
-                role: invitation.role,
-                permissions: invitation.role === 'admin' ? ['manage_members', 'manage_content'] : ['view_content'],
-                status: 'active',
-                invitedBy: invitation.invitedBy,
-                joinedAt: new Date(),
-              }], { session });
+              await TenantMember.create(
+                [
+                  {
+                    userId: user[0]._id,
+                    tenantId: invitation.tenantId,
+                    role: invitation.role,
+                    permissions:
+                      invitation.role === 'admin'
+                        ? ['manage_members', 'manage_content']
+                        : ['view_content'],
+                    status: 'active',
+                    invitedBy: invitation.invitedBy,
+                    joinedAt: new Date(),
+                  },
+                ],
+                { session }
+              );
 
               // Update user with tenant info and auto-verify
               user[0].tenantId = invitation.tenantId;
               user[0].tenantRole = invitation.role;
               user[0].activeTenantId = invitation.tenantId;
-              user[0].tenantPermissions = invitation.role === 'admin' ? ['manage_members', 'manage_content'] : ['view_content'];
+              user[0].tenantPermissions =
+                invitation.role === 'admin'
+                  ? ['manage_members', 'manage_content']
+                  : ['view_content'];
               user[0].role = 'user'; // Auto-verify user with invitation
               await user[0].save({ session });
 
@@ -92,21 +105,41 @@ const registerService = async req => {
 
               // Add seat to subscription if paid plan
               try {
-                const subscription = await subscriptionService.getTenantSubscription(invitation.tenantId);
-                if (subscription && subscription.plan !== 'free' && subscription.status === 'active') {
-                  await subscriptionService.addSeatToSubscription(subscription._id, user[0]._id);
-                  logger.info(`Added seat to subscription ${subscription._id} for new user ${user[0]._id}`);
+                const subscription =
+                  await subscriptionService.getTenantSubscription(
+                    invitation.tenantId
+                  );
+                if (
+                  subscription &&
+                  subscription.plan !== 'free' &&
+                  subscription.status === 'active'
+                ) {
+                  await subscriptionService.addSeatToSubscription(
+                    subscription._id,
+                    user[0]._id
+                  );
+                  logger.info(
+                    `Added seat to subscription ${subscription._id} for new user ${user[0]._id}`
+                  );
                 }
               } catch (seatError) {
-                logger.error('Error adding seat during registration:', seatError);
+                logger.error(
+                  'Error adding seat during registration:',
+                  seatError
+                );
                 // Don't fail registration if seat addition fails
               }
 
-              logger.info(`Invitation auto-accepted during registration: ${invitation._id}`);
+              logger.info(
+                `Invitation auto-accepted during registration: ${invitation._id}`
+              );
             }
           }
         } catch (inviteError) {
-          logger.error('Error auto-accepting invitation during registration:', inviteError);
+          logger.error(
+            'Error auto-accepting invitation during registration:',
+            inviteError
+          );
           // Don't fail registration if invitation accept fails
         }
       }
@@ -121,9 +154,14 @@ const registerService = async req => {
         if (!tenantId) {
           try {
             await subscriptionService.createFreeSubscription(user[0]._id);
-            logger.info(`Free subscription created for new user: ${user[0]._id}`);
+            logger.info(
+              `Free subscription created for new user: ${user[0]._id}`
+            );
           } catch (subError) {
-            logger.error('Error creating free subscription during registration:', subError);
+            logger.error(
+              'Error creating free subscription during registration:',
+              subError
+            );
           }
         }
 
@@ -140,7 +178,7 @@ const registerService = async req => {
             activeTenantId: user[0].activeTenantId,
           },
           config.jwt.access_token,
-          config.jwt.access_expires_in,
+          config.jwt.access_expires_in
         );
 
         const refreshToken = jwtHelpers.createToken(
@@ -152,10 +190,12 @@ const registerService = async req => {
             activeTenantId: user[0].activeTenantId,
           },
           config.jwt.refresh_token,
-          config.jwt.refresh_expires_in,
+          config.jwt.refresh_expires_in
         );
 
-        logger.info(`User registered and auto-logged in with invitation: ${user[0]._id}`);
+        logger.info(
+          `User registered and auto-logged in with invitation: ${user[0]._id}`
+        );
 
         return {
           user: {
@@ -194,7 +234,10 @@ const registerService = async req => {
           await subscriptionService.createFreeSubscription(user[0]._id);
           logger.info(`Free subscription created for new user: ${user[0]._id}`);
         } catch (subError) {
-          logger.error('Error creating free subscription during registration:', subError);
+          logger.error(
+            'Error creating free subscription during registration:',
+            subError
+          );
           // Don't fail registration if subscription creation fails
         }
       }
@@ -204,7 +247,9 @@ const registerService = async req => {
 
       // ✅ Return appropriate message based on invitation status
       return {
-        message: invitationAccepted ? 'Registration successful. You can now login.' : 'Please verify your E-mail.',
+        message: invitationAccepted
+          ? 'Registration successful. You can now login.'
+          : 'Please verify your E-mail.',
         statusCode: httpStatus.CREATED,
         autoVerified: invitationAccepted,
       };
@@ -215,7 +260,7 @@ const registerService = async req => {
     session.endSession();
     throw new ApiError(httpStatus.BAD_REQUEST, 'Password is required.');
   } catch (error) {
-    await session.abortTransaction().catch(() => { });
+    await session.abortTransaction().catch(() => {});
     session.endSession();
 
     // Only rethrow if it's already an ApiError
@@ -226,12 +271,12 @@ const registerService = async req => {
 
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      "Couldn't register successfully",
+      "Couldn't register successfully"
     );
   }
 };
 
-const resendEmailConfirmationService = async email => {
+const resendEmailConfirmationService = async (email) => {
   const user = await UserModel.findOne({ email });
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
@@ -246,16 +291,19 @@ const resendEmailConfirmationService = async email => {
     token: token,
     expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     type: 'emailVerification',
-  })
+  });
   await newToken.save({ newToken });
 
   const mailData = await registrationOtpTemplate(email, token);
   await sendMailWithNodeMailer(mailData);
   return { message: 'Verification email resent successfully' };
-}
+};
 
-const confirmEmailService = async confirmationCode => {
-  const token = await Token.findOne({ token: confirmationCode, type: 'emailVerification' });
+const confirmEmailService = async (confirmationCode) => {
+  const token = await Token.findOne({
+    token: confirmationCode,
+    type: 'emailVerification',
+  });
   if (!token) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Invalid or expired token');
   }
@@ -272,7 +320,7 @@ const confirmEmailService = async confirmationCode => {
   if (expired) {
     throw new ApiError(
       httpStatus.UNAUTHORIZED,
-      'Token expired, please register again',
+      'Token expired, please register again'
     );
   }
 
@@ -287,9 +335,14 @@ const confirmEmailService = async confirmationCode => {
   if (!user.subscriptionId) {
     try {
       await subscriptionService.createFreeSubscription(user._id, user.tenantId);
-      logger.info(`Free subscription created for user after email confirmation: ${user._id}`);
+      logger.info(
+        `Free subscription created for user after email confirmation: ${user._id}`
+      );
     } catch (subError) {
-      logger.error('Error creating free subscription after email confirmation:', subError);
+      logger.error(
+        'Error creating free subscription after email confirmation:',
+        subError
+      );
       // Don't fail email confirmation if subscription creation fails
     }
   }
@@ -297,11 +350,17 @@ const confirmEmailService = async confirmationCode => {
   return { success: true };
 };
 
-const loginService = async (email, password, tenantId = null, invitationToken = null, subdomain = null) => {
+const loginService = async (
+  email,
+  password,
+  tenantId = null,
+  invitationToken = null,
+  subdomain = null
+) => {
   if (!email || !password) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      'Email and password are required',
+      'Email and password are required'
     );
   }
 
@@ -321,20 +380,20 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
   if (!user) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
-      'User not found, please register first',
+      'User not found, please register first'
     );
   }
   if (user.role === 'unauthorized') {
     throw new ApiError(
       httpStatus.UNAUTHORIZED,
-      'Please verify your email first',
+      'Please verify your email first'
     );
   }
 
   if (user && !user?.password) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      'This account was created using social login. Please log in using your social provider.',
+      'This account was created using social login. Please log in using your social provider.'
     );
   }
 
@@ -347,14 +406,19 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
   // Auto-accept invitation if token provided
   if (invitationToken) {
     try {
-      const invitation = await TenantInvitation.findOne({ token: invitationToken });
+      const invitation = await TenantInvitation.findOne({
+        token: invitationToken,
+      });
 
-      if (invitation && invitation.email.toLowerCase() === email.toLowerCase()) {
+      if (
+        invitation &&
+        invitation.email.toLowerCase() === email.toLowerCase()
+      ) {
         if (!invitation.isExpired() && invitation.status === 'pending') {
           // Check if user is already a member
           const existingMember = await TenantMember.findOne({
             userId: user._id,
-            tenantId: invitation.tenantId
+            tenantId: invitation.tenantId,
           });
 
           if (!existingMember) {
@@ -363,7 +427,10 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
               userId: user._id,
               tenantId: invitation.tenantId,
               role: invitation.role,
-              permissions: invitation.role === 'admin' ? ['manage_members', 'manage_content'] : ['view_content'],
+              permissions:
+                invitation.role === 'admin'
+                  ? ['manage_members', 'manage_content']
+                  : ['view_content'],
               status: 'active',
               invitedBy: invitation.invitedBy,
               joinedAt: new Date(),
@@ -373,28 +440,47 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
             user.tenantId = invitation.tenantId;
             user.tenantRole = invitation.role;
             user.activeTenantId = invitation.tenantId;
-            user.tenantPermissions = invitation.role === 'admin' ? ['manage_members', 'manage_content'] : ['view_content'];
+            user.tenantPermissions =
+              invitation.role === 'admin'
+                ? ['manage_members', 'manage_content']
+                : ['view_content'];
             await user.save();
 
             // Update tenant user count
-            await Tenant.findByIdAndUpdate(
-              invitation.tenantId,
-              { $inc: { 'usage.usersCount': 1 } }
-            );
+            await Tenant.findByIdAndUpdate(invitation.tenantId, {
+              $inc: { 'usage.usersCount': 1 },
+            });
 
             // Add seat to subscription if paid plan
             try {
-              const subscription = await subscriptionService.getTenantSubscription(invitation.tenantId);
-              if (subscription && subscription.plan !== 'free' && subscription.status === 'active') {
-                await subscriptionService.addSeatToSubscription(subscription._id, user._id);
-                logger.info(`Added seat to subscription ${subscription._id} for user ${user._id}`);
+              const subscription =
+                await subscriptionService.getTenantSubscription(
+                  invitation.tenantId
+                );
+              if (
+                subscription &&
+                subscription.plan !== 'free' &&
+                subscription.status === 'active'
+              ) {
+                await subscriptionService.addSeatToSubscription(
+                  subscription._id,
+                  user._id
+                );
+                logger.info(
+                  `Added seat to subscription ${subscription._id} for user ${user._id}`
+                );
               }
             } catch (seatError) {
-              logger.error('Error adding seat during login invitation acceptance:', seatError);
+              logger.error(
+                'Error adding seat during login invitation acceptance:',
+                seatError
+              );
               // Don't fail login if seat addition fails
             }
 
-            logger.info(`Invitation auto-accepted during login: ${invitation._id}`);
+            logger.info(
+              `Invitation auto-accepted during login: ${invitation._id}`
+            );
           } else {
             // User already member, just set as active tenant
             user.activeTenantId = invitation.tenantId;
@@ -409,7 +495,10 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
         }
       }
     } catch (inviteError) {
-      logger.error('Error auto-accepting invitation during login:', inviteError);
+      logger.error(
+        'Error auto-accepting invitation during login:',
+        inviteError
+      );
       // Don't fail login if invitation accept fails
     }
   }
@@ -417,12 +506,12 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
   // Fetch all tenantIds for the user from TenantMember collection
   const tenantMemberships = await TenantMember.find({
     userId: user._id,
-    status: 'active'
+    status: 'active',
   }).select('tenantId role');
 
-  const tenantIds = tenantMemberships.map(membership => ({
+  const tenantIds = tenantMemberships.map((membership) => ({
     tenantId: membership.tenantId,
-    role: membership.role
+    role: membership.role,
   }));
 
   // Include tenants in JWT token payload
@@ -435,12 +524,12 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
   const accessToken = jwtHelpers.createToken(
     tokenPayload,
     config.jwt.access_token,
-    config.jwt.access_expires_in,
+    config.jwt.access_expires_in
   );
   const refreshToken = jwtHelpers.createToken(
     tokenPayload,
     config.jwt.refresh_token,
-    config.jwt.refresh_expires_in,
+    config.jwt.refresh_expires_in
   );
   const isStripeAccountConnected = user?.stripeAccountId;
   if (!isStripeAccountConnected) {
@@ -463,7 +552,7 @@ const loginService = async (email, password, tenantId = null, invitationToken = 
   };
 };
 
-const refreshToken = async token => {
+const refreshToken = async (token) => {
   let verifiedToken;
   try {
     // verifiedToken = jwt.verify(token, config.jwt.refresh_secret);
@@ -482,12 +571,12 @@ const refreshToken = async token => {
   // Fetch all tenantIds for the user from TenantMember collection
   const tenantMemberships = await TenantMember.find({
     userId: isUserExist._id,
-    status: 'active'
+    status: 'active',
   }).select('tenantId role');
 
-  const tenantIds = tenantMemberships.map(membership => ({
+  const tenantIds = tenantMemberships.map((membership) => ({
     tenantId: membership.tenantId,
-    role: membership.role
+    role: membership.role,
   }));
 
   //generate new token;
@@ -498,7 +587,7 @@ const refreshToken = async token => {
       tenants: tenantIds,
     },
     config.jwt.access_token,
-    config.jwt.access_expires_in,
+    config.jwt.access_expires_in
   );
   return {
     accessToken: newAccessToken,
@@ -525,7 +614,7 @@ const updateUserService = async (userId, data) => {
   return result;
 };
 
-const getUserService = async userId => {
+const getUserService = async (userId) => {
   const user = await UserModel.findOne({ _id: userId });
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');

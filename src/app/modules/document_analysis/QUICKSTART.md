@@ -5,6 +5,7 @@ Get started with the Document Analysis API in 3 simple steps.
 ## 🚀 Quick Start
 
 ### Step 1: Test with Simple Text
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
   -H "Content-Type: application/json" \
@@ -14,6 +15,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 ### Step 2: Try Different Analysis Types
+
 ```bash
 # Sentiment Analysis
 curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
@@ -41,6 +43,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 ### Step 3: Upload a File
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
   -F "file=@document.pdf" \
@@ -49,19 +52,20 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 
 ## 📝 Analysis Types
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| `general` | Comprehensive analysis | Default, covers everything |
-| `sentiment` | Emotional tone | Customer feedback, reviews |
-| `summary` | Concise summary | Long documents, articles |
-| `key_points` | Main points | Reports, meetings notes |
-| `entity_extraction` | Extract entities | Contracts, legal docs |
-| `topic_classification` | Categorize topics | Content organization |
-| `language_detection` | Language analysis | Multi-language docs |
+| Type                   | Description            | Use Case                   |
+| ---------------------- | ---------------------- | -------------------------- |
+| `general`              | Comprehensive analysis | Default, covers everything |
+| `sentiment`            | Emotional tone         | Customer feedback, reviews |
+| `summary`              | Concise summary        | Long documents, articles   |
+| `key_points`           | Main points            | Reports, meetings notes    |
+| `entity_extraction`    | Extract entities       | Contracts, legal docs      |
+| `topic_classification` | Categorize topics      | Content organization       |
+| `language_detection`   | Language analysis      | Multi-language docs        |
 
 ## 🎯 Common Use Cases
 
 ### Use Case 1: Customer Feedback Analysis
+
 ```json
 {
   "message": "Customer review text here...",
@@ -71,6 +75,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 ### Use Case 2: Contract Review
+
 ```bash
 # Upload contract PDF
 -F "file=@contract.pdf"
@@ -79,6 +84,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 ### Use Case 3: Meeting Notes Summary
+
 ```json
 {
   "message": "Long meeting transcript...",
@@ -87,6 +93,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ```
 
 ### Use Case 4: Document Q&A
+
 ```json
 // First request
 {
@@ -142,12 +149,14 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
 ## 📦 Postman Collection
 
 Import the Postman collection for easy testing:
+
 - File: `/postman_collections/Document_Analysis_API.postman_collection.json`
 - Includes 12 ready-to-use examples
 
 ## ⚙️ Configuration
 
 Model: **Gemini 3.5 Flash**
+
 - Fast responses
 - Cost-effective
 - High quality analysis
@@ -156,15 +165,19 @@ Model: **Gemini 3.5 Flash**
 ## 🆘 Troubleshooting
 
 **"No content provided"**
+
 - Add either `message` or `file` parameter
 
 **"File too large"**
+
 - Compress or split files over 10MB
 
 **"Unsupported file type"**
+
 - Use PDF, DOCX, TXT, XLSX, or PPTX
 
 **"Conversation not found"**
+
 - Verify conversationId is correct
 - Ensure you're the owner (authenticated users)
 

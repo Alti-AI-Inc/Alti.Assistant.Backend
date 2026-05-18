@@ -22,6 +22,7 @@ A conversational AI-powered document review assistant that allows users to uploa
 Natural language interface for document review with file upload.
 
 **Request:**
+
 ```
 Content-Type: multipart/form-data
 
@@ -33,6 +34,7 @@ Fields:
 ```
 
 **Example Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-review/assistant \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -41,6 +43,7 @@ curl -X POST http://localhost:5000/api/v1/document-review/assistant \
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -73,6 +76,7 @@ curl -X POST http://localhost:5000/api/v1/document-review/assistant \
 Direct document review with explicit parameters.
 
 **Request:**
+
 ```
 Content-Type: multipart/form-data
 
@@ -86,6 +90,7 @@ Fields:
 ```
 
 **Example Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/document-review/review \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -102,6 +107,7 @@ curl -X POST http://localhost:5000/api/v1/document-review/review \
 Retrieve conversation history for a specific review session.
 
 **Example:**
+
 ```bash
 curl -X GET http://localhost:5000/api/v1/document-review/conversation/review_1234567890_abc123 \
   -H "Authorization: Bearer YOUR_TOKEN"
@@ -161,6 +167,7 @@ curl -X GET http://localhost:5000/api/v1/document-review/conversation/review_123
 ## Usage Examples
 
 ### Example 1: Simple Grammar Check
+
 ```javascript
 const formData = new FormData();
 formData.append('file', documentFile);
@@ -169,43 +176,51 @@ formData.append('message', 'Please check this document for grammar errors');
 const response = await fetch('/api/v1/document-review/assistant', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   },
-  body: formData
+  body: formData,
 });
 ```
 
 ### Example 2: Detailed Business Document Review
+
 ```javascript
 const formData = new FormData();
 formData.append('file', documentFile);
-formData.append('message', 'I need a detailed review of this business proposal, focusing on clarity and structure');
+formData.append(
+  'message',
+  'I need a detailed review of this business proposal, focusing on clarity and structure'
+);
 formData.append('conversationId', existingConversationId); // Continue conversation
 
 const response = await fetch('/api/v1/document-review/assistant', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   },
-  body: formData
+  body: formData,
 });
 ```
 
 ### Example 3: Direct Review with Parameters
+
 ```javascript
 const formData = new FormData();
 formData.append('file', documentFile);
 formData.append('reviewType', 'content_analysis');
 formData.append('reviewDepth', 'comprehensive');
 formData.append('documentType', 'academic');
-formData.append('additionalInstructions', 'Pay special attention to argument strength');
+formData.append(
+  'additionalInstructions',
+  'Pay special attention to argument strength'
+);
 
 const response = await fetch('/api/v1/document-review/review', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   },
-  body: formData
+  body: formData,
 });
 ```
 
@@ -220,6 +235,7 @@ The assistant maintains context across multiple messages in a conversation:
 5. **Context retention**: Assistant remembers previous exchanges
 
 Example conversation:
+
 ```
 User: [uploads document] "Can you review this?"
 Assistant: [performs general review]
@@ -251,6 +267,7 @@ The API returns appropriate error messages:
 ## Configuration
 
 Environment variables required:
+
 ```env
 GEMINI_API_KEY=your_gemini_api_key
 GCS_BUCKET_NAME=your_gcs_bucket (optional)

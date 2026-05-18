@@ -2,7 +2,7 @@ import { sendMailWithNodeMailer } from '../../middlewares/sendEmail/sendMailWith
 import {
   generateInvitationEmailHTML,
   generateInvitationEmailText,
-  getInvitationEmailSubject
+  getInvitationEmailSubject,
 } from './templates/invitationEmail.js';
 import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
@@ -31,7 +31,9 @@ const checkEmailRateLimit = (email) => {
 
   const timestamps = emailRateLimitCache.get(key);
   // Remove timestamps older than rate limit window
-  const recentTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW);
+  const recentTimestamps = timestamps.filter(
+    (ts) => now - ts < RATE_LIMIT_WINDOW
+  );
 
   if (recentTimestamps.length >= MAX_EMAILS_PER_HOUR) {
     logger.warn(`Rate limit exceeded for email: ${email}`);
@@ -49,7 +51,9 @@ const checkEmailRateLimit = (email) => {
 setInterval(() => {
   const now = Date.now();
   for (const [email, timestamps] of emailRateLimitCache.entries()) {
-    const recentTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW);
+    const recentTimestamps = timestamps.filter(
+      (ts) => now - ts < RATE_LIMIT_WINDOW
+    );
     if (recentTimestamps.length === 0) {
       emailRateLimitCache.delete(email);
     } else {
@@ -76,7 +80,7 @@ export const sendInvitationEmail = async (invitationData) => {
     tenantName,
     token,
     role = 'member',
-    expiryDays = 7
+    expiryDays = 7,
   } = invitationData;
 
   // Check rate limiting
@@ -94,7 +98,7 @@ export const sendInvitationEmail = async (invitationData) => {
     tenantName,
     invitationLink,
     role,
-    expiryDays
+    expiryDays,
   };
 
   const htmlContent = generateInvitationEmailHTML(templateData);
@@ -105,7 +109,7 @@ export const sendInvitationEmail = async (invitationData) => {
     sub: subject,
     message: htmlContent,
     userEmail: email,
-    text: textContent
+    text: textContent,
   };
 
   // Retry configuration
@@ -115,7 +119,9 @@ export const sendInvitationEmail = async (invitationData) => {
   let lastError;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      logger.info(`Sending invitation email to ${email} (attempt ${attempt}/${maxRetries})`);
+      logger.info(
+        `Sending invitation email to ${email} (attempt ${attempt}/${maxRetries})`
+      );
 
       const result = await sendMailWithNodeMailer(mailData);
 
@@ -124,27 +130,32 @@ export const sendInvitationEmail = async (invitationData) => {
         email,
         tenantName,
         role,
-        attempt
+        attempt,
       });
 
       return {
         success: true,
         messageId: result.messageId,
         email,
-        attempt
+        attempt,
       };
     } catch (error) {
       lastError = error;
-      logger.error(`Failed to send invitation email (attempt ${attempt}/${maxRetries})`, {
-        error: error.message,
-        email,
-        tenantName,
-        attempt
-      });
+      logger.error(
+        `Failed to send invitation email (attempt ${attempt}/${maxRetries})`,
+        {
+          error: error.message,
+          email,
+          tenantName,
+          attempt,
+        }
+      );
 
       // Wait before retrying (except on last attempt)
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryDelay * attempt)
+        );
       }
     }
   }
@@ -153,10 +164,12 @@ export const sendInvitationEmail = async (invitationData) => {
   logger.error(`All attempts to send invitation email failed`, {
     email,
     tenantName,
-    error: lastError.message
+    error: lastError.message,
   });
 
-  throw new Error(`Failed to send invitation email after ${maxRetries} attempts: ${lastError.message}`);
+  throw new Error(
+    `Failed to send invitation email after ${maxRetries} attempts: ${lastError.message}`
+  );
 };
 
 /**
@@ -172,7 +185,7 @@ export const sendInvitationReminderEmail = async (invitationData) => {
     tenantName,
     token,
     role = 'member',
-    expiryDays = 7
+    expiryDays = 7,
   } = invitationData;
 
   const baseUrl = config.app?.frontend_url || 'https://app.asonai.com';
@@ -183,7 +196,7 @@ export const sendInvitationReminderEmail = async (invitationData) => {
     tenantName,
     invitationLink,
     role,
-    expiryDays
+    expiryDays,
   };
 
   const htmlContent = generateInvitationEmailHTML(templateData);
@@ -192,7 +205,7 @@ export const sendInvitationReminderEmail = async (invitationData) => {
   const mailData = {
     sub: subject,
     message: htmlContent,
-    userEmail: email
+    userEmail: email,
   };
 
   try {
@@ -219,5 +232,5 @@ export default {
   sendInvitationEmail,
   sendInvitationReminderEmail,
   isValidEmail,
-  checkEmailRateLimit
+  checkEmailRateLimit,
 };

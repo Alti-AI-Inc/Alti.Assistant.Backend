@@ -26,7 +26,9 @@ try {
       projectId: GCS_CONFIG.PROJECT_ID,
     });
   } else {
-    logger.warn('GCS credentials not configured. Contract uploads will be stored locally only.');
+    logger.warn(
+      'GCS credentials not configured. Contract uploads will be stored locally only.'
+    );
   }
 
   if (storage && GCS_CONFIG.BUCKET_NAME) {
@@ -39,7 +41,10 @@ try {
 /**
  * Upload contract file to Google Cloud Storage
  */
-export const uploadContractToGCS = async (localFilePath, contractMetadata = {}) => {
+export const uploadContractToGCS = async (
+  localFilePath,
+  contractMetadata = {}
+) => {
   try {
     if (!storage || !bucket) {
       logger.warn('GCS not configured. Returning local file path.');
@@ -69,7 +74,6 @@ export const uploadContractToGCS = async (localFilePath, contractMetadata = {}) 
         },
       },
     });
-
 
     // Get public URL
     const publicUrl = `https://storage.googleapis.com/${GCS_CONFIG.BUCKET_NAME}/${destination}`;
@@ -105,7 +109,8 @@ const getContentType = (fileName) => {
   const ext = path.extname(fileName).toLowerCase();
   const contentTypes = {
     '.pdf': 'application/pdf',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.docx':
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.doc': 'application/msword',
     '.txt': 'text/plain',
   };

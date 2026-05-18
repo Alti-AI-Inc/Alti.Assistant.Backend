@@ -21,7 +21,7 @@ const getAllUsersService = async (filters, paginationOptions) => {
 
   if (searchTerm) {
     andConditions.push({
-      $or: productsSearchAbleFields.map(field => ({
+      $or: productsSearchAbleFields.map((field) => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     });
@@ -82,13 +82,13 @@ const getAllBuyerServices = async () => {
 
 //====================  Admin ========================
 
-const getSellerServiceById = async id => {
+const getSellerServiceById = async (id) => {
   const result = await UserModel.findOne({ _id: id });
   logger.info(result);
   return result;
 };
 
-const makeAdminService = async userId => {
+const makeAdminService = async (userId) => {
   const filter = { _id: userId };
   const updateDoc = {
     $set: { role: 'admin' },
@@ -99,7 +99,7 @@ const makeAdminService = async userId => {
   return result;
 };
 
-const deleteUserService = async objectId => {
+const deleteUserService = async (objectId) => {
   if (!mongoose.Types.ObjectId.isValid(objectId)) {
     throw new Error('Invalid user ID format');
   }
@@ -123,7 +123,7 @@ const deleteUserService = async objectId => {
 
 //==================== Sup Admin ========================
 
-const getAdminServices = async email => {
+const getAdminServices = async (email) => {
   // const admin = await UserModel.find({ email: email })
   // const isAdmin = admin.role === "admin"
   // return isAdmin;
@@ -173,7 +173,7 @@ const getUserStatisticsByMonthService = async () => {
     return acc;
   }, {});
 
-  const data = Object.values(result).map(item => ({
+  const data = Object.values(result).map((item) => ({
     count: Object.values(item.months).reduce((sum, count) => sum + count, 0),
     year: item.year,
     totalMonth: item.totalMonth,
@@ -206,7 +206,7 @@ const getAllPaymentService = async (filters, paginationOptions) => {
 
   if (searchTerm) {
     andConditions.push({
-      $or: productsSearchAbleFields.map(field => ({
+      $or: productsSearchAbleFields.map((field) => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     });
@@ -262,13 +262,14 @@ const getAllPaymentService = async (filters, paginationOptions) => {
 const getAllTenantsService = async (filters, paginationOptions) => {
   const Tenant = (await import('../tenant/tenant.model.js')).default;
   const { searchTerm, ...filterData } = filters;
-  const { page, limit, skip, sortBy, sortOrder } = paginationHelpers.calculatePagination(paginationOptions);
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelpers.calculatePagination(paginationOptions);
 
   const andConditions = [];
 
   if (searchTerm) {
     andConditions.push({
-      $or: ['name', 'slug'].map(field => ({
+      $or: ['name', 'slug'].map((field) => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     });
@@ -309,7 +310,10 @@ const getTenantDetailsService = async (tenantId) => {
   const Tenant = (await import('../tenant/tenant.model.js')).default;
   const UserModel = (await import('../auth/auth.model.js')).default;
 
-  const tenant = await Tenant.findById(tenantId).populate('ownerId', 'name email');
+  const tenant = await Tenant.findById(tenantId).populate(
+    'ownerId',
+    'name email'
+  );
 
   if (!tenant) {
     throw new Error('Tenant not found');
@@ -347,7 +351,8 @@ const updateTenantStatusService = async (tenantId, status) => {
  * Get tenant usage (admin)
  */
 const getTenantUsageService = async (tenantId) => {
-  const tenantService = (await import('../tenant/tenant.service.js')).tenantService;
+  const tenantService = (await import('../tenant/tenant.service.js'))
+    .tenantService;
   return await tenantService.getTenantUsage(tenantId);
 };
 

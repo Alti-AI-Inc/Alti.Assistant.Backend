@@ -1,10 +1,10 @@
 export const deepResearchAgentState = {
   // Original query from user
   originalQuery: { value: null },
-  
+
   // Current research depth (0 = initial, 1 = first level, etc.)
   currentDepth: { value: 0 },
-  
+
   // Maximum depth to research
   maxDepth: { value: 3 },
 
@@ -19,48 +19,45 @@ export const deepResearchAgentState = {
 
   // Step 4: Final comprehensive report
   finalReport: { value: null },
-  
+
   // All sources collected during research
   allSources: { value: null },
-  
+
   // Research progress tracking
-  researchProgress: { 
+  researchProgress: {
     value: null,
-    
   },
-  
+
   // Current sub-queries being processed
-  currentSubQueries: { value: null},
-  
+  currentSubQueries: { value: null },
+
   // Knowledge graph of discovered concepts
-  knowledgeGraph: { 
+  knowledgeGraph: {
     value: null,
-    
   },
-  
+
   // Research quality metrics
   qualityMetrics: {
     value: null,
-    
   },
-  
+
   // Conversation history
-  history: { 
-    value: null
+  history: {
+    value: null,
   },
   // Research metadata
-  metadata: { 
-    value: null
+  metadata: {
+    value: null,
   },
-  
+
   // PDF generation flag
   generatePdf: { value: false },
-  
-  // PDF content and metadata  
+
+  // PDF content and metadata
   pdfData: { value: null },
-  
+
   // Error tracking
-  errors: { 
-    value: null
-  }
+  errors: {
+    value: null,
+  },
 };

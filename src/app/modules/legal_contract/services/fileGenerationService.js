@@ -5,7 +5,10 @@ import { logger } from '../../../../shared/logger.js';
 /**
  * Generate a text file from contract content
  */
-export const generateTextFile = async (contractContent, fileName = 'contract.txt') => {
+export const generateTextFile = async (
+  contractContent,
+  fileName = 'contract.txt'
+) => {
   try {
     const outputDir = path.join(process.cwd(), 'output', 'contracts');
 
@@ -35,14 +38,19 @@ export const generateTextFile = async (contractContent, fileName = 'contract.txt
  * Generate a DOCX file from contract content
  * Note: For now, we'll use text format. Full DOCX support requires docx library
  */
-export const generateDocxFile = async (contractContent, fileName = 'contract.docx') => {
+export const generateDocxFile = async (
+  contractContent,
+  fileName = 'contract.docx'
+) => {
   try {
     // For now, create a simple text file
     // TODO: Integrate with 'docx' library for proper DOCX generation
     const txtFileName = fileName.replace('.docx', '.txt');
     const result = await generateTextFile(contractContent, txtFileName);
 
-    logger.warn('DOCX generation not fully implemented. Generated TXT file instead.');
+    logger.warn(
+      'DOCX generation not fully implemented. Generated TXT file instead.'
+    );
 
     return {
       ...result,
@@ -58,7 +66,11 @@ export const generateDocxFile = async (contractContent, fileName = 'contract.doc
 /**
  * Generate contract file based on format
  */
-export const generateContractFile = async (contractContent, format = 'txt', metadata = {}) => {
+export const generateContractFile = async (
+  contractContent,
+  format = 'txt',
+  metadata = {}
+) => {
   try {
     const timestamp = Date.now();
     const contractType = metadata.contractType || 'contract';

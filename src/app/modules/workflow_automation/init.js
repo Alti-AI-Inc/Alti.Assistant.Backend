@@ -12,7 +12,6 @@ export const initializeWorkflowAutomation = async () => {
     await workflowExecutionService.initializeScheduledWorkflows();
 
     logger.info('Workflow Automation module initialized successfully');
-
   } catch (error) {
     logger.error('Error initializing Workflow Automation module:', error);
     throw error;
@@ -35,7 +34,6 @@ export const cleanupWorkflowAutomation = () => {
     workflowExecutionService.scheduledJobs.clear();
 
     logger.info('Workflow Automation module cleanup completed');
-
   } catch (error) {
     logger.error('Error during Workflow Automation cleanup:', error);
   }

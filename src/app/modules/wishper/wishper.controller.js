@@ -145,7 +145,7 @@ const transcribeAudioToTextController = async (req, res) => {
   try {
     const text =
       await whisperTranscribeService.transcribeAudioToTextService(
-        audioFilePath,
+        audioFilePath
       );
 
     // Safe delete
@@ -165,7 +165,7 @@ const transcribeAudioToTextController = async (req, res) => {
 
     console.error(
       'Whisper transcription failed:',
-      error.response?.data || error.message,
+      error.response?.data || error.message
     );
 
     return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({

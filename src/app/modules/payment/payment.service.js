@@ -8,7 +8,10 @@ import UserModel from '../auth/auth.model.js';
 import SubscriptionModel from './payment.model.js';
 import { purchasePlanTemplate } from './payment.utils.js';
 import { logger } from '../../../shared/logger.js';
-import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
+import {
+  withTenantContext,
+  withTenantFilter,
+} from '../../helpers/tenantQuery.js';
 import Tenant from '../tenant/tenant.model.js';
 
 const stripe = new Stripe(config.stripe.stripe_secret_key);
@@ -64,7 +67,10 @@ const createCheckoutSessionService = async (user, plan, req = null) => {
   }
 
   // Get existing subscription for tenant to check for stripeCustomerId
-  const existingSubscription = await SubscriptionModel.findOne({ tenantId: tenant._id, status: 'active' });
+  const existingSubscription = await SubscriptionModel.findOne({
+    tenantId: tenant._id,
+    status: 'active',
+  });
   let stripeCustomerId = existingSubscription?.stripeCustomerId;
 
   if (!stripeCustomerId) {
@@ -161,14 +167,20 @@ const handleWebhookService = async (req, res) => {
       }
 
       // Find tenant
-      const tenant = await Tenant.findById(stripeSession.metadata.tenantId).session(session);
+      const tenant = await Tenant.findById(
+        stripeSession.metadata.tenantId
+      ).session(session);
       if (!tenant) {
-        logger.warn('No tenant found', { tenantId: stripeSession.metadata.tenantId });
+        logger.warn('No tenant found', {
+          tenantId: stripeSession.metadata.tenantId,
+        });
         throw new Error('Tenant not found');
       }
 
       // Find user
-      const user = await UserModel.findById(stripeSession.metadata.userId).session(session);
+      const user = await UserModel.findById(
+        stripeSession.metadata.userId
+      ).session(session);
       if (!user) {
         logger.warn('No user found', { userId: stripeSession.metadata.userId });
         throw new Error('User not found');
@@ -194,13 +206,13 @@ const handleWebhookService = async (req, res) => {
       if (stripeSession.subscription) {
         try {
           const stripeSubscription = await stripe.subscriptions.retrieve(
-            stripeSession.subscription,
+            stripeSession.subscription
           );
           stripeSubscriptionId = stripeSubscription.id;
 
           if (stripeSubscription.latest_invoice) {
             const invoice = await stripe.invoices.retrieve(
-              stripeSubscription.latest_invoice,
+              stripeSubscription.latest_invoice
             );
             invoiceUrl = invoice.hosted_invoice_url;
           }
@@ -272,7 +284,7 @@ const handleWebhookService = async (req, res) => {
         const mailData = await purchasePlanTemplate(
           user.email,
           user,
-          newSubscription,
+          newSubscription
         );
         await sendMailWithMailGun(mailData);
         logger.info('Confirmation email sent', { email: user.email });
@@ -304,7 +316,9 @@ const handleWebhookService = async (req, res) => {
         await existingSubscription.save({ session });
 
         // Update tenant status and revert to free plan
-        const tenant = await Tenant.findById(existingSubscription.tenantId).session(session);
+        const tenant = await Tenant.findById(
+          existingSubscription.tenantId
+        ).session(session);
         if (tenant) {
           tenant.plan = 'free';
           tenant.status = 'active';
@@ -325,7 +339,9 @@ const handleWebhookService = async (req, res) => {
         }
 
         // Update user subscription status (backward compatibility)
-        const user = await UserModel.findById(existingSubscription.userId).session(session);
+        const user = await UserModel.findById(
+          existingSubscription.userId
+        ).session(session);
         if (user) {
           user.isSubscribed = false;
           user.subscription = null;
@@ -355,7 +371,7 @@ const handleWebhookService = async (req, res) => {
   }
 };
 
-const getExpirationDate = duration => {
+const getExpirationDate = (duration) => {
   return duration === 'month'
     ? moment().add(1, 'months').toDate()
     : moment().add(1, 'years').toDate();

@@ -8,13 +8,13 @@ const router = express.Router();
 router.post(
   '/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  openAIAiController.Gpt4oMiniGetResponse,
+  openAIAiController.Gpt4oMiniGetResponse
 );
 
 router.post(
   '/4nano/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  openAIAiController.Gpt4NanoGetResponse,
+  openAIAiController.Gpt4NanoGetResponse
 );
 
 export const openAIAiRoutes = router;

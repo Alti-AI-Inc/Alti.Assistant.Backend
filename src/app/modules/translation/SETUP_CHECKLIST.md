@@ -20,6 +20,7 @@
 ## 📋 Required Setup Steps
 
 ### 1. Install Dependencies
+
 ```bash
 cd d:\ason\ASON-Core-Service-Backend
 npm install @google-cloud/translate @langchain/google-genai mammoth pdf-parse xlsx
@@ -36,6 +37,7 @@ npm install @google-cloud/translate @langchain/google-genai mammoth pdf-parse xl
 - Credentials file: `alti_gcp.json` (in project root)
 
 **Just ensure Translation API is enabled in your Google Cloud project:**
+
 1. Go to Google Cloud Console: https://console.cloud.google.com
 2. Select project: `alti-assistant-prod`
 3. Enable "Cloud Translation API" if not already enabled
@@ -43,6 +45,7 @@ npm install @google-cloud/translate @langchain/google-genai mammoth pdf-parse xl
 **Status:** ✅ Configured (using alti_gcp.json)
 
 ### 3. Verify Gemini API Key
+
 ```bash
 # Check if GEMINI_SECRET_KEY is already set in your environment
 # If not, add it to your .env file or environment
@@ -52,6 +55,7 @@ export GEMINI_SECRET_KEY="your-gemini-api-key"
 **Status:** ⏳ Pending (likely already configured)
 
 ### 4. Restart the Server
+
 ```bash
 # Stop the current server (Ctrl+C)
 # Start the server again
@@ -65,11 +69,13 @@ npm run dev
 ## 🧪 Testing Steps
 
 ### 1. Run Test Script
+
 ```bash
 node scripts/test-translation.js
 ```
 
 **Expected Output:**
+
 - ✓ All 7 tests should pass
 - ✓ No errors in console
 - ✓ Translations returned successfully
@@ -77,10 +83,11 @@ node scripts/test-translation.js
 **Status:** ⏳ Pending
 
 ### 2. Test with Postman
+
 ```bash
 # Import the collection
 # File: postman_collections/Translation_API.postman_collection.json
-# 
+#
 # Set the baseUrl variable to: http://localhost:5000/api/v1
 # Run the requests one by one
 ```
@@ -88,6 +95,7 @@ node scripts/test-translation.js
 **Status:** ⏳ Pending
 
 ### 3. Manual Test with cURL
+
 ```bash
 # Test 1: Get supported languages
 curl -X GET http://localhost:5000/api/v1/translation/languages
@@ -107,36 +115,42 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 ## 📝 Verification Checklist
 
 ### Server Startup
+
 - [ ] Server starts without errors
 - [ ] Translation routes are registered
 - [ ] No missing dependency errors
 - [ ] Console shows: "Registering route: /translation"
 
 ### API Endpoints
+
 - [ ] GET /api/v1/translation/languages returns 200
 - [ ] POST /api/v1/translation/translate works
 - [ ] POST /api/v1/translation/detect works
 - [ ] POST /api/v1/translation/assistant works
 
 ### File Upload
+
 - [ ] Can upload .txt files
 - [ ] Can upload .docx files
 - [ ] Can upload .pdf files
 - [ ] Files are cleaned up after processing
 
 ### Conversation Flow
+
 - [ ] Can start a new conversation
 - [ ] Can continue existing conversation
 - [ ] Multi-turn conversation works
 - [ ] Conversation history is maintained
 
 ### Translation Features
+
 - [ ] Text translation works
 - [ ] Language detection works
 - [ ] Auto-detect source language works
 - [ ] Multiple target languages work
 
 ### Error Handling
+
 - [ ] Invalid language codes are rejected
 - [ ] Missing required fields return proper errors
 - [ ] File size limits are enforced
@@ -145,38 +159,50 @@ curl -X POST http://localhost:5000/api/v1/translation/assistant \
 ## 🚨 Common Issues & Solutions
 
 ### Issue 1: "Translation API not initialized"
+
 **Solution:**
+
 - Verify GOOGLE_APPLICATION_CREDENTIALS is set
 - Check that the service account key file exists
 - Ensure Translation API is enabled in Google Cloud Console
 - Verify service account has Translation API permissions
 
 ### Issue 2: "Gemini API Error"
+
 **Solution:**
+
 - Verify GEMINI_SECRET_KEY is set correctly
 - Check API key has sufficient quota
 - Ensure Gemini API is enabled
 
 ### Issue 3: "Module not found: mammoth/pdf-parse/xlsx"
+
 **Solution:**
+
 ```bash
 npm install mammoth pdf-parse xlsx
 ```
 
 ### Issue 4: "Cannot find module '@google-cloud/translate'"
+
 **Solution:**
+
 ```bash
 npm install @google-cloud/translate
 ```
 
 ### Issue 5: File upload fails
+
 **Solution:**
+
 - Ensure uploads/translations/ directory exists
 - Check file permissions on the directory
 - Verify file size is under 10MB
 
 ### Issue 6: "Conversation not found"
+
 **Solution:**
+
 - Check that conversation service is working
 - Verify MongoDB connection
 - Ensure conversation ID is valid

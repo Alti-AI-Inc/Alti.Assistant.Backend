@@ -44,16 +44,28 @@ const generateConversationId = () => {
 /**
  * Handle report conversation (create or retrieve)
  */
-const handleReportConversation = async (userId, conversationId, userMessage, isGuest = false, req = null) => {
+const handleReportConversation = async (
+  userId,
+  conversationId,
+  userMessage,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          userId,
+          req
+        );
         logger.info(`Retrieved existing conversation: ${conversationId}`);
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found, creating new one`
+        );
       }
     }
 
@@ -76,20 +88,33 @@ const handleReportConversation = async (userId, conversationId, userMessage, isG
         req
       );
 
-      logger.info(`Created new report conversation ${newConversationId} for user ${userId}`);
+      logger.info(
+        `Created new report conversation ${newConversationId} for user ${userId}`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling report conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle conversation'
+    );
   }
 };
 
 /**
  * Add message to conversation
  */
-const addMessage = async (conversationId, userId, role, content, metadata = {}, isGuest = false, req = null) => {
+const addMessage = async (
+  conversationId,
+  userId,
+  role,
+  content,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
     const message = {
       role,
@@ -98,17 +123,28 @@ const addMessage = async (conversationId, userId, role, content, metadata = {}, 
       metadata,
     };
 
-    return await conversationService.addMessageToConversation(conversationId, userId, message, req);
+    return await conversationService.addMessageToConversation(
+      conversationId,
+      userId,
+      message,
+      req
+    );
   } catch (error) {
     logger.error('Error adding message to conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add message');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add message'
+    );
   }
 };
 
 /**
  * Analyze user intent and extract parameters from conversation
  */
-const analyzeConversationalRequest = async (userMessage, conversationHistory = []) => {
+const analyzeConversationalRequest = async (
+  userMessage,
+  conversationHistory = []
+) => {
   try {
     const systemPrompt = `You are an AI assistant that analyzes user requests for report generation.
 Your task is to:
@@ -136,7 +172,7 @@ Respond in JSON format:
 
     // Format conversation history for Gemini
     let conversationText = systemPrompt + '\n\n';
-    conversationHistory.slice(-5).forEach(msg => {
+    conversationHistory.slice(-5).forEach((msg) => {
       conversationText += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
     });
     conversationText += `User: ${userMessage}\n\nRespond with valid JSON only.`;
@@ -151,8 +187,12 @@ Respond in JSON format:
 
     const responseText = result.response.text();
     // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)```/) || responseText.match(/\{[\s\S]*\}/);
-    const analysis = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : responseText);
+    const jsonMatch =
+      responseText.match(/```json\s*([\s\S]*?)```/) ||
+      responseText.match(/\{[\s\S]*\}/);
+    const analysis = JSON.parse(
+      jsonMatch ? jsonMatch[1] || jsonMatch[0] : responseText
+    );
     logger.info('Conversation analysis:', analysis);
 
     return analysis;
@@ -210,7 +250,8 @@ Return the report in JSON format with this structure:
       ? `Generate a report titled "${title}" based on the following content:\n\n${content}`
       : `Generate a report based on the following content:\n\n${content}`;
 
-    const fullPrompt = systemPrompt + '\n\n' + userPrompt + '\n\nRespond with valid JSON only.';
+    const fullPrompt =
+      systemPrompt + '\n\n' + userPrompt + '\n\nRespond with valid JSON only.';
 
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
@@ -222,8 +263,12 @@ Return the report in JSON format with this structure:
 
     const responseText = result.response.text();
     // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)```/) || responseText.match(/\{[\s\S]*\}/);
-    const reportData = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : responseText);
+    const jsonMatch =
+      responseText.match(/```json\s*([\s\S]*?)```/) ||
+      responseText.match(/\{[\s\S]*\}/);
+    const reportData = JSON.parse(
+      jsonMatch ? jsonMatch[1] || jsonMatch[0] : responseText
+    );
 
     // Add additional metadata
     reportData.includeTitlePage = includeTitlePage;
@@ -285,7 +330,7 @@ const processConversationalRequest = async (
       userId,
       req
     );
-    const conversationHistory = conversationData.messages.map(msg => ({
+    const conversationHistory = conversationData.messages.map((msg) => ({
       role: msg.role,
       content: msg.content,
     }));
@@ -296,7 +341,10 @@ const processConversationalRequest = async (
       try {
         const extractedData = await extractContentFromFiles(files);
         fileContents = extractedData
-          .map(file => `\n--- ${file.filename} ---\n${file.content || file.error}`)
+          .map(
+            (file) =>
+              `\n--- ${file.filename} ---\n${file.content || file.error}`
+          )
           .join('\n');
 
         logger.info(`Processed ${files.length} files for report generation`);
@@ -314,7 +362,10 @@ const processConversationalRequest = async (
       : userMessage;
 
     // Analyze the request
-    const analysis = await analyzeConversationalRequest(fullContent, conversationHistory);
+    const analysis = await analyzeConversationalRequest(
+      fullContent,
+      conversationHistory
+    );
 
     // If more information is needed
     if (analysis.needsMoreInfo) {
@@ -345,7 +396,8 @@ const processConversationalRequest = async (
     });
 
     // Export to requested format
-    const outputFormat = analysis.parameters.outputFormat || DEFAULT_PARAMS.outputFormat;
+    const outputFormat =
+      analysis.parameters.outputFormat || DEFAULT_PARAMS.outputFormat;
     const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const outputDir = path.join(process.cwd(), 'output', 'reports');
     const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
@@ -469,10 +521,19 @@ const generateReport = async (params, userId, isGuest = false) => {
 /**
  * Analyze uploaded files
  */
-const analyzeFiles = async (files, analysisType = 'summary', instructions = '', userId, conversationId = null) => {
+const analyzeFiles = async (
+  files,
+  analysisType = 'summary',
+  instructions = '',
+  userId,
+  conversationId = null
+) => {
   try {
     if (!files || files.length === 0) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'No files provided for analysis');
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'No files provided for analysis'
+      );
     }
 
     const extractedData = await extractContentFromFiles(files);
@@ -481,7 +542,9 @@ const analyzeFiles = async (files, analysisType = 'summary', instructions = '', 
     cleanupUploadedFiles(files);
 
     const fileContents = extractedData
-      .map(file => `\n--- ${file.filename} ---\n${file.content || file.error}`)
+      .map(
+        (file) => `\n--- ${file.filename} ---\n${file.content || file.error}`
+      )
       .join('\n');
 
     const prompt = `You are an expert data analyst. Provide a comprehensive ${analysisType} analysis of the provided files.\n\nAnalyze the following files and provide a ${analysisType} analysis.\n\n${instructions ? `Additional instructions: ${instructions}\n\n` : ''}Files content:${fileContents}`;

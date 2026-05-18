@@ -9,12 +9,15 @@ Automatic conversation summarization system that kicks in when conversations exc
 ## How It Works
 
 ### 1. Token Threshold
+
 - **Threshold**: 4000 tokens (~16,000 characters)
 - **Estimation**: 1 token ≈ 4 characters
 - **Trigger**: Automatically checks after each message save
 
 ### 2. Summary Generation
+
 When threshold is exceeded:
+
 1. Gemini 2.0 Flash analyzes entire conversation
 2. Generates structured summary:
    - **Summary**: 2-3 sentence overview
@@ -24,7 +27,9 @@ When threshold is exceeded:
    - **Apps**: Which apps/tools were used
 
 ### 3. Storage
+
 Summaries stored in `conversation_summaries` collection with:
+
 - Conversation ID linkage
 - Message range (start/end indices)
 - Token count
@@ -32,6 +37,7 @@ Summaries stored in `conversation_summaries` collection with:
 - Status (active/superseded/archived)
 
 ### 4. Usage
+
 - **New messages**: Use summary + last 5 messages for context
 - **App detection**: Summary includes detected apps
 - **LLM prompts**: Summary prepended to system prompt
@@ -70,6 +76,7 @@ Summaries stored in `conversation_summaries` collection with:
 ## Example Flow
 
 ### Conversation Start
+
 ```
 Message 1-10: Normal messages (< 4000 tokens)
 - No summary needed
@@ -77,6 +84,7 @@ Message 1-10: Normal messages (< 4000 tokens)
 ```
 
 ### Threshold Exceeded
+
 ```
 Message 11: Conversation now has 4200 tokens
 - System detects threshold exceeded
@@ -85,6 +93,7 @@ Message 11: Conversation now has 4200 tokens
 ```
 
 ### After Summary
+
 ```
 Message 12: User sends new message
 - System loads:
@@ -94,6 +103,7 @@ Message 12: User sends new message
 ```
 
 ### Multiple Summaries
+
 ```
 Message 50: Conversation grows to 8000 tokens
 - Old summary marked as "superseded"
@@ -106,19 +116,27 @@ Message 50: Conversation grows to 8000 tokens
 ## API Integration
 
 ### Automatic (Current Implementation)
+
 - Summarization triggered automatically after `saveMessage()`
 - Non-blocking async operation
 - No code changes needed in controllers
 
 ### Manual Trigger (Available)
+
 ```javascript
 import { conversationSummaryService } from './conversationSummary.service.js';
 
 // Force summarization check
-await conversationSummaryService.checkAndSummarizeIfNeeded(conversationId, userId);
+await conversationSummaryService.checkAndSummarizeIfNeeded(
+  conversationId,
+  userId
+);
 
 // Get context with summary
-const context = await conversationSummaryService.getConversationContext(conversationId, userId);
+const context = await conversationSummaryService.getConversationContext(
+  conversationId,
+  userId
+);
 // Returns: { hasSummary, summary, context, keyTopics, entities, detectedApps, recentMessages }
 ```
 
@@ -127,6 +145,7 @@ const context = await conversationSummaryService.getConversationContext(conversa
 ## Example Summary Output
 
 ### Input (4500 tokens of conversation)
+
 ```
 User: "I want to send an email"
 Assistant: "Please provide recipient, subject, content"
@@ -139,11 +158,12 @@ User: "Now list my GitHub branches"
 ```
 
 ### Generated Summary
+
 ```
-SUMMARY: User completed email send to john@example.com about a meeting, 
+SUMMARY: User completed email send to john@example.com about a meeting,
 then switched to GitHub repository management requesting branch listings.
 
-CONTEXT: User is currently working with GitHub repositories after 
+CONTEXT: User is currently working with GitHub repositories after
 successfully sending an email. Last action was listing branches.
 
 TOPICS: email, meeting, GitHub, branches, repository
@@ -157,18 +177,15 @@ APPS: Gmail, GitHub
 
 ## Benefits
 
-1. **Token Efficiency**: 
+1. **Token Efficiency**:
    - 4000+ tokens → ~200 token summary
    - Saves ~95% of context tokens
-   
 2. **Better Context**:
    - Structured information (topics, entities, apps)
    - Clear continuation context
-   
 3. **Cost Reduction**:
    - Fewer tokens sent to LLM APIs
    - Lower API costs for long conversations
-   
 4. **Performance**:
    - Faster LLM responses (less context to process)
    - Async summarization (doesn't block user)
@@ -178,10 +195,11 @@ APPS: Gmail, GitHub
 ## Configuration
 
 Current settings in `conversationSummary.service.js`:
+
 ```javascript
-TOKEN_THRESHOLD = 4000          // When to summarize
-RECENT_MESSAGE_LIMIT = 5        // How many recent messages to include
-SUMMARY_MODEL = "gemini-2.5-flash"
+TOKEN_THRESHOLD = 4000; // When to summarize
+RECENT_MESSAGE_LIMIT = 5; // How many recent messages to include
+SUMMARY_MODEL = 'gemini-2.5-flash';
 ```
 
 ---
@@ -189,6 +207,7 @@ SUMMARY_MODEL = "gemini-2.5-flash"
 ## Monitoring
 
 Check logs for:
+
 ```
 "Conversation X has Y tokens"           // Token count check
 "📝 Generating summary..."              // Summarization started

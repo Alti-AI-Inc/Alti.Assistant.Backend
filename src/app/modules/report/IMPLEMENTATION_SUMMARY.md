@@ -9,6 +9,7 @@ A complete, production-ready AI-powered report generation module has been succes
 ### 1. Core Module Files
 
 #### `report.constant.js`
+
 - Defined all configuration constants
 - Supported formats: 9 input formats, 9 output formats
 - 8 report types (executive, analytical, financial, technical, research, business, comparison, custom)
@@ -17,12 +18,14 @@ A complete, production-ready AI-powered report generation module has been succes
 - Report sections, tones, and templates
 
 #### `report.validation.js`
+
 - 8 comprehensive Zod validation schemas
 - Request validation for all endpoints
 - Type-safe parameter handling
 - Error message customization
 
 #### `report.service.js`
+
 - Core business logic for report generation
 - Conversational AI integration using OpenAI
 - Multi-turn conversation support
@@ -32,6 +35,7 @@ A complete, production-ready AI-powered report generation module has been succes
 - Guest and authenticated user support
 
 #### `report.controller.js`
+
 - 8 controller methods for HTTP request handling
 - Subscription limit checking
 - Error handling and logging
@@ -39,6 +43,7 @@ A complete, production-ready AI-powered report generation module has been succes
 - File cleanup management
 
 #### `report.route.js`
+
 - 8 API endpoints with proper middleware
 - Optional authentication support
 - Rate limiting configuration
@@ -48,6 +53,7 @@ A complete, production-ready AI-powered report generation module has been succes
 ### 2. Utility Functions
 
 #### `utils/fileParser.js`
+
 - File parsing for 10+ formats
 - Support for: PDF, DOCX, CSV, JSON, TXT, MD, HTML, XLSX
 - Error handling and validation
@@ -55,6 +61,7 @@ A complete, production-ready AI-powered report generation module has been succes
 - Batch file processing
 
 #### `utils/reportExporter.js`
+
 - Export to 9 different formats
 - PDF generation with PDFKit
 - CSV, JSON, TXT, MD, HTML generation
@@ -64,6 +71,7 @@ A complete, production-ready AI-powered report generation module has been succes
 ### 3. Middleware
 
 #### `middlewares/uploadReportFiles.js`
+
 - Multer-based file upload handling
 - Support for up to 10 files per request
 - Format validation
@@ -74,6 +82,7 @@ A complete, production-ready AI-powered report generation module has been succes
 ### 4. Integration
 
 #### Main Router Integration
+
 - Added to `src/app/routes/index.js`
 - Mounted at `/api/v1/reports`
 - Full integration with existing infrastructure
@@ -81,6 +90,7 @@ A complete, production-ready AI-powered report generation module has been succes
 ### 5. Documentation
 
 #### `README.md`
+
 - Comprehensive API documentation
 - Architecture overview
 - Usage examples for all endpoints
@@ -90,6 +100,7 @@ A complete, production-ready AI-powered report generation module has been succes
 - Future enhancement roadmap
 
 #### `QUICKSTART.md`
+
 - 5-minute quick start guide
 - Common use cases with examples
 - cURL and JavaScript examples
@@ -99,6 +110,7 @@ A complete, production-ready AI-powered report generation module has been succes
 ## 🎯 Key Features Implemented
 
 ### 1. Conversational AI Assistant
+
 - Natural language processing for report requests
 - Multi-turn conversations with context
 - Intent analysis and parameter extraction
@@ -106,12 +118,14 @@ A complete, production-ready AI-powered report generation module has been succes
 - Conversation history integration
 
 ### 2. Multiple Input Sources
+
 - Text-based content input
 - File upload support (up to 10 files)
 - Combined text + file input
 - Support for 9 different file formats
 
 ### 3. Flexible Output Formats
+
 - PDF with professional formatting
 - Microsoft Word (DOCX/DOC)
 - Excel spreadsheets (XLSX/XLS)
@@ -121,6 +135,7 @@ A complete, production-ready AI-powered report generation module has been succes
 - JSON for data interchange
 
 ### 4. Report Customization
+
 - 8 report types to choose from
 - Configurable sections
 - Multiple tone options
@@ -128,12 +143,14 @@ A complete, production-ready AI-powered report generation module has been succes
 - Title page, TOC, executive summary options
 
 ### 5. User Management
+
 - Guest user support
 - Authenticated user tracking
 - Subscription-based limits
 - Usage monitoring integration
 
 ### 6. Security & Validation
+
 - Zod schema validation
 - File format validation
 - File size limits
@@ -182,6 +199,7 @@ src/app/modules/report/
 ## 📦 Dependencies
 
 ### Already Available
+
 - `openai` - AI model integration
 - `multer` - File upload handling
 - `pdfkit` - PDF generation
@@ -189,6 +207,7 @@ src/app/modules/report/
 - `express` - Web framework
 
 ### Optional (Recommended for Full Functionality)
+
 ```bash
 npm install pdf-parse mammoth xlsx docx
 ```
@@ -201,6 +220,7 @@ npm install pdf-parse mammoth xlsx docx
 ## 🚀 Usage Examples
 
 ### Example 1: Simple Report Generation
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/reports/generate \
   -H "Content-Type: application/json" \
@@ -212,6 +232,7 @@ curl -X POST http://localhost:5000/api/v1/reports/generate \
 ```
 
 ### Example 2: Conversational with Files
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/reports/assistant \
   -F "message=Create a report from these files" \
@@ -220,6 +241,7 @@ curl -X POST http://localhost:5000/api/v1/reports/assistant \
 ```
 
 ### Example 3: File Analysis
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/reports/analyze \
   -F "files=@file1.xlsx" \
@@ -319,6 +341,7 @@ curl -X POST http://localhost:5000/api/v1/reports/assistant \
 ## 📞 Support
 
 For questions or issues:
+
 1. Check the README.md for detailed documentation
 2. Review the QUICKSTART.md for quick examples
 3. Check the inline code comments

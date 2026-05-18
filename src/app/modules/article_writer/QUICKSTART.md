@@ -1,6 +1,7 @@
 # Article Writer Module - Quick Start Guide
 
 ## Overview
+
 The Article Writer module enables AI-powered article generation with support for file uploads and various customization options.
 
 ## Quick Setup
@@ -24,6 +25,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -81,6 +83,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ## Available Parameters
 
 ### Article Types
+
 - `blog_post` - Conversational and engaging
 - `news_article` - Factual and objective
 - `technical_article` - Technical and detailed
@@ -92,6 +95,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 - `general` - Default, adaptable style
 
 ### Writing Tones
+
 - `professional` (default)
 - `casual`
 - `formal`
@@ -102,6 +106,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 - `academic`
 
 ### Article Lengths
+
 - `short` - 300-500 words
 - `medium` - 500-1000 words (default)
 - `long` - 1000-2000 words
@@ -117,6 +122,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ## Common Use Cases
 
 ### 1. Blog Post from Topic
+
 ```json
 {
   "message": "Write a blog post about sustainable living",
@@ -127,6 +133,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### 2. Technical Documentation
+
 ```json
 {
   "message": "Explain how REST APIs work",
@@ -137,6 +144,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### 3. How-To Guide
+
 ```json
 {
   "message": "How to bake sourdough bread",
@@ -147,7 +155,9 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ```
 
 ### 4. Expand Notes into Article
+
 Upload a file with notes and ask:
+
 ```json
 {
   "message": "Turn these notes into a comprehensive article",
@@ -168,21 +178,25 @@ Upload a file with notes and ask:
 ## Troubleshooting
 
 ### Error: "Message is required"
+
 - Solution: Ensure the `message` field is included in your request
 
 ### Error: "File type not supported"
+
 - Solution: Use supported file types: PDF, DOCX, DOC, TXT, XLSX, XLS, PPTX, PPT
 
 ### Error: "Reached article writing limit"
+
 - Solution: Upgrade your subscription plan or wait for the limit to reset
 
 ### Article not as expected
+
 - Solution: Be more specific in your message, try different article types or tones
 
 ## File Upload Requirements
 
 - **Max file size**: 10MB
-- **Supported formats**: 
+- **Supported formats**:
   - Documents: PDF, DOCX, DOC, TXT
   - Spreadsheets: XLSX, XLS
   - Presentations: PPTX, PPT
@@ -192,12 +206,14 @@ Upload a file with notes and ask:
 ## Response Format
 
 The API returns a plain text article with:
+
 - Proper structure (headings, paragraphs)
 - Clear formatting
 - Appropriate length based on your request
 - Tone matching your specification
 
 Example response structure:
+
 ```
 # Article Title
 
@@ -219,22 +235,27 @@ Concluding thoughts...
 ## Integration Examples
 
 ### JavaScript/Node.js
+
 ```javascript
 const axios = require('axios');
 
 async function generateArticle() {
-  const response = await axios.post('http://localhost:5000/article-writer/assistant', {
-    message: 'Write about climate change',
-    articleType: 'blog_post',
-    tone: 'informative',
-    length: 'medium'
-  });
-  
+  const response = await axios.post(
+    'http://localhost:5000/article-writer/assistant',
+    {
+      message: 'Write about climate change',
+      articleType: 'blog_post',
+      tone: 'informative',
+      length: 'medium',
+    }
+  );
+
   console.log(response.data.data.article);
 }
 ```
 
 ### Python
+
 ```python
 import requests
 
@@ -248,11 +269,12 @@ def generate_article():
             'length': 'medium'
         }
     )
-    
+
     print(response.json()['data']['article'])
 ```
 
 ### cURL with File
+
 ```bash
 curl -X POST http://localhost:5000/article-writer/assistant \
   -F "message=Expand this document" \
@@ -271,6 +293,7 @@ curl -X POST http://localhost:5000/article-writer/assistant \
 ## Support
 
 For issues or questions:
+
 - Check the main README.md for detailed documentation
 - Review the Postman collection for request examples
 - Check the logs for error details

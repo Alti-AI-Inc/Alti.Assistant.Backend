@@ -8,7 +8,11 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 /**
  * Analyze user intent from message
  */
-const analyzeIntent = async (userMessage, conversationHistory = [], existingParams = {}) => {
+const analyzeIntent = async (
+  userMessage,
+  conversationHistory = [],
+  existingParams = {}
+) => {
   try {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
@@ -22,8 +26,9 @@ const analyzeIntent = async (userMessage, conversationHistory = [], existingPara
     let historyContext = '';
     if (conversationHistory.length > 0) {
       const recentMessages = conversationHistory.slice(-3);
-      historyContext = '\n\nRecent conversation:\n' +
-        recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      historyContext =
+        '\n\nRecent conversation:\n' +
+        recentMessages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
     }
 
     // Build existing parameters context
@@ -145,7 +150,7 @@ const summarizeConversation = async (conversationHistory, collectedParams) => {
     });
 
     const historyText = conversationHistory
-      .map(msg => `${msg.role}: ${msg.content}`)
+      .map((msg) => `${msg.role}: ${msg.content}`)
       .join('\n');
 
     const prompt = `Summarize the following conversation about document review. Focus on:

@@ -51,6 +51,7 @@ curl -X POST http://localhost:5000/api/v1/plan-generator/assistant \
 ```
 
 **Expected Response:**
+
 - AI will analyze your idea
 - Ask clarifying questions
 - Return conversationId for continued interaction
@@ -69,6 +70,7 @@ curl -X POST http://localhost:5000/api/v1/plan-generator/generate \
 ```
 
 **Expected Response:**
+
 - Complete plan with objectives, phases, and action items
 - Brainstorming insights
 - Resource requirements
@@ -84,6 +86,7 @@ curl -X POST http://localhost:5000/api/v1/plan-generator/brainstorm \
 ```
 
 **Expected Response:**
+
 - SWOT analysis
 - Market insights
 - Key recommendations
@@ -159,6 +162,7 @@ curl -X POST http://localhost:5000/api/v1/plan-generator/export \
 **User:** "I want to create a meal planning app"
 
 **AI:** Analyzes idea → Asks clarifying questions:
+
 1. Who is your target audience?
 2. What makes it different from existing apps?
 3. What's your budget and timeline?
@@ -194,6 +198,7 @@ curl -X POST http://localhost:5000/api/v1/plan-generator/export \
 ### Issue: "Subscription limit reached"
 
 **Solution:** Either:
+
 - Test with guest user (don't send auth token)
 - Increase subscription limits in database
 
@@ -203,7 +208,8 @@ curl -X POST http://localhost:5000/api/v1/plan-generator/export \
 
 ### Issue: File upload fails
 
-**Solution:** 
+**Solution:**
+
 - Check file size (< 10MB)
 - Verify file type (PDF, DOCX, TXT, XLSX only)
 - Ensure uploads/plan_files directory exists
@@ -243,16 +249,19 @@ curl -X POST http://localhost:5000/api/v1/plan-generator/assistant \
 
 ```javascript
 const generatePlan = async (idea) => {
-  const response = await fetch('http://localhost:5000/api/v1/plan-generator/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      idea,
-      planType: 'business_plan',
-      planDepth: 'comprehensive'
-    })
-  });
-  
+  const response = await fetch(
+    'http://localhost:5000/api/v1/plan-generator/generate',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idea,
+        planType: 'business_plan',
+        planDepth: 'comprehensive',
+      }),
+    }
+  );
+
   const data = await response.json();
   return data.plan;
 };
@@ -302,12 +311,12 @@ const brainstormIdea = async (idea) => {
 
 ## Quick Reference
 
-| Endpoint | Purpose | Auth Required |
-|----------|---------|---------------|
-| `/assistant` | Conversational planning | Optional |
-| `/generate` | Direct plan creation | Optional |
-| `/brainstorm` | Brainstorming only | Optional |
-| `/export` | Export in formats | Optional |
-| `/conversation/:id` | Get history | Required |
+| Endpoint            | Purpose                 | Auth Required |
+| ------------------- | ----------------------- | ------------- |
+| `/assistant`        | Conversational planning | Optional      |
+| `/generate`         | Direct plan creation    | Optional      |
+| `/brainstorm`       | Brainstorming only      | Optional      |
+| `/export`           | Export in formats       | Optional      |
+| `/conversation/:id` | Get history             | Required      |
 
 **Happy Planning! 🚀**

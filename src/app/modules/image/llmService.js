@@ -1,7 +1,6 @@
-
-import { JsonOutputParser } from "@langchain/core/output_parsers";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { llm } from "./llm.js";
+import { JsonOutputParser } from '@langchain/core/output_parsers';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { llm } from './llm.js';
 
 /**
  * Analyzes the user's initial prompt and generates clarifying questions.
@@ -30,11 +29,11 @@ export const generateClarifyingQuestions = async (initialPrompt) => {
     });
     return result.questions || [];
   } catch (error) {
-    console.error("Error generating clarifying questions:", error);
+    console.error('Error generating clarifying questions:', error);
     return [
-        "Can you describe the main subject of the image?",
-        "What art style are you imagining (e.g., photorealistic, anime, abstract)?",
-        "What is the overall mood or feeling you want to convey?",
+      'Can you describe the main subject of the image?',
+      'What art style are you imagining (e.g., photorealistic, anime, abstract)?',
+      'What is the overall mood or feeling you want to convey?',
     ];
   }
 };
@@ -45,9 +44,9 @@ export const generateClarifyingQuestions = async (initialPrompt) => {
  * @returns {Promise<boolean>} - True if the user is finished, false otherwise.
  */
 export const isUserFinished = async (userResponse) => {
-    if (!userResponse) return false;
-    const prompt = PromptTemplate.fromTemplate(
-        `Analyze the user's response to determine if they are finished providing details for the image.
+  if (!userResponse) return false;
+  const prompt = PromptTemplate.fromTemplate(
+    `Analyze the user's response to determine if they are finished providing details for the image.
         The user has been answering clarifying questions.
         If the user's message indicates they are done, satisfied, or want to proceed, respond with "YES".
         Examples of finished responses: "that's it", "I'm done", "go ahead and create it", "yes, that's all", "no more questions", "I'm finished", "i am okay".
@@ -56,12 +55,12 @@ export const isUserFinished = async (userResponse) => {
         User response: "{response}"
         
         Your answer (must be YES or NO):`
-    );
-    const chain = prompt.pipe(llm);
-    const result = await chain.invoke({ response: userResponse });
-    console.log("User finished analysis result:", result);
-    
-    return result.content.toUpperCase().includes("YES");
+  );
+  const chain = prompt.pipe(llm);
+  const result = await chain.invoke({ response: userResponse });
+  console.log('User finished analysis result:', result);
+
+  return result.content.toUpperCase().includes('YES');
 };
 
 /**
@@ -71,8 +70,14 @@ export const isUserFinished = async (userResponse) => {
  * @param {Array<{type: string, message: string}>} history - The conversation history for context.
  * @returns {Promise<string>} - The new, updated prompt.
  */
-export const updateRefinedPrompt = async (currentPrompt, userResponse, history) => {
-  const historyString = history.map(h => `${h.type}: ${h.message}`).join('\n');
+export const updateRefinedPrompt = async (
+  currentPrompt,
+  userResponse,
+  history
+) => {
+  const historyString = history
+    .map((h) => `${h.type}: ${h.message}`)
+    .join('\n');
   const prompt = PromptTemplate.fromTemplate(
     `You are an AI assistant helping a user create a detailed image prompt.
     The user's current idea for the prompt is:
@@ -96,13 +101,12 @@ export const updateRefinedPrompt = async (currentPrompt, userResponse, history) 
   );
   const chain = prompt.pipe(llm);
   const result = await chain.invoke({
-      current_prompt: currentPrompt,
-      user_response: userResponse,
-      history: historyString,
+    current_prompt: currentPrompt,
+    user_response: userResponse,
+    history: historyString,
   });
   return result.content;
 };
-
 
 /**
  * Compiles all gathered details into a final, rich prompt for image generation.
@@ -132,4 +136,4 @@ export const getUrlFromUserInputUsingAi = async (userInput) => {
   const chain = prompt.pipe(llm);
   const result = await chain.invoke({ user_input: userInput });
   return result.content;
-}
+};

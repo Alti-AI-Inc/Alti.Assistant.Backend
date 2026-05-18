@@ -3,7 +3,10 @@ import UserModel from '../auth/auth.model.js';
 export async function findOrCreateUserModel(profile, provider) {
   try {
     // --- Step 1: Find the user by their unique provider ID ---
-    let user = await UserModel.findOne({ provider: provider, providerId: profile.id });
+    let user = await UserModel.findOne({
+      provider: provider,
+      providerId: profile.id,
+    });
 
     if (user) {
       // The user has logged in with this social account before. Welcome back.
@@ -24,13 +27,17 @@ export async function findOrCreateUserModel(profile, provider) {
         if (user.password) {
           // This account was created with a password. BLOCK the social login attempt.
           // Throw a new, specific error that we will handle in the routes file.
-          throw new Error('This email is registered with a password. Please sign in using your email and password.');
+          throw new Error(
+            'This email is registered with a password. Please sign in using your email and password.'
+          );
         }
 
         // --- If there is NO password, then it's a social account. ---
         // The rest of the logic handles conflicts between different social providers.
         if (user.provider && user.provider !== provider) {
-          throw new Error(`This email is already linked to a ${user.provider} account. Please sign in using ${user.provider}.`);
+          throw new Error(
+            `This email is already linked to a ${user.provider} account. Please sign in using ${user.provider}.`
+          );
         }
 
         // This is an edge case for linking, which is now prevented by the password check above for credential-based users.
@@ -40,7 +47,11 @@ export async function findOrCreateUserModel(profile, provider) {
           user.avatar = profile.photos?.[0]?.value || '';
         }
         await user.save();
-        return { user, status: 'linked', message: `Successfully linked ${provider} to your existing account.` };
+        return {
+          user,
+          status: 'linked',
+          message: `Successfully linked ${provider} to your existing account.`,
+        };
       }
     }
 
@@ -54,21 +65,15 @@ export async function findOrCreateUserModel(profile, provider) {
       avatar: profile.photos?.[0]?.value ?? '',
     });
 
-    return { user: newUser, status: 'created', message: 'User created and logged in successfully.' };
-
+    return {
+      user: newUser,
+      status: 'created',
+      message: 'User created and logged in successfully.',
+    };
   } catch (err) {
-    console.error(`[Social Auth Error] Provider: ${provider}, Profile ID: ${profile.id} - ${err.message}`);
+    console.error(
+      `[Social Auth Error] Provider: ${provider}, Profile ID: ${profile.id} - ${err.message}`
+    );
     throw err;
   }
 }
-
-
-
-
-
-
-
-
-
-
-

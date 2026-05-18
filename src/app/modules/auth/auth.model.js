@@ -119,7 +119,7 @@ const UserSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 UserSchema.methods.generateConfirmationToken = function () {

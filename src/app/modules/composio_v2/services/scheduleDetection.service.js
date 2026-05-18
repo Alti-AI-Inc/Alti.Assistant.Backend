@@ -7,7 +7,10 @@ import { runGeminiTask } from '../services/aiClassificationService.js';
 /**
  * Detect if user wants to schedule a workflow instead of immediate execution
  */
-export const detectSchedulingRequirements = async (userInput, conversationContext = []) => {
+export const detectSchedulingRequirements = async (
+  userInput,
+  conversationContext = []
+) => {
   const systemPrompt = `You are an expert schedule detection system. Analyze user input to determine if they want to:
 1. Execute immediately (right now)
 2. Save as workflow for manual trigger later
@@ -58,11 +61,15 @@ Respond with a JSON object:
     }
 
     if (cleanedResult.startsWith('```json')) {
-      cleanedResult = cleanedResult.replace(/```json\s*/, '').replace(/\s*```$/, '');
+      cleanedResult = cleanedResult
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
     }
 
     if (cleanedResult.startsWith('```')) {
-      cleanedResult = cleanedResult.replace(/```\s*/, '').replace(/\s*```$/, '');
+      cleanedResult = cleanedResult
+        .replace(/```\s*/, '')
+        .replace(/\s*```$/, '');
     }
 
     const parsed = JSON.parse(cleanedResult);
@@ -75,9 +82,8 @@ Respond with a JSON object:
 
     return {
       success: true,
-      data: parsed
+      data: parsed,
     };
-
   } catch (error) {
     console.error('Error in detectSchedulingRequirements:', error);
 
@@ -86,7 +92,7 @@ Respond with a JSON object:
 
     return {
       success: true,
-      data: fallbackDetection
+      data: fallbackDetection,
     };
   }
 };
@@ -94,7 +100,10 @@ Respond with a JSON object:
 /**
  * Parse natural language schedule expressions into cron format
  */
-export const parseScheduleExpression = async (scheduleExpression, timezone = 'UTC') => {
+export const parseScheduleExpression = async (
+  scheduleExpression,
+  timezone = 'UTC'
+) => {
   const systemPrompt = `You are an expert cron expression generator. Convert natural language schedule expressions into valid cron expressions.
 
 CRON FORMAT: minute hour day_of_month month day_of_week
@@ -133,16 +142,17 @@ Respond with a JSON object:
     }
 
     if (cleanedResult.startsWith('```json')) {
-      cleanedResult = cleanedResult.replace(/```json\s*/, '').replace(/\s*```$/, '');
+      cleanedResult = cleanedResult
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
     }
 
     const parsed = JSON.parse(cleanedResult);
 
     return {
       success: true,
-      data: parsed
+      data: parsed,
     };
-
   } catch (error) {
     console.error('Error in parseScheduleExpression:', error);
 
@@ -153,8 +163,8 @@ Respond with a JSON object:
         cronExpression: null,
         description: 'Failed to parse schedule',
         isValid: false,
-        timezone
-      }
+        timezone,
+      },
     };
   }
 };
@@ -162,7 +172,11 @@ Respond with a JSON object:
 /**
  * Generate workflow title and description from user input
  */
-export const generateWorkflowMetadata = async (userInput, executionPlan, requiredApps) => {
+export const generateWorkflowMetadata = async (
+  userInput,
+  executionPlan,
+  requiredApps
+) => {
   const systemPrompt = `You are an expert workflow naming system. Generate clear, descriptive titles and descriptions for automation workflows based on user input and execution plans.
 
 TITLE GUIDELINES:
@@ -204,16 +218,17 @@ Respond with a JSON object:
     }
 
     if (cleanedResult.startsWith('```json')) {
-      cleanedResult = cleanedResult.replace(/```json\s*/, '').replace(/\s*```$/, '');
+      cleanedResult = cleanedResult
+        .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
     }
 
     const parsed = JSON.parse(cleanedResult);
 
     return {
       success: true,
-      data: parsed
+      data: parsed,
     };
-
   } catch (error) {
     console.error('Error in generateWorkflowMetadata:', error);
 
@@ -225,8 +240,8 @@ Respond with a JSON object:
       data: {
         title: fallbackTitle,
         description: `Automated workflow: ${userInput}`,
-        tags: requiredApps
-      }
+        tags: requiredApps,
+      },
     };
   }
 };
@@ -239,23 +254,47 @@ const fallbackScheduleDetection = (userInput) => {
 
   // Check for workflow creation keywords
   const workflowKeywords = [
-    'create workflow', 'save for later', 'set up automation',
-    'create automation', 'don\'t run yet', 'save as workflow'
+    'create workflow',
+    'save for later',
+    'set up automation',
+    'create automation',
+    "don't run yet",
+    'save as workflow',
   ];
 
-  const isWorkflowCreation = workflowKeywords.some(keyword => input.includes(keyword));
+  const isWorkflowCreation = workflowKeywords.some((keyword) =>
+    input.includes(keyword)
+  );
 
   // Check for schedule keywords
   const scheduleKeywords = [
-    'tomorrow', 'next week', 'schedule for', 'run at', 'at 3 pm',
-    'on friday', 'every day', 'daily', 'weekly', 'monthly'
+    'tomorrow',
+    'next week',
+    'schedule for',
+    'run at',
+    'at 3 pm',
+    'on friday',
+    'every day',
+    'daily',
+    'weekly',
+    'monthly',
   ];
 
-  const hasSchedule = scheduleKeywords.some(keyword => input.includes(keyword));
+  const hasSchedule = scheduleKeywords.some((keyword) =>
+    input.includes(keyword)
+  );
 
   // Check for recurring keywords
-  const recurringKeywords = ['daily', 'weekly', 'monthly', 'every day', 'every hour'];
-  const isRecurring = recurringKeywords.some(keyword => input.includes(keyword));
+  const recurringKeywords = [
+    'daily',
+    'weekly',
+    'monthly',
+    'every day',
+    'every hour',
+  ];
+  const isRecurring = recurringKeywords.some((keyword) =>
+    input.includes(keyword)
+  );
 
   let triggerType = 'immediate';
   if (isWorkflowCreation) triggerType = 'manual';
@@ -270,12 +309,12 @@ const fallbackScheduleDetection = (userInput) => {
       triggerDate: null,
       cronExpression: null,
       recurrencePattern: isRecurring ? detectRecurrencePattern(input) : null,
-      timezone: 'UTC'
+      timezone: 'UTC',
     },
     confidence: 0.7,
     reasoning: `Fallback detection based on keywords. Detected: ${triggerType}`,
     workflowTitle: null,
-    workflowDescription: null
+    workflowDescription: null,
   };
 };
 
@@ -286,7 +325,7 @@ const extractScheduleFromInput = (input) => {
   const timePatterns = [
     /at (\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i,
     /(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i,
-    /(tomorrow|next week|friday|monday|tuesday|wednesday|thursday|saturday|sunday)/i
+    /(tomorrow|next week|friday|monday|tuesday|wednesday|thursday|saturday|sunday)/i,
   ];
 
   for (const pattern of timePatterns) {
@@ -303,7 +342,8 @@ const extractScheduleFromInput = (input) => {
 const detectRecurrencePattern = (input) => {
   if (input.includes('daily') || input.includes('every day')) return 'daily';
   if (input.includes('weekly') || input.includes('every week')) return 'weekly';
-  if (input.includes('monthly') || input.includes('every month')) return 'monthly';
+  if (input.includes('monthly') || input.includes('every month'))
+    return 'monthly';
   if (input.includes('every hour')) return 'hourly';
   return 'custom';
 };

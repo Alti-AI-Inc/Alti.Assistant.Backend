@@ -5,6 +5,7 @@ AI-powered conversational presentation generation module that integrates with Pr
 ## Features
 
 ### 🤖 Conversational AI Assistant
+
 - Natural language understanding for presentation requests
 - Intelligent parameter extraction from user messages across entire conversation history
 - Context-aware follow-up questions when information is missing
@@ -13,6 +14,7 @@ AI-powered conversational presentation generation module that integrates with Pr
 - Supports unlimited conversation length without context overflow
 
 ### 🎨 Presentation Generation
+
 - **Synchronous Generation**: Instant presentation creation
 - **Asynchronous Generation**: For large or complex presentations
 - **Template Support**: general, modern, standard, swift
@@ -28,6 +30,7 @@ AI-powered conversational presentation generation module that integrates with Pr
   - Title Slide: Customizable cover slide
 
 ### ☁️ Google Cloud Storage Integration
+
 - **Automatic Upload**: All generated presentations are uploaded to GCS
 - **Public URLs**: Get shareable public links for presentations
 - **Persistent Storage**: Files remain accessible beyond API session
@@ -36,12 +39,14 @@ AI-powered conversational presentation generation module that integrates with Pr
 - See [GCS Upload Feature Documentation](./docs/GCS_UPLOAD_FEATURE.md) for details
 
 ### ✏️ Presentation Editing
+
 - **Edit Existing**: Modify slides in an existing presentation
 - **Derive New**: Create a new presentation from an existing one
 - **Slide-level Control**: Update specific slides by index
 - **Complex Data**: Support for charts, bullets, and custom content
 
 ### 📊 Task Management
+
 - Check status of async generation tasks
 - Retrieve presentation details
 - Download and edit URLs
@@ -49,6 +54,7 @@ AI-powered conversational presentation generation module that integrates with Pr
 ## API Endpoints
 
 ### 1. Conversational Assistant (Main Endpoint)
+
 ```
 POST /api/presentation/assistant
 ```
@@ -56,6 +62,7 @@ POST /api/presentation/assistant
 **Purpose**: Natural language interface for all presentation operations
 
 **Request Body**:
+
 ```json
 {
   "message": "Create a professional presentation about Machine Learning with 10 slides",
@@ -67,6 +74,7 @@ POST /api/presentation/assistant
 **Example Conversations**:
 
 **Simple Generation**:
+
 ```
 User: "Create a presentation about climate change"
 Assistant: "I'd be happy to help! How many slides would you like?"
@@ -77,18 +85,21 @@ Assistant: "🎉 Your presentation is ready! ..."
 ```
 
 **Complex Request**:
+
 ```
 User: "I need a professional presentation about AI with 15 slides, using the modern template and mint-blue theme. Make it text-heavy with stock images."
 Assistant: "🎉 Your presentation is ready! ..."
 ```
 
 **Status Check**:
+
 ```
 User: "Check the status of task-9a827c13f4"
 Assistant: "Task Status: completed. Your presentation is ready! ..."
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -106,11 +117,13 @@ Assistant: "Task Status: completed. Your presentation is ready! ..."
 ```
 
 ### 2. Direct Generation (Non-Conversational)
+
 ```
 POST /api/presentation/generate
 ```
 
 **Request Body**:
+
 ```json
 {
   "content": "Introduction to Machine Learning",
@@ -130,16 +143,19 @@ POST /api/presentation/generate
 ```
 
 ### 3. Check Task Status
+
 ```
 GET /api/presentation/status/:taskId
 ```
 
 ### 4. Edit Presentation
+
 ```
 POST /api/presentation/edit
 ```
 
 **Request Body**:
+
 ```json
 {
   "presentationId": "d3000f96-096c-4768-b67b-e99aed029b57",
@@ -163,12 +179,15 @@ POST /api/presentation/edit
 ```
 
 ### 5. Derive Presentation
+
 ```
 POST /api/presentation/derive
 ```
+
 Same request format as edit endpoint.
 
 ### 6. Get Presentation Details
+
 ```
 GET /api/presentation/:presentationId
 ```
@@ -194,6 +213,7 @@ CLAUDE_MODEL_NAME=claude-sonnet-4-5-20250929
 1. **User sends message** → "Create a presentation about AI"
 
 2. **AI analyzes intent** → Identifies: `generate` intent
+
    - Extracts parameters: `content: "AI"`
    - Identifies missing: `n_slides`, `tone`, etc.
 
@@ -204,6 +224,7 @@ CLAUDE_MODEL_NAME=claude-sonnet-4-5-20250929
 5. **AI merges parameters** → Combines with previous parameters
 
 6. **Check completeness** → All required params collected?
+
    - Yes → Generate presentation
    - No → Ask another follow-up question
 
@@ -214,6 +235,7 @@ CLAUDE_MODEL_NAME=claude-sonnet-4-5-20250929
 ### Intent Detection
 
 The AI can detect these intents:
+
 - `generate`: Create new presentation
 - `generate_async`: Create presentation asynchronously
 - `check_status`: Check task status
@@ -225,6 +247,7 @@ The AI can detect these intents:
 ### Parameter Extraction
 
 The AI intelligently extracts parameters from natural language:
+
 - "professional presentation" → `tone: "professional"`, `template: "modern"`
 - "10 slides" → `n_slides: 10`
 - "detailed content" → `verbosity: "text-heavy"`
@@ -255,6 +278,7 @@ presentation/
 ## Error Handling
 
 The module provides user-friendly error messages:
+
 - Missing parameters → Follow-up questions
 - API errors → Clear error messages
 - Invalid requests → Validation errors
@@ -262,6 +286,7 @@ The module provides user-friendly error messages:
 ## Examples
 
 ### Example 1: Simple Presentation
+
 ```javascript
 POST /api/presentation/assistant
 {
@@ -272,6 +297,7 @@ POST /api/presentation/assistant
 ```
 
 ### Example 2: Complete Request
+
 ```javascript
 POST /api/presentation/assistant
 {
@@ -283,6 +309,7 @@ POST /api/presentation/assistant
 ```
 
 ### Example 3: Edit Existing
+
 ```javascript
 POST /api/presentation/assistant
 {

@@ -81,11 +81,12 @@ class ClaudeService {
 
       console.log(`✅ Claude response received`);
       if (response.usage) {
-        console.log(`📊 Tokens - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}`);
+        console.log(
+          `📊 Tokens - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}`
+        );
       }
 
       return response;
-
     } catch (error) {
       console.error('❌ Error calling Claude:', error);
       throw new Error(`Claude API call failed: ${error.message}`);
@@ -152,7 +153,7 @@ class ClaudeService {
         // Exponential backoff
         const delay = Math.pow(2, attempt) * 1000;
         console.log(`⏳ Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
   }

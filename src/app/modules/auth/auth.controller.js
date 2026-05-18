@@ -27,11 +27,13 @@ const register = catchAsync(async (req, res) => {
     statusCode: result.statusCode || httpStatus.OK,
     success: true,
     message: result.message,
-    data: result.accessToken ? {
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-    } : null,
+    data: result.accessToken
+      ? {
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        }
+      : null,
   });
 });
 
@@ -70,7 +72,13 @@ const confirmEmail = catchAsync(async (req, res) => {
 const login = catchAsync(async (req, res) => {
   // logger.info(req.body, 'data login');
   const { email, password, tenantId, invitationToken, subdomain } = req.body;
-  const result = await authService.loginService(email, password, tenantId, invitationToken, subdomain);
+  const result = await authService.loginService(
+    email,
+    password,
+    tenantId,
+    invitationToken,
+    subdomain
+  );
   logger.info(result, 'resultttttttttttttttt');
 
   const { refreshToken, ...others } = result;
@@ -399,7 +407,7 @@ const updateUser = catchAsync(async (req, res) => {
   if (result.modifiedCount == !1) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
-      'User not found or no changes made',
+      'User not found or no changes made'
     );
   }
   sendResponse(res, {

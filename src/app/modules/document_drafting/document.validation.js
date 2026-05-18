@@ -48,7 +48,9 @@ const generateDocumentSchema = z.object({
         'general',
       ])
       .optional(),
-    outputFormat: z.enum(['pdf', 'docx', 'doc', 'txt', 'html', 'md']).optional(),
+    outputFormat: z
+      .enum(['pdf', 'docx', 'doc', 'txt', 'html', 'md'])
+      .optional(),
     tone: z
       .enum([
         'professional',
@@ -94,7 +96,9 @@ const editDocumentSchema = z.object({
       })
       .min(5, 'Instructions are too short')
       .max(5000, 'Instructions are too long'),
-    outputFormat: z.enum(['pdf', 'docx', 'doc', 'txt', 'html', 'md']).optional(),
+    outputFormat: z
+      .enum(['pdf', 'docx', 'doc', 'txt', 'html', 'md'])
+      .optional(),
   }),
 });
 

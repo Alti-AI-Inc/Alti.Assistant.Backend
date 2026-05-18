@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
-import { composioService } from "./composio.service.js";
+import { composioService } from './composio.service.js';
 
 const composioInitiateController = async (req, res) => {
   console.log('Initiating Composio Auth...', req.body);
@@ -14,7 +14,7 @@ const composioInitiateController = async (req, res) => {
   try {
     const connectionUrl = await composioService.initiateComposioAuth({
       app_name,
-      user_id
+      user_id,
     });
     res.status(200).json({ authConfig: connectionUrl });
   } catch (error) {
@@ -26,7 +26,8 @@ const composioWaitForConnectionController = async (req, res) => {
   const { connected_account_id } = req.body;
 
   try {
-    const connection = await composioService.waitForConnection(connected_account_id);
+    const connection =
+      await composioService.waitForConnection(connected_account_id);
     res.status(200).json({ connection });
   } catch (error) {
     res.status(500).json({ error: 'Failed to establish connection' });
@@ -40,7 +41,9 @@ const composioWaitForConnectionController = async (req, res) => {
 const composioConversationController = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? composioService.generateGuestUserId() : (req.user?.userId || req.user?._id);
+  let userId = isGuest
+    ? composioService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
   const { message, conversationId } = req.body;
   userId = req.body.userId || userId; // Allow overriding userId from request body
 
@@ -60,44 +63,61 @@ const composioConversationController = catchAsync(async (req, res) => {
     });
   }
 
-  const thread_id = conversationId || composioService.generateComposioConversationId();
+  const thread_id =
+    conversationId || composioService.generateComposioConversationId();
 
   try {
     // Handle conversation creation/retrieval
-    const conversation = await composioService.handleComposioConversation(userId, conversationId, message, isGuest);
+    const conversation = await composioService.handleComposioConversation(
+      userId,
+      conversationId,
+      message,
+      isGuest
+    );
     const actualConversationId = conversation.conversationId || thread_id;
 
     // Get conversation history for context-aware processing
     let conversationHistory = [];
     if (conversationId && conversation.messages) {
       // Get last 10 messages for context (excluding the current message)
-      conversationHistory = conversation.messages
-        .slice(-10)
-        .map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
+      conversationHistory = conversation.messages.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
     }
 
     // Add user message to conversation
-    await composioService.addComposioQueryMessage(actualConversationId, userId, message, isGuest);
+    await composioService.addComposioQueryMessage(
+      actualConversationId,
+      userId,
+      message,
+      isGuest
+    );
 
     const inputs = {
       query: message,
       conversationContext: conversationHistory,
       history: [...conversationHistory, { role: 'user', content: message }],
       userId: userId,
-      conversationId: actualConversationId
+      conversationId: actualConversationId,
     };
 
     const result = await composioService.processComposioConversation(inputs);
-    logger.info(`Composio Automation Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`);
+    logger.info(
+      `Composio Automation Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
+    );
 
     const response = result.response;
     const metadata = result.metadata || {};
 
     // Add assistant response to conversation
-    await composioService.addComposioResponseMessage(actualConversationId, userId, response, metadata, isGuest);
+    await composioService.addComposioResponseMessage(
+      actualConversationId,
+      userId,
+      response,
+      metadata,
+      isGuest
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -108,10 +128,9 @@ const composioConversationController = catchAsync(async (req, res) => {
         response: response,
         metadata: metadata,
         isGuest: isGuest,
-        executionResult: result.executionResult
+        executionResult: result.executionResult,
       },
     });
-
   } catch (error) {
     logger.error(`Error in composio conversation: ${error.message}`);
 
@@ -121,8 +140,8 @@ const composioConversationController = catchAsync(async (req, res) => {
       message: 'Failed to process automation request',
       data: {
         conversationId: thread_id,
-        error: error.message
-      }
+        error: error.message,
+      },
     });
   }
 });
@@ -133,7 +152,7 @@ const composioConversationController = catchAsync(async (req, res) => {
 const getComposioConversationController = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
   const isGuest = req.isGuest || !req.user;
-  const userId = isGuest ? req.query.userId : (req.user?.userId || req.user?._id);
+  const userId = isGuest ? req.query.userId : req.user?.userId || req.user?._id;
 
   if (!conversationId) {
     return sendResponse(res, {
@@ -144,7 +163,11 @@ const getComposioConversationController = catchAsync(async (req, res) => {
   }
 
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -168,7 +191,7 @@ const getComposioConversationController = catchAsync(async (req, res) => {
  */
 const getUserComposioConversationsController = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  const userId = isGuest ? req.query.userId : (req.user?.userId || req.user?._id);
+  const userId = isGuest ? req.query.userId : req.user?.userId || req.user?._id;
 
   if (!userId) {
     return sendResponse(res, {
@@ -188,7 +211,11 @@ const getUserComposioConversationsController = catchAsync(async (req, res) => {
       search: req.query.search || '',
     };
 
-    const conversations = await conversationHelpers.getUserConversations(userId, options, req);
+    const conversations = await conversationHelpers.getUserConversations(
+      userId,
+      options,
+      req
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -197,7 +224,9 @@ const getUserComposioConversationsController = catchAsync(async (req, res) => {
       data: conversations,
     });
   } catch (error) {
-    logger.error(`Error retrieving user composio conversations: ${error.message}`);
+    logger.error(
+      `Error retrieving user composio conversations: ${error.message}`
+    );
 
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
@@ -212,5 +241,5 @@ export const composioController = {
   composioWaitForConnectionController,
   composioConversationController,
   getComposioConversationController,
-  getUserComposioConversationsController
+  getUserComposioConversationsController,
 };

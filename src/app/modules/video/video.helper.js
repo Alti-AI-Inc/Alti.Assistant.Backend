@@ -9,13 +9,18 @@ import { VIDEO_ASSISTANT_CONSTANTS } from './video.constant.js';
  * @param {number} messageCount
  * @returns {Object}
  */
-export const formatVideoResponse = (response, videoData, conversationId, messageCount) => {
+export const formatVideoResponse = (
+  response,
+  videoData,
+  conversationId,
+  messageCount
+) => {
   try {
     return {
       responseMessage: {
         text: response,
         video: videoData || null,
-        type: 'generation'
+        type: 'generation',
       },
       conversationId,
       messageCount,
@@ -26,7 +31,7 @@ export const formatVideoResponse = (response, videoData, conversationId, message
       responseMessage: {
         text: response,
         video: null,
-        type: 'generation'
+        type: 'generation',
       },
       conversationId,
       messageCount,
@@ -41,12 +46,16 @@ export const formatVideoResponse = (response, videoData, conversationId, message
  * @param {number} messageCount
  * @returns {Object}
  */
-export const formatAnalysisResponse = (response, conversationId, messageCount) => {
+export const formatAnalysisResponse = (
+  response,
+  conversationId,
+  messageCount
+) => {
   try {
     return {
       responseMessage: {
         text: response,
-        type: 'analysis'
+        type: 'analysis',
       },
       conversationId,
       messageCount,
@@ -56,7 +65,7 @@ export const formatAnalysisResponse = (response, conversationId, messageCount) =
     return {
       responseMessage: {
         text: response,
-        type: 'analysis'
+        type: 'analysis',
       },
       conversationId,
       messageCount,
@@ -103,10 +112,14 @@ export const validateVideoQuery = (message) => {
  * @returns {string}
  */
 export const formatErrorMessage = (error, originalQuery) => {
-  const baseMessage = "I apologize, but I encountered an error while processing your video request.";
+  const baseMessage =
+    'I apologize, but I encountered an error while processing your video request.';
 
   // Don't expose internal error details to users
-  if (error.message?.includes('rate limit') || error.message?.includes('quota')) {
+  if (
+    error.message?.includes('rate limit') ||
+    error.message?.includes('quota')
+  ) {
     return `${baseMessage} It seems we've reached our service limits. Please try again in a few minutes.`;
   }
 
@@ -114,7 +127,10 @@ export const formatErrorMessage = (error, originalQuery) => {
     return `${baseMessage} Please check your video format or prompt and try again.`;
   }
 
-  if (error.message?.includes('network') || error.message?.includes('timeout')) {
+  if (
+    error.message?.includes('network') ||
+    error.message?.includes('timeout')
+  ) {
     return `${baseMessage} There seems to be a connectivity issue. Please try again.`;
   }
 
@@ -131,29 +147,52 @@ export const extractVideoSpecs = (query) => {
     duration: 10,
     style: 'realistic',
     resolution: '1080p',
-    aspectRatio: '16:9'
+    aspectRatio: '16:9',
   };
 
   const lowerQuery = query.toLowerCase();
 
   // Extract duration preferences
-  if (lowerQuery.includes('short') || lowerQuery.includes('quick') || lowerQuery.includes('5 second')) {
+  if (
+    lowerQuery.includes('short') ||
+    lowerQuery.includes('quick') ||
+    lowerQuery.includes('5 second')
+  ) {
     specs.duration = 5;
-  } else if (lowerQuery.includes('long') || lowerQuery.includes('30 second') || lowerQuery.includes('half minute')) {
+  } else if (
+    lowerQuery.includes('long') ||
+    lowerQuery.includes('30 second') ||
+    lowerQuery.includes('half minute')
+  ) {
     specs.duration = 30;
   }
 
   // Extract style preferences
-  if (lowerQuery.includes('cartoon') || lowerQuery.includes('animated') || lowerQuery.includes('comic')) {
+  if (
+    lowerQuery.includes('cartoon') ||
+    lowerQuery.includes('animated') ||
+    lowerQuery.includes('comic')
+  ) {
     specs.style = 'cartoon';
-  } else if (lowerQuery.includes('cinematic') || lowerQuery.includes('movie') || lowerQuery.includes('film')) {
+  } else if (
+    lowerQuery.includes('cinematic') ||
+    lowerQuery.includes('movie') ||
+    lowerQuery.includes('film')
+  ) {
     specs.style = 'cinematic';
-  } else if (lowerQuery.includes('abstract') || lowerQuery.includes('artistic')) {
+  } else if (
+    lowerQuery.includes('abstract') ||
+    lowerQuery.includes('artistic')
+  ) {
     specs.style = 'abstract';
   }
 
   // Extract resolution preferences
-  if (lowerQuery.includes('4k') || lowerQuery.includes('ultra hd') || lowerQuery.includes('uhd')) {
+  if (
+    lowerQuery.includes('4k') ||
+    lowerQuery.includes('ultra hd') ||
+    lowerQuery.includes('uhd')
+  ) {
     specs.resolution = '4k';
   } else if (lowerQuery.includes('720p') || lowerQuery.includes('hd')) {
     specs.resolution = '720p';
@@ -162,9 +201,17 @@ export const extractVideoSpecs = (query) => {
   // Extract aspect ratio preferences
   if (lowerQuery.includes('square') || lowerQuery.includes('1:1')) {
     specs.aspectRatio = '1:1';
-  } else if (lowerQuery.includes('portrait') || lowerQuery.includes('9:16') || lowerQuery.includes('vertical')) {
+  } else if (
+    lowerQuery.includes('portrait') ||
+    lowerQuery.includes('9:16') ||
+    lowerQuery.includes('vertical')
+  ) {
     specs.aspectRatio = '9:16';
-  } else if (lowerQuery.includes('widescreen') || lowerQuery.includes('21:9') || lowerQuery.includes('ultrawide')) {
+  } else if (
+    lowerQuery.includes('widescreen') ||
+    lowerQuery.includes('21:9') ||
+    lowerQuery.includes('ultrawide')
+  ) {
     specs.aspectRatio = '21:9';
   }
 
@@ -185,13 +232,17 @@ export const validateVideoSpecs = (specs) => {
   }
 
   // Validate style
-  const validStyles = Object.values(VIDEO_ASSISTANT_CONSTANTS.VIDEO_SPECS.STYLES);
+  const validStyles = Object.values(
+    VIDEO_ASSISTANT_CONSTANTS.VIDEO_SPECS.STYLES
+  );
   if (specs.style && !validStyles.includes(specs.style)) {
     errors.push(`Style must be one of: ${validStyles.join(', ')}`);
   }
 
   // Validate resolution
-  const validResolutions = Object.values(VIDEO_ASSISTANT_CONSTANTS.VIDEO_SPECS.RESOLUTIONS);
+  const validResolutions = Object.values(
+    VIDEO_ASSISTANT_CONSTANTS.VIDEO_SPECS.RESOLUTIONS
+  );
   if (specs.resolution && !validResolutions.includes(specs.resolution)) {
     errors.push(`Resolution must be one of: ${validResolutions.join(', ')}`);
   }
@@ -209,7 +260,11 @@ export const validateVideoSpecs = (specs) => {
  * @param {number} messageCount
  * @returns {Object}
  */
-export const formatAssistantResponse = (result, conversationId, messageCount) => {
+export const formatAssistantResponse = (
+  result,
+  conversationId,
+  messageCount
+) => {
   if (result.videoUrl) {
     return formatVideoResponse(
       result.response || VIDEO_ASSISTANT_CONSTANTS.SUCCESS.VIDEO_GENERATED,
@@ -218,7 +273,11 @@ export const formatAssistantResponse = (result, conversationId, messageCount) =>
       messageCount
     );
   } else if (result.responseMessage) {
-    return formatAnalysisResponse(result.responseMessage, conversationId, messageCount);
+    return formatAnalysisResponse(
+      result.responseMessage,
+      conversationId,
+      messageCount
+    );
   } else {
     return formatAnalysisResponse(
       "I'm processing your video request. Could you provide more details?",
@@ -235,11 +294,11 @@ export const formatAssistantResponse = (result, conversationId, messageCount) =>
  */
 export const getUserErrorMessage = (errorType) => {
   const errorMap = {
-    'rate_limit': VIDEO_ASSISTANT_CONSTANTS.ERRORS.RATE_LIMIT,
-    'quota_exceeded': VIDEO_ASSISTANT_CONSTANTS.ERRORS.QUOTA_EXCEEDED,
-    'network_error': VIDEO_ASSISTANT_CONSTANTS.ERRORS.NETWORK_ERROR,
-    'invalid_format': VIDEO_ASSISTANT_CONSTANTS.ERRORS.INVALID_FORMAT,
-    'generation_failed': VIDEO_ASSISTANT_CONSTANTS.ERRORS.GENERATION_FAILED,
+    rate_limit: VIDEO_ASSISTANT_CONSTANTS.ERRORS.RATE_LIMIT,
+    quota_exceeded: VIDEO_ASSISTANT_CONSTANTS.ERRORS.QUOTA_EXCEEDED,
+    network_error: VIDEO_ASSISTANT_CONSTANTS.ERRORS.NETWORK_ERROR,
+    invalid_format: VIDEO_ASSISTANT_CONSTANTS.ERRORS.INVALID_FORMAT,
+    generation_failed: VIDEO_ASSISTANT_CONSTANTS.ERRORS.GENERATION_FAILED,
   };
 
   return errorMap[errorType] || VIDEO_ASSISTANT_CONSTANTS.MESSAGE.DEFAULT_ERROR;

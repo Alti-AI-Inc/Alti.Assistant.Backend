@@ -28,7 +28,9 @@ const reviewDocumentSchema = z.object({
         'formatting_review',
       ])
       .optional(),
-    reviewDepth: z.enum(['quick', 'standard', 'detailed', 'comprehensive']).optional(),
+    reviewDepth: z
+      .enum(['quick', 'standard', 'detailed', 'comprehensive'])
+      .optional(),
     documentType: z
       .enum([
         'academic',

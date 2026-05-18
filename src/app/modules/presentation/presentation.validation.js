@@ -38,9 +38,11 @@ const checkStatusSchema = z.object({
       required_error: 'Task ID is required',
     }),
   }),
-  query: z.object({
-    conversationId: z.string().optional(),
-  }).optional(),
+  query: z
+    .object({
+      conversationId: z.string().optional(),
+    })
+    .optional(),
 });
 
 const editPresentationSchema = z.object({

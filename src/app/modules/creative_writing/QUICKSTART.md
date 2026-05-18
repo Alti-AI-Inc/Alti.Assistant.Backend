@@ -11,6 +11,7 @@ The Creative Writing module provides an AI-powered conversational assistant for 
 **Endpoint:** `POST /api/v1/creative-writing/assistant`
 
 **Basic Request:**
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
   -H "Content-Type: application/json" \
@@ -20,6 +21,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -58,6 +60,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ### Write Different Types of Creative Content
 
 #### Poem
+
 ```json
 {
   "message": "Write a poem about autumn leaves"
@@ -65,6 +68,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ```
 
 #### Short Story
+
 ```json
 {
   "message": "Write a short mystery story about a detective, around 500 words"
@@ -72,6 +76,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ```
 
 #### Song Lyrics
+
 ```json
 {
   "message": "Write song lyrics about hope and new beginnings"
@@ -79,6 +84,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ```
 
 #### Script Scene
+
 ```json
 {
   "message": "Write a dramatic scene between two friends arguing"
@@ -86,6 +92,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ```
 
 #### Haiku
+
 ```json
 {
   "message": "Write a haiku about cherry blossoms"
@@ -93,6 +100,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ```
 
 #### Flash Fiction
+
 ```json
 {
   "message": "Write a 100-word flash fiction about time travel"
@@ -136,6 +144,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ### Iterate on Writing
 
 #### Continue
+
 ```json
 {
   "message": "Continue the story. What happens next?",
@@ -144,6 +153,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ```
 
 #### Revise
+
 ```json
 {
   "message": "Revise it to make it more suspenseful",
@@ -152,6 +162,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ```
 
 #### Expand
+
 ```json
 {
   "message": "Expand the story with more details about the characters",
@@ -160,6 +171,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ```
 
 #### Shorten
+
 ```json
 {
   "message": "Make it shorter and more concise",
@@ -184,6 +196,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 ## Tips for Best Results
 
 ### ✅ DO:
+
 - Be specific about what you want
 - Mention style, tone, and length preferences
 - Use natural language - talk to it like a person
@@ -191,6 +204,7 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 - Iterate on your writing - ask for revisions
 
 ### ❌ DON'T:
+
 - Don't be too vague (e.g., just "write something")
 - Don't forget to pass conversationId when continuing
 - Don't expect perfect first drafts - iterate!
@@ -202,12 +216,12 @@ curl -X GET http://localhost:5000/api/v1/creative-writing/conversation/creative_
 **AI:** [Generates initial story]
 
 **User:** "Make it more heartwarming and add more dialogue"  
-*(Include conversationId)*
+_(Include conversationId)_
 
 **AI:** [Generates revised version]
 
 **User:** "Perfect! Now continue it - what happens when the robot meets a human?"  
-*(Include conversationId)*
+_(Include conversationId)_
 
 **AI:** [Continues the story]
 
@@ -218,6 +232,7 @@ Import the Postman collection for ready-to-use examples:
 **File:** `postman_collections/Creative_Writing_API.postman_collection.json`
 
 The collection includes:
+
 - ✅ Poem creation examples
 - ✅ Story writing examples
 - ✅ Song lyrics examples
@@ -229,6 +244,7 @@ The collection includes:
 ## Authentication
 
 ### Guest Users (No Auth Required)
+
 ```bash
 # Just send the request - no token needed
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
@@ -237,6 +253,7 @@ curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
 ```
 
 ### Authenticated Users
+
 ```bash
 # Include your auth token
 curl -X POST http://localhost:5000/api/v1/creative-writing/assistant \
@@ -274,12 +291,12 @@ Every response includes:
 
 ## Error Handling
 
-| Status Code | Meaning | Solution |
-|-------------|---------|----------|
-| 400 | Bad Request | Check message is provided and valid |
-| 401 | Unauthorized | Include valid auth token |
-| 403 | Limit Reached | Upgrade subscription plan |
-| 500 | Server Error | Contact support |
+| Status Code | Meaning       | Solution                            |
+| ----------- | ------------- | ----------------------------------- |
+| 400         | Bad Request   | Check message is provided and valid |
+| 401         | Unauthorized  | Include valid auth token            |
+| 403         | Limit Reached | Upgrade subscription plan           |
+| 500         | Server Error  | Contact support                     |
 
 ## Need Help?
 

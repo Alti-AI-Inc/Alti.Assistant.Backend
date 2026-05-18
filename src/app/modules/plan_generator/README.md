@@ -71,6 +71,7 @@ plan_generator/
 The primary endpoint for natural language interaction.
 
 **Request:**
+
 ```json
 {
   "message": "I want to launch a food delivery app",
@@ -82,6 +83,7 @@ The primary endpoint for natural language interaction.
 **Optional:** Attach file (PDF, DOCX, TXT, XLSX) for additional context
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -95,6 +97,7 @@ The primary endpoint for natural language interaction.
 ```
 
 **Flow:**
+
 1. **Idea Analysis**: AI analyzes clarity, determines plan type, identifies missing info
 2. **Brainstorming**: Generates comprehensive insights across multiple dimensions
 3. **Plan Generation**: Creates structured, actionable plan
@@ -109,6 +112,7 @@ The primary endpoint for natural language interaction.
 Programmatic plan generation with all parameters specified.
 
 **Request:**
+
 ```json
 {
   "idea": "Launch a food delivery app in urban areas",
@@ -121,21 +125,24 @@ Programmatic plan generation with all parameters specified.
     "timeline": "6 months",
     "teamSize": 5
   },
-  "brainstormAspects": [
-    "swot_analysis",
-    "market_analysis",
-    "risk_assessment"
-  ]
+  "brainstormAspects": ["swot_analysis", "market_analysis", "risk_assessment"]
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
-  "analysis": { /* idea analysis */ },
-  "brainstorm": { /* brainstorming insights */ },
-  "plan": { /* complete plan */ },
+  "analysis": {
+    /* idea analysis */
+  },
+  "brainstorm": {
+    /* brainstorming insights */
+  },
+  "plan": {
+    /* complete plan */
+  },
   "message": "Plan generated successfully"
 }
 ```
@@ -149,6 +156,7 @@ Programmatic plan generation with all parameters specified.
 Generate brainstorming insights without creating a full plan.
 
 **Request:**
+
 ```json
 {
   "idea": "Create an online learning platform",
@@ -162,13 +170,20 @@ Generate brainstorming insights without creating a full plan.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
-  "analysis": { /* idea analysis */ },
+  "analysis": {
+    /* idea analysis */
+  },
   "brainstorm": {
-    "swot_analysis": { /* SWOT */ },
-    "market_analysis": { /* market insights */ },
+    "swot_analysis": {
+      /* SWOT */
+    },
+    "market_analysis": {
+      /* market insights */
+    },
     "key_insights": ["insight1", "insight2"],
     "recommendations": ["rec1", "rec2"]
   }
@@ -184,21 +199,25 @@ Generate brainstorming insights without creating a full plan.
 Export a generated plan in various formats.
 
 **Request:**
+
 ```json
 {
   "conversationId": "plan_1234567890_abc123",
-  "format": "markdown",  // pdf, docx, json, markdown, html
+  "format": "markdown", // pdf, docx, json, markdown, html
   "userId": "optional_for_guests"
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
   "format": "markdown",
   "content": "# Plan Title\n\n## Executive Summary...",
-  "plan": { /* full plan object */ }
+  "plan": {
+    /* full plan object */
+  }
 }
 ```
 
@@ -211,17 +230,26 @@ Export a generated plan in various formats.
 Retrieve full conversation history and generated plan.
 
 **Response:**
+
 ```json
 {
   "success": true,
   "conversation": {
     "conversationId": "plan_1234567890_abc123",
-    "messages": [ /* conversation history */ ],
+    "messages": [
+      /* conversation history */
+    ],
     "metadata": {
       "planStage": "refinement",
-      "analysis": { /* idea analysis */ },
-      "brainstorm": { /* brainstorm data */ },
-      "generatedPlan": { /* complete plan */ }
+      "analysis": {
+        /* idea analysis */
+      },
+      "brainstorm": {
+        /* brainstorm data */
+      },
+      "generatedPlan": {
+        /* complete plan */
+      }
     }
   }
 }
@@ -337,11 +365,11 @@ Generated plans follow this comprehensive structure:
 ### Model Settings
 
 ```javascript
-MODEL: 'gemini-2.0-flash-exp'
-FALLBACK_MODEL: 'gemini-2.5-flash'
-TEMPERATURE_BRAINSTORM: 0.8  // Creative
-TEMPERATURE_PLANNING: 0.6     // Structured
-MAX_OUTPUT_TOKENS: 16384
+MODEL: 'gemini-2.0-flash-exp';
+FALLBACK_MODEL: 'gemini-2.5-flash';
+TEMPERATURE_BRAINSTORM: 0.8; // Creative
+TEMPERATURE_PLANNING: 0.6; // Structured
+MAX_OUTPUT_TOKENS: 16384;
 ```
 
 ### File Upload Limits
@@ -476,6 +504,7 @@ All endpoints return standardized error responses:
 ## Support
 
 For issues or questions, refer to:
+
 - [QUICKSTART.md](./QUICKSTART.md) for quick implementation guide
 - API documentation in `/docs`
 - Example Postman collection in `/postman_collections`

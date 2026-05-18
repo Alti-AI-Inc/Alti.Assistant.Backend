@@ -52,7 +52,7 @@ import config from './config';
 import { errorlogger, logger } from './shared/logger';
 import { RedisClient, subscribeToEvents } from './shared/redis';
 
-process.on('uncaughtException', error => {
+process.on('uncaughtException', (error) => {
   errorlogger.error('Uncaught Exception detected:', error);
   process.exit(1);
 });
@@ -67,7 +67,7 @@ mongoose
     family: 4,
   })
   .then(() => logger.info('Database connection successfully'))
-  .catch(err => {
+  .catch((err) => {
     logger.info('Error connecting to the database:', err);
     process.exit(1); // Exit the application on database connection error
   });
@@ -90,7 +90,7 @@ async function main() {
     errorlogger.error(`Failed to connect Database: ${error}`);
   }
 
-  process.on('unhandledRejection', error => {
+  process.on('unhandledRejection', (error) => {
     errorlogger.error('Unhandled Rejection detected:', error);
 
     if (server) {

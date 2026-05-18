@@ -24,6 +24,7 @@ This module provides AI-powered document drafting capabilities with conversation
 Natural language interface for document creation. The AI understands your intent and asks clarifying questions.
 
 **Request Body:**
+
 ```json
 {
   "message": "I need to write a professional business proposal for a new software project",
@@ -33,6 +34,7 @@ Natural language interface for document creation. The AI understands your intent
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -83,6 +85,7 @@ Natural language interface for document creation. The AI understands your intent
 Generate documents with all parameters provided upfront.
 
 **Request Body:**
+
 ```json
 {
   "content": "Write a technical documentation for REST API implementation",
@@ -100,6 +103,7 @@ Generate documents with all parameters provided upfront.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -134,6 +138,7 @@ Generate documents with all parameters provided upfront.
 Export an existing document to a different format.
 
 **Request Body:**
+
 ```json
 {
   "documentId": "doc_1234567890_abc123",
@@ -148,6 +153,7 @@ Export an existing document to a different format.
 Edit or refine an existing document.
 
 **Request Body:**
+
 ```json
 {
   "documentId": "doc_1234567890_abc123",
@@ -221,8 +227,8 @@ const response1 = await fetch('/api/v1/documents/assistant', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    message: "I need a cover letter for a software engineer position"
-  })
+    message: 'I need a cover letter for a software engineer position',
+  }),
 });
 
 // If AI needs more info, it will ask
@@ -231,9 +237,9 @@ const response2 = await fetch('/api/v1/documents/assistant', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    message: "Make it professional, about 500 words, export as PDF",
-    conversationId: "doc_1234567890_abc123"
-  })
+    message: 'Make it professional, about 500 words, export as PDF',
+    conversationId: 'doc_1234567890_abc123',
+  }),
 });
 ```
 
@@ -244,14 +250,14 @@ const response = await fetch('/api/v1/documents/generate', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    content: "Write a blog post about artificial intelligence trends in 2025",
-    documentType: "blog_post",
-    outputFormat: "html",
-    tone: "casual",
-    length: "medium",
+    content: 'Write a blog post about artificial intelligence trends in 2025',
+    documentType: 'blog_post',
+    outputFormat: 'html',
+    tone: 'casual',
+    length: 'medium',
     includeTitle: true,
-    includeDate: true
-  })
+    includeDate: true,
+  }),
 });
 ```
 
@@ -267,9 +273,9 @@ POST /api/v1/documents/assistant
 // Response: Draft generated with refinement questions
 {
   "isDraft": true,
-  "document": { 
+  "document": {
     "content": "...",
-    "url": "https://..." 
+    "url": "https://..."
   },
   "improvementQuestions": [
     "What specific CRM features are most important?",
@@ -352,6 +358,7 @@ System: Generates refined version with those details
 ### Conversational Intelligence
 
 The module uses AI to:
+
 - Generate drafts with minimal information
 - Understand user intent from natural language
 - Extract document parameters automatically
@@ -375,6 +382,7 @@ The module uses AI to:
 ### Subscription Limits
 
 For authenticated users:
+
 - Checks usage limits against subscription
 - Enforces monthly quotas
 - Provides upgrade prompts when limits reached
@@ -396,6 +404,7 @@ All endpoints return consistent error responses:
 ## Rate Limiting
 
 Default rate limits (can be configured):
+
 - Conversational Assistant: 30 requests per 15 minutes
 - Direct Generation: 20 requests per 15 minutes
 - Export: 20 requests per 15 minutes

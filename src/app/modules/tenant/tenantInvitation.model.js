@@ -80,7 +80,7 @@ TenantInvitationSchema.index(
   { expiresAt: 1 },
   {
     expireAfterSeconds: 2592000, // 30 days
-    partialFilterExpression: { status: 'expired' }
+    partialFilterExpression: { status: 'expired' },
   }
 );
 
@@ -134,6 +134,9 @@ TenantInvitationSchema.pre('save', function (next) {
   next();
 });
 
-const TenantInvitation = mongoose.model('TenantInvitation', TenantInvitationSchema);
+const TenantInvitation = mongoose.model(
+  'TenantInvitation',
+  TenantInvitationSchema
+);
 
 export default TenantInvitation;

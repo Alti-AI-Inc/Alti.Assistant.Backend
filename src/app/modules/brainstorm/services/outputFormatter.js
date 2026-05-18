@@ -95,7 +95,12 @@ const formatBrainstormResponse = (brainstormData, metadata = {}) => {
  */
 const formatSWOT = (swotData) => {
   try {
-    const { strengths = [], weaknesses = [], opportunities = [], threats = [] } = swotData;
+    const {
+      strengths = [],
+      weaknesses = [],
+      opportunities = [],
+      threats = [],
+    } = swotData;
 
     let response = '## SWOT Analysis\n\n';
 
@@ -146,13 +151,37 @@ const formatSCAMPER = (scamperData) => {
     let response = '## SCAMPER Analysis\n\n';
 
     const sections = [
-      { key: 'substitute', title: '🔄 Substitute', description: 'What can be substituted?' },
-      { key: 'combine', title: '🤝 Combine', description: 'What can be combined?' },
+      {
+        key: 'substitute',
+        title: '🔄 Substitute',
+        description: 'What can be substituted?',
+      },
+      {
+        key: 'combine',
+        title: '🤝 Combine',
+        description: 'What can be combined?',
+      },
       { key: 'adapt', title: '🔧 Adapt', description: 'What can be adapted?' },
-      { key: 'modify', title: '⚡ Modify', description: 'What can be modified?' },
-      { key: 'putToOtherUses', title: '♻️ Put to Other Uses', description: 'What other uses?' },
-      { key: 'eliminate', title: '✂️ Eliminate', description: 'What can be eliminated?' },
-      { key: 'reverse', title: '🔀 Reverse', description: 'What can be reversed?' },
+      {
+        key: 'modify',
+        title: '⚡ Modify',
+        description: 'What can be modified?',
+      },
+      {
+        key: 'putToOtherUses',
+        title: '♻️ Put to Other Uses',
+        description: 'What other uses?',
+      },
+      {
+        key: 'eliminate',
+        title: '✂️ Eliminate',
+        description: 'What can be eliminated?',
+      },
+      {
+        key: 'reverse',
+        title: '🔀 Reverse',
+        description: 'What can be reversed?',
+      },
     ];
 
     sections.forEach((section) => {
@@ -197,25 +226,25 @@ const formatPerspectives = (perspectiveData) => {
 
       if (data.considerations && data.considerations.length > 0) {
         response += '**Key Considerations:**\n';
-        data.considerations.forEach((item) => response += `- ${item}\n`);
+        data.considerations.forEach((item) => (response += `- ${item}\n`));
         response += '\n';
       }
 
       if (data.opportunities && data.opportunities.length > 0) {
         response += '**Opportunities:**\n';
-        data.opportunities.forEach((item) => response += `- ${item}\n`);
+        data.opportunities.forEach((item) => (response += `- ${item}\n`));
         response += '\n';
       }
 
       if (data.challenges && data.challenges.length > 0) {
         response += '**Challenges:**\n';
-        data.challenges.forEach((item) => response += `- ${item}\n`);
+        data.challenges.forEach((item) => (response += `- ${item}\n`));
         response += '\n';
       }
 
       if (data.recommendations && data.recommendations.length > 0) {
         response += '**Recommendations:**\n';
-        data.recommendations.forEach((item) => response += `- ${item}\n`);
+        data.recommendations.forEach((item) => (response += `- ${item}\n`));
         response += '\n';
       }
     });
@@ -232,7 +261,11 @@ const formatPerspectives = (perspectiveData) => {
  */
 const formatRefinements = (refinementData) => {
   try {
-    const { refinedIdeas = [], enhancements = [], alternativeApproaches = [] } = refinementData;
+    const {
+      refinedIdeas = [],
+      enhancements = [],
+      alternativeApproaches = [],
+    } = refinementData;
 
     let response = '## Refinement Suggestions\n\n';
 
@@ -243,7 +276,7 @@ const formatRefinements = (refinementData) => {
         response += `${idea.description}\n\n`;
         if (idea.improvements && idea.improvements.length > 0) {
           response += '*Improvements:*\n';
-          idea.improvements.forEach((imp) => response += `- ${imp}\n`);
+          idea.improvements.forEach((imp) => (response += `- ${imp}\n`));
         }
         if (idea.reasoning) {
           response += `\n*Why:* ${idea.reasoning}\n`;
@@ -270,11 +303,11 @@ const formatRefinements = (refinementData) => {
         response += `${alt.description}\n`;
         if (alt.pros && alt.pros.length > 0) {
           response += '\n*Pros:*\n';
-          alt.pros.forEach((pro) => response += `- ${pro}\n`);
+          alt.pros.forEach((pro) => (response += `- ${pro}\n`));
         }
         if (alt.cons && alt.cons.length > 0) {
           response += '\n*Cons:*\n';
-          alt.cons.forEach((con) => response += `- ${con}\n`);
+          alt.cons.forEach((con) => (response += `- ${con}\n`));
         }
         response += '\n';
       });
@@ -292,7 +325,9 @@ const formatRefinements = (refinementData) => {
  */
 const createMetadataSummary = (brainstormData, params = {}) => {
   try {
-    const totalIdeas = (brainstormData.mainIdeas?.length || 0) + (brainstormData.subIdeas?.length || 0);
+    const totalIdeas =
+      (brainstormData.mainIdeas?.length || 0) +
+      (brainstormData.subIdeas?.length || 0);
 
     return {
       totalIdeasGenerated: totalIdeas,

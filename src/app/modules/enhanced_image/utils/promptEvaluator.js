@@ -1,14 +1,20 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { StructuredOutputParser } from "@langchain/core/output_parsers";
-import { z } from "zod";
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { PromptTemplate } from '@langchain/core/prompts';
+import { StructuredOutputParser } from '@langchain/core/output_parsers';
+import { z } from 'zod';
 
 // Define the prompt quality schema
 const promptQualitySchema = z.object({
-  isComplete: z.boolean().describe("Whether the prompt has enough detail to generate a good image"),
-  missingElements: z.array(z.string()).describe("List of missing or unclear elements that should be clarified"),
-  suggestions: z.array(z.string()).describe("Specific questions to ask the user to improve the prompt"),
-  score: z.number().min(0).max(100).describe("Prompt quality score (0-100)"),
+  isComplete: z
+    .boolean()
+    .describe('Whether the prompt has enough detail to generate a good image'),
+  missingElements: z
+    .array(z.string())
+    .describe('List of missing or unclear elements that should be clarified'),
+  suggestions: z
+    .array(z.string())
+    .describe('Specific questions to ask the user to improve the prompt'),
+  score: z.number().min(0).max(100).describe('Prompt quality score (0-100)'),
 });
 
 const qualityParser = StructuredOutputParser.fromZodSchema(promptQualitySchema);
@@ -45,8 +51,8 @@ Analyze the prompt quality and provide specific, actionable suggestions if it's 
  */
 export async function evaluatePromptQuality(
   prompt,
-  history = "No previous conversation.",
-  { apiKey, modelName = "gemini-2.5-flash" } = {}
+  history = 'No previous conversation.',
+  { apiKey, modelName = 'gemini-2.5-flash' } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
@@ -55,8 +61,8 @@ export async function evaluatePromptQuality(
   });
 
   const chain = qualityPromptTemplate.pipe(model).pipe(qualityParser);
-  console.log("Evaluating prompt quality for prompt:", prompt);
-  console.log("Conversation history:", history);
+  console.log('Evaluating prompt quality for prompt:', prompt);
+  console.log('Conversation history:', history);
   try {
     const result = await chain.invoke({
       prompt,
@@ -73,7 +79,10 @@ export async function evaluatePromptQuality(
         const llmOutput = error.llmOutput || '';
 
         // Remove markdown code blocks
-        let jsonString = llmOutput.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        let jsonString = llmOutput
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
 
         // Try to find and fix common JSON errors
         // Remove any trailing text after the last closing brace
@@ -89,7 +98,10 @@ export async function evaluatePromptQuality(
         return promptQualitySchema.parse(parsed);
       } catch (fallbackError) {
         // If all parsing fails, return a safe default response
-        console.error('Failed to parse LLM output, returning default:', fallbackError);
+        console.error(
+          'Failed to parse LLM output, returning default:',
+          fallbackError
+        );
         return {
           isComplete: false,
           missingElements: ['Unable to fully evaluate prompt quality'],
@@ -110,7 +122,7 @@ export async function evaluatePromptQuality(
  */
 export async function buildEnhancedPrompt(
   conversationHistory,
-  { apiKey, modelName = "gemini-2.5-flash" } = {}
+  { apiKey, modelName = 'gemini-2.5-flash' } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
@@ -133,7 +145,7 @@ Generate a complete, well-structured image generation prompt:`
 
   const conversation = conversationHistory
     .map((item, idx) => `${idx + 1}. ${item}`)
-    .join("\n");
+    .join('\n');
 
   const result = await chain.invoke({ conversation });
 

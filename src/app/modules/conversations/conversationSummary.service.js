@@ -18,7 +18,7 @@ const estimateTokenCount = (text) => {
  */
 const calculateConversationTokens = (messages) => {
   let totalTokens = 0;
-  messages.forEach(msg => {
+  messages.forEach((msg) => {
     if (msg.content) {
       totalTokens += estimateTokenCount(msg.content);
     }
@@ -31,9 +31,12 @@ const calculateConversationTokens = (messages) => {
  */
 const generateSummaryWithGemini = async (messages) => {
   try {
-    const conversationText = messages.map((msg, idx) =>
-      `[Message ${idx + 1}] ${msg.role.toUpperCase()}: ${msg.content}`
-    ).join('\n\n');
+    const conversationText = messages
+      .map(
+        (msg, idx) =>
+          `[Message ${idx + 1}] ${msg.role.toUpperCase()}: ${msg.content}`
+      )
+      .join('\n\n');
 
     const prompt = `Summarize this conversation in a clear, concise manner. Include key topics, decisions, and action items.
 
@@ -66,11 +69,28 @@ APPS: [app1, app2, app3]`;
     const appsMatch = response.match(/APPS:\s*(.+?)$/s);
 
     return {
-      summary: summaryMatch ? summaryMatch[1].trim() : response.substring(0, 500),
+      summary: summaryMatch
+        ? summaryMatch[1].trim()
+        : response.substring(0, 500),
       context: contextMatch ? contextMatch[1].trim() : '',
-      keyTopics: topicsMatch ? topicsMatch[1].split(',').map(t => t.trim()).filter(Boolean) : [],
-      entities: entitiesMatch ? entitiesMatch[1].split(',').map(e => e.trim()).filter(Boolean) : [],
-      detectedApps: appsMatch ? appsMatch[1].split(',').map(a => a.trim()).filter(Boolean) : []
+      keyTopics: topicsMatch
+        ? topicsMatch[1]
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [],
+      entities: entitiesMatch
+        ? entitiesMatch[1]
+            .split(',')
+            .map((e) => e.trim())
+            .filter(Boolean)
+        : [],
+      detectedApps: appsMatch
+        ? appsMatch[1]
+            .split(',')
+            .map((a) => a.trim())
+            .filter(Boolean)
+        : [],
     };
   } catch (error) {
     console.error('Error generating summary with Gemini:', error);
@@ -80,7 +100,7 @@ APPS: [app1, app2, app3]`;
       context: messages[messages.length - 1]?.content || '',
       keyTopics: [],
       entities: [],
-      detectedApps: []
+      detectedApps: [],
     };
   }
 };
@@ -90,8 +110,15 @@ APPS: [app1, app2, app3]`;
  */
 export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
   try {
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
-    if (!conversation || !conversation.messages || conversation.messages.length === 0) {
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
+    if (
+      !conversation ||
+      !conversation.messages ||
+      conversation.messages.length === 0
+    ) {
       return null;
     }
 
@@ -106,16 +133,25 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
     }
 
     // Check if we already have an active summary
-    const existingSummary = await ConversationSummary.findActiveForConversation(conversationId, userId);
-    if (existingSummary && existingSummary.messageRange.endIndex === conversation.messages.length) {
+    const existingSummary = await ConversationSummary.findActiveForConversation(
+      conversationId,
+      userId
+    );
+    if (
+      existingSummary &&
+      existingSummary.messageRange.endIndex === conversation.messages.length
+    ) {
       console.log('Summary already up to date');
       return existingSummary;
     }
 
-    console.log('📝 Generating summary for conversation (exceeds 12000 tokens)...');
+    console.log(
+      '📝 Generating summary for conversation (exceeds 12000 tokens)...'
+    );
 
     // Generate summary
-    const { summary, context, keyTopics, entities, detectedApps } = await generateSummaryWithGemini(conversation.messages);
+    const { summary, context, keyTopics, entities, detectedApps } =
+      await generateSummaryWithGemini(conversation.messages);
 
     // Mark old summaries as superseded
     if (existingSummary) {
@@ -132,16 +168,16 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
       messageRange: {
         startIndex: 0,
         endIndex: conversation.messages.length,
-        totalMessages: conversation.messages.length
+        totalMessages: conversation.messages.length,
       },
       tokenCount: totalTokens,
       metadata: {
         keyTopics,
         entities,
         detectedApps,
-        summaryVersion: '1.0'
+        summaryVersion: '1.0',
       },
-      status: 'active'
+      status: 'active',
     });
 
     await newSummary.save();
@@ -157,14 +193,25 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
 /**
  * Get conversation context (summary + recent messages)
  */
-export const getConversationContext = async (conversationId, userId, recentMessageLimit = 5) => {
+export const getConversationContext = async (
+  conversationId,
+  userId,
+  recentMessageLimit = 5
+) => {
   try {
     // Get active summary
-    const summary = await ConversationSummary.findActiveForConversation(conversationId, userId);
+    const summary = await ConversationSummary.findActiveForConversation(
+      conversationId,
+      userId
+    );
 
     // Get recent messages
-    const conversation = await Conversation.findByConversationId(conversationId, userId);
-    const recentMessages = conversation?.messages?.slice(-recentMessageLimit) || [];
+    const conversation = await Conversation.findByConversationId(
+      conversationId,
+      userId
+    );
+    const recentMessages =
+      conversation?.messages?.slice(-recentMessageLimit) || [];
 
     return {
       hasSummary: !!summary,
@@ -173,12 +220,12 @@ export const getConversationContext = async (conversationId, userId, recentMessa
       keyTopics: summary?.metadata?.keyTopics || [],
       entities: summary?.metadata?.entities || [],
       detectedApps: summary?.metadata?.detectedApps || [],
-      recentMessages: recentMessages.map(msg => ({
+      recentMessages: recentMessages.map((msg) => ({
         role: msg.role,
         content: msg.content,
-        timestamp: msg.timestamp
+        timestamp: msg.timestamp,
       })),
-      totalTokens: summary?.tokenCount || 0
+      totalTokens: summary?.tokenCount || 0,
     };
   } catch (error) {
     console.error('Error getting conversation context:', error);
@@ -190,7 +237,7 @@ export const getConversationContext = async (conversationId, userId, recentMessa
       entities: [],
       detectedApps: [],
       recentMessages: [],
-      totalTokens: 0
+      totalTokens: 0,
     };
   }
 };
@@ -230,5 +277,5 @@ export const conversationSummaryService = {
   getConversationContext,
   getFormattedContextForLLM,
   estimateTokenCount,
-  calculateConversationTokens
+  calculateConversationTokens,
 };

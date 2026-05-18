@@ -15,7 +15,16 @@ export const DOCUMENT_REVIEW_CONFIG = {
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/vnd.ms-powerpoint',
   ],
-  SUPPORTED_FILE_EXTENSIONS: ['.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt'],
+  SUPPORTED_FILE_EXTENSIONS: [
+    '.pdf',
+    '.docx',
+    '.doc',
+    '.txt',
+    '.xlsx',
+    '.xls',
+    '.pptx',
+    '.ppt',
+  ],
 };
 
 // Review intents
@@ -48,7 +57,7 @@ export const REVIEW_ASPECTS = {
 
 // Review depth levels
 export const REVIEW_DEPTH = {
-  QUICK: 'quick',      // Quick overview
+  QUICK: 'quick', // Quick overview
   STANDARD: 'standard', // Standard review
   DETAILED: 'detailed', // In-depth analysis
   COMPREHENSIVE: 'comprehensive', // Most thorough
@@ -114,11 +123,14 @@ export const SYSTEM_PROMPTS = {
 // Response templates
 export const RESPONSE_MESSAGES = {
   FILE_REQUIRED: 'Please upload a document file to review.',
-  FILE_UPLOADED: 'Document uploaded successfully. What would you like me to review?',
-  REVIEW_COMPLETE: 'I\'ve completed the review of your document.',
-  CLARIFICATION_NEEDED: 'Could you please clarify what specific aspect you\'d like me to focus on?',
-  PROCESSING: 'I\'m analyzing your document now...',
-  ERROR: 'I encountered an error while reviewing your document. Please try again.',
+  FILE_UPLOADED:
+    'Document uploaded successfully. What would you like me to review?',
+  REVIEW_COMPLETE: "I've completed the review of your document.",
+  CLARIFICATION_NEEDED:
+    "Could you please clarify what specific aspect you'd like me to focus on?",
+  PROCESSING: "I'm analyzing your document now...",
+  ERROR:
+    'I encountered an error while reviewing your document. Please try again.',
 };
 
 // File storage configuration

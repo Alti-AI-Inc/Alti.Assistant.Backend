@@ -30,29 +30,43 @@ const generateComposioConversationId = () => {
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const handleComposioConversation = async (userId, conversationId, userInput, isGuest = false, req = null) => {
+const handleComposioConversation = async (
+  userId,
+  conversationId,
+  userInput,
+  isGuest = false,
+  req = null
+) => {
   try {
     let conversation;
 
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        conversation = await conversationHelpers.getConversationById(conversationId, isGuest ? null : userId, req);
+        conversation = await conversationHelpers.getConversationById(
+          conversationId,
+          isGuest ? null : userId,
+          req
+        );
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
         if (isGuest && conversation.metadata?.userType !== 'guest') {
-          logger.warn(`Guest user ${userId} trying to access non-guest conversation ${conversationId}`);
+          logger.warn(
+            `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
+          );
           conversation = null; // Force creation of new conversation
         }
-
       } catch (error) {
-        logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one`);
+        logger.warn(
+          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+        );
       }
     }
 
     // Create conversation if it doesn't exist
     if (!conversation) {
-      const newConversationId = conversationId || generateComposioConversationId();
+      const newConversationId =
+        conversationId || generateComposioConversationId();
 
       // Generate a meaningful title from the user input
       const title = `Automation task: ${userInput.substring(0, 50)}${userInput.length > 50 ? '...' : ''}`;
@@ -92,13 +106,18 @@ const handleComposioConversation = async (userId, conversationId, userInput, isG
         );
       }
 
-      console.log(`Created new composio conversation with title ${title} ${newConversationId} for user ${userId} (guest: ${isGuest})`);
+      console.log(
+        `Created new composio conversation with title ${title} ${newConversationId} for user ${userId} (guest: ${isGuest})`
+      );
     }
 
     return conversation;
   } catch (error) {
     logger.error('Error handling composio conversation:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to handle composio conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to handle composio conversation'
+    );
   }
 };
 
@@ -110,9 +129,17 @@ const handleComposioConversation = async (userId, conversationId, userInput, isG
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addComposioQueryMessage = async (conversationId, userId, userInput, isGuest = false, req = null) => {
+const addComposioQueryMessage = async (
+  conversationId,
+  userId,
+  userInput,
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding composio query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding composio query message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the message in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
@@ -129,7 +156,10 @@ const addComposioQueryMessage = async (conversationId, userId, userInput, isGues
     );
   } catch (error) {
     logger.error('Error adding composio query message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add composio query to conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add composio query to conversation'
+    );
   }
 };
 
@@ -142,9 +172,18 @@ const addComposioQueryMessage = async (conversationId, userId, userInput, isGues
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addComposioResultMessage = async (conversationId, userId, result, metadata = {}, isGuest = false, req = null) => {
+const addComposioResultMessage = async (
+  conversationId,
+  userId,
+  result,
+  metadata = {},
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding composio result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding composio result message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the result in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
@@ -163,7 +202,10 @@ const addComposioResultMessage = async (conversationId, userId, result, metadata
     );
   } catch (error) {
     logger.error('Error adding composio result message:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to add composio result to conversation');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to add composio result to conversation'
+    );
   }
 };
 
@@ -176,9 +218,18 @@ const addComposioResultMessage = async (conversationId, userId, result, metadata
  * @param {boolean} isGuest
  * @returns {Promise<Object>}
  */
-const addComposioErrorMessage = async (conversationId, userId, errorMessage, originalError, isGuest = false, req = null) => {
+const addComposioErrorMessage = async (
+  conversationId,
+  userId,
+  errorMessage,
+  originalError,
+  isGuest = false,
+  req = null
+) => {
   try {
-    console.log(`Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`);
+    console.log(
+      `Adding error message to conversation ${conversationId} for user ${userId} (guest: ${isGuest})`
+    );
 
     // Store the error in the conversation for both guest and authenticated users
     return await conversationService.addMessageToConversation(
@@ -208,23 +259,30 @@ const addComposioErrorMessage = async (conversationId, userId, errorMessage, ori
  * @param {number} limit
  * @returns {Promise<Array>}
  */
-const getComposioHistory = async (conversationId, userId, limit = 10, req = null) => {
+const getComposioHistory = async (
+  conversationId,
+  userId,
+  limit = 10,
+  req = null
+) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation) {
       return [];
     }
 
     // Get last N messages for context
-    const recentMessages = conversation.messages
-      .slice(-limit)
-      .map(msg => ({
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp,
-        metadata: msg.metadata
-      }));
+    const recentMessages = conversation.messages.slice(-limit).map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp,
+      metadata: msg.metadata,
+    }));
 
     return recentMessages;
   } catch (error) {
@@ -240,7 +298,12 @@ const getComposioHistory = async (conversationId, userId, limit = 10, req = null
  * @param {Object} workflowResult
  * @returns {Promise<void>}
  */
-const updateComposioConversationTitle = async (conversationId, userId, workflowResult, req = null) => {
+const updateComposioConversationTitle = async (
+  conversationId,
+  userId,
+  workflowResult,
+  req = null
+) => {
   try {
     const { identifiedApp, identifiedAction, workflowType } = workflowResult;
 
@@ -252,9 +315,16 @@ const updateComposioConversationTitle = async (conversationId, userId, workflowR
       newTitle = `Multi-step Workflow`;
     }
 
-    await conversationService.updateConversationTitle(conversationId, userId, newTitle, req);
+    await conversationService.updateConversationTitle(
+      conversationId,
+      userId,
+      newTitle,
+      req
+    );
 
-    logger.info(`Updated conversation title for ${conversationId}: ${newTitle}`);
+    logger.info(
+      `Updated conversation title for ${conversationId}: ${newTitle}`
+    );
   } catch (error) {
     logger.error('Error updating conversation title:', error);
     // Don't throw to avoid disrupting the main flow
@@ -268,11 +338,12 @@ const updateComposioConversationTitle = async (conversationId, userId, workflowR
  */
 const getComposioStats = async (userId, req = null) => {
   try {
-    const composioConversations = await conversationHelpers.getUserConversations(
-      userId,
-      { 'metadata.category': 'composio' },
-      { limit: 1000 }
-    );
+    const composioConversations =
+      await conversationHelpers.getUserConversations(
+        userId,
+        { 'metadata.category': 'composio' },
+        { limit: 1000 }
+      );
 
     const totalComposio = composioConversations.conversations.length;
     const totalMessages = composioConversations.conversations.reduce(
@@ -283,7 +354,8 @@ const getComposioStats = async (userId, req = null) => {
     return {
       totalComposioConversations: totalComposio,
       totalComposioMessages: totalMessages,
-      averageMessagesPerConversation: totalComposio > 0 ? Math.round(totalMessages / totalComposio) : 0,
+      averageMessagesPerConversation:
+        totalComposio > 0 ? Math.round(totalMessages / totalComposio) : 0,
     };
   } catch (error) {
     logger.error('Error getting composio stats:', error);

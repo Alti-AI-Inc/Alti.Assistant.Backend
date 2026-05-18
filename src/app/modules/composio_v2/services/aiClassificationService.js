@@ -33,7 +33,14 @@ const runGeminiTask = async (userPrompt, systemPrompt) => {
   }
 };
 import fs from 'fs';
-export const executeComposioWithGemini = async (userId, userMessage, tools, apps, historySummary = null, conversationContext = null) => {
+export const executeComposioWithGemini = async (
+  userId,
+  userMessage,
+  tools,
+  apps,
+  historySummary = null,
+  conversationContext = null
+) => {
   try {
     // console.log(`Executing Composio tools with Gemini for user: ${userId} ${userMessage}`);
     // console.log('History context available:', !!historySummary);
@@ -62,7 +69,11 @@ export const executeComposioWithGemini = async (userId, userMessage, tools, apps
     let systemMessage = `You are a helpful assistant that can use various tools to help users. 
         Available tools: ${langchainTools.map((t) => t.name).join(', ')}.
         Available tools descriptions: ${langchainTools.map((t) => t.description).join(', ')}.
-        Available tools parameters: ${JSON.stringify(langchainTools.map((t) => t.parameters), null, 2)}.
+        Available tools parameters: ${JSON.stringify(
+          langchainTools.map((t) => t.parameters),
+          null,
+          2
+        )}.
         
         IMPORTANT RULES FOR TOOL CALLS:
         1. NEVER set parameters to null, undefined, or empty values
@@ -88,8 +99,11 @@ export const executeComposioWithGemini = async (userId, userMessage, tools, apps
         
         RECENT CONVERSATION:`;
 
-      if (historySummary.recentConversation && historySummary.recentConversation.length > 0) {
-        historySummary.recentConversation.forEach(msg => {
+      if (
+        historySummary.recentConversation &&
+        historySummary.recentConversation.length > 0
+      ) {
+        historySummary.recentConversation.forEach((msg) => {
           systemMessage += `\n        ${msg.role}: ${msg.content}`;
         });
       }
@@ -106,10 +120,17 @@ export const executeComposioWithGemini = async (userId, userMessage, tools, apps
     // console.log('System message with context:', systemMessage.substring(0, 500) + '...');
 
     // Execute with Gemini
-    const response = await runGeminiTaskWithTools([{
-      role: 'user',
-      content: systemMessage + '\n' + userMessage
-    }], tools, userId, apps);
+    const response = await runGeminiTaskWithTools(
+      [
+        {
+          role: 'user',
+          content: systemMessage + '\n' + userMessage,
+        },
+      ],
+      tools,
+      userId,
+      apps
+    );
     console.log('Gemini task response:', response);
 
     return response;
@@ -123,12 +144,17 @@ import ComposioAuth from '../composio.model.js';
 import { ChatOpenAI, OpenAIClient } from '@langchain/openai';
 import OpenAI from 'openai';
 
-export const runGeminiTaskWithTools = async (messages, tools = [], userId, app) => {
+export const runGeminiTaskWithTools = async (
+  messages,
+  tools = [],
+  userId,
+  app
+) => {
   try {
     // console.log('Running Gemini task with Composio tools...', app, userId);
     const connectedAccount = await ComposioAuth.findOne({
       userId: userId,
-      'toolkit.slug': app
+      'toolkit.slug': app,
     });
     // console.log(
     //   'Using connected account:',
@@ -140,40 +166,43 @@ export const runGeminiTaskWithTools = async (messages, tools = [], userId, app) 
 
     const composioConnectedAccount = await composio.connectedAccounts.list({
       toolkitSlugs: [app],
-    })
+    });
     // console.log('Composio connected account:', composioConnectedAccount);
 
     // Re-fetch tools with explicit connectedAccountId to avoid the warning
     const toolsWithConnectedAccount = await composio.tools.get(userId, {
-      tools: tools.map(t => t.function.name),
-      connectedAccountId: connectedAccountId
+      tools: tools.map((t) => t.function.name),
+      connectedAccountId: connectedAccountId,
     });
 
     console.log('Tools with connected account:', toolsWithConnectedAccount);
 
-
     // Wrap each Composio tool into a LangChain DynamicStructuredTool
     const openai = new OpenAI({
       apiKey: config.openai_secret_key,
-    })
+    });
     // console.log('Messages', messages);
 
     const msg = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: messages,
       tools: toolsWithConnectedAccount,
-      max_completion_tokens: 1024
-    })
+      max_completion_tokens: 1024,
+    });
     console.log('User id for tool execution:', userId);
 
-    const result = await composio.provider.handleToolCalls(userId.toString(), msg, {
-      connectedAccountId
-    })
+    const result = await composio.provider.handleToolCalls(
+      userId.toString(),
+      msg,
+      {
+        connectedAccountId,
+      }
+    );
     console.log('Tool call result:', result);
     return {
       content: result[0].content,
       success: true,
-      tool_call_results: result[0].content
+      tool_call_results: result[0].content,
     };
   } catch (error) {
     console.error('Error in runGeminiTaskWithTools:', error);
@@ -521,13 +550,23 @@ export { runGeminiTask };
 /**
  * Classify user intent to identify the app from available apps
  */
-export const classifyAppIntent = async (userInput, availableApps, context = [], conversationContext = {}) => {
-  const { lastApp, lastAction, recentTools = [], userPreferences = {} } = conversationContext;
+export const classifyAppIntent = async (
+  userInput,
+  availableApps,
+  context = [],
+  conversationContext = {}
+) => {
+  const {
+    lastApp,
+    lastAction,
+    recentTools = [],
+    userPreferences = {},
+  } = conversationContext;
 
   const systemPrompt = `You are an AI app classifier with conversation memory. Your task is to identify which app the user wants to use based on their input and conversation context.
 
 Available apps from database:
-${availableApps.map(app => `- ${app}`).join('\n')}
+${availableApps.map((app) => `- ${app}`).join('\n')}
 
 CONVERSATION CONTEXT:
 - Last used app: ${lastApp || 'None'}
@@ -547,7 +586,7 @@ Guidelines:
 9. Only give the json nothing extra
 
 Recent conversation:
-${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
+${context.map((msg) => `- ${msg.role}: ${msg.content}`).join('\n')}`;
 
   try {
     const response = await runGeminiTask(userInput, systemPrompt);
@@ -580,8 +619,8 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
       metadata: {
         availableAppsCount: availableApps.length,
         contextLength: context.length,
-        usedConversationContext: !!lastApp || !!lastAction
-      }
+        usedConversationContext: !!lastApp || !!lastAction,
+      },
     };
   } catch (error) {
     console.error('Error in classifyAppIntent:', error);
@@ -592,13 +631,24 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
 /**
  * Classify user intent to identify the action from available actions for the app
  */
-export const classifyActionIntent = async (userInput, appName, availableActions, context = [], conversationContext = {}) => {
-  const { lastApp, lastAction, lastParameters = {}, userPreferences = {} } = conversationContext;
+export const classifyActionIntent = async (
+  userInput,
+  appName,
+  availableActions,
+  context = [],
+  conversationContext = {}
+) => {
+  const {
+    lastApp,
+    lastAction,
+    lastParameters = {},
+    userPreferences = {},
+  } = conversationContext;
 
   const systemPrompt = `You are an AI action classifier with conversation memory. Your task is to identify which action the user wants to perform with the "${appName}" app based on their input and conversation context.
 
 Available actions for "${appName}" app from database:
-${availableActions.map(action => `- ${action.name}: ${action.description || 'No description'}`).join('\n')}
+${availableActions.map((action) => `- ${action.name}: ${action.description || 'No description'}`).join('\n')}
 
 CONVERSATION CONTEXT:
 - Last app used: ${lastApp || 'None'}
@@ -618,7 +668,7 @@ Guidelines:
 9. Only give the json nothing extra
 
 Recent conversation:
-${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
+${context.map((msg) => `- ${msg.role}: ${msg.content}`).join('\n')}`;
 
   try {
     const response = await runGeminiTask(userInput, systemPrompt);
@@ -658,8 +708,8 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
         appName,
         availableActionsCount: availableActions.length,
         contextLength: context.length,
-        usedConversationContext: !!lastApp || !!lastAction
-      }
+        usedConversationContext: !!lastApp || !!lastAction,
+      },
     };
   } catch (error) {
     console.error('Error in classifyActionIntent:', error);
@@ -670,7 +720,11 @@ ${context.map(msg => `- ${msg.role}: ${msg.content}`).join('\n')}`;
 /**
  * Identify all required apps for a complex user intent
  */
-export const identifyRequiredApps = async (userInput, availableApps, context = []) => {
+export const identifyRequiredApps = async (
+  userInput,
+  availableApps,
+  context = []
+) => {
   const startTime = Date.now();
   const systemPrompt = `You are an expert app identification system. Analyze user input to identify ALL apps/services needed to complete their request.
 
@@ -713,7 +767,6 @@ Respond with a JSON object:
         .replace(/\s*```$/, '');
     }
 
-
     // console.log('Cleaned Result:', cleanedResult);
 
     const match = cleanedResult.match(/```json([\s\S]*?)```/);
@@ -729,12 +782,14 @@ Respond with a JSON object:
       throw new Error('Invalid required_apps structure');
     }
     const endTime = Date.now();
-    console.log(`identifyRequiredApps execution time: ${endTime - startTime}ms`);
+    console.log(
+      `identifyRequiredApps execution time: ${endTime - startTime}ms`
+    );
     return {
       requiredApps: parsed.required_apps,
       reasoning: parsed.reasoning || '',
       workflowType: parsed.workflow_type || 'single_step',
-      confidence: parsed.confidence || 0.5
+      confidence: parsed.confidence || 0.5,
     };
   } catch (error) {
     console.error('Error in identifyRequiredApps:', error);
@@ -742,7 +797,7 @@ Respond with a JSON object:
       requiredApps: [],
       reasoning: 'Failed to identify required apps',
       workflowType: 'single_step',
-      confidence: 0.0
+      confidence: 0.0,
     };
   }
 };
@@ -750,7 +805,12 @@ Respond with a JSON object:
 /**
  * Create execution plan for multi-step workflow
  */
-export const createExecutionPlan = async (userInput, requiredApps, actionsMap, context = []) => {
+export const createExecutionPlan = async (
+  userInput,
+  requiredApps,
+  actionsMap,
+  context = []
+) => {
   const systemPrompt = `You are an expert workflow planning system. Create a detailed execution plan for complex user requests that require multiple apps/services.
 
 You must analyze the user input and create a step-by-step execution plan that:
@@ -762,7 +822,10 @@ You must analyze the user input and create a step-by-step execution plan that:
 You must respond with ONLY a valid JSON object.`;
 
   const actionsDescription = Object.entries(actionsMap)
-    .map(([app, actions]) => `${app}: ${actions.map(a => `${a.name} (${a.description})`).join(', ')}`)
+    .map(
+      ([app, actions]) =>
+        `${app}: ${actions.map((a) => `${a.name} (${a.description})`).join(', ')}`
+    )
     .join('\n');
 
   const userPrompt = `USER INPUT: "${userInput}"
@@ -841,7 +904,7 @@ Respond with a JSON object:
       totalSteps: parsed.total_steps || parsed.plan.length,
       executionType: parsed.execution_type || 'sequential',
       reasoning: parsed.reasoning || '',
-      dependencyGraph: createDependencyGraph(parsed.plan)
+      dependencyGraph: createDependencyGraph(parsed.plan),
     };
   } catch (error) {
     console.error('Error in createExecutionPlan:', error);
@@ -850,7 +913,7 @@ Respond with a JSON object:
       totalSteps: 0,
       executionType: 'sequential',
       reasoning: 'Failed to create execution plan',
-      dependencyGraph: {}
+      dependencyGraph: {},
     };
   }
 };
@@ -858,7 +921,11 @@ Respond with a JSON object:
 /**
  * Extract parameters that flow between workflow steps
  */
-export const extractCrossStepParameters = async (userInput, executionPlan, stepResults = []) => {
+export const extractCrossStepParameters = async (
+  userInput,
+  executionPlan,
+  stepResults = []
+) => {
   const systemPrompt = `You are an expert parameter extraction system for multi-step workflows. 
 Extract and map parameters that need to flow between different steps of a workflow.
 
@@ -910,13 +977,13 @@ Respond with a JSON object:
 
     return {
       stepParameters: parsed.step_parameters || {},
-      crossStepMappings: parsed.cross_step_mappings || {}
+      crossStepMappings: parsed.cross_step_mappings || {},
     };
   } catch (error) {
     console.error('Error in extractCrossStepParameters:', error);
     return {
       stepParameters: {},
-      crossStepMappings: {}
+      crossStepMappings: {},
     };
   }
 };
@@ -927,12 +994,12 @@ Respond with a JSON object:
 const createDependencyGraph = (plan) => {
   const graph = {};
 
-  plan.forEach(step => {
+  plan.forEach((step) => {
     graph[step.step] = {
       dependencies: step.dependencies || [],
       outputs: step.output_mapping || {},
       app: step.app,
-      action: step.action
+      action: step.action,
     };
   });
 
@@ -942,7 +1009,11 @@ const createDependencyGraph = (plan) => {
 /**
  * Generate execution summary for a completed step
  */
-export const generateStepExecutionSummary = async (stepResult, executionPlan, currentStepIndex) => {
+export const generateStepExecutionSummary = async (
+  stepResult,
+  executionPlan,
+  currentStepIndex
+) => {
   const systemPrompt = `You are an expert workflow summarizer. Generate a concise, actionable summary of a step execution result that will be used as context for subsequent steps.
 
 Focus on:
@@ -967,7 +1038,10 @@ ${JSON.stringify(stepResult.result, null, 2)}
 Overall Workflow Context:
 - Total Steps: ${executionPlan.length}
 - Current Step: ${stepResult.step}/${executionPlan.length}
-- Remaining Steps: ${executionPlan.slice(currentStepIndex + 1).map(s => `${s.app}.${s.action}`).join(', ')}
+- Remaining Steps: ${executionPlan
+    .slice(currentStepIndex + 1)
+    .map((s) => `${s.app}.${s.action}`)
+    .join(', ')}
 
 Generate a concise summary of what was accomplished in this step and any key information that should be passed to the next step.
 
@@ -995,7 +1069,10 @@ ${JSON.stringify(stepResult.result, null, 2)}
 Overall Workflow Context:
 - Total Steps: ${executionPlan.length}
 - Current Step: ${stepResult.step}/${executionPlan.length}
-- Remaining Steps: ${executionPlan.slice(currentStepIndex + 1).map(s => `${s.app}.${s.action}`).join(', ')}
+- Remaining Steps: ${executionPlan
+    .slice(currentStepIndex + 1)
+    .map((s) => `${s.app}.${s.action}`)
+    .join(', ')}
 
 Generate a concise summary of what was accomplished in this step and any key information that should be passed to the next step.
 
@@ -1008,7 +1085,6 @@ Respond with a JSON object:
   "context_for_next_step": "Relevant context for the next step",
   "status": "success|partial|failed"
 }`);
-
 
   try {
     const result = await runGeminiTask(userPrompt, systemPrompt);
@@ -1028,12 +1104,13 @@ Respond with a JSON object:
     const parsed = JSON.parse(cleanedResult);
 
     return {
-      summary: parsed.summary || `Completed ${stepResult.app}.${stepResult.action}`,
+      summary:
+        parsed.summary || `Completed ${stepResult.app}.${stepResult.action}`,
       keyOutputs: parsed.key_outputs || {},
       contextForNextStep: parsed.context_for_next_step || '',
       status: parsed.status || 'success',
       timestamp: new Date(),
-      stepNumber: stepResult.step
+      stepNumber: stepResult.step,
     };
   } catch (error) {
     console.error('Error in generateStepExecutionSummary:', error);
@@ -1043,7 +1120,7 @@ Respond with a JSON object:
       contextForNextStep: `Previous step executed ${stepResult.action} on ${stepResult.app}`,
       status: 'unknown',
       timestamp: new Date(),
-      stepNumber: stepResult.step
+      stepNumber: stepResult.step,
     };
   }
 };

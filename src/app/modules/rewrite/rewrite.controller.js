@@ -20,13 +20,13 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   // Handle file upload if present
   const fileInfo = req.file
     ? {
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      location: req.file.location || req.file.path,
-    }
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        location: req.file.location || req.file.path,
+      }
     : null;
 
   logger.info(
@@ -88,7 +88,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: error.statusCode || httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while processing your request',
+      message:
+        error.message || 'An error occurred while processing your request',
       data: {
         conversationId,
         error: error.message,
@@ -115,13 +116,13 @@ export const rewriteContent = catchAsync(async (req, res) => {
   // Handle file upload if present
   const fileInfo = req.file
     ? {
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      location: req.file.location || req.file.path,
-    }
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        location: req.file.location || req.file.path,
+      }
     : null;
 
   // Get content from file or direct text
@@ -129,7 +130,9 @@ export const rewriteContent = catchAsync(async (req, res) => {
 
   if (fileInfo) {
     try {
-      const { fileProcessor } = await import('../document_review/services/fileProcessor.js');
+      const { fileProcessor } = await import(
+        '../document_review/services/fileProcessor.js'
+      );
       content = await fileProcessor.extractTextFromFile(fileInfo);
     } catch (error) {
       logger.error('Error extracting text from file:', error);
@@ -167,7 +170,12 @@ export const rewriteContent = catchAsync(async (req, res) => {
   });
 
   try {
-    const result = await rewriteService.rewriteContent(content, rewriteParams, userId, isGuest);
+    const result = await rewriteService.rewriteContent(
+      content,
+      rewriteParams,
+      userId,
+      isGuest
+    );
 
     logger.info('Rewrite completed successfully', {
       fileGenerated: !!result.file,
@@ -212,7 +220,11 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   }
 
   try {
-    const conversation = await conversationHelpers.getConversationById(conversationId, userId, req);
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      userId,
+      req
+    );
 
     if (!conversation) {
       return sendResponse(res, {
