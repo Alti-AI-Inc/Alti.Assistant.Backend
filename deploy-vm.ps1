@@ -53,12 +53,23 @@ if (-not $SkipBuild) {
 # Step 2: SSH into VM and deploy
 Write-Host "`nConnecting to VM and deploying..." -ForegroundColor Yellow
 
-# Create deployment commands
-$deployCommands = "set -e`necho 'Navigating to compose directory...'`ncd $ComposeDir`necho 'Stopping existing containers...'`ndocker compose -f $ComposeFile down`necho 'Pulling latest images...'`ndocker compose -f $ComposeFile pull`necho 'Starting containers...'`ndocker compose -f $ComposeFile up -d`necho 'Checking container status...'`ndocker compose -f $ComposeFile ps`necho 'Deployment completed successfully!'"
+# Create deployment commands (use LF line endings for Linux)
+$deployCommands = "set -e`n" +
+    "echo 'Navigating to compose directory...'`n" +
+    "cd $ComposeDir`n" +
+    "echo 'Stopping existing containers...'`n" +
+    "docker compose -f $ComposeFile down`n" +
+    "echo 'Pulling latest images...'`n" +
+    "docker compose -f $ComposeFile pull`n" +
+    "echo 'Starting containers...'`n" +
+    "docker compose -f $ComposeFile up -d`n" +
+    "echo 'Checking container status...'`n" +
+    "docker compose -f $ComposeFile ps`n" +
+    "echo 'Deployment completed successfully!'"
 
 try {
-    # Execute deployment commands via SSH (use printf to avoid CRLF issues)
-    $deployCommands | ssh -i $SSHKey "${VMUser}@${VMHost}" "bash -s"
+    # Execute deployment commands via SSH (convert to LF)
+    $deployCommands -replace "`r`n", "`n" | ssh -i $SSHKey "${VMUser}@${VMHost}" "bash -s"
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Deployment completed successfully!" -ForegroundColor Green

@@ -171,8 +171,8 @@ export const analyzeQueryForModel = (query, context = {}) => {
 
   // === MODEL RECOMMENDATION ===
 
-  let recommendedModel = 'gemini-2.5-flash';
-  let modelName = 'Gemini 2.5 Flash';
+  let recommendedModel = 'gemini-3-flash-preview';
+  let modelName = 'Gemini 3 Flash Preview';
   let modelReason = '';
 
   // Use Gemini 3 Pro for complex scenarios
