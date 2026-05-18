@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "ason-backend",
-  "version": "1.0.0",
+  "version": "1.2.2",
   "repository": "https://github.com/shohidul-jaman-anik/ASON-Backend-Core-Service",
   "description": "",
   "main": "index.js",

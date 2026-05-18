@@ -7,12 +7,95 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { createCustomerService, deleteCustomerService, retrieveAllCustomersService, retrieveAllProductsService, retrieveAllSubscriptionsService, retrieveCustomerService, updateCustomerService } from "./customer/stripe.service.js";
 import { createPaymentIntentService, getAllPaymentMethodsService, savePaymentMethodService } from "./paymentMethod.service.js";
 import { createProductService, retrieveAllPricesService, retrieveProductService } from "./products/product.service.js";
-import { cancelSubscriptionService, createSubscriptionService, retrieveSubscriptionService } from "./subscription.service.js";
+import { cancelSubscriptionService, createSubscriptionService, retrieveSubscriptionService, getCustomerSubscriptionsService } from "./subscription.service.js";
 import webhookController from './webhook.controller.js';
+import Product from '../products/products.model.js';
+import Subscription from '../subscription/subscription.model.js';
+import { withTenantFilter } from '../../helpers/tenantQuery.js';
+import Stripe from 'stripe';
+import config from '../../../../config/index.js';
+
+const stripe = new Stripe(config.stripe.stripe_secret_key);
+
+/**
+ * Get or create Stripe customer ID based on request context (user or tenant)
+ */
+const getStripeCustomerId = async (req, createIfMissing = true) => {
+  const userId = req.user._id;
+  const tenantId = req.tenantId;
+
+  let customerId = null;
+  let context = 'personal';
+
+  if (tenantId) {
+    context = 'organization';
+    const tenant = await Tenant.findById(tenantId);
+    if (!tenant) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+    }
+
+    // Check if the tenant already has a subscription with customer ID
+    const subscription = await Subscription.findOne({ tenantId });
+    if (subscription && subscription.stripeCustomerId) {
+      customerId = subscription.stripeCustomerId;
+    }
+
+    // Fall back to tenant owner's stripeAccountId
+    if (!customerId) {
+      const owner = await UserModel.findById(tenant.ownerId);
+      if (owner && owner.stripeAccountId) {
+        customerId = owner.stripeAccountId;
+      }
+    }
+
+    if (!customerId && createIfMissing) {
+      const owner = await UserModel.findById(tenant.ownerId) || req.user;
+      const customer = await stripe.customers.create({
+        email: owner.email,
+        name: tenant.name,
+        metadata: {
+          tenantId: tenantId.toString(),
+          ownerId: tenant.ownerId.toString(),
+        },
+      });
+      customerId = customer.id;
+      
+      // If owner is the current user, save it
+      if (owner._id.toString() === req.user._id.toString()) {
+        owner.stripeAccountId = customerId;
+        await owner.save();
+      } else {
+        await UserModel.findByIdAndUpdate(tenant.ownerId, {
+          stripeAccountId: customerId,
+        });
+      }
+    }
+  } else {
+    // Personal mode
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+    }
+    customerId = user.stripeAccountId;
+
+    if (!customerId && createIfMissing) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.email,
+        metadata: {
+          userId: userId.toString(),
+        },
+      });
+      customerId = customer.id;
+      user.stripeAccountId = customerId;
+      await user.save();
+    }
+  }
+
+  return { customerId, context };
+};
 
 const createCustomerController = catchAsync(async (req, res, next) => {
-  const user = req.user;
-
   const customer = await createCustomerService(req.body);
   res.status(201).json({ customer });
 });
@@ -118,8 +201,6 @@ const listPaymentMethodsController = catchAsync(async (req, res, next) => {
 
 /**
  * Get payment methods for current context (user or tenant)
- * - If currentTenantId is null: use user's stripeAccountId (personal mode)
- * - If currentTenantId exists: use tenant's stripeCustomerId (organization mode)
  */
 const getMyPaymentMethodsController = catchAsync(async (req, res, next) => {
   const { customerId, context } = await getStripeCustomerId(req, false);
@@ -137,7 +218,6 @@ const getMyPaymentMethodsController = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Fetch payment methods from Stripe
   const paymentMethods = await getAllPaymentMethodsService(customerId);
 
   return sendResponse(res, {
@@ -159,26 +239,37 @@ const createSubscriptionController = catchAsync(async (req, res, next) => {
 
   const subscription = await createSubscriptionService(customerId, priceId);
 
-  //Insert subscription in the database with the tenantId and userId for future reference (optional, but recommended)
-  // You would typically have a Subscription model to save this info
-  const product = Product.findOne({ stripePriceId: priceId });
-  const query = { userId: req.user._id }
-  const existingSubscription = await SubscriptionModel.findOne({ stripeSubscriptionId: req ? withTenantFilter(req, query) : query });
+  const product = await Product.findOne({ stripePriceId: priceId });
+  const query = { stripeSubscriptionId: subscription.id };
+  const existingSubscription = await Subscription.findOne(req ? withTenantFilter(req, query) : query);
+
   if (existingSubscription) {
-    // Update existing subscription record
     existingSubscription.stripeSubscriptionId = subscription.id;
     existingSubscription.status = subscription.status;
-    existingSubscription.price = priceId;
-    existingSubscription.productId = product ? product._id : null;
+    existingSubscription.stripePriceId = priceId;
+    existingSubscription.stripeProductId = product ? product.stripeProductId : null;
+    existingSubscription.pricePerSeat = product ? product.price : 0;
     await existingSubscription.save();
   } else {
-    const newSubscription = new SubscriptionModel({
-      tenantId: req.tenantId || null, // null for personal mode
+    const newSubscription = new Subscription({
+      tenantId: req.tenantId || null,
       userId: req.user._id,
       stripeSubscriptionId: subscription.id,
       status: subscription.status,
-      price: priceId,
-      productId: product ? product._id : null,
+      stripePriceId: priceId,
+      stripeProductId: product ? product.stripeProductId : null,
+      pricePerSeat: product ? product.price : 0,
+      limits: product ? {
+        dailyWebSearchLimit: product.features.dailyWebSearchLimit,
+        dailyDeepResearchLimit: product.features.dailyDeepResearchLimit,
+        canInviteTeam: product.features.canInviteTeam,
+        unlimitedSeats: product.features.unlimitedSeats,
+      } : {
+        dailyWebSearchLimit: 10,
+        dailyDeepResearchLimit: 0,
+        canInviteTeam: false,
+        unlimitedSeats: false,
+      },
     });
     await newSubscription.save();
   }
@@ -203,30 +294,59 @@ const listPricesController = catchAsync(async (req, res, next) => {
 const listAccounts = catchAsync(async (req, res, next) => {
   const accounts = await retrieveAllCustomersService();
   res.status(200).json({ accounts });
-})
+});
 
 const listProducts = catchAsync(async (req, res, next) => {
   const products = await retrieveAllProductsService();
   res.status(200).json({ products });
-})
+});
 
 const listSubscriptions = catchAsync(async (req, res, next) => {
   const subscriptions = await retrieveAllSubscriptionsService();
   res.status(200).json({ subscriptions });
-})
+});
 
 const getSingleSubscription = catchAsync(async (req, res, next) => {
   const { subscriptionId } = req.params;
   const subscription = await retrieveSubscriptionService(subscriptionId);
   res.status(200).json({ subscription });
-})
-
+});
 
 const cancelSubscriptionController = catchAsync(async (req, res, next) => {
-  // Implementation for canceling a subscription
   const { subscriptionId } = req.params;
   const confirmation = await cancelSubscriptionService(subscriptionId);
   res.status(200).json({ confirmation });
+});
+
+const getMySubscriptionsController = catchAsync(async (req, res, next) => {
+  const { customerId, context } = await getStripeCustomerId(req, false);
+
+  if (!customerId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: `No Stripe customer found for ${context}`,
+      data: {
+        context,
+        subscriptions: [],
+        hasStripeCustomer: false,
+      },
+    });
+  }
+
+  const subscriptions = await getCustomerSubscriptionsService(customerId);
+
+  return sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Subscriptions retrieved successfully',
+    data: {
+      context,
+      customerId,
+      subscriptions,
+      hasStripeCustomer: true,
+    },
+  });
 });
 
 const handleWebhook = webhookController.handleStripeWebhook;
