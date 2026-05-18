@@ -2,7 +2,7 @@
 param(
     [string]$Version = "v0.1.0",
     [string]$VMUser = "emondarock",
-    [string]$VMHost = "104.197.53.196",
+    [string]$VMHost = "35.239.192.33",
     [string]$SSHKey = "$env:USERPROFILE\.ssh\alti-vm-key",
     [string]$ComposeFile = "docker-compose.yml",
     [string]$ComposeDir = "~",

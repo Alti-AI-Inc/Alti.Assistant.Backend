@@ -9,7 +9,7 @@ env:
   REGISTRY: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
   IMAGE_NAME: alti-assistant-backend
   VM_USER: emondarock
-  VM_HOST: 104.197.53.196
+  VM_HOST: 35.239.192.33
   COMPOSE_DIR: "~"
   COMPOSE_FILE: docker-compose.yml
 
