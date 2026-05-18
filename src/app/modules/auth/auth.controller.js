@@ -16,6 +16,7 @@ import {
   forgetPassOtpTemplate,
   generateOTP,
 } from './auth.utils.js';
+import TenantInvitation from '../tenant/tenantInvitation.model.js';
 
 const mailgun = new Mailgun(formData);
 
@@ -23,10 +24,14 @@ const register = catchAsync(async (req, res) => {
   const result = await authService.registerService(req);
   logger.info(result, 'resultttttttttttttttt');
   sendResponse(res, {
-    statusCode: httpStatus.OK,
+    statusCode: result.statusCode || httpStatus.OK,
     success: true,
     message: result.message,
-    data: null,
+    data: result.accessToken ? {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    } : null,
   });
 });
 
@@ -64,8 +69,8 @@ const confirmEmail = catchAsync(async (req, res) => {
 
 const login = catchAsync(async (req, res) => {
   // logger.info(req.body, 'data login');
-  const { email, password, invitationToken } = req.body;
-  const result = await authService.loginService(email, password, invitationToken);
+  const { email, password, tenantId, invitationToken, subdomain } = req.body;
+  const result = await authService.loginService(email, password, tenantId, invitationToken, subdomain);
   logger.info(result, 'resultttttttttttttttt');
 
   const { refreshToken, ...others } = result;
@@ -75,13 +80,17 @@ const login = catchAsync(async (req, res) => {
     secure: config.env === 'production' ? true : false,
     httpOnly: true,
   };
+  const invitation = TenantInvitation.findByToken(invitationToken);
   res.cookie('refreshToken', refreshToken, cookieOption);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Login Successfully',
-    data: others,
+    data: {
+      ...others,
+      invitation: invitation || null,
+    },
   });
 });
 

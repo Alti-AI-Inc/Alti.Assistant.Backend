@@ -7,6 +7,7 @@ import Tenant from './tenant.model.js';
 import UserModel from '../auth/auth.model.js';
 import { jwtHelpers } from '../../helpers/jwtHelpers.js';
 import { sendInvitationEmail } from './tenantInvitation.email.js';
+import subscriptionService from '../subscription/subscription.service.js';
 
 /**
  * Create a new invitation
@@ -148,6 +149,18 @@ const acceptInvitation = async (token, userId) => {
   if (tenant) {
     tenant.usage.usersCount += 1;
     await tenant.save();
+  }
+
+  // Add seat to subscription if paid plan
+  try {
+    const subscription = await subscriptionService.getTenantSubscription(invitation.tenantId);
+    if (subscription && subscription.plan !== 'free' && subscription.status === 'active') {
+      await subscriptionService.addSeatToSubscription(subscription._id, userId);
+      logger.info(`Added seat to subscription ${subscription._id} for user ${userId}`);
+    }
+  } catch (seatError) {
+    logger.error('Error adding seat after invitation acceptance:', seatError);
+    // Don't fail invitation acceptance if seat addition fails
   }
 
   // Mark invitation as accepted

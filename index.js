@@ -18,6 +18,7 @@ import './src/app/cron/usage/cleanupOldUsage.js';
 import passportConfig from './src/app/modules/social-login/config/passport.js';
 import { logger } from './src/shared/logger.js';
 import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
+import { initializeCronJobs } from './src/app/cron/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -49,7 +50,20 @@ app.use(
 );
 
 // Middleware
-app.use(express.json());
+// Exclude Stripe webhook paths from JSON parsing (they need raw body for signature verification)
+app.use((req, res, next) => {
+  if (req.originalUrl.includes('/webhook') && req.method === 'POST') {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
+
+// Raw body parser for Stripe webhooks
+app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/v1/subscription/webhook', express.raw({ type: 'application/json' }));
+
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -97,7 +111,12 @@ app.use((req, res, next) => {
 // MongoDB connection
 mongoose
   .connect(config.database_local)
-  .then(() => logger.info('✅ Database connection successfully'))
+  .then(() => {
+    logger.info('✅ Database connection successfully');
+
+    // Initialize cron jobs after database connection
+    initializeCronJobs();
+  })
   .catch(err => {
     logger.error('❌ Error connecting to the database:', err);
     process.exit(1); // Exit the application on database connection error

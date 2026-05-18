@@ -9,6 +9,8 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { summaryService } from './summary.service.js';
 import { summarizerApp } from "./summarizer/workflow.js";
+import SubscriptionModel from '../subscription/subscription.model.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
  * Summarize content (URL or file)

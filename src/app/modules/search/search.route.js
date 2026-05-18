@@ -6,6 +6,7 @@ import checkDailyRequestLimit from '../../middlewares/checkDailyRequestLimit/che
 import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
+import { checkWebSearchLimit } from '../../middlewares/checkSubscriptionLimits.js';
 import { searchController } from "./search.controller.js";
 import { SearchValidation } from "./search.validation.js";
 
@@ -16,6 +17,7 @@ router.post(
   '/assistant_v2',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
+  checkWebSearchLimit,
   checkDailyRequestLimit,
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes (applies to all users)
   validateRequest(SearchValidation.searchQuerySchema),
@@ -27,6 +29,7 @@ router.post(
   '/code',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
+  checkWebSearchLimit,
   checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 code generation requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),
@@ -38,6 +41,7 @@ router.post(
   '/writing',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
+  checkWebSearchLimit,
   checkDailyRequestLimit,
   // createRateLimiter(20, 15), // 20 writing requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),
@@ -58,7 +62,7 @@ router.post(
   '/assistant',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
-  checkDailyRequestLimit,
+  checkWebSearchLimit,
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),
   searchController.performNativeGroundingSearch
@@ -70,7 +74,7 @@ router.post(
   '/stream',
   optionalAuth(), // Use optional auth to allow both authenticated and guest users
   extractTenantContext,
-  checkDailyRequestLimit,
+  checkWebSearchLimit,
   // createRateLimiter(30, 15), // 30 search requests per 15 minutes
   validateRequest(SearchValidation.searchQuerySchema),
   searchController.performStreamingSearch

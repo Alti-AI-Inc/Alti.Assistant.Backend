@@ -16,8 +16,8 @@
     "embeddings:generate": "node src/app/modules/composio_simple/embeddings-generator.js",
     "embeddings:test": "node src/app/modules/composio_simple/test-vector-search.js",
     "seed:stripe": "node scripts/seed-stripe-products.js",
-    "update:products": "node scripts/update-stripe-products.js",
-    "seed:products-db": "node scripts/seed-products-to-db.js"
+    "seed:products": "node scripts/seed-products.js",
+    "migrate:users": "node scripts/migrate-existing-users.js"
   },
   "keywords": [],
   "author": "Shohidul-Jaman-Anik",

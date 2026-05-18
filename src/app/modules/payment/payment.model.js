@@ -1,5 +1,19 @@
 import mongoose from 'mongoose';
 
+/**
+ * DEPRECATED: This model has been merged into subscription.model.js
+ * All subscription logic now uses src/app/modules/subscription/subscription.model.js
+ * 
+ * This file is kept temporarily for reference during migration.
+ * After all existing subscriptions are migrated, this file can be deleted.
+ * 
+ * Migration path:
+ * 1. Use subscription.model.js for all new subscriptions
+ * 2. Run migration script to move existing data
+ * 3. Update all imports to use new model
+ * 4. Delete this file
+ */
+
 const SubscriptionSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -46,12 +60,7 @@ const SubscriptionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for performance
-SubscriptionSchema.index({ userId: 1, paymentStatus: 1 });
-SubscriptionSchema.index({ tenantId: 1, paymentStatus: 1 });
-SubscriptionSchema.index({ stripeSubscriptionId: 1 });
-SubscriptionSchema.index({ expiresAt: 1 });
-
-const SubscriptionModel = mongoose.model('Subscription', SubscriptionSchema);
+// DEPRECATED: Use 'LegacySubscription' to avoid conflict with new subscription.model.js
+const SubscriptionModel = mongoose.model('LegacySubscription', SubscriptionSchema);
 
 export default SubscriptionModel;

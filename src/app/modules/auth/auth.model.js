@@ -75,6 +75,20 @@ const UserSchema = new mongoose.Schema(
     deleteAccountExpires: Date,
     stripeAccountId: { type: String },
 
+    // New subscription system fields
+    subscriptionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subscription',
+      default: null,
+      index: true,
+    },
+    currentPlan: {
+      type: String,
+      enum: ['free', 'explore', 'execute', 'command'],
+      default: 'free',
+      index: true,
+    },
+
     // Multi-tenant fields
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,

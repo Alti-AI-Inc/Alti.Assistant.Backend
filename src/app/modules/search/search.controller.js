@@ -4,6 +4,8 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { searchService } from './search.service.js';
 import { researchAgentApp } from "./search_assistant/workflow.js";
+import SubscriptionModel from '../subscription/subscription.model.js';
+import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { executeGroundedSearch, executeGroundedSearchStream } from './services/geminiGroundingService.js';
 
 

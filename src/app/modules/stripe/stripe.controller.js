@@ -7,54 +7,8 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { createCustomerService, deleteCustomerService, retrieveAllCustomersService, retrieveAllProductsService, retrieveAllSubscriptionsService, retrieveCustomerService, updateCustomerService } from "./customer/stripe.service.js";
 import { createPaymentIntentService, getAllPaymentMethodsService, savePaymentMethodService } from "./paymentMethod.service.js";
 import { createProductService, retrieveAllPricesService, retrieveProductService } from "./products/product.service.js";
-import { cancelSubscriptionService, createSubscriptionService, retrieveSubscriptionService, getCustomerSubscriptionsService } from "./subscription.service.js";
-import SubscriptionModel from '../payment/payment.model.js';
-import Product from './products/products.model.js';
-import { withTenantFilter } from '../../helpers/tenantQuery.js';
-
-/**
- * Helper function to get Stripe customer ID based on context
- * - Personal mode (currentTenantId: null) → user.stripeAccountId
- * - Organization mode (currentTenantId: ObjectId) → tenant.subscription.stripeCustomerId
- */
-const getStripeCustomerId = async (req, throwOnMissing = true) => {
-  const userId = req.user._id || req.user.userId || req.user.id;
-  const currentTenantId = req.user?.currentTenantId;
-
-  let customerId;
-  let context;
-  console.log('Getting Stripe customer ID for user:', userId, 'with tenant context:', currentTenantId);
-  // Personal mode - use user's Stripe customer
-  if (currentTenantId === null || currentTenantId === undefined) {
-    const user = await UserModel.findById(userId);
-    if (!user) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
-    }
-
-    customerId = user.stripeAccountId;
-    context = 'personal';
-
-    if (!customerId && throwOnMissing) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'No Stripe customer found for user.');
-    }
-  }
-  // Organization mode - use tenant's Stripe customer
-  else {
-    const tenant = await Tenant.findById(currentTenantId);
-    if (!tenant) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
-    }
-
-    customerId = tenant.subscription?.stripeCustomerId;
-    context = 'organization';
-
-    if (!customerId && throwOnMissing) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'No Stripe customer found for tenant.');
-    }
-  }
-
-  return { customerId, context };
-};
+import { cancelSubscriptionService, createSubscriptionService, retrieveSubscriptionService } from "./subscription.service.js";
+import webhookController from './webhook.controller.js';
 
 const createCustomerController = catchAsync(async (req, res, next) => {
   const user = req.user;
@@ -275,42 +229,8 @@ const cancelSubscriptionController = catchAsync(async (req, res, next) => {
   res.status(200).json({ confirmation });
 });
 
-/**
- * Get subscriptions for current context (user or tenant)
- * - If currentTenantId is null: use user's stripeAccountId (personal mode)
- * - If currentTenantId exists: use tenant's stripeCustomerId (organization mode)
- */
-const getMySubscriptionsController = catchAsync(async (req, res, next) => {
-  const { customerId, context } = await getStripeCustomerId(req, false);
-  console.log('Customer ID for subscriptions:', customerId);
-  if (!customerId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: `No Stripe customer found for ${context}`,
-      data: {
-        context,
-        subscriptions: [],
-        hasStripeCustomer: false,
-      },
-    });
-  }
-
-  // Fetch subscriptions from Stripe
-  const subscriptions = await getCustomerSubscriptionsService(customerId);
-
-  return sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Subscriptions retrieved successfully',
-    data: {
-      context,
-      customerId,
-      subscriptions,
-      hasStripeCustomer: true,
-    },
-  });
-});
+const handleWebhook = webhookController.handleStripeWebhook;
+const testWebhook = webhookController.testWebhook;
 
 export {
   createCustomerController,
@@ -330,5 +250,7 @@ export {
   listProducts,
   listSubscriptions,
   getSingleSubscription,
-  listPricesController
+  listPricesController,
+  handleWebhook,
+  testWebhook
 };

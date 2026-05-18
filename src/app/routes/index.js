@@ -4,6 +4,7 @@ import { deepseekAiRoutes } from '../modules/deepseek/deepseek.route.js';
 import { geminiAiRoutes } from '../modules/gemini/gemini.route.js';
 import { llamaAiRoutes } from '../modules/groq/groq.route.js';
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
+import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
 import { tavilyAiRoutes } from '../modules/tavily/tavily.route.js';
 import { togetherAiRoutes } from '../modules/togetherAi/togeterAi.route.js';
 // import { serperAiRoutes } from '../modules/serper/serper.route.js';
@@ -78,6 +79,10 @@ const moduleRoutes = [
   {
     path: '/subscription',
     route: subscriptionRoutes,
+  },
+  {
+    path: '/subscriptions',
+    route: newSubscriptionRoutes,
   },
   {
     path: '/notification',

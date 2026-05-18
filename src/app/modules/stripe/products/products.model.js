@@ -50,11 +50,6 @@ const productSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Indexes
-productSchema.index({ plan: 1 });
-productSchema.index({ isActive: 1, isVisible: 1 });
-productSchema.index({ sortOrder: 1 });
-
-const Product = mongoose.model("Product", productSchema);
+const Product = mongoose.model("StripeProduct", productSchema);
 
 export default Product;
