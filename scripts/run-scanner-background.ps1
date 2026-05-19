@@ -5,6 +5,7 @@ param (
 
 $scriptPath = Join-Path $PSScriptRoot "scan-gcp-repos.cjs"
 $logPath = Join-Path $PSScriptRoot "../logs/gcp-scanner.log"
+$errLogPath = Join-Path $PSScriptRoot "../logs/gcp-scanner-error.log"
 
 # Ensure logs directory exists
 $logsDir = Split-Path $logPath
@@ -18,10 +19,10 @@ Write-Host "======================================================"
 
 if ($token) {
     Write-Host "Using GITHUB_TOKEN provided."
-    Start-Process node -ArgumentList "$scriptPath", "$token" -RedirectStandardOutput $logPath -RedirectStandardError $logPath -WindowStyle Hidden
+    Start-Process node -ArgumentList "$scriptPath", "$token" -RedirectStandardOutput $logPath -RedirectStandardError $errLogPath -WindowStyle Hidden
 } else {
     Write-Host "[WARNING] No GITHUB_TOKEN provided. Launching unauthenticated..."
-    Start-Process node -ArgumentList "$scriptPath" -RedirectStandardOutput $logPath -RedirectStandardError $logPath -WindowStyle Hidden
+    Start-Process node -ArgumentList "$scriptPath" -RedirectStandardOutput $logPath -RedirectStandardError $errLogPath -WindowStyle Hidden
 }
 
 Write-Host "Background scanner successfully launched!"
