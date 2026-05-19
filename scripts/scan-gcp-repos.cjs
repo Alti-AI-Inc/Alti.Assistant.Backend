@@ -1,3 +1,6 @@
+// Load environment variables from .env
+require('dotenv').config();
+
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -7,8 +10,10 @@ const ORG = 'GoogleCloudPlatform';
 const OUTPUT_DIR = path.join(__dirname, '../output');
 const CATALOG_PATH = path.join(OUTPUT_DIR, 'gcp-license-catalog.json');
 
-// Get GitHub Token from CLI argument or environment variables
+// Get GitHub Token, Client ID, Client Secret
 const token = process.argv[2] || process.env.GITHUB_TOKEN;
+const clientId = process.env.GITHUB_CLIENT_ID;
+const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
 // Helper to make HTTPS requests to GitHub API
 function githubRequest(endpoint) {
@@ -24,6 +29,9 @@ function githubRequest(endpoint) {
     
     if (token) {
       options.headers['Authorization'] = `token ${token}`;
+    } else if (clientId && clientSecret) {
+      const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+      options.headers['Authorization'] = `Basic ${basicAuth}`;
     }
     
     https.get(options, (res) => {
@@ -64,11 +72,13 @@ async function getAllRepos() {
   console.log(`Starting scan of all repositories in GitHub Org: ${ORG}...`);
   console.log(`======================================================`);
   
-  if (!token) {
-    console.log(`[WARNING] No GITHUB_TOKEN provided. You will likely hit the 60-request hourly limit.`);
+  if (!token && (!clientId || !clientSecret)) {
+    console.log(`[WARNING] No GITHUB_TOKEN or GITHUB_CLIENT_ID/SECRET found. You will likely hit the 60-request hourly limit.`);
     console.log(`To bypass rate-limiting, pass a token: node scripts/scan-gcp-repos.cjs <YOUR_GITHUB_TOKEN>\n`);
-  } else {
+  } else if (token) {
     console.log(`[INFO] Authenticating using GITHUB_TOKEN.\n`);
+  } else {
+    console.log(`[INFO] Authenticating using GITHUB_CLIENT_ID/SECRET basic authentication (5,000 requests/hr rate limit).\n`);
   }
   
   while (true) {
