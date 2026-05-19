@@ -222,17 +222,22 @@ const getUserTenants = async (userId) => {
     }
 
     // Format the response
-    const tenants = tenantMemberships.map((membership) => ({
-      id: membership.tenantId._id,
-      name: membership.tenantId.name,
-      slug: membership.tenantId.slug,
-      subdomain: membership.tenantId.subdomain,
-      status: membership.tenantId.status,
-      plan: membership.tenantId.plan,
-      role: membership.role,
-      permissions: membership.permissions,
-      joinedAt: membership.joinedAt,
-    }));
+    const tenants = tenantMemberships
+      .map((membership) => {
+        if (!membership.tenantId) return null;
+        return {
+          id: membership.tenantId._id,
+          name: membership.tenantId.name,
+          slug: membership.tenantId.slug,
+          subdomain: membership.tenantId.subdomain,
+          status: membership.tenantId.status,
+          plan: membership.tenantId.plan,
+          role: membership.role,
+          permissions: membership.permissions,
+          joinedAt: membership.joinedAt,
+        };
+      })
+      .filter(Boolean);
 
     logger.info(`Retrieved ${tenants.length} tenants for user: ${userId}`);
 

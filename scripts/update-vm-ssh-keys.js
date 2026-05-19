@@ -25,6 +25,10 @@ const keyPaths = [
     name: 'alti_deploy_key.pub',
     path: path.join(__dirname, '../../alti_deploy_key.pub'),
   },
+  {
+    name: 'alti_backend_key.pub',
+    path: path.join(__dirname, '../../alti_backend_key.pub'),
+  },
 ];
 
 for (const keyInfo of keyPaths) {
