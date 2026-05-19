@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { GoogleGenAI } from '@google/genai';
-import { massiveSmartRouter } from '../../../../helpers/massiveSmartRouter.js';
+import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 import { isVideoOnlyQuery, searchYouTube, extractVideoCount } from '../utils/videoUtils.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 /**
