@@ -38,7 +38,7 @@ You MUST respond strictly with valid JSON matching this schema:
 }
 Do NOT wrap the JSON in markdown blocks. Return pure raw JSON string.`;
 
-const classifyAndDispatch = async (prompt, sessionId, userId) => {
+const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) => {
   try {
     // 1. FAST INTENT CLASSIFICATION
     logger.info(`[Orchestrator] Received prompt from user ${userId}. Classifying intent...`);
@@ -94,6 +94,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId) => {
     }
 
     return {
+      conversationId: conversationId || null,
       orchestrator_decision: target_module,
       extracted_parameters: parameters,
       original_prompt: prompt,

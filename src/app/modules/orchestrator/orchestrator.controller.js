@@ -4,10 +4,11 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { orchestratorService } from './orchestrator.service.js';
 
 const routePrompt = catchAsync(async (req, res) => {
-  const { prompt, sessionId } = req.body;
+  const { message, prompt, sessionId, conversationId } = req.body;
+  const userPrompt = message || prompt;
   const userId = req.user.userId;
 
-  const result = await orchestratorService.classifyAndDispatch(prompt, sessionId, userId);
+  const result = await orchestratorService.classifyAndDispatch(userPrompt, sessionId, userId, conversationId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
