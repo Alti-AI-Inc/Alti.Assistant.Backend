@@ -17,7 +17,9 @@
     "embeddings:test": "node src/app/modules/composio_simple/test-vector-search.js",
     "seed:stripe": "node scripts/seed-stripe-products.js",
     "seed:products": "node scripts/seed-products.js",
-    "migrate:users": "node scripts/migrate-existing-users.js"
+    "migrate:users": "node scripts/migrate-existing-users.js",
+    "gcp:scan": "node scripts/scan-gcp-repos.cjs",
+    "gcp:import": "node scripts/gcp-import.cjs"
   },
   "keywords": [],
   "author": "Shohidul-Jaman-Anik",
