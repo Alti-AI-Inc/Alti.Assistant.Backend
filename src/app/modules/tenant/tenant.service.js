@@ -126,6 +126,10 @@ const createTenant = async (tenantData) => {
  * Get tenant by ID
  */
 const getTenantById = async (tenantId) => {
+  if (!mongoose.Types.ObjectId.isValid(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+
   const tenant = await Tenant.findById(tenantId)
     .populate('ownerId', 'name email')
     .lean();
