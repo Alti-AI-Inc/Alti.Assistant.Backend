@@ -6,8 +6,6 @@ import { llamaAiRoutes } from '../modules/groq/groq.route.js';
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
 import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
 import { tavilyAiRoutes } from '../modules/tavily/tavily.route.js';
-import { togetherAiRoutes } from '../modules/togetherAi/togeterAi.route.js';
-// import { serperAiRoutes } from '../modules/serper/serper.route.js';
 import { qwenAiRoutes } from '../modules/qwen/qwen.route.js';
 import { aiModelEndpointRoutes } from '../modules/aiModelServices/aiEndpoint.route.js';
 import { openAIAiRoutes } from '../modules/openAi/openAi.route.js';
@@ -54,10 +52,15 @@ import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 import { massiveRoutes } from '../modules/massive/massive.route.js';
 import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
+import { orchestratorRoutes } from '../modules/orchestrator/orchestrator.route.js';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/orchestrator',
+    route: orchestratorRoutes,
+  },
   {
     path: '/massive',
     route: massiveRoutes,
@@ -97,10 +100,6 @@ const moduleRoutes = [
   {
     path: '/groq',
     route: llamaAiRoutes,
-  },
-  {
-    path: '/img-generation',
-    route: togetherAiRoutes,
   },
   {
     path: '/tavily',

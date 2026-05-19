@@ -299,9 +299,43 @@ const getUserTenants = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Get tenant by ID
+ */
+const getTenantById = catchAsync(async (req, res) => {
+  const { tenantId } = req.params;
+
+  const result = await tenantService.getTenantById(tenantId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tenant retrieved successfully',
+    data: result,
+  });
+});
+
+/**
+ * Get tenant user count
+ */
+const getTenantUserCount = catchAsync(async (req, res) => {
+  const { tenantId } = req.params;
+
+  const result = await tenantService.getTenantUserCount(tenantId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Tenant user count retrieved successfully',
+    data: result,
+  });
+});
+
 export const tenantController = {
   createTenant,
   getCurrentTenant,
+  getTenantById,
+  getTenantUserCount,
   updateTenantSettings,
   deleteTenant,
   switchTenant,

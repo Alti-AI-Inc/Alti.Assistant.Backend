@@ -1,4 +1,5 @@
 import httpStatus from 'http-status';
+import mongoose from 'mongoose';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import Tenant from './tenant.model.js';
@@ -7,6 +8,7 @@ import TenantInvitation from './tenantInvitation.model.js';
 import UserModel from '../auth/auth.model.js';
 import { tenantInvitationService } from './tenantInvitation.service.js';
 import subscriptionService from '../subscription/subscription.service.js';
+import SubscriptionModel from '../subscription/subscription.model.js';
 
 /**
  * Create a new tenant
@@ -547,9 +549,24 @@ const checkSubdomainAvailability = async (subdomain) => {
   };
 };
 
+/**
+ * Get tenant active user/member count
+ */
+const getTenantUserCount = async (tenantId) => {
+  const count = await TenantMember.countDocuments({
+    tenantId,
+    status: 'active',
+  });
+
+  return {
+    usersCount: count,
+  };
+};
+
 export const tenantService = {
   createTenant,
   getTenantById,
+  getTenantUserCount,
   updateTenant,
   deleteTenant,
   getUserTenants,

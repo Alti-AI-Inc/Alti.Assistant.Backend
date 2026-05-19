@@ -23,6 +23,28 @@ router.get(
 );
 
 /**
+ * @route   GET /api/v1/tenant/details/:tenantId
+ * @desc    Get tenant details by ID
+ * @access  Private (Authenticated users)
+ */
+router.get(
+  '/details/:tenantId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  tenantController.getTenantById
+);
+
+/**
+ * @route   GET /api/v1/tenant/user/:tenantId
+ * @desc    Get tenant active user/member count
+ * @access  Private (Authenticated users)
+ */
+router.get(
+  '/user/:tenantId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  tenantController.getTenantUserCount
+);
+
+/**
  * @route   POST /api/v1/tenant/switch
  * @desc    Switch to a different tenant or personal mode (pass tenantId: null or "personal" for personal mode)
  * @body    { tenantId: string | null | "personal" }
