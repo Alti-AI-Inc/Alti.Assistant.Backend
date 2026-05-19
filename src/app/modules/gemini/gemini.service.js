@@ -15,7 +15,7 @@ import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 const model = client.getGenerativeModel({
-  model: 'gemini-3.1-flash',
+  model: 'gemini-2.0-flash',
   generationConfig: { temperature: 0.1 },
 });
 
@@ -64,7 +64,7 @@ const geminiService = async (sessionId, prompt, userId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-3.1-flash',
+      model: 'gemini-2.0-flash',
       reply,
       total_time: result?.usage?.total_time || 0,
     };
@@ -103,7 +103,7 @@ const geminiService = async (sessionId, prompt, userId) => {
 };
 
 const model1 = client.getGenerativeModel({
-  model: 'gemini-3.1-flash',
+  model: 'gemini-2.0-flash',
   generationConfig: { temperature: 0.1 },
 });
 
@@ -152,7 +152,7 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-3.1-flash',
+      model: 'gemini-2.0-flash',
       reply,
       total_time: result?.usage?.total_time || 0,
     };
