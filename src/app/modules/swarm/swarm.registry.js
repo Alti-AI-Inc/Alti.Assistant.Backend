@@ -4,6 +4,16 @@
  * Easily scales to hundreds/thousands of agents.
  */
 export const SWARM_REGISTRY = {
+  general_chat_assistant: {
+    id: 'general_chat_assistant',
+    name: 'Alti Core Assistant',
+    description: 'Handles general conversational queries, creative brainstorming, everyday discussions, and broad questions with clear, direct, and non-technical answers.',
+    systemInstruction: `You are Alti Core Assistant, the primary conversational intelligence of the Alti platform. Your purpose is to provide direct, clean, eloquent, and highly engaging answers to conversational, conceptual, or general questions. Avoid technical developer jargon, code blocks, or systems architecture instructions unless the user explicitly requests code or technical engineering setup. Present your thoughts clearly, professionally, and helpfully.`,
+    model: 'gemini-3.5-flash',
+    tools: [],
+    keywords: ['hello', 'hi', 'how are you', 'operating system for law', 'would you rather', 'conceptual', 'general chat', 'explanation', 'discussion', 'what is', 'opinion', 'philosophical', 'question']
+  },
+
   // --- GCP & CLOUD BLUEPRINTS ---
   gcp_grounding: {
     id: 'gcp_grounding',

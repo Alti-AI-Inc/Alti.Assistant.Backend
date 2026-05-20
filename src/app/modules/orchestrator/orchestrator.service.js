@@ -6,6 +6,8 @@ import { logger } from '../../../shared/logger.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { GeminiAiService } from '../gemini/gemini.service.js';
 import { SwarmService } from '../swarm/swarm.service.js';
+import Conversation from '../conversations/conversation.model.js';
+import crypto from 'crypto';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
@@ -90,8 +92,45 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         break;
     }
 
+    // 4. PERSIST CHAT TO DATABASE HISTORY
+    let finalConversationId = conversationId;
+    try {
+      if (userId) {
+        let conversation;
+        if (finalConversationId && finalConversationId !== 'new-chat') {
+          conversation = await Conversation.findOne({ conversationId: finalConversationId, userId });
+        }
+        
+        if (conversation) {
+          conversation.addMessage('user', prompt);
+          conversation.addMessage('assistant', finalResponse.reply);
+          await conversation.save();
+          logger.info(`[Orchestrator] Appended message history for conversation: ${finalConversationId}`);
+        } else {
+          // Create new conversation
+          finalConversationId = crypto.randomUUID();
+          const cleanTitle = prompt.length > 40 ? `${prompt.substring(0, 40)}...` : prompt;
+          conversation = new Conversation({
+            conversationId: finalConversationId,
+            userId,
+            title: cleanTitle,
+            messages: [
+              { role: 'user', content: prompt, timestamp: new Date() },
+              { role: 'assistant', content: finalResponse.reply, timestamp: new Date() }
+            ],
+            status: 'active'
+          });
+          await conversation.save();
+          logger.info(`[Orchestrator] Created and persisted new conversation history: ${finalConversationId}`);
+        }
+      }
+    } catch (dbErr) {
+      logger.error('[Orchestrator] Failed to persist chat history to database:', dbErr);
+      // Do not crash the entire response if database save fails
+    }
+
     return {
-      conversationId: conversationId || null,
+      conversationId: finalConversationId || null,
       orchestrator_decision: target_module,
       extracted_parameters: parameters,
       original_prompt: prompt,

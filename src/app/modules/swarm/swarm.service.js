@@ -224,8 +224,8 @@ Instructions: ${agent.systemInstruction}`;
           }
         }
 
-        // Add separator spacing for final accumulated text structure
-        accumulatedText += `\n\n### [Output from ${agent.name}]\n${agentTextAccumulator}`;
+        // Append output seamlessly without technical headers
+        accumulatedText += isPrimary ? agentTextAccumulator : `\n\n${agentTextAccumulator}`;
         
         // Feed accumulated context into the next step
         currentContextInput = agentTextAccumulator;

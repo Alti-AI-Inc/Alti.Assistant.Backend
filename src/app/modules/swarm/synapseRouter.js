@@ -12,7 +12,7 @@ export class SynapseRouter {
    */
   static routeQuery(query) {
     if (!query || typeof query !== 'string') {
-      return [SWARM_REGISTRY.coder]; // Fallback to basic Software Engineer agent
+      return [SWARM_REGISTRY.general_chat_assistant]; // Fallback to Alti Core Assistant
     }
 
     const lowerQuery = query.toLowerCase();
@@ -60,11 +60,11 @@ export class SynapseRouter {
     // Sort candidates by match score
     candidates.sort((a, b) => b.score - a.score);
 
-    // If no specific agent matched, default to generic grounded search or coder agent
+    // If no specific agent matched, default to generic grounded search or Alti Core Assistant
     if (candidates.length === 0) {
-      console.log('📡 Synapse Router: No specific micro-agent matched. Defaulting to Gcp Grounding + Coder agent chain.');
+      console.log('📡 Synapse Router: No specific micro-agent matched. Defaulting to general fallback chain.');
       const isGcpRelated = ['gcp', 'google cloud', 'gke', 'cloud storage', 'compute', 'bigquery', 'appengine', 'cloud run'].some(word => lowerQuery.includes(word));
-      return isGcpRelated ? [SWARM_REGISTRY.gcp_grounding, SWARM_REGISTRY.coder] : [SWARM_REGISTRY.coder];
+      return isGcpRelated ? [SWARM_REGISTRY.gcp_grounding, SWARM_REGISTRY.coder] : [SWARM_REGISTRY.general_chat_assistant];
     }
 
     // Assemble the recruited chain (return top matching agents)
