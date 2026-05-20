@@ -1,7 +1,7 @@
 // Plan Generator Configuration
 export const PLAN_GENERATOR_CONFIG = {
   MODEL: 'gemini-2.5-flash',
-  FALLBACK_MODEL: 'gemini-3-flash-preview',
+  FALLBACK_MODEL: 'gemini-3.5-flash',
   TEMPERATURE_BRAINSTORM: 0.8,
   TEMPERATURE_PLANNING: 0.6,
   MAX_OUTPUT_TOKENS: 8192,

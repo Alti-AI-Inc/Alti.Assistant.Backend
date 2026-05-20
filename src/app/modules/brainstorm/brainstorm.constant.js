@@ -1,6 +1,6 @@
 // Brainstorm Configuration
 export const BRAINSTORM_CONFIG = {
-  MODEL: 'gemini-3-flash-preview',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.8,
   MAX_OUTPUT_TOKENS: 8192,
   MAX_IDEA_LENGTH: 5000,

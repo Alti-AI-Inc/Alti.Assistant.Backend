@@ -43,7 +43,7 @@ export async function findAppropriateApp(
     prompt += `\n\nHere is the summarized context for additional information:\n${summarizedContext}\n`;
   }
 
-  const response = await generateContent('gemini-3-flash-preview', [
+  const response = await generateContent('gemini-3.5-flash', [
     { role: 'user', parts: [{ text: prompt }] },
   ]);
 
@@ -124,7 +124,7 @@ export async function generateAndExecuteTools(
 ) {
   const cleanedTools = tools.map((tool) => sanitizeToolForGemini(tool));
   console.log('Entity ID for tool execution:', entityId);
-  const response = await generateContent('gemini-3-flash-preview', query, {
+  const response = await generateContent('gemini-3.5-flash', query, {
     tools: [{ functionDeclarations: cleanedTools }],
     thinkingConfig: {
       includeThoughts: false,
@@ -187,7 +187,7 @@ Examples:
 Output only the final comprehensive user request, nothing else:`;
 
     console.log('Generating user message with prompt:', prompt);
-    const response = await generateContent('gemini-3-flash-preview', [
+    const response = await generateContent('gemini-3.5-flash', [
       { role: 'user', parts: [{ text: prompt }] },
     ]);
     const generatedMessage =

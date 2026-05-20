@@ -296,7 +296,7 @@ const generateCode = catchAsync(async (req, res) => {
     const answer = result.answer;
     const reference = result.reference || [];
     const citationMetadata = result.citationMetadata || {
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.5-flash',
       type: 'code_generation',
       timestamp: new Date().toISOString(),
     };
@@ -307,7 +307,7 @@ const generateCode = catchAsync(async (req, res) => {
       citationMetadata,
       searchQuery: message,
       searchTimestamp: citationMetadata.timestamp || new Date().toISOString(),
-      model: citationMetadata.model || 'gemini-3-flash-preview',
+      model: citationMetadata.model || 'gemini-3.5-flash',
       type: 'code_generation',
     };
 
@@ -339,7 +339,7 @@ const generateCode = catchAsync(async (req, res) => {
         messageCount: conversation.messageCount + 2,
         userType: isGuest ? 'guest' : 'authenticated',
         userId: isGuest ? userId : undefined,
-        model: citationMetadata.model || 'gemini-3-flash-preview',
+        model: citationMetadata.model || 'gemini-3.5-flash',
       },
     });
   } catch (error) {
@@ -655,7 +655,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
         messageCount: conversation.messageCount + 2,
         userType: isGuest ? 'guest' : 'authenticated',
         userId: isGuest ? userId : undefined,
-        model: citationMetadata?.model || 'gemini-3-flash-preview',
+        model: citationMetadata?.model || 'gemini-3.5-flash',
         searchMethod: 'native_grounding_only',
       },
     });

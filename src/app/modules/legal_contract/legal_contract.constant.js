@@ -1,6 +1,6 @@
 // Legal Contract Configuration
 export const LEGAL_CONTRACT_CONFIG = {
-  MODEL: 'gemini-3-flash-preview',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.3, // Lower temperature for more precise legal language
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB

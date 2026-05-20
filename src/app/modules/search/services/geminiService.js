@@ -26,9 +26,9 @@ export const gemini2_5Flash = new ChatGoogleGenerativeAI({
   maxRetries: 2,
 });
 
-// Gemini 3 Pro Preview - Advanced capabilities for complex tasks
+// Gemini 3.5 Flash - Advanced capabilities for complex tasks
 export const gemini3ProPreview = new ChatGoogleGenerativeAI({
-  model: 'gemini-3-flash-preview', // Gemini 3 with advanced capabilities
+  model: 'gemini-3.5-flash', // Gemini 3 with advanced capabilities
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
@@ -84,7 +84,7 @@ export const selectModel = (options = {}) => {
   // Fallback to manual criteria-based selection
   console.log('⚙️ Using manual model selection criteria');
 
-  // Use Gemini 3 Pro Preview for:
+  // Use Gemini 3.5 Flash for:
   // - Complex tasks requiring advanced reasoning
   // - Large context windows (> 10k tokens)
   // - Tasks explicitly marked as complex
@@ -94,7 +94,7 @@ export const selectModel = (options = {}) => {
     inputLength > 10000
   ) {
     console.log(
-      '✅ Selected: Gemini 3 Pro Preview (Manual: Complex/Large/Reasoning)'
+      '✅ Selected: Gemini 3.5 Flash (Manual: Complex/Large/Reasoning)'
     );
     return gemini3ProPreview;
   }
@@ -141,7 +141,7 @@ export const createToolEnabledLLMExplicit = (modelType = 'flash') => {
 
   const model = modelType === 'pro' ? gemini3ProPreview : gemini2_5Flash;
   console.log(
-    `✅ Explicit model selection: ${modelType === 'pro' ? 'Gemini 3 Pro Preview' : 'Gemini 2.5 Flash'}`
+    `✅ Explicit model selection: ${modelType === 'pro' ? 'Gemini 3.5 Flash' : 'Gemini 2.5 Flash'}`
   );
 
   return model.bindTools(searchTools);

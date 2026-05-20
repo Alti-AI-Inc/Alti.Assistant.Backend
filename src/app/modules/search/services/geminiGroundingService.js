@@ -13,10 +13,10 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Create a grounded Gemini model with native Google Search
- * @param {string} modelName - Model to use (default: gemini-3-flash-preview)
+ * @param {string} modelName - Model to use (default: gemini-3.5-flash)
  * @returns {GenerativeModel} Configured model instance
  */
-export function createGroundedModel(modelName = 'gemini-3-flash-preview') {
+export function createGroundedModel(modelName = 'gemini-3.5-flash') {
   return genAI.getGenerativeModel({
     model: modelName,
     tools: [
@@ -334,7 +334,7 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
       ];
 
       const stream = await ai.models.generateContentStream({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
         contents: contents,
         config: {
           temperature: 0.2,
@@ -468,7 +468,7 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
         ? {
             searchQueries: groundingMetadata.webSearchQueries || [],
             searchTimestamp: new Date().toISOString(),
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.5-flash',
             groundingSupports: groundingMetadata.groundingSupports?.length || 0,
             totalSources: groundingMetadata.groundingChunks?.length || 0,
             searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'native_grounding',
@@ -645,7 +645,7 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
       console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
 
       const result = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
         contents: contents,
         config: {
           temperature: 0.2,
@@ -857,7 +857,7 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
 export async function executeGroundedSearchWithModel(
   query,
   conversationHistory = [],
-  modelName = 'gemini-3-flash-preview'
+  modelName = 'gemini-3.5-flash'
 ) {
   const model = createGroundedModel(modelName);
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The search module now automatically selects between **Gemini 2.5 Flash** and **Gemini 3 Pro Preview** based on query characteristics and context. This ensures optimal performance and cost-efficiency.
+The search module now automatically selects between **Gemini 2.5 Flash** and **Gemini 3.5 Flash** based on query characteristics and context. This ensures optimal performance and cost-efficiency.
 
 ## How It Works
 
@@ -22,7 +22,7 @@ The smart selector analyzes multiple factors:
 
 ### Model Selection Logic
 
-**Gemini 3 Pro Preview** is used for:
+**Gemini 3.5 Flash** is used for:
 
 - Complex analytical queries (compare, evaluate, analyze)
 - Multi-step research questions
@@ -122,7 +122,7 @@ const llm = selectModel({
 ❓ "Convert 100 USD to EUR"
 ```
 
-### Complex Queries → Gemini 3 Pro Preview
+### Complex Queries → Gemini 3.5 Flash
 
 ```
 ❓ "Analyze the investment potential of Bitcoin for the next 6 months"
@@ -186,7 +186,7 @@ When smart selection runs, you'll see:
 📝 Query: "Compare Bitcoin and Ethereum for investment"
 📊 Category: complex_analytical
 🎯 Complexity Score: 8/10
-🤖 Selected Model: Gemini 3 Pro Preview
+🤖 Selected Model: Gemini 3.5 Flash
 💡 Reason: Analytical query requires deeper reasoning
 📋 Reasoning Factors:
    - Contains analytical keyword
