@@ -26,14 +26,45 @@ const searchGcpCatalog = async (query = '', options = {}) => {
     const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
     let results = catalog;
 
-    // Filter by keyword (searches name and description)
+    // Filter by keyword (searches name and description using an advanced keyword scoring algorithm)
     if (query) {
-      const lowerQuery = query.toLowerCase();
-      results = results.filter(
-        repo =>
-          repo.name.toLowerCase().includes(lowerQuery) ||
-          repo.description.toLowerCase().includes(lowerQuery)
-      );
+      const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'google', 'cloud', 'platform', 'gcp', 'a', 'of', 'in', 'for', 'with', 'on', 'how', 'to', 'find', 'get', 'list', 'search', 'what', 'is', 'are', 'any', 'some', 'about']);
+      const queryWords = query.toLowerCase()
+        .replace(/[^\w\s-]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 2 && !stopWords.has(word));
+
+      if (queryWords.length > 0) {
+        results = results.map(repo => {
+          let score = 0;
+          const repoNameLower = repo.name.toLowerCase();
+          const repoDescLower = (repo.description || '').toLowerCase();
+          
+          queryWords.forEach(word => {
+            if (repoNameLower.includes(word)) {
+              score += 10;
+              if (repoNameLower === word) {
+                score += 20;
+              }
+            }
+            if (repoDescLower.includes(word)) {
+              score += 2;
+            }
+          });
+          
+          return { ...repo, score };
+        })
+        .filter(repo => repo.score > 0)
+        .sort((a, b) => b.score - a.score || (b.stars || 0) - (a.stars || 0));
+      } else {
+        // Fallback to basic match if all words were stopwords
+        const lowerQuery = query.toLowerCase();
+        results = results.filter(
+          repo =>
+            repo.name.toLowerCase().includes(lowerQuery) ||
+            repo.description.toLowerCase().includes(lowerQuery)
+        );
+      }
     }
 
     // Filter by License (MIT or Apache 2.0)

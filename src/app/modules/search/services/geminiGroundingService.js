@@ -3,6 +3,7 @@ import config from '../../../../../config/index.js';
 import { GoogleGenAI } from '@google/genai';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 import { isVideoOnlyQuery, searchYouTube, extractVideoCount } from '../utils/videoUtils.js';
+import { GcpNativeService } from '../../gcp_native/gcp-native.service.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 /**
  * Gemini Grounding Service with Native Google Search
@@ -285,6 +286,57 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
     }
   }
 
+  // 3. Check for GCP repository references from our local 1,388 catalog
+  let gcpCatalogReferences = [];
+  let gcpResultsBlock = '';
+  const gcpKeywords = ['gcp', 'google cloud', 'submodule', 'import', 'google repository', 'google repo', 'appengine', 'cloud storage', 'compute engine', 'bigquery', 'cloud run', 'kubernetes', 'gke', 'terraform'];
+  const isGcpRelated = gcpKeywords.some(keyword => query.toLowerCase().includes(keyword));
+
+  if (isGcpRelated) {
+    console.log('☁️ Query is GCP-related. Searching local GCP 1,388 open source catalog...');
+    try {
+      const searchResult = await GcpNativeService.searchGcpCatalog(query, { limit: 5 });
+      if (searchResult.success && searchResult.results.length > 0) {
+        console.log(`Found ${searchResult.results.length} matching GCP repositories from catalog!`);
+        gcpCatalogReferences = searchResult.results.map(repo => ({
+          url: repo.html_url,
+          domain: 'github.com/GoogleCloudPlatform',
+          title: `${repo.name} (${repo.language}) - ${repo.license} License`,
+          clone_url: repo.clone_url,
+          stars: repo.stars,
+          forks: repo.forks,
+          description: repo.description
+        }));
+
+        gcpResultsBlock = `
+[SYSTEM INSTRUCTION - ACTIVE ELITE GOOGLE OPEN SOURCE CATALOG RETRIEVAL]
+The following 100% verified, production-grade repositories were found in our pre-compiled 1,388 GCP catalog. These are officially licensed under MIT/Apache-2.0 and are hosted on GoogleCloudPlatform:
+
+${searchResult.results.map((repo, idx) => `
+Repository #${idx + 1}:
+- Name: ${repo.name}
+- Language: ${repo.language}
+- Stars: ${repo.stars} | Forks: ${repo.forks}
+- License: ${repo.license}
+- GitHub URL: ${repo.html_url}
+- Clone Command: git clone ${repo.clone_url}
+- Description: ${repo.description || 'No description provided.'}
+`).join('\n')}
+
+INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
+1. Synthesize your architectural and setup advice by drawing directly from these verified repositories.
+2. Under your response, present these repositories as beautiful reference links or code blocks for the user.
+3. Make sure to highlight that these are fully compliant open-source GCP blueprints.
+4. Keep the answer highly truthful, exact, and grounded in these repositories.
+`;
+        
+        finalQuery = `${gcpResultsBlock}\n\n${finalQuery}`;
+      }
+    } catch (err) {
+      console.error('Error querying GCP catalog in grounding service:', err);
+    }
+  }
+
   const MAX_RETRIES = 3;
   let attemptCount = 0;
 
@@ -456,11 +508,18 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
 
       const mergedReferences = [
         ...(videoReferences || []),
+        ...(gcpCatalogReferences || []),
         ...limitedReferences
       ].slice(0, 5);
 
       const mergedCitations = [
         ...(videoCitations || []),
+        ...(gcpCatalogReferences.map((repo, index) => ({
+          index: index + 1,
+          url: repo.url,
+          domain: repo.domain,
+          title: repo.title,
+        })) || []),
         ...citations
       ].map((cit, idx) => ({ ...cit, index: idx + 1 })).slice(0, 5);
 
@@ -591,6 +650,57 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
       }
     } catch (err) {
       console.error('Error during YouTube search integration:', err);
+    }
+  }
+
+  // 3. Check for GCP repository references from our local 1,388 catalog
+  let gcpCatalogReferences = [];
+  let gcpResultsBlock = '';
+  const gcpKeywords = ['gcp', 'google cloud', 'submodule', 'import', 'google repository', 'google repo', 'appengine', 'cloud storage', 'compute engine', 'bigquery', 'cloud run', 'kubernetes', 'gke', 'terraform'];
+  const isGcpRelated = gcpKeywords.some(keyword => query.toLowerCase().includes(keyword));
+
+  if (isGcpRelated) {
+    console.log('☁️ Query is GCP-related. Searching local GCP 1,388 open source catalog...');
+    try {
+      const searchResult = await GcpNativeService.searchGcpCatalog(query, { limit: 5 });
+      if (searchResult.success && searchResult.results.length > 0) {
+        console.log(`Found ${searchResult.results.length} matching GCP repositories from catalog!`);
+        gcpCatalogReferences = searchResult.results.map(repo => ({
+          url: repo.html_url,
+          domain: 'github.com/GoogleCloudPlatform',
+          title: `${repo.name} (${repo.language}) - ${repo.license} License`,
+          clone_url: repo.clone_url,
+          stars: repo.stars,
+          forks: repo.forks,
+          description: repo.description
+        }));
+
+        gcpResultsBlock = `
+[SYSTEM INSTRUCTION - ACTIVE ELIVE GOOGLE OPEN SOURCE CATALOG RETRIEVAL]
+The following 100% verified, production-grade repositories were found in our pre-compiled 1,388 GCP catalog. These are officially licensed under MIT/Apache-2.0 and are hosted on GoogleCloudPlatform:
+
+${searchResult.results.map((repo, idx) => `
+Repository #${idx + 1}:
+- Name: ${repo.name}
+- Language: ${repo.language}
+- Stars: ${repo.stars} | Forks: ${repo.forks}
+- License: ${repo.license}
+- GitHub URL: ${repo.html_url}
+- Clone Command: git clone ${repo.clone_url}
+- Description: ${repo.description || 'No description provided.'}
+`).join('\n')}
+
+INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
+1. Synthesize your architectural and setup advice by drawing directly from these verified repositories.
+2. Under your response, present these repositories as beautiful reference links or code blocks for the user.
+3. Make sure to highlight that these are fully compliant open-source GCP blueprints.
+4. Keep the answer highly truthful, exact, and grounded in these repositories.
+`;
+        
+        finalQuery = `${gcpResultsBlock}\n\n${finalQuery}`;
+      }
+    } catch (err) {
+      console.error('Error querying GCP catalog in grounding service:', err);
     }
   }
 
@@ -781,11 +891,18 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
 
       const mergedReferences = [
         ...(videoReferences || []),
+        ...(gcpCatalogReferences || []),
         ...limitedReferences
       ].slice(0, 5);
 
       const mergedCitations = [
         ...(videoCitations || []),
+        ...(gcpCatalogReferences.map((repo, index) => ({
+          index: index + 1,
+          url: repo.url,
+          domain: repo.domain,
+          title: repo.title,
+        })) || []),
         ...citations
       ].map((cit, idx) => ({ ...cit, index: idx + 1 })).slice(0, 5);
 
