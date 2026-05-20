@@ -81,7 +81,7 @@ export const BRAINSTORM_INTENTS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'brainstorm';
-export const CONVERSATION_MODEL = 'gemini-2.0-flash-exp';
+export const CONVERSATION_MODEL = 'gemini-2.5-flash';
 
 // Default Parameters
 export const DEFAULT_PARAMS = {

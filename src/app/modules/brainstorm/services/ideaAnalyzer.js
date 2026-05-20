@@ -22,7 +22,7 @@ const analyzeIntent = async (
 ) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.3,
         maxOutputTokens: 2048,
@@ -146,7 +146,7 @@ Respond in JSON format only:
 const analyzeIdea = async (ideaText) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.4,
         maxOutputTokens: 2048,
@@ -210,7 +210,7 @@ Provide analysis in JSON format:
 const extractIdea = async (userMessage) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.2,
         maxOutputTokens: 512,

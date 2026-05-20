@@ -17,7 +17,7 @@ const initiateTaskInSessionService = async (
     secrets: {},
     allowed_domains: null,
     save_browser_data: true,
-    llm_model: 'gemini-2.0-flash',
+    llm_model: 'gemini-2.5-flash',
     use_adblock: true,
     use_proxy: true,
     highlight_elements: true,

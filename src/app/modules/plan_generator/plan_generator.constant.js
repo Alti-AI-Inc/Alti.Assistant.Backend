@@ -83,7 +83,7 @@ export const DOMAINS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'plan_generation';
-export const CONVERSATION_MODEL = 'gemini-2.0-flash-exp';
+export const CONVERSATION_MODEL = 'gemini-2.5-flash';
 
 // Default parameters
 export const DEFAULT_PARAMS = {

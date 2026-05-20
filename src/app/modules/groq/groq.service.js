@@ -99,7 +99,7 @@ User Query: ${enhancedPrompt}`;
 
   // Initialize Google Gemini model
   const client = new GoogleGenerativeAI(config.gemini_secret_key);
-  const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   // Add the new user message
   await memory.chatHistory.addMessage(new HumanMessage(prompt));

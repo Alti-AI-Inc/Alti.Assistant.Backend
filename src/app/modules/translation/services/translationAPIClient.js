@@ -16,7 +16,7 @@ class TranslationAPIClient {
     try {
       // Initialize Gemini model for translation
       this.model = new ChatGoogleGenerativeAI({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         apiKey: config.gemini_secret_key,
         temperature: 0.3, // Lower temperature for consistent translations
         maxOutputTokens: 32000, // Increased for large documents
@@ -24,7 +24,7 @@ class TranslationAPIClient {
 
       // Separate model for language detection (faster)
       this.detectionModel = new ChatGoogleGenerativeAI({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         apiKey: config.gemini_secret_key,
         temperature: 0.1,
         maxOutputTokens: 200,
