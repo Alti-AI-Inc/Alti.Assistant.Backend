@@ -43,24 +43,35 @@ Do NOT wrap the JSON in markdown blocks. Return pure raw JSON string.`;
 
 const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) => {
   try {
-    // 1. FAST INTENT CLASSIFICATION
-    logger.info(`[Orchestrator] Received prompt from user ${userId}. Classifying intent...`);
-    const classificationResult = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      systemInstruction: { role: "system", parts: [{ text: ORCHESTRATOR_SYSTEM_PROMPT }] }
-    });
-
-    let rawJson = classificationResult?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    
-    // Clean markdown blocks if Gemini happens to ignore instructions
-    rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
+    // 0. LIGHTNING FAST PATH FOR COMMON GREETINGS / SHORT CONVERSATIONAL QUERIES
+    const trimmedPrompt = prompt.trim().toLowerCase();
+    const commonGreetings = ['hi', 'hello', 'hey', 'yo', 'sup', 'hola', 'bonjour', 'howdy', 'greetings', 'help', 'who are you', 'how are you', 'what is this'];
+    const isShortQuery = trimmedPrompt.length <= 15;
+    const isCommonGreeting = commonGreetings.includes(trimmedPrompt) || commonGreetings.some(greet => trimmedPrompt.startsWith(greet + ' ') || trimmedPrompt.endsWith(' ' + greet));
     
     let intentPayload;
-    try {
-      intentPayload = JSON.parse(rawJson);
-    } catch (e) {
-      logger.error('[Orchestrator] Failed to parse classification JSON. Defaulting to general_chat.', e);
+    if (isShortQuery || isCommonGreeting) {
+      logger.info(`[Orchestrator] Lightning-fast path triggered for greeting/short query: "${prompt}"`);
       intentPayload = { target_module: 'general_chat', parameters: { query: prompt } };
+    } else {
+      // 1. FAST INTENT CLASSIFICATION
+      logger.info(`[Orchestrator] Received prompt from user ${userId}. Classifying intent...`);
+      const classificationResult = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        systemInstruction: { role: "system", parts: [{ text: ORCHESTRATOR_SYSTEM_PROMPT }] }
+      });
+
+      let rawJson = classificationResult?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      
+      // Clean markdown blocks if Gemini happens to ignore instructions
+      rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      try {
+        intentPayload = JSON.parse(rawJson);
+      } catch (e) {
+        logger.error('[Orchestrator] Failed to parse classification JSON. Defaulting to general_chat.', e);
+        intentPayload = { target_module: 'general_chat', parameters: { query: prompt } };
+      }
     }
 
     const { target_module, parameters } = intentPayload;
