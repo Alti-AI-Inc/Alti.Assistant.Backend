@@ -25,18 +25,13 @@ export const gemini2_5Flash = new ChatGoogleGenerativeAI({
   temperature: 0,
   maxRetries: 2,
 });
-
 // Gemini 3.5 Flash - Advanced capabilities for complex tasks
 export const gemini3ProPreview = new ChatGoogleGenerativeAI({
   model: 'gemini-3.5-flash', // Gemini 3 with advanced capabilities
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
-  thinkingConfig: {
-    thinkingLevel: 'LOW',
-  },
 });
-
 /**
  * SMART MODEL SELECTION - Automatically determines the best model
  * Analyzes query characteristics and context to choose optimal model
