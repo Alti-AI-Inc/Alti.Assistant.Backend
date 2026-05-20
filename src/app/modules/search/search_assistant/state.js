@@ -83,9 +83,13 @@ export const researchAgentState = {
 
   // Type of response needed: 'search', 'direct', 'clarification'
   responseType: { value: null },
-
   // Previous search context to avoid redundant searches
   previousSearchContext: { value: null },
 
   final_answer: { value: null },
+
+  // User datetime context fields passed dynamically
+  timezone: { value: null },
+  localDate: { value: null },
+  localTime: { value: null },
 };

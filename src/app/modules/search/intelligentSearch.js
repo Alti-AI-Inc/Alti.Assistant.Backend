@@ -704,9 +704,11 @@ Provide a well-researched, detailed response with proper source references. Use 
       userId,
       conversationId: state.conversationId,
       searchDepth: state.depth || 'standard',
-      query: query, // Pass query for smart model selection
+      query: query,
+      timezone: state.timezone || null,
+      localDate: state.localDate || null,
+      localTime: state.localTime || null,
     });
-
     const duration = Date.now() - startTime;
     console.log(`✅ Intelligent search process completed in ${duration}ms`);
     console.log(`Search Result:`, searchResult.responseMessage);

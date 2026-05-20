@@ -184,21 +184,33 @@ DEEP RESEARCH MODE ENABLED:
 - Include the citation: "[Source: Elite Deep Research Agent]" at the top.
 `;
   }
+  const resolvedTimezone = options.timezone || 'America/New_York';
+  const resolvedLocalDate = options.localDate || new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: resolvedTimezone });
+  const resolvedLocalTime = options.localTime || new Date().toLocaleTimeString('en-US', { timeZone: resolvedTimezone });
 
   const currentDateContext = `
 [CURRENT REAL-TIME CONTEXT]
-Today's Date: \${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-Current Year: \${new Date().getFullYear()}
-Current Time: \${new Date().toTimeString()}
+User's Local Timezone: ${resolvedTimezone}
+User's Local Date: ${resolvedLocalDate}
+User's Local Time: ${resolvedLocalTime}
+Current Year: ${resolvedLocalDate.includes('2026') ? '2026' : new Date().getFullYear()}
 
 CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
-- All schedule queries, upcoming events, and calculations MUST refer to this absolute current real-time date context (May 2026).
-- Past years (like 2025) are historic. For queries regarding the "next game" or "upcoming schedule", you MUST prioritize searches and results starting from today's date (\${new Date().toLocaleDateString()}) forward.
-- Do NOT return old historical data. Verify the dates of all retrieved search snippets.
+- All schedule queries, upcoming events, and calculations MUST refer to this absolute current real-time date context of the user.
+- Past years (like 2025) are historic. For queries regarding the "next game" or "upcoming schedule", you MUST prioritize searches and results starting from the user's local date (${resolvedLocalDate}) forward.
+`;
+
+  const strictSearchDirective = `
+[CRITICAL SYSTEM DIRECTIVE: GOOGLE CUSTOM SEARCH MANDATE]
+- YOU HAVE ACTIVE, REAL-TIME ACCESS TO THE INTERNET VIA THE "Google_Custom_Search" TOOL.
+- NEVER claim that you do not have access to real-time information or current schedules. Doing so is a direct violation of safety rules.
+- For ANY query asking about dynamic facts, current sports schedules, next games, weather, stock prices, news, or recent events, YOU MUST INITIATE AT LEAST ONE "Google_Custom_Search" CALL IN YOUR VERY FIRST ITERATION.
+- Do NOT refuse to answer, and do NOT refer the user to official websites. You must search and retrieve the schedule details yourself.
 `;
 
   const reactSystemPrompt = `${messages[0].content}
 ${currentDateContext}
+${strictSearchDirective}
 ${deepResearchInstruction}
 REACT AGENT MODE - REASONING AND ACTION:
 You are now operating as a ReAct (Reasoning and Action) agent. This means you should:

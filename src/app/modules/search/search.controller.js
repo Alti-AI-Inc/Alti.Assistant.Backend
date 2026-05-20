@@ -20,7 +20,7 @@ export const performSearch = catchAsync(async (req, res) => {
   let userId = isGuest
     ? searchService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
-  const { message, conversationId, deepSearch } = req.body;
+  const { message, conversationId, deepSearch, timezone, localDate, localTime } = req.body;
   userId = req.body.userId || userId; // Allow overriding userId from request body
 
   if (!message) {
@@ -71,18 +71,21 @@ export const performSearch = catchAsync(async (req, res) => {
       isGuest,
       req
     );
-
     const inputs = {
       query: message,
       conversationContext: conversationHistory,
       conversationId: actualConversationId,
       depth: deepSearch ? deepSearch : 'standard', // Use deepSearch flag to determine search depth
       history: [...conversationHistory, { role: 'user', content: message }],
+      timezone: timezone || null,
+      localDate: localDate || null,
+      localTime: localTime || null,
     };
 
     const result = await researchAgentApp.invoke(inputs, {
       configurable: { thread_id: actualConversationId },
     });
+
     logger.info(
       `Research Assistant Result for conversation: ${actualConversationId} (${isGuest ? 'guest' : 'authenticated'} user)`
     );
