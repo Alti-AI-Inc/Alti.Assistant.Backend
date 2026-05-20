@@ -185,7 +185,20 @@ DEEP RESEARCH MODE ENABLED:
 `;
   }
 
+  const currentDateContext = `
+[CURRENT REAL-TIME CONTEXT]
+Today's Date: \${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+Current Year: \${new Date().getFullYear()}
+Current Time: \${new Date().toTimeString()}
+
+CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
+- All schedule queries, upcoming events, and calculations MUST refer to this absolute current real-time date context (May 2026).
+- Past years (like 2025) are historic. For queries regarding the "next game" or "upcoming schedule", you MUST prioritize searches and results starting from today's date (\${new Date().toLocaleDateString()}) forward.
+- Do NOT return old historical data. Verify the dates of all retrieved search snippets.
+`;
+
   const reactSystemPrompt = `${messages[0].content}
+${currentDateContext}
 ${deepResearchInstruction}
 REACT AGENT MODE - REASONING AND ACTION:
 You are now operating as a ReAct (Reasoning and Action) agent. This means you should:
