@@ -38,7 +38,12 @@ import {
   selfCriticAgent,
   contextCompressorAgent,
   queryDisambiguator,
-  factValidationCritic
+  factValidationCritic,
+  toolRoutingOrchestrator,
+  semanticCachePrewarmer,
+  responseDensityOptimizer,
+  authoritativeSourceGrounder,
+  semanticDriftCorrector
 } from './background.agents.js';
 
 import {
@@ -139,6 +144,11 @@ export const customAgents = [
   contextCompressorAgent,
   queryDisambiguator,
   factValidationCritic,
+  toolRoutingOrchestrator,
+  semanticCachePrewarmer,
+  responseDensityOptimizer,
+  authoritativeSourceGrounder,
+  semanticDriftCorrector,
 
   gcpGrounding,
   terraformArchitect,
@@ -231,6 +241,11 @@ export {
   contextCompressorAgent,
   queryDisambiguator,
   factValidationCritic,
+  toolRoutingOrchestrator,
+  semanticCachePrewarmer,
+  responseDensityOptimizer,
+  authoritativeSourceGrounder,
+  semanticDriftCorrector,
 
   gcpGrounding,
   terraformArchitect,

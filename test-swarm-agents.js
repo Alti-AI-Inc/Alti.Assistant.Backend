@@ -31,7 +31,14 @@ const requiredAgentIds = [
   'financial_sec_auditor',
   'legal_regulatory_researcher',
   'query_disambiguator',
-  'fact_validation_critic'
+  'fact_validation_critic',
+  
+  // Phase 2 Background Agents
+  'tool_routing_orchestrator',
+  'semantic_cache_prewarmer',
+  'response_density_optimizer',
+  'authoritative_source_grounder',
+  'semantic_drift_corrector'
 ];
 let registrationFailed = false;
 
