@@ -45,6 +45,8 @@ app.use(
 app.use(
   cors({
     origin: [
+      'https://altihq.com',
+      'https://www.altihq.com',
       'https://asonai.com',
       'https://www.asonai.com',
       'https://ason-web.netlify.app',
@@ -170,7 +172,7 @@ app.use(globalErrorHandler);
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.send('ASON is working! YaY!');
+  res.send('Alti is working! YaY!');
 });
 
 // 404 Handler
