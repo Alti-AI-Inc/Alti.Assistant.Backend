@@ -331,11 +331,12 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
     ...messages.slice(1),
   ];
 
-  let currentMessages = [...reactMessages];
+    let currentMessages = [...reactMessages];
   let iterationCount = 0;
   const maxIterations = (options.searchDepth === 'deep' || options.depth === 'deep') ? 15 : 8; // Increased for Deep Research
   let usedUrls = new Set(); // Track URLs used for references
   let reasoningLog = []; // Track reasoning steps
+  let executedSearchQueries = new Set(); // Track executed queries to prevent loops
 
   while (iterationCount < maxIterations) {
     iterationCount++;
@@ -472,10 +473,36 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
       tool_calls: res.tool_calls,
     });
 
+    // Check for looping queries
+    let isLooping = false;
+    for (const toolCall of res.tool_calls) {
+      if (toolCall.name === 'google_search' || toolCall.name === 'google-custom-search') {
+        const searchQuery = typeof toolCall.args === 'string' ? toolCall.args : toolCall.args.query || toolCall.args.input || '';
+        if (executedSearchQueries.has(searchQuery)) {
+          console.log(`⚠️ DETECTED LOOP: Agent requested identical search: "${searchQuery}". Forcing exit.`);
+          isLooping = true;
+          break;
+        }
+        executedSearchQueries.add(searchQuery);
+      }
+    }
+
+    if (isLooping) {
+      console.log('Forcing final answer due to looping tool calls...');
+      // Append a system message instructing the agent to provide the final answer immediately
+      currentMessages.pop(); // Remove the looping tool calls
+      currentMessages.push({
+        role: 'user',
+        content: "You've already searched for this. Based on the information gathered so far, provide the FINAL JSON answer now. DO NOT use any more tools."
+      });
+      // Continue to next iteration without executing tools, forcing an answer
+      continue;
+    }
+
     // Execute each tool call and add results
     for (const toolCall of res.tool_calls) {
-      console.log(`🔧 ReAct ACTION: Executing tool: ${toolCall.name}`);
-      console.log(`📝 Search Query:`, toolCall.args.input);
+      console.log(`🔧 ReAct ACTION: Executing tool: ${toolCall.name} with args:`, toolCall.args);
+      console.log(`📝 Search Query:`, toolCall.args.input || toolCall.args.query || toolCall.args);
 
       try {
         // Execute the tool based on its name
