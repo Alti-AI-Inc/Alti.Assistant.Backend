@@ -51,12 +51,16 @@ import { creativeWritingRoutes } from '../modules/creative_writing/creative_writ
 import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 import { massiveRoutes } from '../modules/massive/massive.route.js';
-import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
 import { orchestratorRoutes } from '../modules/orchestrator/orchestrator.route.js';
+import { SwarmRoutes } from '../modules/swarm/swarm.route.js';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/swarm',
+    route: SwarmRoutes,
+  },
   {
     path: '/orchestrator',
     route: orchestratorRoutes,
