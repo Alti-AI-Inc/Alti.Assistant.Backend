@@ -9,6 +9,92 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 export class SwarmService {
   /**
+   * Executes the collaborative agent swarm synchronously and returns the final response.
+   * @param {string} query - Raw user query
+   * @param {Array} conversationHistory - Previous conversation context
+   * @returns {Object} Final accumulated response object with reply string
+   */
+  static async executeSwarmSync(query, conversationHistory = []) {
+    console.log(`📡 Swarm Engine (Sync): Building execution pipeline for query "${query}"`);
+    const pipeline = SynapseRouter.buildExecutionPipeline(query);
+    let currentContextInput = query;
+    let accumulatedText = '';
+
+    for (let index = 0; index < pipeline.chain.length; index++) {
+      const agent = pipeline.chain[index];
+      const isPrimary = index === 0;
+
+      let customGcpGroundingBlock = '';
+      if (agent.id === 'gcp_grounding') {
+        try {
+          const searchResult = await GcpNativeService.searchGcpCatalog(query, { limit: 5 });
+          if (searchResult.success && searchResult.results.length > 0) {
+            customGcpGroundingBlock = `
+[GROUNDED REPOSITORIES FOUND IN 1,388 GCP CATALOG]
+${searchResult.results.map((repo, idx) => `
+Repository #${idx + 1}:
+- Name: ${repo.name}
+- Language: ${repo.language}
+- Stars: ${repo.stars}
+- License: ${repo.license}
+- GitHub URL: ${repo.html_url}
+- Clone: git clone ${repo.clone_url}
+- Description: ${repo.description || 'No description provided.'}
+`).join('\n')}
+`;
+          }
+        } catch (err) {
+          console.error('Swarm GCP Grounder Sync Error:', err);
+        }
+      }
+
+      let finalPrompt = currentContextInput;
+      if (!isPrimary) {
+        finalPrompt = `You are a secondary processing agent in the pipeline.
+Previous Agent Outputs:
+${accumulatedText}
+
+User Query: ${query}
+
+Your Specific Task: ${agent.description}
+Instructions: ${agent.systemInstruction}`;
+      } else if (customGcpGroundingBlock) {
+        finalPrompt = `${customGcpGroundingBlock}\n\nUser Request: ${query}`;
+      }
+
+      const modelInstance = genAI.getGenerativeModel({
+        model: agent.model || 'gemini-3.5-flash',
+        systemInstruction: agent.systemInstruction
+      });
+
+      const contents = [
+        ...conversationHistory.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        })),
+        {
+          role: 'user',
+          parts: [{ text: finalPrompt }]
+        }
+      ];
+
+      const result = await modelInstance.generateContent({
+        contents,
+        generationConfig: {
+          temperature: isPrimary ? 0.2 : 0.1,
+          maxOutputTokens: 4000
+        }
+      });
+
+      const text = result?.response?.text() || '';
+      accumulatedText = text;
+      currentContextInput = text;
+    }
+
+    return { reply: accumulatedText };
+  }
+
+  /**
    * Executes a collaborative multi-agent execution pipeline streaming SSE chunks to the client.
    * @param {string} query - Raw user query
    * @param {Array} conversationHistory - Previous conversation context

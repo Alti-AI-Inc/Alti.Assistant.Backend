@@ -5,6 +5,7 @@ import httpStatus from 'http-status';
 import { logger } from '../../../shared/logger.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { GeminiAiService } from '../gemini/gemini.service.js';
+import { SwarmService } from '../swarm/swarm.service.js';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
@@ -73,23 +74,19 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
       throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message || 'Payment usage update failed.');
     }
 
-    // 3. DISPATCH TO CORRECT MODULE
+    // 3. DISPATCH TO CORRECT MODULE VIA SWARM ENGINE
     let finalResponse;
 
     switch (target_module) {
       case 'general_chat':
-      case 'code_generation': // Gemini is excellent at code, so we route it here too
-        finalResponse = await GeminiAiService.geminiService(sessionId, parameters.query, userId);
+      case 'code_generation':
+        // Run collaborative multi-agent execution pipeline synchronously
+        finalResponse = await SwarmService.executeSwarmSync(parameters.query || prompt, []);
         break;
       
-      // Additional modules will be mapped here natively
-      // case 'web_search':
-      //   finalResponse = await TavilyAiService.search(parameters.query);
-      //   break;
-
       default:
-        // Fallback to standard conversational AI if module mapping is pending
-        finalResponse = await GeminiAiService.geminiService(sessionId, prompt, userId);
+        // Default to collaborative multi-agent execution pipeline
+        finalResponse = await SwarmService.executeSwarmSync(prompt, []);
         break;
     }
 
