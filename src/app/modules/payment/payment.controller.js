@@ -94,7 +94,11 @@ const incrementPromptsUsed = async (userId) => {
         { session }
       );
     } else {
-      user.freePlanUsage.promptsUsed += 1;
+      if (!user.freePlanUsage) {
+        user.freePlanUsage = { promptsUsed: 0, imagesUsed: 0 };
+      }
+      user.freePlanUsage.promptsUsed = (user.freePlanUsage.promptsUsed || 0) + 1;
+      user.markModified('freePlanUsage');
       await user.save({ session });
     }
 
@@ -130,7 +134,11 @@ const incrementImagesUsed = async (userId) => {
         { session }
       );
     } else {
-      user.freePlanUsage.imagesUsed += 1;
+      if (!user.freePlanUsage) {
+        user.freePlanUsage = { promptsUsed: 0, imagesUsed: 0 };
+      }
+      user.freePlanUsage.imagesUsed = (user.freePlanUsage.imagesUsed || 0) + 1;
+      user.markModified('freePlanUsage');
       await user.save({ session });
     }
 
