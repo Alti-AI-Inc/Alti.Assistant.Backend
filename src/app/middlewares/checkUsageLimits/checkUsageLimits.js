@@ -18,15 +18,20 @@ export const checkUsageLimits = async (userId, session = null) => {
     throw new Error('No active subscription found.');
   }
 
-  const planLimits = limits[subscription.plan_name];
+  const planName = (subscription.plan_name || 'explore').toLowerCase();
+  const planLimits = limits[planName] || limits.explore;
+  const usage = subscription.usage || { promptsUsed: 0, imagesUsed: 0 };
 
   let errors = [];
 
-  if (subscription.usage.promptsUsed >= planLimits.prompts) {
+  const promptsUsed = usage.promptsUsed || 0;
+  const imagesUsed = usage.imagesUsed || 0;
+
+  if (promptsUsed >= planLimits.prompts) {
     errors.push(`Your ${subscription.plan_name} plan prompts limit reached.`);
   }
 
-  if (subscription.usage.imagesUsed >= planLimits.images) {
+  if (imagesUsed >= planLimits.images) {
     errors.push(
       `Your ${subscription.plan_name} plan image generation limit reached.`
     );
