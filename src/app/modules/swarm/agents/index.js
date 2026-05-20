@@ -1,0 +1,270 @@
+import { generalChatAssistant } from './core.agents.js';
+
+import {
+  realtimeSearchAgent,
+  perplexityDeepSearcher,
+  youtubeResearcher,
+  academicScholar,
+  financialSearchAgent,
+  academicSearchAgent
+} from './search.agents.js';
+
+import {
+  dataProcessorAgent,
+  dataEtlSynthesizer,
+  dbOptimizer,
+  postgresDba,
+  pdfIngestionAnalyst,
+  realEstateAdvisor,
+  schemaMapperAgent,
+  payloadTransformerAgent
+} from './data.agents.js';
+
+import {
+  intelligenceAgent,
+  manusStrategicPlanner,
+  mathTutor,
+  leetcodeCoach,
+  systemDesignExpert,
+  pentestAuditor,
+  architecturalReasoningAgent,
+  mathLogicProverAgent
+} from './intelligence.agents.js';
+
+import {
+  securityAuditAgent,
+  perfMonitorAgent,
+  cacheOptimizerAgent,
+  selfCriticAgent,
+  contextCompressorAgent
+} from './background.agents.js';
+
+import {
+  gcpGrounding,
+  terraformArchitect,
+  gcpGkeExpert,
+  gcpServerlessExpert,
+  gcpSecurityExpert,
+  gcpDatabaseExpert,
+  gcpDataExpert,
+  gcpMigrationSpecialist,
+  gcpFinopsExpert,
+  gcpMlopsExpert,
+  gcpCloudRunArchitect
+} from './cloud.agents.js';
+
+import {
+  coder,
+  codeDebugger,
+  apiDesigner,
+  observabilityEngineer,
+  cicdArchitect,
+  rustDeveloper,
+  goDeveloper,
+  pythonDataScientist,
+  containerSecurityExpert,
+  linuxSystemsExpert,
+  googleChromeExtensionDeveloper,
+  googleAppsScriptDeveloper,
+  googleFlutterDeveloper,
+  gitGitExpert
+} from './development.agents.js';
+
+import {
+  summarizer,
+  translator,
+  transcriber,
+  documenter,
+  brainstormer,
+  creativeCopywriter,
+  uxStrategist,
+  seoContentSpecialist,
+  emailCorrespondenceExpert,
+  youtubeTranscriptSummarizer,
+  resumeCvCoach,
+  socialMediaWriter,
+  pressReleaseWriter,
+  grantProposalWriter
+} from './utility.agents.js';
+
+import {
+  dietNutritionExpert,
+  workoutFitnessCoach,
+  travelItineraryArchitect,
+  financialBudgetPlanner,
+  legalCeaseDesistDrafter,
+  financialAnalyst,
+  marketResearcher
+} from './specialized.agents.js';
+
+// Compile all custom modular agents for global registry loading
+export const customAgents = [
+  generalChatAssistant,
+
+  realtimeSearchAgent,
+  perplexityDeepSearcher,
+  youtubeResearcher,
+  academicScholar,
+  financialSearchAgent,
+  academicSearchAgent,
+
+  dataProcessorAgent,
+  dataEtlSynthesizer,
+  dbOptimizer,
+  postgresDba,
+  pdfIngestionAnalyst,
+  realEstateAdvisor,
+  schemaMapperAgent,
+  payloadTransformerAgent,
+
+  intelligenceAgent,
+  manusStrategicPlanner,
+  mathTutor,
+  leetcodeCoach,
+  systemDesignExpert,
+  pentestAuditor,
+  architecturalReasoningAgent,
+  mathLogicProverAgent,
+
+  securityAuditAgent,
+  perfMonitorAgent,
+  cacheOptimizerAgent,
+  selfCriticAgent,
+  contextCompressorAgent,
+
+  gcpGrounding,
+  terraformArchitect,
+  gcpGkeExpert,
+  gcpServerlessExpert,
+  gcpSecurityExpert,
+  gcpDatabaseExpert,
+  gcpDataExpert,
+  gcpMigrationSpecialist,
+  gcpFinopsExpert,
+  gcpMlopsExpert,
+  gcpCloudRunArchitect,
+
+  coder,
+  codeDebugger,
+  apiDesigner,
+  observabilityEngineer,
+  cicdArchitect,
+  rustDeveloper,
+  goDeveloper,
+  pythonDataScientist,
+  containerSecurityExpert,
+  linuxSystemsExpert,
+  googleChromeExtensionDeveloper,
+  googleAppsScriptDeveloper,
+  googleFlutterDeveloper,
+  gitGitExpert,
+
+  summarizer,
+  translator,
+  transcriber,
+  documenter,
+  brainstormer,
+  creativeCopywriter,
+  uxStrategist,
+  seoContentSpecialist,
+  emailCorrespondenceExpert,
+  youtubeTranscriptSummarizer,
+  resumeCvCoach,
+  socialMediaWriter,
+  pressReleaseWriter,
+  grantProposalWriter,
+
+  dietNutritionExpert,
+  workoutFitnessCoach,
+  travelItineraryArchitect,
+  financialBudgetPlanner,
+  legalCeaseDesistDrafter,
+  financialAnalyst,
+  marketResearcher
+];
+
+// Named exports for explicit registry routing if needed
+export {
+  generalChatAssistant,
+
+  realtimeSearchAgent,
+  perplexityDeepSearcher,
+  youtubeResearcher,
+  academicScholar,
+  financialSearchAgent,
+  academicSearchAgent,
+
+  dataProcessorAgent,
+  dataEtlSynthesizer,
+  dbOptimizer,
+  postgresDba,
+  pdfIngestionAnalyst,
+  realEstateAdvisor,
+  schemaMapperAgent,
+  payloadTransformerAgent,
+
+  intelligenceAgent,
+  manusStrategicPlanner,
+  mathTutor,
+  leetcodeCoach,
+  systemDesignExpert,
+  pentestAuditor,
+  architecturalReasoningAgent,
+  mathLogicProverAgent,
+
+  securityAuditAgent,
+  perfMonitorAgent,
+  cacheOptimizerAgent,
+  selfCriticAgent,
+  contextCompressorAgent,
+
+  gcpGrounding,
+  terraformArchitect,
+  gcpGkeExpert,
+  gcpServerlessExpert,
+  gcpSecurityExpert,
+  gcpDatabaseExpert,
+  gcpDataExpert,
+  gcpMigrationSpecialist,
+  gcpFinopsExpert,
+  gcpMlopsExpert,
+  gcpCloudRunArchitect,
+
+  coder,
+  codeDebugger,
+  apiDesigner,
+  observabilityEngineer,
+  cicdArchitect,
+  rustDeveloper,
+  goDeveloper,
+  pythonDataScientist,
+  containerSecurityExpert,
+  linuxSystemsExpert,
+  googleChromeExtensionDeveloper,
+  googleAppsScriptDeveloper,
+  googleFlutterDeveloper,
+  gitGitExpert,
+
+  summarizer,
+  translator,
+  transcriber,
+  documenter,
+  brainstormer,
+  creativeCopywriter,
+  uxStrategist,
+  seoContentSpecialist,
+  emailCorrespondenceExpert,
+  youtubeTranscriptSummarizer,
+  resumeCvCoach,
+  socialMediaWriter,
+  pressReleaseWriter,
+  grantProposalWriter,
+
+  dietNutritionExpert,
+  workoutFitnessCoach,
+  travelItineraryArchitect,
+  financialBudgetPlanner,
+  legalCeaseDesistDrafter,
+  financialAnalyst,
+  marketResearcher
+};
