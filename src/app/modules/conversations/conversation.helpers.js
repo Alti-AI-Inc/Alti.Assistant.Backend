@@ -93,8 +93,7 @@ const getUserConversations = async (userId, options = {}, req = null) => {
       .sort({ [sortBy]: sortOrder })
       .limit(limit)
       .skip(skip)
-      .select('-messages')
-      .lean();
+      .select('-messages');
 
     // Get total count for pagination
     const total = await Conversation.countDocuments(
@@ -250,8 +249,7 @@ const getAllSavedConversations = async (
     )
       .sort({ lastActivity: -1 })
       .limit(limit)
-      .skip((page - 1) * limit)
-      .lean();
+      .skip((page - 1) * limit);
 
     const total = await Conversation.countDocuments(
       req ? withTenantFilter(req, query) : query
@@ -411,8 +409,7 @@ const getRecentConversations = async (userId, limit = 5, req = null) => {
     )
       .sort({ lastActivity: -1 })
       .limit(limit)
-      .select('conversationId title lastActivity messageCount')
-      .lean();
+      .select('conversationId title lastActivity messageCount');
 
     return conversations;
   } catch (error) {
