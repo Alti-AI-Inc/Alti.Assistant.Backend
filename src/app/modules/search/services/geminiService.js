@@ -25,9 +25,9 @@ export const gemini2_5Flash = new ChatGoogleGenerativeAI({
   temperature: 0,
   maxRetries: 2,
 });
-// Gemini 3.5 Flash - Advanced capabilities for complex tasks
+// Gemini Pro - Advanced capabilities for complex tasks
 export const gemini3ProPreview = new ChatGoogleGenerativeAI({
-  model: 'gemini-3.5-flash', // Gemini 3 with advanced capabilities
+  model: 'gemini-2.5-flash', // Use gemini-2.5-flash instead of 3.5 which doesn't exist
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
