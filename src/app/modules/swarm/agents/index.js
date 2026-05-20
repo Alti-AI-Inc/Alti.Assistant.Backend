@@ -43,7 +43,12 @@ import {
   semanticCachePrewarmer,
   responseDensityOptimizer,
   authoritativeSourceGrounder,
-  semanticDriftCorrector
+  semanticDriftCorrector,
+  semanticRelevanceScorer,
+  contextAttentionPruner,
+  sentimentToneGuard,
+  logicCoherenceChecker,
+  ingestionRouter
 } from './background.agents.js';
 
 import {
@@ -149,6 +154,11 @@ export const customAgents = [
   responseDensityOptimizer,
   authoritativeSourceGrounder,
   semanticDriftCorrector,
+  semanticRelevanceScorer,
+  contextAttentionPruner,
+  sentimentToneGuard,
+  logicCoherenceChecker,
+  ingestionRouter,
 
   gcpGrounding,
   terraformArchitect,
@@ -246,6 +256,11 @@ export {
   responseDensityOptimizer,
   authoritativeSourceGrounder,
   semanticDriftCorrector,
+  semanticRelevanceScorer,
+  contextAttentionPruner,
+  sentimentToneGuard,
+  logicCoherenceChecker,
+  ingestionRouter,
 
   gcpGrounding,
   terraformArchitect,

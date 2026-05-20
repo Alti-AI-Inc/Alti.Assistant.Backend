@@ -38,7 +38,14 @@ const requiredAgentIds = [
   'semantic_cache_prewarmer',
   'response_density_optimizer',
   'authoritative_source_grounder',
-  'semantic_drift_corrector'
+  'semantic_drift_corrector',
+
+  // Phase 3 Background Agents
+  'semantic_relevance_scorer',
+  'context_attention_pruner',
+  'sentiment_tone_guard',
+  'logic_coherence_checker',
+  'ingestion_router'
 ];
 let registrationFailed = false;
 
