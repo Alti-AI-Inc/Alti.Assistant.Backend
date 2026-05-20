@@ -11,67 +11,32 @@ export class SynapseRouter {
    * @returns {Array<Object>} Sorted list of recruited micro-agent profiles
    */
   static routeQuery(query) {
+    // HARD LAW: This platform is a clean, direct chatbot and search engine like ChatGPT/Perplexity.
+    // It is strictly forbidden from recruiting technical/code agents, and must NEVER generate code output.
     if (!query || typeof query !== 'string') {
-      return [SWARM_REGISTRY.general_chat_assistant]; // Fallback to Alti Core Assistant
+      return [SWARM_REGISTRY.general_chat_assistant];
     }
 
     const lowerQuery = query.toLowerCase();
-    const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'google', 'cloud', 'platform', 'gcp', 'a', 'of', 'in', 'for', 'with', 'on', 'how', 'to', 'find', 'get', 'list', 'search', 'what', 'is', 'are', 'any', 'some', 'about']);
-    const queryWords = lowerQuery
-      .replace(/[^\w\s-]/g, ' ')
-      .split(/\s+/)
-      .filter(word => word.length > 2 && !stopWords.has(word));
-
-    const candidates = [];
-
-    // Score all available micro-agents in the Swarm Registry
-    for (const [id, agent] of Object.entries(SWARM_REGISTRY)) {
-      let score = 0;
-
-      // Tier 1: Keyword-based matching
-      if (agent.keywords && agent.keywords.length > 0) {
-        agent.keywords.forEach(keyword => {
-          if (lowerQuery.includes(keyword.toLowerCase())) {
-            score += 15; // Direct keyword match has high weight
-          }
-        });
-      }
-
-      // Tier 2: Token match density against name & description
-      if (queryWords.length > 0) {
-        const nameLower = agent.name.toLowerCase();
-        const descLower = agent.description.toLowerCase();
-
-        queryWords.forEach(word => {
-          if (nameLower.includes(word)) {
-            score += 5;
-          }
-          if (descLower.includes(word)) {
-            score += 2;
-          }
-        });
-      }
-
-      if (score > 0) {
-        candidates.push({ agent, score });
-      }
-    }
-
-    // Sort candidates by match score
-    candidates.sort((a, b) => b.score - a.score);
-
-    // If no specific agent matched, default to generic grounded search or Alti Core Assistant
-    if (candidates.length === 0) {
-      console.log('📡 Synapse Router: No specific micro-agent matched. Defaulting to general fallback chain.');
-      const isGcpRelated = ['gcp', 'google cloud', 'gke', 'cloud storage', 'compute', 'bigquery', 'appengine', 'cloud run'].some(word => lowerQuery.includes(word));
-      return isGcpRelated ? [SWARM_REGISTRY.gcp_grounding, SWARM_REGISTRY.coder] : [SWARM_REGISTRY.general_chat_assistant];
-    }
-
-    // Assemble the recruited chain (return top matching agents)
-    const recruitedChain = candidates.map(c => c.agent).slice(0, 3);
-    console.log(`📡 Synapse Router: Recruited Agent Swarm [${recruitedChain.map(a => a.name).join(' -> ')}] for query "${query.substring(0, 40)}..."`);
     
-    return recruitedChain;
+    // Check for translation, summarization, or brainstorming intents
+    const isTranslation = ['translate', 'spanish', 'french', 'german', 'chinese', 'japanese', 'language', 'traduccion'].some(kw => lowerQuery.includes(kw));
+    const isSummary = ['summarize', 'summary', 'tldr', 'executive summary', 'brief', 'shorten', 'outline'].some(kw => lowerQuery.includes(kw));
+    const isBrainstorm = ['brainstorm', 'ideas', 'suggest', 'suggestions', 'innovate'].some(kw => lowerQuery.includes(kw));
+
+    if (isTranslation) {
+      return [SWARM_REGISTRY.translator];
+    }
+    if (isSummary) {
+      return [SWARM_REGISTRY.summarizer];
+    }
+    if (isBrainstorm) {
+      return [SWARM_REGISTRY.brainstormer];
+    }
+
+    // Default to the Core Conversational Assistant (never coder or systems architect agents)
+    console.log('📡 Synapse Router: Routing to Core Assistant to guarantee a clean conversational answer.');
+    return [SWARM_REGISTRY.general_chat_assistant];
   }
 
   /**
