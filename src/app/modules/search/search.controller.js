@@ -10,6 +10,7 @@ import {
   executeGroundedSearch,
   executeGroundedSearchStream,
 } from './services/geminiGroundingService.js';
+import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 
 export const performSearch = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
@@ -94,16 +95,18 @@ export const performSearch = catchAsync(async (req, res) => {
     console.log('References are:', reference);
     console.log('Citation metadata:', citationMetadata);
 
-    // Always send as JSON response (no streaming)
     const fullResponse = answer;
 
     // Add assistant response to conversation with enhanced metadata
+    const tickerInfo = massiveSmartRouter.normalizeTicker(message);
     const messageMetadata = {
       reference,
       citationMetadata,
       searchQuery: citationMetadata?.searchQuery || message,
       searchTimestamp:
         citationMetadata?.searchTimestamp || new Date().toISOString(),
+      financialTicker: tickerInfo || null,
+      searchMethod: tickerInfo ? 'massive_realtime' : 'intelligent_search',
     };
 
     await searchService.addSearchResultMessage(
@@ -618,13 +621,15 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
     console.log('Native Grounding - Citation metadata:', citationMetadata);
 
     // Add assistant response to conversation with enhanced metadata
+    const tickerInfo = massiveSmartRouter.normalizeTicker(message);
     const messageMetadata = {
       reference,
       citationMetadata,
       searchQuery: message,
       searchTimestamp:
         citationMetadata?.searchTimestamp || new Date().toISOString(),
-      searchMethod: 'native_grounding_only',
+      financialTicker: tickerInfo || null,
+      searchMethod: tickerInfo ? 'massive_realtime' : 'native_grounding_only',
     };
 
     await searchService.addSearchResultMessage(
