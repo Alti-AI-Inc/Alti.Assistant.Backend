@@ -46,8 +46,14 @@ workflow.addEdge('debug_code', END);
 workflow.addEdge('best_practices', END);
 workflow.addEdge('general_conversation', END);
 
-// Instantiate the checkpointer for memory.
-const checkpointer = await MongoDBSaver.fromUri(config.database_local);
+// Instantiate the checkpointer for memory — fallback to in-memory if DB is unavailable
+let checkpointer;
+try {
+  checkpointer = await MongoDBSaver.fromUri(config.database_local);
+} catch (err) {
+  console.warn('⚠️ Code assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  checkpointer = new MemorySaver();
+}
 
 // Compile the graph into a runnable application with the checkpointer
 export const codeAssistantApp = workflow.compile({ checkpointer });

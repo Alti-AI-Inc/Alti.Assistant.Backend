@@ -1,4 +1,4 @@
-import { StateGraph, END, START } from '@langchain/langgraph';
+import { StateGraph, END, START, MemorySaver } from '@langchain/langgraph';
 import { deepResearchAgentState } from './state.js';
 import {
   initializeResearchNode,
@@ -35,15 +35,18 @@ workflow.addEdge('save_research', 'generate_pdf');
 workflow.addEdge('generate_pdf', END);
 
 // Initialize MongoDB checkpointer for conversation persistence
-const checkpointer = await MongoDBSaver.fromUri(
-  config.database_local,
-  'deep_research_agent_checkpoints'
-);
+let checkpointer;
+try {
+  checkpointer = await MongoDBSaver.fromUri(config.database_local, 'deep_research_agent_checkpoints');
+} catch (err) {
+  console.warn('⚠️ Deep research: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  checkpointer = new MemorySaver();
+}
 
 // Compile the workflow with checkpointer
 export const deepResearchAgentApp = workflow.compile({
   checkpointer,
-  debug: true, // Enable debug mode for development
+  debug: true,
 });
 
 // Export utility function to invoke the deep research agent

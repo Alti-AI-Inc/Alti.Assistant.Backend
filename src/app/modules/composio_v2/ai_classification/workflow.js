@@ -1,4 +1,4 @@
-import { StateGraph, END, START } from '@langchain/langgraph';
+import { StateGraph, END, START, MemorySaver } from '@langchain/langgraph';
 import { aiClassificationState } from './state.js';
 import {
   classifyAppNode,
@@ -118,15 +118,18 @@ workflow.addEdge('execute_tool', 'generate_response');
 workflow.addEdge('generate_response', END);
 
 // Initialize MongoDB checkpointer for conversation persistence
-const checkpointer = await MongoDBSaver.fromUri(
-  config.database_local,
-  'ai_classification_checkpoints'
-);
+let checkpointer;
+try {
+  checkpointer = await MongoDBSaver.fromUri(config.database_local, 'ai_classification_checkpoints');
+} catch (err) {
+  console.warn('⚠️ AI classification: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  checkpointer = new MemorySaver();
+}
 
 // Compile the workflow with checkpointer
 export const aiClassificationApp = workflow.compile({
   checkpointer,
-  debug: true, // Enable debug mode for development
+  debug: true,
 });
 
 // Export utility function to invoke the AI classification agent

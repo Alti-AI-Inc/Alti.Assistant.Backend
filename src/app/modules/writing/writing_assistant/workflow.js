@@ -1,4 +1,4 @@
-import { StateGraph, END, START } from '@langchain/langgraph';
+import { StateGraph, END, START, MemorySaver } from '@langchain/langgraph';
 import { writingAssistantState } from './state.js';
 import config from '../../../../../config/index.js';
 import * as nodes from './nodes.js';
@@ -23,8 +23,11 @@ workflow.addEdge(START, 'write_content');
 // workflow.addEdge("get_confirmation", END);
 workflow.addEdge('write_content', END);
 
-const checkpointer = await MongoDBSaver.fromUri(
-  config.database_local,
-  'writer_checkpoints'
-);
+let checkpointer;
+try {
+  checkpointer = await MongoDBSaver.fromUri(config.database_local, 'writer_checkpoints');
+} catch (err) {
+  console.warn('⚠️ Writing assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  checkpointer = new MemorySaver();
+}
 export const writingAssistantApp = workflow.compile({ checkpointer });

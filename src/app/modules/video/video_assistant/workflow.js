@@ -58,11 +58,11 @@ videoWorkflow.addEdge('compile_video_prompt', 'generate_video');
 // 7. After generating the video, the conversation is finished for now.
 videoWorkflow.addEdge('generate_video', END);
 
-const videoCheckpointer = await MongoDBSaver.fromUri(
-  config.database_local,
-  'video_checkpoints'
-);
-// Compile the graph into a runnable application
-export const videoApp = videoWorkflow.compile({
-  checkpointer: videoCheckpointer,
-});
+let videoCheckpointer;
+try {
+  videoCheckpointer = await MongoDBSaver.fromUri(config.database_local, 'video_checkpoints');
+} catch (err) {
+  console.warn('⚠️ Video assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  videoCheckpointer = new MemorySaver();
+}
+export const videoApp = videoWorkflow.compile({ checkpointer: videoCheckpointer });
