@@ -199,15 +199,14 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
 - All schedule queries, upcoming events, and calculations MUST refer to this absolute current real-time date context of the user.
 - Past years (like 2025) are historic. For queries regarding the "next game" or "upcoming schedule", you MUST prioritize searches and results starting from the user's local date (${resolvedLocalDate}) forward.
 `;
-
   const strictSearchDirective = `
-[CRITICAL SYSTEM DIRECTIVE: GOOGLE CUSTOM SEARCH MANDATE]
-- YOU HAVE ACTIVE, REAL-TIME ACCESS TO THE INTERNET VIA THE "Google_Custom_Search" TOOL.
-- NEVER claim that you do not have access to real-time information or current schedules. Doing so is a direct violation of safety rules.
+[CORE PRODUCT LAW - REAL-TIME INTELLIGENCE MANDATE]
+- This entire product is real-time accurate information, to the second, accurate data, for anything in the world.
+- Refusing to answer or saying "I do not have access to real-time information" is strictly forbidden.
+- You have active, real-time access to the internet via the "Google_Custom_Search" tool and "massiveService" API feeds.
 - For ANY query asking about dynamic facts, current sports schedules, next games, weather, stock prices, news, or recent events, YOU MUST INITIATE AT LEAST ONE "Google_Custom_Search" CALL IN YOUR VERY FIRST ITERATION.
 - Do NOT refuse to answer, and do NOT refer the user to official websites. You must search and retrieve the schedule details yourself.
 `;
-
   const reactSystemPrompt = `${messages[0].content}
 ${currentDateContext}
 ${strictSearchDirective}
