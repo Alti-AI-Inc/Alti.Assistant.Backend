@@ -38,9 +38,10 @@ COPY --from=builder /app/ason-core-service/server.js ./
 COPY --from=builder /app/ason-core-service/alti_gcp.json ./
 COPY --from=builder /app/ason-core-service/imagegen.json ./
 COPY --from=builder /app/ason-core-service/env.yaml ./
+COPY --from=builder /app/ason-core-service/output ./output
 
 # Create necessary directories
-RUN mkdir -p logs/errors logs/successes output/pdfs uploads/ragsystem
+RUN mkdir -p logs/errors logs/successes uploads/ragsystem
 
 EXPOSE 5100
 

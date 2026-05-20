@@ -300,7 +300,7 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
         console.log(`Found ${searchResult.results.length} matching GCP repositories from catalog!`);
         gcpCatalogReferences = searchResult.results.map(repo => ({
           url: repo.html_url,
-          domain: 'github.com/GoogleCloudPlatform',
+          domain: repo.domain || (repo.org === 'google' ? 'github.com/google' : 'github.com/GoogleCloudPlatform'),
           title: `${repo.name} (${repo.language}) - ${repo.license} License`,
           clone_url: repo.clone_url,
           stars: repo.stars,
@@ -310,11 +310,12 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
 
         gcpResultsBlock = `
 [SYSTEM INSTRUCTION - ACTIVE ELITE GOOGLE OPEN SOURCE CATALOG RETRIEVAL]
-The following 100% verified, production-grade repositories were found in our pre-compiled 1,388 GCP catalog. These are officially licensed under MIT/Apache-2.0 and are hosted on GoogleCloudPlatform:
+The following 100% verified, production-grade repositories were found in our pre-compiled Google & Google Cloud open-source catalog. These are officially licensed under MIT/Apache-2.0:
 
 ${searchResult.results.map((repo, idx) => `
 Repository #${idx + 1}:
 - Name: ${repo.name}
+- Organization: ${repo.org || 'GoogleCloudPlatform'}
 - Language: ${repo.language}
 - Stars: ${repo.stars} | Forks: ${repo.forks}
 - License: ${repo.license}
@@ -326,7 +327,7 @@ Repository #${idx + 1}:
 INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
 1. Synthesize your architectural and setup advice by drawing directly from these verified repositories.
 2. Under your response, present these repositories as beautiful reference links or code blocks for the user.
-3. Make sure to highlight that these are fully compliant open-source GCP blueprints.
+3. Make sure to highlight that these are fully compliant open-source blueprints from Google and Google Cloud.
 4. Keep the answer highly truthful, exact, and grounded in these repositories.
 `;
         
@@ -667,7 +668,7 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
         console.log(`Found ${searchResult.results.length} matching GCP repositories from catalog!`);
         gcpCatalogReferences = searchResult.results.map(repo => ({
           url: repo.html_url,
-          domain: 'github.com/GoogleCloudPlatform',
+          domain: repo.domain || (repo.org === 'google' ? 'github.com/google' : 'github.com/GoogleCloudPlatform'),
           title: `${repo.name} (${repo.language}) - ${repo.license} License`,
           clone_url: repo.clone_url,
           stars: repo.stars,
@@ -677,11 +678,12 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
 
         gcpResultsBlock = `
 [SYSTEM INSTRUCTION - ACTIVE ELIVE GOOGLE OPEN SOURCE CATALOG RETRIEVAL]
-The following 100% verified, production-grade repositories were found in our pre-compiled 1,388 GCP catalog. These are officially licensed under MIT/Apache-2.0 and are hosted on GoogleCloudPlatform:
+The following 100% verified, production-grade repositories were found in our pre-compiled Google & Google Cloud open-source catalog. These are officially licensed under MIT/Apache-2.0:
 
 ${searchResult.results.map((repo, idx) => `
 Repository #${idx + 1}:
 - Name: ${repo.name}
+- Organization: ${repo.org || 'GoogleCloudPlatform'}
 - Language: ${repo.language}
 - Stars: ${repo.stars} | Forks: ${repo.forks}
 - License: ${repo.license}
@@ -693,7 +695,7 @@ Repository #${idx + 1}:
 INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
 1. Synthesize your architectural and setup advice by drawing directly from these verified repositories.
 2. Under your response, present these repositories as beautiful reference links or code blocks for the user.
-3. Make sure to highlight that these are fully compliant open-source GCP blueprints.
+3. Make sure to highlight that these are fully compliant open-source blueprints from Google and Google Cloud.
 4. Keep the answer highly truthful, exact, and grounded in these repositories.
 `;
         
