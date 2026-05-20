@@ -109,4 +109,9 @@ export default {
     google_smtp_host: process.env.GOOGLE_SMTP_HOST,
     google_smtp_port: process.env.GOOGLE_SMTP_PORT,
   },
+  privacy: {
+    neverCollectData: true,
+    neverTrainOnUserData: true,
+    dataRetentionDays: 0,
+  },
 };
