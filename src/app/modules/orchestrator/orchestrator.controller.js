@@ -6,7 +6,7 @@ import { orchestratorService } from './orchestrator.service.js';
 const routePrompt = catchAsync(async (req, res) => {
   const { message, prompt, sessionId, conversationId } = req.body;
   const userPrompt = message || prompt;
-  const userId = req.user.userId;
+  const userId = req.user.id || req.user._id || req.user.userId;
 
   const result = await orchestratorService.classifyAndDispatch(userPrompt, sessionId, userId, conversationId);
 
