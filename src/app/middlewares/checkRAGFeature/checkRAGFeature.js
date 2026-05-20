@@ -142,7 +142,7 @@ const checkRAGFeature = async (req, res, next) => {
         : { userId, tenantId: null, paymentStatus: 'paid' }
     );
 
-    const ragType = subscription?.limits?.ragType ?? 'none';
+    const ragType = subscription?.limits?.ragType ?? 'premium_agentic';
     const planName = subscription?.plan_name ?? 'free';
 
     // ── 2. Block if the plan has no RAG access at all ─────────────────────────

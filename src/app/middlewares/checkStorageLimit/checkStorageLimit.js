@@ -8,10 +8,10 @@ import { logger } from '../../../shared/logger.js';
  * Plan storage limits (bytes) — used as fallback for free / no-subscription users.
  * Free plan = 0 bytes → all uploads blocked.
  */
-const FREE_PLAN_STORAGE_LIMIT_BYTES = 0;
-
 /** Bytes per GB (for human-readable messages) */
 const BYTES_PER_GB = 1024 * 1024 * 1024;
+
+const FREE_PLAN_STORAGE_LIMIT_BYTES = 10 * BYTES_PER_GB;
 
 /**
  * Format a byte count into a human-readable string (e.g. "10 GB", "512 MB").
