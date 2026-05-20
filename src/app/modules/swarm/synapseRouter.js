@@ -25,10 +25,17 @@ export class SynapseRouter {
     const isBrainstorm = ['brainstorm', 'ideas', 'suggest', 'suggestions', 'innovate'].some(kw => lowerQuery.includes(kw));
     
     // Granular specialized Search checks
+    const isLiveIntel = ['breaking news', 'latest events today', 'live update', 'global news feed', 'current world event', 'ongoing situation', 'news alert', 'crisis update', 'press conference summary'].some(kw => lowerQuery.includes(kw));
+    const isAcademicMeta = ['meta analysis', 'literature review', 'clinical trials database', 'scientific study synthesis', 'pubmed meta analysis', 'cochrane library'].some(kw => lowerQuery.includes(kw));
     const isFinancialSearch = ['stock', 'ticker', 'market cap', 'pe ratio', 'nasdaq', 'nyse', 'dividend', 'revenue', 'googl', 'aapl', 'nvda'].some(kw => lowerQuery.includes(kw));
-    const isAcademicSearch = ['doi', 'academic paper', 'arxiv', 'pubmed', 'biorxiv', 'medrxiv', 'scholarly', 'literature review', 'citation'].some(kw => lowerQuery.includes(kw));
+    const isAcademicSearch = ['doi', 'academic paper', 'arxiv', 'pubmed', 'biorxiv', 'medrxiv', 'scholarly', 'citation'].some(kw => lowerQuery.includes(kw));
     const isRealtimeSearch = ['search', 'lookup', 'latest news', 'current price', 'weather', 'sports schedule', 'game score', 'who won', 'what is the current status of', 'happenings', 'real-time', 'realtime'].some(kw => lowerQuery.includes(kw));
     
+    // Granular specialized Domain Research checks
+    const isPatentIntel = ['patent search', 'prior art', 'patent claims', 'uspto', 'patent application', 'wipo search', 'epo filing', 'infringement risk', 'patent classification'].some(kw => lowerQuery.includes(kw));
+    const isFinancialSec = ['sec filing search', '10-k', '10-q', 'corporate disclosure audit', 'earnings call transcript', 'sec edgar', 'balance sheet audit', 'risk factor warnings'].some(kw => lowerQuery.includes(kw));
+    const isLegalRegulatory = ['case law search', 'court docket review', 'federal registry update', 'statutory code', 'cfr lookup', 'supreme court holding', 'legal brief compilation', 'compliance mandate'].some(kw => lowerQuery.includes(kw));
+
     // Granular specialized Data checks
     const isSchemaMapping = ['ddl', 'schema design', 'entity relationship', 'table schema', 'database model', 'sql schema', 'database partition', 'erd diagram'].some(kw => lowerQuery.includes(kw));
     const isPayloadTransform = ['clean data', 'sanitize payload', 'flatten json', 'parse csv', 'null handling', 'type coercion', 'normalize datetime', 'data scrubber', 'bad json'].some(kw => lowerQuery.includes(kw));
@@ -49,13 +56,31 @@ export class SynapseRouter {
       return [SWARM_REGISTRY.brainstormer];
     }
     
-    // Route search specialists
+    // Route search and live intelligence specialists (highest precision first)
+    if (isLiveIntel) {
+      return [SWARM_REGISTRY.live_intel_aggregator];
+    }
+    if (isAcademicMeta) {
+      return [SWARM_REGISTRY.academic_meta_analyst];
+    }
     if (isFinancialSearch) {
       return [SWARM_REGISTRY.financial_search_agent];
     }
     if (isAcademicSearch) {
       return [SWARM_REGISTRY.academic_search_agent];
     }
+    
+    // Route specialized domain research specialists
+    if (isPatentIntel) {
+      return [SWARM_REGISTRY.patent_intel_researcher];
+    }
+    if (isFinancialSec) {
+      return [SWARM_REGISTRY.financial_sec_auditor];
+    }
+    if (isLegalRegulatory) {
+      return [SWARM_REGISTRY.legal_regulatory_researcher];
+    }
+    
     if (isRealtimeSearch) {
       return [SWARM_REGISTRY.realtime_search_agent];
     }

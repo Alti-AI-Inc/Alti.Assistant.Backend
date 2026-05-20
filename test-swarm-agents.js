@@ -1,6 +1,6 @@
 /**
  * Swarm Registry and Synapse Router Integration Test
- * Verifies that all 66+ modular custom and background agents are loaded, registered, and routed correctly.
+ * Verifies that all 73+ modular custom and background agents are loaded, registered, and routed correctly.
  */
 import { SWARM_REGISTRY } from './src/app/modules/swarm/swarm.registry.js';
 import { SynapseRouter } from './src/app/modules/swarm/synapseRouter.js';
@@ -22,7 +22,16 @@ const requiredAgentIds = [
   'perf_monitor_agent',
   'cache_optimizer_agent',
   'self_critic_agent',
-  'context_compressor_agent'
+  'context_compressor_agent',
+  
+  // NEW Agents
+  'live_intel_aggregator',
+  'academic_meta_analyst',
+  'patent_intel_researcher',
+  'financial_sec_auditor',
+  'legal_regulatory_researcher',
+  'query_disambiguator',
+  'fact_validation_critic'
 ];
 let registrationFailed = false;
 
@@ -40,6 +49,26 @@ requiredAgentIds.forEach(id => {
 // 2. Verify Routing Logic including Specialized Intent Matching
 console.log('\n--- 2. VERIFYING SYNAPSE ROUTING LOGIC ---');
 const testCases = [
+  {
+    query: 'Find breaking news alerts and live updates about the ongoing tech conference',
+    expectedAgentId: 'live_intel_aggregator'
+  },
+  {
+    query: 'Draft a systematic literature review and clinical trials meta analysis of malaria vaccines',
+    expectedAgentId: 'academic_meta_analyst'
+  },
+  {
+    query: 'Conduct a prior art search and inspect patent claims of USPTO application 12345',
+    expectedAgentId: 'patent_intel_researcher'
+  },
+  {
+    query: 'Show me the recent 10-K SEC filing, earnings call transcript, and balance sheet audit of Nvidia',
+    expectedAgentId: 'financial_sec_auditor'
+  },
+  {
+    query: 'Look up case law, statutory codes, and CFR compliance mandate updates for tax law',
+    expectedAgentId: 'legal_regulatory_researcher'
+  },
   {
     query: 'Search the web for the latest Gemini 1.5 update and news',
     expectedAgentId: 'realtime_search_agent'

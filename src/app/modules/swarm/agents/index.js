@@ -1,12 +1,13 @@
 import { generalChatAssistant } from './core.agents.js';
-
 import {
   realtimeSearchAgent,
   perplexityDeepSearcher,
   youtubeResearcher,
   academicScholar,
   financialSearchAgent,
-  academicSearchAgent
+  academicSearchAgent,
+  liveIntelAggregator,
+  academicMetaAnalyst
 } from './search.agents.js';
 
 import {
@@ -30,13 +31,14 @@ import {
   architecturalReasoningAgent,
   mathLogicProverAgent
 } from './intelligence.agents.js';
-
 import {
   securityAuditAgent,
   perfMonitorAgent,
   cacheOptimizerAgent,
   selfCriticAgent,
-  contextCompressorAgent
+  contextCompressorAgent,
+  queryDisambiguator,
+  factValidationCritic
 } from './background.agents.js';
 
 import {
@@ -86,7 +88,6 @@ import {
   pressReleaseWriter,
   grantProposalWriter
 } from './utility.agents.js';
-
 import {
   dietNutritionExpert,
   workoutFitnessCoach,
@@ -94,7 +95,10 @@ import {
   financialBudgetPlanner,
   legalCeaseDesistDrafter,
   financialAnalyst,
-  marketResearcher
+  marketResearcher,
+  patentIntelResearcher,
+  financialSecAuditor,
+  legalRegulatoryResearcher
 } from './specialized.agents.js';
 
 // Compile all custom modular agents for global registry loading
@@ -107,6 +111,8 @@ export const customAgents = [
   academicScholar,
   financialSearchAgent,
   academicSearchAgent,
+  liveIntelAggregator,
+  academicMetaAnalyst,
 
   dataProcessorAgent,
   dataEtlSynthesizer,
@@ -131,6 +137,8 @@ export const customAgents = [
   cacheOptimizerAgent,
   selfCriticAgent,
   contextCompressorAgent,
+  queryDisambiguator,
+  factValidationCritic,
 
   gcpGrounding,
   terraformArchitect,
@@ -180,10 +188,12 @@ export const customAgents = [
   financialBudgetPlanner,
   legalCeaseDesistDrafter,
   financialAnalyst,
-  marketResearcher
+  marketResearcher,
+  patentIntelResearcher,
+  financialSecAuditor,
+  legalRegulatoryResearcher
 ];
 
-// Named exports for explicit registry routing if needed
 export {
   generalChatAssistant,
 
@@ -193,6 +203,8 @@ export {
   academicScholar,
   financialSearchAgent,
   academicSearchAgent,
+  liveIntelAggregator,
+  academicMetaAnalyst,
 
   dataProcessorAgent,
   dataEtlSynthesizer,
@@ -217,6 +229,8 @@ export {
   cacheOptimizerAgent,
   selfCriticAgent,
   contextCompressorAgent,
+  queryDisambiguator,
+  factValidationCritic,
 
   gcpGrounding,
   terraformArchitect,
@@ -266,5 +280,8 @@ export {
   financialBudgetPlanner,
   legalCeaseDesistDrafter,
   financialAnalyst,
-  marketResearcher
+  marketResearcher,
+  patentIntelResearcher,
+  financialSecAuditor,
+  legalRegulatoryResearcher
 };

@@ -96,3 +96,47 @@ CRITICAL LAWS:
   tools: [],
   keywords: ['context compression', 'history summarizer', 'token shrinking', 'chat state preservation', 'semantic entities map']
 };
+
+// NEW: Silent Search Query Optimizer
+export const queryDisambiguator = {
+  id: 'query_disambiguator',
+  name: 'Silent Search Query Optimizer',
+  description: 'Runs silently in the background when a user submits a query, analyzing the intent, expanding terms, and compiling a structured multi-engine search prompt to maximize external API search recall.',
+  systemInstruction: `You are the Silent Search Query Optimizer, an elite query expansion and search intent specialist.
+Your mission is to intercept raw, short user queries (e.g. "nvidia earnings") and translate them into a high-fidelity, comprehensive search payload containing boolean operators, synonyms, and targeted keywords (e.g. "NVDA OR Nvidia Q1 2026 earnings report SEC 10-Q revenue net income").
+
+CRITICAL QUERY EXPANSION LAWS:
+1. INTENT EXPANSION: Identify the core entity (company, disease, event, patent) and expand it with highly specific technical synonyms, regulatory filing names, or academic identifiers.
+2. DISAMBIGUATION CRITERIA: If a query contains ambiguous terms, generate alternative targeted queries for each plausible meaning.
+3. STRUCTURED EMISSION: Deliver your output in clean, structured JSON format containing:
+   - "originalQuery": The user's input.
+   - "expandedTokens": An array of highly specific search terms and boolean query strings.
+   - "primaryIntentCategory": The mapped query domain (e.g., FINANCIAL, ACADEMIC, NEWS, REGULATORY, GENERAL).
+4. NO EXECUTABLE CODE BLOCKS: Do not output any programming scripts or terminal commands.
+5. NO FLUFF: Start and end your response strictly within the structured JSON query expansion block.`,
+  model: 'gemini-3.5-flash',
+  tools: [],
+  keywords: ['query expansion', 'search intent analysis', 'boolean query construction', 'synonym expansion', 'search optimization payload']
+};
+
+// NEW: Autonomous Fact-Check Auditor
+export const factValidationCritic = {
+  id: 'fact_validation_critic',
+  name: 'Autonomous Fact-Check Auditor',
+  description: 'Silently cross-references retrieved search results against trusted authoritative databases to grade factuality, flag hallucinations, and rate answer credibility before presenting to the user.',
+  systemInstruction: `You are the Autonomous Fact-Check Auditor, a silent post-processing quality controller and factual integrity inspector.
+Your objective is to ingest the retrieved web/academic search results, cross-reference them against the primary answer draft, identify factual inconsistencies, and grade the overall factual credibility of the response.
+
+CRITICAL FACT-CHECKING LAWS:
+1. CLAIMS EXTRACTION: Parse the answer draft into discrete factual claims (dates, numbers, entities, causal relationships).
+2. TRUTH CORROBORATION: Verify each claim against the retrieved search context, flagging claims that are unsupported, directly contradicted, or partially mischaracterized.
+3. CREDIBILITY SCORE: Grade the factual credibility on a 0-100 scale, deducting heavily for ungrounded assertions or hallucinated details.
+4. METRICS EMISSION: Output your analysis in a structured JSON schema containing:
+   - "factualityScore": Numeric grade (0-100).
+   - "flaggedClaims": An array of items containing the original text, the specific contradiction, and the corrected text based on the search context.
+   - "remediationAction": Recommendation (APPROVE, EDIT, or REJECT).
+5. NO FLUFF: Deliver exclusively the JSON fact-check audit payload.`,
+  model: 'gemini-2.5-pro', // Using advanced reasoning capabilities of Pro for analytical fact-checking
+  tools: [],
+  keywords: ['fact-check audit', 'hallucination detection', 'credibility assessment', 'search corroboration', 'factual integrity grading']
+};
