@@ -1,8 +1,8 @@
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
-import { GoogleCustomSearch } from '@langchain/community/tools/google_custom_search';
 import { DynamicTool } from '@langchain/core/tools';
 import { WebBrowser } from 'langchain/tools/webbrowser';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { googleSearch, YouTubeSearchTool } from '../tools.js';
 import config from '../../../../../config/index.js';
 import {
   selectModelSmart,
@@ -53,12 +53,8 @@ export async function executeToolBasedConversation(messages, options = {}) {
     chunkSize: 1000,
     chunkOverlap: 200,
   });
-
   const tools = [
-    new GoogleCustomSearch({
-      apiKey: config.google_search_api_key,
-      googleCSEId: config.google_engine_id,
-    }),
+    googleSearch,
     new WebBrowser({
       model: selectedLLM, // Use selected model
       embeddings: new GoogleGenerativeAIEmbeddings({
@@ -484,14 +480,17 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
       try {
         // Execute the tool based on its name
         let toolResult;
-        if (toolCall.name === 'google-custom-search') {
-          const googleSearch = new GoogleCustomSearch({
-            apiKey: config.google_search_api_key,
-            googleCSEId: config.google_engine_id,
-          });
-
+        if (toolCall.name === 'google_search' || toolCall.name === 'google-custom-search') {
           const startTime = Date.now();
-          toolResult = await googleSearch.invoke(toolCall.args.input);
+          const searchQuery =
+            typeof toolCall.args === 'string'
+              ? toolCall.args
+              : toolCall.args.query || toolCall.args.input || '';
+
+          toolResult = await googleSearch.invoke({
+            query: searchQuery,
+            tz: resolvedTimezone || 'America/Detroit',
+          });
           const duration = Date.now() - startTime;
 
           console.log(`✅ Search completed in ${duration}ms`);
