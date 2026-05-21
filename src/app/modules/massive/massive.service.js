@@ -292,6 +292,59 @@ const getMarketHolidaysService = async () => {
   return rest.getMarketHolidays();
 };
 
+// ─── EARNINGS CALENDAR ──────────────────────────────
+
+const getEarningsCalendarService = async (params = {}) => {
+  const { tickers, dateFrom, dateTo, limit = 20 } = params;
+  logger.info(`[Massive] Earnings Calendar: tickers=${tickers || 'all'} from=${dateFrom} to=${dateTo}`);
+  const queryParams = {
+    limit: Number(limit),
+    ...(tickers ? { tickers: tickers.toUpperCase().trim() } : {}),
+    ...(dateFrom ? { dateFrom } : {}),
+    ...(dateTo ? { dateTo } : {}),
+  };
+  try {
+    const response = await rest.getEarnings(queryParams);
+    return response?.results ? response : { results: Array.isArray(response) ? response : [], raw: response };
+  } catch (err) {
+    logger.warn(`[Massive] getEarningsCalendarService failed: ${err.message}`);
+    return { results: [], error: err.message };
+  }
+};
+
+// ─── Named individual exports (for direct imports in massiveSmartRouter) ────
+export {
+  getStockQuoteService,
+  getStockSnapshotService,
+  getStockTickerDetailsService,
+  getStockAggregatesService,
+  getPreviousCloseService,
+  getStockFinancialsService,
+  getRelatedCompaniesService,
+  getDividendsService,
+  getStockSplitsService,
+  getIndicesSnapshotService,
+  getOptionsChainService,
+  getOptionsSnapshotService,
+  getOptionsQuoteService,
+  getCryptoQuoteService,
+  getCryptoSnapshotAllService,
+  getCryptoAggregatesService,
+  getForexQuoteService,
+  getForexSnapshotAllService,
+  getForexAggregatesService,
+  getBenzingaNewsService,
+  getBenzingaRatingsService,
+  getEtfProfilesService,
+  getEtfConstituentsService,
+  getFedInflationService,
+  getFedYieldsService,
+  getMarketStatusService,
+  getMarketHolidaysService,
+  getEarningsCalendarService,
+};
+
+// ─── Default grouped export (legacy) ────────────────────────────────────────
 export const massiveService = {
   // Stocks
   getStockQuoteService,
@@ -328,4 +381,6 @@ export const massiveService = {
   // Market
   getMarketStatusService,
   getMarketHolidaysService,
+  // Earnings
+  getEarningsCalendarService,
 };

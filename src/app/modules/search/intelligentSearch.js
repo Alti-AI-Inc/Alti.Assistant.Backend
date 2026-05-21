@@ -12,6 +12,7 @@ import Conversation from '../conversations/conversation.model.js';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
 import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 import { isVideoOnlyQuery, searchYouTube, extractVideoCount } from './utils/videoUtils.js';
+import { detectFinancialIntent } from '../../helpers/massiveTickerDB.js';
 
 /**
  * Enhanced search function that uses tool-enabled LLM for intelligent search decisions
@@ -63,6 +64,14 @@ export const runIntelligentSearch = async (state, stream = false) => {
       const prev = arr[index - 1];
       return !(item.role === prev.role && item.content === prev.content);
     });
+
+    // ── PRIORITY 0: Financial intent detection ────────────────────────────
+    // Financial queries ALWAYS bypass writing/code routing to get live market data
+    const financialIntent = detectFinancialIntent(query);
+    const isFinancialQuery_precheck = !!financialIntent;
+    if (isFinancialQuery_precheck) {
+      console.log(`💹 [Massive Priority] Financial intent detected: ${financialIntent.type} (${financialIntent.symbol || 'no symbol'}) — bypassing writing/code classifier`);
+    }
 
     // 1. Check for financial queries using massiveSmartRouter
     const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
@@ -197,7 +206,8 @@ INSTRUCTIONS FOR ULTIMATE SPEED & CITATION ACCURACY:
     }
 
     // 🎯 SMART ROUTING: Classify query to determine routing
-    if (config.routing.enableSmartRouting) {
+    // ⚡ EXCEPTION: Financial queries always route to Gemini + Massive grounding, never to Claude-only paths
+    if (config.routing.enableSmartRouting && !isFinancialQuery_precheck) {
       console.log(`🎯 Smart Routing enabled - Classifying query...`);
 
       // First check if it's a writing request
@@ -446,12 +456,47 @@ QUALITY STANDARDS:
       }
     }
 
-    // Get current date context (subtract 1 day for timezone safety)
+    // Build Massive financial context block if available
+    let massiveContextBlock = '';
+    if (isFinancialQuery && enhancedQuery !== query) {
+      // The enhanced query IS the Massive context block - extract just the data section
+      massiveContextBlock = `
+═══════════════════════════════════════════════════════════════════════════════
+REAL-TIME FINANCIAL DATA (Source: Massive.com — Authoritative Market Data Provider)
+This data is LIVE and verified. You MUST use it as your primary data source for financial facts.
+DO NOT ignore this data. DO NOT hallucinate prices. Use ONLY this data for market quotes.
+═══════════════════════════════════════════════════════════════════════════════
+${enhancedQuery.split('User Query:')[0]}
+═══════════════════════════════════════════════════════════════════════════════
+`;
+      console.log(`💹 [Massive] Injecting live financial data into Gemini system context (${massiveContextBlock.length} chars)`);
+    }
+
     const currentDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const currentYear = currentDate.getFullYear();
     const currentDateString = currentDate.toDateString();
 
-    const systemPrompt = `You are an intelligent research assistant that provides CONCRETE, specific answers with complete details.
+    const financialSystemAddendum = isFinancialQuery ? `
+
+═══════════════════════════════════════════════════════════════════════════════
+FINANCIAL DATA RULES (MANDATORY)
+═══════════════════════════════════════════════════════════════════════════════
+✔ You have been provided REAL-TIME data from Massive.com above.
+✔ ALWAYS cite [Source: Massive.com] at the top of your financial answer.
+✔ Present prices, rates, and key numbers in **BOLD**.
+✔ Use Markdown tables for options chains, comparison data, and multi-asset data.
+✔ NEVER hallucinate prices or fabricate market data.
+✔ If the data shows it's a fallback/simulation, say so clearly.
+✔ For stocks: show price, bid/ask spread, volume.
+✔ For crypto: show price and 24h change if available.
+✔ For forex: show bid/ask and pip spread.
+✔ For options: show strike, expiry, bid/ask, IV, delta.
+✔ For indices: show level, daily change, % change.
+✔ For macro: show latest CPI, yields, and Fed rate.
+═══════════════════════════════════════════════════════════════════════════════
+` : '';
+
+    const systemPrompt = `${massiveContextBlock}You are an intelligent research assistant that provides CONCRETE, specific answers with complete details.${financialSystemAddendum}
 
 CURRENT CONTEXT:
 - Today's date: ${currentDateString}

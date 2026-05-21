@@ -8,7 +8,22 @@
  * Resilience: 2s timeout per API call, graceful fallback, never blocks AI
  */
 
-import { massiveService } from '../modules/massive/massive.service.js';
+import {
+  getStockQuoteService,
+  getBenzingaNewsService,
+  getBenzingaRatingsService,
+  getFedInflationService,
+  getFedYieldsService,
+  getMarketStatusService,
+  getMarketHolidaysService,
+  getIndicesSnapshotService,
+  getOptionsSnapshotService,
+  getEtfProfilesService,
+  getEtfConstituentsService,
+  getCryptoQuoteService,
+  getForexQuoteService,
+  getEarningsCalendarService,
+} from '../modules/massive/massive.service.js';
 import { logger } from '../../shared/logger.js';
 import { RedisClient } from '../../shared/redis.js';
 import axios from 'axios';
@@ -361,6 +376,20 @@ const routeAndEnhancePrompt = async (prompt) => {
 
     // ── CRYPTO ────────────────────────────────────────────────────────────
     if (intent.type === 'crypto' && intent.symbol) {
+      // Multi-crypto comparison support
+      const isComparisonQuery = /\b(vs|versus|compare|against)\b/.test(q);
+      if (isComparisonQuery) {
+        const tickers = detectMultipleTickers(prompt);
+        if (tickers.length >= 2) {
+          const results = await Promise.all(
+            tickers.map(t => fetchCryptoData(t.symbol))
+          );
+          const dataBlock = tickers
+            .map((t, i) => `${t.symbol}: ${JSON.stringify(results[i], null, 2)}`)
+            .join('\n\n');
+          return buildPrompt(prompt, `Crypto Comparison:\n${dataBlock}`, 'Massive.com Real-Time Crypto Tick Service');
+        }
+      }
       const data = await fetchCryptoData(intent.symbol);
       if (!data) return prompt;
       return buildPrompt(
@@ -379,6 +408,63 @@ const routeAndEnhancePrompt = async (prompt) => {
         `Currency Pair: ${intent.symbol}\nLive Quote: ${JSON.stringify(data, null, 2)}`,
         'Massive.com Real-Time Forex Tick Service'
       );
+    }
+
+    // ── EARNINGS ──────────────────────────────────────────────────────────
+    if (intent.type === 'earnings') {
+      try {
+        const today = new Date();
+        const from = today.toISOString().split('T')[0];
+        const to = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const params = {
+          dateFrom: from,
+          dateTo: to,
+          ...(intent.symbol ? { tickers: intent.symbol } : {}),
+        };
+        const earningsData = await Promise.race([
+          getEarningsCalendarService(params),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 2000)),
+        ]);
+        if (!earningsData) return prompt;
+        const earningsBlock = intent.symbol
+          ? `Earnings Calendar for ${intent.symbol} (next 14 days):\n${JSON.stringify(earningsData?.results?.slice(0, 10) || earningsData, null, 2)}`
+          : `Upcoming Earnings Calendar (next 14 days, top 20):\n${JSON.stringify(earningsData?.results?.slice(0, 20) || earningsData, null, 2)}`;
+        return buildPrompt(prompt, earningsBlock, 'Massive.com Earnings Calendar Service');
+      } catch (e) {
+        logger.warn('[MassiveRouter] Earnings fetch failed:', e.message);
+        return prompt;
+      }
+    }
+
+    // ── NEWS / ANALYST RATINGS ────────────────────────────────────────────
+    if (intent.type === 'news') {
+      try {
+        const symbol = intent.symbol;
+        if (symbol) {
+          const [news, ratings] = await Promise.all([
+            Promise.race([getBenzingaNewsService(symbol, 5), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 2000))]),
+            Promise.race([getBenzingaRatingsService(symbol, 5), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 2000))]),
+          ].map(p => p.catch(() => null)));
+          const dataBlock = [
+            `Benzinga Headlines for ${symbol}:\n${JSON.stringify(news?.results?.slice(0, 5) || [], null, 2)}`,
+            `Analyst Ratings for ${symbol}:\n${JSON.stringify(ratings?.results?.slice(0, 5) || [], null, 2)}`,
+          ].join('\n\n');
+          return buildPrompt(prompt, dataBlock, 'Massive.com Benzinga News & Ratings Service');
+        }
+        // No symbol — general market news
+        const [newsSpx, ratingsSpy] = await Promise.all([
+          Promise.race([getBenzingaNewsService('SPY', 5), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 2000))]),
+          Promise.race([getBenzingaRatingsService('SPY', 5), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 2000))]),
+        ].map(p => p.catch(() => null)));
+        const dataBlock = [
+          `Latest Market Headlines (via SPY proxy):\n${JSON.stringify(newsSpx?.results?.slice(0, 5) || [], null, 2)}`,
+          `Top Analyst Ratings:\n${JSON.stringify(ratingsSpy?.results?.slice(0, 5) || [], null, 2)}`,
+        ].join('\n\n');
+        return buildPrompt(prompt, dataBlock, 'Massive.com Market News & Analyst Intelligence');
+      } catch (e) {
+        logger.warn('[MassiveRouter] News fetch failed:', e.message);
+        return prompt;
+      }
     }
 
   } catch (err) {

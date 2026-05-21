@@ -11,6 +11,7 @@ import {
   executeGroundedSearchStream,
 } from './services/geminiGroundingService.js';
 import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
+import { detectFinancialIntent } from '../../helpers/massiveTickerDB.js';
 
 export const performSearch = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
@@ -101,14 +102,15 @@ export const performSearch = catchAsync(async (req, res) => {
     const fullResponse = answer;
 
     // Add assistant response to conversation with enhanced metadata
-    const tickerInfo = massiveSmartRouter.normalizeTicker(message);
+    const tickerInfo = detectFinancialIntent(message);
     const messageMetadata = {
       reference,
       citationMetadata,
       searchQuery: citationMetadata?.searchQuery || message,
       searchTimestamp:
         citationMetadata?.searchTimestamp || new Date().toISOString(),
-      financialTicker: tickerInfo || null,
+      financialTicker: tickerInfo?.symbol || null,
+      financialIntent: tickerInfo?.type || null,
       searchMethod: tickerInfo ? 'massive_realtime' : 'intelligent_search',
     };
 
@@ -624,15 +626,16 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
     console.log('Native Grounding - Citation metadata:', citationMetadata);
 
     // Add assistant response to conversation with enhanced metadata
-    const tickerInfo = massiveSmartRouter.normalizeTicker(message);
+    const tickerInfo2 = detectFinancialIntent(message);
     const messageMetadata = {
       reference,
       citationMetadata,
       searchQuery: message,
       searchTimestamp:
         citationMetadata?.searchTimestamp || new Date().toISOString(),
-      financialTicker: tickerInfo || null,
-      searchMethod: tickerInfo ? 'massive_realtime' : 'native_grounding_only',
+      financialTicker: tickerInfo2?.symbol || null,
+      financialIntent: tickerInfo2?.type || null,
+      searchMethod: tickerInfo2 ? 'massive_realtime' : 'native_grounding_only',
     };
 
     await searchService.addSearchResultMessage(

@@ -978,6 +978,15 @@ export async function executeGroundedSearchWithModel(
   conversationHistory = [],
   modelName = 'gemini-3.5-flash'
 ) {
+  console.log(`🔍 Executing grounded search with ${modelName}: "${query}"`);
+
+  // Inject Massive.com real-time financial data before sending to Gemini
+  const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
+  const isFinancialQuery = enhancedQuery !== query;
+  if (isFinancialQuery) {
+    console.log(`💹 [executeGroundedSearchWithModel] Massive financial data injected for: "${query.substring(0, 60)}..."`);
+  }
+
   const model = createGroundedModel(modelName);
 
   const chat = model.startChat({
@@ -987,10 +996,8 @@ export async function executeGroundedSearchWithModel(
     })),
   });
 
-  console.log(`🔍 Executing grounded search with ${modelName}: "${query}"`);
-
   try {
-    const result = await chat.sendMessage(query);
+    const result = await chat.sendMessage(enhancedQuery);
     const response = await result.response;
     const text = response.text();
 
