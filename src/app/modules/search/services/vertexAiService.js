@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import config from '../../../../../config/index.js';
-import { massiveSmartRouter } from '../../../../helpers/massiveSmartRouter.js';
+import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 
 /**
  * Claude Service for Claude Sonnet 4.5

@@ -1,7 +1,7 @@
 import { executeGroundedSearch } from './geminiGroundingService.js';
 import { executeToolBasedConversation } from './reactAgent.js';
 import { classifyFinancialQuery } from './queryClassifier.js';
-import { massiveSmartRouter } from '../../../../helpers/massiveSmartRouter.js';
+import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 
 /**
  * Smart Search Router
