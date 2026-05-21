@@ -1,5 +1,7 @@
 import { executeGroundedSearch } from './geminiGroundingService.js';
 import { executeToolBasedConversation } from './reactAgent.js';
+import { classifyFinancialQuery } from './queryClassifier.js';
+import { massiveSmartRouter } from '../../../../helpers/massiveSmartRouter.js';
 
 /**
  * Smart Search Router
@@ -113,6 +115,32 @@ export async function executeSmartSearch(
   conversationHistory = [],
   options = {}
 ) {
+  // ── PRIORITY 1: Financial queries get Massive.com real-time data first ──
+  const financialClass = classifyFinancialQuery(query);
+  if (financialClass.isFinancial) {
+    console.log(`\n💹 Financial query detected (${financialClass.intentType}, ${(financialClass.confidence * 100).toFixed(0)}% confidence) — routing to Massive.com`);
+    try {
+      const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
+      if (enhancedQuery !== query) {
+        // Massive data injected — run through native grounding for citations
+        const result = await executeGroundedSearch(enhancedQuery, conversationHistory);
+        return {
+          answer: result.answer,
+          reference: result.reference || [],
+          citations: result.citations || [],
+          citationMetadata: {
+            ...result.citationMetadata,
+            method: 'massive_financial_grounding',
+            financialIntent: financialClass.intentType,
+            symbol: financialClass.symbol,
+          },
+        };
+      }
+    } catch (err) {
+      console.warn(`⚠️ Massive.com financial routing failed, continuing with standard search: ${err.message}`);
+    }
+  }
+
   const analysis = analyzeQueryComplexity(query, conversationHistory);
 
   console.log(`\n🧠 Smart Router Analysis:`);

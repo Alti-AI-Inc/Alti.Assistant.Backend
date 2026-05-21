@@ -4,364 +4,328 @@ import { logger } from '../../../shared/logger.js';
 
 dotenv.config();
 
-const apiKey = process.env.MASSIVE_API_KEY || 'gyJwOQtsm3yZXPsGqOjewhzezPzJm4l3';
-const rest = restClient(apiKey, 'https://api.massive.com');
+const apiKey = process.env.MASSIVE_API_KEY;
+if (!apiKey) {
+  logger.warn(
+    '[Massive.com] WARNING: MASSIVE_API_KEY env var not set. Real-time financial data will be unavailable. Set this in your .env and Cloud Run secrets.'
+  );
+}
+const rest = restClient(apiKey || '', 'https://api.massive.com');
 
-/**
- * Get the latest stock quote for a ticker (e.g. AAPL)
- */
+// ─── STOCKS ───────────────────────────────────────
+
 const getStockQuoteService = async (ticker) => {
-  try {
-    const formattedTicker = ticker.toUpperCase().trim();
-    logger.info(`Fetching stock quote for: ${formattedTicker}`);
-
-    const quote = await rest.getLastStocksQuote({
-      stocksTicker: formattedTicker,
-    });
-    const trade = await rest.getLastStocksTrade({
-      stocksTicker: formattedTicker,
-    });
-
-    return {
-      ticker: formattedTicker,
-      quote: quote?.results || quote || {},
-      trade: trade?.results || trade || {},
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    logger.error(`Error in getStockQuoteService for ${ticker}:`, error);
-    throw new Error(error.message || 'Failed to fetch stock quote');
-  }
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Stock Quote: ${formattedTicker}`);
+  const [quote, trade] = await Promise.all([
+    rest.getLastStocksQuote({ stocksTicker: formattedTicker }),
+    rest.getLastStocksTrade({ stocksTicker: formattedTicker }),
+  ]);
+  return {
+    ticker: formattedTicker,
+    quote: quote?.results || quote || {},
+    trade: trade?.results || trade || {},
+    timestamp: Date.now(),
+  };
 };
 
-/**
- * Get stock aggregates (historical bars/chart data)
- */
+const getStockSnapshotService = async (ticker) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Stock Snapshot: ${formattedTicker}`);
+  const response = await rest.getSnapshotAllTickers({
+    tickers: formattedTicker,
+  });
+  return response?.tickers?.[0] || response;
+};
+
+const getStockTickerDetailsService = async (ticker) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Stock Ticker Details: ${formattedTicker}`);
+  const response = await rest.getTickerDetails({ ticker: formattedTicker });
+  return response?.results || response;
+};
+
 const getStockAggregatesService = async (params) => {
-  try {
-    const { ticker, multiplier = 1, timespan = 'day', from, to } = params;
-    const formattedTicker = ticker.toUpperCase().trim();
-
-    const dateTo = to || new Date().toISOString().split('T')[0];
-    const dateFrom =
-      from ||
-      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
-
-    logger.info(
-      `Fetching stock aggregates for: ${formattedTicker} (${dateFrom} to ${dateTo})`
-    );
-
-    const response = await rest.getStocksAggregates({
-      stocksTicker: formattedTicker,
-      multiplier: Number(multiplier),
-      timespan,
-      from: dateFrom,
-      to: dateTo,
-    });
-
-    return response;
-  } catch (error) {
-    logger.error('Error in getStockAggregatesService:', error);
-    throw new Error(error.message || 'Failed to fetch stock aggregates');
-  }
+  const { ticker, multiplier = 1, timespan = 'day', from, to } = params;
+  const formattedTicker = ticker.toUpperCase().trim();
+  const dateTo = to || new Date().toISOString().split('T')[0];
+  const dateFrom =
+    from ||
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
+  logger.info(
+    `[Massive] Stock Aggregates: ${formattedTicker} (${dateFrom} to ${dateTo})`
+  );
+  return rest.getStocksAggregates({
+    stocksTicker: formattedTicker,
+    multiplier: Number(multiplier),
+    timespan,
+    from: dateFrom,
+    to: dateTo,
+  });
 };
 
-/**
- * Get the latest cryptocurrency trade/price (e.g. BTCUSD)
- */
-const getCryptoQuoteService = async (ticker) => {
-  try {
-    const cleanTicker = ticker.replace('X:', '').toUpperCase().trim();
-    const from = cleanTicker.substring(0, 3);
-    const to = cleanTicker.substring(3) || 'USD';
-
-    logger.info(`Fetching crypto trade for: ${from} to ${to}`);
-
-    const trade = await rest.getLastCryptoTrade({ from, to });
-
-    return {
-      ticker: `${from}${to}`,
-      trade: trade?.results || trade || {},
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    logger.error(`Error in getCryptoQuoteService for ${ticker}:`, error);
-    throw new Error(error.message || 'Failed to fetch crypto quote');
-  }
+const getPreviousCloseService = async (ticker) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Previous Close: ${formattedTicker}`);
+  const response = await rest.getPreviousClose({ stocksTicker: formattedTicker });
+  return response?.results?.[0] || response;
 };
 
-/**
- * Get crypto aggregates (historical bars/chart data)
- */
-const getCryptoAggregatesService = async (params) => {
-  try {
-    const { ticker, multiplier = 1, timespan = 'day', from, to } = params;
-    let formattedTicker = ticker.toUpperCase().trim();
-    if (!formattedTicker.startsWith('X:')) {
-      formattedTicker = `X:${formattedTicker}`;
-    }
-
-    const dateTo = to || new Date().toISOString().split('T')[0];
-    const dateFrom =
-      from ||
-      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
-
-    logger.info(
-      `Fetching crypto aggregates for: ${formattedTicker} (${dateFrom} to ${dateTo})`
-    );
-
-    const response = await rest.getCryptoAggregates({
-      cryptoTicker: formattedTicker,
-      multiplier: Number(multiplier),
-      timespan,
-      from: dateFrom,
-      to: dateTo,
-    });
-
-    return response;
-  } catch (error) {
-    logger.error('Error in getCryptoAggregatesService:', error);
-    throw new Error(error.message || 'Failed to fetch crypto aggregates');
-  }
+const getStockFinancialsService = async (ticker) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Stock Financials: ${formattedTicker}`);
+  const response = await rest.getStockFinancials({
+    ticker: formattedTicker,
+    limit: 4,
+  });
+  return response?.results || response;
 };
 
-/**
- * Get the latest forex currency quote (e.g. EURUSD)
- */
-const getForexQuoteService = async (ticker) => {
-  try {
-    const cleanTicker = ticker.replace('C:', '').toUpperCase().trim();
-    const from = cleanTicker.substring(0, 3);
-    const to = cleanTicker.substring(3) || 'USD';
-
-    logger.info(`Fetching forex quote for: ${from} to ${to}`);
-
-    const quote = await rest.getLastCurrencyQuote({ from, to });
-
-    return {
-      ticker: `${from}${to}`,
-      quote: quote?.results || quote || {},
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    logger.error(`Error in getForexQuoteService for ${ticker}:`, error);
-    throw new Error(error.message || 'Failed to fetch forex currency quote');
-  }
+const getRelatedCompaniesService = async (ticker) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Related Companies: ${formattedTicker}`);
+  const response = await rest.getRelatedCompanies({ ticker: formattedTicker });
+  return response?.results || response;
 };
 
-/**
- * Get options contract chain for a stock underlying ticker
- */
-const getOptionsChainService = async (underlyingTicker) => {
-  try {
-    const formattedTicker = underlyingTicker.toUpperCase().trim();
-    logger.info(`Fetching options contracts chain for: ${formattedTicker}`);
-
-    const response = await rest.getOptionsChain({
-      underlyingAsset: formattedTicker,
-      limit: 50,
-    });
-
-    return response;
-  } catch (error) {
-    logger.error(
-      `Error in getOptionsChainService for ${underlyingTicker}:`,
-      error
-    );
-    throw new Error(error.message || 'Failed to fetch options chain');
-  }
+const getDividendsService = async (ticker) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Dividends: ${formattedTicker}`);
+  const response = await rest.getStockDividends({
+    ticker: formattedTicker,
+    limit: 8,
+  });
+  return response?.results || response;
 };
 
-/**
- * Get real-time options quote for a specific contract (e.g. O:AAPL230616C00150000)
- */
+const getStockSplitsService = async (ticker) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Stock Splits: ${formattedTicker}`);
+  const response = await rest.getStockSplits({
+    ticker: formattedTicker,
+    limit: 5,
+  });
+  return response?.results || response;
+};
+
+const getIndicesSnapshotService = async () => {
+  logger.info('[Massive] Fetching Indices Snapshot (DJIA, SPX, NASDAQ)');
+  const response = await rest.getIndicesSnapshot({
+    tickers: 'I:DJI,I:SPX,I:NDX,I:VIX,I:RUT',
+  });
+  return response?.results || response;
+};
+
+// ─── OPTIONS ───────────────────────────────────────
+
+const getOptionsChainService = async (underlyingTicker, limit = 50) => {
+  const formattedTicker = underlyingTicker.toUpperCase().trim();
+  logger.info(`[Massive] Options Chain: ${formattedTicker}`);
+  const response = await rest.getOptionsChain({
+    underlyingAsset: formattedTicker,
+    limit: Number(limit),
+  });
+  return response;
+};
+
+const getOptionsSnapshotService = async (underlyingTicker) => {
+  const formattedTicker = underlyingTicker.toUpperCase().trim();
+  logger.info(`[Massive] Options Snapshot: ${formattedTicker}`);
+  const response = await rest.getOptionsContractSnapshot({
+    underlyingAsset: formattedTicker,
+    limit: 20,
+  });
+  return response?.results || response;
+};
+
 const getOptionsQuoteService = async (contractTicker) => {
-  try {
-    const formattedTicker = contractTicker
-      .replace('O:', '')
-      .toUpperCase()
-      .trim();
-    logger.info(`Fetching options quote for: ${formattedTicker}`);
-
-    const quote = await rest.getLastOptionsTrade({
-      optionsTicker: formattedTicker,
-    });
-
-    return {
-      contractTicker: formattedTicker,
-      quote: quote?.results || quote || {},
-      timestamp: Date.now(),
-    };
-  } catch (error) {
-    logger.error(
-      `Error in getOptionsQuoteService for ${contractTicker}:`,
-      error
-    );
-    throw new Error(error.message || 'Failed to fetch options quote');
-  }
+  const formattedTicker = contractTicker.replace('O:', '').toUpperCase().trim();
+  logger.info(`[Massive] Options Quote: ${formattedTicker}`);
+  const quote = await rest.getLastOptionsTrade({
+    optionsTicker: formattedTicker,
+  });
+  return {
+    contractTicker: formattedTicker,
+    quote: quote?.results || quote || {},
+    timestamp: Date.now(),
+  };
 };
 
-/**
- * Get Benzinga news feed for a ticker (e.g. AAPL)
- */
-const getBenzingaNewsService = async (ticker, limit = 10) => {
-  try {
-    const formattedTicker = ticker.toUpperCase().trim();
-    logger.info(
-      `Fetching Benzinga News for: ${formattedTicker} (Limit: ${limit})`
-    );
+// ─── CRYPTO ───────────────────────────────────────
 
-    const response = await rest.getBenzingaV2News({
-      ticker: formattedTicker,
-      limit: Number(limit),
-    });
-    return response;
-  } catch (error) {
-    logger.error(`Error in getBenzingaNewsService for ${ticker}:`, error);
-    throw new Error(error.message || 'Failed to fetch Benzinga News');
-  }
+const getCryptoQuoteService = async (ticker) => {
+  const cleanTicker = ticker.replace('X:', '').toUpperCase().trim();
+  const from = cleanTicker.substring(0, 3);
+  const to = cleanTicker.substring(3) || 'USD';
+  logger.info(`[Massive] Crypto Trade: ${from}/${to}`);
+  const trade = await rest.getLastCryptoTrade({ from, to });
+  return {
+    ticker: `${from}${to}`,
+    trade: trade?.results || trade || {},
+    timestamp: Date.now(),
+  };
 };
 
-/**
- * Get Benzinga analyst ratings & consensus for a ticker
- */
-const getBenzingaRatingsService = async (ticker, limit = 10) => {
-  try {
-    const formattedTicker = ticker.toUpperCase().trim();
-    logger.info(
-      `Fetching Benzinga Analyst Ratings for: ${formattedTicker} (Limit: ${limit})`
-    );
-
-    const response = await rest.getBenzingaV1Ratings({
-      ticker: formattedTicker,
-      limit: Number(limit),
-    });
-    return response;
-  } catch (error) {
-    logger.error(`Error in getBenzingaRatingsService for ${ticker}:`, error);
-    throw new Error(
-      error.message || 'Failed to fetch Benzinga Analyst Ratings'
-    );
-  }
+const getCryptoSnapshotAllService = async () => {
+  logger.info('[Massive] Fetching All Crypto Snapshots');
+  const response = await rest.getSnapshotAllCryptoTickers({
+    locale: 'global',
+    market: 'crypto',
+  });
+  return response?.tickers?.slice(0, 50) || [];
 };
 
-/**
- * Get ETF profile details for an ETF composite ticker (e.g. SPY)
- */
+const getCryptoAggregatesService = async (params) => {
+  const { ticker, multiplier = 1, timespan = 'day', from, to } = params;
+  let formattedTicker = ticker.toUpperCase().trim();
+  if (!formattedTicker.startsWith('X:')) formattedTicker = `X:${formattedTicker}`;
+  const dateTo = to || new Date().toISOString().split('T')[0];
+  const dateFrom =
+    from ||
+    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  logger.info(`[Massive] Crypto Aggregates: ${formattedTicker}`);
+  return rest.getCryptoAggregates({
+    cryptoTicker: formattedTicker,
+    multiplier: Number(multiplier),
+    timespan,
+    from: dateFrom,
+    to: dateTo,
+  });
+};
+
+// ─── FOREX ───────────────────────────────────────
+
+const getForexQuoteService = async (ticker) => {
+  const cleanTicker = ticker.replace('C:', '').toUpperCase().trim();
+  const from = cleanTicker.substring(0, 3);
+  const to = cleanTicker.substring(3) || 'USD';
+  logger.info(`[Massive] Forex Quote: ${from}/${to}`);
+  const quote = await rest.getLastCurrencyQuote({ from, to });
+  return {
+    ticker: `${from}${to}`,
+    quote: quote?.results || quote || {},
+    timestamp: Date.now(),
+  };
+};
+
+const getForexSnapshotAllService = async () => {
+  logger.info('[Massive] Fetching All Forex Snapshots');
+  const response = await rest.getSnapshotAllForexTickers({
+    locale: 'global',
+    market: 'fx',
+  });
+  return response?.tickers?.slice(0, 100) || [];
+};
+
+const getForexAggregatesService = async (params) => {
+  const { ticker, multiplier = 1, timespan = 'day', from, to } = params;
+  let formattedTicker = ticker.toUpperCase().trim();
+  if (!formattedTicker.startsWith('C:')) formattedTicker = `C:${formattedTicker}`;
+  const dateTo = to || new Date().toISOString().split('T')[0];
+  const dateFrom =
+    from ||
+    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  logger.info(`[Massive] Forex Aggregates: ${formattedTicker}`);
+  return rest.getForexAggregates({
+    forexTicker: formattedTicker,
+    multiplier: Number(multiplier),
+    timespan,
+    from: dateFrom,
+    to: dateTo,
+  });
+};
+
+// ─── BENZINGA (NEWS & RATINGS) ───────────────────
+
+const getBenzingaNewsService = async (ticker, limit = 5) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Benzinga News: ${formattedTicker}`);
+  return rest.getBenzingaV2News({ ticker: formattedTicker, limit: Number(limit) });
+};
+
+const getBenzingaRatingsService = async (ticker, limit = 5) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] Benzinga Ratings: ${formattedTicker}`);
+  return rest.getBenzingaV1Ratings({ ticker: formattedTicker, limit: Number(limit) });
+};
+
+// ─── ETF ───────────────────────────────────────
+
 const getEtfProfilesService = async (ticker) => {
-  try {
-    const formattedTicker = ticker.toUpperCase().trim();
-    logger.info(`Fetching ETF Profile for: ${formattedTicker}`);
-
-    const response = await rest.getEtfGlobalV1Profiles({
-      compositeTicker: formattedTicker,
-    });
-    return response;
-  } catch (error) {
-    logger.error(`Error in getEtfProfilesService for ${ticker}:`, error);
-    throw new Error(error.message || 'Failed to fetch ETF Profiles');
-  }
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] ETF Profile: ${formattedTicker}`);
+  return rest.getEtfGlobalV1Profiles({ compositeTicker: formattedTicker });
 };
 
-/**
- * Get ETF constituents (top holdings) for an ETF composite ticker
- */
-const getEtfConstituentsService = async (ticker, limit = 50) => {
-  try {
-    const formattedTicker = ticker.toUpperCase().trim();
-    logger.info(
-      `Fetching ETF Constituents for: ${formattedTicker} (Limit: ${limit})`
-    );
-
-    const response = await rest.getEtfGlobalV1Constituents({
-      compositeTicker: formattedTicker,
-      limit: Number(limit),
-    });
-    return response;
-  } catch (error) {
-    logger.error(`Error in getEtfConstituentsService for ${ticker}:`, error);
-    throw new Error(error.message || 'Failed to fetch ETF Constituents');
-  }
+const getEtfConstituentsService = async (ticker, limit = 10) => {
+  const formattedTicker = ticker.toUpperCase().trim();
+  logger.info(`[Massive] ETF Constituents: ${formattedTicker}`);
+  return rest.getEtfGlobalV1Constituents({
+    compositeTicker: formattedTicker,
+    limit: Number(limit),
+  });
 };
 
-/**
- * Get Federal Reserve inflation statistics (CPI, etc.)
- */
-const getFedInflationService = async (limit = 12) => {
-  try {
-    logger.info(`Fetching Fed Inflation stats (Limit: ${limit})`);
-    const response = await rest.getFedV1Inflation({ limit: Number(limit) });
-    return response;
-  } catch (error) {
-    logger.error(`Error in getFedInflationService:`, error);
-    throw new Error(
-      error.message || 'Failed to fetch Fed Inflation Statistics'
-    );
-  }
+// ─── FEDERAL RESERVE / MACRO ───────────────────
+
+const getFedInflationService = async (limit = 6) => {
+  logger.info('[Massive] Fed Inflation Stats');
+  return rest.getFedV1Inflation({ limit: Number(limit) });
 };
 
-/**
- * Get Federal Reserve treasury yields statistics (10Y, etc.)
- */
-const getFedYieldsService = async (limit = 12) => {
-  try {
-    logger.info(`Fetching Fed Treasury Yields stats (Limit: ${limit})`);
-    const response = await rest.getFedV1TreasuryYields({
-      limit: Number(limit),
-    });
-    return response;
-  } catch (error) {
-    logger.error(`Error in getFedYieldsService:`, error);
-    throw new Error(error.message || 'Failed to fetch Fed Treasury Yields');
-  }
+const getFedYieldsService = async (limit = 6) => {
+  logger.info('[Massive] Fed Treasury Yields');
+  return rest.getFedV1TreasuryYields({ limit: Number(limit) });
 };
 
-/**
- * Get the current global market trading status (open, closed, pre-market)
- */
+// ─── MARKET STATUS & HOLIDAYS ───────────────────
+
 const getMarketStatusService = async () => {
-  try {
-    logger.info(`Fetching global market status`);
-    const response = await rest.getMarketStatus();
-    return response;
-  } catch (error) {
-    logger.error(`Error in getMarketStatusService:`, error);
-    throw new Error(error.message || 'Failed to fetch global market status');
-  }
+  logger.info('[Massive] Global Market Status');
+  return rest.getMarketStatus();
 };
 
-/**
- * Get list of global market trading holidays
- */
 const getMarketHolidaysService = async () => {
-  try {
-    logger.info(`Fetching global market holidays`);
-    const response = await rest.getMarketHolidays();
-    return response;
-  } catch (error) {
-    logger.error(`Error in getMarketHolidaysService:`, error);
-    throw new Error(error.message || 'Failed to fetch global market holidays');
-  }
+  logger.info('[Massive] Global Market Holidays');
+  return rest.getMarketHolidays();
 };
 
 export const massiveService = {
+  // Stocks
   getStockQuoteService,
+  getStockSnapshotService,
+  getStockTickerDetailsService,
   getStockAggregatesService,
-  getCryptoQuoteService,
-  getCryptoAggregatesService,
-  getForexQuoteService,
+  getPreviousCloseService,
+  getStockFinancialsService,
+  getRelatedCompaniesService,
+  getDividendsService,
+  getStockSplitsService,
+  getIndicesSnapshotService,
+  // Options
   getOptionsChainService,
+  getOptionsSnapshotService,
   getOptionsQuoteService,
+  // Crypto
+  getCryptoQuoteService,
+  getCryptoSnapshotAllService,
+  getCryptoAggregatesService,
+  // Forex
+  getForexQuoteService,
+  getForexSnapshotAllService,
+  getForexAggregatesService,
+  // News & Ratings
   getBenzingaNewsService,
   getBenzingaRatingsService,
+  // ETF
   getEtfProfilesService,
   getEtfConstituentsService,
+  // Fed / Macro
   getFedInflationService,
   getFedYieldsService,
+  // Market
   getMarketStatusService,
   getMarketHolidaysService,
 };

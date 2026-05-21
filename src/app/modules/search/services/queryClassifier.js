@@ -1,7 +1,9 @@
 /**
  * Query Classification Service
- * Determines if a query is code-related and should be routed to Claude Sonnet 4.5
+ * Determines if a query is code-related, writing-related, OR financial
+ * Financial queries are priority-routed to Massive.com real-time data
  */
+import { detectFinancialIntent } from '../../../../helpers/massiveTickerDB.js';
 
 /**
  * Code-related keywords and patterns
@@ -782,10 +784,54 @@ export function classifyWritingRequest(query) {
   };
 }
 
+/**
+ * Classify whether a query is a financial market data request.
+ * Returns { isFinancial, confidence, intentType, symbol }
+ */
+export function classifyFinancialQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isFinancial: false, confidence: 0, intentType: null, symbol: null };
+  }
+
+  const intent = detectFinancialIntent(query);
+
+  if (!intent) {
+    return { isFinancial: false, confidence: 0, intentType: null, symbol: null };
+  }
+
+  // Confidence by intent type
+  const confidenceMap = {
+    stock: 0.95,
+    crypto: 0.95,
+    forex: 0.95,
+    options: 0.97,
+    etf: 0.93,
+    macro: 0.90,
+    market_status: 0.98,
+    indices: 0.92,
+    earnings: 0.88,
+    news: 0.85,
+  };
+
+  const confidence = confidenceMap[intent.type] || 0.80;
+
+  console.log(`💹 Financial Classification:`);
+  console.log(`   Intent: ${intent.type} | Symbol: ${intent.symbol || 'N/A'}`);
+  console.log(`   Confidence: ${(confidence * 100).toFixed(1)}%`);
+
+  return {
+    isFinancial: true,
+    confidence,
+    intentType: intent.type,
+    symbol: intent.symbol,
+  };
+}
+
 export default {
   classifyQuery,
   classifyQueryFast,
   getCodeQueryConfidence,
   isAskingForCodeExample,
   classifyWritingRequest,
+  classifyFinancialQuery,
 };

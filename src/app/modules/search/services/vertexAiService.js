@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import config from '../../../../../config/index.js';
+import { massiveSmartRouter } from '../../../../helpers/massiveSmartRouter.js';
 
 /**
  * Claude Service for Claude Sonnet 4.5
@@ -49,6 +50,17 @@ class ClaudeService {
     try {
       console.log(`🤖 Calling Claude Sonnet 4.5...`);
       console.log(`📝 Messages: ${messages.length} messages`);
+
+      // Inject Massive.com real-time financial data
+      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+      let enhancedSystem = options.system || '';
+      if (lastUserMsg && lastUserMsg.content) {
+        try {
+          const userText = typeof lastUserMsg.content === 'string' ? lastUserMsg.content : lastUserMsg.content?.[0]?.text || '';
+          const enhanced = await massiveSmartRouter.routeAndEnhancePrompt(userText);
+          if (enhanced !== userText) enhancedSystem = enhanced + '\n\n' + enhancedSystem;
+        } catch { /* non-fatal */ }
+      }
 
       const requestParams = {
         model: this.modelName,
