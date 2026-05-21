@@ -20,38 +20,48 @@ jobs:
           chmod 600 ~/.ssh/alti-vm-key
           ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Diagnose and force-fix
+      - name: Deep diagnostics
         run: |
           ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} 'set -e;
-            echo "=== What is on port 3000? ===";
-            sudo ss -tlnp | grep 3000 || echo "Nothing on port 3000";
+            echo "=== Main nginx.conf (proxy_cache settings) ===";
+            grep -n "proxy_cache\|cache_path\|cache_zone" /etc/nginx/nginx.conf || echo "No proxy_cache in nginx.conf";
             echo "";
-            echo "=== Current nginx config ===";
-            grep -A2 "proxy_pass" /etc/nginx/sites-enabled/alti.frontend.conf;
+            echo "=== Full nginx.conf ===";
+            cat /etc/nginx/nginx.conf;
             echo "";
-            echo "=== Force killing everything on port 3000 ===";
-            sudo fuser -k 3000/tcp 2>/dev/null || echo "fuser: nothing to kill";
-            sleep 1;
+            echo "=== Full site config ===";
+            cat /etc/nginx/sites-enabled/alti.frontend.conf;
             echo "";
-            echo "=== Port 3000 after kill ===";
-            sudo ss -tlnp | grep 3000 || echo "Port 3000 is now free";
+            echo "=== Test: curl localhost from VM ===";
+            curl -sI http://localhost:3000 2>&1 | head -5 || echo "localhost:3000 not responding";
             echo "";
-            echo "=== Restarting nginx ===";
-            sudo systemctl restart nginx;
-            echo "=== Done ===";
-            sudo systemctl status nginx --no-pager'
+            echo "=== Test: curl Cloud Run from VM ===";
+            curl -sI https://alti-assistant-frontend-366561755636.us-central1.run.app 2>&1 | head -10;
+            echo "";
+            echo "=== Test: curl altihq.com from VM ===";
+            curl -sI https://altihq.com 2>&1 | head -10;
+            echo "";
+            echo "=== Purge ALL nginx cache ===";
+            sudo find /var/cache/nginx -type f -delete 2>/dev/null || echo "No nginx cache dir";
+            sudo find /tmp -name "nginx*" -delete 2>/dev/null || echo "No nginx temp files";
+            echo "";
+            echo "=== Hard restart nginx ===";
+            sudo systemctl stop nginx;
+            sleep 2;
+            sudo systemctl start nginx;
+            echo "Nginx restarted";
+            echo "";
+            echo "=== Final test from VM ===";
+            sleep 2;
+            curl -sI https://altihq.com 2>&1 | grep -i "server\|cache\|x-cloud\|pragma" || echo "curl failed"'
 
-      - name: Verify from GitHub Actions runner
+      - name: Verify from runner
         run: |
           sleep 5
-          echo "=== altihq.com CSS chunks ==="
-          curl -s https://altihq.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | head -5
-          echo ""
-          echo "=== Cloud Run CSS chunks ==="
-          curl -s https://alti-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | head -5
-          echo ""
-          echo "=== altihq.com headers ==="
-          curl -sI https://altihq.com | grep -i "server\|cache\|pragma\|x-cloud"
+          echo "=== altihq.com CSS ==="
+          curl -s https://altihq.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+          echo "=== Cloud Run CSS ==="
+          curl -s https://alti-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
 
       - name: Clean up SSH key
         if: always()
