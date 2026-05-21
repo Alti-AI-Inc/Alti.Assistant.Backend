@@ -246,19 +246,39 @@ const getMyPaymentMethodsController = catchAsync(async (req, res, next) => {
     });
   }
 
-  const paymentMethods = await getAllPaymentMethodsService(customerId);
+  try {
+    const paymentMethods = await getAllPaymentMethodsService(customerId);
 
-  return sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Payment methods retrieved successfully',
-    data: {
-      context,
-      customerId,
-      paymentMethods,
-      hasStripeCustomer: true,
-    },
-  });
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Payment methods retrieved successfully',
+      data: {
+        context,
+        customerId,
+        paymentMethods,
+        hasStripeCustomer: true,
+      },
+    });
+  } catch (error) {
+    // If Stripe throws a "No such customer" error, treat it gracefully as if there are no payment methods
+    if (error && error.message && error.message.includes('No such customer')) {
+      console.warn(`[Stripe Controller] Customer ${customerId} not found in Stripe registry. Treating as empty/new.`);
+      return sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Stripe customer not found in registry. Treating as empty.',
+        data: {
+          context,
+          customerId,
+          paymentMethods: [],
+          hasStripeCustomer: false,
+        },
+      });
+    }
+    // Re-throw other errors
+    throw error;
+  }
 });
 
 const createSubscriptionController = catchAsync(async (req, res, next) => {
