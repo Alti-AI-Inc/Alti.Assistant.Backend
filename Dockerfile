@@ -46,5 +46,7 @@ RUN mkdir -p logs/errors logs/successes uploads/ragsystem
 # Cloud Run sets PORT=8080 by default; app reads process.env.PORT
 EXPOSE 8080
 
+COPY --from=builder /app/ason-core-service/preload.cjs ./
+
 # Use node instead of nodemon in production
-CMD ["node", "index.js"]
+CMD ["node", "--require", "./preload.cjs", "--dns-result-order=ipv4first", "index.js"]

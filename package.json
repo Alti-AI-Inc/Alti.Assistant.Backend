@@ -6,8 +6,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node --dns-result-order=ipv4first index.js",
-    "dev": "nodemon --dns-result-order=ipv4first index.js",
+    "start": "node --require ./preload.cjs --dns-result-order=ipv4first index.js",
+    "dev": "nodemon --require ./preload.cjs --dns-result-order=ipv4first index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:search": "node test_enhanced_search.js",
     "test:transcription": "node scripts/test-transcription.js",
