@@ -124,28 +124,33 @@ app.use((req, res, next) => {
   }
 });
 
-// MongoDB connection
-mongoose
-  .connect(config.database_local, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    family: 4,
-  })
-  .then(() => {
-    logger.info('✅ Database connection successfully');
-
-    // Initialize cron jobs after database connection
-    initializeCronJobs();
-
-    // Proactively pre-fetch Stripe Webhook IPs on boot
-    fetchStripeIps().catch((err) => {
-      logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err);
+// MongoDB connection with retry — do NOT exit on failure so Cloud Run
+// accepts the revision. The server starts immediately and DB reconnects.
+const connectDB = (retries = 5, delay = 5000) => {
+  mongoose
+    .connect(config.database_local, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      family: 4,
+      serverSelectionTimeoutMS: 10000,
+    })
+    .then(() => {
+      logger.info('✅ Database connection successfully');
+      initializeCronJobs();
+      fetchStripeIps().catch((err) =>
+        logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err)
+      );
+    })
+    .catch((err) => {
+      logger.error(`❌ DB connection failed (${retries} retries left): ${err.message}`);
+      if (retries > 0) {
+        setTimeout(() => connectDB(retries - 1, delay), delay);
+      } else {
+        logger.error('❌ All DB retries exhausted. Running without database.');
+      }
     });
-  })
-  .catch((err) => {
-    logger.error('❌ Error connecting to the database:', err);
-    process.exit(1); // Exit the application on database connection error
-  });
+};
+connectDB();
 
 // Initialize passport (no session)
 passportConfig(passport);
