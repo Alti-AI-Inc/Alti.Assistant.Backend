@@ -1,0 +1,125 @@
+name: Deploy to GCP Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: alti-assistant-prod
+  REGION: us-central1
+  SERVICE_NAME: alti-assistant-backend
+  REGISTRY: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
+  IMAGE_NAME: alti-assistant-backend
+  MEMORY: 4Gi
+  CPU: "2"
+  MIN_INSTANCES: "1"
+  MAX_INSTANCES: "4"
+  TIMEOUT: "300"
+
+jobs:
+  build-and-deploy:
+    name: Build, Push & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Version tag ─────────────────────────────────────────────────────
+      - name: Set up version tag
+        id: vars
+        run: |
+          VERSION="v$(date +'%Y%m%d')-${GITHUB_SHA::7}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "image_versioned=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION" >> $GITHUB_OUTPUT
+          echo "image_latest=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+          echo "🏷️  Image tag: $VERSION"
+
+      # ── 3. GCP Auth ────────────────────────────────────────────────────────
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # ── 4. Configure Docker ────────────────────────────────────────────────
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # ── 5. Docker Buildx ───────────────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── 6. Build & Push image ──────────────────────────────────────────────
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.image_versioned }}
+            ${{ steps.vars.outputs.image_latest }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── 7. Deploy to Cloud Run ─────────────────────────────────────────────
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image "${{ steps.vars.outputs.image_latest }}" \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }} \
+            --allow-unauthenticated \
+            --port 80 \
+            --memory ${{ env.MEMORY }} \
+            --cpu ${{ env.CPU }} \
+            --timeout ${{ env.TIMEOUT }} \
+            --min-instances ${{ env.MIN_INSTANCES }} \
+            --max-instances ${{ env.MAX_INSTANCES }} \
+            --cpu-boost \
+            --set-env-vars "NODE_ENV=production" \
+            --set-secrets "\
+              DATABASE_LOCAL=DATABASE_LOCAL:latest,\
+              JWT_ACCESS_TOKEN=JWT_ACCESS_TOKEN:latest,\
+              JWT_REFRESH_REFRESH_TOKEN=JWT_REFRESH_REFRESH_TOKEN:latest,\
+              GEMINI_SECRET_KEY=GEMINI_SECRET_KEY:latest,\
+              GOOGLE_CUSTOM_SEARCH_API_KEY=GOOGLE_CUSTOM_SEARCH_API_KEY:latest,\
+              GOOGLE_CUSTOM_SEARCH_CX=GOOGLE_CUSTOM_SEARCH_CX:latest,\
+              MASSIVE_API_KEY=MASSIVE_API_KEY:latest,\
+              STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,\
+              STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,\
+              STRIPE_WEBHOOK_SECRET_THIN=STRIPE_WEBHOOK_SECRET_THIN:latest,\
+              REDIS_URL=REDIS_URL:latest,\
+              OPEN_MEMORY_API_KEY=OPEN_MEMORY_API_KEY:latest,\
+              GOOGLE_SMTP_PASSWORD=GOOGLE_SMTP_PASSWORD:latest,\
+              GOOGLE_SMTP_USER=GOOGLE_SMTP_USER:latest,\
+              CLOUD_STORAGE_SECRET_KEY=CLOUD_STORAGE_SECRET_KEY:latest,\
+              CLOUD_STORAGE_ACCESS_KEY=CLOUD_STORAGE_ACCESS_KEY:latest,\
+              CLOUD_STORAGE_BUCKET=CLOUD_STORAGE_BUCKET:latest,\
+              LIVEKIT_API_KEY=LIVEKIT_API_KEY:latest,\
+              LIVEKIT_API_SECRET=LIVEKIT_API_SECRET:latest"
+
+      # ── 8. Print service URL ───────────────────────────────────────────────
+      - name: Get service URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --format="value(status.url)")
+          echo ""
+          echo "✅ Deployment successful!"
+          echo "🌐 Cloud Run URL: $SERVICE_URL"
+          echo "🏷️  Image: ${{ steps.vars.outputs.image_versioned }}"
+          echo ""
+          echo "service_url=$SERVICE_URL" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Cloud Run Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🌐 Service URL | $SERVICE_URL |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏷️ Image | \`${{ steps.vars.outputs.image_versioned }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🕐 Deployed at | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔀 Commit | \`${GITHUB_SHA::7}\` |" >> $GITHUB_STEP_SUMMARY
