@@ -747,6 +747,79 @@ export const MARKET_STATUS_KEYWORDS = [
 ];
 
 // ─────────────────────────────────────────────
+// MARKET OVERVIEW KEYWORDS
+// Triggers a full dashboard: Indices + BTC + Gold + Oil + VIX
+// ─────────────────────────────────────────────
+export const MARKET_OVERVIEW_KEYWORDS = [
+  'market overview', 'markets overview', 'market summary', 'markets today',
+  'how are markets', 'how is the market', 'market update', 'daily market',
+  'what is the market doing', 'what are markets doing', 'global markets',
+  'market snapshot', 'market wrap', 'morning markets', 'premarket overview',
+  'market performance', 'market recap', 'all markets', 'show me the market',
+  'how is the stock market', 'market pulse', 'market dashboard',
+];
+
+// ─────────────────────────────────────────────
+// SECTOR PERFORMANCE KEYWORDS
+// ─────────────────────────────────────────────
+export const SECTOR_KEYWORDS = [
+  'sector', 'sectors', 'sector performance', 'sector rotation', 'sector analysis',
+  'what sectors', 'which sectors', 'sector breakdown', 'sector heatmap',
+];
+
+// ─────────────────────────────────────────────
+// NAMED STOCK GROUPS (pre-defined watchlists)
+// ─────────────────────────────────────────────
+export const GROUP_STOCK_MAP = {
+  // FAANG / Big Tech
+  'faang': ['META', 'AAPL', 'AMZN', 'NFLX', 'GOOGL'],
+  'fang': ['META', 'AMZN', 'NFLX', 'GOOGL'],
+  'magnificent seven': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'],
+  'magnificent 7': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'],
+  'mag 7': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'],
+  'mag7': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'],
+  'big tech': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META'],
+  // Banking
+  'big banks': ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'C'],
+  'bank stocks': ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'C'],
+  // Semiconductors
+  'semiconductor stocks': ['NVDA', 'AMD', 'INTC', 'QCOM', 'TSM', 'AVGO', 'AMAT', 'LRCX'],
+  'chip stocks': ['NVDA', 'AMD', 'INTC', 'QCOM', 'AVGO', 'TSM'],
+  // EV stocks
+  'ev stocks': ['TSLA', 'RIVN', 'LCID', 'NIO', 'GM', 'F'],
+  'electric vehicle stocks': ['TSLA', 'RIVN', 'LCID', 'NIO'],
+  // Airlines
+  'airline stocks': ['DAL', 'UAL', 'AAL', 'LUV', 'ALK'],
+  // Biotech
+  'biotech stocks': ['MRNA', 'BNTX', 'REGN', 'BIIB', 'VRTX', 'GILD'],
+  // Energy
+  'oil stocks': ['XOM', 'CVX', 'COP', 'SLB', 'HAL', 'MRO'],
+  // Crypto stocks (exchanges, miners, ETFs)
+  'crypto stocks': ['COIN', 'MSTR', 'RIOT', 'MARA', 'IBIT', 'FBTC'],
+  // Retail
+  'retail stocks': ['AMZN', 'WMT', 'TGT', 'COST', 'HD', 'SHOP'],
+};
+
+// ─────────────────────────────────────────────
+// CRYPTO OVERVIEW KEYWORDS
+// ─────────────────────────────────────────────
+export const CRYPTO_OVERVIEW_KEYWORDS = [
+  'crypto market', 'crypto overview', 'crypto markets', 'cryptocurrency market',
+  'top cryptocurrencies', 'top crypto', 'crypto today', 'all cryptos',
+  'digital assets', 'altcoins', 'crypto performance', 'crypto dashboard',
+];
+
+// ─────────────────────────────────────────────
+// FOREX OVERVIEW KEYWORDS
+// ─────────────────────────────────────────────
+export const FOREX_OVERVIEW_KEYWORDS = [
+  'major forex', 'forex overview', 'forex pairs', 'major currency pairs',
+  'all forex pairs', 'forex market', 'currency market overview',
+  'major pairs', 'forex dashboard', 'all currencies today',
+];
+
+
+// ─────────────────────────────────────────────
 // EARNINGS KEYWORDS
 // ─────────────────────────────────────────────
 export const EARNINGS_KEYWORDS = [
@@ -788,6 +861,32 @@ export function detectFinancialIntent(prompt) {
   // 1. Market status
   if (MARKET_STATUS_KEYWORDS.some(k => q.includes(k))) {
     return { type: 'market_status', symbol: null };
+  }
+
+  // 1b. Market overview (full dashboard)
+  if (MARKET_OVERVIEW_KEYWORDS.some(k => q.includes(k))) {
+    return { type: 'market_overview', symbol: null };
+  }
+
+  // 1c. Sector performance
+  if (SECTOR_KEYWORDS.some(k => q.includes(k))) {
+    return { type: 'sector', symbol: null };
+  }
+
+  // 1d. Named stock groups (FAANG, Mag 7, etc.) — longer phrases first
+  const groupEntries = Object.entries(GROUP_STOCK_MAP).sort((a, b) => b[0].length - a[0].length);
+  for (const [name, tickers] of groupEntries) {
+    if (q.includes(name)) return { type: 'stock_group', symbol: name, tickers };
+  }
+
+  // 1e. Crypto overview
+  if (CRYPTO_OVERVIEW_KEYWORDS.some(k => q.includes(k))) {
+    return { type: 'crypto_overview', symbol: null };
+  }
+
+  // 1f. Forex overview (all major pairs)
+  if (FOREX_OVERVIEW_KEYWORDS.some(k => q.includes(k))) {
+    return { type: 'forex_overview', symbol: null };
   }
 
   // 2. Macro / Fed
