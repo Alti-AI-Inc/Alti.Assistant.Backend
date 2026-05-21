@@ -86,6 +86,9 @@ const TTL = {
   group: 30,           // stock groups (FAANG, Mag7)
   crypto_overview: 30, // crypto market overview
   forex_overview: 20,  // all major forex pairs
+  premarket: 15,       // pre/after-market (very fresh)
+  earnings: 1800,      // earnings data (30 min cache)
+  analyst: 3600,       // analyst ratings (1 hr cache)
 };
 
 // ─── Redis helpers ────────────────────────────────────────────────────────────
@@ -154,13 +157,14 @@ async function fetchStockFull(ticker) {
   const t = fmt(ticker);
   const cached = await cacheGet(`stock:${t}`);
   if (cached) return cached;
-  const [quote, ratios, rsi, news] = await Promise.all([
+  const [quote, ratios, rsi, news, details] = await Promise.all([
     safe(getStockQuoteService(t)),
     safe(getStockFinancialsRatiosService(t)),
     safe(getStockRSIService(t, 14)),
     safe(getStockNewsService(t, 3)),
+    safe(getTickerDetailsService(t)),
   ]);
-  const data = { ticker: t, quote, ratios, rsi, news };
+  const data = { ticker: t, quote, ratios, rsi, news, details };
   await cacheSet(`stock:${t}`, data, TTL.quote);
   return data;
 }
@@ -311,8 +315,16 @@ async function fetchForexOverview() {
 
 function formatStockBlock(data) {
   if (!data) return 'Stock data unavailable.';
-  const { ticker, quote, ratios, rsi, news } = data;
+  const { ticker, quote, ratios, rsi, news, details } = data;
   let block = `## ${ticker} — Live Market Data\n`;
+
+  // Company info from ticker details
+  if (details?.name) {
+    block += `**${details.name}**`;
+    if (details.market_cap) block += ` | Market Cap: **$${(details.market_cap / 1e9).toFixed(2)}B**`;
+    if (details.primary_exchange) block += ` | Exchange: ${details.primary_exchange}`;
+    block += `\n`;
+  }
 
   if (quote?.trade?.p || quote?.quote?.P) {
     const lastPrice = quote.trade?.p;
@@ -321,17 +333,24 @@ function formatStockBlock(data) {
     const prevClose = quote.previousClose?.c;
     const change = lastPrice && prevClose ? (lastPrice - prevClose).toFixed(2) : null;
     const changePct = lastPrice && prevClose ? (((lastPrice - prevClose) / prevClose) * 100).toFixed(2) : null;
+    const dir = changePct !== null ? (parseFloat(changePct) >= 0 ? '\u{1F4C8}' : '\u{1F4C9}') : '';
     block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
     if (lastPrice) block += `| Last Price | **$${lastPrice.toLocaleString()}** |\n`;
     if (bid) block += `| Bid | **$${bid}** |\n`;
     if (ask) block += `| Ask | **$${ask}** |\n`;
     if (prevClose) block += `| Prev Close | $${prevClose} |\n`;
-    if (change) block += `| Change | **${change} (${changePct}%)** |\n`;
-    if (quote.quote?.S) block += `| Ask Size | ${quote.quote.S} shares |\n`;
+    if (change) block += `| Day Change | **${dir} ${change} (${changePct}%)** |\n`;
+    // Extended hours (pre-market / after-hours)
     if (quote.snapshot?.session) {
       const s = quote.snapshot.session;
-      if (s.change !== undefined) block += `| Day Range Change | **${s.change?.toFixed(2)} (${s.change_percent?.toFixed(2)}%)** |\n`;
-      if (s.early_trading_change !== undefined) block += `| Pre-Market | ${s.early_trading_change?.toFixed(2)} (${s.early_trading_change_percent?.toFixed(2)}%) |\n`;
+      if (s.early_trading_change !== undefined && s.early_trading_change !== null) {
+        const extDir = s.early_trading_change >= 0 ? '\u{1F4C8}' : '\u{1F4C9}';
+        block += `| Pre-Market | **${extDir} ${s.early_trading_change?.toFixed(2)} (${s.early_trading_change_percent?.toFixed(2)}%)** |\n`;
+      }
+      if (s.late_trading_change !== undefined && s.late_trading_change !== null) {
+        const extDir = s.late_trading_change >= 0 ? '\u{1F4C8}' : '\u{1F4C9}';
+        block += `| After-Hours | **${extDir} ${s.late_trading_change?.toFixed(2)} (${s.late_trading_change_percent?.toFixed(2)}%)** |\n`;
+      }
     }
   }
 
@@ -344,11 +363,14 @@ function formatStockBlock(data) {
     if (ratios.price_to_sales) block += `| P/S Ratio | ${ratios.price_to_sales?.toFixed(2)} |\n`;
     if (ratios.earnings_per_share) block += `| EPS | $${ratios.earnings_per_share?.toFixed(2)} |\n`;
     if (ratios.average_volume) block += `| Avg Volume | ${(ratios.average_volume / 1e6).toFixed(2)}M |\n`;
+    if (details?.description && !ratios.market_cap) {
+      block += `\n> ${details.description?.slice(0, 200)}...\n`;
+    }
   }
 
   if (rsi?.value !== undefined) {
     const rsiVal = parseFloat(rsi.value).toFixed(2);
-    const rsiSignal = rsiVal > 70 ? '🔴 Overbought' : rsiVal < 30 ? '🟢 Oversold' : '⚪ Neutral';
+    const rsiSignal = rsiVal > 70 ? '\u{1F534} Overbought' : rsiVal < 30 ? '\u{1F7E2} Oversold' : '\u26AA Neutral';
     block += `\n### Technical Indicator\n| RSI (14) | Signal |\n|----------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
   }
 
