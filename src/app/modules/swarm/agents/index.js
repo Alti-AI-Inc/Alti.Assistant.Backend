@@ -10,6 +10,32 @@ import {
   academicMetaAnalyst
 } from './search.agents.js';
 
+// ─── Massive.com Financial Intelligence Agents (20 specialists) ───────────────
+import {
+  massiveEquityAnalyst,
+  massiveOptionsStrategist,
+  massiveCryptoAnalyst,
+  massiveForexTrader,
+  massiveMacroEconomist,
+  massiveTechnicalChartist,
+  massiveFundamentalsAudit,
+  massivePortfolioAdvisor
+} from './massive.agents.js';
+import {
+  massiveMarketSentinel,
+  massiveEarningsSpecialist,
+  massiveDividendIncomePlanner,
+  massiveShortSqueezeScanner,
+  massiveSectorRotationAdvisor,
+  massiveValueInvestor,
+  massiveGrowthInvestor,
+  massiveCommodityAnalyst,
+  massiveETFAnalyst,
+  massiveIPOAnalyst,
+  massiveMomentumTrader,
+  massiveRiskArbitrageur
+} from './massive.agents.extended.js';
+
 import {
   dataProcessorAgent,
   dataEtlSynthesizer,
@@ -124,6 +150,31 @@ export const customAgents = [
   liveIntelAggregator,
   academicMetaAnalyst,
 
+  // ── Massive.com Financial Intelligence Agents (20 specialists) ──────────────
+  // Core 8: equity, options, crypto, forex, macro, technicals, fundamentals, portfolio
+  massiveEquityAnalyst,
+  massiveOptionsStrategist,
+  massiveCryptoAnalyst,
+  massiveForexTrader,
+  massiveMacroEconomist,
+  massiveTechnicalChartist,
+  massiveFundamentalsAudit,
+  massivePortfolioAdvisor,
+  // Extended 12: sentiment, earnings, dividend, short squeeze, sector, value,
+  // growth, commodity, ETF, IPO, momentum, risk arbitrage
+  massiveMarketSentinel,
+  massiveEarningsSpecialist,
+  massiveDividendIncomePlanner,
+  massiveShortSqueezeScanner,
+  massiveSectorRotationAdvisor,
+  massiveValueInvestor,
+  massiveGrowthInvestor,
+  massiveCommodityAnalyst,
+  massiveETFAnalyst,
+  massiveIPOAnalyst,
+  massiveMomentumTrader,
+  massiveRiskArbitrageur,
+
   dataProcessorAgent,
   dataEtlSynthesizer,
   dbOptimizer,
@@ -225,6 +276,28 @@ export {
   academicSearchAgent,
   liveIntelAggregator,
   academicMetaAnalyst,
+
+  // ── Massive.com Financial Intelligence Agents ──────────────────────────────
+  massiveEquityAnalyst,
+  massiveOptionsStrategist,
+  massiveCryptoAnalyst,
+  massiveForexTrader,
+  massiveMacroEconomist,
+  massiveTechnicalChartist,
+  massiveFundamentalsAudit,
+  massivePortfolioAdvisor,
+  massiveMarketSentinel,
+  massiveEarningsSpecialist,
+  massiveDividendIncomePlanner,
+  massiveShortSqueezeScanner,
+  massiveSectorRotationAdvisor,
+  massiveValueInvestor,
+  massiveGrowthInvestor,
+  massiveCommodityAnalyst,
+  massiveETFAnalyst,
+  massiveIPOAnalyst,
+  massiveMomentumTrader,
+  massiveRiskArbitrageur,
 
   dataProcessorAgent,
   dataEtlSynthesizer,
