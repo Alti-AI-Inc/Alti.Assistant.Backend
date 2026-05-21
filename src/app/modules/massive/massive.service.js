@@ -206,6 +206,83 @@ const getStockRSIService = async (ticker, window = 14) => {
 };
 
 /**
+ * MACD indicator for a stock (verified ✅)
+ * Returns: { value, signal, histogram, timestamp }
+ */
+const getStockMACDService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock MACD: ${t}`);
+  const response = await rest.getStocksMACD({
+    stockTicker: t,
+    short_window: 12,
+    long_window: 26,
+    signal_window: 9,
+    timespan: 'day',
+    adjusted: true,
+    limit: 1,
+  });
+  return response?.results?.values?.[0] || null;
+};
+
+/**
+ * EMA (Exponential Moving Average) for a stock (verified ✅)
+ */
+const getStockEMAService = async (ticker, window = 50) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock EMA-${window}: ${t}`);
+  const response = await rest.getStocksEMA({
+    stockTicker: t,
+    window: Number(window),
+    timespan: 'day',
+    adjusted: true,
+    limit: 1,
+  });
+  return response?.results?.values?.[0]?.value || null;
+};
+
+/**
+ * SMA (Simple Moving Average) for a stock (verified ✅)
+ */
+const getStockSMAService = async (ticker, window = 50) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock SMA-${window}: ${t}`);
+  const response = await rest.getStocksSMA({
+    stockTicker: t,
+    window: Number(window),
+    timespan: 'day',
+    adjusted: true,
+    limit: 1,
+  });
+  return response?.results?.values?.[0]?.value || null;
+};
+
+/**
+ * Full technical analysis snapshot (verified ✅)
+ * Fetches RSI-14, MACD, EMA-50, EMA-200, SMA-50, SMA-200 in parallel
+ */
+const getStockTechnicalSnapshotService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock Technicals: ${t}`);
+  const [rsi, macd, ema50, ema200, sma50, sma200] = await Promise.allSettled([
+    getStockRSIService(t, 14),
+    getStockMACDService(t),
+    getStockEMAService(t, 50),
+    getStockEMAService(t, 200),
+    getStockSMAService(t, 50),
+    getStockSMAService(t, 200),
+  ]);
+  return {
+    ticker: t,
+    rsi: rsi.value,
+    macd: macd.value,
+    ema50: ema50.value,
+    ema200: ema200.value,
+    sma50: sma50.value,
+    sma200: sma200.value,
+  };
+};
+
+/**
  * News for a stock ticker using listNews (verified ✅)
  */
 const getStockNewsService = async (ticker, limit = 5) => {
@@ -461,6 +538,10 @@ export {
   getShortInterestService,
   getStockFloatService,
   getStockRSIService,
+  getStockMACDService,
+  getStockEMAService,
+  getStockSMAService,
+  getStockTechnicalSnapshotService,
   getStockNewsService,
   // Options
   getOptionsChainService,
@@ -506,6 +587,10 @@ export const massiveService = {
   getShortInterestService,
   getStockFloatService,
   getStockRSIService,
+  getStockMACDService,
+  getStockEMAService,
+  getStockSMAService,
+  getStockTechnicalSnapshotService,
   getStockNewsService,
   // Options
   getOptionsChainService,

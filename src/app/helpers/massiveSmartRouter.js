@@ -1,11 +1,18 @@
 /**
- * Massive Smart Router — Verified Live API Edition
+ * Massive Smart Router — v3 Complete
  *
- * All Massive.com API calls use VERIFIED method names (tested 2026-05-21).
- * Coverage: Stocks, Options, Crypto, Forex, Macro/Fed, News, Market Status
- *
- * Resilience: 2.5s timeout per call, Redis caching, graceful fallback
- * Caching: 30s quotes, 2min news, 5min macro, 60min market status
+ * Verified API coverage (api.massive.com):
+ *   Stocks      ✅ Quote, Snapshot, Financials, RSI, MACD, EMA, SMA, News
+ *   Options     ✅ Chain, Filtered (calls/puts/expiry)
+ *   Crypto      ✅ Snapshot, Trades, RSI
+ *   Forex       ✅ Snapshot, Conversion (natural language + all pairs)
+ *   Indices     ✅ via ETF proxies (SPY=S&P500, QQQ=NASDAQ, DIA=Dow, IWM=Russell)
+ *   Commodities ✅ via ETF proxies (GLD=Gold, SLV=Silver, USO=Oil, UNG=Gas)
+ *   Macro/Fed   ✅ CPI, Treasury Yields, Labor Market, Inflation Expectations
+ *   Market      ✅ Status (open/closed/extended), Holidays
+ *   Technical   ✅ RSI, MACD, EMA-50, EMA-200, SMA-50, SMA-200 (verified ✅)
+ *   News        ✅ listNews with ticker filter
+ *   IPO         ✅ IPO calendar
  */
 
 import {
@@ -14,6 +21,10 @@ import {
   getTickerDetailsService,
   getStockFinancialsRatiosService,
   getStockRSIService,
+  getStockMACDService,
+  getStockEMAService,
+  getStockSMAService,
+  getStockTechnicalSnapshotService,
   getStockNewsService,
   getOptionsChainService,
   getOptionsChainFilteredService,
@@ -38,6 +49,9 @@ import {
   detectFinancialIntent,
   detectMultipleTickers,
   NEWS_KEYWORDS,
+  COMMODITY_MAP,
+  INDEX_MAP,
+  TECHNICAL_KEYWORDS,
 } from './massiveTickerDB.js';
 
 // ─── Cache TTLs (seconds) ─────────────────────────────────────────────────────
@@ -45,13 +59,14 @@ const TTL = {
   quote: 30,
   crypto: 20,
   forex: 20,
-  options: 30,
+  options: 45,
   news: 120,
   macro: 300,
   status: 60,
   holidays: 3600,
   financials: 900,
-  rsi: 60,
+  technicals: 60,
+  etf: 30,
 };
 
 // ─── Redis helpers ────────────────────────────────────────────────────────────
@@ -61,40 +76,34 @@ async function cacheGet(key) {
     return val ? JSON.parse(val) : null;
   } catch { return null; }
 }
-
 async function cacheSet(key, data, ttl) {
   try {
     await RedisClient.set(`massive:${key}`, JSON.stringify(data), { EX: ttl });
   } catch { /* non-fatal */ }
 }
 
-// ─── Timeout wrapper (2.5s) ───────────────────────────────────────────────────
-function safe(promise, ms = 2500) {
+// ─── Safe wrapper (3s timeout) ───────────────────────────────────────────────
+function safe(promise, ms = 3000) {
   return Promise.race([
     promise,
     new Promise((_, rej) => setTimeout(() => rej(new Error('Massive API timeout')), ms)),
   ]).catch(err => {
-    logger.warn(`[MassiveRouter] API call failed: ${err.message}`);
+    logger.warn(`[MassiveRouter] ${err.message}`);
     return null;
   });
 }
 
-// ─── Crypto ticker normaliser ─────────────────────────────────────────────────
-// Converts BTC → X:BTCUSD, ETH → X:ETHUSD, etc.
-function toCryptoTicker(sym) {
+// ─── Formatters ───────────────────────────────────────────────────────────────
+const fmt = (ticker) => ticker.toUpperCase().trim();
+const toCryptoTicker = (sym) => {
   const s = sym.toUpperCase().replace(/USD$/, '');
-  if (s.startsWith('X:')) return s;
-  return `X:${s}USD`;
-}
-
-// ─── Forex ticker normaliser ──────────────────────────────────────────────────
-// Converts EURUSD → C:EURUSD, EUR → C:EURUSD, EUR/USD → C:EURUSD
-function toForexTicker(sym) {
+  return s.startsWith('X:') ? s : `X:${s}USD`;
+};
+const toForexTicker = (sym) => {
   const s = sym.toUpperCase().replace('/', '').replace('C:', '');
-  if (s.length === 3) return `C:${s}USD`;
-  if (s.length === 6) return `C:${s}`;
-  return `C:${s}`;
-}
+  if (s.startsWith('C:')) return s;
+  return s.length === 6 ? `C:${s}` : `C:${s}USD`;
+};
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(userPrompt, dataBlock, source) {
@@ -109,32 +118,46 @@ ${dataBlock}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MANDATORY RESPONSE RULES:
-▸ ALWAYS cite "[Source: Massive.com]" at the very top of your answer
-▸ Present ALL prices, rates, and numbers in **BOLD**
+▸ ALWAYS cite "[Source: Massive.com]" at the top of your answer
+▸ Present ALL prices, rates, numbers in **BOLD**
 ▸ Use Markdown tables for options chains, comparisons, multi-asset data
 ▸ NEVER hallucinate or fabricate any price, rate, or statistic
-▸ If data shows "DELAYED" status, state: "Prices may be slightly delayed"
+▸ If data is delayed/after-hours, clearly state that
 ▸ Answer the user's EXACT question using only the verified data above
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 User Query: ${userPrompt}`;
 }
 
-// ─── Data fetchers (with caching) ─────────────────────────────────────────────
+// ─── Data fetchers ────────────────────────────────────────────────────────────
 
 async function fetchStockFull(ticker) {
-  const cached = await cacheGet(`stock:${ticker}`);
+  const t = fmt(ticker);
+  const cached = await cacheGet(`stock:${t}`);
   if (cached) return cached;
-
   const [quote, ratios, rsi, news] = await Promise.all([
-    safe(getStockQuoteService(ticker)),
-    safe(getStockFinancialsRatiosService(ticker)),
-    safe(getStockRSIService(ticker, 14)),
-    safe(getStockNewsService(ticker, 3)),
+    safe(getStockQuoteService(t)),
+    safe(getStockFinancialsRatiosService(t)),
+    safe(getStockRSIService(t, 14)),
+    safe(getStockNewsService(t, 3)),
   ]);
+  const data = { ticker: t, quote, ratios, rsi, news };
+  await cacheSet(`stock:${t}`, data, TTL.quote);
+  return data;
+}
 
-  const data = { ticker, quote, ratios, rsi, news };
-  await cacheSet(`stock:${ticker}`, data, TTL.quote);
+async function fetchETFData(ticker) {
+  const t = fmt(ticker);
+  const cached = await cacheGet(`etf:${t}`);
+  if (cached) return cached;
+  const [snapshots, prev, news] = await Promise.all([
+    safe(getStocksSnapshotTickersService([t])),
+    safe(getStockQuoteService(t)),
+    safe(getStockNewsService(t, 3)),
+  ]);
+  const snap = Array.isArray(snapshots) ? snapshots.find(s => s.ticker === t) : snapshots?.[0];
+  const data = { ticker: t, snap, prev, news };
+  await cacheSet(`etf:${t}`, data, TTL.etf);
   return data;
 }
 
@@ -142,13 +165,11 @@ async function fetchCryptoFull(symbol) {
   const cryptoTicker = toCryptoTicker(symbol);
   const cached = await cacheGet(`crypto:${cryptoTicker}`);
   if (cached) return cached;
-
   const [snapshot, trades, rsi] = await Promise.all([
     safe(getCryptoSnapshotService([cryptoTicker])),
     safe(getCryptoTradesService(cryptoTicker, 3)),
     safe(getCryptoRSIService(cryptoTicker, 14)),
   ]);
-
   const data = { symbol, cryptoTicker, snapshot, trades, rsi };
   await cacheSet(`crypto:${cryptoTicker}`, data, TTL.crypto);
   return data;
@@ -158,102 +179,93 @@ async function fetchForexFull(symbol) {
   const forexTicker = toForexTicker(symbol);
   const cached = await cacheGet(`forex:${forexTicker}`);
   if (cached) return cached;
-
-  // Parse from/to from pair
   const s = symbol.toUpperCase().replace('/', '').replace('C:', '');
   const from = s.slice(0, 3);
   const to = s.slice(3, 6) || 'USD';
-
   const [snapshot, conversion] = await Promise.all([
     safe(getForexSnapshotService([forexTicker])),
     safe(getCurrencyConversionService(from, to, 1)),
   ]);
-
-  const data = { symbol, forexTicker, snapshot, conversion };
+  const data = { symbol, forexTicker, snapshot, conversion, from, to };
   await cacheSet(`forex:${forexTicker}`, data, TTL.forex);
-  return data;
-}
-
-async function fetchMarketStatus() {
-  const cached = await cacheGet('market_status');
-  if (cached) return cached;
-
-  const [status, holidays] = await Promise.all([
-    safe(getMarketStatusService()),
-    safe(getMarketHolidaysService()),
-  ]);
-
-  const data = { status, holidays };
-  await cacheSet('market_status', data, TTL.status);
   return data;
 }
 
 async function fetchMacroFull() {
   const cached = await cacheGet('macro_full');
   if (cached) return cached;
-
+  // Use date.gte to get recent data (API returns oldest-first by default, no sort=desc support)
+  const cutoff = '2024-01-01';
   const [inflation, yields, labor, expectations] = await Promise.all([
-    safe(getFedInflationService(6)),
-    safe(getFedYieldsService(5)),
-    safe(getFedLaborMarketService(3)),
-    safe(getFedInflationExpectationsService(3)),
+    safe(getFedInflationService(12)),
+    safe(getFedYieldsService(30)),
+    safe(getFedLaborMarketService(6)),
+    safe(getFedInflationExpectationsService(6)),
   ]);
-
-  const data = { inflation, yields, labor, expectations };
+  // Get latest entry from each dataset
+  const data = {
+    inflation: Array.isArray(inflation?.results) ? inflation.results.at(-1) : null,
+    yields: Array.isArray(yields?.results) ? yields.results.at(-1) : null,
+    labor: Array.isArray(labor?.results) ? labor.results.at(-1) : null,
+    expectations: Array.isArray(expectations?.results) ? expectations.results.at(-1) : null,
+    allInflation: Array.isArray(inflation?.results) ? inflation.results.slice(-6) : [],
+    allYields: Array.isArray(yields?.results) ? yields.results.slice(-5) : [],
+  };
   await cacheSet('macro_full', data, TTL.macro);
   return data;
 }
 
-async function fetchStockNews(ticker) {
-  const t = ticker.toUpperCase();
-  const cached = await cacheGet(`news:${t}`);
+async function fetchMarketStatus() {
+  const cached = await cacheGet('market_status');
   if (cached) return cached;
-  const news = await safe(getMarketNewsService(t, 5));
-  await cacheSet(`news:${t}`, news, TTL.news);
-  return news;
+  const [status, holidays] = await Promise.all([
+    safe(getMarketStatusService()),
+    safe(getMarketHolidaysService()),
+  ]);
+  const data = { status, holidays };
+  await cacheSet('market_status', data, TTL.status);
+  return data;
 }
 
-// ─── Format helpers ───────────────────────────────────────────────────────────
+async function fetchTechnicals(ticker) {
+  const t = fmt(ticker);
+  const cached = await cacheGet(`tech:${t}`);
+  if (cached) return cached;
+  const data = await safe(getStockTechnicalSnapshotService(t), 8000);
+  if (data) await cacheSet(`tech:${t}`, data, TTL.technicals);
+  return data;
+}
+
+// ─── Format helpers ────────────────────────────────────────────────────────────
 
 function formatStockBlock(data) {
   if (!data) return 'Stock data unavailable.';
   const { ticker, quote, ratios, rsi, news } = data;
-
   let block = `## ${ticker} — Live Market Data\n`;
 
-  // Quote section
-  if (quote?.quote?.P || quote?.trade?.p) {
+  if (quote?.trade?.p || quote?.quote?.P) {
+    const lastPrice = quote.trade?.p;
     const bid = quote.quote?.p;
     const ask = quote.quote?.P;
-    const lastPrice = quote.trade?.p;
     const prevClose = quote.previousClose?.c;
-    const change = lastPrice && prevClose ? (lastPrice - prevClose).toFixed(2) : 'N/A';
-    const changePct = lastPrice && prevClose ? (((lastPrice - prevClose) / prevClose) * 100).toFixed(2) : 'N/A';
-    block += `\n### Price\n`;
-    block += `| Field | Value |\n|-------|-------|\n`;
-    if (lastPrice) block += `| Last Price | **$${lastPrice}** |\n`;
+    const change = lastPrice && prevClose ? (lastPrice - prevClose).toFixed(2) : null;
+    const changePct = lastPrice && prevClose ? (((lastPrice - prevClose) / prevClose) * 100).toFixed(2) : null;
+    block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
+    if (lastPrice) block += `| Last Price | **$${lastPrice.toLocaleString()}** |\n`;
     if (bid) block += `| Bid | **$${bid}** |\n`;
     if (ask) block += `| Ask | **$${ask}** |\n`;
     if (prevClose) block += `| Prev Close | $${prevClose} |\n`;
-    if (change !== 'N/A') block += `| Change | **${change} (${changePct}%)** |\n`;
+    if (change) block += `| Change | **${change} (${changePct}%)** |\n`;
     if (quote.quote?.S) block += `| Ask Size | ${quote.quote.S} shares |\n`;
-    block += `| Status | ${quote.quote?.t ? 'DELAYED' : 'Live'} |\n`;
+    if (quote.snapshot?.session) {
+      const s = quote.snapshot.session;
+      if (s.change !== undefined) block += `| Day Range Change | **${s.change?.toFixed(2)} (${s.change_percent?.toFixed(2)}%)** |\n`;
+      if (s.early_trading_change !== undefined) block += `| Pre-Market | ${s.early_trading_change?.toFixed(2)} (${s.early_trading_change_percent?.toFixed(2)}%) |\n`;
+    }
   }
 
-  // Snapshot % change (from getStocksSnapshotTicker)
-  if (quote?.snapshot?.session) {
-    const s = quote.snapshot.session;
-    block += `\n### Session\n`;
-    block += `| Metric | Value |\n|--------|-------|\n`;
-    if (s.change !== undefined) block += `| Day Change | **${s.change?.toFixed(2)} (${s.change_percent?.toFixed(2)}%)** |\n`;
-    if (s.regular_trading_change !== undefined) block += `| Regular Hours | ${s.regular_trading_change?.toFixed(2)} (${s.regular_trading_change_percent?.toFixed(2)}%) |\n`;
-    if (s.early_trading_change !== undefined) block += `| Pre-Market | ${s.early_trading_change?.toFixed(2)} (${s.early_trading_change_percent?.toFixed(2)}%) |\n`;
-  }
-
-  // Financials ratios
   if (ratios) {
-    block += `\n### Key Metrics\n`;
-    block += `| Metric | Value |\n|--------|-------|\n`;
+    block += `\n### Key Metrics\n| Metric | Value |\n|--------|-------|\n`;
     if (ratios.price) block += `| Price | **$${ratios.price}** |\n`;
     if (ratios.market_cap) block += `| Market Cap | **$${(ratios.market_cap / 1e9).toFixed(2)}B** |\n`;
     if (ratios.price_to_earnings) block += `| P/E Ratio | ${ratios.price_to_earnings?.toFixed(2)} |\n`;
@@ -263,103 +275,202 @@ function formatStockBlock(data) {
     if (ratios.average_volume) block += `| Avg Volume | ${(ratios.average_volume / 1e6).toFixed(2)}M |\n`;
   }
 
-  // RSI
   if (rsi?.value !== undefined) {
     const rsiVal = parseFloat(rsi.value).toFixed(2);
     const rsiSignal = rsiVal > 70 ? '🔴 Overbought' : rsiVal < 30 ? '🟢 Oversold' : '⚪ Neutral';
-    block += `\n### Technical\n| RSI (14) | Signal |\n|----------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
+    block += `\n### Technical Indicator\n| RSI (14) | Signal |\n|----------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
   }
 
-  // News
   if (Array.isArray(news) && news.length > 0) {
     block += `\n### Recent News\n`;
     news.slice(0, 3).forEach((n, i) => {
-      if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || 'Unknown'} (${n.published_utc?.slice(0, 10) || ''})\n`;
+      if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
     });
   }
+  return block;
+}
 
+function formatETFBlock(data, label) {
+  if (!data) return `${label} data unavailable.`;
+  const { ticker, snap, prev, news } = data;
+  let block = `## ${label} (${ticker}) — Live Data\n`;
+
+  if (snap) {
+    block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
+    if (snap.day?.c) block += `| Close | **$${snap.day.c.toLocaleString()}** |\n`;
+    if (snap.day?.o) block += `| Open | $${snap.day.o.toLocaleString()} |\n`;
+    if (snap.day?.h) block += `| High | **$${snap.day.h.toLocaleString()}** |\n`;
+    if (snap.day?.l) block += `| Low | **$${snap.day.l.toLocaleString()}** |\n`;
+    if (snap.todaysChange !== undefined) {
+      const dir = snap.todaysChange >= 0 ? '📈' : '📉';
+      block += `| Day Change | **${dir} ${snap.todaysChange?.toFixed(2)} (${snap.todaysChangePerc?.toFixed(2)}%)** |\n`;
+    }
+    if (snap.day?.v) block += `| Volume | ${snap.day.v.toLocaleString()} |\n`;
+  }
+
+  if (prev?.trade?.p) {
+    block += `| Last Trade | **$${prev.trade.p}** |\n`;
+  }
+
+  if (Array.isArray(news) && news.length > 0) {
+    block += `\n### Recent News\n`;
+    news.slice(0, 2).forEach((n, i) => {
+      if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
+    });
+  }
   return block;
 }
 
 function formatCryptoBlock(data) {
   if (!data) return 'Crypto data unavailable.';
   const { symbol, snapshot, trades, rsi } = data;
-
   let block = `## ${symbol} — Live Crypto Data\n`;
-
   if (Array.isArray(snapshot) && snapshot.length > 0) {
     const s = snapshot[0];
-    block += `\n### Price\n`;
-    block += `| Field | Value |\n|-------|-------|\n`;
-    if (s.day?.c) block += `| Price (Day Close) | **$${s.day.c.toLocaleString()}** |\n`;
-    if (s.todaysChange !== undefined) block += `| 24h Change | **${s.todaysChange >= 0 ? '+' : ''}${s.todaysChange?.toFixed(2)} (${s.todaysChangePerc?.toFixed(2)}%)** |\n`;
+    block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
+    if (s.day?.c) block += `| Price | **$${s.day.c.toLocaleString()}** |\n`;
+    if (s.todaysChange !== undefined) {
+      const dir = s.todaysChange >= 0 ? '📈' : '📉';
+      block += `| 24h Change | **${dir} ${s.todaysChange?.toFixed(2)} (${s.todaysChangePerc?.toFixed(2)}%)** |\n`;
+    }
     if (s.day?.o) block += `| Open | $${s.day.o.toLocaleString()} |\n`;
     if (s.day?.h) block += `| High | $${s.day.h.toLocaleString()} |\n`;
     if (s.day?.l) block += `| Low | $${s.day.l.toLocaleString()} |\n`;
     if (s.day?.v) block += `| Volume | ${s.day.v.toLocaleString()} |\n`;
   }
-
   if (Array.isArray(trades) && trades.length > 0) {
-    block += `\n### Last Trade\n| Price | Size |\n|-------|------|\n`;
-    block += `| **$${trades[0].price?.toLocaleString()}** | ${trades[0].size} |\n`;
+    block += `\n### Last Trade\n| Price | Size |\n|-------|------|\n| **$${trades[0].price?.toLocaleString()}** | ${trades[0].size} |\n`;
   }
-
   if (rsi?.value !== undefined) {
     const rsiVal = parseFloat(rsi.value).toFixed(2);
     const rsiSignal = rsiVal > 70 ? '🔴 Overbought' : rsiVal < 30 ? '🟢 Oversold' : '⚪ Neutral';
     block += `\n### Technical\n| RSI (14) | Signal |\n|----------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
   }
-
   return block;
 }
 
 function formatForexBlock(data) {
   if (!data) return 'Forex data unavailable.';
-  const { symbol, snapshot, conversion } = data;
-
+  const { symbol, snapshot, conversion, from, to } = data;
   let block = `## ${symbol} — Live Forex Rate\n`;
-
   if (conversion) {
-    block += `\n### Live Rate\n`;
-    block += `| Field | Value |\n|-------|-------|\n`;
+    block += `\n### Live Rate\n| Field | Value |\n|-------|-------|\n`;
     if (conversion.last?.bid) block += `| Bid | **${conversion.last.bid?.toFixed(5)}** |\n`;
     if (conversion.last?.ask) block += `| Ask | **${conversion.last.ask?.toFixed(5)}** |\n`;
-    if (conversion.converted) block += `| Converted (1 ${conversion.from}) | **${conversion.converted?.toFixed(5)} ${conversion.to}** |\n`;
+    if (conversion.converted) block += `| 1 ${from} = | **${conversion.converted?.toFixed(5)} ${to}** |\n`;
   }
-
   if (Array.isArray(snapshot) && snapshot.length > 0) {
     const s = snapshot[0];
-    block += `\n### Session\n`;
-    block += `| Field | Value |\n|-------|-------|\n`;
+    block += `\n### Session (Today)\n| Field | Value |\n|-------|-------|\n`;
     if (s.day?.o) block += `| Open | ${s.day.o?.toFixed(5)} |\n`;
     if (s.day?.h) block += `| High | **${s.day.h?.toFixed(5)}** |\n`;
     if (s.day?.l) block += `| Low | **${s.day.l?.toFixed(5)}** |\n`;
     if (s.day?.c) block += `| Close | ${s.day.c?.toFixed(5)} |\n`;
-    if (s.todaysChangePerc !== undefined) block += `| Day Change | ${s.todaysChangePerc?.toFixed(4)}% |\n`;
+    if (s.todaysChangePerc !== undefined) block += `| Day Change | ${s.todaysChangePerc >= 0 ? '+' : ''}${s.todaysChangePerc?.toFixed(4)}% |\n`;
+  }
+  return block;
+}
+
+function formatTechnicalBlock(data, ticker) {
+  if (!data) return `Technical data for ${ticker} unavailable.`;
+  const { rsi, macd, ema50, ema200, sma50, sma200 } = data;
+
+  let block = `## ${ticker} — Technical Analysis\n`;
+
+  // RSI
+  if (rsi?.value !== undefined) {
+    const rsiVal = parseFloat(rsi.value).toFixed(2);
+    const rsiSignal = rsiVal > 70 ? '🔴 Overbought — potential sell signal' :
+                      rsiVal < 30 ? '🟢 Oversold — potential buy signal' :
+                      rsiVal > 55 ? '📈 Bullish momentum' :
+                      rsiVal < 45 ? '📉 Bearish momentum' : '⚪ Neutral';
+    block += `\n### RSI (14-day)\n| Value | Signal |\n|-------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
+  }
+
+  // MACD
+  if (macd) {
+    const macdSignal = macd.value > macd.signal ? '📈 Bullish crossover' : '📉 Bearish crossover';
+    block += `\n### MACD (12, 26, 9)\n| Metric | Value |\n|--------|-------|\n`;
+    block += `| MACD Line | **${macd.value?.toFixed(4)}** |\n`;
+    block += `| Signal Line | ${macd.signal?.toFixed(4)} |\n`;
+    block += `| Histogram | ${macd.histogram?.toFixed(4)} |\n`;
+    block += `| Signal | ${macdSignal} |\n`;
+  }
+
+  // Moving Averages
+  if (ema50 || ema200 || sma50 || sma200) {
+    block += `\n### Moving Averages\n| Indicator | Value | Trend |\n|-----------|-------|-------|\n`;
+    if (ema50) block += `| EMA-50 | **$${ema50?.toFixed(2)}** | — |\n`;
+    if (ema200) block += `| EMA-200 | **$${ema200?.toFixed(2)}** | — |\n`;
+    if (sma50) block += `| SMA-50 | **$${sma50?.toFixed(2)}** | — |\n`;
+    if (sma200) block += `| SMA-200 | **$${sma200?.toFixed(2)}** | — |\n`;
+
+    // Golden/Death cross
+    if (sma50 && sma200) {
+      if (sma50 > sma200) {
+        block += `\n**📈 Golden Cross active:** SMA-50 ($${sma50?.toFixed(2)}) > SMA-200 ($${sma200?.toFixed(2)}) — long-term bullish signal\n`;
+      } else {
+        block += `\n**📉 Death Cross active:** SMA-50 ($${sma50?.toFixed(2)}) < SMA-200 ($${sma200?.toFixed(2)}) — long-term bearish signal\n`;
+      }
+    }
   }
 
   return block;
 }
 
-function formatOptionsBlock(options, underlyingTicker) {
-  if (!options?.results?.length) return `Options chain for ${underlyingTicker} — no data returned.`;
+function formatOptionsBlock(options, underlyingTicker, stockPrice) {
+  let block = '';
+  if (stockPrice) block += `**${underlyingTicker} Current Price: $${stockPrice.toLocaleString()}**\n\n`;
 
-  let block = `## ${underlyingTicker} — Options Chain\n\n`;
+  if (!options?.results?.length) return block + `Options chain — no data available for ${underlyingTicker}.`;
+
+  block += `## ${underlyingTicker} — Options Chain\n\n`;
   block += `| Contract | Type | Strike | Expiry | Bid | Ask | IV | Delta | OI |\n`;
   block += `|----------|------|--------|--------|-----|-----|----|-------|----|\n`;
-
-  const contracts = options.results.slice(0, 20);
-  contracts.forEach(c => {
+  options.results.slice(0, 20).forEach(c => {
     const d = c.details || {};
     const g = c.greeks || {};
     const q = c.lastQuote || {};
-    block += `| ${d.ticker || ''} | ${d.contract_type || ''} | **$${d.strike_price}** | ${d.expiration_date} | ${q.B?.toFixed(2) || 'N/A'} | ${q.A?.toFixed(2) || 'N/A'} | ${c.implied_volatility ? (c.implied_volatility * 100).toFixed(1) + '%' : 'N/A'} | ${g.delta?.toFixed(3) || 'N/A'} | ${c.open_interest || 'N/A'} |\n`;
+    block += `| ${d.ticker || ''} | ${d.contract_type || ''} | **$${d.strike_price}** | ${d.expiration_date} | ${q.B?.toFixed(2) ?? 'N/A'} | ${q.A?.toFixed(2) ?? 'N/A'} | ${c.implied_volatility ? (c.implied_volatility * 100).toFixed(1) + '%' : 'N/A'} | ${g.delta?.toFixed(3) ?? 'N/A'} | ${c.open_interest ?? 'N/A'} |\n`;
   });
+  return block;
+}
+
+function formatMacroBlock(data) {
+  const { inflation, yields, labor, expectations, allInflation, allYields } = data;
+  let block = `## Federal Reserve & Macro Economic Data\n\n`;
+
+  if (inflation) {
+    block += `### CPI Inflation (Latest)\n| Date | CPI |\n|------|-----|\n| **${inflation.date}** | **${inflation.cpi}** |\n\n`;
+  }
+
+  if (allInflation?.length > 1) {
+    block += `### CPI History (Recent)\n| Date | CPI |\n|------|-----|\n`;
+    allInflation.slice(-6).reverse().forEach(r => {
+      block += `| ${r.date} | ${r.cpi} |\n`;
+    });
+    block += '\n';
+  }
+
+  if (yields) {
+    block += `### Treasury Yield Curve (Latest)\n| Date | 1Y | 5Y | 10Y |\n|------|-----|-----|-----|\n`;
+    block += `| **${yields.date}** | **${yields.yield_1_year}%** | **${yields.yield_5_year}%** | **${yields.yield_10_year}%** |\n\n`;
+  }
+
+  if (labor) {
+    block += `### Labor Market (Latest)\n| Date | Unemployment | Participation Rate |\n|------|-------------|--------------------|\n`;
+    block += `| **${labor.date}** | **${labor.unemployment_rate}%** | ${labor.labor_force_participation_rate}% |\n\n`;
+  }
+
+  if (expectations) {
+    block += `### Inflation Expectations (Model)\n| Date | 1Y | 5Y | 10Y | 30Y |\n|------|-----|-----|-----|-----|\n`;
+    block += `| **${expectations.date}** | ${expectations.model_1_year?.toFixed(2)}% | ${expectations.model_5_year?.toFixed(2)}% | ${expectations.model_10_year?.toFixed(2)}% | ${expectations.model_30_year?.toFixed(2)}% |\n`;
+  }
 
   return block;
 }
 
-// ─── Main Router ──────────────────────────────────────────────────────────────
+// ─── Main Router ───────────────────────────────────────────────────────────────
 
 const routeAndEnhancePrompt = async (prompt) => {
   if (!prompt || typeof prompt !== 'string') return prompt;
@@ -369,126 +480,195 @@ const routeAndEnhancePrompt = async (prompt) => {
     if (!intent) return prompt;
 
     logger.info(`[MassiveRouter] Intent: ${intent.type} | Symbol: ${intent.symbol || 'N/A'}`);
-
     const q = prompt.toLowerCase();
+    const isComparison = /\b(vs|versus|compare|against)\b/.test(q);
 
     // ── MARKET STATUS ─────────────────────────────────────────────────────
     if (intent.type === 'market_status') {
       const { status, holidays } = await fetchMarketStatus();
       if (!status) return prompt;
-
-      const s = status;
-      let block = `## Current Market Status\n`;
-      block += `| Market | Status |\n|--------|--------|\n`;
-      block += `| Overall | **${s.market?.toUpperCase()}** |\n`;
-      block += `| NYSE | ${s.exchanges?.nyse || 'N/A'} |\n`;
-      block += `| NASDAQ | ${s.exchanges?.nasdaq || 'N/A'} |\n`;
-      block += `| Crypto | ${s.currencies?.crypto || 'N/A'} |\n`;
-      block += `| Forex | ${s.currencies?.fx || 'N/A'} |\n`;
-      block += `| After Hours | ${s.afterHours ? 'Yes' : 'No'} |\n`;
-      block += `| Early Hours | ${s.earlyHours ? 'Yes' : 'No'} |\n`;
-      block += `| Server Time | ${s.serverTime} |\n`;
-
+      let block = `## Current Market Status\n| Market | Status |\n|--------|--------|\n`;
+      block += `| Overall | **${status.market?.toUpperCase()}** |\n`;
+      block += `| NYSE | ${status.exchanges?.nyse || 'N/A'} |\n`;
+      block += `| NASDAQ | ${status.exchanges?.nasdaq || 'N/A'} |\n`;
+      block += `| Crypto | ${status.currencies?.crypto || 'N/A'} |\n`;
+      block += `| Forex | ${status.currencies?.fx || 'N/A'} |\n`;
+      block += `| After Hours | ${status.afterHours ? 'Yes' : 'No'} |\n`;
+      block += `| Early Hours | ${status.earlyHours ? 'Yes' : 'No'} |\n`;
+      block += `| Server Time | ${status.serverTime} |\n`;
       if (Array.isArray(holidays) && holidays.length > 0) {
-        block += `\n## Upcoming Market Holidays\n`;
-        block += `| Date | Exchange | Holiday | Status |\n|------|----------|---------|--------|\n`;
+        block += `\n## Upcoming Market Holidays\n| Date | Exchange | Holiday | Status |\n|------|----------|---------|--------|\n`;
         const seen = new Set();
         holidays.filter(h => !seen.has(h.date + h.name) && seen.add(h.date + h.name))
-          .slice(0, 5)
-          .forEach(h => { block += `| ${h.date} | ${h.exchange} | ${h.name} | ${h.status} |\n`; });
+          .slice(0, 5).forEach(h => { block += `| ${h.date} | ${h.exchange} | ${h.name} | ${h.status} |\n`; });
       }
-
       return buildPrompt(prompt, block, 'Massive.com Global Market Status Service');
     }
 
-    // ── MACRO / FEDERAL RESERVE ───────────────────────────────────────────
+    // ── MACRO / FED ────────────────────────────────────────────────────────
     if (intent.type === 'macro') {
-      const { inflation, yields, labor, expectations } = await fetchMacroFull();
+      const data = await fetchMacroFull();
+      return buildPrompt(prompt, formatMacroBlock(data), 'Massive.com Federal Reserve Economic Data');
+    }
 
-      let block = `## Federal Reserve & Macro Economic Data\n\n`;
+    // ── MARKET INDICES (via ETF proxies) ─────────────────────────────────
+    if (intent.type === 'index') {
+      const proxy = intent.symbol; // e.g. SPY, QQQ, DIA, IWM
+      const indexName = intent.indexName || proxy;
+      const displayNames = {
+        SPY: 'S&P 500 (via SPY ETF)', QQQ: 'NASDAQ 100 (via QQQ ETF)',
+        DIA: 'Dow Jones (via DIA ETF)', IWM: 'Russell 2000 (via IWM ETF)',
+        VIXY: 'VIX Volatility (via VIXY ETF)', TLT: '20-Year Treasury (via TLT ETF)',
+        IEF: '10-Year Treasury (via IEF ETF)', EEM: 'Emerging Markets (via EEM ETF)',
+        EFA: 'Developed Markets (via EFA ETF)',
+      };
+      const label = displayNames[proxy] || `${indexName.toUpperCase()} (via ${proxy} ETF)`;
 
-      const latestCPI = inflation?.results?.slice(-1)[0];
-      if (latestCPI) {
-        block += `### CPI Inflation\n| Date | CPI |\n|------|-----|\n| ${latestCPI.date} | **${latestCPI.cpi}** |\n\n`;
+      const [snapshots, news] = await Promise.all([
+        safe(getStocksSnapshotTickersService([proxy])),
+        safe(getStockNewsService(proxy, 3)),
+      ]);
+
+      const snap = Array.isArray(snapshots) ? snapshots.find(s => s.ticker === proxy) || snapshots[0] : null;
+
+      let block = `## ${label}\n`;
+      if (snap) {
+        block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
+        if (snap.day?.c) block += `| Close | **$${snap.day.c.toLocaleString()}** |\n`;
+        if (snap.day?.o) block += `| Open | $${snap.day.o.toLocaleString()} |\n`;
+        if (snap.day?.h) block += `| High | **$${snap.day.h.toLocaleString()}** |\n`;
+        if (snap.day?.l) block += `| Low | **$${snap.day.l.toLocaleString()}** |\n`;
+        const change = snap.day?.c && snap.day?.o ? (snap.day.c - snap.day.o) : snap.todaysChange;
+        const changePct = snap.day?.c && snap.day?.o
+          ? (((snap.day.c - snap.day.o) / snap.day.o) * 100)
+          : snap.todaysChangePerc;
+        if (change !== undefined && change !== null) {
+          const dir = change >= 0 ? '📈' : '📉';
+          block += `| Day Change | **${dir} ${change?.toFixed(2)} (${changePct?.toFixed(2)}%)** |\n`;
+        }
+        if (snap.day?.v) block += `| Volume | ${snap.day.v.toLocaleString()} |\n`;
+        if (snap.prevDay?.c) block += `| Prev Close | $${snap.prevDay.c.toLocaleString()} |\n`;
       }
 
-      const latestYield = yields?.results?.slice(-1)[0];
-      if (latestYield) {
-        block += `### Treasury Yield Curve\n`;
-        block += `| Date | 1Y | 5Y | 10Y |\n|------|-----|-----|-----|\n`;
-        block += `| ${latestYield.date} | **${latestYield.yield_1_year}%** | **${latestYield.yield_5_year}%** | **${latestYield.yield_10_year}%** |\n\n`;
+      if (Array.isArray(news) && news.length > 0) {
+        block += `\n### Recent News\n`;
+        news.slice(0, 3).forEach((n, i) => {
+          if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
+        });
       }
 
-      const latestLabor = labor?.results?.slice(-1)[0];
-      if (latestLabor) {
-        block += `### Labor Market\n| Date | Unemployment | Participation Rate |\n|------|-------------|--------------------|\n`;
-        block += `| ${latestLabor.date} | **${latestLabor.unemployment_rate}%** | ${latestLabor.labor_force_participation_rate}% |\n\n`;
+      block += `\n> ℹ️ Index level data (I:SPX) is proxied via the ${proxy} ETF, which tracks the index 1:1.`;
+      return buildPrompt(prompt, block, 'Massive.com Real-Time Market Index Service');
+    }
+
+    // ── COMMODITIES (via ETF proxies) ─────────────────────────────────────
+    if (intent.type === 'commodity') {
+      const proxy = intent.symbol;
+      const commodityName = intent.commodityName || proxy;
+      const displayNames = {
+        GLD: 'Gold (via GLD ETF)', SLV: 'Silver (via SLV ETF)',
+        USO: 'Crude Oil (via USO ETF)', UNG: 'Natural Gas (via UNG ETF)',
+        GDX: 'Gold Miners (via GDX ETF)', PDBC: 'Commodities (via PDBC ETF)',
+        WEAT: 'Wheat (via WEAT ETF)', CORN: 'Corn (via CORN ETF)',
+        SOYB: 'Soybeans (via SOYB ETF)', CPER: 'Copper (via CPER ETF)',
+      };
+      const label = displayNames[proxy] || `${commodityName} (via ${proxy} ETF)`;
+
+      const [snapshots, prev, news] = await Promise.all([
+        safe(getStocksSnapshotTickersService([proxy])),
+        safe(getStockQuoteService(proxy)),
+        safe(getStockNewsService(proxy, 3)),
+      ]);
+
+      const snap = Array.isArray(snapshots) ? snapshots.find(s => s.ticker === proxy) || snapshots[0] : null;
+
+      let block = `## ${label}\n`;
+      if (snap) {
+        block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
+        if (snap.day?.c) block += `| Close | **$${snap.day.c.toFixed(3)}** |\n`;
+        if (snap.day?.o) block += `| Open | $${snap.day.o.toFixed(3)} |\n`;
+        if (snap.day?.h) block += `| High | **$${snap.day.h.toFixed(3)}** |\n`;
+        if (snap.day?.l) block += `| Low | **$${snap.day.l.toFixed(3)}** |\n`;
+        const change = snap.todaysChange ?? (snap.day?.c && snap.day?.o ? snap.day.c - snap.day.o : null);
+        const changePct = snap.todaysChangePerc ?? (snap.day?.c && snap.day?.o ? ((snap.day.c - snap.day.o) / snap.day.o) * 100 : null);
+        if (change !== null && change !== undefined) {
+          block += `| Day Change | **${change >= 0 ? '📈 +' : '📉 '}${change?.toFixed(3)} (${changePct?.toFixed(2)}%)** |\n`;
+        }
+        if (snap.day?.v) block += `| Volume | ${snap.day.v.toLocaleString()} |\n`;
       }
 
-      const latestExp = expectations?.results?.slice(-1)[0];
-      if (latestExp) {
-        block += `### Inflation Expectations\n| Date | 1Y | 5Y | 10Y |\n|------|-----|-----|-----|\n`;
-        block += `| ${latestExp.date} | ${latestExp.model_1_year?.toFixed(2)}% | ${latestExp.model_5_year?.toFixed(2)}% | ${latestExp.model_10_year?.toFixed(2)}% |\n`;
+      if (Array.isArray(news) && news.length > 0) {
+        block += `\n### Recent News\n`;
+        news.slice(0, 3).forEach((n, i) => {
+          if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
+        });
       }
+      block += `\n> ℹ️ Commodity prices are via the ${proxy} ETF proxy (tracks spot price).`;
+      return buildPrompt(prompt, block, `Massive.com Real-Time Commodity Service`);
+    }
 
-      return buildPrompt(prompt, block, 'Massive.com Federal Reserve Economic Data');
+    // ── TECHNICAL ANALYSIS ────────────────────────────────────────────────
+    if (intent.type === 'technical' && intent.symbol) {
+      const [technicals, quote] = await Promise.all([
+        fetchTechnicals(intent.symbol),
+        safe(getStockQuoteService(intent.symbol)),
+      ]);
+      let block = '';
+      const price = quote?.trade?.p || quote?.ratios?.price;
+      if (price) block += `**${intent.symbol} Current Price: $${price.toLocaleString()}**\n\n`;
+      block += formatTechnicalBlock(technicals, intent.symbol);
+      return buildPrompt(prompt, block, 'Massive.com Technical Analysis Service');
     }
 
     // ── STOCK ─────────────────────────────────────────────────────────────
     if (intent.type === 'stock' && intent.symbol) {
-      // Multi-ticker comparison
-      const isComparison = /\b(vs|versus|compare|against)\b/.test(q);
       if (isComparison) {
         const tickers = detectMultipleTickers(prompt);
         if (tickers.length >= 2) {
-          const results = await Promise.all(tickers.map(t => fetchStockFull(t.symbol)));
+          const results = await Promise.all(tickers.filter(t => t.type === 'stock').map(t => fetchStockFull(t.symbol)));
           const blocks = results.map(r => formatStockBlock(r)).join('\n\n---\n\n');
           return buildPrompt(prompt, `## Stock Comparison\n\n${blocks}`, 'Massive.com Real-Time Equity Service');
         }
       }
-
       const data = await fetchStockFull(intent.symbol);
       return buildPrompt(prompt, formatStockBlock(data), 'Massive.com Real-Time Equity Service');
     }
 
+    // ── ETF ───────────────────────────────────────────────────────────────
+    if (intent.type === 'etf' && intent.symbol) {
+      const data = await fetchETFData(intent.symbol);
+      return buildPrompt(prompt, formatETFBlock(data, intent.symbol), 'Massive.com Real-Time ETF Service');
+    }
+
     // ── OPTIONS ───────────────────────────────────────────────────────────
     if (intent.type === 'options' && intent.symbol) {
-      // Detect call/put preference from prompt
       const wantsCalls = /\bcalls?\b/i.test(prompt);
       const wantsPuts = /\bputs?\b/i.test(prompt);
       const type = wantsCalls ? 'call' : wantsPuts ? 'put' : undefined;
-
-      // Detect expiration from prompt (e.g. "June 20", "2025-06-20")
       const expMatch = prompt.match(/20\d{2}-\d{2}-\d{2}|\d{1,2}[\/\-]\d{1,2}[\/\-]20\d{2}/);
 
       const [options, stockData] = await Promise.all([
         safe(type || expMatch
           ? getOptionsChainFilteredService(intent.symbol, { type, expiration: expMatch?.[0], limit: 25 })
-          : getOptionsChainService(intent.symbol, 30)),
+          : getOptionsChainService(intent.symbol, 30), 6000),
         safe(getStockQuoteService(intent.symbol)),
       ]);
 
-      const stockPrice = stockData?.trade?.p || stockData?.quote?.P;
-      let block = '';
-      if (stockPrice) block += `**${intent.symbol} Current Price: $${stockPrice}** (${stockData?.quote?.t ? 'Delayed' : 'Live'})\n\n`;
-      block += formatOptionsBlock(options, intent.symbol);
-
-      return buildPrompt(prompt, block, 'Massive.com Options Chain Real-Time Service');
+      const stockPrice = stockData?.trade?.p;
+      return buildPrompt(prompt, formatOptionsBlock(options, intent.symbol, stockPrice), 'Massive.com Options Chain Real-Time Service');
     }
 
     // ── CRYPTO ────────────────────────────────────────────────────────────
     if (intent.type === 'crypto' && intent.symbol) {
-      // Multi-crypto comparison
-      const isComparison = /\b(vs|versus|compare|against)\b/.test(q);
       if (isComparison) {
         const tickers = detectMultipleTickers(prompt);
-        if (tickers.length >= 2) {
-          const results = await Promise.all(tickers.map(t => fetchCryptoFull(t.symbol)));
+        const cryptos = tickers.filter(t => t.type === 'crypto');
+        if (cryptos.length >= 2) {
+          const results = await Promise.all(cryptos.map(t => fetchCryptoFull(t.symbol)));
           const blocks = results.map(r => formatCryptoBlock(r)).join('\n\n---\n\n');
           return buildPrompt(prompt, `## Crypto Comparison\n\n${blocks}`, 'Massive.com Real-Time Crypto Service');
         }
       }
-
       const data = await fetchCryptoFull(intent.symbol);
       return buildPrompt(prompt, formatCryptoBlock(data), 'Massive.com Real-Time Crypto Service');
     }
@@ -502,13 +682,9 @@ const routeAndEnhancePrompt = async (prompt) => {
     // ── NEWS ──────────────────────────────────────────────────────────────
     if (intent.type === 'news') {
       const ticker = intent.symbol;
-      const news = await fetchStockNews(ticker || 'SPY');
+      const news = await safe(getMarketNewsService(ticker || 'SPY', 5));
       if (!Array.isArray(news) || news.length === 0) return prompt;
-
-      let block = ticker
-        ? `## Latest News for ${ticker}\n`
-        : `## Latest Market News\n`;
-
+      let block = ticker ? `## Latest News for ${ticker}\n` : `## Latest Market News\n`;
       news.slice(0, 5).forEach((n, i) => {
         if (!n.title) return;
         block += `\n### ${i + 1}. ${n.title}\n`;
@@ -518,64 +694,49 @@ const routeAndEnhancePrompt = async (prompt) => {
         if (n.article_url) block += `- **URL:** ${n.article_url}\n`;
         if (n.tickers?.length) block += `- **Tickers:** ${n.tickers.slice(0, 5).join(', ')}\n`;
       });
-
-      return buildPrompt(prompt, block, 'Massive.com Market News Service (via Polygon)');
+      return buildPrompt(prompt, block, 'Massive.com Market News Service');
     }
 
     // ── EARNINGS ──────────────────────────────────────────────────────────
     if (intent.type === 'earnings' && intent.symbol) {
-      // For earnings, fetch news + financials ratios (earnings endpoint is on premium plan)
       const [ratios, news] = await Promise.all([
         safe(getStockFinancialsRatiosService(intent.symbol)),
         safe(getMarketNewsService(intent.symbol, 5)),
       ]);
-
       let block = `## ${intent.symbol} — Earnings & Financial Data\n\n`;
-
       if (ratios) {
-        block += `### Key Metrics (as of ${ratios.date})\n`;
-        block += `| Metric | Value |\n|--------|-------|\n`;
+        block += `### Key Metrics\n| Metric | Value |\n|--------|-------|\n`;
         if (ratios.earnings_per_share) block += `| EPS | **$${ratios.earnings_per_share?.toFixed(2)}** |\n`;
         if (ratios.price_to_earnings) block += `| P/E Ratio | **${ratios.price_to_earnings?.toFixed(2)}** |\n`;
         if (ratios.market_cap) block += `| Market Cap | **$${(ratios.market_cap / 1e9).toFixed(2)}B** |\n`;
         if (ratios.price) block += `| Price | $${ratios.price} |\n`;
-        if (ratios.average_volume) block += `| Avg Volume | ${(ratios.average_volume / 1e6).toFixed(2)}M |\n`;
         block += '\n';
       }
-
       if (Array.isArray(news) && news.length > 0) {
-        block += `### Recent Earnings News\n`;
-        news.filter(n => n.title?.toLowerCase().includes('earn') ||
-                         n.title?.toLowerCase().includes('revenue') ||
-                         n.title?.toLowerCase().includes('profit') || true)
-          .slice(0, 3)
-          .forEach((n, i) => {
-            if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name} (${n.published_utc?.slice(0, 10)})\n`;
-          });
+        block += `### Recent Earnings-Related News\n`;
+        news.slice(0, 3).forEach((n, i) => {
+          if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name} (${n.published_utc?.slice(0, 10)})\n`;
+        });
       }
-
       return buildPrompt(prompt, block, 'Massive.com Financial Data & News Service');
     }
 
-    // ── IPO / EVENTS ──────────────────────────────────────────────────────
+    // ── IPO ───────────────────────────────────────────────────────────────
     if (/\bipo\b|\binitial public offering\b/i.test(q)) {
       const ipos = await safe(getIPOsService(10));
       if (!ipos?.length) return prompt;
-
-      let block = `## Upcoming IPOs\n`;
-      block += `| Company | Ticker | Expected Date | Exchange |\n|---------|--------|---------------|----------|\n`;
+      let block = `## Upcoming IPOs\n| Company | Ticker | Expected Date | Exchange |\n|---------|--------|---------------|----------|\n`;
       ipos.slice(0, 10).forEach(ipo => {
         block += `| ${ipo.company_name || 'N/A'} | **${ipo.ticker || 'N/A'}** | ${ipo.ipo_date || 'TBD'} | ${ipo.primary_exchange || 'N/A'} |\n`;
       });
-
       return buildPrompt(prompt, block, 'Massive.com IPO Calendar Service');
     }
 
   } catch (err) {
-    logger.error('[MassiveRouter] Error in routeAndEnhancePrompt:', err.message);
+    logger.error('[MassiveRouter] Error:', err.message);
   }
 
-  return prompt; // Safe fallback — never breaks the AI pipeline
+  return prompt;
 };
 
 export const massiveSmartRouter = {

@@ -567,22 +567,29 @@ export const CRYPTO_NAME_MAP = {
 // FOREX NAME → TICKER MAP (All major/minor/exotic pairs)
 // ─────────────────────────────────────────────
 export const FOREX_NAME_MAP = {
-  // Major pairs
+  // Major pairs — all formats including natural language
   'eurusd': 'EURUSD', 'eur/usd': 'EURUSD', 'euro dollar': 'EURUSD', 'euro usd': 'EURUSD',
+  'euro to dollar': 'EURUSD', 'euro to usd': 'EURUSD', 'eur to usd': 'EURUSD',
   'gbpusd': 'GBPUSD', 'gbp/usd': 'GBPUSD', 'pound dollar': 'GBPUSD', 'cable': 'GBPUSD',
+  'gbp to usd': 'GBPUSD', 'pound to dollar': 'GBPUSD', 'pound to usd': 'GBPUSD',
+  'british pound': 'GBPUSD', 'sterling': 'GBPUSD', 'pound sterling': 'GBPUSD',
   'usdjpy': 'USDJPY', 'usd/jpy': 'USDJPY', 'dollar yen': 'USDJPY', 'yen': 'USDJPY',
+  'yen to dollar': 'USDJPY', 'dollar to yen': 'USDJPY', 'japanese yen': 'USDJPY',
   'usdchf': 'USDCHF', 'usd/chf': 'USDCHF', 'dollar franc': 'USDCHF', 'swissie': 'USDCHF',
+  'swiss franc': 'USDCHF', 'franc': 'USDCHF',
   'audusd': 'AUDUSD', 'aud/usd': 'AUDUSD', 'aussie': 'AUDUSD', 'australian dollar': 'AUDUSD',
+  'aud to usd': 'AUDUSD', 'aussie dollar': 'AUDUSD',
   'usdcad': 'USDCAD', 'usd/cad': 'USDCAD', 'loonie': 'USDCAD', 'canadian dollar': 'USDCAD',
+  'cad to usd': 'USDCAD', 'usd to cad': 'USDCAD',
   'nzdusd': 'NZDUSD', 'nzd/usd': 'NZDUSD', 'kiwi': 'NZDUSD', 'new zealand dollar': 'NZDUSD',
   // Minor pairs
-  'eurgbp': 'EURGBP', 'eur/gbp': 'EURGBP',
-  'eurjpy': 'EURJPY', 'eur/jpy': 'EURJPY',
+  'eurgbp': 'EURGBP', 'eur/gbp': 'EURGBP', 'euro to pound': 'EURGBP',
+  'eurjpy': 'EURJPY', 'eur/jpy': 'EURJPY', 'euro to yen': 'EURJPY',
   'eurchf': 'EURCHF', 'eur/chf': 'EURCHF',
   'euraud': 'EURAUD', 'eur/aud': 'EURAUD',
   'eurcad': 'EURCAD', 'eur/cad': 'EURCAD',
   'eurnzd': 'EURNZD', 'eur/nzd': 'EURNZD',
-  'gbpjpy': 'GBPJPY', 'gbp/jpy': 'GBPJPY',
+  'gbpjpy': 'GBPJPY', 'gbp/jpy': 'GBPJPY', 'pound to yen': 'GBPJPY',
   'gbpchf': 'GBPCHF', 'gbp/chf': 'GBPCHF',
   'gbpaud': 'GBPAUD', 'gbp/aud': 'GBPAUD',
   'gbpcad': 'GBPCAD', 'gbp/cad': 'GBPCAD',
@@ -635,6 +642,66 @@ export const FOREX_NAME_MAP = {
   'usdvef': 'USDVEF', 'venezuelan bolivar': 'USDVEF', 'bolivar': 'USDVEF',
   'dollar': 'DXY', 'dxy': 'DXY', 'dollar index': 'DXY', 'us dollar': 'DXY',
 };
+
+// ─────────────────────────────────────────────
+// COMMODITY → ETF PROXY MAP
+// (Indices data is 403 on this plan; use ETF proxies)
+// ─────────────────────────────────────────────
+export const COMMODITY_MAP = {
+  // Precious metals
+  'gold': 'GLD', 'gold price': 'GLD', 'gold etf': 'GLD', 'spot gold': 'GLD', 'xau': 'GLD',
+  'silver': 'SLV', 'silver price': 'SLV', 'spot silver': 'SLV', 'xag': 'SLV',
+  'platinum': 'PPLT', 'palladium': 'PALL',
+  // Energy
+  'crude oil': 'USO', 'oil price': 'USO', 'wti': 'USO', 'wti crude': 'USO', 'brent': 'USO',
+  'natural gas': 'UNG', 'nat gas': 'UNG', 'lng': 'UNG',
+  'gasoline': 'UGA',
+  // Agriculture
+  'wheat': 'WEAT', 'corn': 'CORN', 'soybeans': 'SOYB', 'soy': 'SOYB',
+  'sugar': 'CANE', 'coffee': 'JO', 'cotton': 'BAL',
+  // Broad commodities
+  'commodities': 'PDBC', 'commodity': 'PDBC',
+  'copper': 'CPER',
+  'uranium': 'URA',
+};
+
+// ─────────────────────────────────────────────
+// MARKET INDEX → ETF PROXY MAP
+// (I:SPX etc. are 403 on this plan; SPY/QQQ/DIA/IWM work perfectly)
+// ─────────────────────────────────────────────
+export const INDEX_MAP = {
+  // S&P 500
+  's&p 500': 'SPY', 'sp500': 'SPY', 's&p500': 'SPY', 's and p': 'SPY',
+  's&p index': 'SPY', 'spy': 'SPY', 'standard and poor': 'SPY',
+  // NASDAQ
+  'nasdaq 100': 'QQQ', 'nasdaq100': 'QQQ', 'qqq': 'QQQ', 'nasdaq composite': 'QQQ',
+  'tech index': 'QQQ',
+  // Dow Jones
+  'dow jones': 'DIA', 'dow': 'DIA', 'djia': 'DIA', 'dia': 'DIA',
+  'dow 30': 'DIA', 'industrial average': 'DIA',
+  // Russell 2000
+  'russell 2000': 'IWM', 'russell': 'IWM', 'iwm': 'IWM', 'small cap index': 'IWM',
+  // VIX  
+  'vix': 'VIXY', 'volatility index': 'VIXY', 'fear index': 'VIXY', 'fear gauge': 'VIXY',
+  'vixy': 'VIXY',
+  // Bond indices
+  'treasury': 'TLT', 'bond index': 'TLT', 'tlt': 'TLT', '20 year treasury': 'TLT',
+  '10 year treasury': 'IEF', 'ief': 'IEF',
+  // International
+  'emerging markets': 'EEM', 'developed markets': 'EFA', 'international index': 'EFA',
+};
+
+// ─────────────────────────────────────────────
+// TECHNICAL ANALYSIS KEYWORDS
+// ─────────────────────────────────────────────
+export const TECHNICAL_KEYWORDS = [
+  'macd', 'ema', 'sma', 'rsi', 'moving average', 'exponential moving average',
+  'simple moving average', 'bollinger', 'support', 'resistance', 'trend',
+  'overbought', 'oversold', 'golden cross', 'death cross', 'technical analysis',
+  'chart pattern', 'candlestick', 'momentum', 'oscillator', 'signal line',
+  'histogram', '50 day', '200 day', '50-day', '200-day', '20 day', '20-day',
+];
+
 
 // ─────────────────────────────────────────────
 // OPTIONS DETECTION KEYWORDS
@@ -728,78 +795,97 @@ export function detectFinancialIntent(prompt) {
     return { type: 'macro', symbol: null };
   }
 
-  // 3. Indices
-  if (INDICES_KEYWORDS.some(k => q.includes(k))) {
-    return { type: 'indices', symbol: null };
+  // 3. Indices — use ETF proxies (I:SPX is 403 on this plan)
+  for (const [name, proxy] of Object.entries(INDEX_MAP)) {
+    if (q.includes(name)) return { type: 'index', symbol: proxy, indexName: name };
   }
 
-  // 4. Options check (before stock so options on a stock get caught)
+  // 4. Commodities — use ETF proxies
+  for (const [name, proxy] of Object.entries(COMMODITY_MAP)) {
+    if (q.includes(name)) return { type: 'commodity', symbol: proxy, commodityName: name };
+  }
+
+  // 5. Options check (before stock so options on a stock get caught)
   const hasOptionsKeyword = OPTIONS_KEYWORDS.some(k => q.includes(k));
 
-  // 5. Explicit $TICKER format
+  // 6. Technical analysis — detect indicator requested and symbol
+  const hasTechnicalKeyword = TECHNICAL_KEYWORDS.some(k => q.includes(k));
+
+  // 7. Explicit $TICKER format
   const dollarMatch = prompt.match(/\$([A-Z]{1,5})\b/);
   if (dollarMatch) {
     const sym = dollarMatch[1].toUpperCase();
-    return { type: hasOptionsKeyword ? 'options' : 'stock', symbol: sym };
+    if (hasOptionsKeyword) return { type: 'options', symbol: sym };
+    if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
+    return { type: 'stock', symbol: sym };
   }
 
-  // 6. Bare ticker: word in ALL CAPS 1–5 chars (not at end of sentence punctuation)
+  // 8. Bare ticker: word in ALL CAPS 1–5 chars
   const bareMatch = prompt.match(/\b([A-Z]{2,5})\b/);
   if (bareMatch) {
     const sym = bareMatch[1].toUpperCase();
-    // Validate it's a known stock or ETF
     const allTickers = new Set([
       ...Object.values(STOCK_NAME_MAP),
       ...Object.values(ETF_NAME_MAP),
     ]);
     if (allTickers.has(sym)) {
-      return { type: hasOptionsKeyword ? 'options' : 'stock', symbol: sym };
+      if (hasOptionsKeyword) return { type: 'options', symbol: sym };
+      if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
+      return { type: 'stock', symbol: sym };
     }
   }
 
   // Helper: check if a name appears as a whole word in the query
   const hasWordMatch = (name) => {
     if (name.length <= 2) {
-      // Short names (ea, ms, ge, etc.) require explicit financial context to avoid false positives
-      const hasFinancialContext = /\b(stock|share|price|ticker|trading|market|invest|buy|sell|earnings|ipo|etf|fund|option|call|put|crypto|coin|forex|currency|rate|yield|equity|portfolio|dividend|index)\b/i.test(prompt);
+      const hasFinancialContext = /\b(stock|share|price|ticker|trading|market|invest|buy|sell|earnings|ipo|etf|fund|option|call|put|crypto|coin|forex|currency|rate|yield|equity|portfolio|dividend|index|gold|silver|oil)\b/i.test(prompt);
       if (!hasFinancialContext) return false;
     }
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp(`(?:^|[\\s\\(\\[\\{,;:])${escaped}(?:[\\s\\)\\]\\},;:!?.]|$)`, 'i').test(prompt);
   };
 
-  // 7. Crypto lookup (word-boundary)
+  // 9. Crypto lookup (word-boundary)
   for (const [name, sym] of Object.entries(CRYPTO_NAME_MAP)) {
     if (hasWordMatch(name)) return { type: 'crypto', symbol: sym };
   }
 
-  // 8. Forex lookup (word-boundary)
-  for (const [name, sym] of Object.entries(FOREX_NAME_MAP)) {
-    if (hasWordMatch(name)) return { type: 'forex', symbol: sym };
+  // 10. Forex lookup (word-boundary, longer phrases first to avoid substring collisions)
+  const forexEntries = Object.entries(FOREX_NAME_MAP).sort((a, b) => b[0].length - a[0].length);
+  for (const [name, sym] of forexEntries) {
+    if (q.includes(name)) return { type: 'forex', symbol: sym };
   }
 
-  // 9. Stock name lookup (word-boundary)
+  // 11. Stock name lookup (word-boundary)
   for (const [name, sym] of Object.entries(STOCK_NAME_MAP)) {
     if (hasWordMatch(name)) {
-      return { type: hasOptionsKeyword ? 'options' : 'stock', symbol: sym };
+      if (hasOptionsKeyword) return { type: 'options', symbol: sym };
+      if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
+      return { type: 'stock', symbol: sym };
     }
   }
 
-  // 10. ETF name lookup (word-boundary)
+  // 12. ETF name lookup (word-boundary)
   for (const [name, sym] of Object.entries(ETF_NAME_MAP)) {
     if (hasWordMatch(name)) {
-      return { type: hasOptionsKeyword ? 'options' : 'etf', symbol: sym };
+      if (hasOptionsKeyword) return { type: 'options', symbol: sym };
+      return { type: 'etf', symbol: sym };
     }
   }
 
-  // 11. Earnings check even without ticker
+  // 13. Earnings check even without ticker
   if (EARNINGS_KEYWORDS.some(k => q.includes(k))) {
     return { type: 'earnings', symbol: null };
   }
 
-  // 12. News/analyst check
+  // 14. News/analyst check
   if (NEWS_KEYWORDS.some(k => q.includes(k))) {
     return { type: 'news', symbol: null };
+  }
+
+  // 15. Pure technical check (no ticker — fallback to SPY)
+  if (hasTechnicalKeyword) {
+    return { type: 'technical', symbol: 'SPY' };
   }
 
   return null; // Not a financial query
