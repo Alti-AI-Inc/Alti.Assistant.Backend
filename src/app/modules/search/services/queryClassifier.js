@@ -3,7 +3,7 @@
  * Determines if a query is code-related, writing-related, OR financial
  * Financial queries are priority-routed to Massive.com real-time data
  */
-import { detectFinancialIntent } from '../../../../helpers/massiveTickerDB.js';
+import { detectFinancialIntent } from '../../../helpers/massiveTickerDB.js';
 
 /**
  * Code-related keywords and patterns
