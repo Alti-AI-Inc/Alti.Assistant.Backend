@@ -81,7 +81,7 @@ jobs:
             --region ${{ env.REGION }} \
             --project ${{ env.PROJECT_ID }} \
             --allow-unauthenticated \
-            --port 80 \
+            --port 8080 \
             --memory ${{ env.MEMORY }} \
             --cpu ${{ env.CPU }} \
             --timeout ${{ env.TIMEOUT }} \

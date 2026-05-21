@@ -32,7 +32,7 @@ RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
 # Copy only necessary application files from builder
 COPY --from=builder /app/ason-core-service/src ./src
 COPY --from=builder /app/ason-core-service/config ./config
-COPY --from=builder /app/ason-core-service/test ./test
+# test/ intentionally excluded from production image
 COPY --from=builder /app/ason-core-service/index.js ./
 COPY --from=builder /app/ason-core-service/server.js ./
 COPY --from=builder /app/ason-core-service/alti_gcp.json ./
@@ -43,7 +43,8 @@ COPY --from=builder /app/ason-core-service/output ./output
 # Create necessary directories
 RUN mkdir -p logs/errors logs/successes uploads/ragsystem
 
-EXPOSE 5100
+# Cloud Run sets PORT=8080 by default; app reads process.env.PORT
+EXPOSE 8080
 
 # Use node instead of nodemon in production
 CMD ["node", "index.js"]
