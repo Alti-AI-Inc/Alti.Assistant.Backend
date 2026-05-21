@@ -6,16 +6,16 @@ on:
       - main
 
 env:
-  PROJECT_ID: alti-assistant-prod
-  REGION: us-central1
+  PROJECT_ID:   alti-assistant-prod
+  REGION:       us-central1
   SERVICE_NAME: alti-assistant-backend
-  REGISTRY: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
-  IMAGE_NAME: alti-assistant-backend
-  MEMORY: 4Gi
-  CPU: "2"
+  REGISTRY:     us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
+  IMAGE_NAME:   alti-assistant-backend
+  MEMORY:       4Gi
+  CPU:          "2"
   MIN_INSTANCES: "1"
   MAX_INSTANCES: "4"
-  TIMEOUT: "300"
+  TIMEOUT:      "300"
 
 jobs:
   build-and-deploy:
@@ -23,35 +23,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────────────
+      # ── 1. Checkout ─────────────────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── 2. Version tag ─────────────────────────────────────────────────────
-      - name: Set up version tag
+      # ── 2. Version tag ───────────────────────────────────────────────────────
+      - name: Set version tag
         id: vars
         run: |
           VERSION="v$(date +'%Y%m%d')-${GITHUB_SHA::7}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "image_versioned=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION" >> $GITHUB_OUTPUT
-          echo "image_latest=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "🏷️  Image tag: $VERSION"
+          IMAGE_VERSIONED="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+          IMAGE_LATEST="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "version=${VERSION}"             >> $GITHUB_OUTPUT
+          echo "image_versioned=${IMAGE_VERSIONED}" >> $GITHUB_OUTPUT
+          echo "image_latest=${IMAGE_LATEST}"   >> $GITHUB_OUTPUT
+          echo "🏷️  Tag: ${VERSION}"
 
-      # ── 3. GCP Auth ────────────────────────────────────────────────────────
+      # ── 3. GCP Auth ──────────────────────────────────────────────────────────
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # ── 4. Configure Docker ────────────────────────────────────────────────
+      # ── 4. Docker for Artifact Registry ─────────────────────────────────────
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      # ── 5. Docker Buildx ───────────────────────────────────────────────────
+      # ── 5. Docker Buildx ─────────────────────────────────────────────────────
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ── 6. Build & Push image ──────────────────────────────────────────────
+      # ── 6. Build & Push ──────────────────────────────────────────────────────
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -64,9 +66,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ── 7. Deploy to Cloud Run ─────────────────────────────────────────────
+      # ── 7. Deploy to Cloud Run ───────────────────────────────────────────────
+      #
+      # ALL runtime secrets are read from GCP Secret Manager at deploy time.
+      # Add/remove entries here to control what the container receives.
+      # Format: ENV_VAR_NAME=SECRET_MANAGER_SECRET_NAME:latest
+      # Run set-all-secrets.ps1 to provision/update the secrets in Secret Manager.
+      #
       - name: Deploy to Cloud Run
-        id: deploy
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image "${{ steps.vars.outputs.image_latest }}" \
@@ -81,45 +88,94 @@ jobs:
             --min-instances ${{ env.MIN_INSTANCES }} \
             --max-instances ${{ env.MAX_INSTANCES }} \
             --cpu-boost \
-            --set-env-vars "NODE_ENV=production" \
+            --set-env-vars "NODE_ENV=production,CLIENT_URL=https://www.altihq.com,GCP_LOCATION=us-central1,VERTEX_AI_LOCATION=us-central1,ENABLE_SMART_ROUTING=true,DEFAULT_MODEL=gemini,SEARCH_USE_OPENMEMORY=true,OM_DEFAULT_K=5,OM_MIN_SCORE=0.2,OM_USE_SECTOR_HINT=true,OM_RERANK_ENABLED=true,OM_RERANK_OVERLAP_WEIGHT=0.6,OM_RERANK_MEMORY_WEIGHT=0.4,OM_RERANK_AB_PCT=100,USE_SIMPLIFIED_COMPOSIO=false,GEMINI_MODEL=gemini-3-pro-preview,CLAUDE_MODEL_NAME=claude-sonnet-4-5,CLAUDE_MAX_TOKENS=4096,CLAUDE_TEMPERATURE=0.7,JWT_ACCESS_EXPIRES_IN=7d,JWT_REFRESH_EXPIRES_IN=365d,GOOGLE_SMTP_HOST=smtp.gmail.com,GOOGLE_SMTP_PORT=587,MODEL_ID=imagen-4.0-generate-preview-06-06" \
             --set-secrets "\
               DATABASE_LOCAL=DATABASE_LOCAL:latest,\
               JWT_ACCESS_TOKEN=JWT_ACCESS_TOKEN:latest,\
               JWT_REFRESH_REFRESH_TOKEN=JWT_REFRESH_REFRESH_TOKEN:latest,\
-              GEMINI_SECRET_KEY=GEMINI_SECRET_KEY:latest,\
-              GOOGLE_CUSTOM_SEARCH_API_KEY=GOOGLE_CUSTOM_SEARCH_API_KEY:latest,\
-              GOOGLE_CUSTOM_SEARCH_CX=GOOGLE_CUSTOM_SEARCH_CX:latest,\
+              GEMINI_API_KEY=GEMINI_API_KEY:latest,\
+              OPENAI_API_KEY=OPENAI_API_KEY:latest,\
+              ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,\
+              GROQ_API_KEY=GROQ_API_KEY:latest,\
+              DEEPSEEK_API_KEY=DEEPSEEK_API_KEY:latest,\
+              TOGETHER_API_KEY=TOGETHER_API_KEY:latest,\
+              TAVILY_API_KEY=TAVILY_API_KEY:latest,\
+              SERPER_API_KEY=SERPER_API_KEY:latest,\
+              GOOGLE_SEARCH_API_KEY=GOOGLE_SEARCH_API_KEY:latest,\
+              GOOGLE_CSE_ID=GOOGLE_CSE_ID:latest,\
+              YOUTUBE_API_KEY=YOUTUBE_API_KEY:latest,\
               MASSIVE_API_KEY=MASSIVE_API_KEY:latest,\
               STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,\
+              STRIPE_PUBLISHABLE_KEY=STRIPE_PUBLISHABLE_KEY:latest,\
               STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,\
               STRIPE_WEBHOOK_SECRET_THIN=STRIPE_WEBHOOK_SECRET_THIN:latest,\
-              REDIS_URL=REDIS_URL:latest,\
-              OPEN_MEMORY_API_KEY=OPEN_MEMORY_API_KEY:latest,\
               GOOGLE_SMTP_PASSWORD=GOOGLE_SMTP_PASSWORD:latest,\
               GOOGLE_SMTP_USER=GOOGLE_SMTP_USER:latest,\
+              MAILGUN_DOMAIN=MAILGUN_DOMAIN:latest,\
+              MAILGUN_KEY=MAILGUN_KEY:latest,\
+              MAILGUN_FROM=MAILGUN_FROM:latest,\
+              REDIS_URL=REDIS_URL:latest,\
               CLOUD_STORAGE_SECRET_KEY=CLOUD_STORAGE_SECRET_KEY:latest,\
               CLOUD_STORAGE_ACCESS_KEY=CLOUD_STORAGE_ACCESS_KEY:latest,\
               CLOUD_STORAGE_BUCKET=CLOUD_STORAGE_BUCKET:latest,\
               LIVEKIT_API_KEY=LIVEKIT_API_KEY:latest,\
-              LIVEKIT_API_SECRET=LIVEKIT_API_SECRET:latest"
+              LIVEKIT_API_SECRET=LIVEKIT_API_SECRET:latest,\
+              WEB_SOCKET_URL=WEB_SOCKET_URL:latest,\
+              GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,\
+              GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,\
+              FACEBOOK_APP_ID=FACEBOOK_APP_ID:latest,\
+              FACEBOOK_APP_SECRET=FACEBOOK_APP_SECRET:latest,\
+              DISCORD_CLIENT_ID=DISCORD_CLIENT_ID:latest,\
+              DISCORD_CLIENT_SECRET=DISCORD_CLIENT_SECRET:latest,\
+              GITHUB_CLIENT_ID=GITHUB_CLIENT_ID:latest,\
+              GITHUB_CLIENT_SECRET=GITHUB_CLIENT_SECRET:latest,\
+              TWITTER_CLIENT_ID=TWITTER_CLIENT_ID:latest,\
+              TWITTER_CLIENT_SECRET=TWITTER_CLIENT_SECRET:latest,\
+              SLACK_CLIENT_ID=SLACK_CLIENT_ID:latest,\
+              SLACK_CLIENT_SECRET=SLACK_CLIENT_SECRET:latest,\
+              COMPOSIO_ORG_API_KEY=COMPOSIO_ORG_API_KEY:latest,\
+              COMPOSIO_API_KEY=COMPOSIO_API_KEY:latest,\
+              COMPOSIO_CLIENT_SECRET=COMPOSIO_CLIENT_SECRET:latest,\
+              COMPOSIO_GMAIL_AUTH_CONFIG_ID=COMPOSIO_GMAIL_AUTH_CONFIG_ID:latest,\
+              BROWSER_USE_SECRET_KEY=BROWSER_USE_SECRET_KEY:latest,\
+              CYBERDESK_API_KEY=CYBERDESK_API_KEY:latest,\
+              GCP_PROJECT_ID=GCP_PROJECT_ID:latest,\
+              VERTEX_AI_PROJECT_ID=VERTEX_AI_PROJECT_ID:latest"
 
-      # ── 8. Print service URL ───────────────────────────────────────────────
-      - name: Get service URL
+      # ── 8. Print Service URL + Job Summary ──────────────────────────────────
+      - name: Report deployment
         run: |
           SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
             --format="value(status.url)")
+
           echo ""
           echo "✅ Deployment successful!"
-          echo "🌐 Cloud Run URL: $SERVICE_URL"
+          echo "🌐 URL  : ${SERVICE_URL}"
           echo "🏷️  Image: ${{ steps.vars.outputs.image_versioned }}"
+          echo "🔀 SHA  : ${GITHUB_SHA::7}"
           echo ""
-          echo "service_url=$SERVICE_URL" >> $GITHUB_STEP_SUMMARY
-          echo "## ✅ Cloud Run Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🌐 Service URL | $SERVICE_URL |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🏷️ Image | \`${{ steps.vars.outputs.image_versioned }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🕐 Deployed at | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔀 Commit | \`${GITHUB_SHA::7}\` |" >> $GITHUB_STEP_SUMMARY
+
+          # Write to GitHub Actions job summary
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ✅ Cloud Run Deployment Complete
+
+          | Field | Value |
+          |-------|-------|
+          | 🌐 **Service URL** | ${SERVICE_URL} |
+          | 🏷️ **Image** | \`${{ steps.vars.outputs.image_versioned }}\` |
+          | 🔀 **Commit** | \`${GITHUB_SHA::7}\` |
+          | 🕐 **Deployed** | $(date -u '+%Y-%m-%d %H:%M UTC') |
+          | 📦 **Service** | ${{ env.SERVICE_NAME }} |
+          | 🌍 **Region** | ${{ env.REGION }} |
+          | 💾 **Memory** | ${{ env.MEMORY }} |
+          | ⚙️ **CPU** | ${{ env.CPU }} vCPU |
+          | 📈 **Instances** | ${{ env.MIN_INSTANCES }}–${{ env.MAX_INSTANCES }} |
+
+          ### 🔗 Quick Links
+          - [Cloud Run Console](https://console.cloud.google.com/run/detail/${{ env.REGION }}/${{ env.SERVICE_NAME }}/metrics?project=${{ env.PROJECT_ID }})
+          - [Secret Manager](https://console.cloud.google.com/security/secret-manager?project=${{ env.PROJECT_ID }})
+          - [Artifact Registry](https://console.cloud.google.com/artifacts/docker/${{ env.PROJECT_ID }}/${{ env.REGION }}/alti-assistant-core-backend-repo?project=${{ env.PROJECT_ID }})
+          - [Cloud Logging](https://console.cloud.google.com/logs/query;query=resource.type%3D%22cloud_run_revision%22%20resource.labels.service_name%3D%22${{ env.SERVICE_NAME }}%22?project=${{ env.PROJECT_ID }})
+          EOF
