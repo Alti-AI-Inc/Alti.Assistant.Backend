@@ -1,0 +1,51 @@
+name: Update Frontend Proxy to Cloud Run
+
+on:
+  workflow_dispatch:
+
+env:
+  VM_USER: alti_deployer
+  VM_HOST: 35.239.192.33
+
+jobs:
+  update-proxy:
+    name: Update Nginx Proxy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
+          ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Diagnose and fix frontend
+        run: |
+          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash <<'SCRIPT'
+            set -e
+
+            echo "=== Running Docker containers ==="
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || sudo docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+
+            echo ""
+            echo "=== Docker Compose files ==="
+            ls -la ~/docker-compose*.yml ~/compose*.yml 2>/dev/null || echo "No compose files in home dir"
+            ls -la ~/*/docker-compose*.yml 2>/dev/null || echo "No compose files in subdirs"
+
+            echo ""
+            echo "=== Nginx config ==="
+            cat /etc/nginx/sites-enabled/alti.frontend.conf
+
+            echo ""
+            echo "=== Checking what is on port 3000 ==="
+            sudo ss -tlnp | grep 3000 || echo "Nothing on port 3000"
+
+            echo ""
+            echo "=== Docker images ==="
+            docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}" 2>/dev/null | head -20 || sudo docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}" | head -20
+          SCRIPT
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/alti-vm-key
