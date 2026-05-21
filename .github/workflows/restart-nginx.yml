@@ -1,0 +1,45 @@
+name: Restart Nginx on VM
+
+on:
+  workflow_dispatch:
+
+env:
+  VM_USER: alti_deployer
+  VM_HOST: 35.239.192.33
+
+jobs:
+  restart-nginx:
+    name: Restart Nginx
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
+          ssh-keyscan -H ${{ env.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Restart Nginx and clear cache
+        run: |
+          ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} bash <<'EOF'
+            set -e
+            echo "=== Current nginx status ==="
+            sudo systemctl status nginx --no-pager || true
+            echo ""
+            echo "=== Checking nginx config ==="
+            cat /etc/nginx/sites-enabled/alti.frontend.conf 2>/dev/null || cat /etc/nginx/conf.d/*.conf 2>/dev/null || echo "Config not found in usual locations"
+            echo ""
+            echo "=== Clearing nginx proxy cache if exists ==="
+            sudo rm -rf /var/cache/nginx/* 2>/dev/null || echo "No proxy cache dir"
+            echo ""
+            echo "=== Restarting nginx ==="
+            sudo nginx -t && sudo systemctl restart nginx
+            echo ""
+            echo "=== Nginx restarted successfully ==="
+            sudo systemctl status nginx --no-pager
+          EOF
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/alti-vm-key
