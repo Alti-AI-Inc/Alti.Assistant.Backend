@@ -73,38 +73,49 @@ jobs:
           }
           EOF
 
-      - name: Upload config and apply
+      - name: Upload and apply to BOTH sites-available AND sites-enabled
         run: |
-          # Upload the new config
           scp -i ~/.ssh/alti-vm-key /tmp/alti.frontend.conf ${{ env.VM_USER }}@${{ env.VM_HOST }}:/tmp/alti.frontend.conf.new
 
-          # Apply it on the VM
           ssh -i ~/.ssh/alti-vm-key ${{ env.VM_USER }}@${{ env.VM_HOST }} 'set -e;
-            echo "=== Backing up current config ===";
-            sudo cp /etc/nginx/sites-enabled/alti.frontend.conf /etc/nginx/sites-enabled/alti.frontend.conf.bak.$(date +%Y%m%d%H%M%S);
-            echo "=== Installing new config ===";
+            echo "=== Backing up configs ===";
+            sudo cp /etc/nginx/sites-available/alti.frontend.conf /etc/nginx/sites-available/alti.frontend.conf.bak.$(date +%Y%m%d%H%M%S) 2>/dev/null || true;
+            sudo cp /etc/nginx/sites-enabled/alti.frontend.conf /etc/nginx/sites-enabled/alti.frontend.conf.bak2.$(date +%Y%m%d%H%M%S) 2>/dev/null || true;
+            echo "";
+            echo "=== Installing to sites-available ===";
+            sudo cp /tmp/alti.frontend.conf.new /etc/nginx/sites-available/alti.frontend.conf;
+            echo "=== Installing to sites-enabled ===";
             sudo cp /tmp/alti.frontend.conf.new /etc/nginx/sites-enabled/alti.frontend.conf;
             rm /tmp/alti.frontend.conf.new;
-            echo "=== New config ===";
-            cat /etc/nginx/sites-enabled/alti.frontend.conf;
+            echo "";
+            echo "=== Verify sites-available config ===";
+            grep "proxy_pass" /etc/nginx/sites-available/alti.frontend.conf;
+            echo "=== Verify sites-enabled config ===";
+            grep "proxy_pass" /etc/nginx/sites-enabled/alti.frontend.conf;
             echo "";
             echo "=== Testing nginx config ===";
             sudo nginx -t;
             echo "";
-            echo "=== Killing old next-server on port 3000 ===";
-            sudo kill $(sudo ss -tlnp | grep ":3000" | grep -oP "pid=\K[0-9]+") 2>/dev/null || echo "No process on port 3000";
+            echo "=== Hard restart nginx ===";
+            sudo systemctl stop nginx;
+            sleep 2;
+            sudo systemctl start nginx;
             echo "";
-            echo "=== Restarting nginx ===";
-            sudo systemctl restart nginx;
+            echo "=== Nginx status ===";
+            sudo systemctl status nginx --no-pager;
             echo "";
-            echo "=== DONE ===";
-            sudo systemctl status nginx --no-pager'
+            echo "=== DONE ==="'
 
-      - name: Verify live site
+      - name: Verify live site serves Cloud Run content
         run: |
           sleep 5
+          echo "=== altihq.com CSS ==="
+          curl -s https://altihq.com | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+          echo "=== Cloud Run CSS ==="
+          curl -s https://alti-assistant-frontend-366561755636.us-central1.run.app | grep -oP '_next/static/chunks/[a-f0-9]+\.css' | sort -u
+          echo ""
           echo "=== altihq.com headers ==="
-          curl -sI https://altihq.com | grep -i "server\|cache-control\|x-nextjs\|x-cloud\|pragma"
+          curl -sI https://altihq.com | grep -i "server\|cache-control\|pragma\|x-cloud"
 
       - name: Clean up SSH key
         if: always()
