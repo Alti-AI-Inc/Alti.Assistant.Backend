@@ -4,6 +4,15 @@ import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
+// ── Strip BOM (\uFEFF) from all environment variables ───────────────────────
+// GCP Secret Manager injected via PowerShell pipes can prepend a BOM.
+// This runs once at startup and sanitizes every env var before any code reads them.
+const BOM = '\uFEFF';
+for (const key of Object.keys(process.env)) {
+  if (typeof process.env[key] === 'string' && process.env[key].startsWith(BOM)) {
+    process.env[key] = process.env[key].replace(/^\uFEFF+/, '');
+  }
+}
 export default {
   env: process.env.NODE_ENV,
   database_local: process.env.DATABASE_LOCAL,

@@ -3,13 +3,21 @@ import httpStatus from 'http-status';
 import ApiError from '../../../errors/ApiError.js';
 import config from '../../../../config/index.js';
 
-const cyberdesk = createCyberdeskClient({
-  apiKey: config.cyberdesk_api_key,
-});
+const getCyberdeskClient = (() => {
+  let _client = null;
+  return () => {
+    if (!_client) {
+      // Lazy init: by the time any route calls this, config BOM-stripping has run
+      const apiKey = (config.cyberdesk_api_key || '').replace(/^\uFEFF+/, '');
+      _client = createCyberdeskClient({ apiKey });
+    }
+    return _client;
+  };
+})();
 
 // Launch a new desktop
 const launchDesktop = async () => {
-  const result = await cyberdesk.launchDesktop({
+  const result = await getCyberdeskClient().launchDesktop({
     body: { timeout_ms: 600000 },
   });
   console.log('Cyberdesk launch result:', result);
@@ -25,14 +33,14 @@ const launchDesktop = async () => {
 
 // Get desktop info
 const getDesktopInfo = async (desktopId) => {
-  const result = await cyberdesk.getDesktop({ path: { id: desktopId } });
+  const result = await getCyberdeskClient().getDesktop({ path: { id: desktopId } });
   if ('error' in result) throw new Error(result.error);
   return result;
 };
 
 // Perform a mouse click
 const clickMouse = async (desktopId, x, y) => {
-  const result = await cyberdesk.executeComputerAction({
+  const result = await getCyberdeskClient().executeComputerAction({
     path: { id: desktopId },
     body: {
       type: 'click_mouse',
@@ -53,25 +61,19 @@ const clickMouse = async (desktopId, x, y) => {
 
 // Execute bash command
 const executeBash = async (desktopId, command) => {
-  const result = await cyberdesk.executeBashAction({
+  const result = await getCyberdeskClient().executeBashAction({
     path: { id: desktopId },
     body: { command },
   });
-  // if ('error' in result) {
-  //   console.error(
-  //     'Cyberdesk Action Error:',
-  //     JSON.stringify(result.error, null, 2),
-  //   );
-  //   throw new Error(result.error.message || 'Unknown Cyberdesk Error');
-  // }
   return result;
 };
 
 // Terminate desktop
 const terminateDesktop = async (desktopId) => {
-  const result = await cyberdesk.terminateDesktop({ path: { id: desktopId } });
+  const result = await getCyberdeskClient().terminateDesktop({ path: { id: desktopId } });
   return result;
 };
+
 
 export const cyberdeskService = {
   launchDesktop,
