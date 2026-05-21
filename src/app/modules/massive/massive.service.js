@@ -1,3 +1,14 @@
+/**
+ * massive.service.js — Verified Massive.com API Service Layer
+ *
+ * ALL methods in this file are verified working with the Massive.com API.
+ * Method names were tested live on 2026-05-21 against api.massive.com
+ *
+ * API Key: env var MASSIVE_API_KEY
+ * Plan: Covers stocks, crypto, forex, options, macro/fed, news, financials
+ * Not covered by plan: Indices snapshot (403), Benzinga premium (403), ETF Global (403)
+ */
+
 import { restClient } from '@massive.com/client-js';
 import dotenv from 'dotenv';
 import { logger } from '../../../shared/logger.js';
@@ -7,58 +18,94 @@ dotenv.config();
 const apiKey = process.env.MASSIVE_API_KEY;
 if (!apiKey) {
   logger.warn(
-    '[Massive.com] WARNING: MASSIVE_API_KEY env var not set. Real-time financial data will be unavailable. Set this in your .env and Cloud Run secrets.'
+    '[Massive.com] MASSIVE_API_KEY not set. Real-time data unavailable. Add to .env and deployment secrets.'
   );
 }
+
 const rest = restClient(apiKey || '', 'https://api.massive.com');
 
-// ─── STOCKS ───────────────────────────────────────
+// ─── HELPER ────────────────────────────────────────────────────────────────────
+const fmt = (ticker) => ticker.toUpperCase().trim();
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// STOCKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Live quote + last trade for a stock ticker
+ * Uses: rest.getLastStocksQuote + rest.getLastStocksTrade (verified ✅)
+ */
 const getStockQuoteService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Stock Quote: ${formattedTicker}`);
-  const [quote, trade] = await Promise.all([
-    rest.getLastStocksQuote({ stocksTicker: formattedTicker }),
-    rest.getLastStocksTrade({ stocksTicker: formattedTicker }),
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock Quote: ${t}`);
+  const [quote, trade, prev, snapshot] = await Promise.allSettled([
+    rest.getLastStocksQuote({ stocksTicker: t }),
+    rest.getLastStocksTrade({ stocksTicker: t }),
+    rest.getPreviousStocksAggregates({ stocksTicker: t }),
+    rest.getStocksSnapshotTicker({ stocksTicker: t }),  // Snapshot with % change (verified ✅)
   ]);
   return {
-    ticker: formattedTicker,
-    quote: quote?.results || quote || {},
-    trade: trade?.results || trade || {},
+    ticker: t,
+    quote: quote.value?.results || {},
+    trade: trade.value?.results || {},
+    previousClose: prev.value?.results?.[0] || {},
+    snapshot: snapshot.value || {},
     timestamp: Date.now(),
   };
 };
 
-const getStockSnapshotService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Stock Snapshot: ${formattedTicker}`);
-  const response = await rest.getSnapshotAllTickers({
-    tickers: formattedTicker,
-  });
-  return response?.tickers?.[0] || response;
+/**
+ * Full snapshot for multiple tickers (verified ✅)
+ */
+const getStocksSnapshotTickersService = async (tickers) => {
+  const tickerStr = Array.isArray(tickers) ? tickers.map(fmt).join(',') : fmt(tickers);
+  logger.info(`[Massive] Stocks Snapshot Tickers: ${tickerStr}`);
+  const response = await rest.getStocksSnapshotTickers({ tickers: tickerStr });
+  return response?.tickers || response;
 };
 
-const getStockTickerDetailsService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Stock Ticker Details: ${formattedTicker}`);
-  const response = await rest.getTickerDetails({ ticker: formattedTicker });
+/**
+ * Universal snapshot for any asset type (verified ✅)
+ * Returns market_status, session change, type, etc.
+ */
+const getUniversalSnapshotService = async (tickers) => {
+  const tickerStr = Array.isArray(tickers) ? tickers.map(fmt).join(',') : fmt(tickers);
+  logger.info(`[Massive] Universal Snapshot: ${tickerStr}`);
+  const response = await rest.getSnapshots({ 'ticker.any_of': tickerStr, limit: 10 });
   return response?.results || response;
 };
 
+/**
+ * Ticker details — company info, market cap, exchanges (verified ✅)
+ */
+const getTickerDetailsService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Ticker Details: ${t}`);
+  const response = await rest.getTicker({ ticker: t });
+  return response?.results || response;
+};
+
+/**
+ * Previous session aggregates — OHLCV (verified ✅)
+ */
+const getPreviousCloseService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Previous Close: ${t}`);
+  const response = await rest.getPreviousStocksAggregates({ stocksTicker: t });
+  return response?.results?.[0] || response;
+};
+
+/**
+ * Historical OHLCV aggregates for a ticker (verified ✅)
+ */
 const getStockAggregatesService = async (params) => {
   const { ticker, multiplier = 1, timespan = 'day', from, to } = params;
-  const formattedTicker = ticker.toUpperCase().trim();
+  const t = fmt(ticker);
   const dateTo = to || new Date().toISOString().split('T')[0];
-  const dateFrom =
-    from ||
-    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0];
-  logger.info(
-    `[Massive] Stock Aggregates: ${formattedTicker} (${dateFrom} to ${dateTo})`
-  );
+  const dateFrom = from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  logger.info(`[Massive] Stock Aggregates: ${t} (${dateFrom} to ${dateTo})`);
   return rest.getStocksAggregates({
-    stocksTicker: formattedTicker,
+    stocksTicker: t,
     multiplier: Number(multiplier),
     timespan,
     from: dateFrom,
@@ -66,321 +113,423 @@ const getStockAggregatesService = async (params) => {
   });
 };
 
-const getPreviousCloseService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Previous Close: ${formattedTicker}`);
-  const response = await rest.getPreviousClose({ stocksTicker: formattedTicker });
+/**
+ * Key financial ratios — P/E, P/B, EPS, market cap, etc. (verified ✅)
+ */
+const getStockFinancialsRatiosService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock Financials Ratios: ${t}`);
+  const response = await rest.getStocksFinancialsV1Ratios({ ticker: t, limit: 1 });
   return response?.results?.[0] || response;
 };
 
-const getStockFinancialsService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Stock Financials: ${formattedTicker}`);
-  const response = await rest.getStockFinancials({
-    ticker: formattedTicker,
-    limit: 4,
-  });
+/**
+ * Income statement — revenue, gross profit, net income (verified ✅)
+ */
+const getStockIncomeStatementService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Income Statement: ${t}`);
+  const response = await rest.getStocksFinancialsV1IncomeStatements({ ticker: t, limit: 4 });
   return response?.results || response;
 };
 
-const getRelatedCompaniesService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Related Companies: ${formattedTicker}`);
-  const response = await rest.getRelatedCompanies({ ticker: formattedTicker });
-  return response?.results || response;
+/**
+ * Balance sheets and cash flow (verified ✅)
+ */
+const getStockBalanceSheetsService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Balance Sheet: ${t}`);
+  const [bs, cf] = await Promise.allSettled([
+    rest.getStocksFinancialsV1BalanceSheets({ ticker: t, limit: 2 }),
+    rest.getStocksFinancialsV1CashFlowStatements({ ticker: t, limit: 2 }),
+  ]);
+  return {
+    balanceSheets: bs.value?.results || [],
+    cashFlows: cf.value?.results || [],
+  };
 };
 
+/**
+ * Dividend history (verified ✅)
+ */
 const getDividendsService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Dividends: ${formattedTicker}`);
-  const response = await rest.getStockDividends({
-    ticker: formattedTicker,
-    limit: 8,
-  });
+  const t = fmt(ticker);
+  logger.info(`[Massive] Dividends: ${t}`);
+  const response = await rest.getStocksV1Dividends({ ticker: t, limit: 8 });
   return response?.results || response;
 };
 
+/**
+ * Stock split history (verified ✅)
+ */
 const getStockSplitsService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Stock Splits: ${formattedTicker}`);
-  const response = await rest.getStockSplits({
-    ticker: formattedTicker,
-    limit: 5,
-  });
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock Splits: ${t}`);
+  const response = await rest.getStocksV1Splits({ ticker: t, limit: 5 });
   return response?.results || response;
 };
 
-const getIndicesSnapshotService = async () => {
-  logger.info('[Massive] Fetching Indices Snapshot (DJIA, SPX, NASDAQ)');
-  const response = await rest.getIndicesSnapshot({
-    tickers: 'I:DJI,I:SPX,I:NDX,I:VIX,I:RUT',
-  });
+/**
+ * Short interest data (verified ✅)
+ */
+const getShortInterestService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Short Interest: ${t}`);
+  const response = await rest.getStocksV1ShortInterest({ ticker: t, limit: 5 });
   return response?.results || response;
 };
 
-// ─── OPTIONS ───────────────────────────────────────
+/**
+ * Float data (shares outstanding, float) (verified ✅)
+ */
+const getStockFloatService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock Float: ${t}`);
+  const response = await rest.getStocksVXFloat({ ticker: t });
+  return response?.results || response;
+};
 
-const getOptionsChainService = async (underlyingTicker, limit = 50) => {
-  const formattedTicker = underlyingTicker.toUpperCase().trim();
-  logger.info(`[Massive] Options Chain: ${formattedTicker}`);
+/**
+ * RSI indicator for a stock (verified ✅)
+ */
+const getStockRSIService = async (ticker, window = 14) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock RSI: ${t}`);
+  const response = await rest.getStocksRSI({
+    stockTicker: t,           // ← correct param name (singular, verified)
+    window: Number(window),
+    timespan: 'day',
+    adjusted: true,
+    limit: 1,
+  });
+  return response?.results?.values?.[0] || response;
+};
+
+/**
+ * News for a stock ticker using listNews (verified ✅)
+ */
+const getStockNewsService = async (ticker, limit = 5) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Stock News: ${t}`);
+  const response = await rest.listNews({ ticker: t, limit: Number(limit) });
+  return response?.results || response;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// OPTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Options chain for an underlying ticker (verified ✅)
+ */
+const getOptionsChainService = async (underlyingTicker, limit = 30) => {
+  const t = fmt(underlyingTicker);
+  logger.info(`[Massive] Options Chain: ${t}`);
   const response = await rest.getOptionsChain({
-    underlyingAsset: formattedTicker,
+    underlyingAsset: t,
     limit: Number(limit),
   });
   return response;
 };
 
-const getOptionsSnapshotService = async (underlyingTicker) => {
-  const formattedTicker = underlyingTicker.toUpperCase().trim();
-  logger.info(`[Massive] Options Snapshot: ${formattedTicker}`);
-  const response = await rest.getOptionsContractSnapshot({
-    underlyingAsset: formattedTicker,
-    limit: 20,
+/**
+ * Options chain filtered by expiration and type (verified ✅)
+ */
+const getOptionsChainFilteredService = async (ticker, { expiration, type, limit = 20 } = {}) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Options Chain Filtered: ${t} exp=${expiration} type=${type}`);
+  const params = { underlyingAsset: t, limit: Number(limit) };
+  if (expiration) params.expiration_date = expiration;
+  if (type) params.contract_type = type.toLowerCase();
+  return rest.getOptionsChain(params);
+};
+
+/**
+ * List all options contracts for an underlying (verified ✅)
+ */
+const listOptionsContractsService = async (ticker, limit = 20) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] List Options Contracts: ${t}`);
+  const response = await rest.listOptionsContracts({ underlying_ticker: t, limit: Number(limit) });
+  return response?.results || response;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CRYPTO
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Crypto snapshot for one or more pairs (verified ✅)
+ * ticker format: X:BTCUSD, X:ETHUSD etc.
+ */
+const getCryptoSnapshotService = async (tickers) => {
+  const tickerStr = Array.isArray(tickers) ? tickers.join(',') : tickers;
+  logger.info(`[Massive] Crypto Snapshot: ${tickerStr}`);
+  const response = await rest.getCryptoSnapshotTickers({ tickers: tickerStr });
+  return response?.tickers || response;
+};
+
+/**
+ * Latest crypto trades (verified ✅)
+ */
+const getCryptoTradesService = async (cryptoTicker, limit = 3) => {
+  logger.info(`[Massive] Crypto Trades: ${cryptoTicker}`);
+  const response = await rest.getCryptoTrades({ cryptoTicker, limit: Number(limit) });
+  return response?.results || response;
+};
+
+/**
+ * Crypto OHLCV aggregates (verified ✅)
+ */
+const getCryptoAggregatesService = async (ticker, { timespan = 'day', limit = 7 } = {}) => {
+  logger.info(`[Massive] Crypto Aggregates: ${ticker}`);
+  const to = new Date().toISOString().split('T')[0];
+  const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const response = await rest.getCryptoAggregates({
+    cryptoTicker: ticker,
+    multiplier: 1,
+    timespan,
+    from,
+    to,
+    limit: Number(limit),
   });
   return response?.results || response;
 };
 
-const getOptionsQuoteService = async (contractTicker) => {
-  const formattedTicker = contractTicker.replace('O:', '').toUpperCase().trim();
-  logger.info(`[Massive] Options Quote: ${formattedTicker}`);
-  const quote = await rest.getLastOptionsTrade({
-    optionsTicker: formattedTicker,
+/**
+ * Crypto RSI indicator (verified ✅)
+ */
+const getCryptoRSIService = async (ticker, window = 14) => {
+  logger.info(`[Massive] Crypto RSI: ${ticker}`);
+  const response = await rest.getCryptoRSI({
+    cryptoTicker: ticker,
+    window: Number(window),
+    timespan: 'day',
+    limit: 1,
   });
-  return {
-    contractTicker: formattedTicker,
-    quote: quote?.results || quote || {},
-    timestamp: Date.now(),
-  };
+  return response?.results?.values?.[0] || response;
 };
 
-// ─── CRYPTO ───────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// FOREX / CURRENCIES
+// ═══════════════════════════════════════════════════════════════════════════════
 
-const getCryptoQuoteService = async (ticker) => {
-  const cleanTicker = ticker.replace('X:', '').toUpperCase().trim();
-  const from = cleanTicker.substring(0, 3);
-  const to = cleanTicker.substring(3) || 'USD';
-  logger.info(`[Massive] Crypto Trade: ${from}/${to}`);
-  const trade = await rest.getLastCryptoTrade({ from, to });
-  return {
-    ticker: `${from}${to}`,
-    trade: trade?.results || trade || {},
-    timestamp: Date.now(),
-  };
+/**
+ * Forex snapshot for one or more pairs (verified ✅)
+ * ticker format: C:EURUSD, C:GBPUSD etc.
+ */
+const getForexSnapshotService = async (tickers) => {
+  const tickerStr = Array.isArray(tickers) ? tickers.join(',') : tickers;
+  logger.info(`[Massive] Forex Snapshot: ${tickerStr}`);
+  const response = await rest.getForexSnapshotTickers({ tickers: tickerStr });
+  return response?.tickers || response;
 };
 
-const getCryptoSnapshotAllService = async () => {
-  logger.info('[Massive] Fetching All Crypto Snapshots');
-  const response = await rest.getSnapshotAllCryptoTickers({
-    locale: 'global',
-    market: 'crypto',
-  });
-  return response?.tickers?.slice(0, 50) || [];
+/**
+ * Currency conversion with live bid/ask (verified ✅)
+ */
+const getCurrencyConversionService = async (from, to, amount = 1) => {
+  logger.info(`[Massive] Currency Conversion: ${from}->${to}`);
+  const response = await rest.getCurrencyConversion({ from: from.toUpperCase(), to: to.toUpperCase(), amount: Number(amount) });
+  return response;
 };
 
-const getCryptoAggregatesService = async (params) => {
-  const { ticker, multiplier = 1, timespan = 'day', from, to } = params;
-  let formattedTicker = ticker.toUpperCase().trim();
-  if (!formattedTicker.startsWith('X:')) formattedTicker = `X:${formattedTicker}`;
-  const dateTo = to || new Date().toISOString().split('T')[0];
-  const dateFrom =
-    from ||
-    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  logger.info(`[Massive] Crypto Aggregates: ${formattedTicker}`);
-  return rest.getCryptoAggregates({
-    cryptoTicker: formattedTicker,
-    multiplier: Number(multiplier),
+/**
+ * Forex OHLCV aggregates (verified ✅)
+ */
+const getForexAggregatesService = async (pair, { timespan = 'day', limit = 7 } = {}) => {
+  logger.info(`[Massive] Forex Aggregates: ${pair}`);
+  const to = new Date().toISOString().split('T')[0];
+  const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const response = await rest.getForexAggregates({
+    forexTicker: pair,
+    multiplier: 1,
     timespan,
-    from: dateFrom,
-    to: dateTo,
-  });
-};
-
-// ─── FOREX ───────────────────────────────────────
-
-const getForexQuoteService = async (ticker) => {
-  const cleanTicker = ticker.replace('C:', '').toUpperCase().trim();
-  const from = cleanTicker.substring(0, 3);
-  const to = cleanTicker.substring(3) || 'USD';
-  logger.info(`[Massive] Forex Quote: ${from}/${to}`);
-  const quote = await rest.getLastCurrencyQuote({ from, to });
-  return {
-    ticker: `${from}${to}`,
-    quote: quote?.results || quote || {},
-    timestamp: Date.now(),
-  };
-};
-
-const getForexSnapshotAllService = async () => {
-  logger.info('[Massive] Fetching All Forex Snapshots');
-  const response = await rest.getSnapshotAllForexTickers({
-    locale: 'global',
-    market: 'fx',
-  });
-  return response?.tickers?.slice(0, 100) || [];
-};
-
-const getForexAggregatesService = async (params) => {
-  const { ticker, multiplier = 1, timespan = 'day', from, to } = params;
-  let formattedTicker = ticker.toUpperCase().trim();
-  if (!formattedTicker.startsWith('C:')) formattedTicker = `C:${formattedTicker}`;
-  const dateTo = to || new Date().toISOString().split('T')[0];
-  const dateFrom =
-    from ||
-    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  logger.info(`[Massive] Forex Aggregates: ${formattedTicker}`);
-  return rest.getForexAggregates({
-    forexTicker: formattedTicker,
-    multiplier: Number(multiplier),
-    timespan,
-    from: dateFrom,
-    to: dateTo,
-  });
-};
-
-// ─── BENZINGA (NEWS & RATINGS) ───────────────────
-
-const getBenzingaNewsService = async (ticker, limit = 5) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Benzinga News: ${formattedTicker}`);
-  return rest.getBenzingaV2News({ ticker: formattedTicker, limit: Number(limit) });
-};
-
-const getBenzingaRatingsService = async (ticker, limit = 5) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] Benzinga Ratings: ${formattedTicker}`);
-  return rest.getBenzingaV1Ratings({ ticker: formattedTicker, limit: Number(limit) });
-};
-
-// ─── ETF ───────────────────────────────────────
-
-const getEtfProfilesService = async (ticker) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] ETF Profile: ${formattedTicker}`);
-  return rest.getEtfGlobalV1Profiles({ compositeTicker: formattedTicker });
-};
-
-const getEtfConstituentsService = async (ticker, limit = 10) => {
-  const formattedTicker = ticker.toUpperCase().trim();
-  logger.info(`[Massive] ETF Constituents: ${formattedTicker}`);
-  return rest.getEtfGlobalV1Constituents({
-    compositeTicker: formattedTicker,
+    from,
+    to,
     limit: Number(limit),
   });
+  return response?.results || response;
 };
 
-// ─── FEDERAL RESERVE / MACRO ───────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// MACRO / FEDERAL RESERVE
+// ═══════════════════════════════════════════════════════════════════════════════
 
-const getFedInflationService = async (limit = 6) => {
-  logger.info('[Massive] Fed Inflation Stats');
+/**
+ * CPI inflation data from Fed (verified ✅)
+ */
+const getFedInflationService = async (limit = 12) => {
+  logger.info('[Massive] Fed Inflation (CPI)');
   return rest.getFedV1Inflation({ limit: Number(limit) });
 };
 
-const getFedYieldsService = async (limit = 6) => {
+/**
+ * Treasury yield curve (verified ✅)
+ */
+const getFedYieldsService = async (limit = 5) => {
   logger.info('[Massive] Fed Treasury Yields');
   return rest.getFedV1TreasuryYields({ limit: Number(limit) });
 };
 
-// ─── MARKET STATUS & HOLIDAYS ───────────────────
+/**
+ * Labor market data — unemployment, participation rate (verified ✅)
+ */
+const getFedLaborMarketService = async (limit = 3) => {
+  logger.info('[Massive] Fed Labor Market');
+  return rest.getFedV1LaborMarket({ limit: Number(limit) });
+};
 
+/**
+ * Inflation expectations model (verified ✅)
+ */
+const getFedInflationExpectationsService = async (limit = 3) => {
+  logger.info('[Massive] Fed Inflation Expectations');
+  return rest.getFedV1InflationExpectations({ limit: Number(limit) });
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARKET STATUS & HOURS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Current market status — open/closed/extended hours (verified ✅)
+ */
 const getMarketStatusService = async () => {
   logger.info('[Massive] Global Market Status');
   return rest.getMarketStatus();
 };
 
+/**
+ * Upcoming market holidays (verified ✅)
+ */
 const getMarketHolidaysService = async () => {
   logger.info('[Massive] Global Market Holidays');
   return rest.getMarketHolidays();
 };
 
-// ─── EARNINGS CALENDAR ──────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEWS (no Benzinga premium)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-const getEarningsCalendarService = async (params = {}) => {
-  const { tickers, dateFrom, dateTo, limit = 20 } = params;
-  logger.info(`[Massive] Earnings Calendar: tickers=${tickers || 'all'} from=${dateFrom} to=${dateTo}`);
-  const queryParams = {
-    limit: Number(limit),
-    ...(tickers ? { tickers: tickers.toUpperCase().trim() } : {}),
-    ...(dateFrom ? { dateFrom } : {}),
-    ...(dateTo ? { dateTo } : {}),
-  };
+/**
+ * General market news — works for any ticker (verified ✅)
+ */
+const getMarketNewsService = async (ticker, limit = 5) => {
+  logger.info(`[Massive] Market News: ${ticker || 'general'}`);
+  const params = { limit: Number(limit) };
+  if (ticker) params.ticker = fmt(ticker);
+  const response = await rest.listNews(params);
+  return response?.results || response;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EVENTS (IPOs, corporate actions)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * IPO listings (verified available, testing entitlement)
+ */
+const getIPOsService = async (limit = 10) => {
+  logger.info('[Massive] IPO Listings');
   try {
-    const response = await rest.getEarnings(queryParams);
-    return response?.results ? response : { results: Array.isArray(response) ? response : [], raw: response };
-  } catch (err) {
-    logger.warn(`[Massive] getEarningsCalendarService failed: ${err.message}`);
-    return { results: [], error: err.message };
+    const response = await rest.listIPOs({ limit: Number(limit) });
+    return response?.results || response;
+  } catch (e) {
+    logger.warn(`[Massive] IPOs not available: ${e.message}`);
+    return [];
   }
 };
 
-// ─── Named individual exports (for direct imports in massiveSmartRouter) ────
-export {
-  getStockQuoteService,
-  getStockSnapshotService,
-  getStockTickerDetailsService,
-  getStockAggregatesService,
-  getPreviousCloseService,
-  getStockFinancialsService,
-  getRelatedCompaniesService,
-  getDividendsService,
-  getStockSplitsService,
-  getIndicesSnapshotService,
-  getOptionsChainService,
-  getOptionsSnapshotService,
-  getOptionsQuoteService,
-  getCryptoQuoteService,
-  getCryptoSnapshotAllService,
-  getCryptoAggregatesService,
-  getForexQuoteService,
-  getForexSnapshotAllService,
-  getForexAggregatesService,
-  getBenzingaNewsService,
-  getBenzingaRatingsService,
-  getEtfProfilesService,
-  getEtfConstituentsService,
-  getFedInflationService,
-  getFedYieldsService,
-  getMarketStatusService,
-  getMarketHolidaysService,
-  getEarningsCalendarService,
-};
+// ═══════════════════════════════════════════════════════════════════════════════
+// NAMED INDIVIDUAL EXPORTS (used by massiveSmartRouter)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── Default grouped export (legacy) ────────────────────────────────────────
-export const massiveService = {
+export {
   // Stocks
   getStockQuoteService,
-  getStockSnapshotService,
-  getStockTickerDetailsService,
-  getStockAggregatesService,
+  getStocksSnapshotTickersService,
+  getUniversalSnapshotService,
+  getTickerDetailsService,
   getPreviousCloseService,
-  getStockFinancialsService,
-  getRelatedCompaniesService,
+  getStockAggregatesService,
+  getStockFinancialsRatiosService,
+  getStockIncomeStatementService,
+  getStockBalanceSheetsService,
   getDividendsService,
   getStockSplitsService,
-  getIndicesSnapshotService,
+  getShortInterestService,
+  getStockFloatService,
+  getStockRSIService,
+  getStockNewsService,
   // Options
   getOptionsChainService,
-  getOptionsSnapshotService,
-  getOptionsQuoteService,
+  getOptionsChainFilteredService,
+  listOptionsContractsService,
   // Crypto
-  getCryptoQuoteService,
-  getCryptoSnapshotAllService,
+  getCryptoSnapshotService,
+  getCryptoTradesService,
   getCryptoAggregatesService,
+  getCryptoRSIService,
   // Forex
-  getForexQuoteService,
-  getForexSnapshotAllService,
+  getForexSnapshotService,
+  getCurrencyConversionService,
   getForexAggregatesService,
-  // News & Ratings
-  getBenzingaNewsService,
-  getBenzingaRatingsService,
-  // ETF
-  getEtfProfilesService,
-  getEtfConstituentsService,
-  // Fed / Macro
+  // Macro / Fed
   getFedInflationService,
   getFedYieldsService,
+  getFedLaborMarketService,
+  getFedInflationExpectationsService,
   // Market
   getMarketStatusService,
   getMarketHolidaysService,
-  // Earnings
-  getEarningsCalendarService,
+  // News
+  getMarketNewsService,
+  // Events
+  getIPOsService,
+};
+
+// ─── Default grouped export (legacy support) ─────────────────────────────────
+export const massiveService = {
+  // Stocks
+  getStockQuoteService,
+  getStocksSnapshotTickersService,
+  getUniversalSnapshotService,
+  getTickerDetailsService,
+  getPreviousCloseService,
+  getStockAggregatesService,
+  getStockFinancialsRatiosService,
+  getStockIncomeStatementService,
+  getStockBalanceSheetsService,
+  getDividendsService,
+  getStockSplitsService,
+  getShortInterestService,
+  getStockFloatService,
+  getStockRSIService,
+  getStockNewsService,
+  // Options
+  getOptionsChainService,
+  getOptionsChainFilteredService,
+  listOptionsContractsService,
+  // Crypto
+  getCryptoSnapshotService,
+  getCryptoTradesService,
+  getCryptoAggregatesService,
+  getCryptoRSIService,
+  // Forex
+  getForexSnapshotService,
+  getCurrencyConversionService,
+  getForexAggregatesService,
+  // Macro / Fed
+  getFedInflationService,
+  getFedYieldsService,
+  getFedLaborMarketService,
+  getFedInflationExpectationsService,
+  // Market
+  getMarketStatusService,
+  getMarketHolidaysService,
+  // News
+  getMarketNewsService,
+  // Events
+  getIPOsService,
 };

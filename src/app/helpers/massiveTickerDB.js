@@ -18,7 +18,7 @@ export const STOCK_NAME_MAP = {
   tesla: 'TSLA', tsla: 'TSLA',
   'berkshire hathaway': 'BRK.B', berkshire: 'BRK.B', brk: 'BRK.B',
   broadcom: 'AVGO', avgo: 'AVGO',
-  eli lilly: 'LLY', lilly: 'LLY', lly: 'LLY',
+  'eli lilly': 'LLY', lilly: 'LLY', lly: 'LLY',
 
   // S&P 500 — Full coverage
   jpmorgan: 'JPM', 'jp morgan': 'JPM', jpm: 'JPM',
@@ -757,26 +757,37 @@ export function detectFinancialIntent(prompt) {
     }
   }
 
-  // 7. Crypto lookup
+  // Helper: check if a name appears as a whole word in the query
+  const hasWordMatch = (name) => {
+    if (name.length <= 2) {
+      // Short names (ea, ms, ge, etc.) require explicit financial context to avoid false positives
+      const hasFinancialContext = /\b(stock|share|price|ticker|trading|market|invest|buy|sell|earnings|ipo|etf|fund|option|call|put|crypto|coin|forex|currency|rate|yield|equity|portfolio|dividend|index)\b/i.test(prompt);
+      if (!hasFinancialContext) return false;
+    }
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(?:^|[\\s\\(\\[\\{,;:])${escaped}(?:[\\s\\)\\]\\},;:!?.]|$)`, 'i').test(prompt);
+  };
+
+  // 7. Crypto lookup (word-boundary)
   for (const [name, sym] of Object.entries(CRYPTO_NAME_MAP)) {
-    if (q.includes(name)) return { type: 'crypto', symbol: sym };
+    if (hasWordMatch(name)) return { type: 'crypto', symbol: sym };
   }
 
-  // 8. Forex lookup
+  // 8. Forex lookup (word-boundary)
   for (const [name, sym] of Object.entries(FOREX_NAME_MAP)) {
-    if (q.includes(name)) return { type: 'forex', symbol: sym };
+    if (hasWordMatch(name)) return { type: 'forex', symbol: sym };
   }
 
-  // 9. Stock name lookup
+  // 9. Stock name lookup (word-boundary)
   for (const [name, sym] of Object.entries(STOCK_NAME_MAP)) {
-    if (q.includes(name)) {
+    if (hasWordMatch(name)) {
       return { type: hasOptionsKeyword ? 'options' : 'stock', symbol: sym };
     }
   }
 
-  // 10. ETF name lookup
+  // 10. ETF name lookup (word-boundary)
   for (const [name, sym] of Object.entries(ETF_NAME_MAP)) {
-    if (q.includes(name)) {
+    if (hasWordMatch(name)) {
       return { type: hasOptionsKeyword ? 'options' : 'etf', symbol: sym };
     }
   }
