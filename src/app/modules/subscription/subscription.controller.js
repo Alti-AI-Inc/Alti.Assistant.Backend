@@ -5,6 +5,11 @@ import subscriptionService from './subscription.service.js';
 import ProductModel from '../products/products.model.js';
 import ApiError from '../../../errors/ApiError.js';
 import config from '../../../../config/index.js';
+import StripeEvent from './stripeEvent.model.js';
+import BillingAuditLog from './billingAuditLog.model.js';
+import { logger } from '../../../shared/logger.js';
+import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
+import { isStripeIp } from '../../../shared/stripeSecurity.js';
 
 /**
  * Subscription Controller
@@ -129,7 +134,8 @@ const upgradeSubscription = catchAsync(async (req, res) => {
     userId,
     { stripeProductId, planName },
     tenantId,
-    initialSeats
+    initialSeats,
+    { userId, ipAddress: req.ip }
   );
 
   // Determine response message based on result type
@@ -229,7 +235,8 @@ const cancelSubscription = catchAsync(async (req, res) => {
 
   const updatedSubscription = await subscriptionService.cancelSubscription(
     subscription._id,
-    immediate || false
+    immediate || false,
+    { userId, ipAddress: req.ip }
   );
 
   sendResponse(res, {
@@ -258,7 +265,8 @@ const addSeat = catchAsync(async (req, res) => {
 
   const updatedSubscription = await subscriptionService.addSeatToSubscription(
     subscription._id,
-    newUserId
+    newUserId,
+    { userId, ipAddress: req.ip }
   );
 
   sendResponse(res, {
@@ -292,7 +300,8 @@ const removeSeat = catchAsync(async (req, res) => {
   const updatedSubscription =
     await subscriptionService.removeSeatFromSubscription(
       subscription._id,
-      removeUserId
+      removeUserId,
+      { userId, ipAddress: req.ip }
     );
 
   sendResponse(res, {
@@ -413,6 +422,8 @@ const getUsageStats = catchAsync(async (req, res) => {
   });
 });
 
+
+
 /**
  * Stripe webhook handler
  * POST /api/v1/subscription/webhook
@@ -430,6 +441,44 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
     Buffer.isBuffer(req.body) ? 'Buffer' : 'Not Buffer'
   );
 
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const isValidStripeIp = await isStripeIp(clientIp);
+
+  if (!isValidStripeIp) {
+    logger.error(`[STRIPE_SECURITY_ALERT] Webhook request originating from untrusted IP: ${clientIp}`);
+
+    // Dispatch real-time security alert to Discord/Slack
+    sendSecurityAlert(
+      'Untrusted Webhook IP Blocked',
+      `An incoming Stripe webhook request was rejected because the sender IP did not originate from Stripe's official IP ranges.`,
+      {
+        senderIp: clientIp,
+        userAgent: req.headers['user-agent'] || 'none',
+        signaturePresent: !!sig
+      }
+    ).catch(() => {});
+
+    try {
+      await BillingAuditLog.create({
+        action: 'webhook_failed',
+        previousState: { sig },
+        newState: {
+          error: 'Untrusted webhook IP address source',
+          ip: clientIp,
+          userAgent: req.headers['user-agent'],
+        },
+        ipAddress: clientIp,
+      });
+    } catch (logErr) {
+      logger.error('Failed to create untrusted IP audit log:', logErr);
+    }
+
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Forbidden: untrusted sender source IP'
+    );
+  }
+
   if (!webhookSecret) {
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
@@ -445,19 +494,83 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
   }
 
   let event;
+  let verificationError = null;
 
   try {
     const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2022-11-15',
+    });
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (primaryErr) {
+      verificationError = primaryErr;
+
+      const fallbackSecret = config.stripe.webhook_secret_fallback || process.env.STRIPE_WEBHOOK_SECRET_FALLBACK;
+      if (fallbackSecret) {
+        logger.info('[Stripe Security] Primary webhook secret verification failed. Trying fallback secret...');
+        try {
+          event = stripe.webhooks.constructEvent(req.body, sig, fallbackSecret);
+          verificationError = null; // Verified! Clear error
+          logger.info('[Stripe Security] Webhook signature verified successfully using fallback secret.');
+        } catch (fallbackErr) {
+          verificationError = new Error(`Both primary and fallback secret verifications failed. Fallback error: ${fallbackErr.message}`);
+        }
+      }
+    }
+
+    if (verificationError) {
+      throw verificationError;
+    }
     console.log('Webhook verified successfully:', event.type);
   } catch (err) {
-    console.error('Webhook verification error:', err.message);
+    logger.error('[STRIPE_SECURITY_ALERT] Webhook signature verification failed', {
+      message: err.message,
+      ip: clientIp,
+      userAgent: req.headers['user-agent'],
+    });
+
+    // Dispatch real-time security alert for signature mismatch
+    sendSecurityAlert(
+      'Webhook Signature Mismatch',
+      `An incoming webhook signature check failed verification. This may indicate a replay attempt or incorrect webhook secret configuration.`,
+      {
+        senderIp: clientIp,
+        errorMessage: err.message,
+        userAgent: req.headers['user-agent'] || 'none',
+        signature: sig || 'none'
+      }
+    ).catch(() => {});
+
+    try {
+      await BillingAuditLog.create({
+        action: 'webhook_failed',
+        previousState: { sig },
+        newState: {
+          error: err.message,
+          ip: clientIp,
+          userAgent: req.headers['user-agent'],
+        },
+        ipAddress: clientIp,
+      });
+    } catch (logErr) {
+      logger.error('Failed to create webhook failure audit log:', logErr);
+    }
+
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       `Webhook signature verification failed: ${err.message}`
     );
   }
+
+  // Webhook Replay Protection Guard
+  const existingEvent = await StripeEvent.findOne({ eventId: event.id });
+  if (existingEvent) {
+    console.log(`Duplicate webhook event ${event.id} discarded.`);
+    return res.json({ received: true, duplicate: true });
+  }
+  await StripeEvent.create({ eventId: event.id });
 
   // Handle the event
   switch (event.type) {
@@ -488,11 +601,48 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
       break;
     }
 
+    case 'charge.dispute.created': {
+      const dispute = event.data.object;
+      await subscriptionService.handleDisputeCreated(dispute);
+      break;
+    }
+
+    case 'charge.dispute.closed': {
+      const dispute = event.data.object;
+      await subscriptionService.handleDisputeClosed(dispute);
+      break;
+    }
+
     default:
       console.log(`Unhandled event type ${event.type}`);
   }
 
   res.json({ received: true });
+});
+
+/**
+ * Create Stripe Customer Billing Portal session
+ * POST /api/v1/subscription/billing-portal
+ */
+const createBillingPortalSession = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const tenantId = req.body.tenantId || req.query.tenantId || null;
+  const ipAddress = req.ip || 'unknown';
+
+  const session = await subscriptionService.createBillingPortalSession(
+    userId,
+    tenantId,
+    { ipAddress }
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Billing portal session created successfully',
+    data: {
+      url: session.url,
+    },
+  });
 });
 
 export default {
@@ -510,4 +660,5 @@ export default {
   incrementUsage,
   getUsageStats,
   handleStripeWebhook,
+  createBillingPortalSession,
 };

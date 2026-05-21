@@ -69,6 +69,8 @@ export default {
   stripe: {
     stripe_secret_key: process.env.STRIPE_SECRET_KEY,
     webhook_secret: process.env.STRIPE_WEBHOOK_SECRET,
+    webhook_secret_fallback: process.env.STRIPE_WEBHOOK_SECRET_FALLBACK,
+    security_alert_webhook: process.env.SECURITY_ALERT_WEBHOOK,
   },
   openai: {
     openai_api_key: process.env.OPENAI_API_KEY,

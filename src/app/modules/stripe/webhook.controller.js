@@ -5,8 +5,13 @@ import subscriptionService from '../subscription/subscription.service.js';
 import { logger } from '../../../shared/logger.js';
 import ApiError from '../../../errors/ApiError.js';
 import httpStatus from 'http-status';
+import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
+import StripeEvent from '../subscription/stripeEvent.model.js';
+import { isStripeIp } from '../../../shared/stripeSecurity.js';
 
-const stripe = new Stripe(config.stripe.stripe_secret_key);
+const stripe = new Stripe(config.stripe.stripe_secret_key, {
+  apiVersion: '2022-11-15',
+});
 
 /**
  * Stripe Webhook Handler
@@ -17,6 +22,29 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
   const webhookSecret =
     config.stripe.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
 
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const isValidStripeIp = await isStripeIp(clientIp);
+
+  if (!isValidStripeIp) {
+    logger.error(`[STRIPE_SECURITY_ALERT] Webhook request originating from untrusted IP: ${clientIp}`);
+
+    // Dispatch real-time security alert to Discord/Slack
+    sendSecurityAlert(
+      'Untrusted Webhook IP Blocked (Legacy Controller)',
+      `An incoming Stripe webhook request was rejected because the sender IP did not originate from Stripe's official IP ranges.`,
+      {
+        senderIp: clientIp,
+        userAgent: req.headers['user-agent'] || 'none',
+        signaturePresent: !!sig
+      }
+    ).catch(() => {});
+
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Forbidden: untrusted sender source IP'
+    );
+  }
+
   if (!webhookSecret) {
     logger.error('Stripe webhook secret not configured');
     throw new ApiError(
@@ -26,18 +54,60 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
   }
 
   let event;
+  let verificationError = null;
 
   try {
-    // Verify webhook signature
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    // Try primary secret first
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (primaryErr) {
+      verificationError = primaryErr;
+
+      const fallbackSecret = config.stripe.webhook_secret_fallback || process.env.STRIPE_WEBHOOK_SECRET_FALLBACK;
+      if (fallbackSecret) {
+        logger.info('[Stripe Security] Primary webhook secret verification failed. Trying fallback secret...');
+        try {
+          event = stripe.webhooks.constructEvent(req.body, sig, fallbackSecret);
+          verificationError = null; // Verified! Clear error
+          logger.info('[Stripe Security] Webhook signature verified successfully using fallback secret.');
+        } catch (fallbackErr) {
+          verificationError = new Error(`Both primary and fallback secret verifications failed. Fallback error: ${fallbackErr.message}`);
+        }
+      }
+    }
+
+    if (verificationError) {
+      throw verificationError;
+    }
     logger.info(`Webhook received: ${event.type}`);
   } catch (err) {
     logger.error('Webhook signature verification failed:', err.message);
+
+    // Dispatch real-time security signature mismatch alert to Discord/Slack
+    sendSecurityAlert(
+      'Webhook Signature Mismatch (Legacy Controller)',
+      `An incoming webhook signature check failed verification. This may indicate a replay attempt or incorrect webhook secret configuration.`,
+      {
+        senderIp: clientIp,
+        errorMessage: err.message,
+        userAgent: req.headers['user-agent'] || 'none',
+        signature: sig || 'none'
+      }
+    ).catch(() => {});
+
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       `Webhook signature verification failed: ${err.message}`
     );
   }
+
+  // Webhook Replay Protection Guard
+  const existingEvent = await StripeEvent.findOne({ eventId: event.id });
+  if (existingEvent) {
+    logger.info(`Duplicate webhook event ${event.id} discarded in Legacy Webhook Controller.`);
+    return res.json({ received: true, duplicate: true });
+  }
+  await StripeEvent.create({ eventId: event.id });
 
   // Handle the event
   try {

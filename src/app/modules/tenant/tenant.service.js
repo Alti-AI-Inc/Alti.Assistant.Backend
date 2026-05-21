@@ -9,6 +9,7 @@ import UserModel from '../auth/auth.model.js';
 import { tenantInvitationService } from './tenantInvitation.service.js';
 import subscriptionService from '../subscription/subscription.service.js';
 import SubscriptionModel from '../subscription/subscription.model.js';
+import { createCustomerService } from '../stripe/customer/stripe.service.js';
 
 /**
  * Create a new tenant
@@ -358,6 +359,14 @@ const inviteMember = async (invitationData) => {
     throw new ApiError(
       httpStatus.FORBIDDEN,
       'Free plan is limited to 1 user. Please upgrade to Explore or higher to invite team members.'
+    );
+  }
+
+  // Check if seat limit is reached (available seats = total - used)
+  if (!subscription.limits.unlimitedSeats && subscription.seats.used >= subscription.seats.total) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Seat limit reached. Please purchase more seats on your billing page before inviting additional team members.'
     );
   }
 

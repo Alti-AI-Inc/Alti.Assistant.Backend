@@ -84,7 +84,7 @@ function getFeaturesListForPlan(planKey) {
       '5,000 web searches per day',
       '50 deep research queries per day',
       'Unlimited team members',
-      '$50 per user per month',
+      '$25 per user per month',
       'Priority email support',
       'Advanced analytics',
     ],

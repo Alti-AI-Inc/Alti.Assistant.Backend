@@ -4,8 +4,27 @@ import config from '../../../../config/index.js';
 import SubscriptionModel from '../../modules/subscription/subscription.model.js';
 import subscriptionService from '../../modules/subscription/subscription.service.js';
 import { logger } from '../../../shared/logger.js';
+import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
 
-const stripe = new Stripe(config.stripe.stripe_secret_key);
+let consecutiveErrors = 0;
+const MAX_CONSECUTIVE_ERRORS_THRESHOLD = 3;
+
+const isStripeOutageError = (err) => {
+  if (!err) return false;
+  const isConnection = err.type === 'StripeConnectionError';
+  const isRateLimit = err.type === 'StripeRateLimitError';
+  const is5xx = err.statusCode && err.statusCode >= 500;
+  const isNetworkMsg = err.message && (
+    err.message.toLowerCase().includes('network') ||
+    err.message.toLowerCase().includes('timeout') ||
+    err.message.toLowerCase().includes('connect')
+  );
+  return isConnection || isRateLimit || is5xx || isNetworkMsg;
+};
+
+const stripe = new Stripe(config.stripe.stripe_secret_key, {
+  apiVersion: '2022-11-15',
+});
 
 /**
  * Stripe Subscription Sync Cron Job
@@ -42,6 +61,9 @@ const syncStripeSubscriptions = async () => {
         const stripeSub = await stripe.subscriptions.retrieve(
           dbSub.stripeSubscriptionId
         );
+
+        // Reset consecutive errors upon a successful fetch
+        consecutiveErrors = 0;
 
         // Check for discrepancies
         let needsUpdate = false;
@@ -83,8 +105,17 @@ const syncStripeSubscriptions = async () => {
 
         // Update if needed
         if (needsUpdate) {
-          await SubscriptionModel.findByIdAndUpdate(dbSub._id, updates);
+          const updatedSub = await SubscriptionModel.findByIdAndUpdate(dbSub._id, updates, { new: true });
           logger.info(`Updated subscription ${dbSub._id} with Stripe data`);
+
+          // Sync Tenant Workspace limits & status to prevent lockout/leakage
+          if (updatedSub.tenantId) {
+            await subscriptionService.syncTenantWithSubscription(
+              updatedSub.tenantId,
+              updatedSub
+            );
+            logger.info(`Self-healed Tenant ${updatedSub.tenantId} workspace limits and status`);
+          }
           updated++;
         }
 
@@ -92,6 +123,25 @@ const syncStripeSubscriptions = async () => {
       } catch (error) {
         logger.error(`Error syncing subscription ${dbSub._id}:`, error.message);
         errors++;
+
+        if (isStripeOutageError(error)) {
+          consecutiveErrors++;
+          logger.warn(`Stripe sync API outage detected. Consecutive failures: ${consecutiveErrors}`);
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS_THRESHOLD) {
+            sendSecurityAlert(
+              'Stripe Sync Outage Alert',
+              `The background subscription sync cron job encountered multiple consecutive Stripe API outages or connection drops. Stripe services might be experiencing downtime.`,
+              {
+                consecutiveErrors,
+                lastError: error.message,
+                stripeErrorType: error.type || 'unknown',
+                dbSubscriptionId: dbSub._id
+              }
+            ).catch(() => {});
+            // Reset to prevent spamming alerts repeatedly in the same run
+            consecutiveErrors = 0;
+          }
+        }
 
         // If subscription not found in Stripe, mark as cancelled
         if (error.code === 'resource_missing') {
@@ -111,6 +161,14 @@ const syncStripeSubscriptions = async () => {
     );
   } catch (error) {
     logger.error('Error during Stripe sync:', error);
+    sendSecurityAlert(
+      'Stripe Sync Cron Failure',
+      `The subscription synchronization cron job failed to execute completely.`,
+      {
+        errorMessage: error.message,
+        stack: error.stack ? error.stack.substring(0, 500) : 'none'
+      }
+    ).catch(() => {});
   } finally {
     isRunning = false;
   }

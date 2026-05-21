@@ -378,6 +378,53 @@ const extendTenantTrialService = async (tenantId, days) => {
   return tenant;
 };
 
+/**
+ * Retrieve billing audit logs with search, filtering and pagination (admin)
+ */
+const getBillingAuditLogsService = async (filters, paginationOptions) => {
+  const BillingAuditLog = (await import('../subscription/billingAuditLog.model.js')).default;
+  const { searchTerm, action } = filters;
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelpers.calculatePagination(paginationOptions);
+
+  const andConditions = [];
+
+  if (searchTerm) {
+    andConditions.push({
+      $or: [
+        { action: { $regex: searchTerm, $options: 'i' } },
+        { ipAddress: { $regex: searchTerm, $options: 'i' } },
+      ],
+    });
+  }
+
+  if (action) {
+    andConditions.push({ action });
+  }
+
+  const query = andConditions.length > 0 ? { $and: andConditions } : {};
+  const sortConditions = {};
+  if (sortBy && sortOrder) {
+    sortConditions[sortBy] = sortOrder;
+  } else {
+    sortConditions['createdAt'] = -1; // Default to newest first
+  }
+
+  const logs = await BillingAuditLog.find(query)
+    .populate('tenantId', 'name slug')
+    .populate('userId', 'email role firstName lastName')
+    .sort(sortConditions)
+    .skip(skip)
+    .limit(limit);
+
+  const total = await BillingAuditLog.countDocuments(query);
+
+  return {
+    meta: { page, limit, total },
+    data: logs,
+  };
+};
+
 export const AdminService = {
   getAllUsersService,
   getAllBuyerServices,
@@ -392,4 +439,5 @@ export const AdminService = {
   updateTenantStatusService,
   getTenantUsageService,
   extendTenantTrialService,
+  getBillingAuditLogsService,
 };

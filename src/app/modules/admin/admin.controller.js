@@ -14,7 +14,7 @@ const getAllBuyer = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Get All Paid User',
-    data: result,
+    data: buyers,
   });
 });
 
@@ -204,6 +204,26 @@ const extendTenantTrial = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Retrieve billing audit logs (admin)
+ */
+const getBillingAuditLogs = catchAsync(async (req, res) => {
+  const filters = pick(req.query, ['searchTerm', 'action']);
+  const paginationOptions = pick(req.query, paginationFields);
+
+  const result = await AdminService.getBillingAuditLogsService(
+    filters,
+    paginationOptions
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Billing audit logs retrieved successfully',
+    data: result,
+  });
+});
+
 export const AdminController = {
   getAllBuyer,
   deleteUser,
@@ -217,4 +237,5 @@ export const AdminController = {
   updateTenantStatus,
   getTenantUsageAdmin,
   extendTenantTrial,
+  getBillingAuditLogs,
 };

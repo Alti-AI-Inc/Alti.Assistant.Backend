@@ -4,3 +4,5 @@ logs/
 app_data/
 output/
 alti_gcp.json
+db_data/
+*.log

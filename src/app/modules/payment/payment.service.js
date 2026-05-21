@@ -13,8 +13,13 @@ import {
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
 import Tenant from '../tenant/tenant.model.js';
+import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
+import StripeEvent from '../subscription/stripeEvent.model.js';
+import { isStripeIp } from '../../../shared/stripeSecurity.js';
 
-const stripe = new Stripe(config.stripe.stripe_secret_key);
+const stripe = new Stripe(config.stripe.stripe_secret_key, {
+  apiVersion: '2022-11-15',
+});
 
 /**
  * Plan limits configuration based on plan type
@@ -120,29 +125,99 @@ const createCheckoutSessionService = async (user, plan, req = null) => {
   return session.url;
 };
 
-const handleWebhookService = async (req, res) => {
-  const endpointSecret = config.stripe.stripe_webhook_secret_key;
-  const sig = req.headers['stripe-signature'];
 
-  if (!sig || !endpointSecret) {
-    logger.error('Missing Stripe signature or webhook secret');
+
+const handleWebhookService = async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = config.stripe.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
+
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const isValidStripeIp = await isStripeIp(clientIp);
+
+  if (!isValidStripeIp) {
+    logger.error(`[STRIPE_SECURITY_ALERT] Webhook request originating from untrusted IP in Legacy Payment Service: ${clientIp}`);
+
+    sendSecurityAlert(
+      'Untrusted Webhook IP Blocked (Legacy Payment Service)',
+      `An incoming Stripe webhook request was rejected because the sender IP did not originate from Stripe's official IP ranges.`,
+      {
+        senderIp: clientIp,
+        userAgent: req.headers['user-agent'] || 'none',
+        signaturePresent: !!sig
+      }
+    ).catch(() => {});
+
+    return res
+      .status(403)
+      .send('Forbidden: untrusted sender source IP');
+  }
+
+  if (!webhookSecret) {
+    logger.error('Missing Stripe webhook secret configuration');
+    return res
+      .status(500)
+      .send('Webhook secret not configured');
+  }
+
+  if (!sig) {
+    logger.error('Missing Stripe signature header');
     return res
       .status(400)
-      .send('Webhook Error: Missing Stripe Signature or Secret');
+      .send('Missing Stripe Signature');
   }
 
   let event;
+  let verificationError = null;
+
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-    logger.info('Webhook event received', { eventType: event.type });
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (primaryErr) {
+      verificationError = primaryErr;
+
+      const fallbackSecret = config.stripe.webhook_secret_fallback || process.env.STRIPE_WEBHOOK_SECRET_FALLBACK;
+      if (fallbackSecret) {
+        logger.info('[Stripe Security] Primary webhook secret verification failed in Legacy Payment Service. Trying fallback secret...');
+        try {
+          event = stripe.webhooks.constructEvent(req.body, sig, fallbackSecret);
+          verificationError = null; // Verified! Clear error
+          logger.info('[Stripe Security] Webhook signature verified successfully using fallback secret.');
+        } catch (fallbackErr) {
+          verificationError = new Error(`Both primary and fallback secret verifications failed. Fallback error: ${fallbackErr.message}`);
+        }
+      }
+    }
+
+    if (verificationError) {
+      throw verificationError;
+    }
+    logger.info('Webhook event received (Legacy Payment Service)', { eventType: event.type });
   } catch (err) {
-    logger.error('Webhook signature verification failed', {
-      message: err.message,
-    });
+    logger.error('Webhook signature verification failed (Legacy Payment Service):', err.message);
+
+    sendSecurityAlert(
+      'Webhook Signature Mismatch (Legacy Payment Service)',
+      `An incoming webhook signature check failed verification. This may indicate a replay attempt or incorrect webhook secret configuration.`,
+      {
+        senderIp: clientIp,
+        errorMessage: err.message,
+        userAgent: req.headers['user-agent'] || 'none',
+        signature: sig || 'none'
+      }
+    ).catch(() => {});
+
     return res
       .status(400)
       .send(`Webhook signature verification failed: ${err.message}`);
   }
+
+  // Webhook Replay Protection Guard
+  const existingEvent = await StripeEvent.findOne({ eventId: event.id });
+  if (existingEvent) {
+    logger.info(`Duplicate webhook event ${event.id} discarded in Legacy Payment Service.`);
+    return res.status(200).send('Webhook processed successfully (Duplicate)');
+  }
+  await StripeEvent.create({ eventId: event.id });
 
   const session = await mongoose.startSession();
 

@@ -26,6 +26,7 @@ import passportConfig from './src/app/modules/social-login/config/passport.js';
 import { logger } from './src/shared/logger.js';
 import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
 import { initializeCronJobs } from './src/app/cron/index.js';
+import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 
 // Load environment variables
 dotenv.config();
@@ -135,6 +136,11 @@ mongoose
 
     // Initialize cron jobs after database connection
     initializeCronJobs();
+
+    // Proactively pre-fetch Stripe Webhook IPs on boot
+    fetchStripeIps().catch((err) => {
+      logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err);
+    });
   })
   .catch((err) => {
     logger.error('❌ Error connecting to the database:', err);

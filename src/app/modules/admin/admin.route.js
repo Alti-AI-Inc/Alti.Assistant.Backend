@@ -34,6 +34,12 @@ router.get(
   AdminController.getAllPayment
 );
 
+router.get(
+  '/billing/audit-logs',
+  auth(ENUM_USER_ROLE.ADMIN),
+  AdminController.getBillingAuditLogs
+);
+
 router.get('/admin/:email', AdminController.getAdmin);
 
 router.get(

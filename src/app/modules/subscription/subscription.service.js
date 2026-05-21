@@ -11,8 +11,75 @@ import {
 import ApiError from '../../../errors/ApiError.js';
 import httpStatus from 'http-status';
 import { logger } from '../../../shared/logger.js';
+import BillingAuditLog from './billingAuditLog.model.js';
+import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
 
-const stripe = new Stripe(config.stripe.stripe_secret_key);
+const stripe = new Stripe(config.stripe.stripe_secret_key, {
+  apiVersion: '2022-11-15',
+});
+
+/**
+ * Executes a Stripe operation with a built-in circuit breaker/outage detector.
+ * Catch Stripe connection timeouts, API failures, or network drops, logs an 'outage_detected'
+ * event in BillingAuditLog, and returns a clean, user-friendly ApiError.
+ */
+const executeStripeOperation = async (operationFn, tenantId, userId, action) => {
+  try {
+    return await operationFn();
+  } catch (error) {
+    const isStripeOutage =
+      error.type === 'StripeConnectionError' ||
+      error.type === 'StripeAPIError' ||
+      (error.statusCode && error.statusCode >= 500) ||
+      error.message?.includes('network') ||
+      error.message?.includes('timeout') ||
+      error.code === 'ETIMEDOUT' ||
+      error.code === 'ECONNRESET';
+
+    if (isStripeOutage) {
+      logger.error(`[STRIPE_OUTAGE_DETECTED] Stripe operation failed for action ${action}`, {
+        tenantId,
+        userId,
+        error: error.message,
+      });
+
+      // Dispatch real-time outage alert to Discord/Slack
+      sendSecurityAlert(
+        'Stripe Outage Detected',
+        `A connection or API failure occurred while communicating with Stripe. The write mutation circuit breaker was triggered, preventing transactional mismatches.`,
+        {
+          attemptedAction: action || 'unknown',
+          tenantId: tenantId || 'system',
+          userId: userId || 'system',
+          errorMessage: error.message,
+          errorType: error.type || 'unknown'
+        }
+      ).catch(() => {});
+
+      // Record in BillingAuditLog
+      try {
+        await BillingAuditLog.create({
+          tenantId: tenantId || null,
+          userId: userId || null,
+          action: 'outage_detected',
+          previousState: { action, attempted: true },
+          newState: { error: error.message },
+          ipAddress: 'stripe_circuit_breaker',
+        });
+      } catch (logErr) {
+        logger.error('Failed to create outage audit log:', logErr);
+      }
+
+      throw new ApiError(
+        httpStatus.SERVICE_UNAVAILABLE,
+        'Our payment processor is temporarily undergoing maintenance or offline. Your active access is unaffected. Please try again in a few minutes.'
+      );
+    }
+
+    throw error;
+  }
+};
+
 
 /**
  * Subscription Service
@@ -148,7 +215,8 @@ const upgradeSubscription = async (
   userId,
   planIdentifier,
   tenantId = null,
-  initialSeats = 1
+  initialSeats = 1,
+  actorInfo = null
 ) => {
   try {
     const { stripeProductId, planName } = planIdentifier;
@@ -222,7 +290,7 @@ const upgradeSubscription = async (
       logger.info(
         `Changing plan for user ${userId} from ${existingPaidSubscription.plan} to ${plan.plan}`
       );
-      return await changePlan(existingPaidSubscription, plan, initialSeats);
+      return await changePlan(existingPaidSubscription, plan, initialSeats, actorInfo);
     }
 
     // Create or get Stripe customer
@@ -259,7 +327,8 @@ const upgradeSubscription = async (
         plan,
         tenantId,
         initialSeats,
-        defaultPaymentMethod
+        defaultPaymentMethod,
+        actorInfo
       );
     }
 
@@ -288,34 +357,39 @@ const upgradeSubscription = async (
  * @param {number} seats - Number of seats
  * @returns {Promise<Object>} Updated subscription
  */
-const changePlan = async (existingSubscription, newPlan, seats = null) => {
+const changePlan = async (existingSubscription, newPlan, seats = null, actorInfo = null) => {
   try {
     const seatCount = seats || existingSubscription.seats.used;
 
     // Update subscription in Stripe - switch to new price
-    const stripeSubscription = await stripe.subscriptions.retrieve(
-      existingSubscription.stripeSubscriptionId
-    );
-    const subscriptionItemId = stripeSubscription.items.data[0].id;
-
-    // Update the subscription item with new price
-    // proration_behavior: 'create_prorations' will charge/credit the difference
-    const updatedStripeSubscription = await stripe.subscriptions.update(
-      existingSubscription.stripeSubscriptionId,
-      {
-        items: [
+    const { updatedStripeSubscription } = await executeStripeOperation(
+      async () => {
+        const stripeSubscription = await stripe.subscriptions.retrieve(
+          existingSubscription.stripeSubscriptionId
+        );
+        const subscriptionItemId = stripeSubscription.items.data[0].id;
+        const updated = await stripe.subscriptions.update(
+          existingSubscription.stripeSubscriptionId,
           {
-            id: subscriptionItemId,
-            price: newPlan.stripePriceId,
-            quantity: seatCount,
-          },
-        ],
-        proration_behavior: 'create_prorations', // Charge/credit difference immediately
-        metadata: {
-          planName: newPlan.plan,
-          stripeProductId: newPlan.stripeProductId,
-        },
-      }
+            items: [
+              {
+                id: subscriptionItemId,
+                price: newPlan.stripePriceId,
+                quantity: seatCount,
+              },
+            ],
+            proration_behavior: 'create_prorations', // Charge/credit difference immediately
+            metadata: {
+              planName: newPlan.plan,
+              stripeProductId: newPlan.stripeProductId,
+            },
+          }
+        );
+        return { updatedStripeSubscription: updated };
+      },
+      existingSubscription.tenantId || null,
+      existingSubscription.userId,
+      'upgrade'
     );
 
     // Update local subscription
@@ -349,6 +423,17 @@ const changePlan = async (existingSubscription, newPlan, seats = null) => {
     await UserModel.findByIdAndUpdate(existingSubscription.userId, {
       currentPlan: newPlan.plan,
     });
+
+    if (actorInfo) {
+      await BillingAuditLog.create({
+        tenantId: updatedSubscription.tenantId || existingSubscription.tenantId || updatedSubscription.userId,
+        userId: actorInfo.userId,
+        action: 'upgrade',
+        previousState: existingSubscription.toObject(),
+        newState: updatedSubscription.toObject(),
+        ipAddress: actorInfo.ipAddress,
+      });
+    }
 
     logger.info(
       `Changed plan for subscription ${existingSubscription._id} to ${newPlan.plan}`
@@ -389,27 +474,35 @@ const createSubscriptionDirectly = async (
   plan,
   tenantId,
   seats,
-  paymentMethodId
+  paymentMethodId,
+  actorInfo = null
 ) => {
   try {
     // Create subscription in Stripe
-    const stripeSubscription = await stripe.subscriptions.create({
-      customer: customerId,
-      items: [
-        {
-          price: plan.stripePriceId,
-          quantity: seats,
-        },
-      ],
-      default_payment_method: paymentMethodId,
-      metadata: {
-        userId: userId.toString(),
-        tenantId: tenantId?.toString() || '',
-        planName: plan.plan,
-        stripeProductId: plan.stripeProductId,
+    const stripeSubscription = await executeStripeOperation(
+      async () => {
+        return await stripe.subscriptions.create({
+          customer: customerId,
+          items: [
+            {
+              price: plan.stripePriceId,
+              quantity: seats,
+            },
+          ],
+          default_payment_method: paymentMethodId,
+          metadata: {
+            userId: userId.toString(),
+            tenantId: tenantId?.toString() || '',
+            planName: plan.plan,
+            stripeProductId: plan.stripeProductId,
+          },
+          expand: ['latest_invoice.payment_intent'],
+        });
       },
-      expand: ['latest_invoice.payment_intent'],
-    });
+      tenantId,
+      userId,
+      'upgrade'
+    );
 
     // Check if payment requires additional action (3D Secure)
     const invoice = stripeSubscription.latest_invoice;
@@ -505,6 +598,17 @@ const createSubscriptionDirectly = async (
       });
     }
 
+    if (actorInfo) {
+      await BillingAuditLog.create({
+        tenantId: tenantId || subscription.tenantId || userId,
+        userId: actorInfo.userId,
+        action: 'upgrade',
+        previousState: null,
+        newState: subscription.toObject(),
+        ipAddress: actorInfo.ipAddress,
+      });
+    }
+
     logger.info(
       `Created subscription directly for user ${userId}, subscription ${subscription._id}`
     );
@@ -552,27 +656,35 @@ const createCheckoutSession = async (
       initialSeats: seats.toString(),
     };
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: plan.stripePriceId,
-          quantity: seats,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${config.client_url}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${config.client_url}/subscription/cancel`,
-      // Save the payment method for future use
-      payment_method_collection: 'always',
-      // Metadata on checkout session (for checkout.session.completed event)
-      metadata: subscriptionMetadata,
-      // Metadata on subscription (flows to invoices for invoice.payment_succeeded)
-      subscription_data: {
-        metadata: subscriptionMetadata,
+    const session = await executeStripeOperation(
+      async () => {
+        return await stripe.checkout.sessions.create({
+          customer: customerId,
+          payment_method_types: ['card'],
+          line_items: [
+            {
+              price: plan.stripePriceId,
+              quantity: seats,
+            },
+          ],
+          mode: 'subscription',
+          success_url: `${config.client_url}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${config.client_url}/subscription/cancel`,
+          // Save the payment method for future use
+          payment_method_collection: 'always',
+          expires_at: Math.floor(Date.now() / 1000) + 3600, // Session expires in 1 hour
+          // Metadata on checkout session (for checkout.session.completed event)
+          metadata: subscriptionMetadata,
+          // Metadata on subscription (flows to invoices for invoice.payment_succeeded)
+          subscription_data: {
+            metadata: subscriptionMetadata,
+          },
+        });
       },
-    });
+      tenantId,
+      userId,
+      'upgrade'
+    );
 
     logger.info(`Created checkout session ${session.id} for user ${userId}`);
 
@@ -690,6 +802,15 @@ const processStripeCheckout = async (sessionId) => {
       });
     }
 
+    await BillingAuditLog.create({
+      tenantId: tenantId || subscription.tenantId || userId,
+      userId: userId,
+      action: 'upgrade',
+      previousState: null,
+      newState: subscription.toObject(),
+      ipAddress: 'stripe_webhook',
+    });
+
     logger.info(
       `Processed checkout for user ${userId}, subscription ${subscription._id}`
     );
@@ -708,7 +829,7 @@ const processStripeCheckout = async (sessionId) => {
  * @param {boolean} immediate - Cancel immediately (default: false, cancel at period end)
  * @returns {Promise<Object>} Updated subscription
  */
-const cancelSubscription = async (subscriptionId, immediate = false) => {
+const cancelSubscription = async (subscriptionId, immediate = false, actorInfo = null) => {
   try {
     const subscription = await SubscriptionModel.findById(subscriptionId);
     if (!subscription) {
@@ -731,13 +852,20 @@ const cancelSubscription = async (subscriptionId, immediate = false) => {
 
     // Cancel in Stripe
     if (subscription.stripeSubscriptionId) {
-      await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-        cancel_at_period_end: !immediate,
-      });
+      await executeStripeOperation(
+        async () => {
+          await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+            cancel_at_period_end: !immediate,
+          });
 
-      if (immediate) {
-        await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
-      }
+          if (immediate) {
+            await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+          }
+        },
+        subscription.tenantId || null,
+        subscription.userId,
+        'cancel'
+      );
     }
 
     // Update subscription
@@ -776,6 +904,17 @@ const cancelSubscription = async (subscriptionId, immediate = false) => {
       });
     }
 
+    if (actorInfo) {
+      await BillingAuditLog.create({
+        tenantId: updatedSubscription.tenantId || subscription.tenantId || updatedSubscription.userId,
+        userId: actorInfo.userId,
+        action: 'cancel',
+        previousState: subscription.toObject(),
+        newState: updatedSubscription.toObject(),
+        ipAddress: actorInfo.ipAddress,
+      });
+    }
+
     logger.info(
       `Cancelled subscription ${subscriptionId}, immediate: ${immediate}`
     );
@@ -794,7 +933,7 @@ const cancelSubscription = async (subscriptionId, immediate = false) => {
  * @param {string} userId - User ID being added
  * @returns {Promise<Object>} Updated subscription
  */
-const addSeatToSubscription = async (subscriptionId, userId) => {
+const addSeatToSubscription = async (subscriptionId, userId, actorInfo = null) => {
   try {
     const subscription = await SubscriptionModel.findById(subscriptionId);
     if (!subscription) {
@@ -827,14 +966,25 @@ const addSeatToSubscription = async (subscriptionId, userId) => {
 
     // Calculate new seat count
     const newSeatCount = subscription.seats.used + 1;
+    const idempotencyKey = `seat-add-${subscriptionId}-${newSeatCount}`;
 
     // Update Stripe subscription item quantity for billing
-    await stripe.subscriptionItems.update(
-      subscription.stripeSubscriptionItemId,
-      {
-        quantity: newSeatCount,
-        proration_behavior: 'always_invoice', // Charge immediately for the new seat
-      }
+    await executeStripeOperation(
+      async () => {
+        return await stripe.subscriptionItems.update(
+          subscription.stripeSubscriptionItemId,
+          {
+            quantity: newSeatCount,
+            proration_behavior: 'always_invoice', // Charge immediately for the new seat
+          },
+          {
+            idempotencyKey,
+          }
+        );
+      },
+      subscription.tenantId || null,
+      subscription.userId,
+      'seat_add'
     );
 
     // Update local subscription
@@ -847,6 +997,29 @@ const addSeatToSubscription = async (subscriptionId, userId) => {
       },
       { new: true }
     );
+
+    // Synchronize Tenant limits dynamically
+    if (subscription.tenantId) {
+      const Tenant = (await import('../tenant/tenant.model.js')).default;
+      await Tenant.findByIdAndUpdate(subscription.tenantId, {
+        'limits.maxUsers': newSeatCount,
+        'settings.maxMembers': newSeatCount,
+      });
+      logger.info(
+        `Synchronized Tenant limits for tenant ${subscription.tenantId} to ${newSeatCount} seats.`
+      );
+    }
+
+    if (actorInfo) {
+      await BillingAuditLog.create({
+        tenantId: updatedSubscription.tenantId || subscription.tenantId || updatedSubscription.userId,
+        userId: actorInfo.userId,
+        action: 'seat_add',
+        previousState: subscription.toObject(),
+        newState: updatedSubscription.toObject(),
+        ipAddress: actorInfo.ipAddress,
+      });
+    }
 
     logger.info(
       `Added seat to subscription ${subscriptionId} for user ${userId}. New quantity: ${newSeatCount}`
@@ -866,7 +1039,7 @@ const addSeatToSubscription = async (subscriptionId, userId) => {
  * @param {string} userId - User ID being removed
  * @returns {Promise<Object>} Updated subscription
  */
-const removeSeatFromSubscription = async (subscriptionId, userId) => {
+const removeSeatFromSubscription = async (subscriptionId, userId, actorInfo = null) => {
   try {
     const subscription = await SubscriptionModel.findById(subscriptionId);
     if (!subscription) {
@@ -887,8 +1060,28 @@ const removeSeatFromSubscription = async (subscriptionId, userId) => {
       );
     }
 
+    const previousState = subscription.toObject();
+
     // Call instance method to remove seat (handles Stripe update)
-    await subscription.removeSeat();
+    const updatedSubscription = await executeStripeOperation(
+      async () => {
+        return await subscription.removeSeat();
+      },
+      subscription.tenantId || null,
+      subscription.userId,
+      'seat_remove'
+    );
+
+    if (actorInfo) {
+      await BillingAuditLog.create({
+        tenantId: updatedSubscription.tenantId || subscription.tenantId || updatedSubscription.userId,
+        userId: actorInfo.userId,
+        action: 'seat_remove',
+        previousState,
+        newState: updatedSubscription.toObject(),
+        ipAddress: actorInfo.ipAddress,
+      });
+    }
 
     logger.info(
       `Removed seat from subscription ${subscriptionId} for user ${userId}`
@@ -919,6 +1112,16 @@ const checkUsageLimit = async (userId, limitType) => {
         limit:
           limitType === 'webSearch' ? freePlan.features.dailyWebSearchLimit : 0,
         message: 'No active subscription. Please upgrade.',
+      };
+    }
+
+    if (['past_due', 'unpaid', 'cancelled', 'suspended'].includes(subscription.status)) {
+      return {
+        allowed: false,
+        remaining: 0,
+        limit: 0,
+        used: 0,
+        message: 'Your subscription is suspended due to payment issues. Please update your billing details.'
       };
     }
 
@@ -1556,6 +1759,174 @@ const handleInvoicePaymentFailed = async (invoice) => {
   }
 };
 
+/**
+ * Handle charge.dispute.created webhook
+ * Suspends subscription and sets tenant access to suspended
+ * @param {Object} dispute - Stripe dispute object from webhook
+ * @returns {Promise<Object>} Updated subscription
+ */
+const handleDisputeCreated = async (dispute) => {
+  try {
+    const Stripe = (await import('stripe')).default;
+    const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2022-11-15',
+    });
+    
+    // Retrieve charge to find the customer/invoice
+    const charge = await stripeInstance.charges.retrieve(dispute.charge);
+    if (!charge || !charge.customer) {
+      logger.warn(`Disputed charge ${dispute.charge} has no customer associated.`);
+      return null;
+    }
+
+    // Find the subscription by customer ID
+    const subscription = await SubscriptionModel.findOne({
+      stripeCustomerId: charge.customer,
+      status: 'active'
+    });
+
+    if (!subscription) {
+      logger.warn(`No active subscription found for disputed customer ID: ${charge.customer}`);
+      return null;
+    }
+
+    // Suspend subscription
+    const updatedSubscription = await SubscriptionModel.findByIdAndUpdate(
+      subscription._id,
+      {
+        status: 'suspended',
+        paymentStatus: 'pending'
+      },
+      { new: true }
+    );
+
+    logger.error(
+      `ALERT: Subscription ${subscription._id} suspended due to charge dispute created!`,
+      { disputeId: dispute.id, reason: dispute.reason, amount: dispute.amount }
+    );
+
+    // Sync tenant to suspended
+    if (subscription.tenantId) {
+      await syncTenantWithSubscription(subscription.tenantId, updatedSubscription);
+    }
+
+    return updatedSubscription;
+  } catch (error) {
+    logger.error('Error handling charge.dispute.created:', error);
+    throw error;
+  }
+};
+
+/**
+ * Handle charge.dispute.closed webhook
+ * Restores or cancels subscription depending on dispute outcome
+ * @param {Object} dispute - Stripe dispute object from webhook
+ * @returns {Promise<Object>} Updated subscription
+ */
+const handleDisputeClosed = async (dispute) => {
+  try {
+    const Stripe = (await import('stripe')).default;
+    const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2022-11-15',
+    });
+    
+    const charge = await stripeInstance.charges.retrieve(dispute.charge);
+    if (!charge || !charge.customer) return null;
+
+    const subscription = await SubscriptionModel.findOne({
+      stripeCustomerId: charge.customer
+    });
+
+    if (!subscription) return null;
+
+    let newStatus = 'active';
+    if (dispute.status === 'lost') {
+      newStatus = 'cancelled';
+      logger.error(`Dispute lost for subscription ${subscription._id}. Revoking access permanently.`);
+    } else if (dispute.status === 'won') {
+      newStatus = 'active';
+      logger.info(`Dispute won for subscription ${subscription._id}. Restoring access.`);
+    }
+
+    const updatedSubscription = await SubscriptionModel.findByIdAndUpdate(
+      subscription._id,
+      {
+        status: newStatus
+      },
+      { new: true }
+    );
+
+    if (subscription.tenantId) {
+      await syncTenantWithSubscription(subscription.tenantId, updatedSubscription);
+    }
+
+    return updatedSubscription;
+  } catch (error) {
+    logger.error('Error handling charge.dispute.closed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a secure Stripe Customer Billing Portal session.
+ * @param {string} userId - User ID
+ * @param {string} tenantId - Tenant ID
+ * @param {Object} context - { userId, ipAddress }
+ * @returns {Promise<Object>} Secure billing portal session object
+ */
+const createBillingPortalSession = async (userId, tenantId, context) => {
+  const SubscriptionModel = (await import('./subscription.model.js')).default;
+  const Tenant = (await import('../tenant/tenant.model.js')).default;
+
+  let stripeCustomerId = null;
+
+  if (tenantId) {
+    const tenant = await Tenant.findById(tenantId);
+    if (tenant && tenant.subscription && tenant.subscription.stripeCustomerId) {
+      stripeCustomerId = tenant.subscription.stripeCustomerId;
+    }
+  }
+
+  if (!stripeCustomerId) {
+    const subscription = await SubscriptionModel.findOne({ userId });
+    if (subscription && subscription.stripeCustomerId) {
+      stripeCustomerId = subscription.stripeCustomerId;
+    }
+  }
+
+  if (!stripeCustomerId) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'No active Stripe billing profile found. Please purchase a plan first to establish a billing relationship.'
+    );
+  }
+
+  // Create portal session wrapped in circuit breaker
+  const session = await executeStripeOperation(
+    async () => {
+      return await stripe.billingPortal.sessions.create({
+        customer: stripeCustomerId,
+        return_url: `${config.client_url}/billing`,
+      });
+    },
+    tenantId,
+    userId,
+    'billing_portal'
+  );
+
+  // Write to BillingAuditLog
+  await BillingAuditLog.create({
+    tenantId: tenantId || null,
+    userId: userId,
+    action: 'billing_portal',
+    previousState: null,
+    newState: { portalSessionId: session.id, url: session.url },
+    ipAddress: context.ipAddress || 'unknown',
+  });
+
+  return session;
+};
+
 export default {
   createFreeSubscription,
   upgradeSubscription,
@@ -1576,4 +1947,7 @@ export default {
   handleInvoicePaymentSucceeded,
   handleInvoicePaymentFailed,
   syncTenantWithSubscription,
+  handleDisputeCreated,
+  handleDisputeClosed,
+  createBillingPortalSession,
 };

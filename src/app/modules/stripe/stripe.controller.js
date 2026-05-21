@@ -36,7 +36,9 @@ import { withTenantFilter } from '../../helpers/tenantQuery.js';
 import Stripe from 'stripe';
 import config from '../../../../config/index.js';
 
-const stripe = new Stripe(config.stripe.stripe_secret_key);
+const stripe = new Stripe(config.stripe.stripe_secret_key, {
+  apiVersion: '2022-11-15',
+});
 
 /**
  * Get or create Stripe customer ID based on request context (user or tenant)

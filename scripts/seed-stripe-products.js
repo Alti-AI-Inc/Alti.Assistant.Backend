@@ -70,7 +70,7 @@ const PLANS = [
     name: 'Execute',
     id: 'execute',
     description: 'Advanced Multi-Modal RAG (50GB/user) - Invite Your Team',
-    price: 50, // $50 per user per month
+    price: 25, // $25 per user per month
     currency: 'usd',
     interval: 'month',
     features: {

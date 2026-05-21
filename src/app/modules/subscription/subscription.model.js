@@ -3,7 +3,9 @@ import Stripe from 'stripe';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-const stripe = new Stripe(config.stripe.stripe_secret_key);
+const stripe = new Stripe(config.stripe.stripe_secret_key, {
+  apiVersion: '2022-11-15',
+});
 
 /**
  * Subscription Model Schema
@@ -331,12 +333,31 @@ SubscriptionSchema.methods.removeSeat = async function () {
     // Decrement used seats
     this.seats.used -= 1;
     this.seats.total = this.seats.used; // Keep total in sync
+    const idempotencyKey = `seat-remove-${this._id}-${this.seats.used}`;
 
     // Update Stripe subscription quantity
-    await stripe.subscriptionItems.update(this.stripeSubscriptionItemId, {
-      quantity: this.seats.used,
-      proration_behavior: 'create_prorations', // Credit on next invoice
-    });
+    await stripe.subscriptionItems.update(
+      this.stripeSubscriptionItemId,
+      {
+        quantity: this.seats.used,
+        proration_behavior: 'create_prorations', // Credit on next invoice
+      },
+      {
+        idempotencyKey,
+      }
+    );
+
+    // Synchronize Tenant limits dynamically
+    if (this.tenantId) {
+      const Tenant = (await import('../tenant/tenant.model.js')).default;
+      await Tenant.findByIdAndUpdate(this.tenantId, {
+        'limits.maxUsers': this.seats.used,
+        'settings.maxMembers': this.seats.used,
+      });
+      logger.info(
+        `Synchronized Tenant limits for tenant ${this.tenantId} to ${this.seats.used} seats.`
+      );
+    }
 
     await this.save();
 
