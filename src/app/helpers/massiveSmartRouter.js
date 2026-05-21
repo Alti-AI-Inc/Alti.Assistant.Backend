@@ -36,8 +36,12 @@ import {
   getCryptoSnapshotService,
   getCryptoTradesService,
   getCryptoRSIService,
+  getCryptoMACDService,
+  getCryptoEMAService,
+  getCryptoTechnicalSnapshotService,
   getForexSnapshotService,
   getCurrencyConversionService,
+  getCurrencyConvertAmountService,
   getFedInflationService,
   getFedYieldsService,
   getFedLaborMarketService,
@@ -45,7 +49,12 @@ import {
   getMarketStatusService,
   getMarketHolidaysService,
   getMarketNewsService,
+  getMarketNewsGlobalService,
   getIPOsService,
+  getStock52WeekService,
+  getTopMoversService,
+  getDividendDetailService,
+  getShortInterestDetailService,
 } from '../modules/massive/massive.service.js';
 
 import { logger } from '../../shared/logger.js';
@@ -736,6 +745,172 @@ const routeAndEnhancePrompt = async (prompt) => {
         });
       }
       return buildPrompt(prompt, block, 'Massive.com Real-Time Forex Market Overview');
+    }
+
+    // ── TOP MOVERS (Gainers / Losers / Most Active) ───────────────────────
+    if (intent.type === 'movers') {
+      const direction = intent.direction || 'gainers';
+      const movers = await safe(getTopMoversService(direction), 8000);
+      const title = direction === 'gainers' ? '📈 Top Gainers' : direction === 'losers' ? '📉 Top Losers' : '🔥 Most Active Stocks';
+      let block = `## ${title} — Live Today\n\n`;
+      if (Array.isArray(movers) && movers.length > 0) {
+        block += `| Rank | Ticker | Price | Change | Change % | Volume |\n|------|--------|-------|--------|----------|--------|\n`;
+        movers.slice(0, 10).forEach((s, i) => {
+          const price = s.day?.c?.toFixed(2) || 'N/A';
+          const change = s.todaysChange;
+          const changePct = s.todaysChangePerc;
+          const dir = (change || 0) >= 0 ? '📈 +' : '📉 ';
+          const vol = s.day?.v ? (s.day.v / 1e6).toFixed(1) + 'M' : 'N/A';
+          block += `| ${i + 1} | **${s.ticker}** | **$${price}** | ${dir}${Math.abs(change || 0).toFixed(2)} | ${(changePct || 0) >= 0 ? '+' : ''}${(changePct || 0).toFixed(2)}% | ${vol} |\n`;
+        });
+      }
+      return buildPrompt(prompt, block, `Massive.com Real-Time ${title} Service`);
+    }
+
+    // ── GLOBAL MARKET NEWS ────────────────────────────────────────────────
+    if (intent.type === 'market_news') {
+      const news = await safe(getMarketNewsGlobalService(8), 5000);
+      let block = `## 📰 Latest Financial News\n\n`;
+      if (Array.isArray(news) && news.length > 0) {
+        news.slice(0, 8).forEach((n, i) => {
+          if (n.title) {
+            const date = n.published_utc?.slice(0, 10) || '';
+            const pub = n.publisher?.name || '';
+            block += `**${i + 1}. ${n.title}**\n`;
+            if (pub || date) block += `> *${pub}${pub && date ? ' — ' : ''}${date}*\n`;
+            if (n.description) block += `${n.description.slice(0, 200)}...\n`;
+            block += '\n';
+          }
+        });
+      }
+      return buildPrompt(prompt, block, 'Massive.com Real-Time Market News Service');
+    }
+
+    // ── 52-WEEK HIGH / LOW ────────────────────────────────────────────────
+    if (intent.type === 'week52') {
+      const sym = intent.symbol;
+      const [data52, quote] = await Promise.all([
+        safe(getStock52WeekService(sym), 8000),
+        safe(getStockQuoteService(sym), 5000),
+      ]);
+      let block = `## 📊 ${sym} — 52-Week Range\n\n`;
+      if (data52) {
+        block += `| Metric | Value |\n|--------|-------|\n`;
+        if (data52.week52High) block += `| 52-Week High | **$${data52.week52High.toFixed(2)}** |\n`;
+        if (data52.week52Low) block += `| 52-Week Low | **$${data52.week52Low.toFixed(2)}** |\n`;
+        if (data52.currentClose) block += `| Current Price | **$${data52.currentClose.toFixed(2)}** |\n`;
+        if (data52.pctFromHigh) block += `| % From 52-Wk High | ${data52.pctFromHigh}% |\n`;
+        if (data52.pctFromLow) block += `| % From 52-Wk Low | +${data52.pctFromLow}% |\n`;
+        if (data52.week52High && data52.week52Low) {
+          const range = data52.week52High - data52.week52Low;
+          block += `| 52-Wk Range | $${data52.week52Low.toFixed(2)} – $${data52.week52High.toFixed(2)} |\n`;
+        }
+      }
+      return buildPrompt(prompt, block, `Massive.com 52-Week Range Service for ${sym}`);
+    }
+
+    // ── DIVIDEND DETAIL ───────────────────────────────────────────────────
+    if (intent.type === 'dividend') {
+      const sym = intent.symbol;
+      const [divs, quote] = await Promise.all([
+        safe(getDividendDetailService(sym, 4), 5000),
+        safe(getStockQuoteService(sym), 5000),
+      ]);
+      let block = `## 💰 ${sym} — Dividend Information\n\n`;
+      if (Array.isArray(divs) && divs.length > 0) {
+        block += `| Ex-Dividend Date | Pay Date | Cash Amount | Frequency |\n|-----------------|----------|-------------|----------|\n`;
+        const freqMap = { 1: 'Annual', 2: 'Semi-Annual', 4: 'Quarterly', 12: 'Monthly' };
+        divs.slice(0, 4).forEach(d => {
+          block += `| ${d.ex_dividend_date || 'N/A'} | ${d.pay_date || 'N/A'} | **$${d.cash_amount?.toFixed(4) || 'N/A'}** | ${freqMap[d.frequency] || d.frequency || 'N/A'} |\n`;
+        });
+        const annualDiv = divs[0]?.cash_amount && divs[0]?.frequency ? (divs[0].cash_amount * divs[0].frequency) : null;
+        if (annualDiv) block += `\n**Estimated Annual Dividend:** $${annualDiv.toFixed(4)} per share\n`;
+      } else {
+        block += `*No dividend data found for ${sym}. This stock may not pay dividends.*\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Dividend Data Service for ${sym}`);
+    }
+
+    // ── SHORT INTEREST ────────────────────────────────────────────────────
+    if (intent.type === 'short_interest') {
+      const sym = intent.symbol;
+      const data = await safe(getShortInterestDetailService(sym, 3), 5000);
+      let block = `## 🩳 ${sym} — Short Interest Data\n\n`;
+      if (Array.isArray(data) && data.length > 0) {
+        const latest = data[0];
+        block += `| Metric | Value |\n|--------|-------|\n`;
+        if (latest.short_interest) block += `| Short Interest | **${latest.short_interest.toLocaleString()} shares** |\n`;
+        if (latest.avg_daily_volume) block += `| Avg Daily Volume | ${latest.avg_daily_volume.toLocaleString()} |\n`;
+        if (latest.days_to_cover) block += `| Days to Cover | **${latest.days_to_cover.toFixed(2)} days** |\n`;
+        if (latest.short_interest && latest.avg_daily_volume) {
+          const shortPct = ((latest.short_interest / latest.avg_daily_volume) / 100).toFixed(2);
+          block += `| Settlement Date | ${latest.settlement_date || 'N/A'} |\n`;
+        }
+        if (latest.days_to_cover > 10) {
+          block += `\n⚠️ **High short interest** — ${latest.days_to_cover.toFixed(1)} days to cover suggests elevated squeeze risk.\n`;
+        }
+      } else {
+        block += `*No short interest data available for ${sym}.*\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Short Interest Service for ${sym}`);
+    }
+
+    // ── CURRENCY CONVERSION WITH AMOUNT ──────────────────────────────────
+    if (intent.type === 'currency_convert') {
+      const { from, to, amount } = intent;
+      const result = await safe(getCurrencyConvertAmountService(from, to, amount), 5000);
+      let block = `## 💱 Currency Conversion — Live Rate\n\n`;
+      if (result) {
+        block += `| | Value |\n|-|-------|\n`;
+        block += `| You Send | **${amount.toLocaleString()} ${from}** |\n`;
+        block += `| You Receive | **${result.converted?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ${to}** |\n`;
+        if (result.last?.ask) block += `| Live Ask Rate | ${result.last.ask} |\n`;
+        if (result.last?.bid) block += `| Live Bid Rate | ${result.last.bid} |\n`;
+        block += `| Pair | ${from}/${to} |\n`;
+        if (result.last?.timestamp) {
+          block += `| Rate Timestamp | ${new Date(result.last.timestamp).toISOString().replace('T', ' ').slice(0, 19)} UTC |\n`;
+        }
+      }
+      return buildPrompt(prompt, block, `Massive.com Live Currency Conversion Service`);
+    }
+
+    // ── CRYPTO TECHNICAL ANALYSIS ─────────────────────────────────────────
+    if (intent.type === 'crypto_technical') {
+      const sym = intent.symbol; // e.g. BTCUSD
+      const fullSym = sym.startsWith('X:') ? sym : `X:${sym}`;
+      const [snapshot, technicals] = await Promise.all([
+        safe(getCryptoSnapshotService([fullSym]), 5000),
+        safe(getCryptoTechnicalSnapshotService(fullSym), 8000),
+      ]);
+      const snap = Array.isArray(snapshot) ? snapshot[0] : null;
+      const label = sym.replace('USD', '/USD');
+      let block = `## 🔬 ${label} — Technical Analysis\n\n`;
+      if (snap) {
+        block += `| Field | Value |\n|-------|-------|\n`;
+        if (snap.day?.c) block += `| Price | **$${snap.day.c.toLocaleString('en-US', { minimumFractionDigits: 2 })}** |\n`;
+        const changePct = snap.todaysChangePerc;
+        if (changePct !== undefined) block += `| 24h Change | **${changePct >= 0 ? '📈 +' : '📉 '}${changePct.toFixed(2)}%** |\n`;
+      }
+      if (technicals) {
+        block += `\n### Technical Indicators\n| Indicator | Value | Signal |\n|-----------|-------|--------|\n`;
+        if (technicals.rsi?.value) {
+          const rsi = technicals.rsi.value;
+          const rsiSignal = rsi > 70 ? '🔴 Overbought' : rsi < 30 ? '🟢 Oversold' : '⚪ Neutral';
+          block += `| RSI-14 | ${rsi.toFixed(2)} | ${rsiSignal} |\n`;
+        }
+        if (technicals.macd?.value !== undefined) {
+          const macdSignal = technicals.macd.value > 0 ? '🟢 Bullish' : '🔴 Bearish';
+          block += `| MACD | ${technicals.macd.value?.toFixed(2)} | ${macdSignal} |\n`;
+          if (technicals.macd.histogram) block += `| MACD Histogram | ${technicals.macd.histogram?.toFixed(2)} | ${technicals.macd.histogram > 0 ? '↑ Expanding' : '↓ Contracting'} |\n`;
+        }
+        if (technicals.ema50?.value) block += `| EMA-50 | $${technicals.ema50.value.toLocaleString('en-US', { minimumFractionDigits: 2 })} | — |\n`;
+        if (technicals.ema200?.value) block += `| EMA-200 | $${technicals.ema200.value.toLocaleString('en-US', { minimumFractionDigits: 2 })} | — |\n`;
+        if (technicals.ema50?.value && technicals.ema200?.value) {
+          const cross = technicals.ema50.value > technicals.ema200.value ? '🟢 Golden Cross (Bullish)' : '🔴 Death Cross (Bearish)';
+          block += `| EMA Signal | — | **${cross}** |\n`;
+        }
+      }
+      return buildPrompt(prompt, block, `Massive.com Crypto Technical Analysis for ${label}`);
     }
 
     // ── MARKET INDICES (via ETF proxies) ─────────────────────────────────

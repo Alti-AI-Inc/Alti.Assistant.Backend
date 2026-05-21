@@ -10,6 +10,7 @@ import {
   gemini3ProPreview,
 } from './geminiService.js';
 import { openMemoryClient } from '../../../shared/openMemoryClient.js';
+import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 
 /**
  * ReAct Agent Service
@@ -53,7 +54,48 @@ export async function executeToolBasedConversation(messages, options = {}) {
     chunkSize: 1000,
     chunkOverlap: 200,
   });
+  const massiveFinancialTool = new DynamicTool({
+    name: 'massive-financial-data',
+    description: `Real-time financial market data from Massive.com. Use this tool for ANY query about:
+- Stock prices, quotes, or market data (e.g. "AAPL price", "Tesla stock today")
+- Options chains, calls, puts, open interest, implied volatility
+- Cryptocurrency prices and technical analysis (Bitcoin, Ethereum, Solana, etc.)
+- Forex / currency exchange rates (EUR/USD, GBP/USD, USD/JPY, etc.)
+- Market indices: S&P 500, NASDAQ, Dow Jones, Russell 2000, VIX
+- Commodities: Gold, Silver, Crude Oil, Natural Gas, Wheat, Copper
+- Sector performance (Technology, Financials, Energy, Healthcare, etc.)
+- Market overview / daily market summary
+- Stock groups: FAANG, Magnificent 7, Big Banks, Chip Stocks, EV Stocks
+- Technical indicators: RSI, MACD, EMA, SMA, golden cross / death cross
+- 52-week high and low for any stock
+- Dividend history and yield
+- Short interest and days to cover
+- Currency conversion with amounts (e.g. "convert 1000 EUR to USD")
+- Top gainers, losers, most active stocks today
+- Federal Reserve data: interest rates, CPI, treasury yields
+- IPO calendar
+Input: A natural language query about financial markets (e.g. "What is the current price of Apple?", "Show me Bitcoin RSI", "What are the top sector performers today?")`,
+    async func(query) {
+      try {
+        const result = await massiveSmartRouter.routeAndEnhancePrompt(query);
+        // If the router enhanced the prompt, it contains real-time financial data
+        // Extract just the data block (everything after the [SYSTEM INSTRUCTION] header)
+        if (result && result !== query) {
+          const dataStart = result.indexOf('##');
+          if (dataStart !== -1) {
+            return result.slice(dataStart);
+          }
+          return result;
+        }
+        return `No financial data found for query: "${query}". This may not be a financial query.`;
+      } catch (err) {
+        return `Financial data lookup failed: ${err.message}`;
+      }
+    },
+  });
+
   const tools = [
+    massiveFinancialTool,
     googleSearch,
     new WebBrowser({
       model: selectedLLM, // Use selected model
@@ -559,11 +601,24 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           if (urlMatch) {
             usedUrls.add(urlMatch[0]);
           }
+        } else if (toolCall.name === 'massive-financial-data') {
+          const query = typeof toolCall.args === 'string'
+            ? toolCall.args
+            : toolCall.args.query || toolCall.args.input || JSON.stringify(toolCall.args);
+          const startTime = Date.now();
+          toolResult = await massiveFinancialTool.func(query);
+          const duration = Date.now() - startTime;
+          console.log(`✅ Massive financial data retrieved in ${duration}ms for: "${query}"`);
+          usedUrls.add('https://api.massive.com');
+        }
+
+        if (!toolResult) {
+          toolResult = '(No result returned from tool)';
         }
 
         console.log(
           `Tool result preview:`,
-          toolResult.substring(0, 400) + '...'
+          String(toolResult).substring(0, 400) + '...'
         );
 
         // Add tool result to messages

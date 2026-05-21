@@ -387,9 +387,58 @@ const getCryptoRSIService = async (ticker, window = 14) => {
   return response?.results?.values?.[0] || response;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// FOREX / CURRENCIES
-// ═══════════════════════════════════════════════════════════════════════════════
+/**
+ * Crypto MACD indicator (verified ✅)
+ */
+const getCryptoMACDService = async (ticker) => {
+  logger.info(`[Massive] Crypto MACD: ${ticker}`);
+  const response = await rest.getCryptoMACD({
+    cryptoTicker: ticker,
+    short_window: 12,
+    long_window: 26,
+    signal_window: 9,
+    timespan: 'day',
+    adjusted: true,
+    limit: 1,
+  });
+  return response?.results?.values?.[0] || response;
+};
+
+/**
+ * Crypto EMA indicator (verified ✅)
+ */
+const getCryptoEMAService = async (ticker, window = 50) => {
+  logger.info(`[Massive] Crypto EMA-${window}: ${ticker}`);
+  const response = await rest.getCryptoEMA({
+    cryptoTicker: ticker,
+    window: Number(window),
+    timespan: 'day',
+    adjusted: true,
+    limit: 1,
+  });
+  return response?.results?.values?.[0] || response;
+};
+
+/**
+ * Full technical snapshot for a crypto pair: RSI + MACD + EMA50 + EMA200
+ */
+const getCryptoTechnicalSnapshotService = async (ticker) => {
+  logger.info(`[Massive] Crypto Technicals: ${ticker}`);
+  const [rsi, macd, ema50, ema200] = await Promise.allSettled([
+    getCryptoRSIService(ticker, 14),
+    getCryptoMACDService(ticker),
+    getCryptoEMAService(ticker, 50),
+    getCryptoEMAService(ticker, 200),
+  ]);
+  return {
+    ticker,
+    rsi: rsi.status === 'fulfilled' ? rsi.value : null,
+    macd: macd.status === 'fulfilled' ? macd.value : null,
+    ema50: ema50.status === 'fulfilled' ? ema50.value : null,
+    ema200: ema200.status === 'fulfilled' ? ema200.value : null,
+  };
+};
+
 
 /**
  * Forex snapshot for one or more pairs (verified ✅)
@@ -403,13 +452,19 @@ const getForexSnapshotService = async (tickers) => {
 };
 
 /**
- * Currency conversion with live bid/ask (verified ✅)
+ * Currency conversion with live bid/ask — supports arbitrary amounts (verified ✅)
+ * E.g. convertAmount('EUR', 'USD', 1000)
  */
 const getCurrencyConversionService = async (from, to, amount = 1) => {
-  logger.info(`[Massive] Currency Conversion: ${from}->${to}`);
+  logger.info(`[Massive] Currency Conversion: ${from}->${to} x${amount}`);
   const response = await rest.getCurrencyConversion({ from: from.toUpperCase(), to: to.toUpperCase(), amount: Number(amount) });
   return response;
 };
+
+/**
+ * Convenience alias used by router amount-conversion handler
+ */
+const getCurrencyConvertAmountService = getCurrencyConversionService;
 
 /**
  * Forex OHLCV aggregates (verified ✅)
@@ -519,6 +574,95 @@ const getIPOsService = async (limit = 10) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MARKET MOVERS / 52-WEEK / SUPPLEMENTAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * 52-week high and low via weekly aggregates (verified ✅)
+ */
+const getStock52WeekService = async (ticker) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] 52-Week High/Low: ${t}`);
+  const to = new Date().toISOString().split('T')[0];
+  const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const response = await rest.getStocksAggregates({
+    stocksTicker: t,
+    multiplier: 1,
+    timespan: 'week',
+    from,
+    to,
+    limit: 52,
+    adjusted: true,
+  });
+  const results = response?.results || [];
+  if (results.length === 0) return { ticker: t, week52High: null, week52Low: null };
+  const high52 = Math.max(...results.map(r => r.h));
+  const low52 = Math.min(...results.map(r => r.l));
+  const latest = results[results.length - 1];
+  return {
+    ticker: t,
+    week52High: high52,
+    week52Low: low52,
+    currentClose: latest?.c,
+    pctFromHigh: latest?.c ? (((latest.c - high52) / high52) * 100).toFixed(2) : null,
+    pctFromLow: latest?.c ? (((latest.c - low52) / low52) * 100).toFixed(2) : null,
+  };
+};
+
+/**
+ * Top movers from a pre-defined universe of liquid stocks (verified ✅)
+ */
+const getTopMoversService = async (direction = 'gainers') => {
+  const stockOnly = [
+    'AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','AVGO','JPM','V',
+    'MA','UNH','XOM','JNJ','PG','HD','COST','ABBV','LLY','CRM',
+    'AMD','QCOM','INTC','NFLX','DIS','BA','GE','GS','WMT','BAC',
+    'SPY','QQQ','IWM','COIN','MSTR','RIOT','MARA','IBIT',
+  ];
+  logger.info(`[Massive] Top Movers: ${direction}`);
+  const response = await rest.getStocksSnapshotTickers({ tickers: stockOnly.join(',') });
+  const tickers = response?.tickers || [];
+  if (direction === 'active') {
+    return tickers.sort((a, b) => (b.day?.v || 0) - (a.day?.v || 0)).slice(0, 10);
+  }
+  return tickers
+    .filter(t => t.todaysChangePerc !== undefined)
+    .sort((a, b) => direction === 'gainers'
+      ? b.todaysChangePerc - a.todaysChangePerc
+      : a.todaysChangePerc - b.todaysChangePerc)
+    .slice(0, 10);
+};
+
+/**
+ * Global market news — no ticker filter (verified ✅)
+ */
+const getMarketNewsGlobalService = async (limit = 8) => {
+  logger.info(`[Massive] Global Market News (limit=${limit})`);
+  const response = await rest.listNews({ limit: Number(limit) });
+  return response?.results || [];
+};
+
+/**
+ * Dividend history for a stock (verified ✅)
+ */
+const getDividendDetailService = async (ticker, limit = 4) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Dividend Detail: ${t}`);
+  const response = await rest.getStocksV1Dividends({ ticker: t, limit: Number(limit) });
+  return response?.results || [];
+};
+
+/**
+ * Short interest data for a stock (verified ✅)
+ */
+const getShortInterestDetailService = async (ticker, limit = 3) => {
+  const t = fmt(ticker);
+  logger.info(`[Massive] Short Interest: ${t}`);
+  const response = await rest.getStocksV1ShortInterest({ ticker: t, limit: Number(limit) });
+  return response?.results || [];
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // NAMED INDIVIDUAL EXPORTS (used by massiveSmartRouter)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -568,6 +712,16 @@ export {
   getMarketNewsService,
   // Events
   getIPOsService,
+  // New v4/v5 services
+  getCryptoMACDService,
+  getCryptoEMAService,
+  getCryptoTechnicalSnapshotService,
+  getStock52WeekService,
+  getCurrencyConvertAmountService,
+  getTopMoversService,
+  getMarketNewsGlobalService,
+  getDividendDetailService,
+  getShortInterestDetailService,
 };
 
 // ─── Default grouped export (legacy support) ─────────────────────────────────
@@ -601,9 +755,13 @@ export const massiveService = {
   getCryptoTradesService,
   getCryptoAggregatesService,
   getCryptoRSIService,
+  getCryptoMACDService,
+  getCryptoEMAService,
+  getCryptoTechnicalSnapshotService,
   // Forex
   getForexSnapshotService,
   getCurrencyConversionService,
+  getCurrencyConvertAmountService,
   getForexAggregatesService,
   // Macro / Fed
   getFedInflationService,
@@ -615,6 +773,13 @@ export const massiveService = {
   getMarketHolidaysService,
   // News
   getMarketNewsService,
+  getMarketNewsGlobalService,
   // Events
   getIPOsService,
+  // Supplemental
+  getStock52WeekService,
+  getCurrencyConvertAmountService,
+  getTopMoversService,
+  getDividendDetailService,
+  getShortInterestDetailService,
 };

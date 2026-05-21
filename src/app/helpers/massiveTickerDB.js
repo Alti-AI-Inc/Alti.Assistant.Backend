@@ -128,6 +128,17 @@ export const STOCK_NAME_MAP = {
   'reddit': 'RDDT', rddt: 'RDDT',
   'coinbase': 'COIN', coin: 'COIN',
   'robinhood': 'HOOD', hood: 'HOOD',
+  'gamestop': 'GME', gme: 'GME',
+  'amc': 'AMC', 'amc entertainment': 'AMC',
+  'microstrategy': 'MSTR', 'micro strategy': 'MSTR', mstr: 'MSTR',
+  'palantir': 'PLTR', pltr: 'PLTR',
+  'rivian': 'RIVN', rivn: 'RIVN',
+  'lucid': 'LCID', lcid: 'LCID',
+  'mara': 'MARA', 'marathon digital': 'MARA',
+  'riot': 'RIOT', 'riot platforms': 'RIOT',
+  'cleanspark': 'CLSK', clsk: 'CLSK',
+  'core scientific': 'CORZ', corz: 'CORZ',
+  'ibit': 'IBIT', 'bitcoin etf': 'IBIT',
   'sofi': 'SOFI', sofi: 'SOFI',
   'affirm': 'AFRM', afrm: 'AFRM',
   'toast': 'TOST', tost: 'TOST',
@@ -614,7 +625,7 @@ export const FOREX_NAME_MAP = {
   'usdrub': 'USDRUB', 'usd/rub': 'USDRUB', 'russian ruble': 'USDRUB', 'ruble': 'USDRUB',
   'usdsgd': 'USDSGD', 'usd/sgd': 'USDSGD', 'singapore dollar': 'USDSGD',
   'usdhkd': 'USDHKD', 'usd/hkd': 'USDHKD', 'hong kong dollar': 'USDHKD',
-  'usdkrw': 'USDKRW', 'usd/krw': 'USDKRW', 'korean won': 'USDKRW', 'won': 'USDKRW',
+  'usdkrw': 'USDKRW', 'usd/krw': 'USDKRW', 'korean won': 'USDKRW', 'krw': 'USDKRW',
   'usdthb': 'USDTHB', 'usd/thb': 'USDTHB', 'thai baht': 'USDTHB', 'baht': 'USDTHB',
   'usdpln': 'USDPLN', 'usd/pln': 'USDPLN', 'polish zloty': 'USDPLN', 'zloty': 'USDPLN',
   'usdhuf': 'USDHUF', 'usd/huf': 'USDHUF', 'hungarian forint': 'USDHUF', 'forint': 'USDHUF',
@@ -818,6 +829,67 @@ export const FOREX_OVERVIEW_KEYWORDS = [
   'major pairs', 'forex dashboard', 'all currencies today',
 ];
 
+// ─────────────────────────────────────────────
+// MARKET MOVERS KEYWORDS
+// ─────────────────────────────────────────────
+export const MOVERS_KEYWORDS = [
+  'top gainers', 'biggest gainers', 'top losers', 'biggest losers',
+  'most active stocks', 'most active', 'top movers', 'biggest movers',
+  'best performing stocks', 'worst performing stocks', 'stocks up today',
+  'stocks down today', 'market winners', 'market losers',
+  'which stocks are up', 'which stocks are down',
+];
+
+// ─────────────────────────────────────────────
+// CURRENCY CONVERSION KEYWORDS
+// ─────────────────────────────────────────────
+export const CURRENCY_CONVERT_KEYWORDS = [
+  'convert', 'how much is', 'exchange rate', 'what is',
+];
+
+// ─────────────────────────────────────────────
+// 52-WEEK HIGH / LOW KEYWORDS
+// ─────────────────────────────────────────────
+export const WEEK52_KEYWORDS = [
+  '52 week high', '52-week high', '52 week low', '52-week low',
+  '52wk high', '52wk low', 'all time high', 'year high', 'year low',
+  '52 week', '52-week', 'annual high', 'annual low',
+];
+
+// ─────────────────────────────────────────────
+// CRYPTO TECHNICAL KEYWORDS
+// ─────────────────────────────────────────────
+export const CRYPTO_TECHNICAL_KEYWORDS = [
+  'btc macd', 'bitcoin macd', 'eth macd', 'ethereum macd',
+  'btc rsi', 'bitcoin rsi', 'eth rsi', 'ethereum rsi',
+  'btc ema', 'bitcoin ema', 'eth ema', 'ethereum ema',
+  'crypto technical', 'crypto analysis', 'bitcoin technical',
+];
+
+// ─────────────────────────────────────────────
+// DIVIDEND KEYWORDS
+// ─────────────────────────────────────────────
+export const DIVIDEND_KEYWORDS = [
+  'dividend', 'dividends', 'dividend yield', 'dividend payment',
+  'ex-dividend', 'ex dividend date', 'dividend history',
+  'pays dividend', 'annual dividend', 'quarterly dividend',
+];
+
+// ─────────────────────────────────────────────
+// SHORT INTEREST KEYWORDS
+// ─────────────────────────────────────────────
+export const SHORT_INTEREST_KEYWORDS = [
+  'short interest', 'short selling', 'short ratio', 'days to cover',
+  'short float', 'heavily shorted', 'most shorted', 'short squeeze',
+];
+
+// ─────────────────────────────────────────────
+// MARKET NEWS KEYWORDS
+// ─────────────────────────────────────────────
+export const MARKET_NEWS_KEYWORDS = [
+  'market news', 'financial news', 'stock market news', 'latest market news',
+  'finance news', 'business news', 'economy news', 'wall street news',
+];
 
 // ─────────────────────────────────────────────
 // EARNINGS KEYWORDS
@@ -889,6 +961,24 @@ export function detectFinancialIntent(prompt) {
     return { type: 'forex_overview', symbol: null };
   }
 
+  // 1g. Market movers — top gainers/losers/most active
+  if (MOVERS_KEYWORDS.some(k => q.includes(k))) {
+    const isLosers = q.includes('loser') || q.includes('down today') || q.includes('worst') || q.includes('declining');
+    const isActive = q.includes('active') || q.includes('volume');
+    return { type: 'movers', direction: isLosers ? 'losers' : isActive ? 'active' : 'gainers' };
+  }
+
+  // 1g-2. Short interest as a standalone top-level intent (most shorted, short squeeze candidates)
+  const shortInterestWithoutTicker = (q.includes('most shorted') || q.includes('short squeeze candidate') || q.includes('heavily shorted stocks'));
+  if (shortInterestWithoutTicker) {
+    return { type: 'movers', direction: 'short_interest' };
+  }
+
+  // 1h. Market news (global, no ticker)
+  if (MARKET_NEWS_KEYWORDS.some(k => q.includes(k))) {
+    return { type: 'market_news', symbol: null };
+  }
+
   // 2. Macro / Fed
   if (MACRO_KEYWORDS.some(k => q.includes(k))) {
     return { type: 'macro', symbol: null };
@@ -910,12 +1000,36 @@ export function detectFinancialIntent(prompt) {
   // 6. Technical analysis — detect indicator requested and symbol
   const hasTechnicalKeyword = TECHNICAL_KEYWORDS.some(k => q.includes(k));
 
+  // 6b. 52-week check
+  const has52WeekKeyword = WEEK52_KEYWORDS.some(k => q.includes(k));
+
+  // 6c. Dividend check
+  const hasDividendKeyword = DIVIDEND_KEYWORDS.some(k => q.includes(k));
+
+  // 6d. Short interest check
+  const hasShortInterestKeyword = SHORT_INTEREST_KEYWORDS.some(k => q.includes(k));
+
+  // 6e. Crypto technical check (for BTC/ETH-specific technical queries)
+  const hasCryptoTechnicalKeyword = CRYPTO_TECHNICAL_KEYWORDS.some(k => q.includes(k));
+
+  // 6f. Currency conversion with amount: "convert 1000 EUR to USD", "how much is 500 GBP in JPY"
+  const convertMatch = prompt.match(/(?:convert|exchange|how much is)\s+([\d,]+(?:\.\d+)?)\s+([A-Z]{3})\s+(?:to|in|into)\s+([A-Z]{3})/i);
+  if (convertMatch) {
+    const amount = parseFloat(convertMatch[1].replace(/,/g, ''));
+    const from = convertMatch[2].toUpperCase();
+    const to = convertMatch[3].toUpperCase();
+    return { type: 'currency_convert', from, to, amount };
+  }
+
   // 7. Explicit $TICKER format
   const dollarMatch = prompt.match(/\$([A-Z]{1,5})\b/);
   if (dollarMatch) {
     const sym = dollarMatch[1].toUpperCase();
     if (hasOptionsKeyword) return { type: 'options', symbol: sym };
     if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
+    if (has52WeekKeyword) return { type: 'week52', symbol: sym };
+    if (hasDividendKeyword) return { type: 'dividend', symbol: sym };
+    if (hasShortInterestKeyword) return { type: 'short_interest', symbol: sym };
     return { type: 'stock', symbol: sym };
   }
 
@@ -930,6 +1044,9 @@ export function detectFinancialIntent(prompt) {
     if (allTickers.has(sym)) {
       if (hasOptionsKeyword) return { type: 'options', symbol: sym };
       if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
+      if (has52WeekKeyword) return { type: 'week52', symbol: sym };
+      if (hasDividendKeyword) return { type: 'dividend', symbol: sym };
+      if (hasShortInterestKeyword) return { type: 'short_interest', symbol: sym };
       return { type: 'stock', symbol: sym };
     }
   }
@@ -946,7 +1063,10 @@ export function detectFinancialIntent(prompt) {
 
   // 9. Crypto lookup (word-boundary)
   for (const [name, sym] of Object.entries(CRYPTO_NAME_MAP)) {
-    if (hasWordMatch(name)) return { type: 'crypto', symbol: sym };
+    if (hasWordMatch(name)) {
+      if (hasCryptoTechnicalKeyword || hasTechnicalKeyword) return { type: 'crypto_technical', symbol: sym };
+      return { type: 'crypto', symbol: sym };
+    }
   }
 
   // 10. Forex lookup (word-boundary, longer phrases first to avoid substring collisions)
@@ -960,6 +1080,9 @@ export function detectFinancialIntent(prompt) {
     if (hasWordMatch(name)) {
       if (hasOptionsKeyword) return { type: 'options', symbol: sym };
       if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
+      if (has52WeekKeyword) return { type: 'week52', symbol: sym };
+      if (hasDividendKeyword) return { type: 'dividend', symbol: sym };
+      if (hasShortInterestKeyword) return { type: 'short_interest', symbol: sym };
       return { type: 'stock', symbol: sym };
     }
   }
