@@ -113,6 +113,12 @@ const syncTenantWithSubscription = async (tenantId, subscription) => {
       updateData.status = 'trial';
     }
 
+    // Dynanically sync seat capacity limits from subscription
+    if (subscription.seats && typeof subscription.seats.total === 'number') {
+      updateData['limits.maxUsers'] = subscription.seats.total;
+      updateData['settings.maxMembers'] = subscription.seats.total;
+    }
+
     const tenant = await TenantModel.findByIdAndUpdate(tenantId, updateData, {
       new: true,
     });

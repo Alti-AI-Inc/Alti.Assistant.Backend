@@ -16,7 +16,15 @@ import {
   getFAANasStatusService,
   getFAANotamsService,
   getNTSBSafetyIncidentsService,
-  getAlternateAirportsService
+  getAlternateAirportsService,
+  getFlightFuelPlanningService,
+  getCurfewComplianceService,
+  getOceanicTracksService,
+  getETOPSPlanningService,
+  getPassengerCompensationService,
+  getVolcanicAshProjectionService,
+  getCargoHazmatComplianceService,
+  getJetStreamTurbulenceService
 } from './aviationOpenData.service.js';
 
 dotenv.config();
@@ -183,7 +191,15 @@ export {
   getFAANasStatusService,
   getFAANotamsService,
   getNTSBSafetyIncidentsService,
-  getAlternateAirportsService
+  getAlternateAirportsService,
+  getFlightFuelPlanningService,
+  getCurfewComplianceService,
+  getOceanicTracksService,
+  getETOPSPlanningService,
+  getPassengerCompensationService,
+  getVolcanicAshProjectionService,
+  getCargoHazmatComplianceService,
+  getJetStreamTurbulenceService
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

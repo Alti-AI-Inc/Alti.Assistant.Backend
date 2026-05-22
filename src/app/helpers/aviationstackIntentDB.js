@@ -144,6 +144,233 @@ export function detectAviationIntent(query) {
 
   const lowerQuery = query.toLowerCase();
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Phase 8: Global Fleet Dispatch & Commercial Operations Suite Intents
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // 1. Passenger Compensation & Delay Cost Auditor
+  if (/\b(compensation|eu261|uk261|passenger\s*rights|delay\s*compensation|tarmac\s*delay|montreal\s*convention)\b/i.test(lowerQuery)) {
+    const delayMatch = lowerQuery.match(/\b(\d+(?:\.\d+)?)\s*(?:hour|hr)s?\b/i);
+    let delayMinutes = 240; // Default 4 hours
+    if (delayMatch) {
+      delayMinutes = Math.round(parseFloat(delayMatch[1]) * 60);
+    } else {
+      const minMatch = lowerQuery.match(/\b(\d+)\s*(?:min|minute)s?\b/i);
+      if (minMatch) delayMinutes = parseInt(minMatch[1], 10);
+    }
+
+    let departureCode = 'JFK';
+    let arrivalCode = 'LHR';
+    const routeMatch = lowerQuery.match(/\b([a-z]{3})\s*(?:to|➔|-|->)\s*([a-z]{3})\b/i);
+    if (routeMatch) {
+      departureCode = routeMatch[1].toUpperCase();
+      arrivalCode = routeMatch[2].toUpperCase();
+    }
+
+    let reasonCode = 'CREW';
+    if (/\b(weather|storm|snow|fog)\b/i.test(lowerQuery)) reasonCode = 'WEATHER';
+    else if (/\b(atc|strike|air\s*traffic)\b/i.test(lowerQuery)) reasonCode = 'ATC';
+    else if (/\b(mechanical|maintenance|aircraft|engine|repair)\b/i.test(lowerQuery)) reasonCode = 'MECHANICAL';
+
+    return {
+      type: 'passenger_compensation',
+      delayMinutes,
+      departureCode,
+      arrivalCode,
+      reasonCode,
+      queryText: query
+    };
+  }
+
+  // 2. Volcanic Ash Trajectory Projection Model
+  if (/\b(volcanic\s*ash\s*projection|vaac\s*plume|vaac\s*trajectory|ash\s*plume\s*model|volcano\s*plume)\b/i.test(lowerQuery)) {
+    let vaacStationId = 'REYKJAVIK';
+    if (lowerQuery.includes('anchorage') || lowerQuery.includes('alaska')) vaacStationId = 'ANCHORAGE';
+    else if (lowerQuery.includes('darwin') || lowerQuery.includes('merapi') || lowerQuery.includes('indonesia')) vaacStationId = 'DARWIN';
+
+    let routePoints = 'NAT TRACK A';
+    if (lowerQuery.includes('track b')) routePoints = 'NAT TRACK B';
+    else if (lowerQuery.includes('track c')) routePoints = 'NAT TRACK C';
+    else if (lowerQuery.includes('pacots') || lowerQuery.includes('pacific') || lowerQuery.includes('track 2')) routePoints = 'PACOTS TRACK 2';
+
+    return {
+      type: 'volcanic_ash_model',
+      vaacStationId,
+      routePoints,
+      queryText: query
+    };
+  }
+
+  // 3. IATA HAZMAT Cargo Compliance Manifest Auditor
+  if (/\b(cargo\s*hazmat|dangerous\s*goods|iata\s*dgr|hazmat\s*compliance|un3480|cargo\s*manifest)\b/i.test(lowerQuery)) {
+    let manifestItems = [];
+
+    if (lowerQuery.includes('lithium') || lowerQuery.includes('battery') || lowerQuery.includes('un3480')) {
+      let weight = 25; // default compliant
+      if (lowerQuery.includes('40kg') || lowerQuery.includes('45kg') || lowerQuery.includes('50kg') || lowerQuery.includes('over 35kg') || lowerQuery.includes('heavy')) {
+        weight = 45; // non-compliant on passenger
+      }
+      manifestItems.push({ un_number: 'UN3480', name: 'Lithium-Ion Batteries', class_id: 9, weight_kg: weight, packing_group: 'PI965' });
+    }
+
+    if (lowerQuery.includes('paint') || lowerQuery.includes('liquid') || lowerQuery.includes('flammable') || lowerQuery.includes('un1263')) {
+      manifestItems.push({ un_number: 'UN1263', name: 'Paint (Flammable Liquid)', class_id: 3, weight_kg: 15, packing_group: 'PGII' });
+    }
+
+    if (lowerQuery.includes('explosive') || lowerQuery.includes('un0012') || lowerQuery.includes('ammunition') || lowerQuery.includes('firework')) {
+      manifestItems.push({ un_number: 'UN0012', name: 'Cartridges for Weapons (Explosive)', class_id: 1, weight_kg: 50, packing_group: 'PGII' });
+    }
+
+    // Default manifest if empty
+    if (manifestItems.length === 0) {
+      manifestItems = [
+        { un_number: 'UN3480', name: 'Lithium-Ion Batteries', class_id: 9, weight_kg: 42, packing_group: 'PI965' },
+        { un_number: 'UN1263', name: 'Paint (Flammable Liquid)', class_id: 3, weight_kg: 15, packing_group: 'PGII' }
+      ];
+    }
+
+    return {
+      type: 'cargo_hazmat',
+      manifestItems: JSON.stringify(manifestItems),
+      queryText: query
+    };
+  }
+
+  // 4. Jet Stream Wind Shear & Clear-Air Turbulence (CAT) Forecaster
+  if (/\b(jet\s*stream\s*forecast|clear\s*air\s*turbulence|cat\s*forecast|wind\s*shear\s*forecast|turbulence\s*speed)\b/i.test(lowerQuery)) {
+    let departureCode = 'JFK';
+    let arrivalCode = 'LHR';
+    let routePoints = 'NAT TRACK B';
+
+    if (lowerQuery.includes('track a') || lowerQuery.includes('pikil')) {
+      routePoints = 'NAT TRACK A';
+    } else if (lowerQuery.includes('track c') || lowerQuery.includes('bedra')) {
+      routePoints = 'NAT TRACK C';
+    }
+
+    const routeMatch = lowerQuery.match(/\b([a-z]{3})\s*(?:to|➔|-|->)\s*([a-z]{3})\b/i);
+    if (routeMatch) {
+      departureCode = routeMatch[1].toUpperCase();
+      arrivalCode = routeMatch[2].toUpperCase();
+    }
+
+    return {
+      type: 'jet_stream_shear',
+      departureCode,
+      arrivalCode,
+      routePoints,
+      queryText: query
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Phase 7: Elite Dispatcher Operations & Compliance Suite Intents
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // 1. Flight Plan Fuel & Payload Optimizer
+  if (/\b(fuel\s*planning|fuel\s*burn|payload\s*optimizer|flight\s*plan\s*fuel)\b/i.test(lowerQuery)) {
+    let model = 'Boeing 737 Max 9';
+    const boeingMatch = lowerQuery.match(/\b(boeing\s*\d{3}(?:\s*max\s*\d?)?|\b7\d{2}\b)/i);
+    const airbusMatch = lowerQuery.match(/\b(airbus\s*a\d{3}|\ba\d{3}\b)/i);
+    if (boeingMatch) model = boeingMatch[0];
+    else if (airbusMatch) model = airbusMatch[0];
+
+    const durationMatch = lowerQuery.match(/\b(\d+(?:\.\d+)?)\s*(?:hour|hr)s?\b/i);
+    const durationHours = durationMatch ? parseFloat(durationMatch[1]) : 6.5;
+
+    return {
+      type: 'fuel_planning',
+      model,
+      durationHours,
+      queryText: query
+    };
+  }
+
+  // 2. Volcanic Ash & Oceanic Track (NAT-OTS) Router
+  if (/\b(oceanic\s*tracks?|sigmets?|nat-ots|pacots|volcanic\s*ash|turbulence\s*forecast)\b/i.test(lowerQuery)) {
+    const trackMatch = lowerQuery.match(/\btrack\s*([a-c])\b/i) || lowerQuery.match(/\b([a-c])\b/i);
+    const trackId = trackMatch ? trackMatch[1].toUpperCase() : 'B';
+    return {
+      type: 'oceanic_track',
+      trackId,
+      queryText: query
+    };
+  }
+
+  // 3. Airport Noise Curfew & Compliance Advisor
+  if (/\b(noise\s*curfew|curfew\s*hours|frankfurt\s*ban|curfew\s*violation)\b/i.test(lowerQuery)) {
+    let airportCode = null;
+    const words = lowerQuery.match(/\b([a-z]{3,4})\b/gi) || [];
+    for (const w of words) {
+      const code = w.toUpperCase();
+      if (AIRPORT_NAME_TO_IATA[w] || CITY_TO_IATA[w]) {
+        airportCode = AIRPORT_NAME_TO_IATA[w] || CITY_TO_IATA[w];
+        break;
+      }
+      if (/^[A-Z]{3,4}$/.test(code) && !/^(AND|THE|FOR|OUT|BET|SGP|EV|RSI|EMA|SMA|FED|CPI|GDP|USD|EUR|BAN|HOUR|HOURS|NOISE|CURFEW)$/.test(code)) {
+        airportCode = code.length === 4 && code.startsWith('K') ? code.substring(1) : code;
+        break;
+      }
+    }
+    if (!airportCode) {
+      if (lowerQuery.includes('frankfurt')) airportCode = 'FRA';
+      else if (lowerQuery.includes('sydney')) airportCode = 'SYD';
+      else if (lowerQuery.includes('heathrow')) airportCode = 'LHR';
+      else if (lowerQuery.includes('narita')) airportCode = 'NRT';
+      else airportCode = 'FRA';
+    }
+    const hasDelay = lowerQuery.includes('delay') || lowerQuery.includes('delayed') || lowerQuery.includes('late');
+    const etaTimeStr = hasDelay ? 'delayed arrival 23:30' : 'scheduled';
+    return {
+      type: 'noise_curfew',
+      airportCode,
+      etaTimeStr,
+      queryText: query
+    };
+  }
+
+  // 4. ETOPS Transoceanic Diversion Planner
+  if (/\b(etops|etops\s*planning|twin\s*engine\s*rules?|etops\s*alternates)\b/i.test(lowerQuery)) {
+    let departureCode = 'LHR';
+    let arrivalCode = 'JFK';
+    let model = 'Boeing 777-200ER';
+
+    const words = lowerQuery.match(/\b([a-z]{3,4})\b/gi) || [];
+    const detectedAirports = [];
+    for (const w of words) {
+      const code = w.toUpperCase();
+      let resolved = null;
+      if (AIRPORT_NAME_TO_IATA[w] || CITY_TO_IATA[w]) {
+        resolved = AIRPORT_NAME_TO_IATA[w] || CITY_TO_IATA[w];
+      } else if (/^[A-Z]{3,4}$/.test(code) && !/^(AND|THE|FOR|OUT|BET|SGP|EV|RSI|EMA|SMA|FED|CPI|GDP|USD|EUR|ETOPS|RULE|RULES)$/.test(code)) {
+        resolved = code.length === 4 && code.startsWith('K') ? code.substring(1) : code;
+      }
+      if (resolved && !detectedAirports.includes(resolved)) {
+        detectedAirports.push(resolved);
+      }
+    }
+    if (detectedAirports.length >= 2) {
+      departureCode = detectedAirports[0];
+      arrivalCode = detectedAirports[1];
+    } else if (detectedAirports.length === 1) {
+      departureCode = detectedAirports[0];
+      arrivalCode = departureCode === 'JFK' ? 'LHR' : 'JFK';
+    }
+
+    const boeingMatch = lowerQuery.match(/\b(boeing\s*\d{3}(?:\s*max\s*\d?)?|\b7\d{2}\b)/i);
+    const airbusMatch = lowerQuery.match(/\b(airbus\s*a\d{3}|\ba\d{3}\b)/i);
+    if (boeingMatch) model = boeingMatch[0];
+    else if (airbusMatch) model = airbusMatch[0];
+
+    return {
+      type: 'etops_planner',
+      departureCode,
+      arrivalCode,
+      model,
+      queryText: query
+    };
+  }
+
   // Phase 3: New Enterprise FAA & Airline Intelligence Suite Intents
   
   // 1. NOAA METAR / TAF Weather Report

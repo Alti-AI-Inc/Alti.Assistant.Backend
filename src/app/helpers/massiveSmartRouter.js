@@ -78,6 +78,11 @@ import {
   extractPremiumV16Topic,
   getPremiumV16IntelligenceData
 } from './v16DataIntegrations.js';
+import {
+  detectPremiumV17Intent,
+  extractPremiumV17Topic,
+  getPremiumV17IntelligenceData
+} from './v17DataIntegrations.js';
 
 
 
@@ -2386,7 +2391,10 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   const premiumV16Domain = detectPremiumV16Intent(prompt);
   const hasV16 = !!premiumV16Domain;
 
-  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15 || hasV16;
+  const premiumV17Domain = detectPremiumV17Intent(prompt);
+  const hasV17 = !!premiumV17Domain;
+
+  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15 || hasV16 || hasV17;
 
 
   // Fast path: pure real estate
@@ -2500,6 +2508,12 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasV16) {
     const topic = extractPremiumV16Topic(prompt, premiumV16Domain);
     premiumV16Data = await getPremiumV16IntelligenceData(premiumV16Domain, topic);
+  }
+
+  let premiumV17Data = null;
+  if (hasV17) {
+    const topic = extractPremiumV17Topic(prompt, premiumV17Domain);
+    premiumV17Data = await getPremiumV17IntelligenceData(premiumV17Domain, topic);
   }
 
 
@@ -2814,6 +2828,42 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     }
   }
 
+  // ─── Premium Public Database Integrations (v17) ───
+  if (hasV17 && premiumV17Data) {
+    mergedBlocks += `${premiumV17Data.markdown}\n\n`;
+    const premiumMetaV17 = {
+      courtlistener: {
+        source: 'CourtListener RECAP',
+        rule: '▸ Present ALL case names and unique **Docket Numbers** in **BOLD** (e.g. **1:24-cv-10023**, **Silicon Valley Bank Inc. v. Global Technologies LLC**)\n'
+      },
+      harvard_caselaw: {
+        source: 'Harvard Caselaw Access Project (CAP)',
+        rule: '▸ Present ALL judicial case names and official **Citations** in **BOLD** (e.g. **State of California v. Anderson**, **410 U.S. 113**)\n'
+      },
+      cisa_kev: {
+        source: 'CISA Known Exploited Vulnerabilities Catalog',
+        rule: '▸ Present ALL unique **CVE-IDs**, product versions, and ransomware campaign designations in **BOLD** (e.g. **CVE-2024-12345**, **Ransomware: Known**)\n'
+      },
+      nist_nvd_cve: {
+        source: 'NIST National Vulnerability Database (NVD)',
+        rule: '▸ Present ALL unique **CVE-IDs**, base **CVSS Scores**, and severity levels in **BOLD** (e.g. **CVE-2024-21345**, **CVSS Score: 9.8**, **CRITICAL**)\n'
+      },
+      ofac_sanctions: {
+        source: 'U.S. OFAC Sanctions SDN Compliance Registry',
+        rule: '▸ Present ALL fuzzy matched **SDN Names**, unique UID numbers, and target sanctions programs in **BOLD** (e.g. **DMITRY PETROV**, **19823**, **CYBER2**)\n'
+      },
+      fara_foreign_agents: {
+        source: 'DOJ FARA Foreign Agent Registration Registry',
+        rule: '▸ Present ALL registrant names, active **Registration Numbers**, and foreign principal clients in **BOLD** (e.g. **Alpine Strategies**, **6789**)\n'
+      }
+    };
+    const config = premiumMetaV17[premiumV17Domain] || { source: 'Premium Public Database', rule: '' };
+    citations.push(`"[Source: ${config.source}]" for premium intelligence data`);
+    if (config.rule) {
+      mandatoryRules += config.rule;
+    }
+  }
+
 
   // ─── Cross-Domain Investment Synthesizer & Yield Arbitrage Engine ───
   const isCrossDomainQuery = ['compare', 'arbitrage', 'yield portfolio', 'asset allocation', 'liquidate', 'invest vs', 'portfolio vs'].some(k => prompt.toLowerCase().includes(k)) || (hasFinance && hasRealEstate);
@@ -2901,6 +2951,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasV16 && premiumV16Data) {
     jsonMetadata.premiumV16 = premiumV16Data.metadata;
   }
+  if (hasV17 && premiumV17Data) {
+    jsonMetadata.premiumV17 = premiumV17Data.metadata;
+  }
 
   if (isCrossDomainQuery) {
     jsonMetadata.source = 'Alti.Assistant Hybrid Router';
@@ -2984,7 +3037,10 @@ const combinedRouteAndEnhancePrompt = async (prompt) => {
   const premiumV16Domain = detectPremiumV16Intent(prompt);
   const hasV16 = !!premiumV16Domain;
 
-  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15 || hasV16;
+  const premiumV17Domain = detectPremiumV17Intent(prompt);
+  const hasV17 = !!premiumV17Domain;
+
+  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15 || hasV16 || hasV17;
 
   // Stale-While-Revalidate (SWR) Cache Protocol
   const sanitized = (prompt || '').trim().toLowerCase();

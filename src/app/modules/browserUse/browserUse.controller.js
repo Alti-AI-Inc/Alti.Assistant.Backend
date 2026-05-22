@@ -35,7 +35,8 @@ const getTaskStatusController = catchAsync(async (req, res) => {
   const { sessionId, taskId } = req.params;
   const result = await BrowserUseServices.updateTaskStatusService(
     sessionId,
-    taskId
+    taskId,
+    req
   );
 
   sendResponse(res, {

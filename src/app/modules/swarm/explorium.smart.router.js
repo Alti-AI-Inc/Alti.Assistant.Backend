@@ -39,6 +39,7 @@ import {
   getLookalikeCompaniesService,
   getIntentSignalsService,
   businessAutocompleteService,
+  getDecisionMakersService,
 } from '../../modules/explorium/explorium.service.js';
 import {
   buildICP,
@@ -47,6 +48,7 @@ import {
   naturalLanguageSearch,
 } from '../../modules/explorium/explorium.agent.js';
 import { withCache } from '../../modules/explorium/explorium.cache.js';
+import { googleSearch } from '../../modules/search/tools.js';
 
 // ─── Entity extraction ────────────────────────────────────────────────────────
 
@@ -342,6 +344,63 @@ async function extractIntentTopics(query) {
 
 // ─── Data fetchers per agent ──────────────────────────────────────────────────
 
+/**
+ * Executes a fallback web search using Google Custom Search, parsing snippets
+ * to fuse them under the web_fallback context key.
+ */
+async function executeWebFallback(searchTerm) {
+  try {
+    logger.info(`[ExploriumSmartRouter] Executing web fallback search for "${searchTerm}"`);
+    const searchString = `${searchTerm} company overview description tech stack`;
+    const searchRes = await googleSearch.func({
+      query: searchString,
+      tz: 'America/New_York',
+      num: 5
+    });
+
+    if (!searchRes) {
+      return { search_term: searchTerm, results: [] };
+    }
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(searchRes);
+    } catch (e) {
+      return {
+        search_term: searchTerm,
+        results: [{ title: 'Web Search Results', snippet: searchRes, link: '' }]
+      };
+    }
+
+    let items = [];
+    if (Array.isArray(parsed)) {
+      items = parsed;
+    } else if (parsed && Array.isArray(parsed.items)) {
+      items = parsed.items;
+    } else if (parsed && typeof parsed === 'object') {
+      items = [parsed];
+    }
+
+    const structuredResults = items.map(item => ({
+      title: item.title || item.name || '',
+      link: item.link || item.url || '',
+      snippet: item.snippet || item.description || ''
+    }));
+
+    return {
+      search_term: searchTerm,
+      results: structuredResults
+    };
+  } catch (err) {
+    logger.error(`[ExploriumSmartRouter] Web fallback search failed: ${err.message}`);
+    return {
+      search_term: searchTerm,
+      error: err.message,
+      results: []
+    };
+  }
+}
+
 async function fetchCompanyResearchData(query, conversationHistory = []) {
   let { domain, email, companyName } = resolveEntity(query, conversationHistory);
 
@@ -356,7 +415,27 @@ async function fetchCompanyResearchData(query, conversationHistory = []) {
     }
   }
 
-  if (!domain) return { error: 'Could not extract or resolve company domain or name from query or conversation history.' };
+  // Fallback 1: Domain could not be resolved from entity extraction
+  if (!domain) {
+    const searchTerm = companyName || query;
+    const fallbackData = await executeWebFallback(searchTerm);
+    return {
+      query,
+      web_fallback: fallbackData,
+      note: 'No domain resolved. Fallback web search executed.'
+    };
+  }
+
+  // Detect sales/outreach intent to trigger parallel contacts lookup
+  const salesKeywords = [
+    'sell to', 'pitch to', 'who should i contact', 'who should we contact',
+    'who is in charge', 'leads at', 'leads of', 'prospects at', 'prospects of',
+    'outreach to', 'outreach at', 'decision maker', 'decision-maker',
+    'contact person', 'contact at', 'contact of', 'sales target', 'pitching to',
+    'selling to', 'outreach strategy', 'cold email', 'outreach'
+  ];
+  const q = query.toLowerCase();
+  const hasSalesIntent = salesKeywords.some(keyword => q.includes(keyword));
 
   try {
     const enrichments = [
@@ -372,15 +451,63 @@ async function fetchCompanyResearchData(query, conversationHistory = []) {
       'company_ratings'
     ];
 
-    const intel = await withCache(
-      'competitive_landscape',
-      { domain, types: enrichments },
-      () => getCompanyIntelligenceService(domain, enrichments).catch(() => null)
-    );
-    return { domain, intel };
+    let intel = null;
+    let contacts = null;
+
+    if (hasSalesIntent) {
+      logger.info(`[ExploriumSmartRouter] Sales/outreach intent detected for domain: ${domain}. Fetching contacts cascade in parallel.`);
+      const [intelResult, contactsResult] = await Promise.all([
+        withCache('competitive_landscape', { domain, types: enrichments }, () =>
+          getCompanyIntelligenceService(domain, enrichments)
+        ).catch(err => {
+          logger.error(`[ExploriumSmartRouter] Intel fetch error: ${err.message}`);
+          return null;
+        }),
+        withCache('fetch_prospects', { domain, limit: 5 }, () =>
+          getDecisionMakersService(domain, ['c-suite', 'vp', 'director'], [], true, false, 5)
+        ).catch(err => {
+          logger.error(`[ExploriumSmartRouter] Contacts fetch error: ${err.message}`);
+          return null;
+        })
+      ]);
+      intel = intelResult;
+      contacts = contactsResult;
+    } else {
+      intel = await withCache(
+        'competitive_landscape',
+        { domain, types: enrichments },
+        () => getCompanyIntelligenceService(domain, enrichments).catch(() => null)
+      );
+    }
+
+    // Fallback 2: Domain was resolved but Explorium profile match is false, empty, or failed
+    if (!intel || intel.matched === false || intel.error) {
+      logger.info(`[ExploriumSmartRouter] Company intel match missing or failed for ${domain}. Triggering fallback web search.`);
+      const searchTerm = companyName || domain;
+      const fallbackData = await executeWebFallback(searchTerm);
+      return {
+        domain,
+        intel: intel || { matched: false },
+        contacts,
+        web_fallback: fallbackData,
+        note: 'Explorium match missing or failed. Fallback web search executed.'
+      };
+    }
+
+    return { domain, intel, contacts, web_fallback: null };
   } catch (err) {
     logger.error('[ExploriumSmartRouter] Company research error:', err.message);
-    return { domain, error: err.message };
+
+    // Fallback 3: API or network error thrown in fetch pipeline
+    logger.info(`[ExploriumSmartRouter] Fetch pipeline threw error for ${domain}. Triggering fallback web search.`);
+    const searchTerm = companyName || domain;
+    const fallbackData = await executeWebFallback(searchTerm);
+    return {
+      domain,
+      error: err.message,
+      web_fallback: fallbackData,
+      note: 'Fetch pipeline error. Fallback web search executed.'
+    };
   }
 }
 

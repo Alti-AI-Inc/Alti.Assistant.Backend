@@ -84,7 +84,7 @@ const initiateTaskInSessionService = async (
   }
 };
 
-const updateTaskStatusService = async (sessionId, taskId) => {
+const updateTaskStatusService = async (sessionId, taskId, req = null) => {
   const apiResponse = await axios.get(
     `https://api.browser-use.com/api/v1/task/${taskId}`,
     { headers: { Authorization: `Bearer ${config.browser_use_secret_key}` } }
@@ -102,8 +102,12 @@ const updateTaskStatusService = async (sessionId, taskId) => {
     'responses.$.steps': apiData.steps, // CRITICAL: Update the steps array
   };
 
+  const query = req
+    ? withTenantFilter(req, { _id: sessionId, 'responses.taskId': taskId })
+    : { _id: sessionId, 'responses.taskId': taskId };
+
   const updatedSession = await BrowserSession.findOneAndUpdate(
-    { _id: sessionId, 'responses.taskId': taskId },
+    query,
     { $set: updateFields },
     { new: true }
   );

@@ -16,7 +16,15 @@ import {
   getFAANasStatusService,
   getFAANotamsService,
   getNTSBSafetyIncidentsService,
-  getAlternateAirportsService
+  getAlternateAirportsService,
+  getFlightFuelPlanningService,
+  getCurfewComplianceService,
+  getOceanicTracksService,
+  getETOPSPlanningService,
+  getPassengerCompensationService,
+  getVolcanicAshProjectionService,
+  getCargoHazmatComplianceService,
+  getJetStreamTurbulenceService
 } from '../modules/aviationstack/aviationstack.service.js';
 
 import { detectAviationIntent } from './aviationstackIntentDB.js';
@@ -974,6 +982,343 @@ function formatSafetyIncidentBlock(incidents, carrier, model) {
   return content;
 }
 
+/**
+ * Renders an ICAO Fuel Planning and Aircraft Payload optimization block
+ */
+function formatFuelPlanningBlock(fuelData) {
+  if (!fuelData) {
+    return `## ⛽ Flight Plan Fuel & Payload Optimizer\n\n*No fuel planning data found.*\n`;
+  }
+
+  let block = `## ⛽ Flight Plan Fuel & Payload Optimizer: ${fuelData.model}\n\n`;
+  
+  block += `> [!NOTE]\n`;
+  block += `> **ICAO FUEL COMPLIANCE SUMMARY:**\n`;
+  block += `> * **Min Dispatch Fuel Required:** **${fuelData.min_dispatch_fuel_lbs.toLocaleString()} lbs**\n`;
+  block += `> * **Aircraft Fuel Burn Rate:** **${fuelData.burn_rate_lbs_hr.toLocaleString()} lbs/hr**\n`;
+  block += `> * **Weight Status:** **${fuelData.compliance_status}**\n\n`;
+
+  block += `### 📋 ICAO Fuel Planning Breakdown\n`;
+  block += `| Fuel Component | Purpose | Allocation (lbs) | Fuel Reserve Duration |\n`;
+  block += `| --- | --- | --- | --- |\n`;
+  block += `| **Trip Fuel** | Cruising route burn-off | **${fuelData.trip_fuel_lbs.toLocaleString()}** | Route profile duration |\n`;
+  block += `| **Contingency Fuel** | 5% route deviation reserve | **${fuelData.contingency_fuel_lbs.toLocaleString()}** | Variable contingency |\n`;
+  block += `| **Alternate Fuel** | Climb, cruise & land at alternate | **${fuelData.alternate_fuel_lbs.toLocaleString()}** | Standard routing |\n`;
+  block += `| **Holding Fuel** | 30 minutes traffic holding | **${fuelData.holding_fuel_lbs.toLocaleString()}** | 30 minutes at burn rate |\n`;
+  block += `| **Reserve Fuel** | 45 minutes FAA/ICAO final reserve | **${fuelData.reserve_fuel_lbs.toLocaleString()}** | 45 minutes at cruise |\n`;
+  block += `| **Min Dispatch Fuel** | **Total minimum regulatory fuel** | **${fuelData.min_dispatch_fuel_lbs.toLocaleString()}** | **Total safe operation** |\n\n`;
+
+  block += `### ⚖️ Aircraft Structural Weight Limits Audit\n`;
+  block += `| Weight Parameter | Limit Specification (lbs) | Target Weight (lbs) | Margin Available (lbs) |\n`;
+  block += `| --- | --- | --- | --- |\n`;
+  block += `| **Maximum Structural Payload** | **${fuelData.max_structural_payload_lbs.toLocaleString()}** | **${fuelData.target_payload_lbs.toLocaleString()}** | **${fuelData.payload_margin_lbs.toLocaleString()}** |\n\n`;
+
+  return block;
+}
+
+/**
+ * Renders airport curfew information and noise compliance warnings
+ */
+function formatCurfewComplianceBlock(curfewData) {
+  if (!curfewData) {
+    return `## 🛑 Airport Noise Curfew Advisor\n\n*No curfew data found.*\n`;
+  }
+
+  let block = `## 🛑 Airport Noise Curfew Advisor: ${curfewData.name} (${curfewData.airport})\n\n`;
+
+  let alertBox = '';
+  if (curfewData.violation_risk === '🛑 CRITICAL CURFEW VIOLATION RISK') {
+    alertBox = `> [!CAUTION]\n> **${curfewData.violation_risk}**\n> * ${curfewData.advisory_notes}\n\n`;
+  } else {
+    alertBox = `> [!NOTE]\n> **CURFEW COMPLIANCE STATUS: ${curfewData.violation_risk}**\n> * ${curfewData.advisory_notes}\n\n`;
+  }
+
+  block += alertBox;
+
+  block += `### 🕰️ Environmental Noise & Curfew Specifications\n`;
+  block += `| Parameter | Specifications |\n`;
+  block += `| --- | --- |\n`;
+  block += `| **Airport** | **${curfewData.name}** (**${curfewData.airport}**) |\n`;
+  block += `| **Has Noise Curfew** | ${curfewData.has_curfew ? '⚠️ **YES**' : '🟢 NO'} |\n`;
+  block += `| **Curfew Operating Hours** | \`${curfewData.curfew_hours}\` |\n`;
+  block += `| **Operational Ban Type** | ${curfewData.ban_type} |\n`;
+  block += `| **Regulatory Authority Notes** | ${curfewData.notes} |\n\n`;
+
+  return block;
+}
+
+/**
+ * Renders oceanic tracks grid and VAAC volcanic ash / convective SIGMET overlays
+ */
+function formatOceanicTracksBlock(trackData) {
+  if (!trackData) {
+    return `## 🌊 Transoceanic Oceanic Tracks Router\n\n*No transoceanic track coordinates found.*\n`;
+  }
+
+  let block = `## 🌊 Transoceanic Oceanic Tracks Router: ${trackData.track_id}\n\n`;
+
+  if (trackData.active_sigmets && trackData.active_sigmets.length > 0) {
+    trackData.active_sigmets.forEach(s => {
+      const isSevere = s.severity.includes('🛑') || s.severity.toLowerCase().includes('severe') || s.severity.toLowerCase().includes('mandatory');
+      const alertType = isSevere ? 'CAUTION' : 'WARNING';
+      block += `> [!${alertType}]\n`;
+      block += `> **ACTIVE WEATHER/VAAC SIGMET WARNING (${s.id}):**\n`;
+      block += `> * **Hazard Type:** ${s.type}\n`;
+      block += `> * **Description:** ${s.hazard}\n`;
+      block += `> * **Vertical Boundaries:** \`${s.vertical_limits}\`\n`;
+      block += `> * **Severity / Action Required:** **${s.severity}**\n\n`;
+    });
+  } else {
+    block += `> [!NOTE]\n`;
+    block += `> 🟢 **CLEAR OCEANIC ROUTING:** No active volcanic ash warnings or severe convective turbulence SIGMETs reported along this track.\n\n`;
+  }
+
+  block += `### 🗺️ Oceanic Route Coordinates Grid\n`;
+  block += `| Track Identifier | Entry Point | Exit Point | Mid-Atlantic Coordinates | Authorized Flight Levels |\n`;
+  block += `| --- | --- | --- | --- | --- |\n`;
+  block += `| **${trackData.track_id}** | **${trackData.entry_point}** | **${trackData.exit_point}** | \`${trackData.coordinates}\` | \`${trackData.flight_levels}\` |\n\n`;
+
+  return block;
+}
+
+/**
+ * Renders ETOPS planning profile and en-route weather audits
+ */
+function formatETOPSPlanningBlock(etopsData) {
+  if (!etopsData) {
+    return `## 🚀 ETOPS Transoceanic Diversion Planner\n\n*No ETOPS planning details found.*\n`;
+  }
+
+  let block = `## 🚀 ETOPS Transoceanic Diversion Planner: ${etopsData.route}\n\n`;
+
+  block += `> [!WARNING]\n`;
+  block += `> **ETOPS COMPLIANCE CLEARANCE STATUS:**\n`;
+  block += `> * ${etopsData.compliance_advisory}\n\n`;
+
+  block += `### ⚙️ ETOPS Operating Ruleset Profile\n`;
+  block += `| ETOPS Parameter | Specifications |\n`;
+  block += `| --- | --- |\n`;
+  block += `| **Assigned Route** | **${etopsData.route}** |\n`;
+  block += `| **Aircraft Equipment** | **${etopsData.aircraft_model}** |\n`;
+  block += `| **ETOPS Rating / Limit** | **${etopsData.etops_rule_minutes} minutes** twin-engine cruise |\n`;
+  block += `| **Single-Engine Cruise Speed** | \`${etopsData.single_engine_cruise_kt} KT\` true airspeed |\n`;
+  block += `| **Max Safe Diversion Distance** | **${etopsData.max_diversion_distance_nm} nm** |\n`;
+  block += `| **Equal Time Point (ETP)** | \`${etopsData.equal_time_point}\` |\n\n`;
+
+  block += `### 🔀 Designated En-Route Alternate Weather Audit\n`;
+  block += `| Alternate Station | Track Distance | Flight Category | Live Weather METAR | Dispatch Acceptability |\n`;
+  block += `| --- | --- | --- | --- | --- |\n`;
+
+  etopsData.alternates.forEach(alt => {
+    let catBadge = '🟢 VFR';
+    if (alt.flight_category === 'MVFR') catBadge = '🟡 MVFR';
+    else if (alt.flight_category === 'IFR') catBadge = '🔴 IFR';
+    else if (alt.flight_category === 'LIFR') catBadge = '🛑 LIFR';
+
+    block += `| **${alt.code}** — ${alt.name} | ${alt.distance_to_track_nm} nm | **${catBadge}** | \`${alt.weather_text}\` | ${alt.acceptability} |\n`;
+  });
+
+  block += `\n`;
+  return block;
+}
+
+/**
+ * Renders passenger delay compensation and airline regulatory liability audit
+ */
+function formatPassengerCompensationBlock(compData) {
+  if (!compData) {
+    return `## 💶 Passenger Delay Compensation & Cost Auditor\n\n*No compensation data found.*\n`;
+  }
+
+  let block = `## 💶 Passenger Delay Compensation & Cost Auditor: **${compData.departure}** ➔ **${compData.arrival}**\n\n`;
+
+  if (compData.eu261.applies) {
+    if (compData.eu261.eligible) {
+      block += `> [!IMPORTANT]\n`;
+      block += `> 💶 **EU261/UK261 COMPENSATION APPLICABLE:** Passenger is eligible for **€${compData.eu261.payout_eur}** cash compensation.\n`;
+      block += `> * **Distance:** ${compData.distance_km} km\n`;
+      block += `> * **Delay Hours:** ${compData.delay_hours} hrs\n`;
+      block += `> * **Reason:** ${compData.reason} (Operational/Fault)\n\n`;
+    } else if (compData.eu261.force_majeure) {
+      block += `> [!WARNING]\n`;
+      block += `> ⚠️ **FORCE MAJEURE DETECTED:** Cash payout is exempt due to **${compData.reason}**.\n`;
+      block += `> * **Duty of Care:** Mandatory food, beverages, and accommodation if delayed overnight.\n\n`;
+    }
+  }
+
+  if (compData.us_dot.applies) {
+    if (compData.us_dot.warning_civil_penalty_usd > 0) {
+      block += `> [!CAUTION]\n`;
+      block += `> 🛑 **US DOT TARMAC DELAY VIOLATION:**\n`;
+      block += `> * ${compData.us_dot.tarmac_status}\n`;
+      block += `> * **Civil Penalty Alert:** Up to **$27,500** warning per passenger!\n`;
+      block += `> * **Refund Action:** ${compData.us_dot.refund_entitlement}\n\n`;
+    } else if (compData.us_dot.refund_entitlement !== '🟢 NO REFUND DUE') {
+      block += `> [!WARNING]\n`;
+      block += `> ⚠️ **US DOT SIGNIFICANT DELAY ALERT:**\n`;
+      block += `> * **Refund Entitlement:** ${compData.us_dot.refund_entitlement}\n\n`;
+    }
+  }
+
+  block += `### 📋 Regulatory Audit Breakdown\n`;
+  block += `| Regulation | Status / Applies | Payout or Cap | Key Rules / Notes |\n`;
+  block += `| --- | --- | --- | --- |\n`;
+  block += `| **EU261 / UK261** | ${compData.eu261.applies ? '⚠️ **YES**' : '🟢 NO'} | ${compData.eu261.eligible ? `**€${compData.eu261.payout_eur}**` : '€0'} | ${compData.eu261.force_majeure ? 'Exempt (Force Majeure)' : 'Standard delay rules'} |\n`;
+  block += `| **US DOT Rules** | ${compData.us_dot.applies ? '⚠️ **YES**' : '🟢 NO'} | ${compData.us_dot.warning_civil_penalty_usd > 0 ? `**$27,500 Fine Alert**` : '—'} | ${compData.us_dot.tarmac_status} |\n`;
+  block += `| **Montreal Convention** | ${compData.montreal_convention.applies ? '⚠️ **YES**' : '🟢 NO'} | **${compData.montreal_convention.limit_sdr.toLocaleString()} SDR** (~$${compData.montreal_convention.liability_cap_usd.toLocaleString()} USD) | Delay damage liability limit cap per passenger |\n\n`;
+
+  block += `### ⏱️ Operational Logistics Summary\n`;
+  block += `* **Departure Airport:** **${compData.departure}**\n`;
+  block += `* **Arrival Airport:** **${compData.arrival}**\n`;
+  block += `* **Total Delay Duration:** **${compData.delay_minutes} minutes** (${compData.delay_hours} hours)\n`;
+  block += `* **Calculated Distance:** **${compData.distance_km} km**\n`;
+  block += `* **Exclusion Status:** ${compData.eu261.force_majeure ? '🛑 Force Majeure active' : '🟢 Normal carrier responsibility'}\n`;
+  block += `* **Duty of Care Obligation:** ${compData.eu261.duty_of_care_status}\n\n`;
+
+  return block;
+}
+
+/**
+ * Renders volcanic ash cloud trajectory forecast and dispatch route planner
+ */
+function formatVolcanicAshBlock(ashData) {
+  if (!ashData) {
+    return `## 🌋 Volcanic Ash Cloud Trajectory Projection (VAAC)\n\n*No volcanic ash advisory data found.*\n`;
+  }
+
+  let block = `## 🌋 Volcanic Ash Cloud Trajectory Projection: **${ashData.volcano}**\n\n`;
+
+  if (ashData.hazard_level === '🛑 CRITICAL') {
+    block += `> [!CAUTION]\n`;
+    block += `> 🛑 **CRITICAL VOLCANIC ASH INTERSECTION ALERT:**\n`;
+    block += `> * **Hazard Level:** ${ashData.hazard_level}\n`;
+    block += `> * **Directive:** ${ashData.dispatch_directive}\n\n`;
+  } else if (ashData.hazard_level === '⚠️ CAUTION') {
+    block += `> [!WARNING]\n`;
+    block += `> ⚠️ **VOLCANIC ASH CAUTION / BOUNDARY ALERT:**\n`;
+    block += `> * **Hazard Level:** ${ashData.hazard_level}\n`;
+    block += `> * **Directive:** ${ashData.dispatch_directive}\n\n`;
+  } else {
+    block += `> [!NOTE]\n`;
+    block += `> 🟢 **CLEAR OF VOLCANIC ASH PLUMES:** Route **${ashData.queried_route}** is fully clear of the forecasted ash boundaries.\n\n`;
+  }
+
+  block += `### 📊 VAAC Plume Trajectory Projections\n`;
+  block += `| Projection Period | Trajectory Vector Coordinates / Cone Boundary | Vertical Limits | Weather Winds Profile |\n`;
+  block += `| --- | --- | --- | --- |\n`;
+  block += `| **Active (Cone)** | \`${ashData.cone_coords}\` | **${ashData.plume_height}** | ${ashData.wind_vector} |\n`;
+  block += `| **12-Hour Forecast** | \`${ashData.trajectory_12h}\` | **${ashData.plume_height}** | Trajectory drift vector |\n`;
+  block += `| **24-Hour Forecast** | \`${ashData.trajectory_24h}\` | **${ashData.plume_height}** | Trajectory drift vector |\n`;
+  block += `| **36-Hour Forecast** | \`${ashData.trajectory_36h}\` | **${ashData.plume_height}** | Trajectory drift vector |\n\n`;
+
+  block += `### 🏢 Meteorological Operations Center Profile\n`;
+  block += `* **Issuing VAAC Center:** **${ashData.station}**\n`;
+  block += `* **Volcanic Source:** **${ashData.volcano}**\n`;
+  block += `* **Active SIGMET Authority:** \`${ashData.active_sigmet}\`\n`;
+  block += `* **Queried Airway Route:** **${ashData.queried_route}**\n`;
+  block += `* **Dispatcher Action Plan:** ${ashData.dispatch_directive}\n\n`;
+
+  return block;
+}
+
+/**
+ * Renders IATA Dangerous Goods (HAZMAT) Manifest Compliance Audit
+ */
+function formatCargoHazmatBlock(cargoData) {
+  if (!cargoData) {
+    return `## 📦 IATA HAZMAT Cargo Manifest Auditor\n\n*No cargo compliance data found.*\n`;
+  }
+
+  let block = `## 📦 IATA HAZMAT Cargo Manifest Compliance Audit\n\n`;
+
+  if (cargoData.compliance_status.includes('FAIL')) {
+    block += `> [!CAUTION]\n`;
+    block += `> 🛑 **IATA DANGER GOODS VIOLATION — FLIGHT SUSPENDED:**\n`;
+    block += `> * **Status:** ${cargoData.compliance_status}\n`;
+    block += `> * **Directive:** ${cargoData.dispatcher_directive}\n\n`;
+
+    if (cargoData.segregation_conflicts && cargoData.segregation_conflicts.length > 0) {
+      block += `**Critical Violations Detected:**\n`;
+      cargoData.segregation_conflicts.forEach(c => {
+        block += `* ${c}\n`;
+      });
+      block += `\n`;
+    }
+  } else {
+    block += `> [!NOTE]\n`;
+    block += `> 🟢 **HAZMAT MANIFEST APPROVED:** Cargo manifest is fully compliant with all IATA Dangerous Goods Regulations.\n`;
+    block += `> * **Directive:** ${cargoData.dispatcher_directive}\n\n`;
+  }
+
+  block += `### 📋 Audited Manifest Cargo Grid\n`;
+  block += `| UN Number | Proper Shipping Name | Hazard Class | Net Weight per Pkg | Packaging Group | Status / Audit |\n`;
+  block += `| --- | --- | --- | --- | --- | --- |\n`;
+
+  cargoData.audited_manifest.forEach(item => {
+    let statBadge = '🟢 APPROVED';
+    if (item.status.includes('FORBIDDEN') || item.status.includes('FAIL')) {
+      statBadge = `🛑 **${item.status}**`;
+    }
+    block += `| \`${item.un_number}\` | ${item.name} | Class ${item.class_id} | **${item.weight_kg} kg** | \`${item.packing_group}\` | ${statBadge} |\n`;
+  });
+
+  block += `\n### 📦 Detailed Regulatory Remarks\n`;
+  cargoData.audited_manifest.forEach(item => {
+    block += `* **\`${item.un_number}\` (${item.name}):** ${item.remarks}\n`;
+  });
+  block += `\n`;
+
+  return block;
+}
+
+/**
+ * Renders Jet Stream High-Altitude Wind Shear and Clear-Air Turbulence (CAT) Forecaster
+ */
+function formatJetStreamTurbulenceBlock(turbData) {
+  if (!turbData) {
+    return `## 💨 Jet Stream Wind Shear & Turbulence Forecaster\n\n*No jet stream forecast data found.*\n`;
+  }
+
+  let block = `## 💨 Jet Stream Wind Shear & Turbulence Forecaster\n\n`;
+
+  if (turbData.clear_air_turbulence_index.includes('SEVERE')) {
+    block += `> [!CAUTION]\n`;
+    block += `> 🛑 **SEVERE CLEAR-AIR TURBULENCE (CAT) WARNING:**\n`;
+    block += `> * **Index:** ${turbData.clear_air_turbulence_index}\n`;
+    block += `> * **Warning:** ${turbData.hazard_warning}\n\n`;
+  } else if (turbData.clear_air_turbulence_index.includes('MODERATE')) {
+    block += `> [!WARNING]\n`;
+    block += `> ⚠️ **MODERATE CLEAR-AIR TURBULENCE ACTIVE:**\n`;
+    block += `> * **Index:** ${turbData.clear_air_turbulence_index}\n`;
+    block += `> * **Warning:** ${turbData.hazard_warning}\n\n`;
+  } else {
+    block += `> [!NOTE]\n`;
+    block += `> 🟢 **LIGHT WIND SHEAR:** Wind shear layers are nominal. Normal cruise altitude allowed.\n\n`;
+  }
+
+  block += `### 📋 Wind Shear & Turbulence Profile\n`;
+  block += `| Operational Metric | Specification / Core Details | Notes / Optimal Actions |\n`;
+  block += `| --- | --- | --- |\n`;
+  block += `| **Assigned Flight Route** | **${turbData.assigned_route}** | Flight path audited against current jet stream core |\n`;
+  block += `| **Jet Stream Core Altitude** | \`${turbData.jet_stream_core_altitude}\` | Maximum wind speed altitude layer |\n`;
+  block += `| **Core Wind Velocity** | **${turbData.core_wind_velocity_kts} knots** | Peak wind speed in jet stream core |\n`;
+  block += `| **Vertical Shear Gradient** | \`${turbData.vertical_shear_gradient}\` | Wind velocity change rate per 1,000 ft vertical |\n`;
+  block += `| **Clear-Air Turbulence Index** | **${turbData.clear_air_turbulence_index}** | Calculated dynamic CAT severity category |\n`;
+  block += `| **Optimal Cruise Flight Level** | **${turbData.recommended_optimal_fl}** | Recommended FL to minimize shear/turbulence and fuel burn |\n\n`;
+
+  block += `### 🛫 Manufacturer Turbulence Penetration Speed Protocols\n`;
+  block += `In the event of turbulence entry, pilots should reduce airspeed to the manufacturer recommended penetration speed:\n\n`;
+  block += `| Aircraft Family | Recommended Penetration Speed | Standard Procedures |\n`;
+  block += `| --- | --- | --- |\n`;
+
+  turbData.aircraft_penetration_speeds.forEach(profile => {
+    block += `| **${profile.model}** | \`${profile.penetration_speed}\` | Autothrottle off, maintain pitch attitude |\n`;
+  });
+  block += `\n`;
+
+  return block;
+}
+
 // ─── Prompt Builder ──────────────────────────────────────────────────────────
 
 function buildPrompt(userPrompt, dataBlock) {
@@ -1015,7 +1360,31 @@ export const aviationstackSmartRouter = {
     let dataBlock = '';
 
     try {
-      if (intent.type === 'metar_taf') {
+      if (intent.type === 'passenger_compensation') {
+        const compData = await getPassengerCompensationService(intent.delayMinutes, intent.departureCode, intent.arrivalCode, intent.reasonCode);
+        dataBlock = formatPassengerCompensationBlock(compData);
+      } else if (intent.type === 'volcanic_ash_model') {
+        const ashData = await getVolcanicAshProjectionService(intent.vaacStationId, intent.routePoints);
+        dataBlock = formatVolcanicAshBlock(ashData);
+      } else if (intent.type === 'cargo_hazmat') {
+        const cargoData = await getCargoHazmatComplianceService(intent.manifestItems);
+        dataBlock = formatCargoHazmatBlock(cargoData);
+      } else if (intent.type === 'jet_stream_shear') {
+        const turbData = await getJetStreamTurbulenceService(intent.departureCode, intent.arrivalCode, intent.routePoints);
+        dataBlock = formatJetStreamTurbulenceBlock(turbData);
+      } else if (intent.type === 'fuel_planning') {
+        const fuelData = await getFlightFuelPlanningService(intent.model, intent.durationHours);
+        dataBlock = formatFuelPlanningBlock(fuelData);
+      } else if (intent.type === 'noise_curfew') {
+        const curfewData = await getCurfewComplianceService(intent.airportCode, intent.etaTimeStr);
+        dataBlock = formatCurfewComplianceBlock(curfewData);
+      } else if (intent.type === 'oceanic_track') {
+        const trackData = await getOceanicTracksService(intent.trackId);
+        dataBlock = formatOceanicTracksBlock(trackData);
+      } else if (intent.type === 'etops_planner') {
+        const etopsData = await getETOPSPlanningService(intent.departureCode, intent.arrivalCode, intent.model);
+        dataBlock = formatETOPSPlanningBlock(etopsData);
+      } else if (intent.type === 'metar_taf') {
         const weather = await getMETARTAFService(intent.airportCode);
         dataBlock = formatMetarTafBlock(weather);
       } else if (intent.type === 'faa_nas') {

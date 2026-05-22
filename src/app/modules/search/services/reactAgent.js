@@ -209,7 +209,14 @@ Input: Any natural language sports betting query. The tool auto-detects intent, 
 - FAA NAS airport operational status, Ground Stops, Ground Delays, and delay programs (e.g. "FAA ground stop at ORD", "delays at SFO")
 - FAA NOTAM active notices, safety warnings, and runway status (e.g. "LAX airport active NOTAMs", "notams for ORD")
 - NTSB historical civil aviation accident and safety incident logs (e.g. "Boeing 737 Max NTSB safety record", "United Airlines accidents")
-Input: A natural language query about flights, routes, airports, airlines, aircraft, aviation weather, FAA delays/NOTAMs, or NTSB safety reports (e.g. "What is the status of UA342 right now?", "JFK weather", "FAA ground stop ORD")`,
+- ICAO Fuel Planning and Weight limits (e.g. "Boeing 777 fuel burn over 8 hours", "payload flight plan fuel")
+- Noise Curfew violations (e.g. "Frankfurt airport noise curfew", "LHR curfew hours delay")
+- Oceanic Track (NAT-OTS) and ETOPS transoceanic alternate planner (e.g. "active Oceanic Track B weather", "ETOPS rules LHR to JFK")
+- Passenger Delay Compensation (EU261/UK261, US DOT tarmac delay fines, Montreal Convention) (e.g. "passenger compensation rules DL123 delayed 4 hours")
+- Volcanic Ash Trajectory Projection models (VAAC Reykjavik, Anchorage, Darwin) (e.g. "volcanic ash cloud trajectory Reykjavik Katla volcano")
+- IATA HAZMAT Cargo Manifest compliance (e.g. "IATA dangerous goods compliance Lithium Batteries Paint")
+- Jet Stream high-altitude turbulence (CAT) and wind shear (e.g. "jet stream wind shear forecast moderate turbulence speed")
+Input: A natural language query about flights, routes, airports, airlines, aircraft, weather, FAA delays/NOTAMs, NTSB records, fuel planning, curfews, ETOPS, compensation, volcanic ash plume detours, HAZMAT manifests, or turbulence/jet streams.`,
     async func(query) {
       try {
         const result = await aviationstackSmartRouter.routeAndEnhancePrompt(query);

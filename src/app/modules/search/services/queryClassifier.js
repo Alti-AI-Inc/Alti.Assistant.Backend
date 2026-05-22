@@ -953,6 +953,14 @@ export function classifyAviationQuery(query) {
     faa_nas: 0.98,
     notam: 0.97,
     safety_incident: 0.96,
+    fuel_planning: 0.98,
+    oceanic_track: 0.98,
+    noise_curfew: 0.98,
+    etops_planner: 0.98,
+    passenger_compensation: 0.98,
+    volcanic_ash_model: 0.98,
+    cargo_hazmat: 0.98,
+    jet_stream_shear: 0.98,
   };
 
   const confidence = confidenceMap[intent.type] || 0.85;
@@ -973,6 +981,17 @@ export function classifyAviationQuery(query) {
     carrier: intent.carrier || null,
     boardType: intent.boardType || null,
     model: intent.model || null,
+    durationHours: intent.durationHours || null,
+    trackId: intent.trackId || null,
+    departureCode: intent.departureCode || null,
+    arrivalCode: intent.arrivalCode || null,
+    etaTimeStr: intent.etaTimeStr || null,
+    // Phase 8 parameters
+    delayMinutes: intent.delayMinutes || null,
+    reasonCode: intent.reasonCode || null,
+    vaacStationId: intent.vaacStationId || null,
+    routePoints: intent.routePoints || null,
+    manifestItems: intent.manifestItems || null,
   };
 }
 

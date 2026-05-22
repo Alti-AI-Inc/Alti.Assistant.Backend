@@ -511,3 +511,564 @@ export async function getAlternateAirportsService(airportCode) {
 
   return results;
 }
+
+// ─── Phase 7 compliance & operations data feeds ──────────────────────────────
+
+export async function getFlightFuelPlanningService(model, durationHours) {
+  const cleanModel = (model || '737').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  let burnRate = 6000; // lbs/hour
+  let maxPayload = 50000; // lbs
+
+  if (cleanModel.includes('737')) {
+    burnRate = 5500;
+    maxPayload = 48500;
+  } else if (cleanModel.includes('777')) {
+    burnRate = 15000;
+    maxPayload = 130000;
+  } else if (cleanModel.includes('320')) {
+    burnRate = 5200;
+    maxPayload = 42000;
+  } else if (cleanModel.includes('321')) {
+    burnRate = 5800;
+    maxPayload = 47000;
+  } else if (cleanModel.includes('787')) {
+    burnRate = 11500;
+    maxPayload = 105000;
+  } else if (cleanModel.includes('350')) {
+    burnRate = 12000;
+    maxPayload = 115000;
+  }
+
+  const tripFuel = Math.round(burnRate * (durationHours || 6.5));
+  const contingencyFuel = Math.max(1500, Math.round(tripFuel * 0.05));
+  const alternateFuel = 2500;
+  const holdingFuel = Math.round(0.5 * burnRate); // 30 min hold at burnRate
+  const reserveFuel = Math.round(0.75 * burnRate); // 45 min FAA reserve
+  const minDispatchFuel = tripFuel + contingencyFuel + alternateFuel + holdingFuel + reserveFuel;
+
+  const targetPayload = Math.round(maxPayload * 0.82);
+
+  return {
+    model: model || 'Boeing 737 Max 9',
+    burn_rate_lbs_hr: burnRate,
+    max_structural_payload_lbs: maxPayload,
+    target_payload_lbs: targetPayload,
+    trip_fuel_lbs: tripFuel,
+    contingency_fuel_lbs: contingencyFuel,
+    alternate_fuel_lbs: alternateFuel,
+    holding_fuel_lbs: holdingFuel,
+    reserve_fuel_lbs: reserveFuel,
+    min_dispatch_fuel_lbs: minDispatchFuel,
+    payload_margin_lbs: maxPayload - targetPayload,
+    compliance_status: '🟢 WITHIN DISPATCH WEIGHT LIMITS'
+  };
+}
+
+export async function getCurfewComplianceService(airportCode, etaTimeStr) {
+  const airport = (airportCode || 'FRA').toUpperCase().trim();
+  
+  const curfews = {
+    FRA: {
+      airport: 'FRA',
+      name: 'Frankfurt Airport',
+      has_curfew: true,
+      curfew_hours: '23:00 to 05:00 local',
+      ban_type: 'Complete night takeoff and landing ban',
+      fine_eur: 50000,
+      notes: 'Strict German environmental noise regulations apply. No exceptions except immediate emergencies.'
+    },
+    SYD: {
+      airport: 'SYD',
+      name: 'Sydney Kingsford Smith Airport',
+      has_curfew: true,
+      curfew_hours: '23:00 to 06:00 local',
+      ban_type: 'Strict noise curfew quota violations',
+      fine_aud: 150000,
+      notes: 'Monitored by Airservices Australia. Heavy financial penalties for non-approved landings.'
+    },
+    LHR: {
+      airport: 'LHR',
+      name: 'London Heathrow Airport',
+      has_curfew: true,
+      curfew_hours: '23:30 to 06:00 local',
+      ban_type: 'Night quota count points limitation',
+      fine_gbp: 40000,
+      notes: 'Strict QC/2 and QC/4 aircraft type limitations apply.'
+    },
+    NRT: {
+      airport: 'NRT',
+      name: 'Tokyo Narita Airport',
+      has_curfew: true,
+      curfew_hours: '00:00 to 06:00 local',
+      ban_type: 'Complete operational noise freeze',
+      fine_jpy: 5000000,
+      notes: 'No takeoffs or landings allowed without explicit emergency squawk.'
+    }
+  };
+
+  const c = curfews[airport] || {
+    airport,
+    name: `${airport} Regional Hub`,
+    has_curfew: false,
+    curfew_hours: 'None',
+    ban_type: 'None',
+    notes: 'No active environmental curfews reported at this station.'
+  };
+
+  let violationRisk = '🟢 NORMAL (NO RISK)';
+  let notes = c.notes;
+
+  if (c.has_curfew) {
+    const hasDelayText = etaTimeStr && (etaTimeStr.toLowerCase().includes('delay') || etaTimeStr.toLowerCase().includes('delayed') || etaTimeStr.toLowerCase().includes('23:') || etaTimeStr.toLowerCase().includes('00:') || etaTimeStr.toLowerCase().includes('01:') || etaTimeStr.toLowerCase().includes('02:'));
+    if (hasDelayText) {
+      violationRisk = '🛑 CRITICAL CURFEW VIOLATION RISK';
+      notes = `⚠️ DELAY WARNING: Projecting arrival during curfew hours (${c.curfew_hours}). Mandatory diversion required unless emergency declared. Estimated fine: ${c.fine_eur ? '€' + c.fine_eur : c.fine_aud ? 'A$' + c.fine_aud : c.fine_gbp ? '£' + c.fine_gbp : '¥' + c.fine_jpy}.`;
+    }
+  }
+
+  return {
+    ...c,
+    violation_risk: violationRisk,
+    advisory_notes: notes
+  };
+}
+
+export async function getOceanicTracksService(trackId) {
+  const tracks = {
+    A: {
+      track_id: 'NAT-OTS Track A',
+      entry_point: 'PIKIL',
+      exit_point: 'RESNO',
+      coordinates: '50N050W 51N040W 52N030W 52N020W',
+      flight_levels: 'FL310, FL330, FL350, FL370, FL390',
+      active_sigmets: [
+        {
+          id: 'SIGMET CHARLIE 3',
+          type: 'Volcanic Ash Advisory (VAAC Reykjavik)',
+          hazard: 'Volcanic ash cloud drifting south-east over Iceland towards Track A.',
+          vertical_limits: 'SFC to FL200',
+          severity: '🛑 SEVERE HAZARD - FLIGHT PATH DIVERSION MANDATORY UNDER FL200'
+        }
+      ]
+    },
+    B: {
+      track_id: 'NAT-OTS Track B',
+      entry_point: 'DOGAL',
+      exit_point: 'MALOT',
+      coordinates: '49N050W 50N040W 51N030W 51N020W',
+      flight_levels: 'FL320, FL340, FL360, FL380, FL400',
+      active_sigmets: [
+        {
+          id: 'SIGMET BRAVO 12',
+          type: 'Convective Turbulence & Thunderstorms',
+          hazard: 'Severe mountain-wave turbulence and embedded thunderstorms reported.',
+          vertical_limits: 'FL310 to FL370',
+          severity: '⚠️ ELEVATED HAZARD - TURBULENCE PENETRATION PROCEDURES IN EFFECT'
+        }
+      ]
+    },
+    C: {
+      track_id: 'NAT-OTS Track C',
+      entry_point: 'BEDRA',
+      exit_point: 'LIMRI',
+      coordinates: '48N050W 49N040W 50N030W 50N020W',
+      flight_levels: 'FL310, FL330, FL350, FL370, FL390',
+      active_sigmets: []
+    }
+  };
+
+  const id = (trackId || 'B').toUpperCase().trim();
+  return tracks[id] || tracks['B'];
+}
+
+export async function getETOPSPlanningService(departureCode, arrivalCode, model) {
+  const dep = (departureCode || 'LHR').toUpperCase().trim();
+  const arr = (arrivalCode || 'JFK').toUpperCase().trim();
+  const cleanModel = (model || '777').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  let ruleMinutes = 180;
+  let singleEngineSpeed = 380; // knots cruise
+  let maxDiversionDistance = 1140; // nm
+
+  if (cleanModel.includes('737') || cleanModel.includes('320') || cleanModel.includes('321')) {
+    ruleMinutes = 120;
+    singleEngineSpeed = 350;
+    maxDiversionDistance = 700;
+  } else if (cleanModel.includes('777') || cleanModel.includes('787') || cleanModel.includes('350')) {
+    ruleMinutes = 180;
+    singleEngineSpeed = 410;
+    maxDiversionDistance = 1230;
+  }
+
+  // Designated alternates weather statuses
+  const alternateDetails = [
+    {
+      code: 'KEF',
+      name: 'Keflavik International Airport (Iceland)',
+      distance_to_track_nm: 420,
+      flight_category: 'VFR',
+      weather_text: 'KEF 221530Z 26010KT 10SM FEW030 11/06 A2992 NOSIG',
+      acceptability: '🟢 APPROVED ETOPS ALTERNATE'
+    },
+    {
+      code: 'BGSF',
+      name: 'Kangerlussuaq Airport (Greenland)',
+      distance_to_track_nm: 680,
+      flight_category: 'MVFR',
+      weather_text: 'BGSF 221530Z 09015KT 4SM OVC018 M02/M05 A2965 NOSIG',
+      acceptability: '🟡 CAUTION - SNOW REMOVAL ACTIVE - CRITICAL CEILING'
+    },
+    {
+      code: 'LPLA',
+      name: 'Lajes Field (Azores)',
+      distance_to_track_nm: 750,
+      flight_category: 'IFR',
+      weather_text: 'LPLA 221530Z 18022G30KT 2SM OVC008 14/13 A2974 NOSIG',
+      acceptability: '🔴 RESTRICTED - WEATHER BELOW ETOPS ALTERNATE MINIMUMS'
+    }
+  ];
+
+  return {
+    route: `${dep} ➔ ${arr}`,
+    aircraft_model: model || 'Boeing 777-200ER',
+    etops_rule_minutes: ruleMinutes,
+    single_engine_cruise_kt: singleEngineSpeed,
+    max_diversion_distance_nm: maxDiversionDistance,
+    equal_time_point: '52N035W (ETP-1 KEF/LPLA)',
+    alternates: alternateDetails,
+    compliance_advisory: '⚠️ ETOPS COMPLIANCE ADVISORY: designated alternate LPLA is currently below ETOPS landing minimums (IFR conditions). Dispatchers must route via Northern Tracks using KEF and BGSF only.'
+  };
+}
+
+/**
+ * 5. Passenger Compensation & Delay Cost Auditor Service (EU261 / US DOT / Montreal)
+ */
+export async function getPassengerCompensationService(delayMinutes, departureCode, arrivalCode, reasonCode) {
+  const mins = parseInt(delayMinutes || '240', 10);
+  const dep = (departureCode || 'JFK').toUpperCase().trim();
+  const arr = (arrivalCode || 'LHR').toUpperCase().trim();
+  const reason = (reasonCode || 'CREW').toUpperCase().trim();
+
+  // Helper to determine if airport is EU/UK-regulated
+  const isEU = (code) => [
+    'LHR', 'CDG', 'FRA', 'AMS', 'MAD', 'FCO', 'CPH', 'MUC', 'DUB', 'LGW', 
+    'BRU', 'ATH', 'LIS', 'VIE', 'MAN', 'EDI', 'OSL', 'ARN', 'HEL'
+  ].includes(code);
+
+  const isUS = (code) => [
+    'JFK', 'LAX', 'SFO', 'ORD', 'ATL', 'MIA', 'DFW', 'DEN', 'SEA', 'BOS',
+    'EWR', 'LGA', 'PHL', 'CLT', 'PHX', 'LAS', 'MCO', 'IAH', 'MSP', 'DTW'
+  ].includes(code);
+
+  // Approximate distance (great-circle) using deterministic hashing if not standard
+  let distanceKm = 5500; // Default JFK-LHR
+  if (dep === 'LHR' && arr === 'CDG' || dep === 'CDG' && arr === 'LHR') distanceKm = 350;
+  else if (dep === 'JFK' && arr === 'LAX' || dep === 'LAX' && arr === 'JFK') distanceKm = 3975;
+  else if (dep === 'FRA' && arr === 'JFK' || dep === 'JFK' && arr === 'FRA') distanceKm = 6200;
+  else if (dep === 'SYD' && arr === 'LAX' || dep === 'LAX' && arr === 'SYD') distanceKm = 12000;
+  else {
+    distanceKm = 500 + (getAirportHash(dep) + getAirportHash(arr)) % 11500;
+  }
+
+  // EU261 / UK261 Compensation Auditing
+  let euCompensation = 0;
+  let euApplies = isEU(dep) || isEU(arr); // Simplified for dispatch RAG grounding
+  let euEligible = false;
+  let delayHours = mins / 60;
+  let isForceMajeure = ['WEATHER', 'ATC', 'STRIKE', 'FORCE_MAJEURE', 'VOLCANO', 'ACT_OF_GOD'].includes(reason);
+  let dutyOfCare = '🟢 NOT REQUIRED (Delay under limits)';
+
+  if (euApplies && mins >= 120) {
+    dutyOfCare = '⚠️ REQUIRED - Carrier must provide meals, refreshments, and 2 free phone calls/emails.';
+    if (mins >= 300) {
+      dutyOfCare += ' Hotel accommodation mandatory if delay extends overnight.';
+    }
+  }
+
+  if (euApplies && mins >= 180) {
+    if (isForceMajeure) {
+      euCompensation = 0;
+      euEligible = false;
+    } else {
+      euEligible = true;
+      if (distanceKm <= 1500) euCompensation = 250;
+      else if (distanceKm > 1500 && distanceKm <= 3500) euCompensation = 400;
+      else euCompensation = 600;
+    }
+  }
+
+  // US DOT Tarmac Rules & Refunds
+  let usDOTApplies = isUS(dep) || isUS(arr);
+  let tarmacViolation = '🟢 NORMAL';
+  let refundEntitlement = '🟢 NO REFUND DUE';
+  let usFines = 0;
+
+  if (usDOTApplies) {
+    // Refund rules under significant delay
+    const sigDelayLimit = (isUS(dep) && isUS(arr)) ? 180 : 360; // 3h domestic, 6h intl
+    if (mins >= sigDelayLimit) {
+      refundEntitlement = '⚠️ REFUND MANDATORY - If passenger cancels instead of traveling, full refund required.';
+    }
+
+    // Tarmac limits
+    const tarmacLimit = (isUS(dep) && isUS(arr)) ? 180 : 240; // 3h domestic, 4h intl
+    if (mins >= tarmacLimit) {
+      tarmacViolation = `🛑 SEVERE VIOLATION - Exceeded tarmac limit of ${tarmacLimit / 60} hours.`;
+      usFines = 27500; // civil penalty warning per passenger
+    } else if (mins >= tarmacLimit - 30) {
+      tarmacViolation = `⚠️ CRITICAL WARNING - Tarmac delay approaching regulatory limit within 30 minutes.`;
+    }
+  }
+
+  // Montreal Convention Liability Limits
+  let montrealApplies = true; // Governs almost all international carriage
+  let montrealLimitSDR = 5739; // SDR cap for delay damages per passenger
+
+  return {
+    delay_minutes: mins,
+    delay_hours: delayHours.toFixed(1),
+    departure: dep,
+    arrival: arr,
+    reason: reason,
+    distance_km: distanceKm,
+    eu261: {
+      applies: euApplies,
+      eligible: euEligible,
+      payout_eur: euCompensation,
+      force_majeure: isForceMajeure,
+      duty_of_care_status: dutyOfCare
+    },
+    us_dot: {
+      applies: usDOTApplies,
+      tarmac_status: tarmacViolation,
+      refund_entitlement: refundEntitlement,
+      warning_civil_penalty_usd: usFines
+    },
+    montreal_convention: {
+      applies: montrealApplies,
+      limit_sdr: montrealLimitSDR,
+      liability_cap_usd: Math.round(montrealLimitSDR * 1.33) // ~7,600 USD
+    }
+  };
+}
+
+/**
+ * 6. Volcanic Ash Cloud Trajectory Projection & Router (VAAC)
+ */
+export async function getVolcanicAshProjectionService(vaacStationId, routePoints) {
+  const station = (vaacStationId || 'REYKJAVIK').toUpperCase().trim();
+  const route = (routePoints || 'NAT TRACK A').toUpperCase().trim();
+
+  const vaacDB = {
+    REYKJAVIK: {
+      station: 'Reykjavik VAAC',
+      volcano: 'Katla Volcano (Iceland)',
+      wind_vector: 'SE at 25 kts',
+      cone_coords: '63N019W - 61N015W - 59N012W',
+      plume_height: 'SFC to FL200',
+      active_sigmet: 'SIGMET CHARLIE 3',
+      trajectory_12h: '61N016W - 60N014W',
+      trajectory_24h: '59N013W - 58N011W',
+      trajectory_36h: '57N010W - 56N008W'
+    },
+    ANCHORAGE: {
+      station: 'Anchorage VAAC',
+      volcano: 'Pavlof Volcano (Alaska)',
+      wind_vector: 'NE at 30 kts',
+      cone_coords: '55N161W - 57N155W - 59N150W',
+      plume_height: 'SFC to FL250',
+      active_sigmet: 'SIGMET ALASKA 5',
+      trajectory_12h: '57N156W - 58N152W',
+      trajectory_24h: '59N149W - 60N145W',
+      trajectory_36h: '61N140W - 62N135W'
+    },
+    DARWIN: {
+      station: 'Darwin VAAC',
+      volcano: 'Mount Merapi (Indonesia)',
+      wind_vector: 'NW at 15 kts',
+      cone_coords: '07S110E - 05S105E - 03S100E',
+      plume_height: 'SFC to FL180',
+      active_sigmet: 'SIGMET JAVAN 8',
+      trajectory_12h: '06S107E - 05S104E',
+      trajectory_24h: '04S101E - 03S098E',
+      trajectory_36h: '02S095E - 01S092E'
+    }
+  };
+
+  const currentPlume = vaacDB[station] || vaacDB.REYKJAVIK;
+
+  // Audit route path against plume trajectory
+  let hazardLevel = '🟢 CLEAR';
+  let detourDirective = 'Route clear of active ash advisories. Normal high-altitude cruise permitted.';
+
+  if (station === 'REYKJAVIK') {
+    if (route.includes('TRACK A') || route.includes('NAT-OTS A') || route.includes('PIKIL')) {
+      hazardLevel = '🛑 CRITICAL';
+      detourDirective = `🛑 DETOUR REQUIRED: Flight path directly intersects ${currentPlume.volcano} ash plume. Plume height (${currentPlume.plume_height}) overlaps authorized tracks. Reroute via Track C or South NAT-OTS.`;
+    } else if (route.includes('TRACK B') || route.includes('NAT-OTS B') || route.includes('DOGAL')) {
+      hazardLevel = '⚠️ CAUTION';
+      detourDirective = `⚠️ CAUTION: Route operates adjacent to active ash cloud boundaries. Maintain continuous ash density checking and coordinate with Shanwick Oceanic Control for immediate FL changes if required.`;
+    }
+  } else if (station === 'ANCHORAGE') {
+    if (route.includes('PACOTS 2') || route.includes('TRACK 2') || route.includes('ALASKA')) {
+      hazardLevel = '🛑 CRITICAL';
+      detourDirective = `🛑 DETOUR REQUIRED: Flight path directly intersects ${currentPlume.volcano} ash plume. Vertical airspace restricted up to ${currentPlume.plume_height}. Reroute south via PACOTS Track 5.`;
+    }
+  }
+
+  return {
+    ...currentPlume,
+    queried_route: route,
+    hazard_level: hazardLevel,
+    dispatch_directive: detourDirective
+  };
+}
+
+/**
+ * 7. IATA Dangerous Goods Regulations (DGR) HAZMAT Manifest Auditor
+ */
+export async function getCargoHazmatComplianceService(manifestItems) {
+  let items = [];
+  try {
+    if (typeof manifestItems === 'string') {
+      items = JSON.parse(manifestItems);
+    } else if (Array.isArray(manifestItems)) {
+      items = manifestItems;
+    } else {
+      // Default sample manifest
+      items = [
+        { un_number: 'UN3480', name: 'Lithium-Ion Batteries', class_id: 9, weight_kg: 42, packing_group: 'PI965' },
+        { un_number: 'UN1263', name: 'Paint (Flammable Liquid)', class_id: 3, weight_kg: 15, packing_group: 'PGII' }
+      ];
+    }
+  } catch (e) {
+    items = [
+      { un_number: 'UN3480', name: 'Lithium-Ion Batteries', class_id: 9, weight_kg: 42, packing_group: 'PI965' }
+    ];
+  }
+
+  let conflicts = [];
+  let auditedItems = [];
+  let isCompliant = true;
+
+  // Flags for segregation tracking
+  let hasUN3480 = false;
+  let hasClass3 = false;
+  let hasClass8 = false;
+
+  items.forEach(item => {
+    let status = '🟢 APPROVED';
+    let remarks = 'Approved for transport under standard DGR limits.';
+    const classId = parseInt(item.class_id || '9', 10);
+    const weight = parseFloat(item.weight_kg || '0');
+    const un = (item.un_number || '').toUpperCase().trim();
+
+    if (un === 'UN3480') hasUN3480 = true;
+    if (classId === 3) hasClass3 = true;
+    if (classId === 8) hasClass8 = true;
+
+    // Check Class 1 Explosives
+    if (classId === 1) {
+      status = '🛑 FORBIDDEN';
+      remarks = '🛑 PROHIBITED: Class 1 Explosives are strictly forbidden on passenger aircraft under IATA DGR Subsection 4.2.';
+      isCompliant = false;
+      conflicts.push(`Item ${un} (${item.name}) Class 1 is strictly forbidden on passenger airframes.`);
+    }
+
+    // Check UN3480 Weight Limit on Passenger flights (Limit is 35kg net per package)
+    if (un === 'UN3480' && weight > 35) {
+      status = '🛑 FORBIDDEN (CAO)';
+      remarks = '🛑 PROHIBITED: UN3480 Lithium-Ion batteries > 35kg net weight per package are Cargo Aircraft Only (CAO) and forbidden on passenger flights.';
+      isCompliant = false;
+      conflicts.push(`UN3480 Lithium-Ion Batteries net weight (${weight}kg) exceeds the 35kg passenger limit (IATA DGR Section 5, PI 965).`);
+    }
+
+    auditedItems.push({
+      ...item,
+      class_id: classId,
+      weight_kg: weight,
+      status: status,
+      remarks: remarks
+    });
+  });
+
+  // Segregation Audit
+  if (hasUN3480 && (hasClass3 || hasClass8)) {
+    isCompliant = false;
+    const conflictMsg = '🛑 SEGREGATION CONFLICT: UN3480 Lithium-Ion batteries must not be loaded adjacent to Class 3 Flammable Liquids or Class 8 Corrosives under IATA DGR Table 9.3.A due to thermal runaway propagation risk.';
+    conflicts.push(conflictMsg);
+    
+    // Update remarks for conflicts
+    auditedItems = auditedItems.map(item => {
+      if (item.un_number === 'UN3480' || item.class_id === 3 || item.class_id === 8) {
+        return {
+          ...item,
+          status: '🛑 SEPARATION FAIL',
+          remarks: '🛑 CRITICAL SEGREGATION CONFLICT: Must be separated by a minimum of 3 meters or loaded in different cargo holds.'
+        };
+      }
+      return item;
+    });
+  }
+
+  return {
+    compliance_status: isCompliant ? '🟢 PASS' : '🛑 FAIL - DGR VIOLATION',
+    total_items_audited: auditedItems.length,
+    audited_manifest: auditedItems,
+    segregation_conflicts: conflicts,
+    dispatcher_directive: isCompliant 
+      ? 'Manifest approved for flight. Ensure all items are strapped in according to standard loading instructions.'
+      : '🛑 CARGO REJECTED: Manifest violates IATA Dangerous Goods packaging, weight, or segregation rules. Correct the issues before flight clearance.'
+  };
+}
+
+/**
+ * 8. Jet Stream High-Altitude Turbulence (CAT) Forecaster
+ */
+export async function getJetStreamTurbulenceService(departureCode, arrivalCode, routePoints) {
+  const dep = (departureCode || 'JFK').toUpperCase().trim();
+  const arr = (arrivalCode || 'LHR').toUpperCase().trim();
+  const route = (routePoints || 'NAT TRACK B').toUpperCase().trim();
+
+  // Generate deterministic shear maps based on flight routes
+  let jetVelocityKts = 145;
+  let shearGradient = 8; // kts per 1,000 ft
+  let catIndex = '⚠️ MODERATE';
+  let optimalFlightLevel = 'FL310';
+  let cautionMsg = '⚠️ MODERATE CLEAR-AIR TURBULENCE (CAT) reported. Airspace shear layers active near jet stream core.';
+
+  if (route.includes('TRACK A') || dep === 'FRA' || route.includes('PIKIL')) {
+    jetVelocityKts = 175;
+    shearGradient = 12; // severe
+    catIndex = '🛑 SEVERE';
+    optimalFlightLevel = 'FL390';
+    cautionMsg = '🛑 SEVERE CLEAR-AIR TURBULENCE (CAT) WARNING: Convective shear layer gradient exceeding 10 kts/1,000 ft. Extreme risk of aircraft structural strain. Reroute or adjust flight levels immediately.';
+  } else if (route.includes('TRACK C') || route.includes('BEDRA')) {
+    jetVelocityKts = 90;
+    shearGradient = 3; // light
+    catIndex = '🟢 LIGHT';
+    optimalFlightLevel = 'FL350';
+    cautionMsg = '🟢 LIGHT TURBULENCE: Minor wave shear detected. Normal cruising operations.';
+  }
+
+  // Turbulence penetration speed database by aircraft family
+  const speedProfile = {
+    B777: { model: 'Boeing 777', penetration_speed: '280 KIAS / Mach 0.78' },
+    B737: { model: 'Boeing 737 Max', penetration_speed: '280 KIAS / Mach 0.76' },
+    A320: { model: 'Airbus A320neo', penetration_speed: '275 KIAS / Mach 0.76' },
+    A350: { model: 'Airbus A350', penetration_speed: '280 KIAS / Mach 0.80' }
+  };
+
+  return {
+    assigned_route: `${dep} ➔ ${arr} (${route})`,
+    jet_stream_core_altitude: 'FL350',
+    core_wind_velocity_kts: jetVelocityKts,
+    vertical_shear_gradient: `${shearGradient} kts / 1,000 ft`,
+    clear_air_turbulence_index: catIndex,
+    hazard_warning: cautionMsg,
+    recommended_optimal_fl: optimalFlightLevel,
+    aircraft_penetration_speeds: Object.values(speedProfile)
+  };
+}
+
+

@@ -6,6 +6,7 @@ import { getNewsApiAiData } from '../../helpers/v13DataIntegrations.js';
 import { getGreenlightIntelligenceData } from '../../helpers/v14DataIntegrations.js';
 import { getPremiumIntelligenceData } from '../../helpers/v15DataIntegrations.js';
 import { getPremiumV16IntelligenceData } from '../../helpers/v16DataIntegrations.js';
+import { getPremiumV17IntelligenceData } from '../../helpers/v17DataIntegrations.js';
 
 const rawGoogle = new GoogleCustomSearch({
   maxResults: 20, // Default max results
@@ -397,7 +398,7 @@ Input: The domain enum name (politics_campaign, legislation_tracking, civic_repr
  */
 export const altiPremiumIntelligenceSearch = new DynamicStructuredTool({
   name: 'alti_premium_intelligence_search',
-  description: `Access seventeen high-value premium public intelligence databases. Use this tool for ANY query regarding:
+  description: `Access twenty-three high-value premium public intelligence databases. Use this tool for ANY query regarding:
 1. "clinical_trials" -> ClinicalTrials.gov global clinical trial registries, study recruitment, enrollment stats, drug trial phases.
 2. "fda_drug_safety" -> openFDA drug safety warnings, adverse event counts, recall enforcement records, labeling details.
 3. "global_health_observatory" -> WHO (World Health Organization) statistics, life expectancy trends, immunizations, cross-country metrics.
@@ -415,6 +416,12 @@ export const altiPremiumIntelligenceSearch = new DynamicStructuredTool({
 15. "cfpb_complaints" -> CFPB Consumer Complaint Database for product disputes, consumer financial logs, and resolutions.
 16. "sec_edgar" -> SEC EDGAR database to fetch zero-padded corporate CIKs and corporate financials (GAAP XBRL facts like NetIncomeLoss, Revenues, Assets, Liabilities).
 17. "census_bps" -> U.S. Census Bureau Building Permits Survey (BPS) for residential construction permits, authorized units, and permit valuations by region/state.
+18. "courtlistener" -> CourtListener RECAP legal case dockets, litigation standing profiles, and judge assignments.
+19. "harvard_caselaw" -> Harvard Caselaw Access Project (CAP) legal court precedents, decision dates, and official binding citations.
+20. "cisa_kev" -> CISA Known Exploited Vulnerabilities catalog for threat intelligence, active exploits, and remediation due dates.
+21. "nist_nvd_cve" -> NIST National Vulnerability Database (NVD) for CVE lookup, CVSS scores, vulnerability severity levels, and vectors.
+22. "ofac_sanctions" -> U.S. OFAC Sanctions SDN Compliance Registry for screening matches, UID standings, and asset blocking verdicts.
+23. "fara_foreign_agents" -> DOJ Foreign Agents Registration Act (FARA) lobbying disclosures, registration numbers, and country principal records.
 Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemical name, drug name, bank name, company name, corporate ticker, or state/region name).`,
   schema: z.object({
     domain: z.enum([
@@ -434,12 +441,22 @@ Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemic
       'fdic_bankfind',
       'cfpb_complaints',
       'sec_edgar',
-      'census_bps'
+      'census_bps',
+      'courtlistener',
+      'harvard_caselaw',
+      'cisa_kev',
+      'nist_nvd_cve',
+      'ofac_sanctions',
+      'fara_foreign_agents'
     ]).describe("The target premium database sector to query"),
     query: z.string().describe("Sanitized topic, NPI, EIN, barcode, chemical, drug, bank, company, ticker, or region query within the premium domain")
   }),
   func: async ({ domain, query }) => {
     try {
+      if (['courtlistener', 'harvard_caselaw', 'cisa_kev', 'nist_nvd_cve', 'ofac_sanctions', 'fara_foreign_agents'].includes(domain)) {
+        const result = await getPremiumV17IntelligenceData(domain, query);
+        return result.markdown;
+      }
       if (['fdic_bankfind', 'cfpb_complaints', 'sec_edgar', 'census_bps'].includes(domain)) {
         const result = await getPremiumV16IntelligenceData(domain, query);
         return result.markdown;
@@ -451,4 +468,3 @@ Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemic
     }
   }
 });
-

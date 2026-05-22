@@ -9,7 +9,15 @@ import {
   getMETARTAFService,
   getFAANasStatusService,
   getFAANotamsService,
-  getNTSBSafetyIncidentsService
+  getNTSBSafetyIncidentsService,
+  getFlightFuelPlanningService,
+  getCurfewComplianceService,
+  getOceanicTracksService,
+  getETOPSPlanningService,
+  getPassengerCompensationService,
+  getVolcanicAshProjectionService,
+  getCargoHazmatComplianceService,
+  getJetStreamTurbulenceService
 } from './src/app/modules/aviationstack/aviationstack.service.js';
 
 console.log('✈️ Starting AviationStack Real-Time Service Integration Tests...');
@@ -96,6 +104,48 @@ const classificationTests = [
   {
     query: 'Alaska Airlines fleet info',
     expectedClass: 'airline',
+    shouldEnhance: true
+  },
+  // Phase 7 Tests: Elite Dispatcher Operations & Compliance Suite
+  {
+    query: 'Boeing 777 fuel burn over 8 hours',
+    expectedClass: 'fuel_planning',
+    shouldEnhance: true
+  },
+  {
+    query: 'active Oceanic Track B coordinates and weather SIGMETs',
+    expectedClass: 'oceanic_track',
+    shouldEnhance: true
+  },
+  {
+    query: 'noise curfew hours at Sydney Airport under flight delays',
+    expectedClass: 'noise_curfew',
+    shouldEnhance: true
+  },
+  {
+    query: 'ETOPS ruleset alternates and planning for LHR to JFK Boeing 777',
+    expectedClass: 'etops_planner',
+    shouldEnhance: true
+  },
+  // Phase 8 Tests: Global Fleet Dispatch & Commercial Operations Suite
+  {
+    query: 'passenger compensation DL123 delayed 4 hours from JFK to LHR',
+    expectedClass: 'passenger_compensation',
+    shouldEnhance: true
+  },
+  {
+    query: 'volcanic ash cloud trajectory Reykjavik Katla volcano',
+    expectedClass: 'volcanic_ash_model',
+    shouldEnhance: true
+  },
+  {
+    query: 'IATA dangerous goods cargo manifest compliance Lithium Batteries Paint',
+    expectedClass: 'cargo_hazmat',
+    shouldEnhance: true
+  },
+  {
+    query: 'jet stream wind shear forecast moderate turbulence speed',
+    expectedClass: 'jet_stream_shear',
     shouldEnhance: true
   },
   {
@@ -504,6 +554,299 @@ try {
   }
 } catch (err) {
   console.log(`   ❌ Phase 6: Aircraft tail safety risk index crashed: ${err.message}`);
+  failCount++;
+}
+
+// ==========================================
+// Phase 7: Elite Dispatcher Operations & Compliance Suite Tests
+// ==========================================
+
+console.log('\n--- Test 5: Phase 7 Elite Dispatcher Operations & Compliance Suite ---');
+
+// 1. Dynamic Flight Plan Fuel & Payload Optimizer RAG
+try {
+  const enhancedFuel = await aviationstackSmartRouter.routeAndEnhancePrompt('Boeing 777 fuel burn over 8 hours');
+  if (
+    enhancedFuel.includes('Flight Plan Fuel & Payload Optimizer') &&
+    enhancedFuel.includes('ICAO FUEL COMPLIANCE SUMMARY') &&
+    enhancedFuel.includes('Trip Fuel') &&
+    enhancedFuel.includes('Alternate Fuel') &&
+    enhancedFuel.includes('Reserve Fuel') &&
+    enhancedFuel.includes('Maximum Structural Payload')
+  ) {
+    console.log('✅ Phase 7: Dynamic Fuel & Payload Optimizer formatted successfully!');
+    passCount++;
+  } else {
+    console.log('❌ Phase 7: Dynamic Fuel & Payload Optimizer missing expected elements.');
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ Phase 7: Dynamic Fuel & Payload Optimizer crashed: ${err.message}`);
+  failCount++;
+}
+
+// 2. Volcanic Ash & Oceanic Track (NAT-OTS) Router RAG
+try {
+  const enhancedTrack = await aviationstackSmartRouter.routeAndEnhancePrompt('active Oceanic Track B coordinates and weather SIGMETs');
+  if (
+    enhancedTrack.includes('Transoceanic Oceanic Tracks Router') &&
+    enhancedTrack.includes('ACTIVE WEATHER/VAAC SIGMET WARNING') &&
+    enhancedTrack.includes('Oceanic Route Coordinates Grid') &&
+    enhancedTrack.includes('DOGAL') &&
+    enhancedTrack.includes('MALOT')
+  ) {
+    console.log('✅ Phase 7: Oceanic Track & VAAC Volcanic Ash Router formatted successfully!');
+    passCount++;
+  } else {
+    console.log('❌ Phase 7: Oceanic Track & VAAC Volcanic Ash Router missing expected elements.');
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ Phase 7: Oceanic Track & VAAC Volcanic Ash Router crashed: ${err.message}`);
+  failCount++;
+}
+
+// 3. Airport Noise Curfew Advisor RAG
+try {
+  const enhancedCurfew = await aviationstackSmartRouter.routeAndEnhancePrompt('noise curfew hours at Sydney Airport under flight delays');
+  if (
+    enhancedCurfew.includes('Airport Noise Curfew Advisor') &&
+    enhancedCurfew.includes('CRITICAL CURFEW VIOLATION RISK') &&
+    enhancedCurfew.includes('Environmental Noise & Curfew Specifications') &&
+    enhancedCurfew.includes('SYD')
+  ) {
+    console.log('✅ Phase 7: Airport Noise Curfew Advisor formatted successfully!');
+    passCount++;
+  } else {
+    console.log('❌ Phase 7: Airport Noise Curfew Advisor missing expected elements.');
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ Phase 7: Airport Noise Curfew Advisor crashed: ${err.message}`);
+  failCount++;
+}
+
+// 4. ETOPS Diversion Planner RAG
+try {
+  const enhancedETOPS = await aviationstackSmartRouter.routeAndEnhancePrompt('ETOPS ruleset alternates and planning for LHR to JFK Boeing 777');
+  if (
+    enhancedETOPS.includes('ETOPS Transoceanic Diversion Planner') &&
+    enhancedETOPS.includes('ETOPS COMPLIANCE CLEARANCE STATUS') &&
+    enhancedETOPS.includes('Designated En-Route Alternate Weather Audit') &&
+    enhancedETOPS.includes('KEF') &&
+    enhancedETOPS.includes('BGSF') &&
+    enhancedETOPS.includes('LPLA')
+  ) {
+    console.log('✅ Phase 7: ETOPS Diversion Planner formatted successfully!');
+    passCount++;
+  } else {
+    console.log('❌ Phase 7: ETOPS Diversion Planner missing expected elements.');
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ Phase 7: ETOPS Diversion Planner crashed: ${err.message}`);
+  failCount++;
+}
+
+// 5. Direct Services Verifications
+try {
+  const fuelResult = await getFlightFuelPlanningService('Boeing 777', 8);
+  if (fuelResult && fuelResult.trip_fuel_lbs > 0 && fuelResult.min_dispatch_fuel_lbs > fuelResult.trip_fuel_lbs) {
+    console.log(`✅ getFlightFuelPlanningService: retrieved fuel plan successfully!`);
+    passCount++;
+  } else {
+    console.log(`❌ getFlightFuelPlanningService: failed to retrieve fuel plan.`);
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ getFlightFuelPlanningService crashed: ${err.message}`);
+  failCount++;
+}
+
+try {
+  const curfewResult = await getCurfewComplianceService('SYD', 'delayed arrival 23:30');
+  if (curfewResult && curfewResult.violation_risk.includes('CRITICAL')) {
+    console.log(`✅ getCurfewComplianceService: retrieved curfew compliance successfully!`);
+    passCount++;
+  } else {
+    console.log(`❌ getCurfewComplianceService: failed to retrieve curfew compliance.`);
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ getCurfewComplianceService crashed: ${err.message}`);
+  failCount++;
+}
+
+try {
+  const trackResult = await getOceanicTracksService('B');
+  if (trackResult && trackResult.track_id.includes('Track B')) {
+    console.log(`✅ getOceanicTracksService: retrieved oceanic tracks successfully!`);
+    passCount++;
+  } else {
+    console.log(`❌ getOceanicTracksService: failed to retrieve oceanic tracks.`);
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ getOceanicTracksService crashed: ${err.message}`);
+  failCount++;
+}
+
+try {
+  const etopsResult = await getETOPSPlanningService('LHR', 'JFK', 'Boeing 777');
+  if (etopsResult && etopsResult.alternates.length === 3) {
+    console.log(`✅ getETOPSPlanningService: retrieved ETOPS planning successfully!`);
+    passCount++;
+  } else {
+    console.log(`❌ getETOPSPlanningService: failed to retrieve ETOPS planning.`);
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ getETOPSPlanningService crashed: ${err.message}`);
+  failCount++;
+}
+
+// ==========================================
+// Phase 8: Global Fleet Dispatch & Commercial Operations Suite Tests
+// ==========================================
+
+console.log('\n--- Test 6: Phase 8 Global Fleet Dispatch & Commercial Operations Suite ---');
+
+// 1. Passenger Compensation RAG
+try {
+  const enhancedComp = await aviationstackSmartRouter.routeAndEnhancePrompt('passenger compensation DL123 delayed 4 hours from JFK to LHR');
+  if (
+    enhancedComp.includes('Passenger Compensation & Delay Cost Auditor') &&
+    enhancedComp.includes('JFK') &&
+    enhancedComp.includes('LHR') &&
+    enhancedComp.includes('EU261 / UK261') &&
+    enhancedComp.includes('€600') &&
+    enhancedComp.includes('Montreal Convention') &&
+    enhancedComp.includes('US DOT')
+  ) {
+    console.log('✅ Phase 8: Passenger Compensation Auditor Dashboard formatted beautifully!');
+    passCount++;
+  } else {
+    console.log('❌ Phase 8: Passenger Compensation Auditor Dashboard formatting incomplete.');
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ Phase 8: Passenger Compensation Auditor crashed: ${err.message}`);
+  failCount++;
+}
+
+// 2. Volcanic Ash Trajectory RAG
+try {
+  const enhancedAsh = await aviationstackSmartRouter.routeAndEnhancePrompt('volcanic ash cloud trajectory Reykjavik Katla volcano');
+  if (
+    enhancedAsh.includes('Volcanic Ash Trajectory Projection') &&
+    enhancedAsh.includes('Reykjavik VAAC') &&
+    enhancedAsh.includes('SFC to FL200')
+  ) {
+    console.log('✅ Phase 8: Volcanic Ash Trajectory Projection formatted successfully!');
+    passCount++;
+  } else {
+    console.log('❌ Phase 8: Volcanic Ash Trajectory Projection formatting incomplete.');
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ Phase 8: Volcanic Ash Trajectory Projection crashed: ${err.message}`);
+  failCount++;
+}
+
+// 3. Cargo HAZMAT Manifest Compliance RAG
+try {
+  const enhancedCargo = await aviationstackSmartRouter.routeAndEnhancePrompt('IATA dangerous goods cargo manifest compliance Lithium Batteries Paint');
+  if (
+    enhancedCargo.includes('IATA Dangerous Goods (HAZMAT) Manifest Auditor') &&
+    enhancedCargo.includes('UN3480') &&
+    (enhancedCargo.includes('segregation') || enhancedCargo.includes('conflict'))
+  ) {
+    console.log('✅ Phase 8: IATA Dangerous Goods (HAZMAT) Manifest Auditor formatted successfully!');
+    passCount++;
+  } else {
+    console.log('❌ Phase 8: IATA Dangerous Goods (HAZMAT) Manifest Auditor formatting incomplete.');
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ Phase 8: IATA Dangerous Goods (HAZMAT) Manifest Auditor crashed: ${err.message}`);
+  failCount++;
+}
+
+// 4. Jet Stream High-Altitude Turbulence (CAT) Forecaster RAG
+try {
+  const enhancedTurb = await aviationstackSmartRouter.routeAndEnhancePrompt('jet stream wind shear forecast moderate turbulence speed');
+  if (
+    enhancedTurb.includes('Jet Stream High-Altitude Turbulence (CAT) Forecaster') &&
+    enhancedTurb.includes('kts / 1,000 ft') &&
+    (enhancedTurb.includes('Clear-Air Turbulence') || enhancedTurb.includes('CAT') || enhancedTurb.includes('B777'))
+  ) {
+    console.log('✅ Phase 8: Jet Stream High-Altitude Turbulence (CAT) Forecaster formatted successfully!');
+    passCount++;
+  } else {
+    console.log('❌ Phase 8: Jet Stream High-Altitude Turbulence (CAT) Forecaster formatting incomplete.');
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ Phase 8: Jet Stream High-Altitude Turbulence (CAT) Forecaster crashed: ${err.message}`);
+  failCount++;
+}
+
+// 5. Direct Services Verifications
+try {
+  const compResult = await getPassengerCompensationService(240, 'JFK', 'LHR', 'CREW');
+  if (compResult && compResult.eu261.payout_eur === 600 && compResult.montreal_convention.limit_sdr === 5739) {
+    console.log(`✅ getPassengerCompensationService: retrieved passenger compensation audit successfully!`);
+    passCount++;
+  } else {
+    console.log(`❌ getPassengerCompensationService: failed to retrieve passenger compensation audit.`);
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ getPassengerCompensationService crashed: ${err.message}`);
+  failCount++;
+}
+
+try {
+  const ashResult = await getVolcanicAshProjectionService('REYKJAVIK', 'NAT TRACK A');
+  if (ashResult && ashResult.hazard_level === '🛑 CRITICAL' && ashResult.volcano.includes('Katla')) {
+    console.log(`✅ getVolcanicAshProjectionService: retrieved volcanic ash projection successfully!`);
+    passCount++;
+  } else {
+    console.log(`❌ getVolcanicAshProjectionService: failed to retrieve volcanic ash projection.`);
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ getVolcanicAshProjectionService crashed: ${err.message}`);
+  failCount++;
+}
+
+try {
+  const cargoResult = await getCargoHazmatComplianceService([
+    { un_number: 'UN3480', name: 'Lithium-Ion Batteries', class_id: 9, weight_kg: 42, packing_group: 'PI965' }
+  ]);
+  if (cargoResult && cargoResult.compliance_status.includes('FAIL') && cargoResult.segregation_conflicts.length > 0) {
+    console.log(`✅ getCargoHazmatComplianceService: retrieved cargo HAZMAT compliance successfully!`);
+    passCount++;
+  } else {
+    console.log(`❌ getCargoHazmatComplianceService: failed to retrieve cargo HAZMAT compliance.`);
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ getCargoHazmatComplianceService crashed: ${err.message}`);
+  failCount++;
+}
+
+try {
+  const turbResult = await getJetStreamTurbulenceService('JFK', 'LHR', 'NAT TRACK A');
+  if (turbResult && turbResult.clear_air_turbulence_index === '🛑 SEVERE' && turbResult.vertical_shear_gradient.includes('12 kts')) {
+    console.log(`✅ getJetStreamTurbulenceService: retrieved jet stream turbulence forecast successfully!`);
+    passCount++;
+  } else {
+    console.log(`❌ getJetStreamTurbulenceService: failed to retrieve jet stream turbulence forecast.`);
+    failCount++;
+  }
+} catch (err) {
+  console.log(`❌ getJetStreamTurbulenceService crashed: ${err.message}`);
   failCount++;
 }
 
