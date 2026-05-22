@@ -266,6 +266,73 @@ assert(grossRentMultiplier.toFixed(2) === '14.18', ` implied Gross Rent Multipli
 assert(Math.round(netMonthlyCashFlow) === -1225, `Monthly Net Cash Flow yield shows expected Carry of $${Math.round(netMonthlyCashFlow).toLocaleString()}`);
 assert(cashOnCashReturn.toFixed(2) === '-10.94', ` implied Cash-on-Cash Return is exactly ${cashOnCashReturn.toFixed(2)}%`);
 
+// 4. Custom Scenario Underwriting & Break-Even/Lifetime Math Tests
+console.log('  ▸ Auditing Dynamic Natural Language Custom Scenario Underwriting & Calculations:');
+const queryCustom = 'what is the valuation of 123 Main St assuming 15% down, 7.2% interest, 35% opex and rent of $3200?';
+const entitiesCustom = parseAddressEntities(queryCustom);
+assert(entitiesCustom.downPaymentPct === 0.15, `Custom Down Payment parsed successfully: ${entitiesCustom.downPaymentPct * 100}%`);
+assert(Math.abs(entitiesCustom.interestRate - 0.072) < 1e-9, `Custom Interest Rate parsed successfully: ${(entitiesCustom.interestRate * 100).toFixed(2)}%`);
+assert(entitiesCustom.opexRatio === 0.35, `Custom OpEx Ratio parsed successfully: ${entitiesCustom.opexRatio * 100}%`);
+assert(entitiesCustom.customRent === 3200, `Custom Rent parsed successfully: $${entitiesCustom.customRent}`);
+
+// Verify RAG output contains these custom underwriting calculations
+try {
+  const resultCustom = await massiveSmartRouter.combinedRouteAndEnhancePrompt(queryCustom);
+  assert(resultCustom.includes('Down Payment (15%)'), `RAG Context includes custom down payment label`);
+  assert(resultCustom.includes('Financed Loan (85%)'), `RAG Context includes custom loan label`);
+  assert(resultCustom.includes('**$100,800**'), `RAG Context includes custom down payment of **$100,800**`);
+  assert(resultCustom.includes('**$571,200**'), `RAG Context includes custom loan amount of **$571,200**`);
+  assert(resultCustom.includes('**$3,877/mo**'), `RAG Context includes calculated mortgage P&I of **$3,877/mo**`);
+  assert(resultCustom.includes('**$1,120/mo**'), `RAG Context includes calculated OpEx of **$1,120/mo**`);
+  assert(resultCustom.includes('**$-1,797/mo**'), `RAG Context includes calculated Net Cash Flow of **$-1,797/mo**`);
+  assert(resultCustom.includes('**-21.40%**'), `RAG Context includes calculated Cash-on-Cash Return of **-21.40%**`);
+  
+  // Custom levers / metrics:
+  assert(resultCustom.includes('Break-Even Monthly Rent'), `RAG Context includes Break-Even Monthly Rent header`);
+  assert(resultCustom.includes('**$5,965/mo**'), `RAG Context includes Break-Even Monthly Rent calculation: **$5,965/mo**`);
+  assert(resultCustom.includes('Total 30-Year Debt Service Payments'), `RAG Context includes Cumulative Mortgage Amortization section`);
+  assert(resultCustom.includes('**$1,395,806**'), `RAG Context includes Total 30-Year Debt Service calculation: **$1,395,806**`);
+  assert(resultCustom.includes('**$824,606**'), `RAG Context includes Total Interest Cost calculation: **$824,606**`);
+} catch (err) {
+  console.error(`  ❌ Custom scenario underwriting audit encountered error:`, err.message);
+  failedTests++;
+}
+
+// 5. Distance-Weighted Comps & Layout Match Comps Tests
+console.log('  ▸ Auditing Distance-Weighted Comps Consensus Model & Layout Matches:');
+const queryComps = 'show me recent comparable sales and comps for 123 Main St';
+try {
+  const resultComps = await massiveSmartRouter.combinedRouteAndEnhancePrompt(queryComps);
+  
+  // Verify Layout Match Flag
+  assert(resultComps.includes('🎯 **Match**'), `RAG Comps Context contains layout match flag indicator`);
+  assert(resultComps.includes('✖'), `RAG Comps Context contains layout mismatch indicator`);
+  
+  // Verify Distance-Weighted Calculations
+  assert(resultComps.includes('Distance-Weighted Average'), `RAG Comps Context contains Distance-Weighted Average header`);
+  assert(resultComps.includes('**$194.88/sqft**'), `RAG Comps Context contains correct Distance-Weighted Average price/sqft: **$194.88/sqft**`);
+  assert(resultComps.includes('Suggested Subject Value (Distance-Weighted)'), `RAG Comps Context contains Distance-Weighted Suggested Value header`);
+  assert(resultComps.includes('**$613,866**'), `RAG Comps Context contains correct Distance-Weighted Suggested Subject Value: **$613,866**`);
+} catch (err) {
+  console.error(`  ❌ Distance-weighted comps audit encountered error:`, err.message);
+  failedTests++;
+}
+
+// 6. Cache Diagnostics Logs Output Verification
+console.log('  ▸ Auditing Enterprise Cache & Latency Diagnostics Block:');
+try {
+  // Let's perform a detail lookup to ensure diagnostics are populated in serviceDiagnostics
+  await realestateService.getPropertyDetailService('prop_90210_1');
+  const resultDiag = await massiveSmartRouter.combinedRouteAndEnhancePrompt('get details for 123 Main St');
+  
+  assert(resultDiag.includes('ENTERPRISE CACHE & LATENCY DIAGNOSTICS LOG'), `RAG Context contains diagnostics log block`);
+  assert(resultDiag.includes('Cache Stats:'), `RAG Context contains Cache Stats details`);
+  assert(resultDiag.includes('Service Latency Logs:'), `RAG Context contains Service Latency Logs sub-block`);
+} catch (err) {
+  console.error(`  ❌ Cache diagnostics audit encountered error:`, err.message);
+  failedTests++;
+}
+
 console.log('');
 
 // ─────────────────────────────────────────────────────────────────────────────
