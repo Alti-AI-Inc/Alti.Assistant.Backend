@@ -20,7 +20,7 @@ export const toolBasedSearchNode = async (state) => {
     if (financialIntent) {
       console.log(`💹 [LangGraph Node] Financial intent: ${financialIntent.type} (${financialIntent.symbol || 'N/A'}) — fetching Massive data...`);
       try {
-        const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
+        const enhancedQuery = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
         if (enhancedQuery !== query) {
           console.log(`💹 [LangGraph Node] Massive data injected (${enhancedQuery.length - query.length} chars added)`);
           // Inject the enhanced query so intelligentSearch picks it up

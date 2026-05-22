@@ -57,7 +57,7 @@ class ClaudeService {
       if (lastUserMsg && lastUserMsg.content) {
         try {
           const userText = typeof lastUserMsg.content === 'string' ? lastUserMsg.content : lastUserMsg.content?.[0]?.text || '';
-          const enhanced = await massiveSmartRouter.routeAndEnhancePrompt(userText);
+          const enhanced = await massiveSmartRouter.combinedRouteAndEnhancePrompt(userText);
           if (enhanced !== userText) enhancedSystem = enhanced + '\n\n' + enhancedSystem;
         } catch { /* non-fatal */ }
       }

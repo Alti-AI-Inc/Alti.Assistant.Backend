@@ -120,7 +120,7 @@ export async function executeSmartSearch(
   if (financialClass.isFinancial) {
     console.log(`\n💹 Financial query detected (${financialClass.intentType}, ${(financialClass.confidence * 100).toFixed(0)}% confidence) — routing to Massive.com`);
     try {
-      const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
+      const enhancedQuery = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
       if (enhancedQuery !== query) {
         // Massive data injected — run through native grounding for citations
         const result = await executeGroundedSearch(enhancedQuery, conversationHistory);

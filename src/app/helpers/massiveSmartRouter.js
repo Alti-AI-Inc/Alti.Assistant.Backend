@@ -20,6 +20,8 @@
  *   Forex Overview  ✅ All 7 major pairs in one shot
  */
 
+import { sportsSmartRouter } from './sportsSmartRouter.js';
+
 import {
   getStockQuoteService,
   getStocksSnapshotTickersService,
@@ -1163,8 +1165,36 @@ const routeAndEnhancePrompt = async (prompt) => {
   return prompt;
 };
 
+// ─── Combined Orchestrator ───────────────────────────────────────────────────
+// Runs both financial (Massive.com) and sports (PredictionData.io) routers
+// in parallel and merges their context blocks into a single enriched prompt.
+// Use this everywhere instead of routeAndEnhancePrompt for full dual-data RAG.
+const combinedRouteAndEnhancePrompt = async (prompt) => {
+  const [financial, sports] = await Promise.allSettled([
+    routeAndEnhancePrompt(prompt),
+    sportsSmartRouter.routeAndEnhancePrompt(prompt),
+  ]);
+
+  const financialResult = financial.status === 'fulfilled' ? financial.value : prompt;
+  const sportsResult = sports.status === 'fulfilled' ? sports.value : prompt;
+
+  const financialEnriched = financialResult !== prompt;
+  const sportsEnriched = sportsResult !== prompt;
+
+  if (financialEnriched && sportsEnriched) {
+    // Both routers enriched — strip the user query from sports block and append
+    const sportsBlock = sportsResult.replace(
+      /^[\s\S]*?User Query:.*$/m, ''
+    ).trim();
+    return financialResult + (sportsBlock ? `\n\n${sportsBlock}` : '');
+  }
+  if (sportsEnriched) return sportsResult;
+  return financialResult;
+};
+
 export const massiveSmartRouter = {
   routeAndEnhancePrompt,
+  combinedRouteAndEnhancePrompt,
   detectFinancialIntent,
   detectMultipleTickers,
 };

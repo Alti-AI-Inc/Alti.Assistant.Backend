@@ -35,7 +35,7 @@ const geminiService = async (sessionId, prompt, userId) => {
   try {
     // Enhance prompt using massiveSmartRouter for real-time market data
     const enhancedPrompt =
-      await massiveSmartRouter.routeAndEnhancePrompt(prompt);
+      await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
@@ -123,7 +123,7 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
   try {
     // Enhance prompt using massiveSmartRouter for real-time market data
     const enhancedPrompt =
-      await massiveSmartRouter.routeAndEnhancePrompt(prompt);
+      await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 

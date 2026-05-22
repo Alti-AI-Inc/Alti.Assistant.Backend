@@ -41,7 +41,7 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
 
   try {
     // Enhance prompt using massiveSmartRouter for deep context
-    const enhancedPrompt = await massiveSmartRouter.routeAndEnhancePrompt(prompt);
+    const enhancedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 

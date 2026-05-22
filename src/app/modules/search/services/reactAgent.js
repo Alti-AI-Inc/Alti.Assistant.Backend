@@ -77,7 +77,7 @@ export async function executeToolBasedConversation(messages, options = {}) {
 Input: A natural language query about financial markets (e.g. "What is the current price of Apple?", "Show me Bitcoin RSI", "What are the top sector performers today?")`,
     async func(query) {
       try {
-        const result = await massiveSmartRouter.routeAndEnhancePrompt(query);
+        const result = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
         // If the router enhanced the prompt, it contains real-time financial data
         // Extract just the data block (everything after the [SYSTEM INSTRUCTION] header)
         if (result && result !== query) {

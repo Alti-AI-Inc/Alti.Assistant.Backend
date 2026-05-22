@@ -41,7 +41,7 @@ const GroqAiGetResponseAnonymousService = async (
   }
 
   // Enhance prompt using massiveSmartRouter for real-time market data
-  const enhancedPrompt = await massiveSmartRouter.routeAndEnhancePrompt(prompt);
+  const enhancedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
   // Initialize memory if it doesn't exist
   if (!AnonymousSessionMemoryStore[sessionId]) {

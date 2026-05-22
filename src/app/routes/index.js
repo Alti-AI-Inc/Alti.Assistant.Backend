@@ -51,6 +51,7 @@ import { creativeWritingRoutes } from '../modules/creative_writing/creative_writ
 import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 import { massiveRoutes } from '../modules/massive/massive.route.js';
+import { predictionDataRoutes } from '../modules/predictiondata/predictiondata.route.js';
 import { orchestratorRoutes } from '../modules/orchestrator/orchestrator.route.js';
 import { SwarmRoutes } from '../modules/swarm/swarm.route.js';
 import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
@@ -69,6 +70,10 @@ const moduleRoutes = [
   {
     path: '/massive',
     route: massiveRoutes,
+  },
+  {
+    path: '/predictiondata',
+    route: predictionDataRoutes,
   },
   {
     path: '/tenant',

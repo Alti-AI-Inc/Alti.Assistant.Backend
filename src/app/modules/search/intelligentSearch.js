@@ -74,7 +74,7 @@ export const runIntelligentSearch = async (state, stream = false) => {
     }
 
     // 1. Check for financial queries using massiveSmartRouter
-    const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
+    const enhancedQuery = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
     const isFinancialQuery = enhancedQuery !== query;
 
     // 2. Check for YouTube video queries

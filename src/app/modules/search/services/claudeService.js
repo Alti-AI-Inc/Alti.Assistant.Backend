@@ -59,7 +59,7 @@ class ClaudeService {
           const userText = typeof lastUserMsg.content === 'string'
             ? lastUserMsg.content
             : lastUserMsg.content?.[0]?.text || '';
-          const enhanced = await massiveSmartRouter.routeAndEnhancePrompt(userText);
+          const enhanced = await massiveSmartRouter.combinedRouteAndEnhancePrompt(userText);
           if (enhanced !== userText) {
             // Prepend Massive context as system-level instruction
             enhancedSystem = enhanced + '\n\n' + enhancedSystem;
