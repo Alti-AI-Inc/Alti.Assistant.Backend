@@ -459,6 +459,97 @@ try {
 console.log('');
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PART 7: ADVANCED v5 INSTITUTIONAL PERSONAS & SENSITIVITY MATRIX VERIFICATION
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('--- PART 7: Advanced v5 Institutional Personas & Underwriting Models Check ---');
+
+// 1. Conforming Limits Audit (Conforming vs. Jumbo)
+console.log('  ▸ Auditing Conforming limits audit (Washington DC - JUMBO):');
+try {
+  const dcQuery = 'what is the valuation and conforming loan status for 1600 Pennsylvania Ave NW?';
+  const dcResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(dcQuery);
+  assert(dcResult.includes('Conforming Limits Audit'), 'RAG output includes Conforming Loan Limits Audit section');
+  assert(dcResult.includes('🔴 JUMBO'), 'Correct status check for JUMBO loan on Washington DC white house');
+  assert(dcResult.includes('**$388,000,000**'), 'Subject loan amount of **$388,000,000** correctly calculated');
+} catch (err) {
+  console.error('  ❌ Conforming loan limits JUMBO audit failed:', err.message);
+  failedTests++;
+}
+
+console.log('  ▸ Auditing Conforming limits audit (Atlanta - CONFORMING):');
+try {
+  const atlQuery = 'what is the valuation and conforming status for 123 Main St?';
+  const atlResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(atlQuery);
+  assert(atlResult.includes('🟢 CONFORMING'), 'Correct status check for CONFORMING loan on Atlanta property');
+  assert(atlResult.includes('**$537,600**'), 'Subject loan amount of **$537,600** correctly calculated');
+} catch (err) {
+  console.error('  ❌ Conforming loan limits CONFORMING audit failed:', err.message);
+  failedTests++;
+}
+
+// 2. FEMA Flood Insurance & Multi-Hazard Environmental Profiling
+console.log('  ▸ Auditing FEMA Flood Surcharges & Multi-Hazard Environmental Risk Ratings:');
+try {
+  const floodQuery = 'details and flood insurance for 456 Oak Ln';
+  const floodResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(floodQuery);
+  assert(floodResult.includes('Insurance Underwriting & Hazard Risk Profiling'), 'RAG output includes Insurance Underwriting table');
+  assert(floodResult.includes('**$385,000**'), 'Replacement Cost of **$385,000** correctly calculated for 456 Oak Ln (2,200 sqft * 175)');
+  assert(floodResult.includes('Zone AE (High Risk)'), 'Correct high-risk FEMA flood zone AE triggered');
+  assert(floodResult.includes('**$4,043**'), 'FEMA Annual Premium of **$4,043** correctly calculated (385,000 * 1.05% = 4,042.50 rounded)');
+  assert(floodResult.includes('**$337/mo**'), 'FEMA Monthly Premium of **$337/mo** correctly calculated (4,042.50 / 12 = 336.88 rounded)');
+  assert(floodResult.includes('🔥 **Wildfire Risk** | **Medium**'), 'Wildfire Risk correctly rated for Austin');
+  assert(floodResult.includes('🌀 **Wind/Hurricane Risk** | **Medium**'), 'Wind/Hurricane Risk correctly rated for Austin');
+  assert(floodResult.includes('🫨 **Seismic/Earthquake Risk** | **Low**'), 'Seismic Risk correctly rated for Austin');
+} catch (err) {
+  console.error('  ❌ FEMA flood insurance / hazard risk profiling failed:', err.message);
+  failedTests++;
+}
+
+// 3. Interest Rate Sensitivity Analysis
+console.log('  ▸ Auditing Interest Rate Sensitivity Matrix (6.0% to 8.5% steps):');
+try {
+  const rateQuery = 'valuation and interest rate sensitivity for 456 Oak Ln';
+  const rateResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(rateQuery);
+  assert(rateResult.includes('Interest Rate Sensitivity Analysis'), 'RAG output includes Interest Rate Sensitivity Analysis section');
+  assert(rateResult.includes('**$2,566**'), 'Austin Monthly Mortgage P&I at 6.0% interest rate is exactly **$2,566** ($428,000 loan)');
+  assert(rateResult.includes('**$3,291**'), 'Austin Monthly Mortgage P&I at 8.5% interest rate is exactly **$3,291** ($428,000 loan)');
+} catch (err) {
+  console.error('  ❌ Interest rate sensitivity matrix failed:', err.message);
+  failedTests++;
+}
+
+// 4. Seller Multi-Scenario Exit Proceeds Comparative Ledger
+console.log('  ▸ Auditing Seller Multi-Scenario Exit proceeds ledger:');
+try {
+  const sellerQuery = 'valuation and seller net sheet multi-scenario proceeds for 123 Main St';
+  const sellerResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(sellerQuery);
+  assert(sellerResult.includes('Seller Multi-Scenario Exit Ledger'), 'RAG output includes Seller Multi-Scenario Exit Ledger section');
+  assert(sellerResult.includes('🔴 **90% of List**'), '90% price exit scenario included');
+  assert(sellerResult.includes('**$604,800**'), 'Gross sale price at 90% list is **$604,800** ($672,000 * 0.90)');
+  assert(sellerResult.includes('**$162,288**'), 'Estimated net proceeds at 90% list with fixed outstanding debt is **$162,288**');
+  assert(sellerResult.includes('🎯 **100% List Price**'), '100% price exit scenario included');
+  assert(sellerResult.includes('**$225,120**'), 'Estimated net proceeds at 100% list with fixed outstanding debt is **$225,120**');
+} catch (err) {
+  console.error('  ❌ Seller multi-scenario exit ledger failed:', err.message);
+  failedTests++;
+}
+
+// 5. Programmatic Investor Buy-Box Matching Engine
+console.log('  ▸ Auditing Programmatic Investor Buy-Box Matching Engine:');
+try {
+  const bboxQuery = 'prospectus matching engine and buybox criteria for 123 Main St assuming max price 700k, min beds 3, min cap rate 3.0%';
+  const bboxResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(bboxQuery);
+  assert(bboxResult.includes('Investor Buy-Box Matching Prospectus'), 'RAG output includes Investor Buy-Box Matching Prospectus section');
+  assert(bboxResult.includes('🟢 PASS'), 'Checklist correctly includes 🟢 PASS tags');
+  assert(bboxResult.includes('🟢 APPROVED BUY-BOX MATCH'), 'Overall status matches investor constraints: 🟢 APPROVED BUY-BOX MATCH');
+} catch (err) {
+  console.error('  ❌ Investor buy-box matching engine failed:', err.message);
+  failedTests++;
+}
+
+console.log('');
+
+// ─────────────────────────────────────────────────────────────────────────────
 // FINAL AUDIT METRICS
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('======================================================================');

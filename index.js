@@ -118,6 +118,10 @@ app.disable('etag');
 
 // Prevent DOS attacks with toobusy
 app.use((req, res, next) => {
+  // Bypass in production/serverless environments where CPU throttling causes false-positives
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_TOOBUSY !== 'true') {
+    return next();
+  }
   if (toobusy()) {
     res.status(503).send('Server too busy!');
   } else {

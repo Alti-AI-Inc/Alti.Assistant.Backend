@@ -200,6 +200,31 @@ export const routeAndEnhancePrompt = async (prompt) => {
           block += `| 🏛️ **State Transfer Taxes** | **0.5%** | **${formatCurrency(Math.round(stateTax))}** |\n`;
           block += `| 📉 **Simulated Mortgage Payoff** | **60.0%** | **${formatCurrency(Math.round(mortgagePayoff))}** |\n`;
           block += `| 💎 **Estimated Net Proceeds** | **33.5%** | **${formatCurrency(Math.round(netProceeds))}** |\n\n`;
+
+          block += `### 💵 Seller Multi-Scenario Exit Ledger\n`;
+          block += `*Comparing walkthrough net proceeds across multiple pricing scenarios with a fixed outstanding mortgage debt of **60.0%** of the standard AVM.*\n\n`;
+          block += `| Pricing Scenario | Gross Sale Price | Broker Commission (5.0%) | Title & Escrow (1.0%) | Transfer Taxes (0.5%) | Mortgage Payoff (60.0%) | Estimated Net Proceeds |\n`;
+          block += `|------------------|------------------|--------------------------|-----------------------|-----------------------|-------------------------|------------------------|\n`;
+          
+          const scenarios = [
+            { label: '🔴 **90% of List**', mult: 0.90 },
+            { label: '🟡 **95% of List**', mult: 0.95 },
+            { label: '🎯 **100% List Price**', mult: 1.00 },
+            { label: '🟢 **105% of List**', mult: 1.05 }
+          ];
+          
+          const fixedMortgagePayoff = avm.valuation * 0.60;
+          
+          scenarios.forEach(sc => {
+            const gross = avm.valuation * sc.mult;
+            const comm = gross * 0.05;
+            const title = gross * 0.01;
+            const tax = gross * 0.005;
+            const net = gross - (comm + title + tax + fixedMortgagePayoff);
+            
+            block += `| ${sc.label} | **${formatCurrency(Math.round(gross))}** | **${formatCurrency(Math.round(comm))}** | **${formatCurrency(Math.round(title))}** | **${formatCurrency(Math.round(tax))}** | **${formatCurrency(Math.round(fixedMortgagePayoff))}** | **${formatCurrency(Math.round(net))}** |\n`;
+          });
+          block += `\n`;
         }
 
         // Scenario underwriting overrides
@@ -300,7 +325,7 @@ export const routeAndEnhancePrompt = async (prompt) => {
         const applicableConformingLimit = isHighCostCity ? limitHighCost : limitStandard;
         const conformingStatus = loanAmount <= applicableConformingLimit ? '🟢 CONFORMING' : '🔴 JUMBO';
         
-        block += `### 🏛️ Conforming Loan Limits Audit\n`;
+        block += `### 🏛️ Conforming Limits Audit\n`;
         block += `- **Standard Single-Unit Conforming Limit**: **${formatCurrency(limitStandard)}**\n`;
         block += `- **High-Cost Area Conforming Limit**: **${formatCurrency(limitHighCost)}**\n`;
         block += `- **Subject Loan Amount**: **${formatCurrency(Math.round(loanAmount))}**\n`;
@@ -419,6 +444,38 @@ export const routeAndEnhancePrompt = async (prompt) => {
           } else {
             block += `- **Assessment Advisory**: **Fair Market Alignment** 🔵. The tax assessor valuation is aligned with market valuations.\n\n`;
           }
+        }
+
+        // Programmatic Buy-Box Matching Engine
+        const hasBuyBoxIntent = ['buy box', 'buybox', 'prospectus', 'investor criteria', 'matching engine', 'matching'].some(k => prompt.toLowerCase().includes(k)) || 
+                                (entities.minCapRate !== null || entities.minNetCashFlow !== null);
+        
+        if (hasBuyBoxIntent) {
+          const boxMaxPrice = entities.maxPrice !== null ? entities.maxPrice : 700000;
+          const boxMinBeds = entities.minBeds !== null ? entities.minBeds : 3;
+          const boxMinBaths = entities.minBaths !== null ? entities.minBaths : 2;
+          const boxMinCapRate = entities.minCapRate !== null ? entities.minCapRate : 0.035;
+          const boxMinNetCashFlow = entities.minNetCashFlow !== null ? entities.minNetCashFlow : -1500;
+          
+          const passPrice = purchasePrice <= boxMaxPrice;
+          const passBeds = (detail.beds || 0) >= boxMinBeds;
+          const passBaths = (detail.baths || 0) >= boxMinBaths;
+          const passCap = baseScenario.cap >= (boxMinCapRate * 100);
+          const passCash = baseScenario.netMonthly >= boxMinNetCashFlow;
+          
+          const overallApproved = passPrice && passBeds && passBaths && passCap && passCash;
+          
+          block += `### 🎯 Investor Buy-Box Matching Prospectus\n`;
+          block += `*Programmatic audit comparing subject property parameters against parsed investor target criteria.*\n\n`;
+          block += `| Target Underwriting Metric | Criteria Limit | Subject Property Value | Audit Result |\n`;
+          block += `|----------------------------|----------------|------------------------|--------------|\n`;
+          block += `| 💰 **Maximum Purchase Price** | **${formatCurrency(boxMaxPrice)}** | **${formatCurrency(purchasePrice)}** | ${passPrice ? '🟢 PASS' : '🔴 FAIL'} |\n`;
+          block += `| 🛏️ **Minimum Bedrooms** | **${boxMinBeds}** beds | **${detail.beds || 0}** beds | ${passBeds ? '🟢 PASS' : '🔴 FAIL'} |\n`;
+          block += `| 🛁 **Minimum Bathrooms** | **${boxMinBaths}** baths | **${detail.baths || 0}** baths | ${passBaths ? '🟢 PASS' : '🔴 FAIL'} |\n`;
+          block += `| 📈 **Minimum Capitalization Rate** | **${(boxMinCapRate * 100).toFixed(2)}%** | **${baseScenario.cap.toFixed(2)}%** | ${passCap ? '🟢 PASS' : '🔴 FAIL'} |\n`;
+          block += `| 💵 **Minimum Net Monthly Cash Flow** | **${formatCurrency(boxMinNetCashFlow)}/mo** | **${formatCurrency(Math.round(baseScenario.netMonthly))}/mo** | ${passCash ? '🟢 PASS' : '🔴 FAIL'} |\n\n`;
+          
+          block += `- **Overall Buy-Box Match Recommendation**: **${overallApproved ? '🟢 APPROVED BUY-BOX MATCH' : '🔴 REJECTED'}**\n\n`;
         }
       } else {
         block += `*Valuation service currently offline. No AVM available.*\n`;
@@ -665,15 +722,24 @@ export const routeAndEnhancePrompt = async (prompt) => {
         block += `| 🏛️ **Tax Assessed Value** | **${formatCurrency(detail.taxAssessedValue)}** |\n\n`;
 
         // Insurance Underwriting & Hazard Risk Profiling
-        const ins = computeInsuranceHazard(detail.sqft, detail.city);
+        const ins = computeInsuranceHazard(detail.sqft, detail.city, entities.femaFloodActive);
         block += `### 🛡️ Insurance Underwriting & Hazard Risk Profiling\n`;
         block += `| Underwriting Attribute | Value | Assessment Metric |\n`;
         block += `|------------------------|-------|-------------------|\n`;
         block += `| 🏗️ **Replacement Cost (RC)** | **${formatCurrency(ins.replacementCost)}** | Structure valuation @ **$175/sqft** |\n`;
         block += `| 🛡️ **Environmental Hazard Risk** | **${ins.hazardTier}** | City location assessment |\n`;
+        block += `| 🔥 **Wildfire Risk** | **${ins.wildfireRisk}** | Forest/brush fire profile |\n`;
+        block += `| 🌀 **Wind/Hurricane Risk** | **${ins.windRisk}** | Coastal wind/storm profile |\n`;
+        block += `| 🫨 **Seismic/Earthquake Risk** | **${ins.seismicRisk}** | Fault line proximity profile |\n`;
+        block += `| 🌧️ **FEMA Flood Zone** | **${ins.femaFloodZone}** | Federal flood hazard mapping |\n`;
         block += `| 📈 **Insurance Premium Rate** | **${(ins.insuranceRate * 100).toFixed(2)}%** | Underwriting multiplier |\n`;
         block += `| 💵 **Est. Annual Premium** | **${formatCurrency(Math.round(ins.annualPremium))}** | Annual structural premium |\n`;
-        block += `| 💸 **Est. Monthly Premium** | **${formatCurrency(Math.round(ins.monthlyPremium))}/mo** | Monthly premium allocation |\n\n`;
+        block += `| 💸 **Est. Monthly Premium** | **${formatCurrency(Math.round(ins.monthlyPremium))}/mo** | Monthly premium allocation |\n`;
+        if (ins.hasFemaSurcharge) {
+          block += `| ⚠️ **FEMA Flood Ann. Premium** | **${formatCurrency(Math.round(ins.annualFEMAPremium))}** | Surcharge @ **1.05%** of RC |\n`;
+          block += `| ⚠️ **FEMA Flood Mo. Premium** | **${formatCurrency(Math.round(ins.monthlyFEMAPremium))}/mo** | Monthly escrow allocation |\n`;
+        }
+        block += `\n`;
       } else {
         block += `*Property details not available for the requested parcel address.*\n`;
       }
