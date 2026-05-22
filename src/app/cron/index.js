@@ -1,5 +1,6 @@
 import { startDailyUsageResetCron } from './subscription/resetDailyUsage.js';
 import { startStripeSyncCron } from './subscription/syncStripeSubscriptions.js';
+import { initializeTenantCronJobs } from './tenant/resetUsage.js';
 import { logger } from '../../shared/logger.js';
 
 /**
@@ -15,6 +16,9 @@ export const initializeCronJobs = () => {
 
     // Start Stripe sync (runs every hour)
     startStripeSyncCron();
+
+    // Initialize tenant-related cron jobs (monthly reset, trial cleanup, usage warnings)
+    initializeTenantCronJobs();
 
     logger.info('All cron jobs initialized successfully');
   } catch (error) {
