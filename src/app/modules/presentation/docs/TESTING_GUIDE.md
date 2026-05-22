@@ -311,7 +311,7 @@ wait
 ### Run Automated Test
 
 ```bash
-cd d:\ason\ASON-Core-Service-Backend
+cd d:\alti\Alti-Core-Service-Backend
 node scripts/test-gcs-upload.js
 ```
 

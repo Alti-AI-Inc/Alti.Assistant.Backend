@@ -14,8 +14,8 @@ services:
       # Shared volume with Presenton - Presenton's /app_data mounted to backend's /app/presenton_files
       - presenton_data:/app/presenton_files
       # Your application logs and uploads
-      - ./logs:/app/ason-core-service/logs
-      - ./uploads:/app/ason-core-service/uploads
+      - ./logs:/app/alti-core-service/logs
+      - ./uploads:/app/alti-core-service/uploads
     networks:
       - app-network
     depends_on:

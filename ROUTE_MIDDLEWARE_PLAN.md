@@ -151,7 +151,7 @@ Uploads real audio files (up to 10 × 20 MB). In the RAG tier model, audio is a 
 
 These are auth/billing/admin/utility endpoints that should never be rate-limited by plan.
 
-| Route File                                   | Reason                                                         |
+| Route File                                   | Realti                                                         |
 | -------------------------------------------- | -------------------------------------------------------------- |
 | `auth/auth.route.js`                         | Authentication — always open                                   |
 | `stripe/stripe.route.js`                     | Billing operations                                             |
@@ -226,7 +226,7 @@ auth() / optionalAuth()
 ```
 
 > `checkStorageLimit` must run **before** multer so we reject early without loading the file into memory/disk.
-> `checkRAGFeature` also runs before multer for the same reason — `req.file` won't exist yet, but the MIME type is available on the multer `fileFilter` stage. For pre-multer RAG checks, the file-type validation is skipped (only the plan-level `ragType === 'none'` check applies); the full MIME check fires on the same route's second call when multer is present — or we move multer before RAG and rely on multer's `fileFilter`. **Recommended:** move multer before `checkRAGFeature` so `req.file` is populated.
+> `checkRAGFeature` also runs before multer for the same realti — `req.file` won't exist yet, but the MIME type is available on the multer `fileFilter` stage. For pre-multer RAG checks, the file-type validation is skipped (only the plan-level `ragType === 'none'` check applies); the full MIME check fires on the same route's second call when multer is present — or we move multer before RAG and rely on multer's `fileFilter`. **Recommended:** move multer before `checkRAGFeature` so `req.file` is populated.
 
 ### Revised Safe Order (when multer must run first for MIME access):
 

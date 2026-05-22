@@ -354,7 +354,7 @@ Set these collection variables:
 
 - [ ] Responses within 10 seconds
 - [ ] Handles concurrent requests
-- [ ] Memory usage reasonable
+- [ ] Memory usage realtiable
 - [ ] No crashes on errors
 
 ### ✅ Integration

@@ -804,7 +804,7 @@ node scripts/migrate-users-to-free-plan.js
 ```bash
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-CLIENT_URL=https://app.asonai.com
+CLIENT_URL=https://app.altihq.com
 ```
 
 ---

@@ -1209,7 +1209,7 @@ curl -X GET https://your-api.com/api/stripe/subscriptions \
         "cancellation_details": {
           "comment": null,
           "feedback": null,
-          "reason": null
+          "realti": null
         },
         "collection_method": "charge_automatically",
         "created": 1704585600,
@@ -1318,7 +1318,7 @@ curl -X GET https://your-api.com/api/stripe/subscription/sub_xxxxxxxxxxxxxxxx \
     "cancellation_details": {
       "comment": null,
       "feedback": null,
-      "reason": null
+      "realti": null
     },
     "collection_method": "charge_automatically",
     "created": 1704585600,
@@ -1593,7 +1593,7 @@ curl -X POST https://your-api.com/api/stripe/subscription \
     "cancellation_details": {
       "comment": null,
       "feedback": null,
-      "reason": null
+      "realti": null
     },
     "collection_method": "charge_automatically",
     "created": 1704585600,
@@ -1667,7 +1667,7 @@ curl -X POST https://your-api.com/api/stripe/subscription \
         "enabled": false,
         "status": null
       },
-      "billing_reason": "subscription_create",
+      "billing_realti": "subscription_create",
       "charge": "ch_xxxxxxxxxxxxxxxx",
       "collection_method": "charge_automatically",
       "created": 1704585600,
@@ -1779,7 +1779,7 @@ curl -X DELETE https://your-api.com/api/stripe/subscription/sub_xxxxxxxxxxxxxxxx
     "cancellation_details": {
       "comment": null,
       "feedback": null,
-      "reason": null
+      "realti": null
     },
     "collection_method": "charge_automatically",
     "created": 1704585600,
@@ -2146,7 +2146,7 @@ All endpoints use a consistent error handling pattern via the `catchAsync` wrapp
   cancellation_details: {
     comment: string | null;
     feedback: string | null;
-    reason: string | null;
+    realti: string | null;
   };
   collection_method: "charge_automatically" | "send_invoice";
   created: number;              // Unix timestamp

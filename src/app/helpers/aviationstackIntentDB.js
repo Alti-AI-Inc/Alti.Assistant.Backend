@@ -183,7 +183,7 @@ export function detectAviationIntent(query) {
   }
 
   // 2. Volcanic Ash Trajectory Projection Model
-  if (/\b(volcanic\s*ash\s*projection|vaac\s*plume|vaac\s*trajectory|ash\s*plume\s*model|volcano\s*plume)\b/i.test(lowerQuery)) {
+  if (/\b(volcanic\s*ash\s*projection|volcanic\s*ash\s*cloud\s*trajectory|volcanic\s*ash\s*trajectory|volcanic\s*ash\s*cloud|vaac\s*plume|vaac\s*trajectory|ash\s*plume\s*model|volcano\s*plume)\b/i.test(lowerQuery)) {
     let vaacStationId = 'REYKJAVIK';
     if (lowerQuery.includes('anchorage') || lowerQuery.includes('alaska')) vaacStationId = 'ANCHORAGE';
     else if (lowerQuery.includes('darwin') || lowerQuery.includes('merapi') || lowerQuery.includes('indonesia')) vaacStationId = 'DARWIN';

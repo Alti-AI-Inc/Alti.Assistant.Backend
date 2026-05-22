@@ -1,6 +1,6 @@
 # Tenant Module
 
-Multi-tenant functionality for ASON AI Core Service.
+Multi-tenant functionality for Alti AI Core Service.
 
 ## Overview
 
@@ -84,7 +84,7 @@ POST /api/v1/tenant/members/invite
 ### Accepting an Invitation
 
 1. User receives email with invitation link
-2. User clicks link: `https://app.asonai.com/invite/{token}`
+2. User clicks link: `https://app.altihq.com/invite/{token}`
 3. Frontend calls: `POST /api/v1/tenant/members/invitations/:token/verify`
 4. User signs in or signs up
 5. Frontend calls: `POST /api/v1/tenant/members/invitations/:inviteId/accept`

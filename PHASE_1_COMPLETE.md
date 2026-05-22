@@ -183,7 +183,7 @@ Before testing, add to your `.env` file:
 
 ```bash
 # Frontend URL for invitation links
-FRONTEND_URL=https://app.asonai.com
+FRONTEND_URL=https://app.altihq.com
 
 # Email service (already configured)
 # SMTP settings should already be set up

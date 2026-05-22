@@ -18,7 +18,7 @@ The smart selector analyzes multiple factors:
 6. **Conversation History** - Length of ongoing conversation
 7. **Search Depth** - Standard vs deep search mode
 8. **Previous Tool Calls** - Indicates iterative research
-9. **Reasoning Requirements** - Explicit need for reasoning
+9. **Realtiing Requirements** - Explicit need for realtiing
 
 ### Model Selection Logic
 
@@ -27,7 +27,7 @@ The smart selector analyzes multiple factors:
 - Complex analytical queries (compare, evaluate, analyze)
 - Multi-step research questions
 - Deep search mode
-- Queries requiring advanced reasoning
+- Queries requiring advanced realtiing
 - Large context windows (>10k tokens)
 - Complexity score >= 6
 
@@ -73,11 +73,11 @@ import { analyzeAndLogModelSelection } from './utils/modelSelector.js';
 const analysis = analyzeAndLogModelSelection(query, {
   conversationHistory: messages,
   searchDepth: 'deep',
-  requiresReasoning: true,
+  requiresRealtiing: true,
 });
 
 console.log(`Selected: ${analysis.modelName}`);
-console.log(`Reason: ${analysis.modelReason}`);
+console.log(`Realti: ${analysis.modelRealti}`);
 console.log(`Complexity: ${analysis.complexityScore}/10`);
 ```
 
@@ -106,7 +106,7 @@ import { selectModel, ModelComplexity } from './services/geminiService.js';
 const llm = selectModel({
   complexity: ModelComplexity.COMPLEX,
   inputLength: 15000,
-  requiresReasoning: true,
+  requiresRealtiing: true,
   speedPriority: false,
 });
 ```
@@ -147,7 +147,7 @@ const context = {
   searchDepth: 'standard', // 'standard' or 'deep'
   previousToolCalls: 0, // Number of previous tool calls
   responseLength: 0, // Expected response length
-  requiresReasoning: false, // Explicit reasoning flag
+  requiresRealtiing: false, // Explicit realtiing flag
 };
 ```
 
@@ -162,7 +162,7 @@ const context = {
 
 1. **Let it auto-select**: The analyzer is optimized for most cases
 2. **Provide context**: Pass conversation history and search depth when available
-3. **Monitor logs**: Check console for selection reasoning
+3. **Monitor logs**: Check console for selection realtiing
 4. **Override when needed**: Use explicit selection for special cases
 5. **Test both models**: Compare results for your specific use cases
 
@@ -171,7 +171,7 @@ const context = {
 The analyzer classifies queries into:
 
 - `SIMPLE_FACTUAL` - Quick facts, dates, simple lookups → Flash
-- `COMPLEX_ANALYTICAL` - Analysis, reasoning, comparisons → Pro
+- `COMPLEX_ANALYTICAL` - Analysis, realtiing, comparisons → Pro
 - `CREATIVE_WRITING` - Content generation → Pro
 - `TECHNICAL_CODE` - Programming questions → Pro
 - `CONVERSATIONAL` - Chat, follow-ups → Flash
@@ -187,8 +187,8 @@ When smart selection runs, you'll see:
 📊 Category: complex_analytical
 🎯 Complexity Score: 8/10
 🤖 Selected Model: Gemini 3.5 Flash
-💡 Reason: Analytical query requires deeper reasoning
-📋 Reasoning Factors:
+💡 Realti: Analytical query requires deeper realtiing
+📋 Realtiing Factors:
    - Contains analytical keyword
    - Medium query (15-30 words)
 ================================

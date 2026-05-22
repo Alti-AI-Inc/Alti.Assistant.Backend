@@ -44,9 +44,6 @@ app.use(
     origin: [
       'https://altihq.com',
       'https://www.altihq.com',
-      'https://asonai.com',
-      'https://www.asonai.com',
-      'https://ason-web.netlify.app',
       'http://localhost:3000',
       'http://localhost:8080',
       'http://localhost:3001',

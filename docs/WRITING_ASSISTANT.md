@@ -162,16 +162,16 @@ writingQueryThreshold: 0.3; // Route borderline cases to writing
 1. **"Write me a node js script for authentication"**
 
    - Routes to: CODE (Claude with ReAct)
-   - Reason: Contains programming keywords
+   - Realti: Contains programming keywords
 
 2. **"What is the weather today?"**
 
    - Routes to: SEARCH (Gemini with tools)
-   - Reason: No writing action detected
+   - Realti: No writing action detected
 
 3. **"Tell me about quantum computing"**
    - Routes to: SEARCH (Gemini with tools)
-   - Reason: Information query, not content creation
+   - Realti: Information query, not content creation
 
 ## System Prompt
 

@@ -71,7 +71,7 @@ Dynamic email content based on invitation data:
 | ---------------- | ----------------------------- | -------------------------------------- |
 | `inviterName`    | Name of person sending invite | "John Doe"                             |
 | `tenantName`     | Workspace/tenant name         | "Acme Corp"                            |
-| `invitationLink` | Unique acceptance link        | "https://app.asonai.com/invite/abc123" |
+| `invitationLink` | Unique acceptance link        | "https://app.altihq.com/invite/abc123" |
 | `role`           | Assigned role                 | "admin" or "member"                    |
 | `expiryDays`     | Days until expiry             | 7                                      |
 
@@ -192,7 +192,7 @@ Required environment variables in `config/index.js`:
 mailgun: {
   mailgun_api_key: process.env.MAILGUN_API_KEY,
   mailgun_domain: process.env.MAILGUN_DOMAIN,
-  mailgun_from: process.env.MAILGUN_FROM || 'noreply@asonai.com'
+  mailgun_from: process.env.MAILGUN_FROM || 'noreply@altihq.com'
 }
 ```
 
@@ -202,7 +202,7 @@ Set the frontend URL for invitation links:
 
 ```javascript
 app: {
-  frontend_url: process.env.FRONTEND_URL || 'https://app.asonai.com';
+  frontend_url: process.env.FRONTEND_URL || 'https://app.altihq.com';
 }
 ```
 

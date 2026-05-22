@@ -53,7 +53,7 @@ const sendGmailFromAuthorizedAccountService = async (body) => {
       connectedAccountId: body.connectedAccountId, // Ensure you pass the connected account ID
     },
     {
-      reciepient_email: 'admin@asonai.com',
+      reciepient_email: 'admin@altihq.com',
     }
   );
 

@@ -89,7 +89,7 @@ export const sendInvitationEmail = async (invitationData) => {
   }
 
   // Generate invitation link
-  const baseUrl = config.app?.frontend_url || 'https://app.asonai.com';
+  const baseUrl = config.app?.frontend_url || 'https://app.altihq.com';
   const invitationLink = `${baseUrl}/accept-invite/${token}`;
 
   // Prepare email data
@@ -188,7 +188,7 @@ export const sendInvitationReminderEmail = async (invitationData) => {
     expiryDays = 7,
   } = invitationData;
 
-  const baseUrl = config.app?.frontend_url || 'https://app.asonai.com';
+  const baseUrl = config.app?.frontend_url || 'https://app.altihq.com';
   const invitationLink = `${baseUrl}/invite/${token}`;
 
   const templateData = {

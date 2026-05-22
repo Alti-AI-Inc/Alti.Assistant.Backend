@@ -1,17 +1,17 @@
 version: '3.9'
 
 services:
-  ason:
+  alti:
     build: .
-    container_name: ason
+    container_name: alti
     env_file:
       - .env
     ports:
       - '5100:5100'
     volumes:
-      - ../ASON-CORE-SERVICE:/app/ason-core-service
+      - ../ALTI-CORE-SERVICE:/app/alti-core-service
     networks:
-      - ason-network
+      - alti-network
     # depends_on:
     # - mongodb
     # - redis-stack
@@ -44,7 +44,7 @@ services:
       - '9200:9200'
       - '9300:9300'
     networks:
-      - ason-network
+      - alti-network
 
   kibana:
     image: kibana:8.18.1
@@ -57,7 +57,7 @@ services:
     depends_on:
       - elasticsearch
     networks:
-      - ason-network
+      - alti-network
 
   redis-stack:
     image: redis/redis-stack:latest
@@ -70,7 +70,7 @@ services:
     environment:
       - REDIS_ARGS= --save 900 1
     networks:
-      - ason-network
+      - alti-network
 
   rabbitmq:
     image: rabbitmq:3.8-management
@@ -84,7 +84,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - ason-network
+      - alti-network
 
   mongodb:
     image: mongo:latest
@@ -92,7 +92,7 @@ services:
     ports:
       - '27017:27017'
     networks:
-      - ason-network
+      - alti-network
     volumes:
       - mongodb_data:/data/db
     command: ['--replSet', 'rs0']
@@ -108,7 +108,7 @@ services:
     ports:
       - '8081:8081'
     networks:
-      - ason-network
+      - alti-network
     depends_on:
       - mongodb
 
@@ -118,11 +118,11 @@ services:
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: ason_db
+      POSTGRES_DB: alti_db
     ports:
       - '5432:5432'
     networks:
-      - ason-network
+      - alti-network
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -135,12 +135,12 @@ services:
     ports:
       - '5050:80'
     networks:
-      - ason-network
+      - alti-network
     depends_on:
       - postgresql
 
 networks:
-  ason-network:
+  alti-network:
     driver: bridge
 
 volumes:

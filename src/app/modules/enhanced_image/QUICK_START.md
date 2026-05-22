@@ -52,7 +52,7 @@ curl -X POST http://localhost:3000/enhanced-image/generate \
         "filename": "image-direct-1732632000123.png",
         "url": "https://storage.googleapis.com/...",
         "service": "imagen4",
-        "reasoning": "High quality realistic landscape image",
+        "realtiing": "High quality realistic landscape image",
         "confidence": 0.95
       },
       "prompt": "A serene mountain landscape at sunset with a lake reflection",
@@ -129,7 +129,7 @@ curl -X POST http://localhost:3000/enhanced-image/analyze-intent \
     "intent": "logo_design",
     "confidence": 0.92,
     "suggestedService": "imagen4",
-    "reasoning": "Logo design requires high precision and professional quality"
+    "realtiing": "Logo design requires high precision and professional quality"
   }
 }
 ```
@@ -234,7 +234,7 @@ db.conversations.findOne({
         "imageUrl": "https://...",
         "filename": "image-direct-1732632000123.png",
         "service": "imagen4",
-        "reasoning": "...",
+        "realtiing": "...",
         "confidence": 0.95,
         "timestamp": "2025-11-26T10:30:05.000Z"
       }

@@ -5,7 +5,7 @@ import path from 'path';
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), 'env') });
 
-const mongoUri = process.env.DATABASE_LOCAL || 'mongodb+srv://ason-db-username:2kep7suGSMneEHq8@cluster0.piwgo1l.mongodb.net/ASON?retryWrites=true&w=majority&appName=Cluster0';
+const mongoUri = process.env.DATABASE_LOCAL || 'mongodb+srv://alti-db-username:2kep7suGSMneEHq8@cluster0.piwgo1l.mongodb.net/Alti?retryWrites=true&w=majority&appName=Cluster0';
 
 async function main() {
   console.log('Connecting to MongoDB...');

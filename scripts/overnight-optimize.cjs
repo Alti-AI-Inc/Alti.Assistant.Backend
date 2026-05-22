@@ -6,7 +6,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const mongoose = require('mongoose');
 
-const dbLocal = process.env.DATABASE_LOCAL || 'mongodb://127.0.0.1:27017/ASON';
+const dbLocal = process.env.DATABASE_LOCAL || 'mongodb://127.0.0.1:27017/Alti';
 const ROOT_DIR = path.join(__dirname, '..');
 
 async function runOvernightOptimization() {

@@ -715,7 +715,7 @@ console.log('\n--- Test 6: Phase 8 Global Fleet Dispatch & Commercial Operations
 try {
   const enhancedComp = await aviationstackSmartRouter.routeAndEnhancePrompt('passenger compensation DL123 delayed 4 hours from JFK to LHR');
   if (
-    enhancedComp.includes('Passenger Compensation & Delay Cost Auditor') &&
+    enhancedComp.includes('Passenger Delay Compensation & Cost Auditor') &&
     enhancedComp.includes('JFK') &&
     enhancedComp.includes('LHR') &&
     enhancedComp.includes('EU261 / UK261') &&
@@ -736,9 +736,9 @@ try {
 
 // 2. Volcanic Ash Trajectory RAG
 try {
-  const enhancedAsh = await aviationstackSmartRouter.routeAndEnhancePrompt('volcanic ash cloud trajectory Reykjavik Katla volcano');
+  const enhancedAsh = await aviationstackSmartRouter.routeAndEnhancePrompt('volcanic ash projection trajectory Reykjavik Katla volcano');
   if (
-    enhancedAsh.includes('Volcanic Ash Trajectory Projection') &&
+    enhancedAsh.includes('Volcanic Ash Cloud Trajectory Projection') &&
     enhancedAsh.includes('Reykjavik VAAC') &&
     enhancedAsh.includes('SFC to FL200')
   ) {
@@ -757,7 +757,7 @@ try {
 try {
   const enhancedCargo = await aviationstackSmartRouter.routeAndEnhancePrompt('IATA dangerous goods cargo manifest compliance Lithium Batteries Paint');
   if (
-    enhancedCargo.includes('IATA Dangerous Goods (HAZMAT) Manifest Auditor') &&
+    enhancedCargo.includes('IATA HAZMAT Cargo Manifest Compliance Audit') &&
     enhancedCargo.includes('UN3480') &&
     (enhancedCargo.includes('segregation') || enhancedCargo.includes('conflict'))
   ) {
@@ -776,7 +776,7 @@ try {
 try {
   const enhancedTurb = await aviationstackSmartRouter.routeAndEnhancePrompt('jet stream wind shear forecast moderate turbulence speed');
   if (
-    enhancedTurb.includes('Jet Stream High-Altitude Turbulence (CAT) Forecaster') &&
+    enhancedTurb.includes('Jet Stream Wind Shear & Turbulence Forecaster') &&
     enhancedTurb.includes('kts / 1,000 ft') &&
     (enhancedTurb.includes('Clear-Air Turbulence') || enhancedTurb.includes('CAT') || enhancedTurb.includes('B777'))
   ) {

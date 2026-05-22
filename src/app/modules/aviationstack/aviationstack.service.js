@@ -46,10 +46,10 @@ const getApiUrl = (endpoint) => {
 // Caching TTLs
 const TTL = {
   flights: 60,       // Live flights — 1 min
-  routes: 300,       // Schedules — 5 mins
-  airports: 3600,    // Airports — 1 hour
-  airlines: 3600,    // Airlines — 1 hour
-  airplanes: 3600,   // Planes — 1 hour
+  routes: 86400,     // Schedules — 24 hours
+  airports: 604800,  // Airports — 7 days
+  airlines: 604800,  // Airlines — 7 days
+  airplanes: 604800, // Planes — 7 days
 };
 
 /**
@@ -109,13 +109,11 @@ async function makeRequest(endpoint, params = {}) {
   const apiKey = getApiKey();
   const cacheKey = `${endpoint}:${JSON.stringify(params)}`;
 
-  // Try retrieving from cache first for static/slow endpoints
-  if (endpoint !== 'flights') {
-    const cached = await getCachedData(cacheKey);
-    if (cached) {
-      logger.info(`[AviationStack Cache Hit] ${endpoint} -> ${JSON.stringify(params)}`);
-      return cached;
-    }
+  // Try retrieving from cache first for all endpoints (including flights to intercept fast duplicate calls)
+  const cached = await getCachedData(cacheKey);
+  if (cached) {
+    logger.info(`[AviationStack Cache Hit] ${endpoint} -> ${JSON.stringify(params)}`);
+    return cached;
   }
 
   if (!apiKey) {

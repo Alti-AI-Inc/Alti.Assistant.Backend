@@ -17,14 +17,14 @@ export const registrationOtpTemplate = async (email, token) => {
                 <div style="max-width: 1050px;  background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
                   <h2 style="color: #333333;">Email Verification</h2>
                   <p style="color: #666666; font-size: 18px;">Dear user,</p>
-                  <p style="color: #666666; font-size: 18px;">Thank you for signing up on ASON Ai! To complete your registration, please click the link below to verify your email address:</p>
+                  <p style="color: #666666; font-size: 18px;">Thank you for signing up on Alti AI! To complete your registration, please click the link below to verify your email address:</p>
                     <a href="${token}" 
                      style="display: inline-block; margin-bottom: 20px; background-color: #242C36; color: #FFFFFF; border: none; border-radius: 8px; padding: 10px 20px; text-decoration: none; font-size: 18px;">
                     ${token}
                   </a>
                   <p style="color: #666666; font-size: 18px;">If you didn't sign up for our service, you can ignore this email.</p>
                 </div>
-                <p style="color: #999999; margin-top: 20px;">This email was sent by ASON Ai.</p>
+                <p style="color: #999999; margin-top: 20px;">This email was sent by Alti AI.</p>
               </div>`,
   };
   return mailData;
@@ -51,7 +51,7 @@ export const forgetPassOtpTemplate = async (email, user, OTP) => {
           </p>
         </div>
         <p style="color: #999999; margin-top: 20px; text-align: center;">
-          This email was sent by ASON Ai.
+          This email was sent by Alti AI.
         </p>
       </div>
     `,
@@ -79,7 +79,7 @@ export const deleteUserOtpTemplate = async (user, OTP) => {
           </p>
         </div>
         <p style="color: #999999; margin-top: 20px; text-align: center;">
-          This email was sent by ASON Ai.
+          This email was sent by Alti AI.
         </p>
       </div>
     `,

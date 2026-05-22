@@ -26,7 +26,7 @@ const myFormat = printf(({ level, message, label, timestamp }) => {
 // const esTransport = new ElasticsearchTransport({
 //   level: 'info',
 //   client: esClient,
-//   indexPrefix: 'ason-logs',
+//   indexPrefix: 'alti-logs',
 //   flushInterval: 2000,
 //   transformer: logData => ({
 //     '@timestamp': logData.timestamp,
@@ -38,7 +38,7 @@ const myFormat = printf(({ level, message, label, timestamp }) => {
 
 // Base format
 const baseFormat = combine(
-  label({ label: 'ASON Core Service' }),
+  label({ label: 'Alti Core Service' }),
   timestamp(),
   myFormat,
   prettyPrint()

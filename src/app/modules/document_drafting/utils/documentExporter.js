@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from '../../../../shared/logger.js';
 import { OUTPUT_FORMATS } from '../document.constant.js';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 /**
  * Export document to PDF format
@@ -108,8 +109,6 @@ const exportToPDF = async (content, metadata = {}) => {
  */
 const exportToDocx = async (content, metadata = {}) => {
   try {
-    // For now, create a simple text file with .docx extension
-    // In production, use the 'docx' npm package for proper DOCX generation
     const outputDir = path.join(process.cwd(), 'output', 'documents');
 
     if (!fs.existsSync(outputDir)) {
@@ -119,35 +118,88 @@ const exportToDocx = async (content, metadata = {}) => {
     const fileName = `document_${Date.now()}.docx`;
     const filePath = path.join(outputDir, fileName);
 
-    let documentContent = '';
+    const children = [];
 
+    // Title paragraph
     if (metadata.title) {
-      documentContent += `${metadata.title}\n\n`;
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: metadata.title,
+              bold: true,
+              size: 32, // 16pt
+            }),
+          ],
+          spacing: { after: 300 },
+        })
+      );
     }
 
+    // Date & type metadata paragraph
+    const metaRuns = [];
     if (metadata.includeDate) {
       const date = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       });
-      documentContent += `Date: ${date}\n\n`;
+      metaRuns.push(new TextRun({ text: `Date: ${date}`, italics: true }));
     }
-
     if (metadata.documentType) {
-      documentContent += `Type: ${metadata.documentType}\n\n`;
+      if (metaRuns.length > 0) {
+        metaRuns.push(new TextRun({ text: '  |  ', italics: true }));
+      }
+      metaRuns.push(new TextRun({ text: `Type: ${metadata.documentType}`, italics: true }));
     }
 
-    documentContent += `${content}\n`;
+    if (metaRuns.length > 0) {
+      children.push(
+        new Paragraph({
+          children: metaRuns,
+          spacing: { after: 400 },
+        })
+      );
+    }
 
-    // Write as text file for now
-    // TODO: Implement proper DOCX generation using 'docx' package
-    fs.writeFileSync(filePath, documentContent, 'utf8');
+    // Add main content paragraphs
+    const contentLines = content.split('\n');
+    for (const line of contentLines) {
+      if (line.trim() === '') {
+        children.push(
+          new Paragraph({
+            children: [new TextRun('')],
+            spacing: { after: 150 },
+          })
+        );
+      } else {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: line,
+                size: 22, // 11pt
+              }),
+            ],
+            spacing: { after: 150 },
+          })
+        );
+      }
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children,
+        },
+      ],
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    fs.writeFileSync(filePath, buffer);
 
     logger.info(`DOCX document created successfully: ${filePath}`);
-    logger.warn(
-      'Note: Current DOCX export is simplified. Consider implementing with "docx" package.'
-    );
 
     return {
       filePath,

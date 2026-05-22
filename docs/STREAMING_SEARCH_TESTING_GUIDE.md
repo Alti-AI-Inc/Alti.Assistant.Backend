@@ -56,7 +56,7 @@ When you send a request to `/search/stream`, you'll receive a **Server-Sent Even
 }
 ```
 
-- Shows the model's internal reasoning process
+- Shows the model's internal realtiing process
 - Multiple thinking events may be sent
 - Helps understand how the model approaches the query
 
@@ -448,7 +448,7 @@ tail -f logs/combined.log
 Your streaming endpoint is working correctly if:
 
 - ✅ All event types received in correct order
-- ✅ Thinking events show meaningful reasoning
+- ✅ Thinking events show meaningful realtiing
 - ✅ Text chunks concatenate to coherent answer
 - ✅ Metadata includes valid source URLs
 - ✅ `done` event always received

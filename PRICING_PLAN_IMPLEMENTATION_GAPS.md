@@ -146,7 +146,7 @@ router.post('/knowledge-bank/query', auth(), queryController.search);
 **Impact:**
 
 - Free users access premium features for free
-- No reason to upgrade for RAG capabilities
+- No realti to upgrade for RAG capabilities
 - Primary product differentiator not enforced
 
 ---

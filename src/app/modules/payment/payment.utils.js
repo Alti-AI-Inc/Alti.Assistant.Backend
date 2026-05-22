@@ -22,7 +22,7 @@ export const purchasePlanTemplate = async (email, user, subscription) => {
             </p>
           </div>
           <p style="color: #999999; margin-top: 20px; text-align: center;">
-            This message was sent by ASON AI. If you have any questions, feel free to contact our support team.
+            This message was sent by Alti AI. If you have any questions, feel free to contact our support team.
           </p>
         </div>
       `,

@@ -307,7 +307,7 @@ POST /api/v1/documents/assistant
 
 ```env
 # Google Cloud Storage (Optional)
-GCS_BUCKET_NAME=ason-documents
+GCS_BUCKET_NAME=alti-documents
 GCP_PROJECT_ID=your-project-id
 GCS_KEY_FILE=/path/to/service-account-key.json
 

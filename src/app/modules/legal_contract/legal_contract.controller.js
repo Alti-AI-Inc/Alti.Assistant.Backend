@@ -3,6 +3,8 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { legalContractService } from './legal_contract.service.js';
+import PDFDocument from 'pdfkit';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 /**
  * Conversational legal contract assistant endpoint
@@ -200,8 +202,6 @@ const downloadContract = catchAsync(async (req, res) => {
 
     const contractText = conversation.metadata.generatedContract;
 
-    // For now, only support text format
-    // TODO: Implement DOCX and PDF generation
     if (format === 'text' || !format) {
       res.setHeader('Content-Type', 'text/plain');
       res.setHeader(
@@ -209,11 +209,130 @@ const downloadContract = catchAsync(async (req, res) => {
         `attachment; filename="contract_${conversationId}.txt"`
       );
       return res.send(contractText);
+    } else if (format === 'pdf') {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: {
+          top: 54,
+          bottom: 54,
+          left: 54,
+          right: 54,
+        },
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="contract_${conversationId}.pdf"`
+      );
+
+      doc.pipe(res);
+
+      const lines = contractText.split('\n');
+      for (const line of lines) {
+        if (line.trim().startsWith('##')) {
+          doc.moveDown(0.5);
+          doc.fontSize(12).font('Helvetica-Bold').text(line.replace(/#/g, '').trim());
+          doc.moveDown(0.5);
+        } else if (line.trim().startsWith('#')) {
+          doc.moveDown(0.5);
+          doc.fontSize(14).font('Helvetica-Bold').text(line.replace(/#/g, '').trim());
+          doc.moveDown(0.5);
+        } else if (line.trim() === '') {
+          doc.moveDown(0.5);
+        } else {
+          let text = line;
+          let fontName = 'Helvetica';
+          if (text.startsWith('**') && text.endsWith('**')) {
+            text = text.replace(/\*\*/g, '');
+            fontName = 'Helvetica-Bold';
+          }
+          doc.fontSize(10).font(fontName).text(text, { align: 'justify', lineGap: 3 });
+        }
+      }
+
+      doc.end();
+      return;
+    } else if (format === 'docx') {
+      const children = [];
+      const lines = contractText.split('\n');
+      for (const line of lines) {
+        if (line.trim().startsWith('##')) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line.replace(/#/g, '').trim(),
+                  bold: true,
+                  size: 24, // 12pt
+                }),
+              ],
+              spacing: { before: 200, after: 100 },
+            })
+          );
+        } else if (line.trim().startsWith('#')) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line.replace(/#/g, '').trim(),
+                  bold: true,
+                  size: 28, // 14pt
+                }),
+              ],
+              spacing: { before: 300, after: 150 },
+            })
+          );
+        } else if (line.trim() === '') {
+          children.push(
+            new Paragraph({
+              children: [new TextRun('')],
+              spacing: { after: 100 },
+            })
+          );
+        } else {
+          let text = line;
+          let bold = false;
+          if (text.startsWith('**') && text.endsWith('**')) {
+            text = text.replace(/\*\*/g, '');
+            bold = true;
+          }
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: text,
+                  bold: bold,
+                  size: 20, // 10pt
+                }),
+              ],
+              spacing: { after: 100 },
+            })
+          );
+        }
+      }
+
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children,
+          },
+        ],
+      });
+
+      const buffer = await Packer.toBuffer(doc);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="contract_${conversationId}.docx"`
+      );
+      return res.send(buffer);
     } else {
       return sendResponse(res, {
-        statusCode: httpStatus.NOT_IMPLEMENTED,
+        statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: `Format '${format}' is not yet supported. Currently only 'text' format is available.`,
+        message: `Format '${format}' is not supported. Supported formats: 'text', 'pdf', 'docx'.`,
       });
     }
   } catch (error) {

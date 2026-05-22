@@ -18,7 +18,7 @@ const generateRandomParticipantName = (length) => {
 module.exports.authStreamingController = catchAsync(async (req, res) => {
   const { AccessToken } = await import('livekit-server-sdk');
   // if this room doesn't exist, it'll be automatically created when the first client joins
-  const roomName = 'ason-ai-room';
+  const roomName = 'alti-ai-room';
   // identifier to be used for participant.
   // it's available as LocalParticipant.identity with livekit-client SDK
 

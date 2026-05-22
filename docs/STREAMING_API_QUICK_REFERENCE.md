@@ -33,7 +33,7 @@ data: {"type":"connected","conversationId":"search_xxx","timestamp":170234567890
 ### 2. Thinking (Multiple)
 
 ```json
-data: {"type":"thinking","content":"Model's reasoning...","timestamp":1702345678902}
+data: {"type":"thinking","content":"Model's realtiing...","timestamp":1702345678902}
 ```
 
 ### 3. Text (Multiple)

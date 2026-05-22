@@ -6,6 +6,8 @@ import { deepResearchService } from './deep_research.service.js';
 import { runDeepResearchAgent } from './deep_research_assistant/workflow.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import { getResearchResultById } from './services/researchStorageService.js';
+import { generatePDFReport } from './services/pdfService.js';
 
 export const performDeepResearch = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
@@ -247,16 +249,43 @@ const getDeepResearchStats = catchAsync(async (req, res) => {
 const downloadPDF = catchAsync(async (req, res) => {
   const { savedId } = req.params;
 
-  // TODO: Implement PDF download logic
-  // This should retrieve the PDF from storage using the savedId
-  // For now, return a placeholder response
+  logger.info(`Deep research PDF download requested for savedId: ${savedId}`);
 
-  return sendResponse(res, {
-    statusCode: httpStatus.NOT_IMPLEMENTED,
-    success: false,
-    message: 'PDF download feature not yet implemented',
-    data: { savedId },
-  });
+  try {
+    const researchResult = await getResearchResultById(savedId);
+
+    if (!researchResult) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Research result not found or has expired',
+      });
+    }
+
+    // Compile PDF on the fly using stateless pdfService.js
+    const pdfReport = await generatePDFReport({
+      title: researchResult.title || 'AI Research Report',
+      query: researchResult.query,
+      answer: researchResult.answer,
+      sources: researchResult.sources,
+      metadata: researchResult.metadata,
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${pdfReport.filename || `research_report_${savedId}.pdf`}"`
+    );
+
+    return res.send(pdfReport.buffer);
+  } catch (error) {
+    logger.error('Error generating deep research PDF:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Failed to compile or download research PDF',
+    });
+  }
 });
 
 export const deepResearchController = {

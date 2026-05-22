@@ -49,7 +49,7 @@ export const sendMailWithNodeMailer = async (mailData) => {
 
   // Send mail with defined transport object
   const info = await transporter.sendMail({
-    from: `"ASON Ai" <${config.mail.google_smtp_user}>`, // sender address
+    from: `"Alti AI" <${config.mail.google_smtp_user}>`, // sender address
     to: userEmail, // list of receivers
     subject: sub, // Subject line
     html: message, // html body

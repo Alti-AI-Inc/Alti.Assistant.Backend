@@ -180,9 +180,9 @@ export const generateInvitationEmailHTML = (data) => {
     </div>
     
     <div class="footer">
-      <p>Need help? Contact us at <a href="mailto:support@asonai.com">support@asonai.com</a></p>
+      <p>Need help? Contact us at <a href="mailto:support@altihq.com">support@altihq.com</a></p>
       <p style="margin-top: 10px;">
-        © ${new Date().getFullYear()} Ason AI. All rights reserved.
+        © ${new Date().getFullYear()} Alti AI. All rights reserved.
       </p>
     </div>
   </div>
@@ -228,9 +228,9 @@ IMPORTANT: This invitation will expire in ${expiryDays} days. Please accept it b
 
 If you didn't expect this invitation or believe it was sent by mistake, you can safely ignore this email.
 
-Need help? Contact us at support@asonai.com
+Need help? Contact us at support@altihq.com
 
-© ${new Date().getFullYear()} Ason AI. All rights reserved.
+© ${new Date().getFullYear()} Alti AI. All rights reserved.
   `.trim();
 };
 

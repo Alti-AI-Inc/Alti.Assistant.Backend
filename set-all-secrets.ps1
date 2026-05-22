@@ -54,8 +54,8 @@ function Set-GcpSecret {
 
 # =============================================================================
 Write-Host ""; Write-Host "-- Database --" -ForegroundColor Cyan
-Set-GcpSecret "DATABASE_LOCAL"            "mongodb+srv://ason-db-username:2kep7suGSMneEHq8@cluster0.piwgo1l.mongodb.net/ASON?retryWrites=true&w=majority&appName=Cluster0"
-Set-GcpSecret "DB_USERNAME"               "ason-db-username"
+Set-GcpSecret "DATABASE_LOCAL"            "mongodb+srv://alti-db-username:2kep7suGSMneEHq8@cluster0.piwgo1l.mongodb.net/Alti?retryWrites=true&w=majority&appName=Cluster0"
+Set-GcpSecret "DB_USERNAME"               "alti-db-username"
 Set-GcpSecret "DB_PASSWORD"               "2kep7suGSMneEHq8"
 
 Write-Host ""; Write-Host "-- Auth / JWT --" -ForegroundColor Cyan

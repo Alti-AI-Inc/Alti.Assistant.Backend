@@ -107,7 +107,7 @@ composio_v2/
 
 **Why This is Overkill:**
 
-- Modern LLMs (GPT-4o, Gemini 2.0) handle multi-step reasoning natively
+- Modern LLMs (GPT-4o, Gemini 2.0) handle multi-step realtiing natively
 - Composio SDK already manages tool execution
 - Most requests are single-step or simple 2-step sequences
 - State persistence isn't needed for synchronous requests
@@ -275,7 +275,7 @@ export const executeMultiStep = async (userMessage, userId) => {
   let executed = await composio.provider.handleToolCalls(userId, result);
 
   // Check if more actions needed
-  if (result.finish_reason === 'tool_calls' && hasMoreSteps(result)) {
+  if (result.finish_realti === 'tool_calls' && hasMoreSteps(result)) {
     // Second LLM call with first result as context
     const contextMessage = `Previous result: ${executed[0].content}`;
     result = await openai.chat.completions.create({
@@ -850,7 +850,7 @@ The current Composio V2 implementation is a textbook example of premature optimi
 
 You've essentially rebuilt what GPT-4o and Gemini 2.0 can do natively:
 
-- Multi-step reasoning ← **LLMs do this**
+- Multi-step realtiing ← **LLMs do this**
 - Tool selection ← **LLMs do this**
 - Parameter extraction ← **LLMs do this**
 - Dependency handling ← **LLMs do this**

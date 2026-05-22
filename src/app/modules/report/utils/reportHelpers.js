@@ -181,7 +181,7 @@ export const validateReportParams = (params) => {
 export const generateReportMetadata = (params) => {
   return {
     generatedAt: new Date().toISOString(),
-    generator: 'ASON Report Generation Module',
+    generator: 'Alti Report Generation Module',
     version: '1.0.0',
     reportType: params.reportType || 'custom',
     outputFormat: params.outputFormat || 'pdf',

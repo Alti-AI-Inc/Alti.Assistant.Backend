@@ -115,7 +115,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --platform managed \
     --region "$REGION" \
     --allow-unauthenticated \
-    --port 80 \
+    --port 8080 \
     --memory "$MEMORY" \
     --cpu "$CPU" \
     --timeout "$TIMEOUT" \

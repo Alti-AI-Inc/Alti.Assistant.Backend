@@ -380,7 +380,7 @@ POST /api/v1/creative-writing/assistant
 
 ## Conclusion
 
-The Creative Writing module is production-ready and fully integrated with the existing ASON Core Service Backend architecture. It provides a powerful, conversational AI assistant for creative writing tasks with comprehensive support for various writing types, styles, and tones.
+The Creative Writing module is production-ready and fully integrated with the existing Alti Core Service Backend architecture. It provides a powerful, conversational AI assistant for creative writing tasks with comprehensive support for various writing types, styles, and tones.
 
 The implementation follows best practices, maintains consistency with existing modules, and includes extensive documentation and testing resources for developers.
 

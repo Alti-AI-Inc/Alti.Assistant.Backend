@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-A complete, production-ready AI-powered report generation module has been successfully implemented for the ASON-Core-Service-Backend. The module enables users to generate professional reports from text messages, uploaded files, or both, with support for multiple input and output formats.
+A complete, production-ready AI-powered report generation module has been successfully implemented for the Alti-Core-Service-Backend. The module enables users to generate professional reports from text messages, uploaded files, or both, with support for multiple input and output formats.
 
 ## ✅ Completed Components
 

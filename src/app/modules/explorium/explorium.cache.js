@@ -23,12 +23,12 @@
  *   business_intent_topics   900    (15m — Bombora signals are real-time)
  *   match_business           604800 (7d  — IDs are stable)
  *   match_prospect           604800 (7d)
- *   business_statistics      300    (5m  — counts shift)
- *   prospect_statistics      300    (5m)
- *   fetch_businesses         300    (5m)
- *   fetch_prospects          300    (5m)
- *   business_events          300    (5m  — real-time signals)
- *   prospect_events          300    (5m)
+ *   business_statistics      3600   (1h  — counts shift)
+ *   prospect_statistics      3600   (1h)
+ *   fetch_businesses         3600   (1h)
+ *   fetch_prospects          3600   (1h)
+ *   business_events          3600   (1h  — real-time signals)
+ *   prospect_events          3600   (1h)
  *   professional_profile     86400  (24h)
  *   contacts_information     21600  (6h  — contact data refreshes)
  *   social_media             43200  (12h)
@@ -62,12 +62,12 @@ export const TTL = {
   business_intent_topics:   900,
   match_business:           604800,
   match_prospect:           604800,
-  business_statistics:      300,
-  prospect_statistics:      300,
-  fetch_businesses:         300,
-  fetch_prospects:          300,
-  business_events:          300,
-  prospect_events:          300,
+  business_statistics:      3600,
+  prospect_statistics:      3600,
+  fetch_businesses:         3600,
+  fetch_prospects:          3600,
+  business_events:          3600,
+  prospect_events:          3600,
   professional_profile:     86400,
   contacts_information:     21600,
   social_media:             43200,
@@ -134,6 +134,96 @@ export async function withCache(type, params, fetcher, ttl) {
 }
 
 /**
+ * Cache-aside wrapper for batch Explorium service calls.
+ * Checks cache first in a single mget, calls fetcher on misses, stores results with correct TTL using mset.
+ * Preserves the exact input order of paramsList.
+ *
+ * @param {string}   type        - Cache type key (determines TTL)
+ * @param {Array<*>} paramsList  - List of parameter objects, one for each lookup
+ * @param {Function} fetcher     - Async function that takes missed params list and returns ordered results array
+ * @param {number}   [ttl]       - Optional TTL override in seconds
+ * @returns {Promise<Array<*>>}
+ */
+export async function withCacheBatch(type, paramsList, fetcher, ttl) {
+  if (!Array.isArray(paramsList) || paramsList.length === 0) {
+    return [];
+  }
+
+  const ttlSecs = ttl ?? TTL[type] ?? TTL.default;
+  const keys = paramsList.map(params => cacheKey(type, params));
+  const results = new Array(paramsList.length);
+  const missIndices = [];
+  const missParams = [];
+
+  // 1. Try batch cache read
+  try {
+    const cached = await RedisClient.mget(keys);
+    for (let i = 0; i < keys.length; i++) {
+      if (cached && cached[i] !== null && cached[i] !== undefined) {
+        results[i] = JSON.parse(cached[i]);
+        _stats.hits++;
+      } else {
+        missIndices.push(i);
+        missParams.push(paramsList[i]);
+        _stats.misses++;
+      }
+    }
+  } catch (err) {
+    _stats.errors++;
+    logger.warn(`[Explorium Cache] mget error: ${err.message}`);
+    // If mget fails, treat all as misses
+    for (let i = 0; i < keys.length; i++) {
+      missIndices.push(i);
+      missParams.push(paramsList[i]);
+      _stats.misses++;
+    }
+  }
+
+  // 2. Resolve misses
+  if (missParams.length > 0) {
+    logger.debug(`[Explorium Cache] Batch MISS for ${missParams.length} items of type ${type}`);
+    try {
+      const freshData = await fetcher(missParams);
+      
+      if (!Array.isArray(freshData)) {
+        throw new Error(`Batch fetcher did not return an array. Expected length: ${missParams.length}`);
+      }
+
+      const setsToCache = [];
+      for (let j = 0; j < missParams.length; j++) {
+        const originalIndex = missIndices[j];
+        const data = freshData[j];
+        results[originalIndex] = data;
+
+        if (data !== null && data !== undefined) {
+          setsToCache.push([keys[originalIndex], JSON.stringify(data)]);
+        }
+      }
+
+      if (setsToCache.length > 0) {
+        try {
+          await RedisClient.mset(setsToCache, ttlSecs);
+          _stats.sets += setsToCache.length;
+        } catch (err) {
+          _stats.errors++;
+          logger.warn(`[Explorium Cache] mset error: ${err.message}`);
+        }
+      }
+    } catch (err) {
+      logger.error(`[Explorium Cache] Batch fetcher error: ${err.message}`);
+      // On fetcher error, make sure we return null or handle gracefully for missed items
+      for (let j = 0; j < missParams.length; j++) {
+        const originalIndex = missIndices[j];
+        results[originalIndex] = null;
+      }
+    }
+  }
+
+  return results;
+}
+
+
+/**
  * Invalidate a single cached entry.
  * Call this after write operations (enrollments, webhook updates, etc.)
  */
@@ -162,4 +252,4 @@ export function resetCacheStats() {
   Object.assign(_stats, { hits: 0, misses: 0, sets: 0, errors: 0 });
 }
 
-export const ExploriumCache = { withCache, invalidateCache, getCacheStats, resetCacheStats, TTL };
+export const ExploriumCache = { withCache, withCacheBatch, invalidateCache, getCacheStats, resetCacheStats, TTL };

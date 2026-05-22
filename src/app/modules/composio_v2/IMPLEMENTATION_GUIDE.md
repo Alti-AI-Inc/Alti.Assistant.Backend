@@ -318,7 +318,7 @@ Available tools: ${tools.map((t) => t.function.name).join(', ')}
 
 IMPORTANT RULES:
 1. Always provide complete, non-null values for all required parameters
-2. For missing information, use reasonable defaults or ask the user
+2. For missing information, use realtiable defaults or ask the user
 3. Execute tools confidently when you have enough information
 4. Chain multiple tools if the task requires it
 5. Be concise and action-oriented`,
@@ -339,10 +339,10 @@ IMPORTANT RULES:
       temperature: 0,
     });
 
-    console.log('OpenAI response received:', response.choices[0].finish_reason);
+    console.log('OpenAI response received:', response.choices[0].finish_realti);
 
     // 6. Check if tools were called
-    if (response.choices[0].finish_reason === 'tool_calls') {
+    if (response.choices[0].finish_realti === 'tool_calls') {
       // Execute tools via Composio
       const toolResults = await composio.provider.handleToolCalls(
         userId,

@@ -2,7 +2,7 @@
 
 ## ✅ Module Complete
 
-Successfully created a comprehensive AI-powered legal contract review module for the ASON Core Service Backend.
+Successfully created a comprehensive AI-powered legal contract review module for the Alti Core Service Backend.
 
 ---
 

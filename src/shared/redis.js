@@ -86,6 +86,48 @@ const del = async (key) => {
   memoryStore.delete(key);
 };
 
+const mget = async (keys) => {
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      return await redisClient.mGet(keys);
+    } catch (err) {
+      logger.warn(`Redis mget failed, falling back to memory: ${err.message}`);
+    }
+  }
+  return keys.map(key => {
+    const entry = memoryStore.get(key);
+    if (!entry) return null;
+    if (entry.expiry && entry.expiry < Date.now()) {
+      memoryStore.delete(key);
+      return null;
+    }
+    return entry.value;
+  });
+};
+
+const mset = async (keyValuePairs, ttlSecs) => {
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      const pipeline = redisClient.multi();
+      for (const [key, value] of keyValuePairs) {
+        if (ttlSecs) {
+          pipeline.set(key, value, { EX: ttlSecs });
+        } else {
+          pipeline.set(key, value);
+        }
+      }
+      await pipeline.exec();
+      return;
+    } catch (err) {
+      logger.warn(`Redis mset failed, falling back to memory: ${err.message}`);
+    }
+  }
+  const expiry = ttlSecs ? Date.now() + ttlSecs * 1000 : null;
+  for (const [key, value] of keyValuePairs) {
+    memoryStore.set(key, { value, expiry });
+  }
+};
+
 const setAccessToken = async (userId, token) => {
   const key = `access-token:${userId}`;
   await set(key, token, { EX: Number(config.redis?.expires_in || 3600) });
@@ -122,6 +164,8 @@ export const RedisClient = {
   set,
   get,
   del,
+  mget,
+  mset,
   disconnect,
   setAccessToken,
   getAccessToken,

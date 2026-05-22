@@ -341,4 +341,4 @@ For issues, questions, or feature requests, please contact the development team 
 
 ## License
 
-This module is part of the ASON Core Service Backend and follows the same license terms.
+This module is part of the Alti Core Service Backend and follows the same license terms.

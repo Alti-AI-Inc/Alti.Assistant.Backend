@@ -1,7 +1,7 @@
-# OpenMemory Integration Analysis for ASON Search System
+# OpenMemory Integration Analysis for Alti Search System
 
 **Date:** November 4, 2025  
-**Repository:** ASON-Core-Service-Backend  
+**Repository:** Alti-Core-Service-Backend  
 **Branch:** open_memory  
 **Analysis Source:** [CaviraOSS/OpenMemory](https://github.com/CaviraOSS/OpenMemory)
 
@@ -21,7 +21,7 @@ OpenMemory is a self-hosted AI memory engine that could significantly enhance ou
 
 ```
 ┌─────────────────────────────────────────────────┐
-│          ASON Search System (Current)           │
+│          Alti Search System (Current)           │
 ├─────────────────────────────────────────────────┤
 │                                                 │
 │  User Query → LangGraph Workflow               │
@@ -102,7 +102,7 @@ OpenMemory is a self-hosted AI memory engine that could significantly enhance ou
 
 ## Feature Comparison
 
-| Feature                   | Current ASON System       | With OpenMemory Integration                                        |
+| Feature                   | Current Alti System       | With OpenMemory Integration                                        |
 | ------------------------- | ------------------------- | ------------------------------------------------------------------ |
 | **Memory Type**           | Flat conversation history | 5 cognitive memory sectors                                         |
 | **Cross-Session Context** | ❌ None                   | ✅ Full historical context                                         |
@@ -265,7 +265,7 @@ Result: Memory B ranks higher (more important + recent + connected)
 
 ---
 
-## Use Cases for ASON
+## Use Cases for Alti
 
 ### Use Case 1: Developer Learning Path Tracking
 
@@ -391,7 +391,7 @@ With OpenMemory:
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│              Enhanced ASON Search System                       │
+│              Enhanced Alti Search System                       │
 ├───────────────────────────────────────────────────────────────┤
 │                                                               │
 │  1. User Query                                                │
@@ -1048,7 +1048,7 @@ If Total Score < 2.5: Defer until metrics improve
 
 ## Conclusion
 
-OpenMemory represents a significant architectural enhancement that could transform ASON from a stateless search system into an **intelligent, context-aware knowledge assistant**. The key value propositions are:
+OpenMemory represents a significant architectural enhancement that could transform Alti from a stateless search system into an **intelligent, context-aware knowledge assistant**. The key value propositions are:
 
 1. **Cross-session memory** - Users don't start from scratch each time
 2. **Cognitive organization** - Memories organized like human cognition

@@ -306,17 +306,27 @@ const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
  */
 export const checkVideoGenerationStatus = async (jobId) => {
   try {
-    // TODO: Replace with actual API call to check job status
-    // Example:
-    // const response = await fetch(`https://api.runwayml.com/v1/videos/generations/${jobId}`, {
-    //   headers: {
-    //     'Authorization': `Bearer ${config.runwayApiKey}`
-    //   }
-    // });
-    // const result = await response.json();
-    // return result;
+    // If jobId represents a Vertex AI operation (contains 'projects/' or '/operations/')
+    if (typeof jobId === 'string' && (jobId.includes('projects/') || jobId.includes('/operations/'))) {
+      const operationStatus = await getOperationStatus(jobId);
+      
+      // Map to consistent format
+      let status = 'processing';
+      if (operationStatus.done) {
+        status = operationStatus.error ? 'failed' : 'completed';
+      }
+      
+      return {
+        id: jobId,
+        status,
+        progress: operationStatus.done ? 100 : 50,
+        videoUrl: operationStatus.response?.videoUrl || null,
+        error: operationStatus.error?.message || null,
+        raw: operationStatus
+      };
+    }
 
-    // PLACEHOLDER IMPLEMENTATION
+    // Fallback/Mock implementation
     return {
       status: 'completed',
       videoUrl: `https://example.com/generated-videos/video_${jobId}.mp4`,
@@ -336,23 +346,20 @@ export const checkVideoGenerationStatus = async (jobId) => {
  */
 export const getAvailableVideoModels = async () => {
   try {
-    // TODO: Replace with actual API call to get available models
-
-    // PLACEHOLDER IMPLEMENTATION
     return [
       {
-        id: 'realistic',
-        name: 'Realistic',
-        description: 'Photorealistic video generation',
-        maxDuration: 10,
-        resolutions: ['1024x576', '1280x720', '1920x1080'],
+        id: 'veo-3.0-fast-generate-001',
+        name: 'Google Veo 3.0 Fast',
+        description: 'Optimized fast high-quality video generation model',
+        maxDuration: 8,
+        resolutions: ['720p', '1024x576'],
       },
       {
-        id: 'animated',
-        name: 'Animated',
-        description: 'Cartoon/animated style video generation',
-        maxDuration: 15,
-        resolutions: ['1024x576', '1280x720'],
+        id: 'veo-3.0-generate-001',
+        name: 'Google Veo 3.0 Standard',
+        description: 'Cinematic high-fidelity video generation model',
+        maxDuration: 10,
+        resolutions: ['720p', '1080p', '1920x1080'],
       },
       {
         id: 'cinematic',
@@ -362,8 +369,6 @@ export const getAvailableVideoModels = async () => {
         resolutions: ['1920x1080', '2560x1440'],
       },
     ];
-
-    // eslint-disable-next-line no-unreachable
   } catch (error) {
     console.error('Error getting available video models:', error);
     return [];

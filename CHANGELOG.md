@@ -25,7 +25,7 @@ All notable changes to this project will be documented in this file.
 ## [1.4.0] - 2026-05-22
 
 ### Added
-- **Modernized GCP Vertex Grounding & Core Engine**: Refactored the core `gcp-vertex-grounding.service.js` to standardize entirely on the modern, high-performance `@google/genai` client, deprecating legacy `@google/generative-ai` package imports. Upgraded grounded chat queries, smart routing architectures, and reasoning swarm agents (Self-Critic, Fact Validation, Semantic Drift, Logic Coherence, Synapse, Cloud Architect, Gödel Logic) to the state-of-the-art `gemini-3.1-pro` model, and all core standard Gemini services to the ultra-fast, high-performance `gemini-3.5-flash` engine.
+- **Modernized GCP Vertex Grounding & Core Engine**: Refactored the core `gcp-vertex-grounding.service.js` to standardize entirely on the modern, high-performance `@google/genai` client, deprecating legacy `@google/generative-ai` package imports. Upgraded grounded chat queries, smart routing architectures, and realtiing swarm agents (Self-Critic, Fact Validation, Semantic Drift, Logic Coherence, Synapse, Cloud Architect, Gödel Logic) to the state-of-the-art `gemini-3.1-pro` model, and all core standard Gemini services to the ultra-fast, high-performance `gemini-3.5-flash` engine.
 - **Enhanced SynapseRouter Smart-Routing**: Fine-tuned specialized intent checks to run high-specificity expert domain and academic searches before checking financial keywords to resolve keyword shadowing. Added specific support for `'csv record'` and `'bad json'` parsing intents.
 - **Universal Version Sync**: Bounded backend, frontend, and monorepo versions to `1.4.0`.
 

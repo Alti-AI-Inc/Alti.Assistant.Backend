@@ -66,13 +66,13 @@ The Legal Contract Generation module is an AI-powered system that creates profes
       {
         "id": "q1",
         "question": "What is the employer's full legal name and address?",
-        "reason": "Required for legal entity identification",
+        "realti": "Required for legal entity identification",
         "type": "text"
       },
       {
         "id": "q2",
         "question": "What is the job title and position description?",
-        "reason": "Defines the employment role and responsibilities",
+        "realti": "Defines the employment role and responsibilities",
         "type": "text"
       }
       // ... more questions
@@ -321,19 +321,19 @@ Example for Employment Contract:
     {
       "id": "q1",
       "question": "What is the employer's full legal name and registered address?",
-      "reason": "Required for legal entity identification in the contract",
+      "realti": "Required for legal entity identification in the contract",
       "type": "text"
     },
     {
       "id": "q2",
       "question": "What is the employee's job title and start date?",
-      "reason": "Essential for defining the employment relationship",
+      "realti": "Essential for defining the employment relationship",
       "type": "text"
     },
     {
       "id": "q3",
       "question": "What is the compensation structure (salary/hourly rate and frequency)?",
-      "reason": "Required for payment terms",
+      "realti": "Required for payment terms",
       "type": "text"
     }
   ]

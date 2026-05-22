@@ -88,7 +88,7 @@ gcloud run deploy $ServiceName `
     --platform managed `
     --region $Region `
     --allow-unauthenticated `
-    --port 80 `
+    --port 8080 `
     --memory $Memory `
     --cpu $Cpu `
     --timeout $Timeout `

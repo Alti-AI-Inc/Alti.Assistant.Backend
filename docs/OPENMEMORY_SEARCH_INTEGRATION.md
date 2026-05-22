@@ -6,7 +6,7 @@ This guide walks you through integrating [OpenMemory](https://github.com/CaviraO
 
 1. [Prerequisites](#1-prerequisites)
 2. [Bring Up OpenMemory](#2-bring-up-openmemory)
-3. [Expose OpenMemory Config in ASON](#3-expose-openmemory-config-in-ason)
+3. [Expose OpenMemory Config in Alti](#3-expose-openmemory-config-in-alti)
 4. [Add the OpenMemory Client](#4-add-the-openmemory-client)
 5. [Augment Search Retrieval (`intelligentSearch.js`)](#5-augment-search-retrieval-intelligentsearchjs)
 6. [Register an OpenMemory ReAct Tool (`reactAgent.js`)](#6-register-an-openmemory-react-tool-reactagentjs)
@@ -61,7 +61,7 @@ curl http://localhost:8080/health
 
 Expected: `{ "status": "ok" }`.
 
-## 3. Expose OpenMemory Config in ASON
+## 3. Expose OpenMemory Config in Alti
 
 Update `config/index.js` (or the relevant config module) with a new block:
 

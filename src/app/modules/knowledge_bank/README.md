@@ -259,4 +259,4 @@ For detailed API documentation, see [KNOWLEDGE_BANK_API.md](../../docs/KNOWLEDGE
 
 ## License
 
-Proprietary - ASON Core Service Backend
+Proprietary - Alti Core Service Backend

@@ -24,7 +24,9 @@
 
 import { logger } from '../../../shared/logger.js';
 import {
+  matchBusinessesService,
   matchBusinessService,
+  bulkEnrichBusinessesService,
   enrichBusinessSingleService,
   fetchProspectsService,
   fetchBusinessesService,
@@ -47,7 +49,7 @@ import {
   analyzeProspect,
   naturalLanguageSearch,
 } from '../../modules/explorium/explorium.agent.js';
-import { withCache } from '../../modules/explorium/explorium.cache.js';
+import { withCache, withCacheBatch } from '../../modules/explorium/explorium.cache.js';
 import { googleSearch } from '../../modules/search/tools.js';
 
 // ─── Entity extraction ────────────────────────────────────────────────────────
@@ -461,7 +463,7 @@ async function fetchCompanyResearchData(query, conversationHistory = []) {
           getCompanyIntelligenceService(domain, enrichments)
         ).catch(err => {
           logger.error(`[ExploriumSmartRouter] Intel fetch error: ${err.message}`);
-          return null;
+          return { matched: false, error: err.message };
         }),
         withCache('fetch_prospects', { domain, limit: 5 }, () =>
           getDecisionMakersService(domain, ['c-suite', 'vp', 'director'], [], true, false, 5)
@@ -476,7 +478,7 @@ async function fetchCompanyResearchData(query, conversationHistory = []) {
       intel = await withCache(
         'competitive_landscape',
         { domain, types: enrichments },
-        () => getCompanyIntelligenceService(domain, enrichments).catch(() => null)
+        () => getCompanyIntelligenceService(domain, enrichments).catch((err) => ({ matched: false, error: err.message }))
       );
     }
 
@@ -756,36 +758,93 @@ async function fetchSalesCoachData(query, conversationHistory = []) {
 async function fetchLeadScorerData(query, conversationHistory = []) {
   // Try to extract multiple company names/domains from the query
   const lines = query.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean);
-  const companies = [];
-
+  
+  // Resolve domains/company names for each line
+  const resolvedTargets = [];
   for (const line of lines.slice(0, 10)) { // Max 10
     let { domain, companyName } = resolveEntity(line, []);
-    if (!domain && companyName) {
-      const resolved = await resolveNameToDomain(companyName);
-      if (resolved) {
-        domain = resolved.domain;
-      }
+    if (domain) {
+      resolvedTargets.push({ domain });
+    } else if (companyName) {
+      resolvedTargets.push({ companyName });
     }
-    if (!domain) continue;
-
-    try {
-      const match = await withCache('match_business', { domain }, () =>
-        matchBusinessService({ domain }).catch(() => null)
-      );
-      if (match?.id || match?.business_id) {
-        const businessId = match.id || match.business_id;
-        const enriched = await withCache('firmographics', { businessId }, () =>
-          enrichBusinessSingleService(businessId, 'firmographics').catch(() => null)
-        );
-        companies.push({ domain, business_id: businessId, data: enriched });
-      }
-    } catch { /* skip */ }
   }
 
-  // If no explicit list — get a sample for scoring demo
-  if (companies.length === 0) {
+  if (resolvedTargets.length === 0) {
     const sample = await naturalLanguageSearch(query, 10).catch(() => null);
     return { companies: [], sample_results: sample };
+  }
+
+  // Resolve all companyNames to domains in parallel to minimize waterfall latency
+  const resolvedDomains = await Promise.all(
+    resolvedTargets.map(async (target) => {
+      if (target.domain) return target.domain;
+      const resolved = await resolveNameToDomain(target.companyName);
+      return resolved?.domain || null;
+    })
+  );
+
+  const activeDomains = Array.from(new Set(resolvedDomains.filter(Boolean)));
+  if (activeDomains.length === 0) {
+    return { companies: [] };
+  }
+
+  // Batch match all resolved domains to get business_ids in a single cached call
+  const matchParamsList = activeDomains.map(domain => ({ domain }));
+  const matchResults = await withCacheBatch(
+    'match_business',
+    matchParamsList,
+    async (missed) => {
+      logger.info(`[ExploriumSmartRouter] Batch matching ${missed.length} domains`);
+      const apiRes = await matchBusinessesService(missed).catch(() => null);
+      const apiResults = apiRes?.results || [];
+      return missed.map((item, idx) => apiResults[idx] || null);
+    }
+  );
+
+  // Filter matched businesses with a valid businessId
+  const matchedBusinesses = [];
+  const enrichParamsList = [];
+
+  for (let i = 0; i < activeDomains.length; i++) {
+    const domain = activeDomains[i];
+    const match = matchResults[i];
+    const businessId = match?.id || match?.business_id;
+    if (businessId) {
+      matchedBusinesses.push({ domain, businessId });
+      enrichParamsList.push({ businessId });
+    }
+  }
+
+  if (enrichParamsList.length === 0) {
+    return { companies: [] };
+  }
+
+  // Batch enrich firmographics for all matched businesses in a single cached call
+  const enrichResults = await withCacheBatch(
+    'firmographics',
+    enrichParamsList,
+    async (missed) => {
+      const missedIds = missed.map(p => p.businessId);
+      logger.info(`[ExploriumSmartRouter] Batch enriching ${missedIds.length} businesses for firmographics`);
+      const apiRes = await bulkEnrichBusinessesService(missedIds, 'firmographics').catch(() => null);
+      const apiResults = apiRes?.results || [];
+      
+      const resultMap = {};
+      for (const item of apiResults) {
+        const id = item?.business_id || item?.id;
+        if (id) resultMap[id] = item;
+      }
+      return missed.map(p => resultMap[p.businessId] || null);
+    }
+  );
+
+  // Assemble final company payloads
+  const companies = [];
+  for (let i = 0; i < matchedBusinesses.length; i++) {
+    const { domain, businessId } = matchedBusinesses[i];
+    const data = enrichResults[i];
+    companies.push({ domain, business_id: businessId, data });
   }
 
   return { companies };
