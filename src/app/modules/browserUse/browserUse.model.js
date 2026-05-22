@@ -36,6 +36,11 @@ const responseSchema = new mongoose.Schema(
 const browserSessionSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Tenant',
+      default: null,
+    },
     responses: [responseSchema],
   },
   { timestamps: true }

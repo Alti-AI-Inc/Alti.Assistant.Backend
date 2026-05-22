@@ -50,6 +50,29 @@ const registerService = async (req) => {
 
       // Auto-accept invitation if token provided
       if (invitationToken) {
+        // Pre-check seat limit to block registration if seat usage is at maximum capacity
+        const invitation = await TenantInvitation.findOne({
+          token: invitationToken,
+        });
+
+        if (invitation && invitation.email.toLowerCase() === email.toLowerCase()) {
+          if (!invitation.isExpired() && invitation.status === 'pending') {
+            const subscription = await subscriptionService.getTenantSubscription(
+              invitation.tenantId
+            );
+            if (
+              subscription &&
+              !subscription.limits.unlimitedSeats &&
+              subscription.seats.used >= subscription.seats.total
+            ) {
+              throw new ApiError(
+                httpStatus.FORBIDDEN,
+                'Seat limit reached. This workspace cannot accept more members. Please ask the owner to purchase more seats.'
+              );
+            }
+          }
+        }
+
         try {
           const invitation = await TenantInvitation.findOne({
             token: invitationToken,
@@ -405,6 +428,29 @@ const loginService = async (
 
   // Auto-accept invitation if token provided
   if (invitationToken) {
+    // Pre-check seat limit to block login auto-acceptance if seat usage is at maximum capacity
+    const invitation = await TenantInvitation.findOne({
+      token: invitationToken,
+    });
+
+    if (invitation && invitation.email.toLowerCase() === email.toLowerCase()) {
+      if (!invitation.isExpired() && invitation.status === 'pending') {
+        const subscription = await subscriptionService.getTenantSubscription(
+          invitation.tenantId
+        );
+        if (
+          subscription &&
+          !subscription.limits.unlimitedSeats &&
+          subscription.seats.used >= subscription.seats.total
+        ) {
+          throw new ApiError(
+            httpStatus.FORBIDDEN,
+            'Seat limit reached. This workspace cannot accept more members. Please ask the owner to purchase more seats.'
+          );
+        }
+      }
+    }
+
     try {
       const invitation = await TenantInvitation.findOne({
         token: invitationToken,

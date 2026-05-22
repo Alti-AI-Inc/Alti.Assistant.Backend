@@ -145,6 +145,19 @@ const acceptInvitation = async (token, userId) => {
     );
   }
 
+  // Check if seat limit is reached (available seats = total - used)
+  const subscription = await subscriptionService.getTenantSubscription(
+    invitation.tenantId
+  );
+  if (subscription) {
+    if (!subscription.limits.unlimitedSeats && subscription.seats.used >= subscription.seats.total) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Seat limit reached. This workspace cannot accept more members. Please ask the owner to purchase more seats.'
+      );
+    }
+  }
+
   // Update user with tenant info
   user.tenantId = invitation.tenantId;
   user.tenantRole = invitation.role;

@@ -76,7 +76,48 @@ export const routeAndEnhancePrompt = async (prompt) => {
         block += `| 🎯 **Current AVM** | **${formatCurrency(avm.valuation)}** | **${formatCurrency(avm.lowValue)}** - **${formatCurrency(avm.highValue)}** |\n`;
         block += `| 📈 **Est. Monthly Rent** | **${formatCurrency(avm.rentalValuation)}/mo** | Rent yields: **${((avm.rentalValuation * 12 / avm.valuation) * 100).toFixed(2)}%** |\n`;
         block += `| 🎯 **Confidence Score** | **${avm.confidenceScore || 0}%** | AVM Precision: High |\n\n`;
+
+        // Financial investment formulas
+        const annualGrossRent = avm.rentalValuation * 12;
+        const estOperatingExpenses = annualGrossRent * 0.45;
+        const netOperatingIncome = annualGrossRent - estOperatingExpenses;
+        const capRate = (netOperatingIncome / avm.valuation) * 100;
+        const grossRentMultiplier = avm.valuation / annualGrossRent;
+
+        // Assumed 30-year fixed mortgage at 6.5% interest rate with 20% down
+        const purchasePrice = avm.valuation;
+        const downPayment = purchasePrice * 0.20;
+        const loanAmount = purchasePrice * 0.80;
         
+        const interestRateYearly = 0.065;
+        const interestRateMonthly = interestRateYearly / 12;
+        const numberOfPayments = 360;
+        const monthlyMortgagePI = loanAmount * (interestRateMonthly * Math.pow(1 + interestRateMonthly, numberOfPayments)) / (Math.pow(1 + interestRateMonthly, numberOfPayments) - 1);
+        
+        const monthlyOperatingExpenses = estOperatingExpenses / 12;
+        const totalMonthlyOutflow = monthlyMortgagePI + monthlyOperatingExpenses;
+        const netMonthlyCashFlow = avm.rentalValuation - totalMonthlyOutflow;
+        const annualNetCashFlow = netMonthlyCashFlow * 12;
+        const cashOnCashReturn = (annualNetCashFlow / downPayment) * 100;
+
+        block += `### 🏢 Institutional Investment Metrics\n`;
+        block += `- **Net Operating Income (NOI)**: **${formatCurrency(Math.round(netOperatingIncome))}** /year (assuming **45%** operating expense ratio)\n`;
+        block += `- **Capitalization Rate (Cap Rate)**: **${capRate.toFixed(2)}%** (implied capitalization yield based on AVM)\n`;
+        block += `- **Gross Rent Multiplier (GRM)**: **${grossRentMultiplier.toFixed(2)}x**\n\n`;
+
+        block += `### 💸 30-Year Mortgage Cash Flow Analysis\n`;
+        block += `*Assumes standard 20% down payment, 30-year amortization, and **6.50%** interest rate.*\n\n`;
+        block += `| Financing Attribute | Value Detail | Calculated Target |\n`;
+        block += `|---------------------|--------------|-------------------|\n`;
+        block += `| 💰 **Acquisition Cost** | **${formatCurrency(purchasePrice)}** | Valuation Purchase Base |\n`;
+        block += `| 💵 **Down Payment (20%)** | **${formatCurrency(Math.round(downPayment))}** | Initial Capital Outlay |\n`;
+        block += `| 🏛️ **Financed Loan (80%)** | **${formatCurrency(Math.round(loanAmount))}** | Funded Mortgage Debt |\n`;
+        block += `| 💸 **Monthly Mortgage (P&I)** | **${formatCurrency(Math.round(monthlyMortgagePI))}/mo** | 30-Yr Fixed @ **6.5%** |\n`;
+        block += `| 📉 **Operating Expenses (45%)** | **${formatCurrency(Math.round(monthlyOperatingExpenses))}/mo** | Taxes, Ins, Maint, Vac |\n`;
+        block += `| 📈 **Total Monthly Outlay** | **${formatCurrency(Math.round(totalMonthlyOutflow))}/mo** | Combined Debt + OpEx |\n`;
+        block += `| 💰 **Net Monthly Cash Flow** | **${formatCurrency(Math.round(netMonthlyCashFlow))}/mo** | **${netMonthlyCashFlow >= 0 ? 'Positive Yield 🟢' : 'Negative Carry 🔴'}** |\n`;
+        block += `| 💎 **Cash-on-Cash Return** | **${cashOnCashReturn.toFixed(2)}%** | **${cashOnCashReturn.toFixed(2)}%** Annual Yield |\n\n`;
+
         // Estimated equity calculation
         if (detail.taxAssessedValue) {
           block += `> **Tax Assessed Value:** **${formatCurrency(detail.taxAssessedValue)}** | AVM premium over tax base: **${((avm.valuation / detail.taxAssessedValue - 1) * 100).toFixed(1)}%**\n`;
@@ -93,7 +134,11 @@ export const routeAndEnhancePrompt = async (prompt) => {
       const propId = entities.propertyId || entities.address || 'prop_90210_1';
       const [detail, comps] = await Promise.all([
         realestateService.getPropertyDetailService(propId),
-        realestateService.getPropertyCompsService(propId)
+        realestateService.getPropertyCompsService({
+          propertyId: propId,
+          radiusMiles: entities.radiusMiles || null,
+          compsLimit: entities.compsLimit || null
+        })
       ]);
 
       let block = `## 📊 Comparable Sales Analysis (Comps)\n\n`;
@@ -181,7 +226,12 @@ export const routeAndEnhancePrompt = async (prompt) => {
       const criteria = {
         city: entities.city || 'Atlanta',
         state: entities.state || 'GA',
-        zip: entities.zip || undefined
+        zip: entities.zip || undefined,
+        minPrice: entities.minPrice || undefined,
+        maxPrice: entities.maxPrice || undefined,
+        minBeds: entities.minBeds || undefined,
+        minBaths: entities.minBaths || undefined,
+        propertyType: entities.propertyType || undefined
       };
       const mls = await realestateService.searchMlsService(criteria);
 

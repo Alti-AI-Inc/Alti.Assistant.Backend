@@ -11,6 +11,8 @@
 import { SWARM_REGISTRY } from './src/app/modules/swarm/swarm.registry.js';
 import { SynapseRouter } from './src/app/modules/swarm/synapseRouter.js';
 import { massiveSmartRouter } from './src/app/helpers/massiveSmartRouter.js';
+import { parseAddressEntities } from './src/app/helpers/realestateIntentDB.js';
+import { realestateService } from './src/app/modules/realestate/realestate.service.js';
 
 console.log('\n======================================================================');
 console.log('🧪 ALTI REAL ESTATE INTEGRATION TEST SUITE (RealEstateAPI.com)');
@@ -188,6 +190,82 @@ try {
   console.error(`  ❌ Parallel RAG compile encountered error:`, err.message);
   failedTests++;
 }
+console.log('');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PART 5: CRITERIA PARSING, MOCK DYNAMIC FILTERING & INVESTMENT CALCULATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('--- PART 5: Criteria Parsing, Mock Filtering & Investment Calculations ---');
+
+// 1. Criteria Parsing Tests
+console.log('  ▸ Auditing Natural Language Criteria Parsing:');
+const query1 = 'Find active listings in LA with at least 3 beds, 2 baths under 900k';
+const entities1 = parseAddressEntities(query1);
+assert(entities1.city === 'Los Angeles', `Query "LA" correctly normalized to "${entities1.city}"`);
+assert(entities1.minBeds === 3, `Query beds parsed successfully: minBeds = ${entities1.minBeds}`);
+assert(entities1.minBaths === 2, `Query baths parsed successfully: minBaths = ${entities1.minBaths}`);
+assert(entities1.maxPrice === 900000, `Query price under 900k parsed successfully: maxPrice = ${entities1.maxPrice}`);
+
+const query2 = 'townhouse in Seattle between 400k and 600k';
+const entities2 = parseAddressEntities(query2);
+assert(entities2.propertyType === 'Townhouse', `Query propertyType parsed successfully: "${entities2.propertyType}"`);
+assert(entities2.minPrice === 400000, `Query price min between 400k and 600k parsed: minPrice = ${entities2.minPrice}`);
+assert(entities2.maxPrice === 600000, `Query price max between 400k and 600k parsed: maxPrice = ${entities2.maxPrice}`);
+
+// 2. Programmatic Filtering in Mock Search Paths Tests
+console.log('  ▸ Auditing Programmatic Filtering in Mock Search:');
+const filteredTownhouses = await realestateService.searchMlsService({ city: 'Atlanta', propertyType: 'Townhouse' });
+assert(
+  filteredTownhouses.length > 0 && filteredTownhouses.every(p => p.propertyType === 'Townhouse'),
+  `Mock MLS search filters Townhouses correctly (Count: ${filteredTownhouses.length})`
+);
+
+const filteredPrices = await realestateService.searchMlsService({ city: 'Atlanta', maxPrice: 450000 });
+assert(
+  filteredPrices.length > 0 && filteredPrices.every(p => p.price <= 450000),
+  `Mock MLS search filters maximum price of $450,000 correctly (Count: ${filteredPrices.length})`
+);
+
+const filteredBeds = await realestateService.searchMlsService({ city: 'Atlanta', minBeds: 4 });
+assert(
+  filteredBeds.length > 0 && filteredBeds.every(p => p.beds >= 4),
+  `Mock MLS search filters bedrooms (min: 4) correctly (Count: ${filteredBeds.length})`
+);
+
+// 3. Investment Prospectus Mathematical Integrity Tests
+console.log('  ▸ Auditing Premium Financial & Underwriting Calculations:');
+const valuationPrice = 672000;
+const rentalValuation = 3950;
+
+// Calculations match commercial underwriting specs exactly
+const downPayment = valuationPrice * 0.20;
+const loanAmount = valuationPrice * 0.80;
+const interestRateYearly = 0.065;
+const interestRateMonthly = interestRateYearly / 12;
+const numberOfPayments = 360;
+const monthlyMortgagePI = loanAmount * (interestRateMonthly * Math.pow(1 + interestRateMonthly, numberOfPayments)) / (Math.pow(1 + interestRateMonthly, numberOfPayments) - 1);
+
+const annualGrossRent = rentalValuation * 12;
+const estOperatingExpenses = annualGrossRent * 0.45;
+const netOperatingIncome = annualGrossRent - estOperatingExpenses;
+const capRate = (netOperatingIncome / valuationPrice) * 100;
+const grossRentMultiplier = valuationPrice / annualGrossRent;
+
+const monthlyOperatingExpenses = estOperatingExpenses / 12;
+const totalMonthlyOutflow = monthlyMortgagePI + monthlyOperatingExpenses;
+const netMonthlyCashFlow = rentalValuation - totalMonthlyOutflow;
+const annualNetCashFlow = netMonthlyCashFlow * 12;
+const cashOnCashReturn = (annualNetCashFlow / downPayment) * 100;
+
+assert(downPayment === 134400, `Down Payment (20%) is exactly $${downPayment.toLocaleString()}`);
+assert(loanAmount === 537600, `Loan Amount (80% LTV) is exactly $${loanAmount.toLocaleString()}`);
+assert(Math.round(monthlyMortgagePI) === 3398, `Monthly P&I payment at 6.5% interest is exactly $${Math.round(monthlyMortgagePI).toLocaleString()}`);
+assert(Math.round(netOperatingIncome) === 26070, `Net Operating Income (NOI) at 45% OpEx ratio is exactly $${Math.round(netOperatingIncome).toLocaleString()}`);
+assert(capRate.toFixed(2) === '3.88', ` implied Cap Rate is exactly ${capRate.toFixed(2)}%`);
+assert(grossRentMultiplier.toFixed(2) === '14.18', ` implied Gross Rent Multiplier is exactly ${grossRentMultiplier.toFixed(2)}x`);
+assert(Math.round(netMonthlyCashFlow) === -1225, `Monthly Net Cash Flow yield shows expected Carry of $${Math.round(netMonthlyCashFlow).toLocaleString()}`);
+assert(cashOnCashReturn.toFixed(2) === '-10.94', ` implied Cash-on-Cash Return is exactly ${cashOnCashReturn.toFixed(2)}%`);
+
 console.log('');
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -70,7 +70,9 @@ router.post(
 
 // Usage tracking
 router.get('/usage-limit/:limitType', subscriptionController.checkUsageLimit);
+router.get('/check-limit', subscriptionController.checkUsageLimit);
 router.post('/increment-usage', subscriptionController.incrementUsage);
 router.get('/usage-stats', subscriptionController.getUsageStats);
+router.get('/usage', subscriptionController.getUsageStats);
 
 export default router;

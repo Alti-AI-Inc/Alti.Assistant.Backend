@@ -324,10 +324,10 @@ const removeSeat = catchAsync(async (req, res) => {
  */
 const checkUsageLimit = catchAsync(async (req, res) => {
   const userId = req.user._id;
-  const { limitType } = req.params;
+  const limitType = req.params.limitType || req.query.limitType;
 
-  if (!['webSearch', 'deepResearch'].includes(limitType)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid limit type');
+  if (!limitType || !['webSearch', 'deepResearch'].includes(limitType)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid or missing limit type');
   }
 
   const usageInfo = await subscriptionService.checkUsageLimit(

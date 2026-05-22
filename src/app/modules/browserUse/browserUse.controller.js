@@ -5,7 +5,8 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { BrowserUseServices } from './browserUse.service.js';
 
 const runTaskController = catchAsync(async (req, res) => {
-  const { prompt, userId, sessionId, structured_output_json } = req.body;
+  const { prompt, sessionId, structured_output_json } = req.body;
+  const userId = req.user?._id || req.body.userId;
 
   if (!prompt || !userId) {
     throw new ApiError(
@@ -18,7 +19,8 @@ const runTaskController = catchAsync(async (req, res) => {
     userId,
     sessionId, // This will be null/undefined for a new session
     prompt,
-    structured_output_json
+    structured_output_json,
+    req
   );
 
   sendResponse(res, {
@@ -45,9 +47,12 @@ const getTaskStatusController = catchAsync(async (req, res) => {
 });
 
 const getUserSessionsController = catchAsync(async (req, res) => {
-  // const userId = req.user._id; // Assuming auth middleware places user object on req
-  const { userId } = req.params; // Assuming auth middleware places user object on req
-  const result = await BrowserUseServices.getSessionsForUserService(userId);
+  const userId = req.user?._id || req.params.userId;
+  if (!userId) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
+  }
+  
+  const result = await BrowserUseServices.getSessionsForUserService(userId, req);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -57,11 +62,16 @@ const getUserSessionsController = catchAsync(async (req, res) => {
 });
 
 const getSessionByIdController = catchAsync(async (req, res) => {
-  const { sessionId, userId } = req.params;
-  // const userId = req.user._id; // From auth middleware
+  const { sessionId } = req.params;
+  const userId = req.user?._id || req.params.userId;
+  if (!userId) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
+  }
+
   const result = await BrowserUseServices.getSessionByIdService(
     sessionId,
-    userId
+    userId,
+    req
   );
   sendResponse(res, {
     statusCode: httpStatus.OK,

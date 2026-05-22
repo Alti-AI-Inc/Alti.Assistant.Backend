@@ -38,6 +38,21 @@ const INTENT_KEYWORDS = {
 /**
  * Parses address entities out of an unstructured query string.
  */
+/**
+ * Helper to parse price/numeric abbreviations like "500k" -> 500000, "1.2m" -> 1200000
+ */
+const parseNumericAbbreviation = (str) => {
+  if (!str) return null;
+  const clean = str.toLowerCase().replace(/[\$,]/g, '').trim();
+  if (clean.endsWith('k')) {
+    return parseFloat(clean) * 1000;
+  }
+  if (clean.endsWith('m') || clean.endsWith('million')) {
+    return parseFloat(clean) * 1000000;
+  }
+  return parseFloat(clean);
+};
+
 export const parseAddressEntities = (query) => {
   const q = query.toLowerCase();
 
@@ -57,9 +72,109 @@ export const parseAddressEntities = (query) => {
     city = inCityMatch[1].trim();
   }
 
+  const CITY_NORMALIZATION_MAP = {
+    'la': 'Los Angeles',
+    'los angeles': 'Los Angeles',
+    'nyc': 'New York',
+    'new york': 'New York',
+    'sf': 'San Francisco',
+    'san francisco': 'San Francisco',
+    'atl': 'Atlanta',
+    'atlanta': 'Atlanta',
+    'mia': 'Miami',
+    'miami': 'Miami'
+  };
+
+  if (city && CITY_NORMALIZATION_MAP[city.toLowerCase()]) {
+    city = CITY_NORMALIZATION_MAP[city.toLowerCase()];
+  }
+
+  if (!city) {
+    if (q.includes(' nyc') || q.startsWith('nyc')) city = 'New York';
+    else if (q.includes(' la ') || q.endsWith(' la') || q.startsWith('la ')) city = 'Los Angeles';
+    else if (q.includes(' sf ') || q.endsWith(' sf') || q.startsWith('sf ')) city = 'San Francisco';
+    else if (q.includes(' atl') || q.startsWith('atl')) city = 'Atlanta';
+    else if (q.includes(' mia') || q.startsWith('mia')) city = 'Miami';
+  }
+
+  // ─── Price Limit Parsing
+  let minPrice = null;
+  let maxPrice = null;
+
+  // "between X and Y"
+  const betweenMatch = q.match(/between\s+\$?([\d\.,]+k|m|million|\d+)\s+and\s+\$?([\d\.,]+k|m|million|\d+)/i);
+  if (betweenMatch) {
+    minPrice = parseNumericAbbreviation(betweenMatch[1]);
+    maxPrice = parseNumericAbbreviation(betweenMatch[2]);
+  } else {
+    // "under X", "below X", "less than X", "max price X", "up to X"
+    const maxMatch = q.match(/(?:under|below|less\s+than|max|maximum|up\s+to)\s+\$?([\d\.,]+k|m|million|\d+)/i);
+    if (maxMatch) {
+      maxPrice = parseNumericAbbreviation(maxMatch[1]);
+    }
+    // "over X", "above X", "greater than X", "min price X", "at least X"
+    const minMatch = q.match(/(?:over|above|greater\s+than|min|minimum|at\s+least)\s+\$?([\d\.,]+k|m|million|\d+)/i);
+    if (minMatch) {
+      minPrice = parseNumericAbbreviation(minMatch[1]);
+    }
+  }
+
+  // ─── Beds/Baths Extraction
+  let minBeds = null;
+  let minBaths = null;
+
+  const bedMatch = q.match(/(\d+)(?:\+|-|\s+)(?:bed|bd|bedroom|rooms?)/i) || q.match(/(?:at\s+least|min|minimum)\s+(\d+)\s+(?:bed|bd|bedroom)/i);
+  if (bedMatch) {
+    minBeds = parseInt(bedMatch[1], 10);
+  }
+
+  const bathMatch = q.match(/([\d\.]+)(?:\+|-|\s+)(?:bath|ba|bathroom)/i) || q.match(/(?:at\s+least|min|minimum)\s+([\d\.]+)\s+(?:bath|ba|bathroom)/i);
+  if (bathMatch) {
+    minBaths = parseFloat(bathMatch[1]);
+  }
+
+  // ─── Property Type Extraction
+  let propertyType = null;
+  if (q.includes('condo') || q.includes('condominium')) {
+    propertyType = 'Condominium';
+  } else if (q.includes('townhouse') || q.includes('townhome')) {
+    propertyType = 'Townhouse';
+  } else if (q.includes('multi-family') || q.includes('multi family') || q.includes('duplex') || q.includes('triplex') || q.includes('fourplex')) {
+    propertyType = 'MultiFamily';
+  } else if (q.includes('single family') || q.includes('single-family')) {
+    propertyType = 'SingleFamily';
+  }
+
+  // ─── Custom Underwriting Parameters (e.g. "10% down", "7.5% interest")
+  let downPaymentPct = null;
+  let interestRate = null;
+  let opexRatio = null;
+  let customRent = null;
+
+  const downPctMatch = q.match(/(\d+(?:\.\d+)?)\s*%\s*(?:down|downpayment|down\s+payment)/i);
+  if (downPctMatch) {
+    downPaymentPct = parseFloat(downPctMatch[1]) / 100;
+  }
+
+  const interestMatch = q.match(/(\d+(?:\.\d+)?)\s*%\s*(?:interest|rate|mortgage\s+rate|apr)/i) || q.match(/(?:interest\s+rate\s+of|rate\s+of)\s*(\d+(?:\.\d+)?)\s*%/i);
+  if (interestMatch) {
+    interestRate = parseFloat(interestMatch[1]) / 100;
+  }
+
+  const opexMatch = q.match(/(\d+(?:\.\d+)?)\s*%\s*(?:opex|operating\s+expense|operating\s+expenses|operating\s+ratio)/i);
+  if (opexMatch) {
+    opexRatio = parseFloat(opexMatch[1]) / 100;
+  }
+
+  const rentMatch = q.match(/(?:rent\s+of|rent\s+at|renting\s+for)\s*\$?([\d\.,]+)(?:\/mo|mo|monthly)?/i);
+  if (rentMatch) {
+    customRent = parseFloat(rentMatch[1].replace(/,/g, ''));
+  }
+
   // Fallbacks for specific standard mock entities
+  let baseEntities = {};
   if (q.includes('pennsylvania ave') || q.includes('white house')) {
-    return {
+    baseEntities = {
       propertyId: 'prop_90210_3',
       address: '1600 Pennsylvania Ave NW',
       city: 'Washington',
@@ -67,7 +182,7 @@ export const parseAddressEntities = (query) => {
       zip: '20500'
     };
   } else if (q.includes('main st') || q.includes('atlanta')) {
-    return {
+    baseEntities = {
       propertyId: 'prop_90210_1',
       address: '123 Main St',
       city: 'Atlanta',
@@ -75,20 +190,33 @@ export const parseAddressEntities = (query) => {
       zip: '30303'
     };
   } else if (q.includes('oak ln') || q.includes('austin')) {
-    return {
+    baseEntities = {
       propertyId: 'prop_90210_2',
       address: '456 Oak Ln',
       city: 'Austin',
       state: 'TX',
       zip: '78701'
     };
+  } else {
+    baseEntities = {
+      address: streetAddress,
+      city: city || (streetAddress ? null : 'Atlanta'), // Default mock fallback city
+      state,
+      zip
+    };
   }
 
   return {
-    address: streetAddress,
-    city: city || (streetAddress ? null : 'Atlanta'), // Default mock fallback city
-    state,
-    zip
+    ...baseEntities,
+    minPrice,
+    maxPrice,
+    minBeds,
+    minBaths,
+    propertyType,
+    downPaymentPct,
+    interestRate,
+    opexRatio,
+    customRent
   };
 };
 

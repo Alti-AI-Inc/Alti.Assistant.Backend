@@ -5,13 +5,17 @@ import ApiError from '../../../errors/ApiError.js';
 import httpStatus from 'http-status';
 import BrowserSession from './browserUse.model.js';
 import User from '../auth/auth.model.js';
+import { withTenantFilter } from '../../helpers/tenantQuery.js';
 
 const initiateTaskInSessionService = async (
   userId,
   sessionId,
   prompt,
-  structuredOutputSchema
+  structuredOutputSchema,
+  req = null
 ) => {
+  const tenantId = req ? (req.user?.currentTenantId || req.tenantId || null) : null;
+
   const apiBody = {
     task: prompt,
     secrets: {},
@@ -54,8 +58,9 @@ const initiateTaskInSessionService = async (
 
   // 2. Check if we are adding to an existing session or creating a new one
   if (sessionId) {
-    // Find the existing session and push a new response
-    const session = await BrowserSession.findById(sessionId);
+    // Find the existing session and push a new response, ensuring it belongs to the active tenant/user
+    const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
+    const session = await BrowserSession.findOne(query);
     if (!session)
       throw new ApiError(httpStatus.NOT_FOUND, 'Session not found.');
 
@@ -66,6 +71,7 @@ const initiateTaskInSessionService = async (
     // Create a new session document
     const newSession = await BrowserSession.create({
       user: userId,
+      tenantId: tenantId,
       responses: [newResponseObject],
     });
 
@@ -112,8 +118,9 @@ const updateTaskStatusService = async (sessionId, taskId) => {
   return updatedSession;
 };
 
-const getSessionsForUserService = async (userId) => {
-  const sessions = await BrowserSession.find({ user: userId })
+const getSessionsForUserService = async (userId, req = null) => {
+  const query = req ? withTenantFilter(req, { user: userId }) : { user: userId };
+  const sessions = await BrowserSession.find(query)
     .select({
       'responses.prompt': { $slice: 1 }, // Only get the first element of the responses array
       'responses.status': 0, // Exclude all other fields from the sub-document
@@ -134,11 +141,9 @@ const getSessionsForUserService = async (userId) => {
 /**
  * Fetches a single, complete session by its ID, ensuring it belongs to the user.
  */
-const getSessionByIdService = async (sessionId, userId) => {
-  const session = await BrowserSession.findOne({
-    _id: sessionId,
-    user: userId, // CRITICAL: Security check to ensure user owns this session
-  });
+const getSessionByIdService = async (sessionId, userId, req = null) => {
+  const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
+  const session = await BrowserSession.findOne(query);
   if (!session) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
