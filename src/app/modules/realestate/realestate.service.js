@@ -154,7 +154,7 @@ const MOCK_AVM = {
 
 const MOCK_COMPS = {
   prop_90210_1: [
-    { address: '129 Main St', distanceMiles: 0.05, beds: 4, baths: 3, sqft: 3050, salePrice: 599000, saleDate: '2025-11-10' },
+    { address: '129 Main St', distanceMiles: 0.05, beds: 4, baths: 3.5, sqft: 3050, salePrice: 599000, saleDate: '2025-11-10' },
     { address: '144 Main St', distanceMiles: 0.12, beds: 4, baths: 4, sqft: 3300, salePrice: 615000, saleDate: '2026-01-14' },
     { address: '98 Oak Ave', distanceMiles: 0.25, beds: 3, baths: 2.5, sqft: 2800, salePrice: 575000, saleDate: '2025-09-08' },
   ],
