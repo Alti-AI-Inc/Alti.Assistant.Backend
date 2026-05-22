@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { BufferMemory } from 'langchain/memory';
@@ -12,20 +12,13 @@ import { paymentController } from '../payment/payment.controller.js';
 import { RedisClient } from '../../../shared/redis.js';
 import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 
-// Initialize Generative AI client using our config
-const client = new GoogleGenerativeAI(config.gemini_secret_key);
-
-// Fetch a grounded model instance (with googleSearch tool active)
-const groundedModel = client.getGenerativeModel({
-  model: 'gemini-1.5-pro',
-  generationConfig: { temperature: 0.1 },
-  tools: [{ googleSearch: {} }],
-});
+// Initialize standard modern GoogleGenAI client
+const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
 const groundedMemoryStore = {};
 
 /**
- * Executes a Gemini model query with active Google Search Grounding.
+ * Executes a Gemini model query with active Google Search Grounding using the modern GenAI SDK.
  * Parses and returns search queries, citations, and grounded web sources.
  */
 const groundedPromptResponse = async (sessionId, prompt, userId) => {
@@ -45,12 +38,23 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
-    // Call Gemini AI with active search grounding
-    logger.info(`Sending prompt with live Google Search Grounding: "${prompt.slice(0, 50)}..."`);
-    const result = await groundedModel.generateContent(enhancedPrompt);
+    // Call modern Gemini AI with active search grounding and gemini-3.1-pro reasoning engine
+    logger.info(`Sending prompt with live Google Search Grounding using gemini-3.1-pro: "${prompt.slice(0, 50)}..."`);
     
-    const candidate = result?.response?.candidates?.[0];
-    const reply = candidate?.content?.parts?.[0]?.text || 'No reply generated';
+    const result = await ai.models.generateContent({
+      model: 'gemini-3.1-pro',
+      contents: enhancedPrompt,
+      config: {
+        temperature: 0.1,
+        tools: [{ googleSearch: {} }],
+      },
+    });
+    
+    const candidate = result.candidates?.[0];
+    const reply = candidate?.content?.parts
+      ?.filter((part) => part.text && !part.thought)
+      ?.map((part) => part.text)
+      ?.join('') || 'No reply generated';
     
     // Parse Grounding Metadata
     const rawGroundingMetadata = candidate?.groundingMetadata || {};
@@ -82,10 +86,10 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-1.5-pro-grounded',
+      model: 'gemini-3.1-pro-grounded',
       reply,
       groundingMetadata,
-      total_time: result?.usage?.total_time || 0,
+      total_time: result.usageMetadata?.candidatesTokenCount || 0,
     };
 
     // Save prompt & response session in DB

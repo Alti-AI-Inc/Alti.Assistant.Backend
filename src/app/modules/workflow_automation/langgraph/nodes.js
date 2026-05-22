@@ -6,7 +6,7 @@ import { composioIntegrationService } from '../services/composioIntegration.serv
 
 // Initialize LLM
 const llm = new ChatGoogleGenerativeAI({
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   temperature: 0,
   apiKey: config.gemini_secret_key,
 });

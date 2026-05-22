@@ -628,6 +628,7 @@ const refreshToken = async (token) => {
   //generate new token;
   const newAccessToken = jwtHelpers.createToken(
     {
+      _id: isUserExist._id,
       id: isUserExist._id,
       role: isUserExist.role,
       tenants: tenantIds,

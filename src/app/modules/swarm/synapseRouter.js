@@ -21,7 +21,7 @@ export class SynapseRouter {
     const q = query.toLowerCase();
 
     // ─────────────────────────────────────────────────────────────────────────
-    // NON-FINANCIAL INTENT FLAGS (checked after financial routing below)
+    // NON-FINANCIAL INTENT FLAGS
     // ─────────────────────────────────────────────────────────────────────────
     const isTranslation       = ['translate', 'spanish', 'french', 'german', 'chinese', 'japanese', 'language', 'traduccion'].some(k => q.includes(k));
     const isSummary           = ['summarize', 'summary', 'tldr', 'executive summary', 'brief', 'shorten', 'outline'].some(k => q.includes(k));
@@ -34,11 +34,50 @@ export class SynapseRouter {
     const isFinancialSec      = ['sec filing search', '10-k', '10-q', 'corporate disclosure audit', 'sec edgar', 'risk factor warnings'].some(k => q.includes(k));
     const isLegalRegulatory   = ['case law search', 'court docket review', 'statutory code', 'cfr lookup', 'supreme court holding', 'compliance mandate'].some(k => q.includes(k));
     const isSchemaMapping     = ['ddl', 'schema design', 'entity relationship', 'table schema', 'database model', 'sql schema', 'erd diagram'].some(k => q.includes(k));
-    const isPayloadTransform  = ['clean data', 'sanitize payload', 'flatten json', 'parse csv', 'null handling', 'type coercion', 'normalize datetime', 'data scrubber'].some(k => q.includes(k));
+    const isPayloadTransform  = ['clean data', 'sanitize payload', 'flatten json', 'parse csv', 'csv record', 'null handling', 'type coercion', 'normalize datetime', 'data scrubber', 'bad json', 'clean the bad json'].some(k => q.includes(k));
     const isDataProcessing    = ['process', 'json', 'csv', 'xml', 'format', 'convert', 'nested data', 'dataset', 'parser'].some(k => q.includes(k));
     const isArchitectural     = ['multi region', 'latency budget', 'fault tolerance', 'high availability', 'scaling blueprint', 'datacenter topology', 'disaster recovery', 'vpc design'].some(k => q.includes(k));
     const isMathLogic         = ['logic proof', 'formal logic', 'symbolic proof', 'theorem proving', 'big o induction', 'combinatorics', 'discrete math', 'propositional logic'].some(k => q.includes(k));
     const isIntelligence      = ['think', 'reason', 'proof', 'strategy', 'plan', 'critique', 'cognitive', 'deep reasoning'].some(k => q.includes(k));
+
+    const isFinancialSearch   = ['stock price', 'annual revenue', 'stock ticker', 'trading volume', 'financial stats', 'ticker lookup', 'share price'].some(k => q.includes(k));
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. HIGH-SPECIFICITY DOMAIN SPECIALIST ROUTING (Pre-empts general financial routing)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (isAcademicMeta && SWARM_REGISTRY.academic_meta_analyst) {
+      return [SWARM_REGISTRY.academic_meta_analyst];
+    }
+    if (isPatentIntel && SWARM_REGISTRY.patent_intel_researcher) {
+      return [SWARM_REGISTRY.patent_intel_researcher];
+    }
+    if (isFinancialSec && SWARM_REGISTRY.financial_sec_auditor) {
+      return [SWARM_REGISTRY.financial_sec_auditor];
+    }
+    if (isLegalRegulatory && SWARM_REGISTRY.legal_regulatory_researcher) {
+      return [SWARM_REGISTRY.legal_regulatory_researcher];
+    }
+    if (isSchemaMapping && SWARM_REGISTRY.schema_mapper_agent) {
+      return [SWARM_REGISTRY.schema_mapper_agent];
+    }
+    if (isPayloadTransform && SWARM_REGISTRY.payload_transformer_agent) {
+      return [SWARM_REGISTRY.payload_transformer_agent];
+    }
+    if (isMathLogic && SWARM_REGISTRY.math_logic_prover_agent) {
+      return [SWARM_REGISTRY.math_logic_prover_agent];
+    }
+    if (isArchitectural && SWARM_REGISTRY.architectural_reasoning_agent) {
+      return [SWARM_REGISTRY.architectural_reasoning_agent];
+    }
+    if (isIntelligence && SWARM_REGISTRY.intelligence_agent) {
+      return [SWARM_REGISTRY.intelligence_agent];
+    }
+    if (isLiveIntel && SWARM_REGISTRY.live_intel_aggregator) {
+      return [SWARM_REGISTRY.live_intel_aggregator];
+    }
+    if (isAcademicSearch && SWARM_REGISTRY.academic_search_agent) {
+      return [SWARM_REGISTRY.academic_search_agent];
+    }
 
     // ═════════════════════════════════════════════════════════════════════════
     // MASSIVE.COM FINANCIAL INTELLIGENCE ROUTING — 32 SPECIALIST AGENTS
@@ -283,6 +322,10 @@ export class SynapseRouter {
       'sector allocation', 'compare stocks', 'multiple stocks analysis'].some(k => q.includes(k))
       && SWARM_REGISTRY.massive_portfolio_advisor) {
       return [SWARM_REGISTRY.massive_portfolio_advisor];
+    }
+
+    if (isFinancialSearch && SWARM_REGISTRY.financial_search_agent) {
+      return [SWARM_REGISTRY.financial_search_agent];
     }
 
     // Broad equity / stock — most general financial catch-all

@@ -251,25 +251,25 @@ export const analyzeQueryForModel = (query, context = {}) => {
   let modelName = 'Gemini 3.5 Flash';
   let modelReason = '';
 
-  // Use Gemini 3 Pro for complex scenarios
+  // Use Gemini 3.1 Pro for complex scenarios
   if (complexityScore >= 6) {
-    recommendedModel = 'gemini-3.5-flash';
-    modelName = 'Gemini 3.5 Flash';
+    recommendedModel = 'gemini-3.1-pro';
+    modelName = 'Gemini 3.1 Pro';
     modelReason = 'High complexity requires advanced reasoning';
   } else if (
     complexityScore >= 4 &&
     category === QueryCategory.COMPLEX_ANALYTICAL
   ) {
-    recommendedModel = 'gemini-3.5-flash';
-    modelName = 'Gemini 3.5 Flash';
+    recommendedModel = 'gemini-3.1-pro';
+    modelName = 'Gemini 3.1 Pro';
     modelReason = 'Analytical query requires deeper reasoning';
   } else if (category === QueryCategory.MULTI_STEP_RESEARCH) {
-    recommendedModel = 'gemini-3.5-flash';
-    modelName = 'Gemini 3.5 Flash';
+    recommendedModel = 'gemini-3.1-pro';
+    modelName = 'Gemini 3.1 Pro';
     modelReason = 'Multi-step research benefits from advanced capabilities';
   } else if (searchDepth === 'deep') {
-    recommendedModel = 'gemini-3.5-flash';
-    modelName = 'Gemini 3.5 Flash';
+    recommendedModel = 'gemini-3.1-pro';
+    modelName = 'Gemini 3.1 Pro';
     modelReason = 'Deep search mode requires comprehensive analysis';
   } else {
     modelReason = 'Standard query suitable for fast processing';
@@ -282,8 +282,8 @@ export const analyzeQueryForModel = (query, context = {}) => {
     complexityScore,
     reasoning,
     modelReason,
-    useFlash: recommendedModel === 'gemini-2.5-flash',
-    usePro: recommendedModel === 'gemini-3.5-flash',
+    useFlash: recommendedModel === 'gemini-3.5-flash',
+    usePro: recommendedModel === 'gemini-3.1-pro',
     analysis: {
       queryLength: wordCount,
       conversationLength: conversationHistory.length,
@@ -301,7 +301,7 @@ export const analyzeQueryForModel = (query, context = {}) => {
  * Quick model selection shorthand
  * @param {string} query - The user query
  * @param {Object} context - Additional context
- * @returns {string} Model identifier ('gemini-2.5-flash' or 'gemini-3.5-flash')
+ * @returns {string} Model identifier ('gemini-3.5-flash' or 'gemini-3.1-pro')
  */
 export const selectOptimalModel = (query, context = {}) => {
   const analysis = analyzeQueryForModel(query, context);

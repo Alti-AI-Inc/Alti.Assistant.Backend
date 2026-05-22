@@ -56,7 +56,6 @@ import {
 
 import { logger } from '../../shared/logger.js';
 import { RedisClient } from '../../shared/redis.js';
-// PATCH_V42
 import {
   detectSportsIntent,
   DEFAULT_BOOK_IDS,
@@ -68,7 +67,11 @@ import {
   PLAYER_NAME_MAP,
   MULTI_LEAGUE_ACTIVE,
   BROADCAST_KEYWORDS,
+  SPORTS_ODDS_KEYWORDS,
 } from './sportsIntentDB.js';
+
+import { getStandings, getFixtureStats, getHeadToHead, LEAGUE_MAP as APISPORTS_LEAGUE_MAP } from '../modules/apisports/apisports.service.js';
+import { getCachedLiveLeagues } from './sportsDataCache.js';
 
 // ─── Cache TTLs (seconds) ─────────────────────────────────────────────────────
 const TTL = {
@@ -1332,8 +1335,7 @@ function formatParlayBlock(legs, result) {
 `;
   block += `| # | Pick | Odds | Decimal |
 `;
-  block += `|---|------|------|--------|
-`;
+  block += `|---|------|------|--------|\n`;
 
   legs.forEach((leg, i) => {
     const odds = `${Number(leg.odds) >= 0 ? '+' : ''}${leg.odds}`;
@@ -1420,6 +1422,73 @@ const routeAndEnhancePrompt = async (prompt) => {
 
     const { type, league, extra = {} } = intent;
     const emoji = LEAGUE_EMOJI[league] || '🏟️';
+
+    // ── API-SPORTS STANDINGS ────────────────────────────────────────────────
+    if (type === 'standings') {
+      const apiLeague = APISPORTS_LEAGUE_MAP[league] || APISPORTS_LEAGUE_MAP['EPL'];
+      const cacheKey = `apisports:standings:${apiLeague.sport}:${apiLeague.leagueId}`;
+      let standings = await cacheGet(cacheKey);
+      if (!standings) {
+        standings = await safe(getStandings(apiLeague.sport, apiLeague.leagueId), 5000);
+        if (standings) await cacheSet(cacheKey, standings, 3600);
+      }
+      const block = formatAPIStandingsBlock(standings || [], league);
+      
+      // Blended Pre-Game Odds integration if betting keywords detected
+      let blendedOddsBlock = '';
+      const hasBettingKeyword = SPORTS_ODDS_KEYWORDS.some((k) => prompt.toLowerCase().includes(k));
+      if (hasBettingKeyword) {
+        let markets = await cacheGet(`odds:${league}`);
+        let fixtures = await cacheGet(`fixtures:${league}`);
+        if (!markets || !fixtures) {
+          const [freshMarkets, freshFixtures] = await Promise.all([
+            safe(getMarketsService(league, 'moneyline,spread,total', 'FT', DEFAULT_BOOK_IDS, { timedelta: 48 }), 8000),
+            safe(getFixturesService(league, 48), 5000),
+          ]);
+          if (freshMarkets) await cacheSet(`odds:${league}`, freshMarkets, TTL.odds);
+          if (freshFixtures) await cacheSet(`fixtures:${league}`, freshFixtures, TTL.fixtures);
+          markets = freshMarkets;
+          fixtures = freshFixtures;
+        }
+        blendedOddsBlock = `\n\n---\n\n🔴 **PRE-GAME BETTING ODDS COMPARISON (PredictionData.io)**\n\n` + formatOddsBlock(markets || [], fixtures || [], league);
+      }
+      return buildAPISportsPrompt(prompt, block + blendedOddsBlock);
+    }
+
+    // ── API-SPORTS BOX SCORE / LIVE STATS ──────────────────────────────────
+    if (type === 'box_score') {
+      const apiLeague = APISPORTS_LEAGUE_MAP[league] || APISPORTS_LEAGUE_MAP['EPL'];
+      let fixtureId = 39001;
+      const fixtureMatch = prompt.match(/(?:fixture|game|match|id)\s*#?(\d+)/i);
+      if (fixtureMatch) fixtureId = parseInt(fixtureMatch[1], 10);
+      const cacheKey = `apisports:box_score:${apiLeague.sport}:${fixtureId}`;
+      let stats = await cacheGet(cacheKey);
+      if (!stats) {
+        stats = await safe(getFixtureStats(apiLeague.sport, fixtureId), 5000);
+        if (stats) await cacheSet(cacheKey, stats, 15);
+      }
+      const block = formatAPIFixtureStatsBlock(stats || [], league);
+      return buildAPISportsPrompt(prompt, block);
+    }
+
+    // ── API-SPORTS HEAD-TO-HEAD (H2H) ──────────────────────────────────────
+    if (type === 'h2h') {
+      const apiLeague = APISPORTS_LEAGUE_MAP[league] || APISPORTS_LEAGUE_MAP['EPL'];
+      let teamAId = 33, teamBId = 34;
+      const idsMatch = prompt.match(/(?:between|teams?|vs\.?)\s*(\d+)\s*(?:and|&|vs\.?)\s*(\d+)/i);
+      if (idsMatch) {
+        teamAId = parseInt(idsMatch[1], 10);
+        teamBId = parseInt(idsMatch[2], 10);
+      }
+      const cacheKey = `apisports:h2h:${apiLeague.sport}:${teamAId}:${teamBId}`;
+      let h2h = await cacheGet(cacheKey);
+      if (!h2h) {
+        h2h = await safe(getHeadToHead(apiLeague.sport, teamAId, teamBId), 5000);
+        if (h2h) await cacheSet(cacheKey, h2h, 3600);
+      }
+      const block = formatAPIH2HBlock(h2h || {}, league);
+      return buildAPISportsPrompt(prompt, block);
+    }
 
     // ── Live game auto-detection ───────────────────────────────────────────
     // If this league currently has in-progress games, auto-boost standard
@@ -1924,6 +1993,197 @@ const routeAndEnhancePrompt = async (prompt) => {
   return prompt;
 };
 
+// ─── API-Sports Formatter Helpers ──────────────────────────────────────────────
+function boldNum(val) {
+  if (val === undefined || val === null) return '—';
+  let s = String(val).trim();
+  if (s === '') return '—';
+  s = s.replace(/\*\*/g, '');
+  return s.replace(/([+-]?\d+(?:\.\d+)?%?)/g, '**$1**');
+}
+
+function buildAPISportsPrompt(userPrompt, dataBlock) {
+  return `[Source: API-Sports / api-sports.io]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REAL-TIME SPORTS INTELLIGENCE INJECTOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${dataBlock}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+User Query: ${userPrompt}`;
+}
+
+function formatAPIStandingsBlock(standings, league) {
+  const emoji = LEAGUE_EMOJI[league] || '🏟️';
+  
+  if (league === 'F1') {
+    let block = `## 🏎️ ${league} — Driver Championship Standings\n\n`;
+    block += `| Rank | Driver | Constructor | Points | Wins |\n`;
+    block += `|------|--------|-------------|--------|------|\n`;
+    
+    if (!Array.isArray(standings) || standings.length === 0) {
+      block += `| — | *No driver standings available* | — | — | — |\n`;
+      return block;
+    }
+    
+    standings.forEach((row) => {
+      const r = boldNum(row.rank);
+      const driver = row.driver?.name || 'Unknown Driver';
+      const teamName = row.team?.name || 'Unknown Team';
+      const pts = boldNum(row.points);
+      const wins = boldNum(row.wins != null ? row.wins : 0);
+      block += `| ${r} | **${driver}** | ${teamName} | ${pts} | ${wins} |\n`;
+    });
+    return block;
+  }
+  
+  if (league === 'UFC') {
+    let block = `## 🥊 ${league} — Division Rankings\n\n`;
+    block += `| Rank | Fighter | Weight Class | Record | Points |\n`;
+    block += `|------|---------|--------------|--------|--------|\n`;
+    
+    if (!Array.isArray(standings) || standings.length === 0) {
+      block += `| — | *No fighter rankings available* | — | — | — |\n`;
+      return block;
+    }
+    
+    standings.forEach((row) => {
+      const r = boldNum(row.rank);
+      const fighter = row.fighter?.name || 'Unknown Fighter';
+      const division = row.division || 'Heavyweight';
+      const record = row.record || '—';
+      const pts = boldNum(row.points != null ? row.points : 0);
+      block += `| ${r} | **${fighter}** | ${division} | ${record} | ${pts} |\n`;
+    });
+    return block;
+  }
+
+  if (league === 'IPL') {
+    let block = `## 🏏 ${league} — League Standings\n\n`;
+    block += `| Rank | Team | Played | Win | Lose | NRR | Points |\n`;
+    block += `|------|------|--------|-----|------|-----|--------|\n`;
+    
+    if (!Array.isArray(standings) || standings.length === 0) {
+      block += `| — | *No standings available* | — | — | — | — | — |\n`;
+      return block;
+    }
+    
+    standings.forEach((row) => {
+      const r = boldNum(row.rank);
+      const teamName = row.team?.name || 'Unknown Team';
+      const played = boldNum(row.played);
+      const win = boldNum(row.win);
+      const lose = boldNum(row.lose);
+      const nrr = boldNum(row.netRunRate);
+      const pts = boldNum(row.points);
+      block += `| ${r} | **${teamName}** | ${played} | ${win} | ${lose} | ${nrr} | ${pts} |\n`;
+    });
+    return block;
+  }
+
+  // Default football-grade/team table structure
+  let block = `## ${emoji} ${league} — League Standings\n\n`;
+  block += `| Rank | Team | Played | Win | Draw | Lose | Diff | Points | Form |\n`;
+  block += `|------|------|--------|-----|------|------|------|--------|------|\n`;
+
+  if (!Array.isArray(standings) || standings.length === 0) {
+    block += `| — | *No standings data available* | — | — | — | — | — | — | — |\n`;
+    return block;
+  }
+
+  standings.forEach((row) => {
+    const r = boldNum(row.rank);
+    const teamName = row.team?.name || 'Unknown Team';
+    const played = boldNum(row.all?.played != null ? row.all.played : row.played);
+    const win = boldNum(row.all?.win != null ? row.all.win : row.win);
+    const draw = boldNum(row.all?.draw != null ? row.all.draw : row.draw);
+    const lose = boldNum(row.all?.lose != null ? row.all.lose : row.lose);
+    const diffVal = row.goalsDiff != null ? row.goalsDiff : (row.diff != null ? row.diff : 0);
+    const diff = boldNum(diffVal >= 0 ? `+${diffVal}` : diffVal);
+    const pts = boldNum(row.points);
+    const form = row.form || '—';
+    block += `| ${r} | **${teamName}** | ${played} | ${win} | ${draw} | ${lose} | ${diff} | ${pts} | ${form} |\n`;
+  });
+
+  return block;
+}
+
+function formatAPIFixtureStatsBlock(stats, league) {
+  const emoji = LEAGUE_EMOJI[league] || '🏟️';
+  
+  if (!Array.isArray(stats) || stats.length < 2) {
+    return `## ${emoji} ${league} — Match Statistics\n\n*No statistical data available for this match.*\n`;
+  }
+
+  const teamA = stats[0].team?.name || stats[0].driver?.name || 'Home/Driver A';
+  const teamB = stats[1].team?.name || stats[1].driver?.name || 'Away/Driver B';
+  
+  let block = `## ${emoji} ${league} — Match Statistics\n\n`;
+  block += `| Statistic | ${teamA} | ${teamB} |\n`;
+  block += `|-----------|-${'-'.repeat(teamA.length)}-|-${'-'.repeat(teamB.length)}-|\n`;
+
+  const statsA = stats[0].statistics || [];
+  const statsB = stats[1].statistics || [];
+  const statTypes = statsA.map(s => s.type);
+
+  statTypes.forEach((type) => {
+    const valA = statsA.find(s => s.type === type)?.value;
+    const valB = statsB.find(s => s.type === type)?.value;
+    
+    block += `| ${type} | ${boldNum(valA)} | ${boldNum(valB)} |\n`;
+  });
+
+  return block;
+}
+
+function formatAPIH2HBlock(h2h, league) {
+  const emoji = LEAGUE_EMOJI[league] || '🏟️';
+  
+  if (!h2h || !h2h.summary) {
+    return `## ${emoji} ${league} — Head-to-Head History\n\n*No historical matchup data available.*\n`;
+  }
+
+  const { summary, fixtures } = h2h;
+  
+  let block = `## ${emoji} ${league} — Head-to-Head History\n\n`;
+  
+  let teamAName = 'Team A';
+  let teamBName = 'Team B';
+  if (Array.isArray(fixtures) && fixtures.length > 0) {
+    teamAName = fixtures[0].teams?.home?.name || fixtures[0].teams?.home || 'Team A';
+    teamBName = fixtures[0].teams?.away?.name || fixtures[0].teams?.away || 'Team B';
+  }
+
+  block += `### H2H Summary\n`;
+  block += `* Total Matchups: ${boldNum(summary.total)}\n`;
+  block += `* ${teamAName} Wins: ${boldNum(summary.teamAWin)}\n`;
+  block += `* ${teamBName} Wins: ${boldNum(summary.teamBWin)}\n`;
+  block += `* Draws: ${boldNum(summary.draws)}\n\n`;
+
+  block += `### Recent Matchups\n`;
+  block += `| Date | Matchup | Score |\n`;
+  block += `|------|---------|-------|\n`;
+
+  if (Array.isArray(fixtures)) {
+    fixtures.forEach((f) => {
+      const dateStr = f.date ? new Date(f.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+      const home = f.teams?.home?.name || f.teams?.home || 'Home';
+      const away = f.teams?.away?.name || f.teams?.away || 'Away';
+      const homeScore = f.score?.home ?? '—';
+      const awayScore = f.score?.away ?? '—';
+      
+      const scoreStr = homeScore !== '—' && awayScore !== '—' 
+        ? `${boldNum(homeScore)}–${boldNum(awayScore)}`
+        : '—';
+      
+      block += `| ${dateStr} | ${home} vs ${away} | ${scoreStr} |\n`;
+    });
+  }
+
+  return block;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 export const sportsSmartRouter = {
   routeAndEnhancePrompt,
@@ -1934,6 +2194,9 @@ export const sportsSmartRouter = {
   formatFuturesBlock,
   formatScheduleBlock,
   formatSGPResult,
+  formatAPIStandingsBlock,
+  formatAPIFixtureStatsBlock,
+  formatAPIH2HBlock,
   // Analysis functions (exposed for direct use in API routes)
   pickBestLine,
   detectLineMovers,

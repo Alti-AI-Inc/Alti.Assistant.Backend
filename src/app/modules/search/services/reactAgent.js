@@ -2,8 +2,9 @@ import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { DynamicTool } from '@langchain/core/tools';
 import { WebBrowser } from 'langchain/tools/webbrowser';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { googleSearch, YouTubeSearchTool } from '../tools.js';
+import { googleSearch, YouTubeSearchTool, newsapiGlobalNewsSearch, altiGreenlightIntelligenceSearch, altiPremiumIntelligenceSearch } from '../tools.js';
 import config from '../../../../../config/index.js';
+import vertexAiService from './vertexAiService.js';
 import {
   selectModelSmart,
   gemini2_5Flash,
@@ -196,8 +197,12 @@ Input: Any natural language sports betting query. The tool auto-detects intent, 
   });
 
   const tools = [
+    vertexAiService.asTool(),
     massiveFinancialTool,
     sportsBettingTool,
+    newsapiGlobalNewsSearch,
+    altiGreenlightIntelligenceSearch,
+    altiPremiumIntelligenceSearch,
     googleSearch,
     new WebBrowser({
       model: selectedLLM, // Use selected model
@@ -345,11 +350,19 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
 - Refusing to answer or saying "I do not have access to real-time information" is strictly forbidden.
 - You have active, real-time access to the internet via the "Google_Custom_Search" tool and live API feeds.
 - REAL-TIME DATA SOURCES AVAILABLE TO YOU:
+  * "vertex-ai-search" tool → Google Cloud Vertex AI Search datastores (enterprise knowledge, internal docs, standard operating procedures, ALTI blueprints, secure manuals, private files)
   * "massive-financial-data" tool → Massive.com (stocks, crypto, forex, options, commodities, indices)
   * "predictiondata-sports-odds" tool → PredictionData.io (sports odds, props, futures, SGP, live lines, Polymarket/Kalshi)
+  * "newsapi_global_news_search" tool → Event Registry / NewsAPI.ai (verified global news article counts, sentiment trends, social share densities, primary categories, trust indices, and live headline bulletins)
+  * "alti_greenlight_intelligence_search" tool → Nine high-value public intelligence databases (FEC politics, LegiScan tracking, Google Civic representatives, DBnomics economics, CFPB HMDA mortgages, OpenFEMA hazards, NIH RePORTER grants, UK Companies House, OpenCorporates global registry)
+  * "alti_premium_intelligence_search" tool → Nine high-value premium public intelligence databases (clinical_trials, fda_drug_safety, global_health_observatory, us_treasury_fiscal, federal_spending, healthcare_npi, food_nutrients, charity_registry, aviation_delays)
   * "Google_Custom_Search" tool → Live internet search
+- ENTERPRISE KNOWLEDGE DIRECTIVE: For ANY query regarding internal documents, blueprints, secure manuals, standard operating procedures, or private knowledge bases, you MUST call the "vertex-ai-search" tool FIRST.
 - SPORTS BETTING TOOL DIRECTIVE: For ANY query about sports odds, betting lines, player props, futures, point spreads, totals, SGP, or prediction market odds, you MUST call the "predictiondata-sports-odds" tool FIRST before using Google Search.
 - FINANCIAL TOOL DIRECTIVE: For ANY query about stock prices, crypto, forex, or market data, you MUST call the "massive-financial-data" tool FIRST.
+- GLOBAL NEWS DIRECTIVE: For ANY query about news tracking, trending stories, article metrics, news sentiment analysis, concept/topic tracking, and real-time monitored headlines, you MUST call the "newsapi_global_news_search" tool FIRST before standard Google search.
+- GREENLIGHT INTELLIGENCE DIRECTIVE: For ANY query matching politics campaign finance, LegiScan bill tracking, representative mapping by address, DBnomics indices, mortgage approval ratios/LTV, FEMA hazards/disaster declarations, NIH research grants, UK Company profiles, or OpenCorporates global structures, you MUST call the "alti_greenlight_intelligence_search" tool FIRST before Google search. Choose the correct domain parameter matching the request.
+- PREMIUM PUBLIC INTELLIGENCE DIRECTIVE: For ANY query matching global clinical trials/recruitment/phases (ClinicalTrials.gov), FDA drug recalls/safety warnings/adverse events (openFDA), global health indicators/life expectancies/immunizations (WHO GHO), federal sovereignty/sovereign debt levels/operating cash balances (U.S. Treasury), USAspending federal awards/contracts (federal_spending), CMS NPPES clinician NPI registry lookup (healthcare_npi), USDA FoodData Central nutritional profiles (food_nutrients), IRS tax-exempt charity statuses (charity_registry), or FAA airport delay operational statuses (aviation_delays), you MUST call the "alti_premium_intelligence_search" tool FIRST before standard Google search. Choose the correct domain parameter matching the request.
 - For ANY other dynamic facts, current schedules, next games, weather, news, or recent events, YOU MUST INITIATE AT LEAST ONE "Google_Custom_Search" CALL IN YOUR VERY FIRST ITERATION.
 - Do NOT refuse to answer, and do NOT refer the user to official websites. You must search and retrieve the information yourself.
 `;
@@ -718,6 +731,40 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           const duration = Date.now() - startTime;
           console.log(`✅ Massive financial data retrieved in ${duration}ms for: "${query}"`);
           usedUrls.add('https://api.massive.com');
+        } else if (toolCall.name === 'predictiondata-sports-odds') {
+          const query = typeof toolCall.args === 'string'
+            ? toolCall.args
+            : toolCall.args.query || toolCall.args.input || JSON.stringify(toolCall.args);
+          const startTime = Date.now();
+          toolResult = await sportsBettingTool.func(query);
+          const duration = Date.now() - startTime;
+          console.log(`✅ Sports odds retrieved in ${duration}ms for: "${query}"`);
+          usedUrls.add('https://api.predictiondata.io');
+        } else if (toolCall.name === 'newsapi_global_news_search') {
+          const query = typeof toolCall.args === 'string'
+            ? toolCall.args
+            : toolCall.args.query || toolCall.args.input || JSON.stringify(toolCall.args);
+          const startTime = Date.now();
+          toolResult = await newsapiGlobalNewsSearch.invoke({ query });
+          const duration = Date.now() - startTime;
+          console.log(`✅ Global news intelligence retrieved in ${duration}ms for: "${query}"`);
+          usedUrls.add('https://newsapi.ai');
+        } else if (toolCall.name === 'alti_greenlight_intelligence_search') {
+          const domain = toolCall.args.domain;
+          const query = toolCall.args.query;
+          const startTime = Date.now();
+          toolResult = await altiGreenlightIntelligenceSearch.invoke({ domain, query });
+          const duration = Date.now() - startTime;
+          console.log(`✅ Greenlight public intelligence retrieved in ${duration}ms for domain: "${domain}", query: "${query}"`);
+          usedUrls.add('https://api.data.gov');
+        } else if (toolCall.name === 'alti_premium_intelligence_search') {
+          const domain = toolCall.args.domain;
+          const query = toolCall.args.query;
+          const startTime = Date.now();
+          toolResult = await altiPremiumIntelligenceSearch.invoke({ domain, query });
+          const duration = Date.now() - startTime;
+          console.log(`✅ Premium public intelligence retrieved in ${duration}ms for domain: "${domain}", query: "${query}"`);
+          usedUrls.add('https://api.data.gov');
         }
 
         if (!toolResult) {

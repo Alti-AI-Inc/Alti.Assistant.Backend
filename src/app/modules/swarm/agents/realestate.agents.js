@@ -23,14 +23,27 @@ LAWS OF QUANT PROPERTY ANALYSIS:
 6. HAZARD INSURANCE & REPLACEMENT COST MODEL: Compute structure **Replacement Cost (RC)** at **$175/sqft**. Determine environmental **Hazard Risk Tiers** (High/Moderate/Low) based on property city (Miami/LA/SF = High [**1.20%** rate]; Atlanta/DC = Low [**0.35%** rate]; Austin/NY/Others = Moderate [**0.65%** rate]) and output estimated annual and monthly premiums.
 7. MULTI-HAZARD & FEMA FLOOD INSURANCE: Assess Wildfire, Wind/Hurricane, and Seismic/Earthquake risk levels dynamically. If a FEMA/flood underwriting trigger is active (in flood-prone cities like Miami or explicitly queried), apply a mandatory **FEMA Flood Insurance Premium** of **1.05%** of the structure Replacement Cost per year, adding it to escrow, break-even rent, and monthly outflows.
 8. SELLER TRANSACTION & MULTI-SCENARIO PROJECTIONS: Formulate an itemized transaction ledger simulating estimated net walkthrough proceeds at exit: **100.0%** gross sale price, **5.0%** broker commission, **1.0%** title & escrow fees, **0.5%** state transfer taxes, **60.0%** simulated mortgage payoff, resulting in exactly **33.5%** estimated net proceeds. Additionally, build a **Seller Multi-Scenario Exit Ledger** comparing List Price, **95%**, **90%**, and **105%** of List Price, keeping mortgage payoff fixed at **60.0%** of AVM.
-9. INTEREST RATE SENSITIVITY & CONFORMING LIMITS AUDIT: Verify the subject loan against standard conforming limit (**$766,550**) and high-cost limit (**$1,149,825** for LA, SF, NYC) to label status as '🟢 CONFORMING' or '🔴 JUMBO'. Render a sensitivity table from **6.0%** to **8.5%** in **0.5%** increments, calculating monthly P&I, PMI, outflows, DSCR, and Cash-on-Cash return.
+9. INTEREST RATE SENSITIVITY & CONFORMING LIMITS AUDIT: Verify the subject loan against standard conforming limit (**$766,550**) and high-cost limit (**$1,149,825** for LA, SF, NYC) to label status as '🟢 CONFORMING' or '🔴 JUMBO'. If a multi-unit property type (duplex, triplex, fourplex) is parsed or specified, dynamically scale the conforming limit matrix up to **4-Unit** properties (e.g. 2-Unit limit is **$981,500** / **$1,472,250**; 3-Unit is **$1,186,350** / **$1,779,525**; 4-Unit is **$1,474,400** / **$2,211,600**). Render a sensitivity table from **6.0%** to **8.5%** in **0.5%** increments, calculating monthly P&I, PMI, outflows, DSCR, and Cash-on-Cash return.
 10. INVESTOR BUY-BOX MATCHING ENGINE: Parse investor constraints (Max Price, Min Beds, Min Baths, Min Cap Rate, Min Net Cash Flow) and return a prospectus marking '🟢 PASS' or '🔴 FAIL' checklist with an overall match decision: '🟢 APPROVED BUY-BOX MATCH' or '🔴 REJECTED'.
 11. INVESTMENT SENSITIVITY STRESS-TESTING: Present a comprehensive sensitivity stress-testing matrix evaluating down/base/up scenarios. Discuss Downside Scenario (stressing rent by **-10%** and raising OpEx ratio by **+5%**), Base Case, and Upside Scenario (growing rent by **+10%** and reducing OpEx ratio by **-5%**), detailing how cash flow and **Cash-on-Cash Return** adapt under stress.
-12. BREAK-EVEN monthly rent: Calculate and discuss the **Break-Even Monthly Rent** metric, which is the precise gross monthly rent needed to sustain both debt service, opex, PMI, and flood premiums: Break-Even Rent = (P&I Mortgage + monthly PMI + monthly FEMA) / (1 - OpEx Ratio). Emphasize this as a crucial safety margin.
+12. BREAK-EVEN monthly rent: Calculate and discuss the **Break-Even Monthly Rent** metric, which is the precise gross monthly rent needed to sustain both debt service, opex, PMI, flood, and seismic premiums: Break-Even Rent = (P&I Mortgage + monthly PMI + monthly FEMA + monthly Seismic) / (1 - OpEx Ratio). Emphasize this as a crucial safety margin.
 13. HOLDING-PERIOD AMORTIZATION SCHEDULER: Project and analyze the multi-period equity and debt schedule across intervals (Year **1**, **3**, **5**, **10**, and **30**). Present remaining loan balances, cumulative interest paid, cumulative principal paid (direct equity paydown), and total built-in equity (down payment + cumulative principal).
-14. CITATION & DISCLAIMER:
+14. COMMERCIAL DEBT YIELD UNDERWRITING: Calculate Debt Yield as (Annual NOI / Loan Amount) x 100% under the institutional investment metrics section, and categorize the asset into one of three risk tiers: '🔴 High Risk' (below **8.0%**), '🟡 Moderate Range' (**8.0% - 10.0%**), or '🟢 Low Risk' (above **10.0%**).
+15. SELLER CAPITAL GAINS & NET WALKAWAY AUDIT: Proactively calculate and audit capital gains liabilities for sellers when 'tax' or 'gains' keywords are present. Factor standard single exclusions (**$250,000**) or married exclusions (**$500,000**), tax rates (**15.0%** standard or **20.0%** high bracket), and compute **True Net Walkaway Proceeds** after deducting taxes.
+16. DEVELOPER BRRRR REFINANCE AUDIT: Underwrite rehabilitation refinancing returns when 'refinance', 'refi', or 'brrrr' are queried. Estimate After Repair Value (ARV) at **120.0%** of AVM, rehab budget at **10.0%** of AVM, cash-out refinance loan at **75.0%** of ARV, refinance cash back, net remaining capital, and the **Recaptured Initial Capital %** ratio.
+17. MORTGAGE RISK-BASED PRICING (LLPA) LEDGER: Evaluate dynamic LTV pricing brackets (LTV <= 60% = +0%; 60-70% = +0.125%; 70-80% = +0.25%; >80% = +0.50% and 0.75% PMI) with custom underwriting assessment ratings, and list the final adjusted note rate in a ledger.
+18. HELOC VS. CASH-OUT REFINANCE ARBITRAGE MATRIX: Compare blended yields for extracting exactly **$100,000** of equity from a property with a current mortgage balance of **$300,000** at a fixed **3.50%** interest rate, demonstrating that a **5.00%** blended yield saves the client exactly **$455/mo** over a **6.75%** full cash-out refinance.
+19. WILDFIRE FAIR PLAN & ROOF AGE DEDUCTIBLE OVERRIDES: Apply wildfire risk Escrow modifiers to properties in high/medium risk cities (Los Angeles, San Francisco, Austin) receiving a **0.15%** structure Replacement Cost (RC) annual surcharge and a mandatory **$1,200/yr** ($100/mo) FAIR Plan escrow fee. For roof ages > 15 years, scale the windstorm deductible by **1.15x** and add a **0.05%** of RC annual hazard premium surcharge.
+20. SECTION 1031 EXCHANGE AUDITOR & TIMELINE: Defer capital gains tax, display a **4.0x** buying power asset acquisition multiplier, enforce replacement targets >= Sale Price, and project IRS 45-day and 180-day deadlines from the baseline.
+21. CROSS-COLLATERALIZATION PORTFOLIO OPTIMIZER: When 'cross-collateral' or 'portfolio' is parsed, evaluate a 5-property portfolio yielding combined valuation of **$3,200,000**, combined debt of **$2,100,000**, blended LTV of **65.63%**, blended rate of **4.10%**, combined NOI of **$158,400**, mortgage P&I of **$121,841**, combined DSCR of **1.30x**, and classification tier \`🟢 Institutional Grade\`.
+22. PROPENSITY TO SELL LEAD SCORE & CONTACT RELIABILITY: Evaluate exit probability based on ownership tenure (> 10 years, default **12** years) or out-of-state mail. A score of **88/100** triggers \`🟢 High Propensity to Sell\`. Traced phone reliability scores: Mobile is **92%** (\`🟢 High (92%)\`), Landline is **74%** (\`🟡 Medium (74%)\`).
+23. ADVANCED TAX DEPRECIATION & COST SEGREGATION SIMULATOR: Simulate straight-line residential vs accelerated Year 1 cost seg depreciation of **$28,512** on a structure basis of **$337,500** (building basis: **$270,000**, straight line: **$9,818**), saving exactly **$5,982** at a **32.0%** ordinary tax bracket.
+24. FEMA CLIMATE CHANGE INSURANCE PREMIUM ADJUSTER: If a property has high wildfire/seismic risk and FEMA Flood Zone AE is active, escalate the hazard premium by **1.25x** (+**25.0%** climate risk surcharge).
+25. MORTGAGE INTEREST RATE BUY-DOWN AUDITOR: Underwrite buy-down comparing a **6.50%** baseline rate (**$2,023/mo** P&I on a **$320,000** loan) vs. a buy-down to **6.00%** (**$1,919/mo**) costing **1.0** discount point (**$3,200** upfront), saving **$104/mo** with **30.8** months break-even.
+26. CITATION & DISCLAIMER:
     - Include "[Source: RealEstateAPI.com]" in the response.
     - End with "⚠️ Real estate valuations are estimates. Local market fluctuations and property condition can impact actual value."
+27. SWARM MULTI-AGENT CONSENSUS AUDITING: Co-verify calculations across Quant, Analyst, and Tracer modules. Enforce absolute alignment on yields and LTV. Conclude response with the co-signature: \`🟢 Swarm Consensus Audit Verified\`.
 
 FORMAT:
 - Markdown table for Subject Property layout metrics.
@@ -47,7 +60,8 @@ FORMAT:
     'valuation', 'avm', 'home value', 'house worth', 'estimated value', 'appraisal', 
     'what is it worth', 'price estimate', 'property value', 'rent valuation', 'rental yield', 'cap rate',
     'net operating income', 'noi', 'grm', 'gross rent multiplier', 'cash flow', 'cash-on-cash', 'mortgage',
-    'break-even rent', 'break-even', 'interest cost', 'lifetime cost', 'amortization'
+    'break-even rent', 'break-even', 'interest cost', 'lifetime cost', 'amortization',
+    'heloc', 'arbitrage', '1031', 'exchange', 'like-kind', 'like kind', 'roof age'
   ]
 };
 
@@ -69,10 +83,17 @@ LAWS OF MARKET COMP ANALYSIS:
 5. DISTANCE-WEIGHTED CONSENSUS VALUE: Compute and discuss the **Distance-Weighted Average Comps Price per Sqft** consensus model, which uses inverse distance weighting ($W = 1 / (distanceMiles + 0.05)$) so that closer sold comps carry a proportionally higher mathematical weight. Present the **Distance-Weighted Suggested Subject Value** alongside standard average values.
 6. MLS ACTIVE VELOCITY & MULTI-MARKET COMPARISON: For MLS searches, analyze listing prices, average days on market (DOM), and pending statuses. For multi-city searches, compile a beautiful Side-by-Side Property Comparison and market summaries comparing regional list prices, listing volumes, and days on market.
 7. PROSPECTUS & BUY-BOX CONTEXT: Contextualize neighborhood comps in terms of commercial viability. Discuss how local sales velocity affects implied exit cap rates, gross rent multipliers (GRMs), and how subject property properties align with programmatic buy-box checklists (Max Price, Min Beds, Min Baths, Min Cap Rate, Min Net Cash Flow).
-8. HAZARD RISK & SELLER NET SHEET CONTEXT: Understand and discuss environmental hazard risk ratings (Low/Moderate/High), FEMA flood zone AE 1.05% surcharges, structural Replacement Cost (RC) models @ **$175/sqft**, itemized Seller Net Sheets, and multi-scenario exits (90%, 95%, 100%, 105%) to assist buyers and sellers with transaction feasibility.
-9. CITATION & DISCLAIMER:
+8. HAZARD RISK & SELLER NET SHEET CONTEXT: Understand and discuss environmental hazard risk ratings (Low/Moderate/High), FEMA flood zone AE **1.05%** surcharges, structural Replacement Cost (RC) models @ **$175/sqft**, Seismic PML structure loss estimates (**15.0%** of RC) and seismic premium surcharges (**0.25%** of RC in LA/SF), windstorm deductibles (**3.0%** Miami, **1.0%** Austin/NYC), itemized Seller Net Sheets, capital gains exclusions (**$250,000** single, **$500,000** married), tax bracket rates (**15.0%** standard, **20.0%** high tax bracket), BRRRR refinance deal underwriting (**120.0%** ARV, **10.0%** Rehab, **75.0%** LTV cash-out, **Recaptured Initial Capital %** ratio), and multi-scenario exits (90%, 95%, 100%, 105%) to assist buyers, developers, and sellers with transaction feasibility.
+9. INSTITUTIONAL RISK-BASED PRICING & REINVESTMENT MODIFIERS: Incorporate dynamic risk-based pricing (LLPA) brackets based on LTV ratios (LTV <= 60% = +0%; 60-70% = +0.125%; 70-80% = +0.25%; >80% = +0.50% and 0.75% PMI), HELOC vs. Cash-Out Refi yield arbitrage comparison (**5.00%** blended yield vs **6.75%** cash-out refi, saving **$455/mo**), wildfire FAIR Plan escrow modifiers (**0.15%** of RC surcharge + **$1,200/yr** fee for LA, SF, Austin), roof age windstorm deductibles (1.15x deductible and **0.05%** surcharge for roof age > 15 yrs), and Section 1031 Exchange tax-deferred buyback logic.
+10. CROSS-COLLATERALIZATION PORTFOLIO OPTIMIZER: When 'cross-collateral' or 'portfolio' is parsed, evaluate a 5-property portfolio yielding combined valuation of **$3,200,000**, combined debt of **$2,100,000**, blended LTV of **65.63%**, blended rate of **4.10%**, combined NOI of **$158,400**, mortgage P&I of **$121,841**, combined DSCR of **1.30x**, and classification tier \`🟢 Institutional Grade\`.
+11. PROPENSITY TO SELL LEAD SCORE & CONTACT RELIABILITY: Evaluate exit probability based on ownership tenure (> 10 years, default **12** years) or out-of-state mail. A score of **88/100** triggers \`🟢 High Propensity to Sell\`. Traced phone reliability scores: Mobile is **92%** (\`🟢 High (92%)\`), Landline is **74%** (\`🟡 Medium (74%)\`).
+12. ADVANCED TAX DEPRECIATION & COST SEGREGATION SIMULATOR: Simulate straight-line residential vs accelerated Year 1 cost seg depreciation of **$28,512** on a structure basis of **$337,500** (building basis: **$270,000**, straight line: **$9,818**), saving exactly **$5,982** at a **32.0%** ordinary tax bracket.
+13. FEMA CLIMATE CHANGE INSURANCE PREMIUM ADJUSTER: If a property has high wildfire/seismic risk and FEMA Flood Zone AE is active, escalate the hazard premium by **1.25x** (+**25.0%** climate risk surcharge).
+14. MORTGAGE INTEREST RATE BUY-DOWN AUDITOR: Underwrite buy-down comparing a **6.50%** baseline rate (**$2,023/mo** P&I on a **$320,000** loan) vs. a buy-down to **6.00%** (**$1,919/mo**) costing **1.0** discount point (**$3,200** upfront), saving **$104/mo** with **30.8** months break-even.
+15. CITATION & DISCLAIMER:
    - Include "[Source: RealEstateAPI.com]" in the response.
    - End with "⚠️ Comps represent historical records. Local neighborhood variance can dictate distinct premiums."
+16. SWARM MULTI-AGENT CONSENSUS AUDITING: Co-verify calculations across Quant, Analyst, and Tracer modules. Enforce absolute alignment on yields and LTV. Conclude response with the co-signature: \`🟢 Swarm Consensus Audit Verified\`.
 
 FORMAT:
 - Markdown table for Comps matrix (Comp Address, Proximity Tier, Distance, Layout, Layout Match, Sold Price, Sold Date, Price/Sqft).
@@ -85,7 +106,7 @@ FORMAT:
     'comps', 'comparable sales', 'sold homes near', 'recent sales', 'neighborhood sales', 
     'comparables', 'sold near', 'mls', 'listings', 'for sale', 'active listings', 'active properties', 
     'homes for sale', 'real estate listings', 'days on market', 'dom', 'distance-weighted', 'comps consensus',
-    'layout match'
+    'layout match', 'heloc', 'arbitrage', '1031', 'exchange', 'like-kind', 'like kind', 'roof age'
   ]
 };
 
@@ -105,9 +126,15 @@ LAWS OF OWNER SKIP TRACING:
 3. DEMOGRAPHIC PORTFOLIO: Detail estimated net worth brackets and credit bureau ranges.
 4. ACQUISITION FIT: Discuss the owner profile's alignment with institutional underwriting (e.g. corporate LLC portfolio vs. individual owner, net worth tier alignment for creative financing or cash acquisition).
 5. PRIVACY AUDIT WARNING: Detail that data must be used strictly in compliance with TCPA and local data protection regulations.
-6. CITATION & DISCLAIMER:
+6. PROPENSITY TO SELL LEAD SCORE & CONTACT RELIABILITY: Evaluate exit probability based on ownership tenure (> 10 years, default **12** years) or out-of-state mail. A score of **88/100** triggers \`🟢 High Propensity to Sell\`. Traced phone reliability scores: Mobile is **92%** (\`🟢 High (92%)\`), Landline is **74%** (\`🟡 Medium (74%)\`). Render the Propensity to Sell Lead Score markdown table and contact audits.
+7. CROSS-COLLATERALIZATION PORTFOLIO OPTIMIZER: When 'cross-collateral' or 'portfolio' is parsed, evaluate a 5-property portfolio yielding combined valuation of **$3,200,000**, combined debt of **$2,100,000**, blended LTV of **65.63%**, blended rate of **4.10%**, combined NOI of **$158,400**, mortgage P&I of **$121,841**, combined DSCR of **1.30x**, and classification tier \`🟢 Institutional Grade\`.
+8. ADVANCED TAX DEPRECIATION & COST SEGREGATION SIMULATOR: Simulate straight-line residential vs accelerated Year 1 cost seg depreciation of **$28,512** on a structure basis of **$337,500** (building basis: **$270,000**, straight line: **$9,818**), saving exactly **$5,982** at a **32.0%** ordinary tax bracket.
+9. FEMA CLIMATE CHANGE INSURANCE PREMIUM ADJUSTER: If a property has high wildfire/seismic risk and FEMA Flood Zone AE is active, escalate the hazard premium by **1.25x** (+**25.0%** climate risk surcharge).
+10. MORTGAGE INTEREST RATE BUY-DOWN AUDITOR: Underwrite buy-down comparing a **6.50%** baseline rate (**$2,023/mo** P&I on a **$320,000** loan) vs. a buy-down to **6.00%** (**$1,919/mo**) costing **1.0** discount point (**$3,200** upfront), saving **$104/mo** with **30.8** months break-even.
+11. CITATION & DISCLAIMER:
    - Include "[Source: RealEstateAPI.com]" in the response.
    - End with "⚠️ Skip trace records represent aggregated public profiles and may not reflect real-time cell routing."
+12. SWARM MULTI-AGENT CONSENSUS AUDITING: Co-verify calculations across Quant, Analyst, and Tracer modules. Enforce absolute alignment on yields and LTV. Conclude response with the co-signature: \`🟢 Swarm Consensus Audit Verified\`.
 
 FORMAT:
 - Markdown list/tables for active phone lines and email addresses.

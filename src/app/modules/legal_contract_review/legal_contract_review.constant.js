@@ -81,7 +81,7 @@ export const RISK_LEVELS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'legal_contract_review';
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro';
 
 // Storage configuration
 export const STORAGE_CONFIG = {

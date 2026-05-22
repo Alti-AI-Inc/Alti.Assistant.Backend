@@ -85,8 +85,9 @@ const login = catchAsync(async (req, res) => {
 
   // Set Refresh Token into cookie
   const cookieOption = {
-    secure: config.env === 'production' ? true : false,
+    secure: config.env === 'production',
     httpOnly: true,
+    sameSite: config.env === 'production' ? 'none' : 'lax',
   };
   const invitation = TenantInvitation.findByToken(invitationToken);
   res.cookie('refreshToken', refreshToken, cookieOption);
@@ -111,6 +112,7 @@ const refreshToken = catchAsync(async (req, res) => {
   const cookieOptions = {
     secure: config.env === 'production',
     httpOnly: true,
+    sameSite: config.env === 'production' ? 'none' : 'lax',
   };
 
   res.cookie('refreshToken', refreshToken, cookieOptions);

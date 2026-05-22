@@ -18,16 +18,16 @@ export const ModelComplexity = {
   COMPLEX: 'complex', // Advanced reasoning, complex tasks
 };
 
-// Gemini 2.5 Flash - Fast and efficient for simple tasks
+// Gemini 3.5 Flash - Fast and efficient for standard/lightweight tasks
 export const gemini2_5Flash = new ChatGoogleGenerativeAI({
-  model: 'gemini-2.5-flash', // Gemini 2.5 Flash for speed and efficiency
+  model: 'gemini-3.5-flash', // Gemini 3.5 Flash for speed and efficiency
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
 });
-// Gemini Pro - Advanced capabilities for complex tasks
+// Gemini 3.1 Pro - Advanced capabilities for complex analytical tasks
 export const gemini3ProPreview = new ChatGoogleGenerativeAI({
-  model: 'gemini-2.5-flash', // Use gemini-2.5-flash instead of 3.5 which doesn't exist
+  model: 'gemini-3.1-pro', // Gemini 3.1 Pro for cognitive reasoning
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
@@ -79,7 +79,7 @@ export const selectModel = (options = {}) => {
   // Fallback to manual criteria-based selection
   console.log('⚙️ Using manual model selection criteria');
 
-  // Use Gemini 3.5 Flash for:
+  // Use Gemini 3.1 Pro for:
   // - Complex tasks requiring advanced reasoning
   // - Large context windows (> 10k tokens)
   // - Tasks explicitly marked as complex
@@ -89,22 +89,22 @@ export const selectModel = (options = {}) => {
     inputLength > 10000
   ) {
     console.log(
-      '✅ Selected: Gemini 3.5 Flash (Manual: Complex/Large/Reasoning)'
+      '✅ Selected: Gemini 3.1 Pro (Manual: Complex/Large/Reasoning)'
     );
     return gemini3ProPreview;
   }
 
-  // Use Gemini 2.5 Flash for:
+  // Use Gemini 3.5 Flash for:
   // - Simple tasks
   // - Speed-critical operations
   // - Smaller inputs
   if (speedPriority || complexity === ModelComplexity.SIMPLE) {
-    console.log('✅ Selected: Gemini 2.5 Flash (Manual: Simple/Speed)');
+    console.log('✅ Selected: Gemini 3.5 Flash (Manual: Simple/Speed)');
     return gemini2_5Flash;
   }
 
   // Default to Flash for efficiency
-  console.log('✅ Selected: Gemini 2.5 Flash (Manual: Default)');
+  console.log('✅ Selected: Gemini 3.5 Flash (Manual: Default)');
   return gemini2_5Flash;
 };
 
@@ -136,7 +136,7 @@ export const createToolEnabledLLMExplicit = (modelType = 'flash') => {
 
   const model = modelType === 'pro' ? gemini3ProPreview : gemini2_5Flash;
   console.log(
-    `✅ Explicit model selection: ${modelType === 'pro' ? 'Gemini 3.5 Flash' : 'Gemini 2.5 Flash'}`
+    `✅ Explicit model selection: ${modelType === 'pro' ? 'Gemini 3.1 Pro' : 'Gemini 3.5 Flash'}`
   );
 
   return model.bindTools(searchTools);

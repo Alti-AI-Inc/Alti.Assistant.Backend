@@ -13,19 +13,22 @@ const STREET_ADDRESS_REGEX = /\b\d+\s+[a-z0-9\.\s]+?\s+(street|st|avenue|ave|lan
 
 // Keyword dictionaries
 const INTENT_KEYWORDS = {
+  skip_trace: [
+    'skip trace', 'owner contact', 'owner phone', 'owner email', 'lookup owner', 
+    'who owns', 'property owner'
+  ],
   property_avm: [
     'valuation', 'avm', 'home value', 'house worth', 'estimated value', 'appraisal', 
     'what is it worth', 'price estimate', 'property value', 'dscr', 'pmi', 'loan-to-value', 'ltv',
     'sell', 'commission', 'net sheet', 'net proceeds', 'netsheet',
-    'buy box', 'buybox', 'prospectus', 'matching engine', 'investor criteria'
+    'buy box', 'buybox', 'prospectus', 'matching engine', 'investor criteria',
+    'refinance', 'refi', 'brrrr', 'capital gains', 'gains tax', 'tax liability', 'tax audit',
+    'heloc', 'arbitrage', '1031', 'exchange', 'like-kind', 'like kind',
+    'cross-collateral', 'cross collateral', 'portfolio list', 'propensity', 'sell propensity', 'lead score', 'reliability score', 'depreciation', 'cost segregation', 'points amortization', 'buy-down', 'buy down'
   ],
   property_comps: [
     'comps', 'comparable sales', 'sold homes near', 'recent sales', 'neighborhood sales', 
     'comparables', 'sold near'
-  ],
-  skip_trace: [
-    'skip trace', 'owner contact', 'owner phone', 'owner email', 'lookup owner', 
-    'who owns', 'property owner'
   ],
   mls_search: [
     'mls', 'listings', 'for sale', 'active listings', 'active properties', 'homes for sale',
@@ -35,7 +38,8 @@ const INTENT_KEYWORDS = {
     'property details', 'lot size', 'year built', 'square footage', 'sqft', 'bedrooms', 
     'bathrooms', 'public records', 'tax assessment', 'zoning', 'insurance', 'hazard risk', 
     'replacement cost', 'premium', 'hazard',
-    'flood', 'fema', 'zone a', 'zone ae', 'flood zone', 'flood risk'
+    'flood', 'fema', 'zone a', 'zone ae', 'flood zone', 'flood risk',
+    'roof age', 'roof material', 'roof'
   ]
 };
 
@@ -97,9 +101,13 @@ export const parseAddressEntities = (query) => {
 
   // Attempt to extract city: e.g., "in Atlanta, GA" or "in Atlanta"
   let city = null;
-  const inCityMatch = q.match(/in\s+([a-z\s]+?)(?:,\s*|\s+)?(?:al|ak|az|ar|ca|co|ct|de|dc|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|\b)/i);
+  const inCityMatch = q.match(/\bin\s+([a-z\s]+?)(?:,\s*|\s+)?(?:al|ak|az|ar|ca|co|ct|de|dc|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|\b)/i);
   if (inCityMatch) {
-    city = inCityMatch[1].trim();
+    const candidate = inCityMatch[1].trim();
+    const streetSuffixes = ['st', 'street', 'ave', 'avenue', 'ln', 'lane', 'dr', 'drive', 'rd', 'road', 'ct', 'court', 'pl', 'place', 'way', 'blvd', 'boulevard'];
+    if (!streetSuffixes.includes(candidate.toLowerCase())) {
+      city = candidate;
+    }
   }
 
   const CITY_NORMALIZATION_MAP = {
@@ -261,6 +269,37 @@ export const parseAddressEntities = (query) => {
   const isMiamiQuery = (baseEntities.city || city || '').toLowerCase() === 'miami';
   const femaFloodActive = isMiamiQuery || ['flood', 'fema', 'zone a', 'zone ae'].some(k => q.includes(k));
 
+  // ─── Refinance, Tax, and Unit Count Extractors
+  const refinanceActive = ['refinance', 'refi', 'brrrr'].some(k => q.includes(k));
+  const capitalGainsActive = ['capital gains', 'gains tax', 'tax liability', 'tax audit'].some(k => q.includes(k));
+  const marriedActive = ['married', 'joint', 'spouse'].some(k => q.includes(k));
+  const highTaxBracket = ['high bracket', 'upper bracket', 'high tax', '20% tax'].some(k => q.includes(k));
+  const helocActive = ['heloc', 'arbitrage', 'refi vs heloc', 'refinance vs heloc'].some(k => q.includes(k));
+  const exchangeActive = ['1031', 'exchange', 'like-kind', 'like kind'].some(k => q.includes(k));
+  const crossCollateralActive = ['cross-collateral', 'cross collateral', 'portfolio'].some(k => q.includes(k));
+  const propensityActive = ['propensity', 'lead score', 'reliability score'].some(k => q.includes(k));
+  const depreciationActive = ['depreciation', 'cost segregation'].some(k => q.includes(k));
+  const buydownActive = ['buy-down', 'buy down', 'points amortization'].some(k => q.includes(k));
+
+  let roofAge = null;
+  const roofAgeMatch = q.match(/roof\s+age\s+(\d+)/i) || q.match(/(\d+)\s*(?:year|yr)s?\s*old\s+roof/i) || q.match(/roof\s+(?:is\s+)?(\d+)\s*(?:year|yr)s?\s*old/i);
+  if (roofAgeMatch) {
+    roofAge = parseInt(roofAgeMatch[1], 10);
+  } else if (q.includes('old roof')) {
+    roofAge = 16;
+  }
+
+  let unitCount = 1;
+  if (q.includes('duplex') || q.includes('2-unit') || q.includes('two-unit')) {
+    unitCount = 2;
+  } else if (q.includes('triplex') || q.includes('3-unit') || q.includes('three-unit')) {
+    unitCount = 3;
+  } else if (q.includes('fourplex') || q.includes('4-unit') || q.includes('four-unit')) {
+    unitCount = 4;
+  } else if (propertyType === 'MultiFamily') {
+    unitCount = 2; // Default multi-family unit count
+  }
+
   return {
     ...baseEntities,
     locations,
@@ -275,7 +314,19 @@ export const parseAddressEntities = (query) => {
     customRent,
     minCapRate,
     minNetCashFlow,
-    femaFloodActive
+    femaFloodActive,
+    refinanceActive,
+    capitalGainsActive,
+    marriedActive,
+    highTaxBracket,
+    unitCount,
+    helocActive,
+    exchangeActive,
+    roofAge,
+    crossCollateralActive,
+    propensityActive,
+    depreciationActive,
+    buydownActive
   };
 };
 
@@ -293,7 +344,9 @@ export const detectRealEstateIntent = (query) => {
     'real estate', 'property', 'house', 'home value', 'owner of', 'mls listing', 
     'skip trace', 'comps', 'comparable sales', 'year built', 'tax assessed',
     'bedrooms', 'bathrooms', '123 main st', '456 oak ln', '1600 pennsylvania',
-    'listings', 'active listings', 'for sale'
+    'listings', 'active listings', 'for sale', 'refinance', 'refi', 'brrrr', 'capital gains', 'gains tax',
+    'heloc', 'arbitrage', '1031', 'exchange', 'like-kind', 'like kind', 'roof age', 'roof',
+    'cross-collateral', 'cross collateral', 'portfolio', 'propensity', 'lead score', 'depreciation', 'cost segregation', 'buy-down', 'buy down'
   ].some(k => q.includes(k));
 
   if (!isRealEstateRelated) return null;

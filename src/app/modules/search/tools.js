@@ -2,6 +2,9 @@ import { DynamicStructuredTool, StructuredTool } from '@langchain/core/tools';
 import { GoogleCustomSearch } from '@langchain/community/tools/google_custom_search';
 import { z } from 'zod';
 import config from '../../../../config/index.js';
+import { getNewsApiAiData } from '../../helpers/v13DataIntegrations.js';
+import { getGreenlightIntelligenceData } from '../../helpers/v14DataIntegrations.js';
+import { getPremiumIntelligenceData } from '../../helpers/v15DataIntegrations.js';
 
 const rawGoogle = new GoogleCustomSearch({
   maxResults: 20, // Default max results
@@ -322,3 +325,109 @@ export class YouTubeSearchTool extends StructuredTool {
     }
   }
 }
+
+/**
+ * NewsAPI.ai / Event Registry Global News Intelligence Tool
+ */
+export const newsapiGlobalNewsSearch = new DynamicStructuredTool({
+  name: 'newsapi_global_news_search',
+  description: `Access Event Registry / NewsAPI.ai global news intelligence. Use for ANY query about:
+- Real-time global news monitoring, news event streams, or concept trends
+- Sentiment trends and sentiment vectors for specific topics (positive/negative/neutral)
+- Verification of news article counts and citation counts in the last 24h
+- Social share densities (aggregated social shares across networks)
+- Industry category tracking and trust indices
+Input: A natural language query or topic to search global news intelligence (e.g. "Artificial Intelligence trends", "Bitcoin news sentiment", "climate change monitored articles").`,
+  schema: z.object({
+    query: z.string().describe("Topic or query to fetch news intelligence for"),
+  }),
+  func: async ({ query }) => {
+    try {
+      const result = await getNewsApiAiData(query);
+      return result.markdown;
+    } catch (err) {
+      return `News intelligence lookup failed: ${err.message}`;
+    }
+  }
+});
+
+/**
+ * Alti Greenlight Public Intelligence Search Tool
+ */
+export const altiGreenlightIntelligenceSearch = new DynamicStructuredTool({
+  name: 'alti_greenlight_intelligence_search',
+  description: `Access nine highly targeted public intelligence databases. Use this tool for ANY query regarding:
+1. "politics_campaign" -> FEC political donations, campaign financing, PAC cash flow.
+2. "legislation_tracking" -> LegiScan state/federal bill tracking, roll call voting records, bill sponsors.
+3. "civic_representatives" -> Google Civic representative mapping, local congressional districts, elected officials by address.
+4. "macroeconomics_global" -> DBnomics multi-agency statistical indexes (aggregating IMF, World Bank, OECD).
+5. "mortgage_lending" -> CFPB HMDA mortgage loan approval ratios, loan application metrics, loan-to-value by census tract.
+6. "disaster_hazards" -> OpenFEMA regional flood zone maps, disaster declarations, mitigation relief grant volumes.
+7. "medical_research" -> NIH RePORTER research grant allocations, active medical study budgets, leading facilities.
+8. "uk_company_registry" -> Companies House UK registered numbers, directors, annual account filing profiles.
+9. "global_entity_registry" -> OpenCorporates international parent-subsidiary mappings and corporate registrations.
+Input: The domain enum name (politics_campaign, legislation_tracking, civic_representatives, macroeconomics_global, mortgage_lending, disaster_hazards, medical_research, uk_company_registry, global_entity_registry) and a query string (topic, address, company name, or CIK).`,
+  schema: z.object({
+    domain: z.enum([
+      'politics_campaign',
+      'legislation_tracking',
+      'civic_representatives',
+      'macroeconomics_global',
+      'mortgage_lending',
+      'disaster_hazards',
+      'medical_research',
+      'uk_company_registry',
+      'global_entity_registry'
+    ]).describe("The target database domain sector to query"),
+    query: z.string().describe("Topic, address, company name, CIK, or region to query within the domain")
+  }),
+  func: async ({ domain, query }) => {
+    try {
+      const result = await getGreenlightIntelligenceData(domain, query);
+      return result.markdown;
+    } catch (err) {
+      return `Public intelligence lookup failed: ${err.message}`;
+    }
+  }
+});
+
+/**
+ * Alti Premium Public Intelligence Search Tool
+ */
+export const altiPremiumIntelligenceSearch = new DynamicStructuredTool({
+  name: 'alti_premium_intelligence_search',
+  description: `Access nine high-value premium public intelligence databases. Use this tool for ANY query regarding:
+1. "clinical_trials" -> ClinicalTrials.gov global clinical trial registries, study recruitment, enrollment stats, drug trial phases.
+2. "fda_drug_safety" -> openFDA drug safety warnings, adverse event counts, recall enforcement records, labeling details.
+3. "global_health_observatory" -> WHO (World Health Organization) statistics, life expectancy trends, immunizations, cross-country metrics.
+4. "us_treasury_fiscal" -> U.S. Treasury sovereign debt figures, daily government cash balance, federal spending budgets, tax revenues.
+5. "federal_spending" -> USAspending.gov federal contract awards, grants, agency spending, and recipient profiles.
+6. "healthcare_npi" -> CMS NPPES National Provider Identifier (NPI) lookup, clinician registry, business address, and specialty licenses.
+7. "food_nutrients" -> USDA FoodData Central nutritional values, brand products, calorie/carb/protein breakdowns, and ingredients.
+8. "charity_registry" -> IRS tax-exempt Publication 78 charity database, active EIN standings, and IRS subsection codes.
+9. "aviation_delays" -> FAA Airport Status real-time flight delays, ground stops, weather causes, and airspace capacities.
+Input: The domain enum name (clinical_trials, fda_drug_safety, global_health_observatory, us_treasury_fiscal, federal_spending, healthcare_npi, food_nutrients, charity_registry, aviation_delays) and a query string (topic, NPI, EIN, food, airport, or company name).`,
+  schema: z.object({
+    domain: z.enum([
+      'clinical_trials',
+      'fda_drug_safety',
+      'global_health_observatory',
+      'us_treasury_fiscal',
+      'federal_spending',
+      'healthcare_npi',
+      'food_nutrients',
+      'charity_registry',
+      'aviation_delays'
+    ]).describe("The target premium database sector to query"),
+    query: z.string().describe("Sanitized topic, NPI, EIN, food, airport, or account query within the premium domain")
+  }),
+  func: async ({ domain, query }) => {
+    try {
+      const result = await getPremiumIntelligenceData(domain, query);
+      return result.markdown;
+    } catch (err) {
+      return `Premium intelligence lookup failed: ${err.message}`;
+    }
+  }
+});
+

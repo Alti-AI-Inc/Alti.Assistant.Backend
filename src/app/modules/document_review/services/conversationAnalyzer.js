@@ -15,7 +15,7 @@ const analyzeIntent = async (
 ) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-pro',
       generationConfig: {
         temperature: 0.3,
         maxOutputTokens: 2048,
@@ -142,7 +142,7 @@ Respond in JSON format only:
 const summarizeConversation = async (conversationHistory, collectedParams) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-pro',
       generationConfig: {
         temperature: 0.3,
         maxOutputTokens: 1024,

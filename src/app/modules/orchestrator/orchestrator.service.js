@@ -13,7 +13,7 @@ const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
 // For lightning-fast classification, use Flash and force strict JSON response
 const model = client.getGenerativeModel({
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   generationConfig: {
     temperature: 0.1, // extremely low temp for high deterministic accuracy
     responseMimeType: "application/json",

@@ -18,14 +18,14 @@ const SUMMARIZATION_THRESHOLD = 5000;
 class ConversationAnalyzer {
   constructor() {
     this.model = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       apiKey: config.gemini_secret_key,
       temperature: 0.3,
       maxOutputTokens: 2048,
     });
 
     this.summarizerModel = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       apiKey: config.gemini_secret_key,
       temperature: 0.5,
       maxOutputTokens: 1000,

@@ -87,6 +87,21 @@ export const LEAGUE_MAP = {
   'bundesliga': 'ESOC_M_DE_1', 'german league': 'ESOC_M_DE_1', 'german bundesliga': 'ESOC_M_DE_1',
   'serie a': 'ESOC_M_IT_1', 'italian league': 'ESOC_M_IT_1', 'italian serie a': 'ESOC_M_IT_1',
   'ligue 1': 'ESOC_M_FR_1', 'french league': 'ESOC_M_FR_1', 'ligue1': 'ESOC_M_FR_1',
+
+  // Formula 1
+  'f1': 'F1', 'formula 1': 'F1', 'formula-1': 'F1',
+  
+  // Cricket
+  'ipl': 'IPL', 'indian premier league': 'IPL', 'cricket': 'IPL',
+  
+  // Rugby
+  'rwc': 'RWC', 'rugby': 'RWC', 'rugby world cup': 'RWC',
+  
+  // Volleyball
+  'vnl': 'VNL', 'volleyball': 'VNL', 'volleyball nations league': 'VNL',
+  
+  // Handball
+  'ehf': 'EHF', 'handball': 'EHF', 'ehf champions league': 'EHF',
 };
 
 
@@ -387,6 +402,28 @@ export const SPORTS_GAME_KEYWORDS = [
   'preview', 'analysis', 'pick tonight', 'pick today',
   'series', 'series odds', 'series winner', 'series spread',
   'live score', 'in game', 'in-game', 'halftime score', 'current score',
+];
+
+// ─────────────────────────────────────────────
+// STANDINGS / RANKINGS KEYWORDS
+// ─────────────────────────────────────────────
+export const STANDINGS_KEYWORDS = [
+  'standings', 'rankings', 'table', 'division leaders', 'conference standings'
+];
+
+// ─────────────────────────────────────────────
+// LIVE STATS / BOX SCORE KEYWORDS
+// ─────────────────────────────────────────────
+export const BOX_SCORE_KEYWORDS = [
+  'box score', 'match stats', 'live stats', 'team stats', 'game stats',
+  'shots on target', 'possession', 'assists count'
+];
+
+// ─────────────────────────────────────────────
+// HEAD-TO-HEAD (H2H) KEYWORDS
+// ─────────────────────────────────────────────
+export const H2H_KEYWORDS = [
+  'head to head', 'h2h', 'head-to-head', 'past matchups', 'history between', 'record vs'
 ];
 
 // ─────────────────────────────────────────────
@@ -710,6 +747,12 @@ export const LEAGUE_SPORT = {
   UFC: 'combat',
   GOLF: 'golf',
   TENNIS: 'tennis',
+  F1: 'racing',
+  IPL: 'cricket',
+  RWC: 'rugby',
+  AFL: 'afl',
+  VNL: 'volleyball',
+  EHF: 'handball',
 };
 
 // ─────────────────────────────────────────────
@@ -725,6 +768,12 @@ export const LEAGUE_EMOJI = {
   UFC: '🥊',
   GOLF: '⛳',
   TENNIS: '🎾',
+  F1: '🏎️',
+  IPL: '🏏',
+  RWC: '🏉',
+  AFL: '🏉',
+  VNL: '🏐',
+  EHF: '🤾',
 };
 
 // ─────────────────────────────────────────────
@@ -741,6 +790,7 @@ export const LEAGUE_DEFAULT_PERIOD = {
   TENNIS: 'FT',
   MLS: 'FT', EPL: 'FT', SERA: 'FT', LIGA: 'FT', LIG1: 'FT', BUND: 'FT', UCL: 'FT',
   NCAAF: 'FT', NCAAB: 'FT', FB_US_M_UFL: 'FT',
+  F1: 'FT', IPL: 'FT', RWC: 'FT', AFL: 'FT', VNL: 'FT', EHF: 'FT',
 };
 
 // ─────────────────────────────────────────────
@@ -880,6 +930,10 @@ export function detectSportsIntent(prompt) {
   const hasAltLine        = ALT_LINE_KEYWORDS.some((k) => q.includes(k));
   const hasPeriodKw       = Object.keys(PERIOD_KEYWORDS).some((k) => q.includes(k));
 
+  const hasStandingsKw    = STANDINGS_KEYWORDS.some((k) => q.includes(k));
+  const hasBoxScoreKw     = BOX_SCORE_KEYWORDS.some((k) => q.includes(k));
+  const hasH2HKw          = H2H_KEYWORDS.some((k) => q.includes(k));
+
   // Player name detection — covers "Mahomes prop", "LeBron points tonight"
   const detectedPlayerName =
     Object.keys(PLAYER_NAME_MAP).find((name) => q.includes(name)) || null;
@@ -941,7 +995,8 @@ export function detectSportsIntent(prompt) {
 
   if (
     !hasBettingKeyword && !hasGameKeyword && !hasPropStat &&
-    !hasGameProp && !hasFuturesKw && !hasSGP && !hasPredMkt && !detectedPlayerName
+    !hasGameProp && !hasFuturesKw && !hasSGP && !hasPredMkt && !detectedPlayerName &&
+    !hasStandingsKw && !hasBoxScoreKw && !hasH2HKw
   ) return null;
 
   // ── 2. Detect league ───────────────────────────────────────────────────────
@@ -981,7 +1036,23 @@ export function detectSportsIntent(prompt) {
     else if (q.includes('march madness') || q.includes('final four')) detectedLeague = 'NCAAB';
   }
 
-  if (!detectedLeague) return null;
+  if (!detectedLeague) {
+    if (hasStandingsKw || hasBoxScoreKw || hasH2HKw) {
+      detectedLeague = 'EPL';
+    } else {
+      return null;
+    }
+  }
+
+  if (hasStandingsKw) {
+    return { type: 'standings', league: detectedLeague, extra: { rawQuery: prompt } };
+  }
+  if (hasBoxScoreKw) {
+    return { type: 'box_score', league: detectedLeague, extra: { rawQuery: prompt } };
+  }
+  if (hasH2HKw) {
+    return { type: 'h2h', league: detectedLeague, extra: { rawQuery: prompt } };
+  }
 
   // ── 3. Detect period ───────────────────────────────────────────────────────
   let detectedPeriod = null;

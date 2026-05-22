@@ -20,9 +20,8 @@ if (!redisEnabled) {
   );
 }
 
-// ── No-op stub used when Redis is disabled ───────────────────────────────────
-const noop = async () => {};
-const noopGet = async () => null;
+// ── High-performance in-memory fallback cache store ─────────────────────────
+const memoryStore = new Map();
 
 let redisClient, redisPubClient, redisSubClient;
 
@@ -43,36 +42,63 @@ const connect = async () => {
 };
 
 const set = async (key, value, options) => {
-  if (!redisEnabled) return;
-  await redisClient.set(key, value, options);
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      await redisClient.set(key, value, options);
+      return;
+    } catch (err) {
+      logger.warn(`Redis set failed, falling back to memory: ${err.message}`);
+    }
+  }
+  let expiry = null;
+  if (options && options.EX) {
+    expiry = Date.now() + options.EX * 1000;
+  }
+  memoryStore.set(key, { value, expiry });
 };
 
 const get = async (key) => {
-  if (!redisEnabled) return null;
-  return await redisClient.get(key);
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      return await redisClient.get(key);
+    } catch (err) {
+      logger.warn(`Redis get failed, falling back to memory: ${err.message}`);
+    }
+  }
+  const entry = memoryStore.get(key);
+  if (!entry) return null;
+  if (entry.expiry && entry.expiry < Date.now()) {
+    memoryStore.delete(key);
+    return null;
+  }
+  return entry.value;
 };
 
 const del = async (key) => {
-  if (!redisEnabled) return;
-  await redisClient.del(key);
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      await redisClient.del(key);
+      return;
+    } catch (err) {
+      logger.warn(`Redis del failed, falling back to memory: ${err.message}`);
+    }
+  }
+  memoryStore.delete(key);
 };
 
 const setAccessToken = async (userId, token) => {
-  if (!redisEnabled) return;
   const key = `access-token:${userId}`;
-  await redisClient.set(key, token, { EX: Number(config.redis.expires_in) });
+  await set(key, token, { EX: Number(config.redis?.expires_in || 3600) });
 };
 
 const getAccessToken = async (userId) => {
-  if (!redisEnabled) return null;
   const key = `access-token:${userId}`;
-  return await redisClient.get(key);
+  return await get(key);
 };
 
 const delAccessToken = async (userId) => {
-  if (!redisEnabled) return;
   const key = `access-token:${userId}`;
-  await redisClient.del(key);
+  await del(key);
 };
 
 const disconnect = async () => {
@@ -92,7 +118,7 @@ export const RedisClient = {
   },
   subscribe: redisEnabled
     ? redisSubClient.subscribe.bind(redisSubClient)
-    : noop,
+    : async () => {},
   set,
   get,
   del,

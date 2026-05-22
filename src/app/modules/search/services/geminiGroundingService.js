@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../../config/index.js';
 import { GoogleGenAI } from '@google/genai';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
@@ -10,7 +9,7 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  * Uses Google's built-in grounding for simpler, more reliable search
  */
 
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+// Legacy GoogleGenerativeAI removed to standardize on GoogleGenAI client
 
 /**
  * Create a grounded Gemini model with native Google Search
@@ -18,14 +17,20 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * @returns {GenerativeModel} Configured model instance
  */
 export function createGroundedModel(modelName = 'gemini-3.5-flash') {
-  return genAI.getGenerativeModel({
+  console.log(`[createGroundedModel] Legacy helper called. Standardizing on GoogleGenAI client.`);
+  return {
     model: modelName,
-    tools: [
-      {
-        googleSearch: {}, // Native Google Search grounding tool
-      },
-    ],
-  });
+    generateContent: async (req) => {
+      return ai.models.generateContent({
+        model: modelName,
+        ...req,
+        config: {
+          ...req.config,
+          tools: [{ googleSearch: {} }]
+        }
+      });
+    }
+  };
 }
 
 /**
@@ -53,7 +58,7 @@ async function estimateTokens(messages) {
   );
   const totalToken = await countingModel.models.countTokens({
     contents: makeASingleMessage,
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
   });
 
   // Rough estimate: 1 token ≈ 4 characters
@@ -88,7 +93,7 @@ ${conversationText}
 Summary:`;
 
     const summaryResult = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       contents: [
         {
           role: 'user',
@@ -392,7 +397,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         config: {
           temperature: 0.2,
           maxOutputTokens: 4000,
-          // systemInstruction: systemPrompt,
+          systemInstruction: systemPrompt,
           tools: [{ googleSearch: {} }],
           thinkingConfig: {
             thinkingLevel: 'LOW',
@@ -913,7 +918,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         ? {
             searchQueries: groundingMetadata.webSearchQueries || [],
             searchTimestamp: new Date().toISOString(),
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             groundingSupports: groundingMetadata.groundingSupports?.length || 0,
             totalSources: groundingMetadata.groundingChunks?.length || 0,
             searchMethod: isVideoQuery ? 'youtube_search' : isFinancialQuery ? 'massive_realtime' : 'native_grounding',
@@ -987,21 +992,40 @@ export async function executeGroundedSearchWithModel(
     console.log(`💹 [executeGroundedSearchWithModel] Massive financial data injected for: "${query.substring(0, 60)}..."`);
   }
 
-  const model = createGroundedModel(modelName);
-
-  const chat = model.startChat({
-    history: conversationHistory.map((msg) => ({
+  // Build contents with proper format for Google GenAI
+  const contents = [
+    ...conversationHistory.map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }],
     })),
-  });
+    {
+      role: 'user',
+      parts: [{ text: enhancedQuery }],
+    },
+  ];
 
   try {
-    const result = await chat.sendMessage(enhancedQuery);
-    const response = await result.response;
-    const text = response.text();
+    const result = await ai.models.generateContent({
+      model: modelName,
+      contents: contents,
+      config: {
+        temperature: 0.2,
+        maxOutputTokens: 4000,
+        systemInstruction: systemPrompt,
+        tools: [{ googleSearch: {} }],
+      },
+    });
 
-    const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+    const response = result.candidates?.[0];
+    if (!response) {
+      throw new Error('No candidate returned from Gemini model');
+    }
+    const text = response.content?.parts
+      ?.filter((part) => part.text)
+      ?.map((part) => part.text)
+      ?.join('') || '';
+
+    const groundingMetadata = response.groundingMetadata;
 
     const references = [];
     const usedUrls = new Set();

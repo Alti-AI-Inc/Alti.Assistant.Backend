@@ -4,6 +4,8 @@ import { classifyFinancialQuery, classifySportsQuery } from './queryClassifier.j
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 import { sportsSmartRouter } from '../../../helpers/sportsSmartRouter.js';
 import { refreshLeagueNow } from '../../../helpers/sportsDataCache.js';
+import { detectGreenlightIntent } from '../../../helpers/v14DataIntegrations.js';
+import { detectPremiumIntent } from '../../../helpers/v15DataIntegrations.js';
 // SSR_SPORTS_V6
 
 /**
@@ -147,6 +149,31 @@ export async function executeSmartSearch(
   conversationHistory = [],
   options = {}
 ) {
+  // ══ PRIORITY 0: Public/Premium Registries Interception ═════════════════════
+  const isGreenlight = !!detectGreenlightIntent(query);
+  const isPremium = !!detectPremiumIntent(query);
+  if (isGreenlight || isPremium) {
+    console.log(`⚡ Intercepting Public/Premium query — routing to massiveSmartRouter`);
+    try {
+      const enhancedQuery = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
+      if (enhancedQuery !== query) {
+        const result = await executeGroundedSearch(enhancedQuery, conversationHistory);
+        return {
+          answer: result.answer,
+          reference: result.reference || [],
+          citations: result.citations || [],
+          citationMetadata: {
+            ...result.citationMetadata,
+            method: 'public_premium_grounding',
+            source: isPremium ? 'Premium Public Database' : 'Greenlight Public Registry'
+          }
+        };
+      }
+    } catch (err) {
+      console.warn(`⚠️ Public/Premium routing failed: ${err.message}`);
+    }
+  }
+
   // ══ PRIORITY 1: Sports betting → PredictionData.io (fully entrenched) ════════
   const sportsClass = classifySportsQuery(query);
   if (sportsClass.isSports) {

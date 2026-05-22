@@ -57,7 +57,7 @@ TOPICS: [topic1, topic2, topic3]
 ENTITIES: [entity1, entity2, entity3]
 APPS: [app1, app2, app3]`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const result = await model.generateContent(prompt);
     const response = result.response.text();
 

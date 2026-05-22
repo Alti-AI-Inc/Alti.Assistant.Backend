@@ -75,7 +75,7 @@ export const financialAnalyst = {
   systemInstruction: `You are a Wall Street Financial Analyst. 
 Analyze live stock quotes, market trends, volume, and bid-ask spreads.
 Synthesize findings into clean, concise tabular breakdowns and actionable summaries.`,
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   tools: ['massive-realtime-tick'],
   keywords: ['stock', 'ticker', 'price', 'quote', 'market', 'financial', 'shares', 'googl', 'aapl']
 };

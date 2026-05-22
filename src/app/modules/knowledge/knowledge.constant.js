@@ -1,6 +1,6 @@
 // Knowledge Module Configuration
 export const KNOWLEDGE_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.5-flash',
   COMPLEX_MODEL: 'claude-opus-4-5-20250514', // For complex queries
   EMBEDDING_MODEL: 'text-embedding-004',
   TEMPERATURE: 0.2,

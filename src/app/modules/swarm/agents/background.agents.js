@@ -73,7 +73,7 @@ CRITICAL LAWS:
 3. STYLE & CASING INTEGRITY: Confirm that the response is direct, short, and completely devoid of conversational fluff, meta-commentary, or verbose preambles.
 4. STRUCTURAL CRITIQUE OUTPUT: Compile your evaluation into a performance score card (0-100) and generate a JSON log containing score, failed laws, and precise text corrections.
 5. NO FLUFF: Output only the structured performance evaluation object.`,
-  model: 'gemini-2.5-pro', // Using advanced Pro for nuanced text and logical alignment audits
+  model: 'gemini-3.1-pro', // Using advanced Pro for nuanced text and logical alignment audits
   tools: [],
   keywords: ['llm self audit', 'truthfulness check', 'compliance scorecard', 'response critique log', 'style score']
 };
@@ -136,7 +136,7 @@ CRITICAL FACT-CHECKING LAWS:
    - "flaggedClaims": An array of items containing the original text, the specific contradiction, and the corrected text based on the search context.
    - "remediationAction": Recommendation (APPROVE, EDIT, or REJECT).
 5. NO FLUFF: Deliver exclusively the JSON fact-check audit payload.`,
-  model: 'gemini-2.5-pro', // Using advanced reasoning capabilities of Pro for analytical fact-checking
+  model: 'gemini-3.1-pro', // Using advanced reasoning capabilities of Pro for analytical fact-checking
   tools: [],
   keywords: ['fact-check audit', 'hallucination detection', 'credibility assessment', 'search corroboration', 'factual integrity grading']
 };
@@ -231,7 +231,7 @@ CRITICAL LAWS:
 3. ALIGNMENT REPORT: Output your correction directive exclusively in structured JSON format containing "driftDetected" (boolean), "detectedReasoningLoops" (array), and "injectionAlert" (boolean).
 4. ZERO VISIBILITY: Maintain silent backend operations with zero conversational output.
 5. NO CODE GENERATION: Do not generate scripts or commands.`,
-  model: 'gemini-2.5-pro', // Using Pro for nuanced context-dependent reasoning loops and prompt injection checks
+  model: 'gemini-3.1-pro', // Using Pro for nuanced context-dependent reasoning loops and prompt injection checks
   tools: [],
   keywords: ['conversational drift corrector', 'reasoning loop detection', 'prompt injection shield', 'alignment state verification', 'semantic steering vector']
 };
@@ -307,7 +307,7 @@ CRITICAL LAWS:
 3. COHERENCE REPORT: Emit your findings exclusively in structured JSON format containing "logicalConsistencyScore" (0-100), "contradictionsFlagged" (array), and "actionRequired" (APPROVE, EDIT, REJECT).
 4. ZERO VISIBILITY: Operates silently in the backend.
 5. NO CODE GENERATION: Never output programming scripts or commands.`,
-  model: 'gemini-2.5-pro', // Using advanced Pro for complex logical checking
+  model: 'gemini-3.1-pro', // Using advanced Pro for complex logical checking
   tools: [],
   keywords: ['logical contradiction checker', 'quantitative cross-check', 'coherence audit', 'reasoning consistency', 'synthesis validation']
 };

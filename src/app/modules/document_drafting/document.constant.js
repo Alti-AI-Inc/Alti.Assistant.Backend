@@ -98,7 +98,7 @@ export const TASK_STATUS = {
 
 // Conversation settings
 export const CONVERSATION_CATEGORY = 'document_drafting';
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 // Document templates
 export const DOCUMENT_TEMPLATES = {

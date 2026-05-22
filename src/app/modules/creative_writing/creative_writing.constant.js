@@ -83,7 +83,7 @@ export const WRITING_INTENTS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'creative_writing';
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 // Default parameters
 export const DEFAULT_PARAMS = {

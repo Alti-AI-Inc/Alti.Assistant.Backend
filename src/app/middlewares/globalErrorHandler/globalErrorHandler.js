@@ -4,7 +4,7 @@ import ApiError from '../../../errors/ApiError.js';
 import handleCastError from '../../../errors/handleCastError.js';
 import handleValidationError from '../../../errors/handleValidationError.js';
 import handleZodError from '../../../errors/handleZodError.js';
-import { errorlogger } from '../../../shared/logger.js';
+import { logger, errorlogger } from '../../../shared/logger.js';
 
 const globalErrorHandler = (error, req, res, next) => {
   if (config.env === 'development') {

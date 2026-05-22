@@ -1,4 +1,4 @@
-﻿import { Composio } from '@composio/core';
+import { Composio } from '@composio/core';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import ComposioAuth from '../composio_v2/composio.model.js';
@@ -125,7 +125,7 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
     constructMessasges += ` ${message.content}`;
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
   const tokenCount = await model.countTokens(constructMessasges);
   totalTokens = tokenCount;
 

@@ -20,8 +20,8 @@ router.route('/register').post(
 );
 router
   .route('/register/resend-confirmation')
-  .post(authController.resendEmailConfirmation);
-router.route('/register/confirmation').post(authController.confirmEmail); // verify mail
+  .post(createRateLimiter(5, 2), authController.resendEmailConfirmation);
+router.route('/register/confirmation').post(createRateLimiter(5, 5), authController.confirmEmail); // verify mail
 
 router.route('/login').post(createRateLimiter(5, 5), authController.login); // login in app
 
@@ -51,7 +51,7 @@ router
   ); // is to use update user profile
 router
   .route('/delete-account-otp/:id')
-  .delete(authController.deleteUserAccountOTP); // use to delete account
+  .delete(createRateLimiter(5, 2), authController.deleteUserAccountOTP); // use to delete account
 router
   .route('/delete-account/:id')
   .delete(

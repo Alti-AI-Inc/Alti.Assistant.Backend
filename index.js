@@ -34,15 +34,10 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Use body-parser raw() FIRST for Stripe webhook before any JSON parsing
-app.use(
-  '/api/v1/subscription/webhook',
-  express.raw({ type: 'application/json' })
-);
-
-// app.use(cors({
-//   origin: '*',
-// }))
+// ✅ Register raw body parsers for Stripe webhooks FIRST (essential for signature checks)
+app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/v1/subscription/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' }));
 
 app.use(
   cors({
@@ -70,17 +65,6 @@ app.use((req, res, next) => {
   }
 });
 
-// Raw body parser for Stripe webhooks
-app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
-app.use(
-  '/api/v1/subscriptions/webhook',
-  express.raw({ type: 'application/json' })
-);
-app.use(
-  '/api/v1/subscription/webhook',
-  express.raw({ type: 'application/json' })
-);
-
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -89,31 +73,30 @@ app.disable('x-powered-by');
 // Enable trust proxy (For Rate-Limit)
 app.set('trust proxy', 'loopback');
 
-// Helmet middleware for security headers
-app.use(helmet());
-
-// Additional Helmet security configurations
+// Helmet middleware for robust security headers
 app.use(
-  helmet.contentSecurityPolicy({
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'cdnjs.cloudflare.com'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
-      fontSrc: ["'self'", 'fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: [],
-      blockAllMixedContent: [],
-      frameAncestors: ["'none'"],
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'cdnjs.cloudflare.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'fonts.googleapis.com'],
+        fontSrc: ["'self'", 'fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+        blockAllMixedContent: [],
+        frameAncestors: ["'none'"],
+      },
     },
+    referrerPolicy: { policy: 'same-origin' },
+    frameguard: { action: 'deny' },
+    xssFilter: true,
+    noSniff: true,
+    hidePoweredBy: true,
   })
 );
-app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
-app.use(helmet.frameguard({ action: 'deny' }));
-app.use(helmet.noSniff());
-app.use(helmet.xssFilter());
-app.use(helmet.hidePoweredBy());
 app.disable('etag');
 
 // Prevent DOS attacks with toobusy

@@ -1,218 +1,137 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
+import { DynamicTool } from '@langchain/core/tools';
 import config from '../../../../../config/index.js';
-import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 
 /**
- * Claude Service for Claude Sonnet 4.5
- * Handles all interactions with Claude via direct Anthropic API
+ * Vertex AI Service
+ * Handles native Google Cloud Vertex AI Search datastore grounding
+ * as a premium enterprise RAG tool.
  */
-class ClaudeService {
+class VertexAiService {
   constructor() {
-    this.modelName = 'claude-sonnet-4-5-20250929';
-    this.client = null;
-    this.initialized = false;
+    this.ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
+    this.initialized = true;
   }
 
   /**
-   * Initialize the Anthropic client
+   * Performs grounded search using a Vertex AI Search datastore
+   * @param {string} query - The search query
+   * @param {string|null} datastoreId - Custom datastore identifier or null for default
+   * @returns {Promise<Object>} Grounded answer with references and citations
    */
-  async initialize() {
-    if (this.initialized) {
-      return;
-    }
+  async searchVertexStore(query, datastoreId = null) {
+    console.log(`🔍 Executing Vertex AI Search Datastore Grounding: "${query}"`);
+    const datastore = datastoreId || process.env.VERTEX_AI_DATASTORE_ID || `projects/${config.google.gcp_project_id || 'alti-gcp-project'}/locations/global/collections/default_collection/dataStores/alti-knowledge-base`;
+    console.log(`📍 Scoping search to Datastore: ${datastore}`);
 
     try {
-      console.log('🔧 Initializing Claude service...');
-      console.log(`📍 Model: ${this.modelName}`);
-
-      // Initialize Anthropic client
-      this.client = new Anthropic({
-        apiKey: config.anthropic.anthropic_api_key,
+      const result = await this.ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: query,
+        config: {
+          temperature: 0.2,
+          maxOutputTokens: 4000,
+          tools: [
+            {
+              vertexAISearch: {
+                datastore: datastore
+              }
+            }
+          ]
+        }
       });
 
-      this.initialized = true;
-      console.log('✅ Claude service initialized successfully');
+      const response = result.candidates?.[0];
+      const text = response?.content?.parts
+        ?.filter((part) => part.text)
+        ?.map((part) => part.text)
+        ?.join('') || '';
+
+      const groundingMetadata = response?.groundingMetadata;
+      const references = [];
+      const usedUrls = new Set();
+
+      if (groundingMetadata?.groundingChunks) {
+        groundingMetadata.groundingChunks.forEach((chunk, index) => {
+          const uri = chunk.web?.uri || chunk.document?.uri;
+          const title = chunk.web?.title || chunk.document?.title || `Document ${index + 1}`;
+          if (uri && !usedUrls.has(uri)) {
+            usedUrls.add(uri);
+            try {
+              const url = new URL(uri);
+              references.push({
+                url: uri,
+                domain: title || url.hostname.replace('www.', ''),
+                title: title,
+              });
+            } catch {
+              references.push({
+                url: uri,
+                domain: title || 'internal-doc',
+                title: title,
+              });
+            }
+          }
+        });
+      }
+
+      const limitedReferences = references.slice(0, 5);
+      const citations = limitedReferences.map((ref, index) => ({
+        index: index + 1,
+        url: ref.url,
+        domain: ref.domain,
+        title: ref.title
+      }));
+
+      const citationMetadata = groundingMetadata
+        ? {
+            searchTimestamp: new Date().toISOString(),
+            model: 'gemini-3.5-flash',
+            totalSources: groundingMetadata.groundingChunks?.length || 0,
+            searchMethod: 'vertex_ai_search',
+          }
+        : {
+            searchTimestamp: new Date().toISOString(),
+            searchMethod: 'vertex_ai_search',
+          };
+
+      console.log(`✅ Vertex AI Search Grounding completed successfully.`);
+      return {
+        answer: text,
+        reference: limitedReferences,
+        citations: citations,
+        citationMetadata: citationMetadata
+      };
     } catch (error) {
-      console.error('❌ Failed to initialize Claude service:', error);
-      throw new Error(`Claude initialization failed: ${error.message}`);
+      console.error('❌ Vertex AI Search Grounding failed:', error);
+      throw error;
     }
   }
 
   /**
-   * Call Claude Sonnet 4.5 via direct Anthropic API
-   * @param {Array} messages - Array of message objects with role and content
-   * @param {Object} options - Additional options (maxTokens, temperature, tools, etc.)
-   * @returns {Promise<Object>} - Claude response
+   * Returns a LangChain DynamicTool for integrating Vertex AI Search into the ReAct Agent
+   * @returns {DynamicTool} Configured DynamicTool instance
    */
-  async callClaude(messages, options = {}) {
-    await this.initialize();
-
-    try {
-      console.log(`🤖 Calling Claude Sonnet 4.5...`);
-      console.log(`📝 Messages: ${messages.length} messages`);
-
-      // Inject Massive.com real-time financial data
-      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
-      let enhancedSystem = options.system || '';
-      if (lastUserMsg && lastUserMsg.content) {
+  asTool() {
+    const self = this;
+    return new DynamicTool({
+      name: 'vertex-ai-search',
+      description: `Search enterprise knowledge base, internal documentation, blueprints, company directories, manuals, and secure private files via Google Cloud Vertex AI Search datastores. Use this tool specifically when the user asks about internal documents, secure guidelines, standard operating procedures, ALTI blueprints, or private knowledge bases. Input: A natural language search query.`,
+      async func(query) {
         try {
-          const userText = typeof lastUserMsg.content === 'string' ? lastUserMsg.content : lastUserMsg.content?.[0]?.text || '';
-          const enhanced = await massiveSmartRouter.combinedRouteAndEnhancePrompt(userText);
-          if (enhanced !== userText) enhancedSystem = enhanced + '\n\n' + enhancedSystem;
-        } catch { /* non-fatal */ }
-      }
-
-      const requestParams = {
-        model: this.modelName,
-        max_tokens: options.maxTokens || config.claude.maxTokens,
-        temperature: options.temperature || config.claude.temperature,
-        messages: messages,
-      };
-
-      // Add system prompt if provided
-      if (options.system) {
-        requestParams.system = options.system;
-      }
-
-      // Add tools if provided
-      if (options.tools && options.tools.length > 0) {
-        requestParams.tools = options.tools;
-      }
-
-      // Add top_p if provided
-      if (options.topP !== undefined) {
-        requestParams.top_p = options.topP;
-      }
-
-      // Add top_k if provided
-      if (options.topK !== undefined) {
-        requestParams.top_k = options.topK;
-      }
-
-      const response = await this.client.messages.create(requestParams);
-
-      console.log(`✅ Claude response received`);
-      if (response.usage) {
-        console.log(
-          `📊 Tokens - Input: ${response.usage.input_tokens}, Output: ${response.usage.output_tokens}`
-        );
-      }
-
-      return response;
-    } catch (error) {
-      console.error('❌ Error calling Claude:', error);
-      throw new Error(`Claude API call failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Call Claude with streaming support
-   * @param {Array} messages - Array of message objects
-   * @param {Object} options - Additional options
-   * @returns {Promise<Stream>} - Streaming response
-   */
-  async streamClaude(messages, options = {}) {
-    await this.initialize();
-
-    try {
-      console.log(`🌊 Streaming from Claude Sonnet 4.5...`);
-
-      const requestParams = {
-        model: this.modelName,
-        max_tokens: options.maxTokens || config.claude.maxTokens,
-        temperature: options.temperature || config.claude.temperature,
-        messages: messages,
-        stream: true,
-      };
-
-      // Add system prompt if provided
-      if (options.system) {
-        requestParams.system = options.system;
-      }
-
-      // Add tools if provided
-      if (options.tools && options.tools.length > 0) {
-        requestParams.tools = options.tools;
-      }
-
-      const stream = await this.client.messages.stream(requestParams);
-
-      console.log('✅ Streaming started');
-      return stream;
-    } catch (error) {
-      console.error('❌ Error streaming from Claude:', error);
-      throw new Error(`Claude streaming failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Call Claude with retry logic
-   * @param {Function} fn - Function to execute
-   * @param {Number} maxRetries - Maximum number of retries
-   * @returns {Promise<any>} - Result of the function
-   */
-  async callWithRetry(fn, maxRetries = 2) {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await fn();
-      } catch (error) {
-        console.error(`❌ Attempt ${attempt + 1} failed:`, error.message);
-
-        if (attempt === maxRetries) {
-          throw error;
+          const result = await self.searchVertexStore(query);
+          return JSON.stringify({
+            answer: result.answer,
+            references: result.reference
+          });
+        } catch (err) {
+          return `Vertex AI Search failed: ${err.message}`;
         }
-
-        // Exponential backoff
-        const delay = Math.pow(2, attempt) * 1000;
-        console.log(`⏳ Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
       }
-    }
-  }
-
-  /**
-   * Check if the service is properly configured
-   * @returns {Promise<Object>} - Configuration status
-   */
-  async checkConfiguration() {
-    const status = {
-      configured: false,
-      modelName: this.modelName,
-      apiKeyConfigured: !!config.anthropic.anthropic_api_key,
-      errors: [],
-    };
-
-    try {
-      // Check if API key exists
-      if (!config.anthropic.anthropic_api_key) {
-        status.errors.push('Anthropic API key not configured');
-        return status;
-      }
-
-      // Try to initialize
-      await this.initialize();
-      status.configured = true;
-    } catch (error) {
-      status.errors.push(error.message);
-    }
-
-    return status;
-  }
-
-  /**
-   * Get service info
-   */
-  getServiceInfo() {
-    return {
-      modelName: this.modelName,
-      initialized: this.initialized,
-      provider: 'anthropic',
-    };
+    });
   }
 }
 
-// Export singleton instance
-const claudeService = new ClaudeService();
-
-export default claudeService;
-export { ClaudeService };
+const vertexAiService = new VertexAiService();
+export default vertexAiService;
+export { VertexAiService };

@@ -8,11 +8,11 @@ const composio = new Composio({
   provider: new OpenAIProvider(),
 });
 /**
- * AI Classification Service using Gemini 2.5
+ * AI Classification Service using Gemini 3.5
  * This service handles AI-powered classification and reasoning tasks
  */
 const llm = new ChatGoogleGenerativeAI({
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.5-flash',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,

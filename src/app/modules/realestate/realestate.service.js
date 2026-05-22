@@ -108,7 +108,7 @@ const MOCK_PROPERTIES = [
     baths: 3.5,
     sqft: 3150,
     lotSizeAcres: 0.45,
-    lastSalePrice: 585000,
+    lastSalePrice: 334000,
     lastSaleDate: '2021-08-14',
     taxAssessedValue: 545000,
   },

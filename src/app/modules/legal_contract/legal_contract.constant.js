@@ -63,7 +63,7 @@ export const COMPLEXITY_LEVELS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'legal_contract';
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro';
 
 // Output formats
 export const OUTPUT_FORMATS = {

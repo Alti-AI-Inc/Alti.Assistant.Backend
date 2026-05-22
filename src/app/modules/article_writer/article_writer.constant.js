@@ -1,6 +1,6 @@
 // Article Writer Configuration
 export const ARTICLE_WRITER_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.8, // Higher temperature for more creative writing
   MAX_OUTPUT_TOKENS: 16384,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -61,7 +61,7 @@ export const ARTICLE_LENGTHS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'article_writer';
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 // Storage configuration
 export const STORAGE_CONFIG = {

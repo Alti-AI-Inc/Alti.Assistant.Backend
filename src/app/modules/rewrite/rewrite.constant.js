@@ -90,7 +90,7 @@ export const OUTPUT_FORMATS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'rewrite';
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 // Default parameters
 export const DEFAULT_PARAMS = {

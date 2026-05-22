@@ -1,6 +1,6 @@
 // Document Review Configuration
 export const DOCUMENT_REVIEW_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.1-pro',
   TEMPERATURE: 0.7,
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -76,7 +76,7 @@ export const DOCUMENT_TYPES = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'document_review';
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro';
 
 // Required parameters for review
 export const REQUIRED_PARAMS = {
