@@ -104,7 +104,7 @@ const ragTestCases = [
     verifiers: [
       '[Source: RealEstateAPI.com]',
       'Comparable Sales Analysis (Comps)',
-      '| Comp Address | Distance | Layout | Sold Price | Sold Date | Avg Price/Sqft |',
+      '| Comp Address | Distance | Layout | Layout Match | Sold Price | Sold Date | Avg Price/Sqft |',
       '**$512,000**',
       '**$540,000**',
       'Suggested Subject Value'
