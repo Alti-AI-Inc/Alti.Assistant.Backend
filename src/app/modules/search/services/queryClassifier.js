@@ -881,6 +881,7 @@ export function classifySportsQuery(query) {
 
   // Confidence by intent type — sports betting data is highly specific
   const confidenceMap = {
+    // Core betting intents
     live_odds:         0.98,
     odds:              0.95,
     player_prop:       0.96,
@@ -891,6 +892,16 @@ export function classifySportsQuery(query) {
     prediction_market: 0.95,
     alt_lines:         0.95,
     period_odds:       0.94,
+    // Analysis intents (Phase 6)
+    value_bets:        0.98,
+    line_movers:       0.97,
+    sharp_picks:       0.97,
+    best_available:    0.96,
+    // Phase 7 intents
+    arbitrage:         0.99,  // Very specific, near-certain when detected
+    parlay_builder:    0.95,
+    matchup:           0.91,
+    multi_league:      0.93,
   };
 
   const confidence = confidenceMap[intent.type] || 0.85;
@@ -904,6 +915,8 @@ export function classifySportsQuery(query) {
     confidence,
     intentType: intent.type,
     league: intent.league,
+    playerName: intent.extra?.playerName || null,
+    rawExtra: intent.extra || {},
   };
 }
 

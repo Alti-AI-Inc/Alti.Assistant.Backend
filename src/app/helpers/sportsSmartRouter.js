@@ -1128,6 +1128,239 @@ function formatSharpPicksBlock(sharp, league) {
   return block;
 }
 
+
+// ─── Arbitrage Detector ───────────────────────────────────────────────────────
+// Finds market pairs across books where combined implied probability < 100%.
+// This means you can bet both sides profitably with zero risk.
+// Returns array of arb opportunities with profit % and optimal bet sizes.
+function findArbitrageOpportunities(markets) {
+  const toImplied = (odds) => {
+    const n = Number(odds);
+    if (isNaN(n)) return null;
+    return n >= 0 ? 100 / (n + 100) : Math.abs(n) / (Math.abs(n) + 100);
+  };
+
+  // Group by fixture + bet_type + prop_name + period (market level)
+  const marketGroups = {};
+  for (const m of markets) {
+    const key = [m.fixture_id, m.bet_type, m.prop_name || '', m.period || 'FT'].join(':');
+    if (!marketGroups[key]) marketGroups[key] = { sides: {}, fixture_id: m.fixture_id, bet_type: m.bet_type };
+    const side = m.side || 'N/A';
+    if (!marketGroups[key].sides[side]) marketGroups[key].sides[side] = [];
+    marketGroups[key].sides[side].push(m);
+  }
+
+  const arbs = [];
+  for (const [key, group] of Object.entries(marketGroups)) {
+    const sides = Object.entries(group.sides);
+    if (sides.length < 2) continue;
+
+    // For each side, find the best odds
+    const bestBySide = sides.map(([side, mList]) => {
+      const sorted = mList.sort((a, b) => {
+        const ai = toImplied(a.odds), bi = toImplied(b.odds);
+        return (ai || 99) - (bi || 99); // lower implied = better odds
+      });
+      return { side, best: sorted[0] };
+    });
+
+    // Sum of best implied probabilities
+    const totalImplied = bestBySide.reduce((sum, { best }) => {
+      return sum + (toImplied(best.odds) || 0.5);
+    }, 0);
+
+    if (totalImplied < 0.99) { // < 99% = arb opportunity
+      const profitPct = ((1 / totalImplied) - 1) * 100;
+      // Optimal stakes for $100 total bet
+      const totalStake = 100;
+      const stakes = bestBySide.map(({ side, best }) => {
+        const impl = toImplied(best.odds) || 0.5;
+        const stake = (impl / totalImplied) * totalStake;
+        const bookName = Object.entries(BOOK_IDS).find(([, id]) => id === best.odd_provider_id)?.[0] || `Book ${best.odd_provider_id}`;
+        return { side, odds: best.odds, book: bookName, stake: stake.toFixed(2), provider_url: best.provider_url };
+      });
+      arbs.push({
+        fixture_id: group.fixture_id,
+        bet_type: group.bet_type,
+        total_implied: totalImplied,
+        profit_pct: profitPct,
+        stakes,
+        _key: key,
+      });
+    }
+  }
+
+  return arbs.sort((a, b) => b.profit_pct - a.profit_pct);
+}
+
+// ─── Parlay Odds Builder ──────────────────────────────────────────────────────
+// Takes an array of American odds and returns combined parlay odds.
+// Also calculates payout for a $100 bet.
+function buildParlayOdds(legOdds) {
+  const toDecimal = (n) => {
+    const num = Number(n);
+    if (isNaN(num)) return null;
+    return num >= 0 ? (num / 100) + 1 : 1 - (100 / num);
+  };
+  const toAmerican = (d) => {
+    if (d >= 2) return '+' + Math.round((d - 1) * 100);
+    if (d > 1)  return '-' + Math.round(100 / (d - 1));
+    return 'N/A';
+  };
+
+  const decimals = legOdds.map(toDecimal).filter(Boolean);
+  if (decimals.length === 0) return null;
+
+  const combinedDecimal = decimals.reduce((acc, d) => acc * d, 1);
+  const payout100 = ((combinedDecimal - 1) * 100).toFixed(2);
+
+  return {
+    american: toAmerican(combinedDecimal),
+    decimal: combinedDecimal.toFixed(4),
+    payout_per_100: payout100,
+    legs: legOdds.length,
+  };
+}
+
+// ─── Format Arbitrage Block ───────────────────────────────────────────────────
+function formatArbitrageBlock(arbs, league) {
+  const emoji = LEAGUE_EMOJI[league] || '🏆';
+  if (arbs.length === 0) {
+    return `## ${emoji} ${league} — Arbitrage Scanner
+
+*No risk-free arbitrage opportunities found at this time.*
+
+> Arb opportunities appear when sportsbooks disagree enough that you can profitably bet all sides.`;
+  }
+
+  let block = `## ${emoji} ${league} — 🔒 Arbitrage Opportunities (Risk-Free Profit)
+
+`;
+  block += `> ⚡ **${arbs.length} arb opportunities found** across ${league} markets
+`;
+  block += `> Stakes shown for **$100 total investment** split optimally across both sides.
+
+`;
+
+  arbs.slice(0, 8).forEach((arb, i) => {
+    block += `### Arb #${i + 1} — ${arb.bet_type} | **+${arb.profit_pct.toFixed(2)}% profit**
+`;
+    block += `| Side | Odds | Book | Stake (/$100) | Link |
+`;
+    block += `|------|------|------|--------------|------|
+`;
+    arb.stakes.forEach(s => {
+      const odds = `${Number(s.odds) >= 0 ? '+' : ''}${s.odds}`;
+      const link = s.provider_url ? `[Bet ↗](${s.provider_url})` : '';
+      block += `| **${s.side}** | **${odds}** | ${s.book} | **${s.stake}** | ${link} |
+`;
+    });
+    block += `> Total implied: ${(arb.total_implied * 100).toFixed(2)}% (lock profit at ${arb.profit_pct.toFixed(2)}%)
+
+`;
+  });
+
+  block += `> ⚠️ Act quickly — arb windows typically close within minutes as books adjust lines.`;
+  return block;
+}
+
+// ─── Format Matchup Block ─────────────────────────────────────────────────────
+// Side-by-side odds comparison for both teams in a specific game
+function formatMatchupBlock(markets, fixtures, league) {
+  if (!markets || markets.length === 0) {
+    return `*No matchup data found for this game. Try specifying the teams more precisely.*`;
+  }
+
+  const emoji = LEAGUE_EMOJI[league] || '🏆';
+  const fixture = fixtures && fixtures[0];
+  const home = fixture?.home_abbr || 'Home';
+  const away = fixture?.away_abbr || 'Away';
+  const gameDate = fixture?.date ? new Date(fixture.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+
+  let block = `## ${emoji} ${league} — Matchup Analysis: **${away} @ ${home}**
+`;
+  if (gameDate) block += `> 📅 ${gameDate}
+
+`;
+
+  // Group by bet_type
+  const byType = {};
+  for (const m of markets) {
+    if (!byType[m.bet_type]) byType[m.bet_type] = [];
+    byType[m.bet_type].push(m);
+  }
+
+  for (const [betType, mList] of Object.entries(byType)) {
+    block += `### ${betType.toUpperCase()}
+`;
+    block += `| Book | ${away} | ${home} | Line |
+`;
+    block += `|------|----------|----------|------|
+`;
+
+    // Group by book
+    const byBook = {};
+    for (const m of mList) {
+      if (!byBook[m.odd_provider_id]) byBook[m.odd_provider_id] = {};
+      byBook[m.odd_provider_id][m.side] = m;
+    }
+
+    for (const [bookId, bookMarkets] of Object.entries(byBook)) {
+      const bookName = Object.entries(BOOK_IDS).find(([, id]) => id === Number(bookId))?.[0] || `Book ${bookId}`;
+      const awaySide = Object.values(bookMarkets).find(m => m.side === away || m.side === 'Away');
+      const homeSide = Object.values(bookMarkets).find(m => m.side === home || m.side === 'Home');
+      const anyMarket = Object.values(bookMarkets)[0];
+      const line = anyMarket?.number ? `${Number(anyMarket.number) >= 0 ? '+' : ''}${anyMarket.number}` : '';
+
+      const awayOdds = awaySide?.odds ? `**${Number(awaySide.odds) >= 0 ? '+' : ''}${awaySide.odds}**` : 'N/A';
+      const homeOdds = homeSide?.odds ? `**${Number(homeSide.odds) >= 0 ? '+' : ''}${homeSide.odds}**` : 'N/A';
+      block += `| ${bookName} | ${awayOdds} | ${homeOdds} | ${line} |
+`;
+    }
+    block += '\n';
+  }
+
+  return block;
+}
+
+// ─── Format Parlay Block ──────────────────────────────────────────────────────
+function formatParlayBlock(legs, result) {
+  if (!result) return '*Could not calculate parlay odds.*';
+
+  let block = `## 🎯 Parlay Calculator — ${result.legs} Legs
+
+`;
+  block += `| # | Pick | Odds | Decimal |
+`;
+  block += `|---|------|------|--------|
+`;
+
+  legs.forEach((leg, i) => {
+    const odds = `${Number(leg.odds) >= 0 ? '+' : ''}${leg.odds}`;
+    const toDecimal = (n) => n >= 0 ? (n/100+1).toFixed(3) : (1-100/n).toFixed(3);
+    block += `| ${i+1} | ${leg.description || leg.pick || 'Leg ' + (i+1)} | **${odds}** | ${toDecimal(Number(leg.odds))} |
+`;
+  });
+
+  block += `
+**Combined Parlay Odds: ${result.american}** (Decimal: ${result.decimal})
+
+`;
+  block += `| Bet Amount | Payout | Profit |
+`;
+  block += `|------------|--------|--------|
+`;
+  [10, 25, 50, 100].forEach(stake => {
+    const payout = (stake * Number(result.decimal)).toFixed(2);
+    const profit = (stake * (Number(result.decimal) - 1)).toFixed(2);
+    block += `| **${stake}** | **${payout}** | **${profit}** |
+`;
+  });
+
+  return block;
+}
+// PATCH_V43
+
 const routeAndEnhancePrompt = async (prompt) => {
   try {
     const intent = detectSportsIntent(prompt);
@@ -1500,6 +1733,75 @@ const routeAndEnhancePrompt = async (prompt) => {
       return buildPrompt(prompt, block, `PredictionData.io ${league} Best Available Lines — Line Shopping`);
     }
 
+    // ── ARBITRAGE DETECTION ───────────────────────────────────────────────
+    if (type === 'arbitrage') {
+      // Fetch from ALL major books for maximum arb opportunities
+      const allBooks = '100,200,300,400,250,700,365,500,555,617,150';
+      const markets = await safe(
+        getMarketsService(league, 'moneyline,spread,total', 'FT', allBooks, { timedelta: 24 }),
+        10000
+      );
+      const arbs = findArbitrageOpportunities(markets || []);
+      const block = formatArbitrageBlock(arbs, league);
+      return buildPrompt(prompt, block, `PredictionData.io ${league} Arbitrage Scanner (All Books)`);
+    }
+
+    // ── PARLAY BUILDER ────────────────────────────────────────────────────
+    if (type === 'parlay_builder') {
+      // Extract odds from the query (e.g. "Chiefs -110, Mahomes over +105, Eagles +130")
+      const oddsMatches = prompt.match(/[+-]?\d{3,4}/g) || [];
+      const legs = oddsMatches.map((o, i) => ({ odds: Number(o), pick: `Leg ${i+1}`, description: `Leg ${i+1}` }));
+
+      if (legs.length >= 2) {
+        const result = buildParlayOdds(legs.map(l => l.odds));
+        const block = formatParlayBlock(legs, result);
+        return buildPrompt(prompt, block, 'PredictionData.io Parlay Calculator');
+      }
+
+      // If no odds in query, show current available moneylines for building
+      const cacheKey = `odds:${league}`;
+      let markets = await cacheGet(cacheKey);
+      if (!markets) {
+        markets = await safe(getMarketsService(league, 'moneyline', 'FT', DEFAULT_BOOK_IDS, { timedelta: 24 }), 7000);
+        if (markets) await cacheSet(cacheKey, markets, 60);
+      }
+      const best = pickBestLine(markets || []).slice(0, 10);
+      const fixtures = await safe(getFixturesService(league, 24), 5000);
+      const block = formatOddsBlock(best, fixtures || [], league, 'Build a Parlay — Best Available Lines');
+      return buildPrompt(prompt, block + '\n\n> 💡 **Parlay tip:** Pick your legs from the table above and I will calculate combined odds.', 'PredictionData.io Parlay Builder');
+    }
+
+    // ── MATCHUP COMPARISON ────────────────────────────────────────────────
+    if (type === 'matchup') {
+      const rawQuery = extra.rawQuery || prompt;
+      const allBooks = '100,200,300,400,250,700,365,500';
+      const [markets, fixtures] = await Promise.all([
+        safe(getMarketsService(league, 'moneyline,spread,total', 'FT', allBooks, { timedelta: 48 }), 8000),
+        safe(getFixturesService(league, 48), 5000),
+      ]);
+
+      // Try to match fixture from query text
+      let matchedFixtures = fixtures || [];
+      if (matchedFixtures.length > 0) {
+        const q = rawQuery.toLowerCase();
+        const matched = matchedFixtures.filter(f =>
+          (f.home_abbr && q.includes(f.home_abbr.toLowerCase())) ||
+          (f.away_abbr && q.includes(f.away_abbr.toLowerCase())) ||
+          (f.home_name && q.includes(f.home_name.toLowerCase().split(' ').pop())) ||
+          (f.away_name && q.includes(f.away_name.toLowerCase().split(' ').pop()))
+        );
+        if (matched.length > 0) matchedFixtures = matched.slice(0, 1);
+      }
+
+      const fixtureId = matchedFixtures[0]?.id;
+      const filteredMarkets = fixtureId
+        ? (markets || []).filter(m => m.fixture_id === fixtureId)
+        : (markets || []).slice(0, 40);
+
+      const block = formatMatchupBlock(filteredMarkets, matchedFixtures, league);
+      return buildPrompt(prompt, block, `PredictionData.io ${league} Matchup Analysis`);
+    }
+
     // ── MULTI-LEAGUE (all games tonight / all sports) ────────────────────
     if (type === 'multi_league') {
       const queryLeagues = extra.leagues || MULTI_LEAGUE_ACTIVE || ['NFL', 'NBA', 'MLB', 'NHL'];
@@ -1585,4 +1887,10 @@ export const sportsSmartRouter = {
   formatValueBetsBlock,
   formatLineMoversBlock,
   formatSharpPicksBlock,
+  // Phase 7
+  findArbitrageOpportunities,
+  buildParlayOdds,
+  formatArbitrageBlock,
+  formatParlayBlock,
+  formatMatchupBlock,
 };

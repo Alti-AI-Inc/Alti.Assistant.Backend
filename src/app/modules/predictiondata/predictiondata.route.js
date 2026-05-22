@@ -610,6 +610,141 @@ router.get(
   })
 );
 
+
+// ─── Parlay / Matchup / Arbitrage / Search ────────────────────────────────────
+
+/**
+ * POST /predictiondata/parlay/build
+ * Calculates combined parlay odds from an array of legs.
+ * Body: { legs: [{ odds: -110, description: 'Chiefs ML' }, ...] }
+ */
+router.post(
+  '/parlay/build',
+  handleAsync(async (req, res) => {
+    const { legs = [] } = req.body;
+    if (!Array.isArray(legs) || legs.length < 2) {
+      return res.status(400).json({ error: 'At least 2 legs required. Each leg must have { odds: number }.' });
+    }
+    const legOdds = legs.map(l => Number(l.odds)).filter(n => !isNaN(n));
+    if (legOdds.length < 2) {
+      return res.status(400).json({ error: 'Could not parse valid odds from legs array.' });
+    }
+    const result = sportsSmartRouter.buildParlayOdds(legOdds);
+    const block  = sportsSmartRouter.formatParlayBlock(legs, result);
+    res.json({ ...result, legs, formatted: block, timestamp: new Date().toISOString() });
+  })
+);
+
+/**
+ * GET /predictiondata/markets/arbitrage
+ * Scans all books for risk-free arbitrage opportunities for a league.
+ * Query: league, bet_types (default moneyline,spread,total)
+ */
+router.get(
+  '/markets/arbitrage',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      bet_types = 'moneyline,spread,total',
+      timedelta = '24',
+    } = req.query;
+    // Always use all books for best arb coverage
+    const allBooks = '100,200,300,400,250,700,365,500,555,617,150';
+    const markets = await getMarketsService(league, bet_types, 'FT', allBooks, { timedelta: Number(timedelta) });
+    const arbs = sportsSmartRouter.findArbitrageOpportunities(markets);
+    res.json({
+      league,
+      books_scanned: 11,
+      markets_scanned: markets.length,
+      arb_opportunities: arbs,
+      count: arbs.length,
+      timestamp: new Date().toISOString(),
+    });
+  })
+);
+
+/**
+ * GET /predictiondata/markets/search
+ * Full-text search across available markets for a league.
+ * Query: league, q (search term), bet_types, timedelta
+ */
+router.get(
+  '/markets/search',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      q = '',
+      bet_types = 'moneyline,spread,total,player_prop',
+      book_ids = '100,200,300,400,250',
+      timedelta = '24',
+    } = req.query;
+    if (!q) return res.status(400).json({ error: 'Search term "q" is required.' });
+
+    const markets = await getMarketsService(league, bet_types, 'FT', book_ids, { timedelta: Number(timedelta) });
+    const term = q.toLowerCase();
+    const filtered = markets.filter(m =>
+      (m.prop_name && m.prop_name.toLowerCase().includes(term)) ||
+      (m.side && m.side.toLowerCase().includes(term)) ||
+      (m.bet_type && m.bet_type.toLowerCase().includes(term)) ||
+      (m.player_name && m.player_name.toLowerCase().includes(term)) ||
+      (m.fixture_id && String(m.fixture_id).includes(term))
+    );
+
+    res.json({
+      league,
+      query: q,
+      markets_searched: markets.length,
+      results: filtered,
+      count: filtered.length,
+    });
+  })
+);
+
+/**
+ * GET /predictiondata/matchup
+ * Side-by-side odds comparison for a specific game.
+ * Query: league, home (team abbr/name), away (team abbr/name), bet_types
+ */
+router.get(
+  '/matchup',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      home = '',
+      away = '',
+      bet_types = 'moneyline,spread,total',
+      book_ids = '100,200,300,400,250,700',
+    } = req.query;
+
+    const [markets, fixtures] = await Promise.all([
+      getMarketsService(league, bet_types, 'FT', book_ids, { timedelta: 48 }),
+      getFixturesService(league, 48),
+    ]);
+
+    const h = home.toLowerCase();
+    const a = away.toLowerCase();
+    const matchedFixture = fixtures.find(f =>
+      (f.home_abbr?.toLowerCase() === h || f.home_name?.toLowerCase().includes(h)) &&
+      (f.away_abbr?.toLowerCase() === a || f.away_name?.toLowerCase().includes(a))
+    ) || fixtures.find(f =>
+      (f.home_abbr?.toLowerCase().includes(h) || f.home_name?.toLowerCase().includes(h)) ||
+      (f.away_abbr?.toLowerCase().includes(a) || f.away_name?.toLowerCase().includes(a))
+    );
+
+    const fixtureId = matchedFixture?.id;
+    const filteredMarkets = fixtureId ? markets.filter(m => m.fixture_id === fixtureId) : markets.slice(0, 50);
+
+    res.json({
+      league,
+      fixture: matchedFixture || null,
+      home,
+      away,
+      markets: filteredMarkets,
+      count: filteredMarkets.length,
+    });
+  })
+);
+
 // ─── Book Comparison (all books for a specific game) ──────────────────────────
 
 /**

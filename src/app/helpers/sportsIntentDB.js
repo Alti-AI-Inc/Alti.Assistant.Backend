@@ -62,12 +62,33 @@ export const LEAGUE_MAP = {
   'golf': 'GOLF', 'pga': 'GOLF', 'masters': 'GOLF',
   'us open golf': 'GOLF', 'the open': 'GOLF', 'pga tour': 'GOLF',
   'champions tour': 'GOLF', 'lpga': 'GOLF', 'european tour': 'GOLF',
+  'liv golf': 'GOLF', 'liv tour': 'GOLF', 'livgolf': 'GOLF',
 
   // Tennis
   'tennis': 'TENNIS', 'wimbledon': 'TENNIS', 'us open tennis': 'TENNIS',
   'french open': 'TENNIS', 'australian open': 'TENNIS', 'atp': 'TENNIS',
   'wta': 'TENNIS', 'grand slam': 'TENNIS',
+
+  // WNBA
+  'wnba': 'WNBA', "women's basketball": 'WNBA', 'women basketball': 'WNBA',
+  "women's nba": 'WNBA', 'commissioner trophy': 'WNBA',
+
+  // Emerging/Alternative Football
+  'ufl': 'FB_US_M_UFL', 'united football league': 'FB_US_M_UFL',
+  'xfl': 'FB_US_M_XFL', 'extreme football league': 'FB_US_M_XFL',
+
+  // Canadian / Australian Football
+  'cfl': 'CFL', 'canadian football': 'CFL', 'grey cup': 'CFL',
+  'afl': 'AFL', 'australian rules': 'AFL', 'aussie rules': 'AFL',
+
+  // European Soccer
+  'premier league': 'ESOC_M_GB_EPL', 'epl': 'ESOC_M_GB_EPL', 'english premier league': 'ESOC_M_GB_EPL',
+  'la liga': 'ESOC_M_ES_1', 'laliga': 'ESOC_M_ES_1', 'spanish league': 'ESOC_M_ES_1',
+  'bundesliga': 'ESOC_M_DE_1', 'german league': 'ESOC_M_DE_1', 'german bundesliga': 'ESOC_M_DE_1',
+  'serie a': 'ESOC_M_IT_1', 'italian league': 'ESOC_M_IT_1', 'italian serie a': 'ESOC_M_IT_1',
+  'ligue 1': 'ESOC_M_FR_1', 'french league': 'ESOC_M_FR_1', 'ligue1': 'ESOC_M_FR_1',
 };
+
 
 // ─────────────────────────────────────────────
 // PLAYER NAME → LEAGUE CODE MAP
@@ -158,6 +179,13 @@ export const PLAYER_NAME_MAP = {
   // MLB shortcuts
   'strider': 'MLB', 'glasnow': 'MLB', 'skenes': 'MLB', 'cole': 'MLB',
   'betts': 'MLB', 'alvarez': 'MLB', 'soto': 'MLB', 'freeman': 'MLB',
+  // WNBA shortcuts
+  'clark': 'WNBA', 'caitlin clark': 'WNBA', 'ionescu': 'WNBA', 'sabrina': 'WNBA',
+  'griner': 'WNBA', 'taurasi': 'WNBA', 'stewart': 'WNBA', 'breanna': 'WNBA',
+  // Soccer shortcuts
+  'messi': 'ESOC_M_ES_1', 'ronaldo': 'ESOC_M_GB_EPL', 'mbappe': 'ESOC_M_ES_1',
+  'haaland': 'ESOC_M_GB_EPL', 'bellingham': 'ESOC_M_ES_1', 'salah': 'ESOC_M_GB_EPL',
+  'kane': 'ESOC_M_DE_1', 'lewandowski': 'ESOC_M_ES_1', 'de bruyne': 'ESOC_M_GB_EPL',
 };
 
 
@@ -617,6 +645,42 @@ export const BEST_AVAILABLE_KEYWORDS = [
   'compare odds', 'highest odds', 'most favorable odds', 'beat the book',
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ARBITRAGE KEYWORDS
+// Risk-free profit when combined implied probability < 100%
+// ─────────────────────────────────────────────────────────────────────────────
+export const ARBITRAGE_KEYWORDS = [
+  'arbitrage', 'arb', 'arb bet', 'arbing', 'arb opportunity', 'arb alert',
+  'sure bet', 'surebet', 'sure thing', 'risk free bet', 'risk-free',
+  'lock profit', 'guaranteed profit', 'both sides', 'middle bet',
+  'middling', 'cover both sides', 'no lose bet', 'no-lose', 'free money',
+  'positive expected value both sides', 'dutching',
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARLAY BUILDER KEYWORDS
+// Multi-leg bet construction with combined odds
+// ─────────────────────────────────────────────────────────────────────────────
+export const PARLAY_BUILDER_KEYWORDS = [
+  'parlay', 'parlays', 'build a parlay', 'parlay builder', 'build parlay',
+  'multi bet', 'multi-bet', 'accumulator', 'acca', 'combo bet', 'combo',
+  'combine these bets', 'combine legs', 'multi leg', 'multi-leg',
+  'what are the combined odds', 'combined odds', 'teaser', 'round robin',
+  'parlay odds', 'parlay calculator', 'calculate parlay', 'what would i win',
+  'if i bet all', 'if i parlay', 'parlay payout',
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MATCHUP KEYWORDS
+// Head-to-head comparison for a specific game
+// ─────────────────────────────────────────────────────────────────────────────
+export const MATCHUP_KEYWORDS = [
+  'vs', 'versus', 'vs.', 'v.s.', 'matchup', 'head to head', 'head-to-head',
+  'h2h', 'game between', 'plays', 'facing', 'against', 'taking on',
+  'battle', 'showdown', 'face off', 'faceoff', 'at the', ' at ',
+  'rivalry', 'who wins', 'pick between',
+];
+
 
 // ─────────────────────────────────────────────
 // DEFAULT BOOK IDS (corrected from API spec)
@@ -816,6 +880,29 @@ export function detectSportsIntent(prompt) {
   // Player name detection — covers "Mahomes prop", "LeBron points tonight"
   const detectedPlayerName =
     Object.keys(PLAYER_NAME_MAP).find((name) => q.includes(name)) || null;
+
+  // ── Arbitrage intent detection
+  if (typeof ARBITRAGE_KEYWORDS !== 'undefined' && ARBITRAGE_KEYWORDS.some((k) => q.includes(k))) {
+    const detectedLeagueArb = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
+    return { type: 'arbitrage', league: detectedLeagueArb?.[1] || 'NFL', extra: {} };
+  }
+
+  // ── Parlay builder intent detection
+  // Must NOT contain SGP keywords (those go to sgp path)
+  if (typeof PARLAY_BUILDER_KEYWORDS !== 'undefined' && PARLAY_BUILDER_KEYWORDS.some((k) => q.includes(k)) && !q.includes('same game')) {
+    const detectedLeagueParlay = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
+    return { type: 'parlay_builder', league: detectedLeagueParlay?.[1] || 'NFL', extra: {} };
+  }
+
+  // ── Matchup intent detection — "Chiefs vs Raiders", "Lakers vs Warriors"
+  // Must have a "vs" pattern AND a detectable team/player
+  const hasVsPattern = /\b(vs\.?|versus|v\.?s\.?|vs )\b/i.test(query) || q.includes(' v ');
+  if (hasVsPattern) {
+    const detectedLeagueMatchup = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
+    if (detectedLeagueMatchup) {
+      return { type: 'matchup', league: detectedLeagueMatchup[1], extra: { rawQuery: query } };
+    }
+  }
 
   // ── Analysis intent detection (value bets, line movers, sharp picks, best available)
   if (VALUE_BETS_KEYWORDS && VALUE_BETS_KEYWORDS.some((k) => q.includes(k))) {

@@ -112,6 +112,36 @@ function analyzeQueryComplexity(query, conversationHistory = []) {
  * @param {Object} options - Additional options (userId, etc.)
  * @returns {Object} Formatted response with answer, references, and citations
  */
+/**
+ * Extract last seen sports context from conversation history.
+ * Enables follow-up queries like "what about Mahomes props?" to inherit
+ * the league/player from the previous sports query in the conversation.
+ */
+function extractSportsContext(conversationHistory) {
+  // SPORTS_CONTEXT_V7
+  if (!conversationHistory || conversationHistory.length === 0) return {};
+  // Walk history backwards looking for sports metadata
+  for (let i = conversationHistory.length - 1; i >= 0; i--) {
+    const msg = conversationHistory[i];
+    const meta = msg?.citationMetadata || msg?.metadata || {};
+    if (meta.sportsIntent) {
+      return {
+        lastLeague:    meta.league    || null,
+        lastIntent:    meta.sportsIntent || null,
+        lastPlayer:    meta.playerName || null,
+        lastSource:    meta.source    || null,
+      };
+    }
+    // Also check if message content contains obvious sports hints
+    const content = (msg?.content || msg?.text || '').toLowerCase();
+    const leagues = ['nfl', 'nba', 'mlb', 'nhl', 'ufc', 'golf', 'tennis'];
+    for (const lg of leagues) {
+      if (content.includes(lg)) return { lastLeague: lg.toUpperCase(), lastIntent: 'odds' };
+    }
+  }
+  return {};
+}
+
 export async function executeSmartSearch(
   query,
   conversationHistory = [],
@@ -121,7 +151,9 @@ export async function executeSmartSearch(
   const sportsClass = classifySportsQuery(query);
   if (sportsClass.isSports) {
     const intentType  = sportsClass.intentType;
-    const league      = sportsClass.league;
+    // Inject multi-turn context: if no league detected, try last seen league from history
+    const ctx     = extractSportsContext(conversationHistory);
+    const league  = sportsClass.league || ctx.lastLeague || 'NFL';
     const confidence  = (sportsClass.confidence * 100).toFixed(0);
     console.log(`\n🏈 Sports [${intentType}] ${league} (${confidence}%) → PredictionData.io`);
 
