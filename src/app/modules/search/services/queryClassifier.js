@@ -843,6 +843,9 @@ export function classifyFinancialQuery(query) {
     dividend_calendar: 0.95,
     options_contract: 0.96,
     currency_convert: 0.98,
+    // New intent types — batch 4
+    market_sentiment: 0.97,
+    yield_curve: 0.98,
   };
 
   const confidence = confidenceMap[intent.type] || 0.80;

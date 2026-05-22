@@ -426,6 +426,135 @@ router.post(
 );
 
 
+
+// ─── Book Comparison (all books for a specific game) ──────────────────────────
+
+/**
+ * GET /predictiondata/markets/compare
+ * Returns side-by-side odds from ALL books for a specific fixture or league.
+ * Useful for line shopping across all major sportsbooks.
+ * Query: league, fixture_id (optional), bet_types, periods
+ */
+router.get(
+  '/markets/compare',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      bet_types = 'moneyline,spread,total',
+      periods = 'FT',
+      timedelta = 24,
+    } = req.query;
+
+    // Fetch from ALL books simultaneously
+    const allBooks = '100,200,300,400,250,700,365,500,555,617,192,150';
+    const data = await getMarketsService(
+      league,
+      bet_types,
+      periods,
+      allBooks,
+      { timedelta: Number(timedelta) }
+    );
+
+    // Group by fixture_id + prop_name for easy comparison
+    const grouped = {};
+    for (const market of data) {
+      const key = [market.fixture_id, market.bet_type, market.prop_name, market.side, market.period].filter(Boolean).join(':');
+      if (!grouped[key]) grouped[key] = { key, markets: [] };
+      grouped[key].markets.push({
+        book_id: market.odd_provider_id,
+        odds: market.odds,
+        no_vig_odds: market.no_vig_odds,
+        number: market.number,
+        open_odds: market.open_odds,
+        provider_url: market.provider_url,
+        updated_at: market.updated_at,
+      });
+    }
+
+    res.json({
+      league,
+      bet_types,
+      markets_compared: data.length,
+      fixture_groups: Object.values(grouped).length,
+      comparisons: Object.values(grouped),
+    });
+  })
+);
+
+/**
+ * POST /predictiondata/deeplink
+ * Generate a bet slip deeplink URL from provider_deeplink_string values.
+ * Body: { sportsbook: 'draftkings', deeplink_strings: ['...'], bet_type: 'single', region: 'nj' }
+ */
+router.post(
+  '/deeplink',
+  handleAsync(async (req, res) => {
+    const { sportsbook = 'draftkings', deeplink_strings = [], bet_type = 'single', region = '' } = req.body;
+    if (!Array.isArray(deeplink_strings) || deeplink_strings.length === 0) {
+      return res.status(400).json({ error: 'deeplink_strings array is required' });
+    }
+    const result = await buildDeeplinkService(sportsbook, deeplink_strings, bet_type, region);
+    res.json(result || { error: 'No deeplink generated' });
+  })
+);
+
+/**
+ * GET /predictiondata/markets/live-scores
+ * Returns only live (in-progress) fixtures with current scores and period info.
+ * Query: leagues (comma-separated, default NFL,NBA,MLB,NHL,UFC)
+ */
+router.get(
+  '/markets/live-scores',
+  handleAsync(async (req, res) => {
+    const { leagues = 'NFL,NBA,MLB,NHL,UFC' } = req.query;
+    const allFixtures = await getFixturesService(leagues, 6); // 6hr window
+    const liveGames = allFixtures.filter((f) =>
+      f.status === 'in_progress' || f.status === 'live' || f.status === 'inprogress'
+    );
+    res.json({
+      live_games: liveGames.length,
+      leagues: leagues.split(','),
+      fixtures: liveGames.map((f) => ({
+        id: f.id,
+        league: f.league,
+        home: f.home_abbr,
+        away: f.away_abbr,
+        home_score: f.home_score,
+        away_score: f.away_score,
+        current_period: f.current_period_text,
+        current_clock: f.current_clock,
+        current_period_number: f.current_period_number,
+        status: f.status,
+        date: f.date,
+      })),
+    });
+  })
+);
+
+/**
+ * GET /predictiondata/players/:league
+ * Returns player reference data for a league.
+ * Useful for populating player autocomplete and enriching prop displays.
+ */
+router.get(
+  '/players/:league',
+  handleAsync(async (req, res) => {
+    const league = req.params.league.toUpperCase();
+    const { return_map = 'false', search = '' } = req.query;
+    const players = await getPlayersService(league, return_map === 'true');
+    
+    if (search && !return_map) {
+      const s = search.toLowerCase();
+      const filtered = Array.isArray(players)
+        ? players.filter((p) => p.full_name?.toLowerCase().includes(s))
+        : players;
+      return res.json({ league, players: filtered, count: Array.isArray(filtered) ? filtered.length : Object.keys(filtered).length });
+    }
+    
+    res.json({ league, players, count: Array.isArray(players) ? players.length : Object.keys(players).length });
+  })
+);
+
 // ─── Real-Time SSE Streaming Proxy ───────────────────────────────────────────
 
 /**

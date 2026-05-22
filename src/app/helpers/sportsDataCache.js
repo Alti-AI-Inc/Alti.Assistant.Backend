@@ -17,7 +17,7 @@
  *   warmSportsCache(); // call once on server start
  */
 
-import { getMarketsService, getFixturesService, getPlayerPropsService, getFuturesMarketsService } from '../modules/predictiondata/predictiondata.service.js';
+import { getMarketsService, getFixturesService, getPlayerPropsService, getFuturesMarketsService, getPlayersService, getSeasonsService } from '../modules/predictiondata/predictiondata.service.js';
 import { logger } from '../../shared/logger.js';
 import { RedisClient } from '../../shared/redis.js';
 
@@ -35,8 +35,18 @@ const INTERVALS = {
   FIXTURES:     60_000,  // 60s — schedules / live scores
 };
 
+// CACHE_V4_APPLIED
 // Book IDs for warm cache — priority books only
 const WARM_BOOKS = '100,200,300,400,250';
+
+// Leagues to monitor for live (in-progress) fixtures — 15s refresh
+const LIVE_SUPPORTED_LEAGUES = ['NFL', 'NBA', 'MLB', 'NHL', 'UFC'];
+
+// Player reference cache TTL (30 min — position/status changes slowly)
+const PLAYER_CACHE_TTL_SEC = 1800;
+
+// Seasons reference cache TTL (1 hour — season data is very stable)
+const SEASONS_CACHE_TTL_SEC = 3600;
 
 // ─── In-memory state (per-process) ───────────────────────────────────────────
 const cacheState = {
@@ -155,6 +165,54 @@ async function refreshFutures(league) {
   }
 }
 
+// ─── Live fixture 15s refresh (in-progress games only) ─────────────────────
+// Only caches fixtures with status 'in_progress' or 'live', with 15s TTL.
+async function refreshLiveFixtures(league) {
+  try {
+    const fixtures = await getFixturesService(league, 3); // 3hr window catches all live games
+    if (!fixtures || fixtures.length === 0) return;
+
+    const liveGames = fixtures.filter((f) =>
+      f.status === 'in_progress' || f.status === 'live' || f.status === 'inprogress'
+    );
+    if (liveGames.length > 0) {
+      await rcSet(`fixtures:live:${league}`, liveGames, 15);
+      logger.info(`[SportsCache] ${league} LIVE: ${liveGames.length} in-progress games (15s cache)`);
+    }
+  } catch (err) {
+    logger.warn(`[SportsCache] ${league} live fixtures failed: ${err.message}`);
+  }
+}
+
+// ─── Player reference data refresh ────────────────────────────────────────
+// Fetches ID-keyed map of player objects for prop enrichment.
+// Fields: id, full_name, position, team_abbr, team_full_name, status
+async function refreshPlayers(league) {
+  try {
+    const players = await getPlayersService(league, true); // return_map=true
+    if (players && Object.keys(players).length > 0) {
+      await rcSet(`players:${league}`, players, PLAYER_CACHE_TTL_SEC);
+      logger.info(`[SportsCache] ${league} players: ${Object.keys(players).length} records (30min cache)`);
+    }
+  } catch (err) {
+    logger.warn(`[SportsCache] ${league} players refresh failed: ${err.message}`);
+  }
+}
+
+// ─── Season/tournament reference refresh ─────────────────────────────────
+// Fields: id, name, league, start_date, end_date, is_active, in_progress
+async function refreshSeasons(league) {
+  try {
+    const seasons = await getSeasonsService(league);
+    if (seasons && seasons.length > 0) {
+      await rcSet(`seasons:${league}`, seasons, SEASONS_CACHE_TTL_SEC);
+      logger.info(`[SportsCache] ${league} seasons: ${seasons.length} records (1hr cache)`);
+    }
+  } catch (err) {
+    logger.warn(`[SportsCache] ${league} seasons refresh failed: ${err.message}`);
+  }
+}
+
 // ─── Single league full warm cycle ───────────────────────────────────────────
 async function warmLeague(league) {
   const now = Date.now();
@@ -167,6 +225,10 @@ async function warmLeague(league) {
     refreshFixtures(league),
     // Props (priority leagues only)
     PRIORITY_LEAGUES.includes(league) ? refreshProps(league) : Promise.resolve(),
+    // Player reference data — position, team, status (priority leagues only)
+    PRIORITY_LEAGUES.includes(league) ? refreshPlayers(league) : Promise.resolve(),
+    // Season/tournament reference data
+    refreshSeasons(league),
   ]);
 
   logger.info(`[SportsCache] ${league} warm cycle complete in ${Date.now() - now}ms`);
@@ -245,9 +307,30 @@ export function warmSportsCache() {
     });
   }, INTERVALS.FUTURES);
 
-  cacheState.timers = [standardTimer, propsTimer, futuresTimer];
+  // ── Live fixture ticker — 15s for in-progress game scores ────────────────────
+  const liveFixtureTimer = setInterval(() => {
+    LIVE_SUPPORTED_LEAGUES.forEach((league, i) => {
+      setTimeout(() => refreshLiveFixtures(league).catch(() => {}), i * 150);
+    });
+  }, 15_000);
 
-  logger.info('[SportsCache] Background cache warming active ✅');
+  // ── Player reference refresh — every 30 minutes ────────────────────────────
+  const playersTimer = setInterval(() => {
+    PRIORITY_LEAGUES.forEach((league, i) => {
+      setTimeout(() => refreshPlayers(league).catch(() => {}), i * 800);
+    });
+  }, 30 * 60 * 1000);
+
+  // ── Seasons reference refresh — every 1 hour ─────────────────────────────
+  const seasonsTimer2 = setInterval(() => {
+    [...PRIORITY_LEAGUES, ...SECONDARY_LEAGUES].forEach((league, i) => {
+      setTimeout(() => refreshSeasons(league).catch(() => {}), i * 400);
+    });
+  }, 60 * 60 * 1000);
+
+  cacheState.timers = [standardTimer, propsTimer, futuresTimer, liveFixtureTimer, playersTimer, seasonsTimer2];
+
+  logger.info('[SportsCache] Background cache warming active ✅ (live: 15s | props: 90s | odds: 60s | players: 30min | seasons: 1hr)');
 }
 
 /**
@@ -272,10 +355,17 @@ export async function getSportsCacheStatus() {
     const fixturesTs = await rcGetTimestamp(`${league}:fixtures`).catch(() => null);
     const propsTs = await rcGetTimestamp(`${league}:props`).catch(() => null);
 
+    const playerMap = await rcGet(`players:${league}`).catch(() => null);
+    const seasonsList = await rcGet(`seasons:${league}`).catch(() => null);
+    const liveGames = await rcGet(`fixtures:live:${league}`).catch(() => null);
+
     status[league] = {
       odds: oddsTs ? new Date(oddsTs * 1000).toISOString() : null,
       fixtures: fixturesTs ? new Date(fixturesTs * 1000).toISOString() : null,
       props: propsTs ? new Date(propsTs * 1000).toISOString() : null,
+      players: playerMap ? Object.keys(playerMap).length + ' players cached' : null,
+      seasons: seasonsList ? seasonsList.length + ' seasons cached' : null,
+      live_games_in_progress: liveGames ? liveGames.length : 0,
     };
   }
 

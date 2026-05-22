@@ -123,6 +123,7 @@ export const PLAYER_NAME_MAP = {
   'david pastrnak': 'NHL', 'pastrnak': 'NHL',
   'nikita kucherov': 'NHL', 'kucherov': 'NHL',
   'alexander ovechkin': 'NHL', 'ovi': 'NHL', 'ovechkin': 'NHL',
+  'fox': 'NHL', 'shesterkin': 'NHL', 'josi': 'NHL', 'draisaitl': 'NHL',
   // UFC stars
   'jon jones': 'UFC', 'israel adesanya': 'UFC',
   'alex pereira': 'UFC', 'pereira': 'UFC',
@@ -548,6 +549,32 @@ export const ALT_LINE_KEYWORDS = [
 ];
 
 // ─────────────────────────────────────────────
+// MULTI-LEAGUE KEYWORDS
+// Triggers multi-league query across all active sports tonight
+// ─────────────────────────────────────────────
+export const MULTI_LEAGUE_KEYWORDS = [
+  'all sports', 'all games', 'all leagues', 'all games tonight', 'every game',
+  'every sport', 'all tonight', 'sports tonight', 'games today', 'all today',
+  'every league', 'multi sport', 'multi-sport', 'sports on today',
+  'whats on tonight', "what's on tonight", 'all nfl nba mlb', 'all major sports',
+];
+
+// Active leagues for multi-league all-sports queries
+export const MULTI_LEAGUE_ACTIVE = ['NFL', 'NBA', 'MLB', 'NHL', 'UFC'];
+
+// ─────────────────────────────────────────────
+// BROADCAST / TV CHANNEL KEYWORDS
+// User wants to know where to watch the game
+// ─────────────────────────────────────────────
+export const BROADCAST_KEYWORDS = [
+  'on tv', 'where to watch', 'what channel', 'tv channel', 'broadcast',
+  'watch live', 'watch tonight', 'watch today', 'streaming',
+  'espn', 'nbc sports', 'fox sports', 'tnt', 'tbs', 'abc sports',
+  'peacock', 'amazon prime sports', 'apple tv plus', 'dazn', 'paramount plus',
+];
+
+
+// ─────────────────────────────────────────────
 // DEFAULT BOOK IDS (corrected from API spec)
 // FanDuel=100, DraftKings=200, Caesars=300, BetMGM=400, Pinnacle=250
 // ─────────────────────────────────────────────
@@ -726,6 +753,7 @@ export const LEAGUE_FUTURES_TYPES = {
 //   'alt_lines'    — alternate spread/total lines
 //   'period_odds'  — first half, first quarter, etc.
 //   'odds'         — standard moneyline + spread + total
+//   'multi_league' — all games tonight / all sports query
 // ─────────────────────────────────────────────
 export function detectSportsIntent(prompt) {
   const q = prompt.toLowerCase().trim();
@@ -744,6 +772,17 @@ export function detectSportsIntent(prompt) {
   // Player name detection — covers "Mahomes prop", "LeBron points tonight"
   const detectedPlayerName =
     Object.keys(PLAYER_NAME_MAP).find((name) => q.includes(name)) || null;
+
+  // Multi-league detection — "all games tonight", "all sports", "games today"
+  const hasMultiLeague = MULTI_LEAGUE_KEYWORDS.some((k) => q.includes(k));
+  if (hasMultiLeague) {
+    const mentionedLeagues = MULTI_LEAGUE_ACTIVE.filter((lg) => q.includes(lg.toLowerCase()));
+    return {
+      type: 'multi_league',
+      league: 'MULTI',
+      extra: { leagues: mentionedLeagues.length > 0 ? mentionedLeagues : MULTI_LEAGUE_ACTIVE },
+    };
+  }
 
   if (
     !hasBettingKeyword && !hasGameKeyword && !hasPropStat &&

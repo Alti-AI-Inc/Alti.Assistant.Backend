@@ -172,14 +172,17 @@ async function fetchStockFull(ticker) {
   const t = fmt(ticker);
   const cached = await cacheGet(`stock:${t}`);
   if (cached) return cached;
-  const [quote, ratios, rsi, news, details] = await Promise.all([
+  const [quote, ratios, rsi, news, details, snapshot, week52] = await Promise.all([
     safe(getStockQuoteService(t)),
     safe(getStockFinancialsRatiosService(t)),
     safe(getStockRSIService(t, 14)),
-    safe(getStockNewsService(t, 3)),
+    safe(getStockNewsService(t, 4)),
     safe(getTickerDetailsService(t)),
+    safe(getStocksSnapshotTickersService([t])),
+    safe(getStock52WeekService(t)),
   ]);
-  const data = { ticker: t, quote, ratios, rsi, news, details };
+  const snap = Array.isArray(snapshot) ? snapshot.find(s => s.ticker === t) || snapshot[0] : null;
+  const data = { ticker: t, quote, ratios, rsi, news, details, snap, week52 };
   await cacheSet(`stock:${t}`, data, TTL.quote);
   return data;
 }
@@ -330,7 +333,7 @@ async function fetchForexOverview() {
 
 function formatStockBlock(data) {
   if (!data) return 'Stock data unavailable.';
-  const { ticker, quote, ratios, rsi, news, details } = data;
+  const { ticker, quote, ratios, rsi, news, details, snap, week52 } = data;
   let block = `## ${ticker} — Live Market Data\n`;
 
   // Company info from ticker details
@@ -338,60 +341,108 @@ function formatStockBlock(data) {
     block += `**${details.name}**`;
     if (details.market_cap) block += ` | Market Cap: **$${(details.market_cap / 1e9).toFixed(2)}B**`;
     if (details.primary_exchange) block += ` | Exchange: ${details.primary_exchange}`;
+    if (details.sector) block += ` | Sector: ${details.sector}`;
     block += `\n`;
   }
 
   if (quote?.trade?.p || quote?.quote?.P) {
     const lastPrice = quote.trade?.p;
-    const bid = quote.quote?.p;
-    const ask = quote.quote?.P;
-    const prevClose = quote.previousClose?.c;
-    const change = lastPrice && prevClose ? (lastPrice - prevClose).toFixed(2) : null;
+    const bid       = quote.quote?.p;
+    const ask       = quote.quote?.P;
+    const prevClose = quote.previousClose?.c || snap?.prevDay?.c;
+    const change    = lastPrice && prevClose ? (lastPrice - prevClose).toFixed(2) : null;
     const changePct = lastPrice && prevClose ? (((lastPrice - prevClose) / prevClose) * 100).toFixed(2) : null;
-    const dir = changePct !== null ? (parseFloat(changePct) >= 0 ? '\u{1F4C8}' : '\u{1F4C9}') : '';
+    const dir = changePct !== null ? (parseFloat(changePct) >= 0 ? '📈' : '📉') : '';
+
+    // Day OHLCV from snapshot
+    const dayHigh   = snap?.day?.h;
+    const dayLow    = snap?.day?.l;
+    const dayOpen   = snap?.day?.o;
+    const dayVol    = snap?.day?.v || snap?.day?.volume;
+    const avgVol    = ratios?.average_volume;
+
     block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
     if (lastPrice) block += `| Last Price | **$${lastPrice.toLocaleString()}** |\n`;
-    if (bid) block += `| Bid | **$${bid}** |\n`;
-    if (ask) block += `| Ask | **$${ask}** |\n`;
+    if (bid) block += `| Bid | $${bid} |\n`;
+    if (ask) block += `| Ask | $${ask} |\n`;
     if (prevClose) block += `| Prev Close | $${prevClose} |\n`;
     if (change) block += `| Day Change | **${dir} ${change} (${changePct}%)** |\n`;
+    if (dayOpen)  block += `| Day Open | $${dayOpen.toLocaleString()} |\n`;
+    if (dayHigh)  block += `| Day High | $${dayHigh.toLocaleString()} |\n`;
+    if (dayLow)   block += `| Day Low | $${dayLow.toLocaleString()} |\n`;
+
+    // Volume with vs-average comparison
+    if (dayVol) {
+      const volStr = dayVol >= 1e6 ? `${(dayVol / 1e6).toFixed(2)}M` : dayVol.toLocaleString();
+      let volNote = '';
+      if (avgVol) {
+        const ratio = dayVol / avgVol;
+        if (ratio >= 2.0)       volNote = ' ⚡ **Unusually high** (2× avg)';
+        else if (ratio >= 1.5)  volNote = ' 🔥 **Above average** (1.5× avg)';
+        else if (ratio <= 0.5)  volNote = ' 🔇 Below average';
+      }
+      block += `| Day Volume | ${volStr}${volNote} |\n`;
+    }
+    if (avgVol) {
+      const avgStr = avgVol >= 1e6 ? `${(avgVol / 1e6).toFixed(2)}M` : avgVol.toLocaleString();
+      block += `| Avg Volume | ${avgStr} |\n`;
+    }
+
     // Extended hours (pre-market / after-hours)
-    if (quote.snapshot?.session) {
-      const s = quote.snapshot.session;
-      if (s.early_trading_change !== undefined && s.early_trading_change !== null) {
-        const extDir = s.early_trading_change >= 0 ? '\u{1F4C8}' : '\u{1F4C9}';
-        block += `| Pre-Market | **${extDir} ${s.early_trading_change?.toFixed(2)} (${s.early_trading_change_percent?.toFixed(2)}%)** |\n`;
+    const session = quote.snapshot?.session || snap?.session;
+    if (session) {
+      if (session.early_trading_change !== undefined && session.early_trading_change !== null) {
+        const extDir = session.early_trading_change >= 0 ? '📈' : '📉';
+        block += `| Pre-Market | **${extDir} ${session.early_trading_change?.toFixed(2)} (${session.early_trading_change_percent?.toFixed(2)}%)** |\n`;
       }
-      if (s.late_trading_change !== undefined && s.late_trading_change !== null) {
-        const extDir = s.late_trading_change >= 0 ? '\u{1F4C8}' : '\u{1F4C9}';
-        block += `| After-Hours | **${extDir} ${s.late_trading_change?.toFixed(2)} (${s.late_trading_change_percent?.toFixed(2)}%)** |\n`;
+      if (session.late_trading_change !== undefined && session.late_trading_change !== null) {
+        const extDir = session.late_trading_change >= 0 ? '📈' : '📉';
+        block += `| After-Hours | **${extDir} ${session.late_trading_change?.toFixed(2)} (${session.late_trading_change_percent?.toFixed(2)}%)** |\n`;
       }
+    }
+
+    // 52-week range with position bar
+    const hi52 = week52?.results?.[0]?.high || week52?.high;
+    const lo52 = week52?.results?.[0]?.low  || week52?.low;
+    if (hi52 && lo52 && lastPrice) {
+      block += `\n### 52-Week Range\n| Metric | Value |\n|--------|-------|\n`;
+      block += `| 52-Week High | **$${hi52.toLocaleString()}** |\n`;
+      block += `| 52-Week Low | **$${lo52.toLocaleString()}** |\n`;
+      const range    = hi52 - lo52;
+      const position = ((lastPrice - lo52) / range * 100).toFixed(0);
+      const bars = Math.round(parseInt(position) / 10);
+      const bar  = '█'.repeat(bars) + '░'.repeat(10 - bars);
+      block += `| Range Position | ${bar} **${position}%** from 52-wk low |\n`;
+      // Distance from ATH
+      const fromHigh = (((lastPrice - hi52) / hi52) * 100).toFixed(1);
+      if (parseFloat(fromHigh) < -1) block += `| Distance from 52-Wk High | ${fromHigh}% |\n`;
     }
   }
 
   if (ratios) {
     block += `\n### Key Metrics\n| Metric | Value |\n|--------|-------|\n`;
-    if (ratios.price) block += `| Price | **$${ratios.price}** |\n`;
-    if (ratios.market_cap) block += `| Market Cap | **$${(ratios.market_cap / 1e9).toFixed(2)}B** |\n`;
-    if (ratios.price_to_earnings) block += `| P/E Ratio | ${ratios.price_to_earnings?.toFixed(2)} |\n`;
-    if (ratios.price_to_book) block += `| P/B Ratio | ${ratios.price_to_book?.toFixed(2)} |\n`;
-    if (ratios.price_to_sales) block += `| P/S Ratio | ${ratios.price_to_sales?.toFixed(2)} |\n`;
-    if (ratios.earnings_per_share) block += `| EPS | $${ratios.earnings_per_share?.toFixed(2)} |\n`;
-    if (ratios.average_volume) block += `| Avg Volume | ${(ratios.average_volume / 1e6).toFixed(2)}M |\n`;
-    if (details?.description && !ratios.market_cap) {
-      block += `\n> ${details.description?.slice(0, 200)}...\n`;
+    if (ratios.price_to_earnings)  block += `| P/E Ratio | ${ratios.price_to_earnings?.toFixed(2)} |\n`;
+    if (ratios.price_to_book)      block += `| P/B Ratio | ${ratios.price_to_book?.toFixed(2)} |\n`;
+    if (ratios.price_to_sales)     block += `| P/S Ratio | ${ratios.price_to_sales?.toFixed(2)} |\n`;
+    if (ratios.earnings_per_share) block += `| EPS | **$${ratios.earnings_per_share?.toFixed(2)}** |\n`;
+    if (ratios.net_margin)         block += `| Net Margin | ${(ratios.net_margin * 100)?.toFixed(1)}% |\n`;
+    if (ratios.return_on_equity)   block += `| ROE | ${(ratios.return_on_equity * 100)?.toFixed(1)}% |\n`;
+    if (ratios.dividend_yield && ratios.dividend_yield > 0)
+      block += `| Dividend Yield | **${(ratios.dividend_yield * 100)?.toFixed(2)}%** |\n`;
+    if (details?.description && !ratios.price_to_earnings) {
+      block += `\n> ${details.description?.slice(0, 220)}...\n`;
     }
   }
 
   if (rsi?.value !== undefined) {
     const rsiVal = parseFloat(rsi.value).toFixed(2);
-    const rsiSignal = rsiVal > 70 ? '\u{1F534} Overbought' : rsiVal < 30 ? '\u{1F7E2} Oversold' : '\u26AA Neutral';
+    const rsiSignal = rsiVal > 70 ? '🔴 Overbought' : rsiVal < 30 ? '🟢 Oversold' : '⚪ Neutral';
     block += `\n### Technical Indicator\n| RSI (14) | Signal |\n|----------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
   }
 
   if (Array.isArray(news) && news.length > 0) {
     block += `\n### Recent News\n`;
-    news.slice(0, 3).forEach((n, i) => {
+    news.slice(0, 4).forEach((n, i) => {
       if (n.title) block += `${i + 1}. **${n.title}** — ${n.publisher?.name || ''} (${n.published_utc?.slice(0, 10) || ''})\n`;
     });
   }
@@ -435,23 +486,41 @@ function formatCryptoBlock(data) {
   let block = `## ${symbol} — Live Crypto Data\n`;
   if (Array.isArray(snapshot) && snapshot.length > 0) {
     const s = snapshot[0];
+    const price  = s.day?.c;
+    const open   = s.day?.o;
+    const chgPct = s.todaysChangePerc;
+    const dir    = (s.todaysChange || 0) >= 0 ? '📈' : '📉';
     block += `\n### Price\n| Field | Value |\n|-------|-------|\n`;
-    if (s.day?.c) block += `| Price | **$${s.day.c.toLocaleString()}** |\n`;
+    if (price) block += `| Price | **$${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}** |\n`;
     if (s.todaysChange !== undefined) {
-      const dir = s.todaysChange >= 0 ? '📈' : '📉';
-      block += `| 24h Change | **${dir} ${s.todaysChange?.toFixed(2)} (${s.todaysChangePerc?.toFixed(2)}%)** |\n`;
+      block += `| 24h Change | **${dir} ${s.todaysChange?.toFixed(2)} (${chgPct?.toFixed(2)}%)** |\n`;
     }
-    if (s.day?.o) block += `| Open | $${s.day.o.toLocaleString()} |\n`;
-    if (s.day?.h) block += `| High | $${s.day.h.toLocaleString()} |\n`;
-    if (s.day?.l) block += `| Low | $${s.day.l.toLocaleString()} |\n`;
-    if (s.day?.v) block += `| Volume | ${s.day.v.toLocaleString()} |\n`;
+    if (open)    block += `| Open | $${open.toLocaleString()} |\n`;
+    if (s.day?.h) block += `| 24h High | **$${s.day.h.toLocaleString()}** |\n`;
+    if (s.day?.l) block += `| 24h Low | **$${s.day.l.toLocaleString()}** |\n`;
+    if (s.day?.v) {
+      const vol = s.day.v;
+      const volStr = vol >= 1 ? `${vol.toFixed(4)} coins` : `${vol.toFixed(8)} coins`;
+      block += `| 24h Volume | ${volStr} |\n`;
+    }
+    if (s.day?.vw) block += `| VWAP | $${s.day.vw.toLocaleString('en-US', { minimumFractionDigits: 2 })} |\n`;
+    // Prev day context
+    if (s.prevDay?.c && price) {
+      const prevClose = s.prevDay.c;
+      const chgFrom  = (((price - prevClose) / prevClose) * 100).toFixed(2);
+      block += `| Prev Close | $${prevClose.toLocaleString()} |\n`;
+    }
   }
   if (Array.isArray(trades) && trades.length > 0) {
-    block += `\n### Last Trade\n| Price | Size |\n|-------|------|\n| **$${trades[0].price?.toLocaleString()}** | ${trades[0].size} |\n`;
+    const t = trades[0];
+    if (t.price) block += `\n### Last Trade\n| Price | Size |\n|-------|------|\n| **$${t.price?.toLocaleString('en-US', { minimumFractionDigits: 2 })}** | ${t.size?.toFixed(6)} |\n`;
   }
   if (rsi?.value !== undefined) {
     const rsiVal = parseFloat(rsi.value).toFixed(2);
-    const rsiSignal = rsiVal > 70 ? '🔴 Overbought' : rsiVal < 30 ? '🟢 Oversold' : '⚪ Neutral';
+    const rsiSignal = rsiVal > 70 ? '🔴 Overbought — possible correction' :
+                      rsiVal < 30 ? '🟢 Oversold — possible bounce' :
+                      rsiVal > 60 ? '📈 Bullish momentum' :
+                      rsiVal < 40 ? '📉 Bearish momentum' : '⚪ Neutral';
     block += `\n### Technical\n| RSI (14) | Signal |\n|----------|--------|\n| **${rsiVal}** | ${rsiSignal} |\n`;
   }
   return block;
@@ -546,33 +615,88 @@ function formatOptionsBlock(options, underlyingTicker, stockPrice) {
 
 function formatMacroBlock(data) {
   const { inflation, yields, labor, expectations, allInflation, allYields } = data;
-  let block = `## Federal Reserve & Macro Economic Data\n\n`;
+  let block = `## 🏦 Federal Reserve & Macro Economic Snapshot\n\n`;
 
+  // CPI inflation
   if (inflation) {
-    block += `### CPI Inflation (Latest)\n| Date | CPI |\n|------|-----|\n| **${inflation.date}** | **${inflation.cpi}** |\n\n`;
+    const cpiNum = parseFloat(inflation.cpi);
+    const cpiSignal = cpiNum > 4 ? '🔴 High inflation' : cpiNum > 2.5 ? '🟡 Above target' : '🟢 Near target (2%)';
+    block += `### CPI Inflation\n| Date | CPI | Signal |\n|------|-----|--------|\n`;
+    block += `| **${inflation.date}** | **${inflation.cpi}** | ${cpiSignal} |\n\n`;
   }
 
+  // CPI trend (last 6 months)
   if (allInflation?.length > 1) {
-    block += `### CPI History (Recent)\n| Date | CPI |\n|------|-----|\n`;
+    block += `### Inflation Trend (Recent)\n| Date | CPI |\n|------|-----|\n`;
     allInflation.slice(-6).reverse().forEach(r => {
       block += `| ${r.date} | ${r.cpi} |\n`;
     });
+    // Momentum signal
+    if (allInflation.length >= 2) {
+      const latest = parseFloat(allInflation.at(-1)?.cpi);
+      const prior  = parseFloat(allInflation.at(-2)?.cpi);
+      if (!isNaN(latest) && !isNaN(prior)) {
+        const trend = latest > prior ? '📈 Rising' : latest < prior ? '📉 Falling' : '↔️ Flat';
+        block += `> Momentum: **${trend}** (${(latest - prior).toFixed(1)} change last period)\n`;
+      }
+    }
     block += '\n';
   }
 
+  // Full yield curve (all available maturities)
   if (yields) {
-    block += `### Treasury Yield Curve (Latest)\n| Date | 1Y | 5Y | 10Y |\n|------|-----|-----|-----|\n`;
-    block += `| **${yields.date}** | **${yields.yield_1_year}%** | **${yields.yield_5_year}%** | **${yields.yield_10_year}%** |\n\n`;
+    block += `### 📈 Treasury Yield Curve (Latest: ${yields.date})\n`;
+    block += `| Maturity | Yield | Signal |\n|----------|-------|--------|\n`;
+    const maturities = [
+      { key: 'yield_1_month',  label: '1 Month' },
+      { key: 'yield_3_month',  label: '3 Month' },
+      { key: 'yield_6_month',  label: '6 Month' },
+      { key: 'yield_1_year',   label: '1 Year'  },
+      { key: 'yield_2_year',   label: '2 Year'  },
+      { key: 'yield_3_year',   label: '3 Year'  },
+      { key: 'yield_5_year',   label: '5 Year'  },
+      { key: 'yield_7_year',   label: '7 Year'  },
+      { key: 'yield_10_year',  label: '10 Year' },
+      { key: 'yield_20_year',  label: '20 Year' },
+      { key: 'yield_30_year',  label: '30 Year' },
+    ];
+    const availableMaturities = maturities.filter(m => yields[m.key] !== undefined && yields[m.key] !== null);
+    availableMaturities.forEach((m, i) => {
+      const y = yields[m.key];
+      const prev = i > 0 ? yields[availableMaturities[i-1].key] : null;
+      const signal = prev ? (y > prev ? '↗️' : y < prev ? '↘️' : '↔️') : '';
+      block += `| **${m.label}** | **${y}%** | ${signal} |\n`;
+    });
+
+    // Inversion check (10Y vs 2Y spread)
+    const y2  = yields.yield_2_year;
+    const y10 = yields.yield_10_year;
+    const y3m = yields.yield_3_month;
+    if (y2 && y10) {
+      const spread = (y10 - y2).toFixed(2);
+      if (parseFloat(spread) < 0) {
+        block += `\n> ⚠️ **Yield Curve Inverted**: 10Y (${y10}%) < 2Y (${y2}%) — spread: **${spread}%**. Historically a recession indicator.\n`;
+      } else {
+        block += `\n> ✅ **Normal Curve**: 10Y-2Y spread: **+${spread}%**\n`;
+      }
+    }
+    block += '\n';
   }
 
+  // Labor market
   if (labor) {
-    block += `### Labor Market (Latest)\n| Date | Unemployment | Participation Rate |\n|------|-------------|--------------------|\n`;
-    block += `| **${labor.date}** | **${labor.unemployment_rate}%** | ${labor.labor_force_participation_rate}% |\n\n`;
+    block += `### 💼 Labor Market (Latest: ${labor.date})\n| Metric | Value |\n|--------|-------|\n`;
+    if (labor.unemployment_rate !== undefined)           block += `| Unemployment Rate | **${labor.unemployment_rate}%** |\n`;
+    if (labor.labor_force_participation_rate !== undefined) block += `| Labor Force Participation | ${labor.labor_force_participation_rate}% |\n`;
+    if (labor.nonfarm_payrolls !== undefined)            block += `| Nonfarm Payrolls | ${labor.nonfarm_payrolls?.toLocaleString()} |\n`;
+    if (labor.average_hourly_earnings_yoy !== undefined) block += `| Avg Hourly Earnings (YoY) | **${labor.average_hourly_earnings_yoy}%** |\n`;
+    block += '\n';
   }
 
+  // Inflation expectations
   if (expectations) {
-    block += `### Inflation Expectations (Model)\n| Date | 1Y | 5Y | 10Y | 30Y |\n|------|-----|-----|-----|-----|\n`;
-    block += `| **${expectations.date}** | ${expectations.model_1_year?.toFixed(2)}% | ${expectations.model_5_year?.toFixed(2)}% | ${expectations.model_10_year?.toFixed(2)}% | ${expectations.model_30_year?.toFixed(2)}% |\n`;
+    block += `### 🔮 Inflation Expectations (Model: ${expectations.date})\n| 1Y | 5Y | 10Y | 30Y |\n|-----|-----|-----|-----|\n`;
+    block += `| **${expectations.model_1_year?.toFixed(2)}%** | **${expectations.model_5_year?.toFixed(2)}%** | ${expectations.model_10_year?.toFixed(2)}% | ${expectations.model_30_year?.toFixed(2)}% |\n`;
   }
 
   return block;
@@ -1863,6 +1987,163 @@ const routeAndEnhancePrompt = async (prompt) => {
         block += `> Try asking for the full options chain: "Show me ${sym} options chain"\n`;
       }
       return buildPrompt(prompt, block, `Massive.com Options Contract Detail — ${sym}`);
+    }
+
+    // ── MARKET SENTIMENT ─────────────────────────────────────────────────
+    // Composite Fear/Greed score from VIX + movers + sectors
+    if (intent.type === 'market_sentiment') {
+      const [sectors, moversUp, moversDown, macro, overview] = await Promise.allSettled([
+        safe(fetchSectorPerformance(), 6000),
+        safe(getTopMoversService('gainers'), 6000),
+        safe(getTopMoversService('losers'), 6000),
+        safe(fetchMacroFull(), 6000),
+        safe(fetchMarketOverview(), 6000),
+      ]);
+
+      let block = `## 🧭 Market Sentiment & Fear/Greed Composite\n\n`;
+      let score = 50; // neutral baseline
+      let signals = [];
+
+      // VIX signal (from market overview — VIXY ETF proxy)
+      const equities = overview.status === 'fulfilled' ? overview.value?.equities : null;
+      const vixy = Array.isArray(equities) ? equities.find(e => e.ticker === 'VIXY') : null;
+      if (vixy?.day?.c) {
+        const vix = vixy.day.c * 8.5; // VIXY ≈ VIX/8.5 (rough approximation)
+        block += `### VIX Volatility (via VIXY ETF)\n| VIXY Price | ~VIX Estimate | Signal |\n|------------|---------------|--------|\n`;
+        let vixSignal = '';
+        if (vix < 12)       { score += 20; vixSignal = '😴 Extreme Complacency';  signals.push('VIX very low → Complacency'); }
+        else if (vix < 15)  { score += 12; vixSignal = '😌 Low Volatility';       signals.push('VIX low → Mild Greed'); }
+        else if (vix < 20)  { score += 5;  vixSignal = '😐 Normal Range';         signals.push('VIX normal'); }
+        else if (vix < 30)  { score -= 10; vixSignal = '😟 Elevated Fear';        signals.push('VIX elevated → Fear'); }
+        else if (vix < 40)  { score -= 20; vixSignal = '😨 High Fear';            signals.push('VIX high → Fear'); }
+        else                { score -= 30; vixSignal = '🔥 Extreme Fear';         signals.push('VIX extreme → Panic'); }
+        block += `| $${vixy.day.c.toFixed(2)} | ~${vix.toFixed(0)} | **${vixSignal}** |\n\n`;
+      }
+
+      // Sector breadth (how many sectors are positive)
+      const sectorData = sectors.status === 'fulfilled' ? sectors.value : null;
+      if (Array.isArray(sectorData) && sectorData.length > 0) {
+        const SECTOR_LABELS = {
+          XLK:'Tech', XLF:'Finance', XLV:'Healthcare', XLE:'Energy',
+          XLI:'Industrials', XLC:'Comms', XLP:'Staples', XLY:'Discretionary',
+          XLB:'Materials', XLRE:'Real Estate', XLU:'Utilities',
+        };
+        const positives  = sectorData.filter(s => (s.todaysChangePerc || 0) > 0).length;
+        const negatives  = sectorData.length - positives;
+        const breadth    = (positives / sectorData.length * 100).toFixed(0);
+        const breadthAdj = (positives / sectorData.length - 0.5) * 30; // -15 to +15
+        score += breadthAdj;
+        const avgChg = sectorData.reduce((s, x) => s + (x.todaysChangePerc || 0), 0) / sectorData.length;
+
+        block += `### Sector Breadth (${positives}/${sectorData.length} sectors positive)\n`;
+        block += `| Sector | ETF | Change % |\n|--------|-----|----------|\n`;
+        [...sectorData].sort((a, b) => (b.todaysChangePerc || 0) - (a.todaysChangePerc || 0))
+          .forEach(s => {
+            const dir   = (s.todaysChangePerc || 0) >= 0 ? '📈' : '📉';
+            const label = SECTOR_LABELS[s.ticker] || s.ticker;
+            block += `| ${label} | ${s.ticker} | ${dir} **${s.todaysChangePerc?.toFixed(2)}%** |\n`;
+          });
+        block += `\n> Avg Sector Change: **${avgChg >= 0 ? '+' : ''}${avgChg.toFixed(2)}%** | Breadth: **${breadth}% positive**\n\n`;
+      }
+
+      // Movers ratio (gainers vs losers magnitude)
+      const gainers = moversUp.status   === 'fulfilled' ? moversUp.value   : null;
+      const losers  = moversDown.status === 'fulfilled' ? moversDown.value : null;
+      if (Array.isArray(gainers) && Array.isArray(losers)) {
+        const avgGain = gainers.slice(0, 5).reduce((s, x) => s + Math.abs(x.todaysChangePerc || 0), 0) / Math.min(gainers.length, 5);
+        const avgLoss = losers.slice(0, 5).reduce((s, x) => s + Math.abs(x.todaysChangePerc || 0), 0) / Math.min(losers.length, 5);
+        const moversRatio = avgGain / (avgLoss || 1);
+        const moversAdj   = Math.min(10, Math.max(-10, (moversRatio - 1) * 8));
+        score += moversAdj;
+        block += `### Top Movers Snapshot\n| Direction | Top Ticker | Change % |\n|-----------|-----------|----------|\n`;
+        gainers.slice(0, 3).forEach(g => block += `| 📈 Gainer | **${g.ticker}** | +${g.todaysChangePerc?.toFixed(2)}% |\n`);
+        losers.slice(0, 3).forEach(l => block += `| 📉 Loser  | **${l.ticker}** | ${l.todaysChangePerc?.toFixed(2)}% |\n`);
+        block += '\n';
+      }
+
+      // Composite score verdict
+      score = Math.min(100, Math.max(0, Math.round(score)));
+      const bars    = Math.round(score / 10);
+      const bar     = '█'.repeat(bars) + '░'.repeat(10 - bars);
+      const verdict = score >= 80 ? '🟢 Extreme Greed' : score >= 65 ? '📈 Greed' :
+                      score >= 45 ? '😐 Neutral' : score >= 30 ? '📉 Fear' : '🔴 Extreme Fear';
+
+      block += `### 🎯 Composite Sentiment Score\n| Score | Meter | Verdict |\n|-------|-------|--------|\n`;
+      block += `| **${score}/100** | ${bar} | **${verdict}** |\n\n`;
+      block += `> *Score combines VIX proxy, sector breadth, and top mover magnitude. Not financial advice.*\n`;
+
+      return buildPrompt(prompt, block, 'Massive.com Market Sentiment Composite');
+    }
+
+    // ── YIELD CURVE ───────────────────────────────────────────────────────
+    // Dedicated yield curve handler with full curve + historical context
+    if (intent.type === 'yield_curve') {
+      const data = await fetchMacroFull();
+      const { yields, allYields } = data;
+
+      let block = `## 📈 US Treasury Yield Curve\n\n`;
+
+      if (yields) {
+        block += `**As of ${yields.date}**\n\n`;
+        const maturities = [
+          { key: 'yield_1_month',  label: '1M',   months: 1   },
+          { key: 'yield_3_month',  label: '3M',   months: 3   },
+          { key: 'yield_6_month',  label: '6M',   months: 6   },
+          { key: 'yield_1_year',   label: '1Y',   months: 12  },
+          { key: 'yield_2_year',   label: '2Y',   months: 24  },
+          { key: 'yield_3_year',   label: '3Y',   months: 36  },
+          { key: 'yield_5_year',   label: '5Y',   months: 60  },
+          { key: 'yield_7_year',   label: '7Y',   months: 84  },
+          { key: 'yield_10_year',  label: '10Y',  months: 120 },
+          { key: 'yield_20_year',  label: '20Y',  months: 240 },
+          { key: 'yield_30_year',  label: '30Y',  months: 360 },
+        ];
+        const available = maturities.filter(m => yields[m.key] !== undefined && yields[m.key] !== null);
+
+        // ASCII bar chart
+        const maxY = Math.max(...available.map(m => yields[m.key]));
+        block += `### Full Yield Curve\n| Maturity | Yield | Bar Chart |\n|----------|-------|-----------|\n`;
+        available.forEach(m => {
+          const y    = yields[m.key];
+          const bars = Math.round((y / maxY) * 15);
+          const bar  = '▓'.repeat(bars) + '░'.repeat(15 - bars);
+          block += `| **${m.label}** | **${y}%** | ${bar} |\n`;
+        });
+
+        // Key spreads
+        const y2  = yields.yield_2_year;
+        const y10 = yields.yield_10_year;
+        const y3m = yields.yield_3_month;
+        const y30 = yields.yield_30_year;
+
+        block += `\n### Key Spreads\n| Spread | Value | Interpretation |\n|--------|-------|----------------|\n`;
+        if (y10 && y2) {
+          const s10_2 = (y10 - y2).toFixed(2);
+          const inv   = parseFloat(s10_2) < 0;
+          block += `| 10Y - 2Y | **${s10_2}%** | ${inv ? '⚠️ **INVERTED** — historically precedes recession' : '✅ Normal (positive slope)'} |\n`;
+        }
+        if (y10 && y3m) {
+          const s10_3m = (y10 - y3m).toFixed(2);
+          block += `| 10Y - 3M | **${s10_3m}%** | ${parseFloat(s10_3m) < 0 ? '⚠️ Inverted' : '✅ Normal'} |\n`;
+        }
+        if (y30 && y10) {
+          const s30_10 = (y30 - y10).toFixed(2);
+          block += `| 30Y - 10Y | **${s30_10}%** | Long-end premium |\n`;
+        }
+
+        // Historical context if we have prior yield data
+        if (allYields && allYields.length >= 2) {
+          const prev = allYields[allYields.length - 2];
+          if (prev?.yield_10_year && y10) {
+            const chg = (y10 - prev.yield_10_year).toFixed(2);
+            const dir = parseFloat(chg) >= 0 ? '📈' : '📉';
+            block += `\n> **10Y Change (vs prior):** ${dir} ${chg >= 0 ? '+' : ''}${chg}% (from ${prev.yield_10_year}% on ${prev.date})\n`;
+          }
+        }
+      } else {
+        block += '*Treasury yield data not currently available.*\n';
+      }
+      return buildPrompt(prompt, block, 'Massive.com US Treasury Yield Curve');
     }
 
   } catch (err) {

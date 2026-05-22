@@ -1012,6 +1012,28 @@ export function detectFinancialIntent(prompt) {
     return { type: 'market_news', symbol: null };
   }
 
+  // 1i. Market sentiment / fear & greed composite
+  const sentimentKeywords = [
+    'market sentiment', 'fear and greed', 'fear & greed', 'market mood',
+    'bullish or bearish', 'risk on', 'risk off', 'market risk',
+    'investor sentiment', 'market emotion', 'greed index', 'fear index',
+    'market breadth', 'advance decline', 'how is the market feeling',
+  ];
+  if (sentimentKeywords.some(k => q.includes(k))) {
+    return { type: 'market_sentiment' };
+  }
+
+  // 1j. Yield curve (dedicated — before macro so it routes to the richer handler)
+  const yieldCurveKeywords = [
+    'yield curve', 'treasury yield', 'bond yield', 'treasury bond',
+    '10 year yield', '10yr yield', '2 year yield', '2yr yield',
+    '30 year yield', 'inverted curve', 'curve inversion', 'us bond',
+    'federal yield', 'yield spread', 'term spread',
+  ];
+  if (yieldCurveKeywords.some(k => q.includes(k))) {
+    return { type: 'yield_curve' };
+  }
+
   // 2. Macro / Fed
   if (MACRO_KEYWORDS.some(k => q.includes(k))) {
     return { type: 'macro', symbol: null };
