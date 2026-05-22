@@ -1,14 +1,107 @@
-import { openai, OpenAIEmbedding } from '@llamaindex/openai';
-import { Document, MetadataMode, Settings, VectorStoreIndex } from 'llamaindex';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { BaseLLM, BaseEmbedding, Document, MetadataMode, Settings, VectorStoreIndex } from 'llamaindex';
 import fs from 'node:fs/promises';
 import config from '../../../../config/index.js';
 
-Settings.llm = openai({
-  apiKey: config.openai_secret_key,
-  model: 'gpt-4o',
-});
+class GoogleLLM extends BaseLLM {
+  constructor(apiKey, modelName = 'gemini-3.5-flash') {
+    super();
+    this.client = new GoogleGenerativeAI(apiKey);
+    this.modelName = modelName;
+    this.model = this.client.getGenerativeModel({ model: this.modelName });
+  }
 
-Settings.embedModel = new OpenAIEmbedding();
+  get metadata() {
+    return {
+      model: this.modelName,
+      temperature: 0.1,
+      topP: 1,
+      maxTokens: undefined,
+      contextWindow: 1000000,
+      tokenizer: undefined,
+      structuredOutput: true
+    };
+  }
+
+  async chat(params) {
+    const { messages } = params;
+    const contents = messages.map(msg => {
+      let role = 'user';
+      if (msg.role === 'assistant' || msg.role === 'model' || msg.role === 'ai') {
+        role = 'model';
+      }
+      return {
+        role,
+        parts: [{ text: msg.content }]
+      };
+    });
+
+    const result = await this.model.generateContent({ contents });
+    const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    return {
+      message: {
+        content: text,
+        role: 'assistant',
+      },
+      raw: result,
+    };
+  }
+}
+
+class GoogleEmbedding extends BaseEmbedding {
+  constructor(apiKey) {
+    super();
+    this.client = new GoogleGenerativeAI(apiKey);
+    this.modelName = 'text-embedding-004';
+    this.model = this.client.getGenerativeModel({ model: this.modelName });
+    this.embedBatchSize = 10;
+  }
+
+  async getTextEmbedding(text) {
+    try {
+      const result = await this.model.embedContent(text);
+      return result.embedding.values;
+    } catch (err) {
+      if (this.modelName !== 'gemini-embedding-001') {
+        console.log(`Embedding model ${this.modelName} failed, falling back to gemini-embedding-001`);
+        this.modelName = 'gemini-embedding-001';
+        this.model = this.client.getGenerativeModel({ model: this.modelName });
+        const result = await this.model.embedContent(text);
+        return result.embedding.values;
+      }
+      throw err;
+    }
+  }
+
+  async getTextEmbeddings(texts) {
+    try {
+      const result = await this.model.batchEmbedContents({
+        requests: texts.map((text) => ({
+          content: { parts: [{ text }] },
+        })),
+      });
+      return result.embeddings.map((e) => e.values);
+    } catch (err) {
+      if (this.modelName !== 'gemini-embedding-001') {
+        console.log(`Embedding batch model ${this.modelName} failed, falling back to gemini-embedding-001`);
+        this.modelName = 'gemini-embedding-001';
+        this.model = this.client.getGenerativeModel({ model: this.modelName });
+        const result = await this.model.batchEmbedContents({
+          requests: texts.map((text) => ({
+            content: { parts: [{ text }] },
+          })),
+        });
+        return result.embeddings.map((e) => e.values);
+      }
+      throw err;
+    }
+  }
+}
+
+const geminiApiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
+Settings.llm = new GoogleLLM(geminiApiKey);
+Settings.embedModel = new GoogleEmbedding(geminiApiKey);
 
 let index = null;
 

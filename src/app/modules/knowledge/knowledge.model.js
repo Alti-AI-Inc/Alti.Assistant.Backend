@@ -77,8 +77,6 @@ const KnowledgeFileSchema = new mongoose.Schema(
     documentId: {
       type: String,
       trim: true,
-      index: true,
-      sparse: true,
     },
     title: {
       type: String,

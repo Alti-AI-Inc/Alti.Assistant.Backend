@@ -1,13 +1,12 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { ChatGroq } from '@langchain/groq';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import config from '../../../../../config/index.js';
 
-const llm = new ChatGroq({
-  model: 'deepseek-r1-distill-llama-70b',
-  apiKey: process.env.GROQ_API_KEY,
+const llm = new ChatGoogleGenerativeAI({
+  modelName: 'gemini-3.5-flash',
+  apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
   temperature: 0,
-  maxTokens: undefined,
   maxRetries: 2,
-  // other params...
 });
 
 export const runSimpleGroqTask = async (state, stream = false) => {

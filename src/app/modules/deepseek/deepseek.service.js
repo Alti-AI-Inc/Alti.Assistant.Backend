@@ -1,6 +1,6 @@
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import httpStatus from 'http-status';
 import { BufferMemory } from 'langchain/memory';
 import ApiError from '../../../errors/ApiError.js';
@@ -10,8 +10,9 @@ import Llama from '../groq/groq.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { DEEPSEEK_RESPONSE_SERVICE_POST } from './deepseek.constatn.js';
 import { RedisClient } from '../../../shared/redis.js';
+import config from '../../../../config/index.js';
 
-const groq = new Groq(); // Initialize the Groq SDK
+const client = new GoogleGenerativeAI(config.gemini_secret_key || process.env.GEMINI_API_KEY);
 
 const sessionMemoryStore = {};
 
@@ -31,23 +32,15 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
 
     const startTime = Date.now(); // Record start time
 
-    // Call Groq API to generate a response using the deepseek model
-    const completion = await groq.chat.completions.create({
-      // model: "deepseek-r1-distill-qwen-32b", // Use the deepseek model
-      model: 'DeepSeek-R1-Distill-Llama-70B',
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
-
+    // Call Google Generative AI to generate a response using the gemini-3.5-flash model
+    const model = client.getGenerativeModel({ model: 'gemini-3.5-flash' });
+    const result = await model.generateContent(prompt);
+    
     const endTime = Date.now(); // Record end time
     const totalTime = endTime - startTime; // Calculate total time taken
 
     const reply =
-      completion.choices[0]?.message?.content || 'No reply generated';
+      result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || 'No reply generated';
 
     try {
       const paymentResult =
