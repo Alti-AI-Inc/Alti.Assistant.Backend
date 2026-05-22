@@ -57,10 +57,15 @@ import { orchestratorRoutes } from '../modules/orchestrator/orchestrator.route.j
 import { SwarmRoutes } from '../modules/swarm/swarm.route.js';
 import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
 import { aviationStackRoutes } from '../modules/aviationstack/aviationstack.route.js';
+import { datasetsRoutes } from '../modules/datasets/datasets.route.js';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/datasets',
+    route: datasetsRoutes,
+  },
   {
     path: '/aviationstack',
     route: aviationStackRoutes,

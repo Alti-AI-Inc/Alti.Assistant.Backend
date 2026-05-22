@@ -102,8 +102,8 @@ Write-Host ""; Write-Host "-- PredictionData.io Sports Betting Odds --" -Foregro
 Set-GcpSecret "PREDICTIONDATA_API_KEY" "dummy_predictiondata_api_key_here"
 
 Write-Host ""; Write-Host "-- OAuth Providers --" -ForegroundColor Cyan
-Set-GcpSecret "GOOGLE_CLIENT_ID"        "1085008700546-qlbshjeh7mj6mbn0b1ptgaaongch8nhc.apps.googleusercontent.com"
-Set-GcpSecret "GOOGLE_CLIENT_SECRET"    "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"
+Set-GcpSecret "GOOGLE_CLIENT_ID"        "366561755636-vlu66c4gn681dfr8lknjdgom49l1d222.apps.googleusercontent.com"
+Set-GcpSecret "GOOGLE_CLIENT_SECRET"    "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"
 Set-GcpSecret "FACEBOOK_APP_ID"         "1013272780149014"
 Set-GcpSecret "FACEBOOK_APP_SECRET"     "c666b17020b19674996764e170e1080b"
 Set-GcpSecret "DISCORD_CLIENT_ID"       "1371590944683462777"
