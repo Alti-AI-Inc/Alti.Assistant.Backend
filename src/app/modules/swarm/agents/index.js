@@ -49,6 +49,20 @@ import {
   massiveTaxStrategyAdvisor,
   massiveRetirementPlanner
 } from './massive.agents.pro.js';
+import {
+  startupFounderCoach,
+  productManagerAdvisor,
+  marketingGrowthStrategist,
+  negotiationStrategist,
+  businessPlanArchitect,
+  clinicalResearchAdvisor,
+  environmentalESGAnalyst,
+  cybersecurityThreatAnalyst,
+  dataPrivacyCompliance,
+  scienceTutorAgent,
+  creativeWritingDirector,
+  careerStrategistCoach
+} from './expert.agents.js';
 
 import {
   dataProcessorAgent,
@@ -202,6 +216,20 @@ export const customAgents = [
   massiveAlternativesAdvisor,
   massiveTaxStrategyAdvisor,
   massiveRetirementPlanner,
+  // Expert 12: startup, product, growth, negotiation, business plan, medical research,
+  // ESG, cybersecurity, privacy, science, creative writing, career
+  startupFounderCoach,
+  productManagerAdvisor,
+  marketingGrowthStrategist,
+  negotiationStrategist,
+  businessPlanArchitect,
+  clinicalResearchAdvisor,
+  environmentalESGAnalyst,
+  cybersecurityThreatAnalyst,
+  dataPrivacyCompliance,
+  scienceTutorAgent,
+  creativeWritingDirector,
+  careerStrategistCoach,
 
   dataProcessorAgent,
   dataEtlSynthesizer,
@@ -426,5 +454,19 @@ export {
   marketResearcher,
   patentIntelResearcher,
   financialSecAuditor,
-  legalRegulatoryResearcher
+  legalRegulatoryResearcher,
+
+  // ── Expert Domain Intelligence Agents (Batch 4) ──────────────────────────
+  startupFounderCoach,
+  productManagerAdvisor,
+  marketingGrowthStrategist,
+  negotiationStrategist,
+  businessPlanArchitect,
+  clinicalResearchAdvisor,
+  environmentalESGAnalyst,
+  cybersecurityThreatAnalyst,
+  dataPrivacyCompliance,
+  scienceTutorAgent,
+  creativeWritingDirector,
+  careerStrategistCoach
 };

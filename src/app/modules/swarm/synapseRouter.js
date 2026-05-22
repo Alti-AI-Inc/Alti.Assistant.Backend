@@ -295,7 +295,117 @@ export class SynapseRouter {
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    // NON-FINANCIAL AGENT ROUTING
+    // EXPERT DOMAIN INTELLIGENCE ROUTING — 12 PROFESSIONAL SPECIALIST AGENTS
+    // ═════════════════════════════════════════════════════════════════════════
+
+    // Startup / Entrepreneurship
+    if (['startup pitch', 'pitch deck', 'investor pitch', 'seed round', 'series a funding',
+      'yc application', 'y combinator', 'venture capital pitch', 'startup advice', 'angel investor',
+      'pitch feedback', 'startup funding', 'pre-seed', 'founder advice', 'term sheet'].some(k => q.includes(k))
+      && SWARM_REGISTRY.startup_founder_coach) {
+      return [SWARM_REGISTRY.startup_founder_coach];
+    }
+
+    // Product Management
+    if (['prd', 'product requirements document', 'user story', 'product roadmap', 'feature prioritization',
+      'okr framework', 'product manager', 'product strategy', 'rice framework', 'moscow prioritization',
+      'north star metric', 'product spec', 'sprint planning', 'agile product', 'product backlog'].some(k => q.includes(k))
+      && SWARM_REGISTRY.product_manager_advisor) {
+      return [SWARM_REGISTRY.product_manager_advisor];
+    }
+
+    // Marketing & Growth
+    if (['growth marketing', 'growth hacking', 'marketing strategy', 'customer acquisition cost',
+      'cac ltv', 'viral growth', 'go to market strategy', 'gtm strategy', 'marketing channels',
+      'performance marketing', 'paid ads strategy', 'growth metrics', 'conversion rate optimization',
+      'marketing funnel', 'pirate metrics', 'growth experiment'].some(k => q.includes(k))
+      && SWARM_REGISTRY.marketing_growth_strategist) {
+      return [SWARM_REGISTRY.marketing_growth_strategist];
+    }
+
+    // Negotiation
+    if (['how to negotiate', 'negotiation strategy', 'batna', 'negotiation tactics', 'negotiation script',
+      'negotiate price', 'tactical empathy', 'anchoring strategy', 'negotiation preparation',
+      'principled negotiation', 'counter offer strategy', 'negotiation tips'].some(k => q.includes(k))
+      && SWARM_REGISTRY.negotiation_strategist) {
+      return [SWARM_REGISTRY.negotiation_strategist];
+    }
+
+    // Business Planning
+    if (['business plan', 'executive summary business', 'business plan template', 'financial projections plan',
+      'market analysis business', 'competitive analysis plan', 'operations plan', 'business proposal',
+      'franchise plan', 'business plan for investors', 'swot analysis business'].some(k => q.includes(k))
+      && SWARM_REGISTRY.business_plan_architect) {
+      return [SWARM_REGISTRY.business_plan_architect];
+    }
+
+    // Clinical / Medical Research (strict disclaimer — NOT diagnosis)
+    if (['clinical research', 'medical study', 'drug mechanism', 'clinical trial result',
+      'randomized controlled trial', 'medical literature', 'drug interaction research',
+      'pharmacology', 'mechanism of action', 'side effects research', 'evidence based medicine',
+      'treatment research', 'medical evidence', 'pharmaceutical research', 'fda approval research'].some(k => q.includes(k))
+      && SWARM_REGISTRY.clinical_research_advisor) {
+      return [SWARM_REGISTRY.clinical_research_advisor];
+    }
+
+    // ESG / Sustainability
+    if (['esg rating', 'esg score', 'sustainability report', 'carbon footprint company', 'net zero commitment',
+      'climate risk investment', 'greenwashing', 'esg investing', 'green investing',
+      'scope 1 2 3 emissions', 'tcfd', 'sustainable investing', 'impact investing esg',
+      'esg fund', 'clean energy investing esg'].some(k => q.includes(k))
+      && SWARM_REGISTRY.environmental_esg_analyst) {
+      return [SWARM_REGISTRY.environmental_esg_analyst];
+    }
+
+    // Cybersecurity
+    if (['cve', 'vulnerability', 'cybersecurity threat', 'security breach analysis', 'ransomware analysis',
+      'mitre attack', 'security posture', 'threat intelligence', 'zero day vulnerability',
+      'security risk assessment', 'data breach analysis', 'cyber attack analysis', 'cvss score',
+      'attack vector', 'incident response plan', 'zero trust security'].some(k => q.includes(k))
+      && SWARM_REGISTRY.cybersecurity_threat_analyst) {
+      return [SWARM_REGISTRY.cybersecurity_threat_analyst];
+    }
+
+    // Data Privacy & Compliance
+    if (['gdpr', 'ccpa', 'hipaa compliance', 'soc2', 'data privacy', 'privacy compliance',
+      'data protection', 'privacy policy compliance', 'data breach notification', 'dpo',
+      'data subject rights', 'privacy law', 'privacy by design', 'data governance compliance',
+      'privacy impact assessment', 'iso 27001', 'pci dss'].some(k => q.includes(k))
+      && SWARM_REGISTRY.data_privacy_compliance) {
+      return [SWARM_REGISTRY.data_privacy_compliance];
+    }
+
+    // Science Tutoring (physics, chemistry, biology)
+    if (['physics problem', 'chemistry problem', 'biology question', 'science help',
+      'physics equation', 'chemistry equation', 'molecular biology explain', 'quantum mechanics explain',
+      'thermodynamics problem', 'organic chemistry', 'genetics problem', 'newton law',
+      'periodic table', 'cell biology', 'dna rna explain', 'science explain', 'stem problem'].some(k => q.includes(k))
+      && SWARM_REGISTRY.science_tutor_agent) {
+      return [SWARM_REGISTRY.science_tutor_agent];
+    }
+
+    // Creative Writing
+    if (['screenplay', 'script writing', 'story structure', 'creative writing help', 'novel writing',
+      'character development', 'plot outline', 'story feedback', 'dialogue writing',
+      'three act structure', 'short story help', 'write a story', 'fiction writing',
+      'narrative structure', 'scene writing', 'character arc', 'story idea', 'writing critique',
+      'writing coach', 'book outline', 'story plot'].some(k => q.includes(k))
+      && SWARM_REGISTRY.creative_writing_director) {
+      return [SWARM_REGISTRY.creative_writing_director];
+    }
+
+    // Career Strategy
+    if (['career advice', 'resume help', 'job search strategy', 'salary negotiation career', 'linkedin profile',
+      'interview preparation', 'career pivot', 'job interview tips', 'career change advice',
+      'promotion strategy', 'resume review', 'cover letter', 'job offer negotiation',
+      'career development', 'career coach', 'linkedin optimization', 'personal brand career',
+      'how to get promoted'].some(k => q.includes(k))
+      && SWARM_REGISTRY.career_strategist_coach) {
+      return [SWARM_REGISTRY.career_strategist_coach];
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // LEGACY NON-FINANCIAL AGENT ROUTING
     // ═════════════════════════════════════════════════════════════════════════
     if (isTranslation)      return [SWARM_REGISTRY.translator];
     if (isSummary)          return [SWARM_REGISTRY.summarizer];
