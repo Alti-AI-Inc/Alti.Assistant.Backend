@@ -128,6 +128,68 @@ const mset = async (keyValuePairs, ttlSecs) => {
   }
 };
 
+const lpush = async (key, value) => {
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      return await redisClient.lPush(key, value);
+    } catch (err) {
+      logger.warn(`Redis lpush failed, falling back to memory: ${err.message}`);
+    }
+  }
+  const entry = memoryStore.get(key) || { value: [] };
+  const arr = Array.isArray(entry.value) ? entry.value : [];
+  arr.unshift(value);
+  memoryStore.set(key, { value: arr, expiry: entry.expiry });
+  return arr.length;
+};
+
+const ltrim = async (key, start, stop) => {
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      return await redisClient.lTrim(key, start, stop);
+    } catch (err) {
+      logger.warn(`Redis ltrim failed, falling back to memory: ${err.message}`);
+    }
+  }
+  const entry = memoryStore.get(key);
+  if (!entry || !Array.isArray(entry.value)) return;
+  const arr = entry.value.slice(start, stop === -1 ? undefined : stop + 1);
+  memoryStore.set(key, { value: arr, expiry: entry.expiry });
+};
+
+const lrange = async (key, start, stop) => {
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      return await redisClient.lRange(key, start, stop);
+    } catch (err) {
+      logger.warn(`Redis lrange failed, falling back to memory: ${err.message}`);
+    }
+  }
+  const entry = memoryStore.get(key);
+  if (!entry) return [];
+  if (entry.expiry && entry.expiry < Date.now()) {
+    memoryStore.delete(key);
+    return [];
+  }
+  if (!Array.isArray(entry.value)) return [];
+  return entry.value.slice(start, stop === -1 ? undefined : stop + 1);
+};
+
+const expire = async (key, seconds) => {
+  if (redisEnabled && redisClient && redisClient.isOpen) {
+    try {
+      return await redisClient.expire(key, seconds);
+    } catch (err) {
+      logger.warn(`Redis expire failed, falling back to memory: ${err.message}`);
+    }
+  }
+  const entry = memoryStore.get(key);
+  if (entry) {
+    entry.expiry = Date.now() + seconds * 1000;
+    memoryStore.set(key, entry);
+  }
+};
+
 const setAccessToken = async (userId, token) => {
   const key = `access-token:${userId}`;
   await set(key, token, { EX: Number(config.redis?.expires_in || 3600) });
@@ -166,6 +228,10 @@ export const RedisClient = {
   del,
   mget,
   mset,
+  lpush,
+  ltrim,
+  lrange,
+  expire,
   disconnect,
   setAccessToken,
   getAccessToken,

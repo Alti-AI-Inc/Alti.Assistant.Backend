@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { logger } from '../../../../shared/logger.js';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 /**
  * Generate a text file from contract content
@@ -36,26 +37,96 @@ export const generateTextFile = async (
 
 /**
  * Generate a DOCX file from contract content
- * Note: For now, we'll use text format. Full DOCX support requires docx library
  */
 export const generateDocxFile = async (
   contractContent,
   fileName = 'contract.docx'
 ) => {
   try {
-    // For now, create a simple text file
-    // TODO: Integrate with 'docx' library for proper DOCX generation
-    const txtFileName = fileName.replace('.docx', '.txt');
-    const result = await generateTextFile(contractContent, txtFileName);
+    const outputDir = path.join(process.cwd(), 'output', 'contracts');
 
-    logger.warn(
-      'DOCX generation not fully implemented. Generated TXT file instead.'
-    );
+    // Ensure output directory exists
+    await fs.mkdir(outputDir, { recursive: true });
+
+    const filePath = path.join(outputDir, fileName);
+
+    const children = [];
+    const lines = contractContent.split('\n');
+    for (const line of lines) {
+      if (line.trim().startsWith('##')) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: line.replace(/#/g, '').trim(),
+                bold: true,
+                size: 24, // 12pt
+              }),
+            ],
+            spacing: { before: 200, after: 100 },
+          })
+        );
+      } else if (line.trim().startsWith('#')) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: line.replace(/#/g, '').trim(),
+                bold: true,
+                size: 28, // 14pt
+              }),
+            ],
+            spacing: { before: 300, after: 150 },
+          })
+        );
+      } else if (line.trim() === '') {
+        children.push(
+          new Paragraph({
+            children: [new TextRun('')],
+            spacing: { after: 100 },
+          })
+        );
+      } else {
+        let text = line;
+        let bold = false;
+        if (text.startsWith('**') && text.endsWith('**')) {
+          text = text.replace(/\*\*/g, '');
+          bold = true;
+        }
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: text,
+                bold: bold,
+                size: 20, // 10pt
+              }),
+            ],
+            spacing: { after: 100 },
+          })
+        );
+      }
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children,
+        },
+      ],
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    await fs.writeFile(filePath, buffer);
+
+    logger.info(`DOCX file generated successfully: ${filePath}`);
 
     return {
-      ...result,
-      fileType: 'txt',
-      message: 'DOCX format not yet supported. Generated as TXT.',
+      success: true,
+      filePath,
+      fileName,
+      fileType: 'docx',
     };
   } catch (error) {
     logger.error('Error generating DOCX file:', error);

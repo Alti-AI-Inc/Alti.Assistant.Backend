@@ -106,6 +106,25 @@ async function publish(channel, payload) {
   } catch { /* Redis pub/sub is optional */ }
 }
 
+async function storeBusinessEventInRedis(businessId, event) {
+  if (!businessId) return;
+  const key = `explorium:events:business:${businessId}`;
+  try {
+    const payload = {
+      event_type: event.event_type,
+      event_data: event.event_data || null,
+      occurred_at: event.occurred_at || new Date().toISOString(),
+      prospect_id: event.prospect_id || null,
+      received_at: new Date().toISOString(),
+    };
+    await RedisClient.lpush(key, JSON.stringify(payload));
+    await RedisClient.ltrim(key, 0, 49);
+    await RedisClient.expire(key, 2592000); // 30 days
+  } catch (err) {
+    logger.warn(`[Explorium Webhook] Failed to store event in Redis: ${err.message}`);
+  }
+}
+
 async function handleFundingEvent(event) {
   const { business_id, event_type, event_data, occurred_at } = event;
   logger.info(`[Explorium Webhook] 💰 FUNDING: ${event_type} → business ${business_id}`);
@@ -117,6 +136,8 @@ async function handleFundingEvent(event) {
     invalidateCache('financial_metrics',        { businessId: business_id }),
     invalidateCache('competitive_landscape',    { businessId: business_id }),
   ]);
+
+  await storeBusinessEventInRedis(business_id, event);
 
   await publish('explorium:events:funding', {
     business_id, event_type, event_data, occurred_at, category: 'funding',
@@ -132,6 +153,8 @@ async function handleGrowthEvent(event) {
     invalidateCache('strategic_insights',   { businessId: business_id }),
   ]);
 
+  await storeBusinessEventInRedis(business_id, event);
+
   await publish('explorium:events:growth', { business_id, event_type, occurred_at, category: 'growth' });
 }
 
@@ -143,6 +166,8 @@ async function handleRiskEvent(event) {
     invalidateCache('business_challenges',  { businessId: business_id }),
     invalidateCache('competitive_landscape', { businessId: business_id }),
   ]);
+
+  await storeBusinessEventInRedis(business_id, event);
 
   await publish('explorium:events:risk', {
     business_id, event_type, event_data, occurred_at, category: 'risk',
@@ -157,6 +182,8 @@ async function handleHiringEvent(event) {
     invalidateCache('workforce_trends', { businessId: business_id }),
   ]);
 
+  await storeBusinessEventInRedis(business_id, event);
+
   await publish('explorium:events:hiring', { business_id, event_type, occurred_at, category: 'hiring' });
 }
 
@@ -168,6 +195,8 @@ async function handleProspectEvent(event) {
     prospect_id && invalidateCache('professional_profile', { prospectId: prospect_id }),
     prospect_id && invalidateCache('contacts_information',  { prospectId: prospect_id }),
   ].filter(Boolean));
+
+  await storeBusinessEventInRedis(business_id, event);
 
   await publish('explorium:events:prospects', {
     prospect_id, business_id, event_type, event_data, occurred_at, category: 'prospect_change',

@@ -23,6 +23,7 @@
  */
 
 import { logger } from '../../../shared/logger.js';
+import { RedisClient } from '../../../shared/redis.js';
 import {
   matchBusinessesService,
   matchBusinessService,
@@ -42,6 +43,7 @@ import {
   getIntentSignalsService,
   businessAutocompleteService,
   getDecisionMakersService,
+  addBusinessEnrollmentsService,
 } from '../../modules/explorium/explorium.service.js';
 import {
   buildICP,
@@ -403,6 +405,48 @@ async function executeWebFallback(searchTerm) {
   }
 }
 
+/**
+ * Asynchronously checks if a business is enrolled for webhooks in Redis.
+ * If not, triggers addBusinessEnrollmentsService in the background and writes tracking flag.
+ */
+async function autoEnrollBusinessForWebhooks(businessId) {
+  if (!businessId) return;
+  const trackingKey = `explorium:enrolled:${businessId}`;
+  try {
+    const isEnrolled = await RedisClient.get(trackingKey);
+    if (isEnrolled) {
+      return; // Already registered
+    }
+
+    logger.info(`[ExploriumSmartRouter] Business ${businessId} is not enrolled for webhooks. Triggering auto-enrollment.`);
+
+    // Comprehensive list of event types to monitor
+    const eventTypes = [
+      'new_funding_round', 'ipo_announcement', 'new_product', 'new_partnership',
+      'lawsuits_and_legal_issues', 'outages_and_security_breaches',
+      'cost_cutting', 'closing_office', 'increase_in_all_departments', 'decrease_in_all_departments'
+    ];
+
+    // Fallback webhook endpoint
+    const webhookUrl = process.env.EXPLORIUM_WEBHOOK_URL || 'http://localhost:5000/api/v1/explorium/webhook/inbound';
+    const partnerId = 'alti_assistant';
+
+    // Execute background API enrollment call without holding up the request thread
+    addBusinessEnrollmentsService([businessId], eventTypes, webhookUrl, partnerId)
+      .then(async (res) => {
+        logger.info(`[ExploriumSmartRouter] Successfully enrolled business ${businessId} in webhooks: ${JSON.stringify(res)}`);
+        // Mark as registered in Redis with a 30-day expiration (2592000 seconds)
+        await RedisClient.set(trackingKey, 'true', { EX: 2592000 });
+      })
+      .catch((err) => {
+        logger.error(`[ExploriumSmartRouter] Failed to enroll business ${businessId} in webhooks: ${err.message}`);
+      });
+
+  } catch (err) {
+    logger.warn(`[ExploriumSmartRouter] Webhook enrollment check failed for ${businessId}: ${err.message}`);
+  }
+}
+
 async function fetchCompanyResearchData(query, conversationHistory = []) {
   let { domain, email, companyName } = resolveEntity(query, conversationHistory);
 
@@ -496,7 +540,54 @@ async function fetchCompanyResearchData(query, conversationHistory = []) {
       };
     }
 
-    return { domain, intel, contacts, web_fallback: null };
+    const businessId = intel?.business_id;
+    if (businessId) {
+      // Trigger background auto-enrollment (non-blocking)
+      autoEnrollBusinessForWebhooks(businessId);
+    }
+
+    // Retrieve pending webhook delta events from Redis
+    let realTimeAlerts = null;
+    if (businessId) {
+      try {
+        const key = `explorium:events:business:${businessId}`;
+        const events = await RedisClient.lrange(key, 0, -1);
+        if (events && events.length > 0) {
+          const formattedAlerts = [];
+          for (const evtStr of events) {
+            try {
+              const evt = JSON.parse(evtStr);
+              const dateStr = evt.occurred_at ? evt.occurred_at.split('T')[0] : 'Unknown Date';
+              let detail = '';
+              if (evt.event_data) {
+                detail = typeof evt.event_data === 'object' ? JSON.stringify(evt.event_data) : String(evt.event_data);
+              }
+              let emoji = '⚠️';
+              if (evt.event_type?.includes('funding')) emoji = '💰';
+              else if (evt.event_type?.includes('growth') || evt.event_type?.includes('product') || evt.event_type?.includes('partnership')) emoji = '🚀';
+              else if (evt.event_type?.includes('hiring') || evt.event_type?.includes('employee')) emoji = '👥';
+
+              formattedAlerts.push(`${emoji} Alert: ${evt.event_type} occurred on ${dateStr}.${detail ? ' Detail: ' + detail : ''}`);
+            } catch (e) {
+              // Ignore parse errors
+            }
+          }
+          if (formattedAlerts.length > 0) {
+            realTimeAlerts = `[EXPLORIUM REAL-TIME DELTA ALERTS]\n` + formattedAlerts.join('\n');
+          }
+        }
+      } catch (err) {
+        logger.warn(`[ExploriumSmartRouter] Failed to retrieve real-time alerts for business ${businessId}: ${err.message}`);
+      }
+    }
+
+    return {
+      real_time_alerts: realTimeAlerts,
+      domain,
+      intel,
+      contacts,
+      web_fallback: null
+    };
   } catch (err) {
     logger.error('[ExploriumSmartRouter] Company research error:', err.message);
 
