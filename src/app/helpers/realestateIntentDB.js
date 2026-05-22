@@ -15,7 +15,9 @@ const STREET_ADDRESS_REGEX = /\b\d+\s+[a-z0-9\.\s]+?\s+(street|st|avenue|ave|lan
 const INTENT_KEYWORDS = {
   property_avm: [
     'valuation', 'avm', 'home value', 'house worth', 'estimated value', 'appraisal', 
-    'what is it worth', 'price estimate', 'property value'
+    'what is it worth', 'price estimate', 'property value', 'dscr', 'pmi', 'loan-to-value', 'ltv',
+    'sell', 'commission', 'net sheet', 'net proceeds', 'netsheet',
+    'buy box', 'buybox', 'prospectus', 'matching engine', 'investor criteria'
   ],
   property_comps: [
     'comps', 'comparable sales', 'sold homes near', 'recent sales', 'neighborhood sales', 
@@ -31,7 +33,9 @@ const INTENT_KEYWORDS = {
   ],
   property_detail: [
     'property details', 'lot size', 'year built', 'square footage', 'sqft', 'bedrooms', 
-    'bathrooms', 'public records', 'tax assessment', 'zoning'
+    'bathrooms', 'public records', 'tax assessment', 'zoning', 'insurance', 'hazard risk', 
+    'replacement cost', 'premium', 'hazard',
+    'flood', 'fema', 'zone a', 'zone ae', 'flood zone', 'flood risk'
   ]
 };
 
@@ -65,6 +69,32 @@ export const parseAddressEntities = (query) => {
   const addressMatch = q.match(STREET_ADDRESS_REGEX);
   const streetAddress = addressMatch ? addressMatch[0].trim() : null;
 
+  // Extract all recognized locations dynamically
+  const locations = [];
+  const recognizedCities = [
+    { key: 'atlanta', name: 'Atlanta', state: 'GA' },
+    { key: 'atl', name: 'Atlanta', state: 'GA' },
+    { key: 'austin', name: 'Austin', state: 'TX' },
+    { key: 'washington', name: 'Washington', state: 'DC' },
+    { key: 'los angeles', name: 'Los Angeles', state: 'CA' },
+    { key: 'la', name: 'Los Angeles', state: 'CA' },
+    { key: 'san francisco', name: 'San Francisco', state: 'CA' },
+    { key: 'sf', name: 'San Francisco', state: 'CA' },
+    { key: 'new york', name: 'New York', state: 'NY' },
+    { key: 'nyc', name: 'New York', state: 'NY' },
+    { key: 'miami', name: 'Miami', state: 'FL' },
+    { key: 'mia', name: 'Miami', state: 'FL' }
+  ];
+
+  recognizedCities.forEach(c => {
+    const regex = new RegExp(`\\b${c.key}\\b`, 'i');
+    if (regex.test(q)) {
+      if (!locations.some(loc => loc.city === c.name)) {
+        locations.push({ city: c.name, state: c.state });
+      }
+    }
+  });
+
   // Attempt to extract city: e.g., "in Atlanta, GA" or "in Atlanta"
   let city = null;
   const inCityMatch = q.match(/in\s+([a-z\s]+?)(?:,\s*|\s+)?(?:al|ak|az|ar|ca|co|ct|de|dc|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|\b)/i);
@@ -95,6 +125,14 @@ export const parseAddressEntities = (query) => {
     else if (q.includes(' sf ') || q.endsWith(' sf') || q.startsWith('sf ')) city = 'San Francisco';
     else if (q.includes(' atl') || q.startsWith('atl')) city = 'Atlanta';
     else if (q.includes(' mia') || q.startsWith('mia')) city = 'Miami';
+  }
+
+  // Ensure primary city matches the first element in locations if available
+  if (locations.length > 0) {
+    city = locations[0].city;
+  } else if (city) {
+    const mapped = recognizedCities.find(c => c.name.toLowerCase() === city.toLowerCase());
+    locations.push({ city, state: mapped ? mapped.state : state });
   }
 
   // ─── Price Limit Parsing
@@ -171,6 +209,19 @@ export const parseAddressEntities = (query) => {
     customRent = parseFloat(rentMatch[1].replace(/,/g, ''));
   }
 
+  // ─── Buy-Box Constraints Extraction
+  let minCapRate = null;
+  const capRateMatch = q.match(/(?:min\s+cap\s+rate|minimum\s+cap\s+rate|cap\s+rate\s+of|target\s+cap\s+rate|min\s+cap)\s*(\d+(?:\.\d+)?)\s*%/i);
+  if (capRateMatch) {
+    minCapRate = parseFloat(capRateMatch[1]) / 100;
+  }
+
+  let minNetCashFlow = null;
+  const cashFlowMatch = q.match(/(?:min\s+cash\s+flow|minimum\s+cash\s+flow|net\s+cash\s+flow\s+of|cash\s+flow\s+of|min\s+cashflow|min\s+flow)\s*\$?(-?\d+(?:\.\d+)?)(?:\/mo|mo|monthly)?/i);
+  if (cashFlowMatch) {
+    minNetCashFlow = parseFloat(cashFlowMatch[1].replace(/,/g, ''));
+  }
+
   // Fallbacks for specific standard mock entities
   let baseEntities = {};
   if (q.includes('pennsylvania ave') || q.includes('white house')) {
@@ -206,8 +257,13 @@ export const parseAddressEntities = (query) => {
     };
   }
 
+  // ─── Flood/FEMA Underwriting Flag
+  const isMiamiQuery = (baseEntities.city || city || '').toLowerCase() === 'miami';
+  const femaFloodActive = isMiamiQuery || ['flood', 'fema', 'zone a', 'zone ae'].some(k => q.includes(k));
+
   return {
     ...baseEntities,
+    locations,
     minPrice,
     maxPrice,
     minBeds,
@@ -216,7 +272,10 @@ export const parseAddressEntities = (query) => {
     downPaymentPct,
     interestRate,
     opexRatio,
-    customRent
+    customRent,
+    minCapRate,
+    minNetCashFlow,
+    femaFloodActive
   };
 };
 
@@ -233,7 +292,8 @@ export const detectRealEstateIntent = (query) => {
   const isRealEstateRelated = [
     'real estate', 'property', 'house', 'home value', 'owner of', 'mls listing', 
     'skip trace', 'comps', 'comparable sales', 'year built', 'tax assessed',
-    'bedrooms', 'bathrooms', '123 main st', '456 oak ln', '1600 pennsylvania'
+    'bedrooms', 'bathrooms', '123 main st', '456 oak ln', '1600 pennsylvania',
+    'listings', 'active listings', 'for sale'
   ].some(k => q.includes(k));
 
   if (!isRealEstateRelated) return null;

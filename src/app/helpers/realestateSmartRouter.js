@@ -69,6 +69,83 @@ User Query: ${originalPrompt}`;
 };
 
 /**
+ * Helper to compute Hazard Insurance and structural Replacement Cost metrics.
+ */
+const computeInsuranceHazard = (sqftVal, cityVal, femaFloodActive = false) => {
+  const replacementCost = (sqftVal || 2000) * 175;
+  const cityClean = (cityVal || 'Atlanta').toLowerCase();
+  
+  let hazardTier = 'Moderate Risk 🟡';
+  let insuranceRate = 0.0065;
+  
+  let wildfireRisk = 'Low';
+  let windRisk = 'Low';
+  let seismicRisk = 'Low';
+  
+  if (['miami'].some(c => cityClean.includes(c))) {
+    hazardTier = 'High Risk 🔴';
+    insuranceRate = 0.0120;
+    wildfireRisk = 'Low';
+    windRisk = 'High';
+    seismicRisk = 'Low';
+  } else if (['los angeles', 'san francisco'].some(c => cityClean.includes(c))) {
+    hazardTier = 'High Risk 🔴';
+    insuranceRate = 0.0120;
+    wildfireRisk = 'High';
+    windRisk = 'Low';
+    seismicRisk = 'High';
+  } else if (['atlanta', 'washington'].some(c => cityClean.includes(c))) {
+    hazardTier = 'Low Risk 🟢';
+    insuranceRate = 0.0035;
+    wildfireRisk = 'Low';
+    windRisk = 'Low';
+    seismicRisk = 'Low';
+  } else if (['austin'].some(c => cityClean.includes(c))) {
+    hazardTier = 'Moderate Risk 🟡';
+    insuranceRate = 0.0065;
+    wildfireRisk = 'Medium';
+    windRisk = 'Medium';
+    seismicRisk = 'Low';
+  } else if (['new york'].some(c => cityClean.includes(c))) {
+    hazardTier = 'Moderate Risk 🟡';
+    insuranceRate = 0.0065;
+    wildfireRisk = 'Low';
+    windRisk = 'Medium';
+    seismicRisk = 'Low';
+  } else {
+    hazardTier = 'Moderate Risk 🟡';
+    insuranceRate = 0.0065;
+    wildfireRisk = 'Low';
+    windRisk = 'Low';
+    seismicRisk = 'Low';
+  }
+  
+  const annualPremium = replacementCost * insuranceRate;
+  const monthlyPremium = annualPremium / 12;
+  
+  // FEMA Flood Surcharge calculation
+  const hasFemaSurcharge = femaFloodActive || cityClean.includes('miami');
+  const femaFloodZone = hasFemaSurcharge ? 'Zone AE (High Risk)' : 'Zone X (Low Risk)';
+  const annualFEMAPremium = hasFemaSurcharge ? replacementCost * 0.0105 : 0;
+  const monthlyFEMAPremium = annualFEMAPremium / 12;
+  
+  return { 
+    replacementCost, 
+    hazardTier, 
+    insuranceRate, 
+    annualPremium, 
+    monthlyPremium,
+    wildfireRisk,
+    windRisk,
+    seismicRisk,
+    hasFemaSurcharge,
+    femaFloodZone,
+    annualFEMAPremium,
+    monthlyFEMAPremium
+  };
+};
+
+/**
  * Main routing logic to fetch appropriate datasets and construct the enriched context prompt.
  */
 export const routeAndEnhancePrompt = async (prompt) => {
@@ -103,19 +180,35 @@ export const routeAndEnhancePrompt = async (prompt) => {
         block += `| 📈 **Est. Monthly Rent** | **${formatCurrency(avm.rentalValuation)}/mo** | Rent yields: **${((avm.rentalValuation * 12 / avm.valuation) * 100).toFixed(2)}%** |\n`;
         block += `| 🎯 **Confidence Score** | **${avm.confidenceScore || 0}%** | AVM Precision: High |\n\n`;
 
+        // Evaluate Seller Net Sheet Intent
+        const hasSellerIntent = ['sell', 'seller', 'commission', 'net sheet', 'proceeds', 'netsheet', 'net proceeds'].some(k => prompt.toLowerCase().includes(k));
+        if (hasSellerIntent) {
+          const grossSalePrice = avm.valuation;
+          const brokerCommission = grossSalePrice * 0.05;
+          const titleEscrow = grossSalePrice * 0.01;
+          const stateTax = grossSalePrice * 0.005;
+          const mortgagePayoff = grossSalePrice * 0.60;
+          const netProceeds = grossSalePrice - (brokerCommission + titleEscrow + stateTax + mortgagePayoff);
+          
+          block += `### 💵 Seller Net Sheet Projections\n`;
+          block += `*Itemized transaction ledger simulating estimated net walkthrough proceeds at exit.*\n\n`;
+          block += `| Transaction Ledger Item | Percentage | Estimated Cost / Credit |\n`;
+          block += `|-------------------------|------------|-------------------------|\n`;
+          block += `| 💰 **Gross Sale Price (AVM)** | **100.0%** | **${formatCurrency(grossSalePrice)}** |\n`;
+          block += `| 💼 **Broker Commission** | **5.0%** | **${formatCurrency(Math.round(brokerCommission))}** |\n`;
+          block += `| 🏦 **Title & Escrow Fees** | **1.0%** | **${formatCurrency(Math.round(titleEscrow))}** |\n`;
+          block += `| 🏛️ **State Transfer Taxes** | **0.5%** | **${formatCurrency(Math.round(stateTax))}** |\n`;
+          block += `| 📉 **Simulated Mortgage Payoff** | **60.0%** | **${formatCurrency(Math.round(mortgagePayoff))}** |\n`;
+          block += `| 💎 **Estimated Net Proceeds** | **33.5%** | **${formatCurrency(Math.round(netProceeds))}** |\n\n`;
+        }
+
         // Scenario underwriting overrides
         const downPaymentPct = entities.downPaymentPct !== null ? entities.downPaymentPct : 0.20;
         const interestRateYearly = entities.interestRate !== null ? entities.interestRate : 0.065;
         const opexRatio = entities.opexRatio !== null ? entities.opexRatio : 0.45;
         const rentRateVal = entities.customRent || avm.rentalValuation || 0;
 
-        // Financial investment formulas
-        const annualGrossRent = rentRateVal * 12;
-        const estOperatingExpenses = annualGrossRent * opexRatio;
-        const netOperatingIncome = annualGrossRent - estOperatingExpenses;
-        const capRate = (netOperatingIncome / avm.valuation) * 100;
-        const grossRentMultiplier = avm.valuation / annualGrossRent;
-
+        // Base Financial Parameters
         const purchasePrice = avm.valuation;
         const downPayment = purchasePrice * downPaymentPct;
         const loanAmount = purchasePrice * (1 - downPaymentPct);
@@ -127,23 +220,137 @@ export const routeAndEnhancePrompt = async (prompt) => {
               ? loanAmount * (interestRateMonthly * Math.pow(1 + interestRateMonthly, numberOfPayments)) / (Math.pow(1 + interestRateMonthly, numberOfPayments) - 1)
               : loanAmount / numberOfPayments)
           : 0;
-        
-        const monthlyOperatingExpenses = estOperatingExpenses / 12;
-        const totalMonthlyOutflow = monthlyMortgagePI + monthlyOperatingExpenses;
-        const netMonthlyCashFlow = rentRateVal - totalMonthlyOutflow;
-        const annualNetCashFlow = netMonthlyCashFlow * 12;
-        const cashOnCashReturn = downPayment > 0 ? (annualNetCashFlow / downPayment) * 100 : 0;
+
+        // Private Mortgage Insurance (PMI) Trigger
+        const pmiRate = 0.0075; // 0.75% per annum
+        const pmiMonthly = downPaymentPct < 0.20 ? (loanAmount * pmiRate) / 12 : 0;
+
+        // Upgraded FEMA/Hazard Insurance Calculation
+        const ins = computeInsuranceHazard(detail.sqft, detail.city, entities.femaFloodActive);
+
+        // 1. Dynamic Sensitivity Underwriting Helper
+        const computeUnderwritingScenario = (rentVal, opexRate) => {
+          const annualRent = rentVal * 12;
+          const annualOpEx = annualRent * opexRate;
+          const noi = annualRent - annualOpEx;
+          const cap = (noi / purchasePrice) * 100;
+          const monthlyOp = annualOpEx / 12;
+          // Upgraded v5 Outflows including FEMA premium:
+          const monthlyOutflow = monthlyMortgagePI + monthlyOp + pmiMonthly + ins.monthlyFEMAPremium;
+          const netMonthly = rentVal - monthlyOutflow;
+          const annualNet = netMonthly * 12;
+          const coc = downPayment > 0 ? (annualNet / downPayment) * 100 : 0;
+          return { annualRent, noi, cap, monthlyOp, netMonthly, coc };
+        };
+
+        const downsideScenario = computeUnderwritingScenario(rentRateVal * 0.9, Math.min(1.0, opexRatio + 0.05));
+        const baseScenario = computeUnderwritingScenario(rentRateVal, opexRatio);
+        const upsideScenario = computeUnderwritingScenario(rentRateVal * 1.1, Math.max(0.0, opexRatio - 0.05));
+
+        block += `### 📉 Investment Sensitivity Stress-Testing\n`;
+        block += `| Economic Scenario | Est. Monthly Rent | OpEx Ratio | Net Operating Income | Cap Rate | Net Monthly Cash Flow | Cash-on-Cash Return |\n`;
+        block += `|-------------------|-------------------|------------|----------------------|----------|-----------------------|---------------------|\n`;
+        block += `| 🔴 **Downside (Stress)** | **${formatCurrency(Math.round(rentRateVal * 0.9))}/mo** | **${(Math.min(1.0, opexRatio + 0.05) * 100).toFixed(0)}%** | **${formatCurrency(Math.round(downsideScenario.noi))}** | **${downsideScenario.cap.toFixed(2)}%** | **${formatCurrency(Math.round(downsideScenario.netMonthly))}/mo** | **${downsideScenario.coc.toFixed(2)}%** |\n`;
+        block += `| 🟡 **Base Case** | **${formatCurrency(Math.round(rentRateVal))}/mo** | **${(opexRatio * 100).toFixed(0)}%** | **${formatCurrency(Math.round(baseScenario.noi))}** | **${baseScenario.cap.toFixed(2)}%** | **${formatCurrency(Math.round(baseScenario.netMonthly))}/mo** | **${baseScenario.coc.toFixed(2)}%** |\n`;
+        block += `| 🟢 **Upside (Growth)** | **${formatCurrency(Math.round(rentRateVal * 1.1))}/mo** | **${(Math.max(0.0, opexRatio - 0.05) * 100).toFixed(0)}%** | **${formatCurrency(Math.round(upsideScenario.noi))}** | **${upsideScenario.cap.toFixed(2)}%** | **${formatCurrency(Math.round(upsideScenario.netMonthly))}/mo** | **${upsideScenario.coc.toFixed(2)}%** |\n\n`;
 
         // Custom deep underwriting calculations:
-        const breakEvenRent = monthlyMortgagePI / (1 - opexRatio);
-        const totalLifetimeMortgageCost = monthlyMortgagePI * 360;
+        const breakEvenRent = (monthlyMortgagePI + pmiMonthly + ins.monthlyFEMAPremium) / (1 - opexRatio);
+        const totalLifetimeMortgageCost = (monthlyMortgagePI + pmiMonthly) * 360;
         const totalLifetimeInterestCost = Math.max(0, totalLifetimeMortgageCost - loanAmount);
+        const annualDebtService = monthlyMortgagePI * 12;
+        const dscr = annualDebtService > 0 ? baseScenario.noi / annualDebtService : 99;
 
         block += `### 🏢 Institutional Investment Metrics\n`;
-        block += `- **Net Operating Income (NOI)**: **${formatCurrency(Math.round(netOperatingIncome))}** /year (assuming **${(opexRatio * 100).toFixed(0)}%** operating expense ratio)\n`;
-        block += `- **Capitalization Rate (Cap Rate)**: **${capRate.toFixed(2)}%** (implied capitalization yield based on AVM)\n`;
-        block += `- **Gross Rent Multiplier (GRM)**: **${grossRentMultiplier.toFixed(2)}x**\n`;
-        block += `- **Break-Even Monthly Rent**: **${formatCurrency(Math.round(breakEvenRent))}/mo** (minimum rent required to sustain debt + opex)\n\n`;
+        block += `- **Net Operating Income (NOI)**: **${formatCurrency(Math.round(baseScenario.noi))}** /year (assuming **${(opexRatio * 100).toFixed(0)}%** operating expense ratio)\n`;
+        block += `- **Capitalization Rate (Cap Rate)**: **${baseScenario.cap.toFixed(2)}%** (implied capitalization yield based on AVM)\n`;
+        block += `- **Gross Rent Multiplier (GRM)**: **${(purchasePrice / (rentRateVal * 12)).toFixed(2)}x**\n`;
+        block += `- **Break-Even Monthly Rent**: **${formatCurrency(Math.round(breakEvenRent))}/mo** (minimum rent required to sustain debt + opex + PMI)\n\n`;
+
+        block += `### 🏛️ Cumulative Mortgage Amortization\n`;
+        block += `- **Total 30-Year Debt Service Payments**: **${formatCurrency(Math.round(totalLifetimeMortgageCost))}** (total P&I paid over 30 years)\n`;
+        block += `- **Total Interest Cost Paid to Lender**: **${formatCurrency(Math.round(totalLifetimeInterestCost))}** (total financing cost of leverage)\n\n`;
+
+        // Mortgage Underwriting & DSCR Risk Rating
+        let dscrRating = '';
+        if (dscr < 1.0) {
+          dscrRating = `🔴 High Default Risk (Negative Cash Carry)`;
+        } else if (dscr < 1.25) {
+          dscrRating = `🟡 Tight Lending Range (Cash-Flow Positive but Below Standard Institutional Guidelines)`;
+        } else {
+          dscrRating = `🟢 Qualified Investment Yield (Meets Institutional Prime DSCR Lending Guidelines)`;
+        }
+
+        block += `### 🏛️ Mortgage Underwriting & DSCR Risk Rating\n`;
+        block += `- **Debt Service Coverage Ratio (DSCR)**: **${dscr.toFixed(2)}x** (Annual NOI: **${formatCurrency(Math.round(baseScenario.noi))}** / Annual P&I Debt Service: **${formatCurrency(Math.round(annualDebtService))}**)\n`;
+        block += `- **Underwriting Assessment**: **${dscrRating}**\n`;
+        if (dscr >= 1.25) {
+          block += `- **Lending Advisory**: **Highly Leverageable Asset** 🟢. Cash flow is strong and debt service is fully covered. Easily qualifies for institutional non-QM or DSCR commercial loans.\n\n`;
+        } else if (dscr >= 1.0) {
+          block += `- **Lending Advisory**: **Restricted Leverage Warning** 🟡. The property is cash-flow positive but has a tight coverage margin. May require higher down payments or interest rate premiums to satisfy standard institutional guidelines.\n\n`;
+        } else {
+          block += `- **Lending Advisory**: **High Leverage Default Risk** 🔴. The net operating income is insufficient to cover standard mortgage payments. Financing will require significant down payments or substantial equity recapitalization.\n\n`;
+        }
+
+        // Conforming Loan Limits Audit
+        const limitStandard = 766550;
+        const limitHighCost = 1149825;
+        const cityClean = (detail.city || 'Atlanta').toLowerCase();
+        const isHighCostCity = ['los angeles', 'san francisco', 'new york'].some(c => cityClean.includes(c));
+        const applicableConformingLimit = isHighCostCity ? limitHighCost : limitStandard;
+        const conformingStatus = loanAmount <= applicableConformingLimit ? '🟢 CONFORMING' : '🔴 JUMBO';
+        
+        block += `### 🏛️ Conforming Loan Limits Audit\n`;
+        block += `- **Standard Single-Unit Conforming Limit**: **${formatCurrency(limitStandard)}**\n`;
+        block += `- **High-Cost Area Conforming Limit**: **${formatCurrency(limitHighCost)}**\n`;
+        block += `- **Subject Loan Amount**: **${formatCurrency(Math.round(loanAmount))}**\n`;
+        block += `- **Applicable Area Limit**: **${formatCurrency(applicableConformingLimit)}** (${isHighCostCity ? 'High-Cost Market' : 'Standard Market'})\n`;
+        block += `- **Conforming Loan Status**: **${conformingStatus}**\n\n`;
+
+        // Interest Rate Sensitivity Analysis
+        block += `### 📈 Interest Rate Sensitivity Analysis\n`;
+        block += `*Evaluating financing options from **6.0%** to **8.5%** in **0.5%** steps (assuming **${(downPaymentPct * 100).toFixed(1)}%** down payment).*\n\n`;
+        block += `| Interest Rate | Monthly P&I | Monthly PMI | Total Monthly Outflow | DSCR Rating | Cash-on-Cash Return |\n`;
+        block += `|---------------|-------------|-------------|-----------------------|-------------|---------------------|\n`;
+        
+        const rates = [0.060, 0.065, 0.070, 0.075, 0.080, 0.085];
+        rates.forEach(r => {
+          const rMonthly = r / 12;
+          const rPI = loanAmount > 0 
+            ? loanAmount * (rMonthly * Math.pow(1 + rMonthly, 360)) / (Math.pow(1 + rMonthly, 360) - 1)
+            : 0;
+          const rPMI = downPaymentPct < 0.20 ? (loanAmount * 0.0075) / 12 : 0;
+          const rTotalOutflow = rPI + baseScenario.monthlyOp + rPMI + ins.monthlyFEMAPremium;
+          
+          const rAnnualDebtService = rPI * 12;
+          const rDSCR = rAnnualDebtService > 0 ? baseScenario.noi / rAnnualDebtService : 99;
+          
+          const rNetMonthly = rentRateVal - rTotalOutflow;
+          const rAnnualNet = rNetMonthly * 12;
+          const rCoC = downPayment > 0 ? (rAnnualNet / downPayment) * 100 : 0;
+          
+          block += `| **${(r * 100).toFixed(1)}%** | **${formatCurrency(Math.round(rPI))}** | **${formatCurrency(Math.round(rPMI))}** | **${formatCurrency(Math.round(rTotalOutflow))}/mo** | **${rDSCR.toFixed(2)}x** | **${rCoC.toFixed(2)}%** |\n`;
+        });
+        block += `\n`;
+
+        // Insurance Underwriting & Hazard Risk Profiling
+        block += `### 🛡️ Insurance Underwriting & Hazard Risk Profiling\n`;
+        block += `| Underwriting Attribute | Value | Assessment Metric |\n`;
+        block += `|------------------------|-------|-------------------|\n`;
+        block += `| 🏗️ **Replacement Cost (RC)** | **${formatCurrency(ins.replacementCost)}** | Structure valuation @ **$175/sqft** |\n`;
+        block += `| 🛡️ **Environmental Hazard Risk** | **${ins.hazardTier}** | City location assessment |\n`;
+        block += `| 🔥 **Wildfire Risk** | **${ins.wildfireRisk}** | Forest/brush fire profile |\n`;
+        block += `| 🌀 **Wind/Hurricane Risk** | **${ins.windRisk}** | Coastal wind/storm profile |\n`;
+        block += `| 🫨 **Seismic/Earthquake Risk** | **${ins.seismicRisk}** | Fault line proximity profile |\n`;
+        block += `| 🌧️ **FEMA Flood Zone** | **${ins.femaFloodZone}** | Federal flood hazard mapping |\n`;
+        block += `| 📈 **Insurance Premium Rate** | **${(ins.insuranceRate * 100).toFixed(2)}%** | Underwriting multiplier |\n`;
+        block += `| 💵 **Est. Annual Premium** | **${formatCurrency(Math.round(ins.annualPremium))}** | Annual structural premium |\n`;
+        block += `| 💸 **Est. Monthly Premium** | **${formatCurrency(Math.round(ins.monthlyPremium))}/mo** | Monthly premium allocation |\n`;
+        if (ins.hasFemaSurcharge) {
+          block += `| ⚠️ **FEMA Flood Ann. Premium** | **${formatCurrency(Math.round(ins.annualFEMAPremium))}** | Surcharge @ **1.05%** of RC |\n`;
+          block += `| ⚠️ **FEMA Flood Mo. Premium** | **${formatCurrency(Math.round(ins.monthlyFEMAPremium))}/mo** | Monthly escrow allocation |\n`;
+        }
+        block += `\n`;
 
         block += `### 💸 30-Year Mortgage Cash Flow Analysis\n`;
         block += `*Assumes down payment of **${(downPaymentPct * 100).toFixed(1)}%**, 30-year amortization, and **${(interestRateYearly * 100).toFixed(2)}%** interest rate.*\n\n`;
@@ -153,18 +360,65 @@ export const routeAndEnhancePrompt = async (prompt) => {
         block += `| 💵 **Down Payment (${(downPaymentPct * 100).toFixed(0)}%)** | **${formatCurrency(Math.round(downPayment))}** | Initial Capital Outlay |\n`;
         block += `| 🏛️ **Financed Loan (${((1 - downPaymentPct) * 100).toFixed(0)}%)** | **${formatCurrency(Math.round(loanAmount))}** | Funded Mortgage Debt |\n`;
         block += `| 💸 **Monthly Mortgage (P&I)** | **${formatCurrency(Math.round(monthlyMortgagePI))}/mo** | 30-Yr Fixed @ **${(interestRateYearly * 100).toFixed(2)}%** |\n`;
-        block += `| 📉 **Operating Expenses (${(opexRatio * 100).toFixed(0)}%)** | **${formatCurrency(Math.round(monthlyOperatingExpenses))}/mo** | Taxes, Ins, Maint, Vac |\n`;
-        block += `| 📈 **Total Monthly Outflow** | **${formatCurrency(Math.round(totalMonthlyOutflow))}/mo** | Combined Debt + OpEx |\n`;
-        block += `| 💰 **Net Monthly Cash Flow** | **${formatCurrency(Math.round(netMonthlyCashFlow))}/mo** | **${netMonthlyCashFlow >= 0 ? 'Positive Yield 🟢' : 'Negative Carry 🔴'}** |\n`;
-        block += `| 💎 **Cash-on-Cash Return** | **${cashOnCashReturn.toFixed(2)}%** | **${cashOnCashReturn.toFixed(2)}%** Annual Yield |\n\n`;
+        block += `| 📉 **Operating Expenses (${(opexRatio * 100).toFixed(0)}%)** | **${formatCurrency(Math.round(baseScenario.monthlyOp))}/mo** | Taxes, Ins, Maint, Vac |\n`;
+        if (pmiMonthly > 0) {
+          block += `| ⚠️ **PMI (Mortgage Insurance)** | **${formatCurrency(Math.round(pmiMonthly))}/mo** | LTV > 80% (annual 0.75% fee) |\n`;
+        }
+        if (ins.hasFemaSurcharge) {
+          block += `| 🌧️ **FEMA Flood Insurance** | **${formatCurrency(Math.round(ins.monthlyFEMAPremium))}/mo** | High-risk Zone AE (annual 1.05% fee) |\n`;
+        }
+        block += `| 📈 **Total Monthly Outflow** | **${formatCurrency(Math.round(monthlyMortgagePI + baseScenario.monthlyOp + pmiMonthly + ins.monthlyFEMAPremium))}/mo** | Combined Debt + OpEx |\n`;
+        block += `| 💰 **Net Monthly Cash Flow** | **${formatCurrency(Math.round(baseScenario.netMonthly))}/mo** | **${baseScenario.netMonthly >= 0 ? 'Positive Yield 🟢' : 'Negative Carry 🔴'}** |\n`;
+        block += `| 💎 **Cash-on-Cash Return** | **${baseScenario.coc.toFixed(2)}%** | **${baseScenario.coc.toFixed(2)}%** Annual Yield |\n\n`;
 
-        block += `### 🏛️ Cumulative Amortization Metrics\n`;
-        block += `- **Total 30-Year Debt Service Payments**: **${formatCurrency(Math.round(totalLifetimeMortgageCost))}**\n`;
-        block += `- **Total Interest Cost paid to Lender**: **${formatCurrency(Math.round(totalLifetimeInterestCost))}**\n\n`;
+        // 2. 10-Year holding-Period Equity Amortization Simulator
+        const remainingBalances = {};
+        const cumulativeInterest = {};
+        const cumulativePrincipal = {};
+        const builtInEquity = {};
+        
+        let currentBalance = loanAmount;
+        let cumInterest = 0;
+        let cumPrincipal = 0;
+        const scheduleYears = [1, 3, 5, 10, 30];
+        
+        for (let month = 1; month <= 360; month++) {
+          const monthlyInterest = currentBalance * interestRateMonthly;
+          const monthlyPrincipal = Math.min(currentBalance, monthlyMortgagePI - monthlyInterest);
+          
+          cumInterest += monthlyInterest;
+          cumPrincipal += monthlyPrincipal;
+          currentBalance = Math.max(0, currentBalance - monthlyPrincipal);
+          
+          const year = month / 12;
+          if (scheduleYears.includes(year)) {
+            remainingBalances[year] = currentBalance;
+            cumulativeInterest[year] = cumInterest;
+            cumulativePrincipal[year] = cumPrincipal;
+            builtInEquity[year] = downPayment + cumPrincipal;
+          }
+        }
 
-        // Estimated equity calculation
+        block += `### 🏛️ Holding-Period Equity & Debt Amortization Projections\n`;
+        block += `| Holding Period | Remaining Loan Balance | Cumulative Interest Paid | Cumulative Principal Paid | Total Built-in Equity |\n`;
+        block += `|----------------|------------------------|--------------------------|---------------------------|-----------------------|\n`;
+        scheduleYears.forEach(y => {
+          block += `| 📅 **Year ${y}** | **${formatCurrency(Math.round(remainingBalances[y]))}** | **${formatCurrency(Math.round(cumulativeInterest[y]))}** | **${formatCurrency(Math.round(cumulativePrincipal[y]))}** | **${formatCurrency(Math.round(builtInEquity[y]))}** |\n`;
+        });
+        block += `\n`;
+
+        // 3. Tax Assessment Deviation Index (TADI)
         if (detail.taxAssessedValue) {
-          block += `> **Tax Assessed Value:** **${formatCurrency(detail.taxAssessedValue)}** | AVM premium over tax base: **${((avm.valuation / detail.taxAssessedValue - 1) * 100).toFixed(1)}%**\n`;
+          const tadi = avm.valuation / detail.taxAssessedValue;
+          block += `### 🏛️ Tax Assessment Deviation Index (TADI)\n`;
+          block += `- **TADI Ratio**: **${tadi.toFixed(2)}x** (AVM Valuation: **${formatCurrency(avm.valuation)}** / Assessed Value: **${formatCurrency(detail.taxAssessedValue)}**)\n`;
+          if (tadi > 1.25) {
+            block += `- **Assessment Advisory**: **Undervalued Asset Shield** 🟢. The tax assessor valuation is significantly below market valuation. Reassessment risk is low, providing stable property tax shielding.\n\n`;
+          } else if (tadi < 0.90) {
+            block += `- **Assessment Advisory**: **Tax Appeal Opportunity** ⚠️. The tax assessor valuation exceeds current market valuation. High probability of achieving property tax savings through a formal appeal.\n\n`;
+          } else {
+            block += `- **Assessment Advisory**: **Fair Market Alignment** 🔵. The tax assessor valuation is aligned with market valuations.\n\n`;
+          }
         }
       } else {
         block += `*Valuation service currently offline. No AVM available.*\n`;
@@ -192,8 +446,8 @@ export const routeAndEnhancePrompt = async (prompt) => {
 
       if (comps && comps.length > 0) {
         block += `### Recent Comparable Sales\n`;
-        block += `| Comp Address | Distance | Layout | Layout Match | Sold Price | Sold Date | Avg Price/Sqft |\n`;
-        block += `|--------------|----------|--------|--------------|------------|-----------|----------------|\n`;
+        block += `| Comp Address | Proximity Tier | Distance | Layout | Layout Match | Sold Price | Sold Date | Avg Price/Sqft |\n`;
+        block += `|--------------|----------------|----------|--------|--------------|------------|-----------|----------------|\n`;
         
         let totalPrice = 0;
         let totalSqft = 0;
@@ -208,13 +462,23 @@ export const routeAndEnhancePrompt = async (prompt) => {
           const isLayoutMatch = c.beds === (detail.beds || 4) && c.baths === (detail.baths || 3.5);
           const layoutMatchFlag = isLayoutMatch ? '🎯 **Match**' : '✖';
           
-          // Inverse Distance Weighting: W = 1 / (d + 0.05)
+          // 4. Outlier detection & Proximity tagging
           const dist = c.distanceMiles || 0.1;
+          let proximityTier = '';
+          if (dist <= 0.15) {
+            proximityTier = '🟢 Close (Primary)';
+          } else if (dist <= 0.30) {
+            proximityTier = '🟡 Medium (Secondary)';
+          } else {
+            proximityTier = '⚠️ Outlier (Territory)';
+          }
+
+          // Inverse Distance Weighting: W = 1 / (d + 0.05)
           const weight = 1 / (dist + 0.05);
           weightSum += weight;
           weightedPriceSum += priceSqft * weight;
 
-          block += `| ${c.address} | **${dist}** mi | **${c.beds}**b/**${c.baths}**ba | ${layoutMatchFlag} | **${formatCurrency(c.salePrice)}** | ${c.saleDate} | **$${priceSqft.toFixed(2)}** |\n`;
+          block += `| ${c.address} | ${proximityTier} | **${dist}** mi | **${c.beds}**b/**${c.baths}**ba | ${layoutMatchFlag} | **${formatCurrency(c.salePrice)}** | ${c.saleDate} | **$${priceSqft.toFixed(2)}** |\n`;
         });
 
         const avgCompPrice = totalPrice / comps.length;
@@ -286,36 +550,99 @@ export const routeAndEnhancePrompt = async (prompt) => {
 
     // ─── MLS SEARCH ─────────────────────────────────────────────────────────────
     if (type === 'mls_search') {
-      const criteria = {
-        city: entities.city || 'Atlanta',
-        state: entities.state || 'GA',
-        zip: entities.zip || undefined,
-        minPrice: entities.minPrice || undefined,
-        maxPrice: entities.maxPrice || undefined,
-        minBeds: entities.minBeds || undefined,
-        minBaths: entities.minBaths || undefined,
-        propertyType: entities.propertyType || undefined
-      };
-      const mls = await realestateService.searchMlsService(criteria);
-
-      let block = `## 🏷️ Active Real Estate MLS Listings\n\n`;
-      block += `**Search Location:** **${criteria.city}**, **${criteria.state || 'N/A'}** ${criteria.zip ? `(Zip: **${criteria.zip}**)` : ''}\n\n`;
-
-      if (mls && mls.length > 0) {
-        block += `### Verified Active Listings\n`;
-        block += `| Address | List Price | Beds/Baths | Property Sqft | Listing Status | DOM |\n`;
-        block += `|---------|------------|------------|---------------|----------------|-----|\n`;
-        
-        mls.forEach(item => {
-          block += `| ${item.address} | **${formatCurrency(item.price)}** | **${item.beds}**b/**${item.baths}**ba | **${item.sqft}** sqft | **${item.status}** | **${item.daysOnMarket || 0}** days |\n`;
+      const isMultiMarket = entities.locations && entities.locations.length > 1;
+      
+      if (isMultiMarket) {
+        // Parallel MLS retrieval across multiple cities
+        const marketPromises = entities.locations.map(async (loc) => {
+          const criteria = {
+            city: loc.city,
+            state: loc.state,
+            minPrice: entities.minPrice || undefined,
+            maxPrice: entities.maxPrice || undefined,
+            minBeds: entities.minBeds || undefined,
+            minBaths: entities.minBaths || undefined,
+            propertyType: entities.propertyType || undefined
+          };
+          const listings = await realestateService.searchMlsService(criteria);
+          return { loc, listings };
         });
         
-        block += `\n> *Listings pulled directly from local MLS databases via RealEstateAPI.com integration. DOM = Days on Market.*\n`;
+        const marketResults = await Promise.all(marketPromises);
+        
+        let block = `## 📊 Multi-Market Comparative MLS Dashboard\n\n`;
+        block += `### 📈 Market Comparison Summary\n`;
+        block += `| Market Location | Active Listings | Avg List Price | Avg Price/Sqft | Avg Days on Market |\n`;
+        block += `|-----------------|-----------------|----------------|----------------|--------------------|\n`;
+        
+        const allListings = [];
+        
+        marketResults.forEach(({ loc, listings }) => {
+          if (listings && listings.length > 0) {
+            const count = listings.length;
+            const totalPrice = listings.reduce((sum, item) => sum + item.price, 0);
+            const totalSqft = listings.reduce((sum, item) => sum + (item.sqft || 0), 0);
+            const totalDom = listings.reduce((sum, item) => sum + (item.daysOnMarket || 0), 0);
+            
+            const avgPrice = totalPrice / count;
+            const avgPriceSqft = totalSqft > 0 ? totalPrice / totalSqft : 0;
+            const avgDom = totalDom / count;
+            
+            block += `| **${loc.city}, ${loc.state || 'N/A'}** | **${count}** | **${formatCurrency(Math.round(avgPrice))}** | **${avgPriceSqft > 0 ? `$${avgPriceSqft.toFixed(2)}` : 'N/A'}/sqft** | **${avgDom.toFixed(1)}** days |\n`;
+            
+            listings.forEach(item => {
+              allListings.push({ ...item, market: `${loc.city}, ${loc.state}` });
+            });
+          } else {
+            block += `| **${loc.city}, ${loc.state || 'N/A'}** | **0** | **N/A** | **N/A** | **N/A** |\n`;
+          }
+        });
+        
+        block += `\n### 🏡 Side-by-Side Property Comparison\n`;
+        if (allListings.length > 0) {
+          block += `| Address | Market | List Price | Beds/Baths | Property Sqft | Status | DOM |\n`;
+          block += `|---------|--------|------------|------------|---------------|--------|-----|\n`;
+          allListings.slice(0, 8).forEach(item => {
+            block += `| ${item.address} | ${item.market} | **${formatCurrency(item.price)}** | **${item.beds}**b/**${item.baths}**ba | **${item.sqft}** sqft | **${item.status}** | **${item.daysOnMarket || 0}** days |\n`;
+          });
+          block += `\n> *Showing top comparative listings. DOM = Days on Market.*\n`;
+        } else {
+          block += `*No active MLS listings found in any of the queried market locations.*\n`;
+        }
+        
+        return buildPrompt(prompt, block, 'RealEstateAPI.com Multi-Market Comparative MLS Listings');
       } else {
-        block += `*No active MLS listings match the search criteria in this market area.*\n`;
-      }
+        const criteria = {
+          city: entities.city || 'Atlanta',
+          state: entities.state || 'GA',
+          zip: entities.zip || undefined,
+          minPrice: entities.minPrice || undefined,
+          maxPrice: entities.maxPrice || undefined,
+          minBeds: entities.minBeds || undefined,
+          minBaths: entities.minBaths || undefined,
+          propertyType: entities.propertyType || undefined
+        };
+        const mls = await realestateService.searchMlsService(criteria);
 
-      return buildPrompt(prompt, block, 'RealEstateAPI.com MLS Active Listings');
+        let block = `## 🏷️ Active Real Estate MLS Listings\n\n`;
+        block += `**Search Location:** **${criteria.city}**, **${criteria.state || 'N/A'}** ${criteria.zip ? `(Zip: **${criteria.zip}**)` : ''}\n\n`;
+
+        if (mls && mls.length > 0) {
+          block += `### Verified Active Listings\n`;
+          block += `| Address | List Price | Beds/Baths | Property Sqft | Listing Status | DOM |\n`;
+          block += `|---------|------------|------------|---------------|----------------|-----|\n`;
+          
+          mls.forEach(item => {
+            block += `| ${item.address} | **${formatCurrency(item.price)}** | **${item.beds}**b/**${item.baths}**ba | **${item.sqft}** sqft | **${item.status}** | **${item.daysOnMarket || 0}** days |\n`;
+          });
+          
+          block += `\n> *Listings pulled directly from local MLS databases via RealEstateAPI.com integration. DOM = Days on Market.*\n`;
+        } else {
+          block += `*No active MLS listings match the search criteria in this market area.*\n`;
+        }
+
+        return buildPrompt(prompt, block, 'RealEstateAPI.com MLS Active Listings');
+      }
     }
 
     // ─── PROPERTY DETAIL (PUBLIC RECORD DEFAULT) ──────────────────────────────────
@@ -336,6 +663,17 @@ export const routeAndEnhancePrompt = async (prompt) => {
         block += `| 🛏️ **Bed/Bath Count** | **${detail.beds || 0}** bedrooms \| **${detail.baths || 0}** bathrooms |\n`;
         block += `| 💰 **Last Sale Price** | **${formatCurrency(detail.lastSalePrice)}** (Date: ${detail.lastSaleDate || 'N/A'}) |\n`;
         block += `| 🏛️ **Tax Assessed Value** | **${formatCurrency(detail.taxAssessedValue)}** |\n\n`;
+
+        // Insurance Underwriting & Hazard Risk Profiling
+        const ins = computeInsuranceHazard(detail.sqft, detail.city);
+        block += `### 🛡️ Insurance Underwriting & Hazard Risk Profiling\n`;
+        block += `| Underwriting Attribute | Value | Assessment Metric |\n`;
+        block += `|------------------------|-------|-------------------|\n`;
+        block += `| 🏗️ **Replacement Cost (RC)** | **${formatCurrency(ins.replacementCost)}** | Structure valuation @ **$175/sqft** |\n`;
+        block += `| 🛡️ **Environmental Hazard Risk** | **${ins.hazardTier}** | City location assessment |\n`;
+        block += `| 📈 **Insurance Premium Rate** | **${(ins.insuranceRate * 100).toFixed(2)}%** | Underwriting multiplier |\n`;
+        block += `| 💵 **Est. Annual Premium** | **${formatCurrency(Math.round(ins.annualPremium))}** | Annual structural premium |\n`;
+        block += `| 💸 **Est. Monthly Premium** | **${formatCurrency(Math.round(ins.monthlyPremium))}/mo** | Monthly premium allocation |\n\n`;
       } else {
         block += `*Property details not available for the requested parcel address.*\n`;
       }

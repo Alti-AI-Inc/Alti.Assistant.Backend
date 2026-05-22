@@ -1,5 +1,5 @@
 import express from 'express';
-import { sportsSmartRouter } from '../../../helpers/sportsSmartRouter.js';
+import { sportsSmartRouter } from '../../helpers/sportsSmartRouter.js';
 import {
   getMarketsService,
   getLiveMarketsService,

@@ -104,7 +104,7 @@ const ragTestCases = [
     verifiers: [
       '[Source: RealEstateAPI.com]',
       'Comparable Sales Analysis (Comps)',
-      '| Comp Address | Distance | Layout | Layout Match | Sold Price | Sold Date | Avg Price/Sqft |',
+      '| Comp Address | Proximity Tier | Distance | Layout | Layout Match | Sold Price | Sold Date | Avg Price/Sqft |',
       '**$512,000**',
       '**$540,000**',
       'Suggested Subject Value'
@@ -284,14 +284,14 @@ try {
   assert(resultCustom.includes('**$571,200**'), `RAG Context includes custom loan amount of **$571,200**`);
   assert(resultCustom.includes('**$3,877/mo**'), `RAG Context includes calculated mortgage P&I of **$3,877/mo**`);
   assert(resultCustom.includes('**$1,120/mo**'), `RAG Context includes calculated OpEx of **$1,120/mo**`);
-  assert(resultCustom.includes('**$-1,797/mo**'), `RAG Context includes calculated Net Cash Flow of **$-1,797/mo**`);
-  assert(resultCustom.includes('**-21.40%**'), `RAG Context includes calculated Cash-on-Cash Return of **-21.40%**`);
+  assert(resultCustom.includes('**$-2,154/mo**'), `RAG Context includes calculated Net Cash Flow of **$-2,154/mo**`);
+  assert(resultCustom.includes('**-25.65%**'), `RAG Context includes calculated Cash-on-Cash Return of **-25.65%**`);
   
   // Custom levers / metrics:
   assert(resultCustom.includes('Break-Even Monthly Rent'), `RAG Context includes Break-Even Monthly Rent header`);
-  assert(resultCustom.includes('**$5,965/mo**'), `RAG Context includes Break-Even Monthly Rent calculation: **$5,965/mo**`);
+  assert(resultCustom.includes('**$6,514/mo**'), `RAG Context includes Break-Even Monthly Rent calculation: **$6,514/mo**`);
   assert(resultCustom.includes('Total 30-Year Debt Service Payments'), `RAG Context includes Cumulative Mortgage Amortization section`);
-  assert(resultCustom.includes('**$1,395,806**'), `RAG Context includes Total 30-Year Debt Service calculation: **$1,395,806**`);
+  assert(resultCustom.includes('**$1,524,326**'), `RAG Context includes Total 30-Year Debt Service calculation: **$1,524,326**`);
   assert(resultCustom.includes('**$824,606**'), `RAG Context includes Total Interest Cost calculation: **$824,606**`);
 } catch (err) {
   console.error(`  ❌ Custom scenario underwriting audit encountered error:`, err.message);
@@ -330,6 +330,129 @@ try {
   assert(resultDiag.includes('Service Latency Logs:'), `RAG Context contains Service Latency Logs sub-block`);
 } catch (err) {
   console.error(`  ❌ Cache diagnostics audit encountered error:`, err.message);
+  failedTests++;
+}
+
+console.log('');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PART 6: ADVANCED v3 UNDERWRITING & MULTI-MARKET CALCULATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('--- PART 6: Advanced Underwriting, Multi-Market, and TADI Diagnostics Check ---');
+
+// 1. Multi-Market Parsing Assertion
+console.log('  ▸ Auditing Natural Language Multi-City Parsing:');
+const multiQuery = 'Compare active listings in Atlanta and Miami under 800k';
+const multiEntities = parseAddressEntities(multiQuery);
+assert(multiEntities.locations && multiEntities.locations.length === 2, 'Locations array contains exactly 2 parsed cities');
+assert(multiEntities.locations.some(loc => loc.city === 'Atlanta' && loc.state === 'GA'), 'Atlanta (GA) parsed correctly');
+assert(multiEntities.locations.some(loc => loc.city === 'Miami' && loc.state === 'FL'), 'Miami (FL) parsed correctly');
+assert(multiEntities.maxPrice === 800000, 'Price filter of 800k parsed correctly');
+
+try {
+  const multiResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(multiQuery);
+  assert(multiResult.includes('Multi-Market Comparative MLS Dashboard'), 'RAG output includes Multi-Market Comparative MLS Dashboard');
+  assert(multiResult.includes('Market Comparison Summary'), 'RAG output includes comparison summary table');
+  assert(multiResult.includes('Side-by-Side Property Comparison'), 'RAG output includes side-by-side active property table');
+} catch (err) {
+  console.error('  ❌ Multi-market parallel compilation failed:', err.message);
+  failedTests++;
+}
+
+// 2. Stress-Testing Calculations Assertion
+console.log('  ▸ Auditing Downside / Base / Upside Stress-Testing Math:');
+try {
+  const stressQuery = 'what is the home valuation and stress-testing for 123 Main St?';
+  const stressResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(stressQuery);
+  assert(stressResult.includes('Investment Sensitivity Stress-Testing'), 'RAG output includes stress-testing sensitivity matrix');
+  assert(stressResult.includes('**$3,555/mo**') && stressResult.includes('**50%**'), 'Downside Case monthly rent stressed by -10% ($3,555/mo) and OpEx ratio raised by +5% (50%)');
+  assert(stressResult.includes('**$3,950/mo**') && stressResult.includes('**45%**'), 'Base Case monthly rent ($3,950/mo) and OpEx ratio (45%) match defaults');
+  assert(stressResult.includes('**$4,345/mo**') && stressResult.includes('**40%**'), 'Upside Case monthly rent increased by +10% ($4,345/mo) and OpEx ratio reduced by -5% (40%)');
+  assert(stressResult.includes('**$21,330**') && stressResult.includes('**3.17%**'), 'Downside NOI ($21,330) and Cap Rate (3.17%) mathematically correct');
+  assert(stressResult.includes('**$26,070**') && stressResult.includes('**3.88%**'), 'Base NOI ($26,070) and Cap Rate (3.88%) mathematically correct');
+  assert(stressResult.includes('**$31,284**') && stressResult.includes('**4.66%**'), 'Upside NOI ($31,284) and Cap Rate (4.66%) mathematically correct');
+  assert(stressResult.includes('**-14.47%**'), 'Downside Cash-on-Cash Return (-14.47%) mathematically correct');
+  assert(stressResult.includes('**-10.94%**'), 'Base Cash-on-Cash Return (-10.94%) mathematically correct');
+  assert(stressResult.includes('**-7.06%**'), 'Upside Cash-on-Cash Return (-7.06%) mathematically correct');
+} catch (err) {
+  console.error('  ❌ Stress-testing calculation verification failed:', err.message);
+  failedTests++;
+}
+
+// 3. Holding-Period Amortization Projections Assertion
+console.log('  ▸ Auditing 10-Year holding-Period Amortization scheduler:');
+try {
+  const amortQuery = 'valuation and amortization schedule for 123 Main St';
+  const amortResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(amortQuery);
+  assert(amortResult.includes('Holding-Period Equity & Debt Amortization Projections'), 'RAG output includes holding-period projections');
+  assert(amortResult.includes('**Year 1**') && amortResult.includes('**$531,591**') && amortResult.includes('**$34,767**'), 'Year 1 Remaining Balance ($531,591) and Cumulative Interest ($34,767) correct');
+  assert(amortResult.includes('**Year 5**') && amortResult.includes('**$503,253**') && amortResult.includes('**$169,532**'), 'Year 5 Remaining Balance ($503,253) and Cumulative Interest ($169,532) correct');
+  assert(amortResult.includes('**Year 10**') && amortResult.includes('**$455,756**') && amortResult.includes('**$325,916**'), 'Year 10 Remaining Balance ($455,756) and Cumulative Interest ($325,916) correct');
+  assert(amortResult.includes('**Year 30**') && amortResult.includes('**$0**') && amortResult.includes('**$685,679**'), 'Year 30 Remaining Balance ($0) and Cumulative Interest ($685,679) correct');
+  assert(amortResult.includes('**$140,409**'), 'Year 1 Built-in Equity (Down Payment + Principal Paydown: $134,400 + $6,009 = $140,409) correct');
+} catch (err) {
+  console.error('  ❌ Amortization projections verification failed:', err.message);
+  failedTests++;
+}
+
+// 4. Proximity Comp Outlier Tiering Assertion
+console.log('  ▸ Auditing Proximity Outlier Categorization & Layout Match Flags:');
+try {
+  const compsQuery = 'comparable sales and sold comps for 123 Main St';
+  const compsResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(compsQuery);
+  assert(compsResult.includes('Proximity Tier'), 'Comparable sales table includes Proximity Tier column');
+  assert(compsResult.includes('🟢 Close (Primary)'), '🟢 Close (Primary) tier correctly assigned to comps within 0.15 miles');
+  assert(compsResult.includes('🟡 Medium (Secondary)'), '🟡 Medium (Secondary) tier correctly assigned to comps between 0.15 and 0.30 miles');
+} catch (err) {
+  console.error('  ❌ Proximity comps outlier audit failed:', err.message);
+  failedTests++;
+}
+
+// 5. Tax Assessment Deviation Index (TADI) Assertion
+console.log('  ▸ Auditing Tax Assessment Deviation Index (TADI) ratio:');
+try {
+  const tadiQuery = 'what is the valuation and tax details for 123 Main St?';
+  const tadiResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(tadiQuery);
+  assert(tadiResult.includes('Tax Assessment Deviation Index (TADI)'), 'RAG output includes Tax Assessment Deviation Index section');
+  assert(tadiResult.includes('**1.23x**'), 'Correct TADI ratio calculation: 672000 / 545000 = 1.233x (rounded to 1.23x)');
+  assert(tadiResult.includes('Fair Market Alignment'), 'Correct advisor commentary indicating fair market alignment');
+} catch (err) {
+  console.error('  ❌ TADI audit failed:', err.message);
+  failedTests++;
+}
+
+// 6. Advanced Institutional Underwriting Models (PMI, Seller Net Sheet, and Hazard Risk Profiling)
+console.log('  ▸ Auditing Advanced Institutional Underwriting (PMI, Net Sheet, Hazard Risk):');
+try {
+  const pmiQuery = 'what is the valuation of 123 Main St assuming 15% down?';
+  const pmiResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(pmiQuery);
+  assert(pmiResult.includes('**$357/mo**'), '15% down triggers PMI of **$357/mo** correctly');
+  assert(pmiResult.includes('LTV > 80%'), 'PMI trigger note matches custom leverage criteria');
+} catch (err) {
+  console.error('  ❌ PMI calculation test failed:', err.message);
+  failedTests++;
+}
+
+try {
+  const sellerQuery = 'valuation and seller proceeds for 123 Main St';
+  const sellerResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(sellerQuery);
+  assert(sellerResult.includes('Seller Net Sheet Projections'), 'Seller Net Sheet Projections table is output correctly');
+  assert(sellerResult.includes('**$33,600**'), 'Broker commission of **$33,600** correctly calculated');
+  assert(sellerResult.includes('**$225,120**'), 'Walkthrough net proceeds of **$225,120** correctly calculated');
+} catch (err) {
+  console.error('  ❌ Seller net sheet test failed:', err.message);
+  failedTests++;
+}
+
+try {
+  const detailQuery = 'details and hazard risk for 123 Main St';
+  const detailResult = await massiveSmartRouter.combinedRouteAndEnhancePrompt(detailQuery);
+  assert(detailResult.includes('Insurance Underwriting & Hazard Risk Profiling'), 'Insurance Underwriting table is output in public detail path');
+  assert(detailResult.includes('**$551,250**'), 'Replacement Cost of **$551,250** correctly calculated');
+  assert(detailResult.includes('**$1,929**'), 'Estimated annual premium of **$1,929** correctly calculated');
+  assert(detailResult.includes('**$161/mo**'), 'Estimated monthly premium of **$161/mo** correctly calculated');
+} catch (err) {
+  console.error('  ❌ Hazard risk calculation test failed:', err.message);
   failedTests++;
 }
 
