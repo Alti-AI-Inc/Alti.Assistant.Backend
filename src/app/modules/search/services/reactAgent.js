@@ -1,4 +1,4 @@
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { SafeGoogleGenerativeAIEmbeddings } from '../../../../shared/embeddings.js';
 import { DynamicTool } from '@langchain/core/tools';
 import { WebBrowser } from 'langchain/tools/webbrowser';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
@@ -243,8 +243,9 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
     googleSearch,
     new WebBrowser({
       model: selectedLLM, // Use selected model
-      embeddings: new GoogleGenerativeAIEmbeddings({
+      embeddings: new SafeGoogleGenerativeAIEmbeddings({
         apiKey: config.gemini_secret_key,
+        targetDimension: 768,
       }),
       textSplitter,
     }),
@@ -749,8 +750,9 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
         } else if (toolCall.name === 'web-browser') {
           const browser = new WebBrowser({
             model: selectedLLM, // Use selected model
-            embeddings: new GoogleGenerativeAIEmbeddings({
+            embeddings: new SafeGoogleGenerativeAIEmbeddings({
               apiKey: config.gemini_secret_key,
+              targetDimension: 768,
             }),
             textSplitter,
           });

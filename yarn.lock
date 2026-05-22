@@ -4438,6 +4438,11 @@ function-timeout@^1.0.1:
   resolved "https://registry.npmjs.org/function-timeout/-/function-timeout-1.0.2.tgz"
   integrity sha512-939eZS4gJ3htTHAldmyyuzlrD58P03fHG49v2JfFXbV6OhvZKRC9j2yAtdHw/zrp2zXHuv05zMIy40F0ge7spA==
 
+fzstd@0.1.1:
+  version "0.1.1"
+  resolved "https://registry.npmjs.org/fzstd/-/fzstd-0.1.1.tgz"
+  integrity sha512-dkuVSOKKwh3eas5VkJy1AW1vFpet8TA/fGmVA5krThl8YcOVE/8ZIoEA1+U1vEn5ckxxhLirSdY837azmbaNHA==
+
 gaxios@^6.0.0, gaxios@^6.0.2, gaxios@^6.0.3, gaxios@^6.1.1:
   version "6.7.1"
   resolved "https://registry.npmjs.org/gaxios/-/gaxios-6.7.1.tgz"
@@ -5067,6 +5072,24 @@ husky@^8.0.3:
   version "8.0.3"
   resolved "https://registry.npmjs.org/husky/-/husky-8.0.3.tgz"
   integrity sha512-+dQSyqPh4x1hlO1swXBiNb2HzTDN1I2IGLQx1GrBuiqFJfoMrnZWwVmatvSiO+Iz8fBUnf+lekwNo4c2LlXItg==
+
+hyparquet-compressors@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.npmjs.org/hyparquet-compressors/-/hyparquet-compressors-1.1.1.tgz"
+  integrity sha512-yx7aA3Rhj0YycbdV71+XznQSLAefa4cT0urpgNXy4aM6eSeCknaVDNne8y45Uz74Fb15yyXUzOStlceOJBan7A==
+  dependencies:
+    fzstd "0.1.1"
+    hysnappy "1.0.0"
+
+hyparquet@^1.25.8:
+  version "1.25.8"
+  resolved "https://registry.npmjs.org/hyparquet/-/hyparquet-1.25.8.tgz"
+  integrity sha512-KYRKZCHBgEY9FOuqTe9m+zdrKBcTo9ZcaIUqG7SdZygv5hwrGD3C6wuTrGt07cbEkgO71UIih+KbojLKf3ENbg==
+
+hysnappy@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/hysnappy/-/hysnappy-1.0.0.tgz"
+  integrity sha512-MNrC4NfwDGPb889O6gIfEtbvEZCSWUsSEhsz4Oq2FRcpGtXHfeVz3KciSPp5Pnnz1NjFMgDQNfxdJozymJEDDA==
 
 i@^0.3.7:
   version "0.3.7"

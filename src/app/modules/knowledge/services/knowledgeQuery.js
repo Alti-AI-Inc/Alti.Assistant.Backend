@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import Anthropic from '@anthropic-ai/sdk';
 import httpStatus from 'http-status';
 import { RAGSystem } from 'rag-system-pgvector';
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { SafeGoogleGenerativeAIEmbeddings } from '../../../../shared/embeddings.js';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import {
@@ -28,9 +28,9 @@ const anthropic = new Anthropic({
 });
 
 // Initialize embeddings and LLM for RAG
-const embeddings = new GoogleGenerativeAIEmbeddings({
+const embeddings = new SafeGoogleGenerativeAIEmbeddings({
   apiKey: config.gemini_secret_key,
-  model: KNOWLEDGE_CONFIG.EMBEDDING_MODEL,
+  targetDimension: 768,
 });
 
 const geminiLLM = new ChatGoogleGenerativeAI({

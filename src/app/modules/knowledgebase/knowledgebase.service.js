@@ -4,21 +4,22 @@ import { RAGSystem } from 'rag-system-pgvector';
 import path from 'path';
 import KnowledgeBase from './knowledgebase.model.js';
 import KnowledgebaseFile from './knowledgebase.files.model.js';
-import { OpenAI } from 'openai';
-import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { SafeGoogleGenerativeAIEmbeddings } from '../../../shared/embeddings.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Storage } from '@google-cloud/storage';
 import {
   withTenantContext,
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
-const embeddings = new OpenAIEmbeddings({
-  openAIApiKey: config.openai_secret_key,
-  modelName: 'text-embedding-ada-002',
+const embeddings = new SafeGoogleGenerativeAIEmbeddings({
+  apiKey: config.gemini_secret_key,
+  targetDimension: 768,
 });
 
-const llm = new ChatOpenAI({
-  openAIApiKey: config.openai_secret_key,
-  modelName: 'gpt-4',
+const llm = new ChatGoogleGenerativeAI({
+  apiKey: config.gemini_secret_key,
+  modelName: 'gemini-3.5-flash',
   temperature: 0.7,
 });
 const ragConfig = {
@@ -33,14 +34,12 @@ const ragConfig = {
 
   embeddings: embeddings,
   llm: llm,
-  embeddingDimensions: 1536,
+  embeddingDimensions: 768,
 };
 const rag = new RAGSystem(ragConfig);
 
-// Initialize OpenAI for token counting and summarization
-const openai = new OpenAI({
-  apiKey: config.openai_secret_key,
-});
+// Initialize Google Generative AI for token counting and summarization
+const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 // Initialize Google Cloud Storage
 const storage = new Storage({
@@ -73,24 +72,14 @@ class KnowledgebaseService {
     try {
       logger.info('Summarizing conversation context due to token limit');
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a helpful assistant that summarizes conversation history. Preserve the key context and important details while making it concise. Focus on maintaining the flow of the conversation and any important information that might be relevant for future responses.',
-          },
-          {
-            role: 'user',
-            content: `Please summarize the following conversation history, keeping it under 2500 tokens while preserving important context and details:\n\n${contextString}`,
-          },
-        ],
-        max_tokens: 2500,
-        temperature: 0.3,
-      });
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+      const prompt = `System: You are a helpful assistant that summarizes conversation history. Preserve the key context and important details while making it concise. Focus on maintaining the flow of the conversation and any important information that might be relevant for future responses.
+      
+User: Please summarize the following conversation history, keeping it under 2500 tokens while preserving important context and details:\n\n${contextString}`;
 
-      const summarizedContext = response.choices[0].message.content;
+      const result = await model.generateContent(prompt);
+      const summarizedContext = result?.response?.text() || 'No summary generated';
+
       logger.info(
         `Context summarized: ${estimateTokenCount(contextString)} tokens -> ${estimateTokenCount(summarizedContext)} tokens`
       );
@@ -622,7 +611,7 @@ class KnowledgebaseService {
           "I apologize, but I couldn't find relevant information in the knowledge base to answer your question.",
         sources: ragResponse.sources || [],
         confidence: ragResponse.confidence || 0.8,
-        model: ragResponse.model || 'gpt-4o-mini',
+        model: ragResponse.model || 'gemini-3.5-flash',
         tokensUsed: ragResponse.tokensUsed || ragResponse.token_usage || 0,
         chatHistory: ragResponse.chatHistory || conversationHistory,
         sessionId: ragResponse.sessionId || conversationId,

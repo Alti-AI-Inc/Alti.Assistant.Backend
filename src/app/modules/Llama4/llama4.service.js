@@ -1,6 +1,6 @@
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import { ChatGroq } from '@langchain/groq';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import httpStatus from 'http-status';
 import { ConversationChain } from 'langchain/chains';
 import { BufferMemory } from 'langchain/memory';
@@ -25,11 +25,10 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
     sessionMemoryStore[sessionId] = memory;
   }
 
-  const model = new ChatGroq({
-    model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
-    // model: 'llama4-17b-chat',
+  const model = new ChatGoogleGenerativeAI({
+    modelName: 'gemini-3.5-flash',
     temperature: 0.7,
-    apiKey: config.groq_api_key,
+    apiKey: config.gemini_secret_key,
   });
 
   const chain = new ConversationChain({ llm: model, memory });

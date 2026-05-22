@@ -3,6 +3,10 @@ import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import Dataset from './datasets.model.js';
 import config from '../../../../config/index.js';
+import { parquetReadObjects } from 'hyparquet';
+import { compressors } from 'hyparquet-compressors';
+import { rag } from '../knowledge/knowledge.service.js';
+
 
 // Initialize GCS client
 const getGcsBucket = () => {
@@ -326,23 +330,110 @@ const indexDatasetForRAG = async (datasetId) => {
   dataset.status = 'indexing';
   await dataset.save();
 
-  // Async processing stub for indexing
+  // Async processing loop for indexing
   (async () => {
     try {
       console.log(`Starting RAG Indexing of archived dataset: ${datasetId}`);
       
-      // 1. In a live system, we would stream each Parquet file from GCS
-      // 2. Parse the parquet bytes using a parquet-reader or convert to JSON rows
-      // 3. For each row, construct a semantic text document (e.g. "Column A: Value, Column B: Value")
-      // 4. Generate embeddings via Google Vertex AI / Gemini Text Embedding APIs
-      // 5. Index chunks into MongoDB vectors or Vector databases (such as Pinecone / pgvector / Qdrant)
-      
-      // Simulate indexing progress
-      await new Promise(resolve => setTimeout(resolve, 8000));
+      // 1. Initialize the RAG system (ensures pgvector and database schemas are setup)
+      await rag.initialize();
+
+      const { bucket, bucketName } = getGcsBucket();
+      if (!bucket) {
+        throw new Error('Google Cloud Storage bucket not configured or failed to initialize.');
+      }
+
+      let totalIndexedChunks = 0;
+      const maxRowsPerFile = 2000; // Guardrail to prevent runaway embedding costs
+
+      for (const gcsPath of dataset.gcsPaths) {
+        // Strip the gs://[bucketName]/ prefix to get the relative object path
+        const prefix = `gs://${bucketName}/`;
+        const relativePath = gcsPath.startsWith(prefix) ? gcsPath.slice(prefix.length) : gcsPath;
+
+        console.log(`Downloading Parquet file from GCS for indexing: ${relativePath}`);
+        const fileObj = bucket.file(relativePath);
+        const [buffer] = await fileObj.download();
+
+        // Convert Buffer to ArrayBuffer safely
+        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        const file = {
+          byteLength: arrayBuffer.byteLength,
+          slice: (start, end) => arrayBuffer.slice(start, end)
+        };
+
+        // Extract metadata info from the file path
+        // format: datasets/[datasetId]/[configName]/[splitName]/[fileName].parquet
+        const parts = relativePath.split('/');
+        const configName = parts[parts.length - 3] || 'default';
+        const splitName = parts[parts.length - 2] || 'train';
+        const fileName = parts[parts.length - 1];
+
+        console.log(`Parsing Parquet objects for split "${splitName}" / config "${configName}"...`);
+        const rows = await parquetReadObjects({
+          file,
+          rowStart: 0,
+          rowEnd: maxRowsPerFile,
+          compressors
+        });
+
+        console.log(`Successfully parsed ${rows.length} rows from Parquet file.`);
+
+        // Convert rows to cohesive text paragraphs
+        let fullText = '';
+        rows.forEach((row, rowIndex) => {
+          let rowText = `Dataset: ${datasetId}\nConfig: ${configName}\nSplit: ${splitName}\nRow: ${rowIndex + 1}\n`;
+          for (const [key, value] of Object.entries(row)) {
+            if (value === null || value === undefined || value === '') continue;
+            let valStr;
+            if (typeof value === 'object') {
+              try {
+                valStr = JSON.stringify(value);
+              } catch (e) {
+                valStr = String(value);
+              }
+            } else if (typeof value === 'bigint') {
+              valStr = value.toString();
+            } else {
+              valStr = String(value);
+            }
+            if (valStr.length > 1000) {
+              valStr = valStr.substring(0, 1000) + '... (truncated)';
+            }
+            rowText += `${key}: ${valStr}\n`;
+          }
+          fullText += rowText + '\n\n---\n\n';
+        });
+
+        if (fullText.trim().length === 0) {
+          console.warn(`No valid content found in ${fileName}, skipping index step.`);
+          continue;
+        }
+
+        console.log(`Feeding text buffer to pgvector RAG system (size: ${fullText.length} characters)...`);
+        const textBuffer = Buffer.from(fullText, 'utf-8');
+        
+        const ragResult = await rag.addDocumentFromBuffer(
+          textBuffer,
+          `${datasetId.replace(/\//g, '_')}_${configName}_${splitName}.txt`,
+          'txt',
+          {
+            ownerType: 'dataset',
+            ownerId: datasetId,
+            datasetId: datasetId,
+            config: configName,
+            split: splitName,
+            gcsPath: relativePath
+          }
+        );
+
+        console.log(`✓ Indexed Parquet file: ${fileName} into RAG. Chunks added: ${ragResult.chunkCount}`);
+        totalIndexedChunks += ragResult.chunkCount;
+      }
 
       dataset.status = 'indexed';
       await dataset.save();
-      console.log(`RAG Indexing successfully completed for dataset: ${datasetId}`);
+      console.log(`RAG Indexing successfully completed for dataset: ${datasetId}. Total chunks: ${totalIndexedChunks}`);
     } catch (err) {
       console.error(`RAG Indexing failed for ${datasetId}:`, err);
       dataset.status = 'failed';

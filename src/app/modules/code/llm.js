@@ -1,16 +1,8 @@
-import { ChatOpenAI } from '@langchain/openai';
-import { PredictionServiceClient } from '@google-cloud/aiplatform';
-import Anthropic from '@anthropic-ai/sdk';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import config from '../../../../config/index.js';
 
-export const llm = new ChatOpenAI({
-  apiKey: config.openaiApiKey,
-  model: 'gpt-4o',
+export const llm = new ChatGoogleGenerativeAI({
+  apiKey: config.gemini_secret_key,
+  modelName: 'gemini-3.5-flash',
   temperature: 0.7,
-});
-
-export const anthropic = new Anthropic({
-  apiKey: config.anthropicApiKey,
-  baseURL: 'https://api.anthropic.com',
-  timeout: 60000, // 60 seconds
 });

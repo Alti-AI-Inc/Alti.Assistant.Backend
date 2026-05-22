@@ -1,4 +1,4 @@
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { SafeGoogleGenerativeAIEmbeddings } from '../../../shared/embeddings.js';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { RAGSystem } from 'rag-system-pgvector';
 import { Storage } from '@google-cloud/storage';
@@ -30,9 +30,9 @@ const storage = new Storage({
 });
 
 // Initialize Gemini embeddings
-const embeddings = new GoogleGenerativeAIEmbeddings({
+const embeddings = new SafeGoogleGenerativeAIEmbeddings({
   apiKey: config.gemini_secret_key,
-  model: KNOWLEDGE_CONFIG.EMBEDDING_MODEL,
+  targetDimension: 768,
 });
 
 // Initialize Gemini LLM
@@ -56,7 +56,7 @@ const ragConfig = {
   embeddingDimensions: 768, // Gemini text-embedding-004 dimensions
 };
 
-const rag = new RAGSystem(ragConfig);
+export const rag = new RAGSystem(ragConfig);
 
 /**
  * Unified Knowledge Service

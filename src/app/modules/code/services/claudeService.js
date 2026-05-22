@@ -1,31 +1,32 @@
-import { anthropic } from '../llm.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import config from '../../../../config/index.js';
 
 /**
- * A generic function to interact with the Claude model for various coding tasks.
+ * A generic function to interact with Google Gemini 3.1 Pro for various coding tasks.
  * @param {string} systemPrompt - The system prompt to guide the model's behavior.
  * @param {Array<{role: 'user' | 'assistant', content: string}>} history - The conversation history.
  * @returns {Promise<string>} - The model's response.
  */
 async function runClaudeTask(systemPrompt, history) {
-  // Claude expects the history to alternate between user and assistant.
-  // We filter out any system messages from our internal history for the API call.
-  const messages = history
-    .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
-    .map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-latest',
-      system: systemPrompt,
-      max_tokens: 4096,
-      messages: messages,
+    const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-3.1-pro',
+      systemInstruction: systemPrompt,
     });
-    return response.content[0].text;
+
+    // Translate user and assistant roles to Gemini's expected user and model format
+    const contents = history
+      .filter((msg) => msg.role === 'user' || msg.role === 'assistant' || msg.role === 'model')
+      .map((msg) => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }],
+      }));
+
+    const result = await model.generateContent({ contents });
+    return result?.response?.text() || 'No reply generated';
   } catch (error) {
-    console.error('Error calling Anthropic API:', error);
+    console.error('Error calling Google Gemini API for coding task:', error);
     return 'Sorry, I encountered an error while processing your request with the coding model. Please try again.';
   }
 }
