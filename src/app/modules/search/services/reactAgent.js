@@ -97,58 +97,89 @@ Input: A natural language query about financial markets (e.g. "What is the curre
 
   const sportsBettingTool = new DynamicTool({
     name: 'predictiondata-sports-odds', // REACT_AGENT_V4_SPORTS
-    description: `Real-time sports betting odds, lines, player props, and statistics from PredictionData.io v4. Use this tool for ANY query involving:
+    description: `Real-time sports betting intelligence powered by PredictionData.io. Use for ANY query involving:
 
-**ODDS & LINES**
+**ODDS & LINES (live + pre-game)**
 - Moneyline, spread, over/under, alternate lines, live in-game lines
-- All periods: 1st half, 1st quarter/period, first 5 innings, etc.
-- Line movement (open vs current), implied probability, no-vig fair value odds (vig-free implied probability)
+- All bet periods: 1H, 2H, 1Q–4Q, 1P–3P, F1-F9, 1S-2S, REG
+- No-vig fair value odds, line movement (open vs current), implied probability
 
 **PLAYER PROPS — Auto-resolved by player name**
-- Detects player names (auto-resolved to correct league): "Mahomes passing yards" routes to NFL, "Jokic rebounds" routes to NBA
-- NFL: passing/rushing/receiving yards, TDs, receptions, completions, interceptions, sacks
-- NBA: points, rebounds, assists, 3-pointers, blocks, steals, double-double, triple-double
-- MLB: strikeouts, hits, home runs, RBIs, total bases, earned runs, pitcher outs
-- NHL: goals, assists, shots on goal, saves, points, blocked shots, powerplay points
-- UFC: method of victory, round betting, fight distance, significant strikes, takedowns
-- Golf: outright winner, top 5/top 10/top 20, make cut, head-to-head matchups, round score
-- Tennis: match winner, total games/sets, correct score, aces, double faults
+- Type a player name → automatically routes to correct league + props
+- NFL: pass/rush/rec yards, TDs, receptions, completions, sacks, INTs
+- NBA: points, rebounds, assists, 3PM, blocks, steals, double-double
+- MLB: Ks, hits, HRs, RBIs, total bases, ERA, pitcher outs
+- NHL: goals, assists, shots, saves, PPP, blocked shots
+- UFC: method of victory, round, fight distance, strikes, takedowns
+- Golf: outright winner, top 5/10/20, make cut, head-to-head, round score
+- Tennis: match winner, games/sets, correct score, aces, double faults
+- WNBA: points, rebounds, assists, 3PM, blocks, double-double
 - DFS: PrizePicks (385), Underdog Fantasy (387), Sleeper (595) alongside sportsbooks
 
-**FUTURES & CHAMPIONSHIPS (targeted)**
-- Super Bowl winner, NBA champion, Stanley Cup, World Series, Champions League
-- MVP, DPOY, Heisman, Cy Young, Calder, Hart Trophy awards
-- Season wins, make playoffs, conference/division winner
-- Specifics auto-targeted: "Super Bowl odds" returns ONLY Super Bowl Winner market
+**FUTURES & CHAMPIONSHIPS**
+- Auto-targeted: "Super Bowl odds" → ONLY Super Bowl Winner market
+- NFL: SB winner, MVP, DPOY, conference winners, division winners
+- NBA: Finals winner, MVP, DPOY, ROY, Sixth Man
+- MLB: World Series, Cy Young, MVP, Silver Slugger
+- NHL: Stanley Cup, Hart, Vezina, Calder, Conn Smythe
+- UFC: Weight class champions, fight of the year
+- Golf: Masters, US Open, The Open, PGA Championship outright winner
+- WNBA: Commissioner Trophy, Finals MVP, Regular Season MVP
 
 **SAME GAME PARLAY (SGP) — AUTO-PRICED**
-- Specify 2+ legs from the same game and the tool calls the SGP pricing API automatically
+- Specify 2+ legs from the same game → real combined odds from multiple books
 - Example: "Price SGP: Chiefs ML + Mahomes over 280.5 yds + Kelce over 6.5 rec"
-- Returns real combined odds from DraftKings, FanDuel, BetMGM, BetRivers with deeplinks
+
+**PARLAY BUILDER — MULTI-GAME**
+- Calculate combined odds for 2–12 legs across any games
+- Shows payout table for $10/$25/$50/$100 stakes
+- Example: "Build me a parlay: Chiefs -110, Lakers +105, Dodgers -130"
+
+**ARBITRAGE DETECTION**
+- Scans 11 books simultaneously for risk-free profit opportunities
+- Shows optimal stake allocation and guaranteed profit %
+- Example: "Find me arbitrage opportunities in the NFL tonight"
+
+**LINE MOVEMENT / STEAM DETECTION**
+- Tracks open → current odds delta — big moves = sharp money
+- Example: "Show me the biggest line movers for NBA tonight"
+
+**SHARP MONEY ANALYSIS**
+- Uses Pinnacle (sharpest book) as reference vs public book average
+- Divergence > 2¢ signals sharp side
+- Example: "Where is the sharp money in NFL this week?"
+
+**VALUE BETS (+EV)**
+- Compares book implied probability vs no-vig fair value
+- Surfaces markets with positive expected value edge
+- Example: "Find me +EV bets in the NBA tonight"
+
+**BEST AVAILABLE (Line Shopping)**
+- Compares odds across all 11 books to find best price per side
+- Example: "What's the best available odds for the Chiefs to win?"
+
+**MATCHUP ANALYSIS**
+- Side-by-side all odds for a specific game from all books
+- Example: "Chiefs vs Raiders matchup odds"
 
 **PREDICTION MARKETS**
-- Polymarket and Kalshi orderbook: bid/ask depth, best price, total volume
+- Polymarket and Kalshi bid/ask orderbook with volume
+- Example: "Polymarket odds on the NBA Finals"
 
-**Multi-Sport / All Games**
-- "All games tonight", "All sports today" fetches NFL + NBA + MLB + NHL + UFC simultaneously
+**MULTI-SPORT / ALL SPORTS**
+- "All games tonight" → NFL + NBA + MLB + NHL + UFC simultaneously
 
-**LIVE SCORES**
-- Real-time scores, current period/quarter/inning, game clock, 15-second refresh
+**LIVE SCORES + LIVE ODDS**
+- Real-time scores, period/quarter/inning, game clock
+- Auto-promoted from standard odds when games are in-progress
 
-**ALL SUPPORTED LEAGUES**
-NFL, NBA, MLB, NHL, UFC, MLS, EPL, Serie A, La Liga, Bundesliga, Ligue 1, Champions League, NCAA Football, NCAA Basketball, Golf (PGA/LIV), Tennis (ATP/WTA)
+**ALL LEAGUES**
+NFL • NBA • MLB • NHL • UFC • WNBA • MLS • EPL • La Liga • Bundesliga • Serie A • Ligue 1 • Champions League • NCAA FB • NCAA BB • Golf (PGA/LIV) • Tennis (ATP/WTA) • CFL • UFL • XFL
 
-**ALL SUPPORTED SPORTSBOOKS**
-FanDuel (100), DraftKings (200), Caesars (300), BetMGM (400), Pinnacle (250), ESPN Bet (700), bet365 (365), BetRivers (500), Betway (555), Bovada (643), Fanatics (722), LowVig (617), Novig (192), Circa (150), Sporttrade (448), PrizePicks (385), Underdog Fantasy (387), Sleeper (595)
+**ALL SPORTSBOOKS (18)**
+FanDuel (100) • DraftKings (200) • Caesars (300) • BetMGM (400) • Pinnacle (250) • ESPN Bet (700) • bet365 (365) • BetRivers (500) • Betway (555) • Bovada (643) • Fanatics (722) • LowVig (617) • Novig (192) • Circa (150) • Sporttrade (448) • PrizePicks (385) • Underdog Fantasy (387) • Sleeper (595)
 
-Input: Any natural language sports betting query. Examples:
-- "What is the Chiefs spread tonight?"
-- "Show me Nikola Jokic player props"
-- "Price SGP: Bills ML + Allen over 275 yds + Diggs over 5.5 rec"
-- "All games tonight across all sports"
-- "Super Bowl futures odds"
-- "Golf outright winner odds"
-- "Polymarket NBA Finals odds"`,
+Input: Any natural language sports betting query. The tool auto-detects intent, league, player name, and analysis mode.`,
     async func(query) {
       try {
         const result = await sportsSmartRouter.routeAndEnhancePrompt(query);
