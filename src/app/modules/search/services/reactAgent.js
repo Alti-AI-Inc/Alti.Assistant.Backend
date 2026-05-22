@@ -11,6 +11,7 @@ import {
 } from './geminiService.js';
 import { openMemoryClient } from '../../../shared/openMemoryClient.js';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
+import { sportsSmartRouter } from '../../../helpers/sportsSmartRouter.js';
 
 /**
  * ReAct Agent Service
@@ -94,8 +95,42 @@ Input: A natural language query about financial markets (e.g. "What is the curre
     },
   });
 
+  const sportsBettingTool = new DynamicTool({
+    name: 'predictiondata-sports-odds',
+    description: `Real-time sports betting odds, lines, and statistics from PredictionData.io. Use this tool for ANY query about:
+- Current betting odds (moneyline, spread, point spread, over/under, totals) for any sport
+- Player props: passing yards, rushing yards, receiving yards, touchdowns, receptions, strikeouts, home runs, points, rebounds, assists, goals, saves, shots, blocks, steals, etc.
+- Game props: team to score first, both teams to score (BTTS), UFC fight outcome, method of victory, fight distance, etc.
+- Futures odds: Super Bowl winner, NBA champion, Stanley Cup, World Series, MVP awards, Heisman Trophy, etc.
+- Same Game Parlay (SGP) pricing from DraftKings, FanDuel, BetMGM, BetRivers
+- Live in-game / in-progress game odds (live lines, live moneyline, live spread)
+- First half / 1st quarter / 1st period / first 5 innings odds (period betting)
+- Alternate lines (alternate spreads, alternate totals, alt lines)
+- Polymarket / Kalshi prediction market odds and orderbook depth
+- Line movement, steam moves, line changes (move_dir up/down indicators)
+- Implied probability from current odds
+- Game schedules, live scores, current period/clock, injury status
+- All leagues: NFL, NBA, MLB, NHL, NCAA Football, NCAA Basketball, UFC, MLS, EPL, Serie A, La Liga, Bundesliga, Ligue 1, Champions League, Golf, Tennis
+- All sportsbooks: FanDuel, DraftKings, Caesars, BetMGM, Pinnacle, ESPN Bet, BetRivers, bet365, Betway, Bovada, Fanatics, LowVig, Novig
+Input: A natural language query about sports betting (e.g. "What is the Chiefs spread tonight?", "Show me NBA player props for LeBron", "What are the Super Bowl futures odds?", "Give me Patrick Mahomes passing yards prop")`,
+    async func(query) {
+      try {
+        const result = await sportsSmartRouter.routeAndEnhancePrompt(query);
+        if (result && result !== query) {
+          const dataStart = result.indexOf('##');
+          if (dataStart !== -1) return result.slice(dataStart);
+          return result;
+        }
+        return `No sports betting data found for query: "${query}". This may not be a sports betting query, or the league may not be supported.`;
+      } catch (err) {
+        return `Sports odds lookup failed: ${err.message}`;
+      }
+    },
+  });
+
   const tools = [
     massiveFinancialTool,
+    sportsBettingTool,
     googleSearch,
     new WebBrowser({
       model: selectedLLM, // Use selected model
@@ -241,9 +276,15 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
 [CORE PRODUCT LAW - REAL-TIME INTELLIGENCE MANDATE]
 - This entire product is real-time accurate information, to the second, accurate data, for anything in the world.
 - Refusing to answer or saying "I do not have access to real-time information" is strictly forbidden.
-- You have active, real-time access to the internet via the "Google_Custom_Search" tool and "massiveService" API feeds.
-- For ANY query asking about dynamic facts, current sports schedules, next games, weather, stock prices, news, or recent events, YOU MUST INITIATE AT LEAST ONE "Google_Custom_Search" CALL IN YOUR VERY FIRST ITERATION.
-- Do NOT refuse to answer, and do NOT refer the user to official websites. You must search and retrieve the schedule details yourself.
+- You have active, real-time access to the internet via the "Google_Custom_Search" tool and live API feeds.
+- REAL-TIME DATA SOURCES AVAILABLE TO YOU:
+  * "massive-financial-data" tool → Massive.com (stocks, crypto, forex, options, commodities, indices)
+  * "predictiondata-sports-odds" tool → PredictionData.io (sports odds, props, futures, SGP, live lines, Polymarket/Kalshi)
+  * "Google_Custom_Search" tool → Live internet search
+- SPORTS BETTING TOOL DIRECTIVE: For ANY query about sports odds, betting lines, player props, futures, point spreads, totals, SGP, or prediction market odds, you MUST call the "predictiondata-sports-odds" tool FIRST before using Google Search.
+- FINANCIAL TOOL DIRECTIVE: For ANY query about stock prices, crypto, forex, or market data, you MUST call the "massive-financial-data" tool FIRST.
+- For ANY other dynamic facts, current schedules, next games, weather, news, or recent events, YOU MUST INITIATE AT LEAST ONE "Google_Custom_Search" CALL IN YOUR VERY FIRST ITERATION.
+- Do NOT refuse to answer, and do NOT refer the user to official websites. You must search and retrieve the information yourself.
 `;
   const reactSystemPrompt = `${messages[0].content}
 ${currentDateContext}

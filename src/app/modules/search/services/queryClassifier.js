@@ -4,6 +4,7 @@
  * Financial queries are priority-routed to Massive.com real-time data
  */
 import { detectFinancialIntent } from '../../../helpers/massiveTickerDB.js';
+import { detectSportsIntent } from '../../../helpers/sportsIntentDB.js';
 
 /**
  * Code-related keywords and patterns
@@ -827,6 +828,50 @@ export function classifyFinancialQuery(query) {
   };
 }
 
+/**
+ * Classify whether a query is a sports betting / real-time odds request.
+ * Returns { isSports, confidence, intentType, league }
+ * Mirrors classifyFinancialQuery — routes to PredictionData.io RAG.
+ */
+export function classifySportsQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isSports: false, confidence: 0, intentType: null, league: null };
+  }
+
+  const intent = detectSportsIntent(query);
+
+  if (!intent) {
+    return { isSports: false, confidence: 0, intentType: null, league: null };
+  }
+
+  // Confidence by intent type — sports betting data is highly specific
+  const confidenceMap = {
+    live_odds:         0.98,
+    odds:              0.95,
+    player_prop:       0.96,
+    game_prop:         0.93,
+    futures:           0.94,
+    schedule:          0.88,
+    sgp:               0.97,
+    prediction_market: 0.95,
+    alt_lines:         0.95,
+    period_odds:       0.94,
+  };
+
+  const confidence = confidenceMap[intent.type] || 0.85;
+
+  console.log(`\uD83C\uDFC8 Sports Classification:`);
+  console.log(`   Intent: ${intent.type} | League: ${intent.league || 'N/A'}`);
+  console.log(`   Confidence: ${(confidence * 100).toFixed(1)}%`);
+
+  return {
+    isSports: true,
+    confidence,
+    intentType: intent.type,
+    league: intent.league,
+  };
+}
+
 export default {
   classifyQuery,
   classifyQueryFast,
@@ -834,4 +879,5 @@ export default {
   isAskingForCodeExample,
   classifyWritingRequest,
   classifyFinancialQuery,
+  classifySportsQuery,
 };

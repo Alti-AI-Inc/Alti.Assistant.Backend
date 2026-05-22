@@ -1168,7 +1168,11 @@ const routeAndEnhancePrompt = async (prompt) => {
 // ─── Combined Orchestrator ───────────────────────────────────────────────────
 // Runs both financial (Massive.com) and sports (PredictionData.io) routers
 // in parallel and merges their context blocks into a single enriched prompt.
-// Use this everywhere instead of routeAndEnhancePrompt for full dual-data RAG.
+// All four cases are handled:
+//   both enriched   → merge financial + sports sections with clear separator
+//   sports only     → return sports-enriched prompt as-is
+//   financial only  → return financial-enriched prompt as-is
+//   neither         → return original prompt (no enrichment)
 const combinedRouteAndEnhancePrompt = async (prompt) => {
   const [financial, sports] = await Promise.allSettled([
     routeAndEnhancePrompt(prompt),
@@ -1176,20 +1180,70 @@ const combinedRouteAndEnhancePrompt = async (prompt) => {
   ]);
 
   const financialResult = financial.status === 'fulfilled' ? financial.value : prompt;
-  const sportsResult = sports.status === 'fulfilled' ? sports.value : prompt;
+  const sportsResult    = sports.status === 'fulfilled'    ? sports.value    : prompt;
 
   const financialEnriched = financialResult !== prompt;
-  const sportsEnriched = sportsResult !== prompt;
+  const sportsEnriched    = sportsResult    !== prompt;
 
+  // Case 1: Both routers enriched — create a merged dual-context block
   if (financialEnriched && sportsEnriched) {
-    // Both routers enriched — strip the user query from sports block and append
-    const sportsBlock = sportsResult.replace(
-      /^[\s\S]*?User Query:.*$/m, ''
-    ).trim();
-    return financialResult + (sportsBlock ? `\n\n${sportsBlock}` : '');
+    // Extract just the data sections from each (everything from first ## heading)
+    const extractDataBlock = (enriched) => {
+      const start = enriched.indexOf('##');
+      if (start === -1) return enriched;
+      // Stop at the mandatory rules section to avoid duplication
+      const rulesMarker = enriched.indexOf('━━━━━━━━━━━━━━', start + 1);
+      const lastMarker  = enriched.lastIndexOf('━━━━━━━━━━━━━━');
+      if (rulesMarker !== -1 && rulesMarker < lastMarker) {
+        return enriched.slice(start, rulesMarker).trim();
+      }
+      return enriched.slice(start).trim();
+    };
+
+    const financialBlock = extractDataBlock(financialResult);
+    const sportsBlock    = extractDataBlock(sportsResult);
+
+    const timestamp = new Date().toISOString();
+    return `[SYSTEM INSTRUCTION — ALTI DUAL REAL-TIME DATA CONTEXT]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINANCIAL DATA SOURCE: Massive.com
+SPORTS DATA SOURCE:    PredictionData.io
+TIMESTAMP:             ${timestamp}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+╔══════════════════════════════════════════════════════════════════╗
+║  📈 FINANCIAL MARKET DATA (Massive.com)                         ║
+╚══════════════════════════════════════════════════════════════════╝
+
+${financialBlock}
+
+╔══════════════════════════════════════════════════════════════════╗
+║  🏈 SPORTS BETTING DATA (PredictionData.io)                     ║
+╚══════════════════════════════════════════════════════════════════╝
+
+${sportsBlock}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MANDATORY RESPONSE RULES:
+▸ Cite "[Source: Massive.com]" for financial data, "[Source: PredictionData.io]" for sports data
+▸ Present ALL odds in **BOLD** (e.g. **-110**, **+130**)
+▸ Present ALL prices/values in **BOLD** (e.g. **$182.43**)
+▸ Use Markdown tables for comparisons, odds, and market data
+▸ NEVER fabricate, estimate, or hallucinate any odds, prices, or lines
+▸ Answer the user's EXACT question using ONLY the verified data above
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+User Query: ${prompt}`;
   }
-  if (sportsEnriched) return sportsResult;
-  return financialResult;
+
+  // Case 2: Sports only enriched
+  if (sportsEnriched)    return sportsResult;
+
+  // Case 3: Financial only enriched
+  if (financialEnriched) return financialResult;
+
+  // Case 4: Neither enriched
+  return prompt;
 };
 
 export const massiveSmartRouter = {

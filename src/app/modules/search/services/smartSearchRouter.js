@@ -1,6 +1,6 @@
 import { executeGroundedSearch } from './geminiGroundingService.js';
 import { executeToolBasedConversation } from './reactAgent.js';
-import { classifyFinancialQuery } from './queryClassifier.js';
+import { classifyFinancialQuery, classifySportsQuery } from './queryClassifier.js';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 
 /**
@@ -66,6 +66,16 @@ function analyzeQueryComplexity(query, conversationHistory = []) {
       'probability',
       'odds',
       'bet',
+      'spread',
+      'moneyline',
+      'over under',
+      'player prop',
+      'same game parlay',
+      'sgp',
+      'futures odds',
+      'betting line',
+      'sportsbook',
+      'parlay',
     ],
   };
 
@@ -115,7 +125,32 @@ export async function executeSmartSearch(
   conversationHistory = [],
   options = {}
 ) {
-  // ── PRIORITY 1: Financial queries get Massive.com real-time data first ──
+  // ── PRIORITY 1: Sports betting queries get PredictionData.io real-time data first ──
+  const sportsClass = classifySportsQuery(query);
+  if (sportsClass.isSports) {
+    console.log(`\n🏈 Sports query detected (${sportsClass.intentType}, ${(sportsClass.confidence * 100).toFixed(0)}% confidence) — routing to PredictionData.io [${sportsClass.league}]`);
+    try {
+      const enhancedQuery = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
+      if (enhancedQuery !== query) {
+        const result = await executeGroundedSearch(enhancedQuery, conversationHistory);
+        return {
+          answer: result.answer,
+          reference: result.reference || [],
+          citations: result.citations || [],
+          citationMetadata: {
+            ...result.citationMetadata,
+            method: 'predictiondata_sports_grounding',
+            sportsIntent: sportsClass.intentType,
+            league: sportsClass.league,
+          },
+        };
+      }
+    } catch (err) {
+      console.warn(`⚠️ PredictionData.io sports routing failed, continuing with standard search: ${err.message}`);
+    }
+  }
+
+  // ── PRIORITY 2: Financial queries get Massive.com real-time data ──
   const financialClass = classifyFinancialQuery(query);
   if (financialClass.isFinancial) {
     console.log(`\n💹 Financial query detected (${financialClass.intentType}, ${(financialClass.confidence * 100).toFixed(0)}% confidence) — routing to Massive.com`);

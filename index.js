@@ -27,6 +27,7 @@ import { logger } from './src/shared/logger.js';
 import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
 import { initializeCronJobs } from './src/app/cron/index.js';
 import { fetchStripeIps } from './src/shared/stripeSecurity.js';
+import { warmSportsCache } from './src/app/helpers/sportsDataCache.js';
 
 // Load environment variables
 dotenv.config();
@@ -140,6 +141,15 @@ const connectDB = (retries = 5, delay = 5000) => {
       fetchStripeIps().catch((err) =>
         logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err)
       );
+      // Start PredictionData.io background cache warming
+      setTimeout(() => {
+        try {
+          warmSportsCache();
+          logger.info('✅ PredictionData.io sports cache warming started');
+        } catch (err) {
+          logger.warn('⚠️ Sports cache warm failed to start:', err.message);
+        }
+      }, 3000); // 3s delay so DB + Redis are fully ready
     })
     .catch((err) => {
       logger.error(`❌ DB connection failed (${retries} retries left): ${err.message}`);
