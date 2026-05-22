@@ -814,6 +814,7 @@ export function classifyFinancialQuery(query) {
     news: 0.85,
     // New intent types
     compare: 0.97,
+    watchlist: 0.97,
     ipo_calendar: 0.96,
     analyst: 0.94,
     stock_financials: 0.95,

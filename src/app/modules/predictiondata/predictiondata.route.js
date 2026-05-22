@@ -427,6 +427,24 @@ router.post(
 
 
 
+
+/**
+ * GET /predictiondata/markets/futures
+ * Query: league, book_ids, prop_types (optional specific future type filter)
+ */
+router.get(
+  '/markets/futures',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      book_ids = '100,200,300,400,250',
+      prop_types = '',
+    } = req.query;
+    const data = await getFuturesMarketsService(league, book_ids, prop_types);
+    res.json({ markets: data, count: data.length, league, prop_types: prop_types || 'all' });
+  })
+);
+
 // ─── Book Comparison (all books for a specific game) ──────────────────────────
 
 /**

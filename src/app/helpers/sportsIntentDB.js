@@ -89,6 +89,9 @@ export const PLAYER_NAME_MAP = {
   'christian mccaffrey': 'NFL', 'derrick henry': 'NFL',
   'saquon barkley': 'NFL', 'josh jacobs': 'NFL',
   'breece hall': 'NFL', 'nick chubb': 'NFL', 'kelce': 'NFL',
+  'hurts': 'NFL', 'allen': 'NFL', 'burrow': 'NFL', 'henry': 'NFL',
+  'barkley': 'NFL', 'mccaffrey': 'NFL', 'purdy': 'NFL', 'lamb': 'NFL',
+  'diggs': 'NFL', 'hill': 'NFL', 'jefferson': 'NFL',
   // NBA stars
   'lebron': 'NBA', 'lebron james': 'NBA',
   'stephen curry': 'NBA', 'steph curry': 'NBA',
@@ -148,6 +151,13 @@ export const PLAYER_NAME_MAP = {
   'iga swiatek': 'TENNIS', 'swiatek': 'TENNIS',
   'aryna sabalenka': 'TENNIS', 'sabalenka': 'TENNIS',
   'coco gauff': 'TENNIS', 'gauff': 'TENNIS',
+  // Golf shortcuts
+  'scheffler': 'GOLF', 'mcilroy': 'GOLF', 'morikawa': 'GOLF', 'schauffele': 'GOLF',
+  // NBA shortcuts
+  'haliburton': 'NBA', 'booker': 'NBA', 'lillard': 'NBA', 'brunson': 'NBA',
+  // MLB shortcuts
+  'strider': 'MLB', 'glasnow': 'MLB', 'skenes': 'MLB', 'cole': 'MLB',
+  'betts': 'MLB', 'alvarez': 'MLB', 'soto': 'MLB', 'freeman': 'MLB',
 };
 
 

@@ -65,6 +65,8 @@ import {
   LEAGUE_PROP_TYPES,
   LEAGUE_FUTURES_TYPES,
   PLAYER_NAME_MAP,
+  MULTI_LEAGUE_ACTIVE,
+  BROADCAST_KEYWORDS,
 } from './sportsIntentDB.js';
 
 // ─── Cache TTLs (seconds) ─────────────────────────────────────────────────────
@@ -1228,7 +1230,7 @@ const routeAndEnhancePrompt = async (prompt) => {
 
     // ── MULTI-LEAGUE (all games tonight / all sports) ────────────────────
     if (type === 'multi_league') {
-      const queryLeagues = extra.leagues || ['NFL', 'NBA', 'MLB', 'NHL'];
+      const queryLeagues = extra.leagues || MULTI_LEAGUE_ACTIVE || ['NFL', 'NBA', 'MLB', 'NHL'];
       logger.info(`[SportsRouter] Multi-league query: ${queryLeagues.join(', ')}`);
 
       const allBlocks = await Promise.allSettled(

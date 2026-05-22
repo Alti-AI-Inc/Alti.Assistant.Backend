@@ -35,7 +35,7 @@ const getApiKey = () =>
   (process.env.PREDICTIONDATA_API_KEY || '').replace(/^\uFEFF+/, '').trim();
 
 // ─── Corrected Book IDs (from official spec) ─────────────────────────────────
-export const BOOK_IDS = {
+const BOOK_IDS = {
   FANDUEL:     100,
   DRAFTKINGS:  200,
   CAESARS:     300,

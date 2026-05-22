@@ -941,6 +941,16 @@ export function detectFinancialIntent(prompt) {
     }
   }
 
+  // 0a. WATCHLIST / BATCH QUOTES — detect 3+ tickers or watchlist keywords
+  const watchlistKeywords = ['watchlist', 'watch list', 'quotes for', 'prices of', 'quotes of', 'track', 'portfolio tracker', 'ticker list', 'symbol list'];
+  const hasWatchlistKeyword = watchlistKeywords.some(k => q.includes(k));
+  const allTickers = detectAllTickers(prompt);
+  if (hasWatchlistKeyword || (allTickers.length >= 3 && !hasCompare)) {
+    if (allTickers.length > 0) {
+      return { type: 'watchlist', symbols: allTickers.map(m => m.symbol), tickers: allTickers };
+    }
+  }
+
   // 0b. IPO CALENDAR
   const ipoKeywords = ['ipo', 'upcoming ipo', 'ipo calendar', 'going public', 'initial public offering', 'new ipo', 'ipo this week', 'ipo next week'];
   if (ipoKeywords.some(k => q.includes(k))) {
@@ -1308,3 +1318,75 @@ export function detectMultipleTickers(prompt) {
 
   return found;
 }
+
+/**
+ * Detect up to 10 tickers in a prompt (for watchlist/batch queries)
+ */
+export function detectAllTickers(prompt) {
+  const q = prompt.toLowerCase();
+  const found = [];
+  const seenSymbols = new Set();
+
+  const addUnique = (symbol, type) => {
+    const s = symbol.toUpperCase().trim();
+    if (!seenSymbols.has(s)) {
+      seenSymbols.add(s);
+      found.push({ symbol: s, type });
+    }
+  };
+
+  // 1. Dollar-sign tickers ($AAPL)
+  const dollarMatches = [...prompt.matchAll(/\$([A-Z]{1,5})\b/g)];
+  dollarMatches.forEach(m => {
+    addUnique(m[1], 'stock');
+  });
+
+  // 2. Explicit bare tickers (words in ALL CAPS 2-5 chars matching stock or ETF maps)
+  const bareMatches = [...prompt.matchAll(/\b([A-Z]{2,5})\b/g)];
+  const allKnownTickers = new Set([
+    ...Object.values(STOCK_NAME_MAP),
+    ...Object.values(ETF_NAME_MAP),
+  ]);
+  bareMatches.forEach(m => {
+    const sym = m[1].toUpperCase();
+    if (allKnownTickers.has(sym)) {
+      addUnique(sym, 'stock');
+    }
+  });
+
+  // 3. Stock names from STOCK_NAME_MAP
+  const sortedStockNames = Object.entries(STOCK_NAME_MAP).sort((a, b) => b[0].length - a[0].length);
+  for (const [name, sym] of sortedStockNames) {
+    if (found.length >= 10) break;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx = new RegExp(`\\b${escaped}\\b`, 'i');
+    if (rx.test(q)) {
+      addUnique(sym, 'stock');
+    }
+  }
+
+  // 4. ETF names from ETF_NAME_MAP
+  const sortedEtfNames = Object.entries(ETF_NAME_MAP).sort((a, b) => b[0].length - a[0].length);
+  for (const [name, sym] of sortedEtfNames) {
+    if (found.length >= 10) break;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx = new RegExp(`\\b${escaped}\\b`, 'i');
+    if (rx.test(q)) {
+      addUnique(sym, 'etf');
+    }
+  }
+
+  // 5. Crypto names from CRYPTO_NAME_MAP
+  const sortedCryptoNames = Object.entries(CRYPTO_NAME_MAP).sort((a, b) => b[0].length - a[0].length);
+  for (const [name, sym] of sortedCryptoNames) {
+    if (found.length >= 10) break;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx = new RegExp(`\\b${escaped}\\b`, 'i');
+    if (rx.test(q)) {
+      addUnique(sym, 'crypto');
+    }
+  }
+
+  return found.slice(0, 10);
+}
+

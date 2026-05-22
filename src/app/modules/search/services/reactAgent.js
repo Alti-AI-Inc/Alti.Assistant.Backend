@@ -96,23 +96,59 @@ Input: A natural language query about financial markets (e.g. "What is the curre
   });
 
   const sportsBettingTool = new DynamicTool({
-    name: 'predictiondata-sports-odds',
-    description: `Real-time sports betting odds, lines, and statistics from PredictionData.io. Use this tool for ANY query about:
-- Current betting odds (moneyline, spread, point spread, over/under, totals) for any sport
-- Player props: passing yards, rushing yards, receiving yards, touchdowns, receptions, strikeouts, home runs, points, rebounds, assists, goals, saves, shots, blocks, steals, etc.
-- Game props: team to score first, both teams to score (BTTS), UFC fight outcome, method of victory, fight distance, etc.
-- Futures odds: Super Bowl winner, NBA champion, Stanley Cup, World Series, MVP awards, Heisman Trophy, etc.
-- Same Game Parlay (SGP) pricing from DraftKings, FanDuel, BetMGM, BetRivers
-- Live in-game / in-progress game odds (live lines, live moneyline, live spread)
-- First half / 1st quarter / 1st period / first 5 innings odds (period betting)
-- Alternate lines (alternate spreads, alternate totals, alt lines)
-- Polymarket / Kalshi prediction market odds and orderbook depth
-- Line movement, steam moves, line changes (move_dir up/down indicators)
-- Implied probability from current odds
-- Game schedules, live scores, current period/clock, injury status
-- All leagues: NFL, NBA, MLB, NHL, NCAA Football, NCAA Basketball, UFC, MLS, EPL, Serie A, La Liga, Bundesliga, Ligue 1, Champions League, Golf, Tennis
-- All sportsbooks: FanDuel, DraftKings, Caesars, BetMGM, Pinnacle, ESPN Bet, BetRivers, bet365, Betway, Bovada, Fanatics, LowVig, Novig
-Input: A natural language query about sports betting (e.g. "What is the Chiefs spread tonight?", "Show me NBA player props for LeBron", "What are the Super Bowl futures odds?", "Give me Patrick Mahomes passing yards prop")`,
+    name: 'predictiondata-sports-odds', // REACT_AGENT_V4_SPORTS
+    description: `Real-time sports betting odds, lines, player props, and statistics from PredictionData.io v4. Use this tool for ANY query involving:
+
+**ODDS & LINES**
+- Moneyline, spread, over/under, alternate lines, live in-game lines
+- All periods: 1st half, 1st quarter/period, first 5 innings, etc.
+- Line movement (open vs current), implied probability, no-vig fair value odds (vig-free implied probability)
+
+**PLAYER PROPS — Auto-resolved by player name**
+- Detects player names (auto-resolved to correct league): "Mahomes passing yards" routes to NFL, "Jokic rebounds" routes to NBA
+- NFL: passing/rushing/receiving yards, TDs, receptions, completions, interceptions, sacks
+- NBA: points, rebounds, assists, 3-pointers, blocks, steals, double-double, triple-double
+- MLB: strikeouts, hits, home runs, RBIs, total bases, earned runs, pitcher outs
+- NHL: goals, assists, shots on goal, saves, points, blocked shots, powerplay points
+- UFC: method of victory, round betting, fight distance, significant strikes, takedowns
+- Golf: outright winner, top 5/top 10/top 20, make cut, head-to-head matchups, round score
+- Tennis: match winner, total games/sets, correct score, aces, double faults
+- DFS: PrizePicks (385), Underdog Fantasy (387), Sleeper (595) alongside sportsbooks
+
+**FUTURES & CHAMPIONSHIPS (targeted)**
+- Super Bowl winner, NBA champion, Stanley Cup, World Series, Champions League
+- MVP, DPOY, Heisman, Cy Young, Calder, Hart Trophy awards
+- Season wins, make playoffs, conference/division winner
+- Specifics auto-targeted: "Super Bowl odds" returns ONLY Super Bowl Winner market
+
+**SAME GAME PARLAY (SGP) — AUTO-PRICED**
+- Specify 2+ legs from the same game and the tool calls the SGP pricing API automatically
+- Example: "Price SGP: Chiefs ML + Mahomes over 280.5 yds + Kelce over 6.5 rec"
+- Returns real combined odds from DraftKings, FanDuel, BetMGM, BetRivers with deeplinks
+
+**PREDICTION MARKETS**
+- Polymarket and Kalshi orderbook: bid/ask depth, best price, total volume
+
+**Multi-Sport / All Games**
+- "All games tonight", "All sports today" fetches NFL + NBA + MLB + NHL + UFC simultaneously
+
+**LIVE SCORES**
+- Real-time scores, current period/quarter/inning, game clock, 15-second refresh
+
+**ALL SUPPORTED LEAGUES**
+NFL, NBA, MLB, NHL, UFC, MLS, EPL, Serie A, La Liga, Bundesliga, Ligue 1, Champions League, NCAA Football, NCAA Basketball, Golf (PGA/LIV), Tennis (ATP/WTA)
+
+**ALL SUPPORTED SPORTSBOOKS**
+FanDuel (100), DraftKings (200), Caesars (300), BetMGM (400), Pinnacle (250), ESPN Bet (700), bet365 (365), BetRivers (500), Betway (555), Bovada (643), Fanatics (722), LowVig (617), Novig (192), Circa (150), Sporttrade (448), PrizePicks (385), Underdog Fantasy (387), Sleeper (595)
+
+Input: Any natural language sports betting query. Examples:
+- "What is the Chiefs spread tonight?"
+- "Show me Nikola Jokic player props"
+- "Price SGP: Bills ML + Allen over 275 yds + Diggs over 5.5 rec"
+- "All games tonight across all sports"
+- "Super Bowl futures odds"
+- "Golf outright winner odds"
+- "Polymarket NBA Finals odds"`,
     async func(query) {
       try {
         const result = await sportsSmartRouter.routeAndEnhancePrompt(query);
