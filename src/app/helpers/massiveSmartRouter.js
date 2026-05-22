@@ -30,6 +30,7 @@ import {
   getStocksSnapshotTickersService,
   getTickerDetailsService,
   getPreviousCloseService,
+  getStockAggregatesService,
   getStockFinancialsRatiosService,
   getStockIncomeStatementService,
   getStockBalanceSheetsService,
@@ -1620,6 +1621,248 @@ const routeAndEnhancePrompt = async (prompt) => {
         }
         return buildPrompt(prompt, block, 'Massive.com Portfolio Valuation Service');
       }
+    }
+
+    // ── PRICE CHART / OHLCV HISTORY ───────────────────────────────────────
+    // Handles: stocks, crypto, and forex chart queries
+    if (intent.type === 'chart' && intent.symbol) {
+      const sym    = intent.symbol;
+      const period = intent.period  || { days: 30, timespan: 'day', label: '30 Days' };
+      const asset  = intent.assetType || 'stock';
+
+      // Calculate date range
+      const toDate   = new Date().toISOString().split('T')[0];
+      const fromDate = new Date(Date.now() - period.days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      let bars = null;
+      let label = sym;
+
+      if (asset === 'crypto') {
+        const fullSym = sym.startsWith('X:') ? sym : `X:${sym}USD`;
+        bars = await safe(getCryptoAggregatesService(fullSym, { timespan: period.timespan, limit: Math.min(period.days, 60) }), 8000);
+        label = sym.replace('X:', '').replace('USD', '') + '/USD';
+      } else if (asset === 'forex') {
+        const pair = sym.startsWith('C:') ? sym : `C:${sym}`;
+        bars = await safe(getForexAggregatesService(pair, { timespan: period.timespan, limit: Math.min(period.days, 60) }), 8000);
+        label = pair.replace('C:', '').slice(0, 3) + '/' + pair.replace('C:', '').slice(3, 6);
+      } else {
+        // Stock / ETF
+        const [aggData, details] = await Promise.allSettled([
+          safe(getStockAggregatesService({ ticker: sym, timespan: period.timespan, from: fromDate, to: toDate }), 8000),
+          safe(getTickerDetailsService(sym)),
+        ]);
+        bars = aggData.status === 'fulfilled' ? aggData.value?.results || aggData.value : null;
+        const d = details.status === 'fulfilled' ? details.value : null;
+        if (d?.name) label = `${d.name} (${sym})`;
+      }
+
+      const results = Array.isArray(bars) ? bars : bars?.results || [];
+
+      let block = `## 📈 ${label} — Price History (${period.label})\n\n`;
+
+      if (results.length > 0) {
+        // Summary stats
+        const prices   = results.map(r => r.c).filter(Boolean);
+        const highs    = results.map(r => r.h).filter(Boolean);
+        const lows     = results.map(r => r.l).filter(Boolean);
+        const volumes  = results.map(r => r.v).filter(Boolean);
+        const open     = results[0]?.o;
+        const latest   = results[results.length - 1]?.c;
+        const high     = Math.max(...highs);
+        const low      = Math.min(...lows);
+        const change   = open && latest ? ((latest - open) / open * 100) : null;
+        const avgVol   = volumes.length > 0 ? volumes.reduce((a, b) => a + b, 0) / volumes.length : null;
+
+        block += `### Summary (${period.label})\n| Metric | Value |\n|--------|-------|\n`;
+        if (open)   block += `| Period Open  | **$${open.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}** |\n`;
+        if (latest) block += `| Period Close | **$${latest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}** |\n`;
+        if (high)   block += `| Period High  | $${high.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} |\n`;
+        if (low)    block += `| Period Low   | $${low.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} |\n`;
+        if (change !== null) {
+          const dir = change >= 0 ? '📈 +' : '📉 ';
+          block += `| Period Return | **${dir}${change.toFixed(2)}%** |\n`;
+        }
+        if (avgVol) block += `| Avg Daily Volume | ${(avgVol / 1e6).toFixed(2)}M |\n`;
+        block += `| Data Points | ${results.length} bars (${period.timespan}) |\n`;
+
+        // OHLCV table (last 10 bars)
+        const display = results.slice(-Math.min(results.length, 15)).reverse();
+        block += `\n### Recent OHLCV Data (Latest ${display.length} Bars)\n`;
+        block += `| Date | Open | High | Low | Close | Volume |\n|------|------|------|-----|-------|--------|\n`;
+        display.forEach(r => {
+          const date = r.t ? new Date(r.t).toISOString().split('T')[0] : 'N/A';
+          const o = r.o?.toFixed(2) || 'N/A';
+          const h = r.h?.toFixed(2) || 'N/A';
+          const l = r.l?.toFixed(2) || 'N/A';
+          const c = r.c?.toFixed(2) || 'N/A';
+          const v = r.v ? (r.v >= 1e6 ? `${(r.v / 1e6).toFixed(1)}M` : r.v.toLocaleString()) : 'N/A';
+          const prevClose = results.find(x => x.t < r.t)?.c;
+          const candleDir = r.c && r.o ? (r.c >= r.o ? '🟢' : '🔴') : '⚪';
+          block += `| ${date} | ${o} | ${h} | ${l} | **${candleDir} ${c}** | ${v} |\n`;
+        });
+
+        // Trend narrative
+        if (change !== null) {
+          const narrative = change > 10 ? '🚀 Strong uptrend' : change > 3 ? '📈 Moderate uptrend'
+            : change > -3 ? '↔️ Sideways / flat' : change > -10 ? '📉 Moderate downtrend' : '🔻 Strong downtrend';
+          block += `\n> **${period.label} Trend:** ${narrative} (${change >= 0 ? '+' : ''}${change.toFixed(2)}%)\n`;
+        }
+      } else {
+        block += `*No historical data available for ${sym} over the requested period.*\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com OHLCV Price History — ${label} (${period.label})`);
+    }
+
+    // ── DIVIDEND CALENDAR ─────────────────────────────────────────────────
+    if (intent.type === 'dividend_calendar' && intent.symbol) {
+      const sym = intent.symbol;
+      const [divs, ratios, details, quote] = await Promise.allSettled([
+        safe(getDividendsService(sym)),
+        safe(getStockFinancialsRatiosService(sym)),
+        safe(getTickerDetailsService(sym)),
+        safe(getStockQuoteService(sym)),
+      ]);
+      const dividends  = divs.status    === 'fulfilled' ? divs.value    : null;
+      const r          = ratios.status  === 'fulfilled' ? ratios.value  : null;
+      const d          = details.status === 'fulfilled' ? details.value : null;
+      const q          = quote.status   === 'fulfilled' ? quote.value   : null;
+
+      let block = `## 💰 ${sym} — Dividend History & Calendar\n\n`;
+      if (d?.name) block += `**${d.name}**\n\n`;
+
+      // Current yield
+      const price = q?.trade?.p;
+      block += `### Current Dividend Data\n| Metric | Value |\n|--------|-------|\n`;
+      if (r?.dividend_yield) block += `| Annual Dividend Yield | **${(r.dividend_yield * 100).toFixed(2)}%** |\n`;
+      if (r?.dividend_per_share) block += `| Annual Dividend Per Share | **$${r.dividend_per_share.toFixed(4)}** |\n`;
+      if (price) block += `| Current Price | $${price.toLocaleString()} |\n`;
+
+      const divResults = Array.isArray(dividends) ? dividends : dividends?.results || [];
+      if (divResults.length > 0) {
+        // Frequency detection
+        const quarters = divResults.filter(d => d.pay_date || d.ex_dividend_date).length;
+        const frequency = quarters >= 8 ? 'Quarterly' : quarters >= 4 ? 'Semi-Annual' : quarters >= 2 ? 'Annual' : 'Variable';
+        block += `| Payment Frequency | **${frequency}** |\n`;
+
+        // Annualized from last 4 payments
+        const lastFour = divResults.slice(0, 4);
+        const annualized = lastFour.reduce((sum, d) => sum + (d.cash_amount || 0), 0);
+        if (annualized > 0) {
+          block += `| Annualized (TTM) | **$${annualized.toFixed(4)} per share** |\n`;
+          if (price) block += `| Effective Yield (TTM) | **${(annualized / price * 100).toFixed(2)}%** |\n`;
+        }
+
+        // History table
+        block += `\n### Dividend Payment History\n| Ex-Date | Pay Date | Amount | Frequency |\n|---------|----------|--------|----------|\n`;
+        divResults.slice(0, 8).forEach(d => {
+          const exDate  = d.ex_dividend_date || d.record_date || 'N/A';
+          const payDate = d.pay_date || 'N/A';
+          const amt     = d.cash_amount ? `**$${d.cash_amount.toFixed(4)}**` : 'N/A';
+          const freq    = d.frequency === 4 ? 'Quarterly' : d.frequency === 2 ? 'Semi-Annual' : d.frequency === 1 ? 'Annual' : frequency;
+          block += `| ${exDate} | ${payDate} | ${amt} | ${freq} |\n`;
+        });
+
+        // Growth trend
+        if (divResults.length >= 4) {
+          const oldest = divResults[divResults.length - 1]?.cash_amount;
+          const newest = divResults[0]?.cash_amount;
+          if (oldest && newest && oldest !== newest) {
+            const growth = ((newest - oldest) / oldest * 100);
+            const dir = growth >= 0 ? '📈 +' : '📉 ';
+            block += `\n> **Dividend Trend:** ${dir}${growth.toFixed(1)}% over last ${divResults.length} payments\n`;
+          }
+        }
+      } else {
+        block += `\n> *${sym} does not appear to pay dividends, or dividend data is unavailable.*\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Dividend Calendar & History — ${sym}`);
+    }
+
+    // ── OPTIONS CONTRACT DETAIL ───────────────────────────────────────────
+    // Specific contract lookup: "AAPL call options expiring June", "TSLA puts near 200 strike"
+    if (intent.type === 'options_contract' && intent.symbol) {
+      const sym = intent.symbol;
+      const q_lower = prompt.toLowerCase();
+
+      // Parse type filter from query
+      const contractType = q_lower.includes('put') ? 'put' : q_lower.includes('call') ? 'call' : null;
+
+      // Parse strike hint from query (e.g. "$200", "200 strike", "250")
+      const strikeMatch = prompt.match(/\$?(\d{2,4}(?:\.\d+)?)\s*(?:strike|call|put)?/);
+      const strikeHint  = strikeMatch ? parseFloat(strikeMatch[1]) : null;
+
+      // Parse expiry from query (e.g. "June", "June 20", "2025-06-20")
+      const monthMap = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+        jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+      let expiryHint = null;
+      for (const [mon, num] of Object.entries(monthMap)) {
+        if (q_lower.includes(mon)) { expiryHint = `2026-${num}`; break; }
+      }
+
+      const [chain, quote, details] = await Promise.allSettled([
+        safe(getOptionsChainFilteredService(sym, {
+          type:       contractType || undefined,
+          expiration: expiryHint   || undefined,
+          limit:      20,
+        }), 10000),
+        safe(getStockQuoteService(sym)),
+        safe(getTickerDetailsService(sym)),
+      ]);
+
+      const contracts = chain.status   === 'fulfilled' ? (chain.value?.results || chain.value || []) : [];
+      const q2        = quote.status   === 'fulfilled' ? quote.value   : null;
+      const d         = details.status === 'fulfilled' ? details.value : null;
+
+      let block = `## 🎯 ${sym} Options${contractType ? ` — ${contractType.toUpperCase()}S` : ''}\n\n`;
+      if (d?.name) block += `**${d.name}**\n`;
+      if (q2?.trade?.p) block += `**Underlying Price:** $${q2.trade.p.toLocaleString()}\n\n`;
+
+      // Filter by strike proximity if hint given
+      let filtered = contracts;
+      if (strikeHint && contracts.length > 0) {
+        filtered = contracts
+          .filter(c => c.details?.strike_price)
+          .sort((a, b) => Math.abs(a.details.strike_price - strikeHint) - Math.abs(b.details.strike_price - strikeHint))
+          .slice(0, 15);
+      }
+
+      if (filtered.length > 0) {
+        block += `### Contract List${strikeHint ? ` (Near $${strikeHint} Strike)` : ''}\n`;
+        block += `| Expiry | Strike | Type | Bid | Ask | Last | Volume | OI | IV |\n`;
+        block += `|--------|--------|------|-----|-----|------|--------|----|----||\n`;
+        filtered.slice(0, 12).forEach(c => {
+          const det  = c.details || c;
+          const day  = c.day || {};
+          const greeks = c.greeks || {};
+          const expiry = det.expiration_date || 'N/A';
+          const strike = det.strike_price ? `$${det.strike_price}` : 'N/A';
+          const type   = (det.contract_type || det.type || 'N/A').toUpperCase().charAt(0) === 'C' ? 'CALL' : 'PUT';
+          const bid    = day.bid !== undefined ? `$${day.bid?.toFixed(2)}` : 'N/A';
+          const ask    = day.ask !== undefined ? `$${day.ask?.toFixed(2)}` : 'N/A';
+          const last   = day.last_price !== undefined ? `**$${day.last_price?.toFixed(2)}**` : 'N/A';
+          const vol    = day.volume !== undefined ? day.volume.toLocaleString() : 'N/A';
+          const oi     = c.open_interest !== undefined ? c.open_interest.toLocaleString() : 'N/A';
+          const iv     = c.implied_volatility !== undefined ? `${(c.implied_volatility * 100).toFixed(1)}%` : 'N/A';
+          block += `| ${expiry} | **${strike}** | ${type} | ${bid} | ${ask} | ${last} | ${vol} | ${oi} | ${iv} |\n`;
+        });
+
+        // If we have Greeks, show them for the closest-to-ATM contract
+        const atm = filtered[0];
+        if (atm?.greeks) {
+          const g = atm.greeks;
+          block += `\n### Greeks — ${atm.details?.expiration_date} $${atm.details?.strike_price} ${(atm.details?.contract_type || '').toUpperCase()}\n`;
+          block += `| Greek | Value | Meaning |\n|-------|-------|---------|\n`;
+          if (g.delta !== undefined) block += `| Delta | **${g.delta?.toFixed(4)}** | Price sensitivity to $1 underlying move |\n`;
+          if (g.gamma !== undefined) block += `| Gamma | ${g.gamma?.toFixed(6)} | Delta change per $1 underlying move |\n`;
+          if (g.theta !== undefined) block += `| Theta | **${g.theta?.toFixed(4)}** | Daily time decay (negative = losing value) |\n`;
+          if (g.vega  !== undefined) block += `| Vega  | ${g.vega?.toFixed(4)} | Price sensitivity to 1% IV change |\n`;
+          if (g.rho   !== undefined) block += `| Rho   | ${g.rho?.toFixed(4)} | Sensitivity to interest rate change |\n`;
+        }
+      } else {
+        block += `*No options contracts found for ${sym}${contractType ? ` (${contractType}s)` : ''}${expiryHint ? ` expiring ${expiryHint}` : ''}.*\n`;
+        block += `> Try asking for the full options chain: "Show me ${sym} options chain"\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Options Contract Detail — ${sym}`);
     }
 
   } catch (err) {

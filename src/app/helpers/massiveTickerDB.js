@@ -1080,6 +1080,44 @@ export function detectFinancialIntent(prompt) {
     if (holdings.length >= 2) return { type: 'portfolio', holdings };
   }
 
+  // 6k. Chart / price history check — "AAPL chart", "bitcoin last week", "show me NVDA history"
+  const chartKeywords = [
+    'chart', 'price history', 'historical price', 'ohlcv', 'candle',
+    'last week', 'last month', 'last 30 days', 'last 7 days', 'past week',
+    'past month', '30 day', '7 day', 'ytd', 'year to date', 'price over',
+    'how has', 'performance over', 'trend over', 'historical data',
+  ];
+  const hasChartKeyword = chartKeywords.some(k => q.includes(k));
+
+  // Parse period from query for chart intent
+  const parsePeriod = () => {
+    if (q.includes('1 day') || q.includes('today')) return { days: 1, timespan: 'hour', label: '1 Day' };
+    if (q.includes('1 week') || q.includes('last week') || q.includes('past week') || q.includes('7 day')) return { days: 7, timespan: 'day', label: '7 Days' };
+    if (q.includes('1 month') || q.includes('last month') || q.includes('past month') || q.includes('30 day')) return { days: 30, timespan: 'day', label: '30 Days' };
+    if (q.includes('3 month') || q.includes('quarter') || q.includes('90 day')) return { days: 90, timespan: 'day', label: '3 Months' };
+    if (q.includes('6 month') || q.includes('half year')) return { days: 180, timespan: 'week', label: '6 Months' };
+    if (q.includes('1 year') || q.includes('ytd') || q.includes('year to date') || q.includes('12 month')) return { days: 365, timespan: 'week', label: '1 Year' };
+    if (q.includes('5 year')) return { days: 1825, timespan: 'month', label: '5 Years' };
+    return { days: 30, timespan: 'day', label: '30 Days' }; // default
+  };
+
+  // 6l. Specific options contract — "AAPL $200 call June 20", "TSLA put 250 strike"
+  const optionsContractKeywords = [
+    'call option', 'put option', 'strike price', 'expiry', 'expiration',
+    'options contract', 'specific contract', 'buy call', 'buy put',
+    'sell call', 'sell put', 'atm', 'itm', 'otm', 'at the money',
+    'in the money', 'out of the money',
+  ];
+  const hasOptionsContractKeyword = optionsContractKeywords.some(k => q.includes(k));
+
+  // 6m. Dividend calendar / yield check
+  const dividendCalendarKeywords = [
+    'dividend yield', 'dividend calendar', 'ex-dividend', 'ex dividend',
+    'dividend date', 'pay date', 'record date', 'dividend payment',
+    'annual dividend', 'quarterly dividend', 'dividend history',
+  ];
+  const hasDividendCalendarKeyword = dividendCalendarKeywords.some(k => q.includes(k));
+
   // 6f. Currency conversion with amount: "convert 1000 EUR to USD", "how much is 500 GBP in JPY"
   const convertMatch = prompt.match(/(?:convert|exchange|how much is)\s+([\d,]+(?:\.\d+)?)\s+([A-Z]{3})\s+(?:to|in|into)\s+([A-Z]{3})/i);
   if (convertMatch) {
@@ -1093,18 +1131,21 @@ export function detectFinancialIntent(prompt) {
   const dollarMatch = prompt.match(/\$([A-Z]{1,5})\b/);
   if (dollarMatch) {
     const sym = dollarMatch[1].toUpperCase();
-    if (hasAnalyst)         return { type: 'analyst',           symbol: sym };
-    if (hasFinancials)      return { type: 'stock_financials',  symbol: sym };
-    if (hasIncome)          return { type: 'income_statement',  symbol: sym };
-    if (hasBalance)         return { type: 'balance_sheet',     symbol: sym };
-    if (hasFloatKeyword)    return { type: 'float',             symbol: sym };
-    if (hasSplitsKeyword)   return { type: 'splits',            symbol: sym };
-    if (hasPremarketKeyword)return { type: 'premarket',         symbol: sym };
-    if (hasOptionsKeyword)  return { type: 'options',           symbol: sym };
-    if (hasTechnicalKeyword)return { type: 'technical',         symbol: sym };
-    if (has52WeekKeyword)   return { type: 'week52',            symbol: sym };
-    if (hasDividendKeyword) return { type: 'dividend',          symbol: sym };
-    if (hasShortInterestKeyword) return { type: 'short_interest', symbol: sym };
+    if (hasAnalyst)              return { type: 'analyst',           symbol: sym };
+    if (hasFinancials)           return { type: 'stock_financials',  symbol: sym };
+    if (hasIncome)               return { type: 'income_statement',  symbol: sym };
+    if (hasBalance)              return { type: 'balance_sheet',     symbol: sym };
+    if (hasFloatKeyword)         return { type: 'float',             symbol: sym };
+    if (hasSplitsKeyword)        return { type: 'splits',            symbol: sym };
+    if (hasPremarketKeyword)     return { type: 'premarket',         symbol: sym };
+    if (hasDividendCalendarKeyword) return { type: 'dividend_calendar', symbol: sym };
+    if (hasChartKeyword)         return { type: 'chart',             symbol: sym, assetType: 'stock', period: parsePeriod() };
+    if (hasOptionsContractKeyword)  return { type: 'options_contract',  symbol: sym };
+    if (hasOptionsKeyword)       return { type: 'options',           symbol: sym };
+    if (hasTechnicalKeyword)     return { type: 'technical',         symbol: sym };
+    if (has52WeekKeyword)        return { type: 'week52',            symbol: sym };
+    if (hasDividendKeyword)      return { type: 'dividend',          symbol: sym };
+    if (hasShortInterestKeyword) return { type: 'short_interest',    symbol: sym };
     return { type: 'stock', symbol: sym };
   }
 
@@ -1117,18 +1158,21 @@ export function detectFinancialIntent(prompt) {
       ...Object.values(ETF_NAME_MAP),
     ]);
     if (allTickers.has(sym)) {
-      if (hasAnalyst)         return { type: 'analyst',           symbol: sym };
-      if (hasFinancials)      return { type: 'stock_financials',  symbol: sym };
-      if (hasIncome)          return { type: 'income_statement',  symbol: sym };
-      if (hasBalance)         return { type: 'balance_sheet',     symbol: sym };
-      if (hasFloatKeyword)    return { type: 'float',             symbol: sym };
-      if (hasSplitsKeyword)   return { type: 'splits',            symbol: sym };
-      if (hasPremarketKeyword)return { type: 'premarket',         symbol: sym };
-      if (hasOptionsKeyword)  return { type: 'options',           symbol: sym };
-      if (hasTechnicalKeyword)return { type: 'technical',         symbol: sym };
-      if (has52WeekKeyword)   return { type: 'week52',            symbol: sym };
-      if (hasDividendKeyword) return { type: 'dividend',          symbol: sym };
-      if (hasShortInterestKeyword) return { type: 'short_interest', symbol: sym };
+      if (hasAnalyst)              return { type: 'analyst',           symbol: sym };
+      if (hasFinancials)           return { type: 'stock_financials',  symbol: sym };
+      if (hasIncome)               return { type: 'income_statement',  symbol: sym };
+      if (hasBalance)              return { type: 'balance_sheet',     symbol: sym };
+      if (hasFloatKeyword)         return { type: 'float',             symbol: sym };
+      if (hasSplitsKeyword)        return { type: 'splits',            symbol: sym };
+      if (hasPremarketKeyword)     return { type: 'premarket',         symbol: sym };
+      if (hasDividendCalendarKeyword) return { type: 'dividend_calendar', symbol: sym };
+      if (hasChartKeyword)         return { type: 'chart',             symbol: sym, assetType: 'stock', period: parsePeriod() };
+      if (hasOptionsContractKeyword)  return { type: 'options_contract',  symbol: sym };
+      if (hasOptionsKeyword)       return { type: 'options',           symbol: sym };
+      if (hasTechnicalKeyword)     return { type: 'technical',         symbol: sym };
+      if (has52WeekKeyword)        return { type: 'week52',            symbol: sym };
+      if (hasDividendKeyword)      return { type: 'dividend',          symbol: sym };
+      if (hasShortInterestKeyword) return { type: 'short_interest',    symbol: sym };
       return { type: 'stock', symbol: sym };
     }
   }
@@ -1146,6 +1190,7 @@ export function detectFinancialIntent(prompt) {
   // 9. Crypto lookup (word-boundary)
   for (const [name, sym] of Object.entries(CRYPTO_NAME_MAP)) {
     if (hasWordMatch(name)) {
+      if (hasChartKeyword)    return { type: 'chart', symbol: sym, assetType: 'crypto', period: parsePeriod() };
       if (hasCryptoTechnicalKeyword || hasTechnicalKeyword) return { type: 'crypto_technical', symbol: sym };
       return { type: 'crypto', symbol: sym };
     }
@@ -1154,24 +1199,30 @@ export function detectFinancialIntent(prompt) {
   // 10. Forex lookup (word-boundary, longer phrases first to avoid substring collisions)
   const forexEntries = Object.entries(FOREX_NAME_MAP).sort((a, b) => b[0].length - a[0].length);
   for (const [name, sym] of forexEntries) {
-    if (q.includes(name)) return { type: 'forex', symbol: sym };
+    if (q.includes(name)) {
+      if (hasChartKeyword) return { type: 'chart', symbol: sym, assetType: 'forex', period: parsePeriod() };
+      return { type: 'forex', symbol: sym };
+    }
   }
 
   // 11. Stock name lookup (word-boundary)
   for (const [name, sym] of Object.entries(STOCK_NAME_MAP)) {
     if (hasWordMatch(name)) {
-      if (hasAnalyst)         return { type: 'analyst',           symbol: sym };
-      if (hasFinancials)      return { type: 'stock_financials',  symbol: sym };
-      if (hasIncome)          return { type: 'income_statement',  symbol: sym };
-      if (hasBalance)         return { type: 'balance_sheet',     symbol: sym };
-      if (hasFloatKeyword)    return { type: 'float',             symbol: sym };
-      if (hasSplitsKeyword)   return { type: 'splits',            symbol: sym };
-      if (hasPremarketKeyword)return { type: 'premarket',         symbol: sym };
-      if (hasOptionsKeyword)  return { type: 'options',           symbol: sym };
-      if (hasTechnicalKeyword)return { type: 'technical',         symbol: sym };
-      if (has52WeekKeyword)   return { type: 'week52',            symbol: sym };
-      if (hasDividendKeyword) return { type: 'dividend',          symbol: sym };
-      if (hasShortInterestKeyword) return { type: 'short_interest', symbol: sym };
+      if (hasAnalyst)              return { type: 'analyst',           symbol: sym };
+      if (hasFinancials)           return { type: 'stock_financials',  symbol: sym };
+      if (hasIncome)               return { type: 'income_statement',  symbol: sym };
+      if (hasBalance)              return { type: 'balance_sheet',     symbol: sym };
+      if (hasFloatKeyword)         return { type: 'float',             symbol: sym };
+      if (hasSplitsKeyword)        return { type: 'splits',            symbol: sym };
+      if (hasPremarketKeyword)     return { type: 'premarket',         symbol: sym };
+      if (hasDividendCalendarKeyword) return { type: 'dividend_calendar', symbol: sym };
+      if (hasChartKeyword)         return { type: 'chart',             symbol: sym, assetType: 'stock', period: parsePeriod() };
+      if (hasOptionsContractKeyword)  return { type: 'options_contract',  symbol: sym };
+      if (hasOptionsKeyword)       return { type: 'options',           symbol: sym };
+      if (hasTechnicalKeyword)     return { type: 'technical',         symbol: sym };
+      if (has52WeekKeyword)        return { type: 'week52',            symbol: sym };
+      if (hasDividendKeyword)      return { type: 'dividend',          symbol: sym };
+      if (hasShortInterestKeyword) return { type: 'short_interest',    symbol: sym };
       return { type: 'stock', symbol: sym };
     }
   }
