@@ -7,6 +7,7 @@
 
 import { RedisClient } from '../../shared/redis.js';
 import { logger } from '../../shared/logger.js';
+import { runPythonScript } from './runPythonScript.js';
 
 // ─── Local Memory Cache (Dual-Layer Fallback) ────────────────────────────────
 const localMemoryCache = new Map();
@@ -425,6 +426,192 @@ const generateOpenCorporatesData = (query, hash) => {
   return { markdown, metadata };
 };
 
+const formatLiveFec = (liveData, query) => {
+  const results = liveData.results || [];
+  let tableRows = '';
+  results.forEach(res => {
+    const name = res.name || 'N/A';
+    const cid = res.candidate_id || 'N/A';
+    const party = res.party_full || 'N/A';
+    const office = res.office_full || 'N/A';
+    const state = res.state || 'N/A';
+    const cycles = res.election_years ? res.election_years.join(', ') : 'N/A';
+    tableRows += `| **${name}** | ${cid} | ${party} | ${office} | ${state} | ${cycles} |\n`;
+  });
+
+  const markdown = `╔══════════════════════════════════════════════════════════════════╗
+║  🏛️ FEC CAMPAIGN FINANCE LIVE AUDIT                              ║
+╚══════════════════════════════════════════════════════════════════╝
+
+### 🌐 U.S. Federal Election Commission (FEC) Live Financial Matches
+*Auditing campaign contribution records, committee expenditures, and political action committee (PAC) metrics.*
+
+| Candidate Name | ID | Party | Office | State | Election Years |
+|:---|:---|:---|:---|:---|:---|
+${tableRows}
+*Data parsed live from Federal Election Commission (FEC) database.*`;
+
+  const metadata = {
+    domain: 'politics_campaign',
+    targetFiler: query,
+    totalMatching: liveData.total_matching,
+    returnedCount: liveData.results_returned,
+    results: results.map(res => ({
+      name: res.name,
+      candidateId: res.candidate_id,
+      party: res.party_full,
+      office: res.office_full,
+      state: res.state
+    }))
+  };
+
+  return { markdown, metadata };
+};
+
+const formatLiveLegiScan = (liveData, query) => {
+  const bills = liveData.bills || [];
+  let tableRows = '';
+  bills.forEach(b => {
+    const title = b.title || 'N/A';
+    const num = b.number || 'N/A';
+    const type = b.type || 'N/A';
+    const congress = b.congress || 'N/A';
+    const latestAction = b.latestAction ? b.latestAction.text : 'N/A';
+    tableRows += `| **${type.toUpperCase()} ${num}** | ${congress} | ${title.substring(0, 60)}... | *${latestAction.substring(0, 60)}* |\n`;
+  });
+
+  const markdown = `╔══════════════════════════════════════════════════════════════════╗
+║  ⚖️ CONGRESS.GOV LIVE LEGISLATIVE TRACKING                        ║
+╚══════════════════════════════════════════════════════════════════╝
+
+### 🏷️ Federal & State Bill Statistics, Sponsors, and Roll Call Vectors
+*Auditing active legislative actions and committee progression metrics.*
+
+| Bill ID | Congress | Title | Latest Action Status |
+|:---|:---|:---|:---|
+${tableRows}
+*Data retrieved live from Congress.gov Legislative Feed.*`;
+
+  const metadata = {
+    domain: 'legislation_tracking',
+    targetTopic: query,
+    returnedCount: liveData.count,
+    bills: bills.map(b => ({
+      billId: `${b.type}${b.number}`,
+      congress: b.congress,
+      title: b.title,
+      latestAction: b.latestAction ? b.latestAction.text : 'N/A'
+    }))
+  };
+
+  return { markdown, metadata };
+};
+
+const formatLiveDbnomics = (liveData, query) => {
+  const series = liveData.series || [];
+  let tableRows = '';
+  series.forEach(s => {
+    tableRows += `| **${s.id}** | ${s.name || 'N/A'} | ${s.provider || 'N/A'} | ${s.frequency || 'N/A'} |\n`;
+  });
+
+  const markdown = `╔══════════════════════════════════════════════════════════════════╗
+║  📊 DBNOMICS GLOBAL MACROECONOMIC DATABASE                        ║
+╚══════════════════════════════════════════════════════════════════╝
+
+### 📈 Unified Multi-Agency Statistical Indexes & Economic Indicators
+*Aggregating economic time series models from major global agencies.*
+
+| Series ID | Series Name | Provider | Frequency |
+|:---|:---|:---|:---|
+${tableRows}
+*Data retrieved live from DBnomics global macroeconomic statistical portal.*`;
+
+  const metadata = {
+    domain: 'macroeconomics_global',
+    query,
+    totalMatching: liveData.total,
+    returnedCount: liveData.returned,
+    series
+  };
+
+  return { markdown, metadata };
+};
+
+const formatLiveHmda = (liveData, query) => {
+  const institutions = liveData.institutions || [];
+  let tableRows = '';
+  institutions.forEach(inst => {
+    const name = inst.name || 'N/A';
+    const lei = inst.lei || 'N/A';
+    const activity = inst.activityYear || inst.year || 'N/A';
+    const state = inst.respondentState || 'N/A';
+    tableRows += `| **${name}** | ${lei} | ${activity} | ${state} |\n`;
+  });
+
+  const markdown = `╔══════════════════════════════════════════════════════════════════╗
+║  🏠 CFPB HMDA MORTGAGE UNDERWRITING ANALYTICS                      ║
+╚══════════════════════════════════════════════════════════════════╝
+
+### 🏷️ Home Mortgage Disclosure Act (HMDA) Localized Lending Ratios
+*Auditing active mortgage applications and localized credit underwriting profiles.*
+
+| Institution Name | LEI | Activity Year | Respondent State |
+|:---|:---|:---|:---|
+${tableRows}
+*Data retrieved live from CFPB Home Mortgage Disclosure Act (HMDA) registry.*`;
+
+  const metadata = {
+    domain: 'mortgage_lending',
+    query,
+    institutionsCount: liveData.count,
+    institutions
+  };
+
+  return { markdown, metadata };
+};
+
+const formatLiveNih = (liveData, query) => {
+  const projects = liveData.projects || [];
+  let tableRows = '';
+  projects.forEach(p => {
+    const projNum = p.ProjectNum || 'N/A';
+    const title = p.ProjectTitle || 'N/A';
+    const org = p.OrgName || 'N/A';
+    const pi = p.ContactPiName || 'N/A';
+    const year = p.FiscalYear || 'N/A';
+    const amount = p.AwardAmount ? p.AwardAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : 'N/A';
+    tableRows += `| **${projNum}** | **${amount}** | ${year} | ${pi} | ${org.substring(0, 40)}... | *${title.substring(0, 40)}* |\n`;
+  });
+
+  const markdown = `╔══════════════════════════════════════════════════════════════════╗
+║  🧬 NIH REPORTER MEDICAL & BIOMEDICAL RESEARCH GRANTS            ║
+╚══════════════════════════════════════════════════════════════════╝
+
+### 🧪 Live Medical & Biomedical Research Grant Awards
+*Auditing NIH-funded medical research, institute allocations, and principal investigators.*
+
+| Project Num | Obligated Funding | Year | Principal Investigator | Organization | Project Title |
+|:---|:---|:---|:---|:---|:---|
+${tableRows}
+*Data retrieved live from NIH RePORTER central project search database.*`;
+
+  const metadata = {
+    domain: 'medical_research',
+    query,
+    totalMatching: liveData.total,
+    returnedCount: liveData.returned,
+    projects: projects.map(p => ({
+      projectNum: p.ProjectNum,
+      title: p.ProjectTitle,
+      amount: p.AwardAmount,
+      pi: p.ContactPiName,
+      org: p.OrgName
+    }))
+  };
+
+  return { markdown, metadata };
+};
+
 // ─── Intent Detection & Topic Extraction ─────────────────────────────────────
 
 export const detectGreenlightIntent = (query) => {
@@ -549,27 +736,93 @@ export const getGreenlightIntelligenceData = async (domain, rawQuery) => {
 
   // 3. Selection of domain handler (supports live API querying if configured in future, falls back to deterministic generator)
   switch (domain.toLowerCase()) {
-    case 'politics_campaign':
-      result = generateFecData(query, hash);
+    case 'politics_campaign': {
+      try {
+        const liveData = await runPythonScript('open_fec', 'open_fec_query.py', ['candidates', '--name', query, '--limit', '5']);
+        if (liveData && liveData.status !== 'error' && liveData.results && liveData.results.length > 0) {
+          result = formatLiveFec(liveData, query);
+        }
+      } catch (err) {
+        logger.warn(`Live query failed for politics_campaign: ${err.message}. Falling back to mock.`);
+      }
+      if (!result) {
+        result = generateFecData(query, hash);
+      }
       break;
-    case 'legislation_tracking':
-      result = generateLegiScanData(query, hash);
+    }
+    case 'legislation_tracking': {
+      try {
+        const liveData = await runPythonScript('congress_gov', 'congress_query.py', ['search', '--query', query, '--limit', '5']);
+        if (liveData && liveData.status !== 'error' && liveData.bills && liveData.bills.length > 0) {
+          result = formatLiveLegiScan(liveData, query);
+        }
+      } catch (err) {
+        logger.warn(`Live query failed for legislation_tracking: ${err.message}. Falling back to mock.`);
+      }
+      if (!result) {
+        result = generateLegiScanData(query, hash);
+      }
       break;
-    case 'civic_representatives':
-      result = generateCivicData(query, hash);
+    }
+    case 'civic_representatives': {
+      try {
+        const liveData = await runPythonScript('congress_gov', 'congress_query.py', ['search', '--query', query, '--limit', '5']);
+        if (liveData && liveData.status !== 'error' && liveData.bills && liveData.bills.length > 0) {
+          result = formatLiveLegiScan(liveData, query);
+        }
+      } catch (err) {
+        logger.warn(`Live query failed for civic_representatives: ${err.message}. Falling back to mock.`);
+      }
+      if (!result) {
+        result = generateCivicData(query, hash);
+      }
       break;
-    case 'macroeconomics_global':
-      result = generateDbnomicsData(query, hash);
+    }
+    case 'macroeconomics_global': {
+      try {
+        const liveData = await runPythonScript('dbnomics', 'dbnomics_query.py', ['search', '--query', query, '--limit', '5']);
+        if (liveData && liveData.status !== 'error' && liveData.series && liveData.series.length > 0) {
+          result = formatLiveDbnomics(liveData, query);
+        }
+      } catch (err) {
+        logger.warn(`Live query failed for macroeconomics_global: ${err.message}. Falling back to mock.`);
+      }
+      if (!result) {
+        result = generateDbnomicsData(query, hash);
+      }
       break;
-    case 'mortgage_lending':
-      result = generateHmdaData(query, hash);
+    }
+    case 'mortgage_lending': {
+      try {
+        const liveData = await runPythonScript('cfpb_hmda', 'cfpb_hmda_query.py', ['institutions', '--institution-name', query]);
+        if (liveData && liveData.status !== 'error' && liveData.institutions && liveData.institutions.length > 0) {
+          result = formatLiveHmda(liveData, query);
+        }
+      } catch (err) {
+        logger.warn(`Live query failed for mortgage_lending: ${err.message}. Falling back to mock.`);
+      }
+      if (!result) {
+        result = generateHmdaData(query, hash);
+      }
       break;
+    }
     case 'disaster_hazards':
       result = generateFemaData(query, hash);
       break;
-    case 'medical_research':
-      result = generateNihData(query, hash);
+    case 'medical_research': {
+      try {
+        const liveData = await runPythonScript('nih_reporter', 'nih_reporter_query.py', ['search-grants', '--text-search', query, '--limit', '5']);
+        if (liveData && liveData.status !== 'error' && liveData.projects && liveData.projects.length > 0) {
+          result = formatLiveNih(liveData, query);
+        }
+      } catch (err) {
+        logger.warn(`Live query failed for medical_research: ${err.message}. Falling back to mock.`);
+      }
+      if (!result) {
+        result = generateNihData(query, hash);
+      }
       break;
+    }
     case 'uk_company_registry':
       result = generateUkCompanyData(query, hash);
       break;

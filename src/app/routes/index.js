@@ -52,13 +52,19 @@ import { knowledgeRoutes } from '../modules/knowledge/knowledge.route.js';
 import { tenantRoutes } from '../modules/tenant/tenant.route.js';
 import { massiveRoutes } from '../modules/massive/massive.route.js';
 import { predictionDataRoutes } from '../modules/predictiondata/predictiondata.route.js';
+import { exploriumRoutes } from '../modules/explorium/explorium.route.js';
 import { orchestratorRoutes } from '../modules/orchestrator/orchestrator.route.js';
 import { SwarmRoutes } from '../modules/swarm/swarm.route.js';
 import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
+import { aviationStackRoutes } from '../modules/aviationstack/aviationstack.route.js';
 
 const router = express.Router();
 
 const moduleRoutes = [
+  {
+    path: '/aviationstack',
+    route: aviationStackRoutes,
+  },
   {
     path: '/swarm',
     route: SwarmRoutes,
@@ -74,6 +80,10 @@ const moduleRoutes = [
   {
     path: '/predictiondata',
     route: predictionDataRoutes,
+  },
+  {
+    path: '/explorium',
+    route: exploriumRoutes,
   },
   {
     path: '/tenant',

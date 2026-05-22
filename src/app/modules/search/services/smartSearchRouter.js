@@ -1,8 +1,9 @@
 import { executeGroundedSearch } from './geminiGroundingService.js';
 import { executeToolBasedConversation } from './reactAgent.js';
-import { classifyFinancialQuery, classifySportsQuery } from './queryClassifier.js';
+import { classifyFinancialQuery, classifySportsQuery, classifyAviationQuery } from './queryClassifier.js';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 import { sportsSmartRouter } from '../../../helpers/sportsSmartRouter.js';
+import { aviationstackSmartRouter } from '../../../helpers/aviationstackSmartRouter.js';
 import { refreshLeagueNow } from '../../../helpers/sportsDataCache.js';
 import { detectGreenlightIntent } from '../../../helpers/v14DataIntegrations.js';
 import { detectPremiumIntent } from '../../../helpers/v15DataIntegrations.js';
@@ -266,6 +267,31 @@ export async function executeSmartSearch(
       }
     } catch (err) {
       console.warn(`⚠️ Massive.com financial routing failed, continuing with standard search: ${err.message}`);
+    }
+  }
+
+  // ── PRIORITY 3: Aviation queries get AviationStack real-time data ──
+  const aviationClass = classifyAviationQuery(query);
+  if (aviationClass.isAviation) {
+    console.log(`\n✈️ Aviation [${aviationClass.intentType}] → AviationStack`);
+    try {
+      const enhancedQuery = await aviationstackSmartRouter.routeAndEnhancePrompt(query);
+      if (enhancedQuery !== query) {
+        const result = await executeGroundedSearch(enhancedQuery, conversationHistory);
+        return {
+          answer: result.answer,
+          reference: result.reference || [],
+          citations: result.citations || [],
+          citationMetadata: {
+            ...result.citationMetadata,
+            method: 'aviationstack_grounding',
+            aviationIntent: aviationClass.intentType,
+            source: 'AviationStack.com'
+          }
+        };
+      }
+    } catch (err) {
+      console.warn(`⚠️ AviationStack routing failed: ${err.message}`);
     }
   }
 

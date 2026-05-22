@@ -13,6 +13,7 @@ import {
 import { openMemoryClient } from '../../../shared/openMemoryClient.js';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 import { sportsSmartRouter } from '../../../helpers/sportsSmartRouter.js';
+import { aviationstackSmartRouter } from '../../../helpers/aviationstackSmartRouter.js';
 
 /**
  * ReAct Agent Service
@@ -196,10 +197,39 @@ Input: Any natural language sports betting query. The tool auto-detects intent, 
     },
   });
 
+  const aviationStackRealtimeTool = new DynamicTool({
+    name: 'aviationstack-realtime-data',
+    description: `Real-time global aviation intelligence powered by AviationStack.com, NOAA, FAA, and NTSB. Use this tool for ANY query involving:
+- Flight tracking and live status (e.g. "flight UA342 status", "DL123 delayed?", "is AA456 on time?")
+- Airport departures, arrivals, and operational boards (e.g. "JFK departures", "Heathrow arrivals board")
+- Route searches and flight schedules (e.g. "flights from JFK to LHR", "LAX to ORD schedule")
+- Airline details, fleet lookups, and descriptions (e.g. "United Airlines fleet", "Delta Air Lines details")
+- Aircraft registration, tail number lookups, and plane models (e.g. "plane tail N104UA", "airplane registration N104UA")
+- NOAA aviation weather reports and forecasts (METAR/TAF) (e.g. "JFK METAR weather report", "weather at LAX")
+- FAA NAS airport operational status, Ground Stops, Ground Delays, and delay programs (e.g. "FAA ground stop at ORD", "delays at SFO")
+- FAA NOTAM active notices, safety warnings, and runway status (e.g. "LAX airport active NOTAMs", "notams for ORD")
+- NTSB historical civil aviation accident and safety incident logs (e.g. "Boeing 737 Max NTSB safety record", "United Airlines accidents")
+Input: A natural language query about flights, routes, airports, airlines, aircraft, aviation weather, FAA delays/NOTAMs, or NTSB safety reports (e.g. "What is the status of UA342 right now?", "JFK weather", "FAA ground stop ORD")`,
+    async func(query) {
+      try {
+        const result = await aviationstackSmartRouter.routeAndEnhancePrompt(query);
+        if (result && result !== query) {
+          const dataStart = result.indexOf('##');
+          if (dataStart !== -1) return result.slice(dataStart);
+          return result;
+        }
+        return `No aviation data found for query: "${query}". This may not be an aviation query.`;
+      } catch (err) {
+        return `Aviation stack lookup failed: ${err.message}`;
+      }
+    },
+  });
+
   const tools = [
     vertexAiService.asTool(),
     massiveFinancialTool,
     sportsBettingTool,
+    aviationStackRealtimeTool,
     newsapiGlobalNewsSearch,
     altiGreenlightIntelligenceSearch,
     altiPremiumIntelligenceSearch,
@@ -353,6 +383,7 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
   * "vertex-ai-search" tool → Google Cloud Vertex AI Search datastores (enterprise knowledge, internal docs, standard operating procedures, ALTI blueprints, secure manuals, private files)
   * "massive-financial-data" tool → Massive.com (stocks, crypto, forex, options, commodities, indices)
   * "predictiondata-sports-odds" tool → PredictionData.io (sports odds, props, futures, SGP, live lines, Polymarket/Kalshi)
+  * "aviationstack-realtime-data" tool → AviationStack.com (flight tracking, airport timetables, routes, fleets, tail registrations)
   * "newsapi_global_news_search" tool → Event Registry / NewsAPI.ai (verified global news article counts, sentiment trends, social share densities, primary categories, trust indices, and live headline bulletins)
   * "alti_greenlight_intelligence_search" tool → Nine high-value public intelligence databases (FEC politics, LegiScan tracking, Google Civic representatives, DBnomics economics, CFPB HMDA mortgages, OpenFEMA hazards, NIH RePORTER grants, UK Companies House, OpenCorporates global registry)
   * "alti_premium_intelligence_search" tool → Nine high-value premium public intelligence databases (clinical_trials, fda_drug_safety, global_health_observatory, us_treasury_fiscal, federal_spending, healthcare_npi, food_nutrients, charity_registry, aviation_delays)
@@ -360,6 +391,7 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
 - ENTERPRISE KNOWLEDGE DIRECTIVE: For ANY query regarding internal documents, blueprints, secure manuals, standard operating procedures, or private knowledge bases, you MUST call the "vertex-ai-search" tool FIRST.
 - SPORTS BETTING TOOL DIRECTIVE: For ANY query about sports odds, betting lines, player props, futures, point spreads, totals, SGP, or prediction market odds, you MUST call the "predictiondata-sports-odds" tool FIRST before using Google Search.
 - FINANCIAL TOOL DIRECTIVE: For ANY query about stock prices, crypto, forex, or market data, you MUST call the "massive-financial-data" tool FIRST.
+- AVIATION TOOL DIRECTIVE: For ANY query about flights, airport timetables, routes, fleets, or aircraft tail registrations, you MUST call the "aviationstack-realtime-data" tool FIRST before standard Google search.
 - GLOBAL NEWS DIRECTIVE: For ANY query about news tracking, trending stories, article metrics, news sentiment analysis, concept/topic tracking, and real-time monitored headlines, you MUST call the "newsapi_global_news_search" tool FIRST before standard Google search.
 - GREENLIGHT INTELLIGENCE DIRECTIVE: For ANY query matching politics campaign finance, LegiScan bill tracking, representative mapping by address, DBnomics indices, mortgage approval ratios/LTV, FEMA hazards/disaster declarations, NIH research grants, UK Company profiles, or OpenCorporates global structures, you MUST call the "alti_greenlight_intelligence_search" tool FIRST before Google search. Choose the correct domain parameter matching the request.
 - PREMIUM PUBLIC INTELLIGENCE DIRECTIVE: For ANY query matching global clinical trials/recruitment/phases (ClinicalTrials.gov), FDA drug recalls/safety warnings/adverse events (openFDA), global health indicators/life expectancies/immunizations (WHO GHO), federal sovereignty/sovereign debt levels/operating cash balances (U.S. Treasury), USAspending federal awards/contracts (federal_spending), CMS NPPES clinician NPI registry lookup (healthcare_npi), USDA FoodData Central nutritional profiles (food_nutrients), IRS tax-exempt charity statuses (charity_registry), or FAA airport delay operational statuses (aviation_delays), you MUST call the "alti_premium_intelligence_search" tool FIRST before standard Google search. Choose the correct domain parameter matching the request.
@@ -740,6 +772,15 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           const duration = Date.now() - startTime;
           console.log(`✅ Sports odds retrieved in ${duration}ms for: "${query}"`);
           usedUrls.add('https://api.predictiondata.io');
+        } else if (toolCall.name === 'aviationstack-realtime-data') {
+          const query = typeof toolCall.args === 'string'
+            ? toolCall.args
+            : toolCall.args.query || toolCall.args.input || JSON.stringify(toolCall.args);
+          const startTime = Date.now();
+          toolResult = await aviationStackRealtimeTool.func(query);
+          const duration = Date.now() - startTime;
+          console.log(`✅ Aviation data retrieved in ${duration}ms for: "${query}"`);
+          usedUrls.add('https://aviationstack.com');
         } else if (toolCall.name === 'newsapi_global_news_search') {
           const query = typeof toolCall.args === 'string'
             ? toolCall.args

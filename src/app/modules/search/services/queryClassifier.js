@@ -5,6 +5,7 @@
  */
 import { detectFinancialIntent } from '../../../helpers/massiveTickerDB.js';
 import { detectSportsIntent } from '../../../helpers/sportsIntentDB.js';
+import { detectAviationIntent } from '../../../helpers/aviationstackIntentDB.js';
 
 /**
  * Code-related keywords and patterns
@@ -923,6 +924,58 @@ export function classifySportsQuery(query) {
   };
 }
 
+/**
+ * Classify whether a query is an aviation-related request (flight tracking, routes, airports, etc.)
+ * Returns { isAviation, confidence, intentType, flightNumber, departure, arrival, airportCode, registrationNumber, carrier }
+ */
+export function classifyAviationQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isAviation: false, confidence: 0, intentType: null };
+  }
+
+  const intent = detectAviationIntent(query);
+
+  if (!intent) {
+    return { isAviation: false, confidence: 0, intentType: null };
+  }
+
+  const confidenceMap = {
+    flight: 0.98,
+    route: 0.96,
+    airport: 0.95,
+    airplane: 0.94,
+    airline: 0.94,
+    airport_query: 0.90,
+    airline_query: 0.90,
+    airplane_query: 0.90,
+    general_aviation: 0.85,
+    metar_taf: 0.97,
+    faa_nas: 0.98,
+    notam: 0.97,
+    safety_incident: 0.96,
+  };
+
+  const confidence = confidenceMap[intent.type] || 0.85;
+
+  console.log(`✈️ Aviation Classification:`);
+  console.log(`   Intent: ${intent.type} | Info: ${JSON.stringify(intent)}`);
+  console.log(`   Confidence: ${(confidence * 100).toFixed(1)}%`);
+
+  return {
+    isAviation: true,
+    confidence,
+    intentType: intent.type,
+    flightNumber: intent.flightNumber || null,
+    departure: intent.departure || null,
+    arrival: intent.arrival || null,
+    airportCode: intent.airportCode || null,
+    registrationNumber: intent.registrationNumber || null,
+    carrier: intent.carrier || null,
+    boardType: intent.boardType || null,
+    model: intent.model || null,
+  };
+}
+
 export default {
   classifyQuery,
   classifyQueryFast,
@@ -931,4 +984,5 @@ export default {
   classifyWritingRequest,
   classifyFinancialQuery,
   classifySportsQuery,
+  classifyAviationQuery,
 };

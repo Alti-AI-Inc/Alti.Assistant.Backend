@@ -5,6 +5,7 @@ import config from '../../../../config/index.js';
 import { getNewsApiAiData } from '../../helpers/v13DataIntegrations.js';
 import { getGreenlightIntelligenceData } from '../../helpers/v14DataIntegrations.js';
 import { getPremiumIntelligenceData } from '../../helpers/v15DataIntegrations.js';
+import { getPremiumV16IntelligenceData } from '../../helpers/v16DataIntegrations.js';
 
 const rawGoogle = new GoogleCustomSearch({
   maxResults: 20, // Default max results
@@ -396,7 +397,7 @@ Input: The domain enum name (politics_campaign, legislation_tracking, civic_repr
  */
 export const altiPremiumIntelligenceSearch = new DynamicStructuredTool({
   name: 'alti_premium_intelligence_search',
-  description: `Access nine high-value premium public intelligence databases. Use this tool for ANY query regarding:
+  description: `Access seventeen high-value premium public intelligence databases. Use this tool for ANY query regarding:
 1. "clinical_trials" -> ClinicalTrials.gov global clinical trial registries, study recruitment, enrollment stats, drug trial phases.
 2. "fda_drug_safety" -> openFDA drug safety warnings, adverse event counts, recall enforcement records, labeling details.
 3. "global_health_observatory" -> WHO (World Health Organization) statistics, life expectancy trends, immunizations, cross-country metrics.
@@ -406,7 +407,15 @@ export const altiPremiumIntelligenceSearch = new DynamicStructuredTool({
 7. "food_nutrients" -> USDA FoodData Central nutritional values, brand products, calorie/carb/protein breakdowns, and ingredients.
 8. "charity_registry" -> IRS tax-exempt Publication 78 charity database, active EIN standings, and IRS subsection codes.
 9. "aviation_delays" -> FAA Airport Status real-time flight delays, ground stops, weather causes, and airspace capacities.
-Input: The domain enum name (clinical_trials, fda_drug_safety, global_health_observatory, us_treasury_fiscal, federal_spending, healthcare_npi, food_nutrients, charity_registry, aviation_delays) and a query string (topic, NPI, EIN, food, airport, or company name).`,
+10. "rxnorm" -> Standardized drug clinical vocabulary concepts, RxCUI identifiers, normalized drug names, and term types.
+11. "dailymed" -> FDA Structured Product Labeling (SPL) package inserts, manufacturer label sheets, and publication dates.
+12. "open_food_facts" -> Global collaborative branded food facts, barcodes (UPC/EAN), brands, and ingredients.
+13. "pubchem" -> Chemical structures, properties (molecular formula, weight, XLogP, TPSA), and compound CID records.
+14. "fdic_bankfind" -> FDIC BankFind database containing active/failed institutions, certified numbers, asset holdings, net income, and asset ratios.
+15. "cfpb_complaints" -> CFPB Consumer Complaint Database for product disputes, consumer financial logs, and resolutions.
+16. "sec_edgar" -> SEC EDGAR database to fetch zero-padded corporate CIKs and corporate financials (GAAP XBRL facts like NetIncomeLoss, Revenues, Assets, Liabilities).
+17. "census_bps" -> U.S. Census Bureau Building Permits Survey (BPS) for residential construction permits, authorized units, and permit valuations by region/state.
+Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemical name, drug name, bank name, company name, corporate ticker, or state/region name).`,
   schema: z.object({
     domain: z.enum([
       'clinical_trials',
@@ -417,12 +426,24 @@ Input: The domain enum name (clinical_trials, fda_drug_safety, global_health_obs
       'healthcare_npi',
       'food_nutrients',
       'charity_registry',
-      'aviation_delays'
+      'aviation_delays',
+      'rxnorm',
+      'dailymed',
+      'open_food_facts',
+      'pubchem',
+      'fdic_bankfind',
+      'cfpb_complaints',
+      'sec_edgar',
+      'census_bps'
     ]).describe("The target premium database sector to query"),
-    query: z.string().describe("Sanitized topic, NPI, EIN, food, airport, or account query within the premium domain")
+    query: z.string().describe("Sanitized topic, NPI, EIN, barcode, chemical, drug, bank, company, ticker, or region query within the premium domain")
   }),
   func: async ({ domain, query }) => {
     try {
+      if (['fdic_bankfind', 'cfpb_complaints', 'sec_edgar', 'census_bps'].includes(domain)) {
+        const result = await getPremiumV16IntelligenceData(domain, query);
+        return result.markdown;
+      }
       const result = await getPremiumIntelligenceData(domain, query);
       return result.markdown;
     } catch (err) {

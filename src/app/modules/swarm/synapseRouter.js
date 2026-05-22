@@ -414,6 +414,100 @@ export class SynapseRouter {
 
 
     // ═════════════════════════════════════════════════════════════════════════
+    // EXPLORIUM AGENTSOURCE B2B INTELLIGENCE SWARM — 8 SPECIALIST AGENTS
+    // Priority order: specific (prospect/signal/outreach) → general (research/market)
+    // These agents receive live Explorium data pre-injected before the LLM call.
+    // ═════════════════════════════════════════════════════════════════════════
+
+    // Prospect Hunter — most specific: asks for people/contacts at a company
+    if (['find prospects', 'find leads', 'decision makers at', 'find cto at',
+      'find vp at', 'find cmo at', 'find cfo at', 'find ciso', 'who are the buyers at',
+      'contacts at', 'key people at', 'b2b contacts', 'find contact at',
+      'email for someone at', 'people at company', 'who should i contact at',
+      'find the decision maker', 'find executives at', 'get me contacts at',
+      'who is the cto of', 'who is the ceo of', 'who is the vp of'].some(k => q.includes(k))
+      && SWARM_REGISTRY.explorium_prospect_hunter) {
+      return [SWARM_REGISTRY.explorium_prospect_hunter];
+    }
+
+    // Sales Coach — pre-meeting prep with email or company
+    if (['sales call prep', 'meeting with', 'call with', 'pitch to',
+      'before i meet', 'talking to', 'sales brief for', 'who am i meeting',
+      'prepare for meeting', 'sales preparation', 'pre call research',
+      'meeting prep', 'call prep', 'about to meet', 'i have a meeting with',
+      'help me prepare for', 'prep me for', 'prepping for a call'].some(k => q.includes(k))
+      && SWARM_REGISTRY.explorium_sales_coach) {
+      return [SWARM_REGISTRY.explorium_sales_coach];
+    }
+
+    // Outreach Writer — generating personalized cold emails/messages
+    if (['cold email', 'write outreach', 'personalized email', 'write an email to',
+      'reach out to', 'outreach message', 'sales email', 'write a cold email',
+      'outreach for', 'email template for', 'linkedin message to',
+      'prospecting email', 'outbound email', 'cold outreach',
+      'write me an email to', 'draft an outreach'].some(k => q.includes(k))
+      && SWARM_REGISTRY.explorium_outreach_writer) {
+      return [SWARM_REGISTRY.explorium_outreach_writer];
+    }
+
+    // Signal Scout — real-time trigger events: funding, hiring, intent
+    if (['just raised', 'recently funded', 'funding round', 'who raised money',
+      'hiring surge', 'growing fast', 'intent signal', 'buying signal',
+      'trigger events', 'company events', 'companies looking for',
+      'b2b signals', 'sales triggers', 'who just raised', 'recent funding',
+      'leadership change', 'new cto hired', 'companies hiring', 'series a companies',
+      'series b companies', 'seed funded companies', 'who got funded'].some(k => q.includes(k))
+      && SWARM_REGISTRY.explorium_signal_scout) {
+      return [SWARM_REGISTRY.explorium_signal_scout];
+    }
+
+    // Lead Scorer — scoring/ranking/prioritizing a list of companies or leads
+    if (['score these leads', 'rank these companies', 'prioritize my pipeline',
+      'which leads are best', 'best leads to contact', 'qualify my leads',
+      'lead scoring', 'score my leads', 'lead qualification',
+      'rank my prospects', 'which companies to prioritize',
+      'pipeline prioritization', 'lead ranking', 'score these companies',
+      'which accounts to focus on'].some(k => q.includes(k))
+      && SWARM_REGISTRY.explorium_lead_scorer) {
+      return [SWARM_REGISTRY.explorium_lead_scorer];
+    }
+
+    // ICP Builder — building target lists, TAM analysis, account lists
+    if (['build a list', 'find companies that', 'ideal customer profile',
+      'target market', 'companies that use', 'icp definition', 'b2b list',
+      'prospect list', 'target accounts', 'account list', 'tam analysis',
+      'total addressable market', 'companies with employees', 'companies in the',
+      'create a list of companies', 'build me a list of companies',
+      'find me companies', 'generate a list', 'b2b target list',
+      'who should i be selling to', 'who is my ideal customer'].some(k => q.includes(k))
+      && SWARM_REGISTRY.explorium_icp_builder) {
+      return [SWARM_REGISTRY.explorium_icp_builder];
+    }
+
+    // Market Mapper — competitive landscapes, market overviews, lookalikes
+    if (['market landscape', 'players in the', 'who are the competitors',
+      'market map', 'competitive landscape', 'industry overview',
+      'similar companies to', 'companies like', 'market analysis',
+      'competitor analysis', 'who competes with', 'market players',
+      'competitive analysis', 'landscape analysis', 'market overview of',
+      'lookalike companies', 'competitors of', 'map the market',
+      'who else is in this space'].some(k => q.includes(k))
+      && SWARM_REGISTRY.explorium_market_mapper) {
+      return [SWARM_REGISTRY.explorium_market_mapper];
+    }
+
+    // Company Researcher — broadest Explorium intent: research any company
+    if (['research company', 'company profile', 'tell me about', 'company overview',
+      'analyze company', 'company background', 'company intelligence',
+      'firmographics', 'company deep dive', 'who is the company',
+      'what does company do', 'company report', 'business profile',
+      'give me info on', 'information about company', 'company details',
+      'look up company', 'company lookup', 'b2b intelligence on'].some(k => q.includes(k))
+      && SWARM_REGISTRY.explorium_company_researcher) {
+      return [SWARM_REGISTRY.explorium_company_researcher];
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
     // EXPERT DOMAIN INTELLIGENCE ROUTING — 12 PROFESSIONAL SPECIALIST AGENTS
     // ═════════════════════════════════════════════════════════════════════════
 

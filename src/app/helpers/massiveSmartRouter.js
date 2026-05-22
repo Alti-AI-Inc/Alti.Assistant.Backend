@@ -73,6 +73,12 @@ import {
   extractPremiumTopic,
   getPremiumIntelligenceData
 } from './v15DataIntegrations.js';
+import {
+  detectPremiumV16Intent,
+  extractPremiumV16Topic,
+  getPremiumV16IntelligenceData
+} from './v16DataIntegrations.js';
+
 
 
 import {
@@ -2377,7 +2383,10 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   const premiumDomain = detectPremiumIntent(prompt);
   const hasV15 = !!premiumDomain;
 
-  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15;
+  const premiumV16Domain = detectPremiumV16Intent(prompt);
+  const hasV16 = !!premiumV16Domain;
+
+  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15 || hasV16;
 
 
   // Fast path: pure real estate
@@ -2435,6 +2444,47 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
 
   let greenlightData = null;
   let premiumData = null;
+  let gleifData = null;
+  let patentsData = null;
+  let fredData = null;
+  let commodityDataRes = null;
+  let secData = null;
+
+  const asyncFeedPromises = [];
+  const asyncFeedKeys = [];
+
+  if (hasFred) {
+    asyncFeedPromises.push(getFredData(prompt));
+    asyncFeedKeys.push('fred');
+  }
+  if (hasGleif) {
+    asyncFeedPromises.push(getGleifData(prompt));
+    asyncFeedKeys.push('gleif');
+  }
+  if (hasPatents) {
+    asyncFeedPromises.push(getPatentsViewData(prompt));
+    asyncFeedKeys.push('patents');
+  }
+  if (hasCommodity) {
+    asyncFeedPromises.push(getCommodityData(prompt));
+    asyncFeedKeys.push('commodity');
+  }
+  if (hasSec) {
+    asyncFeedPromises.push(getSecFilingsData(prompt));
+    asyncFeedKeys.push('sec');
+  }
+
+  if (asyncFeedPromises.length > 0) {
+    const asyncFeedResults = await Promise.all(asyncFeedPromises);
+    asyncFeedKeys.forEach((key, index) => {
+      const result = asyncFeedResults[index];
+      if (key === 'fred') fredData = result;
+      if (key === 'gleif') gleifData = result;
+      if (key === 'patents') patentsData = result;
+      if (key === 'commodity') commodityDataRes = result;
+      if (key === 'sec') secData = result;
+    });
+  }
 
   if (hasV14) {
     const topic = extractGreenlightTopic(prompt, greenlightDomain);
@@ -2444,6 +2494,12 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasV15) {
     const topic = extractPremiumTopic(prompt, premiumDomain);
     premiumData = await getPremiumIntelligenceData(premiumDomain, topic);
+  }
+
+  let premiumV16Data = null;
+  if (hasV16) {
+    const topic = extractPremiumV16Topic(prompt, premiumV16Domain);
+    premiumV16Data = await getPremiumV16IntelligenceData(premiumV16Domain, topic);
   }
 
 
@@ -2512,17 +2568,15 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   }
 
   // ─── EIA Commodities Integration ───
-  if (hasCommodity) {
-    const commodity = getCommodityData();
-    mergedBlocks += `${commodity.markdown}\n\n`;
+  if (hasCommodity && commodityDataRes) {
+    mergedBlocks += `${commodityDataRes.markdown}\n\n`;
     citations.push('"[Source: EIA / Open Commodities]" for commodity spot prices');
     mandatoryRules += `▸ Present ALL commodity prices and growth rates in **BOLD** (e.g. **$78.50/bbl**, **+2.45%**)\n`;
   }
 
   // ─── SEC EDGAR Corporate/REIT Filings Integration ───
-  if (hasSec) {
-    const sec = getSecFilingsData();
-    mergedBlocks += `${sec.markdown}\n\n`;
+  if (hasSec && secData) {
+    mergedBlocks += `${secData.markdown}\n\n`;
     citations.push('"[Source: SEC EDGAR]" for REIT corporate filings');
     mandatoryRules += `▸ Present ALL corporate filing metrics and balance sheet ratios in **BOLD** (e.g. **$98.50B**, **4.85%**, **34.20%**, **96.80%**)\n`;
   }
@@ -2536,9 +2590,8 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   }
 
   // ─── FRED Economic Indicators Integration ───
-  if (hasFred) {
-    const fred = getFredData();
-    mergedBlocks += `${fred.markdown}\n\n`;
+  if (hasFred && fredData) {
+    mergedBlocks += `${fredData.markdown}\n\n`;
     citations.push('"[Source: FRED / Federal Reserve]" for macroeconomic indicators');
     mandatoryRules += `▸ Present ALL macroeconomic yields, output metrics, and rates in **BOLD** (e.g. **$28.25T**, **+2.90%**, **3.10%**, **5.25%**, **4.35%**)\n`;
   }
@@ -2568,17 +2621,15 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   }
 
   // ─── GLEIF Entity Registry Integration ───
-  if (hasGleif) {
-    const gleif = getGleifData();
-    mergedBlocks += `${gleif.markdown}\n\n`;
+  if (hasGleif && gleifData) {
+    mergedBlocks += `${gleifData.markdown}\n\n`;
     citations.push('"[Source: GLEIF / Global Legal Entity Identifier Foundation]" for corporate ownership hierarchies');
     mandatoryRules += `▸ Present ALL corporate names, identifiers, registered countries, and status indicators in **BOLD** (e.g. **Google LLC**, **Alphabet Inc.**, **25490059S3208759S480**, **254900Y6M2039230588**, **US**, **ACTIVE**)\n`;
   }
 
   // ─── USPTO PatentsView Integration ───
-  if (hasPatents) {
-    const patents = getPatentsViewData();
-    mergedBlocks += `${patents.markdown}\n\n`;
+  if (hasPatents && patentsData) {
+    mergedBlocks += `${patentsData.markdown}\n\n`;
     citations.push('"[Source: USPTO / PatentsView]" for patent intellectual property research');
     mandatoryRules += `▸ Present ALL patent assignee names, IDs, patent counts, classification numbers, and citation levels in **BOLD** (e.g. **Apple Inc.**, **ORG-12345**, **28,450**, **12,340**, **G06F - Electric Digital Data Processing**, **42.8**)\n`;
   }
@@ -2710,9 +2761,53 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
       aviation_delays: {
         source: 'FAA Airport Status',
         rule: '▸ Present ALL FAA airport delay minutes, ground stop statuses, meteorological weather conditions, and delay reasons in **BOLD** (e.g. **LAX**, **45 Minutes**, **Dense Fog / Light Winds**, **GROUND STOP**)\n'
+      },
+      rxnorm: {
+        source: 'National Library of Medicine (RxNorm)',
+        rule: '▸ Present ALL RxNorm standardized concepts, RxCUI identifiers, normalized drug names, term types, and synonyms in **BOLD** (e.g. **100123**, **ACETAMINOPHEN**, **Oral Tablet**)\n'
+      },
+      dailymed: {
+        source: 'FDA DailyMed (SPL)',
+        rule: '▸ Present ALL FDA DailyMed Structured Product Labeling (SPL) manufacturer inserts, package titles, SetIDs, and publication dates in **BOLD** (e.g. **spl-1234-5678-9012**, **Manufactured by Premium Pharmaceuticals**, **2026-02-18**)\n'
+      },
+      open_food_facts: {
+        source: 'Open Food Facts',
+        rule: '▸ Present ALL Open Food Facts product barcodes, brand owners, product names, NutriScore grades, and ingredients in **BOLD** (e.g. **7312345678901**, **Healthy Life Brands**, NutriScore: **A**)\n'
+      },
+      pubchem: {
+        source: 'NCBI PubChem',
+        rule: '▸ Present ALL NCBI PubChem compound CIDs, molecular formulas, molecular weights, XLogP properties, and synonyms in **BOLD** (e.g. **CID: 10000**, **C6H12O6**, **180.16 g/mol**)\n'
       }
     };
     const config = premiumMeta[premiumDomain] || { source: 'Premium Public Database', rule: '' };
+    citations.push(`"[Source: ${config.source}]" for premium intelligence data`);
+    if (config.rule) {
+      mandatoryRules += config.rule;
+    }
+  }
+
+  // ─── Premium Public Database Integrations (v16) ───
+  if (hasV16 && premiumV16Data) {
+    mergedBlocks += `${premiumV16Data.markdown}\n\n`;
+    const premiumMetaV16 = {
+      fdic_bankfind: {
+        source: 'FDIC BankFind',
+        rule: '▸ Present ALL FDIC **CERT** codes, asset sizes, and net incomes in **BOLD** (e.g. **57432**, **$450,000,000**, **$12,500,000**)\n'
+      },
+      cfpb_complaints: {
+        source: 'CFPB Consumer Complaints',
+        rule: '▸ Present ALL unique **complaint_id**s, companies, and product categories in **BOLD** (e.g. **1254321**, **Citibank**, **Mortgage**)\n'
+      },
+      sec_edgar: {
+        source: 'SEC EDGAR XBRL Facts',
+        rule: '▸ Present ALL zero-padded corporate **CIK**s and corporate financial metrics like **NetIncomeLoss** and **Revenues** in **BOLD** (e.g. **0000320193**, **$120,500,000,000**, **$24,000,000,000**)\n'
+      },
+      census_bps: {
+        source: 'U.S. Census Bureau Building Permits Survey (BPS)',
+        rule: '▸ Present ALL FIPS **State Codes** and authorized **TOTAL_AUTHORIZED_UNITS** and permit valuations in **BOLD** (e.g. **06**, **45,250**, **$12,450,000,000**)\n'
+      }
+    };
+    const config = premiumMetaV16[premiumV16Domain] || { source: 'Premium Public Database', rule: '' };
     citations.push(`"[Source: ${config.source}]" for premium intelligence data`);
     if (config.rule) {
       mandatoryRules += config.rule;
@@ -2753,18 +2848,18 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   if (hasClimate) {
     jsonMetadata.climateRisk = getClimateRiskData().metadata;
   }
-  if (hasCommodity) {
-    jsonMetadata.commodities = getCommodityData().metadata;
+  if (hasCommodity && commodityDataRes) {
+    jsonMetadata.commodities = commodityDataRes.metadata;
   }
-  if (hasSec) {
-    jsonMetadata.secFilings = getSecFilingsData().metadata;
+  if (hasSec && secData) {
+    jsonMetadata.secFilings = secData.metadata;
   }
   if (hasDemographics) {
     jsonMetadata.demographics = getDemographicsData().metadata;
   }
 
-  if (hasFred) {
-    jsonMetadata.fredEconomics = getFredData().metadata;
+  if (hasFred && fredData) {
+    jsonMetadata.fredEconomics = fredData.metadata;
   }
   if (hasHud) {
     jsonMetadata.hudFmr = getHudFmrData().metadata;
@@ -2776,11 +2871,11 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
     jsonMetadata.collegeScorecard = getCollegeScorecardData().metadata;
   }
 
-  if (hasGleif) {
-    jsonMetadata.gleif = getGleifData().metadata;
+  if (hasGleif && gleifData) {
+    jsonMetadata.gleif = gleifData.metadata;
   }
-  if (hasPatents) {
-    jsonMetadata.patentsview = getPatentsViewData().metadata;
+  if (hasPatents && patentsData) {
+    jsonMetadata.patentsview = patentsData.metadata;
   }
   if (hasOpenSky) {
     jsonMetadata.opensky = getOpenSkyData().metadata;
@@ -2802,6 +2897,9 @@ const executeCombinedRoute = async (prompt, hasFinance, hasSports, hasRealEstate
   }
   if (hasV15 && premiumData) {
     jsonMetadata.premium = premiumData.metadata;
+  }
+  if (hasV16 && premiumV16Data) {
+    jsonMetadata.premiumV16 = premiumV16Data.metadata;
   }
 
   if (isCrossDomainQuery) {
@@ -2883,7 +2981,10 @@ const combinedRouteAndEnhancePrompt = async (prompt) => {
   const premiumDomain = detectPremiumIntent(prompt);
   const hasV15 = !!premiumDomain;
 
-  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15;
+  const premiumV16Domain = detectPremiumV16Intent(prompt);
+  const hasV16 = !!premiumV16Domain;
+
+  const hasNewFeeds = hasV10 || hasV11 || hasV12 || hasV13 || hasV14 || hasV15 || hasV16;
 
   // Stale-While-Revalidate (SWR) Cache Protocol
   const sanitized = (prompt || '').trim().toLowerCase();

@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import { SynapseRouter } from './synapseRouter.js';
 import { GcpNativeService } from '../gcp_native/gcp-native.service.js';
+import { isExploriumAgent, getExploriumContext } from './explorium.smart.router.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -60,6 +61,17 @@ Your Specific Task: ${agent.description}
 Instructions: ${agent.systemInstruction}`;
       } else if (customGcpGroundingBlock) {
         finalPrompt = `${customGcpGroundingBlock}\n\nUser Request: ${query}`;
+      } else if (isPrimary && isExploriumAgent(agent.id)) {
+        // ⚡ Explorium data pre-injection: fetch live B2B data and ground the prompt
+        try {
+          const exploriumContext = await getExploriumContext(agent.id, query, conversationHistory);
+          if (exploriumContext) {
+            finalPrompt = `${query}${exploriumContext}`;
+            console.log(`📡 Explorium Smart Router: Injected live data for agent [${agent.id}]`);
+          }
+        } catch (expErr) {
+          console.error('📡 Explorium Smart Router: Pre-injection failed (sync):', expErr.message);
+        }
       }
 
       const modelInstance = genAI.getGenerativeModel({
@@ -82,7 +94,7 @@ Instructions: ${agent.systemInstruction}`;
         contents,
         generationConfig: {
           temperature: isPrimary ? 0.2 : 0.1,
-          maxOutputTokens: 4000
+          maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
         }
       });
 
@@ -178,6 +190,21 @@ Your Specific Task: ${agent.description}
 Instructions: ${agent.systemInstruction}`;
       } else if (customGcpGroundingBlock) {
         finalPrompt = `${customGcpGroundingBlock}\n\nUser Request: ${query}`;
+      } else if (isPrimary && isExploriumAgent(agent.id)) {
+        // ⚡ Explorium data pre-injection: fetch live B2B data and ground the prompt
+        try {
+          const exploriumContext = await getExploriumContext(agent.id, query, conversationHistory);
+          if (exploriumContext) {
+            finalPrompt = `${query}${exploriumContext}`;
+            console.log(`📡 Explorium Smart Router: Injected live data for agent [${agent.id}]`);
+            yield {
+              type: 'agent_data_fetched',
+              agent: { id: agent.id, name: agent.name }
+            };
+          }
+        } catch (expErr) {
+          console.error('📡 Explorium Smart Router: Pre-injection failed:', expErr.message);
+        }
       }
 
       try {
@@ -204,7 +231,7 @@ Instructions: ${agent.systemInstruction}`;
           contents,
           generationConfig: {
             temperature: isPrimary ? 0.2 : 0.1,
-            maxOutputTokens: 4000
+            maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
           }
         });
 

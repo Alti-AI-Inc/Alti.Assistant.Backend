@@ -81,6 +81,18 @@ import {
   realestateSkipTracer
 } from './realestate.agents.js';
 
+// ─── Explorium AgentSource B2B Intelligence Agents (8 specialists) ─────────────
+import {
+  exploriumCompanyResearcher,
+  exploriumProspectHunter,
+  exploriumSignalScout,
+  exploriumICPBuilder,
+  exploriumSalesCoach,
+  exploriumLeadScorer,
+  exploriumOutreachWriter,
+  exploriumMarketMapper,
+} from './explorium.agents.js';
+
 
 import {
   dataProcessorAgent,
@@ -351,7 +363,17 @@ export const customAgents = [
   // ── RealEstateAPI.com Real Estate Swarm Agents ─────────────────────────────
   realestatePropertyQuant,
   realestateMarketAnalyst,
-  realestateSkipTracer
+  realestateSkipTracer,
+
+  // ── Explorium AgentSource B2B Intelligence Agents ───────────────────────────
+  exploriumCompanyResearcher,
+  exploriumProspectHunter,
+  exploriumSignalScout,
+  exploriumICPBuilder,
+  exploriumSalesCoach,
+  exploriumLeadScorer,
+  exploriumOutreachWriter,
+  exploriumMarketMapper,
 ];
 
 export {
@@ -516,5 +538,15 @@ export {
   // ── RealEstateAPI.com Real Estate Swarm Agents ─────────────────────────────
   realestatePropertyQuant,
   realestateMarketAnalyst,
-  realestateSkipTracer
+  realestateSkipTracer,
+
+  // ── Explorium AgentSource B2B Intelligence Agents ───────────────────────────
+  exploriumCompanyResearcher,
+  exploriumProspectHunter,
+  exploriumSignalScout,
+  exploriumICPBuilder,
+  exploriumSalesCoach,
+  exploriumLeadScorer,
+  exploriumOutreachWriter,
+  exploriumMarketMapper,
 };

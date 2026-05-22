@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.4] - 2026-05-22
+### Added
+- **Finance, Mortgage, Stocks & Real Estate Premium Search Integrations**: Fully integrated 4 new high-fidelity public intelligence data sources into the `alti_premium_intelligence_search` tool:
+  - **FDIC BankFind**: Live financial profiles, assets, liabilities, deposits, and status lookup for all FDIC-insured banks.
+  - **CFPB Complaints**: Search and analysis of consumer finance complaints filed against banks and lending institutions.
+  - **SEC EDGAR Facts**: Retrieve live XBRL financial facts (Basic EPS, Assets, Liabilities, Revenues, Net Income) directly from corporate SEC filings using stock tickers or CIKs.
+  - **U.S. Census BPS**: Clean state and county residential building permit statistics (buildings, units, valuation) with a robust, resilient native FIPS mapping engine.
+- **Smart RAG Prompt Router & Formatting Rules**: Configured `massiveSmartRouter.js` to intelligently detect finance/mortgage/stock/real estate intent, merge data into context with double-lined box styling (`╔═════╗`), enforce bolding rules for key variables, and inject structured JSON metadata into downstream RAG scopes.
+- **Dual-Layer caching**: Integrated Redis + memory cache wrapper to deliver SWR performance with hot cache latency of less than 31ms.
+
 ## [1.4.1] - 2026-05-22
 ### Changed
 - **Gemini Model Modernization Hierarchy (Phase 2)**: Completed the standardization and transition of the backend services from legacy `gemini-2.5-flash` to the state-of-the-art `gemini-3.5-flash`.
