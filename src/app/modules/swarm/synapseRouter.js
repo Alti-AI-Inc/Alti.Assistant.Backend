@@ -295,6 +295,82 @@ export class SynapseRouter {
     }
 
     // ═════════════════════════════════════════════════════════════════════════
+    // PREDICTIONDATA.IO SPORTS SWARM ROUTING — 8 SPORTS INTELLIGENCE AGENTS
+    // ═════════════════════════════════════════════════════════════════════════
+
+    if (['parlay', 'accumulator', 'multi bet', 'parlay builder', 'price parlay',
+      'combined odds', 'parlay payout', 'parlay legs', 'teaser bet', 'round robin'].some(k => q.includes(k))
+      && SWARM_REGISTRY.sports_parlay_architect) {
+      return [SWARM_REGISTRY.sports_parlay_architect];
+    }
+
+    if (['arbitrage', 'arb betting', 'risk free profit', 'surebets', 'sure bets',
+      'arbitrage scanner', 'risk-free bet', 'payout matrix', 'arbitrage calculator'].some(k => q.includes(k))
+      && SWARM_REGISTRY.sports_arbitrage_scanner) {
+      return [SWARM_REGISTRY.sports_arbitrage_scanner];
+    }
+
+    if (['sharp money', 'smart money', 'steam move', 'reverse line movement',
+      'rlm', 'pinnacle line', 'sharp action', 'public consensus', 'sharp books'].some(k => q.includes(k))
+      && SWARM_REGISTRY.sports_sharp_money_analyst) {
+      return [SWARM_REGISTRY.sports_sharp_money_analyst];
+    }
+
+    if (['player props', 'passing yards', 'rebounds', 'strikeouts', 'touchdown scorer',
+      'prop bet', 'yards props', 'points props', 'assists props', 'over under player'].some(k => q.includes(k))
+      && SWARM_REGISTRY.sports_player_props_predictor) {
+      return [SWARM_REGISTRY.sports_player_props_predictor];
+    }
+
+    if (['value bets', 'ev betting', 'positive expected value', 'kelly criterion',
+      'vig-free odds', 'juice-free odds', 'betting edge', 'expected value calculator', 'quant bets'].some(k => q.includes(k))
+      && SWARM_REGISTRY.sports_value_betting_quant) {
+      return [SWARM_REGISTRY.sports_value_betting_quant];
+    }
+
+    if (['prizepicks', 'underdog', 'sleeper fantasy', 'dfs optimizer', 'dfs slip',
+      'fantasy props', 'dfs projection', 'more or less', 'dfs value', 'prizepicks slip'].some(k => q.includes(k))
+      && SWARM_REGISTRY.sports_dfs_expert) {
+      return [SWARM_REGISTRY.sports_dfs_expert];
+    }
+
+    if (['live odds', 'in-play', 'live score', 'live bet', 'in game odds',
+      'hedging live', 'live spread', 'live moneyline', 'live game update', 'middle bet'].some(k => q.includes(k))
+      && SWARM_REGISTRY.sports_live_odds_orchestrator) {
+      return [SWARM_REGISTRY.sports_live_odds_orchestrator];
+    }
+
+    if (['futures odds', 'super bowl odds', 'mvp odds', 'championship odds', 'outright winner',
+      'win totals', 'regular season wins', 'cy young odds', 'rookie of the year', 'division winner'].some(k => q.includes(k))
+      && SWARM_REGISTRY.sports_futures_speculator) {
+      return [SWARM_REGISTRY.sports_futures_speculator];
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // REALESTATEAPI.COM REAL ESTATE SWARM ROUTING
+    // ═════════════════════════════════════════════════════════════════════════
+
+    if (['valuation', 'avm', 'home value', 'house worth', 'estimated value', 'appraisal',
+      'what is it worth', 'price estimate', 'property value', 'rent valuation', 'rental yield', 'cap rate'].some(k => q.includes(k))
+      && SWARM_REGISTRY.realestate_property_quant) {
+      return [SWARM_REGISTRY.realestate_property_quant];
+    }
+
+    if (['comps', 'comparable sales', 'sold homes near', 'recent sales', 'neighborhood sales',
+      'comparables', 'sold near', 'mls', 'listings', 'for sale', 'active listings', 'active properties',
+      'homes for sale', 'real estate listings', 'days on market', 'dom'].some(k => q.includes(k))
+      && SWARM_REGISTRY.realestate_market_analyst) {
+      return [SWARM_REGISTRY.realestate_market_analyst];
+    }
+
+    if (['skip trace', 'owner contact', 'owner phone', 'owner email', 'lookup owner',
+      'who owns', 'property owner', 'skip trace phone', 'owner address', 'contact owner'].some(k => q.includes(k))
+      && SWARM_REGISTRY.realestate_skip_tracer) {
+      return [SWARM_REGISTRY.realestate_skip_tracer];
+    }
+
+
+    // ═════════════════════════════════════════════════════════════════════════
     // EXPERT DOMAIN INTELLIGENCE ROUTING — 12 PROFESSIONAL SPECIALIST AGENTS
     // ═════════════════════════════════════════════════════════════════════════
 

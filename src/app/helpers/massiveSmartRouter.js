@@ -24,6 +24,7 @@
  */
 
 import { sportsSmartRouter } from './sportsSmartRouter.js';
+import { realestateSmartRouter } from './realestateSmartRouter.js';
 
 import {
   getStockQuoteService,
@@ -2293,103 +2294,148 @@ const routeAndEnhancePrompt = async (prompt) => {
   return prompt;
 };
 
-// ─── Combined Orchestrator v6 ────────────────────────────────────────────────
-// MASSIVE_SPORTS_V6
-// Intelligently routes between financial-only, sports-only, and dual-context.
-// - Pure sports queries skip financial routing entirely (faster)
-// - Pure financial queries skip sports routing entirely (faster)
-// - Ambiguous/mixed queries run both in parallel and merge
-// - Sports intent metadata included in dual-context block
+// ─── Combined Orchestrator v7 ────────────────────────────────────────────────
+// MASSIVE_SPORTS_REALESTATE_V7
+// Intelligently routes between financial, sports betting, and real estate channels.
+// Runs only active channels, handles parallel execution, and merges dual/triple contexts.
 const combinedRouteAndEnhancePrompt = async (prompt) => {
-  // Quick intent classification to avoid unnecessary API calls
+  // Detect intents
   const { detectSportsIntent } = sportsSmartRouter;
   const sportsIntent = detectSportsIntent ? detectSportsIntent(prompt) : null;
-  const isSportsOnly = !!sportsIntent && !detectFinancialIntent(prompt);
-  const isFinancialOnly = !sportsIntent && !!detectFinancialIntent(prompt);
-
-  // Fast path: pure sports → only call sports router
-  if (isSportsOnly) {
-    const result = await sportsSmartRouter.routeAndEnhancePrompt(prompt);
-    return result;
+  const { detectRealEstateIntent } = realestateSmartRouter;
+  const realEstateIntent = detectRealEstateIntent ? detectRealEstateIntent(prompt) : null;
+  
+  const hasFinance = detectFinancialIntent(prompt);
+  const hasSports = !!sportsIntent;
+  const hasRealEstate = !!realEstateIntent;
+  
+  // Fast path: pure real estate
+  if (hasRealEstate && !hasFinance && !hasSports) {
+    return realestateSmartRouter.routeAndEnhancePrompt(prompt);
   }
-
-  // Fast path: pure financial → only call financial router
-  if (isFinancialOnly) {
-    const result = await routeAndEnhancePrompt(prompt);
-    return result;
+  
+  // Fast path: pure sports
+  if (hasSports && !hasFinance && !hasRealEstate) {
+    return sportsSmartRouter.routeAndEnhancePrompt(prompt);
   }
-
-  // Dual-context: run both in parallel
-  const [financial, sports] = await Promise.allSettled([
-    routeAndEnhancePrompt(prompt),
-    sportsSmartRouter.routeAndEnhancePrompt(prompt),
-  ]);
-
-  const financialResult = financial.status === 'fulfilled' ? financial.value : prompt;
-  const sportsResult    = sports.status === 'fulfilled'    ? sports.value    : prompt;
-
-  const financialEnriched = financialResult !== prompt;
-  const sportsEnriched    = sportsResult    !== prompt;
-
-  // Case 1: Both routers enriched — create a merged dual-context block
-  if (financialEnriched && sportsEnriched) {
-    // Extract just the data sections from each (everything from first ## heading)
-    const extractDataBlock = (enriched) => {
-      const start = enriched.indexOf('##');
-      if (start === -1) return enriched;
-      // Stop at the mandatory rules section to avoid duplication
-      const rulesMarker = enriched.indexOf('━━━━━━━━━━━━━━', start + 1);
-      const lastMarker  = enriched.lastIndexOf('━━━━━━━━━━━━━━');
-      if (rulesMarker !== -1 && rulesMarker < lastMarker) {
-        return enriched.slice(start, rulesMarker).trim();
-      }
-      return enriched.slice(start).trim();
-    };
-
-    const financialBlock = extractDataBlock(financialResult);
-    const sportsBlock    = extractDataBlock(sportsResult);
-
-    const timestamp = new Date().toISOString();
-    return `[SYSTEM INSTRUCTION — ALTI DUAL REAL-TIME DATA CONTEXT]
+  
+  // Fast path: pure finance
+  if (hasFinance && !hasSports && !hasRealEstate) {
+    return routeAndEnhancePrompt(prompt);
+  }
+  
+  // Run all active channels or parallel compilation
+  const promises = [];
+  
+  // Financial channel
+  if (hasFinance || (!hasSports && !hasRealEstate)) {
+    promises.push(routeAndEnhancePrompt(prompt));
+  } else {
+    promises.push(Promise.resolve(prompt));
+  }
+  
+  // Sports channel
+  if (hasSports) {
+    promises.push(sportsSmartRouter.routeAndEnhancePrompt(prompt));
+  } else {
+    promises.push(Promise.resolve(prompt));
+  }
+  
+  // Real Estate channel
+  if (hasRealEstate) {
+    promises.push(realestateSmartRouter.routeAndEnhancePrompt(prompt));
+  } else {
+    promises.push(Promise.resolve(prompt));
+  }
+  
+  const results = await Promise.allSettled(promises);
+  
+  const finRes = results[0]?.status === 'fulfilled' ? results[0].value : prompt;
+  const spoRes = results[1]?.status === 'fulfilled' ? results[1].value : prompt;
+  const reRes  = results[2]?.status === 'fulfilled' ? results[2].value : prompt;
+  
+  const finEnriched = finRes !== prompt;
+  const spoEnriched = spoRes !== prompt;
+  const reEnriched  = reRes !== prompt;
+  
+  // Count how many channels were actually enriched
+  const enrichedCount = (finEnriched ? 1 : 0) + (spoEnriched ? 1 : 0) + (reEnriched ? 1 : 0);
+  
+  if (enrichedCount === 0) {
+    return prompt;
+  }
+  
+  if (enrichedCount === 1) {
+    if (finEnriched) return finRes;
+    if (spoEnriched) return spoRes;
+    if (reEnriched)  return reRes;
+  }
+  
+  // Merged Multi-Context RAG
+  const extractDataBlock = (enriched) => {
+    const start = enriched.indexOf('##');
+    if (start === -1) return enriched;
+    const rulesMarker = enriched.indexOf('━━━━━━━━━━━━━━', start + 1);
+    const lastMarker  = enriched.lastIndexOf('━━━━━━━━━━━━━━');
+    if (rulesMarker !== -1 && rulesMarker < lastMarker) {
+      return enriched.slice(start, rulesMarker).trim();
+    }
+    return enriched.slice(start).trim();
+  };
+  
+  let mergedBlocks = '';
+  let citations = [];
+  let mandatoryRules = '';
+  
+  if (finEnriched) {
+    mergedBlocks += `╔══════════════════════════════════════════════════════════════════╗\n`;
+    mergedBlocks += `║  📈 FINANCIAL MARKET DATA (Massive.com)                         ║\n`;
+    mergedBlocks += `╚══════════════════════════════════════════════════════════════════╝\n\n`;
+    mergedBlocks += `${extractDataBlock(finRes)}\n\n`;
+    citations.push('"[Source: Massive.com]" for financial data');
+    mandatoryRules += `▸ Present ALL prices/values in **BOLD** (e.g. **$182.43**)\n`;
+  }
+  
+  if (spoEnriched) {
+    let sportsSummary="";
+    try{const{getCachedLiveLeagues}=await import("./sportsDataCache.js");const ll=await getCachedLiveLeagues();if(ll.length>0)sportsSummary="\n\n> LIVE NOW: "+ll.join(", ")+" - real-time odds available";}catch{}
+    mergedBlocks += `╔══════════════════════════════════════════════════════════════════╗\n`;
+    mergedBlocks += `║  🏈 SPORTS BETTING DATA (PredictionData.io)                     ║\n`;
+    mergedBlocks += `╚══════════════════════════════════════════════════════════════════╝\n\n`;
+    mergedBlocks += `${extractDataBlock(spoRes)}${sportsSummary}\n\n`;
+    citations.push('"[Source: PredictionData.io]" for sports data');
+    mandatoryRules += `▸ Present ALL odds in **BOLD** (e.g. **-110**, **+130**)\n`;
+  }
+  
+  if (reEnriched) {
+    mergedBlocks += `╔══════════════════════════════════════════════════════════════════╗\n`;
+    mergedBlocks += `║  🏡 REAL ESTATE PROPERTY DATA (RealEstateAPI.com)                ║\n`;
+    mergedBlocks += `╚══════════════════════════════════════════════════════════════════╝\n\n`;
+    mergedBlocks += `${extractDataBlock(reRes)}\n\n`;
+    citations.push('"[Source: RealEstateAPI.com]" for real estate data');
+    mandatoryRules += `▸ Present ALL property metrics (prices, valuations, beds, baths, sqft, year built) in **BOLD** (e.g. **$672,000**, **4** beds, **2,200** sqft)\n`;
+  }
+  
+  const timestamp = new Date().toISOString();
+  
+  return `[SYSTEM INSTRUCTION — ALTI MULTI-CHANNEL REAL-TIME DATA CONTEXT]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FINANCIAL DATA SOURCE: Massive.com
-SPORTS DATA SOURCE:    PredictionData.io
+MERGED RAG DATA CONTEXT
 TIMESTAMP:             ${timestamp}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-╔══════════════════════════════════════════════════════════════════╗
-║  📈 FINANCIAL MARKET DATA (Massive.com)                         ║
-╚══════════════════════════════════════════════════════════════════╝
-
-${financialBlock}
-
-╔══════════════════════════════════════════════════════════════════╗
-║  🏈 SPORTS BETTING DATA (PredictionData.io)                     ║
-╚══════════════════════════════════════════════════════════════════╝
-
-${sportsBlock}
+${mergedBlocks.trim()}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MANDATORY RESPONSE RULES:
-▸ Cite "[Source: Massive.com]" for financial data, "[Source: PredictionData.io]" for sports data
-▸ Present ALL odds in **BOLD** (e.g. **-110**, **+130**)
-▸ Present ALL prices/values in **BOLD** (e.g. **$182.43**)
-▸ Use Markdown tables for comparisons, odds, and market data
-▸ NEVER fabricate, estimate, or hallucinate any odds, prices, or lines
+▸ Cite ${citations.join(', ')} prominently at the top of your response
+${mandatoryRules.trim()}
+▸ Use Markdown tables for comparisons, odds, comps, and listing datasets
+▸ NEVER fabricate, estimate, or hallucinate any numbers, prices, or odds
 ▸ Answer the user's EXACT question using ONLY the verified data above
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 User Query: ${prompt}`;
-  }
-
-  // Case 2: Sports only enriched
-  if (sportsEnriched)    return sportsResult;
-
-  // Case 3: Financial only enriched
-  if (financialEnriched) return financialResult;
-
-  // Case 4: Neither enriched
-  return prompt;
 };
 
 export const massiveSmartRouter = {
@@ -2397,6 +2443,7 @@ export const massiveSmartRouter = {
   combinedRouteAndEnhancePrompt,
   detectFinancialIntent,
   detectMultipleTickers,
-  // Re-export for convenience so consumers don't need to import sportsSmartRouter separately
+  // Re-export for convenience
   detectSportsIntent: sportsSmartRouter.detectSportsIntent,
+  detectRealEstateIntent: realestateSmartRouter.detectRealEstateIntent,
 };

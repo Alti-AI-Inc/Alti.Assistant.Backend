@@ -163,7 +163,7 @@ export async function executeSmartSearch(
     }
 
     // High-complexity sports intents → ReAct agent (has sports tool + web search)
-    const REACT_INTENTS = new Set(['sgp', 'prediction_market', 'alt_lines', 'multi_league']);
+    const REACT_INTENTS = new Set(['sgp', 'prediction_market', 'alt_lines', 'multi_league', 'dfs', 'arbitrage']);
     const forceReAct    = REACT_INTENTS.has(intentType) || sportsClass.confidence > 0.97;
 
     if (forceReAct) {

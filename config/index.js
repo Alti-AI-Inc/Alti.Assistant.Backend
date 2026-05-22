@@ -71,6 +71,7 @@ export default {
   serper_api_key: process.env.SERPER_API_KEY,
   together_secret_key: process.env.TOGETHER_API_KEY,
   gemini_secret_key: process.env.GEMINI_API_KEY,
+  realestate_api_key: process.env.REALESTATE_API_KEY,
   deepseek_secret_key: process.env.DEEPSEEK_API_KEY,
   openai_secret_key: process.env.OPENAI_API_KEY,
   browser_use_secret_key: process.env.BROWSER_USE_SECRET_KEY,

@@ -649,6 +649,9 @@ export const BEST_AVAILABLE_KEYWORDS = [
 // ARBITRAGE KEYWORDS
 // Risk-free profit when combined implied probability < 100%
 // ─────────────────────────────────────────────────────────────────────────────
+export const DFS_KEYWORDS = ['dfs','daily fantasy','prizepicks','prize picks','underdog fantasy','underdog','sleeper','fantasy picks','pick em',"pick'em",'dfs picks','more or less','dfs optimizer','top picks'];
+export const KELLY_KEYWORDS = ['kelly criterion','kelly calculator','kelly sizing','bet sizing','how much to bet','optimal bet size','bankroll management','kelly formula','fractional kelly'];
+export const CLV_KEYWORDS = ['closing line','closing line value','clv','beat the closing line','closing odds','closed at','final odds','closing price','line movement since open'];
 export const ARBITRAGE_KEYWORDS = [
   'arbitrage', 'arb', 'arb bet', 'arbing', 'arb opportunity', 'arb alert',
   'sure bet', 'surebet', 'sure thing', 'risk free bet', 'risk-free',
@@ -881,6 +884,9 @@ export function detectSportsIntent(prompt) {
   const detectedPlayerName =
     Object.keys(PLAYER_NAME_MAP).find((name) => q.includes(name)) || null;
 
+    if(typeof DFS_KEYWORDS!=="undefined"&&DFS_KEYWORDS.some(k=>q.includes(k))){const d=Object.entries(LEAGUE_MAP).find(([kw])=>q.includes(kw));return{type:"dfs",league:d?.[1]||"NFL",extra:{}};}
+  if(typeof KELLY_KEYWORDS!=="undefined"&&KELLY_KEYWORDS.some(k=>q.includes(k))){const d=Object.entries(LEAGUE_MAP).find(([kw])=>q.includes(kw));return{type:"kelly",league:d?.[1]||"NFL",extra:{}};}
+  if(typeof CLV_KEYWORDS!=="undefined"&&CLV_KEYWORDS.some(k=>q.includes(k))){const d=Object.entries(LEAGUE_MAP).find(([kw])=>q.includes(kw));return{type:"clv",league:d?.[1]||"NFL",extra:{}};}
   // ── Arbitrage intent detection
   if (typeof ARBITRAGE_KEYWORDS !== 'undefined' && ARBITRAGE_KEYWORDS.some((k) => q.includes(k))) {
     const detectedLeagueArb = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
@@ -896,11 +902,11 @@ export function detectSportsIntent(prompt) {
 
   // ── Matchup intent detection — "Chiefs vs Raiders", "Lakers vs Warriors"
   // Must have a "vs" pattern AND a detectable team/player
-  const hasVsPattern = /\b(vs\.?|versus|v\.?s\.?|vs )\b/i.test(query) || q.includes(' v ');
+  const hasVsPattern = /\b(vs\.?|versus|v\.?s\.?|vs )\b/i.test(prompt) || q.includes(' v ');
   if (hasVsPattern) {
     const detectedLeagueMatchup = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
     if (detectedLeagueMatchup) {
-      return { type: 'matchup', league: detectedLeagueMatchup[1], extra: { rawQuery: query } };
+      return { type: 'matchup', league: detectedLeagueMatchup[1], extra: { rawQuery: prompt } };
     }
   }
 
@@ -1058,3 +1064,7 @@ export function detectSportsIntent(prompt) {
   }
   return { type: 'odds', league: detectedLeague };
 }
+
+export const TEAM_NAME_MAP = {
+  "chiefs":"NFL","eagles":"NFL","cowboys":"NFL","patriots":"NFL","bills":"NFL","49ers":"NFL","niners":"NFL","ravens":"NFL","dolphins":"NFL","jets":"NFL","steelers":"NFL","bengals":"NFL","browns":"NFL","texans":"NFL","colts":"NFL","jaguars":"NFL","titans":"NFL","broncos":"NFL","raiders":"NFL","chargers":"NFL","seahawks":"NFL","rams":"NFL","cardinals":"NFL","packers":"NFL","lions":"NFL","vikings":"NFL","bears":"NFL","saints":"NFL","falcons":"NFL","buccaneers":"NFL","bucs":"NFL","commanders":"NFL","lakers":"NBA","celtics":"NBA","warriors":"NBA","heat":"NBA","bucks":"NBA","nuggets":"NBA","suns":"NBA","clippers":"NBA","knicks":"NBA","nets":"NBA","bulls":"NBA","spurs":"NBA","mavericks":"NBA","mavs":"NBA","76ers":"NBA","sixers":"NBA","raptors":"NBA","thunder":"NBA","okc":"NBA","pelicans":"NBA","hawks":"NBA","jazz":"NBA","timberwolves":"NBA","wolves":"NBA","grizzlies":"NBA","kings":"NBA","cavaliers":"NBA","cavs":"NBA","magic":"NBA","rockets":"NBA","blazers":"NBA","hornets":"NBA","pistons":"NBA","pacers":"NBA","wizards":"NBA","yankees":"MLB","red sox":"MLB","dodgers":"MLB","astros":"MLB","braves":"MLB","mets":"MLB","cubs":"MLB","white sox":"MLB","phillies":"MLB","padres":"MLB","mariners":"MLB","rays":"MLB","guardians":"MLB","twins":"MLB","bruins":"NHL","maple leafs":"NHL","leafs":"NHL","blackhawks":"NHL","penguins":"NHL","capitals":"NHL","caps":"NHL","lightning":"NHL","oilers":"NHL","flames":"NHL","canucks":"NHL","avalanche":"NHL","avs":"NHL","golden knights":"NHL","vgk":"NHL","kraken":"NHL"
+};

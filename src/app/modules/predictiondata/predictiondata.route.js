@@ -618,6 +618,10 @@ router.get(
  * Calculates combined parlay odds from an array of legs.
  * Body: { legs: [{ odds: -110, description: 'Chiefs ML' }, ...] }
  */
+
+router.get("/kelly",handleAsync(async(req,res)=>{const{league="NFL",bankroll="1000",min_edge="0.5",book_ids="100,200,300,400,250"}=req.query;const markets=await getMarketsService(league,"moneyline,spread,total,player_prop","FT",book_ids,{timedelta:24});const vb=sportsSmartRouter.buildValueBets(markets,Number(min_edge));const toImpl=(o)=>{const n=Number(o);return n>=0?100/(n+100):Math.abs(n)/(Math.abs(n)+100);};const sized=vb.map(m=>({...m,kelly:sportsSmartRouter.kellyBetSizing(m.odds,toImpl(m.no_vig_odds||m.odds)*100,Number(bankroll))})).filter(m=>m.kelly?.isPositiveEV);res.json({league,bankroll:Number(bankroll),markets_analyzed:markets.length,kelly_picks:sized,count:sized.length});}));
+router.get("/dfs",handleAsync(async(req,res)=>{const{league="NFL",timedelta="24"}=req.query;const allBooks="100,200,300,400,250,385,387,595";const markets=await getPlayerPropsService(league,null,allBooks,{timedelta:Number(timedelta)});const picks=sportsSmartRouter.optimizeDFSPicks(markets,25);res.json({league,markets_analyzed:markets.length,dfs_picks:picks,count:picks.length});}));
+router.get("/clv",handleAsync(async(req,res)=>{const{league="NFL",bet_types="moneyline,spread,total",book_ids="100,200,300,400,250",timedelta="48"}=req.query;const markets=await getMarketsService(league,bet_types,"FT",book_ids,{timedelta:Number(timedelta)});const mv=markets.filter(m=>m.open_odds&&m.odds&&m.open_odds!==m.odds).map(m=>({...m,clv:sportsSmartRouter.calculateCLV(m.open_odds,m.odds)})).filter(m=>m.clv);res.json({league,markets_with_movement:mv.length,clv_data:mv});}));
 router.post(
   '/parlay/build',
   handleAsync(async (req, res) => {

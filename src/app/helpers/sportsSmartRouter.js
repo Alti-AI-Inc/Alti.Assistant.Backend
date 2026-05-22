@@ -1359,6 +1359,58 @@ function formatParlayBlock(legs, result) {
 
   return block;
 }
+
+function kellyBetSizing(odds, winProbPct, bankroll = 1000, fractionKelly = 0.25) {
+  const toDecimal = (n) => { const num=Number(n); if(isNaN(num)) return null; return num>=0?(num/100)+1:1-(100/num); };
+  const decimalOdds = toDecimal(odds);
+  if (!decimalOdds) return null;
+  const p = winProbPct / 100, q = 1 - p, b = decimalOdds - 1;
+  const kelly = (b * p - q) / b;
+  const fk = kelly * fractionKelly;
+  return { fullKellyPct:(kelly*100).toFixed(2), quarterKellyPct:(fk*100).toFixed(2), betAmount:(Math.max(0,fk*bankroll)).toFixed(2), expectedValuePer100:((b*p-q)*100).toFixed(2), decimalOdds:decimalOdds.toFixed(4), winProb:(p*100).toFixed(1), isPositiveEV:kelly>0 };
+}
+function formatKellyBlock(valueBets, bankroll=1000) {
+  if (!valueBets||valueBets.length===0) return "*No +EV bets found for Kelly sizing.*";
+  let b="## Kelly Criterion Bet Sizing\n\n| Pick | Odds | Edge | Q-Kelly% | Bet Size | EV/$100 |\n|------|------|------|----------|----------|---------|\n";
+  const toImpl=(o)=>{ const n=Number(o); return n>=0?100/(n+100):Math.abs(n)/(Math.abs(n)+100); };
+  valueBets.slice(0,12).forEach(m=>{
+    const wp=toImpl(m.no_vig_odds||m.odds)*100;
+    const k=kellyBetSizing(m.odds,wp,bankroll);
+    if(!k||!k.isPositiveEV) return;
+    b+="|"+(m.side||m.prop_name||"N/A")+"|**"+(Number(m.odds)>=0?"+":"")+m.odds+"**|+"+( m._edge?.toFixed(1)||k.expectedValuePer100)+"%|"+k.quarterKellyPct+"%|**$"+k.betAmount+"**|+$"+k.expectedValuePer100+"|\n";
+  });
+  return b;
+}
+const DFS_PLATFORM_ARRAY = [385, 387, 595];
+function optimizeDFSPicks(allMarkets,topN=20) {
+  const toDecimal=(o)=>{ const n=Number(o); if(isNaN(n)) return null; return n>=0?(n/100)+1:1-(100/n); };
+  const dfs=allMarkets.filter(m=>DFS_PLATFORM_ARRAY.includes(Number(m.odd_provider_id)));
+  const book=allMarkets.filter(m=>!DFS_PLATFORM_ARRAY.includes(Number(m.odd_provider_id)));
+  const cons={};
+  for(const m of book){const key=[m.player_name||m.prop_name,m.bet_type,m.side||"over"].join(":");if(!cons[key])cons[key]={sum:0,count:0};const d=toDecimal(m.odds);if(d){cons[key].sum+=d;cons[key].count++;}}
+  return dfs.map(m=>{const key=[m.player_name||m.prop_name,m.bet_type,m.side||"over"].join(":");const c=cons[key];if(!c||c.count===0)return null;const avg=c.sum/c.count;const d=toDecimal(m.odds);if(!d)return null;const edge=((d-avg)/avg)*100;const bn=m.odd_provider_id===385?"PrizePicks":m.odd_provider_id===387?"Underdog":"Sleeper";return{...m,_edge:edge,_consensus:avg,_bookName:bn};}).filter(p=>p&&p._edge>0).sort((a,b)=>b._edge-a._edge).slice(0,topN);
+}
+function formatDFSBlock(picks,league){
+  const emoji=LEAGUE_EMOJI[league]||"trophy";
+  if(!picks||picks.length===0)return "## "+league+" DFS Optimizer\n\n*No +EV DFS picks found.*";
+  let block="## "+league+" DFS Optimizer (PrizePicks/Underdog/Sleeper)\n\n|Player|Prop|Line|DFS Odds|Consensus|Edge|Platform|\n|------|----|----|--------|---------|-----|--------|\n";
+  picks.forEach(p=>{const o=p.odds?(Number(p.odds)>=0?"+":"")+p.odds:"N/A";block+="|"+(p.player_name||p.prop_name||"N/A")+"|"+(p.bet_type||p.side)+"|"+(p.number||"")+"|**"+o+"**|"+(p._consensus?.toFixed(3)||"N/A")+"x|**+"+p._edge.toFixed(1)+"%**|"+p._bookName+"|\n";});
+  return block;
+}
+function calculateCLV(betOdds,closingOdds){
+  const toImpl=(o)=>{ const n=Number(o); if(isNaN(n)) return null; return n>=0?100/(n+100):Math.abs(n)/(Math.abs(n)+100); };
+  const bi=toImpl(betOdds),ci=toImpl(closingOdds);
+  if(!bi||!ci)return null;
+  const clvPct=(ci-bi)*100;
+  return{betOdds,closingOdds,betImplied:(bi*100).toFixed(2),closingImplied:(ci*100).toFixed(2),clvPct:clvPct.toFixed(2),beatClosingLine:clvPct>0,rating:clvPct>3?"Green Excellent":clvPct>1?"Yellow Good":clvPct>0?"Orange Slight":""+"Red Negative"};
+}
+function formatCLVBlock(markets,league){
+  const mv=markets.filter(m=>m.open_odds&&m.odds&&m.open_odds!==m.odds).map(m=>({...m,clv:calculateCLV(m.open_odds,m.odds)})).filter(m=>m.clv).sort((a,b)=>Math.abs(Number(b.clv.clvPct))-Math.abs(Number(a.clv.clvPct)));
+  if(mv.length===0)return "*No CLV data available.*";
+  let block="## "+league+" CLV Tracker\n\n|Market|Side|Open|Current|CLV|Rating|\n|------|----|----|-------|---|------|\n";
+  mv.slice(0,15).forEach(m=>{const o=(Number(m.open_odds)>=0?"+":"")+m.open_odds;const c=(Number(m.odds)>=0?"+":"")+m.odds;block+="|"+m.bet_type+"|"+(m.side||m.prop_name||"")+"|"+o+"|**"+c+"**|"+(m.clv.beatClosingLine?"**+":"")+m.clv.clvPct+"**|"+m.clv.rating+"|\n";});
+  return block;
+}
 // PATCH_V43
 
 const routeAndEnhancePrompt = async (prompt) => {
@@ -1733,7 +1785,10 @@ const routeAndEnhancePrompt = async (prompt) => {
       return buildPrompt(prompt, block, `PredictionData.io ${league} Best Available Lines — Line Shopping`);
     }
 
-    // ── ARBITRAGE DETECTION ───────────────────────────────────────────────
+    if(type==="dfs"){const allBooks=DEFAULT_BOOK_IDS+",385,387,595";const [markets,fixtures]=await Promise.all([safe(getPlayerPropsService(league,null,allBooks,{timedelta:24}),8000),safe(getFixturesService(league,24),5000)]);const picks=optimizeDFSPicks(markets||[],20);return buildPrompt(prompt,formatDFSBlock(picks,league),"PredictionData.io DFS Optimizer");}
+    if(type==="kelly"){const m=await safe(getMarketsService(league,"moneyline,spread,total,player_prop","FT",DEFAULT_BOOK_IDS+",250",{timedelta:24}),8000);const vb=buildValueBets(m||[],0.5);return buildPrompt(prompt,formatKellyBlock(vb,1000),"PredictionData.io Kelly Sizing");}
+    if(type==="clv"){const m=await safe(getMarketsService(league,"moneyline,spread,total","FT",DEFAULT_BOOK_IDS+",250",{timedelta:48}),8000);return buildPrompt(prompt,formatCLVBlock(m||[],league),"PredictionData.io CLV Tracker");}
+        // ── ARBITRAGE DETECTION ───────────────────────────────────────────────
     if (type === 'arbitrage') {
       // Fetch from ALL major books for maximum arb opportunities
       const allBooks = '100,200,300,400,250,700,365,500,555,617,150';
@@ -1893,4 +1948,10 @@ export const sportsSmartRouter = {
   formatArbitrageBlock,
   formatParlayBlock,
   formatMatchupBlock,
+  kellyBetSizing,
+  formatKellyBlock,
+  optimizeDFSPicks,
+  formatDFSBlock,
+  calculateCLV,
+  formatCLVBlock,
 };

@@ -902,6 +902,9 @@ export function classifySportsQuery(query) {
     parlay_builder:    0.95,
     matchup:           0.91,
     multi_league:      0.93,
+    dfs:               0.97,
+    kelly:             0.99,
+    clv:               0.98,
   };
 
   const confidence = confidenceMap[intent.type] || 0.85;

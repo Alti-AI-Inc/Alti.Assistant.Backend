@@ -65,6 +65,24 @@ import {
 } from './expert.agents.js';
 
 import {
+  sportsArbitrageScanner,
+  sportsParlayArchitect,
+  sportsSharpMoneyAnalyst,
+  sportsPlayerPropsPredictor,
+  sportsValueBettingQuant,
+  sportsDFSExpert,
+  sportsLiveOddsOrchestrator,
+  sportsFuturesSpeculator
+} from './predictiondata.agents.js';
+
+import {
+  realestatePropertyQuant,
+  realestateMarketAnalyst,
+  realestateSkipTracer
+} from './realestate.agents.js';
+
+
+import {
   dataProcessorAgent,
   dataEtlSynthesizer,
   dbOptimizer,
@@ -318,7 +336,22 @@ export const customAgents = [
   marketResearcher,
   patentIntelResearcher,
   financialSecAuditor,
-  legalRegulatoryResearcher
+  legalRegulatoryResearcher,
+
+  // ── PredictionData.io Sports Swarm Agents ──────────────────────────────────
+  sportsArbitrageScanner,
+  sportsParlayArchitect,
+  sportsSharpMoneyAnalyst,
+  sportsPlayerPropsPredictor,
+  sportsValueBettingQuant,
+  sportsDFSExpert,
+  sportsLiveOddsOrchestrator,
+  sportsFuturesSpeculator,
+
+  // ── RealEstateAPI.com Real Estate Swarm Agents ─────────────────────────────
+  realestatePropertyQuant,
+  realestateMarketAnalyst,
+  realestateSkipTracer
 ];
 
 export {
@@ -468,5 +501,20 @@ export {
   dataPrivacyCompliance,
   scienceTutorAgent,
   creativeWritingDirector,
-  careerStrategistCoach
+  careerStrategistCoach,
+
+  // ── PredictionData.io Sports Swarm Agents ──────────────────────────────────
+  sportsArbitrageScanner,
+  sportsParlayArchitect,
+  sportsSharpMoneyAnalyst,
+  sportsPlayerPropsPredictor,
+  sportsValueBettingQuant,
+  sportsDFSExpert,
+  sportsLiveOddsOrchestrator,
+  sportsFuturesSpeculator,
+
+  // ── RealEstateAPI.com Real Estate Swarm Agents ─────────────────────────────
+  realestatePropertyQuant,
+  realestateMarketAnalyst,
+  realestateSkipTracer
 };
