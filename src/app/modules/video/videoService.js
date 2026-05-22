@@ -345,32 +345,27 @@ export const checkVideoGenerationStatus = async (jobId) => {
  * @returns {Promise<Array>} - Array of available models and their capabilities
  */
 export const getAvailableVideoModels = async () => {
-  try {
-    return [
-      {
-        id: 'veo-3.0-fast-generate-001',
-        name: 'Google Veo 3.0 Fast',
-        description: 'Optimized fast high-quality video generation model',
-        maxDuration: 8,
-        resolutions: ['720p', '1024x576'],
-      },
-      {
-        id: 'veo-3.0-generate-001',
-        name: 'Google Veo 3.0 Standard',
-        description: 'Cinematic high-fidelity video generation model',
-        maxDuration: 10,
-        resolutions: ['720p', '1080p', '1920x1080'],
-      },
-      {
-        id: 'cinematic',
-        name: 'Cinematic',
-        description: 'Movie-like cinematic video generation',
-        maxDuration: 8,
-        resolutions: ['1920x1080', '2560x1440'],
-      },
-    ];
-  } catch (error) {
-    console.error('Error getting available video models:', error);
-    return [];
-  }
+  return [
+    {
+      id: 'veo-3.0-fast-generate-001',
+      name: 'Google Veo 3.0 Fast',
+      description: 'Optimized fast high-quality video generation model',
+      maxDuration: 8,
+      resolutions: ['720p', '1024x576'],
+    },
+    {
+      id: 'veo-3.0-generate-001',
+      name: 'Google Veo 3.0 Standard',
+      description: 'Cinematic high-fidelity video generation model',
+      maxDuration: 10,
+      resolutions: ['720p', '1080p', '1920x1080'],
+    },
+    {
+      id: 'cinematic',
+      name: 'Cinematic',
+      description: 'Movie-like cinematic video generation',
+      maxDuration: 8,
+      resolutions: ['1920x1080', '2560x1440'],
+    },
+  ];
 };
