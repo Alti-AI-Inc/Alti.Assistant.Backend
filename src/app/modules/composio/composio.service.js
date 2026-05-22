@@ -3,14 +3,33 @@ import { OpenAIToolSet } from 'composio-core';
 import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
 import { Composio } from '@composio/core';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const integrationId = '5c9834e1-14b3-4c06-9262-606bce538a9f';
 const toolset = new OpenAIToolSet({ apiKey: config.composio.apiKey });
 const composio = new Composio();
-const openai = new OpenAI({
-  apiKey: config.openai.apiKey,
-});
+
+// Recursive helper to capitalize all parameter types for Gemini compatibility
+const capitalizeTypes = (schema) => {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+  
+  const newSchema = Array.isArray(schema) ? [] : {};
+  
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === 'type' && typeof value === 'string') {
+      newSchema[key] = value.toUpperCase();
+    } else if (typeof value === 'object') {
+      newSchema[key] = capitalizeTypes(value);
+    } else {
+      newSchema[key] = value;
+    }
+  }
+  
+  return newSchema;
+};
+
 
 const getGmailIntegrationService = async () => {
   const integration = await toolset.integrations.get({
@@ -59,25 +78,67 @@ const sendGmailFromAuthorizedAccountService = async (body) => {
 
   const task = `Send an email to ${toEmail} from ${userEmail} with the subject ${subject} and the body ${content}`;
 
-  //Define the messages for the assistant
-  const messages = [
-    {
-      role: 'system',
-      content: 'You are a helpful assistant that can help with tasks.',
-    },
-    { role: 'user', content: task },
-  ];
+  // Call Gemini using native @google/generative-ai
+  const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
+  const ai = new GoogleGenerativeAI(apiKey);
 
-  // Create a chat completion
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages,
-    tools: toolsForResponses,
-    tool_choice: 'auto',
+  // Translate Composio OpenAI tools to Gemini function declarations
+  const geminiTools = toolsForResponses.map(t => {
+    const functionDecl = {
+      name: t.function.name,
+      description: t.function.description,
+    };
+    if (t.function.parameters) {
+      functionDecl.parameters = capitalizeTypes(t.function.parameters);
+    }
+    return { functionDeclarations: [functionDecl] };
   });
 
-  // Execute the tool calls
-  const result = await composio.provider.handleToolCalls(userEmail, response, {
+  const contents = [
+    {
+      role: 'user',
+      parts: [{ text: task }]
+    }
+  ];
+
+  const modelInstance = ai.getGenerativeModel({
+    model: 'gemini-3.5-flash',
+    tools: geminiTools
+  }, {
+    systemInstruction: 'You are a helpful assistant that can help with tasks.'
+  });
+
+  const response = await modelInstance.generateContent({ contents });
+  const functionCalls = response.response.functionCalls();
+
+  if (!functionCalls || functionCalls.length === 0) {
+    throw new ApiError(500, 'Gemini failed to generate Gmail send tool call');
+  }
+
+  // Map Gemini function calling responses to the mocked OpenAI completion format
+  const tool_calls = functionCalls.map((call, index) => ({
+    id: `call_${Date.now()}_${index}`,
+    type: 'function',
+    function: {
+      name: call.name,
+      arguments: JSON.stringify(call.args)
+    }
+  }));
+
+  const mockOpenAIMsg = {
+    choices: [
+      {
+        message: {
+          role: 'assistant',
+          content: null,
+          tool_calls: tool_calls
+        }
+      }
+    ]
+  };
+
+  // Execute the tool calls using mock OpenAI completions
+  const result = await composio.provider.handleToolCalls(userEmail, mockOpenAIMsg, {
     connectedAccountId: body.connectedAccountId, // Ensure you pass the connected account ID
   });
   console.log(result);

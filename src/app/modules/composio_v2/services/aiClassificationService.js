@@ -141,8 +141,28 @@ export const executeComposioWithGemini = async (
 };
 
 import ComposioAuth from '../composio.model.js';
-import { ChatOpenAI, OpenAIClient } from '@langchain/openai';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Recursive helper to capitalize all parameter types for Gemini compatibility
+const capitalizeTypes = (schema) => {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+  
+  const newSchema = Array.isArray(schema) ? [] : {};
+  
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === 'type' && typeof value === 'string') {
+      newSchema[key] = value.toUpperCase();
+    } else if (typeof value === 'object') {
+      newSchema[key] = capitalizeTypes(value);
+    } else {
+      newSchema[key] = value;
+    }
+  }
+  
+  return newSchema;
+};
 
 export const runGeminiTaskWithTools = async (
   messages,
@@ -151,23 +171,11 @@ export const runGeminiTaskWithTools = async (
   app
 ) => {
   try {
-    // console.log('Running Gemini task with Composio tools...', app, userId);
     const connectedAccount = await ComposioAuth.findOne({
       userId: userId,
       'toolkit.slug': app,
     });
-    // console.log(
-    //   'Using connected account:',
-    //   connectedAccount.id,
-    //   app
-    // );
     const connectedAccountId = connectedAccount.connectedAccountId;
-    // console.log('Using connectedAccountId:', connectedAccountId);
-
-    const composioConnectedAccount = await composio.connectedAccounts.list({
-      toolkitSlugs: [app],
-    });
-    // console.log('Composio connected account:', composioConnectedAccount);
 
     // Re-fetch tools with explicit connectedAccountId to avoid the warning
     const toolsWithConnectedAccount = await composio.tools.get(userId, {
@@ -177,28 +185,106 @@ export const runGeminiTaskWithTools = async (
 
     console.log('Tools with connected account:', toolsWithConnectedAccount);
 
-    // Wrap each Composio tool into a LangChain DynamicStructuredTool
-    const openai = new OpenAI({
-      apiKey: config.openai_secret_key,
-    });
-    // console.log('Messages', messages);
+    // Call Gemini using native @google/generative-ai
+    const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
+    const ai = new GoogleGenerativeAI(apiKey);
 
-    const msg = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: messages,
-      tools: toolsWithConnectedAccount,
-      max_completion_tokens: 1024,
+    // Translate Composio OpenAI tools to Gemini function declarations
+    const geminiTools = toolsWithConnectedAccount.map(t => {
+      const functionDecl = {
+        name: t.function.name,
+        description: t.function.description,
+      };
+      if (t.function.parameters) {
+        functionDecl.parameters = capitalizeTypes(t.function.parameters);
+      }
+      return { functionDeclarations: [functionDecl] };
     });
-    console.log('User id for tool execution:', userId);
+
+    // Convert messages array to Gemini contents
+    const contents = [];
+    let systemInstruction = '';
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        const sysText = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || '');
+        if (sysText) {
+          systemInstruction = systemInstruction ? `${sysText}\n\n${systemInstruction}` : sysText;
+        }
+        continue;
+      }
+      
+      let role = msg.role;
+      if (role === 'assistant') role = 'model';
+      else if (role !== 'user' && role !== 'model') role = 'user';
+      
+      const text = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || '');
+      if (!text) continue;
+      
+      if (contents.length > 0 && contents[contents.length - 1].role === role) {
+        contents[contents.length - 1].parts.push({ text });
+      } else {
+        contents.push({ role, parts: [{ text }] });
+      }
+    }
+
+    if (contents.length > 0 && contents[0].role === 'model') {
+      contents.unshift({ role: 'user', parts: [{ text: 'Hello' }] });
+    }
+
+    const modelOptions = {};
+    if (systemInstruction) {
+      modelOptions.systemInstruction = systemInstruction;
+    }
+
+    const modelInstance = ai.getGenerativeModel({
+      model: 'gemini-3.5-flash',
+      tools: geminiTools
+    }, modelOptions);
+
+    const response = await modelInstance.generateContent({ contents });
+    const functionCalls = response.response.functionCalls();
+
+    if (!functionCalls || functionCalls.length === 0) {
+      const textResponse = response.response.text() || 'No reply generated';
+      return {
+        content: textResponse,
+        success: true,
+        tool_call_results: null,
+      };
+    }
+
+    // Map Gemini function calling responses to the mocked OpenAI completion format
+    const tool_calls = functionCalls.map((call, index) => ({
+      id: `call_${Date.now()}_${index}`,
+      type: 'function',
+      function: {
+        name: call.name,
+        arguments: JSON.stringify(call.args)
+      }
+    }));
+
+    const mockOpenAIMsg = {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: tool_calls
+          }
+        }
+      ]
+    };
+
+    console.log('Mocked OpenAI tool calls for Composio:', JSON.stringify(mockOpenAIMsg, null, 2));
 
     const result = await composio.provider.handleToolCalls(
       userId.toString(),
-      msg,
+      mockOpenAIMsg,
       {
         connectedAccountId,
       }
     );
-    console.log('Tool call result:', result);
+    console.log('Composio tool call execution result:', result);
     return {
       content: result[0].content,
       success: true,

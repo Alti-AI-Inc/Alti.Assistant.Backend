@@ -1,36 +1,74 @@
-import { llm } from '../llm.js'; // Using OpenAI for prompt engineering
-import { anthropic } from '../llm.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { llm } from '../llm.js';
+import config from '../../../../config/index.js';
 
 /**
- * A generic function to interact with the Claude model for various coding tasks.
+ * A generic function to interact with the Gemini model mapped as Claude for writing tasks.
  * @param {string} systemPrompt - The system prompt to guide the model's behavior.
- * @param {Array<{role: 'user' | 'assistant', content: string}>} history - The conversation history.
- * @returns {Promise<string>} - The model's response.
+ * @param {string|Array} message - The conversation history or query message.
+ * @param {boolean} stream - Whether to stream the response.
+ * @returns {Promise<any>} - The model's response or stream generator.
  */
 async function runClaudeTask(systemPrompt, message, stream = false) {
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-latest',
-      system: systemPrompt,
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
-      stream: stream, // Enable or disable streaming based on the parameter
+    const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
+    const ai = new GoogleGenerativeAI(apiKey);
+    const model = ai.getGenerativeModel({
+      model: 'gemini-3.5-flash',
+      systemInstruction: systemPrompt
     });
 
-    if (stream) {
-      console.log('Streaming response from Anthropic API...', stream);
+    const contents = [];
+    if (typeof message === 'string') {
+      contents.push({ role: 'user', parts: [{ text: message }] });
+    } else if (Array.isArray(message)) {
+      for (const msg of message) {
+        let role = msg.role;
+        if (role === 'assistant') {
+          role = 'model';
+        } else if (role !== 'user' && role !== 'model') {
+          role = 'user';
+        }
+        const text = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || '');
+        if (!text) continue;
 
-      return response; // Return the stream object directly
+        if (contents.length > 0 && contents[contents.length - 1].role === role) {
+          contents[contents.length - 1].parts.push({ text });
+        } else {
+          contents.push({ role, parts: [{ text }] });
+        }
+      }
     }
 
-    return response.content[0].text;
+    if (contents.length > 0 && contents[0].role === 'model') {
+      contents.unshift({ role: 'user', parts: [{ text: 'Hello' }] });
+    }
+
+    if (stream) {
+      console.log('Streaming response from Gemini API inside writing service...', stream);
+      const resultStream = await model.generateContentStream({ contents });
+      
+      const mockStream = {
+        async *[Symbol.asyncIterator]() {
+          for await (const chunk of resultStream.stream) {
+            const chunkText = chunk.text();
+            yield {
+              type: 'content_block_delta',
+              delta: {
+                type: 'text_delta',
+                text: chunkText
+              }
+            };
+          }
+        }
+      };
+      return mockStream;
+    }
+
+    const result = await model.generateContent({ contents });
+    return result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   } catch (error) {
-    console.error('Error calling Anthropic API:', error);
+    console.error('Error calling Gemini API in writing service:', error);
     return 'Sorry, I encountered an error while processing your request with the coding model. Please try again.';
   }
 }

@@ -5,7 +5,6 @@ import path from 'path';
 import KnowledgeBankFile from './knowledge_bank.model.js';
 import KnowledgeBankFolder from './knowledge_bank_folder.model.js';
 import { RAGSystem } from 'rag-system-pgvector';
-import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { SafeGoogleGenerativeAIEmbeddings } from '../../../shared/embeddings.js';
 import {
@@ -25,7 +24,7 @@ const KNOWLEDGE_BANK_BUCKET = 'alti_assistant_knowledge_bot_files';
 // Initialize RAG System for processing files
 const embeddings = new SafeGoogleGenerativeAIEmbeddings({
   apiKey: config?.gemini_secret_key,
-  targetDimension: 1536,
+  targetDimension: 768,
 });
 
 const llm = new ChatGoogleGenerativeAI({
@@ -47,7 +46,7 @@ const ragConfig = {
   },
   embeddings: embeddings,
   llm: llm,
-  embeddingDimensions: 1536,
+  embeddingDimensions: 768,
 };
 
 const rag = new RAGSystem(ragConfig);

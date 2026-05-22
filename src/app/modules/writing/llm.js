@@ -1,6 +1,5 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PredictionServiceClient } from '@google-cloud/aiplatform';
-import Anthropic from '@anthropic-ai/sdk';
 import config from '../../../../config/index.js';
 import { PromptTemplate } from '@langchain/core/prompts';
 
@@ -10,11 +9,6 @@ export const llm = new ChatGoogleGenerativeAI({
   temperature: 0.7,
 });
 
-export const anthropic = new Anthropic({
-  apiKey: config.anthropicApiKey,
-  baseURL: 'https://api.anthropic.com',
-  timeout: 60000, // 60 seconds
-});
 
 export const isUserFinished = async (userResponse) => {
   if (!userResponse) return false;

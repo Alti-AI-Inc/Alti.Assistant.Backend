@@ -1,10 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import Anthropic from '@anthropic-ai/sdk';
 import httpStatus from 'http-status';
 import { RAGSystem } from 'rag-system-pgvector';
 import { SafeGoogleGenerativeAIEmbeddings } from '../../../../shared/embeddings.js';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { ChatAnthropic } from '@langchain/anthropic';
 import {
   KNOWLEDGE_CONFIG,
   RAG_DATABASE_CONFIG,
@@ -22,11 +20,6 @@ import KnowledgeFile from '../knowledge.model.js';
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
-// Initialize Anthropic Claude
-const anthropic = new Anthropic({
-  apiKey: config.anthropic.anthropic_api_key,
-});
-
 // Initialize embeddings and LLM for RAG
 const embeddings = new SafeGoogleGenerativeAIEmbeddings({
   apiKey: config.gemini_secret_key,
@@ -39,8 +32,8 @@ const geminiLLM = new ChatGoogleGenerativeAI({
   temperature: KNOWLEDGE_CONFIG.TEMPERATURE,
 });
 
-const claudeLLM = new ChatAnthropic({
-  apiKey: config.anthropic.anthropic_api_key,
+const claudeLLM = new ChatGoogleGenerativeAI({
+  apiKey: config.gemini_secret_key,
   model: KNOWLEDGE_CONFIG.COMPLEX_MODEL,
   temperature: KNOWLEDGE_CONFIG.TEMPERATURE,
 });
@@ -357,7 +350,7 @@ export const conversationalQuery = async (
       // Initialize RAG with appropriate model
       const dynamicLLM = complexityAnalysis.isComplex ? claudeLLM : geminiLLM;
       logger.info(
-        `[Knowledge] 🔧 Initializing RAG with ${complexityAnalysis.isComplex ? 'Claude Opus 4.5' : 'Gemini 2.5 Flash'}`
+        `[Knowledge] 🔧 Initializing RAG with ${complexityAnalysis.isComplex ? 'Gemini 1.5 Pro' : 'Gemini 3.5 Flash'}`
       );
 
       // Update RAG config with selected model
