@@ -1,9 +1,8 @@
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import { ChatGroq } from '@langchain/groq';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ConversationChain } from 'langchain/chains';
 import { BufferMemory } from 'langchain/memory';
-// import { Serper } from 'serper';
 import httpStatus from 'http-status';
 import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
@@ -32,11 +31,10 @@ const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
     sessionMemoryStore[sessionId] = memory;
   }
 
-  const model = new ChatGroq({
-    // model: 'qwen-2.5-coder-32b',
-    model: 'qwen-qwq-32b',
+  const model = new ChatGoogleGenerativeAI({
+    model: 'gemini-2.5-flash',
     temperature: 0.7,
-    apiKey: config.groq_api_key,
+    apiKey: config.gemini_secret_key,
   });
 
   const chain = new ConversationChain({ llm: model, memory });
@@ -76,8 +74,7 @@ const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
     // Save response in the database
     const responseData = {
       prompt,
-      // model: 'qwen-2.5-coder-32b',
-      model: 'qwen-qwq-32b',
+      model: 'gemini-2.5-flash-thinking',
       reply,
       total_time: res1?.usage?.total_time || 0,
     };
@@ -133,10 +130,10 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
     QwenQWQSessionMemoryStore[sessionId] = memory;
   }
 
-  const model = new ChatGroq({
-    model: 'qwen-qwq-32b',
+  const model = new ChatGoogleGenerativeAI({
+    model: 'gemini-2.5-flash',
     temperature: 0.7,
-    apiKey: config.groq_api_key,
+    apiKey: config.gemini_secret_key,
   });
 
   const chain = new ConversationChain({ llm: model, memory });
@@ -173,7 +170,7 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
     // Save response in the database
     const responseData = {
       prompt,
-      model: 'qwen-qwq-32b',
+      model: 'gemini-2.5-flash-thinking',
       reply,
       total_time: res1?.usage?.total_time || 0,
     };

@@ -1,55 +1,46 @@
-// import { Client } from '@elastic/elasticsearch';
 import path from 'path';
 import winston, { format } from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-// import { ElasticsearchTransport } from 'winston-elasticsearch';
 
-const { combine, timestamp, label, prettyPrint, printf } = format;
+const { combine, timestamp, label, prettyPrint, printf, json } = format;
 
 const myFormat = printf(({ level, message, label, timestamp }) => {
   return `${timestamp} [${label}] ${level}: ${message}`;
 });
 
-// // Elasticsearch Client
-// const esClient = new Client({
-//   node: 'http://elasticsearch:9200', // MUST match docker container name
-//   compatibility: true,
-// });
-
-// // Check connection
-// esClient
-//   .ping({}, { requestTimeout: 1000 })
-//   .then(() => console.log('✅ Connected to Elasticsearch'))
-//   .catch(err => console.error('❌ Cannot connect to Elasticsearch:', err));
-
-// // Elasticsearch Transport
-// const esTransport = new ElasticsearchTransport({
-//   level: 'info',
-//   client: esClient,
-//   indexPrefix: 'alti-logs',
-//   flushInterval: 2000,
-//   transformer: logData => ({
-//     '@timestamp': logData.timestamp,
-//     severity: logData.level,
-//     message: logData.message,
-//     fields: logData.meta || {},
-//   }),
-// });
-
-// Base format
-const baseFormat = combine(
+// Base format for local development
+const localFormat = combine(
   label({ label: 'Alti Core Service' }),
   timestamp(),
   myFormat,
   prettyPrint()
 );
 
-// Success logger
-export const logger = winston.createLogger({
-  level: 'info',
-  format: baseFormat,
-  transports: [
-    new winston.transports.Console(),
+// Structured JSON format for Google Cloud Logging (production)
+const cloudFormat = combine(
+  label({ label: 'Alti Core Service' }),
+  timestamp(),
+  json()
+);
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Build transports array
+const successTransports = [
+  new winston.transports.Console({
+    format: isProduction ? cloudFormat : localFormat,
+  }),
+];
+
+const errorTransports = [
+  new winston.transports.Console({
+    format: isProduction ? cloudFormat : localFormat,
+  }),
+];
+
+// Add file-based logging in development only
+if (!isProduction) {
+  successTransports.push(
     new DailyRotateFile({
       filename: path.join(
         process.cwd(),
@@ -61,17 +52,10 @@ export const logger = winston.createLogger({
       zippedArchive: true,
       maxSize: '20m',
       maxFiles: '14d',
-    }),
-    // esTransport,
-  ],
-});
+    })
+  );
 
-// Error logger
-export const errorlogger = winston.createLogger({
-  level: 'error',
-  format: baseFormat,
-  transports: [
-    new winston.transports.Console(),
+  errorTransports.push(
     new DailyRotateFile({
       filename: path.join(
         process.cwd(),
@@ -83,7 +67,24 @@ export const errorlogger = winston.createLogger({
       zippedArchive: true,
       maxSize: '20m',
       maxFiles: '14d',
-    }),
-    // esTransport,
-  ],
+    })
+  );
+}
+
+// In production on Cloud Run, console output is automatically captured
+// by Google Cloud Logging. Structured JSON format enables severity
+// levels, trace correlation, and Error Reporting integration.
+
+// Success logger
+export const logger = winston.createLogger({
+  level: 'info',
+  format: isProduction ? cloudFormat : localFormat,
+  transports: successTransports,
+});
+
+// Error logger
+export const errorlogger = winston.createLogger({
+  level: 'error',
+  format: isProduction ? cloudFormat : localFormat,
+  transports: errorTransports,
 });

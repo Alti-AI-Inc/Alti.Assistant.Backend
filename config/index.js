@@ -66,14 +66,11 @@ export default {
     defaultTopK: Number(process.env.OPENMEMORY_TOP_K || 5),
     timeoutMs: Number(process.env.OPENMEMORY_TIMEOUT_MS || 8000),
   },
-  groq_api_key: process.env.GROQ_API_KEY,
-  tavily_api_key: process.env.TAVILY_API_KEY,
-  serper_api_key: process.env.SERPER_API_KEY,
-  together_secret_key: process.env.TOGETHER_API_KEY,
+  tavily_api_key: process.env.TAVILY_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
+  serper_api_key: process.env.SERPER_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   gemini_secret_key: process.env.GEMINI_API_KEY,
   realestate_api_key: process.env.REALESTATE_API_KEY,
-  deepseek_secret_key: process.env.DEEPSEEK_API_KEY,
-  openai_secret_key: process.env.OPENAI_API_KEY,
+
   browser_use_secret_key: process.env.BROWSER_USE_SECRET_KEY,
   cyberdesk_api_key: process.env.CYBERDESK_API_KEY,
   stripe: {
@@ -82,17 +79,7 @@ export default {
     webhook_secret_fallback: process.env.STRIPE_WEBHOOK_SECRET_FALLBACK,
     security_alert_webhook: process.env.SECURITY_ALERT_WEBHOOK,
   },
-  openai: {
-    openai_api_key: process.env.OPENAI_API_KEY,
-  },
-  anthropic: {
-    anthropic_api_key: process.env.ANTHROPIC_API_KEY,
-  },
-  claude: {
-    modelName: process.env.CLAUDE_MODEL_NAME || 'claude-sonnet-4-5-20250929',
-    maxTokens: parseInt(process.env.CLAUDE_MAX_TOKENS) || 4096,
-    temperature: parseFloat(process.env.CLAUDE_TEMPERATURE) || 0.7,
-  },
+
   routing: {
     enableSmartRouting: process.env.ENABLE_SMART_ROUTING === 'true',
     codeQueryThreshold:

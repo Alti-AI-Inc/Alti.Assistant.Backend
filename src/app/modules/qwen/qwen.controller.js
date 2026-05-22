@@ -1,4 +1,3 @@
-// import { Serper } from 'serper';
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';

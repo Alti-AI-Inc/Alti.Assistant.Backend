@@ -1,20 +1,32 @@
-import Together from 'together-ai';
+import { GoogleGenAI } from '@google/genai';
+import config from '../../../../config/index.js';
 
-const together = new Together();
+const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
 const TogetherAiImgGenerationService = async (data) => {
   const { user, sessionId, prompt } = data;
   if (!prompt) throw new Error('Prompt is required for image generation.');
-  const response = await together.images.create({
-    model: 'black-forest-labs/FLUX.1-depth',
-    width: 1024,
-    height: 1024,
-    steps: 28,
+  
+  const response = await ai.models.generateImages({
+    model: 'imagen-4.0-generate-001',
     prompt: prompt,
-    // @ts-ignore
-    image_url: 'https://github.com/nutlope.png',
+    config: {
+      numberOfImages: 1,
+      aspectRatio: '1:1',
+    },
   });
-  return response;
+
+  // Return in compatible format
+  const generatedImage = response.generatedImages?.[0];
+  if (!generatedImage?.image?.imageBytes) {
+    throw new Error('Imagen 4 returned no image data.');
+  }
+
+  return {
+    data: [{
+      url: `data:image/png;base64,${Buffer.from(generatedImage.image.imageBytes).toString('base64')}`,
+    }],
+  };
 };
 
 export const TogetherAiService = {

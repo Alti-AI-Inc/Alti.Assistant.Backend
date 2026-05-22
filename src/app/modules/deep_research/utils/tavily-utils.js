@@ -1,20 +1,16 @@
-import { tavily } from '@tavily/core';
+import { GoogleGenAI } from '@google/genai';
 import { StructuredTool } from '@langchain/core/tools';
+import config from '../../../../../config/index.js';
 
-export class TavilySearchTool extends StructuredTool {
-  name = 'tavily_search';
-  description = 'Search the web using Tavily API for real-time information';
+const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
+
+export class GoogleSearchGroundingTool extends StructuredTool {
+  name = 'google_search_grounding';
+  description = 'Search the web using Google Search Grounding via Gemini for real-time information';
 
   constructor(options = {}) {
     super();
-    this.apiKey = options.apiKey || process.env.TAVILY_API_KEY;
     this.maxResults = options.maxResults || 10;
-
-    if (!this.apiKey) {
-      throw new Error('Tavily API key is required');
-    }
-
-    this.client = tavily({ apiKey: this.apiKey });
   }
 
   async invoke(params) {
@@ -22,49 +18,55 @@ export class TavilySearchTool extends StructuredTool {
       query,
       searchDepth = 'basic',
       includeAnswer = true,
-      includeImages = false,
-      includeDomains = [],
-      excludeDomains = [],
     } = params;
 
     try {
-      console.log(`Searching with Tavily: "${query}"`);
+      console.log(`Searching with Google Search Grounding: "${query}"`);
 
-      const searchParams = {
-        search_depth: searchDepth,
-        include_answer: includeAnswer,
-        include_images: includeImages,
-        max_results: this.maxResults,
-      };
+      const result = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: `Search the web and provide comprehensive, factual information about: ${query}`,
+        config: {
+          temperature: 0.1,
+          tools: [{ googleSearch: {} }],
+        },
+      });
 
-      // Add domain filters if provided
-      if (includeDomains.length > 0) {
-        searchParams.include_domains = includeDomains;
-      }
+      const candidate = result.candidates?.[0];
+      const answer = candidate?.content?.parts
+        ?.filter((part) => part.text && !part.thought)
+        ?.map((part) => part.text)
+        ?.join('') || null;
 
-      if (excludeDomains.length > 0) {
-        searchParams.exclude_domains = excludeDomains;
-      }
+      // Parse grounding metadata for search results
+      const groundingMetadata = candidate?.groundingMetadata || {};
+      const groundingChunks = groundingMetadata.groundingChunks || [];
 
-      const results = await this.client.search(query, searchParams);
+      const results = groundingChunks.map((chunk, index) => ({
+        title: chunk.web?.title || `Source ${index + 1}`,
+        url: chunk.web?.uri || '',
+        content: answer ? answer.substring(0, 500) : '',
+        score: 1.0 - (index * 0.1),
+      }));
 
       console.log(
-        `Tavily search completed: ${results.results?.length || 0} results found`
+        `Google Search Grounding completed: ${results.length} sources found`
       );
 
       return {
         query,
-        answer: results.answer || null,
-        results: results.results || [],
+        answer: includeAnswer ? answer : null,
+        results,
         search_metadata: {
           search_depth: searchDepth,
-          total_results: results.results?.length || 0,
+          total_results: results.length,
           timestamp: new Date().toISOString(),
+          webSearchQueries: groundingMetadata.webSearchQueries || [],
         },
       };
     } catch (error) {
-      console.error('Tavily Search Error:', error);
-      throw new Error(`Failed to search with Tavily: ${error.message}`);
+      console.error('Google Search Grounding Error:', error);
+      throw new Error(`Failed to search with Google Search Grounding: ${error.message}`);
     }
   }
 
@@ -72,3 +74,6 @@ export class TavilySearchTool extends StructuredTool {
     return this.invoke(params);
   }
 }
+
+// Backward-compatible export alias
+export const TavilySearchTool = GoogleSearchGroundingTool;

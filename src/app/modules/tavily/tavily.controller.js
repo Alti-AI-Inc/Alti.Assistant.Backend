@@ -1,55 +1,5 @@
-// import { tavily } from '@tavily/core';
-// import httpStatus from 'http-status';
-// import config from '../../../../config/index.js';
-// import catchAsync from '../../../shared/catchAsync.js';
-// import sendResponse from '../../../shared/sendResponse.js';
-// import generateSessionId from '../../../shared/sessionGenerate.js';
-
-// const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
-//   const prompt = req.body?.prompt;
-//   const tvly = tavily({ apiKey: config.tavily_api_key });
-
-//   if (!prompt) {
-//     return sendResponse(res, {
-//       statusCode: httpStatus.BAD_REQUEST,
-//       success: false,
-//       message: 'Validation Error',
-//       errorMessages: [{ path: 'prompt', message: 'Prompt is required.' }],
-//     });
-//   }
-//     // Perform the Tavily search
-//     const response = await tvly.search(prompt, {
-//         maxResults: 1,
-//         includeImages: true
-//       });
-
-//   // Extract first image (if available)
-//   const image = response?.images?.length ? response.images[0] : null;
-
-//   // Keep only relevant fields
-//   const responseData = {
-//     prompt,
-//     results: response?.results?.map(result => ({
-//       title: result?.title,
-//       url: result?.url,
-//       content: result?.content,
-//       rawContent: result?.rawContent,
-//       score: result.score,
-//       image: image ? { url: image?.url, description: image?.description || "No description" } : null
-//     }))
-//   };
-
-//   sendResponse(res, {
-//     statusCode: httpStatus.OK,
-//     success: true,
-//     message: 'Response processed successfully.',
-//     data: responseData,
-//   });
-// });
-
-import { Groq } from 'groq-sdk';
+import { GoogleGenAI } from '@google/genai';
 import httpStatus from 'http-status';
-import { tavily } from '@tavily/core';
 import config from '../../../../config/index.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
@@ -57,8 +7,7 @@ import generateSessionId from '../../../shared/sessionGenerate.js';
 import UserModel from '../auth/auth.model.js';
 import Llama from '../groq/groq.model.js';
 
-const tvly = new tavily({ apiKey: process.env.TAVILY_API_KEY });
-const groq = new Groq({ apiKey: config.groq_api_key });
+const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
 const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
   const prompt = req.body?.prompt;
@@ -85,46 +34,23 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
   }
 
   try {
-    // Step 1: Perform Web Search using Tavily
-    const searchResults = await tvly.search({
-      query: prompt,
-      numResults: 3,
+    // Use Gemini with Google Search Grounding — replaces Tavily + Groq
+    const result = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.1,
+        tools: [{ googleSearch: {} }],
+      },
     });
 
-    if (!searchResults || searchResults.length === 0) {
-      return sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'No relevant search results found.',
-        data: { sessionId: currentSessionId, reply: 'No relevant data found.' },
-      });
-    }
+    const candidate = result.candidates?.[0];
+    const reply = candidate?.content?.parts
+      ?.filter((part) => part.text && !part.thought)
+      ?.map((part) => part.text)
+      ?.join('') || 'No reply generated';
 
-    // Step 2: Extract Search Data
-    const context = searchResults
-      .map(
-        (result, index) => `${index + 1}. ${result.title}: ${result.snippet}`
-      )
-      .join('\n');
-
-    // Step 3: Send Query + Context to Groq AI
-    const response = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'Use the following search results to answer accurately.',
-        },
-        {
-          role: 'user',
-          content: `Query: ${prompt}\n\nSearch Results:\n${context}`,
-        },
-      ],
-      model: 'llama3-8b-8192',
-    });
-
-    const reply = response?.choices?.[0]?.message?.content || null;
-
-    if (!reply) {
+    if (!reply || reply === 'No reply generated') {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
@@ -140,9 +66,9 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
 
     const responseData = {
       prompt,
-      model: response?.model,
+      model: 'gemini-3.5-flash-grounded',
       reply,
-      total_time: response?.usage?.total_time || 0,
+      total_time: result.usageMetadata?.totalTokenCount || 0,
     };
 
     let llamaSession = await Llama.findOne({
