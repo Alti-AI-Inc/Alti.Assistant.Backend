@@ -5,7 +5,7 @@
  * Formats property datasets into high-fidelity markdown tables and bolded metrics blocks.
  */
 
-import { realestateService } from '../modules/realestate/realestate.service.js';
+import { realestateService, serviceDiagnostics } from '../modules/realestate/realestate.service.js';
 import { detectRealEstateIntent } from './realestateIntentDB.js';
 import { logger } from '../../shared/logger.js';
 
@@ -21,6 +21,32 @@ const formatCurrency = (val) => {
  */
 const buildPrompt = (originalPrompt, contentBlock, title = 'RealEstateAPI.com Live Intelligence') => {
   const timestamp = new Date().toISOString();
+
+  // Enterprise Diagnostics Summary Block
+  let diagBlock = '';
+  if (serviceDiagnostics && serviceDiagnostics.cacheStats) {
+    const hits = serviceDiagnostics.cacheStats.hits;
+    const misses = serviceDiagnostics.cacheStats.misses;
+    const total = hits + misses;
+    const hitRate = total > 0 ? ((hits / total) * 100).toFixed(1) : '0.0';
+    
+    diagBlock += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    diagBlock += `🖥️ ENTERPRISE CACHE & LATENCY DIAGNOSTICS LOG\n`;
+    diagBlock += `▸ Cache Stats: ${hits} hits, ${misses} misses (${hitRate}% efficiency)\n`;
+    
+    const methods = Object.keys(serviceDiagnostics.calls);
+    if (methods.length > 0) {
+      diagBlock += `▸ Service Latency Logs:\n`;
+      methods.forEach(m => {
+        const calls = serviceDiagnostics.calls[m];
+        const lastCall = calls[calls.length - 1];
+        if (lastCall) {
+          diagBlock += `  - \`${m}\`: **${lastCall.latencyMs}ms** (Status: ${lastCall.cacheStatus})\n`;
+        }
+      });
+    }
+  }
+
   return `[SYSTEM INSTRUCTION — ALTI REAL-TIME PROPERTY DATA CONTEXT]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DATA SOURCE: RealEstateAPI.com
@@ -28,7 +54,7 @@ TIMESTAMP:   ${timestamp}
 CONTEXT TYPE: ${title}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${contentBlock}
+${contentBlock}${diagBlock}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MANDATORY RESPONSE RULES:
@@ -77,46 +103,64 @@ export const routeAndEnhancePrompt = async (prompt) => {
         block += `| 📈 **Est. Monthly Rent** | **${formatCurrency(avm.rentalValuation)}/mo** | Rent yields: **${((avm.rentalValuation * 12 / avm.valuation) * 100).toFixed(2)}%** |\n`;
         block += `| 🎯 **Confidence Score** | **${avm.confidenceScore || 0}%** | AVM Precision: High |\n\n`;
 
+        // Scenario underwriting overrides
+        const downPaymentPct = entities.downPaymentPct !== null ? entities.downPaymentPct : 0.20;
+        const interestRateYearly = entities.interestRate !== null ? entities.interestRate : 0.065;
+        const opexRatio = entities.opexRatio !== null ? entities.opexRatio : 0.45;
+        const rentRateVal = entities.customRent || avm.rentalValuation || 0;
+
         // Financial investment formulas
-        const annualGrossRent = avm.rentalValuation * 12;
-        const estOperatingExpenses = annualGrossRent * 0.45;
+        const annualGrossRent = rentRateVal * 12;
+        const estOperatingExpenses = annualGrossRent * opexRatio;
         const netOperatingIncome = annualGrossRent - estOperatingExpenses;
         const capRate = (netOperatingIncome / avm.valuation) * 100;
         const grossRentMultiplier = avm.valuation / annualGrossRent;
 
-        // Assumed 30-year fixed mortgage at 6.5% interest rate with 20% down
         const purchasePrice = avm.valuation;
-        const downPayment = purchasePrice * 0.20;
-        const loanAmount = purchasePrice * 0.80;
+        const downPayment = purchasePrice * downPaymentPct;
+        const loanAmount = purchasePrice * (1 - downPaymentPct);
         
-        const interestRateYearly = 0.065;
         const interestRateMonthly = interestRateYearly / 12;
         const numberOfPayments = 360;
-        const monthlyMortgagePI = loanAmount * (interestRateMonthly * Math.pow(1 + interestRateMonthly, numberOfPayments)) / (Math.pow(1 + interestRateMonthly, numberOfPayments) - 1);
+        const monthlyMortgagePI = loanAmount > 0 
+          ? (interestRateMonthly > 0 
+              ? loanAmount * (interestRateMonthly * Math.pow(1 + interestRateMonthly, numberOfPayments)) / (Math.pow(1 + interestRateMonthly, numberOfPayments) - 1)
+              : loanAmount / numberOfPayments)
+          : 0;
         
         const monthlyOperatingExpenses = estOperatingExpenses / 12;
         const totalMonthlyOutflow = monthlyMortgagePI + monthlyOperatingExpenses;
-        const netMonthlyCashFlow = avm.rentalValuation - totalMonthlyOutflow;
+        const netMonthlyCashFlow = rentRateVal - totalMonthlyOutflow;
         const annualNetCashFlow = netMonthlyCashFlow * 12;
-        const cashOnCashReturn = (annualNetCashFlow / downPayment) * 100;
+        const cashOnCashReturn = downPayment > 0 ? (annualNetCashFlow / downPayment) * 100 : 0;
+
+        // Custom deep underwriting calculations:
+        const breakEvenRent = monthlyMortgagePI / (1 - opexRatio);
+        const totalLifetimeMortgageCost = monthlyMortgagePI * 360;
+        const totalLifetimeInterestCost = Math.max(0, totalLifetimeMortgageCost - loanAmount);
 
         block += `### 🏢 Institutional Investment Metrics\n`;
-        block += `- **Net Operating Income (NOI)**: **${formatCurrency(Math.round(netOperatingIncome))}** /year (assuming **45%** operating expense ratio)\n`;
+        block += `- **Net Operating Income (NOI)**: **${formatCurrency(Math.round(netOperatingIncome))}** /year (assuming **${(opexRatio * 100).toFixed(0)}%** operating expense ratio)\n`;
         block += `- **Capitalization Rate (Cap Rate)**: **${capRate.toFixed(2)}%** (implied capitalization yield based on AVM)\n`;
-        block += `- **Gross Rent Multiplier (GRM)**: **${grossRentMultiplier.toFixed(2)}x**\n\n`;
+        block += `- **Gross Rent Multiplier (GRM)**: **${grossRentMultiplier.toFixed(2)}x**\n`;
+        block += `- **Break-Even Monthly Rent**: **${formatCurrency(Math.round(breakEvenRent))}/mo** (minimum rent required to sustain debt + opex)\n\n`;
 
         block += `### 💸 30-Year Mortgage Cash Flow Analysis\n`;
-        block += `*Assumes standard 20% down payment, 30-year amortization, and **6.50%** interest rate.*\n\n`;
+        block += `*Assumes down payment of **${(downPaymentPct * 100).toFixed(1)}%**, 30-year amortization, and **${(interestRateYearly * 100).toFixed(2)}%** interest rate.*\n\n`;
         block += `| Financing Attribute | Value Detail | Calculated Target |\n`;
         block += `|---------------------|--------------|-------------------|\n`;
         block += `| 💰 **Acquisition Cost** | **${formatCurrency(purchasePrice)}** | Valuation Purchase Base |\n`;
-        block += `| 💵 **Down Payment (20%)** | **${formatCurrency(Math.round(downPayment))}** | Initial Capital Outlay |\n`;
-        block += `| 🏛️ **Financed Loan (80%)** | **${formatCurrency(Math.round(loanAmount))}** | Funded Mortgage Debt |\n`;
-        block += `| 💸 **Monthly Mortgage (P&I)** | **${formatCurrency(Math.round(monthlyMortgagePI))}/mo** | 30-Yr Fixed @ **6.5%** |\n`;
-        block += `| 📉 **Operating Expenses (45%)** | **${formatCurrency(Math.round(monthlyOperatingExpenses))}/mo** | Taxes, Ins, Maint, Vac |\n`;
-        block += `| 📈 **Total Monthly Outlay** | **${formatCurrency(Math.round(totalMonthlyOutflow))}/mo** | Combined Debt + OpEx |\n`;
+        block += `| 💵 **Down Payment (${(downPaymentPct * 100).toFixed(0)}%)** | **${formatCurrency(Math.round(downPayment))}** | Initial Capital Outlay |\n`;
+        block += `| 🏛️ **Financed Loan (${((1 - downPaymentPct) * 100).toFixed(0)}%)** | **${formatCurrency(Math.round(loanAmount))}** | Funded Mortgage Debt |\n`;
+        block += `| 💸 **Monthly Mortgage (P&I)** | **${formatCurrency(Math.round(monthlyMortgagePI))}/mo** | 30-Yr Fixed @ **${(interestRateYearly * 100).toFixed(2)}%** |\n`;
+        block += `| 📉 **Operating Expenses (${(opexRatio * 100).toFixed(0)}%)** | **${formatCurrency(Math.round(monthlyOperatingExpenses))}/mo** | Taxes, Ins, Maint, Vac |\n`;
+        block += `| 📈 **Total Monthly Outflow** | **${formatCurrency(Math.round(totalMonthlyOutflow))}/mo** | Combined Debt + OpEx |\n`;
         block += `| 💰 **Net Monthly Cash Flow** | **${formatCurrency(Math.round(netMonthlyCashFlow))}/mo** | **${netMonthlyCashFlow >= 0 ? 'Positive Yield 🟢' : 'Negative Carry 🔴'}** |\n`;
         block += `| 💎 **Cash-on-Cash Return** | **${cashOnCashReturn.toFixed(2)}%** | **${cashOnCashReturn.toFixed(2)}%** Annual Yield |\n\n`;
+
+        block += `### 🏛️ Cumulative Amortization Metrics\n`;
+        block += `- **Total 30-Year Debt Service Payments**: **${formatCurrency(Math.round(totalLifetimeMortgageCost))}**\n`;
+        block += `- **Total Interest Cost paid to Lender**: **${formatCurrency(Math.round(totalLifetimeInterestCost))}**\n\n`;
 
         // Estimated equity calculation
         if (detail.taxAssessedValue) {
@@ -148,25 +192,44 @@ export const routeAndEnhancePrompt = async (prompt) => {
 
       if (comps && comps.length > 0) {
         block += `### Recent Comparable Sales\n`;
-        block += `| Comp Address | Distance | Layout | Sold Price | Sold Date | Avg Price/Sqft |\n`;
-        block += `|--------------|----------|--------|------------|-----------|----------------|\n`;
+        block += `| Comp Address | Distance | Layout | Layout Match | Sold Price | Sold Date | Avg Price/Sqft |\n`;
+        block += `|--------------|----------|--------|--------------|------------|-----------|----------------|\n`;
         
         let totalPrice = 0;
         let totalSqft = 0;
+        let weightedPriceSum = 0;
+        let weightSum = 0;
 
         comps.forEach(c => {
           totalPrice += c.salePrice;
           totalSqft += c.sqft;
           const priceSqft = c.salePrice / c.sqft;
-          block += `| ${c.address} | **${c.distanceMiles || 0}** mi | **${c.beds}**b/**${c.baths}**ba | **${formatCurrency(c.salePrice)}** | ${c.saleDate} | **$${priceSqft.toFixed(2)}** |\n`;
+          
+          const isLayoutMatch = c.beds === (detail.beds || 4) && c.baths === (detail.baths || 3.5);
+          const layoutMatchFlag = isLayoutMatch ? '🎯 **Match**' : '✖';
+          
+          // Inverse Distance Weighting: W = 1 / (d + 0.05)
+          const dist = c.distanceMiles || 0.1;
+          const weight = 1 / (dist + 0.05);
+          weightSum += weight;
+          weightedPriceSum += priceSqft * weight;
+
+          block += `| ${c.address} | **${dist}** mi | **${c.beds}**b/**${c.baths}**ba | ${layoutMatchFlag} | **${formatCurrency(c.salePrice)}** | ${c.saleDate} | **$${priceSqft.toFixed(2)}** |\n`;
         });
 
         const avgCompPrice = totalPrice / comps.length;
         const avgPriceSqft = totalPrice / totalSqft;
+
+        // Distance-Weighted Consensus
+        const weightedAvgPriceSqft = weightedPriceSum / weightSum;
+        const suggestedValueWeighted = weightedAvgPriceSqft * (detail.sqft || 2000);
+
         block += `\n### 📈 Market Consensus Analysis\n`;
-        block += `- **Average Sold Price**: **${formatCurrency(avgCompPrice)}**\n`;
+        block += `- **Average Sold Comp Price**: **${formatCurrency(avgCompPrice)}**\n`;
         block += `- **Average Price per Sqft**: **${formatCurrency(avgPriceSqft)}/sqft**\n`;
-        block += `- **Suggested Subject Value**: **${formatCurrency(avgPriceSqft * (detail.sqft || 2000))}** (based on consensus price/sqft)\n`;
+        block += `- **Distance-Weighted Average**: **$${weightedAvgPriceSqft.toFixed(2)}/sqft** (prioritizes closest properties)\n`;
+        block += `- **Suggested Subject Value (Standard Comp Sqft)**: **${formatCurrency(avgPriceSqft * (detail.sqft || 2000))}**\n`;
+        block += `- **Suggested Subject Value (Distance-Weighted)**: **${formatCurrency(Math.round(suggestedValueWeighted))}** (highly recommended)\n`;
       } else {
         block += `*No recent comparable sales found within the search radius.*\n`;
       }
