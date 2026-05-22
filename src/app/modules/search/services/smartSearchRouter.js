@@ -2,6 +2,9 @@ import { executeGroundedSearch } from './geminiGroundingService.js';
 import { executeToolBasedConversation } from './reactAgent.js';
 import { classifyFinancialQuery, classifySportsQuery } from './queryClassifier.js';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
+import { sportsSmartRouter } from '../../../helpers/sportsSmartRouter.js';
+import { refreshLeagueNow } from '../../../helpers/sportsDataCache.js';
+// SSR_SPORTS_V6
 
 /**
  * Smart Search Router
@@ -56,26 +59,15 @@ function analyzeQueryComplexity(query, conversationHistory = []) {
       'validate',
     ],
 
-    // Prediction/analysis requests
+    // Prediction/analysis requests + sports betting (boosted for ReAct)
     prediction: [
-      'predict',
-      'forecast',
-      'who will win',
-      'chances',
-      'likely',
-      'probability',
-      'odds',
-      'bet',
-      'spread',
-      'moneyline',
-      'over under',
-      'player prop',
-      'same game parlay',
-      'sgp',
-      'futures odds',
-      'betting line',
-      'sportsbook',
-      'parlay',
+      'predict', 'forecast', 'who will win', 'chances', 'likely', 'probability',
+      'odds', 'bet', 'spread', 'moneyline', 'over under', 'player prop',
+      'same game parlay', 'sgp', 'futures odds', 'betting line', 'sportsbook', 'parlay',
+      // Sports analysis keywords → force ReAct agent
+      'best line', 'line movement', 'steam move', 'sharp money', 'value bet',
+      'best available', 'price sgp', '+ev', 'no vig', 'fair value',
+      'which book', 'sharp pick', 'ev bet', 'who has the best odds',
     ],
   };
 
@@ -125,12 +117,52 @@ export async function executeSmartSearch(
   conversationHistory = [],
   options = {}
 ) {
-  // ── PRIORITY 1: Sports betting queries get PredictionData.io real-time data first ──
+  // ══ PRIORITY 1: Sports betting → PredictionData.io (fully entrenched) ════════
   const sportsClass = classifySportsQuery(query);
   if (sportsClass.isSports) {
-    console.log(`\n🏈 Sports query detected (${sportsClass.intentType}, ${(sportsClass.confidence * 100).toFixed(0)}% confidence) — routing to PredictionData.io [${sportsClass.league}]`);
+    const intentType  = sportsClass.intentType;
+    const league      = sportsClass.league;
+    const confidence  = (sportsClass.confidence * 100).toFixed(0);
+    console.log(`\n🏈 Sports [${intentType}] ${league} (${confidence}%) → PredictionData.io`);
+
+    // Fire-and-forget background cache refresh for this league
+    if (league && league !== 'MULTI') {
+      refreshLeagueNow(league).catch(() => {});
+    }
+
+    // High-complexity sports intents → ReAct agent (has sports tool + web search)
+    const REACT_INTENTS = new Set(['sgp', 'prediction_market', 'alt_lines', 'multi_league']);
+    const forceReAct    = REACT_INTENTS.has(intentType) || sportsClass.confidence > 0.97;
+
+    if (forceReAct) {
+      console.log(`   ↳ ReAct agent forced (intent=${intentType})`);
+      try {
+        const messages = [
+          { role: 'system', content: 'You are Alti, an expert sports betting AI. Use the predictiondata-sports-odds tool for all real-time odds, player props, SGP pricing, and prediction market queries.' },
+          ...conversationHistory,
+          { role: 'user', content: query },
+        ];
+        const result = await executeToolBasedConversation(messages, options);
+        return {
+          answer: result.responseMessage.answer,
+          reference: result.responseMessage.reference || [],
+          citations: result.responseMessage.citations || [],
+          citationMetadata: {
+            ...result.responseMessage.citationMetadata,
+            method: 'sports_react_agent',
+            sportsIntent: intentType,
+            league,
+            playerName: sportsClass.playerName || null,
+          },
+        };
+      } catch (err) {
+        console.warn(`⚠️ Sports ReAct agent failed: ${err.message} — falling back to grounding`);
+      }
+    }
+
+    // Standard sports intents → direct sportsSmartRouter (fastest path, no financial overhead)
     try {
-      const enhancedQuery = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
+      const enhancedQuery = await sportsSmartRouter.routeAndEnhancePrompt(query);
       if (enhancedQuery !== query) {
         const result = await executeGroundedSearch(enhancedQuery, conversationHistory);
         return {
@@ -140,17 +172,19 @@ export async function executeSmartSearch(
           citationMetadata: {
             ...result.citationMetadata,
             method: 'predictiondata_sports_grounding',
-            sportsIntent: sportsClass.intentType,
-            league: sportsClass.league,
+            sportsIntent: intentType,
+            league,
+            playerName: sportsClass.playerName || null,
+            source: 'PredictionData.io',
           },
         };
       }
     } catch (err) {
-      console.warn(`⚠️ PredictionData.io sports routing failed, continuing with standard search: ${err.message}`);
+      console.warn(`⚠️ PredictionData.io sports routing failed: ${err.message}`);
     }
   }
 
-  // ── PRIORITY 2: Financial queries get Massive.com real-time data ──
+    // ── PRIORITY 2: Financial queries get Massive.com real-time data ──
   const financialClass = classifyFinancialQuery(query);
   if (financialClass.isFinancial) {
     console.log(`\n💹 Financial query detected (${financialClass.intentType}, ${(financialClass.confidence * 100).toFixed(0)}% confidence) — routing to Massive.com`);

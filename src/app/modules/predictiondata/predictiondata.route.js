@@ -1,4 +1,5 @@
 import express from 'express';
+import { sportsSmartRouter } from '../../../helpers/sportsSmartRouter.js';
 import {
   getMarketsService,
   getLiveMarketsService,
@@ -442,6 +443,170 @@ router.get(
     } = req.query;
     const data = await getFuturesMarketsService(league, book_ids, prop_types);
     res.json({ markets: data, count: data.length, league, prop_types: prop_types || 'all' });
+  })
+);
+
+
+// ─── Analysis Endpoints (powered by sportsSmartRouter analysis functions) ─────
+
+/**
+ * POST /predictiondata/analysis
+ * Runs one of four analysis modes on live market data.
+ * Body: { league, query_type: 'value_bets' | 'line_movers' | 'sharp_picks' | 'best_available' }
+ */
+router.post(
+  '/analysis',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      query_type = 'value_bets',
+      book_ids = '100,200,300,400,250,700',
+      timedelta = 24,
+    } = req.body;
+
+    const allBooksStr = book_ids + ',250'; // Always include Pinnacle for sharp analysis
+    const markets = await getMarketsService(
+      league,
+      'moneyline,spread,total,player_prop',
+      'FT',
+      allBooksStr,
+      { timedelta: Number(timedelta) }
+    );
+
+    let result;
+    switch (query_type) {
+      case 'value_bets':
+        result = sportsSmartRouter.buildValueBets(markets);
+        break;
+      case 'line_movers':
+        result = sportsSmartRouter.detectLineMovers(markets, 20);
+        break;
+      case 'sharp_picks':
+        result = sportsSmartRouter.buildSharpAnalysis(markets, league);
+        break;
+      case 'best_available':
+        result = sportsSmartRouter.pickBestLine(markets);
+        break;
+      default:
+        return res.status(400).json({ error: 'query_type must be one of: value_bets, line_movers, sharp_picks, best_available' });
+    }
+
+    res.json({
+      league,
+      query_type,
+      markets_analyzed: markets.length,
+      results: result,
+      result_count: result.length,
+      timestamp: new Date().toISOString(),
+    });
+  })
+);
+
+/**
+ * GET /predictiondata/markets/value-bets
+ * Returns markets with positive EV (book odds better than no-vig fair value).
+ * Query: league, min_edge (default 1.5, as percentage)
+ */
+router.get(
+  '/markets/value-bets',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      min_edge = '1.5',
+      book_ids = '100,200,300,400,250',
+      timedelta = '24',
+    } = req.query;
+    const markets = await getMarketsService(league, 'moneyline,spread,total,player_prop', 'FT', book_ids, { timedelta: Number(timedelta) });
+    const valueBets = sportsSmartRouter.buildValueBets(markets, Number(min_edge));
+    res.json({
+      league,
+      min_edge: Number(min_edge),
+      markets_checked: markets.length,
+      value_bets: valueBets,
+      count: valueBets.length,
+    });
+  })
+);
+
+/**
+ * GET /predictiondata/markets/line-movers
+ * Returns markets with largest open → current odds movement (steam detection).
+ * Query: league, top (default 15)
+ */
+router.get(
+  '/markets/line-movers',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      top = '15',
+      book_ids = '100,200,300,400,250',
+      timedelta = '24',
+    } = req.query;
+    const markets = await getMarketsService(league, 'moneyline,spread,total', 'FT', book_ids, { timedelta: Number(timedelta) });
+    const movers = sportsSmartRouter.detectLineMovers(markets, Number(top));
+    res.json({
+      league,
+      markets_checked: markets.length,
+      line_movers: movers,
+      count: movers.length,
+    });
+  })
+);
+
+/**
+ * GET /predictiondata/markets/sharp-picks
+ * Returns markets where Pinnacle's line diverges from the public book average.
+ * Divergence = sharp money signal. Requires Pinnacle access.
+ * Query: league
+ */
+router.get(
+  '/markets/sharp-picks',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      book_ids = '100,200,300,400,250,700,365,500',
+      timedelta = '24',
+    } = req.query;
+    // Always include Pinnacle (250) for the reference
+    const allBooks = book_ids.includes('250') ? book_ids : book_ids + ',250';
+    const markets = await getMarketsService(league, 'moneyline,spread,total', 'FT', allBooks, { timedelta: Number(timedelta) });
+    const sharpPicks = sportsSmartRouter.buildSharpAnalysis(markets, league);
+    res.json({
+      league,
+      markets_checked: markets.length,
+      sharp_picks: sharpPicks,
+      count: sharpPicks.length,
+      pinnacle_reference: true,
+    });
+  })
+);
+
+/**
+ * GET /predictiondata/markets/best-available
+ * Returns the best odds across all books for every market side.
+ * This is the classic "line shopping" endpoint.
+ * Query: league, bet_types
+ */
+router.get(
+  '/markets/best-available',
+  handleAsync(async (req, res) => {
+    const {
+      league = 'NFL',
+      bet_types = 'moneyline,spread,total',
+      timedelta = '24',
+    } = req.query;
+    // Fetch from ALL major books simultaneously
+    const allBooks = '100,200,300,400,250,700,365,500,555,617,150';
+    const markets = await getMarketsService(league, bet_types, 'FT', allBooks, { timedelta: Number(timedelta) });
+    const bestLines = sportsSmartRouter.pickBestLine(markets);
+    res.json({
+      league,
+      bet_types,
+      books_compared: 11,
+      markets_input: markets.length,
+      best_available: bestLines,
+      count: bestLines.length,
+    });
   })
 );
 

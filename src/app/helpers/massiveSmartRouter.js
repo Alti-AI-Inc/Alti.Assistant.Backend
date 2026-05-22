@@ -2293,15 +2293,33 @@ const routeAndEnhancePrompt = async (prompt) => {
   return prompt;
 };
 
-// ─── Combined Orchestrator ───────────────────────────────────────────────────
-// Runs both financial (Massive.com) and sports (PredictionData.io) routers
-// in parallel and merges their context blocks into a single enriched prompt.
-// All four cases are handled:
-//   both enriched   → merge financial + sports sections with clear separator
-//   sports only     → return sports-enriched prompt as-is
-//   financial only  → return financial-enriched prompt as-is
-//   neither         → return original prompt (no enrichment)
+// ─── Combined Orchestrator v6 ────────────────────────────────────────────────
+// MASSIVE_SPORTS_V6
+// Intelligently routes between financial-only, sports-only, and dual-context.
+// - Pure sports queries skip financial routing entirely (faster)
+// - Pure financial queries skip sports routing entirely (faster)
+// - Ambiguous/mixed queries run both in parallel and merge
+// - Sports intent metadata included in dual-context block
 const combinedRouteAndEnhancePrompt = async (prompt) => {
+  // Quick intent classification to avoid unnecessary API calls
+  const { detectSportsIntent } = sportsSmartRouter;
+  const sportsIntent = detectSportsIntent ? detectSportsIntent(prompt) : null;
+  const isSportsOnly = !!sportsIntent && !detectFinancialIntent(prompt);
+  const isFinancialOnly = !sportsIntent && !!detectFinancialIntent(prompt);
+
+  // Fast path: pure sports → only call sports router
+  if (isSportsOnly) {
+    const result = await sportsSmartRouter.routeAndEnhancePrompt(prompt);
+    return result;
+  }
+
+  // Fast path: pure financial → only call financial router
+  if (isFinancialOnly) {
+    const result = await routeAndEnhancePrompt(prompt);
+    return result;
+  }
+
+  // Dual-context: run both in parallel
   const [financial, sports] = await Promise.allSettled([
     routeAndEnhancePrompt(prompt),
     sportsSmartRouter.routeAndEnhancePrompt(prompt),
@@ -2379,4 +2397,6 @@ export const massiveSmartRouter = {
   combinedRouteAndEnhancePrompt,
   detectFinancialIntent,
   detectMultipleTickers,
+  // Re-export for convenience so consumers don't need to import sportsSmartRouter separately
+  detectSportsIntent: sportsSmartRouter.detectSportsIntent,
 };

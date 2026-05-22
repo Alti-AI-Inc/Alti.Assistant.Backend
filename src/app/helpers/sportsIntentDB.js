@@ -583,6 +583,40 @@ export const BROADCAST_KEYWORDS = [
   'peacock', 'amazon prime sports', 'apple tv plus', 'dazn', 'paramount plus',
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYSIS INTENT KEYWORDS
+// These trigger advanced PredictionData.io analysis modes
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const VALUE_BETS_KEYWORDS = [
+  'value bet', 'value bets', '+ev', 'plus ev', 'positive ev', 'positive expected value',
+  'best value', 'edge', 'find value', 'where is the value', 'ev bet',
+  'fair value', 'no vig', 'vig free', 'sharp value', 'beat the closing line',
+  'expected value betting', 'biggest edge',
+];
+
+export const LINE_MOVERS_KEYWORDS = [
+  'line movement', 'line mover', 'line movers', 'steam move', 'steam moves',
+  'line moving', 'line moved', 'where is the steam', 'sharp action',
+  'biggest line move', 'line change', 'odds movement', 'sharp money',
+  'line opened at', 'line moved from', 'late steam', 'reverse line movement',
+];
+
+export const SHARP_PICKS_KEYWORDS = [
+  'sharp pick', 'sharp picks', 'sharp money', 'sharp action', 'pinnacle',
+  'pin price', 'sharp line', 'sharp side', 'what do sharps like',
+  'sharp vs public', 'public vs sharp', 'sharp consensus', 'sharp fade',
+  'bet like a sharp', 'professional bettors', 'wiseguys', 'wise guys',
+  'sharp bettors', 'what do pros bet', 'where is the sharp money',
+];
+
+export const BEST_AVAILABLE_KEYWORDS = [
+  'best available', 'best odds', 'best line', 'best price', 'line shop',
+  'line shopping', 'shop lines', 'where to bet', 'which book has',
+  'who has the best odds', 'who has the best line', 'best book for',
+  'compare odds', 'highest odds', 'most favorable odds', 'beat the book',
+];
+
 
 // ─────────────────────────────────────────────
 // DEFAULT BOOK IDS (corrected from API spec)
@@ -782,6 +816,24 @@ export function detectSportsIntent(prompt) {
   // Player name detection — covers "Mahomes prop", "LeBron points tonight"
   const detectedPlayerName =
     Object.keys(PLAYER_NAME_MAP).find((name) => q.includes(name)) || null;
+
+  // ── Analysis intent detection (value bets, line movers, sharp picks, best available)
+  if (VALUE_BETS_KEYWORDS && VALUE_BETS_KEYWORDS.some((k) => q.includes(k))) {
+    const detectedLeagueAnalysis = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
+    return { type: 'value_bets', league: detectedLeagueAnalysis?.[1] || 'NFL', extra: {} };
+  }
+  if (LINE_MOVERS_KEYWORDS && LINE_MOVERS_KEYWORDS.some((k) => q.includes(k))) {
+    const detectedLeagueAnalysis = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
+    return { type: 'line_movers', league: detectedLeagueAnalysis?.[1] || 'NFL', extra: {} };
+  }
+  if (SHARP_PICKS_KEYWORDS && SHARP_PICKS_KEYWORDS.some((k) => q.includes(k))) {
+    const detectedLeagueAnalysis = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
+    return { type: 'sharp_picks', league: detectedLeagueAnalysis?.[1] || 'NFL', extra: {} };
+  }
+  if (BEST_AVAILABLE_KEYWORDS && BEST_AVAILABLE_KEYWORDS.some((k) => q.includes(k))) {
+    const detectedLeagueAnalysis = Object.entries(LEAGUE_MAP).find(([kw]) => q.includes(kw));
+    return { type: 'best_available', league: detectedLeagueAnalysis?.[1] || 'NFL', extra: {} };
+  }
 
   // Multi-league detection — "all games tonight", "all sports", "games today"
   const hasMultiLeague = MULTI_LEAGUE_KEYWORDS.some((k) => q.includes(k));

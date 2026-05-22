@@ -56,6 +56,7 @@ import {
 
 import { logger } from '../../shared/logger.js';
 import { RedisClient } from '../../shared/redis.js';
+// PATCH_V42
 import {
   detectSportsIntent,
   DEFAULT_BOOK_IDS,
@@ -917,6 +918,216 @@ async function generateDeeplinks(markets, bookName = 'draftkings') {
   } catch { return null; }
 }
 
+
+// ─── PINNACLE BOOK ID (sharpest line reference) ───────────────────────────────
+const PINNACLE_BOOK_ID = 250;
+
+// ─── Best Available Line Picker ───────────────────────────────────────────────
+// For each unique (fixture, bet_type, side, period), finds the book offering
+// the best odds. This is the core "line shopping" feature.
+function pickBestLine(markets) {
+  const groups = {};
+  for (const m of markets) {
+    const key = [m.fixture_id, m.bet_type, m.prop_name || '', m.side, m.period || 'FT'].join(':');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(m);
+  }
+  const best = [];
+  for (const [key, group] of Object.entries(groups)) {
+    // Find best odds for this market side (highest positive or least negative)
+    const sorted = group.sort((a, b) => {
+      const ao = Number(a.odds) || 0;
+      const bo = Number(b.odds) || 0;
+      // American odds: +150 > +110 > -110 > -150
+      if (ao >= 0 && bo >= 0) return bo - ao;  // higher positive = better
+      if (ao < 0 && bo < 0)  return ao - bo;   // less negative = better (-110 vs -150)
+      if (ao >= 0 && bo < 0) return -1;         // positive always beats negative
+      return 1;
+    });
+    best.push({ ...sorted[0], _allBooks: group.length, _bestOdds: sorted[0].odds });
+  }
+  return best;
+}
+
+// ─── Line Mover / Steam Detection ────────────────────────────────────────────
+// Returns top N markets by absolute open_odds → current odds delta.
+// Large movement = sharp money or breaking news.
+function detectLineMovers(markets, topN = 10) {
+  const movers = markets
+    .filter((m) => m.open_odds && m.odds && m.open_odds !== m.odds)
+    .map((m) => {
+      const open = Number(m.open_odds);
+      const curr = Number(m.odds);
+      if (isNaN(open) || isNaN(curr)) return null;
+      // Convert American → decimal for fair delta comparison
+      const toDecimal = (n) => n >= 0 ? (n / 100) + 1 : 1 - (100 / n);
+      const delta = Math.abs(toDecimal(curr) - toDecimal(open));
+      const direction = toDecimal(curr) > toDecimal(open) ? '📈' : '📉';
+      return { ...m, _delta: delta, _direction: direction };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b._delta - a._delta)
+    .slice(0, topN);
+  return movers;
+}
+
+// ─── Sharp Analysis (Pinnacle as reference) ───────────────────────────────────
+// Markets where Pinnacle's line differs from the book average by > 0.03 decimal.
+// Divergence = "sharp" signal; book closing toward Pinnacle = steam.
+function buildSharpAnalysis(markets, league) {
+  const fixtureGroups = {};
+  for (const m of markets) {
+    const key = [m.fixture_id, m.bet_type, m.prop_name || '', m.side, m.period || 'FT'].join(':');
+    if (!fixtureGroups[key]) fixtureGroups[key] = { pin: null, others: [] };
+    if (m.odd_provider_id === PINNACLE_BOOK_ID) {
+      fixtureGroups[key].pin = m;
+    } else {
+      fixtureGroups[key].others.push(m);
+    }
+  }
+
+  const toDecimal = (n) => {
+    const num = Number(n);
+    if (isNaN(num)) return null;
+    return num >= 0 ? (num / 100) + 1 : 1 - (100 / num);
+  };
+
+  const sharp = [];
+  for (const [, group] of Object.entries(fixtureGroups)) {
+    if (!group.pin || group.others.length === 0) continue;
+    const pinDec = toDecimal(group.pin.odds);
+    if (!pinDec) continue;
+    const avgOtherDec = group.others.reduce((s, m) => s + (toDecimal(m.odds) || 0), 0) / group.others.length;
+    if (!avgOtherDec) continue;
+    const divergence = Math.abs(pinDec - avgOtherDec);
+    if (divergence > 0.02) { // threshold: 2 cents on the dollar
+      const pinFavorsPub = pinDec < avgOtherDec; // Pinnacle offers less → sharps on other side
+      sharp.push({
+        ...group.pin,
+        _divergence: divergence,
+        _avgPublic: avgOtherDec,
+        _sharpSignal: pinFavorsPub ? '🦅 Sharp On Other Side' : '🦅 Sharp Agrees With Pub',
+      });
+    }
+  }
+  return sharp.sort((a, b) => b._divergence - a._divergence);
+}
+
+// ─── Value Bets (+EV) Finder ─────────────────────────────────────────────────
+// Finds markets where a book's odds are better than no_vig_odds suggests.
+// Edge = (book_implied_prob - no_vig_implied_prob). Positive = +EV.
+function buildValueBets(markets, minEdgePct = 1.5) {
+  const toImplied = (odds) => {
+    const n = Number(odds);
+    if (isNaN(n)) return null;
+    if (n >= 0) return 100 / (n + 100);
+    return Math.abs(n) / (Math.abs(n) + 100);
+  };
+  return markets
+    .filter((m) => m.odds && m.no_vig_odds)
+    .map((m) => {
+      const bookImpl   = toImplied(m.odds);
+      const noVigImpl  = toImplied(m.no_vig_odds);
+      if (!bookImpl || !noVigImpl) return null;
+      const edge = (noVigImpl - bookImpl) * 100; // positive = book paying more than fair
+      return edge >= minEdgePct ? { ...m, _edge: edge, _bookImpl: bookImpl, _noVigImpl: noVigImpl } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b._edge - a._edge);
+}
+
+// ─── Format Value Bets Block ──────────────────────────────────────────────────
+function formatValueBetsBlock(valueBets, league) {
+  if (valueBets.length === 0) return `*No significant +EV spots found for ${league} at this time.*`;
+  const emoji = LEAGUE_EMOJI[league] || '🏆';
+  let block = `## ${emoji} ${league} — +EV Value Bets (Fair Value Edge > 1.5%)
+
+`;
+  block += `> 📡 **PredictionData.io** | Pinnacle no-vig odds used as fair value reference
+
+`;
+  block += `| Game | Market | Side | Odds | Fair Value | **Edge** | Book | Bet Link |
+`;
+  block += `|------|--------|------|------|------------|----------|------|----------|
+`;
+
+  valueBets.slice(0, 15).forEach((m) => {
+    const odds     = m.odds     ? `${m.odds >= 0 ? '+' : ''}${m.odds}` : 'N/A';
+    const fv       = m.no_vig_odds ? `${m.no_vig_odds >= 0 ? '+' : ''}${m.no_vig_odds}` : 'N/A';
+    const edge     = `**+${m._edge.toFixed(1)}%**`;
+    const bookName = Object.entries(BOOK_IDS).find(([, id]) => id === m.odd_provider_id)?.[0] || `Book ${m.odd_provider_id}`;
+    const link     = m.provider_url ? `[Bet ↗](${m.provider_url})` : '';
+    const side     = m.side || m.prop_name || '';
+    const fixture  = m._fixtureLabel || m.fixture_id || '';
+    block += `| ${fixture} | ${m.bet_type} | ${side} | **${odds}** | ${fv} | ${edge} | ${bookName} | ${link} |
+`;
+  });
+
+  block += `
+> 💡 Edge = (No-Vig Implied Prob - Book Implied Prob). Positive edge = book paying more than fair value.
+`;
+  return block;
+}
+
+// ─── Format Line Movers Block ─────────────────────────────────────────────────
+function formatLineMoversBlock(movers, league) {
+  if (movers.length === 0) return `*No significant line movement found for ${league}.*`;
+  const emoji = LEAGUE_EMOJI[league] || '🏆';
+  let block = `## ${emoji} ${league} — Line Movers (Steam Detection)
+
+`;
+  block += `> 🔥 Markets with the largest line movement from open — indicates sharp money
+
+`;
+  block += `| Game | Market | Side | Open | Current | Move | Book |
+`;
+  block += `|------|--------|------|------|---------|------|------|
+`;
+
+  movers.forEach((m) => {
+    const open = m.open_odds ? `${m.open_odds >= 0 ? '+' : ''}${m.open_odds}` : 'N/A';
+    const curr = m.odds      ? `${m.odds >= 0 ? '+' : ''}${m.odds}`      : 'N/A';
+    const bookName = Object.entries(BOOK_IDS).find(([, id]) => id === m.odd_provider_id)?.[0] || `Book ${m.odd_provider_id}`;
+    const side = m.side || m.prop_name || '';
+    block += `| ${m.fixture_id || ''} | ${m.bet_type} | ${side} | ${open} | **${curr}** | ${m._direction} | ${bookName} |
+`;
+  });
+
+  return block;
+}
+
+// ─── Format Sharp Picks Block ─────────────────────────────────────────────────
+function formatSharpPicksBlock(sharp, league) {
+  if (sharp.length === 0) return `*No significant Pinnacle divergence found for ${league}.*`;
+  const emoji = LEAGUE_EMOJI[league] || '🏆';
+  let block = `## ${emoji} ${league} — Sharp Picks (Pinnacle Divergence)
+
+`;
+  block += `> 🦅 Markets where Pinnacle's price diverges from the public book average
+`;
+  block += `> Pinnacle = sharpest book. Divergence > 2¢ signals sharp money.
+
+`;
+  block += `| Game | Market | Side | Pinnacle | Avg Public | **Signal** |
+`;
+  block += `|------|--------|------|----------|------------|------------|
+`;
+
+  sharp.slice(0, 10).forEach((m) => {
+    const pinOdds = `${m.odds >= 0 ? '+' : ''}${m.odds}`;
+    const pubDecToAmerican = (d) => {
+      if (!d || d < 1) return 'N/A';
+      return d >= 2 ? '+' + Math.round((d - 1) * 100) : '-' + Math.round(100 / (d - 1));
+    };
+    const pubOdds = pubDecToAmerican(m._avgPublic);
+    const side = m.side || m.prop_name || '';
+    block += `| ${m.fixture_id || ''} | ${m.bet_type} | ${side} | **${pinOdds}** | ${pubOdds} | ${m._sharpSignal} |
+`;
+  });
+
+  return block;
+}
+
 const routeAndEnhancePrompt = async (prompt) => {
   try {
     const intent = detectSportsIntent(prompt);
@@ -925,10 +1136,23 @@ const routeAndEnhancePrompt = async (prompt) => {
     const { type, league, extra = {} } = intent;
     const emoji = LEAGUE_EMOJI[league] || '🏟️';
 
-    logger.info(`[SportsRouter v4] Intent: ${type} | League: ${league} | Player: ${extra.playerName || 'N/A'}`);
+    // ── Live game auto-detection ───────────────────────────────────────────
+    // If this league currently has in-progress games, auto-boost standard
+    // odds queries to live_odds mode so the LLM gets live score context too.
+    let resolvedType = type;
+    if (type === 'odds') {
+      const liveLeagues = await getCachedLiveLeagues().catch(() => []);
+      if (liveLeagues.includes(league)) {
+        logger.info(`[SportsRouter v4.2] Auto-live: ${league} has in-progress games — upgrading odds → live_odds`);
+        resolvedType = 'live_odds';
+      }
+    }
+
+    logger.info(`[SportsRouter v4.2] Intent: ${resolvedType} | League: ${league} | Player: ${extra.playerName || 'N/A'}`);
 
     // ── LIVE ODDS ─────────────────────────────────────────────────────────
-    if (type === 'live_odds') {
+    if (resolvedType === 'live_odds' || type === 'live_odds') {
+
       const cacheKey = `live:${league}`;
       let markets = await cacheGet(cacheKey);
       if (!markets) {
@@ -941,7 +1165,7 @@ const routeAndEnhancePrompt = async (prompt) => {
     }
 
     // ── PLAYER PROPS ──────────────────────────────────────────────────────
-    if (type === 'player_prop') {
+    if (resolvedType === 'player_prop' || type === 'player_prop') {
       const propType    = extra.propType || '';
       const playerName  = extra.playerName || null; // from PLAYER_NAME_MAP detection
       const cacheKey    = `props:${league}:${propType}`;
@@ -1012,7 +1236,7 @@ const routeAndEnhancePrompt = async (prompt) => {
     }
 
     // ── GAME PROPS ────────────────────────────────────────────────────────
-    if (type === 'game_prop') {
+    if (resolvedType === 'game_prop' || type === 'game_prop') {
       const cacheKey = `game_props:${league}`;
       let [markets, fixtures] = await Promise.all([
         cacheGet(cacheKey),
@@ -1031,7 +1255,7 @@ const routeAndEnhancePrompt = async (prompt) => {
     }
 
     // ── FUTURES ───────────────────────────────────────────────────────────
-    if (type === 'futures') {
+    if (resolvedType === 'futures' || type === 'futures') {
       // Detect specific futures type from query (e.g. "Super Bowl" → "Super Bowl Winner")
       const leagueFutureTypes = LEAGUE_FUTURES_TYPES[league] || [];
       const q = prompt.toLowerCase();
@@ -1076,7 +1300,7 @@ const routeAndEnhancePrompt = async (prompt) => {
     }
 
     // ── SCHEDULE ──────────────────────────────────────────────────────────
-    if (type === 'schedule') {
+    if (resolvedType === 'schedule' || type === 'schedule') {
       const cacheKey  = `fixtures:${league}`;
       const teamsKey  = `teams:${league}`;
       let [fixtures, teams] = await Promise.all([
@@ -1096,7 +1320,7 @@ const routeAndEnhancePrompt = async (prompt) => {
     }
 
     // ── SAME GAME PARLAY ──────────────────────────────────────────────────
-    if (type === 'sgp') {
+    if (resolvedType === 'sgp' || type === 'sgp') {
       const [fixtures, markets] = await Promise.all([
         safe(getFixturesService(league, 24), 5000),
         safe(getPlayerPropsService(league, '', PROPS_BOOK_IDS), 7000),
@@ -1228,6 +1452,54 @@ const routeAndEnhancePrompt = async (prompt) => {
       return buildPrompt(prompt, block, `PredictionData.io ${league} ${period} Odds Service`);
     }
 
+
+    // ── VALUE BETS (+EV) ──────────────────────────────────────────────────
+    if (type === 'value_bets') {
+      const cacheKey = `odds:${league}`;
+      let markets = await cacheGet(cacheKey);
+      if (!markets) {
+        markets = await safe(getMarketsService(league, 'moneyline,spread,total,player_prop', 'FT', DEFAULT_BOOK_IDS, { timedelta: 24 }), 8000);
+        if (markets) await cacheSet(cacheKey, markets, 30);
+      }
+      const valueBets = buildValueBets(markets || []);
+      const block = formatValueBetsBlock(valueBets, league);
+      return buildPrompt(prompt, block, `PredictionData.io ${league} Value Bets (+EV Analysis)`);
+    }
+
+    // ── LINE MOVERS / STEAM DETECTION ─────────────────────────────────────
+    if (type === 'line_movers') {
+      const cacheKey = `odds:${league}`;
+      let markets = await cacheGet(cacheKey);
+      if (!markets) {
+        markets = await safe(getMarketsService(league, 'moneyline,spread,total', 'FT', DEFAULT_BOOK_IDS, { timedelta: 24 }), 8000);
+        if (markets) await cacheSet(cacheKey, markets, 30);
+      }
+      const movers = detectLineMovers(markets || [], 15);
+      const block = formatLineMoversBlock(movers, league);
+      return buildPrompt(prompt, block, `PredictionData.io ${league} Line Movement Tracker`);
+    }
+
+    // ── SHARP PICKS (Pinnacle divergence) ─────────────────────────────────
+    if (type === 'sharp_picks') {
+      const allBooks = `${DEFAULT_BOOK_IDS},${PINNACLE_BOOK_ID}`;
+      let markets = await safe(getMarketsService(league, 'moneyline,spread,total', 'FT', allBooks, { timedelta: 24 }), 8000);
+      const sharpPicks = buildSharpAnalysis(markets || [], league);
+      const block = formatSharpPicksBlock(sharpPicks, league);
+      return buildPrompt(prompt, block, `PredictionData.io ${league} Sharp Money Analysis (Pinnacle Reference)`);
+    }
+
+    // ── BEST AVAILABLE (line shopping) ────────────────────────────────────
+    if (type === 'best_available') {
+      const allBooksStr = '100,200,300,400,250,700,365,500,555,617,150';
+      let [markets, fixtures] = await Promise.all([
+        cacheGet(`odds:${league}`) || safe(getMarketsService(league, 'moneyline,spread,total', 'FT', allBooksStr, { timedelta: 24 }), 8000),
+        cacheGet(`fixtures:${league}`) || safe(getFixturesService(league, 24), 5000),
+      ]);
+      const bestLines = pickBestLine(markets || []);
+      const block = formatOddsBlock(bestLines, fixtures || [], league, 'Best Available Lines (Line Shopping)');
+      return buildPrompt(prompt, block, `PredictionData.io ${league} Best Available Lines — Line Shopping`);
+    }
+
     // ── MULTI-LEAGUE (all games tonight / all sports) ────────────────────
     if (type === 'multi_league') {
       const queryLeagues = extra.leagues || MULTI_LEAGUE_ACTIVE || ['NFL', 'NBA', 'MLB', 'NHL'];
@@ -1299,10 +1571,18 @@ const routeAndEnhancePrompt = async (prompt) => {
 export const sportsSmartRouter = {
   routeAndEnhancePrompt,
   detectSportsIntent,
-  // Expose formatters for direct use in tool responses
+  // Core formatters
   formatOddsBlock,
   formatPlayerPropsBlock,
   formatFuturesBlock,
   formatScheduleBlock,
   formatSGPResult,
+  // Analysis functions (exposed for direct use in API routes)
+  pickBestLine,
+  detectLineMovers,
+  buildSharpAnalysis,
+  buildValueBets,
+  formatValueBetsBlock,
+  formatLineMoversBlock,
+  formatSharpPicksBlock,
 };

@@ -396,3 +396,36 @@ export const sportsDataCache = {
   PRIORITY_LEAGUES,
   SECONDARY_LEAGUES,
 };
+
+/**
+ * refreshLeagueNow — on-demand cache refresh for a specific league.
+ * Called by smartSearchRouter on every sports query for maximum freshness.
+ * @param {string} league — e.g. 'NFL', 'NBA'
+ */
+export async function refreshLeagueNow(league) {
+  if (!league || league === 'MULTI') return;
+  try {
+    await warmLeague(league);
+    logger.info(`[SportsCache] On-demand refresh complete for ${league}`);
+  } catch (err) {
+    logger.warn(`[SportsCache] On-demand refresh failed for ${league}: ${err.message}`);
+  }
+}
+
+/**
+ * getCachedLiveLeagues — returns array of leagues with in-progress games in Redis.
+ * Used by sportsSmartRouter to auto-switch to live odds mode when applicable.
+ */
+export async function getCachedLiveLeagues() {
+  const liveLeagues = [];
+  const leagues = [...PRIORITY_LEAGUES, ...SECONDARY_LEAGUES];
+  await Promise.allSettled(
+    leagues.map(async (league) => {
+      try {
+        const data = await rcGet(`fixtures:live:${league}`);
+        if (data && data.length > 0) liveLeagues.push(league);
+      } catch { /* ignore */ }
+    })
+  );
+  return liveLeagues;
+}
