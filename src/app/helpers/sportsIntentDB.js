@@ -70,6 +70,87 @@ export const LEAGUE_MAP = {
 };
 
 // ─────────────────────────────────────────────
+// PLAYER NAME → LEAGUE CODE MAP
+// Resolves player name mentions to their sport league.
+// Allows "Mahomes prop" to correctly route to NFL.
+// ─────────────────────────────────────────────
+export const PLAYER_NAME_MAP = {
+  // NFL stars
+  'mahomes': 'NFL', 'patrick mahomes': 'NFL',
+  'lamar jackson': 'NFL', 'jalen hurts': 'NFL',
+  'josh allen': 'NFL', 'dak prescott': 'NFL',
+  'joe burrow': 'NFL', 'justin herbert': 'NFL',
+  'tua tagovailoa': 'NFL', 'brock purdy': 'NFL',
+  'kyler murray': 'NFL', 'jordan love': 'NFL',
+  'trevor lawrence': 'NFL', 'sam darnold': 'NFL',
+  'travis kelce': 'NFL', 'tyreek hill': 'NFL',
+  'davante adams': 'NFL', 'ceedee lamb': 'NFL',
+  'stefon diggs': 'NFL', 'justin jefferson': 'NFL',
+  'christian mccaffrey': 'NFL', 'derrick henry': 'NFL',
+  'saquon barkley': 'NFL', 'josh jacobs': 'NFL',
+  'breece hall': 'NFL', 'nick chubb': 'NFL', 'kelce': 'NFL',
+  // NBA stars
+  'lebron': 'NBA', 'lebron james': 'NBA',
+  'stephen curry': 'NBA', 'steph curry': 'NBA',
+  'kevin durant': 'NBA', 'giannis': 'NBA',
+  'giannis antetokounmpo': 'NBA', 'nikola jokic': 'NBA',
+  'jokic': 'NBA', 'jayson tatum': 'NBA', 'tatum': 'NBA',
+  'luka doncic': 'NBA', 'luka': 'NBA',
+  'joel embiid': 'NBA', 'damian lillard': 'NBA',
+  'devin booker': 'NBA', 'trae young': 'NBA',
+  'sga': 'NBA', 'shai gilgeous-alexander': 'NBA',
+  'anthony edwards': 'NBA', 'ant edwards': 'NBA',
+  'victor wembanyama': 'NBA', 'wemby': 'NBA',
+  'tyrese haliburton': 'NBA', 'lamelo ball': 'NBA',
+  'ja morant': 'NBA', 'paolo banchero': 'NBA',
+  'kawhi leonard': 'NBA', 'jimmy butler': 'NBA',
+  'jaylen brown': 'NBA', 'donovan mitchell': 'NBA',
+  // MLB stars
+  'shohei ohtani': 'MLB', 'ohtani': 'MLB',
+  'mookie betts': 'MLB', 'freddie freeman': 'MLB',
+  'mike trout': 'MLB', 'aaron judge': 'MLB', 'judge': 'MLB',
+  'juan soto': 'MLB', 'ronald acuna': 'MLB',
+  'spencer strider': 'MLB', 'gerrit cole': 'MLB',
+  'paul skenes': 'MLB', 'tyler glasnow': 'MLB',
+  'yordan alvarez': 'MLB', 'francisco lindor': 'MLB',
+  'pete alonso': 'MLB', 'corey seager': 'MLB',
+  // NHL stars
+  'connor mcdavid': 'NHL', 'mcdavid': 'NHL',
+  'leon draisaitl': 'NHL', 'draisaitl': 'NHL',
+  'auston matthews': 'NHL', 'matthews': 'NHL',
+  'nathan mackinnon': 'NHL', 'mackinnon': 'NHL',
+  'cale makar': 'NHL', 'makar': 'NHL',
+  'david pastrnak': 'NHL', 'pastrnak': 'NHL',
+  'nikita kucherov': 'NHL', 'kucherov': 'NHL',
+  'alexander ovechkin': 'NHL', 'ovi': 'NHL', 'ovechkin': 'NHL',
+  // UFC stars
+  'jon jones': 'UFC', 'israel adesanya': 'UFC',
+  'alex pereira': 'UFC', 'pereira': 'UFC',
+  'leon edwards': 'UFC', 'islam makhachev': 'UFC',
+  'conor mcgregor': 'UFC', 'mcgregor': 'UFC',
+  'max holloway': 'UFC', 'dustin poirier': 'UFC',
+  'ilia topuria': 'UFC', 'topuria': 'UFC',
+  'ngannou': 'UFC', 'sean strickland': 'UFC',
+  // Golf stars
+  'scottie scheffler': 'GOLF', 'scheffler': 'GOLF',
+  'rory mcilroy': 'GOLF', 'xander schauffele': 'GOLF',
+  'collin morikawa': 'GOLF', 'viktor hovland': 'GOLF',
+  'hovland': 'GOLF', 'jon rahm': 'GOLF', 'rahm': 'GOLF',
+  'brooks koepka': 'GOLF', 'koepka': 'GOLF',
+  'tiger woods': 'GOLF', 'tiger': 'GOLF',
+  // Tennis stars
+  'novak djokovic': 'TENNIS', 'djokovic': 'TENNIS',
+  'carlos alcaraz': 'TENNIS', 'alcaraz': 'TENNIS',
+  'jannik sinner': 'TENNIS', 'sinner': 'TENNIS',
+  'daniil medvedev': 'TENNIS', 'medvedev': 'TENNIS',
+  'rafael nadal': 'TENNIS', 'nadal': 'TENNIS',
+  'iga swiatek': 'TENNIS', 'swiatek': 'TENNIS',
+  'aryna sabalenka': 'TENNIS', 'sabalenka': 'TENNIS',
+  'coco gauff': 'TENNIS', 'gauff': 'TENNIS',
+};
+
+
+// ─────────────────────────────────────────────
 // TEAM NAME → LEAGUE CODE MAP
 // ─────────────────────────────────────────────
 export const TEAM_LEAGUE_MAP = {
@@ -586,7 +667,21 @@ export const LEAGUE_PROP_TYPES = {
   LIGA: ['Goals', 'Assists', 'Shots', 'Shots On Goal', 'Both Teams To Score', 'Team Total'],
   LIG1: ['Goals', 'Assists', 'Shots', 'Shots On Goal', 'Both Teams To Score', 'Team Total'],
   BUND: ['Goals', 'Assists', 'Shots', 'Shots On Goal', 'Both Teams To Score', 'Team Total'],
-  UCL: ['Goals', 'Assists', 'Shots', 'Shots On Goal', 'Both Teams To Score', 'Team Total'],
+  UCL:  ['Goals', 'Assists', 'Shots', 'Shots On Goal', 'Both Teams To Score', 'Team Total'],
+  GOLF: [
+    'Outright Winner', 'Top 5', 'Top 10', 'Top 20', 'Make Cut',
+    'First Round Leader', 'Bogey Free Round', 'Winning Score',
+    'Round Score', 'Head to Head', '72 Hole Score', '18 Hole Score',
+  ],
+  TENNIS: [
+    'Outright Winner', 'Total Games', 'Total Sets', 'Set Winner',
+    'Games in Set', 'Correct Score', 'To Win in Straight Sets',
+    'First Set Winner', 'Handicap Sets', 'Aces', 'Double Faults',
+  ],
+  FB_US_M_UFL: [
+    'Pass Yds', 'Rush Yds', 'Receiving Yds', 'Touchdowns',
+    'TD Passes', 'Receptions', 'Completions', 'Interceptions',
+  ],
 };
 
 // ─────────────────────────────────────────────
@@ -646,9 +741,13 @@ export function detectSportsIntent(prompt) {
   const hasAltLine        = ALT_LINE_KEYWORDS.some((k) => q.includes(k));
   const hasPeriodKw       = Object.keys(PERIOD_KEYWORDS).some((k) => q.includes(k));
 
+  // Player name detection — covers "Mahomes prop", "LeBron points tonight"
+  const detectedPlayerName =
+    Object.keys(PLAYER_NAME_MAP).find((name) => q.includes(name)) || null;
+
   if (
     !hasBettingKeyword && !hasGameKeyword && !hasPropStat &&
-    !hasGameProp && !hasFuturesKw && !hasSGP && !hasPredMkt
+    !hasGameProp && !hasFuturesKw && !hasSGP && !hasPredMkt && !detectedPlayerName
   ) return null;
 
   // ── 2. Detect league ───────────────────────────────────────────────────────
@@ -671,6 +770,11 @@ export function detectSportsIntent(prompt) {
     for (const [stat, league] of Object.entries(PROP_STAT_KEYWORDS)) {
       if (q.includes(stat)) { detectedLeague = league; break; }
     }
+  }
+
+  // Player name → league resolution (covers first-name-only queries)
+  if (!detectedLeague && detectedPlayerName) {
+    detectedLeague = PLAYER_NAME_MAP[detectedPlayerName];
   }
 
   // Futures keyword might imply NFL if no league
@@ -743,7 +847,7 @@ export function detectSportsIntent(prompt) {
         if (match) { propType = match; break; }
       }
     }
-    return { type: 'player_prop', league: detectedLeague, extra: { propType } };
+    return { type: 'player_prop', league: detectedLeague, extra: { propType, playerName: detectedPlayerName } };
   }
 
   // Game props (in-game events, UFC, etc.)
@@ -760,5 +864,9 @@ export function detectSportsIntent(prompt) {
   }
 
   // Default: standard odds (moneyline + spread + total)
+  // If a player name was detected without a prop stat keyword, treat as player prop
+  if (detectedPlayerName && detectedLeague) {
+    return { type: 'player_prop', league: detectedLeague, extra: { propType: '', playerName: detectedPlayerName } };
+  }
   return { type: 'odds', league: detectedLeague };
 }

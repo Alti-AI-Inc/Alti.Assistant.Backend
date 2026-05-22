@@ -833,7 +833,11 @@ export function classifyFinancialQuery(query) {
     forex_overview: 0.94,
     stock_group: 0.93,
     crypto_technical: 0.94,
-    currency_convert: 0.98,
+    // New intent types — batch 2
+    float: 0.95,
+    splits: 0.96,
+    premarket: 0.97,
+    portfolio: 0.98,
   };
 
   const confidence = confidenceMap[intent.type] || 0.80;

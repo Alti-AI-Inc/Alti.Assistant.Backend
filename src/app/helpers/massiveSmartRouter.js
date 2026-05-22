@@ -1,23 +1,26 @@
 /**
- * Massive Smart Router — v4 Complete
+ * Massive Smart Router — v5 Complete
  *
  * Verified API coverage (api.massive.com):
  *   Stocks        ✅ Quote, Snapshot, Financials, RSI, MACD, EMA, SMA, News
+ *   Fundamentals  ✅ Income Statement, Balance Sheet, Ratios, Dividends, Splits, Float
  *   Options       ✅ Chain, Filtered (calls/puts/expiry)
- *   Crypto        ✅ Snapshot, Trades, RSI
- *   Forex         ✅ Snapshot, Conversion + all major/minor/exotic pairs
+ *   Crypto        ✅ Snapshot, Trades, RSI, MACD, EMA, Technical
+ *   Forex         ✅ Snapshot, Conversion + all major/minor/exotic pairs + Aggregates
  *   Indices       ✅ via ETF proxies (SPY/QQQ/DIA/IWM/VIXY/TLT)
  *   Commodities   ✅ via ETF proxies (GLD/SLV/USO/UNG/WEAT/CORN)
  *   Macro/Fed     ✅ CPI, Treasury Yields, Labor Market, Inflation Expectations
  *   Market Status ✅ Status (open/closed/extended), Holidays
  *   Technical     ✅ RSI, MACD, EMA-50, EMA-200, SMA-50, SMA-200
- *   News          ✅ listNews with ticker filter
+ *   News          ✅ listNews with ticker filter + Benzinga analyst ratings
  *   IPO           ✅ IPO calendar
  *   Market Overview ✅ Full dashboard: Indices + BTC + Gold + Oil + VIX (1 batch call)
  *   Sector Perf   ✅ All 11 S&P sectors (XLK, XLF, XLV, XLE, XLI, XLC...)
  *   Stock Groups  ✅ FAANG, Mag7, Big Banks, Chips, EV, Biotech, Airlines
  *   Crypto Overview ✅ Top 7 cryptos with RSI
  *   Forex Overview  ✅ All 7 major pairs in one shot
+ *   Compare       ✅ Multi-ticker side-by-side with P/E, RSI, margins, news
+ *   Analyst       ✅ Benzinga ratings, price targets, buy/hold/sell consensus
  */
 
 import { sportsSmartRouter } from './sportsSmartRouter.js';
@@ -26,7 +29,13 @@ import {
   getStockQuoteService,
   getStocksSnapshotTickersService,
   getTickerDetailsService,
+  getPreviousCloseService,
   getStockFinancialsRatiosService,
+  getStockIncomeStatementService,
+  getStockBalanceSheetsService,
+  getDividendsService,
+  getStockSplitsService,
+  getStockFloatService,
   getStockRSIService,
   getStockMACDService,
   getStockEMAService,
@@ -35,15 +44,18 @@ import {
   getStockNewsService,
   getOptionsChainService,
   getOptionsChainFilteredService,
+  listOptionsContractsService,
   getCryptoSnapshotService,
   getCryptoTradesService,
   getCryptoRSIService,
   getCryptoMACDService,
   getCryptoEMAService,
   getCryptoTechnicalSnapshotService,
+  getCryptoAggregatesService,
   getForexSnapshotService,
   getCurrencyConversionService,
   getCurrencyConvertAmountService,
+  getForexAggregatesService,
   getFedInflationService,
   getFedYieldsService,
   getFedLaborMarketService,
@@ -1411,6 +1423,203 @@ const routeAndEnhancePrompt = async (prompt) => {
         block += `*Balance sheet data not available for ${sym}.*\n`;
       }
       return buildPrompt(prompt, block, `Massive.com Balance Sheet Service — ${sym}`);
+    }
+
+    // ── STOCK FLOAT ───────────────────────────────────────────────────────
+    if (intent.type === 'float' && intent.symbol) {
+      const sym = intent.symbol;
+      const [floatData, shortData, quote, details] = await Promise.allSettled([
+        safe(getStockFloatService(sym)),
+        safe(getShortInterestDetailService(sym, 1)),
+        safe(getStockQuoteService(sym)),
+        safe(getTickerDetailsService(sym)),
+      ]);
+      const float   = floatData.status  === 'fulfilled' ? floatData.value  : null;
+      const short   = shortData.status  === 'fulfilled' ? shortData.value  : null;
+      const q       = quote.status      === 'fulfilled' ? quote.value      : null;
+      const d       = details.status    === 'fulfilled' ? details.value    : null;
+
+      let block = `## 📊 ${sym} — Float & Share Structure\n\n`;
+      if (d?.name) block += `**${d.name}**`;
+      if (d?.market_cap) block += ` | Market Cap: **$${(d.market_cap / 1e9).toFixed(2)}B**`;
+      block += '\n\n';
+
+      if (float) {
+        block += `### Share Structure\n| Metric | Value |\n|--------|-------|\n`;
+        if (float.float)            block += `| Float Shares | **${(float.float / 1e6).toFixed(2)}M** |\n`;
+        if (float.outstanding)      block += `| Shares Outstanding | ${(float.outstanding / 1e6).toFixed(2)}M |\n`;
+        if (float.insider_percent)  block += `| Insider Ownership | **${float.insider_percent?.toFixed(2)}%** |\n`;
+        if (float.institution_percent) block += `| Institutional Ownership | **${float.institution_percent?.toFixed(2)}%** |\n`;
+        if (float.short_interest)   block += `| Short Interest | ${(float.short_interest / 1e6).toFixed(2)}M shares |\n`;
+        if (float.short_percent)    block += `| Short % of Float | **${float.short_percent?.toFixed(2)}%** |\n`;
+        if (float.days_to_cover)    block += `| Days to Cover | ${float.days_to_cover?.toFixed(1)} |\n`;
+      }
+
+      const latestShort = Array.isArray(short) ? short[0] : null;
+      if (latestShort && !float?.short_interest) {
+        block += `\n### Short Interest\n| Metric | Value |\n|--------|-------|\n`;
+        if (latestShort.short_interest)   block += `| Short Interest | **${(latestShort.short_interest / 1e6).toFixed(2)}M** shares |\n`;
+        if (latestShort.short_percent)    block += `| Short % of Float | **${latestShort.short_percent?.toFixed(2)}%** |\n`;
+        if (latestShort.days_to_cover)    block += `| Days to Cover | ${latestShort.days_to_cover?.toFixed(1)} |\n`;
+        if (latestShort.settlement_date)  block += `| Settlement Date | ${latestShort.settlement_date} |\n`;
+        if (latestShort.days_to_cover > 10) {
+          block += `\n> ⚠️ **High short interest** — ${latestShort.days_to_cover.toFixed(1)} days to cover. Potential squeeze risk.\n`;
+        }
+      }
+      if (q?.trade?.p) block += `\n**Current Price:** $${q.trade.p.toLocaleString()}\n`;
+      return buildPrompt(prompt, block, `Massive.com Float & Share Structure — ${sym}`);
+    }
+
+    // ── STOCK SPLITS ──────────────────────────────────────────────────────
+    if (intent.type === 'splits' && intent.symbol) {
+      const sym = intent.symbol;
+      const [splitsData, details] = await Promise.allSettled([
+        safe(getStockSplitsService(sym)),
+        safe(getTickerDetailsService(sym)),
+      ]);
+      const splits = splitsData.status === 'fulfilled' ? splitsData.value : null;
+      const d      = details.status    === 'fulfilled' ? details.value    : null;
+
+      let block = `## ✂️ ${sym} — Stock Split History\n\n`;
+      if (d?.name) block += `**${d.name}**\n\n`;
+
+      const results = Array.isArray(splits) ? splits : splits?.results || [];
+      if (results.length > 0) {
+        block += `| Split Date | Ratio | Before | After |\n|------------|-------|--------|-------|\n`;
+        results.slice(0, 10).forEach(s => {
+          const ratio = s.split_from && s.split_to
+            ? `${s.split_to}:${s.split_from}`
+            : s.ratio || 'N/A';
+          block += `| **${s.execution_date || s.date || 'N/A'}** | **${ratio}** | ${s.split_from || 'N/A'} | ${s.split_to || 'N/A'} |\n`;
+        });
+        const latest = results[0];
+        if (latest?.execution_date) {
+          block += `\n> 📌 Most recent split: **${latest.split_to}:${latest.split_from}** on ${latest.execution_date}.\n`;
+          block += `> A ${latest.split_to}:${latest.split_from} split means for every 1 share held, shareholders received ${latest.split_to} shares (price divided by ${latest.split_to}).\n`;
+        }
+      } else {
+        block += `*No stock split history found for ${sym}. This may indicate ${sym} has never undergone a split.*\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Stock Splits History — ${sym}`);
+    }
+
+    // ── PRE-MARKET / AFTER-HOURS ──────────────────────────────────────────
+    if (intent.type === 'premarket' && intent.symbol) {
+      const sym = intent.symbol;
+      const [quote, snapshot, prev, details] = await Promise.allSettled([
+        safe(getStockQuoteService(sym)),
+        safe(getStocksSnapshotTickersService([sym])),
+        safe(getPreviousCloseService(sym)),
+        safe(getTickerDetailsService(sym)),
+      ]);
+      const q  = quote.status    === 'fulfilled' ? quote.value    : null;
+      const s  = snapshot.status === 'fulfilled' ? (Array.isArray(snapshot.value) ? snapshot.value[0] : null) : null;
+      const p  = prev.status     === 'fulfilled' ? prev.value    : null;
+      const d  = details.status  === 'fulfilled' ? details.value : null;
+
+      let block = `## 🌅 ${sym} — Pre-Market & After-Hours Activity\n\n`;
+      if (d?.name) block += `**${d.name}**\n\n`;
+
+      // Regular session close
+      const prevClose = p?.results?.[0]?.c || s?.prevDay?.c;
+      if (prevClose) block += `**Previous Close:** $${prevClose.toLocaleString()}\n\n`;
+
+      // Extended hours data from snapshot session
+      const session = s?.session || q?.snapshot?.session;
+      if (session) {
+        block += `### Extended Hours Data\n| Field | Value |\n|-------|-------|\n`;
+        if (session.price)              block += `| Extended Price | **$${session.price?.toLocaleString()}** |\n`;
+        if (session.change !== undefined && session.change !== null) {
+          const dir = session.change >= 0 ? '📈 +' : '📉 ';
+          block += `| Extended Change | **${dir}$${Math.abs(session.change).toFixed(2)} (${session.change_percent?.toFixed(2)}%)** |\n`;
+        }
+        if (session.volume)             block += `| Extended Volume | ${session.volume?.toLocaleString()} |\n`;
+        if (session.early_trading_change !== undefined && session.early_trading_change !== null) {
+          const dir2 = session.early_trading_change >= 0 ? '📈 +' : '📉 ';
+          block += `| Pre-Market | **${dir2}$${Math.abs(session.early_trading_change).toFixed(2)} (${session.early_trading_change_percent?.toFixed(2)}%)** |\n`;
+        }
+        if (session.late_trading_change !== undefined && session.late_trading_change !== null) {
+          const dir3 = session.late_trading_change >= 0 ? '📈 +' : '📉 ';
+          block += `| After-Hours | **${dir3}$${Math.abs(session.late_trading_change).toFixed(2)} (${session.late_trading_change_percent?.toFixed(2)}%)** |\n`;
+        }
+      } else {
+        // Fall back to regular quote
+        const last = q?.trade?.p;
+        if (last && prevClose) {
+          const chg = last - prevClose;
+          const chgPct = (chg / prevClose * 100).toFixed(2);
+          const dir = chg >= 0 ? '📈 +' : '📉 ';
+          block += `### Latest Price\n| Field | Value |\n|-------|-------|\n`;
+          block += `| Last Price | **$${last.toLocaleString()}** |\n`;
+          block += `| Change from Close | **${dir}$${Math.abs(chg).toFixed(2)} (${chgPct}%)** |\n`;
+        }
+        block += `\n> ℹ️ Extended-hours session data not available. Showing last known price vs prior close.\n`;
+      }
+
+      // Regular day data
+      if (s?.day) {
+        block += `\n### Regular Session\n| Field | Value |\n|-------|-------|\n`;
+        if (s.day.o) block += `| Open | $${s.day.o.toLocaleString()} |\n`;
+        if (s.day.h) block += `| High | $${s.day.h.toLocaleString()} |\n`;
+        if (s.day.l) block += `| Low | $${s.day.l.toLocaleString()} |\n`;
+        if (s.day.c) block += `| Close | **$${s.day.c.toLocaleString()}** |\n`;
+        if (s.day.v) block += `| Volume | ${s.day.v.toLocaleString()} |\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Pre/After-Market Data — ${sym}`);
+    }
+
+    // ── PORTFOLIO VALUATION ───────────────────────────────────────────────
+    // Triggered when user mentions a portfolio with share quantities
+    // e.g. "I have 10 AAPL, 5 MSFT, and 20 NVDA — what's my portfolio worth?"
+    if (intent.type === 'portfolio') {
+      const holdings = intent.holdings; // [{ symbol, shares }]
+      if (Array.isArray(holdings) && holdings.length > 0) {
+        const tickers = holdings.map(h => h.symbol);
+        const snapshots = await safe(getStocksSnapshotTickersService(tickers), 8000);
+        const snapMap = {};
+        if (Array.isArray(snapshots)) {
+          snapshots.forEach(s => { snapMap[s.ticker] = s; });
+        }
+
+        let totalValue = 0;
+        let totalCost  = 0; // only if avg cost provided
+
+        let block = `## 💼 Portfolio Valuation — Live Prices\n\n`;
+        block += `| Ticker | Shares | Price | Day Change | Position Value | Day P&L |\n`;
+        block += `|--------|--------|-------|------------|---------------|---------|\n`;
+
+        holdings.forEach(h => {
+          const snap = snapMap[h.symbol];
+          const price = snap?.day?.c || snap?.lastTrade?.p || null;
+          const change = snap?.todaysChange;
+          const changePct = snap?.todaysChangePerc;
+          const posValue = price ? price * h.shares : null;
+          const dayPnl   = change ? change * h.shares : null;
+
+          if (posValue) totalValue += posValue;
+          if (dayPnl)   totalCost  += dayPnl;
+
+          const dir = (changePct || 0) >= 0 ? '📈 +' : '📉 ';
+          const chgStr = changePct !== undefined ? `${dir}${Math.abs(changePct || 0).toFixed(2)}%` : 'N/A';
+          const valStr = posValue ? `**$${posValue.toLocaleString('en-US', { maximumFractionDigits: 2 })}**` : 'N/A';
+          const pnlStr = dayPnl ? `${dayPnl >= 0 ? '+' : ''}$${dayPnl.toFixed(2)}` : 'N/A';
+          const priceStr = price ? `$${price.toLocaleString()}` : 'N/A';
+
+          block += `| **${h.symbol}** | ${h.shares} | ${priceStr} | ${chgStr} | ${valStr} | ${pnlStr} |\n`;
+        });
+
+        if (totalValue > 0) {
+          block += `\n### 📊 Portfolio Summary\n`;
+          block += `| Metric | Value |\n|--------|-------|\n`;
+          block += `| **Total Portfolio Value** | **$${totalValue.toLocaleString('en-US', { maximumFractionDigits: 2 })}** |\n`;
+          if (totalCost !== 0) {
+            const dir = totalCost >= 0 ? '📈 +' : '📉 ';
+            block += `| **Today's P&L** | **${dir}$${Math.abs(totalCost).toFixed(2)}** |\n`;
+          }
+          block += `| Positions | ${holdings.length} |\n`;
+        }
+        return buildPrompt(prompt, block, 'Massive.com Portfolio Valuation Service');
+      }
     }
 
   } catch (err) {

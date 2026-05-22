@@ -425,4 +425,108 @@ router.post(
   })
 );
 
+
+// ─── Real-Time SSE Streaming Proxy ───────────────────────────────────────────
+
+/**
+ * GET /predictiondata/stream
+ * Proxies the PredictionData.io SSE stream to connected clients.
+ * Query: league, book_ids, include_alts
+ * Client usage: new EventSource('/api/v1/predictiondata/stream?league=NFL')
+ * Events: 'market' (each market update), 'connected', 'error', 'done'
+ */
+router.get('/stream', async (req, res) => {
+  const { league = '', book_ids = '', include_alts = 'false' } = req.query;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const streamUrl = buildStreamUrl(league, book_ids, include_alts === 'true');
+  logger.info(`[PredictionData Stream] Client connected — league=${league || 'all'}`);
+
+  res.write('event: connected\ndata: {"status":"connected","league":"' + (league || 'all') + '"}\n\n');
+
+  let buffer = '';
+
+  try {
+    const apiKey = (process.env.PREDICTIONDATA_API_KEY || '').replace(/^\uFEFF+/, '').trim();
+    const response = await fetch(streamUrl, {
+      headers: { 'X-API-KEY': apiKey, 'Accept': 'text/event-stream' },
+    });
+
+    if (!response.ok) {
+      res.write(`event: error\ndata: {"error":"Upstream ${response.status}"}\n\n`);
+      res.end();
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    req.on('close', () => {
+      logger.info('[PredictionData Stream] Client disconnected');
+      reader.cancel().catch(() => {});
+    });
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+          const json = line.slice(5).trim();
+          if (json) {
+            try {
+              const market = JSON.parse(json);
+              if (market && (market.id || market.fixture_id)) {
+                res.write(`event: market\ndata: ${json}\n\n`);
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.error('[PredictionData Stream] Error:', err.message);
+    if (!res.writableEnded) {
+      res.write(`event: error\ndata: {"error":"${err.message.replace(/"/g, '\\"')}"}\n\n`);
+    }
+  }
+
+  if (!res.writableEnded) {
+    res.write('event: done\ndata: {"status":"stream_ended"}\n\n');
+    res.end();
+  }
+});
+
+/**
+ * GET /predictiondata/stream/info
+ * Returns SSE stream URL metadata (for direct client connections)
+ */
+router.get('/stream/info', (req, res) => {
+  const { league = '', book_ids = '', include_alts = 'false' } = req.query;
+  const streamUrl = buildStreamUrl(league, book_ids, include_alts === 'true');
+  res.json({
+    stream_url: streamUrl,
+    protocol: 'Server-Sent Events (SSE)',
+    format: 'event:market\ndata:{JSON market object}\n\n',
+    event_types: ['market', 'connected', 'error', 'done'],
+    market_fields: [
+      'id', 'fixture_id', 'league', 'bet_type', 'period', 'side', 'side_type',
+      'odds', 'open_odds', 'no_vig_odds', 'number', 'open_number', 'is_alt',
+      'is_live', 'move_dir', 'prop_name', 'player_id', 'player_name',
+      'team_id', 'odd_provider_id', 'provider_url', 'provider_deeplink_string',
+      'updated_at',
+    ],
+  });
+});
+
 export const predictionDataRoutes = router;
+
