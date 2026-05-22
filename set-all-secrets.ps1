@@ -98,7 +98,7 @@ Write-Host ""; Write-Host "-- Massive.com Financial Data --" -ForegroundColor Cy
 Set-GcpSecret "MASSIVE_API_KEY" "gyJwOQtsm3yZXPsGqOjewhzezPzJm4l3"
 
 Write-Host ""; Write-Host "-- PredictionData.io Sports Betting Odds --" -ForegroundColor Cyan
-Set-GcpSecret "PREDICTIONDATA_API_KEY" "your_predictiondata_api_key_here"
+Set-GcpSecret "PREDICTIONDATA_API_KEY" "dummy_predictiondata_api_key_here"
 
 Write-Host ""; Write-Host "-- OAuth Providers --" -ForegroundColor Cyan
 Set-GcpSecret "GOOGLE_CLIENT_ID"        "1085008700546-qlbshjeh7mj6mbn0b1ptgaaongch8nhc.apps.googleusercontent.com"
