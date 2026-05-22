@@ -930,6 +930,39 @@ export const INDICES_KEYWORDS = [
 export function detectFinancialIntent(prompt) {
   const q = prompt.toLowerCase();
 
+  // 0. COMPARE / MULTI-TICKER — catch this first before single-ticker paths
+  const compareKeywords = ['vs', 'versus', 'compare', 'comparison', 'vs.', 'against', 'better stock', 'which is better', 'difference between'];
+  const hasCompare = compareKeywords.some(k => q.includes(k));
+  if (hasCompare) {
+    // Detect multiple tickers — if 2+ found, treat as compare intent
+    const multi = detectMultipleTickers(prompt);
+    if (multi.length >= 2) {
+      return { type: 'compare', symbols: multi.map(m => m.symbol), tickers: multi };
+    }
+  }
+
+  // 0b. IPO CALENDAR
+  const ipoKeywords = ['ipo', 'upcoming ipo', 'ipo calendar', 'going public', 'initial public offering', 'new ipo', 'ipo this week', 'ipo next week'];
+  if (ipoKeywords.some(k => q.includes(k))) {
+    // If there's a specific ticker mentioned, it's a stock query not IPO calendar
+    const dollarMatch = prompt.match(/\$([A-Z]{1,5})\b/);
+    if (!dollarMatch) return { type: 'ipo_calendar', symbol: null };
+  }
+
+  // 0c. ANALYST RATINGS
+  const analystKeywords = ['analyst rating', 'analyst ratings', 'price target', 'buy rating', 'sell rating', 'hold rating', 'upgrade', 'downgrade', 'wall street consensus', 'analyst consensus', 'analyst recommendation', 'benzinga rating'];
+  const hasAnalyst = analystKeywords.some(k => q.includes(k));
+
+  // 0d. STOCK FINANCIALS (P/E, ratios, income statement, balance sheet)
+  const financialsKeywords = ['pe ratio', 'p/e ratio', 'price to earnings', 'price-to-earnings', 'eps', 'earnings per share', 'revenue', 'profit margin', 'gross margin', 'roe', 'return on equity', 'ebitda', 'ev/ebitda', 'financial ratios', 'valuation ratio', 'debt to equity', 'current ratio'];
+  const hasFinancials = financialsKeywords.some(k => q.includes(k));
+
+  const incomeKeywords = ['income statement', 'revenue growth', 'net income', 'operating income', 'gross profit', 'cost of revenue', 'operating expenses', 'quarterly earnings'];
+  const hasIncome = incomeKeywords.some(k => q.includes(k));
+
+  const balanceKeywords = ['balance sheet', 'total assets', 'total liabilities', 'shareholders equity', 'cash on hand', 'long term debt', 'working capital', 'book value'];
+  const hasBalance = balanceKeywords.some(k => q.includes(k));
+
   // 1. Market status
   if (MARKET_STATUS_KEYWORDS.some(k => q.includes(k))) {
     return { type: 'market_status', symbol: null };
@@ -1025,6 +1058,10 @@ export function detectFinancialIntent(prompt) {
   const dollarMatch = prompt.match(/\$([A-Z]{1,5})\b/);
   if (dollarMatch) {
     const sym = dollarMatch[1].toUpperCase();
+    if (hasAnalyst)    return { type: 'analyst', symbol: sym };
+    if (hasFinancials) return { type: 'stock_financials', symbol: sym };
+    if (hasIncome)     return { type: 'income_statement', symbol: sym };
+    if (hasBalance)    return { type: 'balance_sheet', symbol: sym };
     if (hasOptionsKeyword) return { type: 'options', symbol: sym };
     if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
     if (has52WeekKeyword) return { type: 'week52', symbol: sym };
@@ -1042,6 +1079,10 @@ export function detectFinancialIntent(prompt) {
       ...Object.values(ETF_NAME_MAP),
     ]);
     if (allTickers.has(sym)) {
+      if (hasAnalyst)    return { type: 'analyst', symbol: sym };
+      if (hasFinancials) return { type: 'stock_financials', symbol: sym };
+      if (hasIncome)     return { type: 'income_statement', symbol: sym };
+      if (hasBalance)    return { type: 'balance_sheet', symbol: sym };
       if (hasOptionsKeyword) return { type: 'options', symbol: sym };
       if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
       if (has52WeekKeyword) return { type: 'week52', symbol: sym };
@@ -1078,6 +1119,10 @@ export function detectFinancialIntent(prompt) {
   // 11. Stock name lookup (word-boundary)
   for (const [name, sym] of Object.entries(STOCK_NAME_MAP)) {
     if (hasWordMatch(name)) {
+      if (hasAnalyst)    return { type: 'analyst', symbol: sym };
+      if (hasFinancials) return { type: 'stock_financials', symbol: sym };
+      if (hasIncome)     return { type: 'income_statement', symbol: sym };
+      if (hasBalance)    return { type: 'balance_sheet', symbol: sym };
       if (hasOptionsKeyword) return { type: 'options', symbol: sym };
       if (hasTechnicalKeyword) return { type: 'technical', symbol: sym };
       if (has52WeekKeyword) return { type: 'week52', symbol: sym };

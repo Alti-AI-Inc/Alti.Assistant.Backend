@@ -1147,15 +1147,270 @@ const routeAndEnhancePrompt = async (prompt) => {
       return buildPrompt(prompt, block, 'Massive.com Financial Data & News Service');
     }
 
-    // ── IPO ───────────────────────────────────────────────────────────────
-    if (/\bipo\b|\binitial public offering\b/i.test(q)) {
-      const ipos = await safe(getIPOsService(10));
-      if (!ipos?.length) return prompt;
-      let block = `## Upcoming IPOs\n| Company | Ticker | Expected Date | Exchange |\n|---------|--------|---------------|----------|\n`;
-      ipos.slice(0, 10).forEach(ipo => {
-        block += `| ${ipo.company_name || 'N/A'} | **${ipo.ticker || 'N/A'}** | ${ipo.ipo_date || 'TBD'} | ${ipo.primary_exchange || 'N/A'} |\n`;
-      });
+    // ── IPO CALENDAR ──────────────────────────────────────────────────────
+    if (intent.type === 'ipo_calendar' || /\bipo\b|\binitial public offering\b/i.test(q)) {
+      const ipos = await safe(getIPOsService(), 8000);
+      let block = `## 🚀 Upcoming IPO Calendar\n\n`;
+      if (Array.isArray(ipos) && ipos.length > 0) {
+        block += `| Company | Ticker | IPO Date | Exchange | Expected Price |
+|---------|--------|----------|----------|----------------|
+`;
+        ipos.slice(0, 15).forEach(ipo => {
+          const price = ipo.ipo_price ? `$${ipo.ipo_price}` : ipo.min_shares_offered ? 'TBD' : 'TBD';
+          block += `| **${ipo.company_name || 'N/A'}** | ${ipo.ticker || '—'} | ${ipo.ipo_date || 'TBD'} | ${ipo.primary_exchange || 'N/A'} | ${price} |\n`;
+        });
+        block += `\n> 📌 IPO data sourced live from Massive.com. Dates and pricing subject to change.\n`;
+      } else {
+        block += `*No upcoming IPOs found at this time.*\n`;
+      }
       return buildPrompt(prompt, block, 'Massive.com IPO Calendar Service');
+    }
+
+    // ── MULTI-TICKER COMPARISON ───────────────────────────────────────────
+    if (intent.type === 'compare' && intent.symbols?.length >= 2) {
+      const symbols = intent.symbols.slice(0, 3); // max 3-way comparison
+      const results = await Promise.allSettled(symbols.map(sym => fetchStockFull(sym)));
+      const stocks = results.map((r, i) => ({
+        sym: symbols[i],
+        data: r.status === 'fulfilled' ? r.value : null,
+      }));
+
+      let block = `## ⚖️ Stock Comparison: ${symbols.join(' vs ')}\n\n`;
+
+      // Side-by-side price table
+      block += `### 📊 Price & Performance\n| Metric | ${symbols.map(s => `**${s}**`).join(' | ')} |\n|--------|${symbols.map(() => '--------').join('|')}|\n`;
+
+      const priceRow    = (d) => d?.quote?.trade?.p ? `$${d.quote.trade.p.toLocaleString()}` : 'N/A';
+      const changeRow   = (d) => {
+        const last = d?.quote?.trade?.p;
+        const prev = d?.quote?.previousClose?.c;
+        if (!last || !prev) return 'N/A';
+        const chg = ((last - prev) / prev * 100).toFixed(2);
+        return `${chg >= 0 ? '📈 +' : '📉 '}${chg}%`;
+      };
+      const mcapRow     = (d) => d?.details?.market_cap ? `$${(d.details.market_cap / 1e9).toFixed(2)}B` : 'N/A';
+      const peRow       = (d) => d?.ratios?.price_to_earnings ? d.ratios.price_to_earnings.toFixed(2) : 'N/A';
+      const epsRow      = (d) => d?.ratios?.earnings_per_share ? `$${d.ratios.earnings_per_share.toFixed(2)}` : 'N/A';
+      const marginRow   = (d) => d?.ratios?.net_profit_margin ? `${(d.ratios.net_profit_margin * 100).toFixed(1)}%` : 'N/A';
+      const rsiRow      = (d) => d?.rsi?.value ? d.rsi.value.toFixed(1) : 'N/A';
+      const exchRow     = (d) => d?.details?.primary_exchange || 'N/A';
+      const sectorRow   = (d) => d?.details?.sic_description || 'N/A';
+
+      const rows = [
+        ['Last Price',     priceRow],
+        ['Day Change',     changeRow],
+        ['Market Cap',     mcapRow],
+        ['P/E Ratio',      peRow],
+        ['EPS (TTM)',      epsRow],
+        ['Net Margin',     marginRow],
+        ['RSI-14',         rsiRow],
+        ['Exchange',       exchRow],
+        ['Sector',         sectorRow],
+      ];
+
+      rows.forEach(([label, fn]) => {
+        block += `| ${label} | ${stocks.map(s => fn(s.data)).join(' | ')} |\n`;
+      });
+
+      // RSI signal summary
+      const rsiVerdicts = stocks.map(s => {
+        const rsi = s.data?.rsi?.value;
+        if (!rsi) return `${s.sym}: N/A`;
+        if (rsi > 70) return `${s.sym}: 🔴 Overbought (${rsi.toFixed(1)})`;
+        if (rsi < 30) return `${s.sym}: 🟢 Oversold (${rsi.toFixed(1)})`;
+        return `${s.sym}: ⚪ Neutral (${rsi.toFixed(1)})`;
+      });
+      block += `\n### 📡 RSI Signals\n${rsiVerdicts.map(v => `- ${v}`).join('\n')}\n`;
+
+      // Recent news for each ticker
+      block += `\n### 📰 Recent News\n`;
+      stocks.forEach(s => {
+        const newsItems = s.data?.news?.slice(0, 2) || [];
+        if (newsItems.length > 0) {
+          block += `\n**${s.sym}:**\n`;
+          newsItems.forEach((n, i) => {
+            if (n?.title) block += `${i + 1}. ${n.title} _(${n.published_utc?.slice(0, 10)})_\n`;
+          });
+        }
+      });
+
+      return buildPrompt(prompt, block, `Massive.com Real-Time Comparison: ${symbols.join(' vs ')}`);
+    }
+
+    // ── ANALYST RATINGS ───────────────────────────────────────────────────
+    if (intent.type === 'analyst' && intent.symbol) {
+      const sym = intent.symbol;
+      const [ratings, quote, details] = await Promise.allSettled([
+        safe(getBenzingaRatingsService ? getBenzingaRatingsService(sym, 10) : Promise.resolve(null)),
+        safe(getStockQuoteService(sym)),
+        safe(getTickerDetailsService(sym)),
+      ]);
+      const ratingData  = ratings.status  === 'fulfilled' ? ratings.value  : null;
+      const quoteData   = quote.status    === 'fulfilled' ? quote.value    : null;
+      const detailsData = details.status  === 'fulfilled' ? details.value  : null;
+
+      let block = `## 🏦 ${sym} — Analyst Ratings & Price Targets\n\n`;
+
+      if (detailsData?.name) block += `**${detailsData.name}**\n\n`;
+      if (quoteData?.trade?.p) {
+        block += `**Current Price:** $${quoteData.trade.p.toLocaleString()}\n\n`;
+      }
+
+      if (Array.isArray(ratingData) && ratingData.length > 0) {
+        block += `### Recent Analyst Actions\n| Date | Analyst Firm | Rating | Price Target | Action |\n|------|-------------|--------|-------------|--------|\n`;
+        ratingData.slice(0, 10).forEach(r => {
+          const action = r.rating_current !== r.rating_prior
+            ? (r.rating_current === 'Buy' ? '⬆️ Upgrade' : r.rating_current === 'Sell' ? '⬇️ Downgrade' : '↔️ Reiterate')
+            : '↔️ Reiterate';
+          const target = r.pt_current ? `**$${r.pt_current}**` : 'N/A';
+          block += `| ${r.date?.slice(0, 10) || 'N/A'} | ${r.analyst || 'N/A'} | **${r.rating_current || 'N/A'}** | ${target} | ${action} |\n`;
+        });
+
+        // Consensus summary
+        const buyCount  = ratingData.filter(r => r.rating_current?.toLowerCase().includes('buy')).length;
+        const sellCount = ratingData.filter(r => r.rating_current?.toLowerCase().includes('sell')).length;
+        const holdCount = ratingData.length - buyCount - sellCount;
+        block += `\n### 📊 Consensus (last ${ratingData.length} ratings)\n`;
+        block += `| Buy | Hold | Sell |\n|-----|------|------|\n`;
+        block += `| **${buyCount}** | **${holdCount}** | **${sellCount}** |\n`;
+        const avgTarget = ratingData
+          .filter(r => r.pt_current)
+          .reduce((sum, r, _, arr) => sum + r.pt_current / arr.length, 0);
+        if (avgTarget) block += `\n**Average Price Target:** $${avgTarget.toFixed(2)}\n`;
+      } else {
+        block += `*No analyst ratings available via Benzinga. Check Bloomberg or Refinitiv for additional coverage.*\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Analyst Ratings Service — ${sym}`);
+    }
+
+    // ── STOCK FINANCIALS (P/E ratios, margins, valuation) ─────────────────
+    if (intent.type === 'stock_financials' && intent.symbol) {
+      const sym = intent.symbol;
+      const [ratios, details, quote] = await Promise.allSettled([
+        safe(getStockFinancialsRatiosService(sym)),
+        safe(getTickerDetailsService(sym)),
+        safe(getStockQuoteService(sym)),
+      ]);
+      const r = ratios.status  === 'fulfilled' ? ratios.value  : null;
+      const d = details.status === 'fulfilled' ? details.value : null;
+      const q2 = quote.status  === 'fulfilled' ? quote.value   : null;
+
+      let block = `## 📊 ${sym} — Financial Ratios & Valuation\n\n`;
+      if (d?.name) block += `**${d.name}**`;
+      if (d?.sic_description) block += ` | ${d.sic_description}`;
+      if (d?.market_cap) block += ` | Market Cap: **$${(d.market_cap / 1e9).toFixed(2)}B**`;
+      block += '\n\n';
+
+      if (r) {
+        block += `### Valuation Ratios\n| Metric | Value |\n|--------|-------|\n`;
+        if (r.price_to_earnings)      block += `| P/E Ratio (TTM) | **${r.price_to_earnings?.toFixed(2)}x** |\n`;
+        if (r.price_to_book)          block += `| P/B Ratio | **${r.price_to_book?.toFixed(2)}x** |\n`;
+        if (r.price_to_sales)         block += `| P/S Ratio | **${r.price_to_sales?.toFixed(2)}x** |\n`;
+        if (r.ev_to_ebitda)           block += `| EV/EBITDA | **${r.ev_to_ebitda?.toFixed(2)}x** |\n`;
+        if (r.enterprise_value)       block += `| Enterprise Value | $${(r.enterprise_value / 1e9).toFixed(2)}B |\n`;
+        block += `\n### Profitability\n| Metric | Value |\n|--------|-------|\n`;
+        if (r.earnings_per_share)     block += `| EPS (TTM) | **$${r.earnings_per_share?.toFixed(2)}** |\n`;
+        if (r.net_profit_margin)      block += `| Net Profit Margin | **${(r.net_profit_margin * 100)?.toFixed(2)}%** |\n`;
+        if (r.gross_profit_margin)    block += `| Gross Margin | **${(r.gross_profit_margin * 100)?.toFixed(2)}%** |\n`;
+        if (r.return_on_equity)       block += `| ROE | **${(r.return_on_equity * 100)?.toFixed(2)}%** |\n`;
+        if (r.return_on_assets)       block += `| ROA | **${(r.return_on_assets * 100)?.toFixed(2)}%** |\n`;
+        block += `\n### Financial Health\n| Metric | Value |\n|--------|-------|\n`;
+        if (r.debt_to_equity !== undefined) block += `| Debt/Equity | **${r.debt_to_equity?.toFixed(2)}** |\n`;
+        if (r.current_ratio)          block += `| Current Ratio | **${r.current_ratio?.toFixed(2)}** |\n`;
+        if (r.dividend_yield)         block += `| Dividend Yield | **${(r.dividend_yield * 100)?.toFixed(2)}%** |\n`;
+      } else {
+        block += `*Financial ratios not available for ${sym}.*\n`;
+      }
+      if (q2?.trade?.p) block += `\n**Current Price:** $${q2.trade.p.toLocaleString()}\n`;
+      return buildPrompt(prompt, block, `Massive.com Financial Ratios Service — ${sym}`);
+    }
+
+    // ── INCOME STATEMENT ──────────────────────────────────────────────────
+    if (intent.type === 'income_statement' && intent.symbol) {
+      const sym = intent.symbol;
+      const [income, details] = await Promise.allSettled([
+        safe(getStockIncomeStatementService(sym, 4)),
+        safe(getTickerDetailsService(sym)),
+      ]);
+      const incomeData  = income.status  === 'fulfilled' ? income.value  : null;
+      const detailsData = details.status === 'fulfilled' ? details.value : null;
+
+      let block = `## 💰 ${sym} — Income Statement\n\n`;
+      if (detailsData?.name) block += `**${detailsData.name}**\n\n`;
+
+      const results = incomeData?.results || incomeData;
+      if (Array.isArray(results) && results.length > 0) {
+        const latest = results[results.length - 1];
+        block += `### Most Recent Quarter\n| Line Item | Value |\n|-----------|-------|\n`;
+        if (latest.revenues)              block += `| Revenue | **$${(latest.revenues / 1e9).toFixed(2)}B** |\n`;
+        if (latest.gross_profit)          block += `| Gross Profit | **$${(latest.gross_profit / 1e9).toFixed(2)}B** |\n`;
+        if (latest.operating_income_loss) block += `| Operating Income | **$${(latest.operating_income_loss / 1e9).toFixed(2)}B** |\n`;
+        if (latest.net_income_loss)       block += `| Net Income | **$${(latest.net_income_loss / 1e9).toFixed(2)}B** |\n`;
+        if (latest.basic_earnings_per_share) block += `| Basic EPS | **$${latest.basic_earnings_per_share?.toFixed(2)}** |\n`;
+        if (latest.fiscal_period)         block += `| Period | ${latest.fiscal_period} ${latest.fiscal_year} |\n`;
+
+        // Trend table across quarters
+        if (results.length > 1) {
+          block += `\n### Revenue Trend (Last ${Math.min(results.length, 4)} Quarters)\n| Period | Revenue | Net Income | EPS |\n|--------|---------|------------|-----|\n`;
+          results.slice(-4).reverse().forEach(q => {
+            const rev = q.revenues ? `$${(q.revenues / 1e9).toFixed(2)}B` : 'N/A';
+            const ni  = q.net_income_loss ? `$${(q.net_income_loss / 1e9).toFixed(2)}B` : 'N/A';
+            const eps = q.basic_earnings_per_share ? `$${q.basic_earnings_per_share.toFixed(2)}` : 'N/A';
+            block += `| ${q.fiscal_period} ${q.fiscal_year} | ${rev} | ${ni} | ${eps} |\n`;
+          });
+        }
+      } else {
+        block += `*Income statement data not available for ${sym}.*\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Income Statement Service — ${sym}`);
+    }
+
+    // ── BALANCE SHEET ─────────────────────────────────────────────────────
+    if (intent.type === 'balance_sheet' && intent.symbol) {
+      const sym = intent.symbol;
+      const [balance, details] = await Promise.allSettled([
+        safe(getStockBalanceSheetsService(sym, 2)),
+        safe(getTickerDetailsService(sym)),
+      ]);
+      const balanceData = balance.status  === 'fulfilled' ? balance.value  : null;
+      const detailsData = details.status  === 'fulfilled' ? details.value  : null;
+
+      let block = `## 🏛️ ${sym} — Balance Sheet\n\n`;
+      if (detailsData?.name) block += `**${detailsData.name}**\n\n`;
+
+      const results = balanceData?.results || balanceData;
+      if (Array.isArray(results) && results.length > 0) {
+        const latest = results[results.length - 1];
+        block += `### Latest Balance Sheet (${latest.fiscal_period || ''} ${latest.fiscal_year || ''})\n\n`;
+        block += `#### Assets\n| Item | Value |\n|------|-------|\n`;
+        if (latest.assets)                    block += `| Total Assets | **$${(latest.assets / 1e9).toFixed(2)}B** |\n`;
+        if (latest.current_assets)            block += `| Current Assets | $${(latest.current_assets / 1e9).toFixed(2)}B |\n`;
+        if (latest.cash)                      block += `| Cash & Equivalents | **$${(latest.cash / 1e9).toFixed(2)}B** |\n`;
+        if (latest.noncurrent_assets)         block += `| Non-Current Assets | $${(latest.noncurrent_assets / 1e9).toFixed(2)}B |\n`;
+        block += `\n#### Liabilities & Equity\n| Item | Value |\n|------|-------|\n`;
+        if (latest.liabilities)               block += `| Total Liabilities | **$${(latest.liabilities / 1e9).toFixed(2)}B** |\n`;
+        if (latest.current_liabilities)       block += `| Current Liabilities | $${(latest.current_liabilities / 1e9).toFixed(2)}B |\n`;
+        if (latest.long_term_debt)            block += `| Long-Term Debt | **$${(latest.long_term_debt / 1e9).toFixed(2)}B** |\n`;
+        if (latest.equity)                    block += `| Shareholders' Equity | **$${(latest.equity / 1e9).toFixed(2)}B** |\n`;
+
+        // Key ratios derived from balance sheet
+        if (latest.assets && latest.liabilities) {
+          const debtRatio = (latest.liabilities / latest.assets * 100).toFixed(1);
+          block += `\n#### Derived Ratios\n| Ratio | Value |\n|-------|-------|\n`;
+          block += `| Debt-to-Assets | **${debtRatio}%** |\n`;
+          if (latest.equity && latest.long_term_debt) {
+            const dte = (latest.long_term_debt / latest.equity).toFixed(2);
+            block += `| Debt-to-Equity | **${dte}x** |\n`;
+          }
+          if (latest.cash && latest.current_liabilities) {
+            const cashRatio = (latest.cash / latest.current_liabilities).toFixed(2);
+            block += `| Cash Ratio | **${cashRatio}** |\n`;
+          }
+        }
+      } else {
+        block += `*Balance sheet data not available for ${sym}.*\n`;
+      }
+      return buildPrompt(prompt, block, `Massive.com Balance Sheet Service — ${sym}`);
     }
 
   } catch (err) {

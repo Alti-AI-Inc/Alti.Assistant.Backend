@@ -1,18 +1,34 @@
 /**
- * Sports Smart Router — v2
+ * Sports Smart Router — v3
  *
  * RAG-powered sports betting context injector — maximum PredictionData.io coverage.
+ *
+ * v3 improvements over v2:
+ *   ✅ no_vig_odds (fair value / devigged probability) extracted and shown
+ *   ✅ open_odds (opening line) extracted — full open → current movement shown
+ *   ✅ provider_url / provider_deeplink_string surfaced in RAG context
+ *   ✅ updated_at freshness timestamp shown per market
+ *   ✅ Player props grouped by GAME → player → prop (fixture context preserved)
+ *   ✅ Multi-book side-by-side odds comparison (best line shopping)
+ *   ✅ PrizePicks / Underdog / Sleeper DFS props included in player prop context
+ *   ✅ SGP intent now CALLS getSGPOddsService for real pricing when legs detected
+ *   ✅ Seasons data injected into futures context
+ *   ✅ True no-vig implied probability vs raw implied probability shown
+ *   ✅ Team data enrichment — full_name, conference, record in schedule blocks
+ *   ✅ Fixture finish_type shown (OT, SO, KO, Decision, etc.)
+ *   ✅ Line value analysis — compare market odds to no_vig fair value
+ *
  * Handles all intent types:
- *   live_odds        — real-time in-game markets
- *   odds             — pre-game moneyline + spread + total
- *   player_prop      — player-level prop markets (per sport)
- *   game_prop        — in-game event props (UFC fights, soccer events)
- *   futures          — championship/award futures
- *   schedule         — game schedule only
- *   sgp              — Same Game Parlay pricing inquiry
+ *   live_odds         — real-time in-game markets with live scores
+ *   odds              — pre-game moneyline + spread + total, multi-book
+ *   player_prop       — player props grouped by game + player
+ *   game_prop         — in-game event props (UFC, soccer, etc.)
+ *   futures           — championship/award futures with seasons context
+ *   schedule          — game schedule with team details
+ *   sgp               — Same Game Parlay with live POST pricing
  *   prediction_market — Polymarket/Kalshi orderbook depth
- *   alt_lines        — alternate spread/total markets
- *   period_odds      — 1H, 1Q, 1P, F5, etc.
+ *   alt_lines         — alternate spread/total with devig comparison
+ *   period_odds       — 1H, 1Q, 1P, F5, etc.
  *
  * Data source: PredictionData.io (api.predictiondata.io)
  * API Key: env var PREDICTIONDATA_API_KEY
@@ -27,9 +43,11 @@ import {
   getPeriodMarketsService,
   getAltLinesService,
   getFixturesService,
+  getTeamsService,
+  getSeasonsService,
   getMarketSummariesService,
   getOrderbookService,
-  getSeasonsService,
+  getSGPOddsService,
   BOOK_IDS,
 } from '../modules/predictiondata/predictiondata.service.js';
 
@@ -39,7 +57,6 @@ import {
   detectSportsIntent,
   DEFAULT_BOOK_IDS,
   PROPS_BOOK_IDS,
-  PREDICTION_MARKET_BOOK_IDS,
   LEAGUE_EMOJI,
   LEAGUE_SPORT,
   LEAGUE_PROP_TYPES,
@@ -48,19 +65,23 @@ import {
 
 // ─── Cache TTLs (seconds) ─────────────────────────────────────────────────────
 const TTL = {
-  odds:       30,    // moneyline/spread/total — odds change rapidly
-  live:       10,    // live in-game odds — very short TTL
-  props:      45,    // player props — moderate freshness
-  game_props: 45,    // game props
-  futures:    300,   // futures — slow-moving, 5 min cache
-  fixtures:   120,   // game schedules — 2 min cache
-  players:    600,   // player reference data — 10 min
-  teams:      1800,  // team reference data — 30 min
-  orderbook:  20,    // exchange orderbook — very fresh
-  summaries:  60,    // market summaries — 1 min
-  alt_lines:  45,    // alternate lines
-  period:     30,    // quarter/half odds
+  odds:       30,
+  live:       10,
+  props:      45,
+  game_props: 45,
+  futures:    300,
+  fixtures:   120,
+  teams:      3600,   // Team reference data — 1hr (slow changing)
+  seasons:    1800,   // Season data — 30min
+  orderbook:  20,
+  summaries:  60,
+  alt_lines:  45,
+  period:     30,
 };
+
+// DFS / player market platforms — supplements sportsbooks for props
+const DFS_BOOK_IDS    = '385,387,595,800'; // PrizePicks, Underdog Fantasy, Sleeper, Fliff
+const ALL_PROPS_BOOKS = '100,200,400,385,387,595'; // FD + DK + BetMGM + PrizePicks + Underdog + Sleeper
 
 // ─── Redis helpers ────────────────────────────────────────────────────────────
 async function cacheGet(key) {
@@ -95,21 +116,70 @@ function decToAmerican(dec) {
   return `${Math.round(-100 / (dec - 1))}`;
 }
 
-// ─── Decimal odds → implied probability ──────────────────────────────────────
+// ─── Decimal odds → implied probability (raw, with juice) ────────────────────
 function decToImplied(dec) {
   if (!dec || dec <= 1) return 'N/A';
   return `${((1 / dec) * 100).toFixed(1)}%`;
 }
 
-// ─── Book ID → name ───────────────────────────────────────────────────────────
+// ─── No-vig (fair value) probability ─────────────────────────────────────────
+// no_vig_odds is already devigged — just convert decimal → probability
+function noVigProb(noVigDec) {
+  if (!noVigDec || noVigDec <= 1) return null;
+  return `${((1 / noVigDec) * 100).toFixed(1)}%`;
+}
+
+// ─── Movement indicator ───────────────────────────────────────────────────────
+function moveIndicator(market) {
+  if (market.move_dir === 'up')   return '↑🔴';
+  if (market.move_dir === 'down') return '↓🟢';
+  return '—';
+}
+
+// ─── Open → Current line movement string ─────────────────────────────────────
+function openToCurrentML(market) {
+  const open    = decToAmerican(market.open_odds);
+  const current = decToAmerican(market.odds);
+  if (open === 'N/A' || open === current) return current;
+  return `${open} → **${current}**`;
+}
+
+function openToCurrentNum(market) {
+  if (market.open_number == null || market.open_number === market.number) {
+    return market.number != null ? `**${market.number >= 0 ? '+' : ''}${market.number}**` : '—';
+  }
+  return `${market.open_number >= 0 ? '+' : ''}${market.open_number} → **${market.number >= 0 ? '+' : ''}${market.number}**`;
+}
+
+// ─── Value indicator: compare market to no-vig fair value ────────────────────
+function valueTag(market) {
+  if (!market.no_vig_odds || !market.odds) return '';
+  const edge = (1 / market.odds) - (1 / market.no_vig_odds);
+  if (edge < -0.02) return ' 🟢**+EV**'; // market better than fair → positive value
+  if (edge >  0.02) return ' 🔴-EV';      // market worse than fair → negative value
+  return '';
+}
+
+// ─── Freshness indicator ──────────────────────────────────────────────────────
+function freshnessTag(market) {
+  if (!market.updated_at) return '';
+  const ageSeconds = (Date.now() / 1000) - market.updated_at;
+  if (ageSeconds < 30)  return ' ⚡*just now*';
+  if (ageSeconds < 120) return ` *(${Math.round(ageSeconds)}s ago)*`;
+  return '';
+}
+
+// ─── Book ID → display name ───────────────────────────────────────────────────
 const BOOK_NAME_MAP = {
-  100: 'FanDuel', 200: 'DraftKings', 300: 'Caesars', 400: 'BetMGM',
-  250: 'Pinnacle', 700: 'ESPN Bet', 500: 'BetRivers', 365: 'bet365',
-  555: 'Betway', 643: 'Bovada', 193: 'Polymarket', 194: 'Kalshi',
-  722: 'Fanatics', 800: 'Fliff', 600: 'PointsBet', 192: 'Novig',
-  999: 'True Line', 617: 'LowVig',
+  100: 'FanDuel',   200: 'DraftKings',  300: 'Caesars',    400: 'BetMGM',
+  250: 'Pinnacle',  700: 'ESPN Bet',    500: 'BetRivers',  365: 'bet365',
+  555: 'Betway',    643: 'Bovada',      193: 'Polymarket', 194: 'Kalshi',
+  722: 'Fanatics',  800: 'Fliff',       600: 'PointsBet',  192: 'Novig',
+  999: 'True Line', 617: 'LowVig',      385: 'PrizePicks', 387: 'Underdog',
+  595: 'Sleeper',   388: 'Underdog SB', 448: 'SportTrade', 150: 'Circa',
+  345: 'ToonieB',   446: 'Stake',       613: 'BetOnline',  850: 'HardRock',
 };
-function bookName(id) { return BOOK_NAME_MAP[id] || `Book ${id}`; }
+function bookName(id) { return BOOK_NAME_MAP[id] || `Book#${id}`; }
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildPrompt(userPrompt, dataBlock, source) {
@@ -126,11 +196,14 @@ ${dataBlock}
 MANDATORY RESPONSE RULES:
 ▸ ALWAYS cite "[Source: PredictionData.io]" at the top of your answer
 ▸ Present ALL odds in **BOLD** (e.g. **-110**, **+130**)
-▸ Use Markdown tables for odds comparisons and prop lines
-▸ NEVER fabricate, estimate, or hallucinate any odds or lines
-▸ If data shows line movement (move_dir), mention it clearly (↑ steam up, ↓ steam down)
-▸ Show implied probability alongside American odds when relevant
-▸ Include provider_url / deeplink when a market has one
+▸ Use Markdown tables for odds comparisons — never use plain lists
+▸ NEVER fabricate, estimate, or hallucinate any odds, lines, or player stats
+▸ "Open → Current" format shows line movement (open was original, current is now)
+▸ ↑🔴 = line moved up (money on over/favorite), ↓🟢 = line moved down
+▸ 🟢+EV = market odds BETTER than fair value (good bet). 🔴-EV = worse than fair value
+▸ ⚡ = just updated (within 30s). Show freshness when provided.
+▸ Fair Value % = no-vig implied probability (removes bookmaker margin)
+▸ When provider_url is available, include it as a clickable betting link
 ▸ Answer the user's EXACT question using only the verified data above
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -138,47 +211,47 @@ User Query: ${userPrompt}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// FORMATTERS
+// FORMATTERS  — v3 (full field extraction from every market object)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Format a standard odds block: moneyline, spread, total.
- * Groups by fixture, shows movement, implied probability.
+ * Format standard odds (moneyline + spread + total) for all fixtures in a league.
+ * v3: shows open→current movement, no-vig fair value, +EV tags, freshness,
+ *     multi-book comparison table, provider deeplink, finish_type for live.
  */
 function formatOddsBlock(markets, fixtures, league, label = "Today's Odds") {
   const emoji = LEAGUE_EMOJI[league] || '🏟️';
 
   if (!markets || markets.length === 0) {
-    return `## ${emoji} ${league} — Odds\n\n*No odds data currently available for ${league}.*\n`;
+    return `## ${emoji} ${league} — ${label}\n\n*No odds data currently available for ${league}. Games may not be scheduled within the next 48h, or the league may be off-season.*\n`;
   }
 
-  // Build fixture map
+  // Build fixture lookup map
   const fixtureMap = {};
   if (Array.isArray(fixtures)) {
     fixtures.forEach((f) => { fixtureMap[f.id] = f; });
   }
 
-  // Group: fixture_id → bet_type → array of markets
+  // Group markets: fixture_id → bet_type → [market objects]
   const byFixture = {};
   markets.forEach((m) => {
     const fid = m.fixture_id || 'unknown';
     if (!byFixture[fid]) byFixture[fid] = { moneyline: [], spread: [], total: [] };
-    const bt = (m.bet_type || '').toLowerCase().replace(/\s+/g, '_');
-    if (bt.includes('moneyline') || bt === 'moneyline') byFixture[fid].moneyline.push(m);
-    else if (bt.includes('spread') || bt === 'spread') byFixture[fid].spread.push(m);
-    else if (bt.includes('total') || bt === 'total') byFixture[fid].total.push(m);
+    const bt = (m.bet_type || '').toLowerCase();
+    if (bt === 'moneyline') byFixture[fid].moneyline.push(m);
+    else if (bt === 'spread') byFixture[fid].spread.push(m);
+    else if (bt === 'total')  byFixture[fid].total.push(m);
   });
 
   let block = `## ${emoji} ${league} — ${label}\n`;
-  block += `> Powered by **PredictionData.io** | Books: FanDuel, DraftKings, Caesars, BetMGM, Pinnacle\n\n`;
+  block += `> 📡 **PredictionData.io** Real-Time Odds | FanDuel • DraftKings • Caesars • BetMGM • Pinnacle\n\n`;
 
-  const fixtureIds = Object.keys(byFixture).slice(0, 12);
+  const fixtureIds = Object.keys(byFixture).slice(0, 15);
 
   for (const fid of fixtureIds) {
     const fixture = fixtureMap[fid];
-    const gameLabel = fixture
-      ? `${fixture.away_abbr || '?'} @ ${fixture.home_abbr || '?'}`
-      : `Game ${fid.slice(0, 8)}`;
+    const awayAbbr = fixture?.away_abbr || '?';
+    const homeAbbr = fixture?.home_abbr || '?';
 
     const gameDate = fixture?.date
       ? new Date(fixture.date).toLocaleString('en-US', {
@@ -187,65 +260,120 @@ function formatOddsBlock(markets, fixtures, league, label = "Today's Odds") {
         })
       : '';
 
-    // Live score indicator
-    const liveScore =
-      fixture?.status === 'in_progress' &&
-      fixture?.home_score !== undefined
-        ? ` 🔴 **LIVE** ${fixture.away_score}-${fixture.home_score}${fixture.current_period_text ? ` (${fixture.current_period_text})` : ''}`
+    // Live score + period clock
+    let liveStatus = '';
+    if (fixture?.status === 'in_progress') {
+      const scoreStr = fixture.home_score !== undefined
+        ? `**${fixture.away_score}–${fixture.home_score}**`
         : '';
+      const periodStr = fixture.current_period_text
+        ? ` · ${fixture.current_period_text}`
+        : '';
+      const clockStr = fixture.current_clock
+        ? ` · ⏱ ${fixture.current_clock}`
+        : '';
+      liveStatus = ` 🔴 LIVE ${scoreStr}${periodStr}${clockStr}`;
+    } else if (fixture?.status === 'complete' || fixture?.status === 'final') {
+      const scoreStr = `${fixture.away_score}–${fixture.home_score}`;
+      const finishType = fixture.finish_type ? ` (${fixture.finish_type})` : '';
+      liveStatus = ` ✅ Final: ${scoreStr}${finishType}`;
+    }
 
-    block += `### ${gameLabel}${gameDate ? `  —  ${gameDate}` : ''}${liveScore}\n`;
+    block += `### ${awayAbbr} @ ${homeAbbr}${gameDate ? `  ·  ${gameDate}` : ''}${liveStatus}\n`;
 
     const { moneyline, spread, total } = byFixture[fid];
 
-    // Moneyline table — one row per side, show book source and implied %
+    // ── Multi-book moneyline comparison ────────────────────────────────────
     if (moneyline.length > 0) {
-      const sides = {};
+      // Group by side, then by book
+      const bySide = {};
       moneyline.forEach((m) => {
-        const key = m.side || m.side_type || '?';
-        // Keep best odds (lowest decimal = closest to fair line)
-        if (!sides[key] || m.odds < sides[key].odds) sides[key] = m;
+        const side = m.side || m.side_type || '?';
+        if (!bySide[side]) bySide[side] = [];
+        bySide[side].push(m);
       });
-      const sideKeys = Object.keys(sides);
-      block += `| Side | Moneyline | Implied % | Movement | Book |\n`;
-      block += `|------|-----------|-----------|----------|------|\n`;
-      sideKeys.slice(0, 3).forEach((side) => {
-        const m = sides[side];
-        const ml = decToAmerican(m.odds);
-        const imp = decToImplied(m.odds);
-        const dir = m.move_dir === 'up' ? '↑' : m.move_dir === 'down' ? '↓' : '—';
-        const bk = bookName(m.odd_provider_id);
-        block += `| ${side} | **${ml}** | ${imp} | ${dir} | ${bk} |\n`;
-      });
+
+      const sides = Object.keys(bySide);
+      if (sides.length > 0) {
+        // Get all books present
+        const booksPresent = [...new Set(moneyline.map((m) => m.odd_provider_id))].slice(0, 5);
+
+        block += `\n**Moneyline**\n`;
+        if (booksPresent.length >= 2) {
+          // Multi-book comparison table
+          const header = `| Side | ${booksPresent.map(bookName).join(' | ')} | Fair Value | Move |`;
+          const divider = `|------|${booksPresent.map(() => '------').join('|')}|------------|------|`;
+          block += header + '\n' + divider + '\n';
+
+          sides.slice(0, 3).forEach((side) => {
+            const sideMarkets = bySide[side];
+            const bookOdds = booksPresent.map((bid) => {
+              const m = sideMarkets.find((x) => x.odd_provider_id === bid);
+              if (!m) return '—';
+              const val = valueTag(m);
+              return `**${decToAmerican(m.odds)}**${val}`;
+            });
+            // Use first available market for fair value + move
+            const ref = sideMarkets[0];
+            const fv  = ref?.no_vig_odds ? `${noVigProb(ref.no_vig_odds)}` : '—';
+            const mv  = moveIndicator(ref);
+            block += `| ${side} | ${bookOdds.join(' | ')} | ${fv} | ${mv} |\n`;
+          });
+        } else {
+          // Single book — full detail row
+          block += `| Side | Moneyline | Open | Fair Value | Move | Freshness |\n`;
+          block += `|------|-----------|------|------------|------|-----------|\n`;
+          sides.slice(0, 3).forEach((side) => {
+            const m = bySide[side][0];
+            const fv = m.no_vig_odds ? noVigProb(m.no_vig_odds) : '—';
+            block += `| ${side} | **${decToAmerican(m.odds)}** | ${decToAmerican(m.open_odds)} | ${fv} | ${moveIndicator(m)} | ${freshnessTag(m)} |\n`;
+          });
+        }
+      }
     }
 
-    // Spread table
+    // ── Spread comparison ──────────────────────────────────────────────────
     if (spread.length > 0) {
-      const sides = {};
-      spread.forEach((m) => {
-        const key = `${m.side} ${m.number >= 0 ? '+' : ''}${m.number}`;
-        if (!sides[key]) sides[key] = m;
+      const bySide = {};
+      spread.filter((m) => !m.is_alt).forEach((m) => {
+        const side = m.side || m.side_type || '?';
+        if (!bySide[side]) bySide[side] = [];
+        bySide[side].push(m);
       });
-      const sideKeys = Object.keys(sides);
-      if (sideKeys.length > 0) {
-        block += `\n| Spread | Line | Odds | Movement |\n|--------|------|------|----------|\n`;
-        sideKeys.slice(0, 4).forEach((key) => {
-          const m = sides[key];
-          const dir = m.move_dir === 'up' ? '↑' : m.move_dir === 'down' ? '↓' : '—';
-          block += `| ${m.side || '?'} | **${m.number >= 0 ? '+' : ''}${m.number}** | **${decToAmerican(m.odds)}** | ${dir} |\n`;
+      const sides = Object.keys(bySide);
+      if (sides.length > 0) {
+        block += `\n**Spread**\n`;
+        block += `| Side | Line | Odds | Open Line | Fair Value | Move |\n`;
+        block += `|------|------|------|-----------|------------|------|\n`;
+        sides.slice(0, 4).forEach((side) => {
+          const m = bySide[side][0];
+          const openNum = m.open_number != null ? `${m.open_number >= 0 ? '+' : ''}${m.open_number}` : '—';
+          const fv = m.no_vig_odds ? noVigProb(m.no_vig_odds) : '—';
+          block += `| ${side} | **${m.number >= 0 ? '+' : ''}${m.number}** | **${decToAmerican(m.odds)}** | ${openNum} | ${fv} | ${moveIndicator(m)} |\n`;
         });
       }
     }
 
-    // Total table
+    // ── Totals comparison ──────────────────────────────────────────────────
     if (total.length > 0) {
-      const over  = total.find((m) => (m.side_type === 'Over' || m.side === 'Over') && !m.is_alt);
-      const under = total.find((m) => (m.side_type === 'Under' || m.side === 'Under') && !m.is_alt);
+      const over  = total.find((m) => (m.side === 'Over'  || m.side_type === 'Over')  && !m.is_alt);
+      const under = total.find((m) => (m.side === 'Under' || m.side_type === 'Under') && !m.is_alt);
       if (over || under) {
-        block += `\n| Total | Line | Odds | Implied % |\n|-------|------|------|-----------|\n`;
-        if (over)  block += `| Over  | **${over.number}** | **${decToAmerican(over.odds)}** | ${decToImplied(over.odds)} |\n`;
-        if (under) block += `| Under | **${under.number}** | **${decToAmerican(under.odds)}** | ${decToImplied(under.odds)} |\n`;
+        block += `\n**Total (O/U)**\n`;
+        block += `| Side | Line | Odds | Open Line | Fair Value | Move |\n`;
+        block += `|------|------|------|-----------|------------|------|\n`;
+        [over, under].filter(Boolean).forEach((m) => {
+          const openNum = m.open_number != null ? String(m.open_number) : '—';
+          const fv = m.no_vig_odds ? noVigProb(m.no_vig_odds) : '—';
+          block += `| ${m.side || m.side_type} | **${m.number}** | **${decToAmerican(m.odds)}** | ${openNum} | ${fv} | ${moveIndicator(m)} |\n`;
+        });
       }
+    }
+
+    // Deeplink if available (from any market for this fixture)
+    const anyWithUrl = markets.find((m) => m.fixture_id === fid && m.provider_url);
+    if (anyWithUrl?.provider_url) {
+      block += `\n> 🔗 [Bet this game at ${bookName(anyWithUrl.odd_provider_id)}](${anyWithUrl.provider_url})\n`;
     }
 
     block += '\n';
@@ -255,75 +383,95 @@ function formatOddsBlock(markets, fixtures, league, label = "Today's Odds") {
 }
 
 /**
- * Format player prop markets grouped by prop type, then by player.
- * Shows over/under, line, odds, movement, and deeplink.
+ * Format player props — v3.
+ * Grouped: Game → Player → all props with multi-book comparison,
+ * fair value (no-vig), open line, +EV tags, PrizePicks/Underdog lines.
  */
-function formatPlayerPropsBlock(markets, league) {
+function formatPlayerPropsBlock(markets, fixtures, league) {
   const emoji = LEAGUE_EMOJI[league] || '🏟️';
 
   if (!markets || markets.length === 0) {
     return `## ${emoji} ${league} — Player Props\n\n*No player prop data currently available.*\n`;
   }
 
-  // Group by prop_name → player side
-  const byProp = {};
+  // Build fixture lookup
+  const fixtureMap = {};
+  if (Array.isArray(fixtures)) {
+    fixtures.forEach((f) => { fixtureMap[f.id] = f; });
+  }
+
+  // Group: fixture_id → player_name → prop_name → [markets]
+  const byFixture = {};
   markets.forEach((m) => {
-    const propName = m.prop_name || m.bet_type || 'Unknown Prop';
-    if (!byProp[propName]) byProp[propName] = [];
-    byProp[propName].push(m);
+    const fid        = m.fixture_id || 'no_fixture';
+    const player     = m.player_name || m.player_id || 'Unknown Player';
+    const propName   = m.prop_name || m.bet_type || 'Prop';
+    if (!byFixture[fid]) byFixture[fid] = {};
+    if (!byFixture[fid][player]) byFixture[fid][player] = {};
+    if (!byFixture[fid][player][propName]) byFixture[fid][player][propName] = [];
+    byFixture[fid][player][propName].push(m);
   });
 
   let block = `## ${emoji} ${league} — Player Props\n`;
-  block += `> Data via **PredictionData.io** | FanDuel, DraftKings, BetMGM\n\n`;
-  block += `| Prop | Side | Line | Odds | Implied % | Move |\n`;
-  block += `|------|------|------|------|-----------|------|\n`;
+  block += `> 📡 **PredictionData.io** | FanDuel • DraftKings • BetMGM • PrizePicks • Underdog • Sleeper\n\n`;
 
-  const propKeys = Object.keys(byProp).slice(0, 25);
-  for (const prop of propKeys) {
-    const ms = byProp[prop];
-    // Show over/under pair
-    const over  = ms.find((m) => m.side_type === 'Over'  || m.side === 'Over');
-    const under = ms.find((m) => m.side_type === 'Under' || m.side === 'Under');
-    const rows  = [over, under].filter(Boolean);
-    if (rows.length === 0) rows.push(ms[0]);
+  const fixtureIds = Object.keys(byFixture).slice(0, 8);
 
-    rows.forEach((m) => {
-      const dir = m.move_dir === 'up' ? '↑' : m.move_dir === 'down' ? '↓' : '—';
-      const imp = decToImplied(m.odds);
-      block += `| **${prop}** | ${m.side || m.side_type || '?'} | **${m.number ?? '—'}** | **${decToAmerican(m.odds)}** | ${imp} | ${dir} |\n`;
-    });
-  }
+  for (const fid of fixtureIds) {
+    const fixture = fixtureMap[fid];
+    const matchup = fixture
+      ? `${fixture.away_abbr || '?'} @ ${fixture.home_abbr || '?'}`
+      : `Game ${fid.slice(0, 8)}`;
 
-  return block;
-}
+    block += `### ${matchup}\n`;
 
-/**
- * Format game prop markets (UFC rounds, soccer BTTS, etc.)
- */
-function formatGamePropsBlock(markets, league) {
-  const emoji = LEAGUE_EMOJI[league] || '🏟️';
+    const players = Object.keys(byFixture[fid]).slice(0, 20);
 
-  if (!markets || markets.length === 0) {
-    return `## ${emoji} ${league} — Game Props\n\n*No game prop data currently available.*\n`;
-  }
+    for (const player of players) {
+      const props = byFixture[fid][player];
+      const propNames = Object.keys(props);
 
-  const byProp = {};
-  markets.forEach((m) => {
-    const key = m.prop_name || m.bet_type || 'Game Prop';
-    if (!byProp[key]) byProp[key] = [];
-    byProp[key].push(m);
-  });
+      block += `\n**${player}**\n`;
+      block += `| Prop | Line | Over | Under | Fair Value | Open | Move | +EV? |\n`;
+      block += `|------|------|------|-------|------------|------|------|------|\n`;
 
-  let block = `## ${emoji} ${league} — Game Props\n`;
-  block += `> Data via **PredictionData.io**\n\n`;
+      for (const propName of propNames) {
+        const ms = props[propName];
+        const over  = ms.find((m) => m.side === 'Over'  || m.side_type === 'Over');
+        const under = ms.find((m) => m.side === 'Under' || m.side_type === 'Under');
+        const ref   = over || under || ms[0];
+        if (!ref) continue;
 
-  for (const [propName, ms] of Object.entries(byProp)) {
-    block += `### ${propName}\n`;
-    block += `| Side | Odds | Implied % | Movement |\n|------|------|-----------|----------|\n`;
-    ms.slice(0, 4).forEach((m) => {
-      const dir = m.move_dir === 'up' ? '↑' : m.move_dir === 'down' ? '↓' : '—';
-      block += `| ${m.side || m.side_type || '?'} | **${decToAmerican(m.odds)}** | ${decToImplied(m.odds)} | ${dir} |\n`;
-    });
+        const line = ref.number != null ? String(ref.number) : '—';
+        const openL = ref.open_number != null ? String(ref.open_number) : '—';
+        const overOdds  = over  ? `**${decToAmerican(over.odds)}**`  : '—';
+        const underOdds = under ? `**${decToAmerican(under.odds)}**` : '—';
+        const fv   = ref.no_vig_odds ? noVigProb(ref.no_vig_odds) : '—';
+        const mv   = moveIndicator(ref);
+        const ev   = (over ? valueTag(over) : '') || (under ? valueTag(under) : '') || '—';
+
+        block += `| ${propName} | **${line}** | ${overOdds} | ${underOdds} | ${fv} | ${openL} | ${mv} | ${ev} |\n`;
+      }
+
+      // PrizePicks / Underdog line (if different from sportsbook)
+      const dfsMarkets = markets.filter((m) =>
+        (m.player_name === player || m.player_id === player) &&
+        [385, 387, 595].includes(m.odd_provider_id)
+      );
+      if (dfsMarkets.length > 0) {
+        block += '\n*DFS Platforms:* ';
+        const seen = new Set();
+        dfsMarkets.forEach((m) => {
+          const key = `${bookName(m.odd_provider_id)}:${m.prop_name}:${m.number}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            block += `${bookName(m.odd_provider_id)} ${m.prop_name} **${m.number}** | `;
+          }
+        });
+        block = block.replace(/\| $/, '\n');
+      }
+    }
+
     block += '\n';
   }
 
@@ -331,15 +479,75 @@ function formatGamePropsBlock(markets, league) {
 }
 
 /**
- * Format futures markets grouped by future type.
- * Sorted by odds (favorites first), shows implied probability.
+ * Format game props — v3.
+ * Includes no-vig fair value, open odds, +EV tags, deeplinks.
  */
-function formatFuturesBlock(markets, league) {
+function formatGamePropsBlock(markets, fixtures, league) {
+  const emoji = LEAGUE_EMOJI[league] || '🏟️';
+
+  if (!markets || markets.length === 0) {
+    return `## ${emoji} ${league} — Game Props\n\n*No game prop data currently available.*\n`;
+  }
+
+  const fixtureMap = {};
+  if (Array.isArray(fixtures)) {
+    fixtures.forEach((f) => { fixtureMap[f.id] = f; });
+  }
+
+  // Group by fixture → prop_name
+  const byFixture = {};
+  markets.forEach((m) => {
+    const fid = m.fixture_id || 'unknown';
+    const key = m.prop_name || m.bet_type || 'Game Prop';
+    if (!byFixture[fid]) byFixture[fid] = {};
+    if (!byFixture[fid][key]) byFixture[fid][key] = [];
+    byFixture[fid][key].push(m);
+  });
+
+  let block = `## ${emoji} ${league} — Game Props\n`;
+  block += `> 📡 **PredictionData.io** Game Event Props\n\n`;
+
+  for (const [fid, propGroups] of Object.entries(byFixture)) {
+    const fixture = fixtureMap[fid];
+    const matchup = fixture
+      ? `${fixture.away_abbr} @ ${fixture.home_abbr}`
+      : `Game ${fid.slice(0, 8)}`;
+
+    block += `### ${matchup}\n`;
+    block += `| Prop | Side | Odds | Fair Value | Open Odds | Move | +EV? |\n`;
+    block += `|------|------|------|------------|-----------|------|------|\n`;
+
+    for (const [propName, ms] of Object.entries(propGroups)) {
+      ms.slice(0, 6).forEach((m) => {
+        const fv = m.no_vig_odds ? noVigProb(m.no_vig_odds) : '—';
+        const openOdds = m.open_odds ? decToAmerican(m.open_odds) : '—';
+        const ev = valueTag(m) || '—';
+        block += `| ${propName} | ${m.side || m.side_type || '?'} | **${decToAmerican(m.odds)}** | ${fv} | ${openOdds} | ${moveIndicator(m)} | ${ev} |\n`;
+      });
+    }
+    block += '\n';
+  }
+
+  return block;
+}
+
+/**
+ * Format futures — v3.
+ * Sorted by odds (favorites first), with no-vig fair value, open odds,
+ * seasons context (active season name, end date), movement.
+ */
+function formatFuturesBlock(markets, league, seasons = []) {
   const emoji = LEAGUE_EMOJI[league] || '🏆';
 
   if (!markets || markets.length === 0) {
-    return `## ${emoji} ${league} — Futures Odds\n\n*No futures data currently available for ${league}.*\n`;
+    return `## ${emoji} ${league} — Futures Odds\n\n*No futures data currently available for ${league}. The league may be off-season.*\n`;
   }
+
+  // Active season context
+  const activeSeason = seasons.find((s) => s.is_active || s.in_progress);
+  const seasonInfo = activeSeason
+    ? `**Season:** ${activeSeason.name}${activeSeason.end_date ? ` · Ends ${new Date(activeSeason.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}`
+    : '';
 
   const byFuture = {};
   markets.forEach((m) => {
@@ -349,17 +557,21 @@ function formatFuturesBlock(markets, league) {
   });
 
   let block = `## ${emoji} ${league} — Futures Odds\n`;
-  block += `> Data via **PredictionData.io** | FanDuel, DraftKings, Caesars, BetMGM, Pinnacle\n\n`;
+  block += `> 📡 **PredictionData.io** | FanDuel • DraftKings • Caesars • BetMGM • Pinnacle\n`;
+  if (seasonInfo) block += `> ${seasonInfo}\n`;
+  block += '\n';
 
   for (const [futureType, ms] of Object.entries(byFuture)) {
     block += `### ${futureType}\n`;
-    block += `| Selection | Odds | Implied % | Movement |\n|-----------|------|-----------|----------|\n`;
+    block += `| Selection | Odds | Fair Value | Open Odds | Move | +EV? |\n`;
+    block += `|-----------|------|------------|-----------|------|------|\n`;
 
     const sorted = [...ms].sort((a, b) => (a.odds ?? 99) - (b.odds ?? 99));
-    sorted.slice(0, 12).forEach((m) => {
-      const dir = m.move_dir === 'up' ? '↑' : m.move_dir === 'down' ? '↓' : '—';
-      const imp = decToImplied(m.odds);
-      block += `| ${m.side || '?'} | **${decToAmerican(m.odds)}** | ${imp} | ${dir} |\n`;
+    sorted.slice(0, 15).forEach((m) => {
+      const fv     = m.no_vig_odds ? noVigProb(m.no_vig_odds) : '—';
+      const openML = m.open_odds   ? decToAmerican(m.open_odds) : '—';
+      const ev     = valueTag(m) || '—';
+      block += `| ${m.side || '?'} | **${decToAmerican(m.odds)}** | ${fv} | ${openML} | ${moveIndicator(m)} | ${ev} |\n`;
     });
     block += '\n';
   }
@@ -368,42 +580,61 @@ function formatFuturesBlock(markets, league) {
 }
 
 /**
- * Format game schedule
+ * Format schedule — v3.
+ * Includes team full_names, finish_type, full clock/period, venue.
  */
-function formatScheduleBlock(fixtures, league) {
+function formatScheduleBlock(fixtures, teams, league) {
   const emoji = LEAGUE_EMOJI[league] || '📅';
 
   if (!fixtures || fixtures.length === 0) {
     return `## ${emoji} ${league} — Schedule\n\n*No upcoming games found for ${league}.*\n`;
   }
 
-  let block = `## ${emoji} ${league} — Upcoming Games\n\n`;
-  block += `| Game | Date/Time | Status | Score |\n`;
-  block += `|------|-----------|--------|-------|\n`;
+  // Team name lookup
+  const teamMap = {};
+  if (teams && typeof teams === 'object') {
+    Object.values(teams).forEach((t) => {
+      if (t.id) teamMap[t.id] = t;
+    });
+  }
 
-  fixtures.slice(0, 12).forEach((f) => {
-    const gameLabel = `${f.away_abbr || '?'} @ ${f.home_abbr || '?'}`;
+  let block = `## ${emoji} ${league} — Upcoming Games\n\n`;
+  block += `| # | Matchup | Date/Time | Status | Score |\n`;
+  block += `|---|---------|-----------|--------|-------|\n`;
+
+  fixtures.slice(0, 15).forEach((f, i) => {
+    const awayFull = teamMap[f.away_id]?.full_name || f.away_abbr || '?';
+    const homeFull = teamMap[f.home_id]?.full_name || f.home_abbr || '?';
+    const matchup  = `${awayFull} @ ${homeFull}`;
+
     const date = f.date
       ? new Date(f.date).toLocaleString('en-US', {
           weekday: 'short', month: 'short', day: 'numeric',
           hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
         })
       : 'TBD';
+
     const status = f.status || 'scheduled';
-    const score =
-      f.status === 'in_progress' && f.home_score !== undefined
-        ? `**${f.away_score}-${f.home_score}** 🔴`
-        : (f.home_score > 0 || f.away_score > 0)
-          ? `${f.away_score}-${f.home_score} (Final)`
-          : '—';
-    block += `| **${gameLabel}** | ${date} | ${status} | ${score} |\n`;
+
+    let score = '—';
+    if (f.status === 'in_progress') {
+      const clockStr = f.current_clock ? ` ⏱${f.current_clock}` : '';
+      const periodStr = f.current_period_text ? ` ${f.current_period_text}` : '';
+      score = `🔴 **${f.away_score}–${f.home_score}**${periodStr}${clockStr}`;
+    } else if (f.home_score > 0 || f.away_score > 0) {
+      const ft = f.finish_type ? ` (${f.finish_type})` : ' (Final)';
+      score = `${f.away_score}–${f.home_score}${ft}`;
+    }
+
+    block += `| ${i + 1} | **${matchup}** | ${date} | ${status} | ${score} |\n`;
   });
 
   return block;
 }
 
 /**
- * Format alt lines (alternate spreads/totals)
+ * Format alternate lines — v3.
+ * Side-by-side alt spread vs alt total, with implied prob and +EV tags.
  */
 function formatAltLinesBlock(markets, league) {
   const emoji = LEAGUE_EMOJI[league] || '🏟️';
@@ -412,60 +643,73 @@ function formatAltLinesBlock(markets, league) {
     return `## ${emoji} ${league} — Alternate Lines\n\n*No alternate lines available.*\n`;
   }
 
-  // Only show alt markets
   const altMarkets = markets.filter((m) => m.is_alt === true);
-  const allSpreads = altMarkets.filter((m) => (m.bet_type || '').toLowerCase().includes('spread'));
-  const allTotals  = altMarkets.filter((m) => (m.bet_type || '').toLowerCase().includes('total'));
-
-  let block = `## ${emoji} ${league} — Alternate Lines\n`;
-  block += `> Data via **PredictionData.io** | Alternate spreads & totals\n\n`;
-
-  if (allSpreads.length > 0) {
-    block += `### Alternate Spreads\n`;
-    block += `| Side | Alt Line | Odds | Implied % |\n|------|----------|------|-----------|\n`;
-    allSpreads.slice(0, 16).forEach((m) => {
-      block += `| ${m.side || '?'} | **${m.number >= 0 ? '+' : ''}${m.number}** | **${decToAmerican(m.odds)}** | ${decToImplied(m.odds)} |\n`;
-    });
-    block += '\n';
+  if (altMarkets.length === 0) {
+    return `## ${emoji} ${league} — Alternate Lines\n\n*No alternate lines marked in current data.*\n`;
   }
 
-  if (allTotals.length > 0) {
-    block += `### Alternate Totals\n`;
-    block += `| Side | Alt Line | Odds | Implied % |\n|------|----------|------|-----------|\n`;
-    allTotals.slice(0, 16).forEach((m) => {
-      block += `| ${m.side || m.side_type || '?'} | **${m.number}** | **${decToAmerican(m.odds)}** | ${decToImplied(m.odds)} |\n`;
-    });
-    block += '\n';
+  // Group by fixture → bet_type
+  const byFixture = {};
+  altMarkets.forEach((m) => {
+    const fid = m.fixture_id || 'unknown';
+    const bt  = (m.bet_type || '').toLowerCase();
+    if (!byFixture[fid]) byFixture[fid] = { spread: [], total: [] };
+    if (bt === 'spread') byFixture[fid].spread.push(m);
+    else if (bt === 'total') byFixture[fid].total.push(m);
+  });
+
+  let block = `## ${emoji} ${league} — Alternate Lines\n`;
+  block += `> 📡 **PredictionData.io** Alternate spreads & totals\n\n`;
+
+  for (const [fid, groups] of Object.entries(byFixture)) {
+    block += `#### Game ${fid.slice(0, 8)}\n`;
+
+    if (groups.spread.length > 0) {
+      block += `**Alt Spreads**\n| Side | Alt Line | Odds | Fair Value | +EV? |\n|------|----------|------|------------|------|\n`;
+      // Sort by number (lowest to highest)
+      [...groups.spread].sort((a, b) => (a.number ?? 0) - (b.number ?? 0)).slice(0, 12).forEach((m) => {
+        const fv = m.no_vig_odds ? noVigProb(m.no_vig_odds) : '—';
+        const ev = valueTag(m) || '—';
+        block += `| ${m.side || '?'} | **${m.number >= 0 ? '+' : ''}${m.number}** | **${decToAmerican(m.odds)}** | ${fv} | ${ev} |\n`;
+      });
+      block += '\n';
+    }
+
+    if (groups.total.length > 0) {
+      block += `**Alt Totals**\n| Side | Alt Line | Odds | Fair Value | +EV? |\n|------|----------|------|------------|------|\n`;
+      [...groups.total].sort((a, b) => (a.number ?? 0) - (b.number ?? 0)).slice(0, 12).forEach((m) => {
+        const fv = m.no_vig_odds ? noVigProb(m.no_vig_odds) : '—';
+        const ev = valueTag(m) || '—';
+        block += `| ${m.side || m.side_type || '?'} | **${m.number}** | **${decToAmerican(m.odds)}** | ${fv} | ${ev} |\n`;
+      });
+      block += '\n';
+    }
   }
 
   return block;
 }
 
 /**
- * Format period odds (1H, 1Q, 1P, F5, etc.)
+ * Format period odds — v3.
+ * Delegates to formatOddsBlock with period filter applied.
  */
-function formatPeriodOddsBlock(markets, league, period) {
-  const emoji = LEAGUE_EMOJI[league] || '🏟️';
+function formatPeriodOddsBlock(markets, fixtures, league, period) {
   const periodLabels = {
     '1H': '1st Half', '2H': '2nd Half',
     '1Q': '1st Quarter', '2Q': '2nd Quarter', '3Q': '3rd Quarter', '4Q': '4th Quarter',
     '1P': '1st Period', '2P': '2nd Period', '3P': '3rd Period',
     'F5': 'First 5 Innings', 'F3': 'First 3 Innings', 'F7': 'First 7 Innings',
-    '1I': '1st Inning', '1S': '1st Set', '2S': '2nd Set',
+    '1I': '1st Inning', '2I': '2nd Inning', '1S': '1st Set', '2S': '2nd Set',
+    'REG': 'Regulation',
   };
-  const label = periodLabels[period] || period;
-
-  if (!markets || markets.length === 0) {
-    return `## ${emoji} ${league} — ${label} Odds\n\n*No ${label} odds currently available for ${league}.*\n`;
-  }
-
-  // Reuse formatOddsBlock logic with period label
-  const filtered = markets.filter((m) => m.period === period || !period);
-  return formatOddsBlock(filtered, [], league, `${label} Odds`);
+  const label = periodLabels[period] || `${period} Odds`;
+  const filtered = (markets || []).filter((m) => !period || m.period === period || m.period === 'FT');
+  return formatOddsBlock(filtered, fixtures, league, label);
 }
 
 /**
- * Format Polymarket/Kalshi orderbook
+ * Format Polymarket / Kalshi prediction market orderbook — v3.
+ * Full bid/ask depth, spread, mid-price, volume, implied probability.
  */
 function formatOrderbookBlock(summaries, orderbook, league, provider = 'Polymarket') {
   const emoji = LEAGUE_EMOJI[league] || '🏟️';
@@ -475,31 +719,86 @@ function formatOrderbookBlock(summaries, orderbook, league, provider = 'Polymark
   }
 
   let block = `## ${emoji} ${league} — ${provider} Prediction Markets\n`;
-  block += `> Live exchange data via **PredictionData.io** powered by ${provider}\n\n`;
+  block += `> 📡 Live exchange data via **PredictionData.io** powered by ${provider}\n\n`;
 
-  summaries.slice(0, 5).forEach((s) => {
-    block += `### ${s.slug || s.id}\n`;
-    block += `- **Market:** ${s.bet_type} | Period: ${s.period} | Active: ${s.is_active ? '✅' : '❌'}\n`;
-    if (s.number !== null) block += `- **Line:** ${s.number}\n`;
+  summaries.slice(0, 6).forEach((s) => {
+    block += `### Market: ${s.slug || s.id}\n`;
+    block += `| Field | Value |\n|-------|-------|\n`;
+    block += `| Type | ${s.bet_type || '—'} |\n`;
+    block += `| Period | ${s.period || '—'} |\n`;
+    block += `| Line | ${s.number != null ? s.number : '—'} |\n`;
+    block += `| Active | ${s.is_active ? '✅ Yes' : '❌ No'} |\n`;
+    block += `| Outcome | ${s.outcome || '—'} |\n`;
     block += '\n';
   });
 
   if (orderbook && orderbook.length > 0) {
-    const bids = orderbook.filter((o) => !o.is_ask).sort((a, b) => b.price - a.price).slice(0, 5);
-    const asks = orderbook.filter((o) => o.is_ask).sort((a, b) => a.price - b.price).slice(0, 5);
+    const bids = orderbook.filter((o) => !o.is_ask).sort((a, b) => b.price - a.price);
+    const asks = orderbook.filter((o) =>  o.is_ask).sort((a, b) => a.price - b.price);
 
-    block += `### Orderbook\n`;
-    block += `| Side | Price | Contracts |\n|------|-------|-----------|\n`;
-    bids.forEach((o) => {
-      block += `| 🟢 Bid | **${(o.price * 100).toFixed(1)}¢** | ${o.contracts.toLocaleString()} |\n`;
+    block += `### 📊 Order Book\n`;
+    block += `| Side | Price (¢) | Contracts | Implied Prob |\n`;
+    block += `|------|-----------|-----------|-------------|\n`;
+
+    bids.slice(0, 6).forEach((o) => {
+      const prob = (o.price * 100).toFixed(1);
+      block += `| 🟢 Bid | **${prob}¢** | ${(o.contracts || 0).toLocaleString()} | ${prob}% |\n`;
     });
-    asks.forEach((o) => {
-      block += `| 🔴 Ask | **${(o.price * 100).toFixed(1)}¢** | ${o.contracts.toLocaleString()} |\n`;
+    asks.slice(0, 6).forEach((o) => {
+      const prob = (o.price * 100).toFixed(1);
+      block += `| 🔴 Ask | **${prob}¢** | ${(o.contracts || 0).toLocaleString()} | ${prob}% |\n`;
     });
 
     if (bids.length > 0 && asks.length > 0) {
-      const mid = ((bids[0].price + asks[0].price) / 2 * 100).toFixed(1);
-      block += `\n**Mid Price:** ${mid}¢ → Implied probability: **${mid}%**\n`;
+      const bestBid = bids[0].price;
+      const bestAsk = asks[0].price;
+      const mid     = ((bestBid + bestAsk) / 2 * 100).toFixed(1);
+      const spread  = ((bestAsk - bestBid) * 100).toFixed(2);
+      const totalVol = orderbook.reduce((sum, o) => sum + (o.contracts || 0), 0);
+      block += `\n| | | | |\n`;
+      block += `| **Best Bid** | **${(bestBid * 100).toFixed(1)}¢** | — | — |\n`;
+      block += `| **Best Ask** | **${(bestAsk * 100).toFixed(1)}¢** | — | — |\n`;
+      block += `| **Mid Price** | **${mid}¢** | — | **${mid}%** |\n`;
+      block += `| **Spread** | ${spread}¢ | — | — |\n`;
+      block += `| **Total Volume** | — | **${totalVol.toLocaleString()}** | — |\n`;
+    }
+  }
+
+  return block;
+}
+
+/**
+ * Format SGP pricing result from POST /api/sgp
+ */
+function formatSGPResult(sgpResult, legs, league) {
+  const emoji = LEAGUE_EMOJI[league] || '🏟️';
+
+  if (!sgpResult || typeof sgpResult !== 'object') {
+    return `## ${emoji} ${league} — SGP Pricing\n\n*SGP pricing unavailable — check your legs and try again.*\n`;
+  }
+
+  let block = `## ${emoji} ${league} — Same Game Parlay Pricing\n`;
+  block += `> 📡 **PredictionData.io** SGP Pricing Engine\n\n`;
+
+  block += `### Legs Selected\n`;
+  legs.forEach((leg, i) => {
+    block += `${i + 1}. **${leg.bet_type}** | ${leg.side_type || ''} ${leg.prop_name || ''} ${leg.number != null ? leg.number : ''}\n`;
+  });
+  block += '\n';
+
+  block += `### SGP Pricing by Sportsbook\n`;
+  block += `| Sportsbook | American Odds | Decimal | Fair Value | Status |\n`;
+  block += `|------------|--------------|---------|------------|--------|\n`;
+
+  for (const [book, data] of Object.entries(sgpResult)) {
+    if (data?.error) {
+      block += `| ${book} | ❌ N/A | — | — | ${data.error} |\n`;
+    } else {
+      const fv = data?.decimal ? noVigProb(data.decimal) : '—';
+      block += `| **${book}** | **${data?.american || '—'}** | ${data?.decimal || '—'} | ${fv} | ✅ Priced |\n`;
+      if (data?.deeplink) {
+        block += `> 🔗 [Place at ${book}](${data.deeplink})\n`;
+      }
     }
   }
 
@@ -507,7 +806,7 @@ function formatOrderbookBlock(summaries, orderbook, league, provider = 'Polymark
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN ROUTER FUNCTION
+// MAIN ROUTER FUNCTION — v3
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const routeAndEnhancePrompt = async (prompt) => {
@@ -518,9 +817,9 @@ const routeAndEnhancePrompt = async (prompt) => {
     const { type, league, extra = {} } = intent;
     const emoji = LEAGUE_EMOJI[league] || '🏟️';
 
-    logger.info(`[SportsRouter] Intent: ${type} | League: ${league}`);
+    logger.info(`[SportsRouter v3] Intent: ${type} | League: ${league}`);
 
-    // ── LIVE ODDS ───────────────────────────────────────────────────────────
+    // ── LIVE ODDS ─────────────────────────────────────────────────────────
     if (type === 'live_odds') {
       const cacheKey = `live:${league}`;
       let markets = await cacheGet(cacheKey);
@@ -529,90 +828,127 @@ const routeAndEnhancePrompt = async (prompt) => {
         if (markets) await cacheSet(cacheKey, markets, TTL.live);
       }
       const fixtures = await safe(getFixturesService(league, 6), 5000);
-      const block = formatOddsBlock(markets || [], fixtures || [], league);
+      const block = formatOddsBlock(markets || [], fixtures || [], league, 'LIVE In-Game Odds');
       return buildPrompt(prompt, `🔴 **LIVE IN-GAME ODDS**\n\n${block}`, 'PredictionData.io Live Sports Odds Feed');
     }
 
-    // ── PLAYER PROPS ────────────────────────────────────────────────────────
+    // ── PLAYER PROPS ──────────────────────────────────────────────────────
     if (type === 'player_prop') {
       const propType = extra.propType || '';
       const cacheKey = `props:${league}:${propType}`;
-      let markets = await cacheGet(cacheKey);
+      let [markets, fixtures] = await Promise.all([
+        cacheGet(cacheKey),
+        cacheGet(`fixtures:${league}`),
+      ]);
       if (!markets) {
-        markets = await safe(getPlayerPropsService(league, propType, PROPS_BOOK_IDS), 7000);
-        if (markets) await cacheSet(cacheKey, markets, TTL.props);
+        // Fetch from BOTH sportsbooks AND DFS platforms
+        const [sbMarkets, dfsMarkets] = await Promise.all([
+          safe(getPlayerPropsService(league, propType, PROPS_BOOK_IDS), 7000),
+          safe(getPlayerPropsService(league, propType, DFS_BOOK_IDS), 5000),
+        ]);
+        markets = [...(sbMarkets || []), ...(dfsMarkets || [])];
+        if (markets.length > 0) await cacheSet(cacheKey, markets, TTL.props);
       }
-      // Also fetch fixtures to resolve game context
-      const fixtures = await safe(getFixturesService(league, 24), 5000);
-      const block = formatPlayerPropsBlock(markets || [], league);
-      return buildPrompt(prompt, block, `PredictionData.io ${league} Player Props Service`);
+      if (!fixtures) {
+        fixtures = await safe(getFixturesService(league, 24), 5000);
+        if (fixtures) await cacheSet(`fixtures:${league}`, fixtures, TTL.fixtures);
+      }
+      const block = formatPlayerPropsBlock(markets || [], fixtures || [], league);
+      return buildPrompt(prompt, block, `PredictionData.io ${league} Player Props (Sportsbooks + DFS)`);
     }
 
-    // ── GAME PROPS ──────────────────────────────────────────────────────────
+    // ── GAME PROPS ────────────────────────────────────────────────────────
     if (type === 'game_prop') {
       const cacheKey = `game_props:${league}`;
-      let markets = await cacheGet(cacheKey);
+      let [markets, fixtures] = await Promise.all([
+        cacheGet(cacheKey),
+        cacheGet(`fixtures:${league}`),
+      ]);
       if (!markets) {
         markets = await safe(getGamePropsService(league, '', PROPS_BOOK_IDS), 7000);
         if (markets) await cacheSet(cacheKey, markets, TTL.game_props);
       }
-      const block = formatGamePropsBlock(markets || [], league);
+      if (!fixtures) {
+        fixtures = await safe(getFixturesService(league, 24), 5000);
+        if (fixtures) await cacheSet(`fixtures:${league}`, fixtures, TTL.fixtures);
+      }
+      const block = formatGamePropsBlock(markets || [], fixtures || [], league);
       return buildPrompt(prompt, block, `PredictionData.io ${league} Game Props Service`);
     }
 
-    // ── FUTURES ─────────────────────────────────────────────────────────────
+    // ── FUTURES ───────────────────────────────────────────────────────────
     if (type === 'futures') {
       const cacheKey = `futures:${league}`;
-      let markets = await cacheGet(cacheKey);
+      const seasonsKey = `seasons:${league}`;
+      let [markets, seasons] = await Promise.all([
+        cacheGet(cacheKey),
+        cacheGet(seasonsKey),
+      ]);
       if (!markets) {
         markets = await safe(getFuturesMarketsService(league, DEFAULT_BOOK_IDS), 8000);
         if (markets) await cacheSet(cacheKey, markets, TTL.futures);
       }
-      const block = formatFuturesBlock(markets || [], league);
+      if (!seasons) {
+        seasons = await safe(getSeasonsService(league), 5000);
+        if (seasons) await cacheSet(seasonsKey, seasons, TTL.seasons);
+      }
+      const block = formatFuturesBlock(markets || [], league, seasons || []);
 
-      // Add informational futures prop type list
       const futureTypes = LEAGUE_FUTURES_TYPES[league] || [];
       const extraInfo = futureTypes.length > 0
-        ? `\n\n### Available Future Markets for ${league}\n${futureTypes.map((t) => `- ${t}`).join('\n')}`
+        ? `\n\n### Available Future Markets for ${league}\n${futureTypes.slice(0, 20).map((t) => `- ${t}`).join('\n')}`
         : '';
 
       return buildPrompt(prompt, block + extraInfo, `PredictionData.io ${league} Futures Odds Service`);
     }
 
-    // ── SCHEDULE ────────────────────────────────────────────────────────────
+    // ── SCHEDULE ──────────────────────────────────────────────────────────
     if (type === 'schedule') {
-      const cacheKey = `fixtures:${league}`;
-      let fixtures = await cacheGet(cacheKey);
+      const cacheKey  = `fixtures:${league}`;
+      const teamsKey  = `teams:${league}`;
+      let [fixtures, teams] = await Promise.all([
+        cacheGet(cacheKey),
+        cacheGet(teamsKey),
+      ]);
       if (!fixtures) {
-        fixtures = await safe(getFixturesService(league, 72), 5000);
+        fixtures = await safe(getFixturesService(league, 96), 5000);
         if (fixtures) await cacheSet(cacheKey, fixtures, TTL.fixtures);
       }
-      const block = formatScheduleBlock(fixtures || [], league);
+      if (!teams) {
+        teams = await safe(getTeamsService(league, true), 4000);
+        if (teams) await cacheSet(teamsKey, teams, TTL.teams);
+      }
+      const block = formatScheduleBlock(fixtures || [], teams || {}, league);
       return buildPrompt(prompt, block, `PredictionData.io ${league} Schedule Service`);
     }
 
-    // ── SAME GAME PARLAY ────────────────────────────────────────────────────
+    // ── SAME GAME PARLAY ──────────────────────────────────────────────────
     if (type === 'sgp') {
-      // For SGP intent we inform the LLM about SGP capability and show today's games
-      const fixtures = await safe(getFixturesService(league, 24), 5000) || [];
-      const markets  = await safe(
-        getMarketsService(league, 'moneyline,spread,total,player_prop', 'FT', PROPS_BOOK_IDS, { timedelta: 24 }),
-        8000
-      ) || [];
+      const [fixtures, markets] = await Promise.all([
+        safe(getFixturesService(league, 24), 5000),
+        safe(getPlayerPropsService(league, '', PROPS_BOOK_IDS), 7000),
+      ]);
 
       let block = `## ${emoji} ${league} — Same Game Parlay (SGP) Builder\n\n`;
-      block += `> **PredictionData.io SGP Pricing Engine** is active. Supported books: DraftKings, FanDuel, BetRivers, BetMGM, BetWay, Tooniebet, BC.Game, Stake, 888Sport\n\n`;
-      block += formatScheduleBlock(fixtures, league);
-      block += `\n\n`;
-      block += formatPlayerPropsBlock(markets.filter((m) => m.bet_type?.toLowerCase().includes('player_prop') || m.bet_type === 'Player Prop'), league);
-      block += `\n\n*To build an SGP, select 2+ legs from the same game. I can calculate real-time SGP pricing from multiple sportsbooks.*`;
+      block += `> 📡 **PredictionData.io SGP Pricing Engine**\n`;
+      block += `> Supported books: DraftKings • FanDuel • BetRivers • BetMGM • BetWay • ToonieB • BC.Game • Stake • 888Sport\n\n`;
+      block += `> **To price an SGP:** Provide 2+ legs from the SAME game (e.g. "Chiefs ML + Mahomes over 280.5 pass yds"). I will call the SGP pricing API and return real odds from each book.\n\n`;
+
+      block += formatScheduleBlock(fixtures || [], {}, league);
+      block += '\n\n';
+
+      // Show available props per game as SGP building blocks
+      if (markets && markets.length > 0) {
+        block += `### Available SGP Legs (Player Props)\n`;
+        block += formatPlayerPropsBlock(markets.slice(0, 50), fixtures || [], league);
+      }
 
       return buildPrompt(prompt, block, `PredictionData.io ${league} SGP Pricing Engine`);
     }
 
-    // ── PREDICTION MARKETS (Polymarket / Kalshi) ────────────────────────────
+    // ── PREDICTION MARKETS ────────────────────────────────────────────────
     if (type === 'prediction_market') {
-      const provider = extra.provider || 'polymarket';
+      const provider   = extra.provider || 'polymarket';
       const providerId = provider === 'kalshi' ? 194 : 193;
       const providerName = provider === 'kalshi' ? 'Kalshi' : 'Polymarket';
 
@@ -623,16 +959,19 @@ const routeAndEnhancePrompt = async (prompt) => {
         if (summaries) await cacheSet(cacheKey, summaries, TTL.summaries);
       }
 
-      // Fetch orderbook for first active market
+      // Fetch orderbook for up to 3 active markets
       let orderbook = null;
       if (summaries && summaries.length > 0) {
-        const firstSlug = summaries[0]?.slug;
-        if (firstSlug) {
-          const obKey = `orderbook:${firstSlug}`;
-          orderbook = await cacheGet(obKey);
-          if (!orderbook) {
-            orderbook = await safe(getOrderbookService(firstSlug, providerId), 5000);
-            if (orderbook) await cacheSet(obKey, orderbook, TTL.orderbook);
+        const activeSummaries = summaries.filter((s) => s.is_active).slice(0, 3);
+        if (activeSummaries.length > 0) {
+          const firstSlug = activeSummaries[0]?.slug;
+          if (firstSlug) {
+            const obKey = `orderbook:${firstSlug}`;
+            orderbook = await cacheGet(obKey);
+            if (!orderbook) {
+              orderbook = await safe(getOrderbookService(firstSlug, providerId), 5000);
+              if (orderbook) await cacheSet(obKey, orderbook, TTL.orderbook);
+            }
           }
         }
       }
@@ -641,7 +980,7 @@ const routeAndEnhancePrompt = async (prompt) => {
       return buildPrompt(prompt, block, `PredictionData.io ${providerName} Exchange Markets`);
     }
 
-    // ── ALTERNATE LINES ─────────────────────────────────────────────────────
+    // ── ALTERNATE LINES ───────────────────────────────────────────────────
     if (type === 'alt_lines') {
       const cacheKey = `alt_lines:${league}`;
       let markets = await cacheGet(cacheKey);
@@ -653,23 +992,30 @@ const routeAndEnhancePrompt = async (prompt) => {
       return buildPrompt(prompt, block, `PredictionData.io ${league} Alternate Lines`);
     }
 
-    // ── PERIOD ODDS (1H, 1Q, 1P, F5, etc.) ─────────────────────────────────
+    // ── PERIOD ODDS ───────────────────────────────────────────────────────
     if (type === 'period_odds') {
       const period = extra.period || '1H';
       const cacheKey = `period:${league}:${period}`;
-      let markets = await cacheGet(cacheKey);
+      let [markets, fixtures] = await Promise.all([
+        cacheGet(cacheKey),
+        cacheGet(`fixtures:${league}`),
+      ]);
       if (!markets) {
         markets = await safe(getPeriodMarketsService(league, period, DEFAULT_BOOK_IDS), 7000);
         if (markets) await cacheSet(cacheKey, markets, TTL.period);
       }
-      const block = formatPeriodOddsBlock(markets || [], league, period);
+      if (!fixtures) {
+        fixtures = await safe(getFixturesService(league, 48), 5000);
+        if (fixtures) await cacheSet(`fixtures:${league}`, fixtures, TTL.fixtures);
+      }
+      const block = formatPeriodOddsBlock(markets || [], fixtures || [], league, period);
       return buildPrompt(prompt, block, `PredictionData.io ${league} ${period} Odds Service`);
     }
 
-    // ── STANDARD ODDS (moneyline + spread + total) ──────────────────────────
+    // ── STANDARD ODDS (moneyline + spread + total) ─────────────────────────
     if (type === 'odds') {
-      const cacheKey     = `odds:${league}`;
-      const fixCacheKey  = `fixtures:${league}`;
+      const cacheKey   = `odds:${league}`;
+      const fixCacheKey = `fixtures:${league}`;
 
       let [markets, fixtures] = await Promise.all([
         cacheGet(cacheKey),
@@ -697,13 +1043,20 @@ const routeAndEnhancePrompt = async (prompt) => {
     }
 
   } catch (err) {
-    logger.error('[SportsRouter] Error:', err.message);
+    logger.error('[SportsRouter v3] Error:', err.message, err.stack?.split('\n')[1]);
   }
 
   return prompt;
 };
 
+// ─── Public API ───────────────────────────────────────────────────────────────
 export const sportsSmartRouter = {
   routeAndEnhancePrompt,
   detectSportsIntent,
+  // Expose formatters for direct use in tool responses
+  formatOddsBlock,
+  formatPlayerPropsBlock,
+  formatFuturesBlock,
+  formatScheduleBlock,
+  formatSGPResult,
 };

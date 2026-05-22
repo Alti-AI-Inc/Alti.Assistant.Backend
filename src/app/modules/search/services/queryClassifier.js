@@ -812,6 +812,28 @@ export function classifyFinancialQuery(query) {
     indices: 0.92,
     earnings: 0.88,
     news: 0.85,
+    // New intent types
+    compare: 0.97,
+    ipo_calendar: 0.96,
+    analyst: 0.94,
+    stock_financials: 0.95,
+    income_statement: 0.95,
+    balance_sheet: 0.95,
+    movers: 0.93,
+    short_interest: 0.94,
+    week52: 0.93,
+    dividend: 0.92,
+    technical: 0.94,
+    sector: 0.91,
+    commodity: 0.93,
+    index: 0.92,
+    market_overview: 0.96,
+    market_news: 0.87,
+    crypto_overview: 0.94,
+    forex_overview: 0.94,
+    stock_group: 0.93,
+    crypto_technical: 0.94,
+    currency_convert: 0.98,
   };
 
   const confidence = confidenceMap[intent.type] || 0.80;
