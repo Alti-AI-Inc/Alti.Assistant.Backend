@@ -35,6 +35,20 @@ import {
   massiveMomentumTrader,
   massiveRiskArbitrageur
 } from './massive.agents.extended.js';
+import {
+  massiveInsiderFlowTracker,
+  massiveOptionsFlowAlert,
+  massiveFixedIncomeDesk,
+  massiveREITAnalyst,
+  massiveGlobalMarketsDesk,
+  massiveQuantScreener,
+  massiveCryptoDefiResearcher,
+  massiveBehavioralCoach,
+  massiveEconomicCalendarAgent,
+  massiveAlternativesAdvisor,
+  massiveTaxStrategyAdvisor,
+  massiveRetirementPlanner
+} from './massive.agents.pro.js';
 
 import {
   dataProcessorAgent,
@@ -174,6 +188,20 @@ export const customAgents = [
   massiveIPOAnalyst,
   massiveMomentumTrader,
   massiveRiskArbitrageur,
+  // Pro 12: insider flow, options flow, fixed income, REIT, global markets,
+  // quant screener, DeFi, behavioral, calendar, alternatives, tax, retirement
+  massiveInsiderFlowTracker,
+  massiveOptionsFlowAlert,
+  massiveFixedIncomeDesk,
+  massiveREITAnalyst,
+  massiveGlobalMarketsDesk,
+  massiveQuantScreener,
+  massiveCryptoDefiResearcher,
+  massiveBehavioralCoach,
+  massiveEconomicCalendarAgent,
+  massiveAlternativesAdvisor,
+  massiveTaxStrategyAdvisor,
+  massiveRetirementPlanner,
 
   dataProcessorAgent,
   dataEtlSynthesizer,
@@ -298,6 +326,18 @@ export {
   massiveIPOAnalyst,
   massiveMomentumTrader,
   massiveRiskArbitrageur,
+  massiveInsiderFlowTracker,
+  massiveOptionsFlowAlert,
+  massiveFixedIncomeDesk,
+  massiveREITAnalyst,
+  massiveGlobalMarketsDesk,
+  massiveQuantScreener,
+  massiveCryptoDefiResearcher,
+  massiveBehavioralCoach,
+  massiveEconomicCalendarAgent,
+  massiveAlternativesAdvisor,
+  massiveTaxStrategyAdvisor,
+  massiveRetirementPlanner,
 
   dataProcessorAgent,
   dataEtlSynthesizer,
