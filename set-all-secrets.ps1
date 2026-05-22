@@ -40,7 +40,8 @@ function Set-GcpSecret {
         return
     }
     $tmp = [System.IO.Path]::GetTempFileName()
-    [System.IO.File]::WriteAllText($tmp, $Value, [System.Text.Encoding]::UTF8)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($tmp, $Value, $utf8NoBom)
     & $GCLOUD_CMD secrets describe $Name --project=$PROJECT_ID 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) {
         & $GCLOUD_CMD secrets versions add $Name --data-file=$tmp --project=$PROJECT_ID --quiet 2>$null
