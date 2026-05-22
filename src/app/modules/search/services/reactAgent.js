@@ -232,6 +232,110 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
     },
   });
 
+  const lookupHuggingfaceIndicesTool = new DynamicTool({
+    name: 'lookup-huggingface-indices',
+    description: `Search Alti's local registry of fully indexed, commercially clean Hugging Face datasets. Use this when the user asks about specific domains or documents that might be in Alti's dataset repository (e.g. historical stock prices, academic literature, weather patterns, or specific custom datasets). Input is an optional search query string to filter dataset name and description.`,
+    async func(keyword = '') {
+      try {
+        const { default: Dataset } = await import('../../datasets/datasets.model.js');
+        
+        let query = { status: 'indexed' };
+        if (keyword && keyword.trim()) {
+          const trimmed = keyword.trim();
+          query = {
+            $and: [
+              { status: 'indexed' },
+              {
+                $or: [
+                  { datasetId: { $regex: trimmed, $options: 'i' } },
+                  { name: { $regex: trimmed, $options: 'i' } },
+                  { description: { $regex: trimmed, $options: 'i' } },
+                ]
+              }
+            ]
+          };
+        }
+        
+        const datasets = await Dataset.find(query, 'datasetId name description tags rowCount features').limit(10);
+        
+        if (datasets.length === 0) {
+          return 'No matching indexed Hugging Face datasets found in Alti\'s local registry.';
+        }
+        
+        return JSON.stringify(datasets.map(d => ({
+          datasetId: d.datasetId,
+          name: d.name,
+          description: d.description,
+          tags: d.tags,
+          rowCount: d.rowCount,
+          features: d.features
+        })));
+      } catch (err) {
+        return `Failed to lookup Hugging Face indices: ${err.message}`;
+      }
+    }
+  });
+
+  const queryHuggingfaceIndexTool = new DynamicTool({
+    name: 'query-huggingface-index',
+    description: `Retrieve relevant context chunks from a specific indexed Hugging Face dataset. Use this after identifying a relevant dataset from 'lookup-huggingface-indices' to search its contents. Input must be a JSON object with: {"datasetId": "...", "query": "...", "limit": 5}.`,
+    async func(rawInput) {
+      try {
+        let payload = {};
+        if (typeof rawInput === 'string') {
+          const trimmed = rawInput.trim();
+          if (trimmed.startsWith('{')) {
+            try {
+              payload = JSON.parse(trimmed);
+            } catch (err) {
+              payload = { query: rawInput };
+            }
+          } else {
+            payload = { query: rawInput };
+          }
+        } else if (typeof rawInput === 'object' && rawInput !== null) {
+          payload = rawInput;
+        }
+
+        const datasetId = payload.datasetId;
+        const query = payload.query;
+        const limit = payload.limit || 5;
+
+        if (!datasetId) {
+          return 'Error: Missing "datasetId" in input.';
+        }
+        if (!query) {
+          return 'Error: Missing "query" in input.';
+        }
+
+        const { rag } = await import('../../knowledge/knowledge.service.js');
+        await rag.initialize();
+
+        const results = await rag.documentStore.retrieveDocuments(query, {
+          filter: {
+            ownerType: 'dataset',
+            ownerId: datasetId
+          },
+          k: limit
+        });
+
+        if (!results || results.length === 0) {
+          return `No relevant information found in Hugging Face dataset: "${datasetId}" for query: "${query}".`;
+        }
+
+        return JSON.stringify(results.map((r, idx) => ({
+          rank: idx + 1,
+          content: r.content,
+          title: r.title,
+          split: r.metadata?.split || 'unknown',
+          config: r.metadata?.config || 'unknown'
+        })));
+      } catch (err) {
+        return `Failed to query Hugging Face index: ${err.message}`;
+      }
+    }
+  });
+
   const tools = [
     vertexAiService.asTool(),
     massiveFinancialTool,
@@ -241,6 +345,8 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
     altiGreenlightIntelligenceSearch,
     altiPremiumIntelligenceSearch,
     googleSearch,
+    lookupHuggingfaceIndicesTool,
+    queryHuggingfaceIndexTool,
     new WebBrowser({
       model: selectedLLM, // Use selected model
       embeddings: new SafeGoogleGenerativeAIEmbeddings({
@@ -395,8 +501,11 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
   * "newsapi_global_news_search" tool → Event Registry / NewsAPI.ai (verified global news article counts, sentiment trends, social share densities, primary categories, trust indices, and live headline bulletins)
   * "alti_greenlight_intelligence_search" tool → Nine high-value public intelligence databases (FEC politics, LegiScan tracking, Google Civic representatives, DBnomics economics, CFPB HMDA mortgages, OpenFEMA hazards, NIH RePORTER grants, UK Companies House, OpenCorporates global registry)
   * "alti_premium_intelligence_search" tool → Nine high-value premium public intelligence databases (clinical_trials, fda_drug_safety, global_health_observatory, us_treasury_fiscal, federal_spending, healthcare_npi, food_nutrients, charity_registry, aviation_delays)
+  * "lookup-huggingface-indices" tool → Search Alti's local registry of fully indexed, commercially clean Hugging Face datasets.
+  * "query-huggingface-index" tool → Scoped vector search to query specific indexed Hugging Face datasets (e.g. bluuebunny/arxiv_metadata_by_year, Detroit Red Wings schedule, custom academic/weather repositories).
   * "Google_Custom_Search" tool → Live internet search
 - ENTERPRISE KNOWLEDGE DIRECTIVE: For ANY query regarding internal documents, blueprints, secure manuals, standard operating procedures, or private knowledge bases, you MUST call the "vertex-ai-search" tool FIRST.
+- HUGGING FACE DATASET DIRECTIVE: For ANY query asking about Alti's indexed datasets, or seeking factual context from specific domains (like ArXiv papers, custom academic/weather indexes, or general structured repositories), you MUST call "lookup-huggingface-indices" first to check if Alti has the dataset indexed locally. If found, call "query-huggingface-index" to retrieve high-fidelity source facts instead of standard web searches!
 - SPORTS BETTING TOOL DIRECTIVE: For ANY query about sports odds, betting lines, player props, futures, point spreads, totals, SGP, or prediction market odds, you MUST call the "predictiondata-sports-odds" tool FIRST before using Google Search.
 - FINANCIAL TOOL DIRECTIVE: For ANY query about stock prices, crypto, forex, or market data, you MUST call the "massive-financial-data" tool FIRST.
 - AVIATION TOOL DIRECTIVE: For ANY query about flights, airport timetables, routes, fleets, or aircraft tail registrations, you MUST call the "aviationstack-realtime-data" tool FIRST before standard Google search.

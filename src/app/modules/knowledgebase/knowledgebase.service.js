@@ -1,6 +1,7 @@
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import { RAGSystem } from 'rag-system-pgvector';
+import { enableHybridSearch } from '../../../shared/hybridSearch.js';
 import path from 'path';
 import KnowledgeBase from './knowledgebase.model.js';
 import KnowledgebaseFile from './knowledgebase.files.model.js';
@@ -37,6 +38,7 @@ const ragConfig = {
   embeddingDimensions: 768,
 };
 const rag = new RAGSystem(ragConfig);
+enableHybridSearch(rag);
 
 // Initialize Google Generative AI for token counting and summarization
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);

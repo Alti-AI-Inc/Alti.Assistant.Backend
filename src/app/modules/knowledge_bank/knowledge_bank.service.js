@@ -5,6 +5,7 @@ import path from 'path';
 import KnowledgeBankFile from './knowledge_bank.model.js';
 import KnowledgeBankFolder from './knowledge_bank_folder.model.js';
 import { RAGSystem } from 'rag-system-pgvector';
+import { enableHybridSearch } from '../../../shared/hybridSearch.js';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { SafeGoogleGenerativeAIEmbeddings } from '../../../shared/embeddings.js';
 import {
@@ -50,6 +51,7 @@ const ragConfig = {
 };
 
 const rag = new RAGSystem(ragConfig);
+enableHybridSearch(rag);
 
 /**
  * Knowledge Bank Service

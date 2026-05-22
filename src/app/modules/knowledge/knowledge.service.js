@@ -1,6 +1,7 @@
 import { SafeGoogleGenerativeAIEmbeddings } from '../../../shared/embeddings.js';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { RAGSystem } from 'rag-system-pgvector';
+import { enableHybridSearch } from '../../../shared/hybridSearch.js';
 import { Storage } from '@google-cloud/storage';
 import httpStatus from 'http-status';
 import config from '../../../../config/index.js';
@@ -57,6 +58,7 @@ const ragConfig = {
 };
 
 export const rag = new RAGSystem(ragConfig);
+enableHybridSearch(rag);
 
 /**
  * Unified Knowledge Service

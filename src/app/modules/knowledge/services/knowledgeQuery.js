@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import httpStatus from 'http-status';
 import { RAGSystem } from 'rag-system-pgvector';
+import { enableHybridSearch } from '../../../../shared/hybridSearch.js';
 import { SafeGoogleGenerativeAIEmbeddings } from '../../../../shared/embeddings.js';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import {
@@ -53,6 +54,7 @@ const ragConfig = {
 };
 
 const rag = new RAGSystem(ragConfig);
+enableHybridSearch(rag);
 
 /**
  * Detect query complexity based on keywords and context
