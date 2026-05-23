@@ -38,6 +38,444 @@ export const queryIndex = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4: SSE Streaming Query Endpoint
+// Delivers token-by-token response via Server-Sent Events
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIndexStream = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required and must be a non-empty string.' });
+    }
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    res.flushHeaders();
+
+    const onChunk = (event) => {
+      const payload = JSON.stringify(event);
+      res.write(`data: ${payload}\n\n`);
+    };
+
+    await ragService.queryDocumentStream(query, userId, onChunk);
+
+    res.end();
+  } catch (error) {
+    // If headers haven't been sent yet, respond with JSON error
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message });
+    } else {
+      // Otherwise send error as SSE event and close
+      res.write(`data: ${JSON.stringify({ type: 'error', data: error.message })}\n\n`);
+      res.end();
+    }
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4: Document Management Controllers
+// ─────────────────────────────────────────────────────────────────────────────
+export const getDocuments = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.listDocuments(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const removeDocument = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const { docId } = req.params;
+
+    if (!docId) {
+      return res.status(400).json({ error: 'Document ID is required.' });
+    }
+
+    const result = await ragService.deleteDocument(userId, docId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const clearDocuments = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.clearAllDocuments(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 5: Advanced Query Endpoint (Router + SubQuestion engines)
+// Supports modes: 'auto', 'router', 'subquestion', 'vector'
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIndexAdvanced = async (req, res) => {
+  try {
+    const { query, mode } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required and must be a non-empty string.' });
+    }
+
+    const validModes = ['auto', 'router', 'subquestion', 'vector'];
+    const selectedMode = validModes.includes(mode) ? mode : 'auto';
+
+    const answer = await ragService.queryDocumentAdvanced(query, userId, selectedMode);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 6: ReAct Agent Endpoint (autonomous agent with tool calling)
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIndexAgent = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    const answer = await ragService.queryDocumentAgent(query, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 6: CondenseQuestionChatEngine Endpoint (native LlamaIndex chat)
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIndexChatEngine = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    const answer = await ragService.queryDocumentChatEngine(query, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 6: Corpus Analytics & Insights
+// ─────────────────────────────────────────────────────────────────────────────
+export const corpusAnalytics = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const analytics = await ragService.getCorpusAnalytics(userId);
+    res.status(200).json(analytics);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 6: Chat History Summarization
+// ─────────────────────────────────────────────────────────────────────────────
+export const chatSummary = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const summary = await ragService.summarizeChatHistory(userId);
+    res.status(200).json(summary);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 7: Self-Correcting Query Pipeline
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIndexSelfCorrecting = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    const answer = await ragService.queryDocumentSelfCorrecting(query, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 7: Hybrid Search (Vector + Keyword Fusion via RRF)
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIndexHybrid = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    const answer = await ragService.queryDocumentHybrid(query, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 7: Pipeline Observability Dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+export const pipelineObservability = async (req, res) => {
+  try {
+    const data = ragService.getPipelineObservability();
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 7: Document Keyword Extraction
+// ─────────────────────────────────────────────────────────────────────────────
+export const documentKeywords = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const keywords = await ragService.extractDocumentKeywords(userId);
+    res.status(200).json(keywords);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 8: Full-Spectrum Retrieval (6 Retriever Types + RRF + MMR)
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIndexFullSpectrum = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    const answer = await ragService.queryDocumentFullSpectrum(query, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 8: ObjectIndex Agent (SimpleToolNodeMapping)
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIndexObjectAgent = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    const answer = await ragService.queryDocumentObjectAgent(query, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 8: Simple Chat (no index required)
+// ─────────────────────────────────────────────────────────────────────────────
+export const querySimpleChat = async (req, res) => {
+  try {
+    const { message } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message is required.' });
+    }
+
+    const answer = await ragService.querySimpleChat(message, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 8: Document Comparison
+// ─────────────────────────────────────────────────────────────────────────────
+export const compareDocumentsCtrl = async (req, res) => {
+  try {
+    const { docId1, docId2 } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!docId1 || !docId2) {
+      return res.status(400).json({ error: 'Both docId1 and docId2 are required.' });
+    }
+
+    const result = await ragService.compareDocuments(docId1, docId2, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 8: Export Corpus Snapshot
+// ─────────────────────────────────────────────────────────────────────────────
+export const exportCorpusSnapshotCtrl = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.exportCorpusSnapshot(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 9: Intelligent Query Classifier (auto-routes to best engine)
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryClassifyAndRoute = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    const answer = await ragService.classifyAndRoute(query, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 9: Context-Aware Chat (DefaultContextGenerator)
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryContextAwareChat = async (req, res) => {
+  try {
+    const { message } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message is required.' });
+    }
+
+    const answer = await ragService.queryContextAwareChat(message, userId);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 9: Index Diagnostics
+// ─────────────────────────────────────────────────────────────────────────────
+export const indexDiagnostics = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.getIndexDiagnostics(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 9: Pipeline Health Check
+// ─────────────────────────────────────────────────────────────────────────────
+export const pipelineHealthCheck = async (req, res) => {
+  try {
+    const result = await ragService.runPipelineHealthCheck();
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 9: Batch Document Processing
+// ─────────────────────────────────────────────────────────────────────────────
+export const batchProcess = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.batchProcessDocuments(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 9: Enhanced Streaming Query
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryEnhancedStream = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query is required.' });
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const result = await ragService.queryStreamingQuery(query, userId);
+
+    if (result.stream && typeof result.stream[Symbol.asyncIterator] === 'function') {
+      for await (const chunk of result.stream) {
+        const text = chunk.response || chunk.toString();
+        res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+      }
+    } else {
+      // Fallback: send entire response as single chunk
+      res.write(`data: ${JSON.stringify({ content: result.stream?.toString() || '' })}\n\n`);
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true, telemetry: result.telemetry })}\n\n`);
+    res.end();
+  } catch (error) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Phase 3: PDF Export Controller (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
 export const exportSessionPDF = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id || 'default_user';
