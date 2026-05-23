@@ -5,8 +5,9 @@ const strategy = new GoogleStrategy(
   {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: '/api/v1/auth-social/google/callback',
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/v1/auth-social/google/callback',
     scope: ['profile', 'email'],
+    proxy: true,
   },
   async (accessToken, refreshToken, profile, done) => {
     console.log('profile: google: ', profile);

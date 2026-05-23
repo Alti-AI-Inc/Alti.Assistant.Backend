@@ -182,10 +182,11 @@ const strategy = new TwitterStrategy(
   {
     clientID: process.env.TWITTER_CLIENT_ID,
     clientSecret: process.env.TWITTER_CLIENT_SECRET,
-    callbackURL: '/api/v1/auth-social/twitter/callback',
+    callbackURL: process.env.TWITTER_CALLBACK_URL || '/api/v1/auth-social/twitter/callback',
     clientType: 'confidential', // Important for web applications
     scope: ['tweet.read', 'users.read', 'offline.access'], // Standard scopes for reading profile
     passReqToCallback: false, // Set to false, we don't need the req object here
+    proxy: true,
   },
   async (accessToken, refreshToken, profile, done) => {
     console.log('profile: twitter: ', profile);

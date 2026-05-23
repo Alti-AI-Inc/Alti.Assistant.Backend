@@ -5,8 +5,9 @@ const strategy = new MicrosoftStrategy(
   {
     clientID: process.env.MICROSOFT_CLIENT_ID,
     clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-    callbackURL: '/api/v1/auth-social/microsoft/callback',
+    callbackURL: process.env.MICROSOFT_CALLBACK_URL || '/api/v1/auth-social/microsoft/callback',
     scope: ['profile', 'email'],
+    proxy: true,
   },
   async (accessToken, refreshToken, profile, done) => {
     console.log('profile: microsoft: ', profile);

@@ -5,8 +5,9 @@ const strategy = new GithubStrategy(
   {
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: '/api/v1/auth-social/github/callback',
+    callbackURL: process.env.GITHUB_CALLBACK_URL || '/api/v1/auth-social/github/callback',
     scope: ['profile', 'email'],
+    proxy: true,
   },
   async (accessToken, refreshToken, profile, done) => {
     console.log('profile: github: ', profile);

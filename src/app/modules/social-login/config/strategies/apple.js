@@ -8,7 +8,7 @@ const strategy = new AppleStrategy(
     keyID: process.env.APPLE_KEY_ID,
     // Ensure newline characters are correctly parsed from the environment variable
     privateKeyString: process.env.APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    callbackURL: '/api/v1/auth-social/apple/callback',
+    callbackURL: process.env.APPLE_CALLBACK_URL || '/api/v1/auth-social/apple/callback',
     scope: ['name', 'email'],
   },
   async (accessToken, refreshToken, idToken, profile, done) => {

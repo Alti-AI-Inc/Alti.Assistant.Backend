@@ -6,8 +6,9 @@ const strategy = new FacebookStrategy(
   {
     clientID: process.env.FACEBOOK_APP_ID,
     clientSecret: process.env.FACEBOOK_APP_SECRET,
-    callbackURL: '/api/v1/auth-social/facebook/callback',
+    callbackURL: process.env.FACEBOOK_CALLBACK_URL || '/api/v1/auth-social/facebook/callback',
     profileFields: ['id', 'displayName', 'photos', 'email'],
+    proxy: true,
   },
   async (accessToken, refreshToken, profile, done) => {
     logger.info('profile: facebook: ', profile);

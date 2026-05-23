@@ -5,8 +5,9 @@ const strategy = new DiscordStrategy(
   {
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: '/api/v1/auth-social/discord/callback',
+    callbackURL: process.env.DISCORD_CALLBACK_URL || '/api/v1/auth-social/discord/callback',
     scope: ['identify', 'email'],
+    proxy: true,
   },
   async (accessToken, refreshToken, profile, done) => {
     console.log('profile: discord: ', profile);
