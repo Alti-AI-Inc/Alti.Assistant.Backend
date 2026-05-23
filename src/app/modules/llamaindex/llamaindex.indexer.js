@@ -12,15 +12,7 @@ class GoogleLLM extends BaseLLM {
     super();
     this.client = new GoogleGenerativeAI(apiKey);
     this.modelName = modelName;
-    this.model = this.client.getGenerativeModel({ 
-      model: this.modelName,
-      systemInstruction: `You are Alti's premium real-time AI analyst. 
-Your goal is to answer the user's questions with high precision, clarity, and absolute truthfulness based strictly on the provided context information.
-Rules you MUST follow:
-1. Answer the question using ONLY the provided context blocks. Do NOT use external or pre-trained knowledge.
-2. If the context does not contain the answer, say "I cannot find the answer to this question in the provided document." and do not speculate.
-3. Be direct, professional, and clear. Maintain a sleek, enterprise-ready tone.`
-    });
+    this.model = this.client.getGenerativeModel({ model: this.modelName });
   }
 
   get metadata() {
@@ -211,6 +203,35 @@ export async function createIndexFromFile(filePath, originalName = '', userId = 
   } catch (err) {
     console.error(`LlamaIndex Storage: Failed to clear old index at ${persistDir}:`, err);
   }
+  // Ensure the persist directory exists recursively before storage initialization
+  try {
+    await fsPromises.mkdir(persistDir, { recursive: true });
+  } catch (err) {
+    console.error(`LlamaIndex Storage: Failed to create index directory at ${persistDir}:`, err);
+  }
+
+  // Generate and Inject document-level semantic profile (Phase 2 Auto-Summarization)
+  const fullText = documents.map(d => d.getText()).join('\n\n');
+  console.log('LlamaIndex Profiler: Building document summary profile...');
+  const profile = await generateDocumentProfile(fullText);
+  console.log('LlamaIndex Profiler: Profile generated:', profile);
+  
+  // Save profile to disk
+  const profilePath = path.join(persistDir, 'document_profile.json');
+  try {
+    await fsPromises.writeFile(profilePath, JSON.stringify(profile, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('LlamaIndex Profiler: Failed to write profile to disk:', err);
+  }
+
+  // Inject profile metadata to all documents so it propagates to individual chunks
+  for (const doc of documents) {
+    doc.metadata = {
+      ...doc.metadata,
+      docSummary: profile.summary,
+      docTopics: profile.topics.join(', ')
+    };
+  }
   
   // Create a persistent storage context
   const storageContext = await storageContextFromDefaults({ persistDir });
@@ -220,6 +241,130 @@ export async function createIndexFromFile(filePath, originalName = '', userId = 
   
   console.log(`LlamaIndex Indexer: Built & persisted index for user ${userId} to ${persistDir}`);
   return { message: 'Index created from file', file: originalName || filePath };
+}
+
+async function generateQueryVariations(query) {
+  const prompt = `You are a professional retrieval-query expander. Given a search query, generate exactly 3 alternative search queries that use synonyms, structural variations, or related terms to describe the user's intent. These variations are used to search a vector database.
+Return ONLY a valid JSON array of strings containing the 3 queries, e.g. ["query variation 1", "query variation 2", "query variation 3"] and nothing else. Do NOT use markdown backticks, explanations, or labels.
+
+Original Query: ${query}
+
+JSON Array:`;
+
+  try {
+    const result = await Settings.llm.chat({
+      messages: [{ role: 'user', content: prompt }]
+    });
+    const content = result.message.content.trim();
+    const cleaned = content.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const variations = JSON.parse(cleaned);
+    if (Array.isArray(variations) && variations.every(v => typeof v === 'string')) {
+      return variations;
+    }
+  } catch (err) {
+    console.error('LlamaIndex Multi-Query: Failed to generate query variations, falling back to original query.', err);
+  }
+  return [];
+}
+
+async function rerankNodesWithLLM(query, nodes) {
+  if (!nodes || nodes.length === 0) return [];
+  
+  const nodesStr = nodes.map((n, i) => `[Block ${i}]: ${n.node.getContent(MetadataMode.NONE)}`).join('\n\n');
+  const rerankPrompt = `You are a premium AI retrieval auditor. Given a search query and a list of text blocks, select the indexes of the blocks that contain the most direct, relevant information to answer the query.
+Order them by relevance, with the most relevant first.
+Return ONLY a valid JSON array of numbers representing the matching block indexes, e.g. [1, 3] and nothing else. Do not write any markdown code blocks or explanations.
+
+Search Query: ${query}
+
+Text Blocks:
+${nodesStr}
+
+Relevant Block Indexes:`;
+
+  try {
+    const result = await Settings.llm.chat({
+      messages: [{ role: 'user', content: rerankPrompt }]
+    });
+    const content = result.message.content.trim();
+    const cleaned = content.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const rerankedIndexes = JSON.parse(cleaned);
+    
+    if (Array.isArray(rerankedIndexes)) {
+      return rerankedIndexes
+        .map(idx => nodes[idx])
+        .filter(Boolean);
+    }
+  } catch (err) {
+    console.error('LlamaIndex Re-ranker: Failed to cognitive re-rank nodes, falling back to original vector relevance.', err);
+  }
+  
+  // Fallback to original order
+  return nodes;
+}
+
+async function generateDocumentProfile(fullText) {
+  if (!fullText || fullText.length < 50) {
+    return { summary: 'Short document with minimal text.', topics: [] };
+  }
+  
+  const textSample = fullText.substring(0, 15000); // Sample first 15k characters to keep token usage optimal and fast
+  const prompt = `You are a premium AI document profiler. Analyze the following document text and produce:
+1. A concise, professional 3-sentence summary of the document contents.
+2. A list of exactly 5 key topics covered in the document.
+
+Return ONLY a valid JSON object matching the following structure and nothing else. Do not use markdown backticks, explanations, or labels:
+{
+  "summary": "3-sentence summary text...",
+  "topics": ["topic 1", "topic 2", "topic 3", "topic 4", "topic 5"]
+}
+
+Document Text:
+${textSample}
+
+JSON Object:`;
+
+  try {
+    const result = await Settings.llm.chat({
+      messages: [{ role: 'user', content: prompt }]
+    });
+    const content = result.message.content.trim();
+    const cleaned = content.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const profile = JSON.parse(cleaned);
+    if (profile.summary && Array.isArray(profile.topics)) {
+      return profile;
+    }
+  } catch (err) {
+    console.error('LlamaIndex Profiler: Failed to generate document profile, returning default.', err);
+  }
+  return { summary: 'Unable to parse document summary automatically.', topics: [] };
+}
+
+async function queryGoogleSearchGrounding(query) {
+  try {
+    const client = new GoogleGenerativeAI(geminiApiKey);
+    const model = client.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      tools: [{ googleSearch: {} }]
+    });
+    
+    console.log(`LlamaIndex Grounding: Querying Google Search for "${query}"`);
+    const result = await model.generateContent(query);
+    const text = result?.response?.text() || '';
+    
+    return {
+      content: text,
+      sources: [
+        {
+          score: '1.000',
+          snippet: '[Google Search Grounding] Grounded dynamically using Google real-time search engine results.'
+        }
+      ]
+    };
+  } catch (err) {
+    console.error('LlamaIndex Grounding: Google Search Grounding failed.', err);
+    throw err;
+  }
 }
 
 export async function askQuery(query, userId = 'default_user') {
@@ -239,6 +384,18 @@ export async function askQuery(query, userId = 'default_user') {
     }
   } catch (err) {
     console.log(`LlamaIndex Memory: Failed to read history for user ${userId}, starting fresh.`);
+  }
+
+  // Load document profile summary if it exists (Phase 2 Priming)
+  const profilePath = path.join(persistDir, 'document_profile.json');
+  let docProfile = null;
+  try {
+    if (existsSync(profilePath)) {
+      const profileData = await fsPromises.readFile(profilePath, 'utf-8');
+      docProfile = JSON.parse(profileData);
+    }
+  } catch (err) {
+    console.log(`LlamaIndex Profiler: No summary profile found for user ${userId}.`);
   }
 
   // Load the index dynamically from the persisted storage context on disk
@@ -271,18 +428,50 @@ Standalone Question:`;
     }
   }
 
-  // 2. Query vector index with the refined standalone query
-  const queryEngine = loadedIndex.asQueryEngine({ similarityTopK: 5 });
-  const { sourceNodes } = await queryEngine.query({ query: refinedQuery });
+  // 2. Multi-Query Expansion & Parallel Retrieval
+  const variations = await generateQueryVariations(refinedQuery);
+  const allQueries = [refinedQuery, ...variations];
+  console.log(`LlamaIndex Retrieval: Querying index with ${allQueries.length} search variations.`);
 
-  // 3. Format the retrieved context nodes into clean reference snippets
-  const contextStr = sourceNodes && sourceNodes.length > 0 
-    ? sourceNodes.map((node, idx) => `[Node ${idx + 1}] (Source: ${node.node.metadata?.pageNumber ? `Page ${node.node.metadata.pageNumber}` : 'Document'}): ${node.node.getContent(MetadataMode.NONE)}`).join('\n\n')
+  const retriever = loadedIndex.asRetriever({ similarityTopK: 8 });
+  const retrievePromises = allQueries.map(q => retriever.retrieve({ query: q }));
+  const results = await Promise.all(retrievePromises);
+
+  // 3. Flatten and Deduplicate retrieved nodes
+  const nodeMap = new Map();
+  for (const nodeList of results) {
+    for (const node of nodeList) {
+      const nodeId = node.node.id_ || node.node.hash || node.node.getContent(MetadataMode.NONE);
+      if (!nodeMap.has(nodeId)) {
+        nodeMap.set(nodeId, node);
+      }
+    }
+  }
+  const uniqueNodes = Array.from(nodeMap.values());
+  console.log(`LlamaIndex Retrieval: Found ${uniqueNodes.length} unique nodes total.`);
+
+  // 4. Two-Stage LLM-based Re-ranking
+  console.log('LlamaIndex Re-ranker: Commencing cognitive re-ranking stage.');
+  const rerankedNodes = await rerankNodesWithLLM(refinedQuery, uniqueNodes);
+  
+  // Confine context synthesis strictly to the top-5 re-ranked nodes
+  const topNodes = rerankedNodes.slice(0, 5);
+  console.log(`LlamaIndex Re-ranker: Selected top ${topNodes.length} most relevant context blocks.`);
+
+  // 5. Format the retrieved context nodes into clean reference snippets
+  const contextStr = topNodes && topNodes.length > 0 
+    ? topNodes.map((node, idx) => `[Node ${idx + 1}] (Source: ${node.node.metadata?.fileName ? node.node.metadata.fileName : 'Document'}${node.node.metadata?.pageNumber ? `, Page ${node.node.metadata.pageNumber}` : ''}): ${node.node.getContent(MetadataMode.NONE)}`).join('\n\n')
     : 'No context retrieved.';
 
-  // 4. Synthesize final response utilizing context AND history
+  // 6. Synthesize final response utilizing context AND history
   const responsePrompt = `You are Alti's premium real-time AI analyst. 
-Answer the user's question with high precision, clarity, and absolute truthfulness based strictly on the provided context information and conversation history.
+Answer the user's question with high precision, clarity, and absolute truthfulness based strictly on the provided context information, document profile summary, and conversation history.
+
+${docProfile ? `Document Profile Summary:
+---------------------
+${docProfile.summary}
+Key Topics: ${docProfile.topics.join(', ')}
+---------------------` : ''}
 
 Provided Context Information:
 ---------------------
@@ -302,9 +491,38 @@ Rules you MUST follow:
   const result = await Settings.llm.chat({
     messages: [{ role: 'user', content: responsePrompt }]
   });
-  const reply = result.message.content.trim();
+  let reply = result.message.content.trim();
 
-  // 5. Append new exchange to the persistent chat history
+  // 7. Dynamic Web Grounding Fallback Check (Phase 2 Web Grounding)
+  const insufficientKeywords = [
+    "I cannot find the answer to this question in the provided document",
+    "cannot find the answer",
+    "does not contain information"
+  ];
+  const isInsufficient = insufficientKeywords.some(kw => reply.toLowerCase().includes(kw.toLowerCase()));
+
+  if (isInsufficient) {
+    console.log(`LlamaIndex Grounding: Local document context insufficient. Triggering Google Search Grounding Fallback for query: "${query}"`);
+    try {
+      const groundedResult = await queryGoogleSearchGrounding(query);
+      
+      // Save web search response in chat history instead of the flat rejection
+      chatHistory.push({ role: 'user', content: query });
+      chatHistory.push({ role: 'assistant', content: groundedResult.content });
+      
+      // Limit memory
+      if (chatHistory.length > 20) {
+        chatHistory = chatHistory.slice(-20);
+      }
+      await fsPromises.writeFile(historyPath, JSON.stringify(chatHistory, null, 2), 'utf-8');
+
+      return groundedResult;
+    } catch (groundingErr) {
+      console.error('LlamaIndex Grounding Fallback Warning: Web grounding failed. Returning original insufficient message.', groundingErr);
+    }
+  }
+
+  // 8. Append new exchange to the persistent chat history for successful local synthesis
   chatHistory.push({ role: 'user', content: query });
   chatHistory.push({ role: 'assistant', content: reply });
 
@@ -319,14 +537,14 @@ Rules you MUST follow:
     console.error(`LlamaIndex Memory: Failed to save chat history to ${historyPath}:`, err);
   }
 
-  // 6. Return response and formatted citations matching retrieved context nodes
+  // 9. Return response and formatted citations matching retrieved context nodes
   const data = {
     content: reply,
-    sources: sourceNodes?.map((node) => {
+    sources: topNodes?.map((node) => {
       const score = node.score !== undefined && node.score !== null ? node.score.toFixed(3) : '1.000';
       const meta = node.node.metadata || {};
-      const pageTag = meta.pageNumber ? `[Page ${meta.pageNumber}] ` : '';
-      const snippet = pageTag + node.node.getContent(MetadataMode.NONE).substring(0, 180).trim() + '...';
+      const fileTag = meta.fileName ? `[${meta.fileName}${meta.pageNumber ? `, p. ${meta.pageNumber}` : ''}] ` : '';
+      const snippet = fileTag + node.node.getContent(MetadataMode.NONE).substring(0, 200).trim() + '...';
       
       return {
         score,
