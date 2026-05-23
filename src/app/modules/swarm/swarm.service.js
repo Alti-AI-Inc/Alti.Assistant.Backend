@@ -9,10 +9,42 @@ import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
-// Agents with these tools get Google Search Grounding automatically
+// ═══════════════════════════════════════════════════════════════════════════════
+// PERPLEXITY-KILLER ENGINE — Smart Grounding, Citations, Related Questions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Agents with explicit search tools ALWAYS get grounding
 const SEARCH_TOOLS = ['google-search', 'web-search', 'youtube-search'];
-const needsSearchGrounding = (agent) =>
-  agent.tools && agent.tools.some(t => SEARCH_TOOLS.includes(t));
+
+// Smart intent detection: queries that need fresh web data regardless of agent
+const FRESHNESS_SIGNALS = [
+  // Time-sensitive
+  /\b(today|tonight|yesterday|this week|this month|right now|currently|latest|recent|just happened)\b/i,
+  // Pricing/market
+  /\b(price|cost|worth|stock|market|trading|bitcoin|crypto|nasdaq|s&p)\b/i,
+  // News/events
+  /\b(news|election|announced|released|launched|happened|update|breaking|crisis)\b/i,
+  // Weather/sports
+  /\b(weather|forecast|score|game|match|standings|playoffs|championship)\b/i,
+  // People/entities in current context
+  /\b(who is|where is|how old is|net worth|ceo of|president of|founded)\b/i,
+  // Comparisons needing current data
+  /\b(vs|versus|compared to|better than|cheaper than|faster than)\b/i,
+  // Statistics needing freshness
+  /\b(population|gdp|inflation|unemployment|interest rate|exchange rate)\b/i,
+];
+
+/**
+ * Determines if a query needs Google Search Grounding.
+ * Returns true if: agent has search tools OR query contains freshness signals.
+ */
+const needsSearchGrounding = (agent, query = '') => {
+  // Explicit tool-based grounding
+  if (agent.tools && agent.tools.some(t => SEARCH_TOOLS.includes(t))) return true;
+  // Smart intent-based grounding: detect if query needs fresh data
+  if (query && FRESHNESS_SIGNALS.some(pattern => pattern.test(query))) return true;
+  return false;
+};
 
 /**
  * Extracts structured citation sources from Gemini grounding metadata.
@@ -30,6 +62,87 @@ const extractGroundingCitations = (response) => {
     title: chunk.web?.title || `Source ${i + 1}`,
     domain: chunk.web?.uri ? new URL(chunk.web.uri).hostname.replace('www.', '') : '',
   })).filter(c => c.url);
+};
+
+/**
+ * Injects inline [1][2][3] citation markers into response text and appends a sources block.
+ * Uses groundingSupport from Gemini to place citations at the right positions.
+ */
+const injectInlineCitations = (text, citations, groundingMetadata) => {
+  if (!citations || citations.length === 0) return { text, sourcesBlock: '' };
+
+  // Build sources block (Perplexity-style)
+  const sourcesBlock = '\n\n---\n**Sources**\n' +
+    citations.map(c => `[${c.index}] [${c.title}](${c.url}) — *${c.domain}*`).join('\n');
+
+  // If grounding metadata has support segments, inject inline markers
+  const supports = groundingMetadata?.groundingSupports || [];
+  if (supports.length > 0) {
+    // Work backwards to not shift indices
+    let modifiedText = text;
+    const insertions = [];
+
+    for (const support of supports) {
+      const segment = support.segment;
+      const indices = support.groundingChunkIndices || [];
+      if (segment && segment.endIndex && indices.length > 0) {
+        const marker = indices.map(i => `[${i + 1}]`).join('');
+        insertions.push({ position: segment.endIndex, marker });
+      }
+    }
+
+    // Sort by position descending to insert without shifting
+    insertions.sort((a, b) => b.position - a.position);
+    for (const ins of insertions) {
+      if (ins.position <= modifiedText.length) {
+        modifiedText = modifiedText.slice(0, ins.position) + ins.marker + modifiedText.slice(ins.position);
+      }
+    }
+
+    return { text: modifiedText, sourcesBlock };
+  }
+
+  return { text, sourcesBlock };
+};
+
+/**
+ * Generates 3-4 related follow-up questions based on the query and response.
+ * Non-blocking — fires async and returns quickly.
+ */
+const generateRelatedQuestions = async (query, responseText) => {
+  try {
+    const result = await ai.models.generateContent({
+      model: 'gemini-2.0-flash-lite',
+      contents: `Based on this Q&A, generate exactly 3 follow-up questions the user might ask next. Return ONLY a JSON array of strings, nothing else.
+
+Question: ${query}
+Answer summary: ${responseText.substring(0, 500)}`,
+      config: {
+        temperature: 0.3,
+        maxOutputTokens: 200,
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const raw = result?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+    const parsed = JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
+    return Array.isArray(parsed) ? parsed.slice(0, 4) : [];
+  } catch (err) {
+    console.warn(`[RelatedQ] Failed to generate: ${err.message}`);
+    return [];
+  }
+};
+
+/**
+ * Strips common AI preambles and fluff from response text.
+ */
+const stripPreambles = (text) => {
+  if (!text) return text;
+  // Remove common AI preambles
+  return text
+    .replace(/^(Great question!|Sure!|Absolutely!|Of course!|I'd be happy to help!|Let me help you with that\.|Here's what I found:?|Based on my (research|analysis|search):?)\s*/i, '')
+    .replace(/^(Certainly!|Indeed!|That's a great question!|I can help with that!|Let me explain\.?)\s*/i, '')
+    .trim();
 };
 
 export class SwarmService {
@@ -112,19 +225,18 @@ Instructions: ${agent.systemInstruction}`;
         }
       }
 
-      // Determine if this agent needs live web grounding
-      const useGrounding = needsSearchGrounding(agent);
+      // Determine if this agent needs live web grounding (smart detection)
+      const useGrounding = needsSearchGrounding(agent, query);
 
       if (useGrounding) {
         // ═══ GOOGLE SEARCH GROUNDING PATH (Perplexity-killer mode) ═══
-        // Use @google/genai SDK which supports tools: [{ googleSearch: {} }]
         console.log(`🔍 Search Grounding ENABLED for agent [${agent.name}]`);
 
         const groundedResult = await ai.models.generateContent({
           model: agent.model || 'gemini-3.5-flash',
           contents: finalPrompt,
           config: {
-            temperature: 0.05, // Near-zero for maximum factual accuracy
+            temperature: 0.05,
             maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
             systemInstruction: agent.systemInstruction,
             tools: [{ googleSearch: {} }],
@@ -132,25 +244,38 @@ Instructions: ${agent.systemInstruction}`;
         });
 
         const candidate = groundedResult.candidates?.[0];
-        const text = candidate?.content?.parts
+        let rawText = candidate?.content?.parts
           ?.filter((part) => part.text && !part.thought)
           ?.map((part) => part.text)
           ?.join('') || '';
 
-        // Extract real citations from Google Search Grounding metadata
+        // Extract citations from Google Search Grounding
         const citations = extractGroundingCitations(groundedResult);
+        const groundingMeta = candidate?.groundingMetadata || null;
+
+        // Inject inline [1][2][3] markers + sources block
+        const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, citations, groundingMeta);
+
+        // Strip preambles
+        const cleanText = stripPreambles(citedText) + sourcesBlock;
+
         if (citations.length > 0) {
           console.log(`📎 Extracted ${citations.length} grounded citations for agent [${agent.name}]`);
         }
 
-        accumulatedText = text;
-        currentContextInput = text;
+        // Generate related questions (non-blocking)
+        const relatedQuestions = await generateRelatedQuestions(query, cleanText).catch(() => []);
+
+        accumulatedText = cleanText;
+        currentContextInput = cleanText;
 
         return {
-          reply: text,
+          reply: cleanText,
           citations,
-          groundingMetadata: candidate?.groundingMetadata || null,
-          webSearchQueries: candidate?.groundingMetadata?.webSearchQueries || [],
+          relatedQuestions,
+          groundingMetadata: groundingMeta,
+          webSearchQueries: groundingMeta?.webSearchQueries || [],
+          searchEntryPoint: groundingMeta?.searchEntryPoint || null,
         };
       }
 
@@ -179,12 +304,15 @@ Instructions: ${agent.systemInstruction}`;
         }
       });
 
-      const text = result?.response?.text() || '';
+      const text = stripPreambles(result?.response?.text() || '');
       accumulatedText = text;
       currentContextInput = text;
     }
 
-    return { reply: accumulatedText };
+    // Generate related questions for all responses
+    const relatedQuestions = await generateRelatedQuestions(query, accumulatedText).catch(() => []);
+
+    return { reply: accumulatedText, relatedQuestions };
   }
 
   /**
@@ -300,8 +428,8 @@ Instructions: ${agent.systemInstruction}`;
       }
 
       try {
-        // Determine if this agent needs live web grounding
-        const useGrounding = needsSearchGrounding(agent);
+        // Determine if this agent needs live web grounding (smart detection)
+        const useGrounding = needsSearchGrounding(agent, query);
         let streamResult;
         let groundedCitations = [];
 
@@ -309,8 +437,6 @@ Instructions: ${agent.systemInstruction}`;
           // ═══ GROUNDED STREAMING PATH (Perplexity-killer mode) ═══
           console.log(`🔍 Search Grounding ENABLED (streaming) for agent [${agent.name}]`);
 
-          // Use non-streaming grounded call, then yield result as chunks
-          // (Google Search Grounding does not support streaming yet in @google/genai)
           const groundedResult = await ai.models.generateContent({
             model: agent.model || 'gemini-3.5-flash',
             contents: finalPrompt,
@@ -323,20 +449,27 @@ Instructions: ${agent.systemInstruction}`;
           });
 
           const candidate = groundedResult.candidates?.[0];
-          const fullText = candidate?.content?.parts
+          let rawText = candidate?.content?.parts
             ?.filter((part) => part.text && !part.thought)
             ?.map((part) => part.text)
             ?.join('') || '';
 
           groundedCitations = extractGroundingCitations(groundedResult);
+          const groundingMeta = candidate?.groundingMetadata || null;
+
+          // Inject inline [1][2][3] markers + sources block
+          const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, groundedCitations, groundingMeta);
+          const cleanText = stripPreambles(citedText);
+          const fullOutput = cleanText + sourcesBlock;
+
           if (groundedCitations.length > 0) {
             console.log(`📎 Extracted ${groundedCitations.length} citations for agent [${agent.name}]`);
           }
 
           // Simulate streaming by chunking the grounded response
           const chunkSize = 80;
-          for (let i = 0; i < fullText.length; i += chunkSize) {
-            const textChunk = fullText.substring(i, i + chunkSize);
+          for (let i = 0; i < fullOutput.length; i += chunkSize) {
+            const textChunk = fullOutput.substring(i, i + chunkSize);
             yield {
               type: 'text',
               content: textChunk,
@@ -344,16 +477,16 @@ Instructions: ${agent.systemInstruction}`;
             };
           }
 
-          accumulatedText += isPrimary ? fullText : `\n\n${fullText}`;
-          currentContextInput = fullText;
+          accumulatedText += isPrimary ? fullOutput : `\n\n${fullOutput}`;
+          currentContextInput = cleanText;
 
-          // Yield grounding citations as metadata
+          // Yield grounding citations as structured metadata
           if (groundedCitations.length > 0) {
             yield {
               type: 'metadata',
               citations: groundedCitations,
-              webSearchQueries: candidate?.groundingMetadata?.webSearchQueries || [],
-              searchEntryPoint: candidate?.groundingMetadata?.searchEntryPoint || null,
+              webSearchQueries: groundingMeta?.webSearchQueries || [],
+              searchEntryPoint: groundingMeta?.searchEntryPoint || null,
               timestamp: Date.now()
             };
           }
@@ -435,6 +568,20 @@ Instructions: ${agent.systemInstruction}`;
         type: 'agent_end',
         agentId: agent.id
       };
+    }
+
+    // Generate related follow-up questions and yield as final metadata
+    try {
+      const relatedQuestions = await generateRelatedQuestions(query, accumulatedText);
+      if (relatedQuestions.length > 0) {
+        yield {
+          type: 'related_questions',
+          questions: relatedQuestions,
+          timestamp: Date.now()
+        };
+      }
+    } catch (err) {
+      // Non-fatal — don't crash the stream
     }
 
     console.log(`📡 Swarm Engine: Completed execution chain of ${pipeline.chain.length} agents successfully.`);
