@@ -1,6 +1,6 @@
 /**
  * Real-Time Search and Grounding Specialists
- * These agents have tools: ['tavily-search'] which triggers Google Search Grounding
+ * These agents have tools: ['google-search'] which triggers Google Search Grounding
  * in the Swarm Engine, giving them live web data with real citations.
  */
 
@@ -25,7 +25,7 @@ RULES:
 - If the information is time-sensitive (prices, scores, weather), note the data may be from the current moment.
 - Never fabricate statistics, dates, or URLs.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search', 'youtube-search'],
+  tools: ['google-search', 'youtube-search'],
   keywords: [
     'search', 'lookup', 'web search', 'latest news', 'current price', 'weather today',
     'sports schedule', 'game score', 'who won', 'what is the current status of', 'happenings'
@@ -46,7 +46,7 @@ FORMAT:
 - Bold key facts and figures.
 - Keep total response under 500 words unless the query demands more.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search'],
+  tools: ['google-search'],
   keywords: ['deep search', 'search the web', 'market data', 'compare products', 'latest stats', 'realtime facts', 'lookup details']
 };
 
@@ -94,7 +94,7 @@ FORMAT:
 - End with: "This is informational only, not financial advice."
 - Never fabricate ticker symbols, prices, or financial figures.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search'],
+  tools: ['google-search'],
   keywords: [
     'stock ticker', 'stock price', 'market cap', 'trading volume', 'pe ratio', 'earnings report',
     'sec filing', 'annual revenue', 'dividend yield', 'nasdaq', 'nyse', 'financial stats'
@@ -114,7 +114,7 @@ RULES:
 - Summarize: methodology → key finding → statistical significance → limitations.
 - Never over-extend a paper's claims.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search'],
+  tools: ['google-search'],
   keywords: [
     'doi lookup', 'find paper', 'scientific literature', 'arxiv preprint', 'peer reviewed study',
     'pubmed lookup', 'biorxiv search', 'citations study', 'academic article', 'research findings'
@@ -136,7 +136,7 @@ FORMAT:
 - Clearly label unverified claims as "UNCONFIRMED".
 - Never speculate on casualties, public safety, or geopolitical outcomes.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search'],
+  tools: ['google-search'],
   keywords: [
     'breaking news', 'latest events today', 'live update', 'breaking technical release',
     'global news feed', 'live stream incident', 'current world event', 'ongoing situation',
@@ -158,7 +158,7 @@ FORMAT:
 - **Limitations**: Bias vectors, heterogeneity, gaps.
 - Cite with DOI/PMCID. Never fabricate citations.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search'],
+  tools: ['google-search'],
   keywords: [
     'meta analysis', 'literature review', 'clinical trials database', 'scientific study synthesis',
     'academic preprint search', 'medical journal citation', 'hypothesis verification',

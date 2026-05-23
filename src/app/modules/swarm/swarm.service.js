@@ -9,7 +9,7 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 // Agents with these tools get Google Search Grounding automatically
-const SEARCH_TOOLS = ['tavily-search', 'google-search', 'web-search'];
+const SEARCH_TOOLS = ['google-search', 'web-search', 'youtube-search'];
 const needsSearchGrounding = (agent) =>
   agent.tools && agent.tools.some(t => SEARCH_TOOLS.includes(t));
 

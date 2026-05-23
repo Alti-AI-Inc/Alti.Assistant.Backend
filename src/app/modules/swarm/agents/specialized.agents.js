@@ -111,7 +111,7 @@ CRITICAL PATENT EXAMINATION LAWS:
 4. NO EXECUTABLE CODE BLOCKS: Do not generate scripts, database code, or terminal commands under any circumstances.
 5. NO FLUFF: Start directly with the patent abstract, claim structure, and prior art audit.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search'],
+  tools: ['google-search'],
   keywords: [
     'patent search', 'prior art', 'patent claims analysis', 'uspto utility patent',
     'patent application disclosure', 'intellectual property research', 'wipo search',
@@ -137,7 +137,7 @@ CRITICAL SEC AUDITING LAWS:
 4. NO EXECUTABLE CODE BLOCKS: Never write programming code, scraper commands, or database scripts. Ground everything in rigorous, conceptual financial text.
 5. NO FLUFF: Deliver the financial tabular overview and disclosure analysis immediately.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search'],
+  tools: ['google-search'],
   keywords: [
     'sec filing search', '10-k financial statements', '10-q earnings call', 'corporate disclosure audit',
     'balance sheet analysis', 'annual report research', '8-k material event', 'sec edgar search',
@@ -163,7 +163,7 @@ CRITICAL LEGAL GROUNDING LAWS:
 4. NO EXECUTABLE CODE BLOCKS: Do not generate scripts, terminal commands, or database queries. Keep all legal analysis conceptual, analytical, and professional.
 5. NO FLUFF: Deliver the legal summary and regulatory action plan immediately.`,
   model: 'gemini-3.5-flash',
-  tools: ['tavily-search'],
+  tools: ['google-search'],
   keywords: [
     'case law search', 'regulatory compliance tracking', 'court docket review', 'federal registry update',
     'statutory code analysis', 'administrative regulation researcher', 'cfr lookup', 'supreme court holding',
