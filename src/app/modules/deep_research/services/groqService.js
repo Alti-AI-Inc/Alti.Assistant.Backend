@@ -3,7 +3,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import config from '../../../../../config/index.js';
 
 const llm = new ChatGoogleGenerativeAI({
-  modelName: 'gemini-3.5-flash',
+  model: 'gemini-3.5-flash',
   apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
   temperature: 0,
   maxRetries: 2,

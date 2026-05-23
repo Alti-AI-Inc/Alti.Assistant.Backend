@@ -310,7 +310,7 @@ DO NOT:
             claudeMessages,
             {
               system: writingSystemPrompt,
-              maxTokens: config.claude.maxTokens || 4096,
+              maxTokens: config.claude?.maxTokens || 4096,
               temperature: 0.7, // Higher temperature for more creative writing
             }
           );
@@ -413,8 +413,8 @@ QUALITY STANDARDS:
             claudeMessages,
             {
               system: codeSystemPrompt,
-              maxTokens: config.claude.maxTokens || 4096,
-              temperature: config.claude.temperature || 0.7,
+              maxTokens: config.claude?.maxTokens || 4096,
+              temperature: config.claude?.temperature || 0.7,
             }
           );
 

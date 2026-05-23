@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { llm } from '../llm.js';
-import config from '../../../../config/index.js';
+import config from '../../../../../config/index.js';
 
 /**
  * A generic function to interact with the Gemini model mapped as Claude for writing tasks.

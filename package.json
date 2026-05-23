@@ -39,10 +39,9 @@
     "@langchain/core": "^0.3.62",
     "@langchain/google-genai": "^1.0.3",
     "@langchain/langgraph": "^0.0.21",
-
     "@massive.com/client-js": "^10.7.0",
     "@tavily/core": "^0.0.2",
-
+    "ai": "^4.3.19",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "body-parser": "^1.20.3",
@@ -67,13 +66,11 @@
     "i": "^0.3.7",
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.28",
-
     "llamaindex": "^0.11.9",
     "mailgun.js": "^10.2.4",
     "mammoth": "^1.11.0",
     "mongoose": "^8.1.0",
     "multer": "^2.0.1",
-
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.10.1",
@@ -92,10 +89,8 @@
     "pdfkit": "^0.17.1",
     "rag-system-pgvector": "^2.4.9",
     "redis": "^5.5.6",
-
     "socket.io": "^4.7.4",
     "stripe": "^19.1.0",
-
     "toobusy-js": "^0.5.1",
     "twilio": "^5.0.4",
     "uuid": "^13.0.0",

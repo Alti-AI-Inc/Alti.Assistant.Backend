@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import config from '../../../../config/index.js';
+import config from '../../../../../config/index.js';
 
 /**
  * A generic function to interact with Google Gemini 3.1 Pro for various coding tasks.

@@ -26,7 +26,7 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
   }
 
   const model = new ChatGoogleGenerativeAI({
-    modelName: 'gemini-3.5-flash',
+    model: 'gemini-3.5-flash',
     temperature: 0.7,
     apiKey: config.gemini_secret_key,
   });

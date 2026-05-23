@@ -114,8 +114,8 @@ class ClaudeService {
       const model = this.client.getGenerativeModel(modelOptions);
 
       const generationConfig = {
-        maxOutputTokens: options.maxTokens || config.claude.maxTokens,
-        temperature: options.temperature || config.claude.temperature,
+        maxOutputTokens: options.maxTokens || config.claude?.maxTokens || 4096,
+        temperature: options.temperature || config.claude?.temperature || 0.7,
       };
       if (options.topP !== undefined) generationConfig.topP = options.topP;
 
@@ -208,8 +208,8 @@ class ClaudeService {
       const model = this.client.getGenerativeModel(modelOptions);
 
       const generationConfig = {
-        maxOutputTokens: options.maxTokens || config.claude.maxTokens,
-        temperature: options.temperature || config.claude.temperature,
+        maxOutputTokens: options.maxTokens || config.claude?.maxTokens || 4096,
+        temperature: options.temperature || config.claude?.temperature || 0.7,
       };
 
       const resultStream = await model.generateContentStream({
