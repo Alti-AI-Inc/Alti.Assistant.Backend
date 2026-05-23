@@ -32,9 +32,16 @@ export const withTenantFilter = (req, query = {}) => {
     return query;
   }
 
+  // Allow personal/legacy resources (where tenantId is null or undefined)
+  // to remain visible even when in a tenant/workspace. This prevents data-loss illusion
+  // for legacy users while keeping the backend multi-tenant secure.
   return {
     ...query,
-    tenantId,
+    $or: [
+      { tenantId },
+      { tenantId: null },
+      { tenantId: { $exists: false } }
+    ]
   };
 };
 
@@ -109,7 +116,19 @@ export const withTenantPipeline = (req, pipeline = []) => {
     return pipeline;
   }
 
-  return [{ $match: { tenantId } }, ...pipeline];
+  // Allow personal/legacy resources to be counted in aggregation statistics
+  return [
+    {
+      $match: {
+        $or: [
+          { tenantId },
+          { tenantId: null },
+          { tenantId: { $exists: false } }
+        ]
+      }
+    },
+    ...pipeline
+  ];
 };
 
 /**
