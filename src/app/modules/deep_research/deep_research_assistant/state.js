@@ -65,4 +65,11 @@ export const deepResearchAgentState = {
   errors: {
     value: null,
   },
+
+  // Conversation ID
+  conversationId: { value: null },
+
+  // Pre-flight settings
+  boardPersonas: { value: null },
+  consensusLevel: { value: null },
 };

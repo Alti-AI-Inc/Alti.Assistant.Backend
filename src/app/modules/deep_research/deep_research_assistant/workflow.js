@@ -67,14 +67,19 @@ export const runDeepResearchAgent = async (query, options = {}) => {
     conversationId = null,
     history = [],
     maxDepth = 3,
+    boardPersonas = ['McKinsey Strategy Partner', 'Gartner Research Director', 'YC Technical Architect'],
+    consensusLevel = 'majority',
   } = options;
 
   const initialState = {
     originalQuery: query,
+    conversationId: conversationId || config.configurable.thread_id,
     generatePdf,
     history,
     maxDepth,
     currentDepth: 0,
+    boardPersonas,
+    consensusLevel,
     metadata: {
       timestamp: new Date(),
       totalSearches: 0,

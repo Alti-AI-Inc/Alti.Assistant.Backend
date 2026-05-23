@@ -14,6 +14,9 @@ const deepResearchQuerySchema = z.object({
     conversationId: z.string().optional(),
     maxDepth: z.number().int().min(1).max(5).optional().default(3),
     userId: z.string().optional(), // For guest users
+    depth: z.enum(['fast', 'thorough']).optional().default('thorough'),
+    boardPersonas: z.array(z.string()).optional(),
+    consensusLevel: z.enum(['majority', 'unanimous']).optional(),
   }),
 });
 

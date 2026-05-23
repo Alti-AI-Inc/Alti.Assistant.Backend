@@ -22,6 +22,14 @@ router.post(
   deepResearchController.performDeepResearch
 );
 
+// Telemetry progress stream
+router.get(
+  '/telemetry',
+  optionalAuth(),
+  extractTenantContext,
+  deepResearchController.telemetryStream
+);
+
 // Get deep research statistics - authenticated users only
 router.get(
   '/stats',
@@ -36,6 +44,14 @@ router.get(
   optionalAuth(), // Allow guest access to download PDFs
   extractTenantContext, // Extract tenant context after auth
   deepResearchController.downloadPDF
+);
+
+// Download PPTX presentation endpoint - open to all for guest access
+router.get(
+  '/download-pptx/:savedId',
+  optionalAuth(), // Allow guest access to download PPTX
+  extractTenantContext, // Extract tenant context after auth
+  deepResearchController.downloadPPTX
 );
 
 export const deepResearchRoute = router;

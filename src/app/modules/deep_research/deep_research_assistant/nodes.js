@@ -2,6 +2,7 @@ import { runGroqTask } from '../services/groqService.js';
 import { TavilySearchTool } from '../utils/tavily-utils.js';
 import { generatePDFReport, savePDFToFile } from '../services/pdfService.js';
 import { saveResearchResult } from '../services/researchStorageService.js';
+import { emitTelemetryProgress } from '../services/telemetryService.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -10,11 +11,24 @@ import fs from 'fs';
  */
 export const initializeResearchNode = async (state) => {
   console.log('--- Node: initializeResearchNode ---');
-  const { originalQuery } = state;
+  const { originalQuery, conversationId } = state;
+
+  emitTelemetryProgress(conversationId, {
+    step: 'initialize',
+    message: 'Analyzing primary research query and generating strategic search plan...',
+    percentage: 10,
+  });
 
   const researchPlan = await generateResearchPlan(originalQuery);
 
+  emitTelemetryProgress(conversationId, {
+    step: 'initialize',
+    message: `Plan established: created ${researchPlan?.subQueries?.length || 3} dynamic search sub-queries.`,
+    percentage: 15,
+  });
+
   return {
+    conversationId,
     researchProgress: {
       phase: 'breadth_search',
       completedSteps: 1,
@@ -33,14 +47,23 @@ export const initializeResearchNode = async (state) => {
  */
 export const breadthFirstSearchNode = async (state) => {
   console.log('--- Node: breadthFirstSearchNode ---');
-  const { originalQuery, currentDepth } = state;
+  const { originalQuery, currentDepth, conversationId } = state;
+
+  emitTelemetryProgress(conversationId, {
+    step: 'breadth_search',
+    message: 'Initiating breadth-first search across web references...',
+    percentage: 20,
+  });
 
   try {
     // Generate multiple search queries for comprehensive coverage
     const searchQueries = await generateBreadthSearchQueries(originalQuery);
-    console.log(
-      `Generated ${searchQueries.length} search queries for breadth-first search`
-    );
+    
+    emitTelemetryProgress(conversationId, {
+      step: 'breadth_search',
+      message: `Generated ${searchQueries.length} strategic search queries. Crawling targets...`,
+      percentage: 25,
+    });
 
     const searchTool = new TavilySearchTool({
       apiKey: process.env.TAVILY_API_KEY,
@@ -51,8 +74,14 @@ export const breadthFirstSearchNode = async (state) => {
     const allSources = [];
 
     // Perform parallel searches for breadth coverage
+    let index = 0;
     for (const query of searchQueries) {
-      console.log(`Searching: "${query}"`);
+      index++;
+      emitTelemetryProgress(conversationId, {
+        step: 'breadth_search',
+        message: `[Search ${index}/${searchQueries.length}] Crawling: "${query.substring(0, 45)}..."`,
+        percentage: 25 + Math.floor((index / searchQueries.length) * 15),
+      });
 
       const searchResult = await searchTool.invoke({
         query,
@@ -82,7 +111,11 @@ export const breadthFirstSearchNode = async (state) => {
       }
     }
 
-    console.log(`Breadth search completed: ${allSources.length} sources found`);
+    emitTelemetryProgress(conversationId, {
+      step: 'breadth_search',
+      message: `Breadth search complete. Collected ${allSources.length} research references.`,
+      percentage: 40,
+    });
 
     return {
       breadthResults,
@@ -105,12 +138,15 @@ export const breadthFirstSearchNode = async (state) => {
   }
 };
 
-/**
- * Node: Step 2 - Analyze results and identify promising leads for deep diving
- */
 export const identifyPromisingLeadsNode = async (state) => {
   console.log('--- Node: identifyPromisingLeadsNode ---');
-  const { originalQuery, breadthResults, allSources } = state;
+  const { originalQuery, breadthResults, allSources, conversationId } = state;
+
+  emitTelemetryProgress(conversationId, {
+    step: 'identify_leads',
+    message: 'Analyzing breadth search results to extract key themes and strategic leads...',
+    percentage: 45,
+  });
 
   try {
     // Analyze all collected information to identify key themes and promising directions
@@ -175,6 +211,12 @@ Format your response as a JSON array of lead objects.`;
       promisingLeads = await extractLeadsFromText(leadsAnalysis, originalQuery);
     }
 
+    emitTelemetryProgress(conversationId, {
+      step: 'identify_leads',
+      message: `Extracted ${promisingLeads.length} strategic research leads. Compiling primary concept topology...`,
+      percentage: 50,
+    });
+
     // Build knowledge graph from discovered concepts
     const knowledgeGraph = await buildKnowledgeGraph(
       originalQuery,
@@ -209,7 +251,13 @@ Format your response as a JSON array of lead objects.`;
  */
 export const deepDiveResearchNode = async (state) => {
   console.log('--- Node: deepDiveResearchNode ---');
-  const { originalQuery, promisingLeads, allSources } = state;
+  const { originalQuery, promisingLeads, allSources, conversationId } = state;
+
+  emitTelemetryProgress(conversationId, {
+    step: 'deep_dive',
+    message: `Beginning granular deep dive into all ${promisingLeads.length} core leads...`,
+    percentage: 55,
+  });
 
   try {
     const searchTool = new TavilySearchTool({
@@ -221,6 +269,12 @@ export const deepDiveResearchNode = async (state) => {
 
     // Deep dive into each promising lead
     for (const [index, lead] of promisingLeads.entries()) {
+      emitTelemetryProgress(conversationId, {
+        step: 'deep_dive',
+        message: `[Lead ${index + 1}/${promisingLeads.length}] Deep crawling: "${lead.title.substring(0, 45)}..."`,
+        percentage: 55 + Math.floor((index / promisingLeads.length) * 15),
+      });
+
       console.log(
         `Deep diving into lead ${index + 1}/${promisingLeads.length}: ${lead.title}`
       );
@@ -278,9 +332,11 @@ export const deepDiveResearchNode = async (state) => {
       deepDiveResults.push(leadResults);
     }
 
-    console.log(
-      `Deep dive research completed for all ${promisingLeads.length} leads`
-    );
+    emitTelemetryProgress(conversationId, {
+      step: 'deep_dive',
+      message: 'Completed granular lead analysis. Flowing to C-Suite debate synthesis...',
+      percentage: 70,
+    });
 
     return {
       deepDiveResults,
@@ -318,7 +374,14 @@ export const synthesizeComprehensiveReportNode = async (state) => {
     promisingLeads,
     deepDiveResults,
     allSources,
+    conversationId,
   } = state;
+
+  emitTelemetryProgress(conversationId, {
+    step: 'synthesize_report',
+    message: 'Synthesizing all research data and generating dialectical tension indices...',
+    percentage: 75,
+  });
 
   try {
     // Calculate quality metrics
@@ -503,7 +566,14 @@ export const saveDeepResearchNode = async (state) => {
     deepDiveResults,
     allSources,
     quantitativeFacts,
+    conversationId,
   } = state;
+
+  emitTelemetryProgress(conversationId, {
+    step: 'save_research',
+    message: 'Saving finalized strategic research results to secure data vault...',
+    percentage: 95,
+  });
 
   try {
     const researchResult = {
@@ -514,11 +584,11 @@ export const saveDeepResearchNode = async (state) => {
       classification: 'deep_research',
       researchType: 'recursive_deep',
       qualityMetrics,
-      deepDiveResults: deepDiveResults.map((result) => ({
-        leadTitle: result.lead.title,
-        searchCount: result.deepSearches.length,
-        sourceCount: result.sources.length,
-        analysis: result.analysis,
+      deepDiveResults: (deepDiveResults || []).map((result) => ({
+        leadTitle: result?.lead?.title || '',
+        searchCount: result?.deepSearches?.length || 0,
+        sourceCount: result?.sources?.length || 0,
+        analysis: result?.analysis || '',
       })),
       metadata: {
         processingTime: new Date() - (metadata?.timestamp || new Date()),
@@ -564,7 +634,14 @@ export const generateDeepResearchPDFNode = async (state) => {
     metadata,
     qualityMetrics,
     quantitativeFacts,
+    conversationId,
   } = state;
+
+  emitTelemetryProgress(conversationId, {
+    step: 'generate_pdf',
+    message: 'Compiling McKinsey strategic briefing slide and flowing detailed bibliography...',
+    percentage: 98,
+  });
 
   if (!generatePdf) {
     return { pdfData: null };
@@ -648,6 +725,17 @@ export const generateDeepResearchPDFNode = async (state) => {
         console.warn('⚠️ Google Cloud Storage publishing bypassed (offline sandbox tolerance active):', gcsPublishErr.message);
       }
     }
+
+    emitTelemetryProgress(conversationId, {
+      step: 'completed',
+      message: 'Research successfully published to Google Cloud! Dynamic visual briefing is ready.',
+      percentage: 100,
+      metadata: {
+        savedId: metadata?.savedId || 'offline_mode_id',
+        gcsPdfUrl,
+        gcsTopologyUrl
+      }
+    });
 
     return {
       pdfData: {
@@ -1206,19 +1294,33 @@ export const clusterSourcesThematically = (sources) => {
  */
 export const boardDebateNode = async (state) => {
   console.log('--- Node: boardDebateNode ---');
-  const { finalReport } = state;
+  const { finalReport, conversationId, boardPersonas, consensusLevel } = state;
 
-  const debatePrompt = `You are a high-level strategic executive board consisting of three world-class expert personas:
-1. **McKinsey Strategy Partner:** Analyzes logical consistency, high-level corporate bottlenecks, strategic transition gaps, and commercial outcomes.
-2. **Gartner Research Director:** Audits quantitative forecast alignments, operational metrics, credibility scores, and trend logic.
-3. **YC Technical Architect:** Critiques technology dependencies, code scale hazards, safety vulnerabilities, and developer ecosystem friction.
+  const activePersonas = Array.isArray(boardPersonas) && boardPersonas.length > 0
+    ? boardPersonas
+    : ['McKinsey Strategy Partner', 'Gartner Research Director', 'YC Technical Architect'];
+
+  const consensusDesc = consensusLevel === 'unanimous'
+    ? 'unanimous strategic alignment (every board member must agree and resolve all outstanding points)'
+    : 'majority consensus decision-making (differences of opinions are highlighted and logged)';
+
+  emitTelemetryProgress(conversationId, {
+    step: 'board_debate',
+    message: `Initiating peer-review board debate with active personas: ${activePersonas.join(', ')}...`,
+    percentage: 80,
+  });
+
+  const debatePrompt = `You are a high-level strategic executive board consisting of the following active expert personas:
+${activePersonas.map((persona, idx) => `${idx + 1}. **${persona}:** Critiques the draft report based on its specialized industry domain context.`).join('\n')}
+
+We are targeting a consensus level of: ${consensusDesc}.
 
 You are performing a rigorous peer-review and logical audit on this research report.
 
 RESEARCH REPORT FOR AUDIT:
 ${finalReport}
 
-Simulate a structured, highly clinical, sharp, and constructive round-robin debate among these three executive board members. Each persona must focus on their specialty area to challenge the draft's assumptions, metrics, and conclusions. After the dialogue transcript, compile a summary of consensus recommendations for refinement.
+Simulate a structured, highly clinical, sharp, and constructive round-robin debate among these executive board members. Each persona must focus on their specialty area to challenge the draft's assumptions, metrics, and conclusions. After the dialogue transcript, compile a summary of consensus recommendations for refinement.
 
 Format your output as a clean markdown document with clear headings for each persona's critique and a final section for consensus recommendations.`;
 
@@ -1231,6 +1333,12 @@ Format your output as a clean markdown document with clear headings for each per
     ], false);
 
     console.log('[Executive Board] Consensus debate completed and transcript compiled');
+
+    emitTelemetryProgress(conversationId, {
+      step: 'board_debate',
+      message: 'Debate concluded successfully. Compilation transcript created.',
+      percentage: 85,
+    });
     
     return {
       metadata: {
@@ -1266,8 +1374,14 @@ Format your output as a clean markdown document with clear headings for each per
  */
 export const refineSynthesisNode = async (state) => {
   console.log('--- Node: refineSynthesisNode ---');
-  const { finalReport, metadata } = state;
+  const { finalReport, metadata, conversationId } = state;
   const reviewComments = metadata?.reviewComments || '';
+
+  emitTelemetryProgress(conversationId, {
+    step: 'refine_synthesis',
+    message: 'Refining report structure and resolving all board critique points...',
+    percentage: 90,
+  });
 
   const refinePrompt = `You are an elite principal research architect utilizing Gemini 1.5 Pro.
 You have been handed a draft research report along with a detailed executive board consensus debate transcript.
@@ -1300,6 +1414,12 @@ Produce the absolute best, most premium, PhD-grade final version of the report. 
     }
 
     console.log('[Refine Synthesis] Report refined and finalized successfully');
+
+    emitTelemetryProgress(conversationId, {
+      step: 'refine_synthesis',
+      message: 'Report re-synthesis complete. Proceeding to finalize records.',
+      percentage: 93,
+    });
 
     return {
       finalReport: cleanRefinedReport,
