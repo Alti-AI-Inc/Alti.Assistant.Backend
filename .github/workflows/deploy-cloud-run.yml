@@ -67,13 +67,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ── 7. Deploy to Cloud Run ───────────────────────────────────────────────
-      #
-      # ALL runtime secrets are read from GCP Secret Manager at deploy time.
-      # Add/remove entries here to control what the container receives.
-      # Format: ENV_VAR_NAME=SECRET_MANAGER_SECRET_NAME:latest
-      # Run set-all-secrets.ps1 to provision/update the secrets in Secret Manager.
-      #
+      - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image "${{ steps.vars.outputs.image_latest }}" \
