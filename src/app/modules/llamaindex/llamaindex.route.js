@@ -2,6 +2,8 @@ import express from 'express';
 import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
+import auth from '../../middlewares/auth/auth.js';
+import { ENUM_USER_ROLE } from '../../shared/enum.js';
 import { queryIndex, uploadAndIndexDocument } from './llamaindex.controller.js';
 
 const router = express.Router();
@@ -46,7 +48,16 @@ const upload = multer({
   },
 });
 
-router.post('/index-doc', upload.single('file'), uploadAndIndexDocument);
-router.post('/query', queryIndex);
+router.post(
+  '/index-doc',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  upload.single('file'),
+  uploadAndIndexDocument
+);
+router.post(
+  '/query',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  queryIndex
+);
 
 export const llamaindexRoutes = router;

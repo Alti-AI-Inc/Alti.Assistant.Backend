@@ -1,13 +1,15 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { BaseLLM, BaseEmbedding, Document, MetadataMode, Settings, VectorStoreIndex, SentenceSplitter } from 'llamaindex';
-import fs from 'node:fs/promises';
+import { BaseLLM, BaseEmbedding, Document, MetadataMode, Settings, VectorStoreIndex, SentenceSplitter, storageContextFromDefaults } from 'llamaindex';
+import fs from 'node:fs/2.0/promises'; // Wait, let's keep the standard fs
+import fsPromises from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'path';
 import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import config from '../../../../config/index.js';
 
 class GoogleLLM extends BaseLLM {
-  constructor(apiKey, modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro') {
+  constructor(apiKey, modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash') {
     super();
     this.client = new GoogleGenerativeAI(apiKey);
     this.modelName = modelName;
@@ -115,8 +117,6 @@ Settings.llm = new GoogleLLM(geminiApiKey);
 Settings.embedModel = new GoogleEmbedding(geminiApiKey);
 Settings.nodeParser = new SentenceSplitter({ chunkSize: 512, chunkOverlap: 64 });
 
-let index = null;
-
 async function extractTextAndBuildDocuments(filePath, originalName) {
   const ext = path.extname(originalName || filePath).toLowerCase();
   const fileName = originalName || path.basename(filePath);
@@ -125,7 +125,7 @@ async function extractTextAndBuildDocuments(filePath, originalName) {
 
   try {
     if (ext === '.pdf') {
-      const dataBuffer = await fs.readFile(filePath);
+      const dataBuffer = await fsPromises.readFile(filePath);
       const pdf = new PDFParse({ data: dataBuffer });
       const parsedData = await pdf.getText();
 
@@ -164,7 +164,7 @@ async function extractTextAndBuildDocuments(filePath, originalName) {
       ];
     } else {
       // Fallback for txt, md, csv, etc.
-      const text = await fs.readFile(filePath, 'utf-8');
+      const text = await fsPromises.readFile(filePath, 'utf-8');
       console.log(`LlamaIndex Ingestion: Read ${text.length} characters from text file`);
       
       return [
@@ -181,7 +181,7 @@ async function extractTextAndBuildDocuments(filePath, originalName) {
   } catch (error) {
     console.error(`LlamaIndex Ingestion Warning: Advanced parsing failed for ${ext}. Falling back to plain text read. Error:`, error);
     try {
-      const text = await fs.readFile(filePath, 'utf-8');
+      const text = await fsPromises.readFile(filePath, 'utf-8');
       return [
         new Document({
           text,
@@ -199,20 +199,42 @@ async function extractTextAndBuildDocuments(filePath, originalName) {
   }
 }
 
-export async function createIndexFromFile(filePath, originalName = '') {
+export async function createIndexFromFile(filePath, originalName = '', userId = 'default_user') {
   const documents = await extractTextAndBuildDocuments(filePath, originalName);
   
-  // Create Vector Store Index from parsed page-level or doc-level documents
-  index = await VectorStoreIndex.fromDocuments(documents);
+  const persistDir = path.resolve(`storage/ragsystem/${userId}`);
   
-  console.log(`LlamaIndex Indexer: Successfully built vector index from ${documents.length} documents.`);
+  // Clear previous index for this specific user to isolate the chat workspace
+  try {
+    if (existsSync(persistDir)) {
+      await fsPromises.rm(persistDir, { recursive: true, force: true });
+    }
+  } catch (err) {
+    console.error(`LlamaIndex Storage: Failed to clear old index at ${persistDir}:`, err);
+  }
+  
+  // Create a persistent storage context
+  const storageContext = await storageContextFromDefaults({ persistDir });
+  
+  // Ingest, parse, split, and save vectors to disk
+  await VectorStoreIndex.fromDocuments(documents, { storageContext });
+  
+  console.log(`LlamaIndex Indexer: Built & persisted index for user ${userId} to ${persistDir}`);
   return { message: 'Index created from file', file: originalName || filePath };
 }
 
-export async function askQuery(query) {
-  if (!index) throw new Error('Index not ready. Please run /index-doc first');
+export async function askQuery(query, userId = 'default_user') {
+  const persistDir = path.resolve(`storage/ragsystem/${userId}`);
+  
+  if (!existsSync(persistDir)) {
+    throw new Error('No active document indexed. Please upload a document to begin chatting.');
+  }
 
-  const queryEngine = index.asQueryEngine({ similarityTopK: 5 });
+  // Load the index dynamically from the persisted storage context on disk
+  const storageContext = await storageContextFromDefaults({ persistDir });
+  const loadedIndex = await VectorStoreIndex.init({ storageContext });
+  
+  const queryEngine = loadedIndex.asQueryEngine({ similarityTopK: 5 });
   const { message, sourceNodes } = await queryEngine.query({ query });
 
   const data = {
@@ -229,6 +251,6 @@ export async function askQuery(query) {
       };
     }) || [],
   };
-  console.log('Query Result:', data);
+  console.log(`Query Result for user ${userId}:`, data);
   return data;
 }

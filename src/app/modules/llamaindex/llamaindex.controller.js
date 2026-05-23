@@ -7,7 +7,8 @@ export const uploadAndIndexDocument = async (req, res) => {
 
     const filePath = req.file.path;
     const originalName = req.file.originalname;
-    const result = await ragService.uploadAndIndexDocumentService(filePath, originalName);
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.uploadAndIndexDocumentService(filePath, originalName, userId);
 
     // Optional: delete temp file
     await fs.unlink(filePath);
@@ -26,7 +27,8 @@ export const uploadAndIndexDocument = async (req, res) => {
 export const queryIndex = async (req, res) => {
   try {
     const { query } = req.body;
-    const answer = await ragService.queryDocument(query);
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const answer = await ragService.queryDocument(query, userId);
     res.status(200).json({ answer });
   } catch (error) {
     res.status(500).json({ error: error.message });
