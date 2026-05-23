@@ -35,6 +35,16 @@ const researchResultSchema = new mongoose.Schema(
         snippet: String,
       },
     ],
+    quantitativeFacts: [
+      {
+        metric: String,
+        value: String,
+        source: String,
+        url: String,
+        trustLevel: String,
+        verificationScore: Number,
+      },
+    ],
     metadata: {
       queryType: String,
       processingTime: Number,

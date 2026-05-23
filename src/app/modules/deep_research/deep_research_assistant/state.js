@@ -56,6 +56,11 @@ export const deepResearchAgentState = {
   // PDF content and metadata
   pdfData: { value: null },
 
+  // Phase 3 & 4: Quantitative statistics and verified facts
+  quantitativeFacts: {
+    value: null,
+  },
+
   // Error tracking
   errors: {
     value: null,

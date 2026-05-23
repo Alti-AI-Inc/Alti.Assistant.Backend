@@ -6,6 +6,8 @@ import {
   identifyPromisingLeadsNode,
   deepDiveResearchNode,
   synthesizeComprehensiveReportNode,
+  adversarialReviewNode,
+  refineSynthesisNode,
   saveDeepResearchNode,
   generateDeepResearchPDFNode,
 } from './nodes.js';
@@ -21,6 +23,8 @@ workflow.addNode('breadth_search', breadthFirstSearchNode);
 workflow.addNode('identify_leads', identifyPromisingLeadsNode);
 workflow.addNode('deep_dive', deepDiveResearchNode);
 workflow.addNode('synthesize_report', synthesizeComprehensiveReportNode);
+workflow.addNode('adversarial_review', adversarialReviewNode);
+workflow.addNode('refine_synthesis', refineSynthesisNode);
 workflow.addNode('save_research', saveDeepResearchNode);
 workflow.addNode('generate_pdf', generateDeepResearchPDFNode);
 
@@ -30,17 +34,24 @@ workflow.addEdge('initialize', 'breadth_search');
 workflow.addEdge('breadth_search', 'identify_leads');
 workflow.addEdge('identify_leads', 'deep_dive');
 workflow.addEdge('deep_dive', 'synthesize_report');
-workflow.addEdge('synthesize_report', 'save_research');
+workflow.addEdge('synthesize_report', 'adversarial_review');
+workflow.addEdge('adversarial_review', 'refine_synthesis');
+workflow.addEdge('refine_synthesis', 'save_research');
 workflow.addEdge('save_research', 'generate_pdf');
 workflow.addEdge('generate_pdf', END);
 
 // Initialize MongoDB checkpointer for conversation persistence
 let checkpointer;
-try {
-  checkpointer = await MongoDBSaver.fromUri(config.database_local, 'deep_research_agent_checkpoints');
-} catch (err) {
-  console.warn('⚠️ Deep research: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+if (process.env.DISABLE_MONGO_CHECKPOINTER === 'true') {
+  console.log('ℹ️ Deep research: MongoDB checkpointer disabled, using in-memory MemorySaver');
   checkpointer = new MemorySaver();
+} else {
+  try {
+    checkpointer = await MongoDBSaver.fromUri(config.database_local, 'deep_research_agent_checkpoints');
+  } catch (err) {
+    console.warn('⚠️ Deep research: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+    checkpointer = new MemorySaver();
+  }
 }
 
 // Compile the workflow with checkpointer
