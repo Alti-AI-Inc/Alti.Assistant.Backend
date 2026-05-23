@@ -367,6 +367,33 @@ async function queryGoogleSearchGrounding(query) {
   }
 }
 
+async function generateSuggestedQuestions(query, context, reply) {
+  const prompt = `You are a premium conversational AI analyst. Given a user's original search query, the retrieved context text blocks, and the AI's synthesized answer, generate exactly 3 highly relevant, interesting, and context-specific follow-up questions that the user can ask next to explore the topics deeper.
+Return ONLY a valid JSON array of strings containing the 3 questions, e.g. ["question 1", "question 2", "question 3"] and nothing else. Do NOT use markdown backticks, explanations, or labels.
+
+Original Query: ${query}
+AI Answer: ${reply}
+Context blocks:
+${context}
+
+JSON Array:`;
+
+  try {
+    const result = await Settings.llm.chat({
+      messages: [{ role: 'user', content: prompt }]
+    });
+    const content = result.message.content.trim();
+    const cleaned = content.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const suggestions = JSON.parse(cleaned);
+    if (Array.isArray(suggestions) && suggestions.every(s => typeof s === 'string')) {
+      return suggestions;
+    }
+  } catch (err) {
+    console.error('LlamaIndex Suggested Questions: Failed to generate suggestions, returning empty array.', err);
+  }
+  return [];
+}
+
 export async function askQuery(query, userId = 'default_user') {
   const persistDir = path.resolve(`storage/ragsystem/${userId}`);
   
@@ -505,7 +532,8 @@ Rules you MUST follow:
     console.log(`LlamaIndex Grounding: Local document context insufficient. Triggering Google Search Grounding Fallback for query: "${query}"`);
     try {
       const groundedResult = await queryGoogleSearchGrounding(query);
-      
+      const suggestions = await generateSuggestedQuestions(query, 'Google Search Grounding', groundedResult.content);
+
       // Save web search response in chat history instead of the flat rejection
       chatHistory.push({ role: 'user', content: query });
       chatHistory.push({ role: 'assistant', content: groundedResult.content });
@@ -516,7 +544,10 @@ Rules you MUST follow:
       }
       await fsPromises.writeFile(historyPath, JSON.stringify(chatHistory, null, 2), 'utf-8');
 
-      return groundedResult;
+      return {
+        ...groundedResult,
+        suggestedQuestions: suggestions
+      };
     } catch (groundingErr) {
       console.error('LlamaIndex Grounding Fallback Warning: Web grounding failed. Returning original insufficient message.', groundingErr);
     }
@@ -537,7 +568,10 @@ Rules you MUST follow:
     console.error(`LlamaIndex Memory: Failed to save chat history to ${historyPath}:`, err);
   }
 
-  // 9. Return response and formatted citations matching retrieved context nodes
+  // 9. Generate AI suggested follow-up questions (Phase 3 Suggested Questions)
+  const suggestions = await generateSuggestedQuestions(query, contextStr, reply);
+
+  // 10. Return response and formatted citations matching retrieved context nodes
   const data = {
     content: reply,
     sources: topNodes?.map((node) => {
@@ -551,6 +585,7 @@ Rules you MUST follow:
         snippet,
       };
     }) || [],
+    suggestedQuestions: suggestions
   };
   console.log(`Query Result for user ${userId}:`, data);
   return data;

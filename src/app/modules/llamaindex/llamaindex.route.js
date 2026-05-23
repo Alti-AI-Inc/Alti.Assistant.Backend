@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import auth from '../../middlewares/auth/auth.js';
 import { ENUM_USER_ROLE } from '../../shared/enum.js';
-import { queryIndex, uploadAndIndexDocument } from './llamaindex.controller.js';
+import { queryIndex, uploadAndIndexDocument, exportSessionPDF } from './llamaindex.controller.js';
 
 const router = express.Router();
 
@@ -58,6 +58,11 @@ router.post(
   '/query',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   queryIndex
+);
+router.get(
+  '/export-session',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  exportSessionPDF
 );
 
 export const llamaindexRoutes = router;
