@@ -2,7 +2,11 @@
 
 This repository has been integrated into the **[Alti.Assistant](https://github.com/mnmballa2323/Alti.Assistant)** monorepo as part of a transition to a single-repository architecture.
 
-All code, history, and active development have been moved to the parent repository. This repository is now empty and preserved for archival purposes.
+All code, history, and active development have been moved to the parent repository. This repository is now preserved for archival and Cloud Run CI/CD deployment purposes.
+
+## Release & Deployment Details
+- **Latest Version**: v1.7.3
+- **Last Verified Build**: May 23, 2026
 
 ## Production VM API Configuration Reference
 
