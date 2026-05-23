@@ -4,6 +4,7 @@ import config from '../../../../config/index.js';
 import { SynapseRouter } from './synapseRouter.js';
 import { GcpNativeService } from '../gcp_native/gcp-native.service.js';
 import { isExploriumAgent, getExploriumContext } from './explorium.smart.router.js';
+import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -41,7 +42,21 @@ export class SwarmService {
   static async executeSwarmSync(query, conversationHistory = []) {
     console.log(`📡 Swarm Engine (Sync): Building execution pipeline for query "${query}"`);
     const pipeline = SynapseRouter.buildExecutionPipeline(query);
+
+    // ═══ DATA ENRICHMENT: Pull real-time data from ALL data providers ═══
+    // Massive.com, PredictionData.io, RealEstateAPI, NewsAPI.ai, API-Sports,
+    // FRED, GLEIF, PatentsView, OpenSky, USDA, Copernicus, FHFA, HUD, etc.
     let currentContextInput = query;
+    try {
+      const enrichedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
+      if (enrichedPrompt && enrichedPrompt !== query) {
+        console.log(`📊 Data Enrichment: Real-time data injected from data providers`);
+        currentContextInput = enrichedPrompt;
+      }
+    } catch (err) {
+      console.warn(`📊 Data Enrichment: Skipped (${err.message}) — proceeding with raw query`);
+    }
+
     let accumulatedText = '';
 
     for (let index = 0; index < pipeline.chain.length; index++) {
@@ -184,7 +199,18 @@ Instructions: ${agent.systemInstruction}`;
     const pipeline = SynapseRouter.buildExecutionPipeline(query);
     console.log(`📡 Swarm Pipeline: Dynamic Chain composed of [${pipeline.chain.map(a => a.name).join(' -> ')}]`);
 
+    // ═══ DATA ENRICHMENT: Pull real-time data from ALL data providers ═══
     let currentContextInput = query;
+    try {
+      const enrichedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
+      if (enrichedPrompt && enrichedPrompt !== query) {
+        console.log(`📊 Data Enrichment (Stream): Real-time data injected from data providers`);
+        currentContextInput = enrichedPrompt;
+      }
+    } catch (err) {
+      console.warn(`📊 Data Enrichment (Stream): Skipped (${err.message}) — proceeding with raw query`);
+    }
+
     let accumulatedText = '';
     
     // Process each agent in the dynamic execution chain
