@@ -6,7 +6,8 @@ export const uploadAndIndexDocument = async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const filePath = req.file.path;
-    const result = await ragService.uploadAndIndexDocumentService(filePath);
+    const originalName = req.file.originalname;
+    const result = await ragService.uploadAndIndexDocumentService(filePath, originalName);
 
     // Optional: delete temp file
     await fs.unlink(filePath);

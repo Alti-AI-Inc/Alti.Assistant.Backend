@@ -1,14 +1,25 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { BaseLLM, BaseEmbedding, Document, MetadataMode, Settings, VectorStoreIndex } from 'llamaindex';
+import { BaseLLM, BaseEmbedding, Document, MetadataMode, Settings, VectorStoreIndex, SentenceSplitter } from 'llamaindex';
 import fs from 'node:fs/promises';
+import path from 'path';
+import { PDFParse } from 'pdf-parse';
+import mammoth from 'mammoth';
 import config from '../../../../config/index.js';
 
 class GoogleLLM extends BaseLLM {
-  constructor(apiKey, modelName = 'gemini-3.5-flash') {
+  constructor(apiKey, modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro') {
     super();
     this.client = new GoogleGenerativeAI(apiKey);
     this.modelName = modelName;
-    this.model = this.client.getGenerativeModel({ model: this.modelName });
+    this.model = this.client.getGenerativeModel({ 
+      model: this.modelName,
+      systemInstruction: `You are Alti's premium real-time AI analyst. 
+Your goal is to answer the user's questions with high precision, clarity, and absolute truthfulness based strictly on the provided context information.
+Rules you MUST follow:
+1. Answer the question using ONLY the provided context blocks. Do NOT use external or pre-trained knowledge.
+2. If the context does not contain the answer, say "I cannot find the answer to this question in the provided document." and do not speculate.
+3. Be direct, professional, and clear. Maintain a sleek, enterprise-ready tone.`
+    });
   }
 
   get metadata() {
@@ -102,28 +113,121 @@ class GoogleEmbedding extends BaseEmbedding {
 const geminiApiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
 Settings.llm = new GoogleLLM(geminiApiKey);
 Settings.embedModel = new GoogleEmbedding(geminiApiKey);
+Settings.nodeParser = new SentenceSplitter({ chunkSize: 512, chunkOverlap: 64 });
 
 let index = null;
 
-export async function createIndexFromFile(filePath) {
-  const text = await fs.readFile(filePath, 'utf-8');
-  const document = new Document({ text, id_: filePath });
+async function extractTextAndBuildDocuments(filePath, originalName) {
+  const ext = path.extname(originalName || filePath).toLowerCase();
+  const fileName = originalName || path.basename(filePath);
+  
+  console.log(`LlamaIndex Ingestion: Parsing file ${fileName} with extension ${ext}`);
 
-  index = await VectorStoreIndex.fromDocuments([document]);
-  return { message: 'Index created from file', file: filePath };
+  try {
+    if (ext === '.pdf') {
+      const dataBuffer = await fs.readFile(filePath);
+      const pdf = new PDFParse({ data: dataBuffer });
+      const parsedData = await pdf.getText();
+
+      if (!parsedData || !parsedData.pages || parsedData.pages.length === 0) {
+        throw new Error('PDF has no extractable text pages.');
+      }
+
+      console.log(`LlamaIndex Ingestion: Extracted ${parsedData.pages.length} pages from PDF`);
+
+      return parsedData.pages.map((page, idx) => {
+        return new Document({
+          text: page.text || '',
+          id_: `${filePath}_page_${idx + 1}`,
+          metadata: {
+            fileName,
+            fileType: 'pdf',
+            pageNumber: idx + 1
+          }
+        });
+      });
+    } else if (ext === '.docx' || ext === '.doc') {
+      const result = await mammoth.extractRawText({ path: filePath });
+      const text = result.value || '';
+      
+      console.log(`LlamaIndex Ingestion: Extracted ${text.length} characters from DOCX`);
+
+      return [
+        new Document({
+          text,
+          id_: filePath,
+          metadata: {
+            fileName,
+            fileType: 'docx'
+          }
+        })
+      ];
+    } else {
+      // Fallback for txt, md, csv, etc.
+      const text = await fs.readFile(filePath, 'utf-8');
+      console.log(`LlamaIndex Ingestion: Read ${text.length} characters from text file`);
+      
+      return [
+        new Document({
+          text,
+          id_: filePath,
+          metadata: {
+            fileName,
+            fileType: 'txt'
+          }
+        })
+      ];
+    }
+  } catch (error) {
+    console.error(`LlamaIndex Ingestion Warning: Advanced parsing failed for ${ext}. Falling back to plain text read. Error:`, error);
+    try {
+      const text = await fs.readFile(filePath, 'utf-8');
+      return [
+        new Document({
+          text,
+          id_: filePath,
+          metadata: {
+            fileName,
+            fileType: 'txt',
+            fallback: true
+          }
+        })
+      ];
+    } catch (fallbackError) {
+      throw new Error(`Failed to extract text from document: ${fallbackError.message}`);
+    }
+  }
 }
+
+export async function createIndexFromFile(filePath, originalName = '') {
+  const documents = await extractTextAndBuildDocuments(filePath, originalName);
+  
+  // Create Vector Store Index from parsed page-level or doc-level documents
+  index = await VectorStoreIndex.fromDocuments(documents);
+  
+  console.log(`LlamaIndex Indexer: Successfully built vector index from ${documents.length} documents.`);
+  return { message: 'Index created from file', file: originalName || filePath };
+}
+
 export async function askQuery(query) {
   if (!index) throw new Error('Index not ready. Please run /index-doc first');
 
-  const queryEngine = index.asQueryEngine();
+  const queryEngine = index.asQueryEngine({ similarityTopK: 5 });
   const { message, sourceNodes } = await queryEngine.query({ query });
 
   const data = {
     content: message.content,
-    sources: sourceNodes?.map((node, i) => ({
-      score: node.score.toFixed(3),
-      snippet: node.node.getContent(MetadataMode.NONE).substring(0, 80) + '...',
-    })),
+    sources: sourceNodes?.map((node) => {
+      const score = node.score !== undefined && node.score !== null ? node.score.toFixed(3) : '1.000';
+      const meta = node.node.metadata || {};
+      const pageTag = meta.pageNumber ? `[Page ${meta.pageNumber}] ` : '';
+      const snippet = pageTag + node.node.getContent(MetadataMode.NONE).substring(0, 180).trim() + '...';
+      
+      return {
+        score,
+        snippet,
+      };
+    }) || [],
   };
   console.log('Query Result:', data);
   return data;
