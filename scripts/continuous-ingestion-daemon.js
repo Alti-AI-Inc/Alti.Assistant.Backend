@@ -33,6 +33,17 @@ async function runDaemon() {
     await mongoose.connect(uri, { family: 4 });
     console.log('✅ Connected successfully to database.');
 
+    // Database hygiene: Reset any stale downloading or indexing status from previous runs to pending
+    const resetQueue = await DatasetQueue.updateMany(
+      { status: 'downloading' },
+      { $set: { status: 'pending', error: 'Reset to pending by Daemon startup (Stale state cleaned)' } }
+    );
+    const resetCatalog = await Dataset.updateMany(
+      { status: { $in: ['downloading', 'indexing'] } },
+      { $set: { status: 'pending', error: 'Reset to pending by Daemon startup (Stale state cleaned)' } }
+    );
+    console.log(`🧹 Database hygiene completed: Reset ${resetQueue.modifiedCount} queue items and ${resetCatalog.modifiedCount} catalog items.`);
+
     // 1. Initial Scan to ensure queue is fresh
     console.log('\n🔍 Running initial Hugging Face Hub discovery scan...');
     const scanResult = await DatasetsCrawlerService.scanHuggingFaceHub(200);
