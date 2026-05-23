@@ -268,6 +268,7 @@ const downloadPDF = catchAsync(async (req, res) => {
       query: researchResult.query,
       answer: researchResult.answer,
       sources: researchResult.sources,
+      quantitativeFacts: researchResult.quantitativeFacts || [],
       metadata: researchResult.metadata,
     });
 

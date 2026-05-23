@@ -470,10 +470,10 @@ Use markdown formatting, include proper citations [1], [2], etc., and ensure the
       quantitativeFacts: verifiedFacts,
       knowledgeGraph: thematicTopology, // Overwrite with theme-clustered node topology
       researchProgress: {
-        phase: 'adversarial_review',
+        phase: 'board_debate',
         completedSteps: 5,
         totalSteps: 6,
-        currentTask: 'Synthesized draft - moving to adversarial peer review audit',
+        currentTask: 'Synthesized draft - moving to strategic board consensus debate',
       },
       metadata: {
         processingTime: new Date() - (state.metadata?.timestamp || new Date()),
@@ -617,12 +617,46 @@ export const generateDeepResearchPDFNode = async (state) => {
       // Don't fail the entire operation if local save fails
     }
 
+    // Phase 5: Google Cloud Storage Publishing & Database Synchronization
+    let gcsPdfUrl = null;
+    let gcsTopologyUrl = null;
+    if (pdfData && pdfData.buffer) {
+      try {
+        console.log('--- Publishing Strategy PDF and Knowledge Topology to GCS ---');
+        const { publishDeepResearchToGCS, ResearchResult } = await import('../services/researchStorageService.js');
+        const gcsResult = await publishDeepResearchToGCS(
+          pdfData.buffer,
+          pdfData.filename,
+          state.knowledgeGraph,
+          state.userId || 'guest_user',
+          state.conversationId || 'default_conv'
+        );
+
+        if (gcsResult.success) {
+          gcsPdfUrl = gcsResult.gcsPdfUrl;
+          gcsTopologyUrl = gcsResult.gcsTopologyUrl;
+          
+          if (state.metadata?.savedId && state.metadata.savedId !== 'offline_mode_id') {
+            await ResearchResult.findByIdAndUpdate(state.metadata.savedId, {
+              gcsPdfUrl: gcsResult.gcsPdfUrl,
+              gcsTopologyUrl: gcsResult.gcsTopologyUrl
+            });
+            console.log('✓ MongoDB research record updated with GCS URLs successfully!');
+          }
+        }
+      } catch (gcsPublishErr) {
+        console.warn('⚠️ Google Cloud Storage publishing bypassed (offline sandbox tolerance active):', gcsPublishErr.message);
+      }
+    }
+
     return {
       pdfData: {
         ...pdfData,
         savedLocally: savedFilePath ? true : false,
         localPath: savedFilePath,
         saveError: savedFilePath ? null : 'Failed to save locally',
+        gcsPdfUrl: gcsPdfUrl,
+        gcsTopologyUrl: gcsTopologyUrl,
       },
     };
   } catch (error) {
@@ -1168,61 +1202,60 @@ export const clusterSourcesThematically = (sources) => {
 };
 
 /**
- * Node: Partner Critique (Adversarial Review Node)
+ * Node: C-Suite Executive Board Debate (boardDebateNode)
  */
-export const adversarialReviewNode = async (state) => {
-  console.log('--- Node: adversarialReviewNode ---');
+export const boardDebateNode = async (state) => {
+  console.log('--- Node: boardDebateNode ---');
   const { finalReport } = state;
 
-  const reviewPrompt = `You are a highly skeptical, elite senior consulting partner at a top-tier McKinsey-grade consulting firm. 
+  const debatePrompt = `You are a high-level strategic executive board consisting of three world-class expert personas:
+1. **McKinsey Strategy Partner:** Analyzes logical consistency, high-level corporate bottlenecks, strategic transition gaps, and commercial outcomes.
+2. **Gartner Research Director:** Audits quantitative forecast alignments, operational metrics, credibility scores, and trend logic.
+3. **YC Technical Architect:** Critiques technology dependencies, code scale hazards, safety vulnerabilities, and developer ecosystem friction.
+
 You are performing a rigorous peer-review and logical audit on this research report.
 
 RESEARCH REPORT FOR AUDIT:
 ${finalReport}
 
-Review the report carefully and construct a detailed, structured, highly critical critique focusing on:
-1. LOGICAL FALLACIES: Highlight any unsupported claims, circular reasoning, or cognitive leaps.
-2. CITATION INCONSISTENCIES: Point out where statistics or models seem broad or need explicit grounding.
-3. WEAK STRATEGIC TRANSITIONS: Focus on weak structural leaps between technical findings and market implications.
-4. OMITTED CRITICAL VARIABLES: Specify what other market, technical, or regulatory factors the author overlooked.
+Simulate a structured, highly clinical, sharp, and constructive round-robin debate among these three executive board members. Each persona must focus on their specialty area to challenge the draft's assumptions, metrics, and conclusions. After the dialogue transcript, compile a summary of consensus recommendations for refinement.
 
-Your tone should be highly professional, clinical, sharp, and constructive.
-Format your review with clear markdown headings.`;
+Format your output as a clean markdown document with clear headings for each persona's critique and a final section for consensus recommendations.`;
 
   try {
-    const critique = await runGroqTask(reviewPrompt, [
+    const debateTranscript = await runGroqTask(debatePrompt, [
       {
         role: 'user',
-        content: 'Please conduct a skeptical partner review of the report.',
+        content: 'Please conduct the Executive Board Debate on the draft report.',
       }
     ], false);
 
-    console.log('[Peer Review] Skeptical partner critique compiled successfully');
+    console.log('[Executive Board] Consensus debate completed and transcript compiled');
     
     return {
       metadata: {
         ...state.metadata,
-        reviewComments: critique
+        reviewComments: debateTranscript
       },
       researchProgress: {
         phase: 'refine_synthesis',
         completedSteps: 5,
         totalSteps: 6,
-        currentTask: 'Critique completed - passing to refined report synthesis',
+        currentTask: 'Debate completed - passing transcript to refined synthesis',
       }
     };
   } catch (error) {
-    console.error('Error in adversarialReviewNode:', error);
+    console.error('Error in boardDebateNode:', error);
     return {
       metadata: {
         ...state.metadata,
-        reviewComments: 'Critique bypassed due to execution timeout.'
+        reviewComments: 'Debate bypassed due to execution timeout.'
       },
       researchProgress: {
         phase: 'refine_synthesis',
         completedSteps: 5,
         totalSteps: 6,
-        currentTask: 'Critique bypassed - passing to refined report synthesis',
+        currentTask: 'Debate bypassed - passing to refined report synthesis',
       }
     };
   }
@@ -1237,18 +1270,18 @@ export const refineSynthesisNode = async (state) => {
   const reviewComments = metadata?.reviewComments || '';
 
   const refinePrompt = `You are an elite principal research architect utilizing Gemini 1.5 Pro.
-You have been handed a draft research report along with a sharp, rigorous critique from a senior consulting partner.
+You have been handed a draft research report along with a detailed executive board consensus debate transcript.
 
 DRAFT REPORT:
 ${finalReport}
 
-PARTNER CRITIQUE & REVIEW COMMENTS:
+BOARD DEBATE & CONSENSUS RECOMMENDATIONS:
 ${reviewComments}
 
-Re-synthesize and rewrite the report to perfectly resolve every criticism raised in the partner critique:
+Re-synthesize and rewrite the report to perfectly resolve every point of strategic debate, technical bottleneck, and logical friction raised in the board transcript:
 1. Ground any unsupported claims.
 2. Refine strategic transitions to be flawless.
-3. Build deep conceptual paragraphs around omitted variables.
+3. Build deep conceptual paragraphs around omitted variables and technical challenges.
 4. Keep the core structured outline intact (# Executive Summary, # Methodology, # Key Findings, # Quantitative Market & Technical Models, # Cross-Source Dialectical & Tension Analysis, # Complete Source Bibliography).
 
 Produce the absolute best, most premium, PhD-grade final version of the report. Keep markdown formatting and all citations intact.`;
@@ -1257,7 +1290,7 @@ Produce the absolute best, most premium, PhD-grade final version of the report. 
     const refinedReport = await runGroqTask(refinePrompt, [
       {
         role: 'user',
-        content: 'Please revise and finalize the report incorporating the critique.',
+        content: 'Please revise and finalize the report incorporating the executive board debate consensus.',
       }
     ], false);
 

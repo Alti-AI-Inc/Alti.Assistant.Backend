@@ -6,7 +6,7 @@ import {
   identifyPromisingLeadsNode,
   deepDiveResearchNode,
   synthesizeComprehensiveReportNode,
-  adversarialReviewNode,
+  boardDebateNode,
   refineSynthesisNode,
   saveDeepResearchNode,
   generateDeepResearchPDFNode,
@@ -23,7 +23,7 @@ workflow.addNode('breadth_search', breadthFirstSearchNode);
 workflow.addNode('identify_leads', identifyPromisingLeadsNode);
 workflow.addNode('deep_dive', deepDiveResearchNode);
 workflow.addNode('synthesize_report', synthesizeComprehensiveReportNode);
-workflow.addNode('adversarial_review', adversarialReviewNode);
+workflow.addNode('board_debate', boardDebateNode);
 workflow.addNode('refine_synthesis', refineSynthesisNode);
 workflow.addNode('save_research', saveDeepResearchNode);
 workflow.addNode('generate_pdf', generateDeepResearchPDFNode);
@@ -34,8 +34,8 @@ workflow.addEdge('initialize', 'breadth_search');
 workflow.addEdge('breadth_search', 'identify_leads');
 workflow.addEdge('identify_leads', 'deep_dive');
 workflow.addEdge('deep_dive', 'synthesize_report');
-workflow.addEdge('synthesize_report', 'adversarial_review');
-workflow.addEdge('adversarial_review', 'refine_synthesis');
+workflow.addEdge('synthesize_report', 'board_debate');
+workflow.addEdge('board_debate', 'refine_synthesis');
 workflow.addEdge('refine_synthesis', 'save_research');
 workflow.addEdge('save_research', 'generate_pdf');
 workflow.addEdge('generate_pdf', END);

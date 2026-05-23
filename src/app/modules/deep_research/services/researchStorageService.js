@@ -1,10 +1,24 @@
 import mongoose from 'mongoose';
+import { Storage } from '@google-cloud/storage';
 import { connectToMongoDB } from '../utils/mongodb-connection.js';
 import config from '../../../../../config/index.js';
 import {
   withTenantPipeline,
   withTenantFilter,
 } from '../../../helpers/tenantQuery.js';
+
+// Initialize GCS storage client with offline safety bounds
+let storage = null;
+try {
+  storage = new Storage({
+    projectId: config.google?.gcp_project_id || process.env.GCP_PROJECT_ID,
+    keyFilename: 'alti_gcp.json',
+  });
+} catch (gcsInitErr) {
+  console.warn('⚠️ Google Cloud Storage client initialization bypassed:', gcsInitErr.message);
+}
+
+const DEEP_RESEARCH_BUCKET = 'alti_assistant_reports';
 
 // Ensure MongoDB connection using the config URI
 connectToMongoDB(config.database_local).catch(console.error);
@@ -52,6 +66,12 @@ const researchResultSchema = new mongoose.Schema(
       confidence: Number,
       savedId: String,
       saveError: String,
+    },
+    gcsPdfUrl: {
+      type: String
+    },
+    gcsTopologyUrl: {
+      type: String
     },
     timestamp: {
       type: Date,
@@ -323,6 +343,53 @@ export const searchResearchResults = async (filters = {}) => {
   } catch (error) {
     console.error('Error searching research results:', error);
     throw error;
+  }
+};
+
+export const publishDeepResearchToGCS = async (pdfBuffer, filename, topologyData, userId = 'guest_user', conversationId = 'default_conv') => {
+  if (!storage) {
+    console.warn('ℹ️ GCS Storage client not active, skipping cloud publishing');
+    return { success: false, reason: 'GCS client inactive' };
+  }
+
+  try {
+    const bucket = storage.bucket(DEEP_RESEARCH_BUCKET);
+    
+    // 1. Upload PDF
+    let gcsPdfUrl = null;
+    if (pdfBuffer) {
+      const pdfPath = `${userId}/${conversationId}/${filename}`;
+      const pdfFile = bucket.file(pdfPath);
+      await pdfFile.save(pdfBuffer, {
+        metadata: { contentType: 'application/pdf' },
+        resumable: false
+      });
+      gcsPdfUrl = `https://storage.googleapis.com/${DEEP_RESEARCH_BUCKET}/${pdfPath}`;
+      console.log(`✓ Strategy PDF published to GCS: ${gcsPdfUrl}`);
+    }
+
+    // 2. Upload Topology Graph
+    let gcsTopologyUrl = null;
+    if (topologyData) {
+      const topologyFilename = filename.replace('.pdf', '_topology.json');
+      const topologyPath = `${userId}/${conversationId}/${topologyFilename}`;
+      const topologyFile = bucket.file(topologyPath);
+      await topologyFile.save(Buffer.from(JSON.stringify(topologyData, null, 2)), {
+        metadata: { contentType: 'application/json' },
+        resumable: false
+      });
+      gcsTopologyUrl = `https://storage.googleapis.com/${DEEP_RESEARCH_BUCKET}/${topologyPath}`;
+      console.log(`✓ Knowledge Topology published to GCS: ${gcsTopologyUrl}`);
+    }
+
+    return {
+      success: true,
+      gcsPdfUrl,
+      gcsTopologyUrl
+    };
+  } catch (err) {
+    console.warn('⚠️ GCS Cloud publishing failed (offline sandbox tolerance active):', err.message);
+    return { success: false, error: err.message };
   }
 };
 
