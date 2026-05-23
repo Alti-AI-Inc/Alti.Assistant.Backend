@@ -11,7 +11,7 @@ const bucketName = config.gcs?.uploads_bucket || config.cloud_storage_bucket || 
  * Custom Multer storage engine for Google Cloud Storage.
  * Replaces legacy DigitalOcean Spaces (aws-sdk/multer-s3) with native GCS.
  */
-class GCSStorageEngine {
+export class GCSStorageEngine {
   constructor(options) {
     this.folder = options.folder || 'uploads';
     this.bucket = storage.bucket(bucketName);

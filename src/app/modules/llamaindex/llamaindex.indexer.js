@@ -1718,6 +1718,7 @@ export async function askAdvancedQuery(query, userId = 'default_user', mode = 'a
 // ═════════════════════════════════════════════════════════════════════════════
 
 export async function listDocuments(userId = 'default_user') {
+  await ensureUserLocalDirSynced(userId);
   const persistDir = path.resolve(`storage/ragsystem/${userId}`);
   
   if (!existsSync(persistDir)) {
@@ -1771,6 +1772,10 @@ export async function deleteDocument(userId = 'default_user', docId) {
     const legacyProfilePath = path.join(persistDir, 'document_profile.json');
     await fsPromises.writeFile(legacyProfilePath, JSON.stringify(manifest.corpusProfile, null, 2), 'utf-8');
     
+    // Sync updated files to GCS
+    syncFileToGCS(userId, 'document_manifest.json').catch(() => {});
+    syncFileToGCS(userId, 'document_profile.json').catch(() => {});
+
     console.log(`LlamaIndex DocMgmt: Manifest updated. ${manifest.documents.length} documents remain.`);
   } else {
     await clearAllDocuments(userId);
@@ -1797,6 +1802,9 @@ export async function clearAllDocuments(userId = 'default_user') {
     console.error(`LlamaIndex DocMgmt: Failed to clear corpus at ${persistDir}:`, err);
     throw new Error('Failed to clear document corpus.');
   }
+
+  // Purge GCS files for this user
+  deleteUserGCSFiles(userId).catch(() => {});
 
   semanticCache.invalidateUser(userId);
   userIndexCache.delete(userId);
