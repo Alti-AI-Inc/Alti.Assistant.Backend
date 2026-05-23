@@ -14,7 +14,7 @@ import SubscriptionModel from '../subscription/subscription.model.js';
  */
 export const chatController = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { message, conversationId } = req.body;
+  const { message, conversationId, scopedApp } = req.body;
 
   // Validate input
   if (!message) {
@@ -66,8 +66,10 @@ export const chatController = catchAsync(async (req, res) => {
     const result = await composioService.executeUserRequest(
       message,
       userId,
-      conversation.conversationId
+      conversation.conversationId,
+      scopedApp
     );
+
 
     if (result.success) {
       // Save assistant response

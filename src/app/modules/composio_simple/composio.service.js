@@ -20,7 +20,8 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 export const executeUserRequest = async (
   userMessage,
   userId,
-  conversationId = null
+  conversationId = null,
+  scopedApp = null // Added for scoped app execution
 ) => {
   const startTime = Date.now();
   try {
@@ -30,17 +31,26 @@ export const executeUserRequest = async (
     let appList = [];
     let toolKits = {};
     console.log('Conversation Context:', conversationContext.needSummarization);
-    if (conversationContext.needSummarization) {
-      history = conversationContext.summary;
-      const appInfo = await findAppropriateApp(userMessage, [], history);
-      appList = appInfo.appList;
-      toolKits = appInfo.toolKitVersions;
+
+    if (scopedApp) {
+      // Directly lock execution to the selected app, bypassing LLM app identification
+      appList = [scopedApp];
+      toolKits = { [scopedApp]: 'latest' };
+      console.log('Isolated App Scoping Enabled:', scopedApp);
     } else {
-      history = conversationContext.conversation;
-      const appInfo = await findAppropriateApp(userMessage, history);
-      appList = appInfo.appList;
-      toolKits = appInfo.toolKitVersions;
+      if (conversationContext.needSummarization) {
+        history = conversationContext.summary;
+        const appInfo = await findAppropriateApp(userMessage, [], history);
+        appList = appInfo.appList;
+        toolKits = appInfo.toolKitVersions;
+      } else {
+        history = conversationContext.conversation;
+        const appInfo = await findAppropriateApp(userMessage, history);
+        appList = appInfo.appList;
+        toolKits = appInfo.toolKitVersions;
+      }
     }
+
     const composioAuth = await ComposioAuth.find({
       userId,
       status: 'ACTIVE',
