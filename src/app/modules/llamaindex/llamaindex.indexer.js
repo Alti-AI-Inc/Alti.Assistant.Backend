@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { BaseLLM, BaseEmbedding, Document, MetadataMode, Settings, VectorStoreIndex, SentenceSplitter, storageContextFromDefaults } from 'llamaindex';
-import fs from 'node:fs/2.0/promises'; // Wait, let's keep the standard fs
 import fsPromises from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'path';
@@ -230,15 +229,99 @@ export async function askQuery(query, userId = 'default_user') {
     throw new Error('No active document indexed. Please upload a document to begin chatting.');
   }
 
+  // Load chat history from disk if it exists
+  const historyPath = path.join(persistDir, 'chat_history.json');
+  let chatHistory = [];
+  try {
+    if (existsSync(historyPath)) {
+      const historyData = await fsPromises.readFile(historyPath, 'utf-8');
+      chatHistory = JSON.parse(historyData);
+    }
+  } catch (err) {
+    console.log(`LlamaIndex Memory: Failed to read history for user ${userId}, starting fresh.`);
+  }
+
   // Load the index dynamically from the persisted storage context on disk
   const storageContext = await storageContextFromDefaults({ persistDir });
   const loadedIndex = await VectorStoreIndex.init({ storageContext });
-  
-  const queryEngine = loadedIndex.asQueryEngine({ similarityTopK: 5 });
-  const { message, sourceNodes } = await queryEngine.query({ query });
 
+  // 1. Condense/Refine follow-up query if conversation history exists
+  let refinedQuery = query;
+  if (chatHistory.length > 0) {
+    console.log(`LlamaIndex Memory: Condensing query based on ${chatHistory.length} historical exchanges.`);
+    
+    const historyStr = chatHistory.map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`).join('\n');
+    const condensePrompt = `Given the following conversation history and a follow-up question, rephrase the follow-up question to be a standalone, self-contained question that captures the user's full intent.
+Do NOT answer the question. Only output the rephrased standalone question.
+
+Conversation History:
+${historyStr}
+
+Follow-up Question: ${query}
+Standalone Question:`;
+    
+    try {
+      const result = await Settings.llm.chat({
+        messages: [{ role: 'user', content: condensePrompt }]
+      });
+      refinedQuery = result.message.content.trim();
+      console.log(`LlamaIndex Memory: Condensed question from "${query}" to "${refinedQuery}"`);
+    } catch (e) {
+      console.error('LlamaIndex Memory Warning: Query condensation failed. Using raw query.', e);
+    }
+  }
+
+  // 2. Query vector index with the refined standalone query
+  const queryEngine = loadedIndex.asQueryEngine({ similarityTopK: 5 });
+  const { sourceNodes } = await queryEngine.query({ query: refinedQuery });
+
+  // 3. Format the retrieved context nodes into clean reference snippets
+  const contextStr = sourceNodes && sourceNodes.length > 0 
+    ? sourceNodes.map((node, idx) => `[Node ${idx + 1}] (Source: ${node.node.metadata?.pageNumber ? `Page ${node.node.metadata.pageNumber}` : 'Document'}): ${node.node.getContent(MetadataMode.NONE)}`).join('\n\n')
+    : 'No context retrieved.';
+
+  // 4. Synthesize final response utilizing context AND history
+  const responsePrompt = `You are Alti's premium real-time AI analyst. 
+Answer the user's question with high precision, clarity, and absolute truthfulness based strictly on the provided context information and conversation history.
+
+Provided Context Information:
+---------------------
+${contextStr}
+---------------------
+
+Conversation History:
+${chatHistory.length > 0 ? chatHistory.map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`).join('\n') : 'No history yet.'}
+
+Current User Question: ${query}
+
+Rules you MUST follow:
+1. Answer the question using ONLY the provided context information. Do NOT use external or prior knowledge.
+2. If the context does not contain the answer, say "I cannot find the answer to this question in the provided document." and do not speculate.
+3. Be direct, professional, and clear. Maintain a sleek, enterprise-ready tone.`;
+
+  const result = await Settings.llm.chat({
+    messages: [{ role: 'user', content: responsePrompt }]
+  });
+  const reply = result.message.content.trim();
+
+  // 5. Append new exchange to the persistent chat history
+  chatHistory.push({ role: 'user', content: query });
+  chatHistory.push({ role: 'assistant', content: reply });
+
+  // Limit memory log to the last 10 exchanges (20 messages) to optimize token efficiency
+  if (chatHistory.length > 20) {
+    chatHistory = chatHistory.slice(-20);
+  }
+
+  try {
+    await fsPromises.writeFile(historyPath, JSON.stringify(chatHistory, null, 2), 'utf-8');
+  } catch (err) {
+    console.error(`LlamaIndex Memory: Failed to save chat history to ${historyPath}:`, err);
+  }
+
+  // 6. Return response and formatted citations matching retrieved context nodes
   const data = {
-    content: message.content,
+    content: reply,
     sources: sourceNodes?.map((node) => {
       const score = node.score !== undefined && node.score !== null ? node.score.toFixed(3) : '1.000';
       const meta = node.node.metadata || {};
