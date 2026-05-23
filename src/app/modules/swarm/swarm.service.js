@@ -8,6 +8,29 @@ import { isExploriumAgent, getExploriumContext } from './explorium.smart.router.
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
+// Agents with these tools get Google Search Grounding automatically
+const SEARCH_TOOLS = ['tavily-search', 'google-search', 'web-search'];
+const needsSearchGrounding = (agent) =>
+  agent.tools && agent.tools.some(t => SEARCH_TOOLS.includes(t));
+
+/**
+ * Extracts structured citation sources from Gemini grounding metadata.
+ * Returns an array of { index, url, title, domain } objects.
+ */
+const extractGroundingCitations = (response) => {
+  const candidate = response?.candidates?.[0];
+  const meta = candidate?.groundingMetadata;
+  if (!meta) return [];
+
+  const chunks = meta.groundingChunks || [];
+  return chunks.map((chunk, i) => ({
+    index: i + 1,
+    url: chunk.web?.uri || '',
+    title: chunk.web?.title || `Source ${i + 1}`,
+    domain: chunk.web?.uri ? new URL(chunk.web.uri).hostname.replace('www.', '') : '',
+  })).filter(c => c.url);
+};
+
 export class SwarmService {
   /**
    * Executes the collaborative agent swarm synchronously and returns the final response.
@@ -74,6 +97,49 @@ Instructions: ${agent.systemInstruction}`;
         }
       }
 
+      // Determine if this agent needs live web grounding
+      const useGrounding = needsSearchGrounding(agent);
+
+      if (useGrounding) {
+        // ═══ GOOGLE SEARCH GROUNDING PATH (Perplexity-killer mode) ═══
+        // Use @google/genai SDK which supports tools: [{ googleSearch: {} }]
+        console.log(`🔍 Search Grounding ENABLED for agent [${agent.name}]`);
+
+        const groundedResult = await ai.models.generateContent({
+          model: agent.model || 'gemini-3.5-flash',
+          contents: finalPrompt,
+          config: {
+            temperature: 0.05, // Near-zero for maximum factual accuracy
+            maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
+            systemInstruction: agent.systemInstruction,
+            tools: [{ googleSearch: {} }],
+          },
+        });
+
+        const candidate = groundedResult.candidates?.[0];
+        const text = candidate?.content?.parts
+          ?.filter((part) => part.text && !part.thought)
+          ?.map((part) => part.text)
+          ?.join('') || '';
+
+        // Extract real citations from Google Search Grounding metadata
+        const citations = extractGroundingCitations(groundedResult);
+        if (citations.length > 0) {
+          console.log(`📎 Extracted ${citations.length} grounded citations for agent [${agent.name}]`);
+        }
+
+        accumulatedText = text;
+        currentContextInput = text;
+
+        return {
+          reply: text,
+          citations,
+          groundingMetadata: candidate?.groundingMetadata || null,
+          webSearchQueries: candidate?.groundingMetadata?.webSearchQueries || [],
+        };
+      }
+
+      // ═══ STANDARD PATH (no web search needed) ═══
       const modelInstance = genAI.getGenerativeModel({
         model: agent.model || 'gemini-3.5-flash',
         systemInstruction: agent.systemInstruction
@@ -93,7 +159,7 @@ Instructions: ${agent.systemInstruction}`;
       const result = await modelInstance.generateContent({
         contents,
         generationConfig: {
-          temperature: isPrimary ? 0.2 : 0.1,
+          temperature: isPrimary ? 0.15 : 0.05,
           maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
         }
       });
@@ -208,32 +274,89 @@ Instructions: ${agent.systemInstruction}`;
       }
 
       try {
-        // Instantiate the specific model via Gemini SDK
-        const modelInstance = genAI.getGenerativeModel({
-          model: agent.model || 'gemini-3.5-flash',
-          systemInstruction: agent.systemInstruction
-        });
+        // Determine if this agent needs live web grounding
+        const useGrounding = needsSearchGrounding(agent);
+        let streamResult;
+        let groundedCitations = [];
 
-        // Setup message inputs
-        const contents = [
-          ...conversationHistory.map(msg => ({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-          })),
-          {
-            role: 'user',
-            parts: [{ text: finalPrompt }]
-          }
-        ];
+        if (useGrounding) {
+          // ═══ GROUNDED STREAMING PATH (Perplexity-killer mode) ═══
+          console.log(`🔍 Search Grounding ENABLED (streaming) for agent [${agent.name}]`);
 
-        // Call streaming generation API
-        const streamResult = await modelInstance.generateContentStream({
-          contents,
-          generationConfig: {
-            temperature: isPrimary ? 0.2 : 0.1,
-            maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+          // Use non-streaming grounded call, then yield result as chunks
+          // (Google Search Grounding does not support streaming yet in @google/genai)
+          const groundedResult = await ai.models.generateContent({
+            model: agent.model || 'gemini-3.5-flash',
+            contents: finalPrompt,
+            config: {
+              temperature: 0.05,
+              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
+              systemInstruction: agent.systemInstruction,
+              tools: [{ googleSearch: {} }],
+            },
+          });
+
+          const candidate = groundedResult.candidates?.[0];
+          const fullText = candidate?.content?.parts
+            ?.filter((part) => part.text && !part.thought)
+            ?.map((part) => part.text)
+            ?.join('') || '';
+
+          groundedCitations = extractGroundingCitations(groundedResult);
+          if (groundedCitations.length > 0) {
+            console.log(`📎 Extracted ${groundedCitations.length} citations for agent [${agent.name}]`);
           }
-        });
+
+          // Simulate streaming by chunking the grounded response
+          const chunkSize = 80;
+          for (let i = 0; i < fullText.length; i += chunkSize) {
+            const textChunk = fullText.substring(i, i + chunkSize);
+            yield {
+              type: 'text',
+              content: textChunk,
+              agentId: agent.id
+            };
+          }
+
+          accumulatedText += isPrimary ? fullText : `\n\n${fullText}`;
+          currentContextInput = fullText;
+
+          // Yield grounding citations as metadata
+          if (groundedCitations.length > 0) {
+            yield {
+              type: 'metadata',
+              citations: groundedCitations,
+              webSearchQueries: candidate?.groundingMetadata?.webSearchQueries || [],
+              searchEntryPoint: candidate?.groundingMetadata?.searchEntryPoint || null,
+              timestamp: Date.now()
+            };
+          }
+
+        } else {
+          // ═══ STANDARD STREAMING PATH ═══
+          const modelInstance = genAI.getGenerativeModel({
+            model: agent.model || 'gemini-3.5-flash',
+            systemInstruction: agent.systemInstruction
+          });
+
+          const contents = [
+            ...conversationHistory.map(msg => ({
+              role: msg.role === 'assistant' ? 'model' : 'user',
+              parts: [{ text: msg.content }]
+            })),
+            {
+              role: 'user',
+              parts: [{ text: finalPrompt }]
+            }
+          ];
+
+          streamResult = await modelInstance.generateContentStream({
+            contents,
+            generationConfig: {
+              temperature: isPrimary ? 0.15 : 0.05,
+              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+            }
+          });
 
         let agentTextAccumulator = '';
 
@@ -251,26 +374,27 @@ Instructions: ${agent.systemInstruction}`;
           }
         }
 
-        // Append output seamlessly without technical headers
-        accumulatedText += isPrimary ? agentTextAccumulator : `\n\n${agentTextAccumulator}`;
-        
-        // Feed accumulated context into the next step
-        currentContextInput = agentTextAccumulator;
+          // Append output seamlessly without technical headers
+          accumulatedText += isPrimary ? agentTextAccumulator : `\n\n${agentTextAccumulator}`;
+          
+          // Feed accumulated context into the next step
+          currentContextInput = agentTextAccumulator;
 
-        // If this agent matched GCP Grounding catalog, yield references in metadata chunk
-        if (gcpCatalogReferences.length > 0) {
-          yield {
-            type: 'metadata',
-            reference: gcpCatalogReferences,
-            citations: gcpCatalogReferences.map((repo, index) => ({
-              index: index + 1,
-              url: repo.url,
-              domain: repo.domain,
-              title: repo.title
-            })),
-            timestamp: Date.now()
-          };
-        }
+          // If this agent matched GCP Grounding catalog, yield references in metadata chunk
+          if (gcpCatalogReferences.length > 0) {
+            yield {
+              type: 'metadata',
+              reference: gcpCatalogReferences,
+              citations: gcpCatalogReferences.map((repo, index) => ({
+                index: index + 1,
+                url: repo.url,
+                domain: repo.domain,
+                title: repo.title
+              })),
+              timestamp: Date.now()
+            };
+          }
+        } // end else (standard streaming path)
 
       } catch (err) {
         console.error(`📡 Swarm Executor: Error running agent [${agent.name}]:`, err);
