@@ -37,7 +37,7 @@ COPY --from=builder /app/alti-core-service/config ./config
 # test/ intentionally excluded from production image
 COPY --from=builder /app/alti-core-service/index.js ./
 COPY --from=builder /app/alti-core-service/server.js ./
-COPY --from=builder /app/alti-core-service/alti_gcp.json ./
+COPY --from=builder /app/alti-core-service/package.json /app/alti-core-service/alti_gcp.jso[n] ./
 COPY --from=builder /app/alti-core-service/imagegen.json ./
 COPY --from=builder /app/alti-core-service/env.yaml ./
 COPY --from=builder /app/alti-core-service/output ./output
