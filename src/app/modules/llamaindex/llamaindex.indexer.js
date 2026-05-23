@@ -387,10 +387,31 @@ async function extractTextAndBuildDocuments(filePath, originalName, docId) {
   
   console.log(`LlamaIndex Ingestion: Parsing file ${fileName} with extension ${ext}`);
 
+  // Fetch file buffer dynamically (from local disk or GCS directly)
+  let fileBuffer;
+  try {
+    if (existsSync(filePath)) {
+      fileBuffer = await fsPromises.readFile(filePath);
+    } else if (gcsBucket) {
+      const file = gcsBucket.file(filePath);
+      const [exists] = await file.exists();
+      if (exists) {
+        const [buf] = await file.download();
+        fileBuffer = buf;
+        console.log(`GCS Cloud Sync: Loaded file ${filePath} directly from GCS into memory buffer`);
+      } else {
+        throw new Error(`File does not exist locally or in GCS: ${filePath}`);
+      }
+    } else {
+      throw new Error(`File not found locally and GCS not active: ${filePath}`);
+    }
+  } catch (err) {
+    throw new Error(`Failed to read file ${fileName}: ${err.message}`);
+  }
+
   try {
     if (ext === '.pdf') {
-      const dataBuffer = await fsPromises.readFile(filePath);
-      const pdf = new PDFParse({ data: dataBuffer });
+      const pdf = new PDFParse({ data: fileBuffer });
       const parsedData = await pdf.getText();
 
       if (!parsedData || !parsedData.pages || parsedData.pages.length === 0) {
@@ -412,7 +433,7 @@ async function extractTextAndBuildDocuments(filePath, originalName, docId) {
         });
       });
     } else if (ext === '.docx' || ext === '.doc') {
-      const result = await mammoth.extractRawText({ path: filePath });
+      const result = await mammoth.extractRawText({ buffer: fileBuffer });
       const text = result.value || '';
       
       console.log(`LlamaIndex Ingestion: Extracted ${text.length} characters from DOCX`);
@@ -426,7 +447,7 @@ async function extractTextAndBuildDocuments(filePath, originalName, docId) {
       ];
     } else if (ext === '.md' || ext === '.markdown') {
       // Phase 5: Use MarkdownNodeParser for structure-aware markdown chunking
-      const text = await fsPromises.readFile(filePath, 'utf-8');
+      const text = fileBuffer.toString('utf-8');
       console.log(`LlamaIndex Ingestion: Read ${text.length} characters from Markdown file (will use MarkdownNodeParser)`);
       
       return [
@@ -438,7 +459,7 @@ async function extractTextAndBuildDocuments(filePath, originalName, docId) {
       ];
     } else if (ext === '.html' || ext === '.htm') {
       // Phase 5: Use HTMLNodeParser for structure-aware HTML chunking
-      const text = await fsPromises.readFile(filePath, 'utf-8');
+      const text = fileBuffer.toString('utf-8');
       console.log(`LlamaIndex Ingestion: Read ${text.length} characters from HTML file (will use HTMLNodeParser)`);
       
       return [
@@ -450,7 +471,7 @@ async function extractTextAndBuildDocuments(filePath, originalName, docId) {
       ];
     } else if (['.js', '.ts', '.jsx', '.tsx', '.py', '.java', '.cpp', '.c', '.go', '.rs', '.rb', '.php', '.cs', '.swift', '.kt'].includes(ext)) {
       // Phase 6: Code files use CodeSplitter for function/class-aware chunking
-      const text = await fsPromises.readFile(filePath, 'utf-8');
+      const text = fileBuffer.toString('utf-8');
       console.log(`LlamaIndex Ingestion: Read ${text.length} characters from code file (will use CodeSplitter)`);
       
       // Map file extensions to CodeSplitter language identifiers
@@ -469,7 +490,7 @@ async function extractTextAndBuildDocuments(filePath, originalName, docId) {
         })
       ];
     } else {
-      const text = await fsPromises.readFile(filePath, 'utf-8');
+      const text = fileBuffer.toString('utf-8');
       console.log(`LlamaIndex Ingestion: Read ${text.length} characters from text file`);
       
       return [
@@ -483,7 +504,7 @@ async function extractTextAndBuildDocuments(filePath, originalName, docId) {
   } catch (error) {
     console.error(`LlamaIndex Ingestion Warning: Advanced parsing failed for ${ext}. Falling back to plain text read. Error:`, error);
     try {
-      const text = await fsPromises.readFile(filePath, 'utf-8');
+      const text = fileBuffer.toString('utf-8');
       return [
         new Document({
           text,
@@ -5551,8 +5572,27 @@ export async function streamLiveSession(query, userId = 'default_user', onChunk)
 
 export async function indexDocumentAdvancedWithStrategy(filePath, originalName, userId = 'default_user', strategyOption = 'upsert') {
   const t0 = performance.now();
-  if (!existsSync(filePath)) {
-    throw new Error(`File does not exist: ${filePath}`);
+
+  // Fetch file buffer dynamically (from local disk or GCS directly)
+  let fileData;
+  try {
+    if (existsSync(filePath)) {
+      fileData = await fsPromises.readFile(filePath);
+    } else if (gcsBucket) {
+      const file = gcsBucket.file(filePath);
+      const [exists] = await file.exists();
+      if (exists) {
+        const [buf] = await file.download();
+        fileData = buf;
+        console.log(`GCS Cloud Sync: Loaded advanced doc ${filePath} directly from GCS into memory buffer`);
+      } else {
+        throw new Error(`File does not exist locally or in GCS: ${filePath}`);
+      }
+    } else {
+      throw new Error(`File does not exist locally: ${filePath}`);
+    }
+  } catch (err) {
+    throw new Error(`Failed to read file ${originalName || filePath}: ${err.message}`);
   }
 
   // 1. Resolve LlamaIndex native strategy using createDocStoreStrategy
@@ -5572,7 +5612,6 @@ export async function indexDocumentAdvancedWithStrategy(filePath, originalName, 
   });
 
   // 2. Parse file content using appropriate chunking
-  const fileData = await fsPromises.readFile(filePath);
   let text = '';
   const ext = path.extname(originalName).toLowerCase();
   

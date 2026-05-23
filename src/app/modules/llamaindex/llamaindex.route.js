@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import auth from '../../middlewares/auth/auth.js';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
+import { GCSStorageEngine } from '../../middlewares/uploder/uploder.js';
 import {
   queryIndex,
   queryIndexStream,
@@ -65,16 +66,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext);
-    cb(null, `${name}-${Date.now()}${ext}`);
-  },
-});
+const storage = new GCSStorageEngine({ folder: 'ragsystem/documents' });
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     'application/pdf',

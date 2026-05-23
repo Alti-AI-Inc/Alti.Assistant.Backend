@@ -14,7 +14,9 @@ export const uploadAndIndexDocument = async (req, res) => {
     const result = await ragService.uploadAndIndexDocumentService(filePath, originalName, userId);
 
     // Optional: delete temp file
-    await fs.unlink(filePath);
+    if (existsSync(filePath)) {
+      await fs.unlink(filePath);
+    }
 
     res.status(200).json({ message: 'Document indexed', result });
   } catch (error) {
