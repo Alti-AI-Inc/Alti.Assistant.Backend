@@ -250,4 +250,91 @@ router.post(
   }
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Connection Diagnostics & Rate-Limit Forecasting routes
+// ─────────────────────────────────────────────────────────────────────────────
+import { connectionDiagnosticsService } from './connectionDiagnostics.service.js';
+
+router.get(
+  '/connections/diagnostics',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await connectionDiagnosticsService.getConnectionDiagnostics(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+router.get(
+  '/connections/:appName/diagnostics',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const { appName } = req.params;
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await connectionDiagnosticsService.getSingleConnectionDiagnostics(userId, appName);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Workflow Pattern Intelligence Agent routes
+// ─────────────────────────────────────────────────────────────────────────────
+import { workflowIntelligenceService } from './workflowIntelligence.service.js';
+
+router.get(
+  '/intelligence/patterns',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await workflowIntelligenceService.getWorkflowPatterns(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+router.post(
+  '/intelligence/analyze',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await workflowIntelligenceService.analyzeWorkflowPatterns(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+router.post(
+  '/intelligence/patterns/:patternId/dismiss',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const { patternId } = req.params;
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await workflowIntelligenceService.dismissPattern(patternId, userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
 export const composioV2Routes = router;

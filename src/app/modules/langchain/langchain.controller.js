@@ -3,6 +3,8 @@ import { LangchainService } from './langchain.service.js';
 import { LangchainExecutionService } from './langchainExecution.service.js';
 import { langchainOptimizerService } from './langchainOptimizer.service.js';
 import { langchainVersionService } from './langchainVersion.service.js';
+import { langchainEvaluatorService } from './langchainEvaluator.service.js';
+import { langchainStreamService } from './langchainStream.service.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainExecution from './langchain-execution.model.js';
 
@@ -175,7 +177,63 @@ const getChainVersions = async (req, res, next) => {
   }
 };
 
+const streamChain = async (req, res, next) => {
+  const { chainId } = req.params;
+  const { inputs } = req.body;
+  const userId = req.user?.userId || req.user?.id || 'default_user';
+
+  // Establish SSE connection
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const emit = (data) => {
+    try {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    } catch (writeErr) {
+      // Client disconnected
+    }
+  };
+
+  try {
+    await langchainStreamService.streamChainExecution(chainId, inputs || {}, userId, emit);
+  } catch (err) {
+    emit({ event: 'error', message: err.message });
+  } finally {
+    res.end();
+  }
+};
+
+const benchmarkChain = async (req, res, next) => {
+  try {
+    const { chainId } = req.params;
+    const { versionA, versionB, testSuite } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!versionA || !versionB) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: 'Both versionA and versionB are required in the request body.',
+      });
+    }
+
+    const result = await langchainEvaluatorService.benchmarkVersions(
+      chainId,
+      versionA,
+      versionB,
+      testSuite || [],
+      userId
+    );
+    res.status(httpStatus.OK).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const LangchainController = {
+  streamChain,
   getRepositories,
   getStats,
   importSubmodule,
@@ -186,4 +244,5 @@ export const LangchainController = {
   optimizeChain,
   rollbackChain,
   getChainVersions,
+  benchmarkChain,
 };

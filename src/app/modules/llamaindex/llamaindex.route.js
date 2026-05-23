@@ -63,6 +63,8 @@ import DocumentMetadata from './llamaindex.metadata.model.js';
 import { relationshipGraphService } from './llamaindex.relationshipGraph.js';
 import DocumentRelationship from './llamaindex.relationship.model.js';
 import { graphRetrieverService } from './llamaindex.graphRetriever.js';
+import { contextPrunerService } from './llamaindex.contextPruner.js';
+import { queryMemoryService } from './llamaindex.queryMemory.js';
 
 const router = express.Router();
 
@@ -540,8 +542,11 @@ router.post(
         previousEngine: previousEngine || null,
       });
 
-      // Traverse semantic graph and expand query to related document networks
-      const enrichedQuery = await graphRetrieverService.getGraphEnrichedQueryContext(query, userId);
+      // Traverse semantic graph, prune non-coherent links (<0.25) and rerank relevant document networks
+      const graphEnrichedQuery = await contextPrunerService.pruneAndRerank(query, userId);
+
+      // Inject cross-session memory context for persistent conversational recall
+      const enrichedQuery = await queryMemoryService.buildMemoryEnrichedQuery(userId, graphEnrichedQuery);
 
       const startTime = Date.now();
       let answer = '';
@@ -589,6 +594,12 @@ router.post(
         success,
         cacheHit: decision.engine === 'cached',
       });
+
+      // Persist this successful Q&A pair into cross-session memory
+      if (success && answer) {
+        const answerText = typeof answer === 'string' ? answer : JSON.stringify(answer);
+        queryMemoryService.recordQuery(userId, query, answerText, decision.engine, decision.confidence);
+      }
 
       if (!success) {
         return res.status(500).json({
@@ -696,4 +707,48 @@ router.post(
   }
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Cross-Session Query Memory routes
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /query-memory/summary
+ * Returns a high-level summary of stored cross-session memory for the current user.
+ */
+router.get(
+  '/query-memory/summary',
+  optionalAuth(),
+  async (req, res) => {
+    try {
+      const userId = req.user?.userId || req.user?.id || 'default_user';
+      const summary = await queryMemoryService.getMemorySummary(userId);
+      res.status(200).json(summary);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+/**
+ * POST /query-memory/relevant
+ * Returns the top-N historically relevant prior Q&A pairs for a given query.
+ * Body: { query: string, limit?: number }
+ */
+router.post(
+  '/query-memory/relevant',
+  optionalAuth(),
+  async (req, res) => {
+    try {
+      const { query, limit } = req.body;
+      if (!query) return res.status(400).json({ success: false, message: 'query is required' });
+      const userId = req.user?.userId || req.user?.id || 'default_user';
+      const history = await queryMemoryService.getRelevantHistory(userId, query, limit || 5, 0.15);
+      res.status(200).json({ success: true, count: history.length, history });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
 export const llamaindexRoutes = router;
+
