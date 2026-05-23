@@ -235,23 +235,67 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
   const lookupHuggingfaceIndicesTool = new DynamicTool({
     name: 'lookup-huggingface-indices',
     description: `Search Alti's local registry of fully indexed, commercially clean Hugging Face datasets. Use this when the user asks about specific domains or documents that might be in Alti's dataset repository (e.g. historical stock prices, academic literature, weather patterns, or specific custom datasets). Input is an optional search query string to filter dataset name and description.`,
-    async func(keyword = '') {
+    async func(rawInput) {
       try {
+        let payload = {};
+        if (typeof rawInput === 'string') {
+          const trimmed = rawInput.trim();
+          if (trimmed.startsWith('{')) {
+            try {
+              payload = JSON.parse(trimmed);
+            } catch (err) {
+              payload = { keyword: rawInput };
+            }
+          } else {
+            payload = { keyword: rawInput };
+          }
+        } else if (typeof rawInput === 'object' && rawInput !== null) {
+          payload = rawInput;
+        }
+
+        // Unwrap LangChain structured nesting if present
+        if (payload.input !== undefined) {
+          if (typeof payload.input === 'object' && payload.input !== null) {
+            payload = payload.input;
+          } else if (typeof payload.input === 'string') {
+            const trimmedInput = payload.input.trim();
+            if (trimmedInput.startsWith('{')) {
+              try {
+                payload = JSON.parse(trimmedInput);
+              } catch (e) {
+                payload = { keyword: payload.input };
+              }
+            } else {
+              payload = { keyword: payload.input };
+            }
+          }
+        }
+
+        const keyword = payload.keyword || payload.query || payload.q || (typeof payload.input === 'string' ? payload.input : '');
         const { default: Dataset } = await import('../../datasets/datasets.model.js');
         
         let query = { status: 'indexed' };
-        if (keyword && keyword.trim()) {
+        if (keyword && typeof keyword === 'string' && keyword.trim()) {
           const trimmed = keyword.trim();
+          const terms = trimmed.split(/\s+/).filter(t => t.length > 2);
+          if (terms.length === 0 && trimmed.length > 0) {
+            terms.push(trimmed);
+          }
+          
+          const orConditions = [];
+          for (const term of terms) {
+            orConditions.push(
+              { datasetId: { $regex: term, $options: 'i' } },
+              { name: { $regex: term, $options: 'i' } },
+              { description: { $regex: term, $options: 'i' } },
+              { tags: { $regex: term, $options: 'i' } }
+            );
+          }
+          
           query = {
             $and: [
               { status: 'indexed' },
-              {
-                $or: [
-                  { datasetId: { $regex: trimmed, $options: 'i' } },
-                  { name: { $regex: trimmed, $options: 'i' } },
-                  { description: { $regex: trimmed, $options: 'i' } },
-                ]
-              }
+              { $or: orConditions }
             ]
           };
         }
@@ -297,8 +341,26 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
           payload = rawInput;
         }
 
-        const datasetId = payload.datasetId;
-        const query = payload.query;
+        // Unwrap LangChain structured nesting if present
+        if (payload.input !== undefined) {
+          if (typeof payload.input === 'object' && payload.input !== null) {
+            payload = payload.input;
+          } else if (typeof payload.input === 'string') {
+            const trimmedInput = payload.input.trim();
+            if (trimmedInput.startsWith('{')) {
+              try {
+                payload = JSON.parse(trimmedInput);
+              } catch (e) {
+                payload = { query: payload.input };
+              }
+            } else {
+              payload = { query: payload.input };
+            }
+          }
+        }
+
+        const datasetId = payload.datasetId || payload.dataset_id || payload.id;
+        const query = payload.query || payload.q || payload.keyword || (typeof payload.input === 'string' ? payload.input : '');
         const limit = payload.limit || 5;
 
         if (!datasetId) {
@@ -924,6 +986,20 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           const duration = Date.now() - startTime;
           console.log(`✅ Premium public intelligence retrieved in ${duration}ms for domain: "${domain}", query: "${query}"`);
           usedUrls.add('https://api.data.gov');
+        } else {
+          // Generic fallback to execute any DynamicTool from the tools array
+          const tool = tools.find(t => t.name === toolCall.name);
+          if (tool && typeof tool.func === 'function') {
+            const startTime = Date.now();
+            toolResult = await tool.func(toolCall.args);
+            const duration = Date.now() - startTime;
+            console.log(`✅ Tool ${toolCall.name} executed in ${duration}ms`);
+          } else if (tool && typeof tool.invoke === 'function') {
+            const startTime = Date.now();
+            toolResult = await tool.invoke(toolCall.args);
+            const duration = Date.now() - startTime;
+            console.log(`✅ Tool ${toolCall.name} invoked in ${duration}ms`);
+          }
         }
 
         if (!toolResult) {

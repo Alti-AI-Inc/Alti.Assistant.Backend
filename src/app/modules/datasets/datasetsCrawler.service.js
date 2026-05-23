@@ -260,6 +260,14 @@ const runWorkerLoop = async () => {
         await queueItem.save();
         console.log(`[HF Worker] Successfully archived to GCS: ${datasetId}`);
 
+        // Autonomously trigger the high-fidelity RAG vector indexing step
+        try {
+          console.log(`[HF Worker] Autonomously triggering RAG chunk embedding and indexing for: ${datasetId}`);
+          await DatasetsService.indexDatasetForRAG(datasetId);
+        } catch (indexErr) {
+          console.error(`[HF Worker] Failed to trigger autonomous indexing for ${datasetId}:`, indexErr.message);
+        }
+
       } catch (err) {
         console.error(`[HF Worker] Ingestion execution failure for ${datasetId}:`, err.message);
 
