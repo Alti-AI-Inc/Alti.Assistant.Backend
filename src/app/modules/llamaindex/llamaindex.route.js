@@ -58,6 +58,11 @@ import {
 } from './llamaindex.controller.js';
 import { telemetryCollector, withTelemetry } from './llamaindex.telemetry.js';
 import { queryRouterService } from './llamaindex.queryRouter.js';
+import { metadataAgentService } from './llamaindex.metadataAgent.js';
+import DocumentMetadata from './llamaindex.metadata.model.js';
+import { relationshipGraphService } from './llamaindex.relationshipGraph.js';
+import DocumentRelationship from './llamaindex.relationship.model.js';
+import { graphRetrieverService } from './llamaindex.graphRetriever.js';
 
 const router = express.Router();
 
@@ -528,17 +533,79 @@ router.post(
 
       const userId = req.user?.userId || req.user?.id || 'default_user';
 
-      // Route the query to the optimal engine
-      const decision = queryRouterService.route(query, {
+      // Route the query to the optimal engine (async metadata matching)
+      const decision = await queryRouterService.route(query, {
         userId,
         isFollowUp: isFollowUp || false,
         previousEngine: previousEngine || null,
       });
 
+      // Traverse semantic graph and expand query to related document networks
+      const enrichedQuery = await graphRetrieverService.getGraphEnrichedQueryContext(query, userId);
+
+      const startTime = Date.now();
+      let answer = '';
+      let success = true;
+      let errorMsg = null;
+
+      try {
+        switch (decision.engine) {
+          case 'vector':
+            answer = await ragService.queryDocument(enrichedQuery, userId);
+            break;
+          case 'hybrid':
+            answer = await ragService.queryDocumentHybrid(enrichedQuery, userId);
+            break;
+          case 'fullspectrum':
+            answer = await ragService.queryDocumentFullSpectrum(enrichedQuery, userId);
+            break;
+          case 'selfcorrect':
+            answer = await ragService.queryDocumentSelfCorrecting(enrichedQuery, userId);
+            break;
+          case 'cached':
+            // Keep original query for semantic cache precision
+            answer = await ragService.querySemanticallyCached(query, userId);
+            break;
+          case 'objectagent':
+            answer = await ragService.queryDocumentObjectAgent(enrichedQuery, userId);
+            break;
+          case 'chat':
+            answer = await ragService.queryDocumentChatEngine(enrichedQuery, userId);
+            break;
+          default:
+            answer = await ragService.queryDocument(enrichedQuery, userId);
+        }
+      } catch (err) {
+        success = false;
+        errorMsg = err.message;
+      }
+
+      const latencyMs = Date.now() - startTime;
+
+      // Learn from outcome: latency, success rate, and cache hit metrics
+      queryRouterService.recordOutcome(decision.engine, decision.profile, {
+        latencyMs,
+        qualityScore: success ? 0.95 : 0.0,
+        success,
+        cacheHit: decision.engine === 'cached',
+      });
+
+      if (!success) {
+        return res.status(500).json({
+          success: false,
+          error: errorMsg,
+          routing: decision,
+        });
+      }
+
       res.status(200).json({
         success: true,
         routing: decision,
-        message: `Query routed to "${decision.engine}" engine (${decision.profile} profile, confidence: ${decision.confidence})`,
+        answer,
+        metrics: {
+          latencyMs,
+        },
+        message: `Query successfully processed using "${decision.engine}" engine (${decision.profile} profile, confidence: ${decision.confidence})`,
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -553,6 +620,76 @@ router.get(
     try {
       const analytics = queryRouterService.getAnalytics();
       res.status(200).json({ success: true, data: analytics });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Document Semantic Metadata Enrichment routes
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/documents/:docId/metadata',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  async (req, res) => {
+    try {
+      const { docId } = req.params;
+      const userId = req.user?.userId || req.user?.id || 'default_user';
+      const metadata = await DocumentMetadata.findOne({ userId, docId });
+      if (!metadata) {
+        return res.status(404).json({ success: false, message: 'Metadata profile not found.' });
+      }
+      res.status(200).json({ success: true, metadata });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+router.post(
+  '/documents/enrich-all',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  async (req, res) => {
+    try {
+      const userId = req.user?.userId || req.user?.id || 'default_user';
+      const result = await metadataAgentService.enrichAllUserDocuments(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Document Relationship Graph routes
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/documents/relationship-graph/build',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  async (req, res) => {
+    try {
+      const userId = req.user?.userId || req.user?.id || 'default_user';
+      const result = await relationshipGraphService.buildRelationshipGraph(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+router.post(
+  '/documents/relationship-graph/traverse',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  async (req, res) => {
+    try {
+      const { startDocIds, depth } = req.body;
+      if (!startDocIds || !Array.isArray(startDocIds)) {
+        return res.status(400).json({ success: false, message: 'startDocIds must be an array of document IDs' });
+      }
+      const userId = req.user?.userId || req.user?.id || 'default_user';
+      const result = await relationshipGraphService.traverseGraph(userId, startDocIds, depth || 1);
+      res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }

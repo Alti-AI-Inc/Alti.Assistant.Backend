@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../../../shared/logger.js';
+import DocumentMetadata from './llamaindex.metadata.model.js';
 
 /**
  * LlamaIndex Smart Query Router
@@ -28,9 +29,6 @@ const ENGINES = [
 const TELEMETRY_DIR = path.resolve('storage/ragsystem/telemetry');
 const ROUTER_STATE_FILE = path.join(TELEMETRY_DIR, 'router_state.json');
 
-/**
- * Document profile derived from corpus metadata.
- */
 const DOCUMENT_PROFILES = {
   technical: { keywords: ['code', 'api', 'function', 'class', 'module', 'error', 'debug'], preferredEngines: ['vector', 'selfcorrect'] },
   research: { keywords: ['study', 'research', 'paper', 'analysis', 'findings', 'methodology', 'hypothesis'], preferredEngines: ['fullspectrum', 'hybrid'] },
@@ -55,8 +53,8 @@ class QueryRouterService {
   /**
    * Route a query to the optimal engine based on:
    * 1. Query profile classification (keyword matching)
-   * 2. Historical performance data (latency, quality)
-   * 3. Cache hit potential (for repeat queries)
+   * 2. Semantic Document Metadata lookup (topics, complexity)
+   * 3. Historical performance data (latency, quality)
    * 
    * @param {string} query - The user's query text
    * @param {Object} [options]
@@ -64,19 +62,28 @@ class QueryRouterService {
    * @param {number} [options.documentCount] - Number of indexed documents
    * @param {boolean} [options.isFollowUp] - Whether this is a follow-up question
    * @param {string} [options.previousEngine] - Engine used for the previous query
-   * @returns {Object} Routing decision with engine, confidence, and reasoning
+   * @returns {Promise<Object>} Routing decision with engine, confidence, and reasoning
    */
-  route(query, options = {}) {
+  async route(query, options = {}) {
     this.totalRouted++;
     const queryLower = query.toLowerCase();
+    const userId = options.userId || 'default_user';
 
-    // Step 1: Classify query profile
-    const profile = this._classifyProfile(queryLower);
+    // Fetch user's enriched document metadata for semantic alignment
+    let userMetadataList = [];
+    try {
+      userMetadataList = await DocumentMetadata.find({ userId }).lean();
+    } catch (err) {
+      logger.warn(`QueryRouter: could not fetch DocumentMetadata for user ${userId}:`, err.message);
+    }
+
+    // Step 1: Classify query profile using keywords + semantic tags from user documents
+    const profile = this._classifyProfile(queryLower, userMetadataList);
 
     // Step 2: Score each engine
     const scores = {};
     for (const engine of ENGINES) {
-      scores[engine] = this._scoreEngine(engine, profile, queryLower, options);
+      scores[engine] = this._scoreEngine(engine, profile, queryLower, options, userMetadataList);
     }
 
     // Step 3: Pick the winner
@@ -95,7 +102,7 @@ class QueryRouterService {
       engine: bestEngine,
       confidence: Math.round(confidence * 100) / 100,
       profile: profile.name,
-      reasoning: this._buildReasoning(bestEngine, profile, options),
+      reasoning: this._buildReasoning(bestEngine, profile, options, userMetadataList),
       alternatives: ranked.slice(1, 3).map(([eng, score]) => ({
         engine: eng,
         score: Math.round(score * 100) / 100,
@@ -185,16 +192,37 @@ class QueryRouterService {
   }
 
   /**
-   * Classify a query into a document profile.
+   * Classify a query into a document profile, checking user document tags.
    * @private
    */
-  _classifyProfile(queryLower) {
+  _classifyProfile(queryLower, userMetadataList) {
     let bestMatch = { name: 'general', score: 0, preferredEngines: ['hybrid', 'vector'] };
 
     for (const [name, profile] of Object.entries(DOCUMENT_PROFILES)) {
-      const score = profile.keywords.reduce((acc, keyword) => {
+      let score = profile.keywords.reduce((acc, keyword) => {
         return acc + (queryLower.includes(keyword) ? 1 : 0);
       }, 0);
+
+      // Semantic matching with user's enriched document topics
+      if (userMetadataList && userMetadataList.length > 0) {
+        for (const meta of userMetadataList) {
+          // If query targets a topic inside user's own technical/financial documents, boost alignment
+          const matchesTopic = meta.topics.some(t => queryLower.includes(t.toLowerCase()));
+          const matchesEntity = meta.entities.some(e => queryLower.includes(e.toLowerCase()));
+
+          if (matchesTopic || matchesEntity) {
+            if (name === 'technical' && (meta.complexity === 'Highly Technical' || meta.complexity === 'Advanced')) {
+              score += 2;
+            }
+            if (name === 'structured' && meta.topics.some(t => ['database', 'sheets', 'data', 'finance'].includes(t.toLowerCase()))) {
+              score += 2;
+            }
+            if (name === 'research' && meta.topics.some(t => ['research', 'scientific', 'analysis'].includes(t.toLowerCase()))) {
+              score += 2;
+            }
+          }
+        }
+      }
 
       if (score > bestMatch.score) {
         bestMatch = { name, score, preferredEngines: profile.preferredEngines };
@@ -208,7 +236,7 @@ class QueryRouterService {
    * Score an engine for a given query profile and context.
    * @private
    */
-  _scoreEngine(engine, profile, queryLower, options) {
+  _scoreEngine(engine, profile, queryLower, options, userMetadataList) {
     let score = 0;
 
     // Base score: is this engine preferred for this profile?
@@ -224,10 +252,8 @@ class QueryRouterService {
     if (historical && historical.count >= 5) {
       const avgQuality = historical.totalQuality / historical.count;
       const successRate = historical.successes / historical.count;
-      // Quality weighted heavily
       score += avgQuality * 5;
       score += successRate * 3;
-      // Penalize slow engines
       const avgLatency = historical.totalLatencyMs / historical.count;
       if (avgLatency > 5000) score -= 2;
       if (avgLatency > 10000) score -= 3;
@@ -235,9 +261,17 @@ class QueryRouterService {
 
     // Context bonuses
     if (options.isFollowUp && engine === 'chat') score += 5;
-    if (options.previousEngine === engine) score += 1; // Slight continuity bonus
+    if (options.previousEngine === engine) score += 1;
     if (options.documentCount && options.documentCount > 20 && engine === 'fullspectrum') score += 2;
     if (options.documentCount && options.documentCount <= 3 && engine === 'vector') score += 2;
+
+    // Smart boost: Highly Technical document complexity alignment
+    if (userMetadataList && userMetadataList.length > 0) {
+      const hasHighlyTechnical = userMetadataList.some(meta => meta.complexity === 'Highly Technical');
+      if (hasHighlyTechnical && engine === 'selfcorrect') {
+        score += 3; // Boost self-correcting logic if user corpus contains complex papers
+      }
+    }
 
     // Query length heuristics
     if (queryLower.length > 200 && engine === 'fullspectrum') score += 2;
@@ -250,7 +284,7 @@ class QueryRouterService {
    * Build a human-readable reasoning string.
    * @private
    */
-  _buildReasoning(engine, profile, options) {
+  _buildReasoning(engine, profile, options, userMetadataList) {
     const parts = [];
     parts.push(`Query classified as "${profile.name}" profile`);
     
@@ -262,8 +296,11 @@ class QueryRouterService {
       parts.push('follow-up question detected');
     }
 
-    if (options.documentCount) {
-      parts.push(`${options.documentCount} documents indexed`);
+    if (userMetadataList && userMetadataList.length > 0) {
+      const complexCount = userMetadataList.filter(m => m.complexity === 'Highly Technical').length;
+      if (complexCount > 0) {
+        parts.push(`Corpus contains ${complexCount} highly technical document profiles`);
+      }
     }
 
     const key = `${profile.name}:${engine}`;

@@ -128,4 +128,126 @@ router.get(
   }
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// App Discovery & Integration Recommendation routes
+// ─────────────────────────────────────────────────────────────────────────────
+import { appDiscoveryService } from './appDiscovery.service.js';
+
+router.get(
+  '/recommendations',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await appDiscoveryService.getRecommendations(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+router.post(
+  '/recommendations/dismiss',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const { appName } = req.body;
+      if (!appName) {
+        return res.status(400).json({ success: false, message: 'appName is required' });
+      }
+      const result = await appDiscoveryService.dismissRecommendation(appName);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Webhook Event Trigger routes
+// ─────────────────────────────────────────────────────────────────────────────
+import { eventTriggerService } from './eventTrigger.service.js';
+
+router.post(
+  '/triggers',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const { appName, eventName, dispatchType, targetId, paramMapping } = req.body;
+      if (!appName || !eventName || !dispatchType || !targetId) {
+        return res.status(400).json({ success: false, message: 'appName, eventName, dispatchType, and targetId are required' });
+      }
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await eventTriggerService.registerTrigger(
+        userId,
+        appName,
+        eventName,
+        dispatchType,
+        targetId,
+        paramMapping
+      );
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// Public webhook receiver (can bypass standard user auth depending on the webhook secret, or support optional auth)
+router.post(
+  '/webhooks/receive',
+  async (req, res) => {
+    try {
+      const { appName, eventName, payload } = req.body;
+      if (!appName || !eventName || !payload) {
+        return res.status(400).json({ success: false, message: 'appName, eventName, and payload are required' });
+      }
+      const result = await eventTriggerService.receiveWebhookEvent(appName, eventName, payload);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Connection Auto-Recovery routes
+// ─────────────────────────────────────────────────────────────────────────────
+import { connectionRecoveryService } from './connectionRecovery.service.js';
+
+router.post(
+  '/connections/:connectionId/recover',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const { connectionId } = req.params;
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await connectionRecoveryService.attemptAutoRecovery(connectionId, userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
+router.post(
+  '/connections/heartbeat',
+  optionalAuth(),
+  extractTenantContext,
+  async (req, res) => {
+    try {
+      const userId = req.user?._id || req.userId || 'default_user';
+      const result = await connectionRecoveryService.runHeartbeatRecovery(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
 export const composioV2Routes = router;

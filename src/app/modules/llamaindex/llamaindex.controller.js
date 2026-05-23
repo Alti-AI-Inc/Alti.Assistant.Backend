@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
 import { ragService } from './llamaindex.service.js';
+import { metadataAgentService } from './llamaindex.metadataAgent.js';
 
 export const uploadAndIndexDocument = async (req, res) => {
   try {
@@ -12,6 +13,9 @@ export const uploadAndIndexDocument = async (req, res) => {
     const originalName = req.file.originalname;
     const userId = req.user?.userId || req.user?.id || 'default_user';
     const result = await ragService.uploadAndIndexDocumentService(filePath, originalName, userId);
+
+    // Asynchronously trigger deep semantic profiling
+    metadataAgentService.enrichDocument(null, originalName, result.docId, userId).catch(() => {});
 
     // Optional: delete temp file
     if (existsSync(filePath)) {
