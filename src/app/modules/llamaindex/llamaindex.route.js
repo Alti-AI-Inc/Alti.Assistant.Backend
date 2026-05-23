@@ -56,6 +56,8 @@ import {
   queryAgentWorkflowCtrl,
   optimizePromptCtrl
 } from './llamaindex.controller.js';
+import { telemetryCollector, withTelemetry } from './llamaindex.telemetry.js';
+import { queryRouterService } from './llamaindex.queryRouter.js';
 
 const router = express.Router();
 
@@ -115,14 +117,14 @@ router.post(
 router.post(
   '/query',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-  queryIndex
+  withTelemetry('query', queryIndex)
 );
 
 // Phase 4: SSE Streaming Query
 router.post(
   '/query-stream',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-  queryIndexStream
+  withTelemetry('query-stream', queryIndexStream)
 );
 
 // Phase 5: Advanced Query (Router + SubQuestion engines)
@@ -263,14 +265,14 @@ router.get(
 router.post(
   '/query-classify',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-  queryClassifyAndRoute
+  withTelemetry('query-classify', queryClassifyAndRoute)
 );
 
 // Context-aware chat (DefaultContextGenerator)
 router.post(
   '/context-chat',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-  queryContextAwareChat
+  withTelemetry('context-chat', queryContextAwareChat)
 );
 
 // Index diagnostics (node introspection)
@@ -366,7 +368,7 @@ router.post(
 router.post(
   '/query-cached',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
-  semanticCacheQuery
+  withTelemetry('query-cached', semanticCacheQuery)
 );
 
 // Adaptive chunking strategy recommendation
@@ -487,6 +489,74 @@ router.get(
   '/export-session',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   exportSessionPDF
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 19: Query Telemetry Pipeline
+// ─────────────────────────────────────────────────────────────────────────────
+router.get(
+  '/telemetry',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  (req, res) => {
+    try {
+      const userId = req.user?.userId || req.user?.id || 'default_user';
+      const window = req.query.window || '24h';
+      const scope = req.query.scope || 'user'; // 'user' or 'global'
+      const analytics = telemetryCollector.getAnalytics(
+        scope === 'global' ? null : userId,
+        window
+      );
+      res.status(200).json(analytics);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 20: Smart Query Router
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/query-routed',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  async (req, res) => {
+    try {
+      const { query, isFollowUp, previousEngine } = req.body;
+      if (!query) {
+        return res.status(400).json({ error: 'query is required' });
+      }
+
+      const userId = req.user?.userId || req.user?.id || 'default_user';
+
+      // Route the query to the optimal engine
+      const decision = queryRouterService.route(query, {
+        userId,
+        isFollowUp: isFollowUp || false,
+        previousEngine: previousEngine || null,
+      });
+
+      res.status(200).json({
+        success: true,
+        routing: decision,
+        message: `Query routed to "${decision.engine}" engine (${decision.profile} profile, confidence: ${decision.confidence})`,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+router.get(
+  '/router-analytics',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  (req, res) => {
+    try {
+      const analytics = queryRouterService.getAnalytics();
+      res.status(200).json({ success: true, data: analytics });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 );
 
 export const llamaindexRoutes = router;

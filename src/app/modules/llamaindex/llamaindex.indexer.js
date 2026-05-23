@@ -231,26 +231,47 @@ class GoogleLLM extends BaseLLM {
   }
 }
 
+// Helper function to L2 normalize a vector
+function L2Normalize(vector) {
+  const sumOfSquares = vector.reduce((sum, val) => sum + val * val, 0);
+  const magnitude = Math.sqrt(sumOfSquares);
+  if (magnitude === 0) return vector;
+  return vector.map(val => val / magnitude);
+}
+
 class GoogleEmbedding extends BaseEmbedding {
   constructor(apiKey) {
     super();
     this.client = new GoogleGenerativeAI(apiKey);
-    this.modelName = 'text-embedding-004';
+    this.modelName = 'gemini-embedding-001';
     this.model = this.client.getGenerativeModel({ model: this.modelName });
     this.embedBatchSize = 10;
+    this.targetDimension = 768; // Sliced target representation dimension
+  }
+
+  processVector(vector) {
+    if (!vector || vector.length === 0) {
+      return new Array(this.targetDimension).fill(0);
+    }
+    const sliced = vector.slice(0, this.targetDimension);
+    const normalized = L2Normalize(sliced);
+    if (normalized.length < this.targetDimension) {
+      return [...normalized, ...new Array(this.targetDimension - normalized.length).fill(0)];
+    }
+    return normalized;
   }
 
   async getTextEmbedding(text) {
     try {
       const result = await this.model.embedContent(text);
-      return result.embedding.values;
+      return this.processVector(result.embedding.values);
     } catch (err) {
       if (this.modelName !== 'gemini-embedding-001') {
         console.log(`Embedding model ${this.modelName} failed, falling back to gemini-embedding-001`);
         this.modelName = 'gemini-embedding-001';
         this.model = this.client.getGenerativeModel({ model: this.modelName });
         const result = await this.model.embedContent(text);
-        return result.embedding.values;
+        return this.processVector(result.embedding.values);
       }
       throw err;
     }
@@ -263,7 +284,7 @@ class GoogleEmbedding extends BaseEmbedding {
           content: { parts: [{ text }] },
         })),
       });
-      return result.embeddings.map((e) => e.values);
+      return result.embeddings.map((e) => this.processVector(e.values));
     } catch (err) {
       if (this.modelName !== 'gemini-embedding-001') {
         console.log(`Embedding batch model ${this.modelName} failed, falling back to gemini-embedding-001`);
@@ -274,7 +295,7 @@ class GoogleEmbedding extends BaseEmbedding {
             content: { parts: [{ text }] },
           })),
         });
-        return result.embeddings.map((e) => e.values);
+        return result.embeddings.map((e) => this.processVector(e.values));
       }
       throw err;
     }

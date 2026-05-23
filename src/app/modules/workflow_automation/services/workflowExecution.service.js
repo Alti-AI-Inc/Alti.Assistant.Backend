@@ -1,6 +1,7 @@
 import Workflow from '../models/workflow.model.js';
 import WorkflowExecution from '../models/workflowExecution.model.js';
 import { composioIntegrationService } from './composioIntegration.service.js';
+import { workflowResilienceService } from './workflowResilience.service.js';
 import { Composio } from '@composio/core';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
@@ -296,21 +297,65 @@ class WorkflowExecutionService {
       // Prepare parameters by merging step parameters with context
       const parameters = this.prepareParameters(step.parameters, context);
 
-      // Execute the tool
-      const result = await executableTool.execute(parameters);
+      // Execute the tool with retry resilience
+      const resilientResult = await workflowResilienceService.executeWithRetry(
+        () => executableTool.execute(parameters),
+        {
+          stepId: step.stepId,
+          actionType: this._classifyActionType(step.action),
+          maxAttempts: step.retryPolicy?.maxAttempts || 3,
+        }
+      );
 
-      logger.info(`Step completed successfully: ${step.stepId}`);
+      if (!resilientResult.success) {
+        throw new Error(
+          `Step execution failed after ${resilientResult.attempts} attempts: ${resilientResult.error}`
+        );
+      }
+
+      const result = resilientResult.result;
+
+      // Register completed step for potential rollback
+      if (context._executionId) {
+        workflowResilienceService.registerCompletedStep(
+          context._executionId,
+          { stepId: step.stepId, app: step.app, action: step.action, parameters },
+          result
+        );
+      }
+
+      logger.info(
+        `Step completed successfully: ${step.stepId}` +
+        (resilientResult.retried ? ` (after ${resilientResult.attempts} attempts)` : '')
+      );
 
       return {
         success: true,
         data: result,
         contextUpdates: this.extractContextUpdates(result, step),
         timestamp: new Date(),
+        attempts: resilientResult.attempts,
+        retried: resilientResult.retried,
+        totalDurationMs: resilientResult.totalDurationMs,
       };
     } catch (error) {
       logger.error(`Error executing step ${step.stepId}:`, error);
       throw new Error(`Step execution failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Classify an action name into a retry policy type.
+   * @private
+   */
+  _classifyActionType(action) {
+    if (!action) return 'default';
+    const a = action.toLowerCase();
+    const readActions = ['get', 'list', 'search', 'find', 'fetch', 'read', 'check'];
+    const writeActions = ['create', 'update', 'delete', 'send', 'post', 'put', 'patch'];
+    if (readActions.some(r => a.includes(r))) return 'read';
+    if (writeActions.some(w => a.includes(w))) return 'write';
+    return 'network';
   }
 
   /**

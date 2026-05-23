@@ -3,6 +3,8 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import { composioIntegrationService } from '../services/composioIntegration.service.js';
+import { workflowExecutionService } from '../services/workflowExecution.service.js';
+import Workflow from '../models/workflow.model.js';
 
 // Initialize LLM
 const llm = new ChatGoogleGenerativeAI({
@@ -58,20 +60,11 @@ Respond with a JSON object only.`;
       cleanedResult = cleanedResult.replace(regex, '').trim();
     }
 
-    if (cleanedResult.startsWith('```json')) {
-      cleanedResult = cleanedResult
-        .replace(/```json\s*/, '')
-        .replace(/\s*```$/, '');
+    const match = cleanedResult.match(/{[\s\S]*}/);
+    if (!match) {
+      throw new Error('No valid JSON structure found in LLM intent analysis response.');
     }
-
-    // console.log('Cleaned Result:', cleanedResult);
-
-    const match = cleanedResult.match(/```json([\s\S]*?)```/);
-    if (match) {
-      cleanedResult = match[1];
-    }
-
-    const analysis = JSON.parse(cleanedResult);
+    const analysis = JSON.parse(match[0]);
 
     // Validate detected apps against available apps
     const validationResult =
@@ -177,28 +170,21 @@ Respond with a JSON object containing:
       cleanedResult = cleanedResult.replace(regex, '').trim();
     }
 
-    if (cleanedResult.startsWith('```json')) {
-      cleanedResult = cleanedResult
-        .replace(/```json\s*/, '')
-        .replace(/\s*```$/, '');
-    }
-
-    // console.log('Cleaned Result:', cleanedResult);
-
+    let plan = {};
     console.log('Cleaned Result:', cleanedResult);
     const match = cleanedResult.match(/{[\s\S]*}/);
     if (match) {
       try {
-        const cleanedResult = JSON.parse(match[0]);
-        console.log('Extracted JSON:', cleanedResult);
+        plan = JSON.parse(match[0]);
+        console.log('Extracted JSON:', plan);
       } catch (e) {
         console.error('Invalid JSON:', e);
+        throw new Error('Failed to parse planned workflow JSON.');
       }
     } else {
       console.error('No JSON found in string');
+      throw new Error('No valid JSON plan found in workflow response.');
     }
-
-    const plan = cleanedResult;
 
     // Validate the planned apps against available ones
     const validationResult =
@@ -278,19 +264,11 @@ Respond with JSON only.`;
       cleanedResult = cleanedResult.replace(regex, '').trim();
     }
 
-    if (cleanedResult.startsWith('```json')) {
-      cleanedResult = cleanedResult
-        .replace(/```json\s*/, '')
-        .replace(/\s*```$/, '');
+    const match = cleanedResult.match(/{[\s\S]*}/);
+    if (!match) {
+      throw new Error('No valid JSON structure found in schedule detection response.');
     }
-
-    // console.log('Cleaned Result:', cleanedResult);
-
-    const match = cleanedResult.match(/```json([\s\S]*?)```/);
-    if (match) {
-      cleanedResult = match[1];
-    }
-    const scheduleConfig = JSON.parse(cleanedResult);
+    const scheduleConfig = JSON.parse(match[0]);
 
     return {
       scheduleConfig: scheduleConfig.scheduleConfig,
@@ -357,19 +335,11 @@ Respond with JSON:
       cleanedResult = cleanedResult.replace(regex, '').trim();
     }
 
-    if (cleanedResult.startsWith('```json')) {
-      cleanedResult = cleanedResult
-        .replace(/```json\s*/, '')
-        .replace(/\s*```$/, '');
+    const match = cleanedResult.match(/{[\s\S]*}/);
+    if (!match) {
+      throw new Error('No valid JSON structure found in parameter extraction response.');
     }
-
-    // console.log('Cleaned Result:', cleanedResult);
-
-    const match = cleanedResult.match(/```json([\s\S]*?)```/);
-    if (match) {
-      cleanedResult = match[1];
-    }
-    const paramData = JSON.parse(cleanedResult);
+    const paramData = JSON.parse(match[0]);
 
     return {
       extractedParameters: paramData.extractedParameters,
@@ -467,12 +437,14 @@ export const validateWorkflowNode = async (state) => {
     return {
       validationResult: validation,
       needsConfirmation: !validation.isValid || validation.warnings.length > 0,
+      allAppsConnected: !validation.missingConnections || validation.missingConnections.length === 0,
       currentStage: 'workflow_validated',
     };
   } catch (error) {
     logger.error('Error in workflow validation:', error);
     return {
       error: `Workflow validation failed: ${error.message}`,
+      allAppsConnected: false,
       currentStage: 'validation_error',
     };
   }
@@ -596,3 +568,88 @@ export const generateResponseNode = async (state) => {
     };
   }
 };
+
+/**
+ * Execute the validated workflow by persisting it and running all steps.
+ * This node is only reached when validation passes AND all apps are connected.
+ */
+export const executeWorkflowNode = async (state) => {
+  try {
+    logger.info('Executing validated workflow for user ' + state.userId);
+
+    // 1. Persist the workflow as a MongoDB document
+    const workflowData = {
+      userId: state.userId,
+      name: state.userIntent || 'Automated Workflow',
+      description: `${state.taskType} workflow — ${state.complexity} complexity`,
+      originalPrompt: state.userPrompt,
+      steps: (state.workflowSteps || []).map((step, index) => ({
+        stepId: step.stepId || `step_${index + 1}`,
+        stepType: step.stepType || 'action',
+        description: step.description || '',
+        app: step.app || 'unknown',
+        action: step.action || '',
+        parameters: step.parameters || {},
+        conditions: step.conditions || {},
+        order: step.order ?? index + 1,
+      })),
+      trigger: {
+        triggerType: state.triggerType || 'manual',
+        scheduleConfig: state.scheduleConfig || {},
+      },
+      status: 'active',
+      category: state.taskType || 'other',
+      requiredApps: (state.detectedApps || []).map((app) => ({
+        app,
+        connected: true,
+      })),
+      metadata: {
+        createdByAgent: true,
+        complexity: state.complexity,
+        langgraphConversationId: state.conversationId,
+      },
+    };
+
+    const savedWorkflow = new Workflow(workflowData);
+    await savedWorkflow.save();
+
+    logger.info(`Workflow persisted with ID: ${savedWorkflow._id}`);
+
+    // 2. Execute the workflow immediately
+    const executionResult = await workflowExecutionService.executeWorkflow(
+      savedWorkflow._id,
+      state.userId,
+      {
+        triggeredBy: 'langgraph_agent',
+        conversationId: state.conversationId,
+        originalPrompt: state.userPrompt,
+      }
+    );
+
+    // 3. If scheduled, set up the cron job
+    if (state.triggerType === 'schedule' && state.scheduleConfig) {
+      try {
+        await workflowExecutionService.scheduleWorkflow(savedWorkflow._id);
+        logger.info(`Workflow ${savedWorkflow._id} scheduled for recurring execution`);
+      } catch (scheduleError) {
+        logger.warn('Could not schedule workflow for recurring execution:', scheduleError.message);
+      }
+    }
+
+    return {
+      executionResult,
+      savedWorkflowId: savedWorkflow._id.toString(),
+      workflowId: savedWorkflow._id.toString(),
+      workflowStatus: executionResult.success ? 'active' : 'error',
+      currentStage: 'workflow_executed',
+    };
+  } catch (error) {
+    logger.error('Error in workflow execution:', error);
+    return {
+      error: `Workflow execution failed: ${error.message}`,
+      executionResult: { success: false, error: error.message },
+      currentStage: 'execution_error',
+    };
+  }
+};
+

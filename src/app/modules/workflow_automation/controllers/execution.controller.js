@@ -3,6 +3,7 @@ import catchAsync from '../../../../shared/catchAsync.js';
 import sendResponse from '../../../../shared/sendResponse.js';
 import { logger } from '../../../../shared/logger.js';
 import { workflowExecutionService } from '../services/workflowExecution.service.js';
+import { connectionHealthService } from '../services/connectionHealth.service.js';
 import Workflow from '../models/workflow.model.js';
 
 /**
@@ -321,6 +322,84 @@ const unscheduleWorkflowController = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * Get connection health for all user's connected apps
+ */
+const getConnectionHealthController = catchAsync(async (req, res) => {
+  const userId = req.user?._id || req.userId;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  try {
+    const health = await connectionHealthService.checkConnectionHealth(userId);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: health.success,
+      message: health.summary,
+      data: health,
+    });
+  } catch (error) {
+    logger.error('Error in getConnectionHealthController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to check connection health',
+    });
+  }
+});
+
+/**
+ * Refresh a stale app connection
+ */
+const refreshConnectionController = catchAsync(async (req, res) => {
+  const userId = req.user?._id || req.userId;
+  const { appName } = req.body;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  if (!appName) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'appName is required in body',
+    });
+  }
+
+  try {
+    const result = await connectionHealthService.refreshStaleConnection(
+      userId,
+      appName
+    );
+
+    return sendResponse(res, {
+      statusCode: result.success ? httpStatus.OK : httpStatus.BAD_REQUEST,
+      success: result.success,
+      message: result.message || result.error,
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error in refreshConnectionController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to refresh connection',
+    });
+  }
+});
+
 export const executionController = {
   executeWorkflowController,
   getExecutionHistoryController,
@@ -328,4 +407,6 @@ export const executionController = {
   cancelExecutionController,
   scheduleWorkflowController,
   unscheduleWorkflowController,
+  getConnectionHealthController,
+  refreshConnectionController,
 };

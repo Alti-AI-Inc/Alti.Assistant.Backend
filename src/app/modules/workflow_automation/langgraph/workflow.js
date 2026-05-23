@@ -7,6 +7,7 @@ import {
   extractParametersNode,
   validateWorkflowNode,
   generateResponseNode,
+  executeWorkflowNode,
 } from './nodes.js';
 import { MemorySaver } from '@langchain/langgraph';
 import { logger } from '../../../../shared/logger.js';
@@ -20,6 +21,7 @@ workflow.addNode('plan_workflow', planWorkflowNode);
 workflow.addNode('schedule_detection', scheduleDetectionNode);
 workflow.addNode('extract_parameters', extractParametersNode);
 workflow.addNode('validate_workflow', validateWorkflowNode);
+workflow.addNode('execute_workflow', executeWorkflowNode);
 workflow.addNode('generate_response', generateResponseNode);
 
 // Define the workflow edges
@@ -77,8 +79,26 @@ workflow.addConditionalEdges(
   }
 );
 
-// Route from validation to response
-workflow.addEdge('validate_workflow', 'generate_response');
+// Route from validation: execute if valid & all apps connected, else confirm
+workflow.addConditionalEdges(
+  'validate_workflow',
+  (state) => {
+    if (state.error) return 'generate_response';
+    // If workflow is valid and no missing connections, execute directly
+    const isValid = state.validationResult?.isValid !== false;
+    const noMissing = !state.validationResult?.missingConnections?.length;
+    if (isValid && noMissing) return 'execute_workflow';
+    // Otherwise, generate confirmation message with connection URLs
+    return 'generate_response';
+  },
+  {
+    execute_workflow: 'execute_workflow',
+    generate_response: 'generate_response',
+  }
+);
+
+// Route from execution to response generation
+workflow.addEdge('execute_workflow', 'generate_response');
 
 // End the workflow
 workflow.addEdge('generate_response', END);

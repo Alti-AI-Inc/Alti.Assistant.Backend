@@ -4,6 +4,18 @@ import auth from '../../../middlewares/auth/auth.js';
 
 const router = express.Router();
 
+// Connection health monitoring routes
+router.get(
+  '/connections/health',
+  auth(),
+  executionController.getConnectionHealthController
+);
+router.post(
+  '/connections/refresh',
+  auth(),
+  executionController.refreshConnectionController
+);
+
 // Workflow execution routes
 router.post(
   '/:workflowId/execute',
@@ -39,3 +51,4 @@ router.post(
 );
 
 export const executionRoutes = router;
+

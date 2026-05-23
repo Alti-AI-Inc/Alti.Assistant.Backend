@@ -151,6 +151,46 @@ export const workflowAutomationState = {
     default: () => '',
   },
 
+  // Workflow execution results (Phase 2: Execution Agent)
+  executionResult: {
+    reducer: (x, y) => y ?? x,
+    default: () => null,
+  },
+  allAppsConnected: {
+    reducer: (x, y) => y ?? x,
+    default: () => false,
+  },
+  savedWorkflowId: {
+    reducer: (x, y) => y ?? x,
+    default: () => '',
+  },
+
+  // Connection health
+  connectionUrls: {
+    reducer: (x, y) => y ?? x,
+    default: () => ({}),
+  },
+  missingConnections: {
+    reducer: (x, y) => y ?? x,
+    default: () => [],
+  },
+  availableApps: {
+    reducer: (x, y) => y ?? x,
+    default: () => [],
+  },
+  invalidApps: {
+    reducer: (x, y) => y ?? x,
+    default: () => [],
+  },
+  connectionStatus: {
+    reducer: (x, y) => y ?? x,
+    default: () => null,
+  },
+  availableTools: {
+    reducer: (x, y) => y ?? x,
+    default: () => ({}),
+  },
+
   // Debug and logging
   debugInfo: {
     reducer: (x, y) => y ?? x,

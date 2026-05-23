@@ -9,17 +9,33 @@ const integrationId = '5c9834e1-14b3-4c06-9262-606bce538a9f';
 const toolset = new OpenAIToolSet({ apiKey: config.composio.apiKey });
 const composio = new Composio();
 
-// Recursive helper to capitalize all parameter types for Gemini compatibility
+// Recursive helper to capitalize all parameter types and sanitize schemas for Gemini compatibility
 const capitalizeTypes = (schema) => {
   if (!schema || typeof schema !== 'object') {
     return schema;
   }
   
+  // Strip unsupported complex schema structures that fail Gemini validation
+  if (schema.oneOf || schema.anyOf || schema.allOf) {
+    const subSchema = schema.oneOf?.[0] || schema.anyOf?.[0] || schema.allOf?.[0];
+    if (subSchema && typeof subSchema === 'object') {
+      return capitalizeTypes(subSchema);
+    }
+  }
+
   const newSchema = Array.isArray(schema) ? [] : {};
   
   for (const [key, value] of Object.entries(schema)) {
+    // Strip keys not supported by Gemini schemas
+    if (['format', 'additionalProperties', 'anyOf', 'oneOf', 'allOf'].includes(key)) {
+      continue;
+    }
+
     if (key === 'type' && typeof value === 'string') {
-      newSchema[key] = value.toUpperCase();
+      let typeVal = value.toUpperCase();
+      if (typeVal === 'INT') typeVal = 'INTEGER';
+      if (typeVal === 'NULL') continue; // Gemini doesn't support NULL type inside properties
+      newSchema[key] = typeVal;
     } else if (typeof value === 'object') {
       newSchema[key] = capitalizeTypes(value);
     } else {

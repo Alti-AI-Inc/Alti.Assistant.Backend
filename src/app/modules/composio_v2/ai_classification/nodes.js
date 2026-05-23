@@ -11,6 +11,7 @@ import {
   extractCrossStepParameters,
   generateStepExecutionSummary,
 } from '../services/aiClassificationService.js';
+import { actionAuditService } from '../actionAudit.service.js';
 import { Composio } from '@composio/core';
 import config from '../../../../../config/index.js';
 import ComposionAuth from '../composio.model.js';
@@ -385,15 +386,26 @@ export const executeToolNode = async (state) => {
     userInput,
   } = state;
 
-  try {
-    // console.log(
-    //   `Executing tool for ${identifiedApp}:${identifiedAction} with parameters:`,
-    //   extractedParameters
-    // );
+  // Start audit logging (non-blocking)
+  const auditLogId = await actionAuditService.logStart({
+    userId: state.userId,
+    app: identifiedApp,
+    action: identifiedAction,
+    toolName: relevantTools?.[0]?.function?.name,
+    parameters: extractedParameters,
+    context: {
+      conversationId: state.threadId,
+      workflowType: state.workflowType || 'single_step',
+      confidence: state.confidence,
+      classifiedBy: 'ai_classification',
+    },
+  });
 
+  const executionStartTime = Date.now();
+
+  try {
     const primaryTool = relevantTools[0];
     const connectedAccount = connectedAccounts?.[0];
-    // console.log(`Connected accounts for ${identifiedApp}:`, relevantTools);
 
     if (!connectedAccount) {
       throw new Error(
@@ -403,12 +415,6 @@ export const executeToolNode = async (state) => {
 
     // Create a comprehensive context summary for the execution
     const historySummary = createHistorySummary(history, conversationContext);
-
-    // console.log(
-    //   `Executing tool: ${identifiedApp} with parameters:`,
-    //   extractedParameters,
-    //   'with history context:', historySummary
-    // );
 
     // Execute the tool using Composio with history context
     const executionResult = await executeComposioWithGemini(
@@ -422,6 +428,13 @@ export const executeToolNode = async (state) => {
 
     console.log(`Tool execution completed successfully`);
 
+    // Complete audit logging (non-blocking)
+    actionAuditService.logComplete(auditLogId, {
+      success: true,
+      result: executionResult,
+      durationMs: Date.now() - executionStartTime,
+    });
+
     return {
       ...state,
       executionResult,
@@ -433,10 +446,19 @@ export const executeToolNode = async (state) => {
         executionTime: new Date(),
         toolExecuted: identifiedAction,
         usedHistoryContext: !!historySummary,
+        auditLogId,
       },
     };
   } catch (error) {
     console.error('Error in executeToolNode:', error);
+
+    // Log failure to audit (non-blocking)
+    actionAuditService.logComplete(auditLogId, {
+      success: false,
+      error,
+      durationMs: Date.now() - executionStartTime,
+    });
+
     return {
       error: {
         node: 'executeTool',
