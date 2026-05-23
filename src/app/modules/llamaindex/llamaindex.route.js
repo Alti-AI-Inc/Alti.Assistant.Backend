@@ -3,6 +3,7 @@ import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
 import auth from '../../middlewares/auth/auth.js';
+import optionalAuth from '../../middlewares/auth/optionalAuth.js';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import { GCSStorageEngine } from '../../middlewares/uploder/uploder.js';
 import {
