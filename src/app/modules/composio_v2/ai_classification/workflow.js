@@ -117,20 +117,25 @@ workflow.addEdge('execute_tool', 'generate_response');
 // All paths end at response generation
 workflow.addEdge('generate_response', END);
 
-// Initialize MongoDB checkpointer for conversation persistence
-let checkpointer;
-try {
-  checkpointer = await MongoDBSaver.fromUri(config.database_local, 'ai_classification_checkpoints');
-} catch (err) {
-  console.warn('⚠️ AI classification: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
-  checkpointer = new MemorySaver();
-}
+// Compile immediately with in-memory checkpointer to avoid blocking startup
+let checkpointer = new MemorySaver();
 
 // Compile the workflow with checkpointer
 export const aiClassificationApp = workflow.compile({
   checkpointer,
   debug: true,
 });
+
+// Deferred MongoDB checkpointer upgrade (non-blocking)
+MongoDBSaver.fromUri(config.database_local, 'ai_classification_checkpoints')
+  .then((mongoCheckpointer) => {
+    checkpointer = mongoCheckpointer;
+    Object.assign(aiClassificationApp, workflow.compile({ checkpointer, debug: true }));
+    console.log('✅ AI classification: MongoDB checkpointer connected');
+  })
+  .catch((err) => {
+    console.warn('⚠️ AI classification: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  });
 
 // Export utility function to invoke the AI classification agent
 export const runAIClassificationAgent = async (userInput, options = {}) => {

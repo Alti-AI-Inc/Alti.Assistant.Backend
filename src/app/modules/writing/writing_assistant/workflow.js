@@ -23,11 +23,18 @@ workflow.addEdge(START, 'write_content');
 // workflow.addEdge("get_confirmation", END);
 workflow.addEdge('write_content', END);
 
-let checkpointer;
-try {
-  checkpointer = await MongoDBSaver.fromUri(config.database_local, 'writer_checkpoints');
-} catch (err) {
-  console.warn('⚠️ Writing assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
-  checkpointer = new MemorySaver();
-}
+// Compile immediately with in-memory checkpointer to avoid blocking startup
+let checkpointer = new MemorySaver();
 export const writingAssistantApp = workflow.compile({ checkpointer });
+
+// Deferred MongoDB checkpointer upgrade (non-blocking)
+MongoDBSaver.fromUri(config.database_local, 'writer_checkpoints')
+  .then((mongoCheckpointer) => {
+    checkpointer = mongoCheckpointer;
+    Object.assign(writingAssistantApp, workflow.compile({ checkpointer }));
+    console.log('✅ Writing assistant: MongoDB checkpointer connected');
+  })
+  .catch((err) => {
+    console.warn('⚠️ Writing assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  });
+

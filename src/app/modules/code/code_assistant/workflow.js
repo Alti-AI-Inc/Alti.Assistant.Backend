@@ -46,14 +46,20 @@ workflow.addEdge('debug_code', END);
 workflow.addEdge('best_practices', END);
 workflow.addEdge('general_conversation', END);
 
-// Instantiate the checkpointer for memory — fallback to in-memory if DB is unavailable
-let checkpointer;
-try {
-  checkpointer = await MongoDBSaver.fromUri(config.database_local);
-} catch (err) {
-  console.warn('⚠️ Code assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
-  checkpointer = new MemorySaver();
-}
-
-// Compile the graph into a runnable application with the checkpointer
+// Compile immediately with in-memory checkpointer to avoid blocking startup.
+// MongoDB checkpointer is initialized lazily on first request.
+let checkpointer = new MemorySaver();
 export const codeAssistantApp = workflow.compile({ checkpointer });
+
+// Deferred MongoDB checkpointer upgrade (non-blocking)
+MongoDBSaver.fromUri(config.database_local)
+  .then((mongoCheckpointer) => {
+    checkpointer = mongoCheckpointer;
+    // Re-compile with persistent checkpointer
+    Object.assign(codeAssistantApp, workflow.compile({ checkpointer }));
+    console.log('✅ Code assistant: MongoDB checkpointer connected');
+  })
+  .catch((err) => {
+    console.warn('⚠️ Code assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  });
+

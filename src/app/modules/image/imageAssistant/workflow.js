@@ -57,11 +57,18 @@ workflow.addEdge('compile_prompt', 'generate_image');
 // 7. After generating the image, the conversation is finished for now.
 workflow.addEdge('generate_image', END);
 
-let checkpointer;
-try {
-  checkpointer = await MongoDBSaver.fromUri(config.database_local, 'image_checkpoints');
-} catch (err) {
-  console.warn('⚠️ Image assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
-  checkpointer = new MemorySaver();
-}
+// Compile immediately with in-memory checkpointer to avoid blocking startup
+let checkpointer = new MemorySaver();
 export const app = workflow.compile({ checkpointer });
+
+// Deferred MongoDB checkpointer upgrade (non-blocking)
+MongoDBSaver.fromUri(config.database_local, 'image_checkpoints')
+  .then((mongoCheckpointer) => {
+    checkpointer = mongoCheckpointer;
+    Object.assign(app, workflow.compile({ checkpointer }));
+    console.log('✅ Image assistant: MongoDB checkpointer connected');
+  })
+  .catch((err) => {
+    console.warn('⚠️ Image assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+  });
+

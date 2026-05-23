@@ -40,25 +40,29 @@ workflow.addEdge('refine_synthesis', 'save_research');
 workflow.addEdge('save_research', 'generate_pdf');
 workflow.addEdge('generate_pdf', END);
 
-// Initialize MongoDB checkpointer for conversation persistence
-let checkpointer;
-if (process.env.DISABLE_MONGO_CHECKPOINTER === 'true') {
-  console.log('ℹ️ Deep research: MongoDB checkpointer disabled, using in-memory MemorySaver');
-  checkpointer = new MemorySaver();
-} else {
-  try {
-    checkpointer = await MongoDBSaver.fromUri(config.database_local, 'deep_research_agent_checkpoints');
-  } catch (err) {
-    console.warn('⚠️ Deep research: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
-    checkpointer = new MemorySaver();
-  }
-}
+// Compile immediately with in-memory checkpointer to avoid blocking startup
+let checkpointer = new MemorySaver();
 
 // Compile the workflow with checkpointer
 export const deepResearchAgentApp = workflow.compile({
   checkpointer,
   debug: true,
 });
+
+// Deferred MongoDB checkpointer upgrade (non-blocking)
+if (process.env.DISABLE_MONGO_CHECKPOINTER !== 'true') {
+  MongoDBSaver.fromUri(config.database_local, 'deep_research_agent_checkpoints')
+    .then((mongoCheckpointer) => {
+      checkpointer = mongoCheckpointer;
+      Object.assign(deepResearchAgentApp, workflow.compile({ checkpointer, debug: true }));
+      console.log('✅ Deep research: MongoDB checkpointer connected');
+    })
+    .catch((err) => {
+      console.warn('⚠️ Deep research: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+    });
+} else {
+  console.log('ℹ️ Deep research: MongoDB checkpointer disabled, using in-memory MemorySaver');
+}
 
 // Export utility function to invoke the deep research agent
 export const runDeepResearchAgent = async (query, options = {}) => {
