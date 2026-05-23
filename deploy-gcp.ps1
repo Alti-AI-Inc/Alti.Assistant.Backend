@@ -95,6 +95,7 @@ gcloud run deploy $ServiceName `
     --min-instances $MinInstances `
     --max-instances $MaxInstances `
     --cpu-boost `
+    --execution-environment gen2 `
     --env-vars-file $EnvFile
 
 if ($LASTEXITCODE -eq 0) {

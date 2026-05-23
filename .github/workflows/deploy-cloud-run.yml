@@ -88,6 +88,7 @@ jobs:
             --min-instances ${{ env.MIN_INSTANCES }} \
             --max-instances ${{ env.MAX_INSTANCES }} \
             --cpu-boost \
+            --execution-environment gen2 \
             --set-env-vars "NODE_ENV=production,CLIENT_URL=https://www.altihq.com,GCP_LOCATION=us-central1,VERTEX_AI_LOCATION=us-central1,ENABLE_SMART_ROUTING=true,DEFAULT_MODEL=gemini,SEARCH_USE_OPENMEMORY=true,OM_DEFAULT_K=5,OM_MIN_SCORE=0.2,OM_USE_SECTOR_HINT=true,OM_RERANK_ENABLED=true,OM_RERANK_OVERLAP_WEIGHT=0.6,OM_RERANK_MEMORY_WEIGHT=0.4,OM_RERANK_AB_PCT=100,USE_SIMPLIFIED_COMPOSIO=false,GEMINI_MODEL=gemini-3.1-pro,CLAUDE_MODEL_NAME=claude-sonnet-4-5,CLAUDE_MAX_TOKENS=4096,CLAUDE_TEMPERATURE=0.7,JWT_ACCESS_EXPIRES_IN=7d,JWT_REFRESH_EXPIRES_IN=365d,GOOGLE_SMTP_HOST=smtp.gmail.com,GOOGLE_SMTP_PORT=587,MODEL_ID=imagen-4.0-generate-preview-06-06" \
             --set-secrets "\
               DATABASE_LOCAL=DATABASE_LOCAL:latest,\
