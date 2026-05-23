@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.9] - 2026-05-23
+### Fixed
+- **Deployment**: Fixed malformed `--set-secrets` parameter formatting in GCP Cloud Run GitHub Actions deployment workflow. Removed leading whitespaces and indentation from the multiline double-quoted string to prevent Cloud Run secret spec parsing failures.
+
+## [1.7.8] - 2026-05-23
+### Added
+- **LangChain Optimization**: Added LangChain Execution, Version, Chain models and LangChain Optimizer & Version services.
+- **LlamaIndex Metadata Graph**: Added Graph Retriever, Metadata Agent, Relationship Graph, and corresponding models.
+
+## [1.7.7] - 2026-05-23
+### Added
+- **Composio V2 Upgrade**: Added App Discovery, Connection Recovery, and Event Trigger services for Composio V2 integration.
+
 ## [1.4.4] - 2026-05-22
 ### Added
 - **Finance, Mortgage, Stocks & Real Estate Premium Search Integrations**: Fully integrated 4 new high-fidelity public intelligence data sources into the `alti_premium_intelligence_search` tool:
