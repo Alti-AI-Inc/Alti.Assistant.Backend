@@ -23,6 +23,22 @@ import {
   pipelineHealthCheck,
   batchProcess,
   queryEnhancedStream,
+  indexImageDocumentCtrl,
+  pipelineIntrospection,
+  textAnalysis,
+  validatePipeline,
+  configRegistry,
+  promptLibrary,
+  schemaValidation,
+  semanticCacheQuery,
+  adaptiveChunking,
+  documentGraph,
+  retrievalBenchmark,
+  queryDecomposition,
+  metadataExtraction,
+  queryReranking,
+  submitFeedback,
+  feedbackAnalytics,
   corpusAnalytics,
   chatSummary,
   pipelineObservability,
@@ -31,7 +47,13 @@ import {
   exportSessionPDF,
   getDocuments,
   removeDocument,
-  clearDocuments
+  clearDocuments,
+  evaluateResponseCtrl,
+  evaluationHistoryCtrl,
+  liveSessionStreamCtrl,
+  indexDocAdvancedCtrl,
+  queryAgentWorkflowCtrl,
+  optimizePromptCtrl
 } from './llamaindex.controller.js';
 
 const router = express.Router();
@@ -285,6 +307,186 @@ router.post(
   '/query-enhanced-stream',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   queryEnhancedStream
+);
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 10: Image Indexing, Introspection, Text Analysis, Validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Multi-modal image document indexing (Gemini Vision)
+router.post(
+  '/index-image',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  upload.single('image'),
+  indexImageDocumentCtrl
+);
+
+// Complete pipeline introspection (all 184 classes)
+router.get(
+  '/introspection',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  pipelineIntrospection
+);
+
+// Advanced text analysis (per document)
+router.get(
+  '/text-analysis/:docId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  textAnalysis
+);
+
+// Pipeline configuration validation (12-point check)
+router.get(
+  '/validate',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  validatePipeline
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 11: Configuration, Prompts, Schema Validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Full configuration registry (all 18 constants + 11 enums)
+router.get(
+  '/config',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  configRegistry
+);
+
+// Prompt library (all 22 built-in prompts)
+router.get(
+  '/prompts',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  promptLibrary
+);
+
+// Schema validation (all 7 Zod schemas)
+router.post(
+  '/validate-schema',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  schemaValidation
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 12: Semantic Cache, Adaptive Chunking, Doc Graph, Benchmark
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Semantic query caching (similarity-based dedup)
+router.post(
+  '/query-cached',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  semanticCacheQuery
+);
+
+// Adaptive chunking strategy recommendation
+router.get(
+  '/chunking-strategy',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  adaptiveChunking
+);
+
+// Document relationship graph
+router.get(
+  '/document-graph',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  documentGraph
+);
+
+// Multi-strategy retrieval benchmark
+router.post(
+  '/benchmark-retrieval',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  retrievalBenchmark
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 13: Decomposition, Extraction, Re-Ranking, Feedback
+// ─────────────────────────────────────────────────────────────────────────────
+
+// SubQuestion decomposition query
+router.post(
+  '/query-decompose',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  queryDecomposition
+);
+
+// Metadata extraction pipeline
+router.post(
+  '/extract-metadata',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  metadataExtraction
+);
+
+// Custom multi-signal re-ranking query
+router.post(
+  '/query-rerank',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  queryReranking
+);
+
+// Submit query feedback (rating, relevance)
+router.post(
+  '/feedback',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  submitFeedback
+);
+
+// Feedback analytics & optimization recommendations
+router.get(
+  '/feedback-analytics',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  feedbackAnalytics
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 14: Automated Evaluation Pipeline
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/evaluate-response',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  evaluateResponseCtrl
+);
+
+router.get(
+  '/evaluation-history',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  evaluationHistoryCtrl
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 15: Event-Driven Live Sessions
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/live-session/stream',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  liveSessionStreamCtrl
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 16: Advanced Storage Strategies
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/index-doc-advanced',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  upload.single('file'),
+  indexDocAdvancedCtrl
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 17: Multi-Step Agent Workflows
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/query-agent-workflow',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  queryAgentWorkflowCtrl
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 18: Prompt Optimization API
+// ─────────────────────────────────────────────────────────────────────────────
+router.post(
+  '/optimize-prompt',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  optimizePromptCtrl
 );
 
 // PDF Export (Phase 3)

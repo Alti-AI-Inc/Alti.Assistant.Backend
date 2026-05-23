@@ -92,6 +92,26 @@ const queryStreamingQuery = async (query, userId) => {
   return await llama.askStreamingQuery(query, userId);
 };
 
+// Phase 10: Multi-Modal Image Document Indexing
+const indexImageDocument = async (imagePath, originalName, userId) => {
+  return await llama.indexImageDocument(imagePath, originalName, userId);
+};
+
+// Phase 10: Complete Pipeline Introspection
+const getCompletePipelineIntrospection = async (userId) => {
+  return await llama.getCompletePipelineIntrospection(userId);
+};
+
+// Phase 10: Advanced Text Analysis
+const analyzeDocumentText = async (docId, userId) => {
+  return await llama.analyzeDocumentText(docId, userId);
+};
+
+// Phase 10: Pipeline Configuration Validation
+const validatePipelineConfiguration = () => {
+  return llama.validatePipelineConfiguration();
+};
+
 // Phase 6: Corpus analytics & insights
 const getCorpusAnalytics = async (userId) => {
   return await llama.getCorpusAnalytics(userId);
@@ -124,6 +144,95 @@ const clearAllDocuments = async (userId) => {
   return await llama.clearAllDocuments(userId);
 };
 
+// Phase 11: Configuration Registry
+const getConfigurationRegistry = () => {
+  return llama.getConfigurationRegistry();
+};
+
+// Phase 11: Prompt Library
+const getPromptLibrary = () => {
+  return llama.getPromptLibrary();
+};
+
+// Phase 11: Schema Validation
+const validateWithSchemas = (data, schemaName) => {
+  return llama.validateWithSchemas(data, schemaName);
+};
+
+// Phase 12: Semantic Query Cache
+const querySemanticallyCached = async (query, userId) => {
+  return await llama.querySemanticallycached(query, userId);
+};
+
+// Phase 12: Adaptive Chunking Strategy
+const getAdaptiveChunkingStrategy = (fileName) => {
+  return llama.getAdaptiveChunkingStrategy(fileName);
+};
+
+// Phase 12: Document Relationship Graph
+const buildDocumentRelationshipGraph = async (userId) => {
+  return await llama.buildDocumentRelationshipGraph(userId);
+};
+
+// Phase 12: Retrieval Benchmark
+const benchmarkRetrievalStrategies = async (query, userId) => {
+  return await llama.benchmarkRetrievalStrategies(query, userId);
+};
+
+// Phase 13: Query Decomposition
+const queryWithDecomposition = async (query, userId) => {
+  return await llama.queryWithDecomposition(query, userId);
+};
+
+// Phase 13: Metadata Extraction Pipeline
+const runMetadataExtractionPipeline = async (userId) => {
+  return await llama.runMetadataExtractionPipeline(userId);
+};
+
+// Phase 13: Custom Re-Ranking
+const queryWithReranking = async (query, userId, options) => {
+  return await llama.queryWithReranking(query, userId, options);
+};
+
+// Phase 13: Query Feedback
+const submitQueryFeedback = async (userId, feedbackData) => {
+  return await llama.submitQueryFeedback(userId, feedbackData);
+};
+
+// Phase 13: Feedback Analytics
+const getQueryFeedbackAnalytics = async (userId) => {
+  return await llama.getQueryFeedbackAnalytics(userId);
+};
+
+// Phase 14: Automated Evaluation Pipeline
+const evaluateArbitraryResponse = async (query, response, context, userId) => {
+  return await llama.evaluateArbitraryResponse(query, response, context, userId);
+};
+
+const getEvaluationHistory = async (userId) => {
+  return await llama.getEvaluationHistoryFromDisk(userId);
+};
+
+// Phase 15: Event-Driven Live Sessions
+const streamLiveSession = async (query, userId, onChunk) => {
+  return await llama.streamLiveSession(query, userId, onChunk);
+};
+
+// Phase 16: Advanced Storage Strategies
+const indexDocumentAdvanced = async (filePath, originalName, userId, strategyOption) => {
+  return await llama.indexDocumentAdvancedWithStrategy(filePath, originalName, userId, strategyOption);
+};
+
+// Phase 17: Multi-Step Agent Workflows
+const runAgentWorkflow = async (query, userId) => {
+  return await llama.runAgentWorkflowStepByStep(query, userId);
+};
+
+// Phase 18: Prompt Optimization API
+const optimizePrompt = async (promptText, userId) => {
+  return llama.optimizePromptWithHelper(promptText, userId);
+};
+
 export const ragService = {
   uploadAndIndexDocumentService,
   queryDocument,
@@ -144,6 +253,22 @@ export const ragService = {
   runPipelineHealthCheck,
   batchProcessDocuments,
   queryStreamingQuery,
+  indexImageDocument,
+  getCompletePipelineIntrospection,
+  analyzeDocumentText,
+  validatePipelineConfiguration,
+  getConfigurationRegistry,
+  getPromptLibrary,
+  validateWithSchemas,
+  querySemanticallyCached,
+  getAdaptiveChunkingStrategy,
+  buildDocumentRelationshipGraph,
+  benchmarkRetrievalStrategies,
+  queryWithDecomposition,
+  runMetadataExtractionPipeline,
+  queryWithReranking,
+  submitQueryFeedback,
+  getQueryFeedbackAnalytics,
   getCorpusAnalytics,
   getPipelineObservability,
   extractDocumentKeywords,
@@ -151,4 +276,10 @@ export const ragService = {
   listDocuments,
   deleteDocument,
   clearAllDocuments,
+  evaluateArbitraryResponse,
+  getEvaluationHistory,
+  streamLiveSession,
+  indexDocumentAdvanced,
+  runAgentWorkflow,
+  optimizePrompt,
 };

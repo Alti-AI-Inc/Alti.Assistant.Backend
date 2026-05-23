@@ -58,6 +58,8 @@ import { SwarmRoutes } from '../modules/swarm/swarm.route.js';
 import { gcpNativeRoutes } from '../modules/gcp_native/gcp-native.route.js';
 import { aviationStackRoutes } from '../modules/aviationstack/aviationstack.route.js';
 import { datasetsRoutes } from '../modules/datasets/datasets.route.js';
+import { langchainRoutes } from '../modules/langchain/langchain.route.js';
+import { composioCatalogRoutes } from '../modules/composio/composio-catalog.route.js';
 
 const router = express.Router();
 
@@ -301,6 +303,14 @@ const moduleRoutes = [
   {
     path: '/gcp-native',
     route: gcpNativeRoutes,
+  },
+  {
+    path: '/langchain',
+    route: langchainRoutes,
+  },
+  {
+    path: '/composio-catalog',
+    route: composioCatalogRoutes,
   },
 ];
 

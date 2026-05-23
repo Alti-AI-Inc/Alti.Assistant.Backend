@@ -473,6 +473,354 @@ export const queryEnhancedStream = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Phase 10: Multi-Modal Image Document Indexing
+// ─────────────────────────────────────────────────────────────────────────────
+export const indexImageDocumentCtrl = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    if (!req.file) {
+      return res.status(400).json({ error: 'Image file is required.' });
+    }
+    const result = await ragService.indexImageDocument(req.file.path, req.file.originalname, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 10: Complete Pipeline Introspection
+// ─────────────────────────────────────────────────────────────────────────────
+export const pipelineIntrospection = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.getCompletePipelineIntrospection(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 10: Advanced Text Analysis
+// ─────────────────────────────────────────────────────────────────────────────
+export const textAnalysis = async (req, res) => {
+  try {
+    const { docId } = req.params;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+
+    if (!docId) {
+      return res.status(400).json({ error: 'Document ID is required.' });
+    }
+
+    const result = await ragService.analyzeDocumentText(docId, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 10: Pipeline Configuration Validation
+// ─────────────────────────────────────────────────────────────────────────────
+export const validatePipeline = async (req, res) => {
+  try {
+    const result = ragService.validatePipelineConfiguration();
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 11: Configuration Registry
+// ─────────────────────────────────────────────────────────────────────────────
+export const configRegistry = async (req, res) => {
+  try {
+    const result = ragService.getConfigurationRegistry();
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 11: Prompt Library
+// ─────────────────────────────────────────────────────────────────────────────
+export const promptLibrary = async (req, res) => {
+  try {
+    const result = ragService.getPromptLibrary();
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 11: Schema Validation
+// ─────────────────────────────────────────────────────────────────────────────
+export const schemaValidation = async (req, res) => {
+  try {
+    const { data, schemaName } = req.body || {};
+    const result = ragService.validateWithSchemas(data, schemaName);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 12: Semantic Query Cache
+// ─────────────────────────────────────────────────────────────────────────────
+export const semanticCacheQuery = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    if (!query) return res.status(400).json({ error: 'Query is required.' });
+    const result = await ragService.querySemanticallyCached(query, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 12: Adaptive Chunking Strategy
+// ─────────────────────────────────────────────────────────────────────────────
+export const adaptiveChunking = async (req, res) => {
+  try {
+    const { fileName } = req.query;
+    if (!fileName) return res.status(400).json({ error: 'fileName query param is required.' });
+    const result = ragService.getAdaptiveChunkingStrategy(fileName);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 12: Document Relationship Graph
+// ─────────────────────────────────────────────────────────────────────────────
+export const documentGraph = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.buildDocumentRelationshipGraph(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 12: Retrieval Strategy Benchmark
+// ─────────────────────────────────────────────────────────────────────────────
+export const retrievalBenchmark = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    if (!query) return res.status(400).json({ error: 'Query is required.' });
+    const result = await ragService.benchmarkRetrievalStrategies(query, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 13: Query Decomposition
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryDecomposition = async (req, res) => {
+  try {
+    const { query } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    if (!query) return res.status(400).json({ error: 'Query is required.' });
+    const result = await ragService.queryWithDecomposition(query, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 13: Metadata Extraction Pipeline
+// ─────────────────────────────────────────────────────────────────────────────
+export const metadataExtraction = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.runMetadataExtractionPipeline(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 13: Custom Re-Ranking Query
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryReranking = async (req, res) => {
+  try {
+    const { query, topK, rerankTopK, keywordWeight, freshnessWeight, similarityWeight } = req.body;
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    if (!query) return res.status(400).json({ error: 'Query is required.' });
+    const result = await ragService.queryWithReranking(query, userId, {
+      topK, rerankTopK, keywordWeight, freshnessWeight, similarityWeight,
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 13: Submit Query Feedback
+// ─────────────────────────────────────────────────────────────────────────────
+export const submitFeedback = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.submitQueryFeedback(userId, req.body);
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 13: Feedback Analytics
+// ─────────────────────────────────────────────────────────────────────────────
+export const feedbackAnalytics = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.getQueryFeedbackAnalytics(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 14: Evaluate Arbitrary Response
+// ─────────────────────────────────────────────────────────────────────────────
+export const evaluateResponseCtrl = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const { query, response, context } = req.body;
+    if (!query || !response) {
+      return res.status(400).json({ error: 'query and response are required in body.' });
+    }
+    const result = await ragService.evaluateArbitraryResponse(query, response, context, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 14: Evaluation History
+// ─────────────────────────────────────────────────────────────────────────────
+export const evaluationHistoryCtrl = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const result = await ragService.getEvaluationHistory(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 15: Event-Driven Live Sessions (SSE complete stream)
+// ─────────────────────────────────────────────────────────────────────────────
+export const liveSessionStreamCtrl = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const { query } = req.body;
+    if (!query) {
+      return res.status(400).json({ error: 'query is required.' });
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+
+    const onChunk = (chunk) => {
+      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    };
+
+    const result = await ragService.streamLiveSession(query, userId, onChunk);
+    res.write(`data: ${JSON.stringify({ complete: true, payload: result })}\n\n`);
+    res.end();
+  } catch (error) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 16: Advanced Storage Strategy Uploader
+// ─────────────────────────────────────────────────────────────────────────────
+export const indexDocAdvancedCtrl = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const strategy = req.body.strategy || 'upsert';
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded.' });
+    }
+
+    const result = await ragService.indexDocumentAdvanced(
+      req.file.path,
+      req.file.originalname,
+      userId,
+      strategy
+    );
+
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 17: Multi-Step Agentic Workflow Tracing
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryAgentWorkflowCtrl = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const { query } = req.body;
+    if (!query) {
+      return res.status(400).json({ error: 'query is required.' });
+    }
+    const result = await ragService.runAgentWorkflow(query, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 18: Prompt Optimization and token budgeting
+// ─────────────────────────────────────────────────────────────────────────────
+export const optimizePromptCtrl = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const { promptText } = req.body;
+    if (!promptText) {
+      return res.status(400).json({ error: 'promptText is required.' });
+    }
+    const result = await ragService.optimizePrompt(promptText, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // Phase 3: PDF Export Controller (unchanged)
 // ─────────────────────────────────────────────────────────────────────────────
