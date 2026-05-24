@@ -381,6 +381,10 @@ export const UnifiedSmartRouter = {
           title = 'Airline Schedules & Route Network Feed';
           url = 'https://aviationstack.com';
           domain = 'aviationstack.com';
+        } else if (providerId === 'duffel_flights') {
+          title = 'Duffel Premium Flights & Travel Search';
+          url = 'https://duffel.com';
+          domain = 'duffel.com';
         } else if (providerId === 'github_issues_prs') {
           title = 'GitHub Issues & Pull Requests Statistics Feed';
           url = 'https://github.com';
