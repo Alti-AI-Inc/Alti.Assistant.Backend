@@ -42,11 +42,17 @@ jobs:
 
       # ── 3. GCP Auth ──────────────────────────────────────────────────────────
       - name: Authenticate to Google Cloud
-        id: auth
+        id: auth_setup
         uses: google-github-actions/auth@v2
         continue-on-error: true
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Verify Google Cloud Auth
+        id: auth
+        continue-on-error: true
+        run: |
+          gcloud auth print-access-token --quiet
 
       # ── 4. Docker for Artifact Registry ─────────────────────────────────────
       - name: Configure Docker for Artifact Registry
