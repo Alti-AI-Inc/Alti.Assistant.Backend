@@ -107,6 +107,19 @@ import {
   UniprotProvider
 } from './providers/morePremiumRegistryProviders.js';
 
+import {
+  EiaEnergyProvider,
+  GovinfoProvider,
+  OpenalexProvider,
+  ArxivProvider,
+  GnomadProvider,
+  EnsemblProvider,
+  PdbProvider,
+  AlphafoldProvider,
+  GtexProvider,
+  ProteinAtlasProvider
+} from './providers/advancedPremiumRegistryProviders.js';
+
 
 // ─── Dual-Layer Cache System ─────────────────────────────────────────────────
 const localMemoryCache = new Map();
@@ -578,4 +591,16 @@ SearchEngineRegistry.register(NihReporterProvider);
 SearchEngineRegistry.register(ChemblProvider);
 SearchEngineRegistry.register(ClinvarProvider);
 SearchEngineRegistry.register(UniprotProvider);
+
+// Stage 5 Premium Providers
+SearchEngineRegistry.register(EiaEnergyProvider);
+SearchEngineRegistry.register(GovinfoProvider);
+SearchEngineRegistry.register(OpenalexProvider);
+SearchEngineRegistry.register(ArxivProvider);
+SearchEngineRegistry.register(GnomadProvider);
+SearchEngineRegistry.register(EnsemblProvider);
+SearchEngineRegistry.register(PdbProvider);
+SearchEngineRegistry.register(AlphafoldProvider);
+SearchEngineRegistry.register(GtexProvider);
+SearchEngineRegistry.register(ProteinAtlasProvider);
 

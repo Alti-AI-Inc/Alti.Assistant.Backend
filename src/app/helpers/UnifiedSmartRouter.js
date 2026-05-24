@@ -181,6 +181,46 @@ export const UnifiedSmartRouter = {
           title = 'UniProt Protein Knowledgebase and Annotation Registry';
           url = 'https://uniprot.org';
           domain = 'uniprot.org';
+        } else if (providerId === 'eia_energy') {
+          title = 'U.S. Energy Information Administration (EIA) Energy Feed';
+          url = 'https://eia.gov';
+          domain = 'eia.gov';
+        } else if (providerId === 'govinfo_gpo') {
+          title = 'GPO GovInfo Official Federal Publishing Registry';
+          url = 'https://govinfo.gov';
+          domain = 'govinfo.gov';
+        } else if (providerId === 'openalex_papers') {
+          title = 'OpenAlex Scholarly and Academic Literature Index';
+          url = 'https://openalex.org';
+          domain = 'openalex.org';
+        } else if (providerId === 'arxiv_preprints') {
+          title = 'arXiv.org Scientific Preprint and Publication Roll';
+          url = 'https://arxiv.org';
+          domain = 'arxiv.org';
+        } else if (providerId === 'gnomad_genomics') {
+          title = 'gnomAD Population Variant & Genome Rarity Registry';
+          url = 'https://gnomad.broadinstitute.org';
+          domain = 'gnomad.broadinstitute.org';
+        } else if (providerId === 'ensembl_genomics') {
+          title = 'Ensembl Genomic Browser & Variant Consequence Registry';
+          url = 'https://ensembl.org';
+          domain = 'ensembl.org';
+        } else if (providerId === 'pdb_structures') {
+          title = 'Protein Data Bank (PDB) 3D Experimental Structures';
+          url = 'https://rcsb.org';
+          domain = 'rcsb.org';
+        } else if (providerId === 'alphafold_structures') {
+          title = 'AlphaFold Structural Database & Boundaries Predictor';
+          url = 'https://alphafold.ebi.ac.uk';
+          domain = 'alphafold.ebi.ac.uk';
+        } else if (providerId === 'gtex_expression') {
+          title = 'GTEx Quantitative RNA Tissue Expression Registry';
+          url = 'https://gtexportal.org';
+          domain = 'gtexportal.org';
+        } else if (providerId === 'human_protein_atlas') {
+          title = 'Human Protein Atlas (HPA) Spatial Expression Registry';
+          url = 'https://proteinatlas.org';
+          domain = 'proteinatlas.org';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
