@@ -167,13 +167,10 @@ Set-GcpSecret "CLOVER_API_KEY"             "your_clover_api_key_here"
 Set-GcpSecret "CLOVER_CLIENT_ID"           "your_clover_client_id_here"
 Set-GcpSecret "CLOVER_CLIENT_SECRET"       "your_clover_client_secret_here"
 
-# -- Automated & Self-Service Open Data APIs --
+# -- Self-Service User Data Connectors --
 Set-GcpSecret "COINGECKO_API_KEY"           "your_coingecko_api_key_here"
 Set-GcpSecret "EXCHANGERATE_API_KEY"       "your_exchangerate_api_key_here"
-Set-GcpSecret "FRED_API_KEY"               "your_fred_api_key_here"
-Set-GcpSecret "BLS_API_KEY"                "your_bls_api_key_here"
 Set-GcpSecret "OMDB_API_KEY"               "your_omdb_api_key_here"
-Set-GcpSecret "NASA_API_KEY"               "your_nasa_api_key_here"
 Set-GcpSecret "RAINFOREST_API_KEY"         "your_rainforest_api_key_here"
 Set-GcpSecret "COINAPI_KEY"                "your_coinapi_key_here"
 
