@@ -501,6 +501,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Soil Texture taxonomic classifications';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_deployments') {
+          title = 'GitHub Deployment Logs & Environments';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_landuse') {
+          title = 'OpenStreetMap Landuse & Zoned Grids';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_constraints') {
+          title = 'Wikidata Schema Property Constraints';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_redirects') {
+          title = 'Wikipedia Alternative Title Redirects';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_amateur_operators') {
+          title = 'FCC Amateur Radio Operator Registrant Database';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_works') {
+          title = 'Open Library Literary Work Catalog';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_dois') {
+          title = 'Zenodo Academic DOI Allocation Registry';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_acres_burned') {
+          title = 'NIFC Wildfire Acres Burned Yearly Index';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_citations') {
+          title = 'Crossref Cited-by Scholarly Citation Index';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_plant_habitats') {
+          title = 'USDA Plant native habitats environmental database';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
