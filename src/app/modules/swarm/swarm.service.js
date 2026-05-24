@@ -5,6 +5,12 @@ import { SynapseRouter } from './synapseRouter.js';
 import { GcpNativeService } from '../gcp_native/gcp-native.service.js';
 import { isExploriumAgent, getExploriumContext } from './explorium.smart.router.js';
 import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
+import LangchainRepository from '../langchain/langchain-repository.model.js';
+import TemporalRepository from '../temporal/temporal-repository.model.js';
+import GoogleRepository from '../gcp_native/gcp-repository.model.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -168,6 +174,12 @@ export class SwarmService {
       }
     } catch (err) {
       console.warn(`📊 Data Enrichment: Skipped (${err.message}) — proceeding with raw query`);
+    }
+
+    // Ingest dynamic codebase grounding for LangChain, Temporal, GCP
+    const codebaseGrounding = await SwarmService.getSovereignRepositoryContext(query);
+    if (codebaseGrounding) {
+      currentContextInput = codebaseGrounding + currentContextInput;
     }
 
     let accumulatedText = '';
@@ -337,6 +349,12 @@ Instructions: ${agent.systemInstruction}`;
       }
     } catch (err) {
       console.warn(`📊 Data Enrichment (Stream): Skipped (${err.message}) — proceeding with raw query`);
+    }
+
+    // Ingest dynamic codebase grounding for LangChain, Temporal, GCP
+    const codebaseGrounding = await SwarmService.getSovereignRepositoryContext(query);
+    if (codebaseGrounding) {
+      currentContextInput = codebaseGrounding + currentContextInput;
     }
 
     let accumulatedText = '';
@@ -585,5 +603,110 @@ Instructions: ${agent.systemInstruction}`;
     }
 
     console.log(`📡 Swarm Engine: Completed execution chain of ${pipeline.chain.length} agents successfully.`);
+  }
+
+  static async getSovereignRepositoryContext(query) {
+    try {
+      const lowerQuery = query.toLowerCase();
+      let matches = [];
+      let rootDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../../../..');
+
+      // 1. Check for LangChain keywords
+      if (lowerQuery.includes('langchain') || lowerQuery.includes('langgraph') || lowerQuery.includes('langsmith')) {
+        console.log(`[Sovereign Grounding] Query matches LangChain/LangGraph. Searching LangChain repository catalog...`);
+        const searchWords = lowerQuery.replace(/[^\w\s-]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+        const filter = searchWords.length > 0 ? { $text: { $search: searchWords.join(' ') } } : {};
+        const repos = await LangchainRepository.find(filter).sort({ stars: -1 }).limit(3).lean();
+        
+        for (const repo of repos) {
+          const localPath = path.join(rootDir, 'external', 'langchain', repo.name);
+          let codeSnippet = '';
+          if (fs.existsSync(localPath)) {
+            const readmePath = path.join(localPath, 'README.md');
+            if (fs.existsSync(readmePath)) {
+              codeSnippet = fs.readFileSync(readmePath, 'utf8').substring(0, 1200);
+            }
+          }
+          matches.push({
+            type: 'LangChain Repository',
+            name: repo.name,
+            description: repo.description,
+            url: repo.html_url,
+            stars: repo.stars,
+            snippet: codeSnippet || 'Local repository folder is present in reference workspace.'
+          });
+        }
+      }
+
+      // 2. Check for Temporal keywords
+      if (lowerQuery.includes('temporal') || lowerQuery.includes('workflow') || lowerQuery.includes('activity')) {
+        console.log(`[Sovereign Grounding] Query matches Temporal. Searching Temporal repository catalog...`);
+        const searchWords = lowerQuery.replace(/[^\w\s-]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+        const filter = searchWords.length > 0 ? { $text: { $search: searchWords.join(' ') } } : {};
+        const repos = await TemporalRepository.find(filter).sort({ stars: -1 }).limit(3).lean();
+
+        for (const repo of repos) {
+          const localPath = path.join(rootDir, 'external', 'temporal', repo.name);
+          let codeSnippet = '';
+          if (fs.existsSync(localPath)) {
+            const readmePath = path.join(localPath, 'README.md');
+            if (fs.existsSync(readmePath)) {
+              codeSnippet = fs.readFileSync(readmePath, 'utf8').substring(0, 1200);
+            }
+          }
+          matches.push({
+            type: 'Temporal Repository',
+            name: repo.name,
+            description: repo.description,
+            url: repo.html_url,
+            stars: repo.stars,
+            snippet: codeSnippet || 'Local repository folder is present in reference workspace.'
+          });
+        }
+      }
+
+      // 3. Check for Google / GCP keywords
+      if (lowerQuery.includes('google') || lowerQuery.includes('gcp') || lowerQuery.includes('vertex') || lowerQuery.includes('bigquery') || lowerQuery.includes('gke')) {
+        console.log(`[Sovereign Grounding] Query matches Google/GCP. Searching Google/GCP repository catalog...`);
+        const searchWords = lowerQuery.replace(/[^\w\s-]/g, ' ').split(/\s+/).filter(w => w.length > 2);
+        const filter = searchWords.length > 0 ? { $text: { $search: searchWords.join(' ') } } : {};
+        const repos = await GoogleRepository.find(filter).sort({ stars: -1 }).limit(3).lean();
+
+        for (const repo of repos) {
+          const localPath = path.join(rootDir, 'external', 'gcp', repo.name);
+          let codeSnippet = '';
+          if (fs.existsSync(localPath)) {
+            const readmePath = path.join(localPath, 'README.md');
+            if (fs.existsSync(readmePath)) {
+              codeSnippet = fs.readFileSync(readmePath, 'utf8').substring(0, 1200);
+            }
+          }
+          matches.push({
+            type: 'Google/GCP Cloud Repository',
+            name: repo.name,
+            description: repo.description,
+            url: repo.html_url,
+            stars: repo.stars,
+            snippet: codeSnippet || 'Local repository folder is present in reference workspace.'
+          });
+        }
+      }
+
+      if (matches.length === 0) return '';
+
+      return `\n\n[SOVEREIGN CODEBASE REFERENCE GROUNDING]\n` +
+        `Below is actual local reference codebase repository data matching the user's technical query. Use this to formulate high-fidelity answers and code structures:\n` +
+        matches.map(m => `
+=== ${m.type}: ${m.name} ===
+- GitHub URL: ${m.url}
+- Stars: ${m.stars}
+- Description: ${m.description}
+- Code/README Excerpt:
+${m.snippet}
+`).join('\n') + `\n[END OF REFERENCE GROUNDING]\n\n`;
+    } catch (err) {
+      console.warn(`[Sovereign Grounding] Skipping dynamic code grounding (${err.message})`);
+      return '';
+    }
   }
 }
