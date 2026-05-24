@@ -261,6 +261,46 @@ export const UnifiedSmartRouter = {
           title = 'AlphaGenome Variant Effect Predictor Registry';
           url = 'https://alphagenome.org';
           domain = 'alphagenome.org';
+        } else if (providerId === 'dbsnp_variants') {
+          title = 'dbSNP Short Genetic Variants Database';
+          url = 'https://ncbi.nlm.nih.gov/snp';
+          domain = 'ncbi.nlm.nih.gov';
+        } else if (providerId === 'embl_ebi_ols') {
+          title = 'EMBL-EBI Ontology Lookup Service';
+          url = 'https://ebi.ac.uk/ols';
+          domain = 'ebi.ac.uk';
+        } else if (providerId === 'foldseek_search') {
+          title = 'Foldseek Protein 3D Structural Similarity Search';
+          url = 'https://foldseek.com';
+          domain = 'foldseek.com';
+        } else if (providerId === 'unibind_tfbs') {
+          title = 'UniBind Experimentally Validated Transcription Factor Bindings';
+          url = 'https://unibind.uio.no';
+          domain = 'unibind.uio.no';
+        } else if (providerId === 'protein_msa') {
+          title = 'Clustal Omega Protein Multiple Sequence Alignment';
+          url = 'https://ebi.ac.uk/clustalw';
+          domain = 'ebi.ac.uk';
+        } else if (providerId === 'gold_commodities') {
+          title = 'Precious Metals Spot Market Index';
+          url = 'https://goldprice.org';
+          domain = 'goldprice.org';
+        } else if (providerId === 'crypto_quotes') {
+          title = 'Live Cryptocurrency Market Cap & Quote Feed';
+          url = 'https://coinmarketcap.com';
+          domain = 'coinmarketcap.com';
+        } else if (providerId === 'nasa_neo_asteroids') {
+          title = 'NASA Near-Earth Object (NEO) Asteroid Tracker';
+          url = 'https://neo.jpl.nasa.gov';
+          domain = 'neo.jpl.nasa.gov';
+        } else if (providerId === 'mitre_attack_matrix') {
+          title = 'MITRE ATT&CK Threat Matrix & Tactics Registry';
+          url = 'https://attack.mitre.org';
+          domain = 'attack.mitre.org';
+        } else if (providerId === 'sec_form4_insiders') {
+          title = 'SEC Form 4 Real-Time Insider Transactions';
+          url = 'https://sec.gov/edgar';
+          domain = 'sec.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;

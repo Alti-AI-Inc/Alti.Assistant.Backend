@@ -133,6 +133,20 @@ import {
   AlphagenomeVariantsProvider
 } from './providers/scientificPremiumRegistryProviders.js';
 
+import {
+  DbsnpVariantsProvider,
+  EmblEbiOlsProvider,
+  FoldseekSearchProvider,
+  UnibindTfbsProvider,
+  ProteinMsaProvider,
+  GoldCommoditiesProvider,
+  CryptoQuotesProvider,
+  NasaNeoAsteroidsProvider,
+  MitreAttackMatrixProvider,
+  SecForm4InsidersProvider
+} from './providers/financialScientificPremiumProviders.js';
+
+
 
 // ─── Dual-Layer Cache System ─────────────────────────────────────────────────
 const localMemoryCache = new Map();
@@ -628,4 +642,17 @@ SearchEngineRegistry.register(JasparMotifsProvider);
 SearchEngineRegistry.register(UcscConservationProvider);
 SearchEngineRegistry.register(EncodeCcresProvider);
 SearchEngineRegistry.register(AlphagenomeVariantsProvider);
+
+// Stage 7 Premium Providers
+SearchEngineRegistry.register(DbsnpVariantsProvider);
+SearchEngineRegistry.register(EmblEbiOlsProvider);
+SearchEngineRegistry.register(FoldseekSearchProvider);
+SearchEngineRegistry.register(UnibindTfbsProvider);
+SearchEngineRegistry.register(ProteinMsaProvider);
+SearchEngineRegistry.register(GoldCommoditiesProvider);
+SearchEngineRegistry.register(CryptoQuotesProvider);
+SearchEngineRegistry.register(NasaNeoAsteroidsProvider);
+SearchEngineRegistry.register(MitreAttackMatrixProvider);
+SearchEngineRegistry.register(SecForm4InsidersProvider);
+
 
