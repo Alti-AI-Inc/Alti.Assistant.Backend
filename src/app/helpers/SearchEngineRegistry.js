@@ -159,6 +159,20 @@ import {
   UsdaSoilSurveyProvider
 } from './providers/developerGeographicPremiumProviders.js';
 
+import {
+  AirnowAqiProvider,
+  UspsZipLookupProvider,
+  NoaaMarineTidesProvider,
+  SecForm3OwnershipProvider,
+  OpenlibraryBooksProvider,
+  OpenmeteoRadiationProvider,
+  InternetArchiveItemsProvider,
+  NifcWildfiresProvider,
+  PmcOpenAccessProvider,
+  AirlineRoutesProvider
+} from './providers/scientificEnvironmentalPremiumProviders.js';
+
+
 
 
 
@@ -680,6 +694,19 @@ SearchEngineRegistry.register(CrossrefDoisProvider);
 SearchEngineRegistry.register(NhcHurricanesProvider);
 SearchEngineRegistry.register(FccLicensingProvider);
 SearchEngineRegistry.register(UsdaSoilSurveyProvider);
+
+// Stage 9 Premium Providers
+SearchEngineRegistry.register(AirnowAqiProvider);
+SearchEngineRegistry.register(UspsZipLookupProvider);
+SearchEngineRegistry.register(NoaaMarineTidesProvider);
+SearchEngineRegistry.register(SecForm3OwnershipProvider);
+SearchEngineRegistry.register(OpenlibraryBooksProvider);
+SearchEngineRegistry.register(OpenmeteoRadiationProvider);
+SearchEngineRegistry.register(InternetArchiveItemsProvider);
+SearchEngineRegistry.register(NifcWildfiresProvider);
+SearchEngineRegistry.register(PmcOpenAccessProvider);
+SearchEngineRegistry.register(AirlineRoutesProvider);
+
 
 
 

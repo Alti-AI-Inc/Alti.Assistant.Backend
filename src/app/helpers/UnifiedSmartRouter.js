@@ -341,6 +341,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Plant Hardiness & Soil Survey Index';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'airnow_aqi') {
+          title = 'AirNow Global Air Quality Index Feed';
+          url = 'https://airnow.gov';
+          domain = 'airnow.gov';
+        } else if (providerId === 'usps_zip_lookup') {
+          title = 'USPS ZIP Code Registry Database';
+          url = 'https://usps.com';
+          domain = 'usps.com';
+        } else if (providerId === 'noaa_marine_tides') {
+          title = 'NOAA Coastal Buoy Wave & Tide Feed';
+          url = 'https://ndbc.noaa.gov';
+          domain = 'ndbc.noaa.gov';
+        } else if (providerId === 'sec_form3_ownership') {
+          title = 'SEC Form 3 Initial Beneficial Ownership';
+          url = 'https://sec.gov/edgar';
+          domain = 'sec.gov';
+        } else if (providerId === 'openlibrary_books') {
+          title = 'Open Library Book Catalog & ISBN Index';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'openmeteo_radiation') {
+          title = 'OpenMeteo Solar & UV Radiation Forecast';
+          url = 'https://open-meteo.com';
+          domain = 'open-meteo.com';
+        } else if (providerId === 'internet_archive_items') {
+          title = 'Internet Archive Metadata Index';
+          url = 'https://archive.org';
+          domain = 'archive.org';
+        } else if (providerId === 'nifc_wildfires') {
+          title = 'National Interagency Fire Center Wildfire Incident Feed';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'pmc_open_access') {
+          title = 'PMC Open Access Subset Document Registry';
+          url = 'https://ncbi.nlm.nih.gov/pmc';
+          domain = 'ncbi.nlm.nih.gov';
+        } else if (providerId === 'airline_routes') {
+          title = 'Airline Schedules & Route Network Feed';
+          url = 'https://aviationstack.com';
+          domain = 'aviationstack.com';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
