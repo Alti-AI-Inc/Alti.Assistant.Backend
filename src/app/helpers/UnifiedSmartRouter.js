@@ -221,6 +221,46 @@ export const UnifiedSmartRouter = {
           title = 'Human Protein Atlas (HPA) Spatial Expression Registry';
           url = 'https://proteinatlas.org';
           domain = 'proteinatlas.org';
+        } else if (providerId === 'ncbi_sequences') {
+          title = 'NCBI Nucleotide & Protein Sequence Database';
+          url = 'https://ncbi.nlm.nih.gov/nuccore';
+          domain = 'ncbi.nlm.nih.gov';
+        } else if (providerId === 'reactome_pathways') {
+          title = 'Reactome Biological Pathways & Reactions Registry';
+          url = 'https://reactome.org';
+          domain = 'reactome.org';
+        } else if (providerId === 'string_interactions') {
+          title = 'STRING Protein-Protein Interaction (PPI) Network';
+          url = 'https://string-db.org';
+          domain = 'string-db.org';
+        } else if (providerId === 'interpro_domains') {
+          title = 'InterPro Protein Family & Domain Database';
+          url = 'https://ebi.ac.uk/interpro';
+          domain = 'ebi.ac.uk';
+        } else if (providerId === 'biorxiv_preprints') {
+          title = 'bioRxiv Biology Preprint Repository';
+          url = 'https://biorxiv.org';
+          domain = 'biorxiv.org';
+        } else if (providerId === 'europe_pmc') {
+          title = 'Europe PMC Open-Access Literature Index';
+          url = 'https://europepmc.org';
+          domain = 'europepmc.org';
+        } else if (providerId === 'jaspar_motifs') {
+          title = 'JASPAR Transcription Factor Binding Profiles';
+          url = 'https://jaspar.elixir.no';
+          domain = 'jaspar.elixir.no';
+        } else if (providerId === 'ucsc_conservation') {
+          title = 'UCSC Genome Browser Evolutionary Conservation Scores';
+          url = 'https://genome.ucsc.edu';
+          domain = 'genome.ucsc.edu';
+        } else if (providerId === 'encode_ccres') {
+          title = 'ENCODE SCREEN cis-Regulatory Elements Registry';
+          url = 'https://encodeproject.org';
+          domain = 'encodeproject.org';
+        } else if (providerId === 'alphagenome_variants') {
+          title = 'AlphaGenome Variant Effect Predictor Registry';
+          url = 'https://alphagenome.org';
+          domain = 'alphagenome.org';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;

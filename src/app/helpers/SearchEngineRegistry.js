@@ -120,6 +120,19 @@ import {
   ProteinAtlasProvider
 } from './providers/advancedPremiumRegistryProviders.js';
 
+import {
+  NcbiSequencesProvider,
+  ReactomeProvider,
+  StringInteractionsProvider,
+  InterproDomainsProvider,
+  BiorxivProvider,
+  EuropePmcProvider,
+  JasparMotifsProvider,
+  UcscConservationProvider,
+  EncodeCcresProvider,
+  AlphagenomeVariantsProvider
+} from './providers/scientificPremiumRegistryProviders.js';
+
 
 // ─── Dual-Layer Cache System ─────────────────────────────────────────────────
 const localMemoryCache = new Map();
@@ -603,4 +616,16 @@ SearchEngineRegistry.register(PdbProvider);
 SearchEngineRegistry.register(AlphafoldProvider);
 SearchEngineRegistry.register(GtexProvider);
 SearchEngineRegistry.register(ProteinAtlasProvider);
+
+// Stage 6 Premium Providers
+SearchEngineRegistry.register(NcbiSequencesProvider);
+SearchEngineRegistry.register(ReactomeProvider);
+SearchEngineRegistry.register(StringInteractionsProvider);
+SearchEngineRegistry.register(InterproDomainsProvider);
+SearchEngineRegistry.register(BiorxivProvider);
+SearchEngineRegistry.register(EuropePmcProvider);
+SearchEngineRegistry.register(JasparMotifsProvider);
+SearchEngineRegistry.register(UcscConservationProvider);
+SearchEngineRegistry.register(EncodeCcresProvider);
+SearchEngineRegistry.register(AlphagenomeVariantsProvider);
 
