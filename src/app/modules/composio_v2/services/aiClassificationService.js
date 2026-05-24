@@ -175,6 +175,9 @@ export const runGeminiTaskWithTools = async (
       userId: userId,
       'toolkit.slug': app,
     });
+    if (!connectedAccount) {
+      throw new Error(`No connected account found for ${app}. Please connect your account first.`);
+    }
     const connectedAccountId = connectedAccount.connectedAccountId;
 
     // Re-fetch tools with explicit connectedAccountId to avoid the warning

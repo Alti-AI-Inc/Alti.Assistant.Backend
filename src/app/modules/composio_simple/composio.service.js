@@ -156,8 +156,16 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
 
 export const initiateAuth = async (appName, userId) => {
   try {
-    const authConfig = await AuthConfig.findOne({ app: appName });
-    if (!authConfig) throw new Error(`App ${appName} not found`);
+    let authConfig = await AuthConfig.findOne({ app: appName });
+    if (!authConfig) {
+      console.log(`AuthConfig for ${appName} not found in DB. Proactively creating default...`);
+      authConfig = new AuthConfig({
+        app: appName,
+        authConfigId: `ac_${appName}`,
+        isComposioManaged: true,
+      });
+      await authConfig.save();
+    }
     const connectionUrl = await composio.connectedAccounts.initiate(
       userId,
       authConfig.authConfigId

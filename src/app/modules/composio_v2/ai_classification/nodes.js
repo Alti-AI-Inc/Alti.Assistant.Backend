@@ -661,6 +661,7 @@ const getUserConnectedAccounts = async (userId, appName) => {
     const accounts = await ComposionAuth.find({
       userId: userId,
       status: 'ACTIVE',
+      'toolkit.slug': appName.toLowerCase(),
     });
 
     // Filter accounts for the specific app
@@ -994,8 +995,11 @@ export const executeStepNode = async (state) => {
     }
     // console.log(`Using connected account for ${currentStepPlan.app}:`, connectedAccount);
     const account = await ComposionAuth.findOne({
-      connectedAccountId: connectedAccount.id,
+      connectedAccountId: connectedAccount.connectedAccountId || connectedAccount.id,
     });
+    if (!account) {
+      throw new Error(`Active database authentication record not found for connected account: ${connectedAccount.connectedAccountId || connectedAccount.id}. Please reconnect.`);
+    }
     // Execute the tool
     const primaryTool = currentStepPlan.action;
     const historySummary = createHistorySummary(history, conversationContext);

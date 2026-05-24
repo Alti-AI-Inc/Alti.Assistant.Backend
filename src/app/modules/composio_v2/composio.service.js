@@ -18,10 +18,19 @@ const initiateComposioAuth = async (body, req = null) => {
   const { app_name, user_id } = body;
 
   try {
-    const auth_config = await AuthConfig.findOne({ app: app_name });
+    let auth_config = await AuthConfig.findOne({ app: app_name });
+    if (!auth_config) {
+      console.log(`AuthConfig for app ${app_name} not found in DB. Proactively creating default...`);
+      auth_config = new AuthConfig({
+        app: app_name,
+        authConfigId: `ac_${app_name}`,
+        isComposioManaged: true,
+      });
+      await auth_config.save();
+    }
     console.log(`Found Auth Config for app ${app_name}:`, auth_config);
 
-    const auth_config_id = auth_config ? auth_config.authConfigId : null;
+    const auth_config_id = auth_config.authConfigId;
     console.log(`Auth Config ID for app ${app_name}:`, auth_config_id);
     const existingAuthQuery = {
       userId: user_id,
