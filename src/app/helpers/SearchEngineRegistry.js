@@ -250,6 +250,20 @@ import {
   UsdaShrubGrowthProvider
 } from './providers/megaPremiumNicheProviders.js';
 
+import {
+  GithubStargazersProvider,
+  OpenstreetmapRailwaysProvider,
+  WikidataReferencesProvider,
+  WikipediaLanglinksProvider,
+  FccAmateurClubsProvider,
+  OpenlibraryExcerptsProvider,
+  ZenodoCreatorsProvider,
+  NifcSuppressedPerimetersProvider,
+  CrossrefJournalMetricsProvider,
+  UsdaWoodyCharacteristicsProvider
+} from './providers/nicheNicheNichePremiumProviders.js';
+
+
 
 
 
@@ -857,6 +871,18 @@ SearchEngineRegistry.register(ZenodoFormatsProvider);
 SearchEngineRegistry.register(NifcAssignedEquipmentProvider);
 SearchEngineRegistry.register(CrossrefFunderSchemesProvider);
 SearchEngineRegistry.register(UsdaShrubGrowthProvider);
+
+// Stage 16 Premium Providers
+SearchEngineRegistry.register(GithubStargazersProvider);
+SearchEngineRegistry.register(OpenstreetmapRailwaysProvider);
+SearchEngineRegistry.register(WikidataReferencesProvider);
+SearchEngineRegistry.register(WikipediaLanglinksProvider);
+SearchEngineRegistry.register(FccAmateurClubsProvider);
+SearchEngineRegistry.register(OpenlibraryExcerptsProvider);
+SearchEngineRegistry.register(ZenodoCreatorsProvider);
+SearchEngineRegistry.register(NifcSuppressedPerimetersProvider);
+SearchEngineRegistry.register(CrossrefJournalMetricsProvider);
+SearchEngineRegistry.register(UsdaWoodyCharacteristicsProvider);
 
 
 

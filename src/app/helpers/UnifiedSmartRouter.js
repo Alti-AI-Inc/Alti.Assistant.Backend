@@ -621,6 +621,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Shrub native growth dimensions database';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_stargazers') {
+          title = 'GitHub Repository Stargazers & Stars Feed';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_railways') {
+          title = 'OpenStreetMap Zoned Railway & Subway Tracks';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_references') {
+          title = 'Wikidata Statement Reference Citations';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_langlinks') {
+          title = 'Wikipedia Article Interwiki Language Links Index';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_amateur_clubs') {
+          title = 'FCC Amateur Radio Club Registry';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_excerpts') {
+          title = 'Open Library Book Excerpts & Quotes Index';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_creators') {
+          title = 'Zenodo Open-Science Record Depositors & Authors';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_suppressed_perimeters') {
+          title = 'NIFC Wildfire Suppressed Perimeters GIS Database';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_journal_metrics') {
+          title = 'Crossref Journal Publishing Metrics Database';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_woody_characteristics') {
+          title = 'USDA Plant Woody Characteristics environmental database';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
