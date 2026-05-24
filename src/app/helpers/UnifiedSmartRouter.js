@@ -661,6 +661,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Plant Woody Characteristics environmental database';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_forks') {
+          title = 'GitHub Repository Forks & Hierarchy Feed';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_buildings') {
+          title = 'OpenStreetMap Zoned Building Outlines & Heights';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_backlinks') {
+          title = 'Wikidata Item Ingoing Links & Backlinks';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_citations') {
+          title = 'Wikipedia Article External Citations Index';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_amateur_vanity') {
+          title = 'FCC Amateur Radio Certified Vanity License Database';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_reviews') {
+          title = 'Open Library Book Ratings & Reviews Index';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_citations') {
+          title = 'Zenodo Open-Science Record Citation & Reference Logs';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_ignition_causes') {
+          title = 'NIFC Wildfire Ignition Causes investigation Database';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_clinical_trials') {
+          title = 'Crossref Clinical Trial Links Registry';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_plant_propagation') {
+          title = 'USDA Plant Propagation environmental specs database';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;

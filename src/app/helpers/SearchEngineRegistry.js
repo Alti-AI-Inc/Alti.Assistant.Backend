@@ -263,6 +263,19 @@ import {
   UsdaWoodyCharacteristicsProvider
 } from './providers/nicheNicheNichePremiumProviders.js';
 
+import {
+  GithubForksProvider,
+  OpenstreetmapBuildingsProvider,
+  WikidataBacklinksProvider,
+  WikipediaCitationsProvider,
+  FccAmateurVanityProvider,
+  OpenlibraryReviewsProvider,
+  ZenodoCitationsProvider,
+  NifcIgnitionCausesProvider,
+  CrossrefClinicalTrialsProvider,
+  UsdaPlantPropagationProvider
+} from './providers/nicheNicheNicheNichePremiumProviders.js';
+
 
 
 
@@ -883,6 +896,18 @@ SearchEngineRegistry.register(ZenodoCreatorsProvider);
 SearchEngineRegistry.register(NifcSuppressedPerimetersProvider);
 SearchEngineRegistry.register(CrossrefJournalMetricsProvider);
 SearchEngineRegistry.register(UsdaWoodyCharacteristicsProvider);
+
+// Stage 17 Premium Providers
+SearchEngineRegistry.register(GithubForksProvider);
+SearchEngineRegistry.register(OpenstreetmapBuildingsProvider);
+SearchEngineRegistry.register(WikidataBacklinksProvider);
+SearchEngineRegistry.register(WikipediaCitationsProvider);
+SearchEngineRegistry.register(FccAmateurVanityProvider);
+SearchEngineRegistry.register(OpenlibraryReviewsProvider);
+SearchEngineRegistry.register(ZenodoCitationsProvider);
+SearchEngineRegistry.register(NifcIgnitionCausesProvider);
+SearchEngineRegistry.register(CrossrefClinicalTrialsProvider);
+SearchEngineRegistry.register(UsdaPlantPropagationProvider);
 
 
 
