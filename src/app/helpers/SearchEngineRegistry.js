@@ -289,6 +289,20 @@ import {
   UsdaPlantCharacteristicsProvider
 } from './providers/nicheNicheNicheNicheNichePremiumProviders.js';
 
+import {
+  GithubSecurityAdvisoriesProvider,
+  OpenstreetmapLeisureProvider,
+  WikidataSitelinksProvider,
+  WikipediaCategoriesProvider,
+  FccBroadbandSpeedsProvider,
+  OpenlibraryPublishersProvider,
+  ZenodoGrantsProvider,
+  NifcWeatherAdvisoriesProvider,
+  CrossrefUpdatesProvider,
+  UsdaSoilSalinityProvider
+} from './providers/nicheNicheNicheNicheNicheNichePremiumProviders.js';
+
+
 
 
 
@@ -934,6 +948,18 @@ SearchEngineRegistry.register(ZenodoCommunitiesGroupsProvider);
 SearchEngineRegistry.register(NifcPreparednessLevelsProvider);
 SearchEngineRegistry.register(CrossrefLicenseRegistriesProvider);
 SearchEngineRegistry.register(UsdaPlantCharacteristicsProvider);
+
+// Stage 19 Premium Providers
+SearchEngineRegistry.register(GithubSecurityAdvisoriesProvider);
+SearchEngineRegistry.register(OpenstreetmapLeisureProvider);
+SearchEngineRegistry.register(WikidataSitelinksProvider);
+SearchEngineRegistry.register(WikipediaCategoriesProvider);
+SearchEngineRegistry.register(FccBroadbandSpeedsProvider);
+SearchEngineRegistry.register(OpenlibraryPublishersProvider);
+SearchEngineRegistry.register(ZenodoGrantsProvider);
+SearchEngineRegistry.register(NifcWeatherAdvisoriesProvider);
+SearchEngineRegistry.register(CrossrefUpdatesProvider);
+SearchEngineRegistry.register(UsdaSoilSalinityProvider);
 
 
 

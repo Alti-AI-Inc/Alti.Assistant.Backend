@@ -741,6 +741,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Plant Growth & Characteristics environmental database';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_security_advisories') {
+          title = 'GitHub Repository Security Advisories Feed';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_leisure') {
+          title = 'OpenStreetMap Zoned Leisure Areas & Parks';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_sitelinks') {
+          title = 'Wikidata Item Wiki Sitelinks Schema';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_categories') {
+          title = 'Wikipedia Article Category Mappings Index';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_broadband_speeds') {
+          title = 'FCC Carrier Zoned Broadband Speed Database';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_publishers') {
+          title = 'Open Library Literary Book Publishers & Imprints';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_grants') {
+          title = 'Zenodo Open-Science Record Funding Grants & Sponsors';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_weather_advisories') {
+          title = 'NIFC Wildfire Incident Weather Forecast Advisories';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_updates') {
+          title = 'Crossref Crossmark Article Update Histories';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_soil_salinity') {
+          title = 'USDA Soil Salinity & Tolerances environmental database';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
