@@ -701,6 +701,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Plant Propagation environmental specs database';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_discussions') {
+          title = 'GitHub Repository Discussions & Threads Feed';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_landuse_areas') {
+          title = 'OpenStreetMap Zoned Landuse Areas & Polygons';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_property_constraints') {
+          title = 'Wikidata Property Statement Constraints Schema';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_trending_views') {
+          title = 'Wikipedia Daily Trending Views Spikes Feed';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_amateur_frequencies') {
+          title = 'FCC Amateur Radio Frequency Band Allocations Registry';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_catalogs') {
+          title = 'Open Library Book Catalog Identifiers Index';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_communities_groups') {
+          title = 'Zenodo Open-Science Curation Communities & Groups Registry';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_preparedness_levels') {
+          title = 'NIFC Wildfire Incident Command National Preparedness Levels';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_license_registries') {
+          title = 'Crossref Copyright Licenses & Reuse Database';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_plant_characteristics') {
+          title = 'USDA Plant Growth & Characteristics environmental database';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
