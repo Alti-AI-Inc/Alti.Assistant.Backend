@@ -14,6 +14,7 @@ import { DuffelFlightsProvider, DuffelStaysProvider } from './providers/duffelPr
 import { UsgsEarthquakesProvider, OpencorporatesProvider, NasaFirmsProvider } from './providers/stage21PremiumProviders.js';
 import { GdeltGeopoliticalProvider, EurostatEconomicProvider, WhoDiseaseOutbreaksProvider } from './providers/stage22PremiumProviders.js';
 import { EpoPatentsProvider, MedrxivPreprintsProvider } from './providers/stage23PremiumProviders.js';
+import { HtsTariffsProvider, OyezScotusProvider, SedarFilingsProvider } from './providers/stage24PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -982,3 +983,8 @@ SearchEngineRegistry.register(WhoDiseaseOutbreaksProvider);
 // Stage 23 Premium Providers (IP & Clinical Preprints)
 SearchEngineRegistry.register(EpoPatentsProvider);
 SearchEngineRegistry.register(MedrxivPreprintsProvider);
+
+// Stage 24 Premium Providers (Customs, SCOTUS & SEDAR)
+SearchEngineRegistry.register(HtsTariffsProvider);
+SearchEngineRegistry.register(OyezScotusProvider);
+SearchEngineRegistry.register(SedarFilingsProvider);
