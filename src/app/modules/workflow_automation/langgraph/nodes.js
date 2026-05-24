@@ -131,26 +131,43 @@ ${availableToolsInfo}
 Connected apps: ${state.connectionStatus?.connectedApps?.join(', ') || 'None'}
 Available apps: ${state.detectedApps?.join(', ') || 'None'}
 
+In addition to external third-party apps, you have access to these core Alti Platform Services as active workflow apps:
+1. "chat" (or "conversations"): Orchestrate conversation threads and post messages.
+   - Actions: 
+     * "send_message": Send a chat notification or summary to a thread. Parameters: { content: string, conversationId: string (optional) }.
+     * "create_thread": Create a new conversation thread. Parameters: { title: string, initialMessage: string (optional) }.
+2. "research" (or "deep_research"): Run AI-driven deep internet/scientific research.
+   - Actions:
+     * "conduct_research": Execute deep research agent. Parameters: { query: string, depth: "fast" | "thorough" (optional) }.
+3. "agents" (or "swarm"): Delegate task to a collaborative multi-agent swarm.
+   - Actions:
+     * "run_swarm": Execute collaborative agent swarm. Parameters: { query: string }.
+4. "data" (or "datasets"): Run semantic search RAG queries or index data.
+   - Actions:
+     * "query_rag": Search document banks/knowledge bases. Parameters: { query: string }.
+     * "index_file": Index a new file path into pgvector. Parameters: { filePath: string, originalName: string (optional) }.
+5. "apps": Discover and execute external Composio actions.
+
 Break down the workflow into logical steps. Each step should have:
-- stepId: unique identifier
-- stepType: action, condition, trigger, or delay
+- stepId: unique identifier (e.g. "step1", "step2")
+- stepType: "action", "condition", "trigger", or "delay"
 - description: what this step does
-- app: the service/app to use (must be from available apps)
-- action: specific action to perform (use available tool names when possible)
-- parameters: required parameters (use placeholders for user-specific data)
-- order: execution order
+- app: the service/app to use (must be from available apps or one of the core platform apps: chat, research, agents, data, apps)
+- action: specific action to perform (use available tool or platform action names)
+- parameters: required parameters. You can reference outputs of previous steps using the format {{stepId_result}}, {{stepId_answer}}, {{stepId_reply}}, or {{stepId_text}} (e.g., {{step1_answer}}).
+- order: execution order (1-indexed integer)
 
 Consider:
-- Authentication requirements for apps
-- Data flow between steps
-- Error handling
-- Schedule requirements
+- Data flow between steps (e.g. step 2 parameters can reference step 1 outputs like {{step1_answer}}).
+- Authentication requirements for apps.
+- Error handling.
+- Schedule requirements.
 
 User Intent: ${state.userIntent}
 Detected Apps: ${state.detectedApps?.join(', ')}
 Task Type: ${state.taskType}
 
-IMPORTANT: Only use apps and tools that are available. If required apps are not connected, note this in the workflow.
+IMPORTANT: Only use apps and tools that are available. Core platform apps (chat, research, agents, data) are ALWAYS available and ALWAYS connected.
 
 Respond with a JSON object containing:
 - workflowSteps: array of step objects

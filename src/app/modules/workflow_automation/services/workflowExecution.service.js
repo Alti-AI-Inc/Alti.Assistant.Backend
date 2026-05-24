@@ -11,6 +11,11 @@ import cron from 'node-cron';
 import path from 'path';
 import { runIngestionWorkflow } from '../llamaindex/indexPipeline.js';
 import { runSearchWorkflow } from '../llamaindex/searchPipeline.js';
+import { conversationService } from '../../conversations/conversation.service.js';
+import { deepResearchService } from '../../deep_research/deep_research.service.js';
+import { runDeepResearchAgent } from '../../deep_research/deep_research_assistant/workflow.js';
+import { SwarmService } from '../../swarm/swarm.service.js';
+import { DatasetsService } from '../../datasets/datasets.service.js';
 
 // Initialize Composio
 const composio = new Composio({
@@ -327,6 +332,214 @@ class WorkflowExecutionService {
     try {
       logger.info(`Executing step: ${step.app}.${step.action}`);
 
+      // 1. Intercept Core Platform - Chat / Conversations Page
+      if (step.app?.toLowerCase() === 'chat' || step.app?.toLowerCase() === 'conversations') {
+        const parameters = this.prepareParameters(step.parameters, context);
+        let result;
+        const tStart = Date.now();
+
+        const conversationId = parameters.conversationId || context.conversationId || `conv_wf_${Date.now()}`;
+        
+        if (step.action?.toLowerCase() === 'send_message') {
+          const { content } = parameters;
+          if (!content) {
+            throw new Error(`Required parameter 'content' is missing for chat.${step.action}`);
+          }
+          result = await conversationService.addMessageToConversation(conversationId, userId, {
+            role: 'assistant',
+            content,
+            metadata: {
+              triggeredBy: 'workflow',
+              stepId: step.stepId
+            }
+          });
+        } else if (step.action?.toLowerCase() === 'create_thread') {
+          const { title, initialMessage } = parameters;
+          result = await conversationService.createConversation({
+            userId,
+            title: title || 'Workflow Generated Chat',
+            initialMessage: initialMessage ? { role: 'user', content: initialMessage } : null,
+            metadata: {
+              triggeredBy: 'workflow',
+              stepId: step.stepId
+            }
+          }, conversationId);
+        } else {
+          throw new Error(`Unknown action '${step.action}' for app '${step.app}'`);
+        }
+
+        const duration = Date.now() - tStart;
+        
+        if (context._executionId) {
+          workflowResilienceService.registerCompletedStep(
+            context._executionId,
+            { stepId: step.stepId, app: step.app, action: step.action, parameters },
+            result
+          );
+        }
+
+        logger.info(`Chat platform step completed successfully: ${step.stepId} in ${duration}ms`);
+
+        return {
+          success: true,
+          data: result,
+          contextUpdates: {
+            ...this.extractContextUpdates(result, step),
+            conversationId // Propagate current conversationId to context
+          },
+          timestamp: new Date(),
+          attempts: 1,
+          retried: false,
+          totalDurationMs: duration,
+        };
+      }
+
+      // 2. Intercept Core Platform - Research Page
+      if (step.app?.toLowerCase() === 'research' || step.app?.toLowerCase() === 'deep_research') {
+        const parameters = this.prepareParameters(step.parameters, context);
+        let result;
+        const tStart = Date.now();
+
+        if (step.action?.toLowerCase() === 'conduct_research') {
+          const { query, depth, boardPersonas } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for research.${step.action}`);
+          }
+          const conversationId = parameters.conversationId || context.conversationId || `dr_wf_${Date.now()}`;
+          
+          result = await runDeepResearchAgent(query, {
+            conversationId,
+            maxDepth: depth === 'fast' ? 2 : 4,
+            boardPersonas: boardPersonas || ['McKinsey Strategy Partner', 'YC Technical Architect'],
+          });
+          
+          if (!result.success) {
+            throw new Error(`Deep research agent failed: ${result.error}`);
+          }
+        } else {
+          throw new Error(`Unknown action '${step.action}' for app '${step.app}'`);
+        }
+
+        const duration = Date.now() - tStart;
+
+        if (context._executionId) {
+          workflowResilienceService.registerCompletedStep(
+            context._executionId,
+            { stepId: step.stepId, app: step.app, action: step.action, parameters },
+            result
+          );
+        }
+
+        logger.info(`Research platform step completed successfully: ${step.stepId} in ${duration}ms`);
+
+        return {
+          success: true,
+          data: result,
+          contextUpdates: this.extractContextUpdates(result, step),
+          timestamp: new Date(),
+          attempts: 1,
+          retried: false,
+          totalDurationMs: duration,
+        };
+      }
+
+      // 3. Intercept Core Platform - Agents / Swarm Page
+      if (step.app?.toLowerCase() === 'agents' || step.app?.toLowerCase() === 'swarm') {
+        const parameters = this.prepareParameters(step.parameters, context);
+        let result;
+        const tStart = Date.now();
+
+        if (step.action?.toLowerCase() === 'run_swarm') {
+          const { query } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for agents.${step.action}`);
+          }
+          
+          result = await SwarmService.executeSwarmSync(query, []);
+        } else {
+          throw new Error(`Unknown action '${step.action}' for app '${step.app}'`);
+        }
+
+        const duration = Date.now() - tStart;
+
+        if (context._executionId) {
+          workflowResilienceService.registerCompletedStep(
+            context._executionId,
+            { stepId: step.stepId, app: step.app, action: step.action, parameters },
+            result
+          );
+        }
+
+        logger.info(`Swarm Agent platform step completed successfully: ${step.stepId} in ${duration}ms`);
+
+        return {
+          success: true,
+          data: result,
+          contextUpdates: this.extractContextUpdates(result, step),
+          timestamp: new Date(),
+          attempts: 1,
+          retried: false,
+          totalDurationMs: duration,
+        };
+      }
+
+      // 4. Intercept Core Platform - Data / Datasets Page
+      if (step.app?.toLowerCase() === 'data' || step.app?.toLowerCase() === 'datasets') {
+        const parameters = this.prepareParameters(step.parameters, context);
+        let result;
+        const tStart = Date.now();
+
+        if (step.action?.toLowerCase() === 'query_rag') {
+          const { query } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for data.${step.action}`);
+          }
+          result = await runSearchWorkflow(query, userId);
+        } else if (step.action?.toLowerCase() === 'index_file') {
+          const { filePath, originalName } = parameters;
+          if (!filePath) {
+            throw new Error(`Required parameter 'filePath' is missing for data.${step.action}`);
+          }
+          result = await runIngestionWorkflow(filePath, originalName || path.basename(filePath), userId);
+        } else if (step.action?.toLowerCase() === 'archive_dataset') {
+          const { datasetId } = parameters;
+          if (!datasetId) {
+            throw new Error(`Required parameter 'datasetId' is missing for data.${step.action}`);
+          }
+          result = await DatasetsService.archiveDatasetToGCS(datasetId);
+        } else if (step.action?.toLowerCase() === 'index_dataset') {
+          const { datasetId } = parameters;
+          if (!datasetId) {
+            throw new Error(`Required parameter 'datasetId' is missing for data.${step.action}`);
+          }
+          result = await DatasetsService.indexDatasetForRAG(datasetId);
+        } else {
+          throw new Error(`Unknown action '${step.action}' for app '${step.app}'`);
+        }
+
+        const duration = Date.now() - tStart;
+
+        if (context._executionId) {
+          workflowResilienceService.registerCompletedStep(
+            context._executionId,
+            { stepId: step.stepId, app: step.app, action: step.action, parameters },
+            result
+          );
+        }
+
+        logger.info(`Data platform step completed successfully: ${step.stepId} in ${duration}ms`);
+
+        return {
+          success: true,
+          data: result,
+          contextUpdates: this.extractContextUpdates(result, step),
+          timestamp: new Date(),
+          attempts: 1,
+          retried: false,
+          totalDurationMs: duration,
+        };
+      }
+
       // Intercept LlamaIndex event-driven steps
       if (step.app?.toLowerCase() === 'llamaindex') {
         const parameters = this.prepareParameters(step.parameters, context);
@@ -526,6 +739,12 @@ class WorkflowExecutionService {
     if (result.id) updates[`${step.stepId}_id`] = result.id;
     if (result.url) updates[`${step.stepId}_url`] = result.url;
     if (result.message) updates[`${step.stepId}_message`] = result.message;
+    if (result.answer) updates[`${step.stepId}_answer`] = result.answer;
+    if (result.reply) updates[`${step.stepId}_reply`] = result.reply;
+    if (result.text) updates[`${step.stepId}_text`] = result.text;
+    if (result.data?.answer) updates[`${step.stepId}_answer`] = result.data.answer;
+    if (result.data?.reply) updates[`${step.stepId}_reply`] = result.data.reply;
+    if (result.data?.text) updates[`${step.stepId}_text`] = result.data.text;
 
     return updates;
   }

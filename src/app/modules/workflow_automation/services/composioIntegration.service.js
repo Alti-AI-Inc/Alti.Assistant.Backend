@@ -168,6 +168,17 @@ class ComposioIntegrationService {
 
       const connectionStatus = requiredApps.map((appName) => {
         const normalizedAppName = appName.toLowerCase();
+        const platformApps = ['chat', 'research', 'agents', 'data', 'apps'];
+        if (platformApps.includes(normalizedAppName)) {
+          return {
+            app: appName,
+            isConnected: true,
+            status: 'active',
+            authConfigId: normalizedAppName,
+            connectedAccountId: normalizedAppName,
+          };
+        }
+
         const isConnected = connectedAppNames.includes(normalizedAppName);
         const appInfo = userApps.apps.find(
           (app) => app.app.toLowerCase() === normalizedAppName
@@ -176,7 +187,7 @@ class ComposioIntegrationService {
         return {
           app: appName,
           isConnected,
-          status: appInfo?.connectionStatus || 'not_available',
+          status: appInfo?.connectionStatus || 'not_connected',
           authConfigId: appInfo?.authConfigId,
           connectedAccountId: appInfo?.connectedAccountId,
         };
@@ -221,8 +232,10 @@ class ComposioIntegrationService {
         config.app.toLowerCase()
       );
 
+      const platformApps = ['chat', 'research', 'agents', 'data', 'apps'];
+
       // Combine and deduplicate
-      const allAvailableApps = [...new Set([...availableApps, ...toolApps])];
+      const allAvailableApps = [...new Set([...availableApps, ...toolApps, ...platformApps])];
 
       return {
         success: true,

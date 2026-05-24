@@ -3,10 +3,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { TemporalCatalogService } from '../src/app/modules/temporal/temporal-catalog.service.js';
+import config from '../config/index.js';
 
-dotenv.config();
-
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/alti-assistant';
+const MONGO_URI = config.database_local || process.env.DATABASE_LOCAL || 'mongodb://localhost:27017/alti-assistant';
 
 async function test() {
   console.log("=== Testing Temporal Backend Integration ===");

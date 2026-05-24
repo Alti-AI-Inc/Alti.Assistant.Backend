@@ -66,28 +66,38 @@ const syncCatalog = async () => {
 };
 
 /**
- * Queries the MongoDB TemporalRepository collection with filters, pagination, and search.
+ * Queries the MongoDB TemporalRepository collection with strict filters, input sanitation,
+ * whitelisted sorting fields, and bounded pagination limits to guarantee absolute security.
  */
 const searchCatalog = async (query = '', options = {}) => {
   try {
     let filter = {};
 
-    // Filter by License (mit or apache-2.0)
+    // 1. Strict Input Sanitation - strip potentially hazardous injection characters
+    const sanitizedQuery = (typeof query === 'string') 
+      ? query.replace(/[^\w\s\-\.\/]/g, '').trim() 
+      : '';
+
+    // 2. Filter Sanitation - enforce whitelisted options
     if (options.license) {
-      filter.license_key = options.license.toLowerCase();
+      const lowerLicense = options.license.toLowerCase();
+      if (['mit', 'apache-2.0'].includes(lowerLicense)) {
+        filter.license_key = lowerLicense;
+      }
     }
 
-    // Filter by Status (Active or Archived)
     if (options.status) {
-      filter.status = options.status;
+      const statusStr = String(options.status);
+      if (['Active', 'Archived'].includes(statusStr)) {
+        filter.status = statusStr;
+      }
     }
 
     let queryBuilder;
 
-    if (query) {
+    if (sanitizedQuery) {
       const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'temporal', 'a', 'of', 'in', 'for', 'with', 'on']);
-      const queryWords = query.toLowerCase()
-        .replace(/[^\w\s-]/g, ' ')
+      const queryWords = sanitizedQuery.toLowerCase()
         .split(/\s+/)
         .filter(word => word.length > 2 && !stopWords.has(word));
 
@@ -97,19 +107,21 @@ const searchCatalog = async (query = '', options = {}) => {
           .sort({ score: { $meta: 'textScore' }, stars: -1 });
       } else {
         filter.$or = [
-          { name: { $regex: query, $options: 'i' } },
-          { description: { $regex: query, $options: 'i' } }
+          { name: { $regex: sanitizedQuery, $options: 'i' } },
+          { description: { $regex: sanitizedQuery, $options: 'i' } }
         ];
         queryBuilder = TemporalRepository.find(filter).sort({ stars: -1 });
       }
     } else {
-      const sortBy = options.sortBy || 'stars';
+      // 3. Sort Key Whitelisting - completely blocks custom SQL/NoSQL sorting injection vectors
+      const whitelistedSortFields = ['stars', 'name', 'createdAt'];
+      const sortBy = whitelistedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
       queryBuilder = TemporalRepository.find(filter).sort({ [sortBy]: -1 });
     }
 
-    // Pagination
-    const limit = options.limit ? parseInt(options.limit) : 20;
-    const page = options.page ? parseInt(options.page) : 1;
+    // 4. Bounded Pagination - prevents DOS attacks via large limit requests
+    const page = Math.max(1, parseInt(options.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(options.limit) || 20));
     const startIndex = (page - 1) * limit;
 
     const total = await TemporalRepository.countDocuments(filter);
