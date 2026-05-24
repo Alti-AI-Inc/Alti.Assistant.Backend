@@ -13,6 +13,7 @@ import { logger } from '../../shared/logger.js';
 import { DuffelFlightsProvider, DuffelStaysProvider } from './providers/duffelProviders.js';
 import { UsgsEarthquakesProvider, OpencorporatesProvider, NasaFirmsProvider } from './providers/stage21PremiumProviders.js';
 import { GdeltGeopoliticalProvider, EurostatEconomicProvider, WhoDiseaseOutbreaksProvider } from './providers/stage22PremiumProviders.js';
+import { EpoPatentsProvider, MedrxivPreprintsProvider } from './providers/stage23PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -977,3 +978,7 @@ SearchEngineRegistry.register(NasaFirmsProvider);
 SearchEngineRegistry.register(GdeltGeopoliticalProvider);
 SearchEngineRegistry.register(EurostatEconomicProvider);
 SearchEngineRegistry.register(WhoDiseaseOutbreaksProvider);
+
+// Stage 23 Premium Providers (IP & Clinical Preprints)
+SearchEngineRegistry.register(EpoPatentsProvider);
+SearchEngineRegistry.register(MedrxivPreprintsProvider);
