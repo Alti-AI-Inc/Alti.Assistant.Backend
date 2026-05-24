@@ -166,10 +166,26 @@ export const initiateAuth = async (appName, userId) => {
       });
       await authConfig.save();
     }
-    const connectionUrl = await composio.connectedAccounts.initiate(
-      userId,
-      authConfig.authConfigId
-    );
+    let connectionUrl;
+    try {
+      connectionUrl = await composio.connectedAccounts.initiate(
+        userId,
+        authConfig.authConfigId
+      );
+    } catch (initiateError) {
+      console.warn(`[Simple] Custom config ${authConfig.authConfigId} initiation failed: ${initiateError.message}. Falling back to globally managed credentials using appName: ${appName}...`);
+      
+      // Fallback: use appName directly as authConfigId
+      connectionUrl = await composio.connectedAccounts.initiate(
+        userId,
+        appName
+      );
+      
+      // Persist the corrected config ID in database
+      authConfig.authConfigId = appName;
+      await authConfig.save();
+    }
+
     const composioAuth = new ComposioAuth({
       userId,
       authConfigId: authConfig.authConfigId,

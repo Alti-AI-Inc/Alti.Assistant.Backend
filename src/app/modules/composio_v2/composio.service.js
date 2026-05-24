@@ -30,7 +30,7 @@ const initiateComposioAuth = async (body, req = null) => {
     }
     console.log(`Found Auth Config for app ${app_name}:`, auth_config);
 
-    const auth_config_id = auth_config.authConfigId;
+    let auth_config_id = auth_config.authConfigId;
     console.log(`Auth Config ID for app ${app_name}:`, auth_config_id);
     const existingAuthQuery = {
       userId: user_id,
@@ -56,10 +56,29 @@ const initiateComposioAuth = async (body, req = null) => {
         message: 'User is already authenticated',
       };
     }
-    const connectionUrl = await composio.connectedAccounts.initiate(
-      user_id,
-      auth_config_id
-    );
+    let connectionUrl;
+    try {
+      connectionUrl = await composio.connectedAccounts.initiate(
+        user_id,
+        auth_config_id
+      );
+    } catch (initiateError) {
+      console.warn(`[v2] Custom config ${auth_config_id} initiation failed: ${initiateError.message}. Falling back to globally managed credentials using app_name: ${app_name}...`);
+      
+      // Fallback: use app_name directly as auth_config_id
+      connectionUrl = await composio.connectedAccounts.initiate(
+        user_id,
+        app_name
+      );
+      
+      // Persist the corrected config ID in database
+      auth_config.authConfigId = app_name;
+      await auth_config.save();
+      
+      // Update our local tracking variable
+      auth_config_id = app_name;
+    }
+
     // await connectionUrl.waitForConnection();
     const composioAuth = new ComposionAuth(
       req
