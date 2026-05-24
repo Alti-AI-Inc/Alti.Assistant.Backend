@@ -146,6 +146,20 @@ import {
   SecForm4InsidersProvider
 } from './providers/financialScientificPremiumProviders.js';
 
+import {
+  GithubApiReposProvider,
+  WikipediaSearchProvider,
+  WikidataEntitiesProvider,
+  OpenopenweathermapWeatherProvider,
+  OpenstreetmapGeocodingProvider,
+  ZenodoResearchProvider,
+  CrossrefDoisProvider,
+  NhcHurricanesProvider,
+  FccLicensingProvider,
+  UsdaSoilSurveyProvider
+} from './providers/developerGeographicPremiumProviders.js';
+
+
 
 
 // ─── Dual-Layer Cache System ─────────────────────────────────────────────────
@@ -654,5 +668,18 @@ SearchEngineRegistry.register(CryptoQuotesProvider);
 SearchEngineRegistry.register(NasaNeoAsteroidsProvider);
 SearchEngineRegistry.register(MitreAttackMatrixProvider);
 SearchEngineRegistry.register(SecForm4InsidersProvider);
+
+// Stage 8 Premium Providers
+SearchEngineRegistry.register(GithubApiReposProvider);
+SearchEngineRegistry.register(WikipediaSearchProvider);
+SearchEngineRegistry.register(WikidataEntitiesProvider);
+SearchEngineRegistry.register(OpenopenweathermapWeatherProvider);
+SearchEngineRegistry.register(OpenstreetmapGeocodingProvider);
+SearchEngineRegistry.register(ZenodoResearchProvider);
+SearchEngineRegistry.register(CrossrefDoisProvider);
+SearchEngineRegistry.register(NhcHurricanesProvider);
+SearchEngineRegistry.register(FccLicensingProvider);
+SearchEngineRegistry.register(UsdaSoilSurveyProvider);
+
 
 

@@ -301,6 +301,46 @@ export const UnifiedSmartRouter = {
           title = 'SEC Form 4 Real-Time Insider Transactions';
           url = 'https://sec.gov/edgar';
           domain = 'sec.gov';
+        } else if (providerId === 'github_api_repos') {
+          title = 'GitHub API Repository Statistics Feed';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'wikipedia_search') {
+          title = 'Wikipedia Free Encyclopedia Index';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'wikidata_entities') {
+          title = 'Wikidata Semantic Knowledge Graph';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'openweathermap_weather') {
+          title = 'OpenWeatherMap Global Weather Feed';
+          url = 'https://openweathermap.org';
+          domain = 'openweathermap.org';
+        } else if (providerId === 'openstreetmap_geocoding') {
+          title = 'OpenStreetMap Geocoding and Place Index';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'zenodo_research') {
+          title = 'Zenodo Open Science Research Repository';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'crossref_dois') {
+          title = 'Crossref DOI Metadata Index';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'nhc_hurricanes') {
+          title = 'National Hurricane Center Tropical Advisories';
+          url = 'https://nhc.noaa.gov';
+          domain = 'nhc.noaa.gov';
+        } else if (providerId === 'fcc_licensing') {
+          title = 'FCC Wireless License Registry Database';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'usda_soil_survey') {
+          title = 'USDA Plant Hardiness & Soil Survey Index';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
