@@ -94,6 +94,19 @@ import {
   OshaInspectionsProvider
 } from './providers/newPremiumRegistryProviders.js';
 
+import {
+  UnComtradeProvider,
+  CensusTradeProvider,
+  DbnomicsProvider,
+  WorldBankProvider,
+  LdaLobbyingProvider,
+  OpenFecProvider,
+  NihReporterProvider,
+  ChemblProvider,
+  ClinvarProvider,
+  UniprotProvider
+} from './providers/morePremiumRegistryProviders.js';
+
 
 // ─── Dual-Layer Cache System ─────────────────────────────────────────────────
 const localMemoryCache = new Map();
@@ -553,4 +566,16 @@ SearchEngineRegistry.register(EcfrRegulationsProvider);
 SearchEngineRegistry.register(FederalRegisterProvider);
 SearchEngineRegistry.register(EpaEchoProvider);
 SearchEngineRegistry.register(OshaInspectionsProvider);
+
+// Stage 4 Premium Providers
+SearchEngineRegistry.register(UnComtradeProvider);
+SearchEngineRegistry.register(CensusTradeProvider);
+SearchEngineRegistry.register(DbnomicsProvider);
+SearchEngineRegistry.register(WorldBankProvider);
+SearchEngineRegistry.register(LdaLobbyingProvider);
+SearchEngineRegistry.register(OpenFecProvider);
+SearchEngineRegistry.register(NihReporterProvider);
+SearchEngineRegistry.register(ChemblProvider);
+SearchEngineRegistry.register(ClinvarProvider);
+SearchEngineRegistry.register(UniprotProvider);
 

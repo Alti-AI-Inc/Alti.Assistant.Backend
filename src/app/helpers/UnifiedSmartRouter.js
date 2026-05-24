@@ -141,6 +141,46 @@ export const UnifiedSmartRouter = {
           title = 'OSHA Workplace Safety and Employer Enforcement Registry';
           url = 'https://osha.gov';
           domain = 'osha.gov';
+        } else if (providerId === 'un_comtrade') {
+          title = 'UN Comtrade Database for Global Bilateral Trade';
+          url = 'https://comtrade.un.org';
+          domain = 'comtrade.un.org';
+        } else if (providerId === 'census_trade') {
+          title = 'U.S. Census Bureau International Trade Registry';
+          url = 'https://census.gov';
+          domain = 'census.gov';
+        } else if (providerId === 'dbnomics') {
+          title = 'DBnomics Global Macroeconomic Database Feed';
+          url = 'https://db.nomics.world';
+          domain = 'db.nomics.world';
+        } else if (providerId === 'world_bank') {
+          title = 'World Bank Development and Sovereign Wealth Indicators';
+          url = 'https://worldbank.org';
+          domain = 'worldbank.org';
+        } else if (providerId === 'lda_lobbying') {
+          title = 'U.S. Senate Lobbying Disclosure Act (LDA) Registry';
+          url = 'https://lobbyingdisclosure.senate.gov';
+          domain = 'lobbyingdisclosure.senate.gov';
+        } else if (providerId === 'open_fec') {
+          title = 'OpenFEC Campaign Finance and Political Action Committee Registry';
+          url = 'https://fec.gov';
+          domain = 'fec.gov';
+        } else if (providerId === 'nih_reporter') {
+          title = 'NIH RePORTER Medical and Scientific Funding Registry';
+          url = 'https://reporter.nih.gov';
+          domain = 'reporter.nih.gov';
+        } else if (providerId === 'chembl_database') {
+          title = 'ChEMBL Bioactive Molecule & Drug Targets Registry';
+          url = 'https://ebi.ac.uk/chembl';
+          domain = 'ebi.ac.uk';
+        } else if (providerId === 'clinvar_database') {
+          title = 'ClinVar Genomic Pathogenicity & Variant Registry';
+          url = 'https://ncbi.nlm.nih.gov/clinvar';
+          domain = 'ncbi.nlm.nih.gov';
+        } else if (providerId === 'uniprot_database') {
+          title = 'UniProt Protein Knowledgebase and Annotation Registry';
+          url = 'https://uniprot.org';
+          domain = 'uniprot.org';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
