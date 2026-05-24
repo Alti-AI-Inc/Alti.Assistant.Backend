@@ -61,6 +61,7 @@ import { datasetsRoutes } from '../modules/datasets/datasets.route.js';
 import { langchainRoutes } from '../modules/langchain/langchain.route.js';
 import { composioCatalogRoutes } from '../modules/composio/composio-catalog.route.js';
 import { temporalRoutes } from '../modules/temporal/temporal.route.js';
+import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
 
 const router = express.Router();
 
@@ -316,6 +317,10 @@ const moduleRoutes = [
   {
     path: '/temporal',
     route: temporalRoutes,
+  },
+  {
+    path: '/mcp-toolbox',
+    route: mcpToolboxRoutes,
   },
 ];
 
