@@ -116,3 +116,30 @@ MASSIVE_API_KEY=gyJwOQtsm3yZXPsGqOjewhzezPzJm4l3
 
 # PredictionData.io Real-Time Sports Betting Odds API
 PREDICTIONDATA_API_KEY=your_predictiondata_api_key_here
+# ======================================================================
+# 🛍️ ENTERPRISE POS, ERP & CLINICAL PRACTICE INTEGRATIONS
+# ======================================================================
+# Toast POS (Restaurant POS)
+TOAST_CLIENT_ID=your_toast_client_id_here
+TOAST_CLIENT_SECRET=your_toast_client_secret_here
+TOAST_MANAGEMENT_API_KEY=your_toast_management_api_key_here
+
+# Dutchie POS (Cannabis POS)
+DUTCHIE_API_KEY=your_dutchie_api_key_here
+DUTCHIE_CLIENT_ID=your_dutchie_client_id_here
+DUTCHIE_CLIENT_SECRET=your_dutchie_client_secret_here
+
+# Mindbody (Wellness Class Booking & POS)
+MINDBODY_API_KEY=your_mindbody_api_key_here
+MINDBODY_SOURCE_NAME=your_mindbody_source_name_here
+MINDBODY_PASSWORD=your_mindbody_password_here
+
+# Yardi Systems (Property Management ERP)
+YARDI_CLIENT_ID=your_yardi_client_id_here
+YARDI_CLIENT_SECRET=your_yardi_client_secret_here
+YARDI_SERVER_URL=https://your-property.yardi.com/api
+
+# Clover POS (SMB Payments & POS)
+CLOVER_API_KEY=your_clover_api_key_here
+CLOVER_CLIENT_ID=your_clover_client_id_here
+CLOVER_CLIENT_SECRET=your_clover_client_secret_here

@@ -150,6 +150,23 @@ Set-GcpSecret "GCP_LOCATION"         "us-central1"
 # =============================================================================
 # Grant Cloud Run SA Secret Accessor role
 # =============================================================================
+Write-Host ""; Write-Host "-- Enterprise POS & ERP Integrations --" -ForegroundColor Cyan
+Set-GcpSecret "TOAST_CLIENT_ID"            "your_toast_client_id_here"
+Set-GcpSecret "TOAST_CLIENT_SECRET"        "your_toast_client_secret_here"
+Set-GcpSecret "TOAST_MANAGEMENT_API_KEY"   "your_toast_management_api_key_here"
+Set-GcpSecret "DUTCHIE_API_KEY"            "your_dutchie_api_key_here"
+Set-GcpSecret "DUTCHIE_CLIENT_ID"          "your_dutchie_client_id_here"
+Set-GcpSecret "DUTCHIE_CLIENT_SECRET"      "your_dutchie_client_secret_here"
+Set-GcpSecret "MINDBODY_API_KEY"           "your_mindbody_api_key_here"
+Set-GcpSecret "MINDBODY_SOURCE_NAME"       "your_mindbody_source_name_here"
+Set-GcpSecret "MINDBODY_PASSWORD"          "your_mindbody_password_here"
+Set-GcpSecret "YARDI_CLIENT_ID"            "your_yardi_client_id_here"
+Set-GcpSecret "YARDI_CLIENT_SECRET"        "your_yardi_client_secret_here"
+Set-GcpSecret "YARDI_SERVER_URL"           "https://your-property.yardi.com/api"
+Set-GcpSecret "CLOVER_API_KEY"             "your_clover_api_key_here"
+Set-GcpSecret "CLOVER_CLIENT_ID"           "your_clover_client_id_here"
+Set-GcpSecret "CLOVER_CLIENT_SECRET"       "your_clover_client_secret_here"
+
 Write-Host ""; Write-Host "-- IAM: Granting Cloud Run SA Secret Accessor role --" -ForegroundColor Cyan
 $CR_SA = "$PROJECT_ID-compute@developer.gserviceaccount.com"
 Write-Host "  SA: $CR_SA" -ForegroundColor Yellow
