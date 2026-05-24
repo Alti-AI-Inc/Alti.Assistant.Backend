@@ -658,10 +658,15 @@ const filterToolsByAction = async (availableTools, actionName, appName) => {
  */
 const getUserConnectedAccounts = async (userId, appName) => {
   try {
+    const normalizedAppName = appName.toLowerCase();
     const accounts = await ComposionAuth.find({
       userId: userId,
       status: 'ACTIVE',
-      'toolkit.slug': appName.toLowerCase(),
+      $or: [
+        { 'toolkit.slug': normalizedAppName },
+        { authConfigId: `ac_${normalizedAppName}` },
+        { authConfigId: normalizedAppName }
+      ]
     });
 
     // Filter accounts for the specific app
@@ -987,8 +992,12 @@ export const executeStepNode = async (state) => {
     );
 
     // Find connected account for this app
+    const targetApp = currentStepPlan.app?.toLowerCase();
     const connectedAccount = connectedAccounts?.find(
-      (acc) => acc.toolkit.slug === currentStepPlan.app
+      (acc) =>
+        acc.toolkit?.slug?.toLowerCase() === targetApp ||
+        acc.authConfigId?.toLowerCase() === `ac_${targetApp}` ||
+        acc.authConfigId?.toLowerCase() === targetApp
     );
     if (!connectedAccount) {
       throw new Error(`No connected account found for ${currentStepPlan.app}`);

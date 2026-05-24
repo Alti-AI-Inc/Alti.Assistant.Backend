@@ -171,9 +171,14 @@ export const runGeminiTaskWithTools = async (
   app
 ) => {
   try {
+    const normalizedApp = app.toLowerCase();
     const connectedAccount = await ComposioAuth.findOne({
       userId: userId,
-      'toolkit.slug': app,
+      $or: [
+        { 'toolkit.slug': normalizedApp },
+        { authConfigId: `ac_${normalizedApp}` },
+        { authConfigId: normalizedApp }
+      ]
     });
     if (!connectedAccount) {
       throw new Error(`No connected account found for ${app}. Please connect your account first.`);
