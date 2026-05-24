@@ -224,6 +224,19 @@ import {
   UsdaPlantHabitatsProvider
 } from './providers/hyperPremiumNicheProviders.js';
 
+import {
+  GithubWorkflowsProvider,
+  OpenstreetmapBoundariesProvider,
+  WikidataLabelsProvider,
+  WikipediaPageviewsProvider,
+  FccRadioRegistrationsProvider,
+  OpenlibraryLanguagesProvider,
+  ZenodoLicensesProvider,
+  NifcAssignedPersonnelProvider,
+  CrossrefOpenFundersProvider,
+  UsdaShrubTolerancesProvider
+} from './providers/superPremiumNicheProviders.js';
+
 
 
 
@@ -807,6 +820,18 @@ SearchEngineRegistry.register(ZenodoDoisProvider);
 SearchEngineRegistry.register(NifcAcresBurnedProvider);
 SearchEngineRegistry.register(CrossrefCitationsProvider);
 SearchEngineRegistry.register(UsdaPlantHabitatsProvider);
+
+// Stage 14 Premium Providers
+SearchEngineRegistry.register(GithubWorkflowsProvider);
+SearchEngineRegistry.register(OpenstreetmapBoundariesProvider);
+SearchEngineRegistry.register(WikidataLabelsProvider);
+SearchEngineRegistry.register(WikipediaPageviewsProvider);
+SearchEngineRegistry.register(FccRadioRegistrationsProvider);
+SearchEngineRegistry.register(OpenlibraryLanguagesProvider);
+SearchEngineRegistry.register(ZenodoLicensesProvider);
+SearchEngineRegistry.register(NifcAssignedPersonnelProvider);
+SearchEngineRegistry.register(CrossrefOpenFundersProvider);
+SearchEngineRegistry.register(UsdaShrubTolerancesProvider);
 
 
 

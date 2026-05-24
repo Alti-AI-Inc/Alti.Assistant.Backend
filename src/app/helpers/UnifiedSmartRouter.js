@@ -541,6 +541,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Plant native habitats environmental database';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_workflows') {
+          title = 'GitHub Action Workflows & CI/CD Logs';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_boundaries') {
+          title = 'OpenStreetMap Zoned Boundaries & Municipal Limits';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_labels') {
+          title = 'Wikidata Item Labels & Multilingual Aliases';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_pageviews') {
+          title = 'Wikipedia Pageview Telemetry Feed';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_radio_registrations') {
+          title = 'FCC Commercial Radio Frequency License Database';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_languages') {
+          title = 'Open Library Literary Languages Index';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_licenses') {
+          title = 'Zenodo Open-Science Software & Data License Registry';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_assigned_personnel') {
+          title = 'NIFC Wildfire Incident Assigned Personnel Registry';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_open_funders') {
+          title = 'Crossref Open Funder Schema & Directory';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_shrub_tolerances') {
+          title = 'USDA Shrub native soil tolerances environmental database';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
