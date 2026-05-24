@@ -143,3 +143,16 @@ YARDI_SERVER_URL=https://your-property.yardi.com/api
 CLOVER_API_KEY=your_clover_api_key_here
 CLOVER_CLIENT_ID=your_clover_client_id_here
 CLOVER_CLIENT_SECRET=your_clover_client_secret_here
+
+# ======================================================================
+# 🌐 AUTOMATED & SELF-SERVICE OPEN DATA APIs
+# ======================================================================
+COINGECKO_API_KEY=your_coingecko_api_key_here
+EXCHANGERATE_API_KEY=your_exchangerate_api_key_here
+FRED_API_KEY=your_fred_api_key_here
+BLS_API_KEY=your_bls_api_key_here
+OMDB_API_KEY=your_omdb_api_key_here
+NASA_API_KEY=your_nasa_api_key_here
+RAINFOREST_API_KEY=your_rainforest_api_key_here
+COINAPI_KEY=your_coinapi_key_here
+
