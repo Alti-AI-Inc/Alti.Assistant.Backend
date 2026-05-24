@@ -11,14 +11,22 @@ const composioInitiateController = async (req, res) => {
 
   const { app_name } = req.body;
 
+  if (!app_name) {
+    return res.status(400).json({ error: 'app_name is required' });
+  }
+  if (!user_id) {
+    return res.status(400).json({ error: 'User must be authenticated' });
+  }
+
   try {
     const connectionUrl = await composioService.initiateComposioAuth({
       app_name,
       user_id,
-    });
+    }, req);
     res.status(200).json({ authConfig: connectionUrl });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to initiate authentication' });
+    console.error('Error initiating Composio auth:', error);
+    res.status(500).json({ error: 'Failed to initiate authentication', details: error.message });
   }
 };
 

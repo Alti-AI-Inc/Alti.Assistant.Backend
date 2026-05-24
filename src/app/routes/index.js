@@ -60,6 +60,7 @@ import { aviationStackRoutes } from '../modules/aviationstack/aviationstack.rout
 import { datasetsRoutes } from '../modules/datasets/datasets.route.js';
 import { langchainRoutes } from '../modules/langchain/langchain.route.js';
 import { composioCatalogRoutes } from '../modules/composio/composio-catalog.route.js';
+import { temporalRoutes } from '../modules/temporal/temporal.route.js';
 
 const router = express.Router();
 
@@ -311,6 +312,10 @@ const moduleRoutes = [
   {
     path: '/composio-catalog',
     route: composioCatalogRoutes,
+  },
+  {
+    path: '/temporal',
+    route: temporalRoutes,
   },
 ];
 

@@ -212,11 +212,13 @@ export const getUserConnectedAccountsService = async (
   req = null
 ) => {
   try {
-    const accounts = await ComposioAuth.find({
+    const query = {
       userId: userId,
-    });
+      status: status || 'ACTIVE',
+    };
+    const accounts = await ComposioAuth.find(query).sort({ updatedAt: -1 });
 
-    console.log(`User connected accounts for ${userId}:`, accounts);
+    console.log(`User connected accounts for ${userId}: ${accounts.length} found (status: ${status || 'ACTIVE'})`);
 
     return {
       success: true,
@@ -240,29 +242,26 @@ export const checkUserConnectionsService = async (
   req = null
 ) => {
   try {
-    const ComposionAuth = (await import('./composio.model.js')).default;
+    const normalizedAppName = appName.toLowerCase();
 
-    const accounts = await ComposionAuth.find({
+    const connectedAccounts = await ComposioAuth.find({
       userId: userId,
-      status: 'active',
+      status: 'ACTIVE',
+      $or: [
+        { 'toolkit.slug': normalizedAppName },
+        { authConfigId: normalizedAppName },
+        { authConfigId: `ac_${normalizedAppName}` },
+      ],
     });
 
-    const hasConnection = accounts.some(
-      (account) =>
-        account.integrationId &&
-        account.integrationId.toLowerCase().includes(appName.toLowerCase())
-    );
+    const hasConnection = connectedAccounts.length > 0;
 
     return {
       success: true,
       data: {
         hasConnection,
         appName,
-        connectedAccounts: accounts.filter(
-          (account) =>
-            account.integrationId &&
-            account.integrationId.toLowerCase().includes(appName.toLowerCase())
-        ),
+        connectedAccounts,
       },
     };
   } catch (error) {

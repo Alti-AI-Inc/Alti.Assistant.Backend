@@ -121,8 +121,11 @@ class ComposioIntegrationService {
         }
       }
 
-      // Also get tools from our local database
-      const localTools = await Tool.find({});
+      // Also get tools from our local database, scoped to requested apps if provided
+      const localToolsQuery = appNames && appNames.length > 0
+        ? { appName: { $in: appNames } }
+        : {};
+      const localTools = await Tool.find(localToolsQuery).limit(100); // Limit to prevent massive payload
 
       return {
         success: true,
@@ -211,23 +214,12 @@ class ComposioIntegrationService {
   async getAvailableAppsForDetection() {
     try {
       const authConfigs = await AuthConfig.find({});
-      const localTools = await Tool.find({});
+      const toolApps = await Tool.find({}).distinct('appName');
 
       // Get app names from auth configs
       const availableApps = authConfigs.map((config) =>
         config.app.toLowerCase()
       );
-
-      // Get app names mentioned in tools
-      const toolApps = [
-        ...new Set(
-          localTools.map((tool) => {
-            // Extract app name from tool slug or name
-            const parts = tool.slug.split('_');
-            return parts[0].toLowerCase();
-          })
-        ),
-      ];
 
       // Combine and deduplicate
       const allAvailableApps = [...new Set([...availableApps, ...toolApps])];
@@ -341,10 +333,10 @@ class ComposioIntegrationService {
         userId: userId,
         authConfigId: authConfig.authConfigId,
         connectedAccountId: connectionUrl.id,
-        status: 'pending',
+        status: 'PENDING',
         integrationId: connectionUrl.integrationId,
         redirectUrl: connectionUrl.redirectUrl,
-        toolkit: {},
+        toolkit: { slug: appName },
       });
 
       await composioAuth.save();

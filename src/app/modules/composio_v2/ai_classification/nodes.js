@@ -17,7 +17,7 @@ import config from '../../../../../config/index.js';
 import ComposionAuth from '../composio.model.js';
 import { LangGraphToolSet } from 'composio-core';
 import Tool from '../tools.model.js';
-import fs from 'fs';
+// fs import removed — available_apps now loaded dynamically from Tool model
 import { detectSchedulingRequirements } from '../services/scheduleDetection.service.js';
 import AuthConfig from '../authConfig.model.js';
 const composio = new Composio({
@@ -79,8 +79,8 @@ export const classifyAppNode = async (state) => {
   } = state;
 
   try {
-    // Get all available apps from database
-    const availableApps = await Tool.find({}).distinct('slug');
+    // Get all available apps from database (distinct app names, not tool slugs)
+    const availableApps = await Tool.find({}).distinct('appName');
 
     console.log(
       `Required apps from planning: ${requiredApps} and planning metadata: ${JSON.stringify(planningMetadata)}`
@@ -133,9 +133,14 @@ export const classifyActionNode = async (state) => {
 
   try {
     // Get all available actions for the identified app from database
-    const availableActions = await Tool.find({ slug: identifiedApp }).select(
-      'name description'
-    );
+    // Query by appName (e.g., 'gmail') not slug (e.g., 'GMAIL_SEND_EMAIL')
+    const normalizedApp = identifiedApp.toLowerCase();
+    const availableActions = await Tool.find({
+      $or: [
+        { appName: { $regex: new RegExp(`^${normalizedApp}$`, 'i') } },
+        { appName: identifiedApp },
+      ],
+    }).select('name description slug');
 
     console.log(
       `Found available actions ${availableActions.length} actions for app "${identifiedApp}":`
@@ -771,10 +776,8 @@ export const planWorkflowNode = async (state) => {
   // console.log(`Conversation Context: ${JSON.stringify(state.connectedAccounts)}`);
 
   try {
-    const apps = fs.readFileSync(
-      'src/app/modules/composio_v2/ai_classification/available_apps.json'
-    );
-    const availableApps = JSON.parse(apps);
+    // Dynamically load available apps from the database (covers all 893 apps)
+    const availableApps = await Tool.find({}).distinct('appName');
     // Step 2: Identify required apps for this request
     const recentContext = history.length > 0 ? history.slice(-3) : [];
     const appIdentification = await identifyRequiredApps(
@@ -806,7 +809,13 @@ export const planWorkflowNode = async (state) => {
     // Step 4: For multi-step workflow, get actions for all required apps
     const actionsMap = {};
     for (const app of appIdentification.requiredApps) {
-      const actions = await Tool.find({ slug: app }).select('name description');
+      // Query by appName (e.g., 'gmail'), not slug (e.g., 'GMAIL_SEND_EMAIL')
+      const actions = await Tool.find({
+        $or: [
+          { appName: { $regex: new RegExp(`^${app}$`, 'i') } },
+          { appName: app },
+        ],
+      }).select('name description slug');
       actionsMap[app] = actions;
     }
 
@@ -869,13 +878,16 @@ export const validatePlanNode = async (state) => {
   const { requiredApps, executionPlan, connectedAccounts } = state;
 
   try {
-    // Check if all required apps have connected accounts
+    // Check if all required apps have connected accounts (case-insensitive with authConfigId fallback)
     const connectedAppSlugs =
-      connectedAccounts?.map((acc) => acc.toolkit.slug) || [];
-    console.log('Connected app slugs:', connectedAppSlugs);
+      connectedAccounts?.map((acc) => acc.toolkit?.slug?.toLowerCase()).filter(Boolean) || [];
+    const connectedAuthConfigIds =
+      connectedAccounts?.map((acc) => acc.authConfigId?.toLowerCase().replace(/^ac_/, '')).filter(Boolean) || [];
+    const allConnectedIdentifiers = [...new Set([...connectedAppSlugs, ...connectedAuthConfigIds])];
+    console.log('Connected app identifiers:', allConnectedIdentifiers);
 
     const missingConnections = requiredApps.filter(
-      (app) => !connectedAppSlugs.includes(app)
+      (app) => !allConnectedIdentifiers.includes(app.toLowerCase())
     );
 
     if (missingConnections.length > 0) {
@@ -955,8 +967,8 @@ export const executeStepNode = async (state) => {
       currentStepPlan
     );
 
-    // Get parameters for current step
-    let stepParameters = crossStepParameters[currentStep + 1] || {};
+    // Get parameters for current step (try both 1-indexed and 0-indexed keys for robustness)
+    let stepParameters = crossStepParameters?.[currentStep + 1] || crossStepParameters?.[currentStep] || {};
 
     // Map data from previous steps
     if (

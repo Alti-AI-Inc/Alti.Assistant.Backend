@@ -343,23 +343,28 @@ const handleComposioToolCalls = async (userId, toolCalls) => {
 /**
  * Classify user intent using AI
  */
+import Tool from '../tools.model.js';
+
 export const classifyUserIntent = async (
   userInput,
   conversationContext = []
 ) => {
+  // Dynamically load all available app names from the database (not tool slugs)
+  let availableAppSlugs = [];
+  try {
+    availableAppSlugs = await Tool.find({}).distinct('appName');
+  } catch (dbErr) {
+    console.error('Failed to load available apps from DB, using fallback:', dbErr.message);
+    // Minimal fallback in case DB is unreachable
+    availableAppSlugs = ['gmail', 'github', 'slack', 'notion', 'discord', 'twitter', 'linkedin', 'calendar', 'youtube', 'amazon'];
+  }
+
   const systemPrompt = `You are an expert AI assistant that classifies user requests for app integrations and actions.
 
-SUPPORTED APPS AND ACTIONS:
-- gmail: send_email, read_email, delete_email, mark_as_read, search_email
-- github: create_issue, create_pr, list_repos, create_repo, star_repo, fork_repo
-- calendar: create_event, list_events, update_event, delete_event, find_available_time
-- linkedin: post_update, send_message, connect_user, share_article
-- twitter: post_tweet, delete_tweet, follow_user, send_dm, like_tweet
-- youtube: search_videos, upload_video, like_video, subscribe_channel
-- notion: create_page, update_page, create_database, add_to_database
-- amazon: search_product, add_to_cart, place_order, track_order
-- slack: send_message, create_channel, invite_user, post_announcement
-- discord: send_message, create_channel, manage_server
+SUPPORTED APPS (${availableAppSlugs.length} total):
+${availableAppSlugs.join(', ')}
+
+For each app, common actions include: search, list, create, update, delete, send, get, post, read, write, manage, invite, connect, share, follow, subscribe, download, upload, star, fork, like.
 
 You must respond with ONLY a valid JSON object, no additional text or formatting.`;
 
@@ -384,10 +389,10 @@ Classify this input and respond with a JSON object:
   try {
     const result = await runGeminiTask(userPrompt, systemPrompt);
     // Clean the response to ensure it's valid JSON
-    let cleanedResult = '';
-    if (result.includes('<think>')) {
+    let cleanedResult = result || '';
+    if (cleanedResult.includes('<think>')) {
       const regex = /<think>[\s\S]*?<\/think>/g;
-      cleanedResult = result.replace(regex, '').trim();
+      cleanedResult = cleanedResult.replace(regex, '').trim();
     }
 
     if (cleanedResult.startsWith('```json')) {
@@ -400,8 +405,6 @@ Classify this input and respond with a JSON object:
         .replace(/```\s*/, '')
         .replace(/\s*```$/, '');
     }
-
-    // console.log('Classification result:', cleanedResult);
 
     const parsed = JSON.parse(cleanedResult);
 

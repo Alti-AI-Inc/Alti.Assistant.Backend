@@ -4,6 +4,8 @@ const AuthConfigSchema = mongoose.Schema({
   app: {
     type: String,
     required: true,
+    unique: true,
+    index: true,
   },
   authConfigId: {
     type: String,
@@ -25,7 +27,7 @@ const AuthConfigSchema = mongoose.Schema({
     default: null,
     index: true,
   },
-});
+}, { timestamps: true });
 
 const AuthConfig = mongoose.model('AuthConfig', AuthConfigSchema);
 

@@ -73,108 +73,49 @@ const classifyAndExecuteController = catchAsync(async (req, res) => {
 });
 
 /**
- * Controller to get supported apps and actions
+ * Controller to get supported apps and actions (dynamically loaded from DB)
  */
 const getSupportedAppsController = catchAsync(async (req, res) => {
-  const supportedApps = {
-    gmail: {
-      name: 'Gmail',
-      description: 'Send and manage emails',
-      actions: [
-        'send_email',
-        'read_email',
-        'delete_email',
-        'mark_as_read',
-        'search_email',
-      ],
-    },
-    github: {
-      name: 'GitHub',
-      description: 'Manage repositories and issues',
-      actions: [
-        'create_issue',
-        'create_pr',
-        'list_repos',
-        'create_repo',
-        'star_repo',
-        'fork_repo',
-      ],
-    },
-    calendar: {
-      name: 'Google Calendar',
-      description: 'Manage calendar events',
-      actions: [
-        'create_event',
-        'list_events',
-        'update_event',
-        'delete_event',
-        'find_available_time',
-      ],
-    },
-    linkedin: {
-      name: 'LinkedIn',
-      description: 'Professional networking and posting',
-      actions: ['post_update', 'send_message', 'connect_user', 'share_article'],
-    },
-    twitter: {
-      name: 'Twitter/X',
-      description: 'Social media posting and interaction',
-      actions: [
-        'post_tweet',
-        'delete_tweet',
-        'follow_user',
-        'send_dm',
-        'like_tweet',
-      ],
-    },
-    youtube: {
-      name: 'YouTube',
-      description: 'Video platform interaction',
-      actions: [
-        'search_videos',
-        'upload_video',
-        'like_video',
-        'subscribe_channel',
-      ],
-    },
-    notion: {
-      name: 'Notion',
-      description: 'Note-taking and database management',
-      actions: [
-        'create_page',
-        'update_page',
-        'create_database',
-        'add_to_database',
-      ],
-    },
-    amazon: {
-      name: 'Amazon',
-      description: 'E-commerce and shopping',
-      actions: ['search_product', 'add_to_cart', 'place_order', 'track_order'],
-    },
-    slack: {
-      name: 'Slack',
-      description: 'Team communication',
-      actions: [
-        'send_message',
-        'create_channel',
-        'invite_user',
-        'post_announcement',
-      ],
-    },
-    discord: {
-      name: 'Discord',
-      description: 'Community and gaming communication',
-      actions: ['send_message', 'create_channel', 'manage_server'],
-    },
-  };
+  try {
+    // Dynamically load all available apps and their actions from the Tool model
+    const Tool = (await import('./tools.model.js')).default;
+    
+    const tools = await Tool.find({}, { slug: 1, name: 1, description: 1, appName: 1 }).lean();
+    
+    // Group tools by appName to build a comprehensive app->actions map
+    const supportedApps = {};
+    for (const tool of tools) {
+      const appKey = (tool.appName || tool.slug?.split('_')[0] || 'unknown').toLowerCase();
+      
+      if (!supportedApps[appKey]) {
+        supportedApps[appKey] = {
+          name: tool.appName || appKey,
+          description: tool.description || `Integration with ${appKey}`,
+          actions: [],
+        };
+      }
+      
+      if (tool.slug && !supportedApps[appKey].actions.includes(tool.slug)) {
+        supportedApps[appKey].actions.push(tool.slug);
+      }
+    }
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Supported apps and actions retrieved successfully',
-    data: supportedApps,
-  });
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: `${Object.keys(supportedApps).length} supported apps and actions retrieved successfully`,
+      data: supportedApps,
+    });
+  } catch (error) {
+    console.error('Error loading supported apps from DB:', error.message);
+    // Minimal fallback
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Supported apps loaded from fallback',
+      data: {},
+    });
+  }
 });
 
 /**
@@ -237,6 +178,7 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
     const result =
       await aiClassificationService.getUserConnectedAccountsService(
         userId,
+        null, // status — defaults to 'ACTIVE' inside the service
         req
       );
     console.log(`User connections for ${userId}:`, result);

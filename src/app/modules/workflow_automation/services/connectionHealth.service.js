@@ -272,8 +272,7 @@ class ConnectionHealthService {
             connectedAccountId: connectionUrl.id,
             integrationId: connectionUrl.integrationId,
             redirectUrl: connectionUrl.redirectUrl,
-            status: 'pending',
-            updatedAt: new Date(),
+            status: 'PENDING',
           },
         }
       );

@@ -51,10 +51,15 @@ export const executeUserRequest = async (
       }
     }
 
+    const normalizedAppList = appList.map(a => a.toLowerCase());
     const composioAuth = await ComposioAuth.find({
       userId,
       status: 'ACTIVE',
-      'toolkit.slug': { $in: appList },
+      $or: [
+        { 'toolkit.slug': { $in: normalizedAppList } },
+        { authConfigId: { $in: normalizedAppList } },
+        { authConfigId: { $in: normalizedAppList.map(a => `ac_${a}`) } },
+      ],
     });
     console.log('Active Composio Auths for user:', composioAuth.length);
     if (
@@ -190,7 +195,7 @@ export const initiateAuth = async (appName, userId) => {
       userId,
       authConfigId: authConfig.authConfigId,
       connectedAccountId: connectionUrl.id,
-      status: 'pending',
+      status: 'PENDING',
       integrationId: connectionUrl.integrationId,
       redirectUrl: connectionUrl.redirectUrl,
       toolkit: { slug: appName },
@@ -209,7 +214,7 @@ export const waitForConnection = async (connectedAccountId) => {
     await ComposioAuth.updateOne(
       { connectedAccountId },
       {
-        status: connection.data.status,
+        status: (connection.data.status || 'ACTIVE').toUpperCase(),
         accessToken: connection.data.accessToken,
         refreshToken: connection.data.refreshToken,
         toolkit: connection.toolkit,
@@ -226,7 +231,7 @@ export const getUserConnectedAccounts = async (userId) => {
     const accounts = await ComposioAuth.find({
       userId,
       status: 'ACTIVE',
-    }).lean();
+    }).sort({ updatedAt: -1 }).lean();
     return { success: true, data: accounts };
   } catch (error) {
     return { success: false, error: error.message };

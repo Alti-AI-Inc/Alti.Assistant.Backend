@@ -32,10 +32,15 @@ const initiateComposioAuth = async (body, req = null) => {
 
     let auth_config_id = auth_config.authConfigId;
     console.log(`Auth Config ID for app ${app_name}:`, auth_config_id);
+    const normalizedAppName = app_name.toLowerCase();
     const existingAuthQuery = {
       userId: user_id,
-      authConfigId: auth_config_id,
       status: 'ACTIVE',
+      $or: [
+        { authConfigId: auth_config_id },
+        { 'toolkit.slug': normalizedAppName },
+        { authConfigId: normalizedAppName },
+      ],
     };
     const existingComposioAuth = await ComposionAuth.findOne(
       req ? withTenantFilter(req, existingAuthQuery) : existingAuthQuery
@@ -88,7 +93,7 @@ const initiateComposioAuth = async (body, req = null) => {
             connectedAccountId: connectionUrl.id,
             integrationId: connectionUrl.integrationId,
             redirectUrl: connectionUrl.redirectUrl,
-            status: 'pending',
+            status: 'PENDING',
             toolkit: {
               slug: app_name,
             },
@@ -99,7 +104,7 @@ const initiateComposioAuth = async (body, req = null) => {
             connectedAccountId: connectionUrl.id,
             integrationId: connectionUrl.integrationId,
             redirectUrl: connectionUrl.redirectUrl,
-            status: 'pending',
+            status: 'PENDING',
             toolkit: {
               slug: app_name,
             },
@@ -122,7 +127,7 @@ const waitForConnection = async (connectedAccountId) => {
     await ComposionAuth.updateOne(
       { connectedAccountId: connectedAccountId },
       {
-        status: connection.data.status,
+        status: (connection.data.status || 'ACTIVE').toUpperCase(),
         accessToken: connection.data.accessToken,
         refreshToken: connection.data.refreshToken,
         idToken: connection.data.idToken,

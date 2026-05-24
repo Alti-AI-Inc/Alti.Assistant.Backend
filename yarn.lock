@@ -56,11 +56,11 @@
     tslib "^2.6.2"
 
 "@aws-sdk/types@^3.222.0":
-  version "3.821.0"
-  resolved "https://registry.npmjs.org/@aws-sdk/types/-/types-3.821.0.tgz"
-  integrity sha512-Znroqdai1a90TlxGaJ+FK1lwC0fHpo97Xjsp5UKGR5JODYm7f9+/fF17ebO1KdoBr/Rm0UIFiF5VmI8ts9F1eA==
+  version "3.973.9"
+  resolved "https://registry.npmjs.org/@aws-sdk/types/-/types-3.973.9.tgz"
+  integrity sha512-kuBfgQVdcz5Bmapc4A13YbpVw/pXkesfhetcFYwbntqas8sF41OHyd4o28+/TG2ZQdHBsv90Lsu5y6oitvYCdg==
   dependencies:
-    "@smithy/types" "^4.3.1"
+    "@smithy/types" "^4.14.2"
     tslib "^2.6.2"
 
 "@bufbuild/protobuf@^2.0.0":
@@ -198,6 +198,11 @@
   resolved "https://registry.npmjs.org/@fastify/busboy/-/busboy-2.1.1.tgz"
   integrity sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==
 
+"@finom/zod-to-json-schema@3.24.11":
+  version "3.24.11"
+  resolved "https://registry.npmjs.org/@finom/zod-to-json-schema/-/zod-to-json-schema-3.24.11.tgz"
+  integrity sha512-fL656yBPiWebtfGItvtXLWrFNGlF1NcDFS0WdMQXMs9LluVg0CfT5E2oXYp0pidl0vVG53XkW55ysijNkU5/hA==
+
 "@getzep/zep-js@^2.0.2":
   version "2.0.2"
   resolved "https://registry.npmjs.org/@getzep/zep-js/-/zep-js-2.0.2.tgz"
@@ -318,7 +323,7 @@
   resolved "https://registry.npmjs.org/@graphql-typed-document-node/core/-/core-3.2.0.tgz"
   integrity sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==
 
-"@grpc/grpc-js@^1.10.9", "@grpc/grpc-js@^1.12.6", "@grpc/grpc-js@^1.13.1":
+"@grpc/grpc-js@^1.10.9", "@grpc/grpc-js@^1.12.4", "@grpc/grpc-js@^1.12.6", "@grpc/grpc-js@^1.13.1":
   version "1.13.4"
   resolved "https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.13.4.tgz"
   integrity sha512-GsFaMXCkMqkKIvwCQjCrwH+GHbPKBjhwo/8ZuUkWHqbI73Kky9I+pQltrlT0+MWpedCoosda53lgjYfyEPgxBg==
@@ -745,29 +750,16 @@
     uuid "^10.0.0"
     weaviate-client "^3.5.2"
 
-"@llama-flow/core@^0.4.4":
-  version "0.4.4"
-  resolved "https://registry.npmjs.org/@llama-flow/core/-/core-0.4.4.tgz"
-  integrity sha512-hwK1EQ+atUG/E7XcDV3KsTaA8op29pb8gbpVurpsqbLnGFkdTT4F/6V7Hy1cC2o/yOY+DKc/rxoIsH1uJS0cZg==
-
-"@llamaindex/cloud@4.0.15":
-  version "4.0.15"
-  resolved "https://registry.npmjs.org/@llamaindex/cloud/-/cloud-4.0.15.tgz"
-  integrity sha512-wBxZwU0QJ1Qo099V7YsEllXB4iCNnKlpDqrINqZezQCPv/sf3a+u75MHziH7craCuwd2GBvfHx8kk8IEFNFHrg==
+"@llamaindex/core@0.6.22":
+  version "0.6.22"
+  resolved "https://registry.npmjs.org/@llamaindex/core/-/core-0.6.22.tgz"
+  integrity sha512-/BXyemkvpxMaUhOkbwJ2PTvzKjSWkL8+6QLpz/n+pk8xBwMMe1GVBgli/J57gCyi8GbrlBafBj6GaPOgWub2Eg==
   dependencies:
-    p-retry "^6.2.1"
-    zod "^3.25.7"
-
-"@llamaindex/core@0.6.11":
-  version "0.6.11"
-  resolved "https://registry.npmjs.org/@llamaindex/core/-/core-0.6.11.tgz"
-  integrity sha512-HeTPBhnmEm+in9OcnsVtrMFPBm9lu5px9/QSdCB5v6BWAONAqTPUoifgo1R2FLFETmXWoN1na+jq56/d6kzZug==
-  dependencies:
+    "@finom/zod-to-json-schema" "3.24.11"
     "@llamaindex/env" "0.1.30"
-    "@types/node" "^22.9.0"
+    "@types/node" "^24.0.13"
     magic-bytes.js "^1.10.0"
-    zod "^3.23.8"
-    zod-to-json-schema "^3.23.3"
+    zod "^4.1.5"
 
 "@llamaindex/env@0.1.30":
   version "0.1.30"
@@ -778,19 +770,24 @@
     js-tiktoken "^1.0.12"
     pathe "^1.1.2"
 
-"@llamaindex/node-parser@2.0.11":
-  version "2.0.11"
-  resolved "https://registry.npmjs.org/@llamaindex/node-parser/-/node-parser-2.0.11.tgz"
-  integrity sha512-aUdIqrfSkw9ZOoTHtIfwjvrsCkT9ozaaEO62I92u2CHkhakFgtLqFRhDqrazfXcbFF+U8X8OryS9C30TvzRZdg==
+"@llamaindex/node-parser@2.0.22":
+  version "2.0.22"
+  resolved "https://registry.npmjs.org/@llamaindex/node-parser/-/node-parser-2.0.22.tgz"
+  integrity sha512-uj5O89WShAAyiSZ8f8tU7hnLJ6pSmlY2a6hkAOs8odkUgT87dEqaPHpsK7w0iJdEFiob7GoLeRhv2K624FooXg==
   dependencies:
     html-to-text "^9.0.5"
 
-"@llamaindex/workflow@1.1.10":
-  version "1.1.10"
-  resolved "https://registry.npmjs.org/@llamaindex/workflow/-/workflow-1.1.10.tgz"
-  integrity sha512-4tMWsoCgjVs8APvQUGS7BKtfElG/TqY+hGNSwZ/JBRJOmGbn1rlJucfAhrcnaD4gJT8fV+86OhzbdZPy2j3l6g==
+"@llamaindex/workflow-core@^1.3.2":
+  version "1.3.3"
+  resolved "https://registry.npmjs.org/@llamaindex/workflow-core/-/workflow-core-1.3.3.tgz"
+  integrity sha512-WJIcD4K2suGbNkwU5CC70jKKrA5tARba42nMs8Pou1RGzmoxqg+K+b7vyLBmiDtImR8P40YLmkayCIRVQPBmsg==
+
+"@llamaindex/workflow@1.1.24":
+  version "1.1.24"
+  resolved "https://registry.npmjs.org/@llamaindex/workflow/-/workflow-1.1.24.tgz"
+  integrity sha512-VyKsbRkFlnT5dRNKbgLXQV+ZpQ+CAFgmC9LaZv6hD/fIKo6wq1wQW/ZqLZgZt569xeHgxmrXPB6KHdqn/AhPbQ==
   dependencies:
-    "@llama-flow/core" "^0.4.4"
+    "@llamaindex/workflow-core" "^1.3.2"
 
 "@massive.com/client-js@^10.7.0":
   version "10.7.0"
@@ -1156,10 +1153,10 @@
   dependencies:
     tslib "^2.6.2"
 
-"@smithy/types@^4.3.1":
-  version "4.3.1"
-  resolved "https://registry.npmjs.org/@smithy/types/-/types-4.3.1.tgz"
-  integrity sha512-UqKOQBL2x6+HWl3P+3QqFD4ncKq0I8Nuz9QItGv5WuKuMHuuwlhvqcZCoXGfc+P1QmfJE7VieykoYYmrOoFJxA==
+"@smithy/types@^4.14.2":
+  version "4.14.2"
+  resolved "https://registry.npmjs.org/@smithy/types/-/types-4.14.2.tgz"
+  integrity sha512-P+otAxbV4CqBybp7EkcJCrig63yE2E7PuNVOmilVMRcx/O+QDzGULTrKsq4DV13gSfak9ObPrWaHl/9bL5YcWw==
   dependencies:
     tslib "^2.6.2"
 
@@ -1198,6 +1195,46 @@
   dependencies:
     axios "^1.7.7"
     js-tiktoken "^1.0.14"
+
+"@temporalio/client@^1.16.2":
+  version "1.16.2"
+  resolved "https://registry.npmjs.org/@temporalio/client/-/client-1.16.2.tgz"
+  integrity sha512-SvuFpikonwOSLjedesueh71010h304ub436OA16mHeunQgUfldqtI9ZrHqP9L5jzBxWOxRIKZL52clMjaebSxQ==
+  dependencies:
+    "@grpc/grpc-js" "^1.12.4"
+    "@temporalio/common" "1.16.2"
+    "@temporalio/proto" "1.16.2"
+    abort-controller "^3.0.0"
+    long "^5.2.3"
+    uuid "^11.1.0"
+
+"@temporalio/common@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.npmjs.org/@temporalio/common/-/common-1.16.2.tgz"
+  integrity sha512-Yu62OW85wU3/XDt/xXDxw1lB3bce0xCrrgfd7aJJ5lp7FGzPgIgcC7bu2iIcSZnnCJGF86pnLJb+emo0mwINVg==
+  dependencies:
+    "@temporalio/proto" "1.16.2"
+    long "^5.2.3"
+    ms "3.0.0-canary.1"
+    nexus-rpc "^0.0.2"
+    proto3-json-serializer "^2.0.0"
+
+"@temporalio/proto@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.npmjs.org/@temporalio/proto/-/proto-1.16.2.tgz"
+  integrity sha512-KIBlGV38W3HiHsDFSEs33TsXl7I2KcApbuLlBcCKtjHVdl5pzEt1nQpD5szi+y6saIENaXBifmVTELtYh2w7Rw==
+  dependencies:
+    long "^5.2.3"
+    protobufjs "^7.2.5"
+
+"@temporalio/workflow@^1.16.2":
+  version "1.16.2"
+  resolved "https://registry.npmjs.org/@temporalio/workflow/-/workflow-1.16.2.tgz"
+  integrity sha512-EESJV9CsRSpLgebrzMY9FOMrDD1BHrXvaDB+++69eYNvH5nWNS94zfVzpPZpUoRRRLfNvSJd3jSXV/pH1HwLiQ==
+  dependencies:
+    "@temporalio/common" "1.16.2"
+    "@temporalio/proto" "1.16.2"
+    nexus-rpc "^0.0.2"
 
 "@tootallnate/once@2":
   version "2.0.0"
@@ -1307,12 +1344,12 @@
   dependencies:
     undici-types "~6.21.0"
 
-"@types/node@^22.9.0":
-  version "22.15.33"
-  resolved "https://registry.npmjs.org/@types/node/-/node-22.15.33.tgz"
-  integrity sha512-wzoocdnnpSxZ+6CjW4ADCK1jVmd1S/J3ArNWfn8FDDQtRm8dkDg7TA+mvek2wNrfCgwuZxqEOiB9B1XCJ6+dbw==
+"@types/node@^24.0.13":
+  version "24.12.4"
+  resolved "https://registry.npmjs.org/@types/node/-/node-24.12.4.tgz"
+  integrity sha512-GUUEShf+PBCGW2KaXwcIt3Yk+e3pkKwWKb9GSyM9WQVE+ep2jzmHdGsHzu4wgcZy5fN9FBdVzjpBQsYlpfpgLA==
   dependencies:
-    undici-types "~6.21.0"
+    undici-types "~7.16.0"
 
 "@types/request@^2.48.8":
   version "2.48.12"
@@ -1328,11 +1365,6 @@
   version "0.12.0"
   resolved "https://registry.npmjs.org/@types/retry/-/retry-0.12.0.tgz"
   integrity sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==
-
-"@types/retry@0.12.2":
-  version "0.12.2"
-  resolved "https://registry.npmjs.org/@types/retry/-/retry-0.12.2.tgz"
-  integrity sha512-XISRgDJ2Tc5q4TRqvgJtzsRkFYNJzZrhTdtMoGVBttwzzQJkPnS3WWTFc7kuDRoPtPakl+T+OfdEUjYJj7Jbow==
 
 "@types/tough-cookie@*":
   version "4.0.5"
@@ -2471,16 +2503,7 @@ domhandler@^5.0.2, domhandler@^5.0.3:
   dependencies:
     domelementtype "^2.3.0"
 
-domutils@^3.0.1:
-  version "3.2.2"
-  resolved "https://registry.npmjs.org/domutils/-/domutils-3.2.2.tgz"
-  integrity sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==
-  dependencies:
-    dom-serializer "^2.0.0"
-    domelementtype "^2.3.0"
-    domhandler "^5.0.3"
-
-domutils@^3.2.1, domutils@^3.2.2:
+domutils@^3.0.1, domutils@^3.2.1, domutils@^3.2.2:
   version "3.2.2"
   resolved "https://registry.npmjs.org/domutils/-/domutils-3.2.2.tgz"
   integrity sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==
@@ -4000,11 +4023,6 @@ is-native@^1.0.1:
     is-nil "^1.0.0"
     to-source-code "^1.0.0"
 
-is-network-error@^1.0.0:
-  version "1.1.0"
-  resolved "https://registry.npmjs.org/is-network-error/-/is-network-error-1.1.0.tgz"
-  integrity sha512-tUdRRAnhT+OtCZR/LxZelH/C7QtjtFrTu5tXCA8pl55eTUElUHT+GPYV8MBMBvea/j+NxQqVt3LbWMRir7Gx9g==
-
 is-nil@^1.0.0:
   version "1.0.1"
   resolved "https://registry.npmjs.org/is-nil/-/is-nil-1.0.1.tgz"
@@ -4438,18 +4456,17 @@ listr2@^8.2.5:
     rfdc "^1.4.1"
     wrap-ansi "^9.0.0"
 
-llamaindex@^0.11.9:
-  version "0.11.9"
-  resolved "https://registry.npmjs.org/llamaindex/-/llamaindex-0.11.9.tgz"
-  integrity sha512-lpEBFWvWezEqQnn1UaFwAS/chFbEd6ghe0M5Hlv5tx+qo+5GjtEUqwKHSs8A3DpsYowo4gVW7NXuK+9FCySOXw==
+llamaindex@^0.12.1:
+  version "0.12.1"
+  resolved "https://registry.npmjs.org/llamaindex/-/llamaindex-0.12.1.tgz"
+  integrity sha512-/tXXITk/iVGBycOFaDhev6dgTBIr6Ycu4FoPIt6A5JcEAiB6ujONjiV36flVXUR8JdqwMtS767XMjV+36nV4yQ==
   dependencies:
-    "@llamaindex/cloud" "4.0.15"
-    "@llamaindex/core" "0.6.11"
+    "@llamaindex/core" "0.6.22"
     "@llamaindex/env" "0.1.30"
-    "@llamaindex/node-parser" "2.0.11"
-    "@llamaindex/workflow" "1.1.10"
+    "@llamaindex/node-parser" "2.0.22"
+    "@llamaindex/workflow" "1.1.24"
     "@types/lodash" "^4.17.7"
-    "@types/node" "^22.9.0"
+    "@types/node" "^24.0.13"
     lodash "^4.17.21"
     magic-bytes.js "^1.10.0"
 
@@ -4548,7 +4565,7 @@ logform@^2.7.0:
     safe-stable-stringify "^2.3.1"
     triple-beam "^1.3.0"
 
-long@^5.0.0, long@^5.2.4, long@^5.3.2:
+long@^5.0.0, long@^5.2.3, long@^5.2.4, long@^5.3.2:
   version "5.3.2"
   resolved "https://registry.npmjs.org/long/-/long-5.3.2.tgz"
   integrity sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==
@@ -4591,9 +4608,9 @@ lru-cache@^6.0.0:
     yallist "^4.0.0"
 
 magic-bytes.js@^1.10.0:
-  version "1.12.1"
-  resolved "https://registry.npmjs.org/magic-bytes.js/-/magic-bytes.js-1.12.1.tgz"
-  integrity sha512-ThQLOhN86ZkJ7qemtVRGYM+gRgR8GEXNli9H/PMvpnZsE44Xfh3wx9kGJaldg314v85m+bFW6WBMaVHJc/c3zA==
+  version "1.13.0"
+  resolved "https://registry.npmjs.org/magic-bytes.js/-/magic-bytes.js-1.13.0.tgz"
+  integrity sha512-afO2mnxW7GDTXMm5/AoN1WuOcdoKhtgXjIvHmobqTD1grNplhGdv3PFOyjCVmrnOZBIT/gD/koDKpYG+0mvHcg==
 
 mailgun.js@^10.2.4:
   version "10.4.0"
@@ -4907,6 +4924,11 @@ ms@2.0.0:
   resolved "https://registry.npmjs.org/ms/-/ms-2.0.0.tgz"
   integrity sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==
 
+ms@3.0.0-canary.1:
+  version "3.0.0-canary.1"
+  resolved "https://registry.npmjs.org/ms/-/ms-3.0.0-canary.1.tgz"
+  integrity sha512-kh8ARjh8rMN7Du2igDRO9QJnqCb2xYTJxyQYK7vJJS4TvLLmsbyhiKpSW+t+y26gyOyMd0riphX0GeWKU3ky5g==
+
 multer@^1.4.5-lts.1:
   version "1.4.5-lts.2"
   resolved "https://registry.npmjs.org/multer/-/multer-1.4.5-lts.2.tgz"
@@ -4985,6 +5007,11 @@ next-tick@^1.1.0:
   version "1.1.0"
   resolved "https://registry.npmjs.org/next-tick/-/next-tick-1.1.0.tgz"
   integrity sha512-CXdUiJembsNjuToQvxayPZF9Vqht7hewsvy2sOWafLvi2awflj9mOC6bHIg50orX8IJvWKY9wYQ/zB2kogPslQ==
+
+nexus-rpc@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.npmjs.org/nexus-rpc/-/nexus-rpc-0.0.2.tgz"
+  integrity sha512-IWjIExdVYlmwXuzHdY/Q3lXCv1gbqoAXPazQhy2w4Xgtgha3H0OOujEESVPQcFUFMWm+pAk2gKnb57g8S41JZg==
 
 nice-grpc-client-middleware-retry@^3.1.10:
   version "3.1.11"
@@ -5456,15 +5483,6 @@ p-queue@^6.6.2:
   dependencies:
     eventemitter3 "^4.0.4"
     p-timeout "^3.2.0"
-
-p-retry@^6.2.1:
-  version "6.2.1"
-  resolved "https://registry.npmjs.org/p-retry/-/p-retry-6.2.1.tgz"
-  integrity sha512-hEt02O4hUct5wtwg4H4KcWgDdm+l1bOaEy/hWzd8xtXB9BqxTWBBhb+2ImAtH4Cv4rPjV76xN3Zumqk3k3AhhQ==
-  dependencies:
-    "@types/retry" "0.12.2"
-    is-network-error "^1.0.0"
-    retry "^0.13.1"
 
 p-retry@4:
   version "4.6.2"
@@ -5944,7 +5962,7 @@ promzard@^3.0.1:
   dependencies:
     read "^5.0.0"
 
-proto3-json-serializer@^2.0.2:
+proto3-json-serializer@^2.0.0, proto3-json-serializer@^2.0.2:
   version "2.0.2"
   resolved "https://registry.npmjs.org/proto3-json-serializer/-/proto3-json-serializer-2.0.2.tgz"
   integrity sha512-SAzp/O4Yh02jGdRc+uIrGoe87dkN/XtwxfZ4ZyafJHymd79ozp5VG5nyZ7ygqPM5+cpLDjjGnYFUkngonyDPOQ==
@@ -7097,6 +7115,11 @@ undici-types@~6.21.0:
   resolved "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz"
   integrity sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==
 
+undici-types@~7.16.0:
+  version "7.16.0"
+  resolved "https://registry.npmjs.org/undici-types/-/undici-types-7.16.0.tgz"
+  integrity sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==
+
 undici@^5.19.1:
   version "5.29.0"
   resolved "https://registry.npmjs.org/undici/-/undici-5.29.0.tgz"
@@ -7630,12 +7653,12 @@ youtubei.js@^14.0.0:
     tslib "^2.5.0"
     undici "^5.19.1"
 
-zod-to-json-schema@^3.22.3, zod-to-json-schema@^3.23.2, zod-to-json-schema@^3.23.3, zod-to-json-schema@^3.24.1, zod-to-json-schema@^3.24.5:
+zod-to-json-schema@^3.22.3, zod-to-json-schema@^3.23.2, zod-to-json-schema@^3.24.1, zod-to-json-schema@^3.24.5:
   version "3.24.5"
   resolved "https://registry.npmjs.org/zod-to-json-schema/-/zod-to-json-schema-3.24.5.tgz"
   integrity sha512-/AuWwMP+YqiPbsJx5D6TfgRTc4kTLjsh5SOcd4bLsfUg2RcEXrFMJl1DGgdHy2aCfsIA/cr/1JM0xcB2GZji8g==
 
-zod@^3.22.4, zod@^3.23.8, zod@^3.25.32, zod@^3.25.7:
+zod@^3.22.4, zod@^3.23.8, zod@^3.25.32:
   version "3.25.64"
   resolved "https://registry.npmjs.org/zod/-/zod-3.25.64.tgz"
   integrity sha512-hbP9FpSZf7pkS7hRVUrOjhwKJNyampPgtXKc3AN6DsWtoHsg2Sb4SQaS4Tcay380zSwd2VPo9G9180emBACp5g==
@@ -7644,3 +7667,8 @@ zod@^3.22.4, zod@^3.23.8, zod@^3.25.32, zod@^3.25.7:
   version "4.3.4"
   resolved "https://registry.npmjs.org/zod/-/zod-4.3.4.tgz"
   integrity sha512-Zw/uYiiyF6pUT1qmKbZziChgNPRu+ZRneAsMUDU6IwmXdWt5JwcUfy2bvLOCUtz5UniaN/Zx5aFttZYbYc7O/A==
+
+zod@^4.1.5:
+  version "4.4.3"
+  resolved "https://registry.npmjs.org/zod/-/zod-4.4.3.tgz"
+  integrity sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==

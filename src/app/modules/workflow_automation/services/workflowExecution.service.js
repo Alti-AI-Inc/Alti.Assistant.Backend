@@ -8,6 +8,9 @@ import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import { v4 as uuidv4 } from 'uuid';
 import cron from 'node-cron';
+import path from 'path';
+import { runIngestionWorkflow } from '../llamaindex/indexPipeline.js';
+import { runSearchWorkflow } from '../llamaindex/searchPipeline.js';
 
 // Initialize Composio
 const composio = new Composio({
@@ -323,6 +326,52 @@ class WorkflowExecutionService {
   async executeStep(step, context, userId) {
     try {
       logger.info(`Executing step: ${step.app}.${step.action}`);
+
+      // Intercept LlamaIndex event-driven steps
+      if (step.app?.toLowerCase() === 'llamaindex') {
+        const parameters = this.prepareParameters(step.parameters, context);
+        let result;
+        const tStart = Date.now();
+
+        if (step.action?.toLowerCase() === 'ingest_file' || step.action?.toLowerCase() === 'index_file') {
+          const { filePath, originalName } = parameters;
+          if (!filePath) {
+            throw new Error(`Required parameter 'filePath' is missing for llamaindex.${step.action}`);
+          }
+          result = await runIngestionWorkflow(filePath, originalName || path.basename(filePath), userId);
+        } else if (step.action?.toLowerCase() === 'search' || step.action?.toLowerCase() === 'query') {
+          const { query } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for llamaindex.${step.action}`);
+          }
+          result = await runSearchWorkflow(query, userId);
+        } else {
+          throw new Error(`Unknown action '${step.action}' for app 'llamaindex'`);
+        }
+
+        const duration = Date.now() - tStart;
+        
+        // Register completed step for potential rollback
+        if (context._executionId) {
+          workflowResilienceService.registerCompletedStep(
+            context._executionId,
+            { stepId: step.stepId, app: step.app, action: step.action, parameters },
+            result
+          );
+        }
+
+        logger.info(`LlamaIndex event step completed successfully: ${step.stepId} in ${duration}ms`);
+
+        return {
+          success: true,
+          data: result,
+          contextUpdates: this.extractContextUpdates(result, step),
+          timestamp: new Date(),
+          attempts: 1,
+          retried: false,
+          totalDurationMs: duration,
+        };
+      }
 
       // Get user's available tools for this app
       const userTools = await composioIntegrationService.getUserAvailableTools(

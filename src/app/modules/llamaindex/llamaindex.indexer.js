@@ -70,7 +70,6 @@ import {
   // ─── Observability ─────────────────────────────────────────────────────
   CallbackManager,
   // ─── Testing ───────────────────────────────────────────────────────────
-  MockLLM,
   // ─── File I/O ──────────────────────────────────────────────────────────
   FileReader,
   // ─── Live LLM (Streaming Sessions) ─────────────────────────────────────
@@ -396,13 +395,13 @@ class SemanticCache {
   }
 }
 
-const semanticCache = new SemanticCache();
+export const semanticCache = new SemanticCache();
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SECTION 4: DOCUMENT TEXT EXTRACTION
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function extractTextAndBuildDocuments(filePath, originalName, docId) {
+export async function extractTextAndBuildDocuments(filePath, originalName, docId) {
   const ext = path.extname(originalName || filePath).toLowerCase();
   const fileName = originalName || path.basename(filePath);
   
@@ -543,7 +542,7 @@ async function extractTextAndBuildDocuments(filePath, originalName, docId) {
 // SECTION 5: DOCUMENT MANIFEST MANAGEMENT (Phase 4)
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function loadManifest(persistDir) {
+export async function loadManifest(persistDir) {
   const manifestPath = path.join(persistDir, 'document_manifest.json');
   try {
     if (existsSync(manifestPath)) {
@@ -556,7 +555,7 @@ async function loadManifest(persistDir) {
   return { documents: [], corpusProfile: null };
 }
 
-async function saveManifest(persistDir, manifest) {
+export async function saveManifest(persistDir, manifest) {
   const manifestPath = path.join(persistDir, 'document_manifest.json');
   await fsPromises.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
 }
@@ -565,7 +564,7 @@ async function saveManifest(persistDir, manifest) {
 // SECTION 6: DOCUMENT & CORPUS PROFILING (Phase 2 + Phase 4 Multi-Doc)
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function generateDocumentProfile(fullText) {
+export async function generateDocumentProfile(fullText) {
   if (!fullText || fullText.length < 50) {
     return { summary: 'Short document with minimal text.', topics: [] };
   }
@@ -602,7 +601,7 @@ JSON Object:`;
   return { summary: 'Unable to parse document summary automatically.', topics: [] };
 }
 
-async function generateCorpusProfile(manifest) {
+export async function generateCorpusProfile(manifest) {
   if (!manifest.documents || manifest.documents.length === 0) return null;
   if (manifest.documents.length === 1) return manifest.documents[0].profile;
 
@@ -1066,7 +1065,7 @@ Relevant Block Indexes:`;
 // ═════════════════════════════════════════════════════════════════════════════
 
 // In-memory cache for secondary indexes (not persisted to disk)
-const userIndexCache = new Map();
+export const userIndexCache = new Map();
 
 export async function createIndexFromFile(filePath, originalName = '', userId = 'default_user') {
   await ensureUserLocalDirSynced(userId);
@@ -3381,6 +3380,21 @@ export async function getIndexDiagnostics(userId = 'default_user') {
 // SECTION 37: PHASE 9 — PIPELINE HEALTH CHECK (Self-Test with MockLLM)
 // Tests the full pipeline with MockLLM to ensure all components are working
 // ═════════════════════════════════════════════════════════════════════════════
+
+class LocalMockLLM extends BaseLLM {
+  get metadata() {
+    return {
+      model: 'mock-llm',
+      temperature: 0.1,
+      contextWindow: 1000000,
+      structuredOutput: true
+    };
+  }
+  async chat() {
+    return { message: { content: 'Mock response', role: 'assistant' } };
+  }
+}
+const MockLLM = LocalMockLLM;
 
 export async function runPipelineHealthCheck() {
   const t0 = performance.now();

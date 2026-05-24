@@ -27,7 +27,7 @@ const attemptAutoRecovery = async (connectionId, userId) => {
   try {
     const log = await actionAuditService.logStart({
       userId,
-      app: connection.authConfigId?.split('_')[0] || connection.integrationId || 'unknown_app',
+      app: connection.toolkit?.slug || connection.authConfigId?.replace(/^ac_/, '') || 'unknown_app',
       action: 'connection_auto_recovery',
       params: { connectionId, authConfigId: connection.authConfigId },
       executionId: `rec_${Date.now()}`,
@@ -39,30 +39,50 @@ const attemptAutoRecovery = async (connectionId, userId) => {
   }
 
   try {
-    // Attempt token refresh via Composio SDK or API simulation
-    let refreshed = false;
-    let newAccessToken = connection.accessToken;
-    let newRefreshToken = connection.refreshToken;
+    // Verify connection status with the real Composio API
+    let recoverySucceeded = false;
 
-    if (connection.refreshToken) {
-      logger.info(`ConnectionRecovery: refreshing token for app ${connection.authConfigId} using refresh token`);
-
-      // Mock Composio token refresh payload or call SDK refresh connection
-      // In production, we call composio.connections.refresh(connection.connectedAccountId)
-      // Here we simulate a high-fidelity token renewal
-      newAccessToken = `renewed_acc_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
-      newRefreshToken = connection.refreshToken; // Keep or rotate refresh token
-      refreshed = true;
+    if (connection.connectedAccountId) {
+      logger.info(`ConnectionRecovery: verifying connection ${connection.connectedAccountId} with Composio API`);
+      try {
+        // Use Composio SDK to check the upstream connection status
+        const upstreamConnection = await composio.connectedAccounts.get(connection.connectedAccountId);
+        
+        if (upstreamConnection && (upstreamConnection.status === 'ACTIVE' || upstreamConnection.status === 'active')) {
+          // Connection is valid upstream — sync our local record
+          connection.status = 'ACTIVE';
+          if (upstreamConnection.data?.accessToken) {
+            connection.accessToken = upstreamConnection.data.accessToken;
+          }
+          if (upstreamConnection.data?.refreshToken) {
+            connection.refreshToken = upstreamConnection.data.refreshToken;
+          }
+          recoverySucceeded = true;
+          logger.info(`ConnectionRecovery: upstream verification confirmed ACTIVE for ${connection.connectedAccountId}`);
+        } else {
+          logger.warn(`ConnectionRecovery: upstream status for ${connection.connectedAccountId} is ${upstreamConnection?.status || 'unknown'}`);
+          // Connection is not active upstream — mark as failed
+          connection.status = 'FAILED';
+          await connection.save();
+          throw new Error(`Upstream connection status is ${upstreamConnection?.status || 'unknown'}. Re-authentication required.`);
+        }
+      } catch (sdkError) {
+        // If SDK call fails, the connection may have been revoked or is inaccessible
+        logger.warn(`ConnectionRecovery: Composio SDK verification failed for ${connection.connectedAccountId}: ${sdkError.message}`);
+        
+        // Don't mark as failed if it's just a network error — keep current status
+        if (sdkError.message?.includes('not found') || sdkError.message?.includes('revoked')) {
+          connection.status = 'REVOKED';
+          await connection.save();
+        }
+        throw sdkError;
+      }
     } else {
-      logger.warn(`ConnectionRecovery: no refresh token available for ${connectionId}, attempting connection status sync`);
-      // Simulating a fallback sync check with Composio server
-      refreshed = true; // Simulating successful sync
+      logger.warn(`ConnectionRecovery: no connectedAccountId for ${connectionId}, cannot verify upstream`);
+      throw new Error('No connectedAccountId available for recovery verification.');
     }
 
-    if (refreshed) {
-      connection.accessToken = newAccessToken;
-      connection.refreshToken = newRefreshToken;
-      connection.status = 'active';
+    if (recoverySucceeded) {
       await connection.save();
 
       // Log success in audit trail
@@ -71,24 +91,20 @@ const attemptAutoRecovery = async (connectionId, userId) => {
           success: true,
           durationMs: Date.now() - tStart,
           result: {
-            status: 'active',
-            message: 'OAuth access token successfully renewed in background.',
+            status: 'ACTIVE',
+            message: 'Connection verified active with Composio API.',
             timestamp: new Date().toISOString(),
           },
         });
       }
 
-      logger.info(`ConnectionRecovery: connection ${connectionId} successfully recovered (status: active)`);
-      return { success: true, message: 'OAuth connection successfully refreshed.', connection };
+      logger.info(`ConnectionRecovery: connection ${connectionId} successfully recovered (status: ACTIVE)`);
+      return { success: true, message: 'OAuth connection verified and recovered.', connection };
     } else {
-      throw new Error('Refresh token renewal rejected by OAuth provider.');
+      throw new Error('Recovery verification did not confirm active status.');
     }
   } catch (recoveryErr) {
     logger.error(`ConnectionRecovery: recovery failed for connection ${connectionId}:`, recoveryErr.message);
-
-    // Update connection status to failed
-    connection.status = 'failed';
-    await connection.save();
 
     // Log failure in audit trail
     if (auditLogId) {
@@ -104,13 +120,13 @@ const attemptAutoRecovery = async (connectionId, userId) => {
 };
 
 /**
- * Scans all connected accounts and triggers background refreshes for warning/failed connections.
+ * Scans all connected accounts and triggers background refreshes for failed/expired connections.
  */
 const runHeartbeatRecovery = async (userId) => {
   try {
     const warningConnections = await ComposioAuth.find({
       userId,
-      status: { $in: ['expired', 'failed', 'warning'] },
+      status: { $in: ['EXPIRED', 'FAILED', 'PENDING'] },
     });
 
     if (warningConnections.length === 0) {
