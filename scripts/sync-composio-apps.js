@@ -286,16 +286,11 @@ allApps.forEach(app => {
     app.isAvailable = true;
     processedSlugs.add(slug);
     
-    // Resolve app icon: Fallback to official Composio CDN if local file is missing
-    if (app.image && app.image.startsWith('/assets/apps-logos/')) {
-      const imgFileName = app.image.replace('/assets/apps-logos/', '');
-      const localPath = path.join(FRONTEND_DIR, 'public/assets/apps-logos', imgFileName);
-      if (!fs.existsSync(localPath)) {
-        app.image = `https://logos.composio.dev/api/${slug}`;
-      }
-    } else if (!app.image || app.image === '') {
-      app.image = `https://logos.composio.dev/api/${slug}`;
-    }
+    // Enforce 100% accurate official CDN URL
+    app.image = `https://logos.composio.dev/api/${slug}`;
+    
+    // Remove the sub-text (description) for every single app
+    app.description = "";
   } else {
     // Keep as disabled if not a valid Composio slug
     app.isAvailable = false;
@@ -313,7 +308,7 @@ sortedSlugs.forEach(slug => {
   
   updatedApps.push({
     title,
-    description,
+    description: "", // Remove sub-text
     image: `https://logos.composio.dev/api/${slug}`, // 100% accurate official CDN URL
     app_name: slug,
     isAvailable: true

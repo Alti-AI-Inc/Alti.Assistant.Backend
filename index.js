@@ -28,6 +28,7 @@ import usageLogger from './src/app/middlewares/usageLogger/usageLogger.js';
 import { initializeCronJobs } from './src/app/cron/index.js';
 import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 import { warmSportsCache } from './src/app/helpers/sportsDataCache.js';
+import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation/services/temporal/worker.js';
 
 // Load environment variables
 dotenv.config();
@@ -122,6 +123,12 @@ const connectDB = (retries = 5, delay = 5000) => {
     .then(() => {
       logger.info('✅ Database connection successfully');
       initializeCronJobs();
+      
+      // Start background Temporal Worker
+      temporalWorkerCoordinator.start().catch((err) =>
+        logger.error('⚠️ Failed to start background Temporal Worker:', err.message)
+      );
+
       fetchStripeIps().catch((err) =>
         logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err)
       );

@@ -168,7 +168,7 @@ class ComposioIntegrationService {
 
       const connectionStatus = requiredApps.map((appName) => {
         const normalizedAppName = appName.toLowerCase();
-        const platformApps = ['chat', 'research', 'agents', 'data', 'apps'];
+        const platformApps = ['chat', 'research', 'agents', 'data', 'apps', 'google_cloud', 'google_workspace'];
         if (platformApps.includes(normalizedAppName)) {
           return {
             app: appName,
@@ -232,7 +232,7 @@ class ComposioIntegrationService {
         config.app.toLowerCase()
       );
 
-      const platformApps = ['chat', 'research', 'agents', 'data', 'apps'];
+      const platformApps = ['chat', 'research', 'agents', 'data', 'apps', 'google_cloud', 'google_workspace'];
 
       // Combine and deduplicate
       const allAvailableApps = [...new Set([...availableApps, ...toolApps, ...platformApps])];

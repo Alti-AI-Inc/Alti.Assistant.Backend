@@ -1,5 +1,6 @@
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
+import Tool from '../composio_v2/tools.model.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { composioService } from './composio.service.js';
@@ -162,6 +163,104 @@ export const initiateAuthController = catchAsync(async (req, res) => {
       data: { error: result.error },
     });
   }
+});
+
+/**
+ * Disconnect an active app integration
+ */
+export const disconnectAppController = catchAsync(async (req, res) => {
+  const userId = req.user?.userId || req.user?._id;
+  const { app_name } = req.body;
+
+  if (!app_name) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'App name is required',
+    });
+  }
+
+  const result = await composioService.disconnectApp(userId, app_name);
+
+  if (result.success) {
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: result.message,
+    });
+  } else {
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: result.error || 'Failed to disconnect app',
+    });
+  }
+});
+
+/**
+ * Get capabilities (actions) for a specific app
+ */
+export const getAppCapabilitiesController = catchAsync(async (req, res) => {
+  const { app } = req.query;
+
+  if (!app) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'App name query parameter is required',
+    });
+  }
+
+  // Find all tools associated with this appName
+  // We use regex to handle case insensitivity
+  const capabilities = await Tool.find({
+    appName: new RegExp(`^${app}$`, 'i')
+  }, { name: 1, description: 1, _id: 0 }).lean();
+
+  return sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Capabilities retrieved',
+    data: capabilities
+  });
+});
+
+/**
+ * SSE endpoint for streaming connection status
+ */
+export const connectionStatusStreamController = catchAsync(async (req, res) => {
+  // Set headers for Server-Sent Events
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Handle both auth middleware user and default fallback
+  const userId = req.user?._id?.toString() || 'default_user';
+
+  // Helper to fetch and send
+  const sendStatus = async () => {
+    try {
+      const accounts = await composioService.getConnectedAccountsService(userId);
+      // Write SSE format: data: {...}\n\n
+      res.write(`data: ${JSON.stringify({ type: 'connected_apps', data: accounts.data || [] })}\n\n`);
+    } catch (err) {
+      logger.error('SSE push error:', err);
+    }
+  };
+
+  // Send immediately on connect
+  await sendStatus();
+
+  // Poll composio backend every 3 seconds and stream to client
+  // (Moves the polling burden from the client to the server)
+  const intervalId = setInterval(sendStatus, 3000);
+
+  // Clean up when client disconnects
+  req.on('close', () => {
+    clearInterval(intervalId);
+    res.end();
+  });
 });
 
 /**
@@ -384,4 +483,7 @@ export const composioSimpleController = {
   getConversationController,
   getConnectedAccountsController,
   compareController,
+  disconnectAppController,
+  getAppCapabilitiesController,
+  connectionStatusStreamController,
 };

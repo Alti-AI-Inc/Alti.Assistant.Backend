@@ -90,13 +90,44 @@ class WorkflowExecutionService {
   /**
    * Run workflow steps sequentially
    */
+  /**
+   * Run workflow steps concurrently using a parallel Directed Acyclic Graph (DAG) scheduling topology.
+   * Tracks step statuses and schedules pending steps whose dependencies (dependsOn) are 100% completed.
+   * Auto-injects sequential dependency paths if dependsOn is omitted to maintain 100% backward compatibility.
+   */
   async runWorkflowSteps(workflow, execution, context = {}, startStepIndex = 0) {
     try {
-      const steps = workflow.steps.sort((a, b) => a.order - b.order);
-      const stepResults = [];
+      const steps = [...workflow.steps];
+      
+      // Sort to establish a clean sequential order baseline
+      steps.sort((a, b) => a.order - b.order);
+      
+      // Auto-inject sequential dependency paths for 100% backward compatibility if dependsOn is missing
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i].dependsOn === undefined) {
+          if (i > 0) {
+            steps[i].dependsOn = [steps[i - 1].stepId];
+          } else {
+            steps[i].dependsOn = [];
+          }
+        }
+      }
+
+      // Track the execution status and reports for each step
+      const stepStatuses = new Map();
+      const stepExecutionReports = new Map();
+      
+      steps.forEach((step, idx) => {
+        if (idx < startStepIndex) {
+          stepStatuses.set(step.stepId, 'completed');
+        } else {
+          stepStatuses.set(step.stepId, 'pending');
+        }
+      });
+
       let currentContext = { ...context };
 
-      // Update execution status (only if starting from the beginning)
+      // Initialize execution status and log the step list in database
       if (startStepIndex === 0) {
         await WorkflowExecution.updateOne(
           { _id: execution._id },
@@ -135,148 +166,183 @@ class WorkflowExecutionService {
         'notion.create_page',
       ];
 
-      for (let i = startStepIndex; i < steps.length; i++) {
-        const step = steps[i];
-        const stepStartTime = new Date();
+      // Mutex update wrapper to keep currentContext thread-safe during parallel writes
+      const mergeContextUpdates = (updates) => {
+        currentContext = { ...currentContext, ...updates };
+      };
 
-        // Check if the step requires Human-in-the-Loop approval
-        const isSensitive = SENSITIVE_ACTIONS.includes(`${step.app?.toLowerCase()}.${step.action?.toLowerCase()}`);
-        const approvalRequired = step.requireApproval || isSensitive;
-        const alreadyApproved = currentContext._approvedSteps?.includes(step.stepId);
-
-        if (approvalRequired && !alreadyApproved) {
-          logger.info(`Suspending execution for step ${step.stepId}: requires human approval.`);
-          
-          const approvalId = `appr_${uuidv4()}`;
-          const approval = new WorkflowApproval({
-            approvalId,
-            userId: workflow.userId,
-            workflowId: workflow._id,
-            conversationId: execution.context?.conversationId || `conv_${uuidv4()}`,
-            stepId: step.stepId,
-            action: `${step.app}.${step.action}`,
-            parameters: this.prepareParameters(step.parameters, currentContext),
-            status: 'pending',
-            checkpointId: execution.executionId // Map to this execution
-          });
-
-          await approval.save();
-
-          // Update execution to reflect the paused/awaiting_approval status
-          await WorkflowExecution.updateOne(
-            { _id: execution._id },
-            {
-              status: 'awaiting_approval',
-              currentStepIndex: i,
-              context: currentContext
-            }
-          );
-
-          // Update step status to pending/paused
-          await this.updateStepStatus(
-            execution._id,
-            step.stepId,
-            'pending',
-            null,
-            null,
-            null,
-            null,
-            new Error('Execution paused for human approval')
-          );
-
-          this.executingWorkflows.delete(execution.executionId);
-
-          return {
-            success: true,
-            status: 'paused',
-            approvalId,
-            executionId: execution.executionId,
-            message: `Execution paused at step "${step.description}". Human approval is required.`,
-            stepId: step.stepId,
-            action: `${step.app}.${step.action}`
-          };
+      // Main DAG scheduling evaluation loop
+      while (true) {
+        const pendingSteps = steps.filter((s) => stepStatuses.get(s.stepId) === 'pending');
+        
+        if (pendingSteps.length === 0) {
+          break; // All steps completed or handled successfully
         }
 
-        try {
-          logger.info(`Executing step ${step.stepId}: ${step.description}`);
+        // Find steps whose dependencies are all successfully completed
+        const eligibleSteps = pendingSteps.filter((step) => {
+          return step.dependsOn.every((depId) => stepStatuses.get(depId) === 'completed');
+        });
 
-          // Update step status to running
-          await this.updateStepStatus(
-            execution._id,
-            step.stepId,
-            'running',
-            stepStartTime
-          );
+        // Guard against cyclic dependencies or deadlocks
+        if (eligibleSteps.length === 0) {
+          throw new Error('Cyclic dependency or deadlock detected in workflow DAG steps.');
+        }
 
-          // Execute the step
-          const stepResult = await this.executeStep(
-            step,
-            currentContext,
-            workflow.userId
-          );
+        logger.info(
+          `[DAG Executor] Scheduling ${eligibleSteps.length} steps in parallel: ${eligibleSteps.map((s) => s.stepId).join(', ')}`
+        );
 
-          const stepEndTime = new Date();
-          const duration = stepEndTime - stepStartTime;
+        // Execute eligible steps concurrently
+        const executionPromises = eligibleSteps.map(async (step) => {
+          stepStatuses.set(step.stepId, 'running');
+          const stepStartTime = new Date();
 
-          // Update step status to completed
-          await this.updateStepStatus(
-            execution._id,
-            step.stepId,
-            'completed',
-            stepStartTime,
-            stepEndTime,
-            duration,
-            stepResult
-          );
+          await this.updateStepStatus(execution._id, step.stepId, 'running', stepStartTime);
 
-          stepResults.push({
-            stepId: step.stepId,
-            success: true,
-            result: stepResult,
-            duration,
-          });
+          // Check if the step requires Human-in-the-Loop approval
+          const isSensitive = SENSITIVE_ACTIONS.includes(`${step.app?.toLowerCase()}.${step.action?.toLowerCase()}`);
+          const approvalRequired = step.requireApproval || isSensitive;
+          const alreadyApproved = currentContext._approvedSteps?.includes(step.stepId);
 
-          // Update context with step results
-          currentContext = { ...currentContext, ...stepResult.contextUpdates };
-        } catch (stepError) {
-          logger.error(`Error in step ${step.stepId}:`, stepError);
+          if (approvalRequired && !alreadyApproved) {
+            logger.info(`Suspending execution for step ${step.stepId}: requires human approval.`);
+            
+            // Revert status to pending so it can be resumed
+            stepStatuses.set(step.stepId, 'pending');
+            
+            const approvalId = `appr_${uuidv4()}`;
+            const approval = new WorkflowApproval({
+              approvalId,
+              userId: workflow.userId,
+              workflowId: workflow._id,
+              conversationId: execution.context?.conversationId || `conv_${uuidv4()}`,
+              stepId: step.stepId,
+              action: `${step.app}.${step.action}`,
+              parameters: this.prepareParameters(step.parameters, currentContext),
+              status: 'pending',
+              checkpointId: execution.executionId // Map to this execution
+            });
 
-          const stepEndTime = new Date();
-          const duration = stepEndTime - stepStartTime;
+            await approval.save();
 
-          // Update step status to failed
-          await this.updateStepStatus(
-            execution._id,
-            step.stepId,
-            'failed',
-            stepStartTime,
-            stepEndTime,
-            duration,
-            null,
-            stepError
-          );
-
-          stepResults.push({
-            stepId: step.stepId,
-            success: false,
-            error: stepError.message,
-            duration,
-          });
-
-          // Decide whether to continue or stop
-          if (step.continueOnError !== true) {
-            throw new Error(
-              `Workflow stopped at step ${step.stepId}: ${stepError.message}`
+            // Update execution to reflect the paused/awaiting_approval status
+            await WorkflowExecution.updateOne(
+              { _id: execution._id },
+              {
+                status: 'awaiting_approval',
+                currentStepIndex: steps.indexOf(step),
+                context: currentContext
+              }
             );
+
+            // Update step status to pending/paused
+            await this.updateStepStatus(
+              execution._id,
+              step.stepId,
+              'pending',
+              null,
+              null,
+              null,
+              null,
+              new Error('Execution paused for human approval')
+            );
+
+            this.executingWorkflows.delete(execution.executionId);
+
+            // Throw a pause signal to interrupt Promise.all loop
+            throw { type: 'approval_pause', approvalId, step };
           }
+
+          try {
+            logger.info(`[DAG Step Worker] Executing step ${step.stepId}: ${step.description}`);
+
+            // Execute step and record output updates
+            const stepResult = await this.executeStep(step, currentContext, workflow.userId);
+
+            const stepEndTime = new Date();
+            const duration = stepEndTime - stepStartTime;
+
+            // Update step status to completed
+            await this.updateStepStatus(
+              execution._id,
+              step.stepId,
+              'completed',
+              stepStartTime,
+              stepEndTime,
+              duration,
+              stepResult
+            );
+
+            stepStatuses.set(step.stepId, 'completed');
+            stepExecutionReports.set(step.stepId, {
+              stepId: step.stepId,
+              success: true,
+              result: stepResult,
+              duration,
+            });
+
+            // Safely merge context updates
+            mergeContextUpdates(stepResult.contextUpdates);
+          } catch (stepError) {
+            logger.error(`[DAG Step Worker] Error in step ${step.stepId}:`, stepError);
+
+            const stepEndTime = new Date();
+            const duration = stepEndTime - stepStartTime;
+
+            // Update step status to failed
+            await this.updateStepStatus(
+              execution._id,
+              step.stepId,
+              'failed',
+              stepStartTime,
+              stepEndTime,
+              duration,
+              null,
+              stepError
+            );
+
+            stepExecutionReports.set(step.stepId, {
+              stepId: step.stepId,
+              success: false,
+              error: stepError.message,
+              duration,
+            });
+
+            // Decide whether to continue or stop
+            if (step.continueOnError === true) {
+              stepStatuses.set(step.stepId, 'completed'); // Bypass so dependent branches can run
+            } else {
+              stepStatuses.set(step.stepId, 'failed');
+              throw stepError;
+            }
+          }
+        });
+
+        try {
+          await Promise.all(executionPromises);
+        } catch (err) {
+          if (err.type === 'approval_pause') {
+            return {
+              success: true,
+              status: 'paused',
+              approvalId: err.approvalId,
+              executionId: execution.executionId,
+              message: `Execution paused at step "${err.step.description}". Human approval is required.`,
+              stepId: err.step.stepId,
+              action: `${err.step.app}.${err.step.action}`
+            };
+          }
+          throw err;
         }
       }
 
       // Update execution as completed
       const endTime = new Date();
       const totalDuration = endTime - execution.startTime;
-      const completedSteps = stepResults.filter((r) => r.success).length;
-      const failedSteps = stepResults.filter((r) => !r.success).length;
+      const stepReports = Array.from(stepExecutionReports.values());
+      const completedSteps = stepReports.filter((r) => r.success).length;
+      const failedSteps = stepReports.filter((r) => !r.success).length;
 
       await WorkflowExecution.updateOne(
         { _id: execution._id },
@@ -288,8 +354,8 @@ class WorkflowExecutionService {
           failedSteps,
           result: {
             success: failedSteps === 0,
-            data: stepResults,
-            summary: `Completed ${completedSteps}/${steps.length} steps successfully`,
+            data: stepReports,
+            summary: `Completed DAG run successfully: ${completedSteps}/${steps.length} steps complete.`,
           },
         }
       );
@@ -301,11 +367,11 @@ class WorkflowExecutionService {
         completedSteps,
         failedSteps,
         totalSteps: steps.length,
-        results: stepResults,
+        results: stepReports,
         duration: totalDuration,
       };
     } catch (error) {
-      logger.error('Error running workflow steps:', error);
+      logger.error('Error running workflow steps DAG:', error);
 
       // Update execution as failed
       await WorkflowExecution.updateOne(
@@ -586,6 +652,250 @@ class WorkflowExecutionService {
         };
       }
 
+      // 5. Intercept Google Cloud Platform Native Core Steps
+      if (step.app?.toLowerCase() === 'google_cloud' || step.app?.toLowerCase() === 'gcp') {
+        const parameters = this.prepareParameters(step.parameters, context);
+        let result;
+        const tStart = Date.now();
+        const action = step.action?.toLowerCase();
+
+        const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+
+        if (action === 'vertex_ai_generate') {
+          const { prompt, model, temperature, systemInstruction } = parameters;
+          if (!prompt) {
+            throw new Error(`Required parameter 'prompt' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            const mockText = `[Mock Vertex AI / Gemini Response for model '${model || 'gemini-1.5-flash'}'] Based on your prompt: "${prompt.slice(0, 100)}...", here is the structured analysis. Apple Inc. Q2 Revenue margin is 0.466 and sentiment is positive.`;
+            result = { text: mockText, reply: mockText, answer: mockText, success: true };
+          } else {
+            const { GoogleGenAI } = await import('@google/genai');
+            const aiClient = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
+            const geminiResult = await aiClient.models.generateContent({
+              model: model || 'gemini-1.5-flash',
+              contents: prompt,
+              config: {
+                temperature: temperature ? parseFloat(temperature) : 0.2,
+                systemInstruction
+              }
+            });
+            const textResult = geminiResult.text || geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated';
+            result = { text: textResult, reply: textResult, answer: textResult, success: true };
+          }
+        } else if (action === 'gcs_upload') {
+          const { bucketName, fileName, content } = parameters;
+          if (!bucketName || !fileName || !content) {
+            throw new Error(`Required parameters 'bucketName', 'fileName', and 'content' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              uri: `gs://${bucketName}/${fileName}`,
+              fileName,
+              bucketName,
+              bytes: content.length,
+              mocked: true
+            };
+          } else {
+            const { Storage } = await import('@google-cloud/storage');
+            const storage = new Storage();
+            await storage.bucket(bucketName).file(fileName).save(content);
+            result = {
+              success: true,
+              uri: `gs://${bucketName}/${fileName}`,
+              fileName,
+              bucketName
+            };
+          }
+        } else if (action === 'gcs_download') {
+          const { bucketName, fileName } = parameters;
+          if (!bucketName || !fileName) {
+            throw new Error(`Required parameters 'bucketName' and 'fileName' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              content: `[Mock GCS Downloaded Payload] Content of gs://${bucketName}/${fileName}: Apple financials are positive. Revenue is 90800000000.`,
+              fileName,
+              bucketName,
+              mocked: true
+            };
+          } else {
+            const { Storage } = await import('@google-cloud/storage');
+            const storage = new Storage();
+            const [downloaded] = await storage.bucket(bucketName).file(fileName).download();
+            result = {
+              success: true,
+              content: downloaded.toString(),
+              fileName,
+              bucketName
+            };
+          }
+        } else if (action === 'bigquery_query') {
+          const { query } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              rows: [
+                { revenue: 90800000000, margin: 0.466, ticker: 'AAPL', sentiment: 'positive' }
+              ],
+              totalRows: 1,
+              mocked: true
+            };
+          } else {
+            const { google } = await import('googleapis');
+            const auth = new google.auth.GoogleAuth({
+              scopes: ['https://www.googleapis.com/auth/bigquery']
+            });
+            const authClient = await auth.getClient();
+            const projectId = await auth.getProjectId();
+            const bigquery = google.bigquery({ version: 'v2', auth: authClient });
+            const bqResult = await bigquery.jobs.query({
+              projectId,
+              requestBody: { query, useLegacySql: false }
+            });
+            const rows = bqResult.data.rows || [];
+            result = { success: true, rows, totalRows: rows.length };
+          }
+        } else {
+          throw new Error(`Unknown action '${step.action}' for app 'google_cloud'`);
+        }
+
+        const duration = Date.now() - tStart;
+        if (context._executionId) {
+          workflowResilienceService.registerCompletedStep(
+            context._executionId,
+            { stepId: step.stepId, app: step.app, action: step.action, parameters },
+            result
+          );
+        }
+
+        logger.info(`Google Cloud native step completed successfully: ${step.stepId} in ${duration}ms`);
+
+        return {
+          success: true,
+          data: result,
+          contextUpdates: this.extractContextUpdates(result, step),
+          timestamp: new Date(),
+          attempts: 1,
+          retried: false,
+          totalDurationMs: duration,
+        };
+      }
+
+      // 6. Intercept Google Workspace Native Core Steps
+      if (step.app?.toLowerCase() === 'google_workspace') {
+        const parameters = this.prepareParameters(step.parameters, context);
+        let result;
+        const tStart = Date.now();
+        const action = step.action?.toLowerCase();
+
+        const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+
+        if (action === 'sheets_append') {
+          const { spreadsheetId, range, values } = parameters;
+          if (!spreadsheetId || !range || !values) {
+            throw new Error(`Required parameters 'spreadsheetId', 'range', and 'values' are missing for google_workspace.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              spreadsheetId,
+              updatedRange: range,
+              values,
+              rowsAppended: Array.isArray(values) ? values.length : 1,
+              mocked: true
+            };
+          } else {
+            const { google } = await import('googleapis');
+            const auth = new google.auth.GoogleAuth({
+              scopes: ['https://www.googleapis.com/auth/spreadsheets']
+            });
+            const authClient = await auth.getClient();
+            const sheets = google.sheets({ version: 'v4', auth: authClient });
+            const sheetResult = await sheets.spreadsheets.values.append({
+              spreadsheetId,
+              range,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: { values: Array.isArray(values) ? (Array.isArray(values[0]) ? values : [values]) : [[values]] }
+            });
+            result = {
+              success: true,
+              spreadsheetId,
+              updatedRange: sheetResult.data.updates?.updatedRange || range,
+              rowsAppended: sheetResult.data.updates?.updatedRows || 1
+            };
+          }
+        } else if (action === 'drive_upload') {
+          const { folderId, fileName, content } = parameters;
+          if (!fileName || !content) {
+            throw new Error(`Required parameters 'fileName' and 'content' are missing for google_workspace.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              fileId: `mock_drive_${Date.now()}`,
+              fileName,
+              folderId: folderId || 'root',
+              mocked: true
+            };
+          } else {
+            const { google } = await import('googleapis');
+            const auth = new google.auth.GoogleAuth({
+              scopes: ['https://www.googleapis.com/auth/drive.file']
+            });
+            const authClient = await auth.getClient();
+            const drive = google.drive({ version: 'v3', auth: authClient });
+            const fileMetadata = { name: fileName };
+            if (folderId) {
+              fileMetadata.parents = [folderId];
+            }
+            const media = {
+              mimeType: 'text/plain',
+              body: content
+            };
+            const file = await drive.files.create({
+              requestBody: fileMetadata,
+              media,
+              fields: 'id'
+            });
+            result = {
+              success: true,
+              fileId: file.data.id,
+              fileName,
+              folderId
+            };
+          }
+        } else {
+          throw new Error(`Unknown action '${step.action}' for app 'google_workspace'`);
+        }
+
+        const duration = Date.now() - tStart;
+        if (context._executionId) {
+          workflowResilienceService.registerCompletedStep(
+            context._executionId,
+            { stepId: step.stepId, app: step.app, action: step.action, parameters },
+            result
+          );
+        }
+
+        logger.info(`Google Workspace native step completed successfully: ${step.stepId} in ${duration}ms`);
+
+        return {
+          success: true,
+          data: result,
+          contextUpdates: this.extractContextUpdates(result, step),
+          timestamp: new Date(),
+          attempts: 1,
+          retried: false,
+          totalDurationMs: duration,
+        };
+      }
+
       // Get user's available tools for this app
       const userTools = await composioIntegrationService.getUserAvailableTools(
         userId,
@@ -700,16 +1010,69 @@ class WorkflowExecutionService {
   }
 
   /**
-   * Prepare parameters by substituting context variables
+   * Prepare parameters by substituting context variables with support for deep
+   * dot-notation path resolution (e.g. step1_result.data.user.email), array index lookup,
+   * default fallbacks, and preservation of native JSON types.
    */
   prepareParameters(stepParameters, context) {
     const prepared = { ...stepParameters };
 
-    // Replace placeholders with context values
+    const resolvePath = (obj, pathStr) => {
+      if (!pathStr || !obj) return undefined;
+      
+      // Separate the variable path and any default values (e.g. "step1_result.id | default_id")
+      const mainPath = pathStr.split('|')[0].trim();
+      const parts = mainPath.split('.');
+      let current = obj;
+      
+      for (const part of parts) {
+        if (current === null || current === undefined) break;
+        
+        // Handle array indexing like "sources[0]" or "sources.0"
+        const arrayMatch = part.match(/^([^\[]+)\[(\d+)\]$/);
+        if (arrayMatch) {
+          const key = arrayMatch[1];
+          const index = parseInt(arrayMatch[2], 10);
+          current = current[key];
+          if (current === null || current === undefined) break;
+          current = current[index];
+        } else {
+          current = current[part];
+        }
+      }
+      
+      if ((current === undefined || current === null) && pathStr.includes('|')) {
+        const partsWithDefault = pathStr.split('|');
+        if (partsWithDefault.length > 1) {
+          return partsWithDefault[1].trim();
+        }
+      }
+      
+      return current;
+    };
+
     const replaceVariables = (obj) => {
       if (typeof obj === 'string') {
-        return obj.replace(/\{\{([^}]+)\}\}/g, (match, variable) => {
-          return context[variable] || match;
+        const trimmed = obj.trim();
+        // Check if the string is EXACTLY a single template variable e.g., "{{step1_result.data}}"
+        const exactMatch = trimmed.match(/^\{\{([^}]+)\}\}$/);
+        if (exactMatch) {
+          const resolved = resolvePath(context, exactMatch[1]);
+          return resolved !== undefined ? resolved : obj;
+        }
+
+        // Otherwise, replace inline variables in the string
+        return obj.replace(/\{\{([^}]+)\}}/g, (match, variable) => {
+          const resolved = resolvePath(context, variable);
+          if (resolved === undefined || resolved === null) return match;
+          if (typeof resolved === 'object') {
+            try {
+              return JSON.stringify(resolved);
+            } catch (e) {
+              return String(resolved);
+            }
+          }
+          return String(resolved);
         });
       } else if (Array.isArray(obj)) {
         return obj.map(replaceVariables);

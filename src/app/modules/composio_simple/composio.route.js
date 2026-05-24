@@ -46,6 +46,24 @@ router.get(
   composioSimpleController.getConnectedAccountsController
 );
 
+router.post(
+  '/disconnect',
+  auth(),
+  composioSimpleController.disconnectAppController
+);
+
+router.get(
+  '/app-capabilities',
+  auth(),
+  composioSimpleController.getAppCapabilitiesController
+);
+
+router.get(
+  '/connection-status-stream',
+  auth(),
+  composioSimpleController.connectionStatusStreamController
+);
+
 // Comparison endpoint - runs same request through both systems
 router.post('/compare', auth(), composioSimpleController.compareController);
 

@@ -1,6 +1,7 @@
 /**
  * Stateful, durable Temporal Workflow that orchestrates step-by-step automation execution.
- * Fuses automatic retries and the transactional Saga pattern for compensating rollbacks.
+ * Fuses concurrent parallel Directed Acyclic Graph (DAG) scheduling, automatic retries,
+ * and the transactional Saga pattern for compensating rollbacks.
  * 
  * @param {object} workflow - The full workflow document payload containing steps.
  * @param {string} userId - User identifier.
@@ -9,7 +10,22 @@
  * @returns {Promise<object>} Execution report summary.
  */
 export async function runDurableWorkflow(workflow, userId, context = {}, startStepIndex = 0) {
-  const steps = workflow.steps.sort((a, b) => a.order - b.order);
+  const steps = [...workflow.steps];
+  
+  // Sort baseline to establish order
+  steps.sort((a, b) => a.order - b.order);
+  
+  // Auto-inject sequential dependency paths if dependsOn is missing (100% backward compatible)
+  for (let i = 0; i < steps.length; i++) {
+    if (steps[i].dependsOn === undefined) {
+      if (i > 0) {
+        steps[i].dependsOn = [steps[i - 1].stepId];
+      } else {
+        steps[i].dependsOn = [];
+      }
+    }
+  }
+
   const sagaStack = []; // Stack to record successful actions for compensating rollbacks
   let currentContext = { ...context };
 
@@ -34,28 +50,60 @@ export async function runDurableWorkflow(workflow, userId, context = {}, startSt
     });
   }
 
+  const stepStatuses = {};
+  steps.forEach((step, idx) => {
+    if (idx < startStepIndex) {
+      stepStatuses[step.stepId] = 'completed';
+    } else {
+      stepStatuses[step.stepId] = 'pending';
+    }
+  });
+
   try {
-    for (let i = startStepIndex; i < steps.length; i++) {
-      const step = steps[i];
+    while (true) {
+      const pendingSteps = steps.filter((s) => stepStatuses[s.stepId] === 'pending');
       
-      // Execute the step activity durably (will automatically retry on transient failure)
-      const stepResult = await activities.executeWorkflowStepActivity(step, currentContext, userId);
-      
-      if (stepResult.success) {
-        // Register compensating rollback activity to the Saga stack in case a later step fails
-        sagaStack.push({ step, stepResult });
-        
-        // Update context with step results
-        currentContext = { ...currentContext, ...stepResult.contextUpdates };
-      } else {
-        throw new Error(`Step ${step.stepId} (${step.app}.${step.action}) returned unsuccessful status.`);
+      if (pendingSteps.length === 0) {
+        break; // All steps completed
       }
+
+      // Find steps whose dependencies are all successfully completed
+      const eligibleSteps = pendingSteps.filter((step) => {
+        return step.dependsOn.every((depId) => stepStatuses[depId] === 'completed');
+      });
+
+      if (eligibleSteps.length === 0) {
+        throw new Error('Cyclic dependency or deadlock detected in Temporal workflow steps.');
+      }
+
+      // Schedule all eligible steps concurrently (durable Promise.all)
+      const executionPromises = eligibleSteps.map(async (step) => {
+        stepStatuses[step.stepId] = 'running';
+        
+        // Execute the step activity durably (will automatically retry on transient failure)
+        const stepResult = await activities.executeWorkflowStepActivity(step, currentContext, userId);
+        
+        if (stepResult.success) {
+          stepStatuses[step.stepId] = 'completed';
+          
+          // Register compensating rollback activity to the Saga stack
+          sagaStack.push({ step, stepResult });
+          
+          // Update context with step results
+          currentContext = { ...currentContext, ...stepResult.contextUpdates };
+        } else {
+          stepStatuses[step.stepId] = 'failed';
+          throw new Error(`Step ${step.stepId} (${step.app}.${step.action}) returned unsuccessful status.`);
+        }
+      });
+
+      await Promise.all(executionPromises);
     }
     
     return {
       success: true,
       status: 'completed',
-      summary: `Durable Temporal run successfully completed ${steps.length} steps.`,
+      summary: `Durable Temporal parallel DAG run successfully completed ${steps.length} steps.`,
       context: currentContext
     };
   } catch (error) {
@@ -77,4 +125,7 @@ export async function runDurableWorkflow(workflow, userId, context = {}, startSt
     throw new Error(`Workflow execution failed: ${error.message}. Sagas Executed: ${JSON.stringify(compensationReports)}`);
   }
 }
+
+export { runDatasetIngestionWorkflow } from '../../../datasets/temporal/ingestionWorkflow.js';
+
 

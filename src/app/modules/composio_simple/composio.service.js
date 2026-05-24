@@ -238,6 +238,40 @@ export const getUserConnectedAccounts = async (userId) => {
   }
 };
 
+export const disconnectApp = async (userId, appName) => {
+  try {
+    const account = await ComposioAuth.findOne({
+      userId,
+      $or: [
+        { 'toolkit.slug': appName.toLowerCase() },
+        { authConfigId: appName },
+        { authConfigId: `ac_${appName}` }
+      ],
+      status: 'ACTIVE'
+    });
+
+    if (!account) {
+      return { success: false, error: 'No active connection found for this app.' };
+    }
+
+    try {
+      if (typeof composio.connectedAccounts.delete === 'function') {
+         await composio.connectedAccounts.delete(account.connectedAccountId);
+      } else if (typeof composio.connectedAccounts.remove === 'function') {
+         await composio.connectedAccounts.remove(account.connectedAccountId);
+      }
+    } catch (apiErr) {
+      console.warn(`[Simple] Composio API delete failed for ${account.connectedAccountId}:`, apiErr.message);
+    }
+
+    await ComposioAuth.deleteOne({ _id: account._id });
+
+    return { success: true, message: `Successfully disconnected ${appName}` };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 async function multiAppWorkflow(query, apps, toolKits, entityId) {
   // Find appropriate apps (multiple)
   const appInfo = await findAppropriateApp(query, apps, toolKits);

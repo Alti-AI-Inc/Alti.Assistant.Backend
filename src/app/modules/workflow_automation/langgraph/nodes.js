@@ -147,17 +147,29 @@ In addition to external third-party apps, you have access to these core Alti Pla
      * "query_rag": Search document banks/knowledge bases. Parameters: { query: string }.
      * "index_file": Index a new file path into pgvector. Parameters: { filePath: string, originalName: string (optional) }.
 5. "apps": Discover and execute external Composio actions.
+6. "google_cloud" (or "gcp"): Natively execute Google Cloud tasks.
+   - Actions:
+     * "vertex_ai_generate": Ask Vertex AI / Gemini to generate text or structured details. Parameters: { prompt: string, model: string (optional), temperature: number (optional) }.
+     * "gcs_upload": Upload text/content payload to Google Cloud Storage. Parameters: { bucketName: string, fileName: string, content: string }.
+     * "gcs_download": Download a file's contents from Google Cloud Storage. Parameters: { bucketName: string, fileName: string }.
+     * "bigquery_query": Run a Google BigQuery SQL query. Parameters: { query: string }.
+7. "google_workspace": Natively interact with Google Workspace productivity apps.
+   - Actions:
+     * "sheets_append": Append a row of data values to a Google Sheet. Parameters: { spreadsheetId: string, range: string, values: array }.
+     * "drive_upload": Upload text content or file directly to Google Drive. Parameters: { folderId: string (optional), fileName: string, content: string }.
 
 Break down the workflow into logical steps. Each step should have:
 - stepId: unique identifier (e.g. "step1", "step2")
 - stepType: "action", "condition", "trigger", or "delay"
 - description: what this step does
-- app: the service/app to use (must be from available apps or one of the core platform apps: chat, research, agents, data, apps)
+- app: the service/app to use (must be from available apps or one of the core platform apps: chat, research, agents, data, apps, google_cloud, google_workspace)
 - action: specific action to perform (use available tool or platform action names)
-- parameters: required parameters. You can reference outputs of previous steps using the format {{stepId_result}}, {{stepId_answer}}, {{stepId_reply}}, or {{stepId_text}} (e.g., {{step1_answer}}).
+- parameters: required parameters. You can reference outputs of previous steps using the format {{stepId_result}}, {{stepId_answer}}, {{stepId_reply}}, or {{stepId_text}} (e.g., {{step1_answer}}). You can also perform deep property lookups using dot-notation (e.g., {{step1_result.data.user.email}}).
+- dependsOn: array of stepId strings that this step depends on. If the step is independent and can execute in parallel with other steps, specify an empty array []. If the step acts as a Join Gate that waits for multiple parallel branches to finish, list all their stepIds in the array (e.g. ["step1", "step2"]).
 - order: execution order (1-indexed integer)
 
 Consider:
+- Parallel execution: Identify independent steps that do not require each other's outputs and can run concurrently in parallel (e.g., conducting recursive research and querying a RAG database at the same time). Make them independent by setting empty or base dependsOn arrays.
 - Data flow between steps (e.g. step 2 parameters can reference step 1 outputs like {{step1_answer}}).
 - Authentication requirements for apps.
 - Error handling.

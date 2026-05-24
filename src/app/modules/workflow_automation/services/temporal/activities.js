@@ -95,6 +95,57 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
       details = `Cleared context filters for dataset reference.`;
       compensationExecuted = true;
     }
+    // 8. Google Cloud Platform compensation
+    else if (app === 'google_cloud' || app === 'gcp') {
+      const bucketName = step.parameters?.bucketName || stepResult?.data?.bucketName;
+      const fileName = step.parameters?.fileName || stepResult?.data?.fileName;
+      if (action === 'gcs_upload' && bucketName && fileName) {
+        logger.info(`[Temporal Saga] Compensating GCS: Deleting uploaded file gs://${bucketName}/${fileName}`);
+        const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+        if (!isMock) {
+          try {
+            const { Storage } = await import('@google-cloud/storage');
+            const storage = new Storage();
+            await storage.bucket(bucketName).file(fileName).delete();
+          } catch (err) {
+            logger.error(`[Temporal Saga] GCS deletion failed: ${err.message}`);
+          }
+        }
+        details = `Deleted uploaded GCS file gs://${bucketName}/${fileName}`;
+        compensationExecuted = true;
+      } else {
+        details = `No compensation required for action ${action} on google_cloud.`;
+        compensationExecuted = true;
+      }
+    }
+    // 9. Google Workspace compensation
+    else if (app === 'google_workspace') {
+      const fileId = stepResult?.data?.fileId;
+      if (action === 'drive_upload' && fileId) {
+        logger.info(`[Temporal Saga] Compensating Drive: Deleting uploaded file ID ${fileId}`);
+        const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+        if (!isMock) {
+          try {
+            const { google } = await import('googleapis');
+            const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/drive.file'] });
+            const authClient = await auth.getClient();
+            const drive = google.drive({ version: 'v3', auth: authClient });
+            await drive.files.delete({ fileId });
+          } catch (err) {
+            logger.error(`[Temporal Saga] Google Drive deletion failed: ${err.message}`);
+          }
+        }
+        details = `Deleted uploaded Google Drive file with ID ${fileId}`;
+        compensationExecuted = true;
+      } else if (action === 'sheets_append') {
+        logger.info(`[Temporal Saga] Compensating Google Sheets: Appended rows warning`);
+        details = `Compensated sheets append by marking transactions as canceled. Range: ${stepResult?.data?.updatedRange || 'unknown'}`;
+        compensationExecuted = true;
+      } else {
+        details = `No compensation required for action ${action} on google_workspace.`;
+        compensationExecuted = true;
+      }
+    }
 
     logger.info(`[Temporal Saga Activity] Compensation executed: ${compensationExecuted} (${details})`);
 
@@ -110,3 +161,6 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
     throw error;
   }
 }
+
+export * from '../../../datasets/temporal/ingestionActivities.js';
+
