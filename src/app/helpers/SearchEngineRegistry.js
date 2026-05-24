@@ -81,6 +81,19 @@ import { RealEstateApiProvider } from './providers/realEstateApiProviders.js';
 import { FinanceStockProvider } from './providers/financeStockProviders.js';
 import { AviationstackProvider } from './providers/aviationstackProviders.js';
 
+import {
+  BlsEconomicProvider,
+  BeaEconomicProvider,
+  CongressGovProvider,
+  OpenSecretsProvider,
+  SamGovProvider,
+  GaoReportsProvider,
+  EcfrRegulationsProvider,
+  FederalRegisterProvider,
+  EpaEchoProvider,
+  OshaInspectionsProvider
+} from './providers/newPremiumRegistryProviders.js';
+
 
 // ─── Dual-Layer Cache System ─────────────────────────────────────────────────
 const localMemoryCache = new Map();
@@ -528,4 +541,16 @@ SearchEngineRegistry.register(SportsBettingProvider);
 SearchEngineRegistry.register(RealEstateApiProvider);
 SearchEngineRegistry.register(FinanceStockProvider);
 SearchEngineRegistry.register(AviationstackProvider);
+
+// Stage 3 Premium Providers
+SearchEngineRegistry.register(BlsEconomicProvider);
+SearchEngineRegistry.register(BeaEconomicProvider);
+SearchEngineRegistry.register(CongressGovProvider);
+SearchEngineRegistry.register(OpenSecretsProvider);
+SearchEngineRegistry.register(SamGovProvider);
+SearchEngineRegistry.register(GaoReportsProvider);
+SearchEngineRegistry.register(EcfrRegulationsProvider);
+SearchEngineRegistry.register(FederalRegisterProvider);
+SearchEngineRegistry.register(EpaEchoProvider);
+SearchEngineRegistry.register(OshaInspectionsProvider);
 

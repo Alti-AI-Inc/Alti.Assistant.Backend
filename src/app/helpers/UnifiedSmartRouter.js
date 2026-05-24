@@ -38,6 +38,15 @@ export const UnifiedSmartRouter = {
           Object.assign(flattened, data);
         }
       }
+      
+      // Keep a non-enumerable reference to the nested metadata for citation stitching
+      Object.defineProperty(flattened, '__nested__', {
+        value: nested,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      });
+      
       return flattened;
     } catch (err) {
       logger.warn(`[UnifiedSmartRouter] Failed to parse JSON_METADATA: ${err.message}`);
@@ -68,9 +77,10 @@ export const UnifiedSmartRouter = {
       }
     };
 
-    // 1. Process custom provider references from jsonMetadata
-    if (jsonMetadata && typeof jsonMetadata === 'object') {
-      Object.keys(jsonMetadata).forEach(providerId => {
+    // 1. Process custom provider references from jsonMetadata (resolving nested metadata if wrapped in a flattened object)
+    const targetMetadata = jsonMetadata && jsonMetadata.__nested__ ? jsonMetadata.__nested__ : jsonMetadata;
+    if (targetMetadata && typeof targetMetadata === 'object') {
+      Object.keys(targetMetadata).forEach(providerId => {
         let title = 'Data Partner Reference';
         let url = 'https://altiapp.com';
         let domain = 'altiapp.com';
@@ -91,6 +101,46 @@ export const UnifiedSmartRouter = {
           title = 'AviationStack.com Real-Time Flight & Delay Feed';
           url = 'https://aviationstack.com';
           domain = 'aviationstack.com';
+        } else if (providerId === 'bls_economic') {
+          title = 'Bureau of Labor Statistics (BLS) Consumer Price & Labor Registry';
+          url = 'https://bls.gov';
+          domain = 'bls.gov';
+        } else if (providerId === 'bea_economic') {
+          title = 'Bureau of Economic Analysis (BEA) GDP & Personal Incomes Feed';
+          url = 'https://bea.gov';
+          domain = 'bea.gov';
+        } else if (providerId === 'congress_gov') {
+          title = 'Congress.gov Official Legislative and Voting Roll';
+          url = 'https://congress.gov';
+          domain = 'congress.gov';
+        } else if (providerId === 'opensecrets') {
+          title = 'OpenSecrets.org Political PAC & Lobbying Database';
+          url = 'https://opensecrets.org';
+          domain = 'opensecrets.org';
+        } else if (providerId === 'sam_gov') {
+          title = 'SAM.gov Vendor Exclusion & Federal Contracting Register';
+          url = 'https://sam.gov';
+          domain = 'sam.gov';
+        } else if (providerId === 'gao_reports') {
+          title = 'U.S. Government Accountability Office (GAO) Oversight Database';
+          url = 'https://gao.gov';
+          domain = 'gao.gov';
+        } else if (providerId === 'ecfr_regulations') {
+          title = 'Electronic Code of Federal Regulations (eCFR) Registry';
+          url = 'https://ecfr.gov';
+          domain = 'ecfr.gov';
+        } else if (providerId === 'federal_register') {
+          title = 'U.S. Federal Register Daily Executive and Administrative Gazeteer';
+          url = 'https://federalregister.gov';
+          domain = 'federalregister.gov';
+        } else if (providerId === 'epa_echo') {
+          title = 'EPA ECHO (Enforcement & Compliance History Online) Database';
+          url = 'https://echo.epa.gov';
+          domain = 'echo.epa.gov';
+        } else if (providerId === 'osha_inspections') {
+          title = 'OSHA Workplace Safety and Employer Enforcement Registry';
+          url = 'https://osha.gov';
+          domain = 'osha.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
