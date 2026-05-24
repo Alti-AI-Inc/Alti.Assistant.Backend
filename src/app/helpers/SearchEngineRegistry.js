@@ -11,6 +11,7 @@ import { RedisClient } from '../../shared/redis.js';
 import { logger } from '../../shared/logger.js';
 
 import { DuffelFlightsProvider, DuffelStaysProvider } from './providers/duffelProviders.js';
+import { UsgsEarthquakesProvider, OpencorporatesProvider, NasaFirmsProvider } from './providers/stage21PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -962,12 +963,11 @@ SearchEngineRegistry.register(ZenodoGrantsProvider);
 SearchEngineRegistry.register(NifcWeatherAdvisoriesProvider);
 SearchEngineRegistry.register(CrossrefUpdatesProvider);
 SearchEngineRegistry.register(UsdaSoilSalinityProvider);
-
 // Stage 20 Premium Providers (Duffel Integration)
 SearchEngineRegistry.register(DuffelFlightsProvider);
 SearchEngineRegistry.register(DuffelStaysProvider);
 
-
-
-
-
+// Stage 21 Premium Providers (Environmental & Corporate Registries)
+SearchEngineRegistry.register(UsgsEarthquakesProvider);
+SearchEngineRegistry.register(OpencorporatesProvider);
+SearchEngineRegistry.register(NasaFirmsProvider);
