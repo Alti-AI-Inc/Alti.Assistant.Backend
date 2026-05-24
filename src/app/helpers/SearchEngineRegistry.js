@@ -198,6 +198,19 @@ import {
   UsdaHardinessHistoryProvider
 } from './providers/nicheNicheSubPremiumProviders.js';
 
+import {
+  GithubCommitsProvider,
+  OpenstreetmapWaterwaysProvider,
+  WikidataSparqlProvider,
+  WikipediaRevisionsProvider,
+  FccAmateurRadioProvider,
+  OpenlibraryShelvesProvider,
+  ZenodoViewsTelemetryProvider,
+  NifcFireHotspotsProvider,
+  CrossrefRetractionsProvider,
+  UsdaSoilTexturesProvider
+} from './providers/ultraPremiumNicheProviders.js';
+
 
 
 
@@ -757,6 +770,18 @@ SearchEngineRegistry.register(ZenodoFileStatsProvider);
 SearchEngineRegistry.register(NifcHistoricalFiresProvider);
 SearchEngineRegistry.register(CrossrefFundersProvider);
 SearchEngineRegistry.register(UsdaHardinessHistoryProvider);
+
+// Stage 12 Premium Providers
+SearchEngineRegistry.register(GithubCommitsProvider);
+SearchEngineRegistry.register(OpenstreetmapWaterwaysProvider);
+SearchEngineRegistry.register(WikidataSparqlProvider);
+SearchEngineRegistry.register(WikipediaRevisionsProvider);
+SearchEngineRegistry.register(FccAmateurRadioProvider);
+SearchEngineRegistry.register(OpenlibraryShelvesProvider);
+SearchEngineRegistry.register(ZenodoViewsTelemetryProvider);
+SearchEngineRegistry.register(NifcFireHotspotsProvider);
+SearchEngineRegistry.register(CrossrefRetractionsProvider);
+SearchEngineRegistry.register(UsdaSoilTexturesProvider);
 
 
 

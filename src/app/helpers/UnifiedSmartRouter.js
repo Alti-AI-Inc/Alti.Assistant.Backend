@@ -461,6 +461,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Historical Hardiness Shift Maps';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_commits') {
+          title = 'GitHub Commit History & Changesets';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_waterways') {
+          title = 'OpenStreetMap Waterway Maps & Drainage';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_sparql') {
+          title = 'Wikidata SPARQL Query Templates & Endpoint Metrics';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_revisions') {
+          title = 'Wikipedia Revision History & Edit Diffs';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_amateur_radio') {
+          title = 'FCC Amateur Radio Operator License Registry';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_shelves') {
+          title = 'Open Library Shelf Classification & Holdings';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_views_telemetry') {
+          title = 'Zenodo Record Views Telemetry Feed';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_fire_hotspots') {
+          title = 'NIFC Active Fire Satellite Hotspots Feed';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_retractions') {
+          title = 'Crossref Academic Retractions & Errata Index';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_soil_textures') {
+          title = 'USDA Soil Texture taxonomic classifications';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
