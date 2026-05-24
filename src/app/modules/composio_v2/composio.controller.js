@@ -6,8 +6,8 @@ import { composioService } from './composio.service.js';
 
 const composioInitiateController = async (req, res) => {
   console.log('Initiating Composio Auth...', req.body);
-  const user_id = req.user?.userId || req.body?.userId || req.user?._id;
-  console.log(`User ID for Composio initiation: ${req.user}`);
+  const user_id = req.user?.userId || req.user?._id || req.body?.userId || req.body?.user_id;
+  console.log(`User ID for Composio initiation: ${user_id}`);
 
   const { app_name } = req.body;
 
@@ -45,7 +45,7 @@ const composioConversationController = catchAsync(async (req, res) => {
     ? composioService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId; // Allow overriding userId from request body
+  userId = req.body.userId || req.body.user_id || userId; // Allow overriding userId from request body
 
   if (!message) {
     return sendResponse(res, {
