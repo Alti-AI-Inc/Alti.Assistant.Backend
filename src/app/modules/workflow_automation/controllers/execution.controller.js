@@ -5,6 +5,7 @@ import { logger } from '../../../../shared/logger.js';
 import { workflowExecutionService } from '../services/workflowExecution.service.js';
 import { connectionHealthService } from '../services/connectionHealth.service.js';
 import Workflow from '../models/workflow.model.js';
+import WorkflowApproval from '../models/workflowApproval.model.js';
 
 /**
  * Execute a workflow manually
@@ -400,6 +401,89 @@ const refreshConnectionController = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * Get all pending approvals for a user
+ */
+const getPendingApprovalsController = catchAsync(async (req, res) => {
+  const userId = req.user?._id || req.userId;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  try {
+    const pendingApprovals = await WorkflowApproval.find({
+      userId,
+      status: 'pending',
+    }).populate('workflowId', 'name description');
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Pending approvals retrieved successfully',
+      data: pendingApprovals,
+    });
+  } catch (error) {
+    logger.error('Error in getPendingApprovalsController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to retrieve pending approvals',
+    });
+  }
+});
+
+/**
+ * Resolve (approve or reject) a pending approval request
+ */
+const resolveApprovalController = catchAsync(async (req, res) => {
+  const { approvalId } = req.params;
+  const { approved = true } = req.body;
+  const userId = req.user?._id || req.userId;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  if (!approvalId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Approval ID is required',
+    });
+  }
+
+  try {
+    const result = await workflowExecutionService.resumeExecution(
+      approvalId,
+      userId,
+      approved
+    );
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: approved ? 'Approval request approved and workflow execution resumed' : 'Approval request rejected and workflow execution cancelled',
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error in resolveApprovalController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to resolve approval request',
+    });
+  }
+});
+
 export const executionController = {
   executeWorkflowController,
   getExecutionHistoryController,
@@ -409,4 +493,6 @@ export const executionController = {
   unscheduleWorkflowController,
   getConnectionHealthController,
   refreshConnectionController,
+  getPendingApprovalsController,
+  resolveApprovalController,
 };

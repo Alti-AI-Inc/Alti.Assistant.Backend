@@ -9,7 +9,7 @@ import {
   generateResponseNode,
   executeWorkflowNode,
 } from './nodes.js';
-import { MemorySaver } from '@langchain/langgraph';
+import { MongoDBSaver } from './mongodbSaver.js';
 import { logger } from '../../../../shared/logger.js';
 
 // Create the workflow automation graph
@@ -103,8 +103,8 @@ workflow.addEdge('execute_workflow', 'generate_response');
 // End the workflow
 workflow.addEdge('generate_response', END);
 
-// Compile the workflow with memory
-const checkpointer = new MemorySaver();
+// Compile the workflow with MongoDB persistence
+const checkpointer = new MongoDBSaver();
 export const workflowAutomationGraph = workflow.compile({ checkpointer });
 
 /**

@@ -1,5 +1,6 @@
 import Workflow from '../models/workflow.model.js';
 import WorkflowExecution from '../models/workflowExecution.model.js';
+import WorkflowApproval from '../models/workflowApproval.model.js';
 import { composioIntegrationService } from './composioIntegration.service.js';
 import { workflowResilienceService } from './workflowResilience.service.js';
 import { Composio } from '@composio/core';
@@ -81,24 +82,33 @@ class WorkflowExecutionService {
   /**
    * Run workflow steps sequentially
    */
-  async runWorkflowSteps(workflow, execution, context = {}) {
+  async runWorkflowSteps(workflow, execution, context = {}, startStepIndex = 0) {
     try {
       const steps = workflow.steps.sort((a, b) => a.order - b.order);
       const stepResults = [];
       let currentContext = { ...context };
 
-      // Update execution status
-      await WorkflowExecution.updateOne(
-        { _id: execution._id },
-        {
-          status: 'running',
-          startTime: new Date(),
-          steps: steps.map((step) => ({
-            stepId: step.stepId,
-            status: 'pending',
-          })),
-        }
-      );
+      // Update execution status (only if starting from the beginning)
+      if (startStepIndex === 0) {
+        await WorkflowExecution.updateOne(
+          { _id: execution._id },
+          {
+            status: 'running',
+            startTime: new Date(),
+            steps: steps.map((step) => ({
+              stepId: step.stepId,
+              status: 'pending',
+            })),
+          }
+        );
+      } else {
+        await WorkflowExecution.updateOne(
+          { _id: execution._id },
+          {
+            status: 'running',
+          }
+        );
+      }
 
       this.executingWorkflows.set(execution.executionId, {
         workflow,
@@ -106,9 +116,78 @@ class WorkflowExecutionService {
         status: 'running',
       });
 
-      for (let i = 0; i < steps.length; i++) {
+      // Define sensitive actions list requiring human-in-the-loop approval
+      const SENSITIVE_ACTIONS = [
+        'gmail.send_email',
+        'slack.send_message',
+        'slack.post_message',
+        'github.create_issue',
+        'github.create_pr',
+        'trello.create_card',
+        'notion.create_page',
+      ];
+
+      for (let i = startStepIndex; i < steps.length; i++) {
         const step = steps[i];
         const stepStartTime = new Date();
+
+        // Check if the step requires Human-in-the-Loop approval
+        const isSensitive = SENSITIVE_ACTIONS.includes(`${step.app?.toLowerCase()}.${step.action?.toLowerCase()}`);
+        const approvalRequired = step.requireApproval || isSensitive;
+        const alreadyApproved = currentContext._approvedSteps?.includes(step.stepId);
+
+        if (approvalRequired && !alreadyApproved) {
+          logger.info(`Suspending execution for step ${step.stepId}: requires human approval.`);
+          
+          const approvalId = `appr_${uuidv4()}`;
+          const approval = new WorkflowApproval({
+            approvalId,
+            userId: workflow.userId,
+            workflowId: workflow._id,
+            conversationId: execution.context?.conversationId || `conv_${uuidv4()}`,
+            stepId: step.stepId,
+            action: `${step.app}.${step.action}`,
+            parameters: this.prepareParameters(step.parameters, currentContext),
+            status: 'pending',
+            checkpointId: execution.executionId // Map to this execution
+          });
+
+          await approval.save();
+
+          // Update execution to reflect the paused/awaiting_approval status
+          await WorkflowExecution.updateOne(
+            { _id: execution._id },
+            {
+              status: 'awaiting_approval',
+              currentStepIndex: i,
+              context: currentContext
+            }
+          );
+
+          // Update step status to pending/paused
+          await this.updateStepStatus(
+            execution._id,
+            step.stepId,
+            'pending',
+            null,
+            null,
+            null,
+            null,
+            new Error('Execution paused for human approval')
+          );
+
+          this.executingWorkflows.delete(execution.executionId);
+
+          return {
+            success: true,
+            status: 'paused',
+            approvalId,
+            executionId: execution.executionId,
+            message: `Execution paused at step "${step.description}". Human approval is required.`,
+            stepId: step.stepId,
+            action: `${step.app}.${step.action}`
+          };
+        }
 
         try {
           logger.info(`Executing step ${step.stepId}: ${step.description}`);
@@ -694,6 +773,83 @@ class WorkflowExecutionService {
       logger.info(`Initialized ${this.scheduledJobs.size} scheduled workflows`);
     } catch (error) {
       logger.error('Error initializing scheduled workflows:', error);
+    }
+  }
+
+  /**
+   * Resume a paused workflow execution after approval
+   */
+  async resumeExecution(approvalId, userId, approved = true) {
+    try {
+      logger.info(`Resuming execution for approval ${approvalId} (Approved: ${approved})`);
+
+      const approval = await WorkflowApproval.findOne({ approvalId, userId });
+      if (!approval) {
+        throw new Error('Approval request not found');
+      }
+
+      if (approval.status !== 'pending') {
+        throw new Error(`Approval is already resolved as ${approval.status}`);
+      }
+
+      // Update approval status
+      approval.status = approved ? 'approved' : 'rejected';
+      approval.decisionTime = new Date();
+      await approval.save();
+
+      const execution = await WorkflowExecution.findOne({ executionId: approval.checkpointId, userId });
+      if (!execution) {
+        throw new Error('Associated execution record not found');
+      }
+
+      if (execution.status !== 'awaiting_approval') {
+        throw new Error(`Execution is in invalid state: ${execution.status}`);
+      }
+
+      if (!approved) {
+        // Mark execution as cancelled/failed
+        await WorkflowExecution.updateOne(
+          { _id: execution._id },
+          {
+            status: 'cancelled',
+            endTime: new Date(),
+            'result.summary': 'Workflow cancelled due to user rejection of approval request.'
+          }
+        );
+        return {
+          success: true,
+          status: 'rejected',
+          message: 'Workflow execution cancelled by user rejection.'
+        };
+      }
+
+      // Load workflow
+      const workflow = await Workflow.findById(execution.workflowId);
+      if (!workflow) {
+        throw new Error('Workflow not found');
+      }
+
+      // Add the current stepId to approved steps list in context
+      const currentContext = { ...execution.context };
+      if (!currentContext._approvedSteps) {
+        currentContext._approvedSteps = [];
+      }
+      currentContext._approvedSteps.push(approval.stepId);
+
+      // Run steps starting from the paused index
+      const startStepIndex = execution.currentStepIndex || 0;
+      
+      // Run steps asynchronously or synchronously depending on the trigger
+      const result = await this.runWorkflowSteps(workflow, execution, currentContext, startStepIndex);
+
+      return {
+        success: true,
+        status: 'resumed',
+        result
+      };
+    } catch (error) {
+      logger.error(`Error resuming execution ${approvalId}:`, error);
+      throw error;
     }
   }
 }

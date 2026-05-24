@@ -34,6 +34,10 @@ const WorkflowStepSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  requireApproval: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const WorkflowTriggerSchema = new mongoose.Schema({

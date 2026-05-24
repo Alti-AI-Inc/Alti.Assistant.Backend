@@ -44,9 +44,13 @@ const WorkflowExecutionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+      enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'paused', 'awaiting_approval'],
       default: 'pending',
       index: true,
+    },
+    currentStepIndex: {
+      type: Number,
+      default: 0,
     },
     triggerType: {
       type: String,

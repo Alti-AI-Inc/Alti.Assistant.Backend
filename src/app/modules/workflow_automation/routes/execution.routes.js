@@ -38,6 +38,18 @@ router.post(
   executionController.cancelExecutionController
 );
 
+// Human-in-the-loop approvals routes
+router.get(
+  '/approvals/pending',
+  auth(),
+  executionController.getPendingApprovalsController
+);
+router.post(
+  '/approvals/:approvalId/resolve',
+  auth(),
+  executionController.resolveApprovalController
+);
+
 // Workflow scheduling routes
 router.post(
   '/:workflowId/schedule',
