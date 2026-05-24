@@ -381,6 +381,46 @@ export const UnifiedSmartRouter = {
           title = 'Airline Schedules & Route Network Feed';
           url = 'https://aviationstack.com';
           domain = 'aviationstack.com';
+        } else if (providerId === 'github_issues_prs') {
+          title = 'GitHub Issues & Pull Requests Statistics Feed';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_amenities') {
+          title = 'OpenStreetMap POI and Amenities Index';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_lexemes') {
+          title = 'Wikidata Lexical Semantic Graph';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_featured') {
+          title = 'Wikipedia Featured Daily Feed';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_broadband_map') {
+          title = 'FCC National Broadband Coverage Map';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_authors') {
+          title = 'Open Library Author Profiles Index';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_communities') {
+          title = 'Zenodo Science Community Directories';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_daily_advisories') {
+          title = 'National Wildfire Danger Rating Index';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_members') {
+          title = 'Crossref Publisher Membership Index';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_plants_db') {
+          title = 'USDA Plants Taxonomy Database';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;

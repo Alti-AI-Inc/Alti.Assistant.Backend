@@ -172,6 +172,20 @@ import {
   AirlineRoutesProvider
 } from './providers/scientificEnvironmentalPremiumProviders.js';
 
+import {
+  GithubIssuesPrsProvider,
+  OpenstreetmapAmenitiesProvider,
+  WikidataLexemesProvider,
+  WikipediaFeaturedProvider,
+  FccBroadbandMapProvider,
+  OpenlibraryAuthorsProvider,
+  ZenodoCommunitiesProvider,
+  NifcDailyAdvisoriesProvider,
+  CrossrefMembersProvider,
+  UsdaPlantsDbProvider
+} from './providers/specializedNichePremiumProviders.js';
+
+
 
 
 
@@ -706,6 +720,19 @@ SearchEngineRegistry.register(InternetArchiveItemsProvider);
 SearchEngineRegistry.register(NifcWildfiresProvider);
 SearchEngineRegistry.register(PmcOpenAccessProvider);
 SearchEngineRegistry.register(AirlineRoutesProvider);
+
+// Stage 10 Premium Providers
+SearchEngineRegistry.register(GithubIssuesPrsProvider);
+SearchEngineRegistry.register(OpenstreetmapAmenitiesProvider);
+SearchEngineRegistry.register(WikidataLexemesProvider);
+SearchEngineRegistry.register(WikipediaFeaturedProvider);
+SearchEngineRegistry.register(FccBroadbandMapProvider);
+SearchEngineRegistry.register(OpenlibraryAuthorsProvider);
+SearchEngineRegistry.register(ZenodoCommunitiesProvider);
+SearchEngineRegistry.register(NifcDailyAdvisoriesProvider);
+SearchEngineRegistry.register(CrossrefMembersProvider);
+SearchEngineRegistry.register(UsdaPlantsDbProvider);
+
 
 
 
