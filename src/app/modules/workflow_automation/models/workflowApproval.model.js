@@ -46,6 +46,14 @@ const WorkflowApprovalSchema = new mongoose.Schema(
       type: String, // The exact interrupted checkpoint ID to resume from
       required: true,
     },
+    formSchema: {
+      type: Object, // Optional dynamic schema for human input forms
+      default: null,
+    },
+    formResponse: {
+      type: Object, // User-submitted form responses
+      default: null,
+    },
     decisionTime: Date,
   },
   {

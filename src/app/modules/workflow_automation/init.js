@@ -11,6 +11,10 @@ export const initializeWorkflowAutomation = async () => {
     // Initialize scheduled workflows
     await workflowExecutionService.initializeScheduledWorkflows();
 
+    // Initialize dynamic GCP event triggers
+    const { gcpEventsService } = await import('./services/gcpEvents.service.js');
+    await gcpEventsService.initializePubSubTriggers();
+
     logger.info('Workflow Automation module initialized successfully');
   } catch (error) {
     logger.error('Error initializing Workflow Automation module:', error);
@@ -32,6 +36,15 @@ export const cleanupWorkflowAutomation = () => {
     });
 
     workflowExecutionService.scheduledJobs.clear();
+
+    // Release all active dynamic GCP Pub/Sub subscription listeners
+    import('./services/gcpEvents.service.js').then(({ gcpEventsService }) => {
+      gcpEventsService.activeSubscriptions.forEach((sub, workflowId) => {
+        gcpEventsService.unregisterPubSubTrigger(workflowId).catch(err => {
+          logger.warn(`Failed to release dynamic GCP event subscription for workflow ${workflowId}: ${err.message}`);
+        });
+      });
+    });
 
     logger.info('Workflow Automation module cleanup completed');
   } catch (error) {

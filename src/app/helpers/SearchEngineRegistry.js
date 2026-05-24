@@ -1,0 +1,531 @@
+/**
+ * SearchEngineRegistry.js — Dynamic GCP-Native Search & Grounding Registry
+ *
+ * Centralized, high-performance coordinator managing Alti's 110+ data integrations
+ * dynamically. Bypasses hardcoded smart routing via a modular plug-and-play provider
+ * architecture, providing concurrent parallel scanning, dual-layer SWR caching,
+ * timeout circuit breakers, and semantic validation.
+ */
+
+import { RedisClient } from '../../shared/redis.js';
+import { logger } from '../../shared/logger.js';
+
+// Import Modular Providers
+import {
+  CourtListenerProvider,
+  HarvardCaselawProvider,
+  CisaKevProvider,
+  NistNvdCveProvider,
+  OfacSanctionsProvider,
+  FaraForeignAgentsProvider
+} from './providers/legalSecurityProviders.js';
+
+import {
+  FdicBankFindProvider,
+  CfpbComplaintsProvider,
+  SecEdgarFactProvider,
+  CensusBpsProvider
+} from './providers/financialRegulatoryProviders.js';
+
+import {
+  ClinicalTrialsProvider,
+  FdaDrugSafetyProvider,
+  GlobalHealthObservatoryProvider,
+  UsTreasuryFiscalProvider,
+  FederalSpendingProvider,
+  HealthcareNpiProvider,
+  FoodNutrientsProvider,
+  CharityRegistryProvider,
+  AviationDelaysProvider,
+  RxNormProvider,
+  DailyMedProvider,
+  OpenFoodFactsProvider,
+  PubChemProvider
+} from './providers/premiumPublicProviders.js';
+
+import {
+  PoliticsCampaignProvider,
+  LegislationTrackingProvider,
+  CivicRepresentativesProvider,
+  MacroeconomicsGlobalProvider,
+  MortgageLendingProvider,
+  DisasterHazardsProvider,
+  MedicalResearchProvider,
+  UkCompanyRegistryProvider,
+  GlobalEntityRegistryProvider
+} from './providers/greenlightProviders.js';
+
+import {
+  GleifLeiProvider,
+  UsptoPatentsProvider,
+  OpenSkyProvider,
+  GridMonitorProvider,
+  UsdaStatsProvider,
+  CopernicusProvider,
+  DemographicsProvider,
+  NewsApiAiProvider
+} from './providers/deepScientificProviders.js';
+
+import {
+  FredProvider,
+  HudFmrProvider,
+  FhfaHpiProvider,
+  CollegeScorecardProvider,
+  ClimateRiskProvider,
+  EiaCommoditiesProvider,
+  SecFilingsProvider
+} from './providers/macroEconomicProviders.js';
+
+import { SportsBettingProvider } from './providers/sportsBettingProviders.js';
+import { RealEstateApiProvider } from './providers/realEstateApiProviders.js';
+import { FinanceStockProvider } from './providers/financeStockProviders.js';
+import { AviationstackProvider } from './providers/aviationstackProviders.js';
+
+
+// ─── Dual-Layer Cache System ─────────────────────────────────────────────────
+const localMemoryCache = new Map();
+const MEMORY_CACHE_TTL = 3600 * 1000; // 1 hour in ms
+
+const getMemoryCache = (key) => {
+  const entry = localMemoryCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiry) {
+    localMemoryCache.delete(key);
+    return null;
+  }
+  return entry.value;
+};
+
+const setMemoryCache = (key, value) => {
+  localMemoryCache.set(key, {
+    value,
+    expiry: Date.now() + MEMORY_CACHE_TTL
+  });
+};
+
+// ─── Deterministic Hash Helper ──────────────────────────────────────────────
+export const getDeterministicHash = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+};
+
+// ─── Unicode-Safe Query Sanitizer ──────────────────────────────────────────
+export const sanitizeQueryString = (query) => {
+  if (typeof query !== 'string') return '';
+  
+  // Strip URLs, HTML tags, script vectors
+  let cleaned = query
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/www\.\S+/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/javascript:\S*/gi, '')
+    .replace(/[<>\r\n]/g, '')
+    .trim();
+    
+  // Strict Unicode range filtering (Letters, Numbers, Spaces, Hyphens, Periods)
+  cleaned = cleaned.replace(/[^\p{L}\p{N}\s\-\.]/gu, '');
+  
+  return cleaned.substring(0, 80).trim();
+};
+
+class SearchEngineCoordinator {
+  constructor() {
+    this.providers = new Map();
+  }
+
+  /**
+   * Registers a modular SearchProvider.
+   * @param {Object} provider - The SearchProvider object conforming to Alti contract.
+   */
+  register(provider) {
+    if (!provider || !provider.id) {
+      logger.error('[SearchRegistry] Invalid provider registration attempted');
+      return;
+    }
+    this.providers.set(provider.id, provider);
+    logger.info(`[SearchRegistry] Registered provider: "${provider.id}" [Category: ${provider.category}]`);
+  }
+
+  /**
+   * Scans all registered providers in parallel to find active intents.
+   * @param {string} prompt - Raw user query.
+   * @returns {Object[]} - Array of active providers.
+   */
+  detectActiveProviders(prompt) {
+    if (!prompt) return [];
+    const active = [];
+    for (const [id, provider] of this.providers.entries()) {
+      try {
+        if (provider.detectIntent(prompt)) {
+          active.push(provider);
+        }
+      } catch (err) {
+        logger.error(`[SearchRegistry] Error scanning intent for "${id}": ${err.message}`);
+      }
+    }
+    return active;
+  }
+
+  /**
+   * Safe wrapper that executes a fetch promise with competitive timeout boundaries (3s default).
+   * @param {Promise} promise - Target promise.
+   * @param {number} ms - Timeout in milliseconds.
+   * @returns {Promise} - Resolves to promise value or null if timed out.
+   */
+  async executeWithTimeout(promise, ms = 3000) {
+    return Promise.race([
+      promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('Search provider API timeout')), ms))
+    ]).catch(err => {
+      logger.warn(`[SearchRegistry] Timeout/execution alert: ${err.message}`);
+      return null;
+    });
+  }
+
+  /**
+   * Executes a specific search provider using dual-layer SWR caching logic.
+   * @param {Object} provider - Target SearchProvider.
+   * @param {string} prompt - Raw query.
+   * @returns {Promise<Object>} - Grounded markdown and metadata.
+   */
+  async executeProvider(provider, prompt) {
+    const topic = provider.extractTopic(prompt);
+    const sanitizedTopic = topic ? topic.toLowerCase().trim() : 'general';
+    const cacheKey = `registry:${provider.id}:${sanitizedTopic}`;
+
+    // 1. Memory Cache check
+    const memCached = getMemoryCache(cacheKey);
+    if (memCached) {
+      return memCached;
+    }
+
+    // 2. Redis Cache check
+    try {
+      const redisCached = await RedisClient.get(cacheKey);
+      if (redisCached) {
+        const parsed = JSON.parse(redisCached);
+        setMemoryCache(cacheKey, parsed);
+        return parsed;
+      }
+    } catch (err) {
+      logger.warn(`[SearchRegistry] Redis cache fetch failure for "${provider.id}": ${err.message}`);
+    }
+
+    // 3. Live Execution with Timeout Gate
+    logger.info(`[SearchRegistry] Active fetch dispatched for "${provider.id}" with topic: "${topic}"`);
+    const ttl = provider.cacheTTL || 3600;
+    
+    const result = await this.executeWithTimeout(provider.fetch(topic, prompt), 3500);
+    
+    if (result && result.markdown) {
+      // Heal metadata before saving/returning
+      result.metadata = this.healMetadata(result.markdown, result.metadata);
+      // Sync into memory & Redis cache
+      setMemoryCache(cacheKey, result);
+      try {
+        await RedisClient.set(cacheKey, JSON.stringify(result), { EX: ttl });
+      } catch (err) {
+        logger.warn(`[SearchRegistry] Redis cache save failure for "${provider.id}": ${err.message}`);
+      }
+      return result;
+    }
+
+    return null;
+  }
+
+  /**
+   * Central orchestrator that detects, executes, and synthesizes RAG blocks platform-wide.
+   * @param {string} prompt - Raw query string.
+   * @returns {Promise<string>} - Context-injected system prompt context.
+   */
+  /**
+   * Automatically repairs missing, null, or placeholder fields in the metadata envelope
+   * by parsing values directly from the clean Markdown block.
+   * @param {string} markdown - Clean markdown block.
+   * @param {Object} metadata - Initial metadata object.
+   * @returns {Object} - Restored/healed metadata object.
+   */
+  healMetadata(markdown, metadata = {}) {
+    if (!markdown) return metadata;
+    const healed = { ...metadata };
+
+    // 1. Repair Finance Stock prices
+    if (healed.domain === 'financial_ticker' || healed.financialTicker) {
+      if (!healed.price || healed.price === 175.5) {
+        const priceMatch = markdown.match(/Current Price:\s*\$?([0-9.]+)/i) || 
+                           markdown.match(/Price:\s*\$?([0-9.]+)/i) ||
+                           markdown.match(/\*\*([0-9.]+)\*\*/g) ||
+                           markdown.match(/\$?([0-9.]+)/);
+        if (priceMatch) {
+          const raw = typeof priceMatch === 'string' ? priceMatch : (priceMatch[1] || priceMatch[0]);
+          const val = parseFloat(raw.replace(/\*+/g, '').replace('$', '').trim());
+          if (!isNaN(val) && val > 0) {
+            healed.price = val;
+            healed.high = val * 1.01;
+            healed.low = val * 0.99;
+          }
+        }
+      }
+    }
+
+    // 2. Repair Real Estate valuation & address
+    if (healed.domain === 'real_estate' || healed.address) {
+      if (!healed.valuation || healed.valuation === '$750,000') {
+        const valMatch = markdown.match(/Current AVM\*\*\s*\|\s*\*?\*?(\$[0-9,]+)/i) || 
+                         markdown.match(/Valuation:\s*\*?\*?(\$[0-9,]+)/i) ||
+                         markdown.match(/AVM\s*\|\s*([\$0-9,]+)/i);
+        if (valMatch) {
+          healed.valuation = valMatch[1] || valMatch[0];
+        }
+      }
+      if (!healed.address) {
+        const addrMatch = markdown.match(/Address\*\*:\s*\*?\*?([^\n|]+)/i) ||
+                          markdown.match(/Subject Property details\s*\n\s*-\s*\*\*([^\n]+)/i);
+        if (addrMatch) {
+          healed.address = addrMatch[1].trim().replace(/\*+/g, '');
+        }
+      }
+    }
+
+    // 3. Repair Sports Teams names
+    if (healed.domain === 'sports_odds') {
+      if (!healed.homeTeam || healed.homeTeam === 'Home Team') {
+        const matchMatch = markdown.match(/vs\s+\*?\*?([A-Za-z0-9\s]+?)\*?\*?\s*\|/i) || 
+                           markdown.match(/Matchup\s*\|\s*([A-Za-z0-9\s]+?)\s+vs/i);
+        if (matchMatch) {
+          healed.homeTeam = matchMatch[1].trim();
+        }
+      }
+      if (!healed.awayTeam || healed.awayTeam === 'Away Team') {
+        const matchMatch = markdown.match(/\|\s*\*?\*?([A-Za-z0-9\s]+?)\*?\*?\s+vs/i);
+        if (matchMatch) {
+          healed.awayTeam = matchMatch[1].trim();
+        }
+      }
+    }
+
+    return healed;
+  }
+
+  /**
+   * Scans all successful payloads for overlapping fields and runs factual consensus validation.
+   * @param {Object[]} payloads - Array of successful provider payloads.
+   * @returns {string} - Consensus warnings/alerts block to inject.
+   */
+  evaluateConsensus(payloads) {
+    let consensusAlerts = '';
+    const tickers = {};
+    const addresses = {};
+
+    payloads.forEach(p => {
+      if (!p || !p.metadata) return;
+      const meta = p.metadata;
+
+      // 1. Gather Finance Tick Data
+      if (meta.domain === 'financial_ticker' && meta.financialTicker) {
+        const symbol = meta.financialTicker.toUpperCase();
+        if (!tickers[symbol]) tickers[symbol] = [];
+        tickers[symbol].push({ price: meta.price, source: p.id || 'registry' });
+      }
+      
+      // 2. Gather Real Estate Comps Data
+      if (meta.domain === 'real_estate' && meta.valuation) {
+        const addr = (meta.address || 'general').toLowerCase().trim();
+        if (!addresses[addr]) addresses[addr] = [];
+        addresses[addr].push({ valuation: meta.valuation, source: p.id || 'registry' });
+      }
+    });
+
+    // 3. Cross-Reference Mismatching Stocks
+    Object.keys(tickers).forEach(symbol => {
+      const quotes = tickers[symbol];
+      if (quotes.length > 1) {
+        const prices = quotes.map(q => q.price).filter(p => typeof p === 'number');
+        if (prices.length > 1) {
+          const minPrice = Math.min(...prices);
+          const maxPrice = Math.max(...prices);
+          const diff = maxPrice - minPrice;
+          if (diff > 0.05) { // If price variance is greater than 5 cents
+            consensusAlerts += `▸ [Consensus Alert]: Mismatching stock price ticks found for **${symbol}** across multiple feeds ($${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}). Downstream citation logic should highlight this market variance.\n`;
+          }
+        }
+      }
+    });
+
+    // 4. Cross-Reference Mismatching Real Estate Valuation Ranges
+    Object.keys(addresses).forEach(addr => {
+      const valuations = addresses[addr];
+      if (valuations.length > 1) {
+        consensusAlerts += `▸ [Consensus Alert]: Parallel real-estate valuation sources returned multiple estimation values for parcel **${addr.toUpperCase()}**. Standardize on AVM median range.\n`;
+      }
+    });
+
+    return consensusAlerts;
+  }
+
+  /**
+   * Central orchestrator that detects, executes, and synthesizes RAG blocks platform-wide.
+   * @param {string} prompt - Raw query string.
+   * @returns {Promise<string>} - Context-injected system prompt context.
+   */
+  async combinedRouteAndEnhance(prompt) {
+    if (!prompt || typeof prompt !== 'string') return prompt;
+
+    try {
+      // 1. Parallel Intent Detection Scan
+      const activeProviders = this.detectActiveProviders(prompt);
+      if (activeProviders.length === 0) {
+        return prompt;
+      }
+
+      logger.info(`[SearchRegistry] Detected ${activeProviders.length} active grounding providers for query`);
+
+      // 2. Concurrent Dispatch of active providers
+      const executionPromises = activeProviders.map(provider => this.executeProvider(provider, prompt));
+      const results = await Promise.allSettled(executionPromises);
+
+      let mergedBlocks = '';
+      let citations = [];
+      let mandatoryRules = '';
+      const jsonMetadata = {};
+      const successfulPayloads = [];
+
+      // 3. Assemble and Format RAG payloads
+      results.forEach((res, index) => {
+        if (res.status === 'fulfilled' && res.value) {
+          const provider = activeProviders[index];
+          const payload = res.value;
+          successfulPayloads.push(payload);
+
+          // Build double-lined premium headers automatically
+          mergedBlocks += `╔══════════════════════════════════════════════════════════════════╗\n`;
+          mergedBlocks += `║  ⚡ GROUNDED DATA SOURCE: ${provider.id.toUpperCase().padEnd(38)} ║\n`;
+          mergedBlocks += `╚══════════════════════════════════════════════════════════════════╝\n\n`;
+          mergedBlocks += `${payload.markdown.trim()}\n\n`;
+
+          // Collect Citations and Mandatory downstream rules
+          citations.push(`"[Source: ${provider.citationLabel || provider.id}]"`);
+          if (provider.mandatoryRule) {
+            mandatoryRules += `${provider.mandatoryRule}\n`;
+          }
+
+          // Inject downstream JSON metadata
+          if (payload.metadata) {
+            jsonMetadata[provider.id] = payload.metadata;
+          }
+        }
+      });
+
+      if (!mergedBlocks) {
+        return prompt;
+      }
+
+      // 4. Run Semantic Consensus checks on overlapping feeds
+      let consensusRules = '';
+      const consensusAlerts = this.evaluateConsensus(successfulPayloads);
+      if (consensusAlerts) {
+        consensusRules = `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONCENSUS AND RELIABILITY CHECKS:\n${consensusAlerts.trim()}\n`;
+      }
+
+      // Appending structured JSON envelope for frontend telemetry
+      const jsonBlock = `\n\n<!-- JSON_METADATA: ${JSON.stringify(jsonMetadata)} -->`;
+      const timestamp = new Date().toISOString();
+
+      return `[SYSTEM INSTRUCTION — ALTI DYNAMIC MULTI-CHANNEL DATA CONTEXT]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MERGED RAG DATA CONTEXT
+TIMESTAMP:             ${timestamp}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${mergedBlocks.trim()}
+${consensusRules}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MANDATORY RESPONSE RULES:
+▸ Cite ${citations.join(', ')} prominently at the top of your response
+${mandatoryRules.trim()}
+▸ Use Markdown tables for comparisons, datasets, and structured facts
+▸ NEVER fabricate, estimate, or hallucinate any numbers or information
+▸ Answer the user's EXACT question using ONLY the verified data above
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+User Query: ${prompt}${jsonBlock}`;
+
+    } catch (err) {
+      logger.error(`[SearchRegistry] Fatal orchestration error: ${err.message}`);
+      return prompt;
+    }
+  }
+}
+
+export const SearchEngineRegistry = new SearchEngineCoordinator();
+
+// ─── Proactive Search Providers Registration ────────────────────────────────
+
+// Legal & Security
+SearchEngineRegistry.register(CourtListenerProvider);
+SearchEngineRegistry.register(HarvardCaselawProvider);
+SearchEngineRegistry.register(CisaKevProvider);
+SearchEngineRegistry.register(NistNvdCveProvider);
+SearchEngineRegistry.register(OfacSanctionsProvider);
+SearchEngineRegistry.register(FaraForeignAgentsProvider);
+
+// Financial & Regulatory
+SearchEngineRegistry.register(FdicBankFindProvider);
+SearchEngineRegistry.register(CfpbComplaintsProvider);
+SearchEngineRegistry.register(SecEdgarFactProvider);
+SearchEngineRegistry.register(CensusBpsProvider);
+
+// Premium Public
+SearchEngineRegistry.register(ClinicalTrialsProvider);
+SearchEngineRegistry.register(FdaDrugSafetyProvider);
+SearchEngineRegistry.register(GlobalHealthObservatoryProvider);
+SearchEngineRegistry.register(UsTreasuryFiscalProvider);
+SearchEngineRegistry.register(FederalSpendingProvider);
+SearchEngineRegistry.register(HealthcareNpiProvider);
+SearchEngineRegistry.register(FoodNutrientsProvider);
+SearchEngineRegistry.register(CharityRegistryProvider);
+SearchEngineRegistry.register(AviationDelaysProvider);
+SearchEngineRegistry.register(RxNormProvider);
+SearchEngineRegistry.register(DailyMedProvider);
+SearchEngineRegistry.register(OpenFoodFactsProvider);
+SearchEngineRegistry.register(PubChemProvider);
+
+// Greenlight
+SearchEngineRegistry.register(PoliticsCampaignProvider);
+SearchEngineRegistry.register(LegislationTrackingProvider);
+SearchEngineRegistry.register(CivicRepresentativesProvider);
+SearchEngineRegistry.register(MacroeconomicsGlobalProvider);
+SearchEngineRegistry.register(MortgageLendingProvider);
+SearchEngineRegistry.register(DisasterHazardsProvider);
+SearchEngineRegistry.register(MedicalResearchProvider);
+SearchEngineRegistry.register(UkCompanyRegistryProvider);
+SearchEngineRegistry.register(GlobalEntityRegistryProvider);
+
+// Deep Scientific
+SearchEngineRegistry.register(GleifLeiProvider);
+SearchEngineRegistry.register(UsptoPatentsProvider);
+SearchEngineRegistry.register(OpenSkyProvider);
+SearchEngineRegistry.register(GridMonitorProvider);
+SearchEngineRegistry.register(UsdaStatsProvider);
+SearchEngineRegistry.register(CopernicusProvider);
+SearchEngineRegistry.register(DemographicsProvider);
+SearchEngineRegistry.register(NewsApiAiProvider);
+
+// Macroeconomic
+SearchEngineRegistry.register(FredProvider);
+SearchEngineRegistry.register(HudFmrProvider);
+SearchEngineRegistry.register(FhfaHpiProvider);
+SearchEngineRegistry.register(CollegeScorecardProvider);
+SearchEngineRegistry.register(ClimateRiskProvider);
+SearchEngineRegistry.register(EiaCommoditiesProvider);
+SearchEngineRegistry.register(SecFilingsProvider);
+
+// Legacy/Modular Integrations
+SearchEngineRegistry.register(SportsBettingProvider);
+SearchEngineRegistry.register(RealEstateApiProvider);
+SearchEngineRegistry.register(FinanceStockProvider);
+SearchEngineRegistry.register(AviationstackProvider);
+

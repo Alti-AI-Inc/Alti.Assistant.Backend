@@ -37,6 +37,11 @@ router.post(
   auth(),
   executionController.cancelExecutionController
 );
+router.post(
+  '/executions/:executionId/replay',
+  auth(),
+  executionController.replayExecutionController
+);
 
 // Human-in-the-loop approvals routes
 router.get(
@@ -62,5 +67,12 @@ router.post(
   executionController.unscheduleWorkflowController
 );
 
+// Public dynamic webhook trigger route
+router.post(
+  '/webhooks/:webhookId',
+  executionController.handleWebhookTriggerController
+);
+
 export const executionRoutes = router;
+
 

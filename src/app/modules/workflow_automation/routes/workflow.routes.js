@@ -7,6 +7,19 @@ const router = express.Router();
 
 // Workflow management routes
 router.get('/', auth(), workflowController.getUserWorkflowsController);
+
+// Visual Layout Compilation & Validation routes (placed before /:workflowId to prevent route parameter collision)
+router.post(
+  '/layout/validate',
+  auth(),
+  workflowController.validateWorkflowLayoutController
+);
+router.post(
+  '/layout/compile',
+  auth(),
+  workflowController.compileWorkflowLayoutController
+);
+
 router.get('/:workflowId', auth(), workflowController.getWorkflowController);
 router.put('/:workflowId', auth(), workflowController.updateWorkflowController);
 router.delete(

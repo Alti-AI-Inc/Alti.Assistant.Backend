@@ -11,7 +11,7 @@ import Llama from '../groq/groq.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { GEMINI_RESPONSE_SERVICE_POST } from './gemini.constant.js';
 import { RedisClient } from '../../../shared/redis.js';
-import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
+import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 const model = client.getGenerativeModel({
@@ -33,9 +33,9 @@ const geminiService = async (sessionId, prompt, userId) => {
   }
 
   try {
-    // Enhance prompt using massiveSmartRouter for real-time market data
+    // Enhance prompt using UnifiedSmartRouter for real-time market data
     const enhancedPrompt =
-      await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
+      await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
@@ -121,9 +121,9 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
   }
 
   try {
-    // Enhance prompt using massiveSmartRouter for real-time market data
+    // Enhance prompt using UnifiedSmartRouter for real-time market data
     const enhancedPrompt =
-      await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
+      await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 

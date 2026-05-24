@@ -4,6 +4,7 @@ import sendResponse from '../../../../shared/sendResponse.js';
 import { logger } from '../../../../shared/logger.js';
 import Workflow from '../models/workflow.model.js';
 import WorkflowTemplate from '../models/workflowTemplate.model.js';
+import { workflowLayoutService } from '../services/workflowLayout.service.js';
 
 /**
  * Get user's workflows
@@ -428,6 +429,70 @@ const createFromTemplateController = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * Validate workflow layout (React Flow nodes and edges)
+ */
+const validateWorkflowLayoutController = catchAsync(async (req, res) => {
+  const { nodes, edges } = req.body;
+
+  if (!nodes || !Array.isArray(nodes)) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Nodes must be a valid array',
+    });
+  }
+
+  try {
+    const report = workflowLayoutService.validateLayoutSchema(nodes, edges || []);
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Layout validation completed',
+      data: report,
+    });
+  } catch (error) {
+    logger.error('Error in validateWorkflowLayoutController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Layout validation failed',
+    });
+  }
+});
+
+/**
+ * Compile workflow layout (React Flow nodes and edges) to execution steps
+ */
+const compileWorkflowLayoutController = catchAsync(async (req, res) => {
+  const { nodes, edges } = req.body;
+
+  if (!nodes || !Array.isArray(nodes)) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Nodes must be a valid array',
+    });
+  }
+
+  try {
+    const steps = workflowLayoutService.compileLayoutToSteps(nodes, edges || []);
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Layout compiled successfully',
+      data: { steps },
+    });
+  } catch (error) {
+    logger.error('Error in compileWorkflowLayoutController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: error.message || 'Layout compilation failed',
+    });
+  }
+});
+
 export const workflowController = {
   getUserWorkflowsController,
   getWorkflowController,
@@ -436,4 +501,6 @@ export const workflowController = {
   toggleWorkflowStatusController,
   getWorkflowTemplatesController,
   createFromTemplateController,
+  validateWorkflowLayoutController,
+  compileWorkflowLayoutController,
 };

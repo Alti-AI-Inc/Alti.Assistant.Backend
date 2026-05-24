@@ -10,7 +10,7 @@ import UserModel from '../auth/auth.model.js';
 import Llama from '../groq/groq.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { RedisClient } from '../../../shared/redis.js';
-import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
+import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 
 // Initialize standard modern GoogleGenAI client
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
@@ -33,8 +33,8 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
   }
 
   try {
-    // Enhance prompt using massiveSmartRouter for deep context
-    const enhancedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
+    // Enhance prompt using UnifiedSmartRouter for deep context
+    const enhancedPrompt = await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 

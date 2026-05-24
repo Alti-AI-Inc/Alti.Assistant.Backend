@@ -1,4 +1,5 @@
 import { logger } from '../../../../shared/logger.js';
+import { RedisClient } from '../../../../shared/redis.js';
 
 /**
  * Workflow Resilience Service
@@ -79,10 +80,77 @@ const RETRYABLE_ERROR_PATTERNS = [
   /temporarily unavailable/i,
 ];
 
+// Predefined outgoing rate limits per third-party provider/service
+const DEFAULT_RATE_LIMITS = {
+  gmail: { limit: 15, windowMs: 60000 },
+  slack: { limit: 20, windowMs: 60000 },
+  google_cloud: { limit: 50, windowMs: 60000 },
+  google_workspace: { limit: 10, windowMs: 60000 },
+  vertex_ai: { limit: 10, windowMs: 60000 },
+  default: { limit: 30, windowMs: 60000 }
+};
+
 class WorkflowResilienceService {
   constructor() {
     /** @type {Map<string, Array<Object>>} Completed steps per execution for rollback */
     this.completedStepRegistry = new Map();
+    this.throttleLocks = new Map(); // Local mutex map to prevent concurrent tick race conditions
+  }
+
+  /**
+   * Check and enforce rate limits for a given target service or token.
+   * If the limit is exceeded, blocks/sleeps until the rate limit resets or a token becomes available.
+   * 
+   * @param {string} service - Service name, e.g. 'gmail', 'slack'
+   * @param {number} limit - Max requests in the window
+   * @param {number} windowMs - Window duration in milliseconds
+   */
+  async throttle(service, limit = 30, windowMs = 60000) {
+    const key = `ratelimit:wf:${service?.toLowerCase() || 'default'}`;
+    
+    while (true) {
+      // 1. Acquire execution lock to prevent parallel ticks from reading stale data
+      while (this.throttleLocks.get(key)) {
+        await this._sleep(5);
+      }
+      this.throttleLocks.set(key, true);
+
+      try {
+        const now = Date.now();
+        let currentRequests = [];
+        const cached = await RedisClient.get(key);
+        if (cached) {
+          try {
+            currentRequests = JSON.parse(cached);
+          } catch (e) {
+            currentRequests = [];
+          }
+        }
+        
+        // Filter out requests older than the window
+        currentRequests = currentRequests.filter(timestamp => timestamp > now - windowMs);
+        
+        if (currentRequests.length < limit) {
+          // Record this request
+          currentRequests.push(now);
+          await RedisClient.set(key, JSON.stringify(currentRequests), { EX: Math.ceil(windowMs / 1000) });
+          
+          this.throttleLocks.set(key, false); // Release lock
+          break; // Allowed to run!
+        } else {
+          // Release lock *before* sleeping to allow other concurrent calls to queue up and wait too
+          this.throttleLocks.set(key, false);
+          
+          const oldestTimestamp = currentRequests[0];
+          const waitTime = (oldestTimestamp + windowMs) - now + 50; // Add 50ms buffer
+          logger.info(`[Rate Limiting] Outgoing limit exceeded for service "${service}". Throttling execution. Pausing for ${waitTime}ms...`);
+          await this._sleep(waitTime);
+        }
+      } catch (err) {
+        this.throttleLocks.set(key, false); // Safeguard release on error
+        throw err;
+      }
+    }
   }
 
   /**
@@ -102,6 +170,13 @@ class WorkflowResilienceService {
     const policy = this._resolvePolicy(options);
     const { maxAttempts, baseDelayMs, maxDelayMs, jitter } = policy;
     const stepId = options.stepId || 'unknown';
+
+    // Apply outgoing rate limit throttle if app/service is specified
+    if (options.app) {
+      const appName = options.app.toLowerCase();
+      const limitConfig = DEFAULT_RATE_LIMITS[appName] || DEFAULT_RATE_LIMITS.default;
+      await this.throttle(options.app, limitConfig.limit, limitConfig.windowMs);
+    }
 
     let lastError = null;
     const startTime = Date.now();

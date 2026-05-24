@@ -29,12 +29,12 @@ export const runPythonScript = async (skillName, scriptName, args = [], timeoutM
   // 2. Add output argument
   const finalArgs = [scriptPath, ...args, '--output', tempOutputFile];
   
-  logger.info(`Running Python subprocess: python -m uv run ${finalArgs.join(' ')}`);
+  logger.info(`Running Python subprocess: uv run ${finalArgs.join(' ')}`);
   
   return new Promise((resolve) => {
-    const child = spawn('python', ['-m', 'uv', 'run', ...finalArgs], {
+    const child = spawn('uv', ['run', ...finalArgs], {
       cwd: process.cwd(),
-      env: { ...process.env, PYTHONUNBUFFERED: '1' }
+      env: { ...process.env, PYTHONUNBUFFERED: '1', UV_NO_SYNC: '1' }
     });
     
     let stdoutData = '';

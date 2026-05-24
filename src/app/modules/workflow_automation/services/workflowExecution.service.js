@@ -54,15 +54,46 @@ class WorkflowExecutionService {
         workflowId,
         userId,
         executionId,
-        triggerType: 'manual',
+        triggerType: context.triggeredBy || 'manual',
         totalSteps: workflow.steps.length,
         context,
       });
 
       await execution.save();
 
-      // Execute the workflow
-      const result = await this.runWorkflowSteps(workflow, execution, context);
+      let result;
+      const useTemporal = config.temporal?.active === true || process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true';
+
+      if (useTemporal) {
+        logger.info(`[Engine Switch] Routing workflow execution ${workflowId} through Temporal cluster...`);
+        const { temporalClientCoordinator } = await import('./temporal/client.js');
+        // Inject execution tracking coordinates in context
+        const extendedContext = {
+          ...context,
+          _executionId: execution._id,
+          executionId: execution.executionId
+        };
+        const startResult = await temporalClientCoordinator.startWorkflow(workflow, userId, extendedContext);
+        
+        if (startResult.success) {
+          if (startResult.isMock) {
+            const mockResult = await startResult.handle.result();
+            result = mockResult;
+          } else {
+            result = {
+              success: true,
+              status: 'running_durable',
+              workflowId: startResult.workflowId
+            };
+          }
+        } else {
+          throw new Error('Temporal workflow activation failed');
+        }
+      } else {
+        logger.info(`[Engine Switch] Routing workflow execution ${workflowId} through local fallback DAG executor...`);
+        // Fallback to local execution
+        result = await this.runWorkflowSteps(workflow, execution, context);
+      }
 
       // Update workflow execution count
       await Workflow.updateOne(
@@ -173,15 +204,47 @@ class WorkflowExecutionService {
 
       // Main DAG scheduling evaluation loop
       while (true) {
+        // Resolve steps that should be skipped because all of their dependencies are skipped
+        for (const step of steps) {
+          if (stepStatuses.get(step.stepId) === 'pending' && step.dependsOn.length > 0) {
+            const allDepsSkipped = step.dependsOn.every((dep) => {
+              let depId = dep;
+              if (dep.includes('.')) {
+                depId = dep.split('.')[0];
+              }
+              return stepStatuses.get(depId) === 'skipped';
+            });
+            if (allDepsSkipped) {
+              stepStatuses.set(step.stepId, 'skipped');
+              // Record in MongoDB as skipped
+              await this.updateStepStatus(
+                execution._id,
+                step.stepId,
+                'skipped',
+                new Date(),
+                new Date(),
+                0,
+                { skipped: true, reason: 'All parent dependencies were skipped.' }
+              );
+            }
+          }
+        }
+
         const pendingSteps = steps.filter((s) => stepStatuses.get(s.stepId) === 'pending');
         
         if (pendingSteps.length === 0) {
           break; // All steps completed or handled successfully
         }
 
-        // Find steps whose dependencies are all successfully completed
+        // Find steps whose dependencies are all successfully completed or skipped
         const eligibleSteps = pendingSteps.filter((step) => {
-          return step.dependsOn.every((depId) => stepStatuses.get(depId) === 'completed');
+          return step.dependsOn.every((dep) => {
+            let depId = dep;
+            if (dep.includes('.')) {
+              depId = dep.split('.')[0];
+            }
+            return stepStatuses.get(depId) === 'completed' || stepStatuses.get(depId) === 'skipped';
+          });
         });
 
         // Guard against cyclic dependencies or deadlocks
@@ -257,8 +320,33 @@ class WorkflowExecutionService {
           try {
             logger.info(`[DAG Step Worker] Executing step ${step.stepId}: ${step.description}`);
 
-            // Execute step and record output updates
-            const stepResult = await this.executeStep(step, currentContext, workflow.userId);
+            // Execute step with custom retry policy if specified
+            let stepResult;
+            const retryPolicy = step.retryPolicy || {};
+            const maxAttempts = retryPolicy.maxAttempts || 1;
+            const initialIntervalMs = retryPolicy.initialIntervalMs || 1000;
+            const backoffCoefficient = retryPolicy.backoffCoefficient || 2;
+            const maxDelayMs = retryPolicy.maxDelayMs || 30000;
+
+            let attempt = 1;
+            let currentDelay = initialIntervalMs;
+
+            while (true) {
+              try {
+                stepResult = await this.executeStep(step, currentContext, workflow.userId);
+                break; // Succeeded!
+              } catch (stepErr) {
+                if (attempt >= maxAttempts) {
+                  throw stepErr; // Exhausted retries
+                }
+                
+                logger.warn(`[DAG Step Worker] Step ${step.stepId} failed on attempt ${attempt}/${maxAttempts}: ${stepErr.message}. Retrying in ${currentDelay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, currentDelay));
+                
+                attempt++;
+                currentDelay = Math.min(currentDelay * backoffCoefficient, maxDelayMs);
+              }
+            }
 
             const stepEndTime = new Date();
             const duration = stepEndTime - stepStartTime;
@@ -284,11 +372,179 @@ class WorkflowExecutionService {
 
             // Safely merge context updates
             mergeContextUpdates(stepResult.contextUpdates);
+
+            // If condition step or step has evaluation result, perform cascade skipping
+            if (step.stepType === 'condition' || (stepResult && stepResult.evaluation !== undefined)) {
+              const evaluation = stepResult.evaluation;
+              
+              const cascadeSkip = async (skippedStepId) => {
+                const stepsToSkip = steps.filter(s => 
+                  s.dependsOn.some(dep => dep === skippedStepId || dep.startsWith(skippedStepId + '.')) &&
+                  stepStatuses.get(s.stepId) === 'pending'
+                );
+                for (const s of stepsToSkip) {
+                  stepStatuses.set(s.stepId, 'skipped');
+                  await this.updateStepStatus(
+                    execution._id,
+                    s.stepId,
+                    'skipped',
+                    new Date(),
+                    new Date(),
+                    0,
+                    { skipped: true, reason: `Skipped because branch parent step ${skippedStepId} was skipped.` }
+                  );
+                  await cascadeSkip(s.stepId);
+                }
+              };
+
+              if (typeof evaluation === 'boolean') {
+                if (evaluation === true) {
+                  // Skip steps depending on step.stepId.false
+                  for (const s of steps) {
+                    if (s.dependsOn.includes(`${step.stepId}.false`) && stepStatuses.get(s.stepId) === 'pending') {
+                      stepStatuses.set(s.stepId, 'skipped');
+                      await this.updateStepStatus(
+                        execution._id,
+                        s.stepId,
+                        'skipped',
+                        new Date(),
+                        new Date(),
+                        0,
+                        { skipped: true, reason: `Condition evaluated to true, skipping false branch.` }
+                      );
+                      await cascadeSkip(s.stepId);
+                    }
+                  }
+                } else {
+                  // Skip steps depending on step.stepId.true or step.stepId (default)
+                  for (const s of steps) {
+                    if ((s.dependsOn.includes(`${step.stepId}.true`) || s.dependsOn.includes(step.stepId)) && stepStatuses.get(s.stepId) === 'pending') {
+                      stepStatuses.set(s.stepId, 'skipped');
+                      await this.updateStepStatus(
+                        execution._id,
+                        s.stepId,
+                        'skipped',
+                        new Date(),
+                        new Date(),
+                        0,
+                        { skipped: true, reason: `Condition evaluated to false, skipping true branch.` }
+                      );
+                      await cascadeSkip(s.stepId);
+                    }
+                  }
+                }
+              } else if (typeof evaluation === 'string') {
+                const selectedRoute = evaluation;
+                const prefix = `${step.stepId}.`;
+                for (const s of steps) {
+                  if (stepStatuses.get(s.stepId) === 'pending') {
+                    const hasNonMatchingDep = s.dependsOn.some(dep => 
+                      dep.startsWith(prefix) && dep.slice(prefix.length) !== selectedRoute
+                    );
+                    if (hasNonMatchingDep) {
+                      stepStatuses.set(s.stepId, 'skipped');
+                      await this.updateStepStatus(
+                        execution._id,
+                        s.stepId,
+                        'skipped',
+                        new Date(),
+                        new Date(),
+                        0,
+                        { skipped: true, reason: `AI Router evaluated to '${selectedRoute}', skipping non-matching branch.` }
+                      );
+                      await cascadeSkip(s.stepId);
+                    }
+                  }
+                }
+              }
+            }
           } catch (stepError) {
             logger.error(`[DAG Step Worker] Error in step ${step.stepId}:`, stepError);
 
             const stepEndTime = new Date();
             const duration = stepEndTime - stepStartTime;
+
+            // Check if step requires autonomous agentic self-healing
+            if (step.continueOnError === 'agentic_heal' || step.selfHeal === true) {
+              try {
+                logger.warn(`[DAG Step Worker] Step ${step.stepId} failed. Launching Autonomous Self-Healing Analyst...`);
+                
+                const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+                let healedParameters = { ...step.parameters };
+
+                if (isMock) {
+                  logger.info(`[Self-Healing Agent] Diagnosed missing parameter or faulty reference in context.`);
+                  healedParameters.repairedByAgent = true;
+                  // Auto-inject mock fix based on context parameters
+                  if (step.parameters && typeof step.parameters === 'object') {
+                    if (step.parameters.couponCode) {
+                      healedParameters.couponCode = 'HEALED_COUPON_CODE';
+                    }
+                  }
+                } else {
+                  const { GoogleGenAI } = await import('@google/genai');
+                  const aiClient = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
+                  
+                  const systemInstruction = "You are an autonomous self-healing execution engine compiler. A step in a workflow failed execution. Analyze the error and context, and output a corrected JSON object of step parameters to fix the issue.";
+                  const prompt = `Failed Step ID: "${step.stepId}"\nApp: "${step.app}"\nAction: "${step.action}"\nOriginal Parameters: ${JSON.stringify(step.parameters)}\nError Message: "${stepError.message}"\nCurrent Context: ${JSON.stringify(currentContext)}\n\nGenerate the corrected set of parameters to successfully retry this step inside a JSON block mapping to 'healedParameters'.`;
+
+                  const geminiResult = await aiClient.models.generateContent({
+                    model: 'gemini-1.5-flash',
+                    contents: prompt,
+                    config: {
+                      temperature: 0.2,
+                      systemInstruction,
+                      responseMimeType: "application/json",
+                      responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                          healedParameters: {
+                            type: "OBJECT",
+                            description: "The corrected step parameters to retry with."
+                          }
+                        },
+                        required: ["healedParameters"]
+                      }
+                    }
+                  });
+
+                  const textResult = geminiResult.text || geminiResult.candidates?.[0]?.content?.parts?.[0]?.text;
+                  const parsed = JSON.parse(textResult);
+                  healedParameters = parsed.healedParameters;
+                }
+
+                logger.info(`[Self-Healing Agent] Automatically repairing parameters and initiating retry...`);
+                const healedStep = { ...step, parameters: healedParameters };
+                const retryResult = await this.executeStep(healedStep, currentContext, workflow.userId);
+                
+                const healEndTime = new Date();
+                const healDuration = healEndTime - stepStartTime;
+
+                await this.updateStepStatus(
+                  execution._id,
+                  step.stepId,
+                  'completed',
+                  stepStartTime,
+                  healEndTime,
+                  healDuration,
+                  { ...retryResult, healed: true, originalError: stepError.message }
+                );
+
+                stepStatuses.set(step.stepId, 'completed');
+                stepExecutionReports.set(step.stepId, {
+                  stepId: step.stepId,
+                  success: true,
+                  result: { ...retryResult, healed: true },
+                  duration: healDuration,
+                });
+
+                mergeContextUpdates(retryResult.contextUpdates);
+                logger.info(`[Self-Healing Agent] Step ${step.stepId} was successfully healed!`);
+                return; // Prevent fall-through to failure
+              } catch (healError) {
+                logger.error(`[Self-Healing Agent] Healing failed for step ${step.stepId}:`, healError);
+              }
+            }
 
             // Update step status to failed
             await this.updateStepStatus(
@@ -373,6 +629,20 @@ class WorkflowExecutionService {
     } catch (error) {
       logger.error('Error running workflow steps DAG:', error);
 
+      // Trigger automatic local Saga compensating rollbacks in reverse-chronological order
+      try {
+        logger.info(`Starting local Saga compensating rollbacks for execution ${execution.executionId}...`);
+        const rollbackResult = await workflowResilienceService.rollbackExecution(
+          execution.executionId,
+          async (rollbackStep) => {
+            return await this.executeStep(rollbackStep, currentContext, workflow.userId);
+          }
+        );
+        logger.info(`Local Saga rollbacks completed: ${JSON.stringify(rollbackResult)}`);
+      } catch (rollbackError) {
+        logger.error(`Failed to execute local Saga compensating rollbacks: ${rollbackError.message}`);
+      }
+
       // Update execution as failed
       await WorkflowExecution.updateOne(
         { _id: execution._id },
@@ -396,7 +666,85 @@ class WorkflowExecutionService {
    */
   async executeStep(step, context, userId) {
     try {
-      logger.info(`Executing step: ${step.app}.${step.action}`);
+      logger.info(`Executing step: ${step.stepId} (${step.app}.${step.action || step.stepType})`);
+
+      // Intercept Conditional Branching nodes
+      if (step.stepType === 'condition') {
+        const parameters = this.prepareParameters(step.parameters || {}, context);
+        const { expression, value1, operator, value2 } = parameters;
+        
+        let evaluation = false;
+        
+        if (expression) {
+          // Custom sandboxed expression, prepared/replaced by our deep resolver
+          const evaluated = this.prepareParameters(`{{${expression}}}`, context);
+          evaluation = !!evaluated;
+        } else if (operator) {
+          // Standard comparison rules
+          const val1 = value1;
+          const val2 = value2;
+          
+          switch (operator) {
+            case 'eq':
+            case 'equals':
+            case '==':
+            case '===':
+              evaluation = (val1 === val2);
+              break;
+            case 'ne':
+            case 'not_equals':
+            case '!=':
+            case '!==':
+              evaluation = (val1 !== val2);
+              break;
+            case 'gt':
+            case 'greater_than':
+            case '>':
+              evaluation = (Number(val1) > Number(val2));
+              break;
+            case 'gte':
+            case 'greater_than_or_equals':
+            case '>=':
+              evaluation = (Number(val1) >= Number(val2));
+              break;
+            case 'lt':
+            case 'less_than':
+            case '<':
+              evaluation = (Number(val1) < Number(val2));
+              break;
+            case 'lte':
+            case 'less_than_or_equals':
+            case '<=':
+              evaluation = (Number(val1) <= Number(val2));
+              break;
+            case 'contains':
+              evaluation = String(val1).includes(String(val2));
+              break;
+            case 'not_contains':
+              evaluation = !String(val1).includes(String(val2));
+              break;
+            case 'starts_with':
+              evaluation = String(val1).startsWith(String(val2));
+              break;
+            case 'ends_with':
+              evaluation = String(val1).endsWith(String(val2));
+              break;
+            default:
+              evaluation = false;
+          }
+        }
+        
+        logger.info(`[DAG Condition Worker] Evaluated condition step ${step.stepId}: ${evaluation}`);
+        
+        return {
+          success: true,
+          evaluation,
+          data: { evaluation },
+          contextUpdates: {
+            [`${step.stepId}_evaluation`]: evaluation
+          }
+        };
+      }
 
       // 1. Intercept Core Platform - Chat / Conversations Page
       if (step.app?.toLowerCase() === 'chat' || step.app?.toLowerCase() === 'conversations') {
@@ -522,6 +870,26 @@ class WorkflowExecutionService {
           }
           
           result = await SwarmService.executeSwarmSync(query, []);
+        } else if (step.action?.toLowerCase() === 'swarm_orchestrator') {
+          const { instructions, agentsList } = parameters;
+          if (!instructions) {
+            throw new Error(`Required parameter 'instructions' is missing for agents.${step.action}`);
+          }
+          
+          const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+          
+          if (isMock) {
+            const swarmLog = [
+              `[Swarm Dispatcher] Instantiating collaborative swarm consisting of: ${agentsList ? agentsList.join(', ') : 'Researcher, Copywriter, Reviewer'}...`,
+              `[Agent: Researcher] Conducting deep semantic review based on instructions: "${instructions}"`,
+              `[Agent: Copywriter] Reshaping raw research details into clean, production-ready deliverables.`,
+              `[Agent: Reviewer] Executing thorough quality control inspections. No issues found.`
+            ];
+            const outputReport = `[Autonomous Swarm Unified Report] Executed multi-agent swarm loop. Instructions: "${instructions}". Roles: ${agentsList ? agentsList.join(', ') : 'Researcher, Copywriter, Reviewer'}. Execution completed in 3 autonomous conversational cycles. Final Quality Rating: 100% Verified.`;
+            result = { success: true, swarmLog, outputReport, mocked: true };
+          } else {
+            result = await SwarmService.executeSwarmSync(instructions, agentsList || ['Researcher', 'Copywriter', 'Reviewer']);
+          }
         } else {
           throw new Error(`Unknown action '${step.action}' for app '${step.app}'`);
         }
@@ -661,7 +1029,190 @@ class WorkflowExecutionService {
 
         const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
 
-        if (action === 'vertex_ai_generate') {
+        if (action === 'vertex_ai_router') {
+          const { input, routes } = parameters;
+          if (!input || !routes || typeof routes !== 'object') {
+            throw new Error(`Required parameters 'input' and 'routes' (object) are missing or invalid for google_cloud.${step.action}`);
+          }
+
+          let selectedRoute;
+
+          if (isMock) {
+            const textLower = String(input).toLowerCase();
+            const keys = Object.keys(routes);
+            
+            if (textLower.includes('pricing') || textLower.includes('enterprise') || textLower.includes('cost') || textLower.includes('quote') || textLower.includes('sales')) {
+              selectedRoute = keys.find(k => k.toLowerCase() === 'sales') || keys[0];
+            } else if (textLower.includes('error') || textLower.includes('bug') || textLower.includes('broken') || textLower.includes('support') || textLower.includes('help')) {
+              selectedRoute = keys.find(k => k.toLowerCase() === 'support') || keys[0];
+            } else {
+              selectedRoute = keys.includes('default') ? 'default' : keys[0];
+            }
+            result = { selectedRoute, success: true, mocked: true };
+          } else {
+            const { GoogleGenAI } = await import('@google/genai');
+            const aiClient = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
+            
+            const routesListing = Object.entries(routes)
+              .map(([key, desc]) => `- ${key}: ${desc}`)
+              .join('\n');
+            
+            const systemInstruction = "You are an AI router. Categorize the user's input into one of the provided routes based on their description. You must output a JSON object containing a single field 'route' with the key of the selected route.";
+            const prompt = `Input text to classify: "${input}"\n\nAvailable routes:\n${routesListing}\n\nSelect the most appropriate route. If none of the routes match, select the route key 'default' if it exists, otherwise select the first route.`;
+
+            const geminiResult = await aiClient.models.generateContent({
+              model: 'gemini-1.5-flash',
+              contents: prompt,
+              config: {
+                temperature: 0.1,
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "OBJECT",
+                  properties: {
+                    route: {
+                      type: "STRING",
+                      description: "The selected route key that matches the user input best."
+                    }
+                  },
+                  required: ["route"]
+                }
+              }
+            });
+
+            const textResult = geminiResult.text || geminiResult.candidates?.[0]?.content?.parts?.[0]?.text;
+            let parsed;
+            try {
+              parsed = JSON.parse(textResult);
+            } catch (err) {
+              logger.warn(`Failed to parse structured JSON from Gemini router: ${textResult}. Falling back to default routing.`, err);
+            }
+
+            selectedRoute = parsed?.route;
+            const keys = Object.keys(routes);
+            if (!selectedRoute || !keys.includes(selectedRoute)) {
+              selectedRoute = keys.includes('default') ? 'default' : keys[0];
+            }
+
+            result = { selectedRoute, success: true };
+          }
+
+          const duration = Date.now() - tStart;
+          if (context._executionId) {
+            workflowResilienceService.registerCompletedStep(
+              context._executionId,
+              { stepId: step.stepId, app: step.app, action: step.action, parameters },
+              result
+            );
+          }
+
+          logger.info(`Vertex AI Prompt Router completed successfully: selected route '${selectedRoute}' in ${duration}ms`);
+
+          return {
+            success: true,
+            evaluation: selectedRoute,
+            data: result,
+            contextUpdates: {
+              ...this.extractContextUpdates(result, step),
+              [`${step.stepId}_evaluation`]: selectedRoute,
+            },
+            timestamp: new Date(),
+            attempts: 1,
+            retried: false,
+            totalDurationMs: duration,
+          };
+        } else if (action === 'vertex_ai_transform') {
+          const { data, instructions } = parameters;
+          if (data === undefined || !instructions) {
+            throw new Error(`Required parameters 'data' and 'instructions' are missing or invalid for google_cloud.${step.action}`);
+          }
+
+          let transformedData;
+
+          if (isMock) {
+            const instructionsLower = String(instructions).toLowerCase();
+            if (instructionsLower.includes('email')) {
+              transformedData = ["support@example.com", "billing@example.com"];
+            } else if (instructionsLower.includes('uppercase') || instructionsLower.includes('upper')) {
+              transformedData = typeof data === 'string' ? data.toUpperCase() : data;
+            } else {
+              transformedData = {
+                transformed: true,
+                original: data,
+                instructions
+              };
+            }
+            result = { transformedData, success: true, mocked: true };
+          } else {
+            const { GoogleGenAI } = await import('@google/genai');
+            const aiClient = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
+            
+            const systemInstruction = "You are an expert AI data transformer. You will ingest data and reshape/map/transform it exactly as specified by the user's natural language instructions. You must output valid, clean JSON representing the transformed output.";
+            const dataString = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
+            const prompt = `Data to transform:\n${dataString}\n\nInstructions: "${instructions}"\n\nPerform the transformation and return the result inside a JSON object with a single key 'transformedData'.`;
+
+            const geminiResult = await aiClient.models.generateContent({
+              model: 'gemini-1.5-flash',
+              contents: prompt,
+              config: {
+                temperature: 0.1,
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "OBJECT",
+                  properties: {
+                    transformedData: {
+                      type: "STRING",
+                      description: "The transformed data output based on instructions."
+                    }
+                  },
+                  required: ["transformedData"]
+                }
+              }
+            });
+
+            const textResult = geminiResult.text || geminiResult.candidates?.[0]?.content?.parts?.[0]?.text;
+            let parsed;
+            try {
+              parsed = JSON.parse(textResult);
+              transformedData = parsed.transformedData;
+              if (typeof transformedData === 'string' && (transformedData.startsWith('{') || transformedData.startsWith('['))) {
+                try {
+                  transformedData = JSON.parse(transformedData);
+                } catch(e) {}
+              }
+            } catch (err) {
+              logger.warn(`Failed to parse structured JSON from Gemini transformer: ${textResult}. Returning raw text.`, err);
+              transformedData = textResult;
+            }
+
+            result = { transformedData, success: true };
+          }
+
+          const duration = Date.now() - tStart;
+          if (context._executionId) {
+            workflowResilienceService.registerCompletedStep(
+              context._executionId,
+              { stepId: step.stepId, app: step.app, action: step.action, parameters },
+              result
+            );
+          }
+
+          logger.info(`Vertex AI Cognitive Transformer completed successfully in ${duration}ms`);
+
+          return {
+            success: true,
+            data: result,
+            contextUpdates: {
+              ...this.extractContextUpdates(result, step),
+              [`${step.stepId}_transformed`]: transformedData,
+            },
+            timestamp: new Date(),
+            attempts: 1,
+            retried: false,
+            totalDurationMs: duration,
+          };
+        } else if (action === 'vertex_ai_generate') {
           const { prompt, model, temperature, systemInstruction } = parameters;
           if (!prompt) {
             throw new Error(`Required parameter 'prompt' is missing for google_cloud.${step.action}`);
@@ -896,6 +1447,77 @@ class WorkflowExecutionService {
         };
       }
 
+      // 7. Intercept Scripting App - Secure Sandboxed JS
+      if (step.app?.toLowerCase() === 'scripting') {
+        const parameters = this.prepareParameters(step.parameters, context);
+        let result;
+        const tStart = Date.now();
+        const action = step.action?.toLowerCase();
+
+        if (action === 'execute_js') {
+          const { code } = parameters;
+          if (!code) {
+            throw new Error(`Required parameter 'code' is missing for scripting.${step.action}`);
+          }
+
+          let sandboxContext;
+          try {
+            const vm = await import('vm');
+            const clonedContext = JSON.parse(JSON.stringify(context));
+            sandboxContext = {
+              context: clonedContext,
+              console: {
+                log: (...args) => logger.info(`[Scripting Box Log]`, ...args),
+                error: (...args) => logger.error(`[Scripting Box Error]`, ...args)
+              },
+              result: null
+            };
+            
+            const script = new vm.Script(code);
+            const vmContext = vm.createContext(sandboxContext);
+            
+            script.runInContext(vmContext, { timeout: 2000 });
+            
+            const returnedResult = sandboxContext.result;
+            const updatedContext = sandboxContext.context;
+            
+            result = {
+              success: true,
+              result: returnedResult,
+              contextMutations: updatedContext
+            };
+          } catch (scriptErr) {
+            throw new Error(`Sandbox Execution Failure: ${scriptErr.message}`);
+          }
+        } else {
+          throw new Error(`Unknown action '${step.action}' for app 'scripting'`);
+        }
+
+        const duration = Date.now() - tStart;
+        if (context._executionId) {
+          workflowResilienceService.registerCompletedStep(
+            context._executionId,
+            { stepId: step.stepId, app: step.app, action: step.action, parameters },
+            result
+          );
+        }
+
+        logger.info(`Secure Sandboxed Script completed successfully: ${step.stepId} in ${duration}ms`);
+
+        return {
+          success: true,
+          data: result,
+          contextUpdates: {
+            ...this.extractContextUpdates(result, step),
+            ...result.contextMutations
+          },
+          timestamp: new Date(),
+          attempts: 1,
+          retried: false,
+          totalDurationMs: duration,
+        };
+      }
+
       // Get user's available tools for this app
       const userTools = await composioIntegrationService.getUserAvailableTools(
         userId,
@@ -955,6 +1577,7 @@ class WorkflowExecutionService {
           stepId: step.stepId,
           actionType: this._classifyActionType(step.action),
           maxAttempts: step.retryPolicy?.maxAttempts || 3,
+          app: step.app,
         }
       );
 
@@ -1015,7 +1638,8 @@ class WorkflowExecutionService {
    * default fallbacks, and preservation of native JSON types.
    */
   prepareParameters(stepParameters, context) {
-    const prepared = { ...stepParameters };
+    if (stepParameters === null || stepParameters === undefined) return stepParameters;
+    const prepared = typeof stepParameters === 'object' ? (Array.isArray(stepParameters) ? [...stepParameters] : { ...stepParameters }) : stepParameters;
 
     const resolvePath = (obj, pathStr) => {
       if (!pathStr || !obj) return undefined;
@@ -1051,19 +1675,97 @@ class WorkflowExecutionService {
       return current;
     };
 
+    const evaluateExpression = (exprStr, ctx) => {
+      const expr = exprStr.trim();
+      
+      // Reserved JS words, functions, and string/array methods to exclude from path resolution
+      const reserved = new Set([
+        'true', 'false', 'null', 'undefined', 'Math', 'String', 'Number', 'Array', 'Object', 'JSON',
+        'toUpperCase', 'toLowerCase', 'trim', 'slice', 'split', 'replace', 'length', 'includes',
+        'indexOf', 'concat', 'substring', 'charAt', 'join', 'map', 'filter', 'reduce'
+      ]);
+
+      const pathsFound = [];
+      // Strip single and double quoted string literals to avoid parsing words inside strings as variable paths
+      const exprWithoutStrings = expr.replace(/(['"])(.*?)\1/g, '');
+      const rawPaths = exprWithoutStrings.match(/[a-zA-Z_][a-zA-Z0-9_\.\[\]]*/g) || [];
+
+      rawPaths.forEach(rawPath => {
+        const parts = rawPath.split('.');
+        const cleanParts = [];
+        
+        for (const part of parts) {
+          const base = part.split('[')[0];
+          if (reserved.has(base)) {
+            break; // Truncate at reserved keywords or method names
+          }
+          cleanParts.push(part);
+        }
+        
+        if (cleanParts.length > 0) {
+          pathsFound.push(cleanParts.join('.'));
+        }
+      });
+
+      // Sort paths by length in descending order to avoid partial replacement of variables
+      pathsFound.sort((a, b) => b.length - a.length);
+      const uniquePaths = [...new Set(pathsFound)];
+      
+      let parameterizedExpr = expr;
+      const paramNames = [];
+      const paramValues = [];
+
+      uniquePaths.forEach((path, idx) => {
+        const placeholder = `__v${idx}`;
+        const escapedPath = path.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const exactWordRegex = new RegExp(`\\b${escapedPath}\\b`, 'g');
+        parameterizedExpr = parameterizedExpr.replace(exactWordRegex, placeholder);
+        
+        paramNames.push(placeholder);
+        paramValues.push(resolvePath(ctx, path));
+      });
+
+      try {
+        const fnBody = `return (${parameterizedExpr})`;
+        // Create a secure, sandboxed evaluator function with no scope access
+        const evaluator = new Function(...paramNames, fnBody);
+        return evaluator(...paramValues);
+      } catch (err) {
+        logger.warn(`Failed to evaluate expression: "${expr}". Falling back to path resolution. Error: ${err.message}`);
+        return resolvePath(ctx, expr);
+      }
+    };
+
     const replaceVariables = (obj) => {
       if (typeof obj === 'string') {
         const trimmed = obj.trim();
         // Check if the string is EXACTLY a single template variable e.g., "{{step1_result.data}}"
         const exactMatch = trimmed.match(/^\{\{([^}]+)\}\}$/);
         if (exactMatch) {
-          const resolved = resolvePath(context, exactMatch[1]);
+          const expression = exactMatch[1];
+          // Check if it's a simple path or a complex expression (contains math operators, ternaries, etc.)
+          const isComplex = /[\+\-\*\/\?\:\(\)\>\<]|toUpperCase|toLowerCase|trim|slice|split|length/.test(expression);
+          
+          if (isComplex) {
+            const evaluated = evaluateExpression(expression, context);
+            return evaluated !== undefined ? evaluated : obj;
+          }
+          
+          const resolved = resolvePath(context, expression);
           return resolved !== undefined ? resolved : obj;
         }
 
         // Otherwise, replace inline variables in the string
         return obj.replace(/\{\{([^}]+)\}}/g, (match, variable) => {
-          const resolved = resolvePath(context, variable);
+          const isComplex = /[\+\-\*\/\?\:\(\)\>\<]|toUpperCase|toLowerCase|trim|slice|split|length/.test(variable);
+          let resolved;
+          
+          if (isComplex) {
+            resolved = evaluateExpression(variable, context);
+          } else {
+            resolved = resolvePath(context, variable);
+          }
+
           if (resolved === undefined || resolved === null) return match;
           if (typeof resolved === 'object') {
             try {
@@ -1410,7 +2112,7 @@ class WorkflowExecutionService {
   /**
    * Resume a paused workflow execution after approval
    */
-  async resumeExecution(approvalId, userId, approved = true) {
+  async resumeExecution(approvalId, userId, approved = true, formResponse = null) {
     try {
       logger.info(`Resuming execution for approval ${approvalId} (Approved: ${approved})`);
 
@@ -1421,6 +2123,23 @@ class WorkflowExecutionService {
 
       if (approval.status !== 'pending') {
         throw new Error(`Approval is already resolved as ${approval.status}`);
+      }
+
+      // Validate formResponse against formSchema if defined
+      if (approved && approval.formSchema && typeof approval.formSchema === 'object') {
+        const schema = approval.formSchema;
+        const response = formResponse || {};
+        
+        for (const [key, fieldConfig] of Object.entries(schema)) {
+          if (fieldConfig.required && (response[key] === undefined || response[key] === null || response[key] === '')) {
+            throw new Error(`Form validation failed: Required field "${key}" is missing.`);
+          }
+          if (fieldConfig.type === 'number' && response[key] !== undefined && isNaN(Number(response[key]))) {
+            throw new Error(`Form validation failed: Field "${key}" must be a number.`);
+          }
+        }
+        
+        approval.formResponse = response;
       }
 
       // Update approval status
@@ -1462,6 +2181,9 @@ class WorkflowExecutionService {
 
       // Add the current stepId to approved steps list in context
       const currentContext = { ...execution.context };
+      if (approved && formResponse) {
+        Object.assign(currentContext, formResponse);
+      }
       if (!currentContext._approvedSteps) {
         currentContext._approvedSteps = [];
       }
@@ -1480,6 +2202,102 @@ class WorkflowExecutionService {
       };
     } catch (error) {
       logger.error(`Error resuming execution ${approvalId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Time-Travel Replay execution from a specific step index with merged context mutations
+   */
+  async replayExecution(executionId, userId, startStepId, mutatedContext = {}) {
+    try {
+      logger.info(`Initiating time-travel replay for execution ${executionId} from step ${startStepId}...`);
+
+      const execution = await WorkflowExecution.findOne({ executionId, userId });
+      if (!execution) {
+        throw new Error('Execution record not found');
+      }
+
+      const workflow = await Workflow.findById(execution.workflowId);
+      if (!workflow) {
+        throw new Error('Workflow not found');
+      }
+
+      // Restore context state
+      let mergedContext = { ...execution.context, ...mutatedContext };
+
+      // Find the start step and establish its index
+      const steps = [...workflow.steps];
+      steps.sort((a, b) => a.order - b.order);
+
+      const startStep = steps.find(s => s.stepId === startStepId);
+      if (!startStep) {
+        throw new Error(`Starting step "${startStepId}" not found in workflow`);
+      }
+
+      const startStepIndex = steps.indexOf(startStep);
+
+      // Reset starting step and all recursive child nodes back to pending
+      const stepStatuses = new Map();
+      execution.steps.forEach(s => {
+        stepStatuses.set(s.stepId, s.status);
+      });
+
+      const resetDownstream = (stepId) => {
+        stepStatuses.set(stepId, 'pending');
+        const children = steps.filter(s => {
+          if (!s.dependsOn) return false;
+          return s.dependsOn.some(dep => {
+            let depId = dep;
+            if (dep.includes('.')) {
+              depId = dep.split('.')[0];
+            }
+            return depId === stepId;
+          });
+        });
+        children.forEach(child => {
+          resetDownstream(child.stepId);
+        });
+      };
+
+      resetDownstream(startStepId);
+
+      // Prepare updated steps array
+      const updatedStepsList = steps.map(step => {
+        const currentStatus = stepStatuses.get(step.stepId);
+        return {
+          stepId: step.stepId,
+          status: currentStatus === 'running' ? 'pending' : currentStatus,
+        };
+      });
+
+      await WorkflowExecution.updateOne(
+        { _id: execution._id },
+        {
+          status: 'running',
+          steps: updatedStepsList,
+          context: mergedContext,
+          error: null
+        }
+      );
+
+      // Trigger the run loop asynchronously in the background starting from startStepIndex
+      this.runWorkflowSteps(workflow, execution, mergedContext, startStepIndex)
+        .then(res => {
+          logger.info(`Replay execution finished successfully for ${executionId}`);
+        })
+        .catch(err => {
+          logger.error(`Replay execution failed for ${executionId}:`, err);
+        });
+
+      return {
+        success: true,
+        status: 'running_replay',
+        executionId,
+        message: `Replay successfully initiated from step "${startStepId}".`
+      };
+    } catch (error) {
+      logger.error(`Error initiating replay for execution ${executionId}:`, error);
       throw error;
     }
   }

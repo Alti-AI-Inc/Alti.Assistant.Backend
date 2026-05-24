@@ -1,6 +1,7 @@
 import config from '../../../../../config/index.js';
 import { GoogleGenAI } from '@google/genai';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
+import { UnifiedSmartRouter } from '../../../helpers/UnifiedSmartRouter.js';
 import { isVideoOnlyQuery, searchYouTube, extractVideoCount } from '../utils/videoUtils.js';
 import { GcpNativeService } from '../../gcp_native/gcp-native.service.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
@@ -71,53 +72,64 @@ async function estimateTokens(messages) {
  * @param {Object} ai - Google GenAI instance
  * @returns {Object} Summarized history with summary message
  */
-async function summarizeHistory(conversationHistory, ai) {
+/**
+ * Semantically compresses conversation history to protect technical context and metrics
+ * while purging conversational pleasantries and filler tokens.
+ * @param {Array} conversationHistory - Full history array.
+ * @param {Object} ai - Google GenAI instance.
+ * @returns {Array} - Compressed conversation history.
+ */
+async function compressHistorySemantically(conversationHistory, ai) {
   console.log(
-    `📝 Summarizing ${conversationHistory.length} messages in conversation history`
+    `📝 Semantically compressing ${conversationHistory.length} messages in conversation history`
   );
 
   try {
-    // Extract conversation text
     const conversationText = conversationHistory
-      .map(
-        (msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-      )
+      .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
       .join('\n\n');
 
-    // Create summary request
-    const summaryPrompt = `Please provide a concise summary of the following conversation, capturing the key topics, questions asked, and important information discussed. Keep the summary under 500 words.
+    const compressionPrompt = `You are a high-fidelity Factual Semantic Context Compressor.
+Your sole job is to compress the conversation history below by at least 50% in token size while maintaining absolute factual integrity.
 
-Conversation:
+STRICT COMPRESSION RULES:
+1. RETAIN all Markdown tables, exact numerical values, stock tickers (e.g. AAPL), betting odds (e.g. -110), real estate values, and clinical/legal citation keys.
+2. DELETE all assistant polite preambles ("Sure, I can help with...", "According to..."), filler text, and general conversational pleasantries.
+3. CONDENSE user requests down to their core technical intent.
+4. MAINTAIN chronological ordering of the core facts.
+
+Conversation History to compress:
 ${conversationText}
 
-Summary:`;
+Compressed History (in the same format, clear and highly dense):`;
 
-    const summaryResult = await ai.models.generateContent({
+    const result = await ai.models.generateContent({
       model: 'gemini-3.5-flash',
       contents: [
         {
           role: 'user',
-          parts: [{ text: summaryPrompt }],
+          parts: [{ text: compressionPrompt }],
         },
       ],
+      config: {
+        temperature: 0.1,
+        maxOutputTokens: 2000,
+      }
     });
 
-    const summaryText = summaryResult.candidates[0].content.parts
-      .map((part) => part.text)
-      .join('');
-
-    console.log(`✅ History summarized: ${summaryText.length} characters`);
-
-    // Return as a single summary message
+    const compressedText = result.candidates[0].content.parts[0].text;
+    console.log(`✅ History compressed: ${compressedText.length} characters`);
+    
+    // Return as a single high-density reference message
     return [
       {
         role: 'user',
-        content: `Previous conversation summary: ${summaryText}`,
+        content: `[COMPRESSED HISTORY ARCHIVE - FACTUAL REFERENCE CONTEXT]\n\n${compressedText}`,
       },
     ];
   } catch (error) {
-    console.error('❌ Error summarizing history:', error);
-    // Fallback: keep only last 3 messages if summarization fails
+    console.error('❌ Error compressing history semantically:', error);
+    // Fallback: keep only last 3 messages if compression fails
     return conversationHistory.slice(-3);
   }
 }
@@ -234,6 +246,7 @@ export async function* executeGroundedSearchStream(
   // 1. Check for financial queries using massiveSmartRouter
   const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
   const isFinancialQuery = enhancedQuery !== query;
+  const registryMetadata = UnifiedSmartRouter.extractAndFlattenMetadata(enhancedQuery);
 
   // 2. Check for YouTube video queries
   const isVideoQuery = await isVideoOnlyQuery(query, conversationHistory);
@@ -352,8 +365,8 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
     try {
       const startTime = Date.now();
 
-      // Token management: Check if history needs summarization
-      const TOKEN_LIMIT = 8000;
+      // Token management: Check if history needs semantic compression
+      const TOKEN_LIMIT = 6000;
       const QUERY_TOKEN_RESERVE = 2000;
       const MAX_HISTORY_TOKENS = TOKEN_LIMIT - QUERY_TOKEN_RESERVE;
 
@@ -366,9 +379,9 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
 
       if (historyTokens > MAX_HISTORY_TOKENS) {
         console.log(
-          `⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`
+          `⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), compressing semantically...`
         );
-        processedHistory = await summarizeHistory(conversationHistory, ai);
+        processedHistory = await compressHistorySemantically(conversationHistory, ai);
 
         const summaryTokens = estimateTokens(processedHistory);
         if (summaryTokens > MAX_HISTORY_TOKENS) {
@@ -475,59 +488,13 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         }
       }
 
-      // Process grounding metadata into references
-      const references = [];
-      const usedUrls = new Set();
-
-      if (groundingMetadata?.groundingChunks) {
-        groundingMetadata.groundingChunks.forEach((chunk, index) => {
-          if (chunk.web?.uri && !usedUrls.has(chunk.web.uri)) {
-            usedUrls.add(chunk.web.uri);
-            console.log(`   Source ${index + 1}: ${chunk.web.uri}`);
-
-            try {
-              const url = new URL(chunk.web.uri);
-              references.push({
-                url: chunk.web.uri,
-                domain: chunk.web.title || url.hostname.replace('www.', ''),
-                title: chunk.web.title,
-              });
-            } catch {
-              references.push({
-                url: chunk.web.uri,
-                domain: chunk.web.title || 'unknown',
-                title: chunk.web.title,
-              });
-            }
-          }
-        });
-      }
-
-      const limitedReferences = references.slice(0, 5);
-
-      const citations = limitedReferences.map((ref, index) => ({
-        index: index + 1,
-        url: ref.url,
-        domain: ref.domain,
-        title: ref.title,
-      }));
-
-      const mergedReferences = [
+      // Stitch and deduplicate references and citations using our new engine
+      const extraReferences = [
         ...(videoReferences || []),
-        ...(gcpCatalogReferences || []),
-        ...limitedReferences
-      ].slice(0, 5);
-
-      const mergedCitations = [
-        ...(videoCitations || []),
-        ...(gcpCatalogReferences.map((repo, index) => ({
-          index: index + 1,
-          url: repo.url,
-          domain: repo.domain,
-          title: repo.title,
-        })) || []),
-        ...citations
-      ].map((cit, idx) => ({ ...cit, index: idx + 1 })).slice(0, 5);
+        ...(gcpCatalogReferences || [])
+      ];
+      const { references: mergedReferences, citations: mergedCitations } = 
+        UnifiedSmartRouter.stitchAndDeduplicateCitations(registryMetadata, groundingMetadata, extraReferences);
 
       const citationMetadata = groundingMetadata
         ? {
@@ -565,6 +532,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         reference: mergedReferences,
         citations: mergedCitations,
         citationMetadata: citationMetadata,
+        registryMetadata: registryMetadata,
         timestamp: Date.now(),
       };
 
@@ -602,6 +570,7 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
   // 1. Check for financial queries using massiveSmartRouter
   const enhancedQuery = await massiveSmartRouter.routeAndEnhancePrompt(query);
   const isFinancialQuery = enhancedQuery !== query;
+  const registryMetadata = UnifiedSmartRouter.extractAndFlattenMetadata(enhancedQuery);
 
   // 2. Check for YouTube video queries
   const isVideoQuery = await isVideoOnlyQuery(query, conversationHistory);
@@ -720,9 +689,9 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
     try {
       const startTime = Date.now();
 
-      // Token management: Check if history needs summarization
-      const TOKEN_LIMIT = 8000; // Conservative limit for context window
-      const QUERY_TOKEN_RESERVE = 2000; // Reserve tokens for query and response
+      // Token management: Check if history needs semantic compression
+      const TOKEN_LIMIT = 6000;
+      const QUERY_TOKEN_RESERVE = 2000;
       const MAX_HISTORY_TOKENS = TOKEN_LIMIT - QUERY_TOKEN_RESERVE;
 
       let processedHistory = conversationHistory;
@@ -734,9 +703,9 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
 
       if (historyTokens > MAX_HISTORY_TOKENS) {
         console.log(
-          `⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), summarizing...`
+          `⚠️ History exceeds token limit (${historyTokens} > ${MAX_HISTORY_TOKENS}), compressing semantically...`
         );
-        processedHistory = await summarizeHistory(conversationHistory, ai);
+        processedHistory = await compressHistorySemantically(conversationHistory, ai);
 
         // Check if even summary is too large
         const summaryTokens = estimateTokens(processedHistory);
@@ -855,63 +824,13 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         .map((part) => part.text)
         .join('');
 
-      // Extract grounding metadata
-      const groundingMetadata = response.groundingMetadata;
-
-      // Process grounding metadata into references
-      const references = [];
-      const usedUrls = new Set();
-
-      if (groundingMetadata?.groundingChunks) {
-        groundingMetadata.groundingChunks.forEach((chunk, index) => {
-          if (chunk.web?.uri && !usedUrls.has(chunk.web.uri)) {
-            usedUrls.add(chunk.web.uri);
-            console.log(`   Source ${index + 1}: ${chunk.web.uri}`);
-
-            try {
-              const url = new URL(chunk.web.uri);
-              references.push({
-                url: chunk.web.uri,
-                domain: chunk.web.title || url.hostname.replace('www.', ''),
-                title: chunk.web.title,
-              });
-            } catch {
-              references.push({
-                url: chunk.web.uri,
-                domain: chunk.web.title || 'unknown',
-                title: chunk.web.title,
-              });
-            }
-          }
-        });
-      }
-
-      // Limit to 5 references
-      const limitedReferences = references.slice(0, 5);
-
-      const citations = limitedReferences.map((ref, index) => ({
-        index: index + 1,
-        url: ref.url,
-        domain: ref.domain,
-        title: ref.title,
-      }));
-
-      const mergedReferences = [
+      // Stitch and deduplicate references and citations using our new engine
+      const extraReferences = [
         ...(videoReferences || []),
-        ...(gcpCatalogReferences || []),
-        ...limitedReferences
-      ].slice(0, 5);
-
-      const mergedCitations = [
-        ...(videoCitations || []),
-        ...(gcpCatalogReferences.map((repo, index) => ({
-          index: index + 1,
-          url: repo.url,
-          domain: repo.domain,
-          title: repo.title,
-        })) || []),
-        ...citations
-      ].map((cit, idx) => ({ ...cit, index: idx + 1 })).slice(0, 5);
+        ...(gcpCatalogReferences || [])
+      ];
+      const { references: mergedReferences, citations: mergedCitations } = 
+        UnifiedSmartRouter.stitchAndDeduplicateCitations(registryMetadata, groundingMetadata, extraReferences);
 
       // Build citation metadata
       const citationMetadata = groundingMetadata
@@ -946,6 +865,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         reference: mergedReferences,
         citations: mergedCitations,
         citationMetadata: citationMetadata,
+        registryMetadata: registryMetadata,
       };
     } catch (error) {
       console.error(

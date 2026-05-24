@@ -8,6 +8,7 @@ import {
   validateWorkflowNode,
   generateResponseNode,
   executeWorkflowNode,
+  autoHealWorkflowNode,
 } from './nodes.js';
 import { MongoDBSaver } from './mongodbSaver.js';
 import { logger } from '../../../../shared/logger.js';
@@ -21,6 +22,7 @@ workflow.addNode('plan_workflow', planWorkflowNode);
 workflow.addNode('schedule_detection', scheduleDetectionNode);
 workflow.addNode('extract_parameters', extractParametersNode);
 workflow.addNode('validate_workflow', validateWorkflowNode);
+workflow.addNode('auto_heal', autoHealWorkflowNode);
 workflow.addNode('execute_workflow', executeWorkflowNode);
 workflow.addNode('generate_response', generateResponseNode);
 
@@ -79,23 +81,36 @@ workflow.addConditionalEdges(
   }
 );
 
-// Route from validation: execute if valid & all apps connected, else confirm
+// Route from validation: execute if valid & all apps connected, auto-heal if invalid, else confirm
 workflow.addConditionalEdges(
   'validate_workflow',
   (state) => {
     if (state.error) return 'generate_response';
-    // If workflow is valid and no missing connections, execute directly
+    
     const isValid = state.validationResult?.isValid !== false;
     const noMissing = !state.validationResult?.missingConnections?.length;
-    if (isValid && noMissing) return 'execute_workflow';
-    // Otherwise, generate confirmation message with connection URLs
+    
+    if (isValid && noMissing) {
+      return 'execute_workflow';
+    }
+    
+    // If there are validation errors (invalid plan) and we haven't already healed it, trigger self-healing
+    if (!isValid && state.currentStage !== 'healed') {
+      return 'auto_heal';
+    }
+    
+    // Otherwise, generate confirmation message with connection URLs or parameters needed
     return 'generate_response';
   },
   {
     execute_workflow: 'execute_workflow',
+    auto_heal: 'auto_heal',
     generate_response: 'generate_response',
   }
 );
+
+// Route from auto-healing back to validation for checking the repaired plan
+workflow.addEdge('auto_heal', 'validate_workflow');
 
 // Route from execution to response generation
 workflow.addEdge('execute_workflow', 'generate_response');

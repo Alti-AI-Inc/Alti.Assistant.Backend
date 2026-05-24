@@ -442,7 +442,7 @@ const getPendingApprovalsController = catchAsync(async (req, res) => {
  */
 const resolveApprovalController = catchAsync(async (req, res) => {
   const { approvalId } = req.params;
-  const { approved = true } = req.body;
+  const { approved = true, formResponse = null } = req.body;
   const userId = req.user?._id || req.userId;
 
   if (!userId) {
@@ -465,7 +465,8 @@ const resolveApprovalController = catchAsync(async (req, res) => {
     const result = await workflowExecutionService.resumeExecution(
       approvalId,
       userId,
-      approved
+      approved,
+      formResponse
     );
 
     return sendResponse(res, {
@@ -484,6 +485,152 @@ const resolveApprovalController = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * Handle incoming dynamic third-party webhooks to trigger workflow execution
+ */
+const handleWebhookTriggerController = catchAsync(async (req, res) => {
+  const { webhookId } = req.params;
+  const secretHeader = req.headers['x-webhook-secret'];
+  const secretQuery = req.query.secret;
+
+  if (!webhookId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Webhook ID/Workflow ID is required',
+    });
+  }
+
+  try {
+    // 1. Resolve workflow and check trigger type matches webhook
+    const workflow = await Workflow.findById(webhookId);
+    if (!workflow) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Workflow not found',
+      });
+    }
+
+    if (workflow.status !== 'active') {
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Workflow is not active',
+      });
+    }
+
+    if (workflow.trigger?.triggerType !== 'webhook') {
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Workflow is not configured for webhook triggers',
+      });
+    }
+
+    // 2. Secret authentication check
+    const expectedSecret = workflow.trigger.webhookConfig?.secret;
+    if (expectedSecret) {
+      const providedSecret = secretHeader || secretQuery;
+      if (providedSecret !== expectedSecret) {
+        return sendResponse(res, {
+          statusCode: httpStatus.UNAUTHORIZED,
+          success: false,
+          message: 'Invalid webhook secret key',
+        });
+      }
+    }
+
+    // 3. Assemble execution context from request body, headers, and query parameters
+    const executionContext = {
+      triggeredBy: 'webhook',
+      webhookId,
+      headers: req.headers,
+      body: req.body || {},
+      query: req.query || {},
+      // Shallow merge request body for direct variable accessibility
+      ...(req.body || {}),
+    };
+
+    logger.info(`[Webhook Trigger] Received dynamic request for workflow: ${webhookId}`);
+
+    // 4. Trigger execution asynchronously so we don't hold the third-party HTTP request hanging
+    workflowExecutionService.executeWorkflow(workflow._id, workflow.userId, executionContext)
+      .then(result => {
+        logger.info(`[Webhook Trigger] Background execution completed. Success: ${result.success}`);
+      })
+      .catch(err => {
+        logger.error(`[Webhook Trigger] Background execution failed for ${workflow._id}:`, err);
+      });
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Workflow trigger request accepted successfully',
+      data: {
+        workflowId: workflow._id,
+        triggerType: 'webhook',
+        status: 'accepted'
+      },
+    });
+  } catch (error) {
+    logger.error('Error in handleWebhookTriggerController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to process webhook trigger',
+    });
+  }
+});
+
+/**
+ * Time-Travel Replay an execution starting from any specific step with optional context mutations
+ */
+const replayExecutionController = catchAsync(async (req, res) => {
+  const { executionId } = req.params;
+  const { startStepId, mutatedContext = {} } = req.body;
+  const userId = req.user?._id || req.userId;
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
+
+  if (!executionId || !startStepId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Execution ID and Start Step ID are required',
+    });
+  }
+
+  try {
+    const result = await workflowExecutionService.replayExecution(
+      executionId,
+      userId,
+      startStepId,
+      mutatedContext
+    );
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Time-travel replay successfully initiated',
+      data: result,
+    });
+  } catch (error) {
+    logger.error('Error in replayExecutionController:', error);
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to initiate execution replay',
+    });
+  }
+});
+
 export const executionController = {
   executeWorkflowController,
   getExecutionHistoryController,
@@ -495,4 +642,7 @@ export const executionController = {
   refreshConnectionController,
   getPendingApprovalsController,
   resolveApprovalController,
+  handleWebhookTriggerController,
+  replayExecutionController,
 };
+

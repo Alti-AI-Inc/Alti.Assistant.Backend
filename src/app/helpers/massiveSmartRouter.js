@@ -3083,12 +3083,7 @@ const combinedRouteAndEnhancePrompt = async (prompt) => {
   return result;
 };
 
-export const massiveSmartRouter = {
-  routeAndEnhancePrompt,
-  combinedRouteAndEnhancePrompt,
-  detectFinancialIntent,
-  detectMultipleTickers,
-  // Re-export for convenience
-  detectSportsIntent: sportsSmartRouter.detectSportsIntent,
-  detectRealEstateIntent: realestateSmartRouter.detectRealEstateIntent,
-};
+import { UnifiedSmartRouter } from './UnifiedSmartRouter.js';
+
+export const massiveFinanceRouteAndEnhancePrompt = routeAndEnhancePrompt;
+export const massiveSmartRouter = UnifiedSmartRouter;

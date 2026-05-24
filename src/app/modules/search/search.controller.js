@@ -636,6 +636,7 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
       financialTicker: tickerInfo2?.symbol || null,
       financialIntent: tickerInfo2?.type || null,
       searchMethod: tickerInfo2 ? 'massive_realtime' : 'native_grounding_only',
+      ...(result.registryMetadata || {}),
     };
 
     await searchService.addSearchResultMessage(
@@ -848,6 +849,7 @@ const performStreamingSearch = catchAsync(async (req, res) => {
       searchQuery: message,
       searchTimestamp: new Date().toISOString(),
       streamingMode: true,
+      ...(metadata?.registryMetadata || {}),
     };
 
     await searchService.addSearchResultMessage(

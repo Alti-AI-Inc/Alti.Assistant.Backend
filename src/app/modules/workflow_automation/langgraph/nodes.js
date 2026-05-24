@@ -142,6 +142,7 @@ In addition to external third-party apps, you have access to these core Alti Pla
 3. "agents" (or "swarm"): Delegate task to a collaborative multi-agent swarm.
    - Actions:
      * "run_swarm": Execute collaborative agent swarm. Parameters: { query: string }.
+     * "swarm_orchestrator": Instantiates a collaborative multi-agent swarm consisting of specialized roles to orchestrate and complete a complex instruction set. Parameters: { instructions: string, agentsList: array (e.g. ["Researcher", "Copywriter", "Reviewer"] - optional) }.
 4. "data" (or "datasets"): Run semantic search RAG queries or index data.
    - Actions:
      * "query_rag": Search document banks/knowledge bases. Parameters: { query: string }.
@@ -150,6 +151,8 @@ In addition to external third-party apps, you have access to these core Alti Pla
 6. "google_cloud" (or "gcp"): Natively execute Google Cloud tasks.
    - Actions:
      * "vertex_ai_generate": Ask Vertex AI / Gemini to generate text or structured details. Parameters: { prompt: string, model: string (optional), temperature: number (optional) }.
+     * "vertex_ai_router": AI Prompt Router. Categorizes input text into structured route keys based on descriptions. Parameters: { input: string, routes: { [routeKey: string]: string } }. Returns the selected route key as evaluation.
+     * "vertex_ai_transform": AI Cognitive Data Transformer. High-fidelity AI data mapping without code. Ingests data and reshapes/maps/transforms it exactly as specified by natural language instructions. Parameters: { data: any, instructions: string }. Returns the transformed JSON or object.
      * "gcs_upload": Upload text/content payload to Google Cloud Storage. Parameters: { bucketName: string, fileName: string, content: string }.
      * "gcs_download": Download a file's contents from Google Cloud Storage. Parameters: { bucketName: string, fileName: string }.
      * "bigquery_query": Run a Google BigQuery SQL query. Parameters: { query: string }.
@@ -157,19 +160,33 @@ In addition to external third-party apps, you have access to these core Alti Pla
    - Actions:
      * "sheets_append": Append a row of data values to a Google Sheet. Parameters: { spreadsheetId: string, range: string, values: array }.
      * "drive_upload": Upload text content or file directly to Google Drive. Parameters: { folderId: string (optional), fileName: string, content: string }.
+8. "scripting": Run secure sandboxed Javascript code inside an isolated VM.
+   - Actions:
+     * "execute_js": Run custom Javascript code safely. Parameters: { code: string }. The script has access to a copy of the workflow 'context' object, and you MUST assign the final computed value to 'result' (e.g. 'result = context.price * 2;'). All modified context values in the sandbox will automatically merge back to the main context. Enforces a 2000ms watchdog execution limit.
 
 Break down the workflow into logical steps. Each step should have:
 - stepId: unique identifier (e.g. "step1", "step2")
 - stepType: "action", "condition", "trigger", or "delay"
 - description: what this step does
-- app: the service/app to use (must be from available apps or one of the core platform apps: chat, research, agents, data, apps, google_cloud, google_workspace)
+- app: the service/app to use (must be from available apps or one of the core platform apps: chat, research, agents, data, apps, google_cloud, google_workspace, scripting)
 - action: specific action to perform (use available tool or platform action names)
 - parameters: required parameters. You can reference outputs of previous steps using the format {{stepId_result}}, {{stepId_answer}}, {{stepId_reply}}, or {{stepId_text}} (e.g., {{step1_answer}}). You can also perform deep property lookups using dot-notation (e.g., {{step1_result.data.user.email}}).
-- dependsOn: array of stepId strings that this step depends on. If the step is independent and can execute in parallel with other steps, specify an empty array []. If the step acts as a Join Gate that waits for multiple parallel branches to finish, list all their stepIds in the array (e.g. ["step1", "step2"]).
+- retryPolicy: (optional) custom resilient retry policy for brittle network/third-party integrations. Structure: { maxAttempts: number (1-5), initialIntervalMs: number (e.g. 1000), backoffCoefficient: number (e.g. 2), maxDelayMs: number (e.g. 30000) }
+- continueOnError: (optional) set to true to bypass failures, or "agentic_heal" to invoke an autonomous LLM self-healing run to repair parameter configurations and retry the step dynamically in real-time.
+- requireApproval: (optional) set to true to pause execution for human verification.
+- formSchema: (optional) if requireApproval is true, you can specify a JSON schema of input fields that the human must supply to resolve the intervention (e.g. { couponCode: { type: 'string', required: true, description: 'Coupon discount key' } }). The human inputs will merge directly into the context for downstream steps.
+- dependsOn: array of stepId strings that this step depends on.
+  * For parallel steps: if a step can run in parallel, specify an empty array [] or only its true baseline parents.
+  * For branching & conditional steps:
+    - Downstream steps depending on a "condition" step (boolean) MUST depend on "stepId.true" or "stepId.false".
+    - Downstream steps depending on a "vertex_ai_router" step MUST depend on "stepId.routeKey" (e.g., "step1.sales", "step1.support").
+    - Downstream steps that join multiple parallel branches should list all completed baseline parents in their dependsOn array.
 - order: execution order (1-indexed integer)
 
 Consider:
+- Deep cross-page integration: Weave Chat, Research, Agents, Data, and Apps together for advanced intents (e.g., running deep research, summarizing with a swarm agent, saving to GCS, and posting the download link back to the chat thread).
 - Parallel execution: Identify independent steps that do not require each other's outputs and can run concurrently in parallel (e.g., conducting recursive research and querying a RAG database at the same time). Make them independent by setting empty or base dependsOn arrays.
+- Branching and AI semantic routing: Utilize the Vertex AI prompt router to split workflows into distinct parallel branches, using dependsOn dot-notation suffixes to route branches.
 - Data flow between steps (e.g. step 2 parameters can reference step 1 outputs like {{step1_answer}}).
 - Authentication requirements for apps.
 - Error handling.
@@ -391,6 +408,13 @@ export const validateWorkflowNode = async (state) => {
   try {
     logger.info('Validating workflow configuration');
 
+    // LangSmith Diagnostics Check
+    if (process.env.LANGCHAIN_TRACING_V2 === 'true') {
+      logger.info(`[LangSmith Diagnostics] Tracing active for project: ${process.env.LANGCHAIN_PROJECT || 'default'}`);
+    } else {
+      logger.info('[LangSmith Diagnostics] Tracing is inactive. Set LANGCHAIN_TRACING_V2=true and LANGCHAIN_API_KEY to trace executions.');
+    }
+
     const validation = {
       isValid: true,
       issues: [],
@@ -454,6 +478,75 @@ export const validateWorkflowNode = async (state) => {
     if (!state.workflowSteps || state.workflowSteps.length === 0) {
       validation.issues.push('No workflow steps defined');
       validation.isValid = false;
+    }
+
+    // Proactive cycle/deadlock validation using graph depth-first traversal (DFS)
+    if (state.workflowSteps && state.workflowSteps.length > 0) {
+      const adjList = {};
+      const stepIds = new Set();
+      
+      state.workflowSteps.forEach(step => {
+        const stepId = step.stepId;
+        stepIds.add(stepId);
+        adjList[stepId] = [];
+      });
+
+      state.workflowSteps.forEach(step => {
+        const stepId = step.stepId;
+        const dependsOn = step.dependsOn || [];
+        
+        let deps = dependsOn;
+        if (step.dependsOn === undefined && step.order > 1) {
+          const prevStep = state.workflowSteps.find(s => s.order === step.order - 1);
+          if (prevStep) {
+            deps = [prevStep.stepId];
+          }
+        }
+
+        deps.forEach(depId => {
+          if (!stepIds.has(depId)) {
+            validation.issues.push(`Step "${stepId}" depends on non-existent step "${depId}"`);
+            validation.isValid = false;
+            return;
+          }
+          adjList[stepId].push(depId);
+        });
+      });
+
+      const visited = {};
+      const recStack = {};
+
+      const dfs = (node) => {
+        visited[node] = true;
+        recStack[node] = true;
+
+        const neighbors = adjList[node] || [];
+        for (const neighbor of neighbors) {
+          if (!visited[neighbor]) {
+            if (dfs(neighbor)) return true;
+          } else if (recStack[neighbor]) {
+            return true; // Loop discovered
+          }
+        }
+
+        recStack[node] = false;
+        return false;
+      };
+
+      let circularDetected = false;
+      for (const stepId of stepIds) {
+        if (!visited[stepId]) {
+          if (dfs(stepId)) {
+            circularDetected = true;
+            break;
+          }
+        }
+      }
+
+      if (circularDetected) {
+        validation.issues.push('Circular dependency / deadlocked connection found in workflow plan.');
+        validation.isValid = false;
+      }
     }
 
     // Check for invalid apps
@@ -678,6 +771,59 @@ export const executeWorkflowNode = async (state) => {
       error: `Workflow execution failed: ${error.message}`,
       executionResult: { success: false, error: error.message },
       currentStage: 'execution_error',
+    };
+  }
+};
+
+/**
+ * Self-healing node to automatically re-resolve and repair failing execution plans
+ */
+export const autoHealWorkflowNode = async (state) => {
+  try {
+    logger.info('Auto-healing workflow configuration...');
+
+    const systemPrompt = `You are a self-healing AI compiler. A workflow execution plan failed validation with the following issues:
+${JSON.stringify(state.validationResult?.issues || [])}
+
+Original user request: "${state.userPrompt}"
+Planned steps that failed:
+${JSON.stringify(state.workflowSteps)}
+
+Your task is to repair the execution plan. Correct any circular dependencies (reorder order and dependsOn links), fix missing parameter bindings, and ensure it is valid.
+
+Respond with a JSON object containing:
+- workflowSteps: Repaired steps array
+- repaired: true
+`;
+
+    const response = await llm.invoke([
+      new SystemMessage(systemPrompt),
+      new HumanMessage("Please repair the workflow execution plan."),
+    ]);
+
+    let cleanedResult = response.content;
+    if (cleanedResult.includes('<think>')) {
+      const regex = /<think>[\s\S]*?<\/think>/g;
+      cleanedResult = cleanedResult.replace(regex, '').trim();
+    }
+
+    const match = cleanedResult.match(/{[\s\S]*}/);
+    if (!match) {
+      throw new Error('No valid JSON structure found in auto-heal response.');
+    }
+    const healed = JSON.parse(match[0]);
+
+    logger.info('Workflow auto-healing complete.');
+
+    return {
+      workflowSteps: healed.workflowSteps,
+      currentStage: 'healed',
+    };
+  } catch (error) {
+    logger.error('Error in workflow auto-healing:', error);
+    return {
+      error: `Auto-healing failed: ${error.message}`,
+      currentStage: 'healing_error',
     };
   }
 };
