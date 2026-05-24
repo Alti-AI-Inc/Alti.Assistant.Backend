@@ -10,7 +10,7 @@
 import { RedisClient } from '../../shared/redis.js';
 import { logger } from '../../shared/logger.js';
 
-import { DuffelFlightsProvider } from './providers/duffelProviders.js';
+import { DuffelFlightsProvider, DuffelStaysProvider } from './providers/duffelProviders.js';
 
 // Import Modular Providers
 import {
@@ -965,6 +965,7 @@ SearchEngineRegistry.register(UsdaSoilSalinityProvider);
 
 // Stage 20 Premium Providers (Duffel Integration)
 SearchEngineRegistry.register(DuffelFlightsProvider);
+SearchEngineRegistry.register(DuffelStaysProvider);
 
 
 

@@ -385,6 +385,10 @@ export const UnifiedSmartRouter = {
           title = 'Duffel Premium Flights & Travel Search';
           url = 'https://duffel.com';
           domain = 'duffel.com';
+        } else if (providerId === 'duffel_stays') {
+          title = 'Duffel Premium Stays & Hotel Search';
+          url = 'https://duffel.com';
+          domain = 'duffel.com';
         } else if (providerId === 'github_issues_prs') {
           title = 'GitHub Issues & Pull Requests Statistics Feed';
           url = 'https://github.com';
