@@ -581,6 +581,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Shrub native soil tolerances environmental database';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_languages') {
+          title = 'GitHub Repository Programming Languages Feed';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_highways') {
+          title = 'OpenStreetMap Highways & Motorways';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_descriptions') {
+          title = 'Wikidata Item Multilingual Descriptions';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_page_links') {
+          title = 'Wikipedia Article Outgoing Links Index';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_amateur_equipment') {
+          title = 'FCC Amateur Radio Certified Transmitter Equipment Database';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_covers') {
+          title = 'Open Library Literary Book Covers Index';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_formats') {
+          title = 'Zenodo Open-Science Record File Formats Feed';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_assigned_equipment') {
+          title = 'NIFC Wildfire Incident Suppression Equipment Registry';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_funder_schemes') {
+          title = 'Crossref Research Funder Schemes Database';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_shrub_growth') {
+          title = 'USDA Shrub native growth dimensions database';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;

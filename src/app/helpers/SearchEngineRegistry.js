@@ -237,6 +237,19 @@ import {
   UsdaShrubTolerancesProvider
 } from './providers/superPremiumNicheProviders.js';
 
+import {
+  GithubLanguagesProvider,
+  OpenstreetmapHighwaysProvider,
+  WikidataDescriptionsProvider,
+  WikipediaPageLinksProvider,
+  FccAmateurEquipmentProvider,
+  OpenlibraryCoversProvider,
+  ZenodoFormatsProvider,
+  NifcAssignedEquipmentProvider,
+  CrossrefFunderSchemesProvider,
+  UsdaShrubGrowthProvider
+} from './providers/megaPremiumNicheProviders.js';
+
 
 
 
@@ -832,6 +845,18 @@ SearchEngineRegistry.register(ZenodoLicensesProvider);
 SearchEngineRegistry.register(NifcAssignedPersonnelProvider);
 SearchEngineRegistry.register(CrossrefOpenFundersProvider);
 SearchEngineRegistry.register(UsdaShrubTolerancesProvider);
+
+// Stage 15 Premium Providers
+SearchEngineRegistry.register(GithubLanguagesProvider);
+SearchEngineRegistry.register(OpenstreetmapHighwaysProvider);
+SearchEngineRegistry.register(WikidataDescriptionsProvider);
+SearchEngineRegistry.register(WikipediaPageLinksProvider);
+SearchEngineRegistry.register(FccAmateurEquipmentProvider);
+SearchEngineRegistry.register(OpenlibraryCoversProvider);
+SearchEngineRegistry.register(ZenodoFormatsProvider);
+SearchEngineRegistry.register(NifcAssignedEquipmentProvider);
+SearchEngineRegistry.register(CrossrefFunderSchemesProvider);
+SearchEngineRegistry.register(UsdaShrubGrowthProvider);
 
 
 
