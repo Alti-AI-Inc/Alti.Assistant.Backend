@@ -2,6 +2,9 @@ import axios from 'axios';
 import Dataset from './datasets.model.js';
 import DatasetQueue from './datasetQueue.model.js';
 import { DatasetsService } from './datasets.service.js';
+import { temporalClientCoordinator } from '../workflow_automation/services/temporal/client.js';
+import { runDatasetIngestionWorkflow } from './temporal/ingestionWorkflow.js';
+
 
 // Strict legal purity license filter
 const ALLOWED_LICENSES = ['mit', 'apache-2.0'];
@@ -306,6 +309,81 @@ const runWorkerLoop = async () => {
 };
 
 /**
+ * Resilient Temporal Ingestion Coordinator worker loop
+ */
+const runTemporalWorkerLoop = async () => {
+  if (workerLoopActive) return;
+  workerLoopActive = true;
+
+  console.log('[HF Worker] Resilient Temporal Ingestion Coordinator loop started.');
+
+  while (isWorkerRunning) {
+    try {
+      // 1. GCS Capacity Guardrail
+      const capacityLimit = getGcsCapacityBytes();
+      const currentStorageUsed = await Dataset.aggregate([
+        { $group: { _id: null, total: { $sum: '$sizeBytes' } } }
+      ]);
+      const totalBytesArchived = currentStorageUsed[0]?.total || 0;
+
+      if (totalBytesArchived >= capacityLimit) {
+        console.warn(`[HF Worker] GCS Storage Limit Reached (${(totalBytesArchived / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB / ${(capacityLimit / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB). Halting crawler loop.`);
+        isWorkerRunning = false;
+        break;
+      }
+
+      // 2. Poll next high-priority pending queue item
+      const queueItem = await DatasetQueue.findOne({ status: 'pending' }).sort({ downloads: -1 });
+      if (!queueItem) {
+        console.log('[HF Worker] Queue empty. Sleeping for 10 seconds...');
+        await new Promise(r => setTimeout(r, 10000));
+        continue;
+      }
+
+      const { datasetId } = queueItem;
+      console.log(`[HF Worker] Dispatching queued dataset to Temporal Ingestion Workflow: ${datasetId}`);
+
+      queueItem.status = 'downloading';
+      queueItem.lastAttemptedAt = new Date();
+      await queueItem.save();
+
+      try {
+        const client = temporalClientCoordinator.client;
+        if (!client) {
+          throw new Error('Temporal client is not initialized.');
+        }
+
+        const workflowId = `ingest-${datasetId.replace(/\//g, '-')}-${Date.now()}`;
+        
+        await client.workflow.start(runDatasetIngestionWorkflow, {
+          args: [datasetId],
+          taskQueue: 'alti-workflows-queue',
+          workflowId
+        });
+
+        console.log(`[HF Worker] Durable Ingestion Workflow started with ID: ${workflowId}`);
+        
+        // Wait a small delay before checking next item to avoid rapid concurrent starts
+        await new Promise(r => setTimeout(r, 5000));
+      } catch (err) {
+        console.error(`[HF Worker] Failed to start Temporal workflow for ${datasetId}:`, err.message);
+        queueItem.status = 'failed';
+        queueItem.error = `Temporal Launch Error: ${err.message}`;
+        await queueItem.save();
+        
+        await new Promise(r => setTimeout(r, 5000));
+      }
+    } catch (loopErr) {
+      console.error('[HF Worker] Temporal coordinator loop processing error:', loopErr);
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  }
+
+  workerLoopActive = false;
+  console.log('[HF Worker] Resilient Temporal Ingestion Coordinator loop halted.');
+};
+
+/**
  * Starts sequential background queue processor worker
  */
 const startWorker = () => {
@@ -313,9 +391,18 @@ const startWorker = () => {
     return { success: true, message: 'Continuous worker loop is already running.' };
   }
   isWorkerRunning = true;
-  runWorkerLoop(); // run asynchronously in background thread
+
+  if (temporalClientCoordinator.isMock) {
+    console.log('[HF Worker] System is in Offline/Mock Standby Mode. Launching Legacy sequential loop fallback.');
+    runWorkerLoop();
+  } else {
+    console.log('[HF Worker] System is connected to a live cluster. Launching Resilient Temporal Workflow coordinator.');
+    runTemporalWorkerLoop();
+  }
+
   return { success: true, message: 'Continuous sequential background queue worker started.' };
 };
+
 
 /**
  * Stops sequential background queue processor worker
