@@ -421,6 +421,46 @@ export const UnifiedSmartRouter = {
           title = 'USDA Plants Taxonomy Database';
           url = 'https://usda.gov';
           domain = 'usda.gov';
+        } else if (providerId === 'github_releases') {
+          title = 'GitHub Releases & Asset Telemetry Feed';
+          url = 'https://github.com';
+          domain = 'github.com';
+        } else if (providerId === 'openstreetmap_transit') {
+          title = 'OpenStreetMap Transit Stations & Routes';
+          url = 'https://openstreetmap.org';
+          domain = 'openstreetmap.org';
+        } else if (providerId === 'wikidata_properties') {
+          title = 'Wikidata Schema & Property Definitions';
+          url = 'https://wikidata.org';
+          domain = 'wikidata.org';
+        } else if (providerId === 'wikipedia_suggest') {
+          title = 'Wikipedia Autocomplete Suggestion Feed';
+          url = 'https://wikipedia.org';
+          domain = 'wikipedia.org';
+        } else if (providerId === 'fcc_towers') {
+          title = 'FCC Antenna Structure Registration Database';
+          url = 'https://fcc.gov';
+          domain = 'fcc.gov';
+        } else if (providerId === 'openlibrary_subjects') {
+          title = 'Open Library Literary Subject Index';
+          url = 'https://openlibrary.org';
+          domain = 'openlibrary.org';
+        } else if (providerId === 'zenodo_file_stats') {
+          title = 'Zenodo Archive Download Telemetry Feed';
+          url = 'https://zenodo.org';
+          domain = 'zenodo.org';
+        } else if (providerId === 'nifc_historical_fires') {
+          title = 'National Wildfire Historical Incident Archive';
+          url = 'https://nifc.gov';
+          domain = 'nifc.gov';
+        } else if (providerId === 'crossref_funders') {
+          title = 'Crossref FundRef Funding Registry Index';
+          url = 'https://crossref.org';
+          domain = 'crossref.org';
+        } else if (providerId === 'usda_hardiness_history') {
+          title = 'USDA Historical Hardiness Shift Maps';
+          url = 'https://usda.gov';
+          domain = 'usda.gov';
         } else {
           title = `${providerId.replace(/_/g, ' ').toUpperCase()} Registry`;
           url = `https://${providerId.replace(/_/g, '')}.gov`;
