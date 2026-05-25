@@ -32,9 +32,12 @@ import { GcpKnowledgeGraphService } from '../src/app/modules/gcp_native/gcp-know
 import { GcpTasksService } from '../src/app/modules/gcp_native/gcp-tasks.service.js';
 import { GcpSafeBrowsingService } from '../src/app/modules/gcp_native/gcp-safe-browsing.service.js';
 import { GcpFontsService } from '../src/app/modules/gcp_native/gcp-fonts.service.js';
+import { GcpSuggestService } from '../src/app/modules/gcp_native/gcp-suggest.service.js';
+import { GcpVertexSearchService } from '../src/app/modules/gcp_native/gcp-vertex-search.service.js';
+import { GcpTrendsService } from '../src/app/modules/gcp_native/gcp-trends.service.js';
 import { workflowExecutionService } from '../src/app/modules/workflow_automation/services/workflowExecution.service.js';
 
-console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 8)...\n');
+console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 9)...\n');
 
 async function testCompilations() {
   console.log('====================================================');
@@ -64,7 +67,10 @@ async function testCompilations() {
     { name: 'GcpKnowledgeGraphService', service: GcpKnowledgeGraphService, method: 'lookupEntity' },
     { name: 'GcpTasksService', service: GcpTasksService, method: 'createHttpTask' },
     { name: 'GcpSafeBrowsingService', service: GcpSafeBrowsingService, method: 'lookupUrlSafety' },
-    { name: 'GcpFontsService', service: GcpFontsService, method: 'resolveGoogleFonts' }
+    { name: 'GcpFontsService', service: GcpFontsService, method: 'resolveGoogleFonts' },
+    { name: 'GcpSuggestService', service: GcpSuggestService, method: 'getSearchSuggestions' },
+    { name: 'GcpVertexSearchService', service: GcpVertexSearchService, method: 'searchDataStore' },
+    { name: 'GcpTrendsService', service: GcpTrendsService, method: 'getTrendingSearches' }
   ];
 
   for (const item of services) {
@@ -403,6 +409,32 @@ async function testWorkflowMockExecution() {
         filterQuery: 'Montserrat',
         sortBy: 'popularity',
         limit: 5
+      }
+    },
+    {
+      stepId: 'step_search_suggest',
+      app: 'google_cloud',
+      action: 'gcp_search_suggest',
+      parameters: {
+        query: 'machine learning',
+        language: 'en'
+      }
+    },
+    {
+      stepId: 'step_vertex_search',
+      app: 'google_cloud',
+      action: 'gcp_vertex_search',
+      parameters: {
+        dataStoreId: 'wiki-search-store',
+        query: 'quantum computing'
+      }
+    },
+    {
+      stepId: 'step_trends_fetch',
+      app: 'google_cloud',
+      action: 'gcp_trends_fetch',
+      parameters: {
+        geo: 'US'
       }
     },
     {

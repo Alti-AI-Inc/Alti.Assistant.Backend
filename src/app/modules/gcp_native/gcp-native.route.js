@@ -318,4 +318,23 @@ router.post(
   GcpNativeController.designResolveFonts
 );
 
+// ── Phase 9: Semantic Autocomplete, Enterprise Grounding & Trend Intelligence ─
+router.post(
+  '/search/suggest',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.searchGetSuggestions
+);
+
+router.post(
+  '/search/vertex-datastore',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.searchQueryVertexDatastore
+);
+
+router.get(
+  '/search/trends',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.searchGetTrending
+);
+
 export const gcpNativeRoutes = router;

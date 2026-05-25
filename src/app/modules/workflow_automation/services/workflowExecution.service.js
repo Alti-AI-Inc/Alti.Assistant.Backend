@@ -2052,6 +2052,110 @@ class WorkflowExecutionService {
             const { GcpFontsService } = await import('../../gcp_native/gcp-fonts.service.js');
             result = await GcpFontsService.resolveGoogleFonts(filterQuery, sortBy, limit);
           }
+        } else if (action === 'gcp_search_suggest') {
+          const { query, language } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              query,
+              suggestions: [
+                query,
+                `${query} trends`,
+                `${query} tutorial`,
+                `${query} developer documents`
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpSuggestService } = await import('../../gcp_native/gcp-suggest.service.js');
+            result = await GcpSuggestService.getSearchSuggestions(query, language);
+          }
+        } else if (action === 'gcp_vertex_search') {
+          const { dataStoreId, query, options } = parameters;
+          if (!dataStoreId || !query) {
+            throw new Error(`Required parameters 'dataStoreId' and 'query' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              originalQuery: query,
+              dataStoreId,
+              totalCount: 2,
+              results: [
+                {
+                  id: 'mock-doc-1',
+                  name: `projects/mock/locations/global/dataStores/${dataStoreId}/branches/0/documents/mock-doc-1`,
+                  title: `Semantic Reference for "${query}"`,
+                  snippet: `Grounded search index document matching query "${query}" with high semantic density.`,
+                  link: 'https://cloud.google.com/vertex-ai-search-and-conversation',
+                  relevanceScore: 0.98,
+                  index: 1
+                },
+                {
+                  id: 'mock-doc-2',
+                  name: `projects/mock/locations/global/dataStores/${dataStoreId}/branches/0/documents/mock-doc-2`,
+                  title: `Enterprise grounding corpus info - ${query}`,
+                  snippet: `Simulated backup matching reference coordinates for "${query}".`,
+                  link: 'https://cloud.google.com/vertex-ai',
+                  relevanceScore: 0.89,
+                  index: 2
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpVertexSearchService } = await import('../../gcp_native/gcp-vertex-search.service.js');
+            result = await GcpVertexSearchService.searchDataStore(dataStoreId, query, options);
+          }
+        } else if (action === 'gcp_trends_fetch') {
+          const { geo } = parameters;
+          if (isMock) {
+            result = {
+              success: true,
+              geo: geo || 'US',
+              totalCount: 3,
+              trends: [
+                {
+                  query: 'Vertex AI Grounding Spikes',
+                  approxTraffic: '500,000+',
+                  description: 'Search spikes in enterprise generative search capabilities.',
+                  picture: 'https://example.com/trend-image1.png',
+                  newsItem: {
+                    title: 'Google releases new Vertex AI Search options',
+                    snippet: 'Discovery Engine sees huge uptick in developer usage...',
+                    url: 'https://example.com/vertex-news',
+                    source: 'Tech News Daily'
+                  }
+                },
+                {
+                  query: 'Gemini Autocomplete integration',
+                  approxTraffic: '100,000+',
+                  description: 'Google Suggest is the new hot topic.',
+                  picture: 'https://example.com/trend-image2.png',
+                  newsItem: {
+                    title: 'Alti integrates Google autocomplete natively',
+                    snippet: 'The new design allows zero-latency completions...',
+                    url: 'https://example.com/alti-news',
+                    source: 'AI Gazette'
+                  }
+                },
+                {
+                  query: 'Google Trends XML harvesting',
+                  approxTraffic: '50,000+',
+                  description: 'Harvester yields high-velocity queries.',
+                  picture: 'https://example.com/trend-image3.png',
+                  newsItem: null
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpTrendsService } = await import('../../gcp_native/gcp-trends.service.js');
+            result = await GcpTrendsService.getTrendingSearches(geo);
+          }
         } else {
           throw new Error(`Unknown action '${step.action}' for app 'google_cloud'`);
         }

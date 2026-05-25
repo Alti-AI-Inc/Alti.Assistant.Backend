@@ -26,6 +26,9 @@ import { GcpKnowledgeGraphService } from './gcp-knowledge-graph.service.js';
 import { GcpTasksService } from './gcp-tasks.service.js';
 import { GcpSafeBrowsingService } from './gcp-safe-browsing.service.js';
 import { GcpFontsService } from './gcp-fonts.service.js';
+import { GcpSuggestService } from './gcp-suggest.service.js';
+import { GcpVertexSearchService } from './gcp-vertex-search.service.js';
+import { GcpTrendsService } from './gcp-trends.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 const searchCatalog = catchAsync(async (req, res) => {
@@ -1030,6 +1033,61 @@ const designResolveFonts = catchAsync(async (req, res) => {
   });
 });
 
+// ── Phase 9: Semantic Autocomplete, Enterprise Grounding & Trend Intelligence ─
+
+/**
+ * Resolves search query autocomplete predictions from Google.
+ */
+const searchGetSuggestions = catchAsync(async (req, res) => {
+  const { query, language } = req.body;
+  if (!query) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "query" is missing.');
+  }
+
+  const result = await GcpSuggestService.getSearchSuggestions(query, language);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google search autocomplete suggestions resolved successfully.',
+    data: result,
+  });
+});
+
+/**
+ * Executes a semantic document search over grounded Vertex AI Search data stores.
+ */
+const searchQueryVertexDatastore = catchAsync(async (req, res) => {
+  const { dataStoreId, query, options } = req.body;
+  if (!dataStoreId || !query) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Parameters "dataStoreId" and "query" are required.');
+  }
+
+  const result = await GcpVertexSearchService.searchDataStore(dataStoreId, query, options);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Vertex AI search data store semantically queried successfully.',
+    data: result,
+  });
+});
+
+/**
+ * Resolves real-time daily search trends and topic interest spikes from Google Trends.
+ */
+const searchGetTrending = catchAsync(async (req, res) => {
+  const { geo } = req.query;
+  const result = await GcpTrendsService.getTrendingSearches(geo);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google Trends search interest analytics resolved successfully.',
+    data: result,
+  });
+});
+
 export const GcpNativeController = {
   searchCatalog,
   importSubmodule,
@@ -1079,5 +1137,8 @@ export const GcpNativeController = {
   searchKnowledgeGraph,
   tasksCreateHttp,
   securityCheckSafeBrowsing,
-  designResolveFonts
+  designResolveFonts,
+  searchGetSuggestions,
+  searchQueryVertexDatastore,
+  searchGetTrending
 };
