@@ -21,6 +21,7 @@ import { GermanDestatisMacroeconomicsProvider, FrenchInseeMacroeconomicsProvider
 import { ChinaMacroeconomicsProvider, IndiaMacroeconomicsProvider, JapanMacroeconomicsProvider, AustraliaMacroeconomicsProvider, BrazilMacroeconomicsProvider } from './providers/stage28PremiumProviders.js';
 import { SouthKoreaMacroeconomicsProvider, SingaporeMacroeconomicsProvider, SwitzerlandMacroeconomicsProvider, SouthAfricaMacroeconomicsProvider, MexicoMacroeconomicsProvider } from './providers/stage29PremiumProviders.js';
 import { RussiaMacroeconomicsProvider, SaudiArabiaMacroeconomicsProvider, TurkeyMacroeconomicsProvider, ArgentinaMacroeconomicsProvider, IndonesiaMacroeconomicsProvider } from './providers/stage30PremiumProviders.js';
+import { CanadaMacroeconomicsProvider, ItalyMacroeconomicsProvider, SpainMacroeconomicsProvider, NetherlandsMacroeconomicsProvider, SwedenMacroeconomicsProvider } from './providers/stage31PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -1030,6 +1031,13 @@ SearchEngineRegistry.register(SaudiArabiaMacroeconomicsProvider);
 SearchEngineRegistry.register(TurkeyMacroeconomicsProvider);
 SearchEngineRegistry.register(ArgentinaMacroeconomicsProvider);
 SearchEngineRegistry.register(IndonesiaMacroeconomicsProvider);
+
+// Stage 31 Premium Providers (Sovereign Global IV - Canada, Italy, Spain, Netherlands & Sweden)
+SearchEngineRegistry.register(CanadaMacroeconomicsProvider);
+SearchEngineRegistry.register(ItalyMacroeconomicsProvider);
+SearchEngineRegistry.register(SpainMacroeconomicsProvider);
+SearchEngineRegistry.register(NetherlandsMacroeconomicsProvider);
+SearchEngineRegistry.register(SwedenMacroeconomicsProvider);
 
 
 

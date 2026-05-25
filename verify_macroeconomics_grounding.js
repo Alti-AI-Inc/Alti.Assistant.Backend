@@ -145,6 +145,31 @@ async function runVerification() {
       name: 'Indonesia BPS & Bank Indonesia monetary stance (Stage 30)',
       query: 'Find Indonesia GDP growth, BPS CPI inflation, and Bank Indonesia BI interest rates',
       expectedId: 'indonesia_macro_economics'
+    },
+    {
+      name: 'Canada StatCan & Bank of Canada monetary monitor (Stage 31)',
+      query: 'Retrieve Canada real GDP growth rate, StatCan CPI inflation, and Bank of Canada overnight interest rate',
+      expectedId: 'canada_macro_economics'
+    },
+    {
+      name: 'Italy ISTAT & Banca d\'Italia monetary monitor (Stage 31)',
+      query: 'Get Italy GDP growth, ISTAT CPI inflation, and Banca d\'Italia stance rate',
+      expectedId: 'italy_macro_economics'
+    },
+    {
+      name: 'Spain INE & Banco de España monetary stance (Stage 31)',
+      query: 'Find Spain GDP growth, INE Spain CPI inflation, and Banco de España interest rates',
+      expectedId: 'spain_macro_economics'
+    },
+    {
+      name: 'Netherlands CBS & DNB monetary policy (Stage 31)',
+      query: 'Retrieve Netherlands GDP growth, CBS inflation, and De Nederlandsche Bank stance',
+      expectedId: 'netherlands_macro_economics'
+    },
+    {
+      name: 'Sweden SCB & Riksbank policy rate (Stage 31)',
+      query: 'Find Sweden GDP growth, SCB CPI inflation, and Sveriges Riksbank policy rate',
+      expectedId: 'sweden_macro_economics'
     }
   ];
 
