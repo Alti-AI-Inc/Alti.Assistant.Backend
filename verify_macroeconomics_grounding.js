@@ -70,6 +70,31 @@ async function runVerification() {
       name: 'ECB European Monetary Policy (Stage 27)',
       query: 'What is the current ECB main refinancing rate and Eurozone HICP target?',
       expectedId: 'ecb_monetary'
+    },
+    {
+      name: 'China NBS & PBOC Economic Monitor (Stage 28)',
+      query: 'Retrieve China real GDP growth and PBOC Loan Prime Rate interest rates',
+      expectedId: 'china_macro_economics'
+    },
+    {
+      name: 'India MOSPI & RBI monetary policy (Stage 28)',
+      query: 'Find India GDP growth, CPI inflation, and Reserve Bank of India repo base rate',
+      expectedId: 'india_macro_economics'
+    },
+    {
+      name: 'Japan Statistics Bureau & BOJ Economic monitor (Stage 28)',
+      query: 'Retrieve Japan GDP growth rate, core CPI inflation, and Bank of Japan policy rate target',
+      expectedId: 'japan_macro_economics'
+    },
+    {
+      name: 'Australia ABS & RBA monetary policy (Stage 28)',
+      query: 'Retrieve Australian Bureau of Statistics GDP, RBA cash rate, and trade balance',
+      expectedId: 'australia_macro_economics'
+    },
+    {
+      name: 'Brazil IBGE & BCB Monetary policy (Stage 28)',
+      query: 'Find Brazil GDP growth, IPCA CPI inflation, and Banco Central do Brasil Selic rate target',
+      expectedId: 'brazil_macro_economics'
     }
   ];
 

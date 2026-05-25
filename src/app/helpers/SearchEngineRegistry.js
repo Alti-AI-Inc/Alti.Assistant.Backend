@@ -18,6 +18,7 @@ import { HtsTariffsProvider, OyezScotusProvider, SedarFilingsProvider } from './
 import { WefGlobalCompetitivenessProvider, ImfWorldEconomicOutlookProvider, OecdLeadingIndicatorsProvider } from './providers/stage25PremiumProviders.js';
 import { UkOnsMacroeconomicsProvider, BankOfEnglandMonetaryProvider, UkHmLandRegistryProvider } from './providers/stage26PremiumProviders.js';
 import { GermanDestatisMacroeconomicsProvider, FrenchInseeMacroeconomicsProvider, EcbEuropeanMonetaryProvider } from './providers/stage27PremiumProviders.js';
+import { ChinaMacroeconomicsProvider, IndiaMacroeconomicsProvider, JapanMacroeconomicsProvider, AustraliaMacroeconomicsProvider, BrazilMacroeconomicsProvider } from './providers/stage28PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -1006,6 +1007,14 @@ SearchEngineRegistry.register(UkHmLandRegistryProvider);
 SearchEngineRegistry.register(GermanDestatisMacroeconomicsProvider);
 SearchEngineRegistry.register(FrenchInseeMacroeconomicsProvider);
 SearchEngineRegistry.register(EcbEuropeanMonetaryProvider);
+
+// Stage 28 Premium Providers (Sovereign Global - China, India, Japan, Australia & Brazil)
+SearchEngineRegistry.register(ChinaMacroeconomicsProvider);
+SearchEngineRegistry.register(IndiaMacroeconomicsProvider);
+SearchEngineRegistry.register(JapanMacroeconomicsProvider);
+SearchEngineRegistry.register(AustraliaMacroeconomicsProvider);
+SearchEngineRegistry.register(BrazilMacroeconomicsProvider);
+
 
 
 
