@@ -29,6 +29,7 @@ import { GcpFontsService } from './gcp-fonts.service.js';
 import { GcpSuggestService } from './gcp-suggest.service.js';
 import { GcpVertexSearchService } from './gcp-vertex-search.service.js';
 import { GcpTrendsService } from './gcp-trends.service.js';
+import { GcpA2uiService } from './gcp-a2ui.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 const searchCatalog = catchAsync(async (req, res) => {
@@ -1088,6 +1089,44 @@ const searchGetTrending = catchAsync(async (req, res) => {
   });
 });
 
+// ── Phase 10: Google Agent-to-User Interface (A2UI) Specification Core ──────
+
+/**
+ * Compiles dynamic system instructions for Google A2UI components.
+ */
+const a2uiGeneratePrompt = catchAsync(async (req, res) => {
+  const { allowedComponents, includeExamples } = req.body;
+  const result = GcpA2uiService.generateA2uiSystemPrompt(allowedComponents, includeExamples);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google A2UI prompt specifications compiled successfully.',
+    data: { prompt: result },
+  });
+});
+
+/**
+ * Extracts and performs deep structural/topological validation on a raw A2UI response block.
+ */
+const a2uiParseAndValidate = catchAsync(async (req, res) => {
+  const { rawText } = req.body;
+  if (!rawText) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "rawText" is missing.');
+  }
+
+  const result = GcpA2uiService.parseAndValidateA2ui(rawText);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: result.success,
+    message: result.success
+      ? 'Google A2UI structural validation check completed successfully.'
+      : 'Google A2UI structural validation check failed with violations.',
+    data: result,
+  });
+});
+
 export const GcpNativeController = {
   searchCatalog,
   importSubmodule,
@@ -1140,5 +1179,7 @@ export const GcpNativeController = {
   designResolveFonts,
   searchGetSuggestions,
   searchQueryVertexDatastore,
-  searchGetTrending
+  searchGetTrending,
+  a2uiGeneratePrompt,
+  a2uiParseAndValidate
 };

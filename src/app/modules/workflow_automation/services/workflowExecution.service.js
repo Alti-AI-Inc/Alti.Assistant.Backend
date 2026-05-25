@@ -2156,6 +2156,46 @@ class WorkflowExecutionService {
             const { GcpTrendsService } = await import('../../gcp_native/gcp-trends.service.js');
             result = await GcpTrendsService.getTrendingSearches(geo);
           }
+        } else if (action === 'gcp_a2ui_render') {
+          const { rawText } = parameters;
+          if (!rawText) {
+            throw new Error(`Required parameter 'rawText' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              containsUi: true,
+              errors: [],
+              payload: [
+                {
+                  surfaceUpdate: {
+                    root: 'main-col',
+                    components: [
+                      {
+                        id: 'main-col',
+                        type: 'column',
+                        children: ['txt-1', 'btn-1']
+                      },
+                      {
+                        id: 'txt-1',
+                        type: 'text',
+                        content: 'Simulated standard Google A2UI payload compiled cleanly.'
+                      },
+                      {
+                        id: 'btn-1',
+                        type: 'button',
+                        label: 'Submit form data'
+                      }
+                    ]
+                  }
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpA2uiService } = await import('../../gcp_native/gcp-a2ui.service.js');
+            result = GcpA2uiService.parseAndValidateA2ui(rawText);
+          }
         } else {
           throw new Error(`Unknown action '${step.action}' for app 'google_cloud'`);
         }

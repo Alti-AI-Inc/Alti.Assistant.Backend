@@ -337,4 +337,17 @@ router.get(
   GcpNativeController.searchGetTrending
 );
 
+// ── Phase 10: Google Agent-to-User Interface (A2UI) Specification Core ──────
+router.post(
+  '/a2ui/prompt',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.a2uiGeneratePrompt
+);
+
+router.post(
+  '/a2ui/validate',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.a2uiParseAndValidate
+);
+
 export const gcpNativeRoutes = router;

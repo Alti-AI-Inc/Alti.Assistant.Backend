@@ -35,9 +35,10 @@ import { GcpFontsService } from '../src/app/modules/gcp_native/gcp-fonts.service
 import { GcpSuggestService } from '../src/app/modules/gcp_native/gcp-suggest.service.js';
 import { GcpVertexSearchService } from '../src/app/modules/gcp_native/gcp-vertex-search.service.js';
 import { GcpTrendsService } from '../src/app/modules/gcp_native/gcp-trends.service.js';
+import { GcpA2uiService } from '../src/app/modules/gcp_native/gcp-a2ui.service.js';
 import { workflowExecutionService } from '../src/app/modules/workflow_automation/services/workflowExecution.service.js';
 
-console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 9)...\n');
+console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 10)...\n');
 
 async function testCompilations() {
   console.log('====================================================');
@@ -70,7 +71,8 @@ async function testCompilations() {
     { name: 'GcpFontsService', service: GcpFontsService, method: 'resolveGoogleFonts' },
     { name: 'GcpSuggestService', service: GcpSuggestService, method: 'getSearchSuggestions' },
     { name: 'GcpVertexSearchService', service: GcpVertexSearchService, method: 'searchDataStore' },
-    { name: 'GcpTrendsService', service: GcpTrendsService, method: 'getTrendingSearches' }
+    { name: 'GcpTrendsService', service: GcpTrendsService, method: 'getTrendingSearches' },
+    { name: 'GcpA2uiService', service: GcpA2uiService, method: 'parseAndValidateA2ui' }
   ];
 
   for (const item of services) {
@@ -435,6 +437,14 @@ async function testWorkflowMockExecution() {
       action: 'gcp_trends_fetch',
       parameters: {
         geo: 'US'
+      }
+    },
+    {
+      stepId: 'step_a2ui_render',
+      app: 'google_cloud',
+      action: 'gcp_a2ui_render',
+      parameters: {
+        rawText: 'Here is the interface: <a2ui-json>[{"surfaceUpdate": {"root": "my-col", "components": [{"id": "my-col", "type": "column", "children": []}]}}]</a2ui-json>'
       }
     },
     {
