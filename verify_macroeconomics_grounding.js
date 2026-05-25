@@ -1,0 +1,93 @@
+/**
+ * verify_macroeconomics_grounding.js
+ *
+ * Verification script for testing Alti's Stage 25 and Stage 24 global
+ * macroeconomic and legal/customs grounding channels.
+ */
+
+import { SearchEngineRegistry } from './src/app/helpers/SearchEngineRegistry.js';
+
+async function runVerification() {
+  console.log('🏁 Starting Global Macroeconomics & WEF Grounding verification tests...\n');
+
+  const testQueries = [
+    {
+      name: 'World Economic Forum (WEF) Competitiveness Index',
+      query: 'What is the WEF Global Competitiveness Index rating and score for Canada?',
+      expectedId: 'wef_competitiveness'
+    },
+    {
+      name: 'IMF World Economic Outlook',
+      query: 'Give me the IMF real GDP forecasts and inflation projections for Euro Area',
+      expectedId: 'imf_outlook'
+    },
+    {
+      name: 'OECD Composite Leading Indicators',
+      query: 'Retrieve the OECD Composite Leading Indicators and consumer sentiment for Germany 🇩🇪',
+      expectedId: 'oecd_indicators'
+    },
+    {
+      name: 'US Customs Tariffs (HTS) (Stage 24)',
+      query: 'What is the HTS tariff rate and code for Lithium-Ion Battery Storage Cells?',
+      expectedId: 'hts_tariffs'
+    },
+    {
+      name: 'SCOTUS Case precedents (Oyez) (Stage 24)',
+      query: 'Find the Oyez Supreme Court case holding and justice votes for Citizens United v. FEC',
+      expectedId: 'oyez_scotus'
+    },
+    {
+      name: 'Canadian SEDAR corporate disclosures (Stage 24)',
+      query: 'Search SEDAR for Royal Bank of Canada quarterly reports',
+      expectedId: 'sedar_filings'
+    }
+  ];
+
+  let successCount = 0;
+
+  for (const test of testQueries) {
+    console.log(`--------------------------------------------------------------------------------`);
+    console.log(`🧪 Test Case: ${test.name}`);
+    console.log(`   Query: "${test.query}"`);
+    
+    // Detect matching providers
+    const activeProviders = SearchEngineRegistry.detectActiveProviders(test.query);
+    const matchedIds = activeProviders.map(p => p.id);
+    console.log(`   Detected Providers: [${matchedIds.join(', ')}]`);
+
+    if (matchedIds.includes(test.expectedId)) {
+      console.log(`   ✅ Intent Detection Passed.`);
+    } else {
+      console.log(`   ❌ Intent Detection Failed (Expected "${test.expectedId}").`);
+    }
+
+    // Execute combined RAG pipeline
+    const ragContext = await SearchEngineRegistry.combinedRouteAndEnhance(test.query);
+    
+    if (ragContext && ragContext.includes('GROUNDED DATA SOURCE')) {
+      console.log(`   ✅ RAG Pipeline Synthesis Completed Successfully.`);
+      console.log(`   --- Output Sneak Peek ---`);
+      const lines = ragContext.split('\n');
+      console.log(lines.slice(0, 12).join('\n'));
+      console.log(`   ...`);
+      successCount++;
+    } else {
+      console.log(`   ❌ RAG Pipeline Synthesis Failed (Returned empty or raw query).`);
+    }
+  }
+
+  console.log(`--------------------------------------------------------------------------------`);
+  console.log(`📊 Verification Summary: ${successCount} / ${testQueries.length} passed.`);
+  if (successCount === testQueries.length) {
+    console.log('🎉 All systems functional! Grounding channels compile and run without error.');
+    process.exit(0);
+  } else {
+    console.log('⚠️ Some tests failed. Please inspect logs.');
+    process.exit(1);
+  }
+}
+
+runVerification().catch(err => {
+  console.error('💥 Fatal error during verification:', err);
+  process.exit(1);
+});
