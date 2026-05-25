@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID:   alti-assistant-prod
+  PROJECT_ID:   gen-lang-client-0273900650
   REGION:       us-central1
   SERVICE_NAME: alti-assistant-backend
-  REGISTRY:     us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
+  REGISTRY:     us-central1-docker.pkg.dev/gen-lang-client-0273900650/alti-assistant-core-backend-repo
   IMAGE_NAME:   alti-assistant-backend
   MEMORY:       4Gi
   CPU:          "2"
