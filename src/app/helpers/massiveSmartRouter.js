@@ -3083,7 +3083,15 @@ const combinedRouteAndEnhancePrompt = async (prompt) => {
   return result;
 };
 
-import { UnifiedSmartRouter } from './UnifiedSmartRouter.js';
-
 export const massiveFinanceRouteAndEnhancePrompt = routeAndEnhancePrompt;
-export const massiveSmartRouter = UnifiedSmartRouter;
+
+export const massiveSmartRouter = {
+  routeAndEnhancePrompt: async (prompt) => {
+    const { UnifiedSmartRouter } = await import('./UnifiedSmartRouter.js');
+    return UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
+  },
+  combinedRouteAndEnhancePrompt: async (prompt) => {
+    const { UnifiedSmartRouter } = await import('./UnifiedSmartRouter.js');
+    return UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
+  }
+};

@@ -6,7 +6,7 @@
 # Usage: .\set-all-secrets.ps1
 # =============================================================================
 
-$PROJECT_ID  = "alti-assistant-prod"
+$PROJECT_ID  = "gen-lang-client-0273900650"
 $GITHUB_REPO = "Alti-AI-Inc/Alti.Assistant.Backend"
 $GCLOUD_CMD  = "C:\Users\hyper\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
 
@@ -143,9 +143,14 @@ Set-GcpSecret "BROWSER_USE_SECRET_KEY" "bu_frRkL0F1ZImButASPZws4uzArY-tbHaDezBi8
 Set-GcpSecret "CYBERDESK_API_KEY"      "cd_3ZeqoubCwcbQfPCEBPF7E4WR"
 
 Write-Host ""; Write-Host "-- GCP / Vertex AI --" -ForegroundColor Cyan
-Set-GcpSecret "GCP_PROJECT_ID"       "gen-lang-client-0159237802"
-Set-GcpSecret "VERTEX_AI_PROJECT_ID" "gen-lang-client-0159237802"
+Set-GcpSecret "GCP_PROJECT_ID"       $PROJECT_ID
+Set-GcpSecret "VERTEX_AI_PROJECT_ID" $PROJECT_ID
 Set-GcpSecret "GCP_LOCATION"         "us-central1"
+Set-GcpSecret "GOOGLE_MCP_TOOLBOX_URL"        "dummy_google_mcp_toolbox_url"
+Set-GcpSecret "GOOGLE_MAPS_API_KEY"           "dummy_google_maps_api_key"
+Set-GcpSecret "MAPS_API_KEY"                  "dummy_maps_api_key"
+Set-GcpSecret "GCP_DOCUMENT_AI_PROCESSOR_ID"  "dummy_gcp_document_ai_processor_id"
+Set-GcpSecret "RECAPTCHA_SITE_KEY"            "dummy_recaptcha_site_key"
 
 # =============================================================================
 # Grant Cloud Run SA Secret Accessor role
@@ -175,7 +180,8 @@ Set-GcpSecret "RAINFOREST_API_KEY"         "your_rainforest_api_key_here"
 Set-GcpSecret "COINAPI_KEY"                "your_coinapi_key_here"
 
 Write-Host ""; Write-Host "-- IAM: Granting Cloud Run SA Secret Accessor role --" -ForegroundColor Cyan
-$CR_SA = "$PROJECT_ID-compute@developer.gserviceaccount.com"
+$PROJECT_NUM = & $GCLOUD_CMD projects describe $PROJECT_ID --format="value(projectNumber)" --quiet
+$CR_SA = "$($PROJECT_NUM.Trim())-compute@developer.gserviceaccount.com"
 Write-Host "  SA: $CR_SA" -ForegroundColor Yellow
 
 & $GCLOUD_CMD projects add-iam-policy-binding $PROJECT_ID `
