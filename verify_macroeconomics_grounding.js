@@ -170,6 +170,31 @@ async function runVerification() {
       name: 'Sweden SCB & Riksbank policy rate (Stage 31)',
       query: 'Find Sweden GDP growth, SCB CPI inflation, and Sveriges Riksbank policy rate',
       expectedId: 'sweden_macro_economics'
+    },
+    {
+      name: 'Norway Skatteetaten & SSB tax monitor (Stage 32)',
+      query: 'Retrieve Norway wealth tax scales, Skatteetaten tax brackets, and SSB GDP growth',
+      expectedId: 'norway_macro_economics'
+    },
+    {
+      name: 'Ireland CSO & Central Bank corporate tax and banking (Stage 32)',
+      query: 'Get Ireland corporate tax Pillar Two, Central Bank banking assets, and CSO GDP',
+      expectedId: 'ireland_macro_economics'
+    },
+    {
+      name: 'Austria BMF & Statistics Austria taxation and finance (Stage 32)',
+      query: 'Find Austria tax brackets from BMF, Statistik Austria GDP, and property price HPI',
+      expectedId: 'austria_macro_economics'
+    },
+    {
+      name: 'Denmark DST & Danmarks Nationalbank mortgage monitor (Stage 32)',
+      query: 'Retrieve Denmark mortgage yields, Danmarks Nationalbank policy rate, and DST CPI',
+      expectedId: 'denmark_macro_economics'
+    },
+    {
+      name: 'Belgium Statbel & NBB policy and property monitor (Stage 32)',
+      query: 'Find Belgium tax rates, NBB policy stance, Statbel GDP growth, and property HPI',
+      expectedId: 'belgium_macro_economics'
     }
   ];
 

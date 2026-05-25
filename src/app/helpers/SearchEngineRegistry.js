@@ -22,6 +22,7 @@ import { ChinaMacroeconomicsProvider, IndiaMacroeconomicsProvider, JapanMacroeco
 import { SouthKoreaMacroeconomicsProvider, SingaporeMacroeconomicsProvider, SwitzerlandMacroeconomicsProvider, SouthAfricaMacroeconomicsProvider, MexicoMacroeconomicsProvider } from './providers/stage29PremiumProviders.js';
 import { RussiaMacroeconomicsProvider, SaudiArabiaMacroeconomicsProvider, TurkeyMacroeconomicsProvider, ArgentinaMacroeconomicsProvider, IndonesiaMacroeconomicsProvider } from './providers/stage30PremiumProviders.js';
 import { CanadaMacroeconomicsProvider, ItalyMacroeconomicsProvider, SpainMacroeconomicsProvider, NetherlandsMacroeconomicsProvider, SwedenMacroeconomicsProvider } from './providers/stage31PremiumProviders.js';
+import { NorwayMacroeconomicsProvider, IrelandMacroeconomicsProvider, AustriaMacroeconomicsProvider, DenmarkMacroeconomicsProvider, BelgiumMacroeconomicsProvider } from './providers/stage32PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -1038,6 +1039,13 @@ SearchEngineRegistry.register(ItalyMacroeconomicsProvider);
 SearchEngineRegistry.register(SpainMacroeconomicsProvider);
 SearchEngineRegistry.register(NetherlandsMacroeconomicsProvider);
 SearchEngineRegistry.register(SwedenMacroeconomicsProvider);
+
+// Stage 32 Premium Providers (Sovereign Global V - Norway, Ireland, Austria, Denmark & Belgium)
+SearchEngineRegistry.register(NorwayMacroeconomicsProvider);
+SearchEngineRegistry.register(IrelandMacroeconomicsProvider);
+SearchEngineRegistry.register(AustriaMacroeconomicsProvider);
+SearchEngineRegistry.register(DenmarkMacroeconomicsProvider);
+SearchEngineRegistry.register(BelgiumMacroeconomicsProvider);
 
 
 
