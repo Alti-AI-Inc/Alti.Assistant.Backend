@@ -19,6 +19,7 @@ import { WefGlobalCompetitivenessProvider, ImfWorldEconomicOutlookProvider, Oecd
 import { UkOnsMacroeconomicsProvider, BankOfEnglandMonetaryProvider, UkHmLandRegistryProvider } from './providers/stage26PremiumProviders.js';
 import { GermanDestatisMacroeconomicsProvider, FrenchInseeMacroeconomicsProvider, EcbEuropeanMonetaryProvider } from './providers/stage27PremiumProviders.js';
 import { ChinaMacroeconomicsProvider, IndiaMacroeconomicsProvider, JapanMacroeconomicsProvider, AustraliaMacroeconomicsProvider, BrazilMacroeconomicsProvider } from './providers/stage28PremiumProviders.js';
+import { SouthKoreaMacroeconomicsProvider, SingaporeMacroeconomicsProvider, SwitzerlandMacroeconomicsProvider, SouthAfricaMacroeconomicsProvider, MexicoMacroeconomicsProvider } from './providers/stage29PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -1014,6 +1015,14 @@ SearchEngineRegistry.register(IndiaMacroeconomicsProvider);
 SearchEngineRegistry.register(JapanMacroeconomicsProvider);
 SearchEngineRegistry.register(AustraliaMacroeconomicsProvider);
 SearchEngineRegistry.register(BrazilMacroeconomicsProvider);
+
+// Stage 29 Premium Providers (Sovereign Global II - Korea, Singapore, Switzerland, South Africa & Mexico)
+SearchEngineRegistry.register(SouthKoreaMacroeconomicsProvider);
+SearchEngineRegistry.register(SingaporeMacroeconomicsProvider);
+SearchEngineRegistry.register(SwitzerlandMacroeconomicsProvider);
+SearchEngineRegistry.register(SouthAfricaMacroeconomicsProvider);
+SearchEngineRegistry.register(MexicoMacroeconomicsProvider);
+
 
 
 

@@ -95,6 +95,31 @@ async function runVerification() {
       name: 'Brazil IBGE & BCB Monetary policy (Stage 28)',
       query: 'Find Brazil GDP growth, IPCA CPI inflation, and Banco Central do Brasil Selic rate target',
       expectedId: 'brazil_macro_economics'
+    },
+    {
+      name: 'South Korea KOSTAT & BOK economic monitor (Stage 29)',
+      query: 'Retrieve South Korea real GDP growth rate, CPI inflation, and Bank of Korea base policy rate',
+      expectedId: 'south_korea_macro_economics'
+    },
+    {
+      name: 'Singapore SingStat & MAS monetary policy (Stage 29)',
+      query: 'Retrieve Singapore real GDP growth, CPI inflation rate, and MAS S$NEER policy stance',
+      expectedId: 'singapore_macro_economics'
+    },
+    {
+      name: 'Switzerland FSO & SNB monetary monitor (Stage 29)',
+      query: 'Find Switzerland GDP growth, CPI inflation, and Swiss National Bank policy base rate',
+      expectedId: 'switzerland_macro_economics'
+    },
+    {
+      name: 'South Africa Stats SA & SARB repo policy (Stage 29)',
+      query: 'Find South Africa GDP growth, Consumer Price Index inflation, and SARB Repo rate target',
+      expectedId: 'south_africa_macro_economics'
+    },
+    {
+      name: 'Mexico INEGI & Banxico interbank policy (Stage 29)',
+      query: 'Find Mexico GDP growth rate, CPI inflation index, and Banxico overnight interbank rate target',
+      expectedId: 'mexico_macro_economics'
     }
   ];
 
