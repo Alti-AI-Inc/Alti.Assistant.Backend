@@ -29,9 +29,12 @@ import { GcpErrorsService } from '../src/app/modules/gcp_native/gcp-errors.servi
 import { GcpRecaptchaService } from '../src/app/modules/gcp_native/gcp-recaptcha.service.js';
 import { GcpSearchAggregatorService } from '../src/app/modules/gcp_native/gcp-search-aggregator.service.js';
 import { GcpKnowledgeGraphService } from '../src/app/modules/gcp_native/gcp-knowledge-graph.service.js';
+import { GcpTasksService } from '../src/app/modules/gcp_native/gcp-tasks.service.js';
+import { GcpSafeBrowsingService } from '../src/app/modules/gcp_native/gcp-safe-browsing.service.js';
+import { GcpFontsService } from '../src/app/modules/gcp_native/gcp-fonts.service.js';
 import { workflowExecutionService } from '../src/app/modules/workflow_automation/services/workflowExecution.service.js';
 
-console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 7)...\n');
+console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 8)...\n');
 
 async function testCompilations() {
   console.log('====================================================');
@@ -58,7 +61,10 @@ async function testCompilations() {
     { name: 'GcpErrorsService', service: GcpErrorsService, method: 'reportError' },
     { name: 'GcpRecaptchaService', service: GcpRecaptchaService, method: 'verifyRecaptchaToken' },
     { name: 'GcpSearchAggregatorService', service: GcpSearchAggregatorService, method: 'executeParallelSearch' },
-    { name: 'GcpKnowledgeGraphService', service: GcpKnowledgeGraphService, method: 'lookupEntity' }
+    { name: 'GcpKnowledgeGraphService', service: GcpKnowledgeGraphService, method: 'lookupEntity' },
+    { name: 'GcpTasksService', service: GcpTasksService, method: 'createHttpTask' },
+    { name: 'GcpSafeBrowsingService', service: GcpSafeBrowsingService, method: 'lookupUrlSafety' },
+    { name: 'GcpFontsService', service: GcpFontsService, method: 'resolveGoogleFonts' }
   ];
 
   for (const item of services) {
@@ -368,6 +374,35 @@ async function testWorkflowMockExecution() {
       parameters: {
         query: 'Alphabet Inc.',
         limit: 3
+      }
+    },
+    {
+      stepId: 'step_tasks_create',
+      app: 'google_cloud',
+      action: 'gcp_tasks_create',
+      parameters: {
+        queueName: 'alti-default-tasks',
+        url: 'https://api.altihq.com/webhook/task-callback',
+        payload: { event: 'verification_completed' },
+        delaySeconds: 60
+      }
+    },
+    {
+      stepId: 'step_safe_browsing_check',
+      app: 'google_cloud',
+      action: 'gcp_safe_browsing_check',
+      parameters: {
+        url: 'http://example-malware-url.com'
+      }
+    },
+    {
+      stepId: 'step_fonts_resolve',
+      app: 'google_cloud',
+      action: 'gcp_fonts_resolve',
+      parameters: {
+        filterQuery: 'Montserrat',
+        sortBy: 'popularity',
+        limit: 5
       }
     },
     {

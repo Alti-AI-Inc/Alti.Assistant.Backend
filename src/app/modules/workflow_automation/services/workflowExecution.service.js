@@ -1982,6 +1982,76 @@ class WorkflowExecutionService {
             const { GcpKnowledgeGraphService } = await import('../../gcp_native/gcp-knowledge-graph.service.js');
             result = await GcpKnowledgeGraphService.lookupEntity(query, limit, types, languages);
           }
+        } else if (action === 'gcp_tasks_create') {
+          const { queueName, url, payload, delaySeconds, headers } = parameters;
+          if (!url) {
+            throw new Error(`Required parameter 'url' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              taskName: `projects/mock-project/locations/us-central1/queues/${queueName || 'alti-default-tasks'}/tasks/mock-task-7711`,
+              dispatchUrl: url,
+              scheduleTime: new Date(Date.now() + (delaySeconds || 0) * 1000).toISOString(),
+              queue: queueName || 'alti-default-tasks',
+              delaySeconds: delaySeconds || 0,
+              mocked: true
+            };
+          } else {
+            const { GcpTasksService } = await import('../../gcp_native/gcp-tasks.service.js');
+            result = await GcpTasksService.createHttpTask(queueName, url, payload, delaySeconds, headers);
+          }
+        } else if (action === 'gcp_safe_browsing_check') {
+          const { url } = parameters;
+          if (!url) {
+            throw new Error(`Required parameter 'url' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              url,
+              isSecure: !url.includes('malware') && !url.includes('phish'),
+              threatCount: (url.includes('malware') || url.includes('phish')) ? 1 : 0,
+              threats: (url.includes('malware') || url.includes('phish')) ? [
+                {
+                  threatType: url.includes('malware') ? 'MALWARE' : 'SOCIAL_ENGINEERING',
+                  platformType: 'ANY_PLATFORM',
+                  threatEntryType: 'URL'
+                }
+              ] : [],
+              mocked: true
+            };
+          } else {
+            const { GcpSafeBrowsingService } = await import('../../gcp_native/gcp-safe-browsing.service.js');
+            result = await GcpSafeBrowsingService.lookupUrlSafety(url);
+          }
+        } else if (action === 'gcp_fonts_resolve') {
+          const { filterQuery, sortBy, limit } = parameters;
+          if (isMock) {
+            result = {
+              success: true,
+              filterQuery: filterQuery || '',
+              sortBy: sortBy || 'popularity',
+              totalCount: 1,
+              returnedCount: 1,
+              fonts: [
+                {
+                  family: filterQuery || 'Roboto',
+                  variants: ['regular', 'italic', '700'],
+                  subsets: ['latin'],
+                  version: 'v30',
+                  category: 'sans-serif',
+                  files: {
+                    'regular': `https://fonts.gstatic.com/s/${filterQuery || 'roboto'}/v30/mock-font.ttf`
+                  }
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpFontsService } = await import('../../gcp_native/gcp-fonts.service.js');
+            result = await GcpFontsService.resolveGoogleFonts(filterQuery, sortBy, limit);
+          }
         } else {
           throw new Error(`Unknown action '${step.action}' for app 'google_cloud'`);
         }

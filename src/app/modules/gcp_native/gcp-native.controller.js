@@ -23,6 +23,9 @@ import { GcpErrorsService } from './gcp-errors.service.js';
 import { GcpRecaptchaService } from './gcp-recaptcha.service.js';
 import { GcpSearchAggregatorService } from './gcp-search-aggregator.service.js';
 import { GcpKnowledgeGraphService } from './gcp-knowledge-graph.service.js';
+import { GcpTasksService } from './gcp-tasks.service.js';
+import { GcpSafeBrowsingService } from './gcp-safe-browsing.service.js';
+import { GcpFontsService } from './gcp-fonts.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 const searchCatalog = catchAsync(async (req, res) => {
@@ -974,6 +977,59 @@ const searchKnowledgeGraph = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Handles enqueuing delayed background HTTP tasks using Google Cloud Tasks.
+ */
+const tasksCreateHttp = catchAsync(async (req, res) => {
+  const { queueName, url, payload, delaySeconds, headers } = req.body;
+  if (!url) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "url" is missing.');
+  }
+
+  const result = await GcpTasksService.createHttpTask(queueName, url, payload, delaySeconds, headers);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Background HTTP task successfully scheduled in Google Cloud Tasks.',
+    data: result,
+  });
+});
+
+/**
+ * Checks a URL against Google's Safe Browsing API lists for security threat evaluation.
+ */
+const securityCheckSafeBrowsing = catchAsync(async (req, res) => {
+  const { url } = req.body;
+  if (!url) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "url" is missing.');
+  }
+
+  const result = await GcpSafeBrowsingService.lookupUrlSafety(url);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'URL Safe Browsing threat analysis evaluated successfully.',
+    data: result,
+  });
+});
+
+/**
+ * Searches and retrieves premium web font definitions and asset URLs from the Google Fonts API.
+ */
+const designResolveFonts = catchAsync(async (req, res) => {
+  const { filterQuery, sortBy, limit } = req.body;
+  const result = await GcpFontsService.resolveGoogleFonts(filterQuery, sortBy, limit);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google Web Fonts resolved successfully.',
+    data: result,
+  });
+});
+
 export const GcpNativeController = {
   searchCatalog,
   importSubmodule,
@@ -1020,5 +1076,8 @@ export const GcpNativeController = {
   observabilityReportError,
   securityRecaptchaVerify,
   searchAdvanced,
-  searchKnowledgeGraph
+  searchKnowledgeGraph,
+  tasksCreateHttp,
+  securityCheckSafeBrowsing,
+  designResolveFonts
 };

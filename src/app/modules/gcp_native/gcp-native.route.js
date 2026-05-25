@@ -299,10 +299,23 @@ router.post(
   GcpNativeController.searchAdvanced
 );
 
+// ── Phase 8: Distributed Tasks, Security & Design Intelligence ──────────────
 router.post(
-  '/search/knowledge-graph',
+  '/tasks/create',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  GcpNativeController.searchKnowledgeGraph
+  GcpNativeController.tasksCreateHttp
+);
+
+router.post(
+  '/security/safe-browsing',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.securityCheckSafeBrowsing
+);
+
+router.post(
+  '/design/fonts',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.designResolveFonts
 );
 
 export const gcpNativeRoutes = router;
