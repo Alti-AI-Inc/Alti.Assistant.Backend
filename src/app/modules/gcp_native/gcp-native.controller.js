@@ -1129,6 +1129,44 @@ const a2uiParseAndValidate = catchAsync(async (req, res) => {
 });
 
 /**
+ * Repairs syntax and format errors on a malformed A2UI JSON payload.
+ */
+const a2uiFixPayload = catchAsync(async (req, res) => {
+  const { rawJson } = req.body;
+  if (!rawJson) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "rawJson" is missing.');
+  }
+
+  const result = GcpA2uiService.fixA2uiPayload(rawJson);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google A2UI payload programmatic syntax correction executed successfully.',
+    data: { fixedJson: result },
+  });
+});
+
+/**
+ * Stateful endpoint processing one stream chunk, returning response parts and a new state map.
+ */
+const a2uiParseStreamChunk = catchAsync(async (req, res) => {
+  const { chunk, state } = req.body;
+  if (!chunk) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "chunk" is missing.');
+  }
+
+  const result = GcpA2uiService.parseA2uiStreamChunk(chunk, state);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'A2UI streaming chunk parsed successfully.',
+    data: result,
+  });
+});
+
+/**
  * Executes a specific tool inside a targeted toolset via the Google MCP Toolbox.
  */
 const mcpExecuteQuery = catchAsync(async (req, res) => {
@@ -1234,6 +1272,8 @@ export const GcpNativeController = {
   searchGetTrending,
   a2uiGeneratePrompt,
   a2uiParseAndValidate,
+  a2uiFixPayload,
+  a2uiParseStreamChunk,
   mcpExecuteQuery,
   mcpGetStatus,
   mcpUpdateTools

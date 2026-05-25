@@ -39,7 +39,7 @@ import { GcpA2uiService } from '../src/app/modules/gcp_native/gcp-a2ui.service.j
 import { GcpMcpService } from '../src/app/modules/gcp_native/gcp-mcp.service.js';
 import { workflowExecutionService } from '../src/app/modules/workflow_automation/services/workflowExecution.service.js';
 
-console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 11)...\n');
+console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 12)...\n');
 
 async function testCompilations() {
   console.log('====================================================');
@@ -74,6 +74,7 @@ async function testCompilations() {
     { name: 'GcpVertexSearchService', service: GcpVertexSearchService, method: 'searchDataStore' },
     { name: 'GcpTrendsService', service: GcpTrendsService, method: 'getTrendingSearches' },
     { name: 'GcpA2uiService', service: GcpA2uiService, method: 'parseAndValidateA2ui' },
+    { name: 'GcpA2uiServiceAdvanced', service: GcpA2uiService, method: 'fixA2uiPayload' },
     { name: 'GcpMcpService', service: GcpMcpService, method: 'executeMcpTool' }
   ];
 
@@ -447,6 +448,15 @@ async function testWorkflowMockExecution() {
       action: 'gcp_a2ui_render',
       parameters: {
         rawText: 'Here is the interface: <a2ui-json>[{"surfaceUpdate": {"root": "my-col", "components": [{"id": "my-col", "type": "column", "children": []}]}}]</a2ui-json>'
+      }
+    },
+    {
+      stepId: 'step_a2ui_stream',
+      app: 'google_cloud',
+      action: 'gcp_a2ui_stream_parse',
+      parameters: {
+        chunk: 'Here is conversational text: <a2ui-json>[{ id: "main", type: "column", children: [] }, ]</a2ui-json>',
+        state: { buffer: '', insideTag: false }
       }
     },
     {

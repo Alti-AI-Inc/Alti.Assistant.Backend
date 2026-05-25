@@ -315,8 +315,172 @@ const getA2uiBasicCatalog = () => {
   return A2UI_BASIC_CATALOG;
 };
 
+/**
+ * Heuristically corrects typical LLM JSON structural syntax errors.
+ * 
+ * @param {string} rawJson - Raw, potentially malformed JSON string payload
+ * @returns {string} Repaired and sanitized JSON string
+ */
+const fixA2uiPayload = (rawJson) => {
+  if (!rawJson) return '';
+  logger.info('GCP A2UI PayloadFixer: Attempting programmatic syntax correction on JSON string...');
+  
+  let fixed = rawJson.trim();
+
+  // 1. Repair unescaped newlines inside string literals
+  fixed = fixed.replace(/"([^"]*)"/g, (match, group) => {
+    return '"' + group.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + '"';
+  });
+
+  // 2. Repair single quotes to double quotes for properties and values
+  fixed = fixed.replace(/'([^']*)'\s*:/g, '"$1":');
+  fixed = fixed.replace(/:\s*'([^']*)'/g, ': "$1"');
+
+  // 3. Repair unquoted property keys
+  fixed = fixed.replace(/([{,]\s*)([a-zA-Z0-9_\-]+)\s*:/g, '$1"$2":');
+
+  // 4. Remove trailing commas in objects and arrays
+  fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+
+  // 5. Match and close any unclosed trailing brackets/braces using stack matching
+  const stack = [];
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < fixed.length; i++) {
+    const char = fixed[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (char === '\\') {
+      escape = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (!inString) {
+      if (char === '{' || char === '[') {
+        stack.push(char === '{' ? '}' : ']');
+      } else if (char === '}' || char === ']') {
+        if (stack.length > 0 && stack[stack.length - 1] === char) {
+          stack.pop();
+        }
+      }
+    }
+  }
+
+  while (stack.length > 0) {
+    const closeChar = stack.pop();
+    fixed += closeChar;
+  }
+
+  return fixed;
+};
+
+/**
+ * Stateful stream parser that parses dynamic text chunks progressively.
+ */
+class A2uiStreamParser {
+  constructor(catalog = null) {
+    this.buffer = '';
+    this.insideTag = false;
+    this.catalog = catalog;
+  }
+
+  processChunk(chunk) {
+    if (!chunk) return [];
+    
+    this.buffer += chunk;
+    const parts = [];
+
+    while (this.buffer.length > 0) {
+      if (!this.insideTag) {
+        const tagIndex = this.buffer.toLowerCase().indexOf('<a2ui-json>');
+        
+        if (tagIndex === -1) {
+          parts.push({
+            type: 'text',
+            content: this.buffer
+          });
+          this.buffer = '';
+          break;
+        } else {
+          if (tagIndex > 0) {
+            parts.push({
+              type: 'text',
+              content: this.buffer.substring(0, tagIndex)
+            });
+          }
+          this.insideTag = true;
+          this.buffer = this.buffer.substring(tagIndex + '<a2ui-json>'.length);
+        }
+      } else {
+        const closeIndex = this.buffer.toLowerCase().indexOf('</a2ui-json>');
+
+        if (closeIndex === -1) {
+          parts.push({
+            type: 'a2ui_partial',
+            bufferedLength: this.buffer.length
+          });
+          break;
+        } else {
+          let rawJson = this.buffer.substring(0, closeIndex).trim();
+          this.buffer = this.buffer.substring(closeIndex + '</a2ui-json>'.length);
+          this.insideTag = false;
+
+          rawJson = rawJson.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+          const repairedJson = fixA2uiPayload(rawJson);
+
+          try {
+            const parsedPayload = JSON.parse(repairedJson);
+            parts.push({
+              type: 'a2ui_complete',
+              success: true,
+              payload: parsedPayload
+            });
+          } catch (err) {
+            parts.push({
+              type: 'a2ui_complete',
+              success: false,
+              error: err.message,
+              rawPayload: rawJson
+            });
+          }
+        }
+      }
+    }
+
+    return parts;
+  }
+}
+
+/**
+ * Stateless wrapper parsing a single stream chunk, returning response parts and a new state map.
+ */
+const parseA2uiStreamChunk = (chunk, state = { buffer: '', insideTag: false }) => {
+  const parser = new A2uiStreamParser();
+  parser.buffer = state.buffer || '';
+  parser.insideTag = state.insideTag || false;
+
+  const parts = parser.processChunk(chunk);
+
+  return {
+    parts,
+    newState: {
+      buffer: parser.buffer,
+      insideTag: parser.insideTag
+    }
+  };
+};
+
 export const GcpA2uiService = {
   generateA2uiSystemPrompt,
   parseAndValidateA2ui,
-  getA2uiBasicCatalog
+  getA2uiBasicCatalog,
+  fixA2uiPayload,
+  parseA2uiStreamChunk,
+  A2uiStreamParser
 };

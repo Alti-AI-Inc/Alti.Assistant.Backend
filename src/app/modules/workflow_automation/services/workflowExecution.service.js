@@ -2196,6 +2196,36 @@ class WorkflowExecutionService {
             const { GcpA2uiService } = await import('../../gcp_native/gcp-a2ui.service.js');
             result = GcpA2uiService.parseAndValidateA2ui(rawText);
           }
+        } else if (action === 'gcp_a2ui_stream_parse') {
+          const { chunk, state } = parameters;
+          if (!chunk) {
+            throw new Error(`Required parameter 'chunk' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              parts: [
+                { type: 'text', content: 'Here is a streaming response from Alti: ' },
+                {
+                  type: 'a2ui_complete',
+                  success: true,
+                  payload: [
+                    {
+                      surfaceUpdate: {
+                        root: 'mcp-card',
+                        components: [{ id: 'mcp-card', type: 'column', children: [] }]
+                      }
+                    }
+                  ]
+                }
+              ],
+              newState: { buffer: '', insideTag: false },
+              mocked: true
+            };
+          } else {
+            const { GcpA2uiService } = await import('../../gcp_native/gcp-a2ui.service.js');
+            result = GcpA2uiService.parseA2uiStreamChunk(chunk, state);
+          }
         } else if (action === 'gcp_mcp_bridge') {
           const { toolsetName, toolName, mcpParameters } = parameters;
           const targetToolset = toolsetName || 'alti-default-postgres';

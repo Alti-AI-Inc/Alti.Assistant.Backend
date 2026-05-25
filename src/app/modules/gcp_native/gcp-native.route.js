@@ -350,6 +350,18 @@ router.post(
   GcpNativeController.a2uiParseAndValidate
 );
 
+router.post(
+  '/a2ui/fix',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.a2uiFixPayload
+);
+
+router.post(
+  '/a2ui/stream',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.a2uiParseStreamChunk
+);
+
 // ── Phase 11: Google Model Context Protocol (MCP) Database & Services Bridge ─
 router.post(
   '/mcp/query',
