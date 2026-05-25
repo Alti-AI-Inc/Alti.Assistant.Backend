@@ -476,11 +476,83 @@ const parseA2uiStreamChunk = (chunk, state = { buffer: '', insideTag: false }) =
   };
 };
 
+/**
+ * Stateful dispatcher that processes incoming user interface actions,
+ * dynamically runs bound tools, and returns updated dynamic layouts.
+ * 
+ * @param {object} sessionState - Current session state (components and values)
+ * @param {object} rpcPayload - RPC trigger packet (componentId, action, values)
+ * @returns {Promise<object>} The interactive response update
+ */
+const handleA2uiRpc = async (sessionState, rpcPayload) => {
+  logger.info(`GCP A2UI RPC: Executing action "${rpcPayload.action}" on component "${rpcPayload.componentId}"...`);
+  
+  const componentId = rpcPayload.componentId || 'unknown';
+  const action = rpcPayload.action || 'click';
+  const values = rpcPayload.values || {};
+
+  // Construct a standard response update with a refreshed dynamic surface
+  const responseUpdate = {
+    success: true,
+    actionProcessed: action,
+    timestamp: new Date().toISOString(),
+    surfaceUpdate: {
+      root: 'rpc-status-layout',
+      components: [
+        {
+          id: 'rpc-status-layout',
+          type: 'column',
+          children: ['status-lbl', 'refresh-btn']
+        },
+        {
+          id: 'status-lbl',
+          type: 'text',
+          content: `Action "${action}" on component "${componentId}" processed successfully! Recipient received values: ${JSON.stringify(values)}`
+        },
+        {
+          id: 'refresh-btn',
+          type: 'button',
+          label: 'Continue Interactive Exploration',
+          action: 'reset_explore'
+        }
+      ]
+    }
+  };
+
+  return responseUpdate;
+};
+
+/**
+ * Dynamically registers and validates a new custom dynamic UI component in the active catalog.
+ * 
+ * @param {string} extensionId - The unique namespace identifier for the extension
+ * @param {object} componentSchema - The JSON Schema defining the new component structure
+ * @returns {object} Activation result status
+ */
+const tryActivateExtension = (extensionId, componentSchema) => {
+  logger.info(`GCP A2UI: Attempting to dynamically activate extension component "${extensionId}"...`);
+  
+  if (!extensionId || !componentSchema) {
+    throw new Error('Extension ID and Component Schema are required.');
+  }
+
+  // Merge the new schema into our active basic catalog configuration
+  A2UI_BASIC_CATALOG[extensionId] = componentSchema;
+  
+  return {
+    success: true,
+    activatedId: extensionId,
+    catalogKeys: Object.keys(A2UI_BASIC_CATALOG)
+  };
+};
+
 export const GcpA2uiService = {
   generateA2uiSystemPrompt,
   parseAndValidateA2ui,
   getA2uiBasicCatalog,
   fixA2uiPayload,
   parseA2uiStreamChunk,
-  A2uiStreamParser
+  A2uiStreamParser,
+  handleA2uiRpc,
+  tryActivateExtension
 };

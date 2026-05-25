@@ -362,6 +362,70 @@ router.post(
   GcpNativeController.a2uiParseStreamChunk
 );
 
+// ── Phase 13: Google A2UI Interactive RPC & Extensions Bridge ───────────────
+router.post(
+  '/a2ui/rpc',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.a2uiHandleRpc
+);
+
+router.post(
+  '/a2ui/extension',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.a2uiActivateExtension
+);
+
+// ── Phase 13: Google Agent Graphical User Interface (AGUI) ───────────────────
+router.post(
+  '/agui/prompt',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.aguiGeneratePrompt
+);
+
+router.post(
+  '/agui/validate',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.aguiParseAndValidate
+);
+
+router.post(
+  '/agui/fix',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.aguiFixPayload
+);
+
+router.post(
+  '/agui/stream',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.aguiParseStreamChunk
+);
+
+// ── Phase 13: Google Agent-to-Agent (A2A) Swarm ─────────────────────────────
+router.post(
+  '/a2a/validate',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.a2aValidatePacket
+);
+
+router.post(
+  '/a2a/handoff',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.a2aFormatHandoff
+);
+
+// ── Phase 13: Google Agent Development Kit (ADK) ─────────────────────────────
+router.post(
+  '/adk/validate-manifest',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.adkValidateManifest
+);
+
+router.post(
+  '/adk/bootstrap',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.adkBootstrap
+);
+
 // ── Phase 11: Google Model Context Protocol (MCP) Database & Services Bridge ─
 router.post(
   '/mcp/query',

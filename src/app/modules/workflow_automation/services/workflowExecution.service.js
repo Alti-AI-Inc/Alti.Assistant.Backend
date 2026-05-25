@@ -2226,6 +2226,97 @@ class WorkflowExecutionService {
             const { GcpA2uiService } = await import('../../gcp_native/gcp-a2ui.service.js');
             result = GcpA2uiService.parseA2uiStreamChunk(chunk, state);
           }
+        } else if (action === 'gcp_a2ui_rpc_dispatch') {
+          const { sessionState, rpcPayload } = parameters;
+          if (!rpcPayload) {
+            throw new Error(`Required parameter 'rpcPayload' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              actionProcessed: rpcPayload.action || 'click',
+              timestamp: new Date().toISOString(),
+              surfaceUpdate: {
+                root: 'mock-rpc-layout',
+                components: [
+                  { id: 'mock-rpc-layout', type: 'column', children: ['mock-lbl'] },
+                  { id: 'mock-lbl', type: 'text', content: 'Mock RPC action dispatched and handled successfully!' }
+                ]
+              },
+              mocked: true
+            };
+          } else {
+            const { GcpA2uiService } = await import('../../gcp_native/gcp-a2ui.service.js');
+            result = await GcpA2uiService.handleA2uiRpc(sessionState, rpcPayload);
+          }
+        } else if (action === 'gcp_agui_render') {
+          const { rawText } = parameters;
+          if (!rawText) {
+            throw new Error(`Required parameter 'rawText' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              containsUi: true,
+              errors: [],
+              payload: [
+                {
+                  canvasUpdate: {
+                    root: 'mock-agui-layout',
+                    components: [
+                      { id: 'mock-agui-layout', type: 'dashboardGrid', cols: 2, children: ['mock-card-1'] },
+                      { id: 'mock-card-1', type: 'metricCard', title: 'Memory Usage', value: '45.2%' }
+                    ]
+                  }
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpAguiService } = await import('../../gcp_native/gcp-agui.service.js');
+            result = GcpAguiService.parseAndValidateAgui(rawText);
+          }
+        } else if (action === 'gcp_a2a_dispatch') {
+          const { rawText } = parameters;
+          if (!rawText) {
+            throw new Error(`Required parameter 'rawText' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              containsPacket: true,
+              errors: [],
+              packet: {
+                sender: 'MockPlanner',
+                recipient: 'MockCoder',
+                seqId: 'seq_mock_123',
+                securityToken: 'sec_token_mock',
+                payload: { action: 'execute_task', parameters: {} }
+              },
+              mocked: true
+            };
+          } else {
+            const { GcpA2aService } = await import('../../gcp_native/gcp-a2a.service.js');
+            result = GcpA2aService.parseAndValidateA2a(rawText);
+          }
+        } else if (action === 'gcp_adk_bootstrap') {
+          const { manifest } = parameters;
+          if (!manifest) {
+            throw new Error(`Required parameter 'manifest' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              bootstrapped: true,
+              pluginName: manifest.name || 'mock-plugin',
+              routePrefix: `/ext/${manifest.name || 'mock-plugin'}`,
+              registeredActivitiesCount: manifest.entryPoints?.activities?.length || 0,
+              timestamp: new Date().toISOString(),
+              mocked: true
+            };
+          } else {
+            const { GcpAdkService } = await import('../../gcp_native/gcp-adk.service.js');
+            result = GcpAdkService.bootstrapAdkExtension(manifest);
+          }
         } else if (action === 'gcp_mcp_bridge') {
           const { toolsetName, toolName, mcpParameters } = parameters;
           const targetToolset = toolsetName || 'alti-default-postgres';

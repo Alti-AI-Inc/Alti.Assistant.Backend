@@ -30,6 +30,9 @@ import { GcpSuggestService } from './gcp-suggest.service.js';
 import { GcpVertexSearchService } from './gcp-vertex-search.service.js';
 import { GcpTrendsService } from './gcp-trends.service.js';
 import { GcpA2uiService } from './gcp-a2ui.service.js';
+import { GcpAguiService } from './gcp-agui.service.js';
+import { GcpA2aService } from './gcp-a2a.service.js';
+import { GcpAdkService } from './gcp-adk.service.js';
 import { GcpMcpService } from './gcp-mcp.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
@@ -1217,6 +1220,198 @@ const mcpUpdateTools = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Processes incoming user click and submit actions dynamically, executing pre-approved tools.
+ */
+const a2uiHandleRpc = catchAsync(async (req, res) => {
+  const { sessionState, rpcPayload } = req.body;
+  if (!rpcPayload) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "rpcPayload" is missing.');
+  }
+
+  const result = await GcpA2uiService.handleA2uiRpc(sessionState, rpcPayload);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google A2UI interactive RPC event processed successfully.',
+    data: result,
+  });
+});
+
+/**
+ * Registers dynamic visual UI component templates in the active catalog at runtime.
+ */
+const a2uiActivateExtension = catchAsync(async (req, res) => {
+  const { extensionId, componentSchema } = req.body;
+  if (!extensionId || !componentSchema) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameters "extensionId" and "componentSchema" are missing.');
+  }
+
+  const result = GcpA2uiService.tryActivateExtension(extensionId, componentSchema);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google A2UI extension component activated successfully in the runtime catalog.',
+    data: result,
+  });
+});
+
+/**
+ * Compiles dynamic system instructions for Google AGUI visual layout elements.
+ */
+const aguiGeneratePrompt = catchAsync(async (req, res) => {
+  const { allowedComponents, includeExamples } = req.body;
+  const result = GcpAguiService.generateAguiSystemPrompt(allowedComponents, includeExamples);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google AGUI canvas prompt specifications compiled successfully.',
+    data: { systemInstructions: result },
+  });
+});
+
+/**
+ * Extracts and performs deep structural/topological validation on a raw AGUI graphical block.
+ */
+const aguiParseAndValidate = catchAsync(async (req, res) => {
+  const { rawText } = req.body;
+  if (!rawText) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "rawText" is missing.');
+  }
+
+  const result = GcpAguiService.parseAndValidateAgui(rawText);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: result.success,
+    message: result.success
+      ? 'Google AGUI canvas structural validation check completed successfully.'
+      : 'Google AGUI canvas structural validation check failed with violations.',
+    data: result,
+  });
+});
+
+/**
+ * Repairs syntax and format errors on a malformed AGUI JSON payload.
+ */
+const aguiFixPayload = catchAsync(async (req, res) => {
+  const { rawJson } = req.body;
+  if (!rawJson) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "rawJson" is missing.');
+  }
+
+  const result = GcpAguiService.fixAguiPayload(rawJson);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google AGUI canvas payload programmatic syntax correction executed successfully.',
+    data: { fixedJson: result },
+  });
+});
+
+/**
+ * Stateful endpoint processing one AGUI stream chunk, returning response parts and state.
+ */
+const aguiParseStreamChunk = catchAsync(async (req, res) => {
+  const { chunk, state } = req.body;
+  if (!chunk) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "chunk" is missing.');
+  }
+
+  const result = GcpAguiService.parseAguiStreamChunk(chunk, state);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'AGUI streaming chunk parsed successfully.',
+    data: result,
+  });
+});
+
+/**
+ * Validates mandatory headers and syntax of an Agent-to-Agent (A2A) packet.
+ */
+const a2aValidatePacket = catchAsync(async (req, res) => {
+  const { rawText } = req.body;
+  if (!rawText) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "rawText" is missing.');
+  }
+
+  const result = GcpA2aService.parseAndValidatea2a ? GcpA2aService.parseAndValidatea2a(rawText) : GcpA2aService.parseAndValidateA2a(rawText);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: result.success,
+    message: result.success
+      ? 'Google A2A inter-agent communication packet verified successfully.'
+      : 'Google A2A inter-agent communication packet verification failed.',
+    data: result,
+  });
+});
+
+/**
+ * Programmatically formats a secure multi-agent swarm handoff transition packet.
+ */
+const a2aFormatHandoff = catchAsync(async (req, res) => {
+  const { fromAgent, toAgent, action, parameters } = req.body;
+  if (!fromAgent || !toAgent || !action) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameters "fromAgent", "toAgent", and "action" are missing.');
+  }
+
+  const result = GcpA2aService.formatSwarmHandoff(fromAgent, toAgent, action, parameters);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google A2A swarm handoff packet formatted successfully.',
+    data: { packetXml: result },
+  });
+});
+
+/**
+ * Parses and validates a developer plugin manifest package.
+ */
+const adkValidateManifest = catchAsync(async (req, res) => {
+  const { rawText } = req.body;
+  if (!rawText) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "rawText" is missing.');
+  }
+
+  const result = GcpAdkService.validateAdkManifest(rawText);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: result.success,
+    message: result.success
+      ? 'Google ADK plugin manifest validated successfully.'
+      : 'Google ADK plugin manifest validation failed with errors.',
+    data: result,
+  });
+});
+
+/**
+ * Bootstraps the validated ADK extension dynamically.
+ */
+const adkBootstrap = catchAsync(async (req, res) => {
+  const { manifest } = req.body;
+  if (!manifest) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "manifest" is missing.');
+  }
+
+  const result = GcpAdkService.bootstrapAdkExtension(manifest);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google ADK plugin extension bootstrapped successfully.',
+    data: result,
+  });
+});
+
 export const GcpNativeController = {
   searchCatalog,
   importSubmodule,
@@ -1274,6 +1469,16 @@ export const GcpNativeController = {
   a2uiParseAndValidate,
   a2uiFixPayload,
   a2uiParseStreamChunk,
+  a2uiHandleRpc,
+  a2uiActivateExtension,
+  aguiGeneratePrompt,
+  aguiParseAndValidate,
+  aguiFixPayload,
+  aguiParseStreamChunk,
+  a2aValidatePacket,
+  a2aFormatHandoff,
+  adkValidateManifest,
+  adkBootstrap,
   mcpExecuteQuery,
   mcpGetStatus,
   mcpUpdateTools

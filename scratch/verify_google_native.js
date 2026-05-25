@@ -36,6 +36,9 @@ import { GcpSuggestService } from '../src/app/modules/gcp_native/gcp-suggest.ser
 import { GcpVertexSearchService } from '../src/app/modules/gcp_native/gcp-vertex-search.service.js';
 import { GcpTrendsService } from '../src/app/modules/gcp_native/gcp-trends.service.js';
 import { GcpA2uiService } from '../src/app/modules/gcp_native/gcp-a2ui.service.js';
+import { GcpAguiService } from '../src/app/modules/gcp_native/gcp-agui.service.js';
+import { GcpA2aService } from '../src/app/modules/gcp_native/gcp-a2a.service.js';
+import { GcpAdkService } from '../src/app/modules/gcp_native/gcp-adk.service.js';
 import { GcpMcpService } from '../src/app/modules/gcp_native/gcp-mcp.service.js';
 import { workflowExecutionService } from '../src/app/modules/workflow_automation/services/workflowExecution.service.js';
 
@@ -75,6 +78,10 @@ async function testCompilations() {
     { name: 'GcpTrendsService', service: GcpTrendsService, method: 'getTrendingSearches' },
     { name: 'GcpA2uiService', service: GcpA2uiService, method: 'parseAndValidateA2ui' },
     { name: 'GcpA2uiServiceAdvanced', service: GcpA2uiService, method: 'fixA2uiPayload' },
+    { name: 'GcpA2uiServiceRpc', service: GcpA2uiService, method: 'handleA2uiRpc' },
+    { name: 'GcpAguiService', service: GcpAguiService, method: 'parseAndValidateAgui' },
+    { name: 'GcpA2aService', service: GcpA2aService, method: 'parseAndValidateA2a' },
+    { name: 'GcpAdkService', service: GcpAdkService, method: 'bootstrapAdkExtension' },
     { name: 'GcpMcpService', service: GcpMcpService, method: 'executeMcpTool' }
   ];
 
@@ -468,6 +475,52 @@ async function testWorkflowMockExecution() {
         toolName: 'execute_sql',
         mcpParameters: {
           statement: 'SELECT * FROM security_alerts LIMIT 5;'
+        }
+      }
+    },
+    {
+      stepId: 'step_a2ui_rpc_dispatch',
+      app: 'google_cloud',
+      action: 'gcp_a2ui_rpc_dispatch',
+      parameters: {
+        sessionState: {},
+        rpcPayload: {
+          componentId: 'submit-btn',
+          action: 'click',
+          values: { inputVal: 'test data' }
+        }
+      }
+    },
+    {
+      stepId: 'step_agui_render',
+      app: 'google_cloud',
+      action: 'gcp_agui_render',
+      parameters: {
+        rawText: 'Here is AGUI: <agui-json>[{"canvasUpdate": {"root": "grid-layout", "components": [{"id": "grid-layout", "type": "dashboardGrid", "children": []}]}}]</agui-json>'
+      }
+    },
+    {
+      stepId: 'step_a2a_dispatch',
+      app: 'google_cloud',
+      action: 'gcp_a2a_dispatch',
+      parameters: {
+        rawText: 'Handoff starting: <a2a-packet>{"sender": "Planner", "recipient": "Coder", "seqId": "seq_1", "securityToken": "sec_token_valid", "payload": {"action": "generate", "parameters": {}}}</a2a-packet>'
+      }
+    },
+    {
+      stepId: 'step_adk_bootstrap',
+      app: 'google_cloud',
+      action: 'gcp_adk_bootstrap',
+      parameters: {
+        manifest: {
+          name: 'verification-ext',
+          version: '1.0.0',
+          scope: 'gcp-mcp-extensions',
+          permissions: ['read_file'],
+          entryPoints: {
+            routePrefix: '/ext/verification-ext',
+            activities: ['step_1']
+          }
         }
       }
     },
