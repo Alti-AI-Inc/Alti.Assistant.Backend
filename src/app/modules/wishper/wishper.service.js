@@ -38,6 +38,44 @@ const transcribeAudioToTextService = async (audioPath) => {
     return result?.response?.text() || '';
   } catch (error) {
     console.error('Error during Gemini audio transcription:', error);
+
+    // Groq Whisper-large-v3 fallback
+    const groqKey = process.env.GROQ_API_KEY || config.groq_api_key;
+    if (groqKey) {
+      console.log('🔄 Gemini transcription failed. Falling back to Groq Whisper-large-v3...');
+      try {
+        const audioBuffer = fs.readFileSync(audioPath);
+        const mimeType = getMimeType(audioPath);
+
+        const fileBlob = new Blob([audioBuffer], { type: mimeType });
+        const formData = new FormData();
+        formData.append('file', fileBlob, path.basename(audioPath));
+        formData.append('model', 'whisper-large-v3');
+        formData.append('language', 'en');
+
+        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqKey}`,
+          },
+          body: formData,
+        });
+
+        const responseData = await response.json();
+        if (response.ok && responseData.text) {
+          console.log('🟢 Groq Whisper fallback transcription succeeded!');
+          return responseData.text;
+        } else {
+          console.error(
+            '❌ Groq Whisper fallback failed:',
+            responseData.error?.message || responseData
+          );
+        }
+      } catch (fallbackError) {
+        console.error('❌ Groq Whisper fallback error:', fallbackError.message);
+      }
+    }
+
     throw error;
   }
 };
