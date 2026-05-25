@@ -8,6 +8,7 @@ import { GeminiAiService } from '../gemini/gemini.service.js';
 import { SwarmService } from '../swarm/swarm.service.js';
 import Conversation from '../conversations/conversation.model.js';
 import crypto from 'crypto';
+import fetch from 'node-fetch';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
@@ -56,14 +57,47 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
     } else {
       // 1. FAST INTENT CLASSIFICATION
       logger.info(`[Orchestrator] Received prompt from user ${userId}. Classifying intent...`);
-      const classificationResult = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        systemInstruction: { role: "system", parts: [{ text: ORCHESTRATOR_SYSTEM_PROMPT }] }
-      });
+      let rawJson = '{}';
+      try {
+        const classificationResult = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          systemInstruction: { role: "system", parts: [{ text: ORCHESTRATOR_SYSTEM_PROMPT }] }
+        });
+        rawJson = classificationResult?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      } catch (geminiErr) {
+        logger.warn(`[Orchestrator] Gemini classification failed: ${geminiErr.message}. Falling back to Groq Llama-3.3...`);
+        try {
+          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${config.groq_secret_key || process.env.GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              messages: [
+                { role: 'system', content: ORCHESTRATOR_SYSTEM_PROMPT },
+                { role: 'user', content: prompt }
+              ],
+              response_format: { type: 'json_object' },
+              temperature: 0.1
+            })
+          });
+          if (groqResponse.ok) {
+            const groqData = await groqResponse.json();
+            rawJson = groqData.choices?.[0]?.message?.content || '{}';
+            logger.info('[Orchestrator] Successfully classified intent using Groq fallback.');
+          } else {
+            const errBody = await groqResponse.text();
+            throw new Error(`Groq returned status ${groqResponse.status}: ${errBody}`);
+          }
+        } catch (groqErr) {
+          logger.error('[Orchestrator] Both Gemini and Groq classification failed:', groqErr);
+          rawJson = '{}';
+        }
+      }
 
-      let rawJson = classificationResult?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      
-      // Clean markdown blocks if Gemini happens to ignore instructions
+      // Clean markdown blocks if LLM happens to ignore instructions
       rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
       
       try {

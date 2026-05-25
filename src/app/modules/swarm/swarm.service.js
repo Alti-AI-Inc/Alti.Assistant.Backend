@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
+import fetch from 'node-fetch';
 import { SynapseRouter } from './synapseRouter.js';
 import { GcpNativeService } from '../gcp_native/gcp-native.service.js';
 import { isExploriumAgent, getExploriumContext } from './explorium.smart.router.js';
@@ -151,6 +152,127 @@ const stripPreambles = (text) => {
     .trim();
 };
 
+/**
+ * Calls Groq as a fallback if Gemini fails.
+ */
+const queryGroqFallback = async (systemInstruction, conversationHistory, finalPrompt, temperature = 0.15, maxTokens = 4000) => {
+  try {
+    console.log('[Groq Fallback] Querying Groq llama-3.3-70b-versatile...');
+    const messages = [];
+    if (systemInstruction) {
+      const systemContent = typeof systemInstruction === 'string' 
+        ? systemInstruction 
+        : (systemInstruction.parts?.[0]?.text || '');
+      if (systemContent) {
+        messages.push({ role: 'system', content: systemContent });
+      }
+    }
+    for (const msg of conversationHistory) {
+      messages.push({
+        role: msg.role === 'assistant' || msg.role === 'model' ? 'assistant' : 'user',
+        content: msg.content
+      });
+    }
+    messages.push({ role: 'user', content: finalPrompt });
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.groq_secret_key || process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        temperature,
+        max_tokens: maxTokens
+      })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || '';
+    } else {
+      const errText = await response.text();
+      throw new Error(`Groq returned status ${response.status}: ${errText}`);
+    }
+  } catch (err) {
+    console.error('[Groq Fallback] Groq call failed:', err);
+    throw err;
+  }
+};
+
+/**
+ * Streams chat completions from Groq.
+ * Yields `{ type: 'text', content: string }` chunks.
+ */
+async function* streamGroqFallback(systemInstruction, conversationHistory, finalPrompt, agentId, temperature = 0.15, maxTokens = 4000) {
+  console.log('[Groq Stream Fallback] Querying Groq llama-3.3-70b-versatile streaming...');
+  const messages = [];
+  if (systemInstruction) {
+    const systemContent = typeof systemInstruction === 'string' 
+      ? systemInstruction 
+      : (systemInstruction.parts?.[0]?.text || '');
+    if (systemContent) {
+      messages.push({ role: 'system', content: systemContent });
+    }
+  }
+  for (const msg of conversationHistory) {
+    messages.push({
+      role: msg.role === 'assistant' || msg.role === 'model' ? 'assistant' : 'user',
+      content: msg.content
+    });
+  }
+  messages.push({ role: 'user', content: finalPrompt });
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.groq_secret_key || process.env.GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      stream: true
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Groq stream failed with status ${response.status}: ${errText}`);
+  }
+
+  const stream = response.body;
+  let buffer = '';
+  for await (const chunk of stream) {
+    buffer += chunk.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      const cleanLine = line.trim();
+      if (cleanLine.startsWith('data: ')) {
+        const dataStr = cleanLine.slice(6);
+        if (dataStr === '[DONE]') break;
+        try {
+          const dataObj = JSON.parse(dataStr);
+          const textChunk = dataObj.choices?.[0]?.delta?.content;
+          if (textChunk) {
+            yield {
+              type: 'text',
+              content: textChunk,
+              agentId
+            };
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
+    }
+  }
+}
+
 export class SwarmService {
   /**
    * Executes the collaborative agent swarm synchronously and returns the final response.
@@ -239,84 +361,108 @@ Instructions: ${agent.systemInstruction}`;
 
       // Determine if this agent needs live web grounding (smart detection)
       const useGrounding = needsSearchGrounding(agent, query);
+      let runWithGroundingFailed = false;
 
       if (useGrounding) {
         // ═══ GOOGLE SEARCH GROUNDING PATH (Perplexity-killer mode) ═══
         console.log(`🔍 Search Grounding ENABLED for agent [${agent.name}]`);
 
-        const groundedResult = await ai.models.generateContent({
-          model: agent.model || 'gemini-3.5-flash',
-          contents: finalPrompt,
-          config: {
-            temperature: 0.05,
-            maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
-            systemInstruction: agent.systemInstruction,
-            tools: [{ googleSearch: {} }],
-          },
-        });
+        try {
+          const groundedResult = await ai.models.generateContent({
+            model: agent.model || 'gemini-3.5-flash',
+            contents: finalPrompt,
+            config: {
+              temperature: 0.05,
+              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
+              systemInstruction: agent.systemInstruction,
+              tools: [{ googleSearch: {} }],
+            },
+          });
 
-        const candidate = groundedResult.candidates?.[0];
-        let rawText = candidate?.content?.parts
-          ?.filter((part) => part.text && !part.thought)
-          ?.map((part) => part.text)
-          ?.join('') || '';
+          const candidate = groundedResult.candidates?.[0];
+          let rawText = candidate?.content?.parts
+            ?.filter((part) => part.text && !part.thought)
+            ?.map((part) => part.text)
+            ?.join('') || '';
 
-        // Extract citations from Google Search Grounding
-        const citations = extractGroundingCitations(groundedResult);
-        const groundingMeta = candidate?.groundingMetadata || null;
+          // Extract citations from Google Search Grounding
+          const citations = extractGroundingCitations(groundedResult);
+          const groundingMeta = candidate?.groundingMetadata || null;
 
-        // Inject inline [1][2][3] markers + sources block
-        const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, citations, groundingMeta);
+          // Inject inline [1][2][3] markers + sources block
+          const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, citations, groundingMeta);
 
-        // Strip preambles
-        const cleanText = stripPreambles(citedText) + sourcesBlock;
+          // Strip preambles
+          const cleanText = stripPreambles(citedText) + sourcesBlock;
 
-        if (citations.length > 0) {
-          console.log(`📎 Extracted ${citations.length} grounded citations for agent [${agent.name}]`);
+          if (citations.length > 0) {
+            console.log(`📎 Extracted ${citations.length} grounded citations for agent [${agent.name}]`);
+          }
+
+          // Generate related questions (non-blocking)
+          const relatedQuestions = await generateRelatedQuestions(query, cleanText).catch(() => []);
+
+          accumulatedText = cleanText;
+          currentContextInput = cleanText;
+
+          return {
+            reply: cleanText,
+            citations,
+            relatedQuestions,
+            groundingMetadata: groundingMeta,
+            webSearchQueries: groundingMeta?.webSearchQueries || [],
+            searchEntryPoint: groundingMeta?.searchEntryPoint || null,
+          };
+        } catch (groundingErr) {
+          console.warn(`🔍 Search Grounding failed: ${groundingErr.message}. Falling back to standard generation...`);
+          runWithGroundingFailed = true;
         }
-
-        // Generate related questions (non-blocking)
-        const relatedQuestions = await generateRelatedQuestions(query, cleanText).catch(() => []);
-
-        accumulatedText = cleanText;
-        currentContextInput = cleanText;
-
-        return {
-          reply: cleanText,
-          citations,
-          relatedQuestions,
-          groundingMetadata: groundingMeta,
-          webSearchQueries: groundingMeta?.webSearchQueries || [],
-          searchEntryPoint: groundingMeta?.searchEntryPoint || null,
-        };
       }
 
-      // ═══ STANDARD PATH (no web search needed) ═══
-      const modelInstance = genAI.getGenerativeModel({
-        model: agent.model || 'gemini-3.5-flash',
-        systemInstruction: agent.systemInstruction
-      });
+      // ═══ STANDARD PATH (no web search needed, or grounding failed) ═══
+      let text = '';
+      try {
+        const modelInstance = genAI.getGenerativeModel({
+          model: agent.model || 'gemini-3.5-flash',
+          systemInstruction: agent.systemInstruction
+        });
 
-      const contents = [
-        ...conversationHistory.map(msg => ({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
-        })),
-        {
-          role: 'user',
-          parts: [{ text: finalPrompt }]
+        const contents = [
+          ...conversationHistory.map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+          })),
+          {
+            role: 'user',
+            parts: [{ text: finalPrompt }]
+          }
+        ];
+
+        const result = await modelInstance.generateContent({
+          contents,
+          generationConfig: {
+            temperature: isPrimary ? 0.15 : 0.05,
+            maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+          }
+        });
+
+        text = stripPreambles(result?.response?.text() || '');
+      } catch (geminiErr) {
+        console.warn(`📡 Gemini generation failed: ${geminiErr.message}. Falling back to Groq...`);
+        try {
+          text = await queryGroqFallback(
+            agent.systemInstruction,
+            conversationHistory,
+            finalPrompt,
+            isPrimary ? 0.15 : 0.05,
+            isExploriumAgent(agent.id) ? 6000 : 4000
+          );
+          text = stripPreambles(text);
+        } catch (groqErr) {
+          console.error('❌ Both Gemini and Groq generation failed:', groqErr);
+          throw geminiErr; // rethrow original gemini error if both fail
         }
-      ];
-
-      const result = await modelInstance.generateContent({
-        contents,
-        generationConfig: {
-          temperature: isPrimary ? 0.15 : 0.05,
-          maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
-        }
-      });
-
-      const text = stripPreambles(result?.response?.text() || '');
+      }
       accumulatedText = text;
       currentContextInput = text;
     }
@@ -455,107 +601,151 @@ Instructions: ${agent.systemInstruction}`;
           // ═══ GROUNDED STREAMING PATH (Perplexity-killer mode) ═══
           console.log(`🔍 Search Grounding ENABLED (streaming) for agent [${agent.name}]`);
 
-          const groundedResult = await ai.models.generateContent({
-            model: agent.model || 'gemini-3.5-flash',
-            contents: finalPrompt,
-            config: {
-              temperature: 0.05,
-              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
-              systemInstruction: agent.systemInstruction,
-              tools: [{ googleSearch: {} }],
-            },
-          });
+          try {
+            const groundedResult = await ai.models.generateContent({
+              model: agent.model || 'gemini-3.5-flash',
+              contents: finalPrompt,
+              config: {
+                temperature: 0.05,
+                maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
+                systemInstruction: agent.systemInstruction,
+                tools: [{ googleSearch: {} }],
+              },
+            });
 
-          const candidate = groundedResult.candidates?.[0];
-          let rawText = candidate?.content?.parts
-            ?.filter((part) => part.text && !part.thought)
-            ?.map((part) => part.text)
-            ?.join('') || '';
+            const candidate = groundedResult.candidates?.[0];
+            let rawText = candidate?.content?.parts
+              ?.filter((part) => part.text && !part.thought)
+              ?.map((part) => part.text)
+              ?.join('') || '';
 
-          groundedCitations = extractGroundingCitations(groundedResult);
-          const groundingMeta = candidate?.groundingMetadata || null;
+            groundedCitations = extractGroundingCitations(groundedResult);
+            const groundingMeta = candidate?.groundingMetadata || null;
 
-          // Inject inline [1][2][3] markers + sources block
-          const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, groundedCitations, groundingMeta);
-          const cleanText = stripPreambles(citedText);
-          const fullOutput = cleanText + sourcesBlock;
+            // Inject inline [1][2][3] markers + sources block
+            const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, groundedCitations, groundingMeta);
+            const cleanText = stripPreambles(citedText);
+            const fullOutput = cleanText + sourcesBlock;
 
-          if (groundedCitations.length > 0) {
-            console.log(`📎 Extracted ${groundedCitations.length} citations for agent [${agent.name}]`);
-          }
+            if (groundedCitations.length > 0) {
+              console.log(`📎 Extracted ${groundedCitations.length} citations for agent [${agent.name}]`);
+            }
 
-          // Simulate streaming by chunking the grounded response
-          const chunkSize = 80;
-          for (let i = 0; i < fullOutput.length; i += chunkSize) {
-            const textChunk = fullOutput.substring(i, i + chunkSize);
-            yield {
-              type: 'text',
-              content: textChunk,
-              agentId: agent.id
-            };
-          }
+            // Simulate streaming by chunking the grounded response
+            const chunkSize = 80;
+            for (let i = 0; i < fullOutput.length; i += chunkSize) {
+              const textChunk = fullOutput.substring(i, i + chunkSize);
+              yield {
+                type: 'text',
+                content: textChunk,
+                agentId: agent.id
+              };
+            }
 
-          accumulatedText += isPrimary ? fullOutput : `\n\n${fullOutput}`;
-          currentContextInput = cleanText;
+            accumulatedText += isPrimary ? fullOutput : `\n\n${fullOutput}`;
+            currentContextInput = cleanText;
 
-          // Yield grounding citations as structured metadata
-          if (groundedCitations.length > 0) {
-            yield {
-              type: 'metadata',
-              citations: groundedCitations,
-              webSearchQueries: groundingMeta?.webSearchQueries || [],
-              searchEntryPoint: groundingMeta?.searchEntryPoint || null,
-              timestamp: Date.now()
-            };
+            // Yield grounding citations as structured metadata
+            if (groundedCitations.length > 0) {
+              yield {
+                type: 'metadata',
+                citations: groundedCitations,
+                webSearchQueries: groundingMeta?.webSearchQueries || [],
+                searchEntryPoint: groundingMeta?.searchEntryPoint || null,
+                timestamp: Date.now()
+              };
+            }
+          } catch (groundingErr) {
+            console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to Groq stream...`);
+            let agentTextAccumulator = '';
+            for await (const chunk of streamGroqFallback(
+              agent.systemInstruction,
+              conversationHistory,
+              finalPrompt,
+              agent.id,
+              isPrimary ? 0.15 : 0.05,
+              isExploriumAgent(agent.id) ? 6000 : 4000
+            )) {
+              if (chunk.content) {
+                agentTextAccumulator += chunk.content;
+              }
+              yield chunk;
+            }
+            const cleanText = stripPreambles(agentTextAccumulator);
+            accumulatedText += isPrimary ? cleanText : `\n\n${cleanText}`;
+            currentContextInput = cleanText;
           }
 
         } else {
           // ═══ STANDARD STREAMING PATH ═══
-          const modelInstance = genAI.getGenerativeModel({
-            model: agent.model || 'gemini-3.5-flash',
-            systemInstruction: agent.systemInstruction
-          });
+          let agentTextAccumulator = '';
+          try {
+            const modelInstance = genAI.getGenerativeModel({
+              model: agent.model || 'gemini-3.5-flash',
+              systemInstruction: agent.systemInstruction
+            });
 
-          const contents = [
-            ...conversationHistory.map(msg => ({
-              role: msg.role === 'assistant' ? 'model' : 'user',
-              parts: [{ text: msg.content }]
-            })),
-            {
-              role: 'user',
-              parts: [{ text: finalPrompt }]
+            const contents = [
+              ...conversationHistory.map(msg => ({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }]
+              })),
+              {
+                role: 'user',
+                parts: [{ text: finalPrompt }]
+              }
+            ];
+
+            streamResult = await modelInstance.generateContentStream({
+              contents,
+              generationConfig: {
+                temperature: isPrimary ? 0.15 : 0.05,
+                maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+              }
+            });
+
+            for await (const chunk of streamResult.stream) {
+              const textChunk = chunk.text();
+              if (textChunk) {
+                agentTextAccumulator += textChunk;
+                
+                // Stream text chunk to client in real-time
+                yield {
+                  type: 'text',
+                  content: textChunk,
+                  agentId: agent.id
+                };
+              }
             }
-          ];
-
-          streamResult = await modelInstance.generateContentStream({
-            contents,
-            generationConfig: {
-              temperature: isPrimary ? 0.15 : 0.05,
-              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+          } catch (geminiErr) {
+            console.warn(`📡 Gemini stream generation failed: ${geminiErr.message}. Falling back to Groq stream...`);
+            agentTextAccumulator = '';
+            try {
+              for await (const chunk of streamGroqFallback(
+                agent.systemInstruction,
+                conversationHistory,
+                finalPrompt,
+                agent.id,
+                isPrimary ? 0.15 : 0.05,
+                isExploriumAgent(agent.id) ? 6000 : 4000
+              )) {
+                if (chunk.content) {
+                  agentTextAccumulator += chunk.content;
+                }
+                yield chunk;
+              }
+            } catch (groqErr) {
+              console.error('❌ Both Gemini and Groq stream failed:', groqErr);
+              throw geminiErr; // throw original Gemini error if Groq fails
             }
-          });
-
-        let agentTextAccumulator = '';
-
-        for await (const chunk of streamResult.stream) {
-          const textChunk = chunk.text();
-          if (textChunk) {
-            agentTextAccumulator += textChunk;
-            
-            // Stream text chunk to client in real-time
-            yield {
-              type: 'text',
-              content: textChunk,
-              agentId: agent.id
-            };
           }
-        }
 
           // Append output seamlessly without technical headers
-          accumulatedText += isPrimary ? agentTextAccumulator : `\n\n${agentTextAccumulator}`;
+          const cleanText = stripPreambles(agentTextAccumulator);
+          accumulatedText += isPrimary ? cleanText : `\n\n${cleanText}`;
           
           // Feed accumulated context into the next step
-          currentContextInput = agentTextAccumulator;
+          currentContextInput = cleanText;
 
           // If this agent matched GCP Grounding catalog, yield references in metadata chunk
           if (gcpCatalogReferences.length > 0) {

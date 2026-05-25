@@ -69,6 +69,7 @@ export default {
   tavily_api_key: process.env.TAVILY_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   serper_api_key: process.env.SERPER_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   gemini_secret_key: process.env.GEMINI_API_KEY,
+  groq_secret_key: process.env.GROQ_API_KEY,
   realestate_api_key: process.env.REALESTATE_API_KEY,
 
   browser_use_secret_key: process.env.BROWSER_USE_SECRET_KEY,
