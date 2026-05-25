@@ -55,6 +55,21 @@ async function runVerification() {
       name: 'UK HM Land Registry (HMLR) House Prices (Stage 26)',
       query: 'Find UK Land Registry average house prices for Greater London 🏰',
       expectedId: 'uk_land_registry'
+    },
+    {
+      name: 'Germany Destatis Macroeconomics (Stage 27)',
+      query: 'Retrieve Germany inflation (Verbraucherpreisindex) and GDP growth rate from Destatis for Bavaria (Bayern) 🇩🇪',
+      expectedId: 'german_destatis_economics'
+    },
+    {
+      name: 'France INSEE Macroeconomics (Stage 27)',
+      query: 'Search INSEE for metropolitan France GDP growth and HICP inflation metrics',
+      expectedId: 'french_insee_economics'
+    },
+    {
+      name: 'ECB European Monetary Policy (Stage 27)',
+      query: 'What is the current ECB main refinancing rate and Eurozone HICP target?',
+      expectedId: 'ecb_monetary'
     }
   ];
 

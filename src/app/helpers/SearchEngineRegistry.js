@@ -17,6 +17,7 @@ import { EpoPatentsProvider, MedrxivPreprintsProvider } from './providers/stage2
 import { HtsTariffsProvider, OyezScotusProvider, SedarFilingsProvider } from './providers/stage24PremiumProviders.js';
 import { WefGlobalCompetitivenessProvider, ImfWorldEconomicOutlookProvider, OecdLeadingIndicatorsProvider } from './providers/stage25PremiumProviders.js';
 import { UkOnsMacroeconomicsProvider, BankOfEnglandMonetaryProvider, UkHmLandRegistryProvider } from './providers/stage26PremiumProviders.js';
+import { GermanDestatisMacroeconomicsProvider, FrenchInseeMacroeconomicsProvider, EcbEuropeanMonetaryProvider } from './providers/stage27PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -1000,6 +1001,12 @@ SearchEngineRegistry.register(OecdLeadingIndicatorsProvider);
 SearchEngineRegistry.register(UkOnsMacroeconomicsProvider);
 SearchEngineRegistry.register(BankOfEnglandMonetaryProvider);
 SearchEngineRegistry.register(UkHmLandRegistryProvider);
+
+// Stage 27 Premium Providers (Germany Destatis, France INSEE & European Central Bank)
+SearchEngineRegistry.register(GermanDestatisMacroeconomicsProvider);
+SearchEngineRegistry.register(FrenchInseeMacroeconomicsProvider);
+SearchEngineRegistry.register(EcbEuropeanMonetaryProvider);
+
 
 
 
