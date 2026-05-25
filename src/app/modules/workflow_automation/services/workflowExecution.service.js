@@ -1312,6 +1312,615 @@ class WorkflowExecutionService {
             const rows = bqResult.data.rows || [];
             result = { success: true, rows, totalRows: rows.length };
           }
+        } else if (action === 'gcp_vision_analyze') {
+          const { contentBase64, features } = parameters;
+          if (!contentBase64) {
+            throw new Error(`Required parameter 'contentBase64' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              text: "Mock OCR Text: Google Cloud Platform balance sheet shows record net profits.",
+              safeSearch: { adult: "VERY_UNLIKELY", violence: "VERY_UNLIKELY" },
+              labels: [{ description: "Document", score: 0.99 }],
+              mocked: true
+            };
+          } else {
+            const { GcpVisionService } = await import('../../gcp_native/gcp-vision.service.js');
+            const parsedFeatures = features ? (typeof features === 'string' ? JSON.parse(features) : features) : undefined;
+            result = await GcpVisionService.analyzeImage(Buffer.from(contentBase64, 'base64'), parsedFeatures);
+          }
+        } else if (action === 'gcp_text_to_speech') {
+          const { text, options } = parameters;
+          if (!text) {
+            throw new Error(`Required parameter 'text' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              audioContent: "dGVzdF9tb2NrX2F1ZGlvX2NvbnRlbnRfMTIzNDU=",
+              encoding: options?.audioEncoding || "MP3",
+              voice: options?.voiceName || "en-US-Neural2-F",
+              mocked: true
+            };
+          } else {
+            const { GcpSpeechService } = await import('../../gcp_native/gcp-speech.service.js');
+            result = await GcpSpeechService.synthesizeSpeech(text, options);
+          }
+        } else if (action === 'gcp_speech_to_text') {
+          const { audioBase64, options } = parameters;
+          if (!audioBase64) {
+            throw new Error(`Required parameter 'audioBase64' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              transcript: "Mock transcribed text: Welcome to Google Cloud Vertex AI integrations on Alti Assistant.",
+              confidence: 0.98,
+              mocked: true
+            };
+          } else {
+            const { GcpSpeechService } = await import('../../gcp_native/gcp-speech.service.js');
+            result = await GcpSpeechService.transcribeSpeech(Buffer.from(audioBase64, 'base64'), options);
+          }
+        } else if (action === 'gcp_nlp_analyze') {
+          const { text, operations } = parameters;
+          if (!text) {
+            throw new Error(`Required parameter 'text' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              results: {
+                sentiment: { score: 0.9, magnitude: 0.9 },
+                entities: [{ name: "Google Cloud", type: "ORGANIZATION", salience: 0.95 }]
+              },
+              mocked: true
+            };
+          } else {
+            const { GcpNlpService } = await import('../../gcp_native/gcp-nlp.service.js');
+            result = await GcpNlpService.analyzeText(text, operations);
+          }
+        } else if (action === 'gcp_video_analyze') {
+          const { inputUri, contentBase64, features } = parameters;
+          if (!inputUri && !contentBase64) {
+            throw new Error(`Required parameter 'inputUri' or 'contentBase64' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              operationName: `projects/mock-verify/locations/us-central1/operations/video_mock_${Date.now()}`,
+              done: true,
+              results: {
+                labels: [{ entity: "Google Cloud Launch", categories: ["Tech"], segments: [{ start: 0, end: 10, confidence: 0.99 }] }],
+                text: [{ text: "Fully Entrenched in Google", segments: [{ start: 1, end: 5, confidence: 0.98 }] }]
+              },
+              mocked: true
+            };
+          } else {
+            const { GcpVideoIntelService } = await import('../../gcp_native/gcp-video-intel.service.js');
+            const parsedFeatures = features ? (typeof features === 'string' ? JSON.parse(features) : features) : undefined;
+            const buffer = contentBase64 ? Buffer.from(contentBase64, 'base64') : null;
+            result = await GcpVideoIntelService.startVideoAnalysis(inputUri, buffer, parsedFeatures);
+            if (result.success && result.operationName) {
+              result = await GcpVideoIntelService.pollVideoAnalysis(result.operationName);
+            }
+          }
+        } else if (action === 'gcp_generate_embeddings') {
+          const { text, taskType } = parameters;
+          if (!text) {
+            throw new Error(`Required parameter 'text' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              embeddings: Array(768).fill(0.123),
+              model: 'text-embedding-004',
+              dimensions: 768,
+              mocked: true
+            };
+          } else {
+            const { GcpEmbeddingsService } = await import('../../gcp_native/gcp-embeddings.service.js');
+            result = await GcpEmbeddingsService.getTextEmbeddings(text, taskType);
+          }
+        } else if (action === 'gcp_detect_language') {
+          const { text } = parameters;
+          if (!text) {
+            throw new Error(`Required parameter 'text' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              languageCode: 'en',
+              confidence: 0.99,
+              mocked: true
+            };
+          } else {
+            const { GcpTranslateAdvancedService } = await import('../../gcp_native/gcp-translate-advanced.service.js');
+            result = await GcpTranslateAdvancedService.detectTextLanguage(text);
+          }
+        } else if (action === 'gcp_translate_document') {
+          const { contentBase64, mimeType, targetLanguageCode, sourceLanguageCode } = parameters;
+          if (!contentBase64 || !mimeType || !targetLanguageCode) {
+            throw new Error(`Parameters 'contentBase64', 'mimeType', and 'targetLanguageCode' are required for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              translatedContent: "dGVzdF9tb2NrX3RyYW5zbGF0ZWRfZG9jXzU1NTU=",
+              mimeType,
+              detectedLanguageCode: sourceLanguageCode || 'en',
+              mocked: true
+            };
+          } else {
+            const { GcpTranslateAdvancedService } = await import('../../gcp_native/gcp-translate-advanced.service.js');
+            result = await GcpTranslateAdvancedService.translateDocument(
+              Buffer.from(contentBase64, 'base64'),
+              mimeType,
+              targetLanguageCode,
+              sourceLanguageCode
+            );
+          }
+        } else if (action === 'gcp_storage_create_bucket') {
+          const { bucketName, location } = parameters;
+          if (!bucketName) {
+            throw new Error(`Required parameter 'bucketName' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              bucketName,
+              location: location || 'us-central1',
+              created: new Date().toISOString(),
+              mocked: true
+            };
+          } else {
+            const { GcpStorageService } = await import('../../gcp_native/gcp-storage.service.js');
+            result = await GcpStorageService.createBucket(bucketName, location);
+          }
+        } else if (action === 'gcp_storage_signed_url') {
+          const { bucketName, fileName, action: signedUrlAction, expiresMinutes } = parameters;
+          if (!bucketName || !fileName) {
+            throw new Error(`Required parameters 'bucketName' and 'fileName' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              bucketName,
+              fileName,
+              action: signedUrlAction || 'read',
+              url: `https://storage.googleapis.com/${bucketName}/${fileName}?GoogleAccessId=mock-sa@mock-project.iam.gserviceaccount.com&Signature=mock-signature&Expires=123456789`,
+              expiresAt: new Date(Date.now() + (expiresMinutes || 15) * 60 * 1000).toISOString(),
+              mocked: true
+            };
+          } else {
+            const { GcpStorageService } = await import('../../gcp_native/gcp-storage.service.js');
+            result = await GcpStorageService.generateSignedUrl(bucketName, fileName, signedUrlAction || 'read', expiresMinutes || 15);
+          }
+        } else if (action === 'gcp_bigquery_create_table') {
+          const { datasetId, tableId, schemaFields } = parameters;
+          if (!datasetId || !tableId || !schemaFields) {
+            throw new Error(`Required parameters 'datasetId', 'tableId', and 'schemaFields' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              projectId: 'mock-project-id',
+              datasetId,
+              tableId,
+              numBytes: 0,
+              schema: { fields: schemaFields },
+              mocked: true
+            };
+          } else {
+            const { GcpBigqueryService } = await import('../../gcp_native/gcp-bigquery.service.js');
+            result = await GcpBigqueryService.createTable(datasetId, tableId, schemaFields);
+          }
+        } else if (action === 'gcp_bigquery_load_csv') {
+          const { datasetId, tableId, gcsUri } = parameters;
+          if (!datasetId || !tableId || !gcsUri) {
+            throw new Error(`Required parameters 'datasetId', 'tableId', and 'gcsUri' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              jobId: `job_mock_${Date.now()}`,
+              state: 'DONE',
+              configuration: {
+                load: {
+                  sourceUris: [gcsUri],
+                  destinationTable: {
+                    datasetId,
+                    tableId
+                  }
+                }
+              },
+              mocked: true
+            };
+          } else {
+            const { GcpBigqueryService } = await import('../../gcp_native/gcp-bigquery.service.js');
+            result = await GcpBigqueryService.loadCsvFromGcs(datasetId, tableId, gcsUri);
+          }
+        } else if (action === 'gcp_secrets_get') {
+          const { secretId } = parameters;
+          if (!secretId) {
+            throw new Error(`Required parameter 'secretId' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              secretId,
+              value: 'mock-secret-value-abcdef123456',
+              mocked: true
+            };
+          } else {
+            const { GcpSecretsService } = await import('../../gcp_native/gcp-secrets.service.js');
+            result = await GcpSecretsService.getSecretValue(secretId);
+          }
+        } else if (action === 'gcp_pubsub_publish') {
+          const { topicId, messageData } = parameters;
+          if (!topicId || !messageData) {
+            throw new Error(`Required parameters 'topicId' and 'messageData' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              topicId,
+              messageIds: [`msg_mock_${Date.now()}`],
+              mocked: true
+            };
+          } else {
+            const { GcpPubSubService } = await import('../../gcp_native/gcp-pubsub.service.js');
+            result = await GcpPubSubService.publishMessage(topicId, messageData);
+          }
+        } else if (action === 'gcp_document_ai_process') {
+          const { contentBase64, mimeType, processorId, location } = parameters;
+          if (!contentBase64 || !mimeType) {
+            throw new Error(`Required parameters 'contentBase64' and 'mimeType' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              text: "Verification sample parsed text from Google Document AI.",
+              paragraphs: ["Verification sample parsed text from Google Document AI."],
+              tables: [{
+                headers: [["Item", "Quantity", "Amount"]],
+                rows: [["Premium Gemini Setup", "1", "$0.00"], ["Enterprise Maps SDK", "1", "$0.00"]]
+              }],
+              keyValues: [{ key: "Invoice ID", value: "INV-2026-991A" }],
+              metadata: { pageCount: 1, mimeType },
+              mocked: true
+            };
+          } else {
+            const { GcpDocumentAiService } = await import('../../gcp_native/gcp-document-ai.service.js');
+            result = await GcpDocumentAiService.processDocument(
+              Buffer.from(contentBase64, 'base64'),
+              mimeType,
+              processorId,
+              location || 'us'
+            );
+          }
+        } else if (action === 'gcp_vertex_grounded_prompt') {
+          const { sessionId, prompt } = parameters;
+          if (!prompt) {
+            throw new Error(`Required parameter 'prompt' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              prompt,
+              sessionId: sessionId || `sess_ground_${Date.now()}`,
+              reply: "Mocked grounded reply: The Google Cloud Platform integration on Alti Assistant is fully active. Search confirms that all 25 cognitive and geolocation endpoints are successfully configured.",
+              groundingMetadata: {
+                webSearchQueries: ["Alti Assistant Google Cloud integrations", "GCP native automation actions"],
+                groundingChunks: [
+                  { title: "Alti Google Cloud Integration Wiki", uri: "https://wiki.alti.assistant/gcp-native" },
+                  { title: "Vertex AI Search Grounding Overview", uri: "https://cloud.google.com/vertex-ai" }
+                ],
+                searchEntryPoint: "Alti GCP Grounding Search Entry Point"
+              },
+              mocked: true
+            };
+          } else {
+            const { GcpVertexGroundingService } = await import('../../gcp_native/gcp-vertex-grounding.service.js');
+            result = await GcpVertexGroundingService.groundedPromptResponse(
+              sessionId || `sess_ground_${Date.now()}`,
+              prompt,
+              userId
+            );
+          }
+        } else if (action === 'gcp_maps_geocode') {
+          const { address } = parameters;
+          if (!address) {
+            throw new Error(`Required parameter 'address' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              formattedAddress: address,
+              location: { lat: 37.4223878, lng: -122.0841814 },
+              placeId: "ChIJ2eUgeAK6j4ARbn5u_wBq0hs",
+              types: ["street_address"],
+              mocked: true
+            };
+          } else {
+            const { GcpMapsService } = await import('../../gcp_native/gcp-maps.service.js');
+            result = await GcpMapsService.geocodeAddress(address);
+          }
+        } else if (action === 'gcp_maps_places_search') {
+          const { latitude, longitude, radius, keyword } = parameters;
+          if (latitude === undefined || longitude === undefined) {
+            throw new Error(`Required parameters 'latitude' and 'longitude' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              location: { latitude, longitude },
+              radius: radius || 5000,
+              keyword: keyword || '',
+              places: [
+                {
+                  name: "Googleplex",
+                  formattedAddress: "1600 Amphitheatre Pkwy, Mountain View, CA 94043",
+                  location: { lat: 37.422, lng: -122.084 },
+                  placeId: "ChIJ2eUgeAK6j4ARbn5u_wBq0hs",
+                  rating: 4.8,
+                  types: ["establishment", "point_of_interest"],
+                  openNow: true
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpMapsService } = await import('../../gcp_native/gcp-maps.service.js');
+            result = await GcpMapsService.searchNearbyPlaces(
+              parseFloat(latitude),
+              parseFloat(longitude),
+              radius ? parseInt(radius) : undefined,
+              keyword
+            );
+          }
+        } else if (action === 'gcp_maps_directions') {
+          const { origin, destination, mode } = parameters;
+          if (!origin || !destination) {
+            throw new Error(`Required parameters 'origin' and 'destination' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              origin,
+              destination,
+              distance: "38.5 mi",
+              distanceValueBytes: 61959,
+              duration: "42 mins",
+              durationValueSeconds: 2520,
+              steps: [
+                {
+                  instruction: "Head south on US-101 S",
+                  distance: "38.2 mi",
+                  duration: "38 mins",
+                  startLocation: { lat: 37.7749, lng: -122.4194 },
+                  endLocation: { lat: 37.422, lng: -122.084 }
+                },
+                {
+                  instruction: "Take exit 398A for Amphitheatre Pkwy",
+                  distance: "0.3 mi",
+                  duration: "4 mins",
+                  startLocation: { lat: 37.422, lng: -122.084 },
+                  endLocation: { lat: 37.422, lng: -122.084 }
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpMapsService } = await import('../../gcp_native/gcp-maps.service.js');
+            result = await GcpMapsService.calculateRoute(origin, destination, mode || 'driving');
+          }
+        } else if (action === 'gcp_maps_place_details') {
+          const { placeId } = parameters;
+          if (!placeId) {
+            throw new Error(`Required parameter 'placeId' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              name: "Googleplex",
+              placeId,
+              formattedAddress: "1600 Amphitheatre Pkwy, Mountain View, CA 94043",
+              phoneNumber: "+1 650-253-0000",
+              internationalPhoneNumber: "+1 650-253-0000",
+              location: { lat: 37.422, lng: -122.084 },
+              rating: 4.8,
+              userRatingsTotal: 10452,
+              website: "https://about.google",
+              priceLevel: 2,
+              businessStatus: "OPERATIONAL",
+              openNow: true,
+              weekdayText: ["Monday: 9:00 AM – 5:00 PM", "Tuesday: 9:00 AM – 5:00 PM"],
+              reviews: [
+                { authorName: "Jane Doe", rating: 5, text: "Excellent corporate campus and innovation center!", relativeTime: "2 weeks ago" }
+              ],
+              photos: [{ photoReference: "photo_ref_abc_123" }],
+              mocked: true
+            };
+          } else {
+            const { GcpMapsService } = await import('../../gcp_native/gcp-maps.service.js');
+            result = await GcpMapsService.getPlaceDetails(placeId);
+          }
+        } else if (action === 'gcp_maps_place_photo') {
+          const { photoReference, maxWidth } = parameters;
+          if (!photoReference) {
+            throw new Error(`Required parameter 'photoReference' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              photoReference,
+              maxWidth: maxWidth || 800,
+              photoUrl: `https://maps.googleapis.com/maps/api/place/photo?photo_reference=${photoReference}&maxwidth=${maxWidth || 800}&key=MOCK_KEY`,
+              mocked: true
+            };
+          } else {
+            const { GcpMapsService } = await import('../../gcp_native/gcp-maps.service.js');
+            result = await GcpMapsService.getPlacePhotoUrl(photoReference, maxWidth || 800);
+          }
+        } else if (action === 'gcp_business_list_locations') {
+          const { accountId } = parameters;
+          if (!accountId) {
+            throw new Error(`Required parameter 'accountId' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              accountId,
+              locations: [
+                {
+                  name: `accounts/${accountId}/locations/loc_992`,
+                  title: "Alti HQ Silicon Valley",
+                  storefrontAddress: { addressLines: ["100 Enterprise Way"], postalCode: "94043" }
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpBusinessService } = await import('../../gcp_native/gcp-business.service.js');
+            result = await GcpBusinessService.listBusinessLocations(accountId);
+          }
+        } else if (action === 'gcp_business_list_reviews') {
+          const { accountId, locationId } = parameters;
+          if (!accountId || !locationId) {
+            throw new Error(`Required parameters 'accountId' and 'locationId' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              accountId,
+              locationId,
+              locationName: `accounts/${accountId}/locations/${locationId}`,
+              averageRating: 4.9,
+              totalReviewCount: 1,
+              reviews: [
+                {
+                  reviewId: "rev_mock_881",
+                  reviewerName: "Alice Smith",
+                  starRating: "FIVE",
+                  comment: "Outstanding integration features on Alti! Unbelievably fast.",
+                  createTime: new Date().toISOString()
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpBusinessService } = await import('../../gcp_native/gcp-business.service.js');
+            result = await GcpBusinessService.listLocationReviews(accountId, locationId);
+          }
+        } else if (action === 'gcp_business_create_post') {
+          const { accountId, locationId, postPayload } = parameters;
+          if (!accountId || !locationId || !postPayload) {
+            throw new Error(`Required parameters 'accountId', 'locationId', and 'postPayload' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              postId: `accounts/${accountId}/locations/${locationId}/localPosts/post_mock_773`,
+              state: "LIVE",
+              searchUrl: "https://google.com/search?q=Alti+HQ",
+              languageCode: "en",
+              createTime: new Date().toISOString(),
+              mocked: true
+            };
+          } else {
+            const { GcpBusinessService } = await import('../../gcp_native/gcp-business.service.js');
+            result = await GcpBusinessService.createLocalPost(accountId, locationId, postPayload);
+          }
+        } else if (action === 'gcp_business_unified_analytics') {
+          const { query } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              query,
+              name: "Alti Headquarters",
+              placeId: "place_mock_9921",
+              formattedAddress: "1600 Amphitheatre Pkwy, Mountain View, CA 94043",
+              phoneNumber: "+1 650-253-0000",
+              internationalPhoneNumber: "+1 650-253-0000",
+              website: "https://alti.assistant",
+              rating: 5.0,
+              userRatingsTotal: 9942,
+              location: { lat: 37.422, lng: -122.084 },
+              priceLevel: 1,
+              businessStatus: "OPERATIONAL",
+              openNow: true,
+              weekdayText: ["Monday: Open 24 Hours"],
+              reviewsCount: 1,
+              topReviews: [
+                { authorName: "Tech Insider", rating: 5, text: "Truly state-of-the-art enterprise integration workflow engine.", relativeTime: "1 day ago" }
+              ],
+              rawReviews: [
+                { authorName: "Tech Insider", rating: 5, text: "Truly state-of-the-art enterprise integration workflow engine.", relativeTime: "1 day ago" }
+              ],
+              photosList: [{ photoReference: "photo_mock_ref_882" }],
+              timestamp: new Date().toISOString(),
+              mocked: true
+            };
+          } else {
+            const { GcpBusinessService } = await import('../../gcp_native/gcp-business.service.js');
+            result = await GcpBusinessService.getUnifiedBusinessIntelligence(query);
+          }
+        } else if (action === 'gcp_logging_write') {
+          const { logName, message, severity, labels } = parameters;
+          if (!logName || !message) {
+            throw new Error(`Required parameters 'logName' and 'message' are missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              logName: `projects/mock-project/logs/${logName}`,
+              severity: severity || 'INFO',
+              message,
+              labels: labels || {},
+              mocked: true
+            };
+          } else {
+            const { GcpLoggingService } = await import('../../gcp_native/gcp-logging.service.js');
+            result = await GcpLoggingService.writeLogEntry(logName, message, severity || 'INFO', labels);
+          }
+        } else if (action === 'gcp_errors_report') {
+          const { errorMessage, stackTrace, user, serviceName } = parameters;
+          if (!errorMessage) {
+            throw new Error(`Required parameter 'errorMessage' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              serviceName: serviceName || 'alti-backend',
+              errorMessage,
+              user: user || 'user_mock_8811',
+              mocked: true
+            };
+          } else {
+            const { GcpErrorsService } = await import('../../gcp_native/gcp-errors.service.js');
+            result = await GcpErrorsService.reportError(errorMessage, stackTrace, user, serviceName);
+          }
+        } else if (action === 'gcp_recaptcha_verify') {
+          const { token, expectedAction, siteKey } = parameters;
+          if (!token) {
+            throw new Error(`Required parameter 'token' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              score: 0.9,
+              reasons: [],
+              action: expectedAction || 'login',
+              mocked: true
+            };
+          } else {
+            const { GcpRecaptchaService } = await import('../../gcp_native/gcp-recaptcha.service.js');
+            result = await GcpRecaptchaService.verifyRecaptchaToken(token, expectedAction, siteKey);
+          }
         } else {
           throw new Error(`Unknown action '${step.action}' for app 'google_cloud'`);
         }
@@ -1420,6 +2029,107 @@ class WorkflowExecutionService {
               fileName,
               folderId
             };
+          }
+        } else if (action === 'sheets_create') {
+          const { title } = parameters;
+          if (!title) {
+            throw new Error(`Required parameter 'title' is missing for google_workspace.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              spreadsheetId: `mock_sheets_${Date.now()}`,
+              spreadsheetUrl: "https://docs.google.com/spreadsheets/d/mock_id/edit",
+              title,
+              mocked: true
+            };
+          } else {
+            const { GcpWorkspaceService } = await import('../../gcp_native/gcp-workspace.service.js');
+            result = await GcpWorkspaceService.sheetsCreate(title);
+          }
+        } else if (action === 'sheets_read') {
+          const { spreadsheetId, range } = parameters;
+          if (!spreadsheetId || !range) {
+            throw new Error(`Required parameters 'spreadsheetId' and 'range' are missing for google_workspace.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              spreadsheetId,
+              range,
+              values: [["Mock Row 1 Cell A", "Mock Row 1 Cell B"], ["Mock Row 2 Cell A", "Mock Row 2 Cell B"]],
+              mocked: true
+            };
+          } else {
+            const { GcpWorkspaceService } = await import('../../gcp_native/gcp-workspace.service.js');
+            result = await GcpWorkspaceService.sheetsRead(spreadsheetId, range);
+          }
+        } else if (action === 'docs_create') {
+          const { title, bodyText } = parameters;
+          if (!title || !bodyText) {
+            throw new Error(`Required parameters 'title' and 'bodyText' are missing for google_workspace.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              docId: `mock_doc_${Date.now()}`,
+              title,
+              webViewLink: "https://docs.google.com/document/d/mock_id/edit",
+              mocked: true
+            };
+          } else {
+            const { GcpWorkspaceService } = await import('../../gcp_native/gcp-workspace.service.js');
+            result = await GcpWorkspaceService.docsCreate(title, bodyText);
+          }
+        } else if (action === 'calendar_create_event') {
+          const { summary, startTime, endTime, details } = parameters;
+          if (!summary || !startTime || !endTime) {
+            throw new Error(`Required parameters 'summary', 'startTime', and 'endTime' are missing for google_workspace.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              eventId: `mock_event_${Date.now()}`,
+              summary,
+              start: { dateTime: startTime },
+              end: { dateTime: endTime },
+              htmlLink: "https://calendar.google.com/calendar/event?eid=mock_id",
+              mocked: true
+            };
+          } else {
+            const { GcpWorkspaceService } = await import('../../gcp_native/gcp-workspace.service.js');
+            result = await GcpWorkspaceService.calendarCreateEvent(summary, startTime, endTime, details);
+          }
+        } else if (action === 'calendar_list_events') {
+          const { options } = parameters;
+          if (isMock) {
+            result = {
+              success: true,
+              calendarId: options?.calendarId || "primary",
+              events: [
+                { id: "mock_e1", summary: "Google Workspace Native Launch", start: new Date().toISOString() }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpWorkspaceService } = await import('../../gcp_native/gcp-workspace.service.js');
+            result = await GcpWorkspaceService.calendarListEvents(options);
+          }
+        } else if (action === 'drive_download') {
+          const { fileId } = parameters;
+          if (!fileId) {
+            throw new Error(`Required parameter 'fileId' is missing for google_workspace.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              fileId,
+              content: "[Mock Drive File Content] Google entrenchment is completed successfully.",
+              mocked: true
+            };
+          } else {
+            const { GcpWorkspaceService } = await import('../../gcp_native/gcp-workspace.service.js');
+            result = await GcpWorkspaceService.driveDownload(fileId);
           }
         } else {
           throw new Error(`Unknown action '${step.action}' for app 'google_workspace'`);

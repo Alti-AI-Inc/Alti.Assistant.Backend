@@ -246,11 +246,14 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
     }
     // 8. Google Cloud Platform compensation
     else if (app === 'google_cloud' || app === 'gcp') {
+      const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
       const bucketName = step.parameters?.bucketName || stepResult?.data?.bucketName;
       const fileName = step.parameters?.fileName || stepResult?.data?.fileName;
+      const datasetId = step.parameters?.datasetId || stepResult?.data?.datasetId;
+      const tableId = step.parameters?.tableId || stepResult?.data?.tableId;
+
       if (action === 'gcs_upload' && bucketName && fileName) {
         logger.info(`[Temporal Saga] Compensating GCS: Deleting uploaded file gs://${bucketName}/${fileName}`);
-        const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
         if (!isMock) {
           try {
             const { Storage } = await import('@google-cloud/storage');
@@ -261,6 +264,50 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
           }
         }
         details = `Deleted uploaded GCS file gs://${bucketName}/${fileName}`;
+        compensationExecuted = true;
+      } else if (action === 'gcp_storage_create_bucket' && bucketName) {
+        logger.info(`[Temporal Saga] Compensating GCS: Deleting created bucket ${bucketName}`);
+        if (!isMock) {
+          try {
+            const { Storage } = await import('@google-cloud/storage');
+            const storage = new Storage();
+            await storage.bucket(bucketName).delete();
+          } catch (err) {
+            logger.error(`[Temporal Saga] GCS bucket deletion failed: ${err.message}`);
+          }
+        }
+        details = `Deleted created GCS bucket: ${bucketName}`;
+        compensationExecuted = true;
+      } else if (action === 'gcp_bigquery_create_table' && datasetId && tableId) {
+        logger.info(`[Temporal Saga] Compensating BigQuery: Dropping table ${datasetId}.${tableId}`);
+        if (!isMock) {
+          try {
+            const { google } = await import('googleapis');
+            let projectId = process.env.GCP_PROJECT_ID;
+            try {
+              const { default: cfg } = await import('../../../../../config/index.js');
+              projectId = cfg.google.gcp_project_id || projectId;
+            } catch (cfgErr) {
+              // ignore
+            }
+            if (!projectId) {
+              throw new Error('GCP Project ID is not configured.');
+            }
+            const auth = new google.auth.GoogleAuth({
+              scopes: ['https://www.googleapis.com/auth/bigquery']
+            });
+            const authClient = await auth.getClient();
+            const bigquery = google.bigquery({ version: 'v2', auth: authClient });
+            await bigquery.tables.delete({
+              projectId,
+              datasetId,
+              tableId
+            });
+          } catch (err) {
+            logger.error(`[Temporal Saga] BigQuery table deletion failed: ${err.message}`);
+          }
+        }
+        details = `Dropped BigQuery table ${datasetId}.${tableId}`;
         compensationExecuted = true;
       } else {
         details = `No compensation required for action ${action} on google_cloud.`;
@@ -344,6 +391,58 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
           details = `[Mock Rollback] Deleted ${rowsAppended} appended rows from range ${range || 'unknown'}`;
           compensationExecuted = true;
         }
+      } else if (action === 'sheets_create' && stepResult?.data?.spreadsheetId) {
+        const spreadsheetId = stepResult.data.spreadsheetId;
+        logger.info(`[Temporal Saga] Compensating sheets_create: Deleting Spreadsheet ID ${spreadsheetId}`);
+        const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+        if (!isMock) {
+          try {
+            const { google } = await import('googleapis');
+            const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/drive'] });
+            const authClient = await auth.getClient();
+            const drive = google.drive({ version: 'v3', auth: authClient });
+            await drive.files.delete({ fileId: spreadsheetId });
+          } catch (err) {
+            logger.error(`[Temporal Saga] Google Sheets deletion failed: ${err.message}`);
+          }
+        }
+        details = `Deleted Spreadsheet with ID ${spreadsheetId}`;
+        compensationExecuted = true;
+      } else if (action === 'docs_create' && stepResult?.data?.docId) {
+        const docId = stepResult.data.docId;
+        logger.info(`[Temporal Saga] Compensating docs_create: Deleting Document ID ${docId}`);
+        const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+        if (!isMock) {
+          try {
+            const { google } = await import('googleapis');
+            const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/drive'] });
+            const authClient = await auth.getClient();
+            const drive = google.drive({ version: 'v3', auth: authClient });
+            await drive.files.delete({ fileId: docId });
+          } catch (err) {
+            logger.error(`[Temporal Saga] Google Document deletion failed: ${err.message}`);
+          }
+        }
+        details = `Deleted Google Document with ID ${docId}`;
+        compensationExecuted = true;
+      } else if (action === 'calendar_create_event' && stepResult?.data?.eventId) {
+        const eventId = stepResult.data.eventId;
+        const calendarId = step.parameters?.details?.calendarId || stepResult.data.calendarId || 'primary';
+        logger.info(`[Temporal Saga] Compensating calendar_create_event: Deleting event ID ${eventId} on calendar ${calendarId}`);
+        const isMock = typeof process !== 'undefined' && process.env && (process.env.TEMPORAL_MOCK === 'true' || process.env.OFFLINE_MODE === 'true');
+        if (!isMock) {
+          try {
+            const { google } = await import('googleapis');
+            const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/calendar'] });
+            const authClient = await auth.getClient();
+            const calendar = google.calendar({ version: 'v3', auth: authClient });
+            await calendar.events.delete({ calendarId, eventId });
+          } catch (err) {
+            logger.error(`[Temporal Saga] Google Calendar event deletion failed: ${err.message}`);
+          }
+        }
+        details = `Deleted Calendar event with ID ${eventId}`;
+        compensationExecuted = true;
       } else {
         details = `No compensation required for action ${action} on google_workspace.`;
         compensationExecuted = true;
