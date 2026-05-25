@@ -1113,7 +1113,8 @@ export async function createIndexFromFile(filePath, originalName = '', userId = 
     pageCount: documents.length,
     charCount: fullText.length,
     profile,
-    indexedAt: new Date().toISOString()
+    indexedAt: new Date().toISOString(),
+    filePath: filePath
   };
   manifest.documents.push(docEntry);
 
@@ -1805,6 +1806,34 @@ export async function deleteDocument(userId = 'default_user', docId) {
   try {
     if (existsSync(profilePath)) await fsPromises.rm(profilePath);
   } catch (err) { /* non-fatal */ }
+
+  // Also sync deletion with advanced manifest.json and vector_store.json if exists
+  const advancedManifestPath = path.join(persistDir, 'manifest.json');
+  if (existsSync(advancedManifestPath)) {
+    try {
+      const advancedManifest = JSON.parse(await fsPromises.readFile(advancedManifestPath, 'utf-8'));
+      const advIdx = advancedManifest.indexedFiles.findIndex(f => f.originalName === removedDoc.fileName || f.docId === docId);
+      if (advIdx > -1) {
+        advancedManifest.indexedFiles.splice(advIdx, 1);
+        advancedManifest.totalDocuments = advancedManifest.indexedFiles.length;
+        
+        // Filter out deleted file nodes from vector_store.json
+        const vectorStorePath = path.join(persistDir, 'vector_store.json');
+        if (existsSync(vectorStorePath)) {
+          const nodes = JSON.parse(await fsPromises.readFile(vectorStorePath, 'utf-8'));
+          const updatedNodes = nodes.filter(n => n.metadata?.fileName !== removedDoc.fileName);
+          advancedManifest.totalNodes = updatedNodes.length;
+          await fsPromises.writeFile(vectorStorePath, JSON.stringify(updatedNodes, null, 2));
+          syncFileToGCS(userId, 'vector_store.json').catch(() => {});
+        }
+
+        await fsPromises.writeFile(advancedManifestPath, JSON.stringify(advancedManifest, null, 2));
+        syncFileToGCS(userId, 'manifest.json').catch(() => {});
+      }
+    } catch (err) {
+      console.warn('deleteDocument: Failed to clean manifest.json or vector_store.json (non-fatal):', err.message);
+    }
+  }
 
   if (manifest.documents.length > 0) {
     manifest.corpusProfile = await generateCorpusProfile(manifest);
@@ -5740,6 +5769,59 @@ export async function indexDocumentAdvancedWithStrategy(filePath, originalName, 
   manifest.totalDocuments = manifest.indexedFiles.length;
   manifest.totalNodes = finalNodes.length;
   await fsPromises.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Align with unified document_manifest.json explorer list
+  // ─────────────────────────────────────────────────────────────────────────────
+  try {
+    const profile = await generateDocumentProfile(text);
+    let pageCount = 1;
+    if (ext === '.pdf') {
+      try {
+        const pdfData = await PDFParse(fileData);
+        pageCount = pdfData.numpages || 1;
+      } catch (pdfErr) {
+        console.warn('Advanced Ingestion: PDFParse failed for pageCount, defaulting to 1.', pdfErr.message);
+      }
+    }
+
+    const docEntry = {
+      docId,
+      fileName: originalName,
+      fileType: ext.toLowerCase().replace('.', ''),
+      pageCount,
+      charCount: text.length,
+      profile,
+      indexedAt: new Date().toISOString(),
+      filePath: filePath
+    };
+
+    const docManifest = await loadManifest(persistDir);
+    const docIndex = docManifest.documents.findIndex(d => d.fileName === originalName);
+    if (docIndex > -1) {
+      docManifest.documents.splice(docIndex, 1);
+    }
+    docManifest.documents.push(docEntry);
+
+    if (docManifest.documents.length > 1) {
+      docManifest.corpusProfile = await generateCorpusProfile(docManifest);
+    } else {
+      docManifest.corpusProfile = profile;
+    }
+
+    await saveManifest(persistDir, docManifest);
+
+    // Save profile file
+    const profilePath = path.join(persistDir, `profile_${docId}.json`);
+    await fsPromises.writeFile(profilePath, JSON.stringify(profile, null, 2), 'utf-8');
+
+    // Sync to GCS
+    syncFileToGCS(userId, 'document_manifest.json').catch(() => {});
+    syncFileToGCS(userId, `profile_${docId}.json`).catch(() => {});
+    syncFileToGCS(userId, 'vector_store.json').catch(() => {});
+  } catch (manifestErr) {
+    console.error('Advanced Ingestion: Failed to align document_manifest.json (non-fatal):', manifestErr.message);
+  }
 
   return {
     success: true,
