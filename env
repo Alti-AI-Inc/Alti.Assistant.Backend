@@ -152,3 +152,11 @@ EXCHANGERATE_API_KEY=your_exchangerate_api_key_here
 OMDB_API_KEY=your_omdb_api_key_here
 RAINFOREST_API_KEY=your_rainforest_api_key_here
 COINAPI_KEY=your_coinapi_key_here
+
+# ======================================================================
+# 🌙 HUGGING FACE DATASET COLD STORAGE & RAG SHELF CONTROLS
+# ======================================================================
+# Storage class to use when archiving Hugging Face datasets to GCS (e.g., ARCHIVE for cold storage, STANDARD for hot storage)
+GCS_DATASET_STORAGE_CLASS=ARCHIVE
+# Set to true to completely shelf pgvector RAG vector indexing/embeddings to prevent AI embedding API fees
+SHELF_HF_RAG_INDEXING=true

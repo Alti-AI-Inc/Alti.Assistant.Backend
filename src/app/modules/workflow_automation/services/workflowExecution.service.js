@@ -1921,6 +1921,67 @@ class WorkflowExecutionService {
             const { GcpRecaptchaService } = await import('../../gcp_native/gcp-recaptcha.service.js');
             result = await GcpRecaptchaService.verifyRecaptchaToken(token, expectedAction, siteKey);
           }
+        } else if (action === 'gcp_advanced_search') {
+          const { query, searchType, numResults, safe } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              originalQuery: query,
+              searchType: searchType || 'web',
+              subQueries: [query, `${query} latest`, `${query} news`],
+              totalCandidates: 3,
+              uniqueCount: 3,
+              results: [
+                {
+                  title: `Mock Search Result for: ${query}`,
+                  link: 'https://example.com/mock-search',
+                  displayLink: 'example.com',
+                  snippet: `This is a premium simulated Google advanced search snippet for query: ${query}`,
+                  relevanceScore: 12,
+                  finalRank: 1
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpSearchAggregatorService } = await import('../../gcp_native/gcp-search-aggregator.service.js');
+            result = await GcpSearchAggregatorService.executeParallelSearch(query, searchType, numResults, safe);
+          }
+        } else if (action === 'gcp_knowledge_graph_lookup') {
+          const { query, limit, types, languages } = parameters;
+          if (!query) {
+            throw new Error(`Required parameter 'query' is missing for google_cloud.${step.action}`);
+          }
+          if (isMock) {
+            result = {
+              success: true,
+              query,
+              totalCount: 1,
+              entities: [
+                {
+                  id: 'kg:/m/mock_entity',
+                  name: query,
+                  types: ['Thing', 'MockEntity'],
+                  description: `Simulated entity lookup for "${query}"`,
+                  detailedDescription: {
+                    body: `This is a high-fidelity mock knowledge panel details block describing "${query}" retrieved from the simulated Google Knowledge Graph.`,
+                    url: 'https://en.wikipedia.org/wiki/Special:Search'
+                  },
+                  image: {
+                    url: 'https://example.com/mock-entity.png'
+                  },
+                  relevanceScore: 100
+                }
+              ],
+              mocked: true
+            };
+          } else {
+            const { GcpKnowledgeGraphService } = await import('../../gcp_native/gcp-knowledge-graph.service.js');
+            result = await GcpKnowledgeGraphService.lookupEntity(query, limit, types, languages);
+          }
         } else {
           throw new Error(`Unknown action '${step.action}' for app 'google_cloud'`);
         }

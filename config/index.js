@@ -101,7 +101,10 @@ export default {
       'alti_assistant_knowledge_bot_files',
     presentation_bucket:
       process.env.GCS_PRESENTATION_BUCKET || 'alti_assistant_presentation',
+    datasetStorageClass:
+      process.env.GCS_DATASET_STORAGE_CLASS || 'ARCHIVE',
   },
+  shelfHfRagIndexing: process.env.SHELF_HF_RAG_INDEXING === 'true',
   mail: {
     google_smtp_password: process.env.GOOGLE_SMTP_PASSWORD,
     google_smtp_user: process.env.GOOGLE_SMTP_USER,

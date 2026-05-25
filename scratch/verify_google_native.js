@@ -27,9 +27,11 @@ import { GcpBusinessService } from '../src/app/modules/gcp_native/gcp-business.s
 import { GcpLoggingService } from '../src/app/modules/gcp_native/gcp-logging.service.js';
 import { GcpErrorsService } from '../src/app/modules/gcp_native/gcp-errors.service.js';
 import { GcpRecaptchaService } from '../src/app/modules/gcp_native/gcp-recaptcha.service.js';
+import { GcpSearchAggregatorService } from '../src/app/modules/gcp_native/gcp-search-aggregator.service.js';
+import { GcpKnowledgeGraphService } from '../src/app/modules/gcp_native/gcp-knowledge-graph.service.js';
 import { workflowExecutionService } from '../src/app/modules/workflow_automation/services/workflowExecution.service.js';
 
-console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 6)...\n');
+console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 7)...\n');
 
 async function testCompilations() {
   console.log('====================================================');
@@ -54,7 +56,9 @@ async function testCompilations() {
     { name: 'GcpBusinessService', service: GcpBusinessService, method: 'getUnifiedBusinessIntelligence' },
     { name: 'GcpLoggingService', service: GcpLoggingService, method: 'writeLogEntry' },
     { name: 'GcpErrorsService', service: GcpErrorsService, method: 'reportError' },
-    { name: 'GcpRecaptchaService', service: GcpRecaptchaService, method: 'verifyRecaptchaToken' }
+    { name: 'GcpRecaptchaService', service: GcpRecaptchaService, method: 'verifyRecaptchaToken' },
+    { name: 'GcpSearchAggregatorService', service: GcpSearchAggregatorService, method: 'executeParallelSearch' },
+    { name: 'GcpKnowledgeGraphService', service: GcpKnowledgeGraphService, method: 'lookupEntity' }
   ];
 
   for (const item of services) {
@@ -345,6 +349,25 @@ async function testWorkflowMockExecution() {
       parameters: {
         token: 'verification_token_re_enterprise_555',
         expectedAction: 'checkout'
+      }
+    },
+    {
+      stepId: 'step_advanced_search',
+      app: 'google_cloud',
+      action: 'gcp_advanced_search',
+      parameters: {
+        query: 'electric vehicle market trends',
+        searchType: 'web',
+        numResults: 5
+      }
+    },
+    {
+      stepId: 'step_knowledge_graph_lookup',
+      app: 'google_cloud',
+      action: 'gcp_knowledge_graph_lookup',
+      parameters: {
+        query: 'Alphabet Inc.',
+        limit: 3
       }
     },
     {

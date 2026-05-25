@@ -197,6 +197,7 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
       const writeStream = gcsFileObj.createWriteStream({
         metadata: {
           contentType: 'application/octet-stream',
+          storageClass: config.gcs.datasetStorageClass || 'ARCHIVE',
           metadata: {
             originalUrl: downloadUrl,
             datasetId: datasetId,
@@ -318,6 +319,14 @@ const archiveDatasetToGCS = async (datasetId) => {
  * to build the ultimate high-fidelity data base for our Perplexity-killer
  */
 const indexDatasetForRAGCore = async (datasetId, dataset) => {
+  if (config.shelfHfRagIndexing) {
+    console.log(`⚠️ Hugging Face dataset RAG indexing is currently shelved to minimize embedding API costs. Skipping pgvector indexing for dataset: ${datasetId}`);
+    dataset.status = 'archived'; // Keep as archived and do not advance to indexed
+    dataset.error = 'RAG indexing shelved by configuration';
+    await dataset.save();
+    return;
+  }
+
   try {
     console.log(`Starting RAG Indexing of archived dataset: ${datasetId}`);
     
@@ -435,6 +444,13 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
  * to build the ultimate high-fidelity data base for our Perplexity-killer
  */
 const indexDatasetForRAG = async (datasetId) => {
+  if (config.shelfHfRagIndexing) {
+    return {
+      success: false,
+      message: `Hugging Face dataset RAG vector indexing is currently shelved to minimize API embedding costs.`
+    };
+  }
+
   const dataset = await Dataset.findOne({ datasetId });
   if (!dataset) {
     throw new Error('Dataset not found in local catalog.');

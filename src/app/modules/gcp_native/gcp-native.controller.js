@@ -21,6 +21,8 @@ import { GcpBusinessService } from './gcp-business.service.js';
 import { GcpLoggingService } from './gcp-logging.service.js';
 import { GcpErrorsService } from './gcp-errors.service.js';
 import { GcpRecaptchaService } from './gcp-recaptcha.service.js';
+import { GcpSearchAggregatorService } from './gcp-search-aggregator.service.js';
+import { GcpKnowledgeGraphService } from './gcp-knowledge-graph.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 const searchCatalog = catchAsync(async (req, res) => {
@@ -934,6 +936,44 @@ const securityRecaptchaVerify = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Handles Advanced Google Web/Image Search Aggregation queries.
+ */
+const searchAdvanced = catchAsync(async (req, res) => {
+  const { query, searchType, numResults, safe } = req.body;
+  if (!query) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "query" is missing.');
+  }
+
+  const result = await GcpSearchAggregatorService.executeParallelSearch(query, searchType, numResults, safe);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Advanced parallelized Google search executed successfully.',
+    data: result,
+  });
+});
+
+/**
+ * Handles Google Knowledge Graph structured entity lookups.
+ */
+const searchKnowledgeGraph = catchAsync(async (req, res) => {
+  const { query, limit, types, languages } = req.body;
+  if (!query) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameter "query" is missing.');
+  }
+
+  const result = await GcpKnowledgeGraphService.lookupEntity(query, limit, types, languages);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Google Knowledge Graph entity lookup executed successfully.',
+    data: result,
+  });
+});
+
 export const GcpNativeController = {
   searchCatalog,
   importSubmodule,
@@ -978,5 +1018,7 @@ export const GcpNativeController = {
   businessUnifiedAnalytics,
   observabilityWriteLog,
   observabilityReportError,
-  securityRecaptchaVerify
+  securityRecaptchaVerify,
+  searchAdvanced,
+  searchKnowledgeGraph
 };

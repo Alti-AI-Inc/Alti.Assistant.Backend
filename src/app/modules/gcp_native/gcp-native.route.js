@@ -292,10 +292,17 @@ router.post(
   GcpNativeController.observabilityReportError
 );
 
+// ── Phase 7: Advanced Search & Knowledge Intelligence ───────────────────────
 router.post(
-  '/security/recaptcha-verify',
+  '/search/advanced',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  GcpNativeController.securityRecaptchaVerify
+  GcpNativeController.searchAdvanced
+);
+
+router.post(
+  '/search/knowledge-graph',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.searchKnowledgeGraph
 );
 
 export const gcpNativeRoutes = router;
