@@ -20,6 +20,7 @@ import { UkOnsMacroeconomicsProvider, BankOfEnglandMonetaryProvider, UkHmLandReg
 import { GermanDestatisMacroeconomicsProvider, FrenchInseeMacroeconomicsProvider, EcbEuropeanMonetaryProvider } from './providers/stage27PremiumProviders.js';
 import { ChinaMacroeconomicsProvider, IndiaMacroeconomicsProvider, JapanMacroeconomicsProvider, AustraliaMacroeconomicsProvider, BrazilMacroeconomicsProvider } from './providers/stage28PremiumProviders.js';
 import { SouthKoreaMacroeconomicsProvider, SingaporeMacroeconomicsProvider, SwitzerlandMacroeconomicsProvider, SouthAfricaMacroeconomicsProvider, MexicoMacroeconomicsProvider } from './providers/stage29PremiumProviders.js';
+import { RussiaMacroeconomicsProvider, SaudiArabiaMacroeconomicsProvider, TurkeyMacroeconomicsProvider, ArgentinaMacroeconomicsProvider, IndonesiaMacroeconomicsProvider } from './providers/stage30PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -1022,6 +1023,14 @@ SearchEngineRegistry.register(SingaporeMacroeconomicsProvider);
 SearchEngineRegistry.register(SwitzerlandMacroeconomicsProvider);
 SearchEngineRegistry.register(SouthAfricaMacroeconomicsProvider);
 SearchEngineRegistry.register(MexicoMacroeconomicsProvider);
+
+// Stage 30 Premium Providers (Sovereign Global III - Russia, Saudi Arabia, Turkey, Argentina & Indonesia)
+SearchEngineRegistry.register(RussiaMacroeconomicsProvider);
+SearchEngineRegistry.register(SaudiArabiaMacroeconomicsProvider);
+SearchEngineRegistry.register(TurkeyMacroeconomicsProvider);
+SearchEngineRegistry.register(ArgentinaMacroeconomicsProvider);
+SearchEngineRegistry.register(IndonesiaMacroeconomicsProvider);
+
 
 
 

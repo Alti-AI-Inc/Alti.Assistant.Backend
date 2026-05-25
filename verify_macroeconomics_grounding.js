@@ -120,6 +120,31 @@ async function runVerification() {
       name: 'Mexico INEGI & Banxico interbank policy (Stage 29)',
       query: 'Find Mexico GDP growth rate, CPI inflation index, and Banxico overnight interbank rate target',
       expectedId: 'mexico_macro_economics'
+    },
+    {
+      name: 'Russia Rosstat & Bank of Russia monetary monitor (Stage 30)',
+      query: 'Retrieve Russia real GDP growth rate, Rosstat CPI inflation, and Bank of Russia key interest rate',
+      expectedId: 'russia_macro_economics'
+    },
+    {
+      name: 'Saudi Arabia GASTAT & SAMA policy repo (Stage 30)',
+      query: 'Get Saudi Arabia GDP growth, GASTAT CPI inflation, and SAMA repo policy interest rate',
+      expectedId: 'saudi_arabia_macro_economics'
+    },
+    {
+      name: 'Turkey TurkStat & CBRT monetary policy (Stage 30)',
+      query: 'Find Turkey GDP growth, TurkStat CPI inflation, and Central Bank of Turkey CBRT interest rates',
+      expectedId: 'turkey_macro_economics'
+    },
+    {
+      name: 'Argentina INDEC & BCRA policy realignment (Stage 30)',
+      query: 'Retrieve Argentina GDP growth, INDEC CPI inflation, and BCRA monetary policy rate',
+      expectedId: 'argentina_macro_economics'
+    },
+    {
+      name: 'Indonesia BPS & Bank Indonesia monetary stance (Stage 30)',
+      query: 'Find Indonesia GDP growth, BPS CPI inflation, and Bank Indonesia BI interest rates',
+      expectedId: 'indonesia_macro_economics'
     }
   ];
 
