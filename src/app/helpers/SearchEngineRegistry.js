@@ -15,6 +15,7 @@ import { UsgsEarthquakesProvider, OpencorporatesProvider, NasaFirmsProvider } fr
 import { GdeltGeopoliticalProvider, EurostatEconomicProvider, WhoDiseaseOutbreaksProvider } from './providers/stage22PremiumProviders.js';
 import { EpoPatentsProvider, MedrxivPreprintsProvider } from './providers/stage23PremiumProviders.js';
 import { HtsTariffsProvider, OyezScotusProvider, SedarFilingsProvider } from './providers/stage24PremiumProviders.js';
+import { WefGlobalCompetitivenessProvider, ImfWorldEconomicOutlookProvider, OecdLeadingIndicatorsProvider } from './providers/stage25PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -988,3 +989,10 @@ SearchEngineRegistry.register(MedrxivPreprintsProvider);
 SearchEngineRegistry.register(HtsTariffsProvider);
 SearchEngineRegistry.register(OyezScotusProvider);
 SearchEngineRegistry.register(SedarFilingsProvider);
+
+// Stage 25 Premium Providers (WEF, IMF & OECD)
+SearchEngineRegistry.register(WefGlobalCompetitivenessProvider);
+SearchEngineRegistry.register(ImfWorldEconomicOutlookProvider);
+SearchEngineRegistry.register(OecdLeadingIndicatorsProvider);
+
+
