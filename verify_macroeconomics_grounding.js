@@ -195,6 +195,31 @@ async function runVerification() {
       name: 'Belgium Statbel & NBB policy and property monitor (Stage 32)',
       query: 'Find Belgium tax rates, NBB policy stance, Statbel GDP growth, and property HPI',
       expectedId: 'belgium_macro_economics'
+    },
+    {
+      name: 'Finland Tilastokeskus & Bank of Finland monetary monitor (Stage 33)',
+      query: 'Retrieve Finland real GDP growth rate, Tilastokeskus CPI inflation, and Bank of Finland stance',
+      expectedId: 'finland_macro_economics'
+    },
+    {
+      name: 'Portugal INE & Banco de Portugal property monitor (Stage 33)',
+      query: 'Get Portugal GDP growth, HICP inflation, Banco de Portugal policy, and property HPI index',
+      expectedId: 'portugal_macro_economics'
+    },
+    {
+      name: 'Greece ELSTAT & Bank of Greece debt and services (Stage 33)',
+      query: 'Find Greece GDP growth from ELSTAT, Greek CPI inflation, government debt, and Bank of Greece stance',
+      expectedId: 'greece_macro_economics'
+    },
+    {
+      name: 'New Zealand Stats NZ & RBNZ Official Cash Rate monitor (Stage 33)',
+      query: 'Retrieve New Zealand GDP growth from Stats NZ, CPI inflation, RBNZ OCR interest rate, and property HPI',
+      expectedId: 'new_zealand_macro_economics'
+    },
+    {
+      name: 'Poland GUS & NBP reference policy monitor (Stage 33)',
+      query: 'Find Poland real GDP growth, GUS CPI inflation, NBP reference interest rate, and trade balance',
+      expectedId: 'poland_macro_economics'
     }
   ];
 
