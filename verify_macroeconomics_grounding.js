@@ -40,6 +40,21 @@ async function runVerification() {
       name: 'Canadian SEDAR corporate disclosures (Stage 24)',
       query: 'Search SEDAR for Royal Bank of Canada quarterly reports',
       expectedId: 'sedar_filings'
+    },
+    {
+      name: 'UK ONS Macroeconomics (Stage 26)',
+      query: 'Get the UK ONS economic metrics and CPIH inflation rate for London Region 🇬🇧',
+      expectedId: 'uk_ons_economics'
+    },
+    {
+      name: 'Bank of England Base Rate (Stage 26)',
+      query: 'What is the current Bank of England base rate and MPC policy stance?',
+      expectedId: 'boe_monetary'
+    },
+    {
+      name: 'UK HM Land Registry (HMLR) House Prices (Stage 26)',
+      query: 'Find UK Land Registry average house prices for Greater London 🏰',
+      expectedId: 'uk_land_registry'
     }
   ];
 

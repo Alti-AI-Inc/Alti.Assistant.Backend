@@ -16,6 +16,7 @@ import { GdeltGeopoliticalProvider, EurostatEconomicProvider, WhoDiseaseOutbreak
 import { EpoPatentsProvider, MedrxivPreprintsProvider } from './providers/stage23PremiumProviders.js';
 import { HtsTariffsProvider, OyezScotusProvider, SedarFilingsProvider } from './providers/stage24PremiumProviders.js';
 import { WefGlobalCompetitivenessProvider, ImfWorldEconomicOutlookProvider, OecdLeadingIndicatorsProvider } from './providers/stage25PremiumProviders.js';
+import { UkOnsMacroeconomicsProvider, BankOfEnglandMonetaryProvider, UkHmLandRegistryProvider } from './providers/stage26PremiumProviders.js';
 
 // Import Modular Providers
 import {
@@ -994,5 +995,11 @@ SearchEngineRegistry.register(SedarFilingsProvider);
 SearchEngineRegistry.register(WefGlobalCompetitivenessProvider);
 SearchEngineRegistry.register(ImfWorldEconomicOutlookProvider);
 SearchEngineRegistry.register(OecdLeadingIndicatorsProvider);
+
+// Stage 26 Premium Providers (UK Government Open Data - ONS, BoE & HMLR)
+SearchEngineRegistry.register(UkOnsMacroeconomicsProvider);
+SearchEngineRegistry.register(BankOfEnglandMonetaryProvider);
+SearchEngineRegistry.register(UkHmLandRegistryProvider);
+
 
 
