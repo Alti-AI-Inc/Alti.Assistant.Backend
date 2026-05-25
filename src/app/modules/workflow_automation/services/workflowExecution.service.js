@@ -2196,6 +2196,30 @@ class WorkflowExecutionService {
             const { GcpA2uiService } = await import('../../gcp_native/gcp-a2ui.service.js');
             result = GcpA2uiService.parseAndValidateA2ui(rawText);
           }
+        } else if (action === 'gcp_mcp_bridge') {
+          const { toolsetName, toolName, mcpParameters } = parameters;
+          const targetToolset = toolsetName || 'alti-default-postgres';
+          const targetTool = toolName || 'execute_sql';
+          const toolParams = mcpParameters || {};
+
+          if (isMock) {
+            result = {
+              success: true,
+              tool: targetTool,
+              toolset: targetToolset,
+              rowCount: 2,
+              columns: ['alert_id', 'metric', 'status'],
+              rows: [
+                [101, 'CPU_SPIKE', 'RESOLVED'],
+                [102, 'DB_LATENCY', 'WARNING']
+              ],
+              message: 'Google MCP database analytical query executed successfully via mock transport.',
+              mocked: true
+            };
+          } else {
+            const { GcpMcpService } = await import('../../gcp_native/gcp-mcp.service.js');
+            result = await GcpMcpService.executeMcpTool(targetToolset, targetTool, toolParams);
+          }
         } else {
           throw new Error(`Unknown action '${step.action}' for app 'google_cloud'`);
         }

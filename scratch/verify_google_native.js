@@ -36,9 +36,10 @@ import { GcpSuggestService } from '../src/app/modules/gcp_native/gcp-suggest.ser
 import { GcpVertexSearchService } from '../src/app/modules/gcp_native/gcp-vertex-search.service.js';
 import { GcpTrendsService } from '../src/app/modules/gcp_native/gcp-trends.service.js';
 import { GcpA2uiService } from '../src/app/modules/gcp_native/gcp-a2ui.service.js';
+import { GcpMcpService } from '../src/app/modules/gcp_native/gcp-mcp.service.js';
 import { workflowExecutionService } from '../src/app/modules/workflow_automation/services/workflowExecution.service.js';
 
-console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 10)...\n');
+console.log('🚀 INITIALIZING GOOGLE & GCP INTEGRATION COMPILE & RUNTIME CHECKER (PHASE 11)...\n');
 
 async function testCompilations() {
   console.log('====================================================');
@@ -72,7 +73,8 @@ async function testCompilations() {
     { name: 'GcpSuggestService', service: GcpSuggestService, method: 'getSearchSuggestions' },
     { name: 'GcpVertexSearchService', service: GcpVertexSearchService, method: 'searchDataStore' },
     { name: 'GcpTrendsService', service: GcpTrendsService, method: 'getTrendingSearches' },
-    { name: 'GcpA2uiService', service: GcpA2uiService, method: 'parseAndValidateA2ui' }
+    { name: 'GcpA2uiService', service: GcpA2uiService, method: 'parseAndValidateA2ui' },
+    { name: 'GcpMcpService', service: GcpMcpService, method: 'executeMcpTool' }
   ];
 
   for (const item of services) {
@@ -445,6 +447,18 @@ async function testWorkflowMockExecution() {
       action: 'gcp_a2ui_render',
       parameters: {
         rawText: 'Here is the interface: <a2ui-json>[{"surfaceUpdate": {"root": "my-col", "components": [{"id": "my-col", "type": "column", "children": []}]}}]</a2ui-json>'
+      }
+    },
+    {
+      stepId: 'step_mcp_bridge',
+      app: 'google_cloud',
+      action: 'gcp_mcp_bridge',
+      parameters: {
+        toolsetName: 'alti-default-postgres',
+        toolName: 'execute_sql',
+        mcpParameters: {
+          statement: 'SELECT * FROM security_alerts LIMIT 5;'
+        }
       }
     },
     {

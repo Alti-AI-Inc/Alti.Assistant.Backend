@@ -30,6 +30,7 @@ import { GcpSuggestService } from './gcp-suggest.service.js';
 import { GcpVertexSearchService } from './gcp-vertex-search.service.js';
 import { GcpTrendsService } from './gcp-trends.service.js';
 import { GcpA2uiService } from './gcp-a2ui.service.js';
+import { GcpMcpService } from './gcp-mcp.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 const searchCatalog = catchAsync(async (req, res) => {
@@ -1127,6 +1128,57 @@ const a2uiParseAndValidate = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Executes a specific tool inside a targeted toolset via the Google MCP Toolbox.
+ */
+const mcpExecuteQuery = catchAsync(async (req, res) => {
+  const { toolsetName, toolName, parameters } = req.body;
+  if (!toolsetName || !toolName) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required parameters "toolsetName" and "toolName" are missing.');
+  }
+
+  const result = await GcpMcpService.executeMcpTool(toolsetName, toolName, parameters);
+
+  sendResponse(res, {
+    statusCode: result.success ? httpStatus.OK : httpStatus.BAD_REQUEST,
+    success: result.success,
+    message: result.success
+      ? 'MCP tool query executed successfully.'
+      : 'MCP tool query execution failed.',
+    data: result,
+  });
+});
+
+/**
+ * Retrieves the lifecycle status of the local MCP Toolbox server daemon.
+ */
+const mcpGetStatus = catchAsync(async (req, res) => {
+  const result = GcpMcpService.getMcpServerStatus();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'MCP server lifecycle status retrieved successfully.',
+    data: result,
+  });
+});
+
+/**
+ * Dynamically reloads and re-generates the tools.yaml specification.
+ */
+const mcpUpdateTools = catchAsync(async (req, res) => {
+  const { sources, tools } = req.body;
+
+  const resultYaml = GcpMcpService.generateToolsConfig(sources, tools);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'MCP tools and sources configuration updated successfully.',
+    data: { configYaml: resultYaml },
+  });
+});
+
 export const GcpNativeController = {
   searchCatalog,
   importSubmodule,
@@ -1181,5 +1233,8 @@ export const GcpNativeController = {
   searchQueryVertexDatastore,
   searchGetTrending,
   a2uiGeneratePrompt,
-  a2uiParseAndValidate
+  a2uiParseAndValidate,
+  mcpExecuteQuery,
+  mcpGetStatus,
+  mcpUpdateTools
 };

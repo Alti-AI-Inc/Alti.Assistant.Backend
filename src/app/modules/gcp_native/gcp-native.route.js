@@ -350,4 +350,23 @@ router.post(
   GcpNativeController.a2uiParseAndValidate
 );
 
+// ── Phase 11: Google Model Context Protocol (MCP) Database & Services Bridge ─
+router.post(
+  '/mcp/query',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.mcpExecuteQuery
+);
+
+router.get(
+  '/mcp/status',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.mcpGetStatus
+);
+
+router.post(
+  '/mcp/tools',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.mcpUpdateTools
+);
+
 export const gcpNativeRoutes = router;
