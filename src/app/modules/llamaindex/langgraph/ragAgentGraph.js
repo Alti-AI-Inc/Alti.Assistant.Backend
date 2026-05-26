@@ -17,6 +17,10 @@ export const agenticRAGState = {
     reducer: (x, y) => y ?? x,
     default: () => '',
   },
+  hydePassage: {
+    reducer: (x, y) => y ?? x,
+    default: () => '',
+  },
   retrievedContext: {
     reducer: (x, y) => y ?? x,
     default: () => '',
@@ -55,12 +59,37 @@ const llm = new ChatGoogleGenerativeAI({
 });
 
 /**
- * Retrieve Node: Calls LlamaIndex parallel multi-query index retriever
+ * HyDE Node: Generates a hypothetical answer passage to expand query semantics
+ */
+async function hydeExpandNode(state) {
+  logger.info(`[LangGraph RAG] Generating HyDE hypothetical passage for query: "${state.query}"`);
+  const systemPrompt = `You are a hypothetical document generator. Write a brief, factual paragraph (3-4 sentences) that directly answers the user's question. 
+Do not include any headers, preambles, or "Here is the answer...". Start writing the factual paragraph immediately as if it was extracted directly from an official guidebook or manual.
+
+User Question: ${state.query}`;
+
+  try {
+    const response = await llm.invoke([new SystemMessage(systemPrompt)], {
+      callbacks: langsmithMiddleware.getTraceCallbacks('HyDE-Generator')
+    });
+    const passage = response.content.trim();
+    logger.info(`[LangGraph RAG] HyDE passage generated: "${passage.substring(0, 100)}..."`);
+    return { hydePassage: passage };
+  } catch (err) {
+    logger.warn(`[LangGraph RAG] HyDE generation failed, falling back to empty. Error: ${err.message}`);
+    return { hydePassage: '' };
+  }
+}
+
+/**
+ * Retrieve Node: Calls LlamaIndex parallel multi-query index retriever and runs Reranker
  */
 async function retrieveNode(state) {
-  logger.info(`[LangGraph RAG] Retrieving context for query: "${state.query}"`);
+  logger.info(`[LangGraph RAG] Retrieving context for query: "${state.query}" (HyDE Active: ${!!state.hydePassage})`);
   try {
-    const result = await askQuery(state.query, state.userId);
+    // If HyDE generated a hypothetical passage, construct an expanded query for parallel retrieval
+    const searchQuery = state.hydePassage ? `${state.query} ${state.hydePassage}` : state.query;
+    const result = await askQuery(searchQuery, state.userId);
     const hasDocuments = result && result.sources && result.sources.length > 0;
     
     if (!hasDocuments) {
@@ -71,8 +100,7 @@ async function retrieveNode(state) {
       };
     }
 
-    const contextStr = result.content || '';
-    const citations = result.sources.map((s, idx) => {
+    let citations = result.sources.map((s, idx) => {
       const docName = s.extractedTitle || 'Uploaded Document';
       const downloadUrl = `/api/v1/rag-system/documents/${s.docId || 'active'}/download`;
       return {
@@ -80,9 +108,46 @@ async function retrieveNode(state) {
         url: downloadUrl,
         title: docName,
         domain: 'Data Vault',
-        snippet: s.snippet || ''
+        snippet: s.snippet || '',
+        score: s.score || 1.0
       };
     });
+
+    // High-Precision Semantic Reranker & Context Compressor
+    if (citations.length > 3) {
+      logger.info(`[LangGraph RAG] Executing semantic cross-encoder reranking on ${citations.length} chunks...`);
+      try {
+        const rerankPrompt = `You are a high-precision document reranker. Grade the semantic relevance of each passage below to answer the user query: "${state.query}"
+        
+Passages to rank:
+${citations.map((c, i) => `[ID: ${i}] Excerpt: ${c.snippet}`).join('\n\n')}
+
+Select the top 4 most relevant excerpts that directly answer the query. Return exactly a valid JSON array of integers containing their IDs, e.g., [0, 2, 3]. Do not write any explanations.`;
+
+        const rerankResponse = await llm.invoke([new SystemMessage(rerankPrompt)], {
+          callbacks: langsmithMiddleware.getTraceCallbacks('Semantic-Reranker')
+        });
+
+        const cleanedContent = rerankResponse.content.trim();
+        const match = cleanedContent.match(/\[\s*\d+\s*(?:,\s*\d+\s*)*\]/);
+        if (match) {
+          const selectedIds = JSON.parse(match[0]);
+          logger.info(`[LangGraph RAG] Reranker selected indices: ${JSON.stringify(selectedIds)}`);
+          citations = selectedIds.map((id, newIdx) => {
+            const originalNode = citations[id];
+            if (originalNode) {
+              return { ...originalNode, index: newIdx + 1 };
+            }
+            return null;
+          }).filter(Boolean);
+        }
+      } catch (rerankErr) {
+        logger.warn(`[LangGraph RAG] Semantic Reranker failed, falling back to cosine score ranking. Error: ${rerankErr.message}`);
+        citations = citations.sort((a, b) => b.score - a.score).slice(0, 4);
+      }
+    }
+
+    const contextStr = citations.map(c => c.snippet).join('\n\n');
 
     return {
       retrievedContext: contextStr,
@@ -241,6 +306,7 @@ Respond with exactly one word: "YES" if the draft contains hallucinations, unsup
 const workflow = new StateGraph({ channels: agenticRAGState });
 
 // Register Nodes
+workflow.addNode('hyde_expand', hydeExpandNode);
 workflow.addNode('retrieve', retrieveNode);
 workflow.addNode('grade_documents', gradeDocumentsNode);
 workflow.addNode('web_search', webSearchNode);
@@ -248,7 +314,8 @@ workflow.addNode('generate', generateNode);
 workflow.addNode('hallucination_grade', hallucinationGradeNode);
 
 // Define Edges
-workflow.addEdge(START, 'retrieve');
+workflow.addEdge(START, 'hyde_expand');
+workflow.addEdge('hyde_expand', 'retrieve');
 workflow.addEdge('retrieve', 'grade_documents');
 
 // Route based on document relevance
