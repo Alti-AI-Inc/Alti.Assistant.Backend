@@ -110,6 +110,8 @@ class DockerWorkspaceService {
           --memory 512m \
           --cpus 1.0 \
           --pids-limit 100 \
+          --cap-drop=ALL \
+          --security-opt=no-new-privileges:true \
           --read-only \
           --tmpfs /tmp:rw,noexec,nosuid,size=64m \
           -v "${hostVolumePath}:/workspace" \
@@ -176,6 +178,7 @@ class DockerWorkspaceService {
       // Execute command under non-root sandbox user inside /workspace folder
       const execArgs = [
         'exec',
+        '-u', 'sandbox',
         '-w', '/workspace',
         containerName,
         ...commandArgs
@@ -192,7 +195,9 @@ class DockerWorkspaceService {
         // Force kill target container subprocess if unresponsive
         try {
           execSync(`docker exec ${containerName} pkill -u sandbox`);
-        } catch {}
+        } catch (err) {
+          logger.debug(`[DOCKER] Force-kill sandbox processes did not succeed or container is already stopped: ${err.message}`);
+        }
       }, timeoutMs);
 
       child.stdout.on('data', (d) => { stdout += d.toString(); });
@@ -299,6 +304,8 @@ class DockerWorkspaceService {
           --memory 512m \
           --cpus 1.0 \
           --pids-limit 100 \
+          --cap-drop=ALL \
+          --security-opt=no-new-privileges:true \
           --read-only \
           --tmpfs /tmp:rw,noexec,nosuid,size=64m \
           -v "${hostVolumePath}:/workspace" \
