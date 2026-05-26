@@ -49,8 +49,10 @@ class DockerWorkspaceService {
       try {
         execSync('docker network inspect alti_sandbox_net', { stdio: 'ignore' });
       } catch {
-        logger.info('[DOCKER] Creating secure internal sandbox network "alti_sandbox_net"...');
-        execSync('docker network create --internal alti_sandbox_net', { stdio: 'ignore' });
+        const isInternal = process.env.DOCKER_NETWORK_INTERNAL === 'true';
+        logger.info(`[DOCKER] Creating secure sandbox network "alti_sandbox_net" (internal/offline: ${isInternal})...`);
+        const internalFlag = isInternal ? '--internal' : '';
+        execSync(`docker network create ${internalFlag} alti_sandbox_net`, { stdio: 'ignore' });
       }
 
       this.initialized = true;
