@@ -152,6 +152,34 @@ const compileGeminiTools = (skills) => {
 };
 
 /**
+ * Ensures that the persistent virtual environment (/workspace/.venv) is initialized inside the user container.
+ * @param {string} userId - User identifier
+ * @returns {Promise<boolean>} True if initialized, false otherwise
+ */
+const ensureVenvInitialized = async (userId) => {
+  const containerName = `alti_workspace_${userId}`;
+  try {
+    const checkResult = await dockerWorkspaceService.executeCommand(userId, ['test', '-f', '/workspace/.venv/bin/python']);
+    if (checkResult.code === 0) {
+      return true; // Already exists
+    }
+    
+    logger.info(`[DynamicSkill] Initializing persistent virtual environment (/workspace/.venv) via uv inside ${containerName}...`);
+    const initResult = await dockerWorkspaceService.executeCommand(userId, ['uv', 'venv', '/workspace/.venv']);
+    if (initResult.code !== 0) {
+      logger.error(`[DynamicSkill Error] Failed to initialize venv via uv: ${initResult.stderr}`);
+      return false;
+    }
+    
+    logger.info(`[SUCCESS] Initialized persistent virtual environment (/workspace/.venv) inside ${containerName}.`);
+    return true;
+  } catch (err) {
+    logger.error(`[DynamicSkill Error] Exception in ensureVenvInitialized:`, err);
+    return false;
+  }
+};
+
+/**
  * Executes a custom skill securely inside the user's isolated Docker container sandbox.
  * @param {string} userId - User identifier
  * @param {Object} skill - Parsed skill details
@@ -191,11 +219,12 @@ const executeSkill = async (userId, skill, args = {}) => {
   } else {
     // Isolated secure Docker Sandbox container path
     const scriptPath = `/workspace/skills/${skill.script}`;
-    
     const ext = path.extname(skill.script);
+    
     let interpreter = 'python3';
     if (ext === '.py') {
-      interpreter = 'python3';
+      const venvOk = await ensureVenvInitialized(userId);
+      interpreter = venvOk ? '/workspace/.venv/bin/python' : 'python3';
     } else if (ext === '.sh') {
       interpreter = 'bash';
     } else if (ext === '.js') {
@@ -206,7 +235,33 @@ const executeSkill = async (userId, skill, args = {}) => {
   }
   
   try {
-    const result = await dockerWorkspaceService.executeCommand(userId, commandArgs, { timeoutMs: 30000 });
+    let result = await dockerWorkspaceService.executeCommand(userId, commandArgs, { timeoutMs: 30000 });
+    
+    if (result.code !== 0) {
+      const stderrText = result.stderr || '';
+      // Check if it is a missing python module error
+      const isMissingModule = stderrText.includes('ModuleNotFoundError:') || stderrText.includes('ImportError: No module named');
+      
+      if (isMissingModule && workspace.mode !== 'local-fallback') {
+        // Parse module name
+        const match = stderrText.match(/(?:ModuleNotFoundError: No module named '|ImportError: No module named ')([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          const packageName = match[1];
+          logger.warn(`[DynamicSkill Self-Healing] Intercepted missing python dependency "${packageName}" inside ${containerName}. Attempting auto-installation...`);
+          
+          // Execute uv pip install inside the container for sub-second installs!
+          const installResult = await dockerWorkspaceService.executeCommand(userId, ['uv', 'pip', 'install', '--python', '/workspace/.venv/bin/python', packageName]);
+          
+          if (installResult.code === 0) {
+            logger.info(`[DynamicSkill Self-Healing] Successfully installed package "${packageName}" for user ${userId}. Retrying script execution...`);
+            // Retry execution
+            result = await dockerWorkspaceService.executeCommand(userId, commandArgs, { timeoutMs: 30000 });
+          } else {
+            logger.error(`[DynamicSkill Self-Healing Error] Failed to install package "${packageName}": ${installResult.stderr}`);
+          }
+        }
+      }
+    }
     
     if (result.code !== 0) {
       logger.error(`[DynamicSkill Error] Skill "${skill.name}" failed with exit code ${result.code}`);

@@ -474,6 +474,7 @@ Instructions: ${agent.systemInstruction}`;
           let currentIteration = 0;
           let stopLoop = false;
           let lastGroundedResult = null;
+          const toolCallCorrectionAttempts = {};
 
           while (currentIteration < maxToolCallingIterations && !stopLoop) {
             currentIteration++;
@@ -517,23 +518,44 @@ Instructions: ${agent.systemInstruction}`;
               const responseParts = [];
               for (const call of functionCalls) {
                 let toolResultText = '';
+                let isError = false;
+
                 if (call.name === 'save_custom_skill') {
                   try {
                     dynamicSkillService.saveGeneratedSkill(userId, call.args);
                     toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
                   } catch (err) {
                     toolResultText = `Failed to save custom skill: ${err.message}`;
+                    isError = true;
                   }
                 } else {
                   const matchedSkill = userSkills.find(s => s.name === call.name);
                   if (matchedSkill) {
                     try {
                       toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                      if (toolResultText.startsWith('Error executing skill:') || toolResultText.startsWith('Execution Error:') || toolResultText.startsWith('Error:')) {
+                        isError = true;
+                      }
                     } catch (err) {
                       toolResultText = `Execution error: ${err.message}`;
+                      isError = true;
                     }
                   } else {
                     toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
+                    isError = true;
+                  }
+                }
+
+                // Nous Hermes-style Self-Correcting Reflection
+                if (isError) {
+                  const attemptKey = call.name;
+                  const attempts = (toolCallCorrectionAttempts[attemptKey] || 0) + 1;
+                  toolCallCorrectionAttempts[attemptKey] = attempts;
+
+                  if (attempts < 3) {
+                    const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
+                    console.warn(`[Swarm Reflection Sync Grounded] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`);
+                    toolResultText = errorExplanation;
                   }
                 }
 
@@ -613,6 +635,7 @@ Instructions: ${agent.systemInstruction}`;
         let maxToolCallingIterations = 5;
         let currentIteration = 0;
         let stopLoop = false;
+        const toolCallCorrectionAttempts = {};
 
         while (currentIteration < maxToolCallingIterations && !stopLoop) {
           currentIteration++;
@@ -653,23 +676,44 @@ Instructions: ${agent.systemInstruction}`;
             const responseParts = [];
             for (const call of functionCalls) {
               let toolResultText = '';
+              let isError = false;
+
               if (call.name === 'save_custom_skill') {
                 try {
                   dynamicSkillService.saveGeneratedSkill(userId, call.args);
                   toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
                 } catch (err) {
                   toolResultText = `Failed to save custom skill: ${err.message}`;
+                  isError = true;
                 }
               } else {
                 const matchedSkill = userSkills.find(s => s.name === call.name);
                 if (matchedSkill) {
                   try {
                     toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                    if (toolResultText.startsWith('Error executing skill:') || toolResultText.startsWith('Execution Error:') || toolResultText.startsWith('Error:')) {
+                      isError = true;
+                    }
                   } catch (err) {
                     toolResultText = `Execution error: ${err.message}`;
+                    isError = true;
                   }
                 } else {
                   toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
+                  isError = true;
+                }
+              }
+
+              // Nous Hermes-style Self-Correcting Reflection
+              if (isError) {
+                const attemptKey = call.name;
+                const attempts = (toolCallCorrectionAttempts[attemptKey] || 0) + 1;
+                toolCallCorrectionAttempts[attemptKey] = attempts;
+
+                if (attempts < 3) {
+                  const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
+                  console.warn(`[Swarm Reflection Sync Standard] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`);
+                  toolResultText = errorExplanation;
                 }
               }
 
@@ -928,6 +972,7 @@ Instructions: ${agent.systemInstruction}`;
             let currentIteration = 0;
             let stopLoop = false;
             let lastGroundedResult = null;
+            const toolCallCorrectionAttempts = {};
 
             while (currentIteration < maxToolCallingIterations && !stopLoop) {
               currentIteration++;
@@ -977,23 +1022,51 @@ Instructions: ${agent.systemInstruction}`;
                   };
 
                   let toolResultText = '';
+                  let isError = false;
+
                   if (call.name === 'save_custom_skill') {
                     try {
                       dynamicSkillService.saveGeneratedSkill(userId, call.args);
                       toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
                     } catch (err) {
                       toolResultText = `Failed to save custom skill: ${err.message}`;
+                      isError = true;
                     }
                   } else {
                     const matchedSkill = userSkills.find(s => s.name === call.name);
                     if (matchedSkill) {
                       try {
                         toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                        if (toolResultText.startsWith('Error executing skill:') || toolResultText.startsWith('Execution Error:') || toolResultText.startsWith('Error:')) {
+                          isError = true;
+                        }
                       } catch (err) {
                         toolResultText = `Execution error: ${err.message}`;
+                        isError = true;
                       }
                     } else {
                       toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
+                      isError = true;
+                    }
+                  }
+
+                  // Nous Hermes-style Self-Correcting Reflection
+                  if (isError) {
+                    const attemptKey = call.name;
+                    const attempts = (toolCallCorrectionAttempts[attemptKey] || 0) + 1;
+                    toolCallCorrectionAttempts[attemptKey] = attempts;
+
+                    if (attempts < 3) {
+                      const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
+                      console.warn(`[Swarm Reflection] Grounded Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`);
+
+                      yield {
+                        type: 'text',
+                        content: `\n\n⚠️ *Skill execution failed. Retrying with error reflection (Attempt ${attempts}/3)...*\n`,
+                        agentId: agent.id
+                      };
+
+                      toolResultText = errorExplanation;
                     }
                   }
 
@@ -1099,6 +1172,7 @@ Instructions: ${agent.systemInstruction}`;
             let maxToolCallingIterations = 5;
             let currentIteration = 0;
             let stopLoop = false;
+            const toolCallCorrectionAttempts = {};
 
             while (currentIteration < maxToolCallingIterations && !stopLoop) {
               currentIteration++;
@@ -1170,23 +1244,51 @@ Instructions: ${agent.systemInstruction}`;
                   };
 
                   let toolResultText = '';
+                  let isError = false;
+
                   if (call.name === 'save_custom_skill') {
                     try {
                       dynamicSkillService.saveGeneratedSkill(userId, call.args);
                       toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
                     } catch (err) {
                       toolResultText = `Failed to save custom skill: ${err.message}`;
+                      isError = true;
                     }
                   } else {
                     const matchedSkill = userSkills.find(s => s.name === call.name);
                     if (matchedSkill) {
                       try {
                         toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                        if (toolResultText.startsWith('Error executing skill:') || toolResultText.startsWith('Execution Error:') || toolResultText.startsWith('Error:')) {
+                          isError = true;
+                        }
                       } catch (err) {
                         toolResultText = `Execution error: ${err.message}`;
+                        isError = true;
                       }
                     } else {
                       toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
+                      isError = true;
+                    }
+                  }
+
+                  // Nous Hermes-style Self-Correcting Reflection
+                  if (isError) {
+                    const attemptKey = call.name;
+                    const attempts = (toolCallCorrectionAttempts[attemptKey] || 0) + 1;
+                    toolCallCorrectionAttempts[attemptKey] = attempts;
+
+                    if (attempts < 3) {
+                      const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
+                      console.warn(`[Swarm Reflection] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`);
+
+                      yield {
+                        type: 'text',
+                        content: `\n\n⚠️ *Skill execution failed. Retrying with error reflection (Attempt ${attempts}/3)...*\n`,
+                        agentId: agent.id
+                      };
+
+                      toolResultText = errorExplanation;
                     }
                   }
 
