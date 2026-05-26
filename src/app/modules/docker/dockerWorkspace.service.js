@@ -45,6 +45,14 @@ class DockerWorkspaceService {
         logger.info(`[SUCCESS] Custom Sandbox Image "${this.imageName}" successfully built.`);
       }
 
+      // 3. Ensure secure internal bridge network exists
+      try {
+        execSync('docker network inspect alti_sandbox_net', { stdio: 'ignore' });
+      } catch {
+        logger.info('[DOCKER] Creating secure internal sandbox network "alti_sandbox_net"...');
+        execSync('docker network create --internal alti_sandbox_net', { stdio: 'ignore' });
+      }
+
       this.initialized = true;
     } catch (err) {
       logger.error(`[ERROR] Docker Workspace service initialization failed: ${err.message}`);
@@ -92,9 +100,11 @@ class DockerWorkspaceService {
 
         // Spawn container in background with resource constraints (CPU shares, Memory ceiling)
         // Mounting workspace to /workspace, skills to /skills (ro), and mcp-toolbox to /mcp-toolbox (ro)
+        // Connecting to secure internal network and setting up loopback database gateway support
         const createCmd = `docker run -d \
           --name ${containerName} \
-          --network none \
+          --network alti_sandbox_net \
+          --add-host=host.docker.internal:host-gateway \
           --memory 512m \
           --cpus 1.0 \
           -v "${hostVolumePath}:/workspace" \
@@ -279,7 +289,8 @@ class DockerWorkspaceService {
 
         const createCmd = `docker run -d \
           --name ${containerName} \
-          --network none \
+          --network alti_sandbox_net \
+          --add-host=host.docker.internal:host-gateway \
           --memory 512m \
           --cpus 1.0 \
           -v "${hostVolumePath}:/workspace" \
