@@ -1,0 +1,72 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+import { executeAgenticRAG } from '../src/app/modules/llamaindex/langgraph/ragAgentGraph.js';
+import { logger } from '../src/shared/logger.js';
+
+// Configure logger to display immediately in console
+logger.level = 'info';
+
+const testQueries = [
+  {
+    name: '1. Conversational Query (Friendly Chat)',
+    query: 'Hello there! Who are you and how can you help me today?',
+  },
+  {
+    name: '2. Time-Sensitive/Real-time Query (Search Grounding Fallback)',
+    query: 'What is Apple\'s current stock price today, and what is their latest product announcement?',
+  },
+  {
+    name: '3. Factual Query (RAG Retrieval & Hallucination/Search Fallback)',
+    query: 'What are the main requirements and security guidelines for using Google Vertex AI Search?',
+  }
+];
+
+async function runVerification() {
+  console.log('\n======================================================================');
+  console.log('🧪 VERIFYING STATEFUL COGNITIVE LANGGRAPH RAG SYSTEM END-TO-END');
+  console.log('======================================================================\n');
+
+  const userId = 'verify_test_user_99';
+
+  for (const testCase of testQueries) {
+    console.log(`\n----------------------------------------------------------------------`);
+    console.log(`🏃 Running Test Case: ${testCase.name}`);
+    console.log(`   User Query: "${testCase.query}"`);
+    console.log(`----------------------------------------------------------------------`);
+
+    const start = Date.now();
+    try {
+      const response = await executeAgenticRAG(testCase.query, userId);
+      const duration = Date.now() - start;
+
+      console.log(`\n🟢 [SUCCESS] Completed in ${duration}ms`);
+      console.log(`📝 Generated Response:`);
+      console.log(`========================================`);
+      console.log(response.content);
+      console.log(`========================================`);
+      
+      console.log(`\n🔗 Citations/Sources (${response.sources.length} total):`);
+      response.sources.forEach((src, idx) => {
+        console.log(`   [Source #${idx + 1}] - Title: ${src.extractedTitle || 'N/A'}`);
+        console.log(`     Snippet: ${src.snippet.substring(0, 150)}...`);
+      });
+
+      console.log(`\n🔍 Extra Metadata:`);
+      console.log(`   - Web Search Grounding Active: ${response.webSearchUsed}`);
+      
+    } catch (error) {
+      console.error(`\n❌ [ERROR] Test Case failed:`, error);
+    }
+  }
+
+  console.log('\n======================================================================');
+  console.log('✅ STATEFUL COGNITIVE LANGGRAPH RAG SYSTEM VERIFICATION COMPLETED');
+  console.log('======================================================================\n');
+  process.exit(0);
+}
+
+runVerification().catch(err => {
+  console.error('Critical verification script error:', err);
+  process.exit(1);
+});
