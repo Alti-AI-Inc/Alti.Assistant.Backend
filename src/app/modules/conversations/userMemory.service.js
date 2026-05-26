@@ -7,21 +7,24 @@ import fetch from 'node-fetch';
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 const FACT_EXTRACTION_PROMPT = `You are a cognitive memory manager for a state-of-the-art AI Assistant.
-Your job is to analyze the conversation turn (the User's Prompt and the Assistant's Reply) and extract any concrete, long-term personal facts, attributes, or preferences about the user.
+Your job is to analyze the conversation turn in the context of the user's EXISTING USER PROFILE & MEMORIES, and extract, update, refine, or delete long-term personal facts, attributes, or preferences.
 
 Rules:
-1. Only extract high-confidence, stable facts explicitly stated or strongly implied (e.g., user's profession, location, programming language/tech stack, company, preferred response style/formatting/tone, hobbies, interests, etc.).
-2. Do NOT extract temporary conversation topics, questions, or short-term requests (e.g., "user is asking about stock prices", "user wants to write an email now"). Only extract things that remain true about the user across different sessions.
-3. Key names must be normalized, lowercase, using underscores (e.g., "tech_stack", "profession", "location", "preferred_tone", "interests", "company").
-4. Values must be clear, concise, and direct.
+1. Context-Aware Aggregation: Compare new facts against the provided EXISTING USER PROFILE & MEMORIES.
+2. Prevent Redundancy: If a fact is already perfectly and accurately recorded, do NOT output it (avoid database noise).
+3. Conflict Resolution & Refinement: If the new turn contradicts or refines an existing fact (e.g., user changed location, startup name, or tech preference), output the consolidated new value using the EXACT same key name.
+4. Redaction/Deletion: If the user explicitly corrections or disavows an existing memory (e.g. "I no longer work with Django", "Forget that I live in Berlin"), output the key with "action": "delete".
+5. Stable Context Only: Do NOT capture fleeting topics, questions, or one-off tasks. Capture only things that remain true about the user across multiple sessions (profession, tech stacks, writing tone, location, companies, hobbies, preferred styles).
+6. Keys must be lowercase, normalized, using underscores (e.g. "tech_stack", "profession", "location", "writing_style", "company", "hobbies").
 
 You MUST respond strictly with a valid JSON array of objects, where each object matches this schema:
 {
   "key": "string (normalized key name)",
-  "value": "string (the fact/preference value)",
-  "category": "string (must be 'facts' or 'preferences')"
+  "value": "string (consolidated fact/preference value, or empty if action is delete)",
+  "category": "string ('facts' or 'preferences')",
+  "action": "string (must be 'upsert' or 'delete')"
 }
-If no new facts or preferences are found, respond with exactly an empty array: [].
+If no updates, new facts, or deletions are required, respond with exactly an empty array: [].
 Do NOT wrap the JSON in markdown blocks. Return pure raw JSON string.`;
 
 /**
@@ -59,7 +62,8 @@ const getProfileBlock = async (userId) => {
 };
 
 /**
- * Asynchronously extracts new facts and preferences from a conversation turn and upserts them into MongoDB.
+ * Asynchronously extracts new facts and preferences from a conversation turn, resolves conflicts with existing memories,
+ * and consolidates them inside MongoDB (upserting or deleting keys).
  * Fired in the background (non-blocking).
  * @param {string} userId - User identifier
  * @param {string} prompt - User's prompt
@@ -71,9 +75,18 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
   // Run in background wrap with try-catch to protect the core execution thread
   setTimeout(async () => {
     try {
-      logger.info(`[UserMemory] Background fact extraction triggered for user ${userId}`);
+      logger.info(`[UserMemory] Background fact extraction and consolidation triggered for user ${userId}`);
       
-      const turnText = `USER PROMPT:\n"${prompt}"\n\nASSISTANT REPLY:\n"${reply}"`;
+      // 1. Fetch existing memories to allow cognitive conflict resolution and prevent duplicate writes
+      const existingMemories = await UserMemory.find({ userId });
+      let existingSummary = 'None';
+      if (existingMemories && existingMemories.length > 0) {
+        existingSummary = existingMemories
+          .map((m) => `- key: "${m.key}", value: "${m.value}", category: "${m.category}"`)
+          .join('\n');
+      }
+
+      const turnText = `EXISTING USER PROFILE & MEMORIES:\n${existingSummary}\n\nNEW CONVERSATION TURN:\nUSER PROMPT:\n"${prompt}"\n\nASSISTANT REPLY:\n"${reply}"`;
       let rawJson = '[]';
 
       try {
@@ -135,33 +148,45 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
       }
 
       if (!Array.isArray(extractedFacts) || extractedFacts.length === 0) {
-        logger.info('[UserMemory] No new facts or preferences detected in this turn.');
+        logger.info('[UserMemory] No updates, deletions, or new facts detected in this turn.');
         return;
       }
 
-      logger.info(`[UserMemory] Successfully extracted ${extractedFacts.length} candidate facts for user ${userId}.`);
+      logger.info(`[UserMemory] Extracted ${extractedFacts.length} cognitive memory directives for user ${userId}.`);
 
-      // Upsert each fact securely
+      // Execute each memory directive securely (upsert or delete)
       for (const fact of extractedFacts) {
-        if (!fact.key || !fact.value) continue;
+        if (!fact.key) continue;
         
         const normalizedKey = fact.key.toLowerCase().trim();
-        const cleanValue = fact.value.trim();
-        const category = ['facts', 'preferences', 'settings'].includes(fact.category) ? fact.category : 'facts';
+        const action = fact.action === 'delete' ? 'delete' : 'upsert';
 
-        try {
-          await UserMemory.findOneAndUpdate(
-            { userId, key: normalizedKey },
-            {
-              value: cleanValue,
-              category,
-              confidence: fact.confidence || 1.0,
-            },
-            { upsert: true, new: true, runValidators: true }
-          );
-          logger.info(`[UserMemory] Upserted memory fact: [${normalizedKey}] => "${cleanValue}"`);
-        } catch (dbErr) {
-          logger.error(`[UserMemory] Failed to upsert fact [${normalizedKey}] to DB:`, dbErr);
+        if (action === 'delete') {
+          try {
+            await UserMemory.deleteOne({ userId, key: normalizedKey });
+            logger.info(`[UserMemory] Successfully redacted memory key: [${normalizedKey}]`);
+          } catch (delErr) {
+            logger.error(`[UserMemory] Failed to delete key [${normalizedKey}] from DB:`, delErr);
+          }
+        } else {
+          if (!fact.value) continue;
+          const cleanValue = fact.value.trim();
+          const category = ['facts', 'preferences', 'settings'].includes(fact.category) ? fact.category : 'facts';
+
+          try {
+            await UserMemory.findOneAndUpdate(
+              { userId, key: normalizedKey },
+              {
+                value: cleanValue,
+                category,
+                confidence: fact.confidence || 1.0,
+              },
+              { upsert: true, new: true, runValidators: true }
+            );
+            logger.info(`[UserMemory] Consolidated memory fact: [${normalizedKey}] => "${cleanValue}"`);
+          } catch (dbErr) {
+            logger.error(`[UserMemory] Failed to consolidate fact [${normalizedKey}] to DB:`, dbErr);
+          }
         }
       }
     } catch (err) {
