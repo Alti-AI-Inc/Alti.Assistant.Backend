@@ -67,6 +67,12 @@ import DocumentRelationship from './llamaindex.relationship.model.js';
 import { graphRetrieverService } from './llamaindex.graphRetriever.js';
 import { contextPrunerService } from './llamaindex.contextPruner.js';
 import { queryMemoryService } from './llamaindex.queryMemory.js';
+import { executeAgenticRAG } from './langgraph/ragAgentGraph.js';
+import mongoose from 'mongoose';
+import { logger } from '../../../shared/logger.js';
+
+// Disable buffering to fail fast on disconnected/offline MongoDB environments
+mongoose.set('bufferCommands', false);
 
 const router = express.Router();
 
@@ -552,10 +558,20 @@ router.post(
       });
 
       // Traverse semantic graph, prune non-coherent links (<0.25) and rerank relevant document networks
-      const graphEnrichedQuery = await contextPrunerService.pruneAndRerank(query, userId);
+      let graphEnrichedQuery = query;
+      try {
+        graphEnrichedQuery = await contextPrunerService.pruneAndRerank(query, userId);
+      } catch (prunerErr) {
+        logger.warn(`[Router API] Semantic graph pruning bypassed: ${prunerErr.message}`);
+      }
 
       // Inject cross-session memory context for persistent conversational recall
-      const enrichedQuery = await queryMemoryService.buildMemoryEnrichedQuery(userId, graphEnrichedQuery);
+      let enrichedQuery = graphEnrichedQuery;
+      try {
+        enrichedQuery = await queryMemoryService.buildMemoryEnrichedQuery(userId, graphEnrichedQuery);
+      } catch (memoryErr) {
+        logger.warn(`[Router API] Cross-session memory lookup bypassed: ${memoryErr.message}`);
+      }
 
       const startTime = Date.now();
       let answer = '';
@@ -563,31 +579,38 @@ router.post(
       let errorMsg = null;
 
       try {
-        switch (decision.engine) {
-          case 'vector':
-            answer = await ragService.queryDocument(enrichedQuery, userId);
-            break;
-          case 'hybrid':
-            answer = await ragService.queryDocumentHybrid(enrichedQuery, userId);
-            break;
-          case 'fullspectrum':
-            answer = await ragService.queryDocumentFullSpectrum(enrichedQuery, userId);
-            break;
-          case 'selfcorrect':
-            answer = await ragService.queryDocumentSelfCorrecting(enrichedQuery, userId);
-            break;
-          case 'cached':
-            // Keep original query for semantic cache precision
-            answer = await ragService.querySemanticallyCached(query, userId);
-            break;
-          case 'objectagent':
-            answer = await ragService.queryDocumentObjectAgent(enrichedQuery, userId);
-            break;
-          case 'chat':
-            answer = await ragService.queryDocumentChatEngine(enrichedQuery, userId);
-            break;
-          default:
-            answer = await ragService.queryDocument(enrichedQuery, userId);
+        const useAgenticGraph = req.body.useAgenticGraph !== false;
+        if (useAgenticGraph) {
+          logger.info(`[Router API] Directing query through the stateful self-correcting LangGraph agent loop.`);
+          answer = await executeAgenticRAG(enrichedQuery, userId);
+        } else {
+          logger.info(`[Router API] Bypassing LangGraph loop. Running legacy "${decision.engine}" engine.`);
+          switch (decision.engine) {
+            case 'vector':
+              answer = await ragService.queryDocument(enrichedQuery, userId);
+              break;
+            case 'hybrid':
+              answer = await ragService.queryDocumentHybrid(enrichedQuery, userId);
+              break;
+            case 'fullspectrum':
+              answer = await ragService.queryDocumentFullSpectrum(enrichedQuery, userId);
+              break;
+            case 'selfcorrect':
+              answer = await ragService.queryDocumentSelfCorrecting(enrichedQuery, userId);
+              break;
+            case 'cached':
+              // Keep original query for semantic cache precision
+              answer = await ragService.querySemanticallyCached(query, userId);
+              break;
+            case 'objectagent':
+              answer = await ragService.queryDocumentObjectAgent(enrichedQuery, userId);
+              break;
+            case 'chat':
+              answer = await ragService.queryDocumentChatEngine(enrichedQuery, userId);
+              break;
+            default:
+              answer = await ragService.queryDocument(enrichedQuery, userId);
+          }
         }
       } catch (err) {
         success = false;

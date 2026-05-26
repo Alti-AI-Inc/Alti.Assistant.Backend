@@ -1,9 +1,13 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import mongoose from 'mongoose';
+mongoose.set('bufferCommands', false);
+
 import { executeAgenticRAG } from '../src/app/modules/llamaindex/langgraph/ragAgentGraph.js';
 import { logger } from '../src/shared/logger.js';
 import { queryIngestionStatus } from '../src/app/modules/llamaindex/llamaindex.controller.js';
+import { llamaindexRoutes } from '../src/app/modules/llamaindex/llamaindex.route.js';
 
 // Configure logger to display immediately in console
 logger.level = 'info';
@@ -74,27 +78,74 @@ async function runVerification() {
   console.log(`   Simulating request to GET /documents/ingest/status/verify_workflow_99`);
   console.log(`----------------------------------------------------------------------`);
   
-  const mockReq = {
+  const mockReqStatus = {
     params: { workflowId: 'verify_workflow_99' }
   };
   
-  const mockRes = {
+  const mockResStatus = {
     statusCode: 200,
     status: function(code) {
       this.statusCode = code;
       return this;
     },
     json: function(payload) {
-      console.log(`\n🟢 [SUCCESS] Controller returned status ${this.statusCode}`);
+      console.log(`\n🟢 [SUCCESS] status API returned code ${this.statusCode}`);
       console.log(`📊 JSON Response Payload:`);
       console.log(JSON.stringify(payload, null, 2));
     }
   };
 
   try {
-    await queryIngestionStatus(mockReq, mockRes);
+    await queryIngestionStatus(mockReqStatus, mockResStatus);
   } catch (error) {
     console.error(`\n❌ [ERROR] status API test failed:`, error);
+  }
+
+  // Test Case 6: Unified /query-routed API controller route mock
+  console.log(`\n----------------------------------------------------------------------`);
+  console.log(`🏃 Running Test Case: 6. Unified /query-routed Express API Router`);
+  console.log(`   Simulating POST /query-routed with memory enrichment and LangGraph`);
+  console.log(`----------------------------------------------------------------------`);
+
+  // Find the router middleware handler for /query-routed
+  const routedRoute = llamaindexRoutes.stack.find(s => s.route && s.route.path === '/query-routed');
+  
+  if (routedRoute) {
+    const mockReqRouted = {
+      body: {
+        query: 'What is Apple\'s current stock price today?',
+        useAgenticGraph: true
+      },
+      user: {
+        userId: 'verify_test_user_99',
+        role: 'user'
+      }
+    };
+
+    const mockResRouted = {
+      statusCode: 200,
+      headers: {},
+      status: function(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json: function(payload) {
+        console.log(`\n🟢 [SUCCESS] /query-routed API returned code ${this.statusCode}`);
+        console.log(`📊 JSON Response Payload Summary:`);
+        console.log(JSON.stringify(payload, null, 2));
+      }
+    };
+
+    // The last handler in the route stack is our controller callback
+    const controllerHandler = routedRoute.route.stack[routedRoute.route.stack.length - 1].handle;
+    
+    try {
+      await controllerHandler(mockReqRouted, mockResRouted);
+    } catch (error) {
+      console.error(`\n❌ [ERROR] /query-routed API test failed:`, error);
+    }
+  } else {
+    console.warn('⚠️ Warning: /query-routed route not found in Express Router stack.');
   }
 
   console.log('\n======================================================================');
