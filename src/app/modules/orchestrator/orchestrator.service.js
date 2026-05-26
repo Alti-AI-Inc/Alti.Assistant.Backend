@@ -10,6 +10,7 @@ import Conversation from '../conversations/conversation.model.js';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
 import { aiClassificationService } from '../composio_v2/aiClassification.service.js';
+import { userMemoryService } from '../conversations/userMemory.service.js';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
@@ -201,6 +202,11 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
     } catch (dbErr) {
       logger.error('[Orchestrator] Failed to persist chat history to database:', dbErr);
       // Do not crash the entire response if database save fails
+    }
+
+    // 5. ASYNCHRONOUS CROSS-THREAD MEMORY FACT EXTRACTION (Hermes-style)
+    if (userId && finalResponse.reply) {
+      userMemoryService.asyncExtractFacts(userId, prompt, finalResponse.reply);
     }
 
     return {

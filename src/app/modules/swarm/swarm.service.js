@@ -14,6 +14,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { askQuery } from '../llamaindex/llamaindex.indexer.js';
 import { executeAgenticRAG } from '../llamaindex/langgraph/ragAgentGraph.js';
+import { userMemoryService } from '../conversations/userMemory.service.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -284,6 +285,17 @@ export class SwarmService {
    */
   static async executeSwarmSync(query, conversationHistory = [], userId = null) {
     console.log(`📡 Swarm Engine (Sync): Building execution pipeline for query "${query}"`);
+    
+    // Fetch user persistent memory profile block (Hermes-style)
+    let userProfileBlock = '';
+    if (userId) {
+      try {
+        userProfileBlock = await userMemoryService.getProfileBlock(userId);
+      } catch (err) {
+        console.warn(`[UserMemory] Profile lookup skipped or failed: ${err.message}`);
+      }
+    }
+
     const pipeline = SynapseRouter.buildExecutionPipeline(query);
 
     // ════ RAG GROUNDING: Pull context from user's indexed documents ════
@@ -350,6 +362,7 @@ ${ragResult.sources.map((s, idx) => `[Source #${idx + 1}] Document: ${s.extracte
     for (let index = 0; index < pipeline.chain.length; index++) {
       const agent = pipeline.chain[index];
       const isPrimary = index === 0;
+      const systemInstruction = userProfileBlock ? userProfileBlock + agent.systemInstruction : agent.systemInstruction;
 
       let customGcpGroundingBlock = '';
       if (agent.id === 'gcp_grounding') {
@@ -415,7 +428,7 @@ Instructions: ${agent.systemInstruction}`;
             config: {
               temperature: 0.05,
               maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
-              systemInstruction: agent.systemInstruction,
+              systemInstruction: systemInstruction,
               tools: [{ googleSearch: {} }],
             },
           });
@@ -476,7 +489,7 @@ Instructions: ${agent.systemInstruction}`;
       try {
         const modelInstance = genAI.getGenerativeModel({
           model: agent.model || 'gemini-3.5-flash',
-          systemInstruction: agent.systemInstruction
+          systemInstruction: systemInstruction
         });
 
         const contents = [
@@ -503,7 +516,7 @@ Instructions: ${agent.systemInstruction}`;
         console.warn(`📡 Gemini generation failed: ${geminiErr.message}. Falling back to Groq...`);
         try {
           text = await queryGroqFallback(
-            agent.systemInstruction,
+            systemInstruction,
             conversationHistory,
             finalPrompt,
             isPrimary ? 0.15 : 0.05,
@@ -539,6 +552,16 @@ Instructions: ${agent.systemInstruction}`;
   static async* executeSwarmStream(query, conversationHistory = [], userId = null) {
     console.log(`📡 Swarm Engine: Building execution pipeline for query "${query}"`);
     
+    // Fetch user persistent memory profile block (Hermes-style)
+    let userProfileBlock = '';
+    if (userId) {
+      try {
+        userProfileBlock = await userMemoryService.getProfileBlock(userId);
+      } catch (err) {
+        console.warn(`[UserMemory] Profile lookup skipped or failed: ${err.message}`);
+      }
+    }
+
     const pipeline = SynapseRouter.buildExecutionPipeline(query);
     console.log(`📡 Swarm Pipeline: Dynamic Chain composed of [${pipeline.chain.map(a => a.name).join(' -> ')}]`);
 
@@ -618,6 +641,7 @@ ${ragResult.sources.map((s, idx) => `[Source #${idx + 1}] Document: ${s.extracte
       const agent = pipeline.chain[index];
       const isPrimary = index === 0;
       const isLast = index === pipeline.chain.length - 1;
+      const systemInstruction = userProfileBlock ? userProfileBlock + agent.systemInstruction : agent.systemInstruction;
 
       console.log(`📡 Swarm Executor: Running agent [${agent.name}] (${index + 1}/${pipeline.chain.length})`);
 
@@ -716,7 +740,7 @@ Instructions: ${agent.systemInstruction}`;
               config: {
                 temperature: 0.05,
                 maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
-                systemInstruction: agent.systemInstruction,
+                systemInstruction: systemInstruction,
                 tools: [{ googleSearch: {} }],
               },
             });
@@ -774,7 +798,7 @@ Instructions: ${agent.systemInstruction}`;
             console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to Groq stream...`);
             let agentTextAccumulator = '';
             for await (const chunk of streamGroqFallback(
-              agent.systemInstruction,
+              systemInstruction,
               conversationHistory,
               finalPrompt,
               agent.id,
@@ -797,7 +821,7 @@ Instructions: ${agent.systemInstruction}`;
           try {
             const modelInstance = genAI.getGenerativeModel({
               model: agent.model || 'gemini-3.5-flash',
-              systemInstruction: agent.systemInstruction
+              systemInstruction: systemInstruction
             });
 
             const contents = [
@@ -837,7 +861,7 @@ Instructions: ${agent.systemInstruction}`;
             agentTextAccumulator = '';
             try {
               for await (const chunk of streamGroqFallback(
-                agent.systemInstruction,
+                systemInstruction,
                 conversationHistory,
                 finalPrompt,
                 agent.id,

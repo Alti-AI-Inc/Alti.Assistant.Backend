@@ -4,6 +4,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { searchService } from '../search/search.service.js';
 import { SwarmService } from './swarm.service.js';
+import { userMemoryService } from '../conversations/userMemory.service.js';
 
 const performSwarmStreamingSearch = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -133,6 +134,11 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       isGuest,
       req
     );
+
+    // 5. ASYNCHRONOUS CROSS-THREAD MEMORY FACT EXTRACTION (Hermes-style)
+    if (userId && !isGuest && fullText) {
+      userMemoryService.asyncExtractFacts(userId, message, fullText);
+    }
 
     // Send completion event
     res.write(
