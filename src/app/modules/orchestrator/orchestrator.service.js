@@ -128,12 +128,12 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
       case 'general_chat':
       case 'code_generation':
         // Run collaborative multi-agent execution pipeline synchronously
-        finalResponse = await SwarmService.executeSwarmSync(parameters.query || prompt, []);
+        finalResponse = await SwarmService.executeSwarmSync(parameters.query || prompt, [], userId);
         break;
       
       default:
         // Default to collaborative multi-agent execution pipeline
-        finalResponse = await SwarmService.executeSwarmSync(prompt, []);
+        finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId);
         break;
     }
 
@@ -180,7 +180,10 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
       extracted_parameters: parameters,
       original_prompt: prompt,
       reply: finalResponse.reply, // Original root-level
-      responseMessage: { answer: finalResponse.reply }, // Backwards compatibility for ChatInput.tsx
+      responseMessage: { 
+        answer: finalResponse.reply,
+        reference: finalResponse.reference || finalResponse.citations || []
+      }, // Backwards compatibility for ChatInput.tsx
       ...finalResponse // Spread additional data (like total_time, etc.)
     };
   } catch (err) {

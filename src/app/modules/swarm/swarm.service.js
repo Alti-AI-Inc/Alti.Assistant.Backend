@@ -12,6 +12,7 @@ import GoogleRepository from '../gcp_native/gcp-repository.model.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { askQuery } from '../llamaindex/llamaindex.indexer.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -280,14 +281,53 @@ export class SwarmService {
    * @param {Array} conversationHistory - Previous conversation context
    * @returns {Object} Final accumulated response object with reply string
    */
-  static async executeSwarmSync(query, conversationHistory = []) {
+  static async executeSwarmSync(query, conversationHistory = [], userId = null) {
     console.log(`📡 Swarm Engine (Sync): Building execution pipeline for query "${query}"`);
     const pipeline = SynapseRouter.buildExecutionPipeline(query);
+
+    // ════ RAG GROUNDING: Pull context from user's indexed documents ════
+    let ragGroundingBlock = '';
+    let ragCitations = [];
+    if (userId) {
+      try {
+        const persistDir = path.resolve(`storage/ragsystem/${userId}`);
+        if (fs.existsSync(persistDir)) {
+          console.log(`[RAG Grounding] User ${userId} has indexed documents. Querying vector store...`);
+          const ragResult = await askQuery(query, userId);
+          if (ragResult && ragResult.content && !ragResult.content.includes("I cannot find the answer to this question in the provided document")) {
+            ragGroundingBlock = `
+[USER PERSONAL DOCUMENTS CONTEXT GROUNDING]
+Below is highly relevant information retrieved from the user's uploaded personal documents. Formulate your response to incorporate this information and use it to answer the question:
+${ragResult.content}
+
+Retrieved Citations:
+${ragResult.sources.map((s, idx) => `[Source #${idx + 1}] Document: ${s.extractedTitle || 'Document'}, Score: ${s.score}\nExcerpt: ${s.snippet}`).join('\n')}
+[END OF PERSONAL DOCUMENTS CONTEXT GROUNDING]
+\n\n`;
+            
+            // Add RAG sources as citations
+            ragCitations = ragResult.sources.map((s, idx) => {
+              const docName = s.extractedTitle || 'Uploaded Document';
+              const downloadUrl = `/api/v1/rag-system/documents/${s.docId || 'active'}/download`;
+              return {
+                index: idx + 1,
+                url: downloadUrl,
+                title: docName,
+                domain: 'Data Vault'
+              };
+            });
+            console.log(`[RAG Grounding] Successfully retrieved RAG context. Found ${ragCitations.length} citations.`);
+          }
+        }
+      } catch (ragErr) {
+        console.warn(`[RAG Grounding] Skipped or failed: ${ragErr.message}`);
+      }
+    }
 
     // ═══ DATA ENRICHMENT: Pull real-time data from ALL data providers ═══
     // Massive.com, PredictionData.io, RealEstateAPI, NewsAPI.ai, API-Sports,
     // FRED, GLEIF, PatentsView, OpenSky, USDA, Copernicus, FHFA, HUD, etc.
-    let currentContextInput = query;
+    let currentContextInput = ragGroundingBlock + query;
     try {
       const enrichedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
       if (enrichedPrompt && enrichedPrompt !== query) {
@@ -405,9 +445,20 @@ Instructions: ${agent.systemInstruction}`;
           accumulatedText = cleanText;
           currentContextInput = cleanText;
 
+          const combinedCitations = [
+            ...ragCitations,
+            ...citations.map((c, idx) => ({
+              index: ragCitations.length + idx + 1,
+              url: c.url,
+              title: c.title,
+              domain: c.domain
+            }))
+          ];
+
           return {
             reply: cleanText,
-            citations,
+            citations: combinedCitations,
+            reference: combinedCitations,
             relatedQuestions,
             groundingMetadata: groundingMeta,
             webSearchQueries: groundingMeta?.webSearchQueries || [],
@@ -470,7 +521,12 @@ Instructions: ${agent.systemInstruction}`;
     // Generate related questions for all responses
     const relatedQuestions = await generateRelatedQuestions(query, accumulatedText).catch(() => []);
 
-    return { reply: accumulatedText, relatedQuestions };
+    return { 
+      reply: accumulatedText, 
+      relatedQuestions,
+      citations: ragCitations,
+      reference: ragCitations
+    };
   }
 
   /**
@@ -479,14 +535,65 @@ Instructions: ${agent.systemInstruction}`;
    * @param {Array} conversationHistory - Previous conversation context
    * @yields {Object} Chunks containing streaming text, thoughts, or metadata
    */
-  static async* executeSwarmStream(query, conversationHistory = []) {
+  static async* executeSwarmStream(query, conversationHistory = [], userId = null) {
     console.log(`📡 Swarm Engine: Building execution pipeline for query "${query}"`);
     
     const pipeline = SynapseRouter.buildExecutionPipeline(query);
     console.log(`📡 Swarm Pipeline: Dynamic Chain composed of [${pipeline.chain.map(a => a.name).join(' -> ')}]`);
 
+    // ════ RAG GROUNDING: Pull context from user's indexed documents ════
+    let ragGroundingBlock = '';
+    let ragCitations = [];
+    if (userId) {
+      try {
+        const persistDir = path.resolve(`storage/ragsystem/${userId}`);
+        if (fs.existsSync(persistDir)) {
+          console.log(`[RAG Grounding] User ${userId} has indexed documents. Querying vector store...`);
+          const ragResult = await askQuery(query, userId);
+          if (ragResult && ragResult.content && !ragResult.content.includes("I cannot find the answer to this question in the provided document")) {
+            ragGroundingBlock = `
+[USER PERSONAL DOCUMENTS CONTEXT GROUNDING]
+Below is highly relevant information retrieved from the user's uploaded personal documents. Formulate your response to incorporate this information and use it to answer the question:
+${ragResult.content}
+
+Retrieved Citations:
+${ragResult.sources.map((s, idx) => `[Source #${idx + 1}] Document: ${s.extractedTitle || 'Document'}, Score: ${s.score}\nExcerpt: ${s.snippet}`).join('\n')}
+[END OF PERSONAL DOCUMENTS CONTEXT GROUNDING]
+\n\n`;
+            
+            // Add RAG sources as citations
+            ragCitations = ragResult.sources.map((s, idx) => {
+              const docName = s.extractedTitle || 'Uploaded Document';
+              const downloadUrl = `/api/v1/rag-system/documents/${s.docId || 'active'}/download`;
+              return {
+                index: idx + 1,
+                url: downloadUrl,
+                title: docName,
+                domain: 'Data Vault'
+              };
+            });
+            console.log(`[RAG Grounding] Successfully retrieved RAG context. Found ${ragCitations.length} citations.`);
+          }
+        }
+      } catch (ragErr) {
+        console.warn(`[RAG Grounding] Skipped or failed: ${ragErr.message}`);
+      }
+    }
+
+    let currentCitations = [...ragCitations];
+
+    // Yield RAG citations immediately if found
+    if (ragCitations.length > 0) {
+      yield {
+        type: 'metadata',
+        reference: ragCitations,
+        citations: ragCitations,
+        timestamp: Date.now()
+      };
+    }
+
     // ═══ DATA ENRICHMENT: Pull real-time data from ALL data providers ═══
-    let currentContextInput = query;
+    let currentContextInput = ragGroundingBlock + query;
     try {
       const enrichedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(query);
       if (enrichedPrompt && enrichedPrompt !== query) {
@@ -646,15 +753,22 @@ Instructions: ${agent.systemInstruction}`;
             currentContextInput = cleanText;
 
             // Yield grounding citations as structured metadata
-            if (groundedCitations.length > 0) {
-              yield {
-                type: 'metadata',
-                citations: groundedCitations,
-                webSearchQueries: groundingMeta?.webSearchQueries || [],
-                searchEntryPoint: groundingMeta?.searchEntryPoint || null,
-                timestamp: Date.now()
-              };
-            }
+            const offsetCitations = groundedCitations.map((c, idx) => ({
+              index: currentCitations.length + idx + 1,
+              url: c.url,
+              title: c.title,
+              domain: c.domain
+            }));
+            currentCitations = [...currentCitations, ...offsetCitations];
+
+            yield {
+              type: 'metadata',
+              reference: currentCitations,
+              citations: currentCitations,
+              webSearchQueries: groundingMeta?.webSearchQueries || [],
+              searchEntryPoint: groundingMeta?.searchEntryPoint || null,
+              timestamp: Date.now()
+            };
           } catch (groundingErr) {
             console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to Groq stream...`);
             let agentTextAccumulator = '';
@@ -749,15 +863,18 @@ Instructions: ${agent.systemInstruction}`;
 
           // If this agent matched GCP Grounding catalog, yield references in metadata chunk
           if (gcpCatalogReferences.length > 0) {
+            const offsetCitations = gcpCatalogReferences.map((repo, idx) => ({
+              index: currentCitations.length + idx + 1,
+              url: repo.url,
+              domain: repo.domain,
+              title: repo.title
+            }));
+            currentCitations = [...currentCitations, ...offsetCitations];
+
             yield {
               type: 'metadata',
-              reference: gcpCatalogReferences,
-              citations: gcpCatalogReferences.map((repo, index) => ({
-                index: index + 1,
-                url: repo.url,
-                domain: repo.domain,
-                title: repo.title
-              })),
+              reference: currentCitations,
+              citations: currentCitations,
               timestamp: Date.now()
             };
           }

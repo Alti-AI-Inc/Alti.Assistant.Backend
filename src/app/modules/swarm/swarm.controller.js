@@ -82,7 +82,8 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     // Stream the dynamic Swarm response
     for await (const chunk of SwarmService.executeSwarmStream(
       message,
-      conversationHistory
+      conversationHistory,
+      userId
     )) {
       if (chunk.type === 'agent_start') {
         res.write(
