@@ -1024,6 +1024,110 @@ Instructions: ${agent.systemInstruction}`;
         }
       }
 
+      // 4. Check for OpenClaw keywords
+      if (lowerQuery.includes('openclaw') || lowerQuery.includes('clawdbot') || lowerQuery.includes('moltbot')) {
+        console.log(`[Sovereign Grounding] Query matches OpenClaw. Compiling OpenClaw repository catalog context...`);
+        matches.push({
+          type: 'OpenClaw Framework Core',
+          name: 'openclaw/openclaw',
+          description: 'Local-first autonomous AI agent platform with gateway-brain-skill modular architecture.',
+          url: 'https://github.com/openclaw/openclaw',
+          stars: 2450,
+          snippet: `
+// Core Gateway WebSocket Server (Control Plane session routing)
+// gateway/src/server.ts
+export class GatewayServer {
+  private wss: WebSocket.Server;
+  private brainSession: BrainSession;
+
+  constructor(port: number) {
+    this.wss = new WebSocket.Server({ port });
+    this.wss.on('connection', (ws) => this.handleConnection(ws));
+  }
+
+  private handleConnection(ws: WebSocket) {
+    ws.on('message', async (message) => {
+      const payload = JSON.parse(message.toString());
+      if (payload.type === 'USER_PROMPT') {
+        const reply = await this.brainSession.processPrompt(payload.text);
+        ws.send(JSON.stringify({ type: 'AGENT_REPLY', text: reply }));
+      }
+    });
+  }
+}
+
+// Brain Agent Runtime (Managing conversation state and memory)
+// brain/src/runtime.ts
+export class BrainRuntime {
+  private memoryProvider: MemoryProvider;
+  private toolRegistry: ToolRegistry;
+
+  async processPrompt(prompt: string, userId: string): Promise<string> {
+    const memoryContext = await this.memoryProvider.fetch(userId);
+    const systemPrompt = this.compileSystemPrompt(memoryContext);
+    
+    const response = await this.llm.call({
+      system: systemPrompt,
+      prompt: prompt,
+      tools: this.toolRegistry.list()
+    });
+
+    if (response.toolCalls) {
+      const toolResults = await this.toolRegistry.execute(response.toolCalls);
+      return this.processPrompt(JSON.stringify(toolResults), userId);
+    }
+    return response.text;
+  }
+}
+          `
+        });
+      }
+
+      // 5. Check for Hermes Agent keywords
+      if (lowerQuery.includes('hermes') || lowerQuery.includes('nousresearch') || lowerQuery.includes('nous')) {
+        console.log(`[Sovereign Grounding] Query matches Nous Research Hermes Agent. Compiling Hermes Agent repository catalog context...`);
+        matches.push({
+          type: 'Nous Research Hermes Agent',
+          name: 'NousResearch/hermes-agent',
+          description: 'Autonomous, self-improving, and persistent agent framework with SQLite memory and tool execution registry.',
+          url: 'https://github.com/NousResearch/hermes-agent',
+          stars: 3820,
+          snippet: `
+# Core AIAgent Reasoning Loop
+# agent/run_agent.py
+class AIAgent:
+    def __init__(self, provider_id, memory_provider, tool_registry):
+        self.provider_id = provider_id
+        self.memory = memory_provider
+        self.tools = tool_registry
+
+    async def run_loop(self, user_prompt: str, session_id: str) -> str:
+        # 1. Retrieve persistent user memory and project profile context
+        profile_context = await self.memory.get_profile(session_id)
+        system_instruction = self.assemble_system_prompt(profile_context)
+
+        # 2. Query LLM provider with tools schema
+        response = await self.llm_provider.generate(
+            system=system_instruction,
+            prompt=user_prompt,
+            tools=self.tools.get_schemas()
+        )
+
+        # 3. Handle self-correcting tool execution loop (reflection)
+        if response.wants_tool_call:
+            try:
+                result = await self.tools.execute(response.tool_call)
+                return await self.run_loop(f"Tool Result: {result}", session_id)
+            except Exception as e:
+                # Hermes Agent Reflection: Feed errors back to correct behavior
+                error_prompt = f"Tool failed with error: {str(e)}. Please correct your parameters and retry."
+                return await self.run_loop(error_prompt, session_id)
+
+        return response.content
+          `
+        });
+      }
+
       if (matches.length === 0) return '';
 
       return `\n\n[SOVEREIGN CODEBASE REFERENCE GROUNDING]\n` +

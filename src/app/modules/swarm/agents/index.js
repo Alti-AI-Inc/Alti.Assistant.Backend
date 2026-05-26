@@ -163,7 +163,9 @@ import {
   googleChromeExtensionDeveloper,
   googleAppsScriptDeveloper,
   googleFlutterDeveloper,
-  gitGitExpert
+  gitGitExpert,
+  openclawArchitect,
+  hermesEngineer
 } from './development.agents.js';
 
 import {
@@ -323,6 +325,8 @@ export const customAgents = [
   googleAppsScriptDeveloper,
   googleFlutterDeveloper,
   gitGitExpert,
+  openclawArchitect,
+  hermesEngineer,
 
   summarizer,
   translator,
@@ -484,6 +488,8 @@ export {
   googleAppsScriptDeveloper,
   googleFlutterDeveloper,
   gitGitExpert,
+  openclawArchitect,
+  hermesEngineer,
 
   summarizer,
   translator,
