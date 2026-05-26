@@ -65,7 +65,7 @@ export const runPythonScript = async (skillName, scriptName, args = [], timeoutM
         // Fallback to stdout parsing
         try {
           const stdoutJson = JSON.parse(result.stdout.trim());
-          return resolve(stdoutJson);
+          return stdoutJson;
         } catch {
           return null;
         }

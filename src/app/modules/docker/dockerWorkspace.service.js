@@ -107,6 +107,9 @@ class DockerWorkspaceService {
           --add-host=host.docker.internal:host-gateway \
           --memory 512m \
           --cpus 1.0 \
+          --pids-limit 100 \
+          --read-only \
+          --tmpfs /tmp:rw,noexec,nosuid,size=64m \
           -v "${hostVolumePath}:/workspace" \
           -v "${skillsBaseDir}:/skills:ro" \
           -v "${mcpToolboxDir}:/mcp-toolbox:ro" \
@@ -293,6 +296,9 @@ class DockerWorkspaceService {
           --add-host=host.docker.internal:host-gateway \
           --memory 512m \
           --cpus 1.0 \
+          --pids-limit 100 \
+          --read-only \
+          --tmpfs /tmp:rw,noexec,nosuid,size=64m \
           -v "${hostVolumePath}:/workspace" \
           -v "${skillsBaseDir}:/skills:ro" \
           -v "${mcpToolboxDir}:/mcp-toolbox:ro" \
