@@ -27,7 +27,7 @@ export const uploadAndIndexDocument = async (req, res) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res
         .status(413)
-        .json({ error: 'File too large. Maximum allowed size is 1MB.' });
+        .json({ error: 'File too large. Maximum allowed size is 100GB.' });
     }
     res.status(500).json({ error: error.message });
   }
