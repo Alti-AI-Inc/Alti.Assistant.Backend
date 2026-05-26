@@ -180,6 +180,112 @@ import crypto from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import config from '../../../../config/index.js';
 
+// Helper function to convert HTML to structured Markdown (retaining tables, headings, lists, bold/italic formatting, and links)
+function htmlToMarkdown(html) {
+  if (!html) return '';
+
+  let md = html;
+
+  // 1. Process tables
+  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  md = md.replace(tableRegex, (match, tableContent) => {
+    const rows = [];
+    const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    let trMatch;
+    
+    let hasHeaders = false;
+    let maxCols = 0;
+    
+    while ((trMatch = trRegex.exec(tableContent)) !== null) {
+      const rowContent = trMatch[1];
+      const cells = [];
+      const tdRegex = /<(td|th)[^>]*>([\s\S]*?)<\/\1>/gi;
+      let tdMatch;
+      let isHeaderRow = false;
+      
+      while ((tdMatch = tdRegex.exec(rowContent)) !== null) {
+        const tag = tdMatch[1].toLowerCase();
+        let cellText = tdMatch[2].replace(/<\/?[^>]+(>|$)/g, '').trim();
+        cellText = cellText.replace(/[\r\n\t]+/g, ' ');
+        cells.push(cellText);
+        if (tag === 'th') {
+          isHeaderRow = true;
+        }
+      }
+      
+      if (cells.length > 0) {
+        rows.push({ cells, isHeaderRow });
+        if (isHeaderRow) hasHeaders = true;
+        if (cells.length > maxCols) maxCols = cells.length;
+      }
+    }
+    
+    if (rows.length === 0) return '';
+    
+    let tableMd = '\n';
+    let firstRowHeader = !hasHeaders;
+    
+    rows.forEach((row, idx) => {
+      while (row.cells.length < maxCols) {
+        row.cells.push('');
+      }
+      
+      const escapedCells = row.cells.map(c => c.replace(/\|/g, '\\|'));
+      tableMd += '| ' + escapedCells.join(' | ') + ' |\n';
+      
+      if ((row.isHeaderRow || (idx === 0 && firstRowHeader)) && idx === 0) {
+        const separators = Array(maxCols).fill('---');
+        tableMd += '| ' + separators.join(' | ') + ' |\n';
+      }
+    });
+    
+    return tableMd + '\n';
+  });
+
+  // 2. Headings
+  md = md.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n# $1\n');
+  md = md.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n## $1\n');
+  md = md.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n### $1\n');
+  md = md.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n#### $1\n');
+  md = md.replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, '\n##### $1\n');
+  md = md.replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, '\n###### $1\n');
+
+  // 3. Lists
+  md = md.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, (match, listContent) => {
+    return '\n' + listContent.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '* $1\n') + '\n';
+  });
+  
+  md = md.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, (match, listContent) => {
+    let index = 1;
+    return '\n' + listContent.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (m, liContent) => {
+      return `${index++}. ${liContent.trim()}\n`;
+    }) + '\n';
+  });
+  
+  md = md.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '* $1\n');
+
+  // 4. Inline formatting
+  md = md.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  md = md.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+  md = md.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  md = md.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+
+  // 5. Links
+  md = md.replace(/<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
+
+  // 6. Paragraphs and Line breaks
+  md = md.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '\n$1\n');
+  md = md.replace(/<br\s*\/?>/gi, '\n');
+
+  // 7. Strip remaining HTML tags
+  md = md.replace(/<\/?[^>]+(>|$)/g, '');
+
+  // 8. Clean up extra newlines
+  md = md.replace(/\n{3,}/g, '\n\n');
+  
+  return md.trim();
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // SECTION 1: GOOGLE GEMINI LLM + EMBEDDING ADAPTERS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -242,7 +348,7 @@ class GoogleEmbedding extends BaseEmbedding {
   constructor(apiKey) {
     super();
     this.client = new GoogleGenerativeAI(apiKey);
-    this.modelName = 'gemini-embedding-001';
+    this.modelName = 'text-embedding-004';
     this.model = this.client.getGenerativeModel({ model: this.modelName });
     this.embedBatchSize = 10;
     this.targetDimension = 768; // Sliced target representation dimension
@@ -453,16 +559,32 @@ export async function extractTextAndBuildDocuments(filePath, originalName, docId
         });
       });
     } else if (ext === '.docx' || ext === '.doc') {
-      const result = await mammoth.extractRawText({ buffer: fileBuffer });
-      const text = result.value || '';
+      let text = '';
+      let isMarkdownParsed = false;
+      try {
+        const htmlResult = await mammoth.convertToHtml({ buffer: fileBuffer });
+        const html = htmlResult.value || '';
+        text = htmlToMarkdown(html);
+        isMarkdownParsed = true;
+        console.log(`LlamaIndex Ingestion: Converted DOCX/DOC to Markdown successfully. Character count: ${text.length}`);
+      } catch (err) {
+        console.warn(`LlamaIndex Ingestion Warning: Mammoth convertToHtml failed, falling back to extractRawText. Error:`, err);
+        const result = await mammoth.extractRawText({ buffer: fileBuffer });
+        text = result.value || '';
+      }
       
-      console.log(`LlamaIndex Ingestion: Extracted ${text.length} characters from DOCX`);
+      console.log(`LlamaIndex Ingestion: Extracted ${text.length} characters from DOCX/DOC`);
 
       return [
         new Document({
           text,
           id_: `${docId}_full`,
-          metadata: { fileName, fileType: 'docx', docId }
+          metadata: { 
+            fileName, 
+            fileType: isMarkdownParsed ? 'markdown' : 'docx', 
+            docId,
+            ...(isMarkdownParsed ? { useMarkdownParser: true } : {})
+          }
         })
       ];
     } else if (ext === '.md' || ext === '.markdown') {
@@ -5677,14 +5799,24 @@ export async function indexDocumentAdvancedWithStrategy(filePath, originalName, 
 
   // 2. Parse file content using appropriate chunking
   let text = '';
+  let isMarkdownParsed = false;
   const ext = path.extname(originalName).toLowerCase();
   
   if (ext === '.pdf') {
     const data = await PDFParse(fileData);
     text = data.text;
-  } else if (ext === '.docx') {
-    const data = await mammoth.extractRawText({ buffer: fileData });
-    text = data.value;
+  } else if (ext === '.docx' || ext === '.doc') {
+    try {
+      const htmlResult = await mammoth.convertToHtml({ buffer: fileData });
+      const html = htmlResult.value || '';
+      text = htmlToMarkdown(html);
+      isMarkdownParsed = true;
+      console.log(`LlamaIndex Ingestion Advanced: Converted DOCX/DOC to Markdown successfully. Character count: ${text.length}`);
+    } catch (err) {
+      console.warn(`LlamaIndex Ingestion Advanced Warning: Mammoth convertToHtml failed, falling back to extractRawText. Error:`, err);
+      const data = await mammoth.extractRawText({ buffer: fileData });
+      text = data.value;
+    }
   } else {
     text = fileData.toString('utf-8');
   }
@@ -5703,15 +5835,23 @@ export async function indexDocumentAdvancedWithStrategy(filePath, originalName, 
       fileSize: fileData.length,
       indexingStrategy: strategyOption,
       indexedAt: new Date().toISOString(),
+      ...(isMarkdownParsed ? { useMarkdownParser: true } : {})
     }
   });
 
   // 4. Ingest with IngestionPipeline and strategy
+  const transformations = [];
+  if (isMarkdownParsed || ext === '.md' || ext === '.markdown') {
+    transformations.push(new MarkdownNodeParser());
+    console.log('LlamaIndex Ingestion Advanced: Using MarkdownNodeParser for structure-aware advanced ingestion.');
+  } else {
+    transformations.push(new SentenceSplitter({ chunkSize: Settings.chunkSize || DEFAULT_CHUNK_SIZE, chunkOverlap: Settings.chunkOverlap || DEFAULT_CHUNK_OVERLAP }));
+    console.log('LlamaIndex Ingestion Advanced: Using SentenceSplitter.');
+  }
+  transformations.push(Settings.embedModel);
+
   const pipeline = new IngestionPipeline({
-    transformations: [
-      new SentenceSplitter({ chunkSize: Settings.chunkSize || DEFAULT_CHUNK_SIZE, chunkOverlap: Settings.chunkOverlap || DEFAULT_CHUNK_OVERLAP }),
-      Settings.embedModel
-    ],
+    transformations,
   });
 
   const nodes = await pipeline.run({ documents: [document] });
