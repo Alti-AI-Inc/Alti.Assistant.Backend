@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from '../../../shared/logger.js';
 import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
+import SwarmAudit from './swarmAudit.model.js';
 
 // --- GOOGLE CLOUD STORAGE PERSISTENCE SYNC LAYER ---
 let gcsBucket = null;
@@ -270,6 +271,15 @@ const executeSkill = async (userId, skill, args = {}) => {
     });
   } catch (secError) {
     logger.error(`[Security Threat Blocked] ${secError.message}`);
+    
+    // Asynchronously log the security block to MongoDB
+    SwarmAudit.create({
+      userId,
+      toolName: skill.name,
+      status: 'security-blocked',
+      errorMessage: secError.message
+    }).catch(dbErr => logger.error(`[SwarmAudit Error] Failed to write security block audit: ${dbErr.message}`));
+
     return `Security Violation: ${secError.message}`;
   }
 
@@ -316,10 +326,21 @@ const executeSkill = async (userId, skill, args = {}) => {
   let installationCount = 0;
   const maxInstalls = 3;
   const failedInstalls = new Set();
+  const auditAttempts = [];
 
   try {
     while (retryCount <= maxRetries) {
+      const runStart = Date.now();
       result = await dockerWorkspaceService.executeCommand(userId, commandArgs, { timeoutMs: 30000 });
+      const runDuration = Date.now() - runStart;
+
+      auditAttempts.push({
+        attempt: retryCount + 1,
+        timestamp: new Date(),
+        durationMs: runDuration,
+        stdout: result.stdout || '',
+        stderr: result.stderr || ''
+      });
       
       if (result.code === 0) {
         break; // Successful execution!
@@ -348,7 +369,19 @@ const executeSkill = async (userId, skill, args = {}) => {
           logger.warn(`[DynamicSkill Self-Healing] Intercepted missing python dependency "${packageName}" inside ${containerName}. Attempting auto-installation...`);
           
           installationCount++;
+          const installStart = Date.now();
           const installResult = await dockerWorkspaceService.executeCommand(userId, ['uv', 'pip', 'install', '--python', '/workspace/.venv/bin/python', packageName]);
+          const installDuration = Date.now() - installStart;
+
+          auditAttempts.push({
+            attempt: retryCount + 1,
+            timestamp: new Date(),
+            missingPackage: packageName,
+            installSuccess: installResult.code === 0,
+            durationMs: installDuration,
+            stdout: installResult.stdout || '',
+            stderr: installResult.stderr || ''
+          });
           
           if (installResult.code === 0) {
             logger.info(`[DynamicSkill Self-Healing] Successfully installed package "${packageName}" for user ${userId}. Retrying script execution...`);
@@ -365,6 +398,19 @@ const executeSkill = async (userId, skill, args = {}) => {
       break; // Exit loop if not a healing-eligible import error
     }
     
+    const isResourceAbort = result.stderr && result.stderr.includes('Execution Aborted: Sandbox memory limit');
+    const finalStatus = result.code === 0 ? 'success' : (isResourceAbort ? 'resource-aborted' : 'failed');
+
+    // Asynchronously persist execution audit to MongoDB
+    SwarmAudit.create({
+      userId,
+      toolName: skill.name,
+      status: finalStatus,
+      attempts: auditAttempts,
+      finalResult: finalStatus === 'success' ? (result.stdout || '').substring(0, 5000) : undefined,
+      errorMessage: finalStatus !== 'success' ? (result.stderr || 'Subprocess crash.') : undefined
+    }).catch(dbErr => logger.error(`[SwarmAudit Error] Failed to write skill execution audit: ${dbErr.message}`));
+
     if (result.code !== 0) {
       logger.error(`[DynamicSkill Error] Skill "${skill.name}" failed with exit code ${result.code}`);
       return `Error executing skill: ${result.stderr || 'Subprocess crash.'}`;
@@ -373,6 +419,15 @@ const executeSkill = async (userId, skill, args = {}) => {
     return result.stdout.trim() || 'Skill executed successfully with no output.';
   } catch (err) {
     logger.error(`[DynamicSkill Exec Error] Failed to execute skill "${skill.name}":`, err);
+
+    SwarmAudit.create({
+      userId,
+      toolName: skill.name,
+      status: 'failed',
+      attempts: auditAttempts,
+      errorMessage: err.message
+    }).catch(dbErr => logger.error(`[SwarmAudit Error] Failed to write crash audit: ${dbErr.message}`));
+
     return `Execution Error: ${err.message}`;
   }
 };
