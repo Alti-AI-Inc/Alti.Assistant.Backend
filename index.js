@@ -30,6 +30,8 @@ import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 import { warmSportsCache } from './src/app/helpers/sportsDataCache.js';
 import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation/services/temporal/worker.js';
 import { requestContextStore } from './src/shared/requestContext.js';
+import { dockerWorkspaceService } from './src/app/modules/docker/dockerWorkspace.service.js';
+import { jwtHelpers } from './src/app/helpers/jwtHelpers.js';
 
 // Load environment variables
 dotenv.config();
@@ -164,6 +166,20 @@ app.use(usageLogger);
 // Request context storage for per-user AsyncLocalStorage
 app.use((req, res, next) => {
   requestContextStore.run({ req, res }, () => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const verifiedUser = jwtHelpers.verifyToken(token, config.jwt.access_token);
+        const userId = verifiedUser?.userId || verifiedUser?._id;
+        if (userId) {
+          // Asynchronously warm up container workspace in background
+          dockerWorkspaceService.prewarmWorkspace(userId).catch(() => {});
+        }
+      }
+    } catch (e) {
+      // Ignore token validation issues for guest/public routes
+    }
     next();
   });
 });

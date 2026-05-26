@@ -62,6 +62,7 @@ import { langchainRoutes } from '../modules/langchain/langchain.route.js';
 import { composioCatalogRoutes } from '../modules/composio/composio-catalog.route.js';
 import { temporalRoutes } from '../modules/temporal/temporal.route.js';
 import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
+import { dockerRoutes } from './docker.route.js';
 
 const router = express.Router();
 
@@ -317,6 +318,10 @@ const moduleRoutes = [
   {
     path: '/temporal',
     route: temporalRoutes,
+  },
+  {
+    path: '/docker',
+    route: dockerRoutes,
   },
   {
     path: '/mcp-toolbox',

@@ -255,6 +255,96 @@ class DockerWorkspaceService {
       }
     }
   }
+
+  /**
+   * Pre-warms the workspace for a user by creating it and placing it in a paused state.
+   * This completely eliminates cold start latency during execution requests.
+   */
+  async prewarmWorkspace(userId) {
+    if (!this.initialized) await this.initialize();
+    if (!this.initialized) return;
+
+    const containerName = `alti_workspace_${userId}`;
+    try {
+      const containerStatus = execSync(
+        `docker inspect -f "{{.State.Status}}" ${containerName} 2>/dev/null || echo "none"`,
+        { encoding: 'utf8' }
+      ).trim();
+
+      if (containerStatus === 'none') {
+        logger.info(`[DOCKER PREWARM] Pre-warming new container for user: ${userId}`);
+        const hostVolumePath = this._ensureHostUserDir(userId);
+        const skillsBaseDir = 'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
+        const mcpToolboxDir = path.resolve('mcp-toolbox');
+
+        const createCmd = `docker run -d \
+          --name ${containerName} \
+          --network none \
+          --memory 512m \
+          --cpus 1.0 \
+          -v "${hostVolumePath}:/workspace" \
+          -v "${skillsBaseDir}:/skills:ro" \
+          -v "${mcpToolboxDir}:/mcp-toolbox:ro" \
+          ${this.imageName} sleep infinity`;
+
+        execSync(createCmd);
+        execSync(`docker pause ${containerName}`);
+        logger.info(`[SUCCESS] Pre-warmed container ${containerName} and placed in paused state.`);
+      } else if (containerStatus === 'running') {
+        logger.info(`[DOCKER PREWARM] Suspending active container ${containerName} to free host resources.`);
+        execSync(`docker pause ${containerName}`);
+      }
+      this.activeSessions.set(userId, { lastActivity: new Date() });
+    } catch (err) {
+      logger.error(`[DOCKER PREWARM ERROR] Failed to pre-warm workspace: ${err.message}`);
+    }
+  }
+
+  /**
+   * Scrapes real-time CPU, Memory, and I/O metrics for a user's isolated workspace container.
+   */
+  async getWorkspaceMetrics(userId) {
+    if (!this.initialized) return { connected: false, userId };
+    const containerName = `alti_workspace_${userId}`;
+
+    try {
+      const statsJson = execSync(
+        `docker stats ${containerName} --no-stream --format "{{json .}}" 2>/dev/null || echo ""`,
+        { encoding: 'utf8' }
+      ).trim();
+
+      if (!statsJson) {
+        return { connected: false, userId };
+      }
+
+      const parsed = JSON.parse(statsJson);
+      return {
+        connected: true,
+        userId,
+        containerId: containerName,
+        cpuPercent: parsed.CPUPerc,
+        memoryUsage: parsed.MemUsage,
+        memoryPercent: parsed.MemPerc,
+        netIO: parsed.NetIO,
+        blockIO: parsed.BlockIO,
+        pids: parsed.PIDs
+      };
+    } catch (err) {
+      return { connected: false, error: err.message, userId };
+    }
+  }
+
+  /**
+   * Scrapes metrics for all active workspaces.
+   */
+  async getAllActiveMetrics() {
+    const list = [];
+    for (const userId of this.activeSessions.keys()) {
+      const metrics = await this.getWorkspaceMetrics(userId);
+      list.push(metrics);
+    }
+    return list;
+  }
 }
 
 export const dockerWorkspaceService = new DockerWorkspaceService();
