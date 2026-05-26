@@ -188,8 +188,12 @@ class DockerWorkspaceService {
 
       let stdout = '';
       let stderr = '';
+      let aborted = false;
+      let monitorInterval = null;
 
       const timer = setTimeout(() => {
+        aborted = true;
+        clearInterval(monitorInterval);
         logger.error(`[DOCKER TIMEOUT] Exec command expired inside ${containerName}`);
         child.kill('SIGTERM');
         // Force kill target container subprocess if unresponsive
@@ -200,17 +204,55 @@ class DockerWorkspaceService {
         }
       }, timeoutMs);
 
+      // --- RESOURCE EXHAUSTION GUARD & OOM PREVENTION LOOP ---
+      monitorInterval = setInterval(async () => {
+        if (aborted) return;
+        try {
+          const metrics = await this.getWorkspaceMetrics(userId);
+          if (metrics.connected && !aborted) {
+            const cpu = parseFloat(String(metrics.cpuPercent || '0').replace('%', ''));
+            const mem = parseFloat(String(metrics.memoryPercent || '0').replace('%', ''));
+
+            if (mem > 90) {
+              aborted = true;
+              clearInterval(monitorInterval);
+              clearTimeout(timer);
+              logger.error(`[DOCKER RESOURCE CAP] Aborting execution inside ${containerName} due to Memory ceiling violation: ${mem}%`);
+              
+              child.kill('SIGKILL');
+              try {
+                execSync(`docker exec ${containerName} pkill -u sandbox`);
+              } catch (err) {
+                logger.debug(`[DOCKER] Failed to force-kill processes during resource cap abort: ${err.message}`);
+              }
+              
+              resolve({
+                code: 137, // Out-Of-Memory standard exit code
+                stdout,
+                stderr: `Execution Aborted: Sandbox memory limit exceeded (${mem}% >= 90%).`,
+                mode: 'docker-isolated'
+              });
+            }
+          }
+        } catch (err) {
+          logger.debug(`[DOCKER MONITOR] Error checking running container resource levels: ${err.message}`);
+        }
+      }, 3000);
+
       child.stdout.on('data', (d) => { stdout += d.toString(); });
       child.stderr.on('data', (d) => { stderr += d.toString(); });
 
       child.on('close', (code) => {
+        clearInterval(monitorInterval);
         clearTimeout(timer);
-        resolve({
-          code,
-          stdout,
-          stderr: stderr.includes('read-only') ? 'Access Denied: Root filesystem restrictions active.' : stderr,
-          mode: 'docker-isolated'
-        });
+        if (!aborted) {
+          resolve({
+            code,
+            stdout,
+            stderr: stderr.includes('read-only') ? 'Access Denied: Root filesystem restrictions active.' : stderr,
+            mode: 'docker-isolated'
+          });
+        }
       });
     });
   }
