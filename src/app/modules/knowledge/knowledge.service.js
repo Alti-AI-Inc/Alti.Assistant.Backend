@@ -205,6 +205,61 @@ class KnowledgeService {
       fileRecord.processingStatus = PROCESSING_STATUS.PROCESSING;
       await fileRecord.save();
 
+      // Attempt resilient Temporal durable workflow orchestration
+      let useTemporal = false;
+      let temporalResult;
+      try {
+        const { temporalClientCoordinator } = await import('../workflow_automation/services/temporal/client.js');
+        const { resilientRAGIngestionWorkflow } = await import('../llamaindex/temporal/ragIngestionWorkflow.js');
+        
+        await temporalClientCoordinator.connect();
+        
+        const workflowId = `rag-ingest-${fileId}-${Date.now()}`;
+        logger.info(`[Knowledge] Dispatching file to Temporal durable RAG workflow: ${workflowId}`);
+        
+        let filePath = fileRecord.gcsPath;
+        if (!filePath) {
+          filePath = path.join(process.cwd(), 'uploads', fileRecord.fileName);
+        }
+
+        const handle = await temporalClientCoordinator.client.workflow.start(resilientRAGIngestionWorkflow, {
+          args: [filePath, fileRecord.originalName, fileRecord.ownerId, fileRecord._id.toString()],
+          taskQueue: 'alti-workflows-queue',
+          workflowId
+        });
+
+        if (temporalClientCoordinator.isMock) {
+          logger.info(`[Knowledge] Running Temporal Mock client emulation inline for ID: ${workflowId}`);
+          temporalResult = await handle.result();
+          useTemporal = true;
+        } else {
+          logger.info(`[Knowledge] Resilient Temporal workflow successfully queued on background workers.`);
+          useTemporal = true;
+          return {
+            success: true,
+            fileId: fileRecord._id.toString(),
+            processingStatus: PROCESSING_STATUS.PROCESSING,
+            message: 'Document ingestion durably scheduled on Temporal cluster.'
+          };
+        }
+      } catch (temporalErr) {
+        logger.warn(`[Knowledge] Resilient Temporal ingestion could not launch: ${temporalErr.message}. Falling back to inline indexer.`);
+      }
+
+      if (useTemporal && temporalResult) {
+        // Mock execution finished successfully
+        return {
+          success: true,
+          fileId: fileRecord._id.toString(),
+          documentId: temporalResult.docId,
+          title: temporalResult.originalName,
+          chunkCount: 1, // Emulated
+          processingStatus: PROCESSING_STATUS.COMPLETED,
+          processedAt: new Date(),
+        };
+      }
+
+      // Fallback: Standard inline indexing pipeline
       // Initialize RAG system
       await rag.initialize();
 

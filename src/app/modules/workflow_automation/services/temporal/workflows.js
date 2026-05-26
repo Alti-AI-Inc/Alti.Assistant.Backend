@@ -276,5 +276,6 @@ export async function runDurableWorkflow(workflow, userId, context = {}, startSt
 }
 
 export { runDatasetIngestionWorkflow } from '../../../datasets/temporal/ingestionWorkflow.js';
+export { resilientRAGIngestionWorkflow } from '../../../llamaindex/temporal/ragIngestionWorkflow.js';
 
 

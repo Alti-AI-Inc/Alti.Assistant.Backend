@@ -13,6 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { askQuery } from '../llamaindex/llamaindex.indexer.js';
+import { executeAgenticRAG } from '../llamaindex/langgraph/ragAgentGraph.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -292,8 +293,8 @@ export class SwarmService {
       try {
         const persistDir = path.resolve(`storage/ragsystem/${userId}`);
         if (fs.existsSync(persistDir)) {
-          console.log(`[RAG Grounding] User ${userId} has indexed documents. Querying vector store...`);
-          const ragResult = await askQuery(query, userId);
+          console.log(`[RAG Grounding] User ${userId} has indexed documents. Querying stateful Agentic RAG graph...`);
+          const ragResult = await executeAgenticRAG(query, userId);
           if (ragResult && ragResult.content && !ragResult.content.includes("I cannot find the answer to this question in the provided document")) {
             ragGroundingBlock = `
 [USER PERSONAL DOCUMENTS CONTEXT GROUNDING]
@@ -548,8 +549,8 @@ Instructions: ${agent.systemInstruction}`;
       try {
         const persistDir = path.resolve(`storage/ragsystem/${userId}`);
         if (fs.existsSync(persistDir)) {
-          console.log(`[RAG Grounding] User ${userId} has indexed documents. Querying vector store...`);
-          const ragResult = await askQuery(query, userId);
+          console.log(`[RAG Grounding] User ${userId} has indexed documents. Querying stateful Agentic RAG graph...`);
+          const ragResult = await executeAgenticRAG(query, userId);
           if (ragResult && ragResult.content && !ragResult.content.includes("I cannot find the answer to this question in the provided document")) {
             ragGroundingBlock = `
 [USER PERSONAL DOCUMENTS CONTEXT GROUNDING]

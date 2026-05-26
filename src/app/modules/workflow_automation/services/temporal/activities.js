@@ -465,4 +465,5 @@ export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
 }
 
 export * from '../../../datasets/temporal/ingestionActivities.js';
+export * from '../../../llamaindex/temporal/ragIngestionActivities.js';
 
