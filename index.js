@@ -29,6 +29,7 @@ import { initializeCronJobs } from './src/app/cron/index.js';
 import { fetchStripeIps } from './src/shared/stripeSecurity.js';
 import { warmSportsCache } from './src/app/helpers/sportsDataCache.js';
 import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation/services/temporal/worker.js';
+import { requestContextStore } from './src/shared/requestContext.js';
 
 // Load environment variables
 dotenv.config();
@@ -159,6 +160,13 @@ app.use(passport.initialize());
 
 // Usage logging middleware (asynchronous - no performance impact)
 app.use(usageLogger);
+
+// Request context storage for per-user AsyncLocalStorage
+app.use((req, res, next) => {
+  requestContextStore.run({ req, res }, () => {
+    next();
+  });
+});
 
 app.get('/api/user', (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');

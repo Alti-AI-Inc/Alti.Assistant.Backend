@@ -1,6 +1,7 @@
 import { startDailyUsageResetCron } from './subscription/resetDailyUsage.js';
 import { startStripeSyncCron } from './subscription/syncStripeSubscriptions.js';
 import { initializeTenantCronJobs } from './tenant/resetUsage.js';
+import { startWorkspaceCleanupCron } from './docker/workspaceCleanup.js';
 import { logger } from '../../shared/logger.js';
 
 /**
@@ -19,6 +20,9 @@ export const initializeCronJobs = () => {
 
     // Initialize tenant-related cron jobs (monthly reset, trial cleanup, usage warnings)
     initializeTenantCronJobs();
+
+    // Start Docker Workspace idle auditing cleanup (runs every 5 minutes)
+    startWorkspaceCleanupCron();
 
     logger.info('All cron jobs initialized successfully');
   } catch (error) {
