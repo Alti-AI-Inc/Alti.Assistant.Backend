@@ -55,7 +55,8 @@ import {
   liveSessionStreamCtrl,
   indexDocAdvancedCtrl,
   queryAgentWorkflowCtrl,
-  optimizePromptCtrl
+  optimizePromptCtrl,
+  queryIngestionStatus
 } from './llamaindex.controller.js';
 import { telemetryCollector, withTelemetry } from './llamaindex.telemetry.js';
 import { queryRouterService } from './llamaindex.queryRouter.js';
@@ -117,6 +118,13 @@ router.post(
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   upload.single('file'),
   uploadAndIndexDocument
+);
+
+// Real-time tracking of durable Temporal ingestion progress
+router.get(
+  '/documents/ingest/status/:workflowId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  queryIngestionStatus
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

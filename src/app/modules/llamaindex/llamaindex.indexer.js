@@ -1611,6 +1611,7 @@ Rules you MUST follow:
         docId: meta.docId || null,
         extractedTitle: meta.document_title || meta.title || null,
         extractedKeywords: meta.excerpt_keywords || null,
+        pageNumber: meta.pageNumber || meta.page_label || null,
       };
     }) || [],
     suggestedQuestions: suggestions,

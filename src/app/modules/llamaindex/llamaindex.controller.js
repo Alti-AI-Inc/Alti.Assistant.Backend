@@ -957,3 +957,77 @@ export const exportSessionPDF = async (req, res) => {
     }
   }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Temporal Ingestion Status Progress Query
+// ─────────────────────────────────────────────────────────────────────────────
+export const queryIngestionStatus = async (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    if (!workflowId) {
+      return res.status(400).json({ error: 'workflowId parameter is required.' });
+    }
+
+    const { temporalClientCoordinator } = await import('../workflow_automation/services/temporal/client.js');
+    await temporalClientCoordinator.connect();
+
+    if (temporalClientCoordinator.isMock) {
+      return res.status(200).json({
+        success: true,
+        workflowId,
+        isMock: true,
+        status: 'COMPLETED',
+        currentStep: 'committing',
+        progressPercent: 100,
+        details: 'Durable RAG ingestion successfully simulated in local sandbox.'
+      });
+    }
+
+    const handle = temporalClientCoordinator.client.workflow.getHandle(workflowId);
+    const description = await handle.describe();
+    const status = description.status.name;
+    
+    let currentStep = 'pending';
+    let progressPercent = 0;
+
+    if (status === 'RUNNING') {
+      currentStep = 'parsing';
+      progressPercent = 30;
+      const pendingActivities = description.pendingActivities || [];
+      if (pendingActivities.length > 0) {
+        const activeActivity = pendingActivities[0].activityType;
+        if (activeActivity.includes('parse')) {
+          currentStep = 'parsing';
+          progressPercent = 40;
+        } else if (activeActivity.includes('metadata')) {
+          currentStep = 'metadata_extraction';
+          progressPercent = 60;
+        } else if (activeActivity.includes('embed')) {
+          currentStep = 'embedding';
+          progressPercent = 80;
+        } else if (activeActivity.includes('commit')) {
+          currentStep = 'committing';
+          progressPercent = 90;
+        }
+      }
+    } else if (status === 'COMPLETED') {
+      currentStep = 'done';
+      progressPercent = 100;
+    } else if (status === 'FAILED' || status === 'TERMINATED') {
+      currentStep = 'failed';
+      progressPercent = 0;
+    }
+
+    res.status(200).json({
+      success: true,
+      workflowId,
+      isMock: false,
+      status,
+      currentStep,
+      progressPercent,
+      details: `Temporal workflow is in "${status}" state.`
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
