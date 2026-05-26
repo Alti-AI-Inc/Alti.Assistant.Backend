@@ -3,6 +3,69 @@ import path from 'path';
 import { logger } from '../../../shared/logger.js';
 import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
 
+// --- GOOGLE CLOUD STORAGE PERSISTENCE SYNC LAYER ---
+let gcsBucket = null;
+const initGcs = async () => {
+  if (process.env.GCS_BUCKET_NAME) {
+    try {
+      const { Storage } = await import('@google-cloud/storage');
+      const storage = new Storage();
+      gcsBucket = storage.bucket(process.env.GCS_BUCKET_NAME);
+      logger.info(`[GCS Sync] Connected to Google Cloud Storage bucket: ${process.env.GCS_BUCKET_NAME}`);
+    } catch (err) {
+      logger.warn(`[GCS Sync Warning] Failed to initialize Google Cloud Storage bucket client: ${err.message}. Dynamic skills will sync locally-only.`);
+    }
+  }
+};
+// Trigger lazy initialization of GCS connection
+initGcs().catch(err => logger.error(`[GCS Sync Error] Lazy initialization failed: ${err.message}`));
+
+/**
+ * Sanitizes argument keys and rejects unsafe shell metacharacters in values.
+ * @param {string} key - Argument parameter name
+ * @param {string} value - Argument value
+ * @returns {Object} Original key and safe escaped string value
+ */
+const sanitizeShellArgument = (key, value) => {
+  const safeKeyRegex = /^[a-zA-Z0-9_-]+$/;
+  if (!safeKeyRegex.test(key)) {
+    throw new Error(`Security Exception: Argument key "${key}" contains unsafe characters. Only alphanumeric, dashes, and underscores are permitted.`);
+  }
+
+  const strVal = String(value);
+  // Banned shell breakout metacharacters
+  const unsafeCharactersRegex = /[;|$`><]/;
+  if (unsafeCharactersRegex.test(strVal)) {
+    throw new Error(`Security Exception: Argument value for "${key}" contains unsafe shell characters (";", "&", "|", "$", "\`", ">", "<"). Only clean literal values are permitted.`);
+  }
+
+  return { key, value: strVal };
+};
+
+/**
+ * Dynamically downloads missing skill files from Google Cloud Storage to the local folder.
+ */
+const syncSkillsFromGcs = async (userId, localSkillsDir) => {
+  if (!gcsBucket) return;
+  try {
+    const prefix = `users/${userId}/workspace/skills/`;
+    const [files] = await gcsBucket.getFiles({ prefix });
+    
+    for (const file of files) {
+      const relativePath = file.name.substring(prefix.length);
+      if (!relativePath) continue;
+      
+      const localPath = path.join(localSkillsDir, relativePath);
+      if (!fs.existsSync(localPath)) {
+        logger.info(`[GCS Sync] Downloading missing skill file from GCS: ${file.name} -> ${localPath}`);
+        await file.download({ destination: localPath });
+      }
+    }
+  } catch (err) {
+    logger.warn(`[GCS Sync Warning] Dynamic skill synchronization from GCS failed: ${err.message}`);
+  }
+};
+
 /**
  * Parses OpenClaw-compliant Markdown Skill files containing YAML-like frontmatter.
  * @param {string} content - Markdown file content
@@ -93,6 +156,13 @@ const scanUserSkills = (userId) => {
       logger.warn(`[DynamicSkill] Could not create skills directory for user ${userId}: ${err.message}`);
       return [];
     }
+  }
+
+  // Trigger background cloud sync from GCS silently without blocking scanning latency
+  if (gcsBucket) {
+    syncSkillsFromGcs(userId, skillsDir).catch(err => {
+      logger.warn(`[GCS Sync Error] Async synchronization failed: ${err.message}`);
+    });
   }
   
   const files = fs.readdirSync(skillsDir);
@@ -190,12 +260,18 @@ const executeSkill = async (userId, skill, args = {}) => {
   const containerName = `alti_workspace_${userId}`;
   logger.info(`[DynamicSkill] Executing skill "${skill.name}" inside container "${containerName}"...`);
   
-  // Format arguments as standard shell arguments
+  // Format arguments as standard shell arguments with strict security sanitization
   const shellArgs = [];
-  Object.entries(args).forEach(([k, v]) => {
-    shellArgs.push(`--${k}`);
-    shellArgs.push(String(v));
-  });
+  try {
+    Object.entries(args).forEach(([k, v]) => {
+      const sanitized = sanitizeShellArgument(k, v);
+      shellArgs.push(`--${sanitized.key}`);
+      shellArgs.push(sanitized.value);
+    });
+  } catch (secError) {
+    logger.error(`[Security Threat Blocked] ${secError.message}`);
+    return `Security Violation: ${secError.message}`;
+  }
 
   const workspace = await dockerWorkspaceService.getOrCreateWorkspace(userId);
   let commandArgs;
@@ -234,33 +310,59 @@ const executeSkill = async (userId, skill, args = {}) => {
     commandArgs = [interpreter, scriptPath, ...shellArgs];
   }
   
+  let result;
+  let retryCount = 0;
+  const maxRetries = 3;
+  let installationCount = 0;
+  const maxInstalls = 3;
+  const failedInstalls = new Set();
+
   try {
-    let result = await dockerWorkspaceService.executeCommand(userId, commandArgs, { timeoutMs: 30000 });
-    
-    if (result.code !== 0) {
+    while (retryCount <= maxRetries) {
+      result = await dockerWorkspaceService.executeCommand(userId, commandArgs, { timeoutMs: 30000 });
+      
+      if (result.code === 0) {
+        break; // Successful execution!
+      }
+
       const stderrText = result.stderr || '';
       // Check if it is a missing python module error
-      const isMissingModule = stderrText.includes('ModuleNotFoundError:') || stderrText.includes('ImportError: No module named');
+      const isMissingModule = stderrText.includes('ModuleNotFoundError:') || stderrText.includes('ImportError: No module named') || stderrText.includes('ImportError: no module named');
       
       if (isMissingModule && workspace.mode !== 'local-fallback') {
         // Parse module name
-        const match = stderrText.match(/(?:ModuleNotFoundError: No module named '|ImportError: No module named ')([a-zA-Z0-9_-]+)/);
+        const match = stderrText.match(/(?:ModuleNotFoundError: No module named '|ImportError: [nN]o module named ')([a-zA-Z0-9_-]+)/);
         if (match && match[1]) {
           const packageName = match[1];
+          
+          if (failedInstalls.has(packageName)) {
+            logger.warn(`[DynamicSkill Self-Healing] Package "${packageName}" previously failed installation in this run. Bailing.`);
+            break;
+          }
+
+          if (installationCount >= maxInstalls) {
+            logger.warn(`[DynamicSkill Self-Healing] Maximum installation ceiling of ${maxInstalls} packages reached for this call. Bailing.`);
+            break;
+          }
+
           logger.warn(`[DynamicSkill Self-Healing] Intercepted missing python dependency "${packageName}" inside ${containerName}. Attempting auto-installation...`);
           
-          // Execute uv pip install inside the container for sub-second installs!
+          installationCount++;
           const installResult = await dockerWorkspaceService.executeCommand(userId, ['uv', 'pip', 'install', '--python', '/workspace/.venv/bin/python', packageName]);
           
           if (installResult.code === 0) {
             logger.info(`[DynamicSkill Self-Healing] Successfully installed package "${packageName}" for user ${userId}. Retrying script execution...`);
-            // Retry execution
-            result = await dockerWorkspaceService.executeCommand(userId, commandArgs, { timeoutMs: 30000 });
+            retryCount++;
+            continue; // Re-run the loop to retry execution
           } else {
             logger.error(`[DynamicSkill Self-Healing Error] Failed to install package "${packageName}": ${installResult.stderr}`);
+            failedInstalls.add(packageName);
+            break; // Stop and output the failed package stderr
           }
         }
       }
+      
+      break; // Exit loop if not a healing-eligible import error
     }
     
     if (result.code !== 0) {
@@ -319,6 +421,18 @@ ${parametersYaml}script: ${skillData.scriptName}
   fs.writeFileSync(scriptPath, skillData.scriptContent, 'utf8');
   
   logger.info(`[DynamicSkill] Successfully saved dynamic skill "${skillData.name}" for user ${userId}.`);
+
+  // --- CLOUD SYNCHRONIZATION BACKUP ---
+  if (gcsBucket) {
+    gcsBucket.upload(mdPath, { destination: `users/${userId}/workspace/skills/${skillData.name}.md` })
+      .then(() => logger.info(`[GCS Sync] Successfully backed up MD descriptor to GCS cloud: ${skillData.name}.md`))
+      .catch(err => logger.error(`[GCS Sync Error] Failed to upload MD to GCS: ${err.message}`));
+
+    gcsBucket.upload(scriptPath, { destination: `users/${userId}/workspace/skills/${skillData.scriptName}` })
+      .then(() => logger.info(`[GCS Sync] Successfully backed up script to GCS cloud: ${skillData.scriptName}`))
+      .catch(err => logger.error(`[GCS Sync Error] Failed to upload script to GCS: ${err.message}`));
+  }
+
   return true;
 };
 

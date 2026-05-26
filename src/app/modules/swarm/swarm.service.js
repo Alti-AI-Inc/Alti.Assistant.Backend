@@ -16,6 +16,7 @@ import { askQuery } from '../llamaindex/llamaindex.indexer.js';
 import { executeAgenticRAG } from '../llamaindex/langgraph/ragAgentGraph.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dynamicSkillService } from './dynamicSkill.service.js';
+import { logger } from '../../shared/logger.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -554,7 +555,13 @@ Instructions: ${agent.systemInstruction}`;
 
                   if (attempts < 3) {
                     const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
-                    console.warn(`[Swarm Reflection Sync Grounded] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`);
+                    logger.warn(`[Swarm Reflection Sync Grounded] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`, {
+                      userId,
+                      agentId: agent.id,
+                      toolName: call.name,
+                      attempt: attempts,
+                      error: toolResultText
+                    });
                     toolResultText = errorExplanation;
                   }
                 }
@@ -712,7 +719,13 @@ Instructions: ${agent.systemInstruction}`;
 
                 if (attempts < 3) {
                   const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
-                  console.warn(`[Swarm Reflection Sync Standard] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`);
+                  logger.warn(`[Swarm Reflection Sync Standard] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`, {
+                    userId,
+                    agentId: agent.id,
+                    toolName: call.name,
+                    attempt: attempts,
+                    error: toolResultText
+                  });
                   toolResultText = errorExplanation;
                 }
               }
@@ -1058,7 +1071,13 @@ Instructions: ${agent.systemInstruction}`;
 
                     if (attempts < 3) {
                       const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
-                      console.warn(`[Swarm Reflection] Grounded Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`);
+                      logger.warn(`[Swarm Reflection] Grounded Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`, {
+                        userId,
+                        agentId: agent.id,
+                        toolName: call.name,
+                        attempt: attempts,
+                        error: toolResultText
+                      });
 
                       yield {
                         type: 'text',
@@ -1280,7 +1299,13 @@ Instructions: ${agent.systemInstruction}`;
 
                     if (attempts < 3) {
                       const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
-                      console.warn(`[Swarm Reflection] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`);
+                      logger.warn(`[Swarm Reflection] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`, {
+                        userId,
+                        agentId: agent.id,
+                        toolName: call.name,
+                        attempt: attempts,
+                        error: toolResultText
+                      });
 
                       yield {
                         type: 'text',
