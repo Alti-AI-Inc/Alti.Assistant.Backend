@@ -9,6 +9,7 @@ import { SwarmService } from '../swarm/swarm.service.js';
 import Conversation from '../conversations/conversation.model.js';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
+import { aiClassificationService } from '../composio_v2/aiClassification.service.js';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
@@ -31,6 +32,7 @@ Supported Modules:
 4. "document_analysis" - Requests to summarize or analyze specific files.
 5. "legal_contract" - Requests explicitly related to drafting or reviewing contracts.
 6. "code_generation" - Requests to write or debug code.
+7. "connected_apps" - Requests requiring actions, tasks, or automations on third-party apps connected to the user's account (e.g., sending Gmail emails, posting Slack messages, fetching/creating GitHub issues, creating Jira tickets, adding contacts to HubSpot, etc.).
 
 You MUST respond strictly with valid JSON matching this schema:
 {
@@ -125,6 +127,33 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
     let finalResponse;
 
     switch (target_module) {
+      case 'connected_apps':
+        logger.info(`[Orchestrator] Connected apps routing triggered for prompt: "${prompt}"`);
+        try {
+          const composioResult = await aiClassificationService.processUserInputService(
+            prompt,
+            {
+              userId,
+              conversationId,
+              isGuest: false,
+            },
+            null
+          );
+          if (composioResult.success) {
+            finalResponse = {
+              reply: composioResult.data?.responseMessage?.message || 'Action completed successfully.',
+              executionResult: composioResult.data?.executionResult,
+              toolResults: composioResult.data?.responseMessage?.toolResults || [],
+            };
+          } else {
+            throw new Error(composioResult.error || 'Connected apps execution failed');
+          }
+        } catch (composioErr) {
+          logger.error(`[Orchestrator] Connected apps routing failed: ${composioErr.message}. Falling back to collaborative Swarm...`);
+          finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId);
+        }
+        break;
+
       case 'general_chat':
       case 'code_generation':
         // Run collaborative multi-agent execution pipeline synchronously
