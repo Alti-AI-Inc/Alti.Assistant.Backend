@@ -15,9 +15,42 @@ import { fileURLToPath } from 'url';
 import { askQuery } from '../llamaindex/llamaindex.indexer.js';
 import { executeAgenticRAG } from '../llamaindex/langgraph/ragAgentGraph.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
+import { dynamicSkillService } from './dynamicSkill.service.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+
+// Core dynamic self-evolution tool schema (Hermes style tool creation)
+const SAVE_CUSTOM_SKILL_TOOL = {
+  name: 'save_custom_skill',
+  description: 'Saves a dynamically generated custom OpenClaw skill descriptor (markdown) and script file to the user workspace. Allows the assistant to create its own reusable scripts for execution inside the isolated container.',
+  parameters: {
+    type: 'OBJECT',
+    properties: {
+      name: {
+        type: 'STRING',
+        description: 'The unique alphanumeric identifier for the skill (e.g. system_backup_tool)'
+      },
+      description: {
+        type: 'STRING',
+        description: 'Detailed explanation of what the skill does and what it returns'
+      },
+      parameters: {
+        type: 'OBJECT',
+        description: 'Schema parameter configurations. Keys are parameter names, and values are objects specifying type, description, and required (boolean).'
+      },
+      scriptName: {
+        type: 'STRING',
+        description: 'Filename with path extension (e.g. backup.py, run.js, test.sh)'
+      },
+      scriptContent: {
+        type: 'STRING',
+        description: 'Full source code content of the executable script file'
+      }
+    },
+    required: ['name', 'description', 'scriptName', 'scriptContent']
+  }
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PERPLEXITY-KILLER ENGINE — Smart Grounding, Citations, Related Questions
@@ -286,6 +319,10 @@ export class SwarmService {
   static async executeSwarmSync(query, conversationHistory = [], userId = null) {
     console.log(`📡 Swarm Engine (Sync): Building execution pipeline for query "${query}"`);
     
+    // 1. Scan and register custom OpenClaw skills in the user workspace
+    const userSkills = userId ? dynamicSkillService.scanUserSkills(userId) : [];
+    const userTools = dynamicSkillService.compileGeminiTools(userSkills);
+
     // Fetch user persistent memory profile block (Hermes-style)
     let userProfileBlock = '';
     if (userId) {
@@ -422,62 +459,137 @@ Instructions: ${agent.systemInstruction}`;
         console.log(`🔍 Search Grounding ENABLED for agent [${agent.name}]`);
 
         try {
-          const groundedResult = await ai.models.generateContent({
-            model: agent.model || 'gemini-3.5-flash',
-            contents: finalPrompt,
-            config: {
+          const contents = [
+            ...conversationHistory.map(msg => ({
+              role: msg.role === 'assistant' ? 'model' : 'user',
+              parts: [{ text: msg.content }]
+            })),
+            {
+              role: 'user',
+              parts: [{ text: finalPrompt }]
+            }
+          ];
+
+          let maxToolCallingIterations = 5;
+          let currentIteration = 0;
+          let stopLoop = false;
+          let lastGroundedResult = null;
+
+          while (currentIteration < maxToolCallingIterations && !stopLoop) {
+            currentIteration++;
+
+            const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
+            const config = {
               temperature: 0.05,
               maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
               systemInstruction: systemInstruction,
-              tools: [{ googleSearch: {} }],
-            },
-          });
+              tools: [{ googleSearch: {} }, { functionDeclarations: activeTools }],
+            };
 
-          const candidate = groundedResult.candidates?.[0];
-          let rawText = candidate?.content?.parts
-            ?.filter((part) => part.text && !part.thought)
-            ?.map((part) => part.text)
-            ?.join('') || '';
+            lastGroundedResult = await ai.models.generateContent({
+              model: agent.model || 'gemini-3.5-flash',
+              contents,
+              config,
+            });
 
-          // Extract citations from Google Search Grounding
-          const citations = extractGroundingCitations(groundedResult);
-          const groundingMeta = candidate?.groundingMetadata || null;
+            const candidate = lastGroundedResult.candidates?.[0];
+            const functionCalls = lastGroundedResult.functionCalls || [];
+            let rawText = candidate?.content?.parts
+              ?.filter((part) => part.text && !part.thought)
+              ?.map((part) => part.text)
+              ?.join('') || '';
 
-          // Inject inline [1][2][3] markers + sources block
-          const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, citations, groundingMeta);
+            if (functionCalls.length > 0) {
+              console.log(`[Swarm Sync Grounded] Intercepted ${functionCalls.length} tool calls.`);
 
-          // Strip preambles
-          const cleanText = stripPreambles(citedText) + sourcesBlock;
+              // Append model message to history
+              const modelParts = functionCalls.map(call => ({
+                functionCall: {
+                  name: call.name,
+                  args: call.args
+                }
+              }));
+              if (rawText) {
+                modelParts.unshift({ text: rawText });
+              }
+              contents.push({ role: 'model', parts: modelParts });
 
-          if (citations.length > 0) {
-            console.log(`📎 Extracted ${citations.length} grounded citations for agent [${agent.name}]`);
+              const responseParts = [];
+              for (const call of functionCalls) {
+                let toolResultText = '';
+                if (call.name === 'save_custom_skill') {
+                  try {
+                    dynamicSkillService.saveGeneratedSkill(userId, call.args);
+                    toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
+                  } catch (err) {
+                    toolResultText = `Failed to save custom skill: ${err.message}`;
+                  }
+                } else {
+                  const matchedSkill = userSkills.find(s => s.name === call.name);
+                  if (matchedSkill) {
+                    try {
+                      toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                    } catch (err) {
+                      toolResultText = `Execution error: ${err.message}`;
+                    }
+                  } else {
+                    toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
+                  }
+                }
+
+                responseParts.push({
+                  functionResponse: {
+                    name: call.name,
+                    response: { result: toolResultText }
+                  }
+                });
+              }
+
+              contents.push({ role: 'user', parts: responseParts });
+            } else {
+              stopLoop = true;
+
+              // Extract citations from Google Search Grounding
+              const citations = extractGroundingCitations(lastGroundedResult);
+              const groundingMeta = candidate?.groundingMetadata || null;
+
+              // Inject inline [1][2][3] markers + sources block
+              const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, citations, groundingMeta);
+
+              // Strip preambles
+              const cleanText = stripPreambles(citedText) + sourcesBlock;
+
+              if (citations.length > 0) {
+                console.log(`📎 Extracted ${citations.length} grounded citations for agent [${agent.name}]`);
+              }
+
+              // Generate related questions (non-blocking)
+              const relatedQuestions = await generateRelatedQuestions(query, cleanText).catch(() => []);
+
+              accumulatedText = cleanText;
+              currentContextInput = cleanText;
+
+              const combinedCitations = [
+                ...ragCitations,
+                ...citations.map((c, idx) => ({
+                  index: ragCitations.length + idx + 1,
+                  url: c.url,
+                  title: c.title,
+                  domain: c.domain
+                }))
+              ];
+
+              return {
+                reply: cleanText,
+                citations: combinedCitations,
+                reference: combinedCitations,
+                relatedQuestions,
+                groundingMetadata: groundingMeta,
+                webSearchQueries: groundingMeta?.webSearchQueries || [],
+                searchEntryPoint: groundingMeta?.searchEntryPoint || null,
+              };
+            }
           }
-
-          // Generate related questions (non-blocking)
-          const relatedQuestions = await generateRelatedQuestions(query, cleanText).catch(() => []);
-
-          accumulatedText = cleanText;
-          currentContextInput = cleanText;
-
-          const combinedCitations = [
-            ...ragCitations,
-            ...citations.map((c, idx) => ({
-              index: ragCitations.length + idx + 1,
-              url: c.url,
-              title: c.title,
-              domain: c.domain
-            }))
-          ];
-
-          return {
-            reply: cleanText,
-            citations: combinedCitations,
-            reference: combinedCitations,
-            relatedQuestions,
-            groundingMetadata: groundingMeta,
-            webSearchQueries: groundingMeta?.webSearchQueries || [],
-            searchEntryPoint: groundingMeta?.searchEntryPoint || null,
-          };
         } catch (groundingErr) {
           console.warn(`🔍 Search Grounding failed: ${groundingErr.message}. Falling back to standard generation...`);
           runWithGroundingFailed = true;
@@ -487,11 +599,6 @@ Instructions: ${agent.systemInstruction}`;
       // ═══ STANDARD PATH (no web search needed, or grounding failed) ═══
       let text = '';
       try {
-        const modelInstance = genAI.getGenerativeModel({
-          model: agent.model || 'gemini-3.5-flash',
-          systemInstruction: systemInstruction
-        });
-
         const contents = [
           ...conversationHistory.map(msg => ({
             role: msg.role === 'assistant' ? 'model' : 'user',
@@ -503,15 +610,83 @@ Instructions: ${agent.systemInstruction}`;
           }
         ];
 
-        const result = await modelInstance.generateContent({
-          contents,
-          generationConfig: {
-            temperature: isPrimary ? 0.15 : 0.05,
-            maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
-          }
-        });
+        let maxToolCallingIterations = 5;
+        let currentIteration = 0;
+        let stopLoop = false;
 
-        text = stripPreambles(result?.response?.text() || '');
+        while (currentIteration < maxToolCallingIterations && !stopLoop) {
+          currentIteration++;
+
+          const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
+          const modelInstance = genAI.getGenerativeModel({
+            model: agent.model || 'gemini-3.5-flash',
+            systemInstruction: systemInstruction,
+            tools: [{ functionDeclarations: activeTools }]
+          });
+
+          const result = await modelInstance.generateContent({
+            contents,
+            generationConfig: {
+              temperature: isPrimary ? 0.15 : 0.05,
+              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+            }
+          });
+
+          const functionCalls = result.response.functionCalls();
+          const responseText = result.response.text() || '';
+
+          if (functionCalls && functionCalls.length > 0) {
+            console.log(`[Swarm Sync] Intercepted ${functionCalls.length} tool calls.`);
+
+            // Append model response with function calls to contents history
+            const modelParts = functionCalls.map(call => ({
+              functionCall: {
+                name: call.name,
+                args: call.args
+              }
+            }));
+            if (responseText) {
+              modelParts.unshift({ text: responseText });
+            }
+            contents.push({ role: 'model', parts: modelParts });
+
+            const responseParts = [];
+            for (const call of functionCalls) {
+              let toolResultText = '';
+              if (call.name === 'save_custom_skill') {
+                try {
+                  dynamicSkillService.saveGeneratedSkill(userId, call.args);
+                  toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
+                } catch (err) {
+                  toolResultText = `Failed to save custom skill: ${err.message}`;
+                }
+              } else {
+                const matchedSkill = userSkills.find(s => s.name === call.name);
+                if (matchedSkill) {
+                  try {
+                    toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                  } catch (err) {
+                    toolResultText = `Execution error: ${err.message}`;
+                  }
+                } else {
+                  toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
+                }
+              }
+
+              responseParts.push({
+                functionResponse: {
+                  name: call.name,
+                  response: { result: toolResultText }
+                }
+              });
+            }
+
+            contents.push({ role: 'user', parts: responseParts });
+          } else {
+            text = stripPreambles(responseText);
+            stopLoop = true;
+          }
+        }
       } catch (geminiErr) {
         console.warn(`📡 Gemini generation failed: ${geminiErr.message}. Falling back to Groq...`);
         try {
@@ -552,6 +727,10 @@ Instructions: ${agent.systemInstruction}`;
   static async* executeSwarmStream(query, conversationHistory = [], userId = null) {
     console.log(`📡 Swarm Engine: Building execution pipeline for query "${query}"`);
     
+    // 1. Scan and register custom OpenClaw skills in the user workspace
+    const userSkills = userId ? dynamicSkillService.scanUserSkills(userId) : [];
+    const userTools = dynamicSkillService.compileGeminiTools(userSkills);
+
     // Fetch user persistent memory profile block (Hermes-style)
     let userProfileBlock = '';
     if (userId) {
@@ -734,66 +913,153 @@ Instructions: ${agent.systemInstruction}`;
           console.log(`🔍 Search Grounding ENABLED (streaming) for agent [${agent.name}]`);
 
           try {
-            const groundedResult = await ai.models.generateContent({
-              model: agent.model || 'gemini-3.5-flash',
-              contents: finalPrompt,
-              config: {
+            const contents = [
+              ...conversationHistory.map(msg => ({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }]
+              })),
+              {
+                role: 'user',
+                parts: [{ text: finalPrompt }]
+              }
+            ];
+
+            let maxToolCallingIterations = 5;
+            let currentIteration = 0;
+            let stopLoop = false;
+            let lastGroundedResult = null;
+
+            while (currentIteration < maxToolCallingIterations && !stopLoop) {
+              currentIteration++;
+
+              const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
+              const config = {
                 temperature: 0.05,
                 maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
                 systemInstruction: systemInstruction,
-                tools: [{ googleSearch: {} }],
-              },
-            });
-
-            const candidate = groundedResult.candidates?.[0];
-            let rawText = candidate?.content?.parts
-              ?.filter((part) => part.text && !part.thought)
-              ?.map((part) => part.text)
-              ?.join('') || '';
-
-            groundedCitations = extractGroundingCitations(groundedResult);
-            const groundingMeta = candidate?.groundingMetadata || null;
-
-            // Inject inline [1][2][3] markers + sources block
-            const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, groundedCitations, groundingMeta);
-            const cleanText = stripPreambles(citedText);
-            const fullOutput = cleanText + sourcesBlock;
-
-            if (groundedCitations.length > 0) {
-              console.log(`📎 Extracted ${groundedCitations.length} citations for agent [${agent.name}]`);
-            }
-
-            // Simulate streaming by chunking the grounded response
-            const chunkSize = 80;
-            for (let i = 0; i < fullOutput.length; i += chunkSize) {
-              const textChunk = fullOutput.substring(i, i + chunkSize);
-              yield {
-                type: 'text',
-                content: textChunk,
-                agentId: agent.id
+                tools: [{ googleSearch: {} }, { functionDeclarations: activeTools }],
               };
+
+              lastGroundedResult = await ai.models.generateContent({
+                model: agent.model || 'gemini-3.5-flash',
+                contents,
+                config,
+              });
+
+              const candidate = lastGroundedResult.candidates?.[0];
+              const functionCalls = lastGroundedResult.functionCalls || [];
+              let rawText = candidate?.content?.parts
+                ?.filter((part) => part.text && !part.thought)
+                ?.map((part) => part.text)
+                ?.join('') || '';
+
+              if (functionCalls.length > 0) {
+                console.log(`[Swarm Engine] Grounded search path intercepted ${functionCalls.length} tool calls.`);
+
+                // Append model message to history
+                const modelParts = functionCalls.map(call => ({
+                  functionCall: {
+                    name: call.name,
+                    args: call.args
+                  }
+                }));
+                if (rawText) {
+                  modelParts.unshift({ text: rawText });
+                }
+                contents.push({ role: 'model', parts: modelParts });
+
+                const responseParts = [];
+                for (const call of functionCalls) {
+                  yield {
+                    type: 'text',
+                    content: `\n\n⚙️ *Executing skill: ${call.name}...*\n`,
+                    agentId: agent.id
+                  };
+
+                  let toolResultText = '';
+                  if (call.name === 'save_custom_skill') {
+                    try {
+                      dynamicSkillService.saveGeneratedSkill(userId, call.args);
+                      toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
+                    } catch (err) {
+                      toolResultText = `Failed to save custom skill: ${err.message}`;
+                    }
+                  } else {
+                    const matchedSkill = userSkills.find(s => s.name === call.name);
+                    if (matchedSkill) {
+                      try {
+                        toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                      } catch (err) {
+                        toolResultText = `Execution error: ${err.message}`;
+                      }
+                    } else {
+                      toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
+                    }
+                  }
+
+                  yield {
+                    type: 'text',
+                    content: `*Skill Output:* \`\`\`\n${toolResultText}\n\`\`\`\n`,
+                    agentId: agent.id
+                  };
+
+                  responseParts.push({
+                    functionResponse: {
+                      name: call.name,
+                      response: { result: toolResultText }
+                    }
+                  });
+                }
+
+                contents.push({ role: 'user', parts: responseParts });
+              } else {
+                stopLoop = true;
+
+                // Finished generating text, yield final search cited output
+                groundedCitations = extractGroundingCitations(lastGroundedResult);
+                const groundingMeta = candidate?.groundingMetadata || null;
+
+                const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, groundedCitations, groundingMeta);
+                const cleanText = stripPreambles(citedText);
+                const fullOutput = cleanText + sourcesBlock;
+
+                if (groundedCitations.length > 0) {
+                  console.log(`📎 Extracted ${groundedCitations.length} citations for agent [${agent.name}]`);
+                }
+
+                // Simulate streaming by chunking the grounded response
+                const chunkSize = 80;
+                for (let i = 0; i < fullOutput.length; i += chunkSize) {
+                  const textChunk = fullOutput.substring(i, i + chunkSize);
+                  yield {
+                    type: 'text',
+                    content: textChunk,
+                    agentId: agent.id
+                  };
+                }
+
+                accumulatedText += isPrimary ? fullOutput : `\n\n${fullOutput}`;
+                currentContextInput = cleanText;
+
+                // Yield grounding citations as structured metadata
+                const offsetCitations = groundedCitations.map((c, idx) => ({
+                  index: currentCitations.length + idx + 1,
+                  url: c.url,
+                  title: c.title,
+                  domain: c.domain
+                }));
+                currentCitations = [...currentCitations, ...offsetCitations];
+
+                yield {
+                  type: 'metadata',
+                  reference: currentCitations,
+                  citations: currentCitations,
+                  webSearchQueries: groundingMeta?.webSearchQueries || [],
+                  searchEntryPoint: groundingMeta?.searchEntryPoint || null,
+                  timestamp: Date.now()
+                };
+              }
             }
-
-            accumulatedText += isPrimary ? fullOutput : `\n\n${fullOutput}`;
-            currentContextInput = cleanText;
-
-            // Yield grounding citations as structured metadata
-            const offsetCitations = groundedCitations.map((c, idx) => ({
-              index: currentCitations.length + idx + 1,
-              url: c.url,
-              title: c.title,
-              domain: c.domain
-            }));
-            currentCitations = [...currentCitations, ...offsetCitations];
-
-            yield {
-              type: 'metadata',
-              reference: currentCitations,
-              citations: currentCitations,
-              webSearchQueries: groundingMeta?.webSearchQueries || [],
-              searchEntryPoint: groundingMeta?.searchEntryPoint || null,
-              timestamp: Date.now()
-            };
           } catch (groundingErr) {
             console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to Groq stream...`);
             let agentTextAccumulator = '';
@@ -819,11 +1085,6 @@ Instructions: ${agent.systemInstruction}`;
           // ═══ STANDARD STREAMING PATH ═══
           let agentTextAccumulator = '';
           try {
-            const modelInstance = genAI.getGenerativeModel({
-              model: agent.model || 'gemini-3.5-flash',
-              systemInstruction: systemInstruction
-            });
-
             const contents = [
               ...conversationHistory.map(msg => ({
                 role: msg.role === 'assistant' ? 'model' : 'user',
@@ -835,25 +1096,118 @@ Instructions: ${agent.systemInstruction}`;
               }
             ];
 
-            streamResult = await modelInstance.generateContentStream({
-              contents,
-              generationConfig: {
-                temperature: isPrimary ? 0.15 : 0.05,
-                maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
-              }
-            });
+            let maxToolCallingIterations = 5;
+            let currentIteration = 0;
+            let stopLoop = false;
 
-            for await (const chunk of streamResult.stream) {
-              const textChunk = chunk.text();
-              if (textChunk) {
-                agentTextAccumulator += textChunk;
-                
-                // Stream text chunk to client in real-time
-                yield {
-                  type: 'text',
-                  content: textChunk,
-                  agentId: agent.id
-                };
+            while (currentIteration < maxToolCallingIterations && !stopLoop) {
+              currentIteration++;
+
+              const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
+              const modelInstance = genAI.getGenerativeModel({
+                model: agent.model || 'gemini-3.5-flash',
+                systemInstruction: systemInstruction,
+                tools: [{ functionDeclarations: activeTools }]
+              });
+
+              streamResult = await modelInstance.generateContentStream({
+                contents,
+                generationConfig: {
+                  temperature: isPrimary ? 0.15 : 0.05,
+                  maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+                }
+              });
+
+              let functionCalls = [];
+              let streamText = '';
+
+              for await (const chunk of streamResult.stream) {
+                const textChunk = chunk.text();
+                if (textChunk) {
+                  streamText += textChunk;
+                  yield {
+                    type: 'text',
+                    content: textChunk,
+                    agentId: agent.id
+                  };
+                }
+
+                // Robust check for functionCalls in stream chunk
+                const calls = chunk.functionCalls || (typeof chunk.functionCalls === 'function' ? chunk.functionCalls() : null);
+                if (calls) {
+                  functionCalls.push(...calls);
+                } else {
+                  const parts = chunk.candidates?.[0]?.content?.parts || [];
+                  for (const part of parts) {
+                    if (part.functionCall) {
+                      functionCalls.push(part.functionCall);
+                    }
+                  }
+                }
+              }
+
+              if (functionCalls.length > 0) {
+                console.log(`[Swarm Engine] Intercepted ${functionCalls.length} tool calls from Gemini stream.`);
+
+                // Append model message to context history
+                const modelParts = functionCalls.map(call => ({
+                  functionCall: {
+                    name: call.name,
+                    args: call.args
+                  }
+                }));
+                if (streamText) {
+                  modelParts.unshift({ text: streamText });
+                }
+                contents.push({ role: 'model', parts: modelParts });
+
+                const responseParts = [];
+                for (const call of functionCalls) {
+                  yield {
+                    type: 'text',
+                    content: `\n\n⚙️ *Executing skill: ${call.name}...*\n`,
+                    agentId: agent.id
+                  };
+
+                  let toolResultText = '';
+                  if (call.name === 'save_custom_skill') {
+                    try {
+                      dynamicSkillService.saveGeneratedSkill(userId, call.args);
+                      toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
+                    } catch (err) {
+                      toolResultText = `Failed to save custom skill: ${err.message}`;
+                    }
+                  } else {
+                    const matchedSkill = userSkills.find(s => s.name === call.name);
+                    if (matchedSkill) {
+                      try {
+                        toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
+                      } catch (err) {
+                        toolResultText = `Execution error: ${err.message}`;
+                      }
+                    } else {
+                      toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
+                    }
+                  }
+
+                  yield {
+                    type: 'text',
+                    content: `*Skill Output:* \`\`\`\n${toolResultText}\n\`\`\`\n`,
+                    agentId: agent.id
+                  };
+
+                  responseParts.push({
+                    functionResponse: {
+                      name: call.name,
+                      response: { result: toolResultText }
+                    }
+                  });
+                }
+
+                contents.push({ role: 'user', parts: responseParts });
+              } else {
+                agentTextAccumulator += streamText;
+                stopLoop = true;
               }
             }
           } catch (geminiErr) {

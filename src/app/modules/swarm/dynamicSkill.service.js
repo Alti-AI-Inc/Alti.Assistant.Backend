@@ -162,27 +162,48 @@ const executeSkill = async (userId, skill, args = {}) => {
   const containerName = `alti_workspace_${userId}`;
   logger.info(`[DynamicSkill] Executing skill "${skill.name}" inside container "${containerName}"...`);
   
-  const scriptPath = `/workspace/skills/${skill.script}`;
-  
   // Format arguments as standard shell arguments
   const shellArgs = [];
   Object.entries(args).forEach(([k, v]) => {
     shellArgs.push(`--${k}`);
     shellArgs.push(String(v));
   });
-  
-  // Determine interpreter
-  const ext = path.extname(skill.script);
-  let interpreter = 'python3';
-  if (ext === '.py') {
-    interpreter = 'python3';
-  } else if (ext === '.sh') {
-    interpreter = 'bash';
-  } else if (ext === '.js') {
-    interpreter = 'node';
+
+  const workspace = await dockerWorkspaceService.getOrCreateWorkspace(userId);
+  let commandArgs;
+
+  if (workspace.mode === 'local-fallback') {
+    // Local fallback path resolution on the host machine
+    const hostSkillsDir = path.resolve(`storage/users/${userId}/workspace/skills`);
+    const scriptPath = path.join(hostSkillsDir, skill.script);
+    
+    const ext = path.extname(skill.script);
+    let interpreter = 'python';
+    if (ext === '.py') {
+      interpreter = process.platform === 'win32' ? 'python' : 'python3';
+    } else if (ext === '.sh') {
+      interpreter = process.platform === 'win32' ? 'powershell' : 'bash';
+    } else if (ext === '.js') {
+      interpreter = 'node';
+    }
+    
+    commandArgs = [interpreter, scriptPath, ...shellArgs];
+  } else {
+    // Isolated secure Docker Sandbox container path
+    const scriptPath = `/workspace/skills/${skill.script}`;
+    
+    const ext = path.extname(skill.script);
+    let interpreter = 'python3';
+    if (ext === '.py') {
+      interpreter = 'python3';
+    } else if (ext === '.sh') {
+      interpreter = 'bash';
+    } else if (ext === '.js') {
+      interpreter = 'node';
+    }
+    
+    commandArgs = [interpreter, scriptPath, ...shellArgs];
   }
-  
-  const commandArgs = [interpreter, scriptPath, ...shellArgs];
   
   try {
     const result = await dockerWorkspaceService.executeCommand(userId, commandArgs, { timeoutMs: 30000 });
@@ -199,9 +220,57 @@ const executeSkill = async (userId, skill, args = {}) => {
   }
 };
 
+/**
+ * Saves a dynamically generated OpenClaw skill to the user's workspace.
+ * @param {string} userId - User identifier
+ * @param {Object} skillData - Skill metadata and script content
+ * @returns {boolean} Success status
+ */
+const saveGeneratedSkill = (userId, skillData) => {
+  if (!userId || !skillData.name || !skillData.scriptName || !skillData.scriptContent) {
+    throw new Error('Invalid skill data: name, scriptName, and scriptContent are required.');
+  }
+
+  const skillsDir = path.resolve(`storage/users/${userId}/workspace/skills`);
+  if (!fs.existsSync(skillsDir)) {
+    fs.mkdirSync(skillsDir, { recursive: true });
+  }
+
+  // 1. Format parameter block
+  let parametersYaml = '';
+  if (skillData.parameters && Object.keys(skillData.parameters).length > 0) {
+    parametersYaml = 'parameters:\n';
+    Object.entries(skillData.parameters).forEach(([paramName, paramInfo]) => {
+      parametersYaml += `  ${paramName}:\n`;
+      parametersYaml += `    type: ${paramInfo.type || 'string'}\n`;
+      parametersYaml += `    description: "${paramInfo.description || ''}"\n`;
+      parametersYaml += `    required: ${paramInfo.required ? 'true' : 'false'}\n`;
+    });
+  }
+
+  // 2. Generate Markdown file content
+  const markdownContent = `---
+name: ${skillData.name}
+description: ${skillData.description || `Dynamic skill ${skillData.name}`}
+${parametersYaml}script: ${skillData.scriptName}
+---
+`;
+
+  // 3. Write markdown and script files
+  const mdPath = path.join(skillsDir, `${skillData.name}.md`);
+  const scriptPath = path.join(skillsDir, skillData.scriptName);
+
+  fs.writeFileSync(mdPath, markdownContent, 'utf8');
+  fs.writeFileSync(scriptPath, skillData.scriptContent, 'utf8');
+  
+  logger.info(`[DynamicSkill] Successfully saved dynamic skill "${skillData.name}" for user ${userId}.`);
+  return true;
+};
+
 export const dynamicSkillService = {
   parseSkillFrontmatter,
   scanUserSkills,
   compileGeminiTools,
-  executeSkill
+  executeSkill,
+  saveGeneratedSkill
 };
