@@ -10,6 +10,7 @@ import {
   gemini2_5Flash,
   gemini3ProPreview,
 } from './geminiService.js';
+import { checkTenantBudgetStatus } from './marketplaceMeteringService.js';
 import { openMemoryClient } from '../../../shared/openMemoryClient.js';
 import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
 import { sportsSmartRouter } from '../../../helpers/sportsSmartRouter.js';
@@ -114,6 +115,11 @@ import {
  * @returns {Object} Formatted response with answer, references, and citations
  */
 export async function executeToolBasedConversation(messages, options = {}) {
+  const budget = await checkTenantBudgetStatus('alti-enterprise-tenant-default');
+  if (budget.isBlocked) {
+    throw new Error(`BillingLimitExceeded: Budget limit exceeded. Spend: $${budget.currentSpend.toFixed(2)}, Limit: $${budget.budgetLimit.toFixed(2)}`);
+  }
+
   const resolvedUserId =
     options?.userId || options?.authUserId || options?.user?.id || null;
 

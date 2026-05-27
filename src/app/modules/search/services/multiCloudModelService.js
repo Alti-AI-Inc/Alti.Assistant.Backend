@@ -6,7 +6,37 @@ import { googleSearch, YouTubeSearchTool } from '../tools.js';
 import {
   analyzeAndLogModelSelection,
 } from '../utils/modelSelector.js';
-import { logTenantUsage } from './marketplaceMeteringService.js';
+import { logTenantUsage, checkTenantBudgetStatus, blockedTenantsCache } from './marketplaceMeteringService.js';
+
+/**
+ * A dummy LangChain model wrapper returned when a tenant's billing limit is exceeded.
+ * Throws a BillingLimitExceeded error immediately on any execution invoke/stream.
+ */
+class BlockedBillingModel {
+  constructor(message) {
+    this.message = message;
+  }
+
+  bindTools() {
+    return this;
+  }
+
+  withFallbacks() {
+    return this;
+  }
+
+  async invoke() {
+    throw new Error(this.message);
+  }
+
+  async *stream() {
+    throw new Error(this.message);
+  }
+
+  async invokeReader() {
+    throw new Error(this.message);
+  }
+}
 
 /**
  * Enterprise Multi-Cloud Model Service
@@ -21,6 +51,19 @@ import { logTenantUsage } from './marketplaceMeteringService.js';
 function createBillingCallback(providerName) {
   return [
     {
+      handleLLMStart: async (llm, prompts) => {
+        try {
+          const budget = await checkTenantBudgetStatus('alti-enterprise-tenant-default');
+          if (budget.isBlocked) {
+            throw new Error(`BillingLimitExceeded: Budget limit exceeded. Spend: $${budget.currentSpend.toFixed(2)}, Limit: $${budget.budgetLimit.toFixed(2)}`);
+          }
+        } catch (err) {
+          if (err.message.includes('BillingLimitExceeded')) {
+            throw err;
+          }
+          console.warn('⚠️ [Billing Check] Pre-flight budget check warning:', err.message);
+        }
+      },
       handleLLMEnd: async (output) => {
         try {
           const generations = output.generations?.[0] || [];
@@ -74,6 +117,11 @@ let awsModel = null;
  * @returns {Object} LangChain-compatible Chat Model instance
  */
 function resolveActiveModelInstance(complexity = 'simple') {
+  // If tenant is blocked by budget limits, immediately resolve BlockedBillingModel
+  if (blockedTenantsCache.has('alti-enterprise-tenant-default')) {
+    return new BlockedBillingModel('BillingLimitExceeded: Budget limit exceeded. Spend has reached or crossed the set threshold.');
+  }
+
   const provider = (config.llmProvider || 'gcp').toLowerCase();
   const primaryGcp = complexity === 'complex' ? gcpPro : gcpFlash;
   

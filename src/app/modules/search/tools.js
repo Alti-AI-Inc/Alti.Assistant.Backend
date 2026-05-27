@@ -93,7 +93,7 @@ import {
   classifyGlaciologyQuery,
   classifyFormalVerificationQuery,
 } from './services/queryClassifier.js';
-import { logTenantUsage } from './services/marketplaceMeteringService.js';
+import { logTenantUsage, checkTenantBudgetStatus } from './services/marketplaceMeteringService.js';
 
 const rawGoogle = new GoogleCustomSearch({
   maxResults: 20, // Default max results
@@ -587,9 +587,18 @@ export const googleSearch = new DynamicStructuredTool({
       }
     }
 
-    // pass extra params to CSE if you want recency/locale control
-    if (Object.keys(params).length) rawGoogle.params = params;
-    console.log('The final query before invoke', finalQuery);
+    // Perform budget pre-flight check
+    try {
+      const budget = await checkTenantBudgetStatus('alti-enterprise-tenant-default');
+      if (budget.isBlocked) {
+        throw new Error(`BillingLimitExceeded: Search execution blocked. Spend: $${budget.currentSpend.toFixed(2)}, Limit: $${budget.budgetLimit.toFixed(2)}`);
+      }
+    } catch (err) {
+      if (err.message.includes('BillingLimitExceeded')) {
+        throw err;
+      }
+      console.warn('⚠️ [Billing Check] Search pre-flight budget warning:', err.message);
+    }
 
     const results = await rawGoogle.invoke(finalQuery);
     try {
