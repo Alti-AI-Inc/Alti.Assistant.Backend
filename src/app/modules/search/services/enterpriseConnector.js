@@ -34,6 +34,15 @@ export function redactSensitiveData(payload) {
     // 6. Redact Federal Employer Identification Numbers (EINs)
     sanitized = sanitized.replace(/\b\d{2}-\d{7}\b/g, '[REDACTED EIN]');
 
+    // 7. Redact Court Docket / Case Numbers
+    sanitized = sanitized.replace(/\b\d+:\d{2}-[a-zA-Z]+-\d{4,5}\b/g, '[REDACTED DOCKET]');
+    sanitized = sanitized.replace(/\b\d+:\d{2}-cv-\d{4,5}\b/g, '[REDACTED DOCKET]');
+
+    // 8. Redact Legal Privileged Markers
+    sanitized = sanitized.replace(/\bATTORNEY-CLIENT PRIVILEGED\b/gi, '[REDACTED PRIVILEGED]');
+    sanitized = sanitized.replace(/\bPRIVILEGED & CONFIDENTIAL\b/gi, '[REDACTED PRIVILEGED]');
+    sanitized = sanitized.replace(/\bCONFIDENTIAL - LEGAL\b/gi, '[REDACTED PRIVILEGED]');
+
     return sanitized;
   }
 
@@ -46,7 +55,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -117,6 +126,26 @@ export class EnterpriseConnector {
       bloomberg: {
         apiToken: 'mock_bloomberg_token',
         endpoint: 'https://api.bloomberg.com/v1'
+      },
+      harvey: {
+        apiToken: 'mock_harvey_token',
+        endpoint: 'https://api.harvey.ai/v1'
+      },
+      ironclad: {
+        apiToken: 'mock_ironclad_token',
+        endpoint: 'https://api.ironcladapp.com/v1'
+      },
+      relativity: {
+        apiToken: 'mock_relativity_token',
+        endpoint: 'https://api.relativity.com/rest/v2'
+      },
+      onetrust: {
+        apiKey: 'mock_onetrust_key',
+        endpoint: 'https://api.onetrust.com/api/v1'
+      },
+      lexisnexis: {
+        apiToken: 'mock_lexisnexis_token',
+        endpoint: 'https://api.lexisnexis.com/v1'
       }
     };
 
@@ -141,7 +170,10 @@ export class EnterpriseConnector {
       'verifyRealPageLease',
       'updateAddeparAssetAllocation',
       'issueCartaEquityGrant',
-      'initiateFiservWireTransfer'
+      'initiateFiservWireTransfer',
+      'approveIroncladContract',
+      'submitOneTrustPrivacyRequest',
+      'tagRelativityDocuments'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -351,6 +383,95 @@ export class EnterpriseConnector {
               { symbol: 'NG1:COM', name: 'Natural Gas', price: 2.34, changePercent: 0.035 }
             ],
             asOf: new Date().toISOString()
+          };
+          break;
+
+        // --- Harvey ---
+        case 'runHarveyPrecedentAnalysis':
+          result = {
+            success: true,
+            caseName: sanitizedParams.caseName || 'Acme v. Widget Corp',
+            precedentsFound: [
+              { citation: '410 U.S. 113', court: 'Supreme Court', date: '1973', relevanceScore: 0.94, description: 'Established critical due process precedent.' },
+              { citation: '505 F.3d 124', court: 'Second Circuit', date: '2007', relevanceScore: 0.88, description: 'Clarified contractual indemnity limits in tech licensing.' }
+            ]
+          };
+          break;
+
+        // --- LexisNexis ---
+        case 'searchLexisNexisCaseLaw':
+          result = {
+            success: true,
+            query: sanitizedParams.query || 'indemnity clause limitation',
+            results: [
+              { citation: '320 N.Y.S.2d 456', title: 'Smith v. Global Tech Solutions', caseSummary: 'Standard liability limitations in software service level agreements.' }
+            ]
+          };
+          break;
+
+        // --- Ironclad ---
+        case 'getIroncladContractMetadata':
+          result = {
+            success: true,
+            contractId: sanitizedParams.contractId || 'ctr-8899',
+            counterparty: 'Acme Corp',
+            effectiveDate: '2026-06-01',
+            value: 1250000,
+            status: 'AWAITING_INTERNAL_APPROVAL'
+          };
+          break;
+
+        case 'approveIroncladContract':
+          result = {
+            success: true,
+            contractId: sanitizedParams.contractId,
+            approvedBy: 'Compliance Manager',
+            status: 'APPROVED',
+            approvedAt: new Date().toISOString()
+          };
+          break;
+
+        // --- Relativity ---
+        case 'getRelativityDocumentDetails':
+          result = {
+            success: true,
+            documentId: sanitizedParams.documentId || 'doc-rel-5544',
+            fileName: 'confidential_quarterly_report.pdf',
+            hasPrivilegedContent: true,
+            tags: ['Responsive', 'Low Relevance']
+          };
+          break;
+
+        case 'tagRelativityDocuments':
+          result = {
+            success: true,
+            documentIds: sanitizedParams.documentIds || [sanitizedParams.documentId],
+            appliedTags: sanitizedParams.tags || ['Responsive'],
+            taggedBy: 'Lead E-Discovery Counsel',
+            status: 'SUCCESSFULLY_TAGGED'
+          };
+          break;
+
+        // --- OneTrust ---
+        case 'getOneTrustConsentRecord':
+          result = {
+            success: true,
+            consentId: sanitizedParams.consentId || 'con-ot-1122',
+            subjectId: 'user_9922',
+            purposes: [
+              { purposeName: 'Analytics', consentGiven: true, lastUpdated: '2026-01-15' },
+              { purposeName: 'Marketing', consentGiven: false, lastUpdated: '2026-03-10' }
+            ]
+          };
+          break;
+
+        case 'submitOneTrustPrivacyRequest':
+          result = {
+            success: true,
+            requestId: `REQ-OT-${Math.floor(Math.random() * 9000 + 1000)}`,
+            requestType: sanitizedParams.requestType || 'DELETE_DATA',
+            subjectEmail: sanitizedParams.subjectEmail,
+            status: 'SUBMITTED_AWAITING_VERIFICATION'
           };
           break;
 

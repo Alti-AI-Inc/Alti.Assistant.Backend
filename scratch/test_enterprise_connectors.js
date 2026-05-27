@@ -28,6 +28,13 @@ async function runTests() {
     nested: {
       patientName: 'Jane Doe',
       ssn: '111-22-3333'
+    },
+    legal: {
+      docketNumber: '1:23-cv-09876',
+      caseNumber: '1:23-cv-09876',
+      litigant: 'Acme Corp',
+      legalNote: 'CONFIDENTIAL - LEGAL: Proceed with caution.',
+      arbitraryString: 'This case is docket 1:23-cv-09876 under ATTORNEY-CLIENT PRIVILEGED rules.'
     }
   };
 
@@ -48,15 +55,21 @@ async function runTests() {
     redacted.financials.taxId !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.financials.ein !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.financials.netWorth !== '[REDACTED SENSITIVE FIELD]' ||
-    redacted.financials.balance !== '[REDACTED SENSITIVE FIELD]'
+    redacted.financials.balance !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.legal.docketNumber !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.legal.caseNumber !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.legal.litigant !== '[REDACTED SENSITIVE FIELD]' ||
+    !redacted.legal.legalNote.includes('[REDACTED PRIVILEGED]') ||
+    !redacted.legal.arbitraryString.includes('[REDACTED DOCKET]') ||
+    !redacted.legal.arbitraryString.includes('[REDACTED PRIVILEGED]')
   ) {
-    console.error('❌ Test 1 Failed: Financial PII/PCI redaction proxy failed to fully mask sensitive details.');
+    console.error('❌ Test 1 Failed: Financial and Legal PII/PCI/GRC redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
-    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, and balances successfully redacted.');
+    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, and privileged legal terms successfully redacted.');
   }
 
-  // Test 2: Read-Only Actions (Phase 1 & Phase 2)
+  // Test 2: Read-Only Actions (Phase 1, Phase 2, & Phase 3)
   console.log('\n🧪 [Test 2] Read-Only Action Execution and Payloads');
   const readActions = [
     { app: 'autodesk', action: 'getBIM360ProjectSheets', params: {} },
@@ -68,7 +81,12 @@ async function runTests() {
     { app: 'carta', action: 'getCartaCapTable', params: { companyId: 'comp-123' } },
     { app: 'fiserv', action: 'getFiservAccountBalance', params: { accountId: 'acc-999' } },
     { app: 'factset', action: 'getFactSetDebtStructure', params: { companySymbol: 'MSFT' } },
-    { app: 'bloomberg', action: 'getBloombergCommodityTickers', params: {} }
+    { app: 'bloomberg', action: 'getBloombergCommodityTickers', params: {} },
+    { app: 'harvey', action: 'runHarveyPrecedentAnalysis', params: { caseName: 'Standard Tech licensing' } },
+    { app: 'lexisnexis', action: 'searchLexisNexisCaseLaw', params: { query: 'liability limit indemnity' } },
+    { app: 'ironclad', action: 'getIroncladContractMetadata', params: { contractId: 'ctr-5566' } },
+    { app: 'relativity', action: 'getRelativityDocumentDetails', params: { documentId: 'doc-7766' } },
+    { app: 'onetrust', action: 'getOneTrustConsentRecord', params: { consentId: 'con-1122' } }
   ];
 
   for (const item of readActions) {
@@ -92,7 +110,10 @@ async function runTests() {
     { app: 'realpage', action: 'verifyRealPageLease', params: { leaseId: 'lease-901' } },
     { app: 'addepar', action: 'updateAddeparAssetAllocation', params: { portfolioId: 'port-555', targetAllocation: 'aggressive' } },
     { app: 'carta', action: 'issueCartaEquityGrant', params: { stakeholderName: 'Jane Smith', sharesGranted: 150000 } },
-    { app: 'fiserv', action: 'initiateFiservWireTransfer', params: { sourceAccountId: 'acc-111', destinationRouting: '021000021', destinationAccount: '999999999', amount: 500000 } }
+    { app: 'fiserv', action: 'initiateFiservWireTransfer', params: { sourceAccountId: 'acc-111', destinationRouting: '021000021', destinationAccount: '999999999', amount: 500000 } },
+    { app: 'ironclad', action: 'approveIroncladContract', params: { contractId: 'ctr-999' } },
+    { app: 'relativity', action: 'tagRelativityDocuments', params: { documentIds: ['doc-001', 'doc-002'], tags: ['Responsive', 'Privileged'] } },
+    { app: 'onetrust', action: 'submitOneTrustPrivacyRequest', params: { subjectEmail: 'test@onetrust.com', requestType: 'DELETE_DATA' } }
   ];
 
   for (const item of mutativeActions) {
@@ -139,7 +160,10 @@ async function runTests() {
       { app: 'yardi', action: 'updateYardiRentLedger', parameters: { tenantId: 't-999' }, verified: true },
       { app: 'addepar', action: 'getAddeparPortfolioPerformance', parameters: {} },
       { app: 'carta', action: 'issueCartaEquityGrant', parameters: { stakeholderName: 'CEO Bob', sharesGranted: 500000 }, verified: true },
-      { app: 'fiserv', action: 'getFiservAccountBalance', parameters: {} }
+      { app: 'fiserv', action: 'getFiservAccountBalance', parameters: {} },
+      { app: 'harvey', action: 'runHarveyPrecedentAnalysis', parameters: { caseName: 'Standard Tech Licensing' } },
+      { app: 'ironclad', action: 'approveIroncladContract', parameters: { contractId: 'ctr-777' }, verified: true },
+      { app: 'onetrust', action: 'submitOneTrustPrivacyRequest', parameters: { subjectEmail: 'foo@bar.com' }, verified: true }
     ];
 
     for (const input of validInputs) {
@@ -157,13 +181,13 @@ async function runTests() {
   console.log('\n🧪 [Test 6] Tool Invocation via LangChain .invoke()');
   try {
     const responseString = await altiEnterpriseIntelligenceSearch.invoke({
-      app: 'bloomberg',
-      action: 'getBloombergCommodityTickers',
-      parameters: {}
+      app: 'lexisnexis',
+      action: 'searchLexisNexisCaseLaw',
+      parameters: { query: 'indemnity' }
     });
     console.log('Tool invocation response:', responseString);
     const parsedRes = JSON.parse(responseString);
-    if (!parsedRes.success || !parsedRes.tickers) {
+    if (!parsedRes.success || !parsedRes.results) {
       console.error('❌ Test 6 Failed: Tool invocation output format invalid.');
       failures++;
     } else {

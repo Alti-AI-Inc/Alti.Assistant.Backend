@@ -929,9 +929,14 @@ export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
 8. "fiserv" -> Fiserv commercial bank balances, cash management ledgers, bank wire transfers.
 9. "factset" -> FactSet institutional corporate debt structures, senior secured notes rate and maturities.
 10. "bloomberg" -> Bloomberg commodity tickers (Crude Oil, Gold, Natural Gas) prices, percentage changes, indices.
-Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg), the action name, and a JSON parameter object representing action arguments.`,
+11. "harvey" -> Harvey legal AI precedent analytics, case law, corporate litigation insights.
+12. "ironclad" -> Ironclad Contract Lifecycle Management (CLM) metadata, contract signature approvals.
+13. "relativity" -> Relativity litigation e-discovery document tagging, privileged file sweeps.
+14. "onetrust" -> OneTrust enterprise consent records, dynamic GDPR and CCPA consumer privacy requests.
+15. "lexisnexis" -> LexisNexis legal precedents database search and background checking.
+Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis), the action name, and a JSON parameter object representing action arguments.`,
   schema: z.object({
-    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg']).describe("The target enterprise application slug"),
+    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis']).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets',
       'createBIM360RFI',
@@ -948,7 +953,15 @@ Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, car
       'getFiservAccountBalance',
       'initiateFiservWireTransfer',
       'getFactSetDebtStructure',
-      'getBloombergCommodityTickers'
+      'getBloombergCommodityTickers',
+      'runHarveyPrecedentAnalysis',
+      'searchLexisNexisCaseLaw',
+      'getIroncladContractMetadata',
+      'approveIroncladContract',
+      'getRelativityDocumentDetails',
+      'tagRelativityDocuments',
+      'getOneTrustConsentRecord',
+      'submitOneTrustPrivacyRequest'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")
