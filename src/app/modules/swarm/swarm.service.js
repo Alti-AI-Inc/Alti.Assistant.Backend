@@ -16,7 +16,7 @@ import { askQuery } from '../llamaindex/llamaindex.indexer.js';
 import { executeAgenticRAG } from '../llamaindex/langgraph/ragAgentGraph.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dynamicSkillService } from './dynamicSkill.service.js';
-import { logger } from '../../shared/logger.js';
+import { logger } from '../../../shared/logger.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -800,6 +800,13 @@ Instructions: ${agent.systemInstruction}`;
 
     const pipeline = SynapseRouter.buildExecutionPipeline(query);
     console.log(`📡 Swarm Pipeline: Dynamic Chain composed of [${pipeline.chain.map(a => a.name).join(' -> ')}]`);
+
+    // Yield Nous Hermes-style Cognitive Plan stream chunk immediately to the client
+    yield {
+      type: 'text',
+      content: `\n\n🧠 *[Hermes Agent Cognitive Plan]*\n* **Swarm Execution Route**: ${pipeline.chain.map(a => `\`${a.name}\``).join(' ➔ ')}\n* **Data Integration**: State-of-the-art live grounding + RAG context extraction.\n* **Isolated Execution Strategy**: Enforcing strict, container-sandboxed Python/JS executions.\n\n`,
+      timestamp: Date.now()
+    };
 
     // ════ RAG GROUNDING: Pull context from user's indexed documents ════
     let ragGroundingBlock = '';

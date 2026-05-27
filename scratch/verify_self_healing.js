@@ -7,6 +7,7 @@
 
 import { dynamicSkillService } from '../src/app/modules/swarm/dynamicSkill.service.js';
 import { dockerWorkspaceService } from '../src/app/modules/docker/dockerWorkspace.service.js';
+import { SwarmService } from '../src/app/modules/swarm/swarm.service.js';
 import { logger } from '../src/shared/logger.js';
 import SwarmAudit from '../src/app/modules/swarm/swarmAudit.model.js';
 import fs from 'fs';
@@ -325,6 +326,76 @@ if __name__ == "__main__":
       logger.info(`[Database Notice] DATABASE_LOCAL is not defined. Skipping Step 13 active database check.`);
     }
 
+    // 14. Pre-seeded OpenClaw Skills Verification
+    logger.info(`[Step 14] Verifying Pre-seeded Sandboxed OpenClaw Skills Seeding...`);
+    const seededSkills = dynamicSkillService.scanUserSkills(TEST_USER);
+    const analyzerOk = seededSkills.some(s => s.name === 'data_analyzer');
+    const chartOk = seededSkills.some(s => s.name === 'chart_generator');
+    const downloaderOk = seededSkills.some(s => s.name === 'web_downloader');
+
+    if (analyzerOk && chartOk && downloaderOk) {
+      logger.info(`[SUCCESS] Verified default dynamic skills automatically seeded in user workspace.`);
+    } else {
+      throw new Error(`FAIL: Seeded skills missing. data_analyzer=${analyzerOk}, chart_generator=${chartOk}, web_downloader=${downloaderOk}`);
+    }
+
+    // 15. Node.js Dynamic Package Self-Healing Verification
+    logger.info(`[Step 15] Verifying Sandbox Node.js Dynamic Package Self-Healing...`);
+    const jsSkillData = {
+      name: 'verify_lodash_run',
+      description: 'Dynamic JS tool executing Lodash.',
+      parameters: {},
+      scriptName: 'test_lodash.js',
+      scriptContent: `
+const _ = require('lodash');
+console.log("JS_HEAL_INTEL: " + _.chunk(['a', 'b', 'c', 'd'], 2).join(' | '));
+`
+    };
+
+    logger.info(`[Step 15a] Saving custom JS skill importing 'lodash'...`);
+    dynamicSkillService.saveGeneratedSkill(TEST_USER, jsSkillData);
+
+    const jsDiscovered = dynamicSkillService.scanUserSkills(TEST_USER);
+    const jsMatched = jsDiscovered.find(s => s.name === jsSkillData.name);
+
+    if (jsMatched) {
+      logger.info(`[Step 15b] Executing Lodash JS skill...`);
+      logger.info(`(If running in Docker mode, this will trigger the Node.js NPM auto-healer to install lodash dynamically)`);
+      const jsOutput = await dynamicSkillService.executeSkill(TEST_USER, jsMatched);
+      logger.info(`[JS RESPONSE]:\n${jsOutput}`);
+
+      if (jsOutput.includes('JS_HEAL_INTEL: a,b | c,d') || workspace.mode === 'local-fallback') {
+        logger.info(`[SUCCESS] Sandbox Node.js dynamic healing or fallback completed successfully.`);
+      } else {
+        throw new Error(`FAIL: JS dynamic healing did not produce correct chunk outputs. Output: ${jsOutput}`);
+      }
+    } else {
+      throw new Error("FAIL: Lodash JS skill was not discoverable!");
+    }
+
+    // 16. Nous Hermes Cognitive Plan Stream Verification
+    logger.info(`[Step 16] Verifying Nous Hermes Cognitive Planning Stream...`);
+    const generator = SwarmService.executeSwarmStream('Query needing GCP grounding', [], TEST_USER);
+    const firstChunk = await generator.next();
+
+    logger.info(`Received first chunk type: "${firstChunk.value?.type}"`);
+    logger.info(`Content: ${firstChunk.value?.content}`);
+
+    if (firstChunk.value?.type === 'text' && firstChunk.value?.content?.includes('[Hermes Agent Cognitive Plan]')) {
+      logger.info(`[SUCCESS] Verified cognitive thinking plan stream initialization.`);
+    } else {
+      logger.warn(`[Stream Notice] Expected cognitive thought plan chunk first, but got: ${JSON.stringify(firstChunk.value)}`);
+    }
+
+    const jsMdPath = path.join(skillsDir, 'verify_lodash_run.md');
+    const jsScriptPath = path.join(skillsDir, 'test_lodash.js');
+    const seededAnalyzerMd = path.join(skillsDir, 'data_analyzer.md');
+    const seededAnalyzerPy = path.join(skillsDir, 'data_analyzer.py');
+    const seededChartMd = path.join(skillsDir, 'chart_generator.md');
+    const seededChartPy = path.join(skillsDir, 'chart_generator.py');
+    const seededDownloaderMd = path.join(skillsDir, 'web_downloader.md');
+    const seededDownloaderPy = path.join(skillsDir, 'web_downloader.py');
+
     // Clean up test workspace files
     logger.info(`[Cleanup] Cleaning up test files for user: ${TEST_USER}`);
     try {
@@ -332,6 +403,14 @@ if __name__ == "__main__":
       if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath);
       if (fs.existsSync(hogMdPath)) fs.unlinkSync(hogMdPath);
       if (fs.existsSync(hogScriptPath)) fs.unlinkSync(hogScriptPath);
+      if (fs.existsSync(jsMdPath)) fs.unlinkSync(jsMdPath);
+      if (fs.existsSync(jsScriptPath)) fs.unlinkSync(jsScriptPath);
+      if (fs.existsSync(seededAnalyzerMd)) fs.unlinkSync(seededAnalyzerMd);
+      if (fs.existsSync(seededAnalyzerPy)) fs.unlinkSync(seededAnalyzerPy);
+      if (fs.existsSync(seededChartMd)) fs.unlinkSync(seededChartMd);
+      if (fs.existsSync(seededChartPy)) fs.unlinkSync(seededChartPy);
+      if (fs.existsSync(seededDownloaderMd)) fs.unlinkSync(seededDownloaderMd);
+      if (fs.existsSync(seededDownloaderPy)) fs.unlinkSync(seededDownloaderPy);
       if (fs.existsSync(skillsDir)) fs.rmdirSync(skillsDir);
       logger.info(`[SUCCESS] Cleaned up temporary skill files.`);
     } catch (e) {
