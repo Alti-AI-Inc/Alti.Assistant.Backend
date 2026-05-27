@@ -2,6 +2,7 @@ import { DynamicStructuredTool, StructuredTool } from '@langchain/core/tools';
 import { GoogleCustomSearch } from '@langchain/community/tools/google_custom_search';
 import { z } from 'zod';
 import config from '../../../../config/index.js';
+import { EnterpriseConnector } from './services/enterpriseConnector.js';
 import { getNewsApiAiData } from '../../helpers/v13DataIntegrations.js';
 import { getGreenlightIntelligenceData } from '../../helpers/v14DataIntegrations.js';
 import { getPremiumIntelligenceData } from '../../helpers/v15DataIntegrations.js';
@@ -911,3 +912,42 @@ Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemic
     }
   }
 });
+
+/**
+ * Alti Strategic Enterprise & High-Stakes Search Tool
+ */
+export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
+  name: 'alti_enterprise_intelligence_search',
+  description: `Access five premium enterprise-focused applications. Use this tool for ANY query regarding:
+1. "autodesk" -> Autodesk BIM 360 Construction sheets, RFIs, sheets coordination, models.
+2. "yardi" -> Yardi Systems property tenant rent history, billing balances, property management ledger update.
+3. "realpage" -> RealPage vacancy rent checking, leasing checklists, leasing compliance.
+4. "costar" -> CoStar commercial real estate zip code comps, transactions, historical rents.
+5. "argus" -> Argus Enterprise cash flow valuation stress tests, DCF models projection.
+Input: The app slug name (autodesk, yardi, realpage, costar, argus), the action name, and a JSON parameter object representing action arguments.`,
+  schema: z.object({
+    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus']).describe("The target enterprise application slug"),
+    action: z.enum([
+      'getBIM360ProjectSheets',
+      'createBIM360RFI',
+      'getYardiPropertyLedger',
+      'updateYardiRentLedger',
+      'getRealPageUnitAvailability',
+      'verifyRealPageLease',
+      'getCoStarPropertyComps',
+      'runArgusValuationDCF'
+    ]).describe("The action endpoint mapping to execute"),
+    parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
+    verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")
+  }),
+  func: async ({ app, action, parameters, verified }) => {
+    try {
+      const connector = new EnterpriseConnector(app, 'default-tenant');
+      const result = await connector.executeAction(action, parameters, { verified });
+      return JSON.stringify(result, null, 2);
+    } catch (err) {
+      return `Enterprise connector action failed: ${err.message}`;
+    }
+  }
+});
+

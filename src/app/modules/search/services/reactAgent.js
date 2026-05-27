@@ -2,7 +2,7 @@ import { SafeGoogleGenerativeAIEmbeddings } from '../../../../shared/embeddings.
 import { DynamicTool } from '@langchain/core/tools';
 import { WebBrowser } from 'langchain/tools/webbrowser';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { googleSearch, YouTubeSearchTool, newsapiGlobalNewsSearch, altiGreenlightIntelligenceSearch, altiPremiumIntelligenceSearch } from '../tools.js';
+import { googleSearch, YouTubeSearchTool, newsapiGlobalNewsSearch, altiGreenlightIntelligenceSearch, altiPremiumIntelligenceSearch, altiEnterpriseIntelligenceSearch } from '../tools.js';
 import config from '../../../../../config/index.js';
 import vertexAiService from './vertexAiService.js';
 import {
@@ -498,6 +498,7 @@ Input: A natural language query about flights, routes, airports, airlines, aircr
     newsapiGlobalNewsSearch,
     altiGreenlightIntelligenceSearch,
     altiPremiumIntelligenceSearch,
+    altiEnterpriseIntelligenceSearch,
     googleSearch,
     lookupHuggingfaceIndicesTool,
     queryHuggingfaceIndexTool,
@@ -655,11 +656,13 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
   * "newsapi_global_news_search" tool → Event Registry / NewsAPI.ai (verified global news article counts, sentiment trends, social share densities, primary categories, trust indices, and live headline bulletins)
   * "alti_greenlight_intelligence_search" tool → Nine high-value public intelligence databases (FEC politics, LegiScan tracking, Google Civic representatives, DBnomics economics, CFPB HMDA mortgages, OpenFEMA hazards, NIH RePORTER grants, UK Companies House, OpenCorporates global registry)
   * "alti_premium_intelligence_search" tool → Nine high-value premium public intelligence databases (clinical_trials, fda_drug_safety, global_health_observatory, us_treasury_fiscal, federal_spending, healthcare_npi, food_nutrients, charity_registry, aviation_delays)
+  * "alti_enterprise_intelligence_search" tool → Five premium enterprise applications (Autodesk BIM 360, Yardi Systems, RealPage, CoStar Group, and Argus Enterprise)
   * "lookup-huggingface-indices" tool → Search Alti's local registry of fully indexed, commercially clean Hugging Face datasets.
   * "query-huggingface-index" tool → Scoped vector search to query specific indexed Hugging Face datasets (e.g. bluuebunny/arxiv_metadata_by_year, Detroit Red Wings schedule, custom academic/weather repositories).
   * "Google_Custom_Search" tool → Live internet search
 - ENTERPRISE KNOWLEDGE DIRECTIVE: For ANY query regarding internal documents, blueprints, secure manuals, standard operating procedures, or private knowledge bases, you MUST call the "vertex-ai-search" tool FIRST.
 - HUGGING FACE DATASET DIRECTIVE: For ANY query asking about Alti's indexed datasets, or seeking factual context from specific domains (like ArXiv papers, custom academic/weather indexes, or general structured repositories), you MUST call "lookup-huggingface-indices" first to check if Alti has the dataset indexed locally. If found, call "query-huggingface-index" to retrieve high-fidelity source facts instead of standard web searches!
+- STRATEGIC ENTERPRISE SYSTEMS DIRECTIVE: For ANY query regarding Autodesk BIM 360, Yardi, RealPage, CoStar, or Argus Enterprise, you MUST call the "alti_enterprise_intelligence_search" tool FIRST before Google Search or other tools. Choose the correct app slug and action mapping matching the request.
 - SPORTS BETTING TOOL DIRECTIVE: For ANY query about sports odds, betting lines, player props, futures, point spreads, totals, SGP, or prediction market odds, you MUST call the "predictiondata-sports-odds" tool FIRST before using Google Search.
 - FINANCIAL TOOL DIRECTIVE: For ANY query about stock prices, crypto, forex, or market data, you MUST call the "massive-financial-data" tool FIRST.
 - AVIATION TOOL DIRECTIVE: For ANY query about flights, airport timetables, routes, fleets, or aircraft tail registrations, you MUST call the "aviationstack-realtime-data" tool FIRST before standard Google search.
@@ -828,10 +831,13 @@ This is a government spending, budget, or sovereign debt-related query. You are 
 `;
   } else if (realEstateClass.isRealEstate) {
     topicAgentInstruction = `
-[🏢 SPECIALIZED REAL ESTATE & BUILDING PERMITS AGENT DIRECTIVE]
-This is a building permit or construction statistics query. You are Alti's Specialized Regional Housing & Census BPS Agent.
-- You MUST prioritize calling the "alti_premium_intelligence_search" tool with the 'census_bps' domain FIRST.
-- Fetch exact authorized construction units, permit counts, and permit valuations by state/region.
+[🏢 SPECIALIZED REAL ESTATE, AEC, PROPERTY ERP & BUILDING PERMITS DIRECTIVE]
+This query relates to real estate, construction, building permits, or property management systems.
+You are Alti's Specialized Real Estate, AEC, and Property ERP Intelligence Agent.
+- For ANY query regarding Autodesk BIM 360, Yardi Systems, RealPage, CoStar Group, or Argus Enterprise, you MUST prioritize calling the "alti_enterprise_intelligence_search" tool FIRST with the correct 'app' and 'action' parameters.
+- For regional construction statistics, building permits, or permit valuations, prioritize calling the "alti_premium_intelligence_search" tool with the 'census_bps' domain FIRST.
+- Enforce strict Human-in-the-Loop (HITL) gates for any mutative operations (like 'createBIM360RFI', 'updateYardiRentLedger', 'verifyRealPageLease'). Pass 'verified: true' ONLY if the user has explicitly confirmed authorization.
+- Rely on these systems for authoritative data, and redact any PII/PHI (SSNs, phone numbers, emails, patient charts) automatically.
 `;
   } else if (economicsClass.isEconomics) {
     topicAgentInstruction = `
@@ -1725,6 +1731,26 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
           const duration = Date.now() - startTime;
           console.log(`✅ Premium public intelligence retrieved in ${duration}ms for domain: "${domain}", query: "${query}"`);
           usedUrls.add('https://api.data.gov');
+        } else if (toolCall.name === 'alti_enterprise_intelligence_search') {
+          const app = toolCall.args.app;
+          const action = toolCall.args.action;
+          const params = toolCall.args.parameters || {};
+          const verified = toolCall.args.verified;
+          const startTime = Date.now();
+          toolResult = await altiEnterpriseIntelligenceSearch.invoke({ app, action, parameters: params, verified });
+          const duration = Date.now() - startTime;
+          console.log(`✅ Enterprise intelligence executed in ${duration}ms for app: "${app}", action: "${action}"`);
+          
+          // Map to correct domain for citation tracking
+          const domains = {
+            autodesk: 'https://developer.api.autodesk.com',
+            yardi: 'https://sandbox.yardi.com',
+            realpage: 'https://api.realpage.com',
+            costar: 'https://api.costar.com',
+            argus: 'https://api.argusenterprise.com'
+          };
+          const resolvedDomain = domains[app.toLowerCase()] || 'https://api.enterprise-connector.local';
+          usedUrls.add(resolvedDomain);
         } else {
           // Generic fallback to execute any DynamicTool from the tools array
           const tool = tools.find(t => t.name === toolCall.name);
