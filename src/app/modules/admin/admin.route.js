@@ -40,6 +40,12 @@ router.get(
   AdminController.getBillingAuditLogs
 );
 
+router.get(
+  '/swarm-audits',
+  auth(ENUM_USER_ROLE.ADMIN),
+  AdminController.getSwarmAudits
+);
+
 router.get('/admin/:email', AdminController.getAdmin);
 
 router.get(

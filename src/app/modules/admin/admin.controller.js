@@ -224,6 +224,26 @@ const getBillingAuditLogs = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Retrieve swarm execution audits with search, status filtering, and pagination (admin)
+ */
+const getSwarmAudits = catchAsync(async (req, res) => {
+  const filters = pick(req.query, ['searchTerm', 'status', 'toolName']);
+  const paginationOptions = pick(req.query, paginationFields);
+
+  const result = await AdminService.getSwarmAuditsService(
+    filters,
+    paginationOptions
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Swarm audits retrieved successfully',
+    data: result,
+  });
+});
+
 export const AdminController = {
   getAllBuyer,
   deleteUser,
@@ -238,4 +258,5 @@ export const AdminController = {
   getTenantUsageAdmin,
   extendTenantTrial,
   getBillingAuditLogs,
+  getSwarmAudits,
 };

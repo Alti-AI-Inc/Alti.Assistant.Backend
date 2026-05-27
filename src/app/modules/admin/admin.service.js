@@ -425,6 +425,56 @@ const getBillingAuditLogsService = async (filters, paginationOptions) => {
   };
 };
 
+/**
+ * Retrieve swarm audits from SwarmAudit collection with pagination and filtering (admin)
+ */
+const getSwarmAuditsService = async (filters, paginationOptions) => {
+  const SwarmAudit = (await import('../swarm/swarmAudit.model.js')).default;
+  const { searchTerm, status, toolName } = filters;
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelpers.calculatePagination(paginationOptions);
+
+  const andConditions = [];
+
+  if (searchTerm) {
+    andConditions.push({
+      $or: [
+        { userId: { $regex: searchTerm, $options: 'i' } },
+        { toolName: { $regex: searchTerm, $options: 'i' } },
+        { errorMessage: { $regex: searchTerm, $options: 'i' } },
+      ],
+    });
+  }
+
+  if (status) {
+    andConditions.push({ status });
+  }
+
+  if (toolName) {
+    andConditions.push({ toolName });
+  }
+
+  const query = andConditions.length > 0 ? { $and: andConditions } : {};
+  const sortConditions = {};
+  if (sortBy && sortOrder) {
+    sortConditions[sortBy] = sortOrder;
+  } else {
+    sortConditions['createdAt'] = -1; // Default to newest first
+  }
+
+  const audits = await SwarmAudit.find(query)
+    .sort(sortConditions)
+    .skip(skip)
+    .limit(limit);
+
+  const total = await SwarmAudit.countDocuments(query);
+
+  return {
+    meta: { page, limit, total },
+    data: audits,
+  };
+};
+
 export const AdminService = {
   getAllUsersService,
   getAllBuyerServices,
@@ -440,4 +490,5 @@ export const AdminService = {
   getTenantUsageService,
   extendTenantTrialService,
   getBillingAuditLogsService,
+  getSwarmAuditsService,
 };

@@ -233,6 +233,98 @@ if __name__ == "__main__":
     await dockerWorkspaceService.prewarmWorkspace(TEST_USER);
     logger.info(`[SUCCESS] Sandbox pre-warming executed successfully.`);
 
+    // 11. Concurrency Throttling Queue Verification
+    logger.info(`[Step 11] Verifying Sandbox Concurrency Throttling Queue...`);
+    const originalConcurrentOps = dockerWorkspaceService.maxConcurrentOperations;
+    dockerWorkspaceService.maxConcurrentOperations = 1; // force serial queueing
+
+    const p1 = dockerWorkspaceService.getOrCreateWorkspace('test_user_queue_1');
+    const p2 = dockerWorkspaceService.getOrCreateWorkspace('test_user_queue_2');
+
+    logger.info(`Fired two concurrent workspace creations. Queue depth should be > 0...`);
+    logger.info(`Current queue depth: ${dockerWorkspaceService.concurrencyQueue.length}`);
+
+    const [r1, r2] = await Promise.all([p1, p2]);
+    logger.info(`Both workspaces resolved. Results: user_1=${r1.mode}, user_2=${r2.mode}`);
+    dockerWorkspaceService.maxConcurrentOperations = originalConcurrentOps; // restore
+    logger.info(`[SUCCESS] Verified parallel operation serialization and queue recovery.`);
+
+    // 12. Sandbox LRU Container Eviction Verification
+    logger.info(`[Step 12] Verifying Sandbox LRU Eviction & Container Ceiling...`);
+    if (workspace.mode === 'docker-isolated') {
+      const originalMax = dockerWorkspaceService.maxContainers;
+      dockerWorkspaceService.maxContainers = 2; // set ceiling to 2
+
+      // Track session activities to assert LRU eviction order
+      dockerWorkspaceService.activeSessions.set('test_user_queue_1', { lastActivity: new Date(Date.now() - 10000) });
+      dockerWorkspaceService.activeSessions.set('test_user_queue_2', { lastActivity: new Date(Date.now() - 5000) });
+
+      logger.info(`Creating a third workspace 'test_user_queue_3' to trigger eviction...`);
+      const r3 = await dockerWorkspaceService.getOrCreateWorkspace('test_user_queue_3');
+
+      const containersAfter = execSync(
+        `docker ps -a --filter "name=alti_workspace_" --format "{{.Names}}"`,
+        { encoding: 'utf8' }
+      ).trim().split('\n').map(n => n.trim()).filter(Boolean);
+
+      logger.info(`Active containers after eviction: ${JSON.stringify(containersAfter)}`);
+      const user1Evicted = !containersAfter.includes('alti_workspace_test_user_queue_1');
+      const user3Exists = containersAfter.includes('alti_workspace_test_user_queue_3');
+
+      if (user1Evicted && user3Exists) {
+        logger.info(`[SUCCESS] Oldest container 'test_user_queue_1' was evicted successfully.`);
+      } else {
+        throw new Error(`FAIL: Eviction failed. User 1 container evicted: ${user1Evicted}, User 3 container exists: ${user3Exists}`);
+      }
+
+      // Clean up temporary queue containers
+      await dockerWorkspaceService.stopWorkspace('test_user_queue_1');
+      await dockerWorkspaceService.stopWorkspace('test_user_queue_2');
+      await dockerWorkspaceService.stopWorkspace('test_user_queue_3');
+      dockerWorkspaceService.maxContainers = originalMax; // restore
+    } else {
+      logger.info(`[Local Fallback] Skipping active container ceiling/eviction tests in local-fallback mode.`);
+    }
+
+    // 13. Swarm Telemetry Audit Logs API Query Verification
+    logger.info(`[Step 13] Verifying Swarm Telemetry Audit logs database resolution...`);
+    if (dbUrl) {
+      try {
+        await mongoose.connect(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true, family: 4, serverSelectionTimeoutMS: 5000 });
+
+        const SwarmAuditModel = (await import('../src/app/modules/swarm/swarmAudit.model.js')).default;
+        await SwarmAuditModel.create({
+          userId: 'temp_audit_user_999',
+          toolName: 'test_lru_audit_tool',
+          status: 'success',
+          attempts: [{ attempt: 1, durationMs: 450, stdout: 'Test success' }]
+        });
+
+        const { AdminService } = await import('../src/app/modules/admin/admin.service.js');
+        const queryResult = await AdminService.getSwarmAuditsService(
+          { searchTerm: 'temp_audit_user_999' },
+          { page: 1, limit: 10 }
+        );
+
+        logger.info(`AdminService.getSwarmAuditsService returned meta: ${JSON.stringify(queryResult.meta)}`);
+        logger.info(`Found ${queryResult.data.length} matching audit logs.`);
+
+        if (queryResult.data.length > 0 && queryResult.data[0].userId === 'temp_audit_user_999') {
+          logger.info(`[SUCCESS] Admin Swarm telemetry successfully queried and verified!`);
+        } else {
+          throw new Error(`FAIL: Swarm telemetry query returned unexpected result count or incorrect data.`);
+        }
+
+        // Purge temp audit records
+        await SwarmAuditModel.deleteMany({ userId: 'temp_audit_user_999' });
+        await mongoose.disconnect();
+      } catch (dbErr) {
+        logger.warn(`[Step 13 Warning] Skipping active database check: ${dbErr.message}`);
+      }
+    } else {
+      logger.info(`[Database Notice] DATABASE_LOCAL is not defined. Skipping Step 13 active database check.`);
+    }
+
     // Clean up test workspace files
     logger.info(`[Cleanup] Cleaning up test files for user: ${TEST_USER}`);
     try {

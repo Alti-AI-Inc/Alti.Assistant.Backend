@@ -10,6 +10,10 @@ class DockerWorkspaceService {
     this.userWorkspacesDir = path.resolve('storage/users');
     this.activeSessions = new Map(); // userId -> { lastActivity: Date }
     this.initialized = false;
+    this.maxContainers = parseInt(process.env.DOCKER_MAX_CONTAINERS || '20', 10);
+    this.concurrencyQueue = [];
+    this.activeOperationsCount = 0;
+    this.maxConcurrentOperations = parseInt(process.env.DOCKER_MAX_CONCURRENT_OPS || '3', 10);
   }
 
   /**
@@ -74,6 +78,101 @@ class DockerWorkspaceService {
   }
 
   /**
+   * Performs LRU sandbox eviction if the total number of user containers exceeds the maximum limit.
+   */
+  async _reclaimContainerSlot(excludeUserId = null) {
+    try {
+      const containers = execSync(
+        `docker ps -a --filter "name=alti_workspace_" --format "{{.Names}}"`,
+        { encoding: 'utf8' }
+      ).trim().split('\n').map(n => n.trim()).filter(Boolean);
+
+      if (containers.length < this.maxContainers) {
+        return; // Safe, under limit
+      }
+
+      logger.info(`[DOCKER LIMIT] Sandbox container ceiling reached (${containers.length}/${this.maxContainers}). Reclaiming slot...`);
+
+      // 1. Evict any container not registered in activeSessions
+      for (const name of containers) {
+        const match = name.match(/^alti_workspace_(.+)$/);
+        if (match) {
+          const uId = match[1];
+          if (uId === excludeUserId) continue;
+          if (!this.activeSessions.has(uId)) {
+            logger.info(`[DOCKER EVICT] Evicting unregistered/leaked container: ${name}`);
+            await this.stopWorkspace(uId);
+            return;
+          }
+        }
+      }
+
+      // 2. Evict the least recently active registered session
+      let oldestUserId = null;
+      let oldestTime = Infinity;
+
+      for (const [uId, session] of this.activeSessions.entries()) {
+        if (uId === excludeUserId) continue;
+        const lastAct = session.lastActivity.getTime();
+        if (lastAct < oldestTime) {
+          oldestTime = lastAct;
+          oldestUserId = uId;
+        }
+      }
+
+      if (oldestUserId) {
+        logger.info(`[DOCKER EVICT] Evicting LRU container for user ${oldestUserId} (inactive since ${new Date(oldestTime).toISOString()})`);
+        await this.stopWorkspace(oldestUserId);
+      } else {
+        // 3. Fallback eviction if map is empty/unavailable
+        for (const name of containers) {
+          const match = name.match(/^alti_workspace_(.+)$/);
+          if (match) {
+            const uId = match[1];
+            if (uId !== excludeUserId) {
+              logger.info(`[DOCKER EVICT] Fallback evicting container: ${name}`);
+              await this.stopWorkspace(uId);
+              return;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      logger.error(`[DOCKER EVICT ERROR] Failed to reclaim container slot: ${err.message}`);
+    }
+  }
+
+  /**
+   * Enqueues high-resource Docker operations to limit parallel concurrency and prevent host resource exhaustion.
+   */
+  async _enqueueDockerOperation(operationFn) {
+    return new Promise((resolve, reject) => {
+      const execute = async () => {
+        this.activeOperationsCount++;
+        try {
+          const res = await operationFn();
+          resolve(res);
+        } catch (err) {
+          reject(err);
+        } finally {
+          this.activeOperationsCount--;
+          if (this.concurrencyQueue.length > 0) {
+            const next = this.concurrencyQueue.shift();
+            next();
+          }
+        }
+      };
+
+      if (this.activeOperationsCount < this.maxConcurrentOperations) {
+        execute();
+      } else {
+        logger.info(`[DOCKER QUEUE] Queueing Docker operation due to concurrency limit (${this.activeOperationsCount}/${this.maxConcurrentOperations} active)`);
+        this.concurrencyQueue.push(execute);
+      }
+    });
+  }
+
+  /**
    * Retrieves or dynamically spins up the user's isolated container workspace.
    */
   async getOrCreateWorkspace(userId) {
@@ -87,53 +186,58 @@ class DockerWorkspaceService {
     const containerName = `alti_workspace_${userId}`;
     const hostVolumePath = this._ensureHostUserDir(userId);
 
-    try {
-      // Check if container already exists
-      const containerStatus = execSync(
-        `docker inspect -f "{{.State.Status}}" ${containerName} 2>/dev/null || echo "none"`,
-        { encoding: 'utf8' }
-      ).trim();
+    return this._enqueueDockerOperation(async () => {
+      // Reclaim slot if at or above container limit
+      await this._reclaimContainerSlot(userId);
 
-      if (containerStatus === 'none') {
-        logger.info(`[DOCKER] Creating new workspace container: ${containerName}`);
-        
-        const skillsBaseDir = 'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
-        const mcpToolboxDir = path.resolve('mcp-toolbox');
+      try {
+        // Check if container already exists
+        const containerStatus = execSync(
+          `docker inspect -f "{{.State.Status}}" ${containerName} 2>/dev/null || echo "none"`,
+          { encoding: 'utf8' }
+        ).trim();
 
-        // Spawn container in background with resource constraints (CPU shares, Memory ceiling)
-        // Mounting workspace to /workspace, skills to /skills (ro), and mcp-toolbox to /mcp-toolbox (ro)
-        // Connecting to secure internal network and setting up loopback database gateway support
-        const createCmd = `docker run -d \
-          --name ${containerName} \
-          --network alti_sandbox_net \
-          --add-host=host.docker.internal:host-gateway \
-          --memory 512m \
-          --cpus 1.0 \
-          --pids-limit 100 \
-          --cap-drop=ALL \
-          --security-opt=no-new-privileges:true \
-          --read-only \
-          --tmpfs /tmp:rw,noexec,nosuid,size=64m \
-          -v "${hostVolumePath}:/workspace" \
-          -v "${skillsBaseDir}:/skills:ro" \
-          -v "${mcpToolboxDir}:/mcp-toolbox:ro" \
-          ${this.imageName} sleep infinity`;
+        if (containerStatus === 'none') {
+          logger.info(`[DOCKER] Creating new workspace container: ${containerName}`);
+          
+          const skillsBaseDir = 'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
+          const mcpToolboxDir = path.resolve('mcp-toolbox');
 
-        execSync(createCmd);
-        logger.info(`[SUCCESS] Created container workspace: ${containerName}`);
-      } else if (containerStatus === 'paused') {
-        logger.info(`[DOCKER] Unpausing workspace container: ${containerName}`);
-        execSync(`docker unpause ${containerName}`);
-      } else if (containerStatus !== 'running') {
-        logger.info(`[DOCKER] Restarting stopped workspace container: ${containerName}`);
-        execSync(`docker start ${containerName}`);
+          // Spawn container in background with resource constraints (CPU shares, Memory ceiling)
+          // Mounting workspace to /workspace, skills to /skills (ro), and mcp-toolbox to /mcp-toolbox (ro)
+          // Connecting to secure internal network and setting up loopback database gateway support
+          const createCmd = `docker run -d \
+            --name ${containerName} \
+            --network alti_sandbox_net \
+            --add-host=host.docker.internal:host-gateway \
+            --memory 512m \
+            --cpus 1.0 \
+            --pids-limit 100 \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges:true \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            -v "${hostVolumePath}:/workspace" \
+            -v "${skillsBaseDir}:/skills:ro" \
+            -v "${mcpToolboxDir}:/mcp-toolbox:ro" \
+            ${this.imageName} sleep infinity`;
+
+          execSync(createCmd);
+          logger.info(`[SUCCESS] Created container workspace: ${containerName}`);
+        } else if (containerStatus === 'paused') {
+          logger.info(`[DOCKER] Unpausing workspace container: ${containerName}`);
+          execSync(`docker unpause ${containerName}`);
+        } else if (containerStatus !== 'running') {
+          logger.info(`[DOCKER] Restarting stopped workspace container: ${containerName}`);
+          execSync(`docker start ${containerName}`);
+        }
+
+        return { success: true, mode: 'docker-isolated', containerId: containerName };
+      } catch (err) {
+        logger.error(`[DOCKER] Failed to manage workspace for user ${userId}: ${err.message}`);
+        return { success: false, mode: 'local-fallback', containerId: null };
       }
-
-      return { success: true, mode: 'docker-isolated', containerId: containerName };
-    } catch (err) {
-      logger.error(`[DOCKER] Failed to manage workspace for user ${userId}: ${err.message}`);
-      return { success: false, mode: 'local-fallback', containerId: null };
-    }
+    });
   }
 
   /**
@@ -327,45 +431,50 @@ class DockerWorkspaceService {
     if (!this.initialized) return;
 
     const containerName = `alti_workspace_${userId}`;
-    try {
-      const containerStatus = execSync(
-        `docker inspect -f "{{.State.Status}}" ${containerName} 2>/dev/null || echo "none"`,
-        { encoding: 'utf8' }
-      ).trim();
+    return this._enqueueDockerOperation(async () => {
+      // Reclaim slot if at or above container limit
+      await this._reclaimContainerSlot(userId);
 
-      if (containerStatus === 'none') {
-        logger.info(`[DOCKER PREWARM] Pre-warming new container for user: ${userId}`);
-        const hostVolumePath = this._ensureHostUserDir(userId);
-        const skillsBaseDir = 'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
-        const mcpToolboxDir = path.resolve('mcp-toolbox');
+      try {
+        const containerStatus = execSync(
+          `docker inspect -f "{{.State.Status}}" ${containerName} 2>/dev/null || echo "none"`,
+          { encoding: 'utf8' }
+        ).trim();
 
-        const createCmd = `docker run -d \
-          --name ${containerName} \
-          --network alti_sandbox_net \
-          --add-host=host.docker.internal:host-gateway \
-          --memory 512m \
-          --cpus 1.0 \
-          --pids-limit 100 \
-          --cap-drop=ALL \
-          --security-opt=no-new-privileges:true \
-          --read-only \
-          --tmpfs /tmp:rw,noexec,nosuid,size=64m \
-          -v "${hostVolumePath}:/workspace" \
-          -v "${skillsBaseDir}:/skills:ro" \
-          -v "${mcpToolboxDir}:/mcp-toolbox:ro" \
-          ${this.imageName} sleep infinity`;
+        if (containerStatus === 'none') {
+          logger.info(`[DOCKER PREWARM] Pre-warming new container for user: ${userId}`);
+          const hostVolumePath = this._ensureHostUserDir(userId);
+          const skillsBaseDir = 'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
+          const mcpToolboxDir = path.resolve('mcp-toolbox');
 
-        execSync(createCmd);
-        execSync(`docker pause ${containerName}`);
-        logger.info(`[SUCCESS] Pre-warmed container ${containerName} and placed in paused state.`);
-      } else if (containerStatus === 'running') {
-        logger.info(`[DOCKER PREWARM] Suspending active container ${containerName} to free host resources.`);
-        execSync(`docker pause ${containerName}`);
+          const createCmd = `docker run -d \
+            --name ${containerName} \
+            --network alti_sandbox_net \
+            --add-host=host.docker.internal:host-gateway \
+            --memory 512m \
+            --cpus 1.0 \
+            --pids-limit 100 \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges:true \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            -v "${hostVolumePath}:/workspace" \
+            -v "${skillsBaseDir}:/skills:ro" \
+            -v "${mcpToolboxDir}:/mcp-toolbox:ro" \
+            ${this.imageName} sleep infinity`;
+
+          execSync(createCmd);
+          execSync(`docker pause ${containerName}`);
+          logger.info(`[SUCCESS] Pre-warmed container ${containerName} and placed in paused state.`);
+        } else if (containerStatus === 'running') {
+          logger.info(`[DOCKER PREWARM] Suspending active container ${containerName} to free host resources.`);
+          execSync(`docker pause ${containerName}`);
+        }
+        this.activeSessions.set(userId, { lastActivity: new Date() });
+      } catch (err) {
+        logger.error(`[DOCKER PREWARM ERROR] Failed to pre-warm workspace: ${err.message}`);
       }
-      this.activeSessions.set(userId, { lastActivity: new Date() });
-    } catch (err) {
-      logger.error(`[DOCKER PREWARM ERROR] Failed to pre-warm workspace: ${err.message}`);
-    }
+    });
   }
 
   /**
