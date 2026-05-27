@@ -1,147 +1,46 @@
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import config from '../../../../../config/index.js';
-import { googleSearch, YouTubeSearchTool } from '../tools.js';
 import {
-  analyzeAndLogModelSelection,
-  selectOptimalModel,
-} from '../utils/modelSelector.js';
+  selectModelSmart as mcSelectModelSmart,
+  selectModel as mcSelectModel,
+  createToolEnabledLLM as mcCreateToolEnabledLLM,
+  createToolEnabledLLMExplicit as mcCreateToolEnabledLLMExplicit,
+  gemini2_5Flash as mcGemini2_5Flash,
+  gemini3ProPreview as mcGemini3ProPreview,
+} from './multiCloudModelService.js';
 
 /**
- * Gemini LLM Service
- * Centralized configuration for all Gemini LLM instances with dual model support
- * Now includes SMART MODEL SELECTION based on query analysis
+ * Gemini LLM Service Proxy
+ * Proxies standard Gemini model instantiations and smart selectors to
+ * the enterprise Multi-Cloud Model Service to achieve drop-in compatibility.
  */
 
-// Model selection criteria
+// Model complexity constants
 export const ModelComplexity = {
-  SIMPLE: 'simple', // Fast, lightweight tasks
-  COMPLEX: 'complex', // Advanced reasoning, complex tasks
+  SIMPLE: 'simple',
+  COMPLEX: 'complex',
 };
 
-// Gemini 3.5 Flash - Fast and efficient for standard/lightweight tasks
-export const gemini2_5Flash = new ChatGoogleGenerativeAI({
-  model: 'gemini-3.5-flash', // Gemini 3.5 Flash for speed and efficiency
-  apiKey: config.gemini_secret_key,
-  temperature: 0,
-  maxRetries: 2,
-});
-// Gemini 3.1 Pro - Advanced capabilities for complex analytical tasks
-export const gemini3ProPreview = new ChatGoogleGenerativeAI({
-  model: 'gemini-3.1-pro', // Gemini 3.1 Pro for cognitive reasoning
-  apiKey: config.gemini_secret_key,
-  temperature: 0,
-  maxRetries: 2,
-});
-/**
- * SMART MODEL SELECTION - Automatically determines the best model
- * Analyzes query characteristics and context to choose optimal model
- * @param {string} query - The user query
- * @param {Object} context - Additional context for analysis
- * @returns {ChatGoogleGenerativeAI} The optimal LLM instance
- */
-export const selectModelSmart = (query, context = {}) => {
-  const analysis = analyzeAndLogModelSelection(query, context);
-  console.log(`✅ Selected: ${analysis.modelName} (Smart Selection)`);
-  return analysis.usePro ? gemini3ProPreview : gemini2_5Flash;
-};
+// Proxied base model instances
+export const gemini2_5Flash = mcGemini2_5Flash;
+export const gemini3ProPreview = mcGemini3ProPreview;
 
-/**
- * Determine which model to use based on task characteristics
- * @param {Object} options - Task characteristics
- * @param {string} options.complexity - 'simple' or 'complex'
- * @param {number} options.inputLength - Approximate input length
- * @param {boolean} options.requiresReasoning - Whether task needs advanced reasoning
- * @param {boolean} options.speedPriority - Whether speed is critical
- * @param {string} options.query - The actual query for smart analysis (optional)
- * @param {Object} options.context - Additional context for smart analysis (optional)
- * @returns {ChatGoogleGenerativeAI} The appropriate LLM instance
- */
-export const selectModel = (options = {}) => {
-  const {
-    complexity = ModelComplexity.SIMPLE,
-    inputLength = 0,
-    requiresReasoning = false,
-    speedPriority = false,
-    query = null,
-    context = {},
-  } = options;
+// Proxied smart routing selection and tooling methods
+export const selectModelSmart = mcSelectModelSmart;
+export const selectModel = mcSelectModel;
+export const createToolEnabledLLM = mcCreateToolEnabledLLM;
+export const createToolEnabledLLMExplicit = mcCreateToolEnabledLLMExplicit;
 
-  // If query is provided, use SMART selection
-  if (query) {
-    console.log('🧠 Using SMART model selection based on query analysis');
-    return selectModelSmart(query, {
-      ...context,
-      requiresReasoning,
-      inputLength,
-    });
-  }
-
-  // Fallback to manual criteria-based selection
-  console.log('⚙️ Using manual model selection criteria');
-
-  // Use Gemini 3.1 Pro for:
-  // - Complex tasks requiring advanced reasoning
-  // - Large context windows (> 10k tokens)
-  // - Tasks explicitly marked as complex
-  if (
-    complexity === ModelComplexity.COMPLEX ||
-    requiresReasoning ||
-    inputLength > 10000
-  ) {
-    console.log(
-      '✅ Selected: Gemini 3.1 Pro (Manual: Complex/Large/Reasoning)'
-    );
-    return gemini3ProPreview;
-  }
-
-  // Use Gemini 3.5 Flash for:
-  // - Simple tasks
-  // - Speed-critical operations
-  // - Smaller inputs
-  if (speedPriority || complexity === ModelComplexity.SIMPLE) {
-    console.log('✅ Selected: Gemini 3.5 Flash (Manual: Simple/Speed)');
-    return gemini2_5Flash;
-  }
-
-  // Default to Flash for efficiency
-  console.log('✅ Selected: Gemini 3.5 Flash (Manual: Default)');
-  return gemini2_5Flash;
-};
-
-/**
- * Create tool-enabled LLM with search capabilities
- * NOW WITH SMART MODEL SELECTION
- * @param {string} query - The user query for smart model selection
- * @param {Object} options - Model selection options and context
- * @returns {ChatGoogleGenerativeAI} Tool-enabled LLM instance
- */
-export const createToolEnabledLLM = (query = null, options = {}) => {
-  const searchTools = [new YouTubeSearchTool(), googleSearch];
-
-  // Use smart selection if query is provided
-  const selectedModel = query
-    ? selectModelSmart(query, options)
-    : selectModel(options);
-
-  return selectedModel.bindTools(searchTools);
-};
-
-/**
- * Create tool-enabled LLM with explicit model choice
- * @param {string} modelType - 'flash' or 'pro'
- * @returns {ChatGoogleGenerativeAI} Tool-enabled LLM instance
- */
-export const createToolEnabledLLMExplicit = (modelType = 'flash') => {
-  const searchTools = [new YouTubeSearchTool(), googleSearch];
-
-  const model = modelType === 'pro' ? gemini3ProPreview : gemini2_5Flash;
-  console.log(
-    `✅ Explicit model selection: ${modelType === 'pro' ? 'Gemini 3.1 Pro' : 'Gemini 3.5 Flash'}`
-  );
-
-  return model.bindTools(searchTools);
-};
-
-// Default LLM instances for backward compatibility
-export const llm = gemini2_5Flash; // Default to Flash for efficiency
+// Default LLM instances for legacy backward-compatibility
+export const llm = gemini2_5Flash;
 export const toolEnabledLLM = createToolEnabledLLM();
+
+export default {
+  ModelComplexity,
+  gemini2_5Flash,
+  gemini3ProPreview,
+  selectModelSmart,
+  selectModel,
+  createToolEnabledLLM,
+  createToolEnabledLLMExplicit,
+  llm,
+  toolEnabledLLM,
+};

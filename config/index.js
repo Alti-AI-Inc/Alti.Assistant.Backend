@@ -76,6 +76,13 @@ export default {
     deploymentOrModel: process.env.AZURE_AI_FOUNDRY_MODEL || process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4o-mini',
     apiVersion: process.env.AZURE_AI_API_VERSION || '2024-05-01-preview'
   },
+  aws: {
+    region: process.env.AWS_REGION || 'us-east-1',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    modelId: process.env.AWS_BEDROCK_MODEL_ID || 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+  },
+  llmProvider: process.env.LLM_PROVIDER || 'gcp',
 
   browser_use_secret_key: process.env.BROWSER_USE_SECRET_KEY,
   cyberdesk_api_key: process.env.CYBERDESK_API_KEY,
