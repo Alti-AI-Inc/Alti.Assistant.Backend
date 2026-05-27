@@ -954,9 +954,14 @@ export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
 33. "snowflake" -> Snowflake cloud data warehouse tables queries, custom analytics tables creation.
 34. "hubspot" -> HubSpot growth CRM leads detail retrieval, contact lifecycle updates.
 35. "zendesk" -> Zendesk Helpdesk ticketing summaries, priority support ticket escalations.
-Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis, veevavault, epic, athenahealth, elationhealth, iqvia, changehealthcare, coupa, ariba, flexport, samsara, workday, sap, adp, deel, netsuite, salesforce, servicenow, snowflake, hubspot, zendesk), the action name, and a JSON parameter object representing action arguments.`,
+36. "datadog" -> Datadog APM metrics, active monitor alert muting.
+37. "pagerduty" -> PagerDuty incident rosters, on-call paging dispatches.
+38. "hashicorp_vault" -> HashiCorp Vault secrets metadata, dynamic key rotations.
+39. "splunk" -> Splunk machine log query search, SIEM custom alert rule creation.
+40. "dynatrace" -> Dynatrace full-stack dependency flow maps, AI anomaly threshold updates.
+Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis, veevavault, epic, athenahealth, elationhealth, iqvia, changehealthcare, coupa, ariba, flexport, samsara, workday, sap, adp, deel, netsuite, salesforce, servicenow, snowflake, hubspot, zendesk, datadog, pagerduty, hashicorp_vault, splunk, dynatrace), the action name, and a JSON parameter object representing action arguments.`,
   schema: z.object({
-    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare', 'coupa', 'ariba', 'flexport', 'samsara', 'workday', 'sap', 'adp', 'deel', 'netsuite', 'salesforce', 'servicenow', 'snowflake', 'hubspot', 'zendesk']).describe("The target enterprise application slug"),
+    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare', 'coupa', 'ariba', 'flexport', 'samsara', 'workday', 'sap', 'adp', 'deel', 'netsuite', 'salesforce', 'servicenow', 'snowflake', 'hubspot', 'zendesk', 'datadog', 'pagerduty', 'hashicorp_vault', 'splunk', 'dynatrace']).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets',
       'createBIM360RFI',
@@ -1019,7 +1024,17 @@ Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, car
       'getHubSpotContact',
       'updateHubSpotContactStatus',
       'getZendeskTicket',
-      'escalateZendeskTicket'
+      'escalateZendeskTicket',
+      'getDatadogAPMMetrics',
+      'triggerDatadogMuteAlert',
+      'getPagerDutyOnCallSchedule',
+      'createPagerDutyIncident',
+      'getVaultSecretMetadata',
+      'rotateVaultSecretKey',
+      'querySplunkLogs',
+      'createSplunkAlertRule',
+      'getDynatraceServiceFlow',
+      'updateDynatraceAnomalyThreshold'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")

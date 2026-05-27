@@ -61,6 +61,9 @@ export function redactSensitiveData(payload) {
     // 14. Redact IPv4 IP Addresses (IT Operations)
     sanitized = sanitized.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[REDACTED IP]');
 
+    // 15. Redact MAC Addresses (DevOps/SecOps)
+    sanitized = sanitized.replace(/\b(?:[0-9A-Fa-f]{2}[:-]){5}(?:[0-9A-Fa-f]{2})\b/g, '[REDACTED MAC]');
+
     return sanitized;
   }
 
@@ -73,7 +76,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -244,6 +247,26 @@ export class EnterpriseConnector {
       zendesk: {
         apiToken: 'mock_zendesk_token',
         endpoint: 'https://api.zendesk.com/v1'
+      },
+      datadog: {
+        apiToken: 'mock_datadog_token',
+        endpoint: 'https://api.datadoghq.com/v1'
+      },
+      pagerduty: {
+        apiToken: 'mock_pagerduty_token',
+        endpoint: 'https://api.pagerduty.com/v1'
+      },
+      hashicorp_vault: {
+        apiToken: 'mock_vault_token',
+        endpoint: 'https://vault.enterprise.io/v1'
+      },
+      splunk: {
+        apiToken: 'mock_splunk_token',
+        endpoint: 'https://api.splunk.com/v1'
+      },
+      dynatrace: {
+        apiToken: 'mock_dynatrace_token',
+        endpoint: 'https://api.dynatrace.com/v1'
       }
     };
 
@@ -289,7 +312,12 @@ export class EnterpriseConnector {
       'updateServiceNowIncidentSeverity',
       'createSnowflakeTable',
       'updateHubSpotContactStatus',
-      'escalateZendeskTicket'
+      'escalateZendeskTicket',
+      'triggerDatadogMuteAlert',
+      'createPagerDutyIncident',
+      'rotateVaultSecretKey',
+      'createSplunkAlertRule',
+      'updateDynatraceAnomalyThreshold'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -1019,6 +1047,124 @@ export class EnterpriseConnector {
             newPriority: sanitizedParams.priority || 'High',
             clientcredit: sanitizedParams.clientcredit || 1200.00,
             status: 'TICKET_ESCALATED'
+          };
+          break;
+
+        // --- Datadog ---
+        case 'getDatadogAPMMetrics':
+          result = {
+            success: true,
+            service: sanitizedParams.service || 'billing-gateway',
+            env: sanitizedParams.env || 'production',
+            latencyMs: 142.5,
+            errorRate: 0.005,
+            throughputRps: 850.0,
+            apmdetail: 'Tracing details for request context resolved.'
+          };
+          break;
+
+        case 'triggerDatadogMuteAlert':
+          result = {
+            success: true,
+            monitorId: sanitizedParams.monitorId || 'mon-88992',
+            muteDurationHours: sanitizedParams.durationHours || 2,
+            alertpayload: 'Alert monitors silenced for maintenance window.',
+            status: 'MONITOR_MUTED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- PagerDuty ---
+        case 'getPagerDutyOnCallSchedule':
+          result = {
+            success: true,
+            scheduleId: sanitizedParams.scheduleId || 'sch-pd-1122',
+            currentOnCall: 'John Doe',
+            oncallphone: '555-019-2831',
+            escalationLevel: 1,
+            incidentdescription: 'Primary resolver roster loaded.'
+          };
+          break;
+
+        case 'createPagerDutyIncident':
+          result = {
+            success: true,
+            incidentId: 'inc-pd-99882',
+            serviceId: sanitizedParams.serviceId || 'srv-web-gateway',
+            title: sanitizedParams.title || 'High Latency Alarm',
+            severity: sanitizedParams.severity || 'CRITICAL',
+            logmessage: 'Alert dispatched to active on-call engineer.',
+            status: 'INCIDENT_TRIGGERED'
+          };
+          break;
+
+        // --- HashiCorp Vault ---
+        case 'getVaultSecretMetadata':
+          result = {
+            success: true,
+            secretPath: sanitizedParams.path || 'secret/data/db/production',
+            version: 3,
+            maxVersions: 10,
+            secretcontent: 'Metadata resolved for keys: [host, port, name].',
+            status: 'SECRET_METADATA_LOADED'
+          };
+          break;
+
+        case 'rotateVaultSecretKey':
+          result = {
+            success: true,
+            secretPath: sanitizedParams.path || 'secret/data/db/production',
+            newVersion: 4,
+            keyRotated: 'db_root_key',
+            credentialpayload: 'Secret key rotated successfully. Access token regenerated.',
+            status: 'KEY_ROTATED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Splunk Enterprise ---
+        case 'querySplunkLogs':
+          result = {
+            success: true,
+            query: sanitizedParams.query || 'search index=prod_web_errors sourcetype=nginx_error',
+            resultsCount: 42,
+            results: [
+              { timestamp: '2026-05-27T01:30:00Z', logmessage: '502 Bad Gateway at server IP 192.168.10.15' },
+              { timestamp: '2026-05-27T01:31:00Z', logmessage: 'Connection timed out to upstream backend.' }
+            ],
+            status: 'LOGS_RETRIEVED'
+          };
+          break;
+
+        case 'createSplunkAlertRule':
+          result = {
+            success: true,
+            alertName: sanitizedParams.alertName || 'HighErrorRateAlert',
+            cronExpression: sanitizedParams.cronExpression || '*/5 * * * *',
+            anomalysettings: 'Rule configured to trigger pager alert on 500 error count > 10 in 5m.',
+            status: 'ALERT_RULE_CREATED'
+          };
+          break;
+
+        // --- Dynatrace ---
+        case 'getDynatraceServiceFlow':
+          result = {
+            success: true,
+            serviceId: sanitizedParams.serviceId || 'service-dt-99332',
+            flowTraceId: 'trace-flow-11228833',
+            nodesCount: 5,
+            apmdetail: 'Root node: web-client (0.0ms) -> web-server (12.4ms) -> payment-service (130.1ms)',
+            status: 'SERVICE_FLOW_LOADED'
+          };
+          break;
+
+        case 'updateDynatraceAnomalyThreshold':
+          result = {
+            success: true,
+            serviceId: sanitizedParams.serviceId || 'service-dt-99332',
+            metricName: sanitizedParams.metricName || 'responseTime',
+            previousThresholdMs: 500,
+            newThresholdMs: sanitizedParams.thresholdMs || 1000,
+            anomalysettings: 'Anomaly detection auto-adaptive thresholds adjusted.',
+            status: 'THRESHOLD_UPDATED'
           };
           break;
 
