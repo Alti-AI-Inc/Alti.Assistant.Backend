@@ -28,43 +28,9 @@ const gcpPro = new ChatGoogleGenerativeAI({
   maxRetries: 2,
 });
 
-// 2. Azure OpenAI / Foundry configurations (fail-safe)
+// 2. Azure and AWS model caches
 let azureModel = null;
-if (config.azure && config.azure.apiKey && config.azure.endpoint) {
-  try {
-    azureModel = new AzureChatOpenAI({
-      azureOpenAIApiKey: config.azure.apiKey,
-      azureOpenAIApiInstanceName: new URL(config.azure.endpoint).hostname.split('.')[0],
-      azureOpenAIApiDeploymentName: config.azure.deploymentOrModel,
-      azureOpenAIApiVersion: config.azure.apiVersion,
-      temperature: 0,
-      maxRetries: 2,
-    });
-    console.log(`☁️ Azure OpenAI / Foundry model configured: "${config.azure.deploymentOrModel}"`);
-  } catch (err) {
-    console.error('⚠️ Failed to instantiate Azure OpenAI model, defaulting to GCP fallback:', err.message);
-  }
-}
-
-// 3. AWS Bedrock configurations (fail-safe)
 let awsModel = null;
-if (config.aws && config.aws.accessKeyId && config.aws.secretAccessKey) {
-  try {
-    awsModel = new ChatBedrockConverse({
-      region: config.aws.region,
-      credentials: {
-        accessKeyId: config.aws.accessKeyId,
-        secretAccessKey: config.aws.secretAccessKey,
-      },
-      model: config.aws.modelId,
-      temperature: 0,
-      maxRetries: 2,
-    });
-    console.log(`☁️ AWS Bedrock model configured: "${config.aws.modelId}"`);
-  } catch (err) {
-    console.error('⚠️ Failed to instantiate AWS Bedrock model, defaulting to GCP fallback:', err.message);
-  }
-}
 
 /**
  * Resolves the active provider model instance based on configuration and requested complexity.
@@ -73,20 +39,56 @@ if (config.aws && config.aws.accessKeyId && config.aws.secretAccessKey) {
  */
 function resolveActiveModelInstance(complexity = 'simple') {
   const provider = (config.llmProvider || 'gcp').toLowerCase();
+  const primaryGcp = complexity === 'complex' ? gcpPro : gcpFlash;
   
-  if (provider === 'azure' && azureModel) {
-    return azureModel;
+  if (provider === 'azure') {
+    if (!azureModel && config.azure && config.azure.apiKey && config.azure.endpoint) {
+      try {
+        azureModel = new AzureChatOpenAI({
+          azureOpenAIApiKey: config.azure.apiKey,
+          azureOpenAIApiInstanceName: new URL(config.azure.endpoint).hostname.split('.')[0],
+          azureOpenAIApiDeploymentName: config.azure.deploymentOrModel,
+          azureOpenAIApiVersion: config.azure.apiVersion,
+          temperature: 0,
+          maxRetries: 2,
+        });
+        console.log(`☁️ Azure OpenAI / Foundry model instantiated: "${config.azure.deploymentOrModel}"`);
+      } catch (err) {
+        console.error('⚠️ Failed to instantiate Azure OpenAI model:', err.message);
+      }
+    }
+    if (azureModel) {
+      console.log('🔗 Configuring Azure OpenAI model with auto-failback to GCP');
+      return azureModel.withFallbacks([primaryGcp]);
+    }
   }
   
-  if (provider === 'aws' && awsModel) {
-    return awsModel;
+  if (provider === 'aws') {
+    if (!awsModel && config.aws && config.aws.accessKeyId && config.aws.secretAccessKey) {
+      try {
+        awsModel = new ChatBedrockConverse({
+          region: config.aws.region,
+          credentials: {
+            accessKeyId: config.aws.accessKeyId,
+            secretAccessKey: config.aws.secretAccessKey,
+          },
+          model: config.aws.modelId,
+          temperature: 0,
+          maxRetries: 2,
+        });
+        console.log(`☁️ AWS Bedrock model instantiated: "${config.aws.modelId}"`);
+      } catch (err) {
+        console.error('⚠️ Failed to instantiate AWS Bedrock model:', err.message);
+      }
+    }
+    if (awsModel) {
+      console.log('🔗 Configuring AWS Bedrock model with auto-failback to GCP');
+      return awsModel.withFallbacks([primaryGcp]);
+    }
   }
   
   // Default and fallback: Google Cloud Platform (Gemini)
-  if (complexity === 'complex') {
-    return gcpPro;
-  }
-  return gcpFlash;
+  return primaryGcp;
 }
 
 /**

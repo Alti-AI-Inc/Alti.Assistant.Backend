@@ -58,14 +58,8 @@ async function runMultiCloudTests() {
     const azureInstance = selectModel({ complexity: 'simple' });
     console.log('Resolved Azure Model Class:', azureInstance.constructor.name);
     
-    // Fallback assert: if azure keys aren't set in constructor, it falls back to GCP.
-    // But since we just want to verify multi-cloud routing is active:
-    if (azureInstance instanceof AzureChatOpenAI) {
-      console.log('✅ Azure OpenAI instance successfully resolved!');
-    } else {
-      console.log('ℹ️ Azure model was not pre-instantiated in import cache, resolving to GCP fallback safely.');
-      assert.strictEqual(azureInstance instanceof ChatGoogleGenerativeAI, true);
-    }
+    assert.strictEqual(azureInstance.constructor.name, 'RunnableWithFallbacks');
+    console.log('✅ Azure OpenAI instance with auto-failback successfully resolved!');
     console.log('✅ Test 3 Passed!');
 
     // ----------------------------------------------------
@@ -74,15 +68,17 @@ async function runMultiCloudTests() {
     console.log('\n🧪 Test 4: AWS Provider Model Resolution');
     config.llmProvider = 'aws';
     
+    // We mock credentials to trigger instantiation of AWS Bedrock model
+    const originalAws = { ...config.aws };
+    config.aws.accessKeyId = 'mock-access-key';
+    config.aws.secretAccessKey = 'mock-secret-key';
+    config.aws.region = 'us-east-1';
+    
     const awsInstance = selectModel({ complexity: 'simple' });
     console.log('Resolved AWS Model Class:', awsInstance.constructor.name);
     
-    if (awsInstance instanceof ChatBedrockConverse) {
-      console.log('✅ AWS Bedrock instance successfully resolved!');
-    } else {
-      console.log('ℹ️ AWS model was not pre-instantiated in import cache, resolving to GCP fallback safely.');
-      assert.strictEqual(awsInstance instanceof ChatGoogleGenerativeAI, true);
-    }
+    assert.strictEqual(awsInstance.constructor.name, 'RunnableWithFallbacks');
+    console.log('✅ AWS Bedrock instance with auto-failback successfully resolved!');
     console.log('✅ Test 4 Passed!');
 
     // ----------------------------------------------------
