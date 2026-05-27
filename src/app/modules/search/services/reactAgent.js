@@ -1917,7 +1917,17 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
             braintree: 'https://api.braintreegateway.com',
             square: 'https://connect.squareup.com',
             quickbooks: 'https://quickbooks.api.intuit.com',
-            xero: 'https://api.xero.com'
+            xero: 'https://api.xero.com',
+            auth0: 'https://api.auth0.com',
+            jumpcloud: 'https://console.jumpcloud.com',
+            active_campaign: 'https://api.activecampaign.com',
+            intercom: 'https://api.intercom.io',
+            discord: 'https://discord.com',
+            figma: 'https://api.figma.com',
+            airtable: 'https://api.airtable.com',
+            miro: 'https://api.miro.com',
+            wrike: 'https://www.wrike.com',
+            loomio: 'https://www.loomio.org'
           };
           const resolvedDomain = domains[app.toLowerCase()] || 'https://api.enterprise-connector.local';
           usedUrls.add(resolvedDomain);

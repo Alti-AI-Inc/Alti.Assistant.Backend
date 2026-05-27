@@ -979,7 +979,8 @@ Input: The app slug name and action list.`,
       'langsmith', 'mlflow', 'cohere', 'langchain_hub',
       'onesource', 'avalara', 'vertex', 'taxjar', 'sovos',
       'zuora', 'chargebee', 'recurly', 'stripe_billing', 'paddle',
-      'docusign', 'dropbox_sign', 'pandadoc', 'esignatures_io', 'signaturely', 'stripe', 'braintree', 'square', 'quickbooks', 'xero'
+      'docusign', 'dropbox_sign', 'pandadoc', 'esignatures_io', 'signaturely', 'stripe', 'braintree', 'square', 'quickbooks', 'xero',
+      'auth0', 'jumpcloud', 'active_campaign', 'intercom', 'discord', 'figma', 'airtable', 'miro', 'wrike', 'loomio'
     ]).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets', 'createBIM360RFI', 'getYardiPropertyLedger', 'updateYardiRentLedger',
@@ -1059,7 +1060,12 @@ Input: The app slug name and action list.`,
       'getPandaDocDocuments', 'sendPandaDocDocument', 'getESignaturesContracts', 'sendESignaturesContract',
       'getSignaturelyRequests', 'sendSignaturelyRequest', 'getStripeCharges', 'captureStripeCharge',
       'getBraintreeTransactions', 'settleBraintreeTransaction', 'getSquarePayments', 'processSquarePayment',
-      'getQuickBooksInvoices', 'postQuickBooksInvoice', 'getXeroBankTransactions', 'voidXeroTransaction'
+      'getQuickBooksInvoices', 'postQuickBooksInvoice', 'getXeroBankTransactions', 'voidXeroTransaction',
+      'getAuthLogs', 'rotateAuthSigningKey', 'getJumpCloudDirectoryGroups', 'deleteJumpCloudDirectoryGroup',
+      'getActiveCampaignContacts', 'createActiveCampaignList', 'getIntercomConversations', 'closeIntercomConversation',
+      'getDiscordChannels', 'postDiscordMessage', 'getFigmaFileMetadata', 'deleteFigmaFile',
+      'getAirtableRecords', 'deleteAirtableBase', 'getMiroBoardDetails', 'deleteMiroBoard',
+      'getWrikeTasks', 'deleteWrikeTask', 'getLoomioDiscussions', 'archiveLoomioDiscussion'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")

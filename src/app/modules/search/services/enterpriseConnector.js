@@ -79,7 +79,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt', 'emailbody', 'emailsubject', 'attachmentcontent', 'teamsmessage', 'dbconnectionstring', 'tabledata', 'queryresult', 'githubtoken', 'gitlabtoken', 'deploykey', 'gitlabsecret', 'projectmetadata', 'jiraissuecomment', 'mondayboarddata', 'clickuptask', 'campaignanalytics', 'adspendbudget', 'leadslist', 'surveyresponses', 'feedbackcomments', 's3bucketcontent', 'gcsbucketcontent', 'azureblobcontent', 'dropboxfile', 'gdrivefile', 'modelprediction', 'langsmithtrace', 'mlflowrun', 'coherekey', 'taxcalculation', 'taxreturn', 'taxrate', 'refundamount', 'invoicepdf', 'subperiod', 'revrecpayload', 'signsignature', 'contractpdf', 'esignenvelope', 'creditcardpan', 'bankwirepayload'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt', 'emailbody', 'emailsubject', 'attachmentcontent', 'teamsmessage', 'dbconnectionstring', 'tabledata', 'queryresult', 'githubtoken', 'gitlabtoken', 'deploykey', 'gitlabsecret', 'projectmetadata', 'jiraissuecomment', 'mondayboarddata', 'clickuptask', 'campaignanalytics', 'adspendbudget', 'leadslist', 'surveyresponses', 'feedbackcomments', 's3bucketcontent', 'gcsbucketcontent', 'azureblobcontent', 'dropboxfile', 'gdrivefile', 'modelprediction', 'langsmithtrace', 'mlflowrun', 'coherekey', 'taxcalculation', 'taxreturn', 'taxrate', 'refundamount', 'invoicepdf', 'subperiod', 'revrecpayload', 'signsignature', 'contractpdf', 'esignenvelope', 'creditcardpan', 'bankwirepayload', 'authcode', 'supportchat', 'figmafile', 'airtablebase', 'miroboard'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -460,7 +460,17 @@ export class EnterpriseConnector {
       braintree: { apiToken: 'mock_braintree_token', endpoint: 'https://api.braintreegateway.com/v1' },
       square: { apiToken: 'mock_square_token', endpoint: 'https://connect.squareup.com/v2' },
       quickbooks: { apiToken: 'mock_quickbooks_token', endpoint: 'https://quickbooks.api.intuit.com/v3' },
-      xero: { apiToken: 'mock_xero_token', endpoint: 'https://api.xero.com/api.xro/2.0' }
+      xero: { apiToken: 'mock_xero_token', endpoint: 'https://api.xero.com/api.xro/2.0' },
+      auth0: { apiToken: 'mock_auth0_token', endpoint: 'https://auth0.api/v2' },
+      jumpcloud: { apiToken: 'mock_jumpcloud_token', endpoint: 'https://console.jumpcloud.com/api' },
+      active_campaign: { apiToken: 'mock_activecampaign_token', endpoint: 'https://activecampaign.api/v3' },
+      intercom: { apiToken: 'mock_intercom_token', endpoint: 'https://api.intercom.io' },
+      discord: { apiToken: 'mock_discord_token', endpoint: 'https://discord.com/api/v10' },
+      figma: { apiToken: 'mock_figma_token', endpoint: 'https://api.figma.com/v1' },
+      airtable: { apiToken: 'mock_airtable_token', endpoint: 'https://api.airtable.com/v0' },
+      miro: { apiToken: 'mock_miro_token', endpoint: 'https://api.miro.com/v1' },
+      wrike: { apiToken: 'mock_wrike_token', endpoint: 'https://www.wrike.com/api/v4' },
+      loomio: { apiToken: 'mock_loomio_token', endpoint: 'https://www.loomio.org/api/v1' }
     };
 
     return credentials[this.appSlug] || { endpoint: 'https://api.mock-connector.local' };
@@ -558,7 +568,9 @@ export class EnterpriseConnector {
       'calculateOneSourceTax', 'calculateAvalaraSalesTax', 'processVertexTaxFiling', 'submitTaxJarTaxReturn', 'submitSovosTaxDocument',
       'cancelZuoraSubscription', 'modifyChargebeeSubscription', 'terminateRecurlySubscription', 'refundStripeInvoice', 'cancelPaddleSubscription',
       'sendDocuSignEnvelope', 'sendDropboxSignatureRequest', 'sendPandaDocDocument', 'sendESignaturesContract', 'sendSignaturelyRequest',
-      'captureStripeCharge', 'settleBraintreeTransaction', 'processSquarePayment', 'postQuickBooksInvoice', 'voidXeroTransaction'
+      'captureStripeCharge', 'settleBraintreeTransaction', 'processSquarePayment', 'postQuickBooksInvoice', 'voidXeroTransaction',
+      'rotateAuthSigningKey', 'deleteJumpCloudDirectoryGroup', 'createActiveCampaignList', 'closeIntercomConversation', 'postDiscordMessage',
+      'deleteFigmaFile', 'deleteAirtableBase', 'deleteMiroBoard', 'deleteWrikeTask', 'archiveLoomioDiscussion'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -2558,6 +2570,70 @@ export class EnterpriseConnector {
           break;
         case 'voidXeroTransaction':
           result = { success: true, transactionId: sanitizedParams.transactionId || 'xe-tx-9922', status: 'XERO_TRANSACTION_VOIDED' };
+          break;
+
+        // --- Phase 35: Enterprise Customer Identity & CRM Support ---
+        case 'getAuthLogs':
+          result = { success: true, logs: [{ timestamp: '2026-05-27T02:40:00Z', event: 'Successful Login', ip: '192.168.1.100' }], status: 'AUTH0_LOGS_LOADED' };
+          break;
+        case 'rotateAuthSigningKey':
+          result = { success: true, keyId: 'key-901-rotated', status: 'AUTH0_SIGNING_KEY_ROTATED' };
+          break;
+        case 'getJumpCloudDirectoryGroups':
+          result = { success: true, groups: [{ id: 'jc-grp-772', name: 'Engineering Admin', memberCount: 14 }], status: 'JUMPCLOUD_GROUPS_LOADED' };
+          break;
+        case 'deleteJumpCloudDirectoryGroup':
+          result = { success: true, groupId: sanitizedParams.groupId || 'jc-grp-772', status: 'JUMPCLOUD_GROUP_DELETED' };
+          break;
+        case 'getActiveCampaignContacts':
+          result = { success: true, contacts: [{ id: 'ac-con-902', email: 'marketing@enterprise.com', status: 'Active' }], status: 'ACTIVECAMPAIGN_CONTACTS_LOADED' };
+          break;
+        case 'createActiveCampaignList':
+          result = { success: true, listId: 'ac-lst-8822', name: sanitizedParams.name || 'Enterprise Newsletter', status: 'ACTIVECAMPAIGN_LIST_CREATED' };
+          break;
+        case 'getIntercomConversations':
+          result = { success: true, conversations: [{ id: 'int-conv-291', user: 'customer@acme.com', message: 'Help with billing api.' }], status: 'INTERCOM_CONVERSATIONS_LOADED' };
+          break;
+        case 'closeIntercomConversation':
+          result = { success: true, conversationId: sanitizedParams.conversationId || 'int-conv-291', status: 'INTERCOM_CONVERSATION_CLOSED' };
+          break;
+        case 'getDiscordChannels':
+          result = { success: true, channels: [{ id: 'ch-disc-901', name: 'engineering-alerts', type: 0 }], status: 'DISCORD_CHANNELS_LOADED' };
+          break;
+        case 'postDiscordMessage':
+          result = { success: true, channelId: sanitizedParams.channelId || 'ch-disc-901', messageId: 'msg-disc-3902', status: 'DISCORD_MESSAGE_POSTED' };
+          break;
+
+        // --- Phase 36: Modern Workspace Collaboration & Project Spoke ---
+        case 'getFigmaFileMetadata':
+          result = { success: true, file: { key: 'fig-file-889', name: 'Alti UI Layout Prototype', version: 'v2.4' }, status: 'FIGMA_FILE_LOADED' };
+          break;
+        case 'deleteFigmaFile':
+          result = { success: true, fileKey: sanitizedParams.fileKey || 'fig-file-889', status: 'FIGMA_FILE_DELETED' };
+          break;
+        case 'getAirtableRecords':
+          result = { success: true, records: [{ id: 'recAirtable99', fields: { Company: 'Alti AI Inc', Value: 5000000 } }], status: 'AIRTABLE_RECORDS_LOADED' };
+          break;
+        case 'deleteAirtableBase':
+          result = { success: true, baseId: sanitizedParams.baseId || 'appAirtable302', status: 'AIRTABLE_BASE_DELETED' };
+          break;
+        case 'getMiroBoardDetails':
+          result = { success: true, board: { id: 'miro-bd-449', title: 'Product Architecture Mapping', owner: 'R&D Director' }, status: 'MIRO_BOARD_LOADED' };
+          break;
+        case 'deleteMiroBoard':
+          result = { success: true, boardId: sanitizedParams.boardId || 'miro-bd-449', status: 'MIRO_BOARD_DELETED' };
+          break;
+        case 'getWrikeTasks':
+          result = { success: true, tasks: [{ id: 'wrk-tsk-9932', title: 'Publish ESG Disclosure Report', status: 'In Progress' }], status: 'WRIKE_TASKS_LOADED' };
+          break;
+        case 'deleteWrikeTask':
+          result = { success: true, taskId: sanitizedParams.taskId || 'wrk-tsk-9932', status: 'WRIKE_TASK_DELETED' };
+          break;
+        case 'getLoomioDiscussions':
+          result = { success: true, discussions: [{ id: 'lm-disc-302', title: 'Should we scale Kubernetes clusters?', voteCount: 14 }], status: 'LOOMIO_DISCUSSIONS_LOADED' };
+          break;
+        case 'archiveLoomioDiscussion':
+          result = { success: true, discussionId: sanitizedParams.discussionId || 'lm-disc-302', status: 'LOOMIO_DISCUSSION_ARCHIVED' };
           break;
 
 

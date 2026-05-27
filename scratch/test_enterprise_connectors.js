@@ -88,6 +88,13 @@ async function runTests() {
       modelWeights: 'Model bias float tensors and network parameters.',
       indexMetadata: 'Pinecone index namespace telemetry details.',
       endpointUrl: 'SageMaker model endpoint gateway URL.'
+    },
+    identityOps: {
+      authcode: 'auth-code-123456-secret',
+      supportchat: 'User: Please reset my password immediately.',
+      figmafile: 'Figma layout content with vector coordinates.',
+      airtablebase: 'Airtable base structure with private employee records.',
+      miroboard: 'Miro whiteboard layout for enterprise roadmap planning.'
     }
   };
 
@@ -161,13 +168,18 @@ async function runTests() {
     redacted.analyticsOps.modelWeights !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.analyticsOps.indexMetadata !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.analyticsOps.endpointUrl !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.identityOps.authcode !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.identityOps.supportchat !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.identityOps.figmafile !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.identityOps.airtablebase !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.identityOps.miroboard !== '[REDACTED SENSITIVE FIELD]' ||
     !redacted.comment.includes('[REDACTED IP]') ||
     !redacted.comment.includes('[REDACTED MAC]')
   ) {
-    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, Logistics, CRM/ITSM, DevOps/SecOps, and Big Data/AI Analytics PII/PHI/PCI/GRC/Spend/IP/MAC redaction proxy failed to fully mask sensitive details.');
+    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, Logistics, CRM/ITSM, DevOps/SecOps, Big Data/AI Analytics, and Customer Identity PII/PHI/PCI/GRC/Spend/IP/MAC redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
-    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, employee IDs, salary values, CRM/ITSM IP/lead metrics, and DevOps/SecOps MAC/secret tokens successfully redacted.');
+    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, employee IDs, salary values, CRM/ITSM IP/lead metrics, DevOps/SecOps MAC/secret tokens, and Customer Identity authcodes/supportchats successfully redacted.');
   }
 
   // Test 2: Read-Only Actions (Phase 1, Phase 2, & Phase 3)
@@ -354,7 +366,19 @@ async function runTests() {
     { app: 'braintree', action: 'getBraintreeTransactions', params: {} },
     { app: 'square', action: 'getSquarePayments', params: {} },
     { app: 'quickbooks', action: 'getQuickBooksInvoices', params: {} },
-    { app: 'xero', action: 'getXeroBankTransactions', params: {} }
+    { app: 'xero', action: 'getXeroBankTransactions', params: {} },
+    // Phase 35: Enterprise Customer Identity & CRM Support
+    { app: 'auth0', action: 'getAuthLogs', params: {} },
+    { app: 'jumpcloud', action: 'getJumpCloudDirectoryGroups', params: {} },
+    { app: 'active_campaign', action: 'getActiveCampaignContacts', params: {} },
+    { app: 'intercom', action: 'getIntercomConversations', params: {} },
+    { app: 'discord', action: 'getDiscordChannels', params: {} },
+    // Phase 36: Modern Workspace Collaboration & Project Spoke
+    { app: 'figma', action: 'getFigmaFileMetadata', params: {} },
+    { app: 'airtable', action: 'getAirtableRecords', params: {} },
+    { app: 'miro', action: 'getMiroBoardDetails', params: {} },
+    { app: 'wrike', action: 'getWrikeTasks', params: {} },
+    { app: 'loomio', action: 'getLoomioDiscussions', params: {} }
   ];
 
 
@@ -513,7 +537,19 @@ async function runTests() {
     { app: 'braintree', action: 'settleBraintreeTransaction', params: { transactionId: 'bt-tx-390' } },
     { app: 'square', action: 'processSquarePayment', params: { amount: 150.00 } },
     { app: 'quickbooks', action: 'postQuickBooksInvoice', params: { docNumber: '1092' } },
-    { app: 'xero', action: 'voidXeroTransaction', params: { transactionId: 'xe-tx-9922' } }
+    { app: 'xero', action: 'voidXeroTransaction', params: { transactionId: 'xe-tx-9922' } },
+    // Phase 35: Enterprise Customer Identity & CRM Support
+    { app: 'auth0', action: 'rotateAuthSigningKey', params: {} },
+    { app: 'jumpcloud', action: 'deleteJumpCloudDirectoryGroup', params: { groupId: 'jc-grp-772' } },
+    { app: 'active_campaign', action: 'createActiveCampaignList', params: { name: 'Enterprise Newsletter' } },
+    { app: 'intercom', action: 'closeIntercomConversation', params: { conversationId: 'int-conv-291' } },
+    { app: 'discord', action: 'postDiscordMessage', params: { channelId: 'ch-disc-901', message: 'Hello Discord' } },
+    // Phase 36: Modern Workspace Collaboration & Project Spoke
+    { app: 'figma', action: 'deleteFigmaFile', params: { fileKey: 'fig-file-889' } },
+    { app: 'airtable', action: 'deleteAirtableBase', params: { baseId: 'appAirtable302' } },
+    { app: 'miro', action: 'deleteMiroBoard', params: { boardId: 'miro-bd-449' } },
+    { app: 'wrike', action: 'deleteWrikeTask', params: { taskId: 'wrk-tsk-9932' } },
+    { app: 'loomio', action: 'archiveLoomioDiscussion', params: { discussionId: 'lm-disc-302' } }
   ];
 
 
