@@ -15,7 +15,7 @@ async function runTests() {
     ssn: '000-12-3456',
     phone: '555-867-5309',
     email: 'john.doe@enterprise-cre.com',
-    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822.',
+    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10.',
     financials: {
       accountNumber: '1234567890',
       routingNumber: '987654321',
@@ -35,6 +35,12 @@ async function runTests() {
       litigant: 'Acme Corp',
       legalNote: 'CONFIDENTIAL - LEGAL: Proceed with caution.',
       arbitraryString: 'This case is docket 1:23-cv-09876 under ATTORNEY-CLIENT PRIVILEGED rules.'
+    },
+    clinical: {
+      subjectDob: '05/12/1984',
+      diagnosisCode: 'I10',
+      prescription: 'Lisinopril 10mg daily',
+      rxnorm: '861634'
     }
   };
 
@@ -49,6 +55,8 @@ async function runTests() {
     redacted.nested.ssn !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.nested.patientName !== '[REDACTED SENSITIVE FIELD]' ||
     !redacted.comment.includes('[REDACTED PHI]') ||
+    !redacted.comment.includes('[REDACTED DOB]') ||
+    !redacted.comment.includes('[REDACTED DIAGNOSIS]') ||
     redacted.financials.accountNumber !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.financials.routingNumber !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.financials.creditCard !== '[REDACTED SENSITIVE FIELD]' ||
@@ -61,12 +69,16 @@ async function runTests() {
     redacted.legal.litigant !== '[REDACTED SENSITIVE FIELD]' ||
     !redacted.legal.legalNote.includes('[REDACTED PRIVILEGED]') ||
     !redacted.legal.arbitraryString.includes('[REDACTED DOCKET]') ||
-    !redacted.legal.arbitraryString.includes('[REDACTED PRIVILEGED]')
+    !redacted.legal.arbitraryString.includes('[REDACTED PRIVILEGED]') ||
+    redacted.clinical.subjectDob !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.clinical.diagnosisCode !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.clinical.prescription !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.clinical.rxnorm !== '[REDACTED SENSITIVE FIELD]'
   ) {
-    console.error('❌ Test 1 Failed: Financial and Legal PII/PCI/GRC redaction proxy failed to fully mask sensitive details.');
+    console.error('❌ Test 1 Failed: Financial, Legal, and Healthcare PHI/PII/PCI/GRC redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
-    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, and privileged legal terms successfully redacted.');
+    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, and prescriptions successfully redacted.');
   }
 
   // Test 2: Read-Only Actions (Phase 1, Phase 2, & Phase 3)
@@ -86,7 +98,13 @@ async function runTests() {
     { app: 'lexisnexis', action: 'searchLexisNexisCaseLaw', params: { query: 'liability limit indemnity' } },
     { app: 'ironclad', action: 'getIroncladContractMetadata', params: { contractId: 'ctr-5566' } },
     { app: 'relativity', action: 'getRelativityDocumentDetails', params: { documentId: 'doc-7766' } },
-    { app: 'onetrust', action: 'getOneTrustConsentRecord', params: { consentId: 'con-1122' } }
+    { app: 'onetrust', action: 'getOneTrustConsentRecord', params: { consentId: 'con-1122' } },
+    { app: 'veevavault', action: 'getVeevaTrialMetadata', params: { trialId: 'trial-5544' } },
+    { app: 'epic', action: 'getEpicPatientSummary', params: { patientId: 'pat-epic-9922' } },
+    { app: 'athenahealth', action: 'getAthenaProviderSchedule', params: { providerId: 'prov-ath-302' } },
+    { app: 'elationhealth', action: 'getElationPatientChart', params: { patientId: 'pat-elation-8844' } },
+    { app: 'iqvia', action: 'getIQVIAMarketData', params: { therapeuticArea: 'Oncology' } },
+    { app: 'changehealthcare', action: 'getChangeClaimsEligibility', params: { memberId: 'mem-change-9933' } }
   ];
 
   for (const item of readActions) {
@@ -113,7 +131,11 @@ async function runTests() {
     { app: 'fiserv', action: 'initiateFiservWireTransfer', params: { sourceAccountId: 'acc-111', destinationRouting: '021000021', destinationAccount: '999999999', amount: 500000 } },
     { app: 'ironclad', action: 'approveIroncladContract', params: { contractId: 'ctr-999' } },
     { app: 'relativity', action: 'tagRelativityDocuments', params: { documentIds: ['doc-001', 'doc-002'], tags: ['Responsive', 'Privileged'] } },
-    { app: 'onetrust', action: 'submitOneTrustPrivacyRequest', params: { subjectEmail: 'test@onetrust.com', requestType: 'DELETE_DATA' } }
+    { app: 'onetrust', action: 'submitOneTrustPrivacyRequest', params: { subjectEmail: 'test@onetrust.com', requestType: 'DELETE_DATA' } },
+    { app: 'veevavault', action: 'submitVeevaClinicalDocument', params: { fileName: 'consent_v5.pdf', documentType: 'TRIAL_CONSENT' } },
+    { app: 'epic', action: 'writeEpicClinicalNote', params: { patientId: 'pat-epic-9922', clinicalNote: 'Stable vital signs, patient compliant.', authorNpi: '1992288331' } },
+    { app: 'athenahealth', action: 'bookAthenaAppointment', params: { providerId: 'prov-ath-302', slotId: 'slot-1' } },
+    { app: 'changehealthcare', action: 'submitChangeMedicalClaim', params: { memberId: 'mem-change-9933', claimAmount: 250.00 } }
   ];
 
   for (const item of mutativeActions) {
@@ -163,7 +185,11 @@ async function runTests() {
       { app: 'fiserv', action: 'getFiservAccountBalance', parameters: {} },
       { app: 'harvey', action: 'runHarveyPrecedentAnalysis', parameters: { caseName: 'Standard Tech Licensing' } },
       { app: 'ironclad', action: 'approveIroncladContract', parameters: { contractId: 'ctr-777' }, verified: true },
-      { app: 'onetrust', action: 'submitOneTrustPrivacyRequest', parameters: { subjectEmail: 'foo@bar.com' }, verified: true }
+      { app: 'onetrust', action: 'submitOneTrustPrivacyRequest', parameters: { subjectEmail: 'foo@bar.com' }, verified: true },
+      { app: 'veevavault', action: 'getVeevaTrialMetadata', parameters: { trialId: 'trial-123' } },
+      { app: 'epic', action: 'writeEpicClinicalNote', parameters: { patientId: 'pat-999', clinicalNote: 'Follow-up note' }, verified: true },
+      { app: 'athenahealth', action: 'bookAthenaAppointment', parameters: { providerId: 'prov-111', slotId: 'slot-2' }, verified: true },
+      { app: 'changehealthcare', action: 'submitChangeMedicalClaim', parameters: { memberId: 'mem-111', claimAmount: 100 }, verified: true }
     ];
 
     for (const input of validInputs) {

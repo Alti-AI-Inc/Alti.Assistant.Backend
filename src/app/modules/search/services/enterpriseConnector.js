@@ -43,6 +43,12 @@ export function redactSensitiveData(payload) {
     sanitized = sanitized.replace(/\bPRIVILEGED & CONFIDENTIAL\b/gi, '[REDACTED PRIVILEGED]');
     sanitized = sanitized.replace(/\bCONFIDENTIAL - LEGAL\b/gi, '[REDACTED PRIVILEGED]');
 
+    // 9. Redact Patient Diagnostic/ICD-10 codes (HIPAA PHI)
+    sanitized = sanitized.replace(/\b[A-TV-Z]\d{2}(?:\.\d{1,4})?\b/gi, '[REDACTED DIAGNOSIS]');
+
+    // 10. Redact Patient DOB / Dates
+    sanitized = sanitized.replace(/\b(0[1-9]|1[0-2])[-/](0[1-9]|[12]\d|3[01])[-/](19|20)\d{2}\b/g, '[REDACTED DOB]');
+
     return sanitized;
   }
 
@@ -55,7 +61,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -146,6 +152,30 @@ export class EnterpriseConnector {
       lexisnexis: {
         apiToken: 'mock_lexisnexis_token',
         endpoint: 'https://api.lexisnexis.com/v1'
+      },
+      veevavault: {
+        apiToken: 'mock_veevavault_token',
+        endpoint: 'https://api.veevavault.com/v1'
+      },
+      epic: {
+        apiToken: 'mock_epic_token',
+        endpoint: 'https://fhir.epic.com/v1'
+      },
+      athenahealth: {
+        apiToken: 'mock_athena_token',
+        endpoint: 'https://api.athenahealth.com/v1'
+      },
+      elationhealth: {
+        apiToken: 'mock_elation_token',
+        endpoint: 'https://api.elationhealth.com/v1'
+      },
+      iqvia: {
+        apiToken: 'mock_iqvia_token',
+        endpoint: 'https://api.iqvia.com/v1'
+      },
+      changehealthcare: {
+        apiToken: 'mock_change_token',
+        endpoint: 'https://api.changehealthcare.com/v1'
       }
     };
 
@@ -173,7 +203,11 @@ export class EnterpriseConnector {
       'initiateFiservWireTransfer',
       'approveIroncladContract',
       'submitOneTrustPrivacyRequest',
-      'tagRelativityDocuments'
+      'tagRelativityDocuments',
+      'writeEpicClinicalNote',
+      'bookAthenaAppointment',
+      'submitChangeMedicalClaim',
+      'submitVeevaClinicalDocument'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -472,6 +506,120 @@ export class EnterpriseConnector {
             requestType: sanitizedParams.requestType || 'DELETE_DATA',
             subjectEmail: sanitizedParams.subjectEmail,
             status: 'SUBMITTED_AWAITING_VERIFICATION'
+          };
+          break;
+
+        // --- Veeva Vault ---
+        case 'getVeevaTrialMetadata':
+          result = {
+            success: true,
+            trialId: sanitizedParams.trialId || 'tr-veeva-402',
+            molecule: 'Alti-990-compound',
+            phase: 'Phase IIb',
+            siteCount: 18,
+            enrollmentTarget: 450,
+            status: 'ACTIVE_RECRUITING'
+          };
+          break;
+
+        case 'submitVeevaClinicalDocument':
+          result = {
+            success: true,
+            documentId: `DOC-VEEVA-${Math.floor(Math.random() * 9000 + 1000)}`,
+            fileName: sanitizedParams.fileName || 'informed_consent_v3.pdf',
+            documentType: sanitizedParams.documentType || 'CLINICAL_TRIAL_DOCUMENT',
+            uploadedBy: 'Principal Investigator',
+            status: 'SUBMITTED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Epic Systems ---
+        case 'getEpicPatientSummary':
+          result = {
+            success: true,
+            patientId: sanitizedParams.patientId || 'pat-epic-9922',
+            subjectDob: '05/12/1984',
+            diagnosisCode: 'I10', // Essential (primary) hypertension
+            prescription: 'Lisinopril 10mg daily',
+            status: 'STABLE_OUTPATIENT'
+          };
+          break;
+
+        case 'writeEpicClinicalNote':
+          result = {
+            success: true,
+            patientId: sanitizedParams.patientId,
+            noteId: `NOTE-EPIC-${Math.floor(Math.random() * 9000 + 1000)}`,
+            clinicalNote: sanitizedParams.clinicalNote || 'Patient presents with stable hypertension. Vital signs stable.',
+            authorNpi: sanitizedParams.authorNpi || '1992288331',
+            status: 'WRITTEN_TO_EHR_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Athenahealth ---
+        case 'getAthenaProviderSchedule':
+          result = {
+            success: true,
+            providerId: sanitizedParams.providerId || 'prov-ath-302',
+            availableSlots: [
+              { slotId: 'slot-1', time: '09:00 AM', duration: 15 },
+              { slotId: 'slot-2', time: '10:30 AM', duration: 30 }
+            ]
+          };
+          break;
+
+        case 'bookAthenaAppointment':
+          result = {
+            success: true,
+            appointmentId: `APT-ATH-${Math.floor(Math.random() * 9000 + 1000)}`,
+            providerId: sanitizedParams.providerId,
+            patientId: sanitizedParams.patientId || 'pat-9911',
+            slotId: sanitizedParams.slotId,
+            status: 'APPOINTMENT_CONFIRMED'
+          };
+          break;
+
+        // --- Elation Health ---
+        case 'getElationPatientChart':
+          result = {
+            success: true,
+            patientId: sanitizedParams.patientId || 'pat-elation-8844',
+            clinicalSummary: 'Chronic lipid disorder and essential hypertension under active treatment plans.',
+            allergies: ['Penicillin', 'Sulfa Drugs'],
+            rxnorm: '861634' // Atorvastatin 20mg
+          };
+          break;
+
+        // --- IQVIA ---
+        case 'getIQVIAMarketData':
+          result = {
+            success: true,
+            therapeuticArea: sanitizedParams.therapeuticArea || 'Cardiology',
+            globalVolumeScore: 94.2,
+            yearOverYearGrowth: 0.048,
+            topMolecule: 'Atorvastatin'
+          };
+          break;
+
+        // --- Change Healthcare ---
+        case 'getChangeClaimsEligibility':
+          result = {
+            success: true,
+            memberId: sanitizedParams.memberId || 'mem-change-9933',
+            providerNpi: sanitizedParams.providerNpi || '1992288331',
+            eligibilityStatus: 'ACTIVE_PLAN_COVERED',
+            copayAmount: 20
+          };
+          break;
+
+        case 'submitChangeMedicalClaim':
+          result = {
+            success: true,
+            claimId: `CLM-CHG-${Math.floor(Math.random() * 90000 + 10000)}`,
+            memberId: sanitizedParams.memberId,
+            claimAmount: sanitizedParams.claimAmount || 150.00,
+            diagnosiscode: sanitizedParams.diagnosiscode || 'I10',
+            status: 'CLAIM_SUBMITTED_AWAITING_PAYER_ADJUDICATION'
           };
           break;
 

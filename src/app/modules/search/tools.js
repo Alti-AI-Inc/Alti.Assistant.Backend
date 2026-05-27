@@ -934,9 +934,15 @@ export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
 13. "relativity" -> Relativity litigation e-discovery document tagging, privileged file sweeps.
 14. "onetrust" -> OneTrust enterprise consent records, dynamic GDPR and CCPA consumer privacy requests.
 15. "lexisnexis" -> LexisNexis legal precedents database search and background checking.
-Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis), the action name, and a JSON parameter object representing action arguments.`,
+16. "veevavault" -> Veeva Vault FDA drug trials metadata, clinical trial doc uploads.
+17. "epic" -> Epic Systems clinical patient summaries, FHIR records, clinical notes.
+18. "athenahealth" -> Athenahealth practice physician schedules, booking patient appointments.
+19. "elationhealth" -> Elation Health primary care patient charts, drug prescriptions, RxNorm profiles.
+20. "iqvia" -> IQVIA life sciences global market statistics, therapeutic area volume, molecular growth.
+21. "changehealthcare" -> Change Healthcare insurance eligibility status, medical claim submissions.
+Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis, veevavault, epic, athenahealth, elationhealth, iqvia, changehealthcare), the action name, and a JSON parameter object representing action arguments.`,
   schema: z.object({
-    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis']).describe("The target enterprise application slug"),
+    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare']).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets',
       'createBIM360RFI',
@@ -961,7 +967,17 @@ Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, car
       'getRelativityDocumentDetails',
       'tagRelativityDocuments',
       'getOneTrustConsentRecord',
-      'submitOneTrustPrivacyRequest'
+      'submitOneTrustPrivacyRequest',
+      'getVeevaTrialMetadata',
+      'submitVeevaClinicalDocument',
+      'getEpicPatientSummary',
+      'writeEpicClinicalNote',
+      'getAthenaProviderSchedule',
+      'bookAthenaAppointment',
+      'getElationPatientChart',
+      'getIQVIAMarketData',
+      'getChangeClaimsEligibility',
+      'submitChangeMedicalClaim'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")
