@@ -15,7 +15,7 @@ async function runTests() {
     ssn: '000-12-3456',
     phone: '555-867-5309',
     email: 'john.doe@enterprise-cre.com',
-    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10.',
+    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10. Unstructured PO: PO-998877, driver license: DL-88776655.',
     financials: {
       accountNumber: '1234567890',
       routingNumber: '987654321',
@@ -41,6 +41,12 @@ async function runTests() {
       diagnosisCode: 'I10',
       prescription: 'Lisinopril 10mg daily',
       rxnorm: '861634'
+    },
+    logistics: {
+      purchaseOrder: 'PO-998877',
+      driverLicense: 'DL-88776655',
+      fleetLocation: '42.3601,-71.0589',
+      invoiceAmount: 24500.00
     }
   };
 
@@ -57,6 +63,8 @@ async function runTests() {
     !redacted.comment.includes('[REDACTED PHI]') ||
     !redacted.comment.includes('[REDACTED DOB]') ||
     !redacted.comment.includes('[REDACTED DIAGNOSIS]') ||
+    !redacted.comment.includes('[REDACTED PO]') ||
+    !redacted.comment.includes('[REDACTED DL]') ||
     redacted.financials.accountNumber !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.financials.routingNumber !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.financials.creditCard !== '[REDACTED SENSITIVE FIELD]' ||
@@ -73,12 +81,16 @@ async function runTests() {
     redacted.clinical.subjectDob !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.clinical.diagnosisCode !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.clinical.prescription !== '[REDACTED SENSITIVE FIELD]' ||
-    redacted.clinical.rxnorm !== '[REDACTED SENSITIVE FIELD]'
+    redacted.clinical.rxnorm !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.logistics.purchaseOrder !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.logistics.driverLicense !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.logistics.fleetLocation !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.logistics.invoiceAmount !== '[REDACTED SENSITIVE FIELD]'
   ) {
-    console.error('❌ Test 1 Failed: Financial, Legal, and Healthcare PHI/PII/PCI/GRC redaction proxy failed to fully mask sensitive details.');
+    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, and Logistics PII/PHI/PCI/GRC/Spend redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
-    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, and prescriptions successfully redacted.');
+    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, and invoice values successfully redacted.');
   }
 
   // Test 2: Read-Only Actions (Phase 1, Phase 2, & Phase 3)
@@ -104,7 +116,11 @@ async function runTests() {
     { app: 'athenahealth', action: 'getAthenaProviderSchedule', params: { providerId: 'prov-ath-302' } },
     { app: 'elationhealth', action: 'getElationPatientChart', params: { patientId: 'pat-elation-8844' } },
     { app: 'iqvia', action: 'getIQVIAMarketData', params: { therapeuticArea: 'Oncology' } },
-    { app: 'changehealthcare', action: 'getChangeClaimsEligibility', params: { memberId: 'mem-change-9933' } }
+    { app: 'changehealthcare', action: 'getChangeClaimsEligibility', params: { memberId: 'mem-change-9933' } },
+    { app: 'coupa', action: 'getCoupaPurchaseOrder', params: { purchaseOrder: 'PO-998877' } },
+    { app: 'ariba', action: 'getAribaSupplierProfile', params: { supplierId: 'sup-ariba-302' } },
+    { app: 'flexport', action: 'getFlexportShipmentDetails', params: { shipmentId: 'shp-flex-9988' } },
+    { app: 'samsara', action: 'getSamsaraFleetLocation', params: { vehicleId: 'veh-sam-302' } }
   ];
 
   for (const item of readActions) {
@@ -135,7 +151,11 @@ async function runTests() {
     { app: 'veevavault', action: 'submitVeevaClinicalDocument', params: { fileName: 'consent_v5.pdf', documentType: 'TRIAL_CONSENT' } },
     { app: 'epic', action: 'writeEpicClinicalNote', params: { patientId: 'pat-epic-9922', clinicalNote: 'Stable vital signs, patient compliant.', authorNpi: '1992288331' } },
     { app: 'athenahealth', action: 'bookAthenaAppointment', params: { providerId: 'prov-ath-302', slotId: 'slot-1' } },
-    { app: 'changehealthcare', action: 'submitChangeMedicalClaim', params: { memberId: 'mem-change-9933', claimAmount: 250.00 } }
+    { app: 'changehealthcare', action: 'submitChangeMedicalClaim', params: { memberId: 'mem-change-9933', claimAmount: 250.00 } },
+    { app: 'coupa', action: 'approveCoupaInvoice', params: { invoiceAmount: 12500.00 } },
+    { app: 'ariba', action: 'submitAribaSourcingBid', params: { bidAmount: 850000.00, sourcingbid: 'Enterprise bid' } },
+    { app: 'flexport', action: 'updateFlexportShipment', params: { shipmentId: 'shp-flex-9988', declaredValue: 450000.00 } },
+    { app: 'samsara', action: 'dispatchSamsaraRoute', params: { vehicleId: 'veh-sam-302', routePoints: ['A', 'B'] } }
   ];
 
   for (const item of mutativeActions) {

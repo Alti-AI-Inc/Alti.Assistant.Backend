@@ -940,9 +940,13 @@ export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
 19. "elationhealth" -> Elation Health primary care patient charts, drug prescriptions, RxNorm profiles.
 20. "iqvia" -> IQVIA life sciences global market statistics, therapeutic area volume, molecular growth.
 21. "changehealthcare" -> Change Healthcare insurance eligibility status, medical claim submissions.
-Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis, veevavault, epic, athenahealth, elationhealth, iqvia, changehealthcare), the action name, and a JSON parameter object representing action arguments.`,
+22. "coupa" -> Coupa corporate purchase orders, invoice approvals, spend logs.
+23. "ariba" -> SAP Ariba global supplier profiles, sourcing bid submissions.
+24. "flexport" -> Flexport international freight tracking, shipment details, customs filing.
+25. "samsara" -> Samsara fleet real-time location tracking, driver ELD hours, and route dispatches.
+Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis, veevavault, epic, athenahealth, elationhealth, iqvia, changehealthcare, coupa, ariba, flexport, samsara), the action name, and a JSON parameter object representing action arguments.`,
   schema: z.object({
-    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare']).describe("The target enterprise application slug"),
+    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare', 'coupa', 'ariba', 'flexport', 'samsara']).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets',
       'createBIM360RFI',
@@ -977,7 +981,15 @@ Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, car
       'getElationPatientChart',
       'getIQVIAMarketData',
       'getChangeClaimsEligibility',
-      'submitChangeMedicalClaim'
+      'submitChangeMedicalClaim',
+      'getCoupaPurchaseOrder',
+      'approveCoupaInvoice',
+      'getAribaSupplierProfile',
+      'submitAribaSourcingBid',
+      'getFlexportShipmentDetails',
+      'updateFlexportShipment',
+      'getSamsaraFleetLocation',
+      'dispatchSamsaraRoute'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")

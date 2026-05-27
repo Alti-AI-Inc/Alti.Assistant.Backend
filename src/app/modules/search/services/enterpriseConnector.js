@@ -49,6 +49,12 @@ export function redactSensitiveData(payload) {
     // 10. Redact Patient DOB / Dates
     sanitized = sanitized.replace(/\b(0[1-9]|1[0-2])[-/](0[1-9]|[12]\d|3[01])[-/](19|20)\d{2}\b/g, '[REDACTED DOB]');
 
+    // 11. Redact Purchase Orders (Procurement)
+    sanitized = sanitized.replace(/\bPO-\d{5,8}\b/gi, '[REDACTED PO]');
+
+    // 12. Redact Driver Licenses (Logistics/IoT)
+    sanitized = sanitized.replace(/\bDL-\d{6,8}\b/gi, '[REDACTED DL]');
+
     return sanitized;
   }
 
@@ -61,7 +67,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -176,6 +182,22 @@ export class EnterpriseConnector {
       changehealthcare: {
         apiToken: 'mock_change_token',
         endpoint: 'https://api.changehealthcare.com/v1'
+      },
+      coupa: {
+        apiToken: 'mock_coupa_token',
+        endpoint: 'https://api.coupa.com/v1'
+      },
+      ariba: {
+        apiToken: 'mock_ariba_token',
+        endpoint: 'https://api.ariba.com/v1'
+      },
+      flexport: {
+        apiToken: 'mock_flexport_token',
+        endpoint: 'https://api.flexport.com/v1'
+      },
+      samsara: {
+        apiToken: 'mock_samsara_token',
+        endpoint: 'https://api.samsara.com/v1'
       }
     };
 
@@ -207,7 +229,11 @@ export class EnterpriseConnector {
       'writeEpicClinicalNote',
       'bookAthenaAppointment',
       'submitChangeMedicalClaim',
-      'submitVeevaClinicalDocument'
+      'submitVeevaClinicalDocument',
+      'approveCoupaInvoice',
+      'submitAribaSourcingBid',
+      'updateFlexportShipment',
+      'dispatchSamsaraRoute'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -620,6 +646,92 @@ export class EnterpriseConnector {
             claimAmount: sanitizedParams.claimAmount || 150.00,
             diagnosiscode: sanitizedParams.diagnosiscode || 'I10',
             status: 'CLAIM_SUBMITTED_AWAITING_PAYER_ADJUDICATION'
+          };
+          break;
+
+        // --- Coupa ---
+        case 'getCoupaPurchaseOrder':
+          result = {
+            success: true,
+            purchaseOrder: sanitizedParams.purchaseOrder || 'PO-998877',
+            supplierName: 'Global Sourcing Inc',
+            invoiceAmount: 24500.00,
+            status: 'APPROVED'
+          };
+          break;
+
+        case 'approveCoupaInvoice':
+          result = {
+            success: true,
+            invoiceId: `INV-COUPA-${Math.floor(Math.random() * 9000 + 1000)}`,
+            invoiceAmount: sanitizedParams.invoiceAmount || 12500.00,
+            approverEmail: 'finance-manager@enterprise.com',
+            status: 'PAID'
+          };
+          break;
+
+        // --- SAP Ariba ---
+        case 'getAribaSupplierProfile':
+          result = {
+            success: true,
+            supplierId: sanitizedParams.supplierId || 'sup-ariba-302',
+            supplierProfile: 'Enterprise industrial components manufacturing.',
+            riskScore: 'LOW_RISK',
+            registrationStatus: 'REGISTERED_VERIFIED'
+          };
+          break;
+
+        case 'submitAribaSourcingBid':
+          result = {
+            success: true,
+            bidId: `BID-ARIBA-${Math.floor(Math.random() * 90000 + 10000)}`,
+            sourcingbid: sanitizedParams.sourcingbid || 'Sourcing proposal for supply agreement v2.',
+            bidAmount: sanitizedParams.bidAmount || 850000.00,
+            status: 'SUBMITTED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Flexport ---
+        case 'getFlexportShipmentDetails':
+          result = {
+            success: true,
+            shipmentId: sanitizedParams.shipmentId || 'shp-flex-9988',
+            originPort: 'Shanghai Port',
+            destinationPort: 'Los Angeles Port',
+            shipmentstatus: 'IN_TRANSIT_ON_OCEAN',
+            estimatedArrival: '2026-06-15'
+          };
+          break;
+
+        case 'updateFlexportShipment':
+          result = {
+            success: true,
+            shipmentId: sanitizedParams.shipmentId,
+            customsdeclaration: sanitizedParams.customsdeclaration || 'Commercial goods machinery import dec.',
+            declaredValue: sanitizedParams.declaredValue || 450000.00,
+            status: 'CUSTOMS_FILED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Samsara ---
+        case 'getSamsaraFleetLocation':
+          result = {
+            success: true,
+            vehicleId: sanitizedParams.vehicleId || 'veh-sam-302',
+            fleetlocation: '42.3601,-71.0589 (Boston, MA)',
+            driverlicense: 'DL-99881122',
+            eldHoursRemaining: 8.5,
+            speedMph: 62
+          };
+          break;
+
+        case 'dispatchSamsaraRoute':
+          result = {
+            success: true,
+            routeId: `RTE-SAM-${Math.floor(Math.random() * 9000 + 1000)}`,
+            vehicleId: sanitizedParams.vehicleId,
+            routePoints: sanitizedParams.routePoints || ['Boston, MA', 'Worcester, MA', 'Springfield, MA'],
+            status: 'ROUTE_DISPATCHED_TO_ELD'
           };
           break;
 

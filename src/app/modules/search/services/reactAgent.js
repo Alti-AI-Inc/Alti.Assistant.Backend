@@ -656,13 +656,13 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
   * "newsapi_global_news_search" tool → Event Registry / NewsAPI.ai (verified global news article counts, sentiment trends, social share densities, primary categories, trust indices, and live headline bulletins)
   * "alti_greenlight_intelligence_search" tool → Nine high-value public intelligence databases (FEC politics, LegiScan tracking, Google Civic representatives, DBnomics economics, CFPB HMDA mortgages, OpenFEMA hazards, NIH RePORTER grants, UK Companies House, OpenCorporates global registry)
   * "alti_premium_intelligence_search" tool → Nine high-value premium public intelligence databases (clinical_trials, fda_drug_safety, global_health_observatory, us_treasury_fiscal, federal_spending, healthcare_npi, food_nutrients, charity_registry, aviation_delays)
-  * "alti_enterprise_intelligence_search" tool → Premium enterprise applications (Autodesk BIM 360, Yardi Systems, RealPage, CoStar Group, Argus Enterprise, Addepar, Carta, Fiserv, FactSet, Bloomberg Terminal, Harvey, Ironclad, Relativity, OneTrust, LexisNexis, Veeva Vault, Epic Systems, Athenahealth, Elation Health, IQVIA, and Change Healthcare)
+  * "alti_enterprise_intelligence_search" tool → Premium enterprise applications (Autodesk BIM 360, Yardi Systems, RealPage, CoStar Group, Argus Enterprise, Addepar, Carta, Fiserv, FactSet, Bloomberg Terminal, Harvey, Ironclad, Relativity, OneTrust, LexisNexis, Veeva Vault, Epic Systems, Athenahealth, Elation Health, IQVIA, Change Healthcare, Coupa, SAP Ariba, Flexport, and Samsara)
   * "lookup-huggingface-indices" tool → Search Alti's local registry of fully indexed, commercially clean Hugging Face datasets.
   * "query-huggingface-index" tool → Scoped vector search to query specific indexed Hugging Face datasets (e.g. bluuebunny/arxiv_metadata_by_year, Detroit Red Wings schedule, custom academic/weather repositories).
   * "Google_Custom_Search" tool → Live internet search
 - ENTERPRISE KNOWLEDGE DIRECTIVE: For ANY query regarding internal documents, blueprints, secure manuals, standard operating procedures, or private knowledge bases, you MUST call the "vertex-ai-search" tool FIRST.
 - HUGGING FACE DATASET DIRECTIVE: For ANY query asking about Alti's indexed datasets, or seeking factual context from specific domains (like ArXiv papers, custom academic/weather indexes, or general structured repositories), you MUST call "lookup-huggingface-indices" first to check if Alti has the dataset indexed locally. If found, call "query-huggingface-index" to retrieve high-fidelity source facts instead of standard web searches!
-- STRATEGIC ENTERPRISE SYSTEMS DIRECTIVE: For ANY query regarding Autodesk BIM 360, Yardi, RealPage, CoStar, Argus, Addepar, Carta, Fiserv, FactSet, Bloomberg Terminal, Harvey, Ironclad, Relativity, OneTrust, LexisNexis, Veeva Vault, Epic, Athenahealth, Elation Health, IQVIA, or Change Healthcare, you MUST call the "alti_enterprise_intelligence_search" tool FIRST before Google Search or other tools. Choose the correct app slug and action mapping matching the request.
+- STRATEGIC ENTERPRISE SYSTEMS DIRECTIVE: For ANY query regarding Autodesk BIM 360, Yardi, RealPage, CoStar, Argus, Addepar, Carta, Fiserv, FactSet, Bloomberg Terminal, Harvey, Ironclad, Relativity, OneTrust, LexisNexis, Veeva Vault, Epic, Athenahealth, Elation Health, IQVIA, Change Healthcare, Coupa, Ariba, Flexport, or Samsara, you MUST call the "alti_enterprise_intelligence_search" tool FIRST before Google Search or other tools. Choose the correct app slug and action mapping matching the request.
 - SPORTS BETTING TOOL DIRECTIVE: For ANY query about sports odds, betting lines, player props, futures, point spreads, totals, SGP, or prediction market odds, you MUST call the "predictiondata-sports-odds" tool FIRST before using Google Search.
 - FINANCIAL TOOL DIRECTIVE: For ANY query about stock prices, crypto, forex, or market data, you MUST call the "massive-financial-data" tool FIRST.
 - AVIATION TOOL DIRECTIVE: For ANY query about flights, airport timetables, routes, fleets, or aircraft tail registrations, you MUST call the "aviationstack-realtime-data" tool FIRST before standard Google search.
@@ -828,7 +828,8 @@ This is a cybersecurity or vulnerability-related query. You are Alti's Specializ
     topicAgentInstruction = `
 [🏛️ SPECIALIZED SOVEREIGN FISCAL & GOVERNMENT SPENDING AGENT DIRECTIVE]
 This is a government spending, budget, or sovereign debt-related query. You are Alti's Specialized Federal Fiscal & USAspending Agent.
-- You MUST prioritize calling the "alti_premium_intelligence_search" tool with either 'us_treasury_fiscal' or 'federal_spending' domains FIRST.
+- For corporate spend management, purchase orders, vendor invoices, or supply procurement networks, prioritize calling the "alti_enterprise_intelligence_search" tool with the 'coupa' or 'ariba' app slugs FIRST.
+- You MUST prioritize calling the "alti_premium_intelligence_search" tool with either 'us_treasury_fiscal' or 'federal_spending' domains FIRST if federal sovereign/public debt or spending awards are requested.
 - Rely on Treasury-to-the-penny debt statistics, agency budgets, and USAspending award receipts.
 `;
   } else if (realEstateClass.isRealEstate) {
@@ -988,6 +989,8 @@ This is a board game, photography settings, or card collecting hobby query. You 
     topicAgentInstruction = `
 [🚢 SPECIALIZED MARITIME & GLOBAL LOGISTICS AGENT DIRECTIVE]
 This is a maritime shipping, port schedule, ocean freight, or global supply chain query. You are Alti's Specialized Maritime & Global Logistics Agent.
+- For international cargo shipping, customs clearances, or container details, prioritize calling the "alti_enterprise_intelligence_search" tool with the 'flexport' app slug FIRST.
+- For fleet tracking, vehicle location updates, driver ELD hours, or dispatcher routing updates, prioritize calling the "alti_enterprise_intelligence_search" tool with the 'samsara' app slug FIRST.
 - Detail exact container carrier schedules, FreightWaves indices, custom clearance protocols, and maritime shipping delay reports.
 `;
   } else if (personalFinanceClass.isPersonalFinance) {
@@ -1765,7 +1768,11 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
             athenahealth: 'https://api.athenahealth.com',
             elationhealth: 'https://api.elationhealth.com',
             iqvia: 'https://api.iqvia.com',
-            changehealthcare: 'https://api.changehealthcare.com'
+            changehealthcare: 'https://api.changehealthcare.com',
+            coupa: 'https://api.coupa.com',
+            ariba: 'https://api.ariba.com',
+            flexport: 'https://api.flexport.com',
+            samsara: 'https://api.samsara.com'
           };
           const resolvedDomain = domains[app.toLowerCase()] || 'https://api.enterprise-connector.local';
           usedUrls.add(resolvedDomain);
