@@ -3,6 +3,8 @@ import path from 'path';
 import { logger } from '../../../shared/logger.js';
 import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
 import SwarmAudit from './swarmAudit.model.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import config from '../../../../config/index.js';
 
 // --- GOOGLE CLOUD STORAGE PERSISTENCE SYNC LAYER ---
 let gcsBucket = null;
@@ -181,6 +183,94 @@ const _seedDefaultSkills = (userId, skillsDir) => {
       logger.info(`[DynamicSkill Seed] Seeding default skill script: ${skill.name}.py`);
     }
   }
+};
+
+/**
+ * Nous Hermes-style Cognitive Code Correction Reflection.
+ * Analyzes a runtime exception, rewrites the source code to resolve the crash, and consolidates the clean corrected script.
+ */
+const _autoHealScriptCode = async (userId, skillName, scriptName, originalCode, stderrText) => {
+  logger.warn(`[DynamicSkill Code-Healer] Triggered script self-healing code reflection for "${skillName}" (User: ${userId})...`);
+  
+  const promptText = `You are a world-class cognitive software engineer.
+An isolated script has crashed in a sandboxed runtime environment. Your job is to analyze the exception, identify the logical or syntax error, and output the CORRECTED, high-fidelity script.
+
+CRITICAL REQUIREMENT:
+1. You MUST return ONLY the raw corrected script code.
+2. Do NOT wrap your output in markdown code blocks (\`\`\`python or \`\`\`js).
+3. Do NOT include any explanations, preambles, or text other than the clean corrected source code.
+
+ORIGINAL CODE:
+\`\`\`
+${originalCode}
+\`\`\`
+
+RUNTIME EXCEPTION/STDERR:
+\`\`\`
+${stderrText}
+\`\`\`
+
+Return the complete, corrected clean source code now:`;
+
+  let healedCode = '';
+
+  try {
+    const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        temperature: 0.1,
+      },
+    });
+
+    const result = await model.generateContent(promptText);
+    healedCode = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch (err) {
+    logger.warn(`[DynamicSkill Code-Healer Warning] Gemini self-healing failed: ${err.message}. Trying Groq SOTA fallback...`);
+    
+    if (process.env.GROQ_API_KEY || config.groq_secret_key) {
+      try {
+        const groqApiKey = process.env.GROQ_API_KEY || config.groq_secret_key;
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqApiKey}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: promptText }],
+            temperature: 0.1
+          })
+        });
+        
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`Groq HTTP ${response.status}: ${errBody}`);
+        }
+        
+        const data = await response.json();
+        healedCode = data.choices?.[0]?.message?.content || '';
+        logger.info(`[DynamicSkill Code-Healer] Successfully healed script using Groq SOTA fallback.`);
+      } catch (groqErr) {
+        logger.error(`[DynamicSkill Code-Healer Error] Groq SOTA fallback also failed: ${groqErr.message}`);
+        throw new Error(`Self-healing failed on all LLM backends. Primary (Gemini): ${err.message}. Fallback (Groq): ${groqErr.message}`);
+      }
+    } else {
+      throw err;
+    }
+  }
+
+  // Safety clean markdown blocks if returned by accident
+  healedCode = healedCode.replace(/^```[a-zA-Z0-9_-]*\r?\n/, '');
+  healedCode = healedCode.replace(/\r?\n```$/, '');
+  healedCode = healedCode.trim();
+  
+  if (!healedCode) {
+    throw new Error('Self-healing model returned an empty code block.');
+  }
+  
+  return healedCode;
 };
 
 /**
@@ -489,6 +579,44 @@ const executeSkill = async (userId, skill, args = {}) => {
               break;
             }
           }
+        }
+      } else {
+        // Code-level exception (e.g. syntax, logic, division by zero) self-healing loop!
+        if (retryCount >= maxRetries) {
+          logger.warn(`[DynamicSkill Code-Healer] Retry ceiling reached for script code self-healing. Bailing.`);
+          break;
+        }
+
+        const hostSkillsDir = path.resolve(`storage/users/${userId}/workspace/skills`);
+        const scriptPathOnHost = path.join(hostSkillsDir, skill.script);
+        
+        if (fs.existsSync(scriptPathOnHost)) {
+          const originalCode = fs.readFileSync(scriptPathOnHost, 'utf8');
+          try {
+            logger.warn(`[DynamicSkill Code-Healer] Intercepted runtime exception inside "${skill.name}". Invoking SOTA code self-healing...`);
+            const healedCode = await _autoHealScriptCode(userId, skill.name, skill.script, originalCode, stderrText);
+            
+            // Save healed code locally
+            fs.writeFileSync(scriptPathOnHost, healedCode, 'utf8');
+            logger.info(`[DynamicSkill Code-Healer] Successfully saved repaired code for script "${skill.script}".`);
+
+            // Backup healed code to GCS bucket if active
+            if (gcsBucket) {
+              const destinationPath = `users/${userId}/workspace/skills/${skill.script}`;
+              gcsBucket.upload(scriptPathOnHost, { destination: destinationPath })
+                .then(() => logger.info(`[GCS Sync] Uploaded self-healed script to GCS: ${skill.script}`))
+                .catch(err => logger.error(`[GCS Sync Error] Failed to upload healed script to GCS: ${err.message}`));
+            }
+
+            retryCount++;
+            continue; // Re-run loop with repaired script!
+          } catch (healError) {
+            logger.error(`[DynamicSkill Code-Healer Error] Self-healing failed: ${healError.message}`);
+            break;
+          }
+        } else {
+          logger.error(`[DynamicSkill Code-Healer] Script file not found on host to self-heal: ${scriptPathOnHost}`);
+          break;
         }
       }
       

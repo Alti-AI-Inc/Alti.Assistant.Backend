@@ -387,8 +387,49 @@ console.log("JS_HEAL_INTEL: " + _.chunk(['a', 'b', 'c', 'd'], 2).join(' | '));
       logger.warn(`[Stream Notice] Expected cognitive thought plan chunk first, but got: ${JSON.stringify(firstChunk.value)}`);
     }
 
+    // 17. Broken Python Math Division Healer Verification
+    logger.info(`[Step 17] Verifying SOTA Python Code-level Self-Healing (Nous Hermes style)...`);
+    const codeErrorSkill = {
+      name: 'resolve_division_math',
+      description: 'Performs division and handles errors, but initially contains a deliberate division by zero exception.',
+      parameters: {},
+      scriptName: 'test_code_error.py',
+      scriptContent: `
+def main():
+    print("Executing division calculation...")
+    result = 10 / 0 # Deliberate division by zero runtime crash
+    print(f"Result is {result}")
+
+if __name__ == "__main__":
+    main()
+`
+    };
+
+    logger.info(`[Step 17a] Saving custom python skill with deliberate division-by-zero runtime error...`);
+    dynamicSkillService.saveGeneratedSkill(TEST_USER, codeErrorSkill);
+
+    const errorDiscovered = dynamicSkillService.scanUserSkills(TEST_USER);
+    const errorMatched = errorDiscovered.find(s => s.name === codeErrorSkill.name);
+
+    if (errorMatched) {
+      logger.info(`[Step 17b] Executing broken Python skill...`);
+      logger.info(`(This will crash, trigger Gemini self-healing reflection, rewrite the code to not divide by zero, and retry execution successfully)`);
+      const errorOutput = await dynamicSkillService.executeSkill(TEST_USER, errorMatched);
+      logger.info(`[SELF-HEALING PYTHON RESPONSE]:\n${errorOutput}`);
+
+      if (errorOutput.includes('Executing division calculation') && !errorOutput.includes('ZeroDivisionError') && !errorOutput.includes('Error executing skill')) {
+        logger.info(`[SUCCESS] Sandbox Python code self-healing completed successfully!`);
+      } else {
+        throw new Error(`FAIL: Python code self-healing failed to produce a clean running output. Output: ${errorOutput}`);
+      }
+    } else {
+      throw new Error("FAIL: Broken Python skill was not discoverable!");
+    }
+
     const jsMdPath = path.join(skillsDir, 'verify_lodash_run.md');
     const jsScriptPath = path.join(skillsDir, 'test_lodash.js');
+    const errorMdPath = path.join(skillsDir, 'resolve_division_math.md');
+    const errorScriptPath = path.join(skillsDir, 'test_code_error.py');
     const seededAnalyzerMd = path.join(skillsDir, 'data_analyzer.md');
     const seededAnalyzerPy = path.join(skillsDir, 'data_analyzer.py');
     const seededChartMd = path.join(skillsDir, 'chart_generator.md');
@@ -405,6 +446,8 @@ console.log("JS_HEAL_INTEL: " + _.chunk(['a', 'b', 'c', 'd'], 2).join(' | '));
       if (fs.existsSync(hogScriptPath)) fs.unlinkSync(hogScriptPath);
       if (fs.existsSync(jsMdPath)) fs.unlinkSync(jsMdPath);
       if (fs.existsSync(jsScriptPath)) fs.unlinkSync(jsScriptPath);
+      if (fs.existsSync(errorMdPath)) fs.unlinkSync(errorMdPath);
+      if (fs.existsSync(errorScriptPath)) fs.unlinkSync(errorScriptPath);
       if (fs.existsSync(seededAnalyzerMd)) fs.unlinkSync(seededAnalyzerMd);
       if (fs.existsSync(seededAnalyzerPy)) fs.unlinkSync(seededAnalyzerPy);
       if (fs.existsSync(seededChartMd)) fs.unlinkSync(seededChartMd);
