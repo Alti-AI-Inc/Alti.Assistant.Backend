@@ -95,6 +95,30 @@ async function runTests() {
       figmafile: 'Figma layout content with vector coordinates.',
       airtablebase: 'Airtable base structure with private employee records.',
       miroboard: 'Miro whiteboard layout for enterprise roadmap planning.'
+    },
+    telemetryOps: {
+      grafanakey: 'grafana-key-secret-123',
+      newrelictoken: 'nr-token-secret-456',
+      elasticpassword: 'elastic-pass-secret-789',
+      sentrydsn: 'sentry-dsn-secret-012',
+      logglytoken: 'loggly-token-secret-345',
+      akamaitoken: 'akamai-token-secret-678',
+      fastlykey: 'fastly-key-secret-901',
+      impervacredential: 'imperva-cred-secret-234',
+      f5password: 'f5-pass-secret-567',
+      incapsulasecret: 'incapsula-sec-secret-890'
+    },
+    analyticsHrisOps: {
+      amplitudetoken: 'amp-tok-secret-1122',
+      mixpanelsecret: 'mix-sec-secret-3344',
+      heapkey: 'heap-key-secret-5566',
+      fivetrantoken: 'five-tok-secret-7788',
+      airbytekey: 'air-key-secret-9900',
+      ripplingtoken: 'rip-tok-secret-1133',
+      gustokey: 'gusto-key-secret-2244',
+      zenefitssecret: 'zen-sec-secret-3355',
+      workablekey: 'work-key-secret-4466',
+      jazzhrtoken: 'jazz-tok-secret-5577'
     }
   };
 
@@ -173,6 +197,26 @@ async function runTests() {
     redacted.identityOps.figmafile !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.identityOps.airtablebase !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.identityOps.miroboard !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.grafanakey !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.newrelictoken !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.elasticpassword !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.sentrydsn !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.logglytoken !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.akamaitoken !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.fastlykey !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.impervacredential !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.f5password !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.telemetryOps.incapsulasecret !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.amplitudetoken !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.mixpanelsecret !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.heapkey !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.fivetrantoken !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.airbytekey !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.ripplingtoken !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.gustokey !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.zenefitssecret !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.workablekey !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsHrisOps.jazzhrtoken !== '[REDACTED SENSITIVE FIELD]' ||
     !redacted.comment.includes('[REDACTED IP]') ||
     !redacted.comment.includes('[REDACTED MAC]')
   ) {
@@ -378,7 +422,31 @@ async function runTests() {
     { app: 'airtable', action: 'getAirtableRecords', params: {} },
     { app: 'miro', action: 'getMiroBoardDetails', params: {} },
     { app: 'wrike', action: 'getWrikeTasks', params: {} },
-    { app: 'loomio', action: 'getLoomioDiscussions', params: {} }
+    { app: 'loomio', action: 'getLoomioDiscussions', params: {} },
+    // Phase 37: Enterprise Service Mesh & APM Telemetry Spoke
+    { app: 'grafana', action: 'getGrafanaDashboardTelemetry', params: {} },
+    { app: 'new_relic', action: 'getNewRelicAPMMetrics', params: {} },
+    { app: 'elasticsearch', action: 'queryElasticsearchLogs', params: {} },
+    { app: 'sentry', action: 'getSentryErrorTraces', params: {} },
+    { app: 'loggly', action: 'queryLogglyEvents', params: {} },
+    // Phase 38: Enterprise Content Delivery & Secure WAF Edge Spoke
+    { app: 'akamai', action: 'getAkamaiCacheStatus', params: {} },
+    { app: 'fastly', action: 'getFastlyEdgeAnalytics', params: {} },
+    { app: 'imperva', action: 'getImpervaSecurityEvents', params: {} },
+    { app: 'f5_big_ip', action: 'getF5LoadBalancerStats', params: {} },
+    { app: 'incapsula', action: 'getIncapsulaDDoSReports', params: {} },
+    // Phase 39: Enterprise Customer Data Platforms & Analytics
+    { app: 'amplitude', action: 'getAmplitudeCohortData', params: { cohortId: 'coh-amp-302' } },
+    { app: 'mixpanel', action: 'getMixpanelFunnelAnalysis', params: { funnelId: 'fun-mix-901' } },
+    { app: 'heap', action: 'getHeapUserSessions', params: { sessionId: 'sess-heap-92' } },
+    { app: 'fivetran', action: 'getFivetranConnectorStatus', params: { connectorId: 'conn-five-901' } },
+    { app: 'airbyte', action: 'getAirbyteConnectionStatus', params: { connectionId: 'conn-air-302' } },
+    // Phase 40: Enterprise HRIS & Modern Payroll Spoke
+    { app: 'rippling', action: 'getRipplingEmployeeProfile', params: { employeeId: 'EMP-18239' } },
+    { app: 'gusto', action: 'getGustoPayrollSummary', params: { payrollId: 'pay-gusto-902' } },
+    { app: 'zenefits', action: 'getZenefitsBenefitsEnrollment', params: { enrollmentId: 'ben-zen-92' } },
+    { app: 'workable', action: 'getWorkableCandidateDetails', params: { candidateId: 'cand-work-302' } },
+    { app: 'jazzhr', action: 'getJazzHRCandidateProfile', params: { candidateId: 'cand-jazz-92' } }
   ];
 
 
@@ -549,7 +617,31 @@ async function runTests() {
     { app: 'airtable', action: 'deleteAirtableBase', params: { baseId: 'appAirtable302' } },
     { app: 'miro', action: 'deleteMiroBoard', params: { boardId: 'miro-bd-449' } },
     { app: 'wrike', action: 'deleteWrikeTask', params: { taskId: 'wrk-tsk-9932' } },
-    { app: 'loomio', action: 'archiveLoomioDiscussion', params: { discussionId: 'lm-disc-302' } }
+    { app: 'loomio', action: 'archiveLoomioDiscussion', params: { discussionId: 'lm-disc-302' } },
+    // Phase 37: Enterprise Service Mesh & APM Telemetry Spoke
+    { app: 'grafana', action: 'deleteGrafanaDashboard', params: { dashboardId: 'db-grafana-901' } },
+    { app: 'new_relic', action: 'muteNewRelicAlertPolicy', params: { policyId: 'nr-pol-302' } },
+    { app: 'elasticsearch', action: 'deleteElasticsearchIndex', params: { indexName: 'logs-2026-05' } },
+    { app: 'sentry', action: 'resolveSentryIssue', params: { issueId: 'snt-iss-402' } },
+    { app: 'loggly', action: 'deleteLogglySource', params: { sourceId: 'src-loggly-882' } },
+    // Phase 38: Enterprise Content Delivery & Secure WAF Edge Spoke
+    { app: 'akamai', action: 'purgeAkamaiCache', params: { purgeUrl: 'https://example.com/assets/logo.png' } },
+    { app: 'fastly', action: 'updateFastlyBackend', params: { cacheKey: 'fastly-key-998' } },
+    { app: 'imperva', action: 'blockImpervaIPRange', params: { ruleId: 'imp-rule-778', action: 'block' } },
+    { app: 'f5_big_ip', action: 'toggleF5PoolMember', params: { serverId: 'f5-srv-291', status: 'offline' } },
+    { app: 'incapsula', action: 'enableIncapsulaUnderAttackMode', params: { threshold: '10Gbps' } },
+    // Phase 39: Enterprise Customer Data Platforms & Analytics
+    { app: 'amplitude', action: 'deleteAmplitudeCohort', params: { cohortId: 'coh-amp-302' } },
+    { app: 'mixpanel', action: 'deleteMixpanelCohort', params: { cohortId: 'coh-mix-901' } },
+    { app: 'heap', action: 'deleteHeapEventDefinition', params: { eventId: 'evt-heap-92' } },
+    { app: 'fivetran', action: 'triggerFivetranConnectorSync', params: { connectorId: 'conn-five-901' } },
+    { app: 'airbyte', action: 'triggerAirbyteConnectionSync', params: { connectionId: 'conn-air-302' } },
+    // Phase 40: Enterprise HRIS & Modern Payroll Spoke
+    { app: 'rippling', action: 'terminateRipplingEmployee', params: { employeeId: 'EMP-18239' } },
+    { app: 'gusto', action: 'runGustoPayroll', params: { payrollId: 'pay-gusto-902' } },
+    { app: 'zenefits', action: 'updateZenefitsBenefits', params: { enrollmentId: 'ben-zen-92' } },
+    { app: 'workable', action: 'archiveWorkableCandidate', params: { candidateId: 'cand-work-302' } },
+    { app: 'jazzhr', action: 'changeJazzHRCandidateStatus', params: { candidateId: 'cand-jazz-92', newStatus: 'offered' } }
   ];
 
 

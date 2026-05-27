@@ -79,7 +79,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt', 'emailbody', 'emailsubject', 'attachmentcontent', 'teamsmessage', 'dbconnectionstring', 'tabledata', 'queryresult', 'githubtoken', 'gitlabtoken', 'deploykey', 'gitlabsecret', 'projectmetadata', 'jiraissuecomment', 'mondayboarddata', 'clickuptask', 'campaignanalytics', 'adspendbudget', 'leadslist', 'surveyresponses', 'feedbackcomments', 's3bucketcontent', 'gcsbucketcontent', 'azureblobcontent', 'dropboxfile', 'gdrivefile', 'modelprediction', 'langsmithtrace', 'mlflowrun', 'coherekey', 'taxcalculation', 'taxreturn', 'taxrate', 'refundamount', 'invoicepdf', 'subperiod', 'revrecpayload', 'signsignature', 'contractpdf', 'esignenvelope', 'creditcardpan', 'bankwirepayload', 'authcode', 'supportchat', 'figmafile', 'airtablebase', 'miroboard'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt', 'emailbody', 'emailsubject', 'attachmentcontent', 'teamsmessage', 'dbconnectionstring', 'tabledata', 'queryresult', 'githubtoken', 'gitlabtoken', 'deploykey', 'gitlabsecret', 'projectmetadata', 'jiraissuecomment', 'mondayboarddata', 'clickuptask', 'campaignanalytics', 'adspendbudget', 'leadslist', 'surveyresponses', 'feedbackcomments', 's3bucketcontent', 'gcsbucketcontent', 'azureblobcontent', 'dropboxfile', 'gdrivefile', 'modelprediction', 'langsmithtrace', 'mlflowrun', 'coherekey', 'taxcalculation', 'taxreturn', 'taxrate', 'refundamount', 'invoicepdf', 'subperiod', 'revrecpayload', 'signsignature', 'contractpdf', 'esignenvelope', 'creditcardpan', 'bankwirepayload', 'authcode', 'supportchat', 'figmafile', 'airtablebase', 'miroboard', 'grafanakey', 'newrelictoken', 'elasticpassword', 'sentrydsn', 'logglytoken', 'akamaitoken', 'fastlykey', 'impervacredential', 'f5password', 'incapsulasecret', 'amplitudetoken', 'mixpanelsecret', 'heapkey', 'fivetrantoken', 'airbytekey', 'ripplingtoken', 'gustokey', 'zenefitssecret', 'workablekey', 'jazzhrtoken'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -470,7 +470,27 @@ export class EnterpriseConnector {
       airtable: { apiToken: 'mock_airtable_token', endpoint: 'https://api.airtable.com/v0' },
       miro: { apiToken: 'mock_miro_token', endpoint: 'https://api.miro.com/v1' },
       wrike: { apiToken: 'mock_wrike_token', endpoint: 'https://www.wrike.com/api/v4' },
-      loomio: { apiToken: 'mock_loomio_token', endpoint: 'https://www.loomio.org/api/v1' }
+      loomio: { apiToken: 'mock_loomio_token', endpoint: 'https://www.loomio.org/api/v1' },
+      grafana: { apiToken: 'mock_grafana_token', endpoint: 'https://api.grafana.com/v1' },
+      new_relic: { apiToken: 'mock_newrelic_token', endpoint: 'https://api.newrelic.com/v2' },
+      elasticsearch: { apiToken: 'mock_elasticsearch_token', endpoint: 'https://api.elasticsearch.com/v1' },
+      sentry: { apiToken: 'mock_sentry_token', endpoint: 'https://api.sentry.io/v1' },
+      loggly: { apiToken: 'mock_loggly_token', endpoint: 'https://api.loggly.com/v1' },
+      akamai: { apiToken: 'mock_akamai_token', endpoint: 'https://api.akamai.com/v1' },
+      fastly: { apiToken: 'mock_fastly_token', endpoint: 'https://api.fastly.com/v1' },
+      imperva: { apiToken: 'mock_imperva_token', endpoint: 'https://api.imperva.com/v1' },
+      f5_big_ip: { apiToken: 'mock_f5_token', endpoint: 'https://api.f5.com/v1' },
+      incapsula: { apiToken: 'mock_incapsula_token', endpoint: 'https://api.incapsula.com/v1' },
+      amplitude: { apiKey: 'mock_amplitude_key', apiSecret: 'mock_amplitude_secret' },
+      mixpanel: { apiSecret: 'mock_mixpanel_secret', projectToken: 'mock_mixpanel_token' },
+      heap: { appId: 'mock_heap_id', apiKey: 'mock_heap_key' },
+      fivetran: { apiKey: 'mock_fivetran_key', apiSecret: 'mock_fivetran_secret' },
+      airbyte: { clientId: 'mock_airbyte_client', clientSecret: 'mock_airbyte_secret' },
+      rippling: { apiToken: 'mock_rippling_token', clientSecret: 'mock_rippling_secret' },
+      gusto: { apiToken: 'mock_gusto_token', companyId: 'mock_gusto_company' },
+      zenefits: { apiToken: 'mock_zenefits_token', partnerId: 'mock_zenefits_partner' },
+      workable: { apiToken: 'mock_workable_token', subdomain: 'mock_workable_subdomain' },
+      jazzhr: { apiKey: 'mock_jazzhr_key', customSubdomain: 'mock_jazzhr_subdomain' }
     };
 
     return credentials[this.appSlug] || { endpoint: 'https://api.mock-connector.local' };
@@ -570,7 +590,11 @@ export class EnterpriseConnector {
       'sendDocuSignEnvelope', 'sendDropboxSignatureRequest', 'sendPandaDocDocument', 'sendESignaturesContract', 'sendSignaturelyRequest',
       'captureStripeCharge', 'settleBraintreeTransaction', 'processSquarePayment', 'postQuickBooksInvoice', 'voidXeroTransaction',
       'rotateAuthSigningKey', 'deleteJumpCloudDirectoryGroup', 'createActiveCampaignList', 'closeIntercomConversation', 'postDiscordMessage',
-      'deleteFigmaFile', 'deleteAirtableBase', 'deleteMiroBoard', 'deleteWrikeTask', 'archiveLoomioDiscussion'
+      'deleteFigmaFile', 'deleteAirtableBase', 'deleteMiroBoard', 'deleteWrikeTask', 'archiveLoomioDiscussion',
+      'deleteGrafanaDashboard', 'muteNewRelicAlertPolicy', 'deleteElasticsearchIndex', 'resolveSentryIssue', 'deleteLogglySource',
+      'purgeAkamaiCache', 'updateFastlyBackend', 'blockImpervaIPRange', 'toggleF5PoolMember', 'enableIncapsulaUnderAttackMode',
+      'deleteAmplitudeCohort', 'deleteMixpanelCohort', 'deleteHeapEventDefinition', 'triggerFivetranConnectorSync', 'triggerAirbyteConnectionSync',
+      'terminateRipplingEmployee', 'runGustoPayroll', 'updateZenefitsBenefits', 'archiveWorkableCandidate', 'changeJazzHRCandidateStatus'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -2636,6 +2660,134 @@ export class EnterpriseConnector {
           result = { success: true, discussionId: sanitizedParams.discussionId || 'lm-disc-302', status: 'LOOMIO_DISCUSSION_ARCHIVED' };
           break;
 
+        // --- Phase 37: Enterprise Service Mesh & APM Telemetry Spoke ---
+        case 'getGrafanaDashboardTelemetry':
+          result = { success: true, metrics: [{ panelId: 'panel-001', cpuUsage: '42%', activeConnections: 1450 }], status: 'GRAFANA_TELEMETRY_LOADED' };
+          break;
+        case 'deleteGrafanaDashboard':
+          result = { success: true, dashboardId: sanitizedParams.dashboardId || 'db-grafana-901', status: 'GRAFANA_DASHBOARD_DELETED' };
+          break;
+        case 'getNewRelicAPMMetrics':
+          result = { success: true, apmMetrics: { transactionTimeMs: 140, errorRatePercent: 0.02, throughputRpm: 12500 }, status: 'NEWRELIC_APM_METRICS_LOADED' };
+          break;
+        case 'muteNewRelicAlertPolicy':
+          result = { success: true, policyId: sanitizedParams.policyId || 'pol-nr-8822', status: 'NEWRELIC_ALERT_POLICY_MUTED' };
+          break;
+        case 'queryElasticsearchLogs':
+          result = { success: true, hits: [{ timestamp: '2026-05-27T03:00:00Z', level: 'ERROR', message: 'Connection timeout on DB' }], totalHits: 1, status: 'ELASTICSEARCH_LOGS_LOADED' };
+          break;
+        case 'deleteElasticsearchIndex':
+          result = { success: true, indexName: sanitizedParams.indexName || 'logs-prod-2026', status: 'ELASTICSEARCH_INDEX_DELETED' };
+          break;
+        case 'getSentryErrorTraces':
+          result = { success: true, issues: [{ id: 'sentry-issue-901', title: 'NullPointerException in PaymentController', count: 145 }], status: 'SENTRY_ERROR_TRACES_LOADED' };
+          break;
+        case 'resolveSentryIssue':
+          result = { success: true, issueId: sanitizedParams.issueId || 'sentry-issue-901', status: 'SENTRY_ISSUE_RESOLVED' };
+          break;
+        case 'queryLogglyEvents':
+          result = { success: true, events: [{ id: 'lg-evt-772', syslogMsg: 'Auth failed for user admin' }], status: 'LOGGLY_EVENTS_LOADED' };
+          break;
+        case 'deleteLogglySource':
+          result = { success: true, sourceId: sanitizedParams.sourceId || 'src-loggly-882', status: 'LOGGLY_SOURCE_DELETED' };
+          break;
+
+        // --- Phase 38: Enterprise Content Delivery & Secure WAF Edge Spoke ---
+        case 'getAkamaiCacheStatus':
+          result = { success: true, cacheStatus: { hitRatioPercent: 88.5, bandwidthSavedGb: 2450.0 }, status: 'AKAMAI_CACHE_STATUS_LOADED' };
+          break;
+        case 'purgeAkamaiCache':
+          result = { success: true, purgeId: 'purge-ak-902', status: 'AKAMAI_CACHE_PURGED' };
+          break;
+        case 'getFastlyEdgeAnalytics':
+          result = { success: true, fastlyAnalytics: { edgeRequests: 45000, originRequests: 5000, cacheHitRatio: 0.89 }, status: 'FASTLY_EDGE_ANALYTICS_LOADED' };
+          break;
+        case 'updateFastlyBackend':
+          result = { success: true, backendName: sanitizedParams.backendName || 'origin-backup-api', status: 'FASTLY_BACKEND_UPDATED' };
+          break;
+        case 'getImpervaSecurityEvents':
+          result = { success: true, events: [{ id: 'imp-sec-302', ruleTriggered: 'SQL Injection Block', sourceIp: '198.51.100.42' }], status: 'IMPERVA_SECURITY_EVENTS_LOADED' };
+          break;
+        case 'blockImpervaIPRange':
+          result = { success: true, ipRange: sanitizedParams.ipRange || '198.51.100.0/24', status: 'IMPERVA_IP_RANGE_BLOCKED' };
+          break;
+        case 'getF5LoadBalancerStats':
+          result = { success: true, lbStats: { activeConnections: 8900, activeServers: 4, poolName: 'api-gateway-pool' }, status: 'F5_LOAD_BALANCER_STATS_LOADED' };
+          break;
+        case 'toggleF5PoolMember':
+          result = { success: true, memberAddress: sanitizedParams.memberAddress || '10.0.0.15:8080', enabled: sanitizedParams.enabled !== false, status: 'F5_POOL_MEMBER_TOGGLED' };
+          break;
+        case 'getIncapsulaDDoSReports':
+          result = { success: true, report: { blockedAttackCount: 12, maxAttackSizeGbps: 45.2 }, status: 'INCAPSULA_DDOS_REPORTS_LOADED' };
+          break;
+        case 'enableIncapsulaUnderAttackMode':
+          result = { success: true, siteId: sanitizedParams.siteId || 'inc-site-9902', status: 'INCAPSULA_UNDER_ATTACK_MODE_ENABLED' };
+          break;
+
+
+        // --- Phase 39: Enterprise Customer Data Platforms & Analytics ---
+        case 'getAmplitudeCohortData':
+          result = { success: true, cohort: { id: 'coh-amp-302', name: 'Active Enterprise Users', size: 14520 }, status: 'AMPLITUDE_COHORT_DATA_LOADED' };
+          break;
+        case 'deleteAmplitudeCohort':
+          result = { success: true, cohortId: sanitizedParams.cohortId || 'coh-amp-302', status: 'AMPLITUDE_COHORT_DELETED' };
+          break;
+        case 'getMixpanelFunnelAnalysis':
+          result = { success: true, funnel: { id: 'fun-mix-901', steps: ['signup', 'onboarding', 'purchase'], conversionRatePercent: 64.8 }, status: 'MIXPANEL_FUNNEL_ANALYSIS_LOADED' };
+          break;
+        case 'deleteMixpanelCohort':
+          result = { success: true, cohortId: sanitizedParams.cohortId || 'coh-mix-901', status: 'MIXPANEL_COHORT_DELETED' };
+          break;
+        case 'getHeapUserSessions':
+          result = { success: true, sessions: [{ sessionId: 'sess-heap-92', durationSeconds: 245, pagesViewed: 8 }], status: 'HEAP_USER_SESSIONS_LOADED' };
+          break;
+        case 'deleteHeapEventDefinition':
+          result = { success: true, eventId: sanitizedParams.eventId || 'evt-heap-92', status: 'HEAP_EVENT_DEFINITION_DELETED' };
+          break;
+        case 'getFivetranConnectorStatus':
+          result = { success: true, connector: { id: 'conn-five-901', name: 'postgres_to_snowflake', state: 'PAUSED', lastSync: '2026-05-27T00:00:00Z' }, status: 'FIVETRAN_CONNECTOR_STATUS_LOADED' };
+          break;
+        case 'triggerFivetranConnectorSync':
+          result = { success: true, connectorId: sanitizedParams.connectorId || 'conn-five-901', syncStatus: 'SYNC_STARTED', status: 'FIVETRAN_SYNC_TRIGGERED' };
+          break;
+        case 'getAirbyteConnectionStatus':
+          result = { success: true, connection: { id: 'conn-air-302', name: 'salesforce_to_bigquery', scheduleType: 'manual', status: 'active' }, status: 'AIRBYTE_CONNECTION_STATUS_LOADED' };
+          break;
+        case 'triggerAirbyteConnectionSync':
+          result = { success: true, connectionId: sanitizedParams.connectionId || 'conn-air-302', syncStatus: 'SYNC_STARTED', status: 'AIRBYTE_SYNC_TRIGGERED' };
+          break;
+
+        // --- Phase 40: Enterprise HRIS & Modern Payroll Spoke ---
+        case 'getRipplingEmployeeProfile':
+          result = { success: true, employeeId: sanitizedParams.employeeId || 'EMP-18239', profile: { name: '[REDACTED SENSITIVE FIELD]', salary: '[REDACTED SENSITIVE FIELD]', title: 'Staff Engineer' }, status: 'RIPPLING_EMPLOYEE_PROFILE_LOADED' };
+          break;
+        case 'terminateRipplingEmployee':
+          result = { success: true, employeeId: sanitizedParams.employeeId || 'EMP-18239', status: 'RIPPLING_EMPLOYEE_TERMINATED' };
+          break;
+        case 'getGustoPayrollSummary':
+          result = { success: true, payroll: { id: 'pay-gusto-902', netPay: '[REDACTED SENSITIVE FIELD]', taxesWithheld: '[REDACTED SENSITIVE FIELD]', payrollPeriod: 'FY26-M5' }, status: 'GUSTO_PAYROLL_SUMMARY_LOADED' };
+          break;
+        case 'runGustoPayroll':
+          result = { success: true, payrollId: sanitizedParams.payrollId || 'pay-gusto-902', status: 'GUSTO_PAYROLL_RUN_SUCCESS' };
+          break;
+        case 'getZenefitsBenefitsEnrollment':
+          result = { success: true, enrollment: { id: 'ben-zen-92', coverageTier: 'family', planName: 'Enterprise Premium PPO', premium: 1450.0 }, status: 'ZENEFITS_BENEFITS_ENROLLMENT_LOADED' };
+          break;
+        case 'updateZenefitsBenefits':
+          result = { success: true, enrollmentId: sanitizedParams.enrollmentId || 'ben-zen-92', status: 'ZENEFITS_BENEFITS_UPDATED' };
+          break;
+        case 'getWorkableCandidateDetails':
+          result = { success: true, candidate: { id: 'cand-work-302', name: 'John Doe', stage: 'interviewing', rating: 4.8 }, status: 'WORKABLE_CANDIDATE_DETAILS_LOADED' };
+          break;
+        case 'archiveWorkableCandidate':
+          result = { success: true, candidateId: sanitizedParams.candidateId || 'cand-work-302', status: 'WORKABLE_CANDIDATE_ARCHIVED' };
+          break;
+        case 'getJazzHRCandidateProfile':
+          result = { success: true, profile: { id: 'cand-jazz-92', name: 'Jane Smith', jobTitle: 'Senior Frontend Developer', recruiterScore: 'highly_recommended' }, status: 'JAZZHR_CANDIDATE_PROFILE_LOADED' };
+          break;
+        case 'changeJazzHRCandidateStatus':
+          result = { success: true, candidateId: sanitizedParams.candidateId || 'cand-jazz-92', newStatus: sanitizedParams.newStatus || 'offered', status: 'JAZZHR_CANDIDATE_STATUS_CHANGED' };
+          break;
 
         default:
           throw new Error(`Unsupported action mapping: ${actionName} for enterprise application ${this.appSlug}`);

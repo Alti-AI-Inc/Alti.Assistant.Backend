@@ -1927,7 +1927,27 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
             airtable: 'https://api.airtable.com',
             miro: 'https://api.miro.com',
             wrike: 'https://www.wrike.com',
-            loomio: 'https://www.loomio.org'
+            loomio: 'https://www.loomio.org',
+            grafana: 'https://api.grafana.com',
+            new_relic: 'https://api.newrelic.com',
+            elasticsearch: 'https://api.elasticsearch.com',
+            sentry: 'https://api.sentry.io',
+            loggly: 'https://api.loggly.com',
+            akamai: 'https://api.akamai.com',
+            fastly: 'https://api.fastly.com',
+            imperva: 'https://api.imperva.com',
+            f5_big_ip: 'https://api.f5.com',
+            incapsula: 'https://api.incapsula.com',
+            amplitude: 'https://api.amplitude.com',
+            mixpanel: 'https://api.mixpanel.com',
+            heap: 'https://api.heap.io',
+            fivetran: 'https://api.fivetran.com',
+            airbyte: 'https://api.airbyte.com',
+            rippling: 'https://api.rippling.com',
+            gusto: 'https://api.gusto.com',
+            zenefits: 'https://api.zenefits.com',
+            workable: 'https://api.workable.com',
+            jazzhr: 'https://api.jazzhr.com'
           };
           const resolvedDomain = domains[app.toLowerCase()] || 'https://api.enterprise-connector.local';
           usedUrls.add(resolvedDomain);

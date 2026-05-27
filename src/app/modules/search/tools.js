@@ -980,7 +980,9 @@ Input: The app slug name and action list.`,
       'onesource', 'avalara', 'vertex', 'taxjar', 'sovos',
       'zuora', 'chargebee', 'recurly', 'stripe_billing', 'paddle',
       'docusign', 'dropbox_sign', 'pandadoc', 'esignatures_io', 'signaturely', 'stripe', 'braintree', 'square', 'quickbooks', 'xero',
-      'auth0', 'jumpcloud', 'active_campaign', 'intercom', 'discord', 'figma', 'airtable', 'miro', 'wrike', 'loomio'
+      'auth0', 'jumpcloud', 'active_campaign', 'intercom', 'discord', 'figma', 'airtable', 'miro', 'wrike', 'loomio',
+      'grafana', 'new_relic', 'elasticsearch', 'sentry', 'loggly', 'akamai', 'fastly', 'imperva', 'f5_big_ip', 'incapsula',
+      'amplitude', 'mixpanel', 'heap', 'fivetran', 'airbyte', 'rippling', 'gusto', 'zenefits', 'workable', 'jazzhr'
     ]).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets', 'createBIM360RFI', 'getYardiPropertyLedger', 'updateYardiRentLedger',
@@ -1065,7 +1067,17 @@ Input: The app slug name and action list.`,
       'getActiveCampaignContacts', 'createActiveCampaignList', 'getIntercomConversations', 'closeIntercomConversation',
       'getDiscordChannels', 'postDiscordMessage', 'getFigmaFileMetadata', 'deleteFigmaFile',
       'getAirtableRecords', 'deleteAirtableBase', 'getMiroBoardDetails', 'deleteMiroBoard',
-      'getWrikeTasks', 'deleteWrikeTask', 'getLoomioDiscussions', 'archiveLoomioDiscussion'
+      'getWrikeTasks', 'deleteWrikeTask', 'getLoomioDiscussions', 'archiveLoomioDiscussion',
+      'getGrafanaDashboardTelemetry', 'deleteGrafanaDashboard', 'getNewRelicAPMMetrics', 'muteNewRelicAlertPolicy',
+      'queryElasticsearchLogs', 'deleteElasticsearchIndex', 'getSentryErrorTraces', 'resolveSentryIssue',
+      'queryLogglyEvents', 'deleteLogglySource', 'getAkamaiCacheStatus', 'purgeAkamaiCache',
+      'getFastlyEdgeAnalytics', 'updateFastlyBackend', 'getImpervaSecurityEvents', 'blockImpervaIPRange',
+      'getF5LoadBalancerStats', 'toggleF5PoolMember', 'getIncapsulaDDoSReports', 'enableIncapsulaUnderAttackMode',
+      'getAmplitudeCohortData', 'deleteAmplitudeCohort', 'getMixpanelFunnelAnalysis', 'deleteMixpanelCohort',
+      'getHeapUserSessions', 'deleteHeapEventDefinition', 'getFivetranConnectorStatus', 'triggerFivetranConnectorSync',
+      'getAirbyteConnectionStatus', 'triggerAirbyteConnectionSync', 'getRipplingEmployeeProfile', 'terminateRipplingEmployee',
+      'getGustoPayrollSummary', 'runGustoPayroll', 'getZenefitsBenefitsEnrollment', 'updateZenefitsBenefits',
+      'getWorkableCandidateDetails', 'archiveWorkableCandidate', 'getJazzHRCandidateProfile', 'changeJazzHRCandidateStatus'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")
