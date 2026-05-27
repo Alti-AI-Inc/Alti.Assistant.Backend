@@ -77,6 +77,12 @@ import {
   classifyBehavioralEconomicsQuery,
   classifySeismologyQuery,
   classifyCompilerDesignQuery,
+  classifyParticlePhysicsQuery,
+  classifyNanomedicineQuery,
+  classifyPropulsionQuery,
+  classifyMechanismDesignQuery,
+  classifyGlaciologyQuery,
+  classifyFormalVerificationQuery,
 } from '../src/app/modules/search/services/queryClassifier.js';
 import { executeGroundedSearchStream } from '../src/app/modules/search/services/geminiGroundingService.js';
 import { executeToolBasedConversation } from '../src/app/modules/search/services/reactAgent.js';
@@ -735,7 +741,55 @@ async function runTests() {
   assert.strictEqual(compilerResult.isCompilerDesign, true);
   console.log('✅ Test 80 Passed!');
 
-  console.log('\n🎉 ALL BATCH 1 TO BATCH 13 TESTS COMPLETED SUCCESSFULLY!');
+  // Test 81: Quantum Electro Dynamics & Particle Physics Intent Classification (Batch 14)
+  console.log('\n🧪 Test 81: Quantum Electro Dynamics & Particle Physics Intent Classification (Batch 14)');
+  const particlePhysicsQuery = 'Analyze Feynman diagrams, gauge bosons, quantum electrodynamics, and hadron colliders.';
+  const particlePhysicsResult = classifyParticlePhysicsQuery(particlePhysicsQuery);
+  console.log('Result:', particlePhysicsResult);
+  assert.strictEqual(particlePhysicsResult.isParticlePhysics, true);
+  console.log('✅ Test 81 Passed!');
+
+  // Test 82: Nanomedicine & Targeted Drug Delivery Intent Classification (Batch 14)
+  console.log('\n🧪 Test 82: Nanomedicine & Targeted Drug Delivery Intent Classification (Batch 14)');
+  const nanomedicineQuery = 'Synthesize polymeric nanoparticles for targeted drug delivery and cross the blood-brain barrier via EPR effect.';
+  const nanomedicineResult = classifyNanomedicineQuery(nanomedicineQuery);
+  console.log('Result:', nanomedicineResult);
+  assert.strictEqual(nanomedicineResult.isNanomedicine, true);
+  console.log('✅ Test 82 Passed!');
+
+  // Test 83: Advanced Combustion & Propulsion Systems Intent Classification (Batch 14)
+  console.log('\n🧪 Test 83: Advanced Combustion & Propulsion Systems Intent Classification (Batch 14)');
+  const propulsionQuery = 'Calculate scramjet specific impulse, detonic combustion thermodynamic cycles, and Hall effect ion thrusters.';
+  const propulsionResult = classifyPropulsionQuery(propulsionQuery);
+  console.log('Result:', propulsionResult);
+  assert.strictEqual(propulsionResult.isPropulsion, true);
+  console.log('✅ Test 83 Passed!');
+
+  // Test 84: Game Theory & Economic Mechanism Design Intent Classification (Batch 14)
+  console.log('\n🧪 Test 84: Game Theory & Economic Mechanism Design Intent Classification (Batch 14)');
+  const mechanismQuery = 'Explain VCG mechanism design, Gale-Shapley stable matching algorithms, and double auction principal-agent incentives.';
+  const mechanismResult = classifyMechanismDesignQuery(mechanismQuery);
+  console.log('Result:', mechanismResult);
+  assert.strictEqual(mechanismResult.isMechanismDesign, true);
+  console.log('✅ Test 84 Passed!');
+
+  // Test 85: Glaciology & Ice Sheet Dynamics Intent Classification (Batch 14)
+  console.log('\n🧪 Test 85: Glaciology & Ice Sheet Dynamics Intent Classification (Batch 14)');
+  const glaciologyQuery = 'Model glacier mass balance, ice sheet flow shear stress calving mechanics, and subglacial hydrology.';
+  const glaciologyResult = classifyGlaciologyQuery(glaciologyQuery);
+  console.log('Result:', glaciologyResult);
+  assert.strictEqual(glaciologyResult.isGlaciology, true);
+  console.log('✅ Test 85 Passed!');
+
+  // Test 86: Program Synthesis & Formal Verification Intent Classification (Batch 14)
+  console.log('\n🧪 Test 86: Program Synthesis & Formal Verification Intent Classification (Batch 14)');
+  const verificationQuery = 'Perform model checking using SMT solvers, Coq proofs, Isabelle assistant, and Hoare logic invariants.';
+  const verificationResult = classifyFormalVerificationQuery(verificationQuery);
+  console.log('Result:', verificationResult);
+  assert.strictEqual(verificationResult.isFormalVerification, true);
+  console.log('✅ Test 86 Passed!');
+
+  console.log('\n🎉 ALL BATCH 1 TO BATCH 14 TESTS COMPLETED SUCCESSFULLY!');
 }
 
 runTests().catch(err => {

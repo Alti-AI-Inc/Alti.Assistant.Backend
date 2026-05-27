@@ -93,6 +93,12 @@ import {
   classifyBehavioralEconomicsQuery,
   classifySeismologyQuery,
   classifyCompilerDesignQuery,
+  classifyParticlePhysicsQuery,
+  classifyNanomedicineQuery,
+  classifyPropulsionQuery,
+  classifyMechanismDesignQuery,
+  classifyGlaciologyQuery,
+  classifyFormalVerificationQuery,
 } from './queryClassifier.js';
 
 /**
@@ -736,6 +742,12 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
   const behavioralEconomicsClass = classifyBehavioralEconomicsQuery(currentQuery);
   const seismologyClass = classifySeismologyQuery(currentQuery);
   const compilerDesignClass = classifyCompilerDesignQuery(currentQuery);
+  const particlePhysicsClass = classifyParticlePhysicsQuery(currentQuery);
+  const nanomedicineClass = classifyNanomedicineQuery(currentQuery);
+  const propulsionClass = classifyPropulsionQuery(currentQuery);
+  const mechanismDesignClass = classifyMechanismDesignQuery(currentQuery);
+  const glaciologyClass = classifyGlaciologyQuery(currentQuery);
+  const formalVerificationClass = classifyFormalVerificationQuery(currentQuery);
 
   let topicAgentInstruction = '';
   if (medicalClass.isMedical) {
@@ -1252,6 +1264,48 @@ This is a tectonic plate boundary, seismic wave travel-time, Volcanic Explosivit
 This is an abstract syntax tree (AST) grammar parse, LLVM compiler pass, Hindley-Milner type inference deduction, register allocation graph, or lexical token stream query. You are Alti's Specialized Compiler Design & Programming Language Theory Agent.
 - Present abstract syntax tree (AST) grammar parses, LLVM compiler passes, Hindley-Milner type inference deductions, register allocation graphs, and lexical token streams.
 - Cite open source compiler infrastructures and PLT conferences (LLVM Project, arXiv cs.PL, GitHub, GCC GNU, ACM SIGPLAN, MIT DSpace).
+`;
+  } else if (particlePhysicsClass.isParticlePhysics) {
+    topicAgentInstruction = `
+[⚛️ SPECIALIZED QUANTUM ELECTRO DYNAMICS & PARTICLE PHYSICS AGENT DIRECTIVE]
+This is a Feynman diagram, quark-lepton gauge boson, QED field equation, Higgs mechanism, baryogenesis, or Large Hadron Collider query. You are Alti's Specialized Quantum Electro Dynamics & Particle Physics Agent.
+- Detail Feynman diagrams, quark-lepton gauge boson characteristics, QED field equations, Higgs mechanisms, baryogenesis models, and Large Hadron Collider experiment configurations.
+- Cite international physics collaborations and theoretical archives (CERN, arXiv hep-ph/hep-th, ScienceDirect, APS, Nature Physics).
+`;
+  } else if (nanomedicineClass.isNanomedicine) {
+    topicAgentInstruction = `
+[💊 SPECIALIZED NANOMEDICINE & TARGETED DRUG DELIVERY AGENT DIRECTIVE]
+This is a liposomal nanocarrier, polymeric nanoparticle drug synthesis, passive/active targeting (EPR effect), gold nanoparticle photothermal assay, or blood-brain barrier crossing query. You are Alti's Specialized Nanomedicine & Targeted Drug Delivery Agent.
+- Outline liposomal nanocarriers, polymeric nanoparticle drug synthesis pathways, passive/active targeting systems (EPR effect), gold nanoparticle photothermal assays, and blood-brain barrier crossing mechanisms.
+- Cite clinical medicine libraries and nanotechnology journals (PubMed, PMC, Nature Nanotechnology, ScienceDirect, Cell Press, ACS).
+`;
+  } else if (propulsionClass.isPropulsion) {
+    topicAgentInstruction = `
+[🚀 SPECIALIZED ADVANCED COMBUSTION & PROPULSION SYSTEMS AGENT DIRECTIVE]
+This is a jet/rocket engine equation, scramjet detonic cycle, propellant specific impulse, Hall effect ion thruster, or thermodynamic efficiency profile query. You are Alti's Specialized Advanced Combustion & Propulsion Systems Agent.
+- Format jet/rocket engine equations, scramjet detonic cycles, propellant specific impulse metrics, Hall effect ion thruster operations, and thermodynamic efficiency profiles.
+- Cite aerospace administration repositories and mechanical engineering libraries (NASA, ScienceDirect, AIAA, Springer, IEEE, NREL).
+`;
+  } else if (mechanismDesignClass.isMechanismDesign) {
+    topicAgentInstruction = `
+[📊 SPECIALIZED GAME THEORY & ECONOMIC MECHANISM DESIGN AGENT DIRECTIVE]
+This is a VCG mechanism design, double auction rule, stable matching algorithm (Gale-Shapley), principal-agent incentive, or Pareto efficiency matrix query. You are Alti's Specialized Game Theory & Economic Mechanism Design Agent.
+- Present VCG mechanism designs, double auction rules, stable matching algorithms (Gale-Shapley), principal-agent incentives, and Pareto efficiency matrices.
+- Cite academic economic research networks and decision journals (NBER, ScienceDirect, AEA, Nobel Prize Archive, Microeconomics CA, Nature Human Behaviour).
+`;
+  } else if (glaciologyClass.isGlaciology) {
+    topicAgentInstruction = `
+[❄️ SPECIALIZED GLACIOLOGY & ICE SHEET DYNAMICS AGENT DIRECTIVE]
+This is a glacier mass balance, ice sheet flow shear stress, calving mechanics, subglacial hydrologic pressure loop, permafrost thaw index, or ice shelf buttress query. You are Alti's Specialized Glaciology & Ice Sheet Dynamics Agent.
+- Detail glacier mass balances, ice sheet flow shear stresses, calving mechanics, subglacial hydrologic pressure loops, permafrost thaw indices, and ice shelf buttresses.
+- Cite ice/snow data centers and geophysical databases (NSIDC, AntarcticGlaciers, ScienceDirect, Nature Geoscience, AGU, The Cryosphere).
+`;
+  } else if (formalVerificationClass.isFormalVerification) {
+    topicAgentInstruction = `
+[🔒 SPECIALIZED PROGRAM SYNTHESIS & FORMAL VERIFICATION AGENT DIRECTIVE]
+This is a SAT/SMT solver optimization, Coq/Isabelle proof derivation, Hoare logic invariant, static syntax code audit, or inductive program synthesis query. You are Alti's Specialized Program Synthesis & Formal Verification Agent.
+- Present SAT/SMT solver optimizations, Coq/Isabelle proof derivations, Hoare logic invariants, static syntax code audits, and inductive program syntheses.
+- Cite computer logic journals and proof assistant repositories (arXiv cs.LO, GitHub, SMT-LIB, Formal Verification Portal, ACM SIGPLAN, Coq Inria).
 `;
   }
 

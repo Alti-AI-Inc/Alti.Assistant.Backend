@@ -3147,6 +3147,168 @@ export function classifyCompilerDesignQuery(query) {
   return { isCompilerDesign, confidence };
 }
 
+/**
+ * Classify whether a query is Particle Physics & QED-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isParticlePhysics and confidence
+ */
+export function classifyParticlePhysicsQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isParticlePhysics: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const physicsKeywords = [
+    'particle physics', 'feynman diagram', 'gauge boson', 'quantum electrodynamics',
+    'higgs mechanism', 'baryogenesis', 'hadron collider'
+  ];
+
+  const matchCount = physicsKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isParticlePhysics = matchCount > 0;
+  const confidence = isParticlePhysics ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isParticlePhysics) {
+    console.log(`⚛️ Particle Physics & QED Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isParticlePhysics, confidence };
+}
+
+/**
+ * Classify whether a query is Nanomedicine-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isNanomedicine and confidence
+ */
+export function classifyNanomedicineQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isNanomedicine: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const nanomedicineKeywords = [
+    'nanomedicine', 'liposomal nanocarrier', 'polymeric nanoparticle', 'epr effect',
+    'nanotargeted', 'targeted drug delivery'
+  ];
+
+  const matchCount = nanomedicineKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isNanomedicine = matchCount > 0;
+  const confidence = isNanomedicine ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isNanomedicine) {
+    console.log(`💊 Nanomedicine Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isNanomedicine, confidence };
+}
+
+/**
+ * Classify whether a query is Advanced Propulsion-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isPropulsion and confidence
+ */
+export function classifyPropulsionQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isPropulsion: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const propulsionKeywords = [
+    'propulsion system', 'rocket propulsion', 'scramjet', 'specific impulse',
+    'ion thruster', 'hall effect thruster', 'detonic combustion'
+  ];
+
+  const matchCount = propulsionKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isPropulsion = matchCount > 0;
+  const confidence = isPropulsion ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isPropulsion) {
+    console.log(`🚀 Propulsion & Combustion Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isPropulsion, confidence };
+}
+
+/**
+ * Classify whether a query is Mechanism Design-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isMechanismDesign and confidence
+ */
+export function classifyMechanismDesignQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isMechanismDesign: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const mechanismKeywords = [
+    'mechanism design', 'vcg mechanism', 'double auction', 'gale-shapley',
+    'stable matching', 'principal agent', 'principal-agent'
+  ];
+
+  const matchCount = mechanismKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isMechanismDesign = matchCount > 0;
+  const confidence = isMechanismDesign ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isMechanismDesign) {
+    console.log(`📊 Mechanism Design & Game Theory Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isMechanismDesign, confidence };
+}
+
+/**
+ * Classify whether a query is Glaciology-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isGlaciology and confidence
+ */
+export function classifyGlaciologyQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isGlaciology: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const glaciologyKeywords = [
+    'glaciology', 'glacier mass', 'ice sheet flow', 'calving mechanics',
+    'subglacial hydrology', 'permafrost thaw', 'ice shelf'
+  ];
+
+  const matchCount = glaciologyKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isGlaciology = matchCount > 0;
+  const confidence = isGlaciology ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isGlaciology) {
+    console.log(`❄️ Glaciology & Ice Sheets Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isGlaciology, confidence };
+}
+
+/**
+ * Classify whether a query is Formal Verification-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isFormalVerification and confidence
+ */
+export function classifyFormalVerificationQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isFormalVerification: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const verificationKeywords = [
+    'formal verification', 'model checking', 'smt solver', 'sat solver',
+    'coq proof', 'isabelle proof', 'hoare logic'
+  ];
+
+  const matchCount = verificationKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isFormalVerification = matchCount > 0;
+  const confidence = isFormalVerification ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isFormalVerification) {
+    console.log(`🔒 Formal Verification & PLT Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isFormalVerification, confidence };
+}
+
 export default {
   classifyQuery,
   classifyQueryFast,
@@ -3234,4 +3396,10 @@ export default {
   classifyBehavioralEconomicsQuery,
   classifySeismologyQuery,
   classifyCompilerDesignQuery,
+  classifyParticlePhysicsQuery,
+  classifyNanomedicineQuery,
+  classifyPropulsionQuery,
+  classifyMechanismDesignQuery,
+  classifyGlaciologyQuery,
+  classifyFormalVerificationQuery,
 };

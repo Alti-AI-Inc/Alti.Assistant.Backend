@@ -83,6 +83,12 @@ import {
   classifyBehavioralEconomicsQuery,
   classifySeismologyQuery,
   classifyCompilerDesignQuery,
+  classifyParticlePhysicsQuery,
+  classifyNanomedicineQuery,
+  classifyPropulsionQuery,
+  classifyMechanismDesignQuery,
+  classifyGlaciologyQuery,
+  classifyFormalVerificationQuery,
 } from './queryClassifier.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 /**
@@ -411,6 +417,12 @@ export async function* executeGroundedSearchStream(
   const behavioralEconomicsClass = classifyBehavioralEconomicsQuery(query);
   const seismologyClass = classifySeismologyQuery(query);
   const compilerDesignClass = classifyCompilerDesignQuery(query);
+  const particlePhysicsClass = classifyParticlePhysicsQuery(query);
+  const nanomedicineClass = classifyNanomedicineQuery(query);
+  const propulsionClass = classifyPropulsionQuery(query);
+  const mechanismDesignClass = classifyMechanismDesignQuery(query);
+  const glaciologyClass = classifyGlaciologyQuery(query);
+  const formalVerificationClass = classifyFormalVerificationQuery(query);
 
   if (academicClass.isAcademic) {
     console.log('🎓 Academic query detected. Appending scientific site-restrictions...');
@@ -646,6 +658,24 @@ export async function* executeGroundedSearchStream(
   } else if (compilerDesignClass.isCompilerDesign) {
     console.log('💻 Compiler Design & PLT query detected. Appending compiler design site-restrictions...');
     finalQuery = `${finalQuery} (site:llvm.org OR site:arxiv.org/archive/cs.PL OR site:github.com OR site:gcc.gnu.org OR site:sigplan.org OR site:dspace.mit.edu)`;
+  } else if (particlePhysicsClass.isParticlePhysics) {
+    console.log('⚛️ Particle Physics & QED query detected. Appending particle physics site-restrictions...');
+    finalQuery = `${finalQuery} (site:cern.ch OR site:arxiv.org/archive/hep-ph OR site:arxiv.org/archive/hep-th OR site:sciencedirect.com OR site:aps.org OR site:nature.com/nphys)`;
+  } else if (nanomedicineClass.isNanomedicine) {
+    console.log('💊 Nanomedicine query detected. Appending nanomedicine site-restrictions...');
+    finalQuery = `${finalQuery} (site:pubmed.ncbi.nlm.nih.gov OR site:ncbi.nlm.nih.gov/pmc OR site:nature.com/nnano OR site:sciencedirect.com OR site:cell.com OR site:acs.org)`;
+  } else if (propulsionClass.isPropulsion) {
+    console.log('🚀 Propulsion & Combustion query detected. Appending propulsion site-restrictions...');
+    finalQuery = `${finalQuery} (site:nasa.gov OR site:sciencedirect.com OR site:aiaa.org OR site:springer.com OR site:ieee.org OR site:nrel.gov)`;
+  } else if (mechanismDesignClass.isMechanismDesign) {
+    console.log('📊 Mechanism Design & Game Theory query detected. Appending mechanism design site-restrictions...');
+    finalQuery = `${finalQuery} (site:nber.org OR site:sciencedirect.com OR site:aeaweb.org OR site:nobelprize.org OR site:microeconomics.ca OR site:nature.com/nature-human-behaviour)`;
+  } else if (glaciologyClass.isGlaciology) {
+    console.log('❄️ Glaciology & Ice Sheets query detected. Appending glaciology site-restrictions...');
+    finalQuery = `${finalQuery} (site:nsidc.org OR site:antarcticglaciers.org OR site:sciencedirect.com OR site:nature.com/ngeo OR site:agu.org OR site:cryosphere.net)`;
+  } else if (formalVerificationClass.isFormalVerification) {
+    console.log('🔒 Formal Verification & PLT query detected. Appending formal verification site-restrictions...');
+    finalQuery = `${finalQuery} (site:arxiv.org/archive/cs.LO OR site:github.com OR site:smtlib.org OR site:formalverification.org OR site:sigplan.org OR site:coq.inria.fr)`;
   }
 
   let videoReferences = [];
@@ -1052,6 +1082,12 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
   const behavioralEconomicsClass = classifyBehavioralEconomicsQuery(query);
   const seismologyClass = classifySeismologyQuery(query);
   const compilerDesignClass = classifyCompilerDesignQuery(query);
+  const particlePhysicsClass = classifyParticlePhysicsQuery(query);
+  const nanomedicineClass = classifyNanomedicineQuery(query);
+  const propulsionClass = classifyPropulsionQuery(query);
+  const mechanismDesignClass = classifyMechanismDesignQuery(query);
+  const glaciologyClass = classifyGlaciologyQuery(query);
+  const formalVerificationClass = classifyFormalVerificationQuery(query);
 
   if (academicClass.isAcademic) {
     console.log('🎓 Academic query detected. Appending scientific site-restrictions...');
@@ -1287,6 +1323,24 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
   } else if (compilerDesignClass.isCompilerDesign) {
     console.log('💻 Compiler Design & PLT query detected. Appending compiler design site-restrictions...');
     finalQuery = `${finalQuery} (site:llvm.org OR site:arxiv.org/archive/cs.PL OR site:github.com OR site:gcc.gnu.org OR site:sigplan.org OR site:dspace.mit.edu)`;
+  } else if (particlePhysicsClass.isParticlePhysics) {
+    console.log('⚛️ Particle Physics & QED query detected. Appending particle physics site-restrictions...');
+    finalQuery = `${finalQuery} (site:cern.ch OR site:arxiv.org/archive/hep-ph OR site:arxiv.org/archive/hep-th OR site:sciencedirect.com OR site:aps.org OR site:nature.com/nphys)`;
+  } else if (nanomedicineClass.isNanomedicine) {
+    console.log('💊 Nanomedicine query detected. Appending nanomedicine site-restrictions...');
+    finalQuery = `${finalQuery} (site:pubmed.ncbi.nlm.nih.gov OR site:ncbi.nlm.nih.gov/pmc OR site:nature.com/nnano OR site:sciencedirect.com OR site:cell.com OR site:acs.org)`;
+  } else if (propulsionClass.isPropulsion) {
+    console.log('🚀 Propulsion & Combustion query detected. Appending propulsion site-restrictions...');
+    finalQuery = `${finalQuery} (site:nasa.gov OR site:sciencedirect.com OR site:aiaa.org OR site:springer.com OR site:ieee.org OR site:nrel.gov)`;
+  } else if (mechanismDesignClass.isMechanismDesign) {
+    console.log('📊 Mechanism Design & Game Theory query detected. Appending mechanism design site-restrictions...');
+    finalQuery = `${finalQuery} (site:nber.org OR site:sciencedirect.com OR site:aeaweb.org OR site:nobelprize.org OR site:microeconomics.ca OR site:nature.com/nature-human-behaviour)`;
+  } else if (glaciologyClass.isGlaciology) {
+    console.log('❄️ Glaciology & Ice Sheets query detected. Appending glaciology site-restrictions...');
+    finalQuery = `${finalQuery} (site:nsidc.org OR site:antarcticglaciers.org OR site:sciencedirect.com OR site:nature.com/ngeo OR site:agu.org OR site:cryosphere.net)`;
+  } else if (formalVerificationClass.isFormalVerification) {
+    console.log('🔒 Formal Verification & PLT query detected. Appending formal verification site-restrictions...');
+    finalQuery = `${finalQuery} (site:arxiv.org/archive/cs.LO OR site:github.com OR site:smtlib.org OR site:formalverification.org OR site:sigplan.org OR site:coq.inria.fr)`;
   }
 
   let videoReferences = [];
