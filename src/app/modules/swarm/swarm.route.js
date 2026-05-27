@@ -7,4 +7,7 @@ const router = express.Router();
 // Expose POST endpoint for SSE collaborative agent swarm stream with optional JWT verification
 router.post('/stream', optionalAuth(), SwarmController.performSwarmStreamingSearch);
 
+// Expose secure POST endpoint to pre-warm isolated container sandboxes asynchronously
+router.post('/prewarm', optionalAuth(), SwarmController.prewarmUserSandbox);
+
 export const SwarmRoutes = router;

@@ -5,6 +5,7 @@ import { logger } from '../../../shared/logger.js';
 import { searchService } from '../search/search.service.js';
 import { SwarmService } from './swarm.service.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
+import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
 
 const performSwarmStreamingSearch = catchAsync(async (req, res) => {
   const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
@@ -205,6 +206,37 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
   }
 });
 
+const prewarmUserSandbox = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
+  
+  let userId;
+  if (!isGuest) {
+    userId = req.user?.userId || req.user?._id;
+  } else {
+    // SECURE: Only accept body userId if it strictly conforms to a guest-prefixed format
+    const providedUserId = req.body.userId;
+    const isGuestPattern = providedUserId && typeof providedUserId === 'string' && providedUserId.startsWith('guest_');
+    if (providedUserId && isGuestPattern) {
+      userId = providedUserId;
+    }
+  }
+
+  if (userId) {
+    logger.info(`[DOCKER PREWARM] Asynchronously pre-warming sandbox container for user: ${userId}`);
+    // Trigger in the background asynchronously so it does not block Express response
+    dockerWorkspaceService.prewarmWorkspace(userId).catch((err) => {
+      logger.error(`[DOCKER PREWARM ERROR] Failed to prewarm container for user ${userId}: ${err.message}`);
+    });
+  }
+
+  return sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Sandbox container pre-warming initiated successfully',
+  });
+});
+
 export const SwarmController = {
   performSwarmStreamingSearch,
+  prewarmUserSandbox,
 };

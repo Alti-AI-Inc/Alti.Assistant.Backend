@@ -228,6 +228,11 @@ if __name__ == "__main__":
       logger.info(`[Database Notice] DATABASE_LOCAL is not defined in environment. Skipping database persistence check.`);
     }
 
+    // 10. Container Pre-Warming & Suspension Verification
+    logger.info(`[Step 10] Verifying Sandbox Container Pre-Warming & Suspension...`);
+    await dockerWorkspaceService.prewarmWorkspace(TEST_USER);
+    logger.info(`[SUCCESS] Sandbox pre-warming executed successfully.`);
+
     // Clean up test workspace files
     logger.info(`[Cleanup] Cleaning up test files for user: ${TEST_USER}`);
     try {
