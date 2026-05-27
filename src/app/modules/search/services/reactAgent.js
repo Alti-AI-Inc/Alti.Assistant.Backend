@@ -656,13 +656,13 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
   * "newsapi_global_news_search" tool → Event Registry / NewsAPI.ai (verified global news article counts, sentiment trends, social share densities, primary categories, trust indices, and live headline bulletins)
   * "alti_greenlight_intelligence_search" tool → Nine high-value public intelligence databases (FEC politics, LegiScan tracking, Google Civic representatives, DBnomics economics, CFPB HMDA mortgages, OpenFEMA hazards, NIH RePORTER grants, UK Companies House, OpenCorporates global registry)
   * "alti_premium_intelligence_search" tool → Nine high-value premium public intelligence databases (clinical_trials, fda_drug_safety, global_health_observatory, us_treasury_fiscal, federal_spending, healthcare_npi, food_nutrients, charity_registry, aviation_delays)
-  * "alti_enterprise_intelligence_search" tool → Five premium enterprise applications (Autodesk BIM 360, Yardi Systems, RealPage, CoStar Group, and Argus Enterprise)
+  * "alti_enterprise_intelligence_search" tool → Premium enterprise applications (Autodesk BIM 360, Yardi Systems, RealPage, CoStar Group, Argus Enterprise, Addepar, Carta, Fiserv, FactSet, and Bloomberg Terminal)
   * "lookup-huggingface-indices" tool → Search Alti's local registry of fully indexed, commercially clean Hugging Face datasets.
   * "query-huggingface-index" tool → Scoped vector search to query specific indexed Hugging Face datasets (e.g. bluuebunny/arxiv_metadata_by_year, Detroit Red Wings schedule, custom academic/weather repositories).
   * "Google_Custom_Search" tool → Live internet search
 - ENTERPRISE KNOWLEDGE DIRECTIVE: For ANY query regarding internal documents, blueprints, secure manuals, standard operating procedures, or private knowledge bases, you MUST call the "vertex-ai-search" tool FIRST.
 - HUGGING FACE DATASET DIRECTIVE: For ANY query asking about Alti's indexed datasets, or seeking factual context from specific domains (like ArXiv papers, custom academic/weather indexes, or general structured repositories), you MUST call "lookup-huggingface-indices" first to check if Alti has the dataset indexed locally. If found, call "query-huggingface-index" to retrieve high-fidelity source facts instead of standard web searches!
-- STRATEGIC ENTERPRISE SYSTEMS DIRECTIVE: For ANY query regarding Autodesk BIM 360, Yardi, RealPage, CoStar, or Argus Enterprise, you MUST call the "alti_enterprise_intelligence_search" tool FIRST before Google Search or other tools. Choose the correct app slug and action mapping matching the request.
+- STRATEGIC ENTERPRISE SYSTEMS DIRECTIVE: For ANY query regarding Autodesk BIM 360, Yardi, RealPage, CoStar, Argus, Addepar, Carta, Fiserv, FactSet, or Bloomberg Terminal, you MUST call the "alti_enterprise_intelligence_search" tool FIRST before Google Search or other tools. Choose the correct app slug and action mapping matching the request.
 - SPORTS BETTING TOOL DIRECTIVE: For ANY query about sports odds, betting lines, player props, futures, point spreads, totals, SGP, or prediction market odds, you MUST call the "predictiondata-sports-odds" tool FIRST before using Google Search.
 - FINANCIAL TOOL DIRECTIVE: For ANY query about stock prices, crypto, forex, or market data, you MUST call the "massive-financial-data" tool FIRST.
 - AVIATION TOOL DIRECTIVE: For ANY query about flights, airport timetables, routes, fleets, or aircraft tail registrations, you MUST call the "aviationstack-realtime-data" tool FIRST before standard Google search.
@@ -1747,7 +1747,12 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
             yardi: 'https://sandbox.yardi.com',
             realpage: 'https://api.realpage.com',
             costar: 'https://api.costar.com',
-            argus: 'https://api.argusenterprise.com'
+            argus: 'https://api.argusenterprise.com',
+            addepar: 'https://api.addepar.com',
+            carta: 'https://api.carta.com',
+            fiserv: 'https://api.fiserv.com',
+            factset: 'https://api.factset.com',
+            bloomberg: 'https://api.bloomberg.com'
           };
           const resolvedDomain = domains[app.toLowerCase()] || 'https://api.enterprise-connector.local';
           usedUrls.add(resolvedDomain);

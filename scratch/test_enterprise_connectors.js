@@ -8,14 +8,23 @@ async function runTests() {
   console.log('🚀 Running Alti.Assistant Strategic Enterprise & High-Stakes Integration Test Suite...');
   let failures = 0;
 
-  // Test 1: PII/PHI Redaction Sanitizer
-  console.log('\n🧪 [Test 1] PII/PHI Redaction Sanitizer');
+  // Test 1: PII/PHI/PCI Redaction Sanitizer
+  console.log('\n🧪 [Test 1] PII/PHI/PCI Redaction Sanitizer');
   const testPayload = {
     tenantName: 'John Doe',
     ssn: '000-12-3456',
     phone: '555-867-5309',
     email: 'john.doe@enterprise-cre.com',
     comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822.',
+    financials: {
+      accountNumber: '1234567890',
+      routingNumber: '987654321',
+      creditCard: '4111-2222-3333-4444',
+      taxId: '12-3456789',
+      ein: '99-8888888',
+      netWorth: '$24.5M',
+      balance: '$4.5M'
+    },
     nested: {
       patientName: 'Jane Doe',
       ssn: '111-22-3333'
@@ -32,22 +41,34 @@ async function runTests() {
     redacted.email !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.nested.ssn !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.nested.patientName !== '[REDACTED SENSITIVE FIELD]' ||
-    !redacted.comment.includes('[REDACTED PHI]')
+    !redacted.comment.includes('[REDACTED PHI]') ||
+    redacted.financials.accountNumber !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.financials.routingNumber !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.financials.creditCard !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.financials.taxId !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.financials.ein !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.financials.netWorth !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.financials.balance !== '[REDACTED SENSITIVE FIELD]'
   ) {
-    console.error('❌ Test 1 Failed: PII/PHI redaction proxy failed to fully mask sensitive details.');
+    console.error('❌ Test 1 Failed: Financial PII/PCI redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
-    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, and clinical medical terms successfully redacted.');
+    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, and balances successfully redacted.');
   }
 
-  // Test 2: Read-Only Actions (Autodesk, Yardi, RealPage, CoStar, Argus)
+  // Test 2: Read-Only Actions (Phase 1 & Phase 2)
   console.log('\n🧪 [Test 2] Read-Only Action Execution and Payloads');
   const readActions = [
     { app: 'autodesk', action: 'getBIM360ProjectSheets', params: {} },
     { app: 'yardi', action: 'getYardiPropertyLedger', params: { propertyId: 'prop-101' } },
     { app: 'realpage', action: 'getRealPageUnitAvailability', params: {} },
     { app: 'costar', action: 'getCoStarPropertyComps', params: { zipCode: '90210' } },
-    { app: 'argus', action: 'runArgusValuationDCF', params: { propertyId: 'prop-888', rentGrowth: 0.03, discountRate: 0.08 } }
+    { app: 'argus', action: 'runArgusValuationDCF', params: { propertyId: 'prop-888', rentGrowth: 0.03, discountRate: 0.08 } },
+    { app: 'addepar', action: 'getAddeparPortfolioPerformance', params: { portfolioId: 'port-777' } },
+    { app: 'carta', action: 'getCartaCapTable', params: { companyId: 'comp-123' } },
+    { app: 'fiserv', action: 'getFiservAccountBalance', params: { accountId: 'acc-999' } },
+    { app: 'factset', action: 'getFactSetDebtStructure', params: { companySymbol: 'MSFT' } },
+    { app: 'bloomberg', action: 'getBloombergCommodityTickers', params: {} }
   ];
 
   for (const item of readActions) {
@@ -68,7 +89,10 @@ async function runTests() {
   const mutativeActions = [
     { app: 'autodesk', action: 'createBIM360RFI', params: { title: 'Beam Clash', description: 'Structural steel conflicts with HVAC duct.' } },
     { app: 'yardi', action: 'updateYardiRentLedger', params: { tenantId: 't-123', ssn: '000-11-2222' } },
-    { app: 'realpage', action: 'verifyRealPageLease', params: { leaseId: 'lease-901' } }
+    { app: 'realpage', action: 'verifyRealPageLease', params: { leaseId: 'lease-901' } },
+    { app: 'addepar', action: 'updateAddeparAssetAllocation', params: { portfolioId: 'port-555', targetAllocation: 'aggressive' } },
+    { app: 'carta', action: 'issueCartaEquityGrant', params: { stakeholderName: 'Jane Smith', sharesGranted: 150000 } },
+    { app: 'fiserv', action: 'initiateFiservWireTransfer', params: { sourceAccountId: 'acc-111', destinationRouting: '021000021', destinationAccount: '999999999', amount: 500000 } }
   ];
 
   for (const item of mutativeActions) {
@@ -113,7 +137,9 @@ async function runTests() {
     const validInputs = [
       { app: 'autodesk', action: 'getBIM360ProjectSheets', parameters: {} },
       { app: 'yardi', action: 'updateYardiRentLedger', parameters: { tenantId: 't-999' }, verified: true },
-      { app: 'realpage', action: 'getRealPageUnitAvailability', parameters: {} }
+      { app: 'addepar', action: 'getAddeparPortfolioPerformance', parameters: {} },
+      { app: 'carta', action: 'issueCartaEquityGrant', parameters: { stakeholderName: 'CEO Bob', sharesGranted: 500000 }, verified: true },
+      { app: 'fiserv', action: 'getFiservAccountBalance', parameters: {} }
     ];
 
     for (const input of validInputs) {
@@ -131,13 +157,13 @@ async function runTests() {
   console.log('\n🧪 [Test 6] Tool Invocation via LangChain .invoke()');
   try {
     const responseString = await altiEnterpriseIntelligenceSearch.invoke({
-      app: 'costar',
-      action: 'getCoStarPropertyComps',
-      parameters: { zipCode: '94105' }
+      app: 'bloomberg',
+      action: 'getBloombergCommodityTickers',
+      parameters: {}
     });
     console.log('Tool invocation response:', responseString);
     const parsedRes = JSON.parse(responseString);
-    if (!parsedRes.success || !parsedRes.comps) {
+    if (!parsedRes.success || !parsedRes.tickers) {
       console.error('❌ Test 6 Failed: Tool invocation output format invalid.');
       failures++;
     } else {

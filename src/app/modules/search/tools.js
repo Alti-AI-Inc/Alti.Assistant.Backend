@@ -918,15 +918,20 @@ Input: The domain enum name and a query string (topic, NPI, EIN, barcode, chemic
  */
 export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
   name: 'alti_enterprise_intelligence_search',
-  description: `Access five premium enterprise-focused applications. Use this tool for ANY query regarding:
+  description: `Access premium enterprise-focused applications. Use this tool for ANY query regarding:
 1. "autodesk" -> Autodesk BIM 360 Construction sheets, RFIs, sheets coordination, models.
 2. "yardi" -> Yardi Systems property tenant rent history, billing balances, property management ledger update.
 3. "realpage" -> RealPage vacancy rent checking, leasing checklists, leasing compliance.
-4. "costar" -> CoStar commercial real estate zip code comps, transactions, historical rents.
+4. "costar" -> CoStar commercial real estate comps, transactions, historical rents.
 5. "argus" -> Argus Enterprise cash flow valuation stress tests, DCF models projection.
-Input: The app slug name (autodesk, yardi, realpage, costar, argus), the action name, and a JSON parameter object representing action arguments.`,
+6. "addepar" -> Addepar portfolio YTD performance returns, net asset values, asset allocations rebalancing.
+7. "carta" -> Carta capitalization tables, startup option vesting schedules, equity grant issuances.
+8. "fiserv" -> Fiserv commercial bank balances, cash management ledgers, bank wire transfers.
+9. "factset" -> FactSet institutional corporate debt structures, senior secured notes rate and maturities.
+10. "bloomberg" -> Bloomberg commodity tickers (Crude Oil, Gold, Natural Gas) prices, percentage changes, indices.
+Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg), the action name, and a JSON parameter object representing action arguments.`,
   schema: z.object({
-    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus']).describe("The target enterprise application slug"),
+    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg']).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets',
       'createBIM360RFI',
@@ -935,7 +940,15 @@ Input: The app slug name (autodesk, yardi, realpage, costar, argus), the action 
       'getRealPageUnitAvailability',
       'verifyRealPageLease',
       'getCoStarPropertyComps',
-      'runArgusValuationDCF'
+      'runArgusValuationDCF',
+      'getAddeparPortfolioPerformance',
+      'updateAddeparAssetAllocation',
+      'getCartaCapTable',
+      'issueCartaEquityGrant',
+      'getFiservAccountBalance',
+      'initiateFiservWireTransfer',
+      'getFactSetDebtStructure',
+      'getBloombergCommodityTickers'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")
