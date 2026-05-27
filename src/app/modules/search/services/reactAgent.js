@@ -1787,7 +1787,12 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
             pagerduty: 'https://api.pagerduty.com',
             hashicorp_vault: 'https://vault.enterprise.io',
             splunk: 'https://api.splunk.com',
-            dynatrace: 'https://api.dynatrace.com'
+            dynatrace: 'https://api.dynatrace.com',
+            databricks: 'https://databricks.cloud',
+            tableau: 'https://api.tableau.com',
+            powerbi: 'https://api.powerbi.com',
+            googlebigquery: 'https://bigquery.googleapis.com',
+            looker: 'https://looker.enterprise.io'
           };
           const resolvedDomain = domains[app.toLowerCase()] || 'https://api.enterprise-connector.local';
           usedUrls.add(resolvedDomain);

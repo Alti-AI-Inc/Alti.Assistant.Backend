@@ -64,6 +64,9 @@ export function redactSensitiveData(payload) {
     // 15. Redact MAC Addresses (DevOps/SecOps)
     sanitized = sanitized.replace(/\b(?:[0-9A-Fa-f]{2}[:-]){5}(?:[0-9A-Fa-f]{2})\b/g, '[REDACTED MAC]');
 
+    // 16. Redact Database connection URIs
+    sanitized = sanitized.replace(/\b(?:mongodb|postgresql|mysql|oracle|sqlserver|jdbc:postgresql):\/\/[^:\s]+:[^@\s]+@[^:\s]+(?::\d+)?\b/gi, '[REDACTED DATABASE URI]');
+
     return sanitized;
   }
 
@@ -76,7 +79,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -267,6 +270,26 @@ export class EnterpriseConnector {
       dynatrace: {
         apiToken: 'mock_dynatrace_token',
         endpoint: 'https://api.dynatrace.com/v1'
+      },
+      databricks: {
+        apiToken: 'mock_databricks_token',
+        endpoint: 'https://databricks.cloud/v1'
+      },
+      tableau: {
+        apiToken: 'mock_tableau_token',
+        endpoint: 'https://api.tableau.com/v1'
+      },
+      powerbi: {
+        apiToken: 'mock_powerbi_token',
+        endpoint: 'https://api.powerbi.com/v1'
+      },
+      googlebigquery: {
+        apiToken: 'mock_bigquery_token',
+        endpoint: 'https://bigquery.googleapis.com/v1'
+      },
+      looker: {
+        apiToken: 'mock_looker_token',
+        endpoint: 'https://looker.enterprise.io/v1'
       }
     };
 
@@ -317,7 +340,12 @@ export class EnterpriseConnector {
       'createPagerDutyIncident',
       'rotateVaultSecretKey',
       'createSplunkAlertRule',
-      'updateDynatraceAnomalyThreshold'
+      'updateDynatraceAnomalyThreshold',
+      'triggerDatabricksJob',
+      'publishTableauWorkbook',
+      'refreshPowerBIDataset',
+      'executeBigQueryDML',
+      'updateLookerSemanticModel'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -1165,6 +1193,121 @@ export class EnterpriseConnector {
             newThresholdMs: sanitizedParams.thresholdMs || 1000,
             anomalysettings: 'Anomaly detection auto-adaptive thresholds adjusted.',
             status: 'THRESHOLD_UPDATED'
+          };
+          break;
+
+        // --- Databricks ---
+        case 'getDatabricksJobStatus':
+          result = {
+            success: true,
+            jobId: sanitizedParams.jobId || 'job-db-9883',
+            runName: 'Weekly Retention Spark Job',
+            runDurationMs: 148500,
+            sparkVersion: '13.3.x-scala2.12',
+            jobpayload: 'Job execution metadata resolved for metrics analysis.',
+            status: 'JOB_RUN_COMPLETED'
+          };
+          break;
+
+        case 'triggerDatabricksJob':
+          result = {
+            success: true,
+            jobId: sanitizedParams.jobId || 'job-db-9883',
+            runId: `run-db-${Math.floor(Math.random() * 90000 + 10000)}`,
+            triggeredBy: 'Alti.Assistant',
+            jobpayload: 'Databricks notebook cluster execution triggered successfully.',
+            status: 'JOB_TRIGGERED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Tableau ---
+        case 'getTableauWorkbookMetadata':
+          result = {
+            success: true,
+            workbookId: sanitizedParams.workbookId || 'wb-tab-3392',
+            title: 'Q2 Sales Analytics Dashboard',
+            owner: 'Analytics Team',
+            viewsCount: 1250,
+            workbookcontent: 'XML workbook sheet dimensions and filter controls schema.',
+            status: 'WORKBOOK_METADATA_LOADED'
+          };
+          break;
+
+        case 'publishTableauWorkbook':
+          result = {
+            success: true,
+            workbookId: sanitizedParams.workbookId || 'wb-tab-3392',
+            title: sanitizedParams.title || 'Q2 Sales Analytics Dashboard',
+            publishUrl: 'https://tableau.enterprise.io/workbooks/q2_sales',
+            workbookcontent: 'Workbook compiled and published to public visualization portal.',
+            status: 'WORKBOOK_PUBLISHED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Power BI ---
+        case 'getPowerBIDashboardTelemetry':
+          result = {
+            success: true,
+            dashboardId: sanitizedParams.dashboardId || 'dash-pbi-8849',
+            title: 'Financial Performance Tracker',
+            refreshSchedule: 'Daily at 06:00 UTC',
+            activeUsers: 85,
+            dashboardsettings: 'Dashboard telemetry metrics and access permission metadata.',
+            status: 'TELEMETRY_LOADED'
+          };
+          break;
+
+        case 'refreshPowerBIDataset':
+          result = {
+            success: true,
+            datasetId: sanitizedParams.datasetId || 'ds-pbi-9933',
+            requestId: `req-pbi-${Math.floor(Math.random() * 90000 + 10000)}`,
+            dashboardsettings: 'Database cache cleared. Dataset partition refresh initiated.',
+            status: 'DATASET_REFRESH_INITIATED'
+          };
+          break;
+
+        // --- Google BigQuery ---
+        case 'queryBigQueryWarehouse':
+          result = {
+            success: true,
+            datasetId: sanitizedParams.datasetId || 'analytics_prod',
+            tableId: sanitizedParams.tableId || 'daily_revenue',
+            bytesProcessed: 104857600,
+            sqlquery: sanitizedParams.query || 'SELECT date, SUM(revenue) FROM analytics_prod.daily_revenue GROUP BY date',
+            status: 'QUERY_EXECUTED_SUCCESSFULLY'
+          };
+          break;
+
+        case 'executeBigQueryDML':
+          result = {
+            success: true,
+            datasetId: sanitizedParams.datasetId || 'analytics_prod',
+            rowsAffected: 150,
+            sqlquery: sanitizedParams.query || 'UPDATE analytics_prod.daily_revenue SET revenue = 0 WHERE date = "2026-05-27"',
+            status: 'DML_EXECUTED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Looker ---
+        case 'getLookerSemanticModelSchema':
+          result = {
+            success: true,
+            modelId: sanitizedParams.modelId || 'looker-model-552',
+            projectName: 'ecommerce_analytics',
+            views: ['users', 'orders', 'order_items'],
+            semanticmodel: 'LookML dimension and metric definitions loaded successfully.',
+            status: 'LOOKER_MODEL_LOADED'
+          };
+          break;
+
+        case 'updateLookerSemanticModel':
+          result = {
+            success: true,
+            modelId: sanitizedParams.modelId || 'looker-model-552',
+            commitHash: `git-looker-${Math.floor(Math.random() * 900000 + 100000)}`,
+            semanticmodel: 'LookML model definitions compiled. Deployment branch synchronized.',
+            status: 'SEMANTIC_MODEL_UPDATED'
           };
           break;
 

@@ -961,7 +961,7 @@ export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
 40. "dynatrace" -> Dynatrace full-stack dependency flow maps, AI anomaly threshold updates.
 Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis, veevavault, epic, athenahealth, elationhealth, iqvia, changehealthcare, coupa, ariba, flexport, samsara, workday, sap, adp, deel, netsuite, salesforce, servicenow, snowflake, hubspot, zendesk, datadog, pagerduty, hashicorp_vault, splunk, dynatrace), the action name, and a JSON parameter object representing action arguments.`,
   schema: z.object({
-    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare', 'coupa', 'ariba', 'flexport', 'samsara', 'workday', 'sap', 'adp', 'deel', 'netsuite', 'salesforce', 'servicenow', 'snowflake', 'hubspot', 'zendesk', 'datadog', 'pagerduty', 'hashicorp_vault', 'splunk', 'dynatrace']).describe("The target enterprise application slug"),
+    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare', 'coupa', 'ariba', 'flexport', 'samsara', 'workday', 'sap', 'adp', 'deel', 'netsuite', 'salesforce', 'servicenow', 'snowflake', 'hubspot', 'zendesk', 'datadog', 'pagerduty', 'hashicorp_vault', 'splunk', 'dynatrace', 'databricks', 'tableau', 'powerbi', 'googlebigquery', 'looker']).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets',
       'createBIM360RFI',
@@ -1034,7 +1034,17 @@ Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, car
       'querySplunkLogs',
       'createSplunkAlertRule',
       'getDynatraceServiceFlow',
-      'updateDynatraceAnomalyThreshold'
+      'updateDynatraceAnomalyThreshold',
+      'getDatabricksJobStatus',
+      'triggerDatabricksJob',
+      'getTableauWorkbookMetadata',
+      'publishTableauWorkbook',
+      'getPowerBIDashboardTelemetry',
+      'refreshPowerBIDataset',
+      'queryBigQueryWarehouse',
+      'executeBigQueryDML',
+      'getLookerSemanticModelSchema',
+      'updateLookerSemanticModel'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")

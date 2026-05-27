@@ -70,6 +70,15 @@ async function runTests() {
       incidentDescription: 'Active outage resolved by engineers.',
       anomalySettings: 'Adjust anomaly detection triggers: duration=10m.',
       credentialPayload: 'HashiCorp Vault access token: s.vault_token_99332'
+    },
+    analyticsOps: {
+      dbUri: 'postgresql://db_user:s3cr3t_p@ssword_992@database-server.prod.io:5432/finance_db',
+      jobPayload: 'Spark analytical model cluster parameters logged.',
+      workbookContent: 'XML schema detailing corporate workbook dimensions.',
+      dashboardSettings: 'Telemetry tracking metrics for company dashboard.',
+      sqlQuery: 'SELECT ssn, creditCard FROM users WHERE salary > 150000',
+      semanticModel: 'LookML dimension definitions compiler logs.',
+      queryParams: 'Filter metrics by tenant ID and segment.'
     }
   };
 
@@ -127,10 +136,17 @@ async function runTests() {
     redacted.devopsOps.incidentDescription !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.devopsOps.anomalySettings !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.devopsOps.credentialPayload !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.dbUri !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.jobPayload !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.workbookContent !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.dashboardSettings !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.sqlQuery !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.semanticModel !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.queryParams !== '[REDACTED SENSITIVE FIELD]' ||
     !redacted.comment.includes('[REDACTED IP]') ||
     !redacted.comment.includes('[REDACTED MAC]')
   ) {
-    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, Logistics, CRM/ITSM, and DevOps/SecOps PII/PHI/PCI/GRC/Spend/IP/MAC redaction proxy failed to fully mask sensitive details.');
+    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, Logistics, CRM/ITSM, DevOps/SecOps, and Big Data/AI Analytics PII/PHI/PCI/GRC/Spend/IP/MAC redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
     console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, employee IDs, salary values, CRM/ITSM IP/lead metrics, and DevOps/SecOps MAC/secret tokens successfully redacted.');
@@ -178,7 +194,12 @@ async function runTests() {
     { app: 'pagerduty', action: 'getPagerDutyOnCallSchedule', params: { scheduleId: 'sch-pd-1122' } },
     { app: 'hashicorp_vault', action: 'getVaultSecretMetadata', params: { path: 'secret/data/db' } },
     { app: 'splunk', action: 'querySplunkLogs', params: { query: 'search index=prod_web_errors' } },
-    { app: 'dynatrace', action: 'getDynatraceServiceFlow', params: { serviceId: 'service-dt-99332' } }
+    { app: 'dynatrace', action: 'getDynatraceServiceFlow', params: { serviceId: 'service-dt-99332' } },
+    { app: 'databricks', action: 'getDatabricksJobStatus', params: { jobId: 'job-db-9883' } },
+    { app: 'tableau', action: 'getTableauWorkbookMetadata', params: { workbookId: 'wb-tab-3392' } },
+    { app: 'powerbi', action: 'getPowerBIDashboardTelemetry', params: { dashboardId: 'dash-pbi-8849' } },
+    { app: 'googlebigquery', action: 'queryBigQueryWarehouse', params: { datasetId: 'analytics_prod', tableId: 'daily_revenue' } },
+    { app: 'looker', action: 'getLookerSemanticModelSchema', params: { modelId: 'looker-model-552' } }
   ];
 
   for (const item of readActions) {
@@ -228,7 +249,12 @@ async function runTests() {
     { app: 'pagerduty', action: 'createPagerDutyIncident', params: { serviceId: 'srv-web-gateway', title: 'Critical Gateway Error' } },
     { app: 'hashicorp_vault', action: 'rotateVaultSecretKey', params: { path: 'secret/data/db', keyRotated: 'db_root_key' } },
     { app: 'splunk', action: 'createSplunkAlertRule', params: { alertName: 'HighErrorRateAlert', cronExpression: '*/5 * * * *' } },
-    { app: 'dynatrace', action: 'updateDynatraceAnomalyThreshold', params: { serviceId: 'service-dt-99332', thresholdMs: 1500 } }
+    { app: 'dynatrace', action: 'updateDynatraceAnomalyThreshold', params: { serviceId: 'service-dt-99332', thresholdMs: 1500 } },
+    { app: 'databricks', action: 'triggerDatabricksJob', params: { jobId: 'job-db-9883' } },
+    { app: 'tableau', action: 'publishTableauWorkbook', params: { workbookId: 'wb-tab-3392', title: 'Q2 Sales Analytics Dashboard' } },
+    { app: 'powerbi', action: 'refreshPowerBIDataset', params: { datasetId: 'ds-pbi-9933' } },
+    { app: 'googlebigquery', action: 'executeBigQueryDML', params: { datasetId: 'analytics_prod', query: 'UPDATE daily_revenue SET revenue = 0' } },
+    { app: 'looker', action: 'updateLookerSemanticModel', params: { modelId: 'looker-model-552' } }
   ];
 
   for (const item of mutativeActions) {
@@ -307,7 +333,17 @@ async function runTests() {
       { app: 'splunk', action: 'querySplunkLogs', parameters: {} },
       { app: 'splunk', action: 'createSplunkAlertRule', parameters: { alertName: 'High' }, verified: true },
       { app: 'dynatrace', action: 'getDynatraceServiceFlow', parameters: {} },
-      { app: 'dynatrace', action: 'updateDynatraceAnomalyThreshold', parameters: { serviceId: 'srv', thresholdMs: 1000 }, verified: true }
+      { app: 'dynatrace', action: 'updateDynatraceAnomalyThreshold', parameters: { serviceId: 'srv', thresholdMs: 1000 }, verified: true },
+      { app: 'databricks', action: 'getDatabricksJobStatus', parameters: { jobId: 'job-1' } },
+      { app: 'databricks', action: 'triggerDatabricksJob', parameters: { jobId: 'job-1' }, verified: true },
+      { app: 'tableau', action: 'getTableauWorkbookMetadata', parameters: { workbookId: 'wb-1' } },
+      { app: 'tableau', action: 'publishTableauWorkbook', parameters: { workbookId: 'wb-1' }, verified: true },
+      { app: 'powerbi', action: 'getPowerBIDashboardTelemetry', parameters: { dashboardId: 'dash-1' } },
+      { app: 'powerbi', action: 'refreshPowerBIDataset', parameters: { datasetId: 'ds-1' }, verified: true },
+      { app: 'googlebigquery', action: 'queryBigQueryWarehouse', parameters: { datasetId: 'db-1' } },
+      { app: 'googlebigquery', action: 'executeBigQueryDML', parameters: { datasetId: 'db-1', query: 'SELECT 1' }, verified: true },
+      { app: 'looker', action: 'getLookerSemanticModelSchema', parameters: { modelId: 'model-1' } },
+      { app: 'looker', action: 'updateLookerSemanticModel', parameters: { modelId: 'model-1' }, verified: true }
     ];
 
     for (const input of validInputs) {
