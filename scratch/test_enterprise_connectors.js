@@ -15,7 +15,7 @@ async function runTests() {
     ssn: '000-12-3456',
     phone: '555-867-5309',
     email: 'john.doe@enterprise-cre.com',
-    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10. Unstructured PO: PO-998877, driver license: DL-88776655. Employee ID: EMP-18239.',
+    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10. Unstructured PO: PO-998877, driver license: DL-88776655. Employee ID: EMP-18239. Local server IP address is 192.168.1.1.',
     financials: {
       accountNumber: '1234567890',
       routingNumber: '987654321',
@@ -52,6 +52,15 @@ async function runTests() {
       employeeProfile: 'Jane Doe',
       compensation: 185000.00,
       salary: 185000.00
+    },
+    customerOps: {
+      leadPhone: '1-800-555-0199',
+      dealValue: '$1,500,000',
+      ipAddress: '10.0.0.12',
+      ticketLog: 'Client complains about slow server response.',
+      clientCredit: 5000,
+      pipelineSpot: 'negotiation',
+      incidentDetails: 'Server crashed at midnight.'
     }
   };
 
@@ -94,12 +103,20 @@ async function runTests() {
     redacted.logistics.invoiceAmount !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.workforce.employeeProfile !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.workforce.compensation !== '[REDACTED SENSITIVE FIELD]' ||
-    redacted.workforce.salary !== '[REDACTED SENSITIVE FIELD]'
+    redacted.workforce.salary !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.customerOps.leadPhone !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.customerOps.dealValue !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.customerOps.ipAddress !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.customerOps.ticketLog !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.customerOps.clientCredit !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.customerOps.pipelineSpot !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.customerOps.incidentDetails !== '[REDACTED SENSITIVE FIELD]' ||
+    !redacted.comment.includes('[REDACTED IP]')
   ) {
-    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, and Logistics PII/PHI/PCI/GRC/Spend redaction proxy failed to fully mask sensitive details.');
+    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, Logistics, and CRM/ITSM PII/PHI/PCI/GRC/Spend/IP redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
-    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, employee IDs, and salary values successfully redacted.');
+    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, employee IDs, salary values, and CRM/ITSM IP/lead metrics successfully redacted.');
   }
 
   // Test 2: Read-Only Actions (Phase 1, Phase 2, & Phase 3)
@@ -134,7 +151,12 @@ async function runTests() {
     { app: 'sap', action: 'getSAPEraLedgerSummary', params: { ledgerId: 'LDG-SAP-99' } },
     { app: 'adp', action: 'getADPWorkforceTaxSummary', params: { payrollrun: 'PR-ADP-2026-05' } },
     { app: 'deel', action: 'getDeelContractorDetails', params: { contractorId: 'con-deel-4921' } },
-    { app: 'netsuite', action: 'getNetSuiteInventoryLevels', params: { itemId: 'itm-net-3849' } }
+    { app: 'netsuite', action: 'getNetSuiteInventoryLevels', params: { itemId: 'itm-net-3849' } },
+    { app: 'salesforce', action: 'getSalesforceAccount', params: { accountId: 'acc-sf-932' } },
+    { app: 'servicenow', action: 'getServiceNowIncident', params: { incidentId: 'inc-sn-284' } },
+    { app: 'snowflake', action: 'querySnowflakeTable', params: { tableName: 'users_gold' } },
+    { app: 'hubspot', action: 'getHubSpotContact', params: { contactId: 'con-hs-912' } },
+    { app: 'zendesk', action: 'getZendeskTicket', params: { ticketId: 'tkt-zd-889' } }
   ];
 
   for (const item of readActions) {
@@ -174,7 +196,12 @@ async function runTests() {
     { app: 'sap', action: 'postSAPJournalEntry', params: { debitAmount: 15000, creditAmount: 15000, costCenter: 'CC-MKTG-102' } },
     { app: 'adp', action: 'updateADPPayrollWiring', params: { employeeId: 'EMP-18239', accountnumber: 'ACT-99881122', routingnumber: 'RTN-021000021' } },
     { app: 'deel', action: 'approveDeelContractorPayment', params: { invoiceId: 'INV-DEEL-9302', paymentAmount: 9500 } },
-    { app: 'netsuite', action: 'createNetSuitePurchaseRequisition', params: { itemId: 'itm-net-3849', quantityRequested: 1500, estimatedCost: 22500 } }
+    { app: 'netsuite', action: 'createNetSuitePurchaseRequisition', params: { itemId: 'itm-net-3849', quantityRequested: 1500, estimatedCost: 22500 } },
+    { app: 'salesforce', action: 'createSalesforceOpportunity', params: { accountId: 'acc-sf-932', name: 'Enterprise License Win', dealValue: 850000 } },
+    { app: 'servicenow', action: 'updateServiceNowIncidentSeverity', params: { incidentId: 'inc-sn-284', severity: 'HIGH' } },
+    { app: 'snowflake', action: 'createSnowflakeTable', params: { tableName: 'bi_report_q2', schema: 'id INT, revenue FLOAT' } },
+    { app: 'hubspot', action: 'updateHubSpotContactStatus', params: { contactId: 'con-hs-912', lifecycleStage: 'customer' } },
+    { app: 'zendesk', action: 'escalateZendeskTicket', params: { ticketId: 'tkt-zd-889', priority: 'URGENT' } }
   ];
 
   for (const item of mutativeActions) {
@@ -233,7 +260,17 @@ async function runTests() {
       { app: 'sap', action: 'postSAPJournalEntry', parameters: { debitAmount: 15000 }, verified: true },
       { app: 'adp', action: 'getADPWorkforceTaxSummary', parameters: {} },
       { app: 'deel', action: 'approveDeelContractorPayment', parameters: { invoiceId: 'INV-101' }, verified: true },
-      { app: 'netsuite', action: 'createNetSuitePurchaseRequisition', parameters: { itemId: 'itm-123' }, verified: true }
+      { app: 'netsuite', action: 'createNetSuitePurchaseRequisition', parameters: { itemId: 'itm-123' }, verified: true },
+      { app: 'salesforce', action: 'getSalesforceAccount', parameters: { accountId: 'acc-sf-932' } },
+      { app: 'salesforce', action: 'createSalesforceOpportunity', parameters: { accountId: 'acc-sf-932', name: 'Enterprise' }, verified: true },
+      { app: 'servicenow', action: 'getServiceNowIncident', parameters: { incidentId: 'inc-sn-284' } },
+      { app: 'servicenow', action: 'updateServiceNowIncidentSeverity', parameters: { incidentId: 'inc-sn-284', severity: 'HIGH' }, verified: true },
+      { app: 'snowflake', action: 'querySnowflakeTable', parameters: { tableName: 'users_gold' } },
+      { app: 'snowflake', action: 'createSnowflakeTable', parameters: { tableName: 'bi_report_q2' }, verified: true },
+      { app: 'hubspot', action: 'getHubSpotContact', parameters: { contactId: 'con-hs-912' } },
+      { app: 'hubspot', action: 'updateHubSpotContactStatus', parameters: { contactId: 'con-hs-912', lifecycleStage: 'customer' }, verified: true },
+      { app: 'zendesk', action: 'getZendeskTicket', parameters: { ticketId: 'tkt-zd-889' } },
+      { app: 'zendesk', action: 'escalateZendeskTicket', parameters: { ticketId: 'tkt-zd-889', priority: 'URGENT' }, verified: true }
     ];
 
     for (const input of validInputs) {

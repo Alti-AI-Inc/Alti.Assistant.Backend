@@ -58,6 +58,9 @@ export function redactSensitiveData(payload) {
     // 13. Redact Workforce Employee IDs (Workforce Capital)
     sanitized = sanitized.replace(/\bEMP-\d{4,6}\b/gi, '[REDACTED EMP]');
 
+    // 14. Redact IPv4 IP Addresses (IT Operations)
+    sanitized = sanitized.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[REDACTED IP]');
+
     return sanitized;
   }
 
@@ -70,7 +73,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -221,6 +224,26 @@ export class EnterpriseConnector {
       netsuite: {
         apiToken: 'mock_netsuite_token',
         endpoint: 'https://api.netsuite.com/v1'
+      },
+      salesforce: {
+        apiToken: 'mock_salesforce_token',
+        endpoint: 'https://api.salesforce.com/v1'
+      },
+      servicenow: {
+        apiToken: 'mock_servicenow_token',
+        endpoint: 'https://api.servicenow.com/v1'
+      },
+      snowflake: {
+        apiToken: 'mock_snowflake_token',
+        endpoint: 'https://api.snowflake.com/v1'
+      },
+      hubspot: {
+        apiToken: 'mock_hubspot_token',
+        endpoint: 'https://api.hubspot.com/v1'
+      },
+      zendesk: {
+        apiToken: 'mock_zendesk_token',
+        endpoint: 'https://api.zendesk.com/v1'
       }
     };
 
@@ -261,7 +284,12 @@ export class EnterpriseConnector {
       'postSAPJournalEntry',
       'updateADPPayrollWiring',
       'approveDeelContractorPayment',
-      'createNetSuitePurchaseRequisition'
+      'createNetSuitePurchaseRequisition',
+      'createSalesforceOpportunity',
+      'updateServiceNowIncidentSeverity',
+      'createSnowflakeTable',
+      'updateHubSpotContactStatus',
+      'escalateZendeskTicket'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -872,6 +900,125 @@ export class EnterpriseConnector {
             quantityRequested: sanitizedParams.quantityRequested || 1500,
             estimatedCost: sanitizedParams.estimatedCost || 22500.00,
             status: 'REQUISITION_CREATED_AWAITING_APPROVAL'
+          };
+          break;
+
+        // --- Salesforce Core ---
+        case 'getSalesforceAccount':
+          result = {
+            success: true,
+            accountId: sanitizedParams.accountId || 'acc-sales-101',
+            accountName: 'Acme Enterprise Corp',
+            annualRevenue: 50000000,
+            industry: 'Technology',
+            billingAddress: '100 Salesforce Tower, San Francisco, CA'
+          };
+          break;
+
+        case 'createSalesforceOpportunity':
+          result = {
+            success: true,
+            opportunityId: `opp-sales-${Math.floor(Math.random() * 90000 + 10000)}`,
+            opportunityName: sanitizedParams.opportunityName || 'Acme Tech Upgrade',
+            dealvalue: sanitizedParams.dealvalue || 150000,
+            stageName: 'Prospecting',
+            closeDate: '2026-12-31',
+            status: 'OPPORTUNITY_CREATED'
+          };
+          break;
+
+        // --- ServiceNow ITIL ---
+        case 'getServiceNowIncident':
+          result = {
+            success: true,
+            incidentId: sanitizedParams.incidentId || 'INC-0083921',
+            shortDescription: 'Core database cluster connection pools exhausted.',
+            ipaddress: '10.0.4.155',
+            caller: 'John Doe (DevOps)',
+            state: 'Active',
+            priority: 2,
+            category: 'Database'
+          };
+          break;
+
+        case 'updateServiceNowIncidentSeverity':
+          result = {
+            success: true,
+            incidentId: sanitizedParams.incidentId || 'INC-0083921',
+            previousSeverity: 2,
+            newSeverity: sanitizedParams.severity || 1,
+            incidentdetails: 'Database pool exhaustion promoted to P1 outage.',
+            status: 'INCIDENT_SEVERITY_UPDATED'
+          };
+          break;
+
+        // --- Snowflake Data ---
+        case 'querySnowflakeTable':
+          result = {
+            success: true,
+            table: sanitizedParams.table || 'analytics.daily_users',
+            schema: 'ANALYTICS_DB.PUBLIC',
+            rowCount: 250000,
+            lastUpdated: '2026-05-27T00:00:00Z',
+            columns: ['date', 'active_users', 'retained_users']
+          };
+          break;
+
+        case 'createSnowflakeTable':
+          result = {
+            success: true,
+            table: sanitizedParams.table || 'analytics.weekly_retention',
+            schema: sanitizedParams.schema || 'ANALYTICS_DB.PUBLIC',
+            columnsCreatedCount: (sanitizedParams.columns || []).length || 3,
+            status: 'SNOWFLAKE_TABLE_CREATED'
+          };
+          break;
+
+        // --- HubSpot Enterprise ---
+        case 'getHubSpotContact':
+          result = {
+            success: true,
+            contactId: sanitizedParams.contactId || 'hub-contact-552',
+            firstName: 'Sarah',
+            lastName: 'Connor',
+            leadphone: sanitizedParams.leadphone || '555-0199',
+            lifecycleStage: 'Marketing Qualified Lead',
+            leadSource: 'Webinar Inbound'
+          };
+          break;
+
+        case 'updateHubSpotContactStatus':
+          result = {
+            success: true,
+            contactId: sanitizedParams.contactId || 'hub-contact-552',
+            previousStatus: 'MQL',
+            newStatus: sanitizedParams.status || 'SQL',
+            pipelinespot: 'Stage 3: Opportunity Qualified',
+            status: 'HUBSPOT_CONTACT_STATUS_UPDATED'
+          };
+          break;
+
+        // --- Zendesk Enterprise ---
+        case 'getZendeskTicket':
+          result = {
+            success: true,
+            ticketId: sanitizedParams.ticketId || 'zd-ticket-7722',
+            subject: 'Billing discrepancy on invoice #INV-77332',
+            ticketlog: 'Customer requests refund on duplicate corporate credit line charge.',
+            status: 'Open',
+            priority: 'Normal',
+            recipient: 'billing-support@enterprise.org'
+          };
+          break;
+
+        case 'escalateZendeskTicket':
+          result = {
+            success: true,
+            ticketId: sanitizedParams.ticketId || 'zd-ticket-7722',
+            previousPriority: 'Normal',
+            newPriority: sanitizedParams.priority || 'High',
+            clientcredit: sanitizedParams.clientcredit || 1200.00,
+            status: 'TICKET_ESCALATED'
           };
           break;
 
