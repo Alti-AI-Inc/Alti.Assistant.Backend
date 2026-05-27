@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import fetch from 'node-fetch';
 import { SynapseRouter } from './synapseRouter.js';
+import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 import { GcpNativeService } from '../gcp_native/gcp-native.service.js';
 import { isExploriumAgent, getExploriumContext } from './explorium.smart.router.js';
 import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
@@ -190,11 +191,15 @@ const stripPreambles = (text) => {
 };
 
 /**
- * Calls Groq as a fallback if Gemini fails.
+ * Calls Azure AI Foundry (or Azure OpenAI) as a fallback if Gemini fails.
  */
-const queryGroqFallback = async (systemInstruction, conversationHistory, finalPrompt, temperature = 0.15, maxTokens = 4000) => {
+const queryAzureFoundryFallback = async (systemInstruction, conversationHistory, finalPrompt, temperature = 0.15, maxTokens = 4000) => {
   try {
-    console.log('[Groq Fallback] Querying Groq llama-3.3-70b-versatile...');
+    if (!config.azure.endpoint || !config.azure.apiKey) {
+      throw new Error('Azure AI Foundry endpoint or key is not configured.');
+    }
+
+    console.log('[Azure Fallback] Querying Azure AI Foundry...');
     const messages = [];
     if (systemInstruction) {
       const systemContent = typeof systemInstruction === 'string' 
@@ -212,38 +217,56 @@ const queryGroqFallback = async (systemInstruction, conversationHistory, finalPr
     }
     messages.push({ role: 'user', content: finalPrompt });
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
+    const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
+    
+    let requestUrl = '';
+    const headers = { 'Content-Type': 'application/json' };
+    
+    if (isAzureOpenAI) {
+      const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+      requestUrl = `${cleanEndpoint}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
+      headers['api-key'] = apiKey;
+    } else {
+      const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+      const suffix = cleanEndpoint.endsWith('/chat/completions') ? '' : '/chat/completions';
+      requestUrl = `${cleanEndpoint}${suffix}?api-version=${apiVersion}`;
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    const response = await fetch(requestUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.groq_secret_key || process.env.GROQ_API_KEY}`
-      },
+      headers,
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
         messages,
         temperature,
         max_tokens: maxTokens
       })
     });
+
     if (response.ok) {
       const data = await response.json();
       return data.choices?.[0]?.message?.content || '';
     } else {
       const errText = await response.text();
-      throw new Error(`Groq returned status ${response.status}: ${errText}`);
+      throw new Error(`Azure AI Foundry returned status ${response.status}: ${errText}`);
     }
   } catch (err) {
-    console.error('[Groq Fallback] Groq call failed:', err);
+    console.error('[Azure Fallback] Azure call failed:', err);
     throw err;
   }
 };
 
 /**
- * Streams chat completions from Groq.
- * Yields `{ type: 'text', content: string }` chunks.
+ * Streams chat completions from Azure AI Foundry (or Azure OpenAI).
+ * Yields `{ type: 'text', content: string, agentId }` chunks.
  */
-async function* streamGroqFallback(systemInstruction, conversationHistory, finalPrompt, agentId, temperature = 0.15, maxTokens = 4000) {
-  console.log('[Groq Stream Fallback] Querying Groq llama-3.3-70b-versatile streaming...');
+async function* streamAzureFoundryFallback(systemInstruction, conversationHistory, finalPrompt, agentId, temperature = 0.15, maxTokens = 4000) {
+  if (!config.azure.endpoint || !config.azure.apiKey) {
+    throw new Error('Azure AI Foundry endpoint or key is not configured.');
+  }
+
+  console.log('[Azure Stream Fallback] Querying Azure AI Foundry streaming...');
   const messages = [];
   if (systemInstruction) {
     const systemContent = typeof systemInstruction === 'string' 
@@ -261,14 +284,27 @@ async function* streamGroqFallback(systemInstruction, conversationHistory, final
   }
   messages.push({ role: 'user', content: finalPrompt });
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
+  const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
+  
+  let requestUrl = '';
+  const headers = { 'Content-Type': 'application/json' };
+  
+  if (isAzureOpenAI) {
+    const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+    requestUrl = `${cleanEndpoint}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
+    headers['api-key'] = apiKey;
+  } else {
+    const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+    const suffix = cleanEndpoint.endsWith('/chat/completions') ? '' : '/chat/completions';
+    requestUrl = `${cleanEndpoint}${suffix}?api-version=${apiVersion}`;
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  const response = await fetch(requestUrl, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.groq_secret_key || process.env.GROQ_API_KEY}`
-    },
+    headers,
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
       messages,
       temperature,
       max_tokens: maxTokens,
@@ -278,7 +314,7 @@ async function* streamGroqFallback(systemInstruction, conversationHistory, final
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Groq stream failed with status ${response.status}: ${errText}`);
+    throw new Error(`Azure stream failed with status ${response.status}: ${errText}`);
   }
 
   const stream = response.body;
@@ -488,11 +524,41 @@ Instructions: ${agent.systemInstruction}`;
               tools: [{ googleSearch: {} }, { functionDeclarations: activeTools }],
             };
 
-            lastGroundedResult = await ai.models.generateContent({
-              model: agent.model || 'gemini-3.5-flash',
-              contents,
-              config,
-            });
+            try {
+              lastGroundedResult = await ai.models.generateContent({
+                model: agent.model || 'gemini-3.5-flash',
+                contents,
+                config,
+              });
+            } catch (groundingErr) {
+              console.warn(`[executeSwarmSync Grounding Exception] Gemini grounded generation failed: ${groundingErr.message}. Falling back to Azure AI Foundry...`);
+              
+              const lastUserPrompt = contents[contents.length - 1]?.parts?.[0]?.text || query;
+              const enhancedPrompt = await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(lastUserPrompt);
+              
+              const history = [];
+              for (let i = 0; i < contents.length - 1; i++) {
+                const c = contents[i];
+                const textVal = c.parts?.map(p => p.text || '').join('\n') || '';
+                history.push({ role: c.role, content: textVal });
+              }
+              
+              const responseText = await queryAzureFoundryFallback(
+                systemInstruction,
+                history,
+                enhancedPrompt,
+                0.05,
+                isExploriumAgent(agent.id) ? 6000 : 4000
+              );
+              
+              lastGroundedResult = {
+                candidates: [{
+                  content: {
+                    parts: [{ text: responseText }]
+                  }
+                }]
+              };
+            }
 
             const candidate = lastGroundedResult.candidates?.[0];
             const functionCalls = lastGroundedResult.functionCalls || [];
@@ -745,9 +811,9 @@ Instructions: ${agent.systemInstruction}`;
           }
         }
       } catch (geminiErr) {
-        console.warn(`📡 Gemini generation failed: ${geminiErr.message}. Falling back to Groq...`);
+        console.warn(`📡 Gemini generation failed: ${geminiErr.message}. Falling back to Azure AI Foundry...`);
         try {
-          text = await queryGroqFallback(
+          text = await queryAzureFoundryFallback(
             systemInstruction,
             conversationHistory,
             finalPrompt,
@@ -755,8 +821,8 @@ Instructions: ${agent.systemInstruction}`;
             isExploriumAgent(agent.id) ? 6000 : 4000
           );
           text = stripPreambles(text);
-        } catch (groqErr) {
-          console.error('❌ Both Gemini and Groq generation failed:', groqErr);
+        } catch (azureErr) {
+          console.error('❌ Both Gemini and Azure AI Foundry generation failed:', azureErr);
           throw geminiErr; // rethrow original gemini error if both fail
         }
       }
@@ -1005,11 +1071,41 @@ Instructions: ${agent.systemInstruction}`;
                 tools: [{ googleSearch: {} }, { functionDeclarations: activeTools }],
               };
 
-              lastGroundedResult = await ai.models.generateContent({
-                model: agent.model || 'gemini-3.5-flash',
-                contents,
-                config,
-              });
+              try {
+                lastGroundedResult = await ai.models.generateContent({
+                  model: agent.model || 'gemini-3.5-flash',
+                  contents,
+                  config,
+                });
+              } catch (groundingErr) {
+                console.warn(`[executeSwarmStream Grounding Exception] Gemini grounded generation failed: ${groundingErr.message}. Falling back to Azure AI Foundry...`);
+                
+                const lastUserPrompt = contents[contents.length - 1]?.parts?.[0]?.text || query;
+                const enhancedPrompt = await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(lastUserPrompt);
+                
+                const history = [];
+                for (let i = 0; i < contents.length - 1; i++) {
+                  const c = contents[i];
+                  const textVal = c.parts?.map(p => p.text || '').join('\n') || '';
+                  history.push({ role: c.role, content: textVal });
+                }
+                
+                const responseText = await queryAzureFoundryFallback(
+                  systemInstruction,
+                  history,
+                  enhancedPrompt,
+                  0.05,
+                  isExploriumAgent(agent.id) ? 6000 : 4000
+                );
+                
+                lastGroundedResult = {
+                  candidates: [{
+                    content: {
+                      parts: [{ text: responseText }]
+                    }
+                  }]
+                };
+              }
 
               const candidate = lastGroundedResult.candidates?.[0];
               const functionCalls = lastGroundedResult.functionCalls || [];
@@ -1160,9 +1256,9 @@ Instructions: ${agent.systemInstruction}`;
               }
             }
           } catch (groundingErr) {
-            console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to Groq stream...`);
+            console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to Azure AI Foundry stream...`);
             let agentTextAccumulator = '';
-            for await (const chunk of streamGroqFallback(
+            for await (const chunk of streamAzureFoundryFallback(
               systemInstruction,
               conversationHistory,
               finalPrompt,
@@ -1345,10 +1441,10 @@ Instructions: ${agent.systemInstruction}`;
               }
             }
           } catch (geminiErr) {
-            console.warn(`📡 Gemini stream generation failed: ${geminiErr.message}. Falling back to Groq stream...`);
+            console.warn(`📡 Gemini stream generation failed: ${geminiErr.message}. Falling back to Azure AI Foundry stream...`);
             agentTextAccumulator = '';
             try {
-              for await (const chunk of streamGroqFallback(
+              for await (const chunk of streamAzureFoundryFallback(
                 systemInstruction,
                 conversationHistory,
                 finalPrompt,
@@ -1361,9 +1457,9 @@ Instructions: ${agent.systemInstruction}`;
                 }
                 yield chunk;
               }
-            } catch (groqErr) {
-              console.error('❌ Both Gemini and Groq stream failed:', groqErr);
-              throw geminiErr; // throw original Gemini error if Groq fails
+            } catch (azureErr) {
+              console.error('❌ Both Gemini and Azure AI Foundry stream failed:', azureErr);
+              throw geminiErr; // throw original Gemini error if Azure fails
             }
           }
 

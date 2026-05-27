@@ -69,8 +69,13 @@ export default {
   tavily_api_key: process.env.TAVILY_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   serper_api_key: process.env.SERPER_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   gemini_secret_key: process.env.GEMINI_API_KEY,
-  groq_secret_key: process.env.GROQ_API_KEY,
   realestate_api_key: process.env.REALESTATE_API_KEY,
+  azure: {
+    endpoint: process.env.AZURE_AI_FOUNDRY_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT,
+    apiKey: process.env.AZURE_AI_FOUNDRY_KEY || process.env.AZURE_OPENAI_API_KEY,
+    deploymentOrModel: process.env.AZURE_AI_FOUNDRY_MODEL || process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4o-mini',
+    apiVersion: process.env.AZURE_AI_API_VERSION || '2024-05-01-preview'
+  },
 
   browser_use_secret_key: process.env.BROWSER_USE_SECRET_KEY,
   cyberdesk_api_key: process.env.CYBERDESK_API_KEY,

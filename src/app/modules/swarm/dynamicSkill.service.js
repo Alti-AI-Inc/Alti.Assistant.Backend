@@ -226,35 +226,52 @@ Return the complete, corrected clean source code now:`;
     const result = await model.generateContent(promptText);
     healedCode = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   } catch (err) {
-    logger.warn(`[DynamicSkill Code-Healer Warning] Gemini self-healing failed: ${err.message}. Trying Groq SOTA fallback...`);
+    logger.warn(`[DynamicSkill Code-Healer Warning] Gemini self-healing failed: ${err.message}. Trying Azure AI Foundry SOTA fallback...`);
     
-    if (process.env.GROQ_API_KEY || config.groq_secret_key) {
+    if (config.azure.endpoint && config.azure.apiKey) {
       try {
-        const groqApiKey = process.env.GROQ_API_KEY || config.groq_secret_key;
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
+        
+        // 1. Detect if it is Azure OpenAI or Azure AI Inference endpoint format
+        const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
+        
+        let requestUrl = '';
+        const headers = { 'Content-Type': 'application/json' };
+        
+        if (isAzureOpenAI) {
+          // Azure OpenAI endpoint formatting
+          const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+          requestUrl = `${cleanEndpoint}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
+          headers['api-key'] = apiKey;
+        } else {
+          // Standard Azure AI Foundry model inference endpoint formatting
+          const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+          const suffix = cleanEndpoint.endsWith('/chat/completions') ? '' : '/chat/completions';
+          requestUrl = `${cleanEndpoint}${suffix}?api-version=${apiVersion}`;
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+        
+        const response = await fetch(requestUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${groqApiKey}`
-          },
+          headers,
           body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
             messages: [{ role: 'user', content: promptText }],
-            temperature: 0.1
+            temperature: 0.1,
+            max_tokens: 4000
           })
         });
         
         if (!response.ok) {
           const errBody = await response.text();
-          throw new Error(`Groq HTTP ${response.status}: ${errBody}`);
+          throw new Error(`Azure AI Foundry HTTP ${response.status}: ${errBody}`);
         }
         
         const data = await response.json();
         healedCode = data.choices?.[0]?.message?.content || '';
-        logger.info(`[DynamicSkill Code-Healer] Successfully healed script using Groq SOTA fallback.`);
-      } catch (groqErr) {
-        logger.error(`[DynamicSkill Code-Healer Error] Groq SOTA fallback also failed: ${groqErr.message}`);
-        throw new Error(`Self-healing failed on all LLM backends. Primary (Gemini): ${err.message}. Fallback (Groq): ${groqErr.message}`);
+        logger.info(`[DynamicSkill Code-Healer] Successfully healed script using Azure AI Foundry SOTA fallback.`);
+      } catch (azureErr) {
+        logger.error(`[DynamicSkill Code-Healer Error] Azure AI Foundry SOTA fallback also failed: ${azureErr.message}`);
+        throw new Error(`Self-healing failed on all LLM backends. Primary (Gemini): ${err.message}. Fallback (Azure): ${azureErr.message}`);
       }
     } else {
       throw err;
