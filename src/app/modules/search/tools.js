@@ -93,6 +93,7 @@ import {
   classifyGlaciologyQuery,
   classifyFormalVerificationQuery,
 } from './services/queryClassifier.js';
+import { logTenantUsage } from './services/marketplaceMeteringService.js';
 
 const rawGoogle = new GoogleCustomSearch({
   maxResults: 20, // Default max results
@@ -591,6 +592,13 @@ export const googleSearch = new DynamicStructuredTool({
     console.log('The final query before invoke', finalQuery);
 
     const results = await rawGoogle.invoke(finalQuery);
+    try {
+      logTenantUsage('alti-enterprise-tenant-default', config.llmProvider || 'gcp', {
+        inputTokens: 0,
+        outputTokens: 0,
+        webSearchCount: 1,
+      }).catch((err) => console.warn('⚠️ [Metering] Failed to log search usage:', err.message));
+    } catch (e) {}
     const parsedResults = JSON.parse(results);
     const actualResultCount = Array.isArray(parsedResults)
       ? parsedResults.length

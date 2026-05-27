@@ -6,12 +6,46 @@ import { googleSearch, YouTubeSearchTool } from '../tools.js';
 import {
   analyzeAndLogModelSelection,
 } from '../utils/modelSelector.js';
+import { logTenantUsage } from './marketplaceMeteringService.js';
 
 /**
  * Enterprise Multi-Cloud Model Service
  * Dynamically instantiates and routes LLM requests across Google Cloud (Vertex AI/Gemini),
  * Azure OpenAI (Foundry/GPT-4o), and AWS Bedrock (Claude 3.5 Sonnet) based on environment configuration.
+ * Automatically meters prompt and completion tokens asynchronously per provider.
  */
+
+/**
+ * Creates a standard LangChain Callback handler to log token usage events.
+ */
+function createBillingCallback(providerName) {
+  return [
+    {
+      handleLLMEnd: async (output) => {
+        try {
+          const generations = output.generations?.[0] || [];
+          let inputTokens = output.llmOutput?.tokenUsage?.promptTokens || 0;
+          let outputTokens = output.llmOutput?.tokenUsage?.completionTokens || 0;
+          
+          if (inputTokens === 0 && outputTokens === 0) {
+            // Fallback estimation (4 characters = 1 token average)
+            const textContent = generations.map(g => g.text).join('');
+            outputTokens = Math.round(textContent.length / 4);
+            inputTokens = 120; // Estimated prompt context overhead
+          }
+          
+          await logTenantUsage('alti-enterprise-tenant-default', providerName, {
+            inputTokens,
+            outputTokens,
+            webSearchCount: 0, // Searches are logged in the search tool directly
+          });
+        } catch (err) {
+          console.warn('⚠️ [Metering] Auto-callback logging failed:', err.message);
+        }
+      }
+    }
+  ];
+}
 
 // 1. Google Cloud Platform (Gemini) standard configurations
 const gcpFlash = new ChatGoogleGenerativeAI({
@@ -19,6 +53,7 @@ const gcpFlash = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
+  callbacks: createBillingCallback('gcp'),
 });
 
 const gcpPro = new ChatGoogleGenerativeAI({
@@ -26,6 +61,7 @@ const gcpPro = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
+  callbacks: createBillingCallback('gcp'),
 });
 
 // 2. Azure and AWS model caches
@@ -51,6 +87,7 @@ function resolveActiveModelInstance(complexity = 'simple') {
           azureOpenAIApiVersion: config.azure.apiVersion,
           temperature: 0,
           maxRetries: 2,
+          callbacks: createBillingCallback('azure'),
         });
         console.log(`☁️ Azure OpenAI / Foundry model instantiated: "${config.azure.deploymentOrModel}"`);
       } catch (err) {
@@ -75,6 +112,7 @@ function resolveActiveModelInstance(complexity = 'simple') {
           model: config.aws.modelId,
           temperature: 0,
           maxRetries: 2,
+          callbacks: createBillingCallback('aws'),
         });
         console.log(`☁️ AWS Bedrock model instantiated: "${config.aws.modelId}"`);
       } catch (err) {
