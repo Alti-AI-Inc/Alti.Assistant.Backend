@@ -79,7 +79,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt', 'emailbody', 'emailsubject', 'attachmentcontent', 'teamsmessage', 'dbconnectionstring', 'tabledata', 'queryresult', 'githubtoken', 'gitlabtoken', 'deploykey', 'gitlabsecret', 'projectmetadata', 'jiraissuecomment', 'mondayboarddata', 'clickuptask', 'campaignanalytics', 'adspendbudget', 'leadslist', 'surveyresponses', 'feedbackcomments', 's3bucketcontent', 'gcsbucketcontent', 'azureblobcontent', 'dropboxfile', 'gdrivefile', 'modelprediction', 'langsmithtrace', 'mlflowrun', 'coherekey'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt', 'emailbody', 'emailsubject', 'attachmentcontent', 'teamsmessage', 'dbconnectionstring', 'tabledata', 'queryresult', 'githubtoken', 'gitlabtoken', 'deploykey', 'gitlabsecret', 'projectmetadata', 'jiraissuecomment', 'mondayboarddata', 'clickuptask', 'campaignanalytics', 'adspendbudget', 'leadslist', 'surveyresponses', 'feedbackcomments', 's3bucketcontent', 'gcsbucketcontent', 'azureblobcontent', 'dropboxfile', 'gdrivefile', 'modelprediction', 'langsmithtrace', 'mlflowrun', 'coherekey', 'taxcalculation', 'taxreturn', 'taxrate', 'refundamount', 'invoicepdf', 'subperiod', 'revrecpayload', 'signsignature', 'contractpdf', 'esignenvelope', 'creditcardpan', 'bankwirepayload'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -440,7 +440,27 @@ export class EnterpriseConnector {
       langsmith: { apiToken: 'mock_langsmith_token', endpoint: 'https://api.langsmith.com/v1' },
       mlflow: { apiToken: 'mock_mlflow_token', endpoint: 'https://api.mlflow.com/v1' },
       cohere: { apiToken: 'mock_cohere_token', endpoint: 'https://api.cohere.ai/v1' },
-      langchain_hub: { apiToken: 'mock_lchub_token', endpoint: 'https://api.langchain.com/v1' }
+      langchain_hub: { apiToken: 'mock_lchub_token', endpoint: 'https://api.langchain.com/v1' },
+      onesource: { apiToken: 'mock_onesource_token', endpoint: 'https://api.onesource.tax/v1' },
+      avalara: { apiToken: 'mock_avalara_token', endpoint: 'https://api.avalara.com/v1' },
+      vertex: { apiToken: 'mock_vertex_token', endpoint: 'https://api.vertex.com/v1' },
+      taxjar: { apiToken: 'mock_taxjar_token', endpoint: 'https://api.taxjar.com/v1' },
+      sovos: { apiToken: 'mock_sovos_token', endpoint: 'https://api.sovos.com/v1' },
+      zuora: { apiToken: 'mock_zuora_token', endpoint: 'https://api.zuora.com/v1' },
+      chargebee: { apiToken: 'mock_chargebee_token', endpoint: 'https://api.chargebee.com/v1' },
+      recurly: { apiToken: 'mock_recurly_token', endpoint: 'https://api.recurly.com/v1' },
+      stripe_billing: { apiToken: 'mock_stripe_token', endpoint: 'https://api.stripe.com/v1' },
+      paddle: { apiToken: 'mock_paddle_token', endpoint: 'https://api.paddle.com/v1' },
+      docusign: { apiToken: 'mock_docusign_token', endpoint: 'https://api.docusign.com/v2.1' },
+      dropbox_sign: { apiToken: 'mock_dropboxsign_token', endpoint: 'https://api.hellosign.com/v3' },
+      pandadoc: { apiToken: 'mock_pandadoc_token', endpoint: 'https://api.pandadoc.com/v1' },
+      esignatures_io: { apiToken: 'mock_esignatures_token', endpoint: 'https://esignatures.io/api/v1' },
+      signaturely: { apiToken: 'mock_signaturely_token', endpoint: 'https://api.signaturely.com/v1' },
+      stripe: { apiToken: 'mock_stripe_core_token', endpoint: 'https://api.stripe.com/v1' },
+      braintree: { apiToken: 'mock_braintree_token', endpoint: 'https://api.braintreegateway.com/v1' },
+      square: { apiToken: 'mock_square_token', endpoint: 'https://connect.squareup.com/v2' },
+      quickbooks: { apiToken: 'mock_quickbooks_token', endpoint: 'https://quickbooks.api.intuit.com/v3' },
+      xero: { apiToken: 'mock_xero_token', endpoint: 'https://api.xero.com/api.xro/2.0' }
     };
 
     return credentials[this.appSlug] || { endpoint: 'https://api.mock-connector.local' };
@@ -534,7 +554,11 @@ export class EnterpriseConnector {
       'adjustGoogleAdsBudget', 'adjustFacebookAdsBudget', 'adjustLinkedInAdsBudget', 'postTwitterTweet', 'sendMailchimpCampaign',
       'deleteSurveyMonkeySurvey', 'deleteTypeformForm', 'deleteSatisMeterProject', 'deleteFreshdeskTicket', 'deleteHubSpotFeedback',
       'deleteS3Bucket', 'deleteGCSBucket', 'deleteAzureContainer', 'deleteDropboxFolder', 'deleteDriveFile',
-      'cancelReplicatePrediction', 'deleteLangSmithProject', 'deleteMLflowRun', 'deployCohereModel', 'deleteHubPrompt'
+      'cancelReplicatePrediction', 'deleteLangSmithProject', 'deleteMLflowRun', 'deployCohereModel', 'deleteHubPrompt',
+      'calculateOneSourceTax', 'calculateAvalaraSalesTax', 'processVertexTaxFiling', 'submitTaxJarTaxReturn', 'submitSovosTaxDocument',
+      'cancelZuoraSubscription', 'modifyChargebeeSubscription', 'terminateRecurlySubscription', 'refundStripeInvoice', 'cancelPaddleSubscription',
+      'sendDocuSignEnvelope', 'sendDropboxSignatureRequest', 'sendPandaDocDocument', 'sendESignaturesContract', 'sendSignaturelyRequest',
+      'captureStripeCharge', 'settleBraintreeTransaction', 'processSquarePayment', 'postQuickBooksInvoice', 'voidXeroTransaction'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -2406,6 +2430,134 @@ export class EnterpriseConnector {
           break;
         case 'deleteHubPrompt':
           result = { success: true, promptId: sanitizedParams.promptId || 'alti-temp-v1', status: 'LANGCHAIN_HUB_PROMPT_DELETED' };
+          break;
+
+        // --- Phase 31: Corporate Tax Compliance & VAT Operations ---
+        case 'getOneSourceTaxRates':
+          result = { success: true, rates: [{ jurisdiction: 'CA-SFO', rate: 0.0875 }], status: 'ONESOURCE_TAX_RATES_LOADED' };
+          break;
+        case 'calculateOneSourceTax':
+          result = { success: true, transactionId: sanitizedParams.transactionId || 'tax-onesource-901', taxcalculation: '[REDACTED SENSITIVE FIELD]', status: 'ONESOURCE_TAX_CALCULATED' };
+          break;
+        case 'getAvalaraTaxTransactions':
+          result = { success: true, transactions: [{ id: 'av-tx-01', amount: 1500.00, taxCalculated: 131.25 }], status: 'AVALARA_TRANSACTIONS_LOADED' };
+          break;
+        case 'calculateAvalaraSalesTax':
+          result = { success: true, transactionCode: sanitizedParams.transactionCode || 'av-code-802', taxcalculation: '[REDACTED SENSITIVE FIELD]', status: 'AVALARA_TAX_CALCULATED' };
+          break;
+        case 'getVertexTaxRules':
+          result = { success: true, rules: [{ id: 'rule-vtx-02', country: 'US', exemptCategory: 'software' }], status: 'VERTEX_RULES_LOADED' };
+          break;
+        case 'processVertexTaxFiling':
+          result = { success: true, filingId: 'vtx-filing-99', taxreturn: '[REDACTED SENSITIVE FIELD]', status: 'VERTEX_TAX_FILING_PROCESSED' };
+          break;
+        case 'getTaxJarTransactions':
+          result = { success: true, transactions: [{ id: 'tj-tx-99', amount: 250.00, taxCollected: 21.88 }], status: 'TAXJAR_TRANSACTIONS_LOADED' };
+          break;
+        case 'submitTaxJarTaxReturn':
+          result = { success: true, returnId: sanitizedParams.returnId || 'tj-ret-2026-Q1', taxreturn: '[REDACTED SENSITIVE FIELD]', status: 'TAXJAR_TAX_RETURN_SUBMITTED' };
+          break;
+        case 'getSovosFilingStatus':
+          result = { success: true, status: 'COMPLETED', period: '2026-04', filings: ['US-MI', 'US-OH'], status: 'SOVOS_STATUS_LOADED' };
+          break;
+        case 'submitSovosTaxDocument':
+          result = { success: true, documentId: sanitizedParams.documentId || 'sv-doc-302', taxreturn: '[REDACTED SENSITIVE FIELD]', status: 'SOVOS_TAX_DOCUMENT_SUBMITTED' };
+          break;
+
+        // --- Phase 32: Subscription Billing & Revenue Operations ---
+        case 'getZuoraSubscriptionDetails':
+          result = { success: true, subscriptions: [{ id: 'zu-sub-101', plan: 'Enterprise Platinum', status: 'Active' }], status: 'ZUORA_SUBSCRIPTIONS_LOADED' };
+          break;
+        case 'cancelZuoraSubscription':
+          result = { success: true, subscriptionId: sanitizedParams.subscriptionId || 'zu-sub-101', status: 'ZUORA_SUBSCRIPTION_CANCELED' };
+          break;
+        case 'getChargebeeCustomers':
+          result = { success: true, customers: [{ id: 'cb-cust-01', email: 'billing@enterprise.com', balance: 0.00 }], status: 'CHARGEBEE_CUSTOMERS_LOADED' };
+          break;
+        case 'modifyChargebeeSubscription':
+          result = { success: true, customerId: sanitizedParams.customerId || 'cb-cust-01', newPlan: sanitizedParams.newPlan || 'Enterprise Gold', status: 'CHARGEBEE_SUBSCRIPTION_MODIFIED' };
+          break;
+        case 'getRecurlyAccounts':
+          result = { success: true, accounts: [{ id: 'rec-acc-92', state: 'active', code: 'ACC-ENT-12' }], status: 'RECURLY_ACCOUNTS_LOADED' };
+          break;
+        case 'terminateRecurlySubscription':
+          result = { success: true, accountId: sanitizedParams.accountId || 'rec-acc-92', refundamount: '[REDACTED SENSITIVE FIELD]', status: 'RECURLY_SUBSCRIPTION_TERMINATED' };
+          break;
+        case 'getStripeInvoices':
+          result = { success: true, invoices: [{ id: 'in_stripe_99', amount: 500000, paid: true }], status: 'STRIPE_INVOICES_LOADED' };
+          break;
+        case 'refundStripeInvoice':
+          result = { success: true, invoiceId: sanitizedParams.invoiceId || 'in_stripe_99', refundamount: '[REDACTED SENSITIVE FIELD]', status: 'STRIPE_INVOICE_REFUNDED' };
+          break;
+        case 'getPaddleTransactions':
+          result = { success: true, transactions: [{ id: 'pad-tx-80', amount: 120.00, status: 'completed' }], status: 'PADDLE_TRANSACTIONS_LOADED' };
+          break;
+        case 'cancelPaddleSubscription':
+          result = { success: true, subscriptionId: sanitizedParams.subscriptionId || 'pad-sub-01', status: 'PADDLE_SUBSCRIPTION_CANCELED' };
+          break;
+
+        // --- Phase 33: Contract Management & e-Signatures ---
+        case 'getDocuSignEnvelopes':
+          result = { success: true, envelopes: [{ id: 'ds-env-9902', status: 'Sent', subject: 'Vendor Agreement' }], status: 'DOCUSIGN_ENVELOPES_LOADED' };
+          break;
+        case 'sendDocuSignEnvelope':
+          result = { success: true, envelopeId: sanitizedParams.envelopeId || 'ds-env-9902', status: 'DOCUSIGN_ENVELOPE_SENT' };
+          break;
+        case 'getDropboxSignRequests':
+          result = { success: true, signatureRequests: [{ id: 'hs-req-4029', status: 'completed', title: 'Consulting Contract' }], status: 'DROPBOX_SIGN_REQUESTS_LOADED' };
+          break;
+        case 'sendDropboxSignatureRequest':
+          result = { success: true, requestId: sanitizedParams.requestId || 'hs-req-4029', status: 'DROPBOX_SIGN_REQUEST_SENT' };
+          break;
+        case 'getPandaDocDocuments':
+          result = { success: true, documents: [{ id: 'pd-doc-1229', name: 'Master Services Agreement', status: 'document.draft' }], status: 'PANDADOC_DOCUMENTS_LOADED' };
+          break;
+        case 'sendPandaDocDocument':
+          result = { success: true, documentId: sanitizedParams.documentId || 'pd-doc-1229', status: 'PANDADOC_DOCUMENT_SENT' };
+          break;
+        case 'getESignaturesContracts':
+          result = { success: true, contracts: [{ id: 'esign-ctr-98', status: 'signed', signerName: 'Chief Procurement Officer' }], status: 'ESIGNATURES_CONTRACTS_LOADED' };
+          break;
+        case 'sendESignaturesContract':
+          result = { success: true, contractId: sanitizedParams.contractId || 'esign-ctr-98', status: 'ESIGNATURES_CONTRACT_SENT' };
+          break;
+        case 'getSignaturelyRequests':
+          result = { success: true, requests: [{ id: 'sigly-req-901', status: 'awaiting_signature', documentName: 'Lease Agreement' }], status: 'SIGNATURELY_REQUESTS_LOADED' };
+          break;
+        case 'sendSignaturelyRequest':
+          result = { success: true, requestId: sanitizedParams.requestId || 'sigly-req-901', status: 'SIGNATURELY_REQUEST_SENT' };
+          break;
+
+        // --- Phase 34: Digital Payments & Global Ledgers ---
+        case 'getStripeCharges':
+          result = { success: true, charges: [{ id: 'ch_stripe_883', amount: 250000, captured: true }], status: 'STRIPE_CHARGES_LOADED' };
+          break;
+        case 'captureStripeCharge':
+          result = { success: true, chargeId: sanitizedParams.chargeId || 'ch_stripe_883', status: 'STRIPE_CHARGE_CAPTURED' };
+          break;
+        case 'getBraintreeTransactions':
+          result = { success: true, transactions: [{ id: 'bt-tx-390', amount: 890.00, status: 'authorized' }], status: 'BRAINTREE_TRANSACTIONS_LOADED' };
+          break;
+        case 'settleBraintreeTransaction':
+          result = { success: true, transactionId: sanitizedParams.transactionId || 'bt-tx-390', status: 'BRAINTREE_TRANSACTION_SETTLED' };
+          break;
+        case 'getSquarePayments':
+          result = { success: true, payments: [{ id: 'sq-pay-9922', amount: 150.00, status: 'APPROVED' }], status: 'SQUARE_PAYMENTS_LOADED' };
+          break;
+        case 'processSquarePayment':
+          result = { success: true, paymentId: 'sq-pay-9922', amount: sanitizedParams.amount || 150.00, status: 'SQUARE_PAYMENT_PROCESSED' };
+          break;
+        case 'getQuickBooksInvoices':
+          result = { success: true, invoices: [{ id: 'qb-inv-3829', customer: 'Global Acme Corp', amount: 12500.00, docNumber: '1092' }], status: 'QUICKBOOKS_INVOICES_LOADED' };
+          break;
+        case 'postQuickBooksInvoice':
+          result = { success: true, invoiceId: 'qb-inv-3829', docNumber: sanitizedParams.docNumber || '1092', status: 'QUICKBOOKS_INVOICE_POSTED' };
+          break;
+        case 'getXeroBankTransactions':
+          result = { success: true, transactions: [{ id: 'xe-tx-9922', amount: -450.00, reference: 'Office Supplies' }], status: 'XERO_BANK_TRANSACTIONS_LOADED' };
+          break;
+        case 'voidXeroTransaction':
+          result = { success: true, transactionId: sanitizedParams.transactionId || 'xe-tx-9922', status: 'XERO_TRANSACTION_VOIDED' };
           break;
 
 

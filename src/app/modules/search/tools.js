@@ -976,7 +976,10 @@ Input: The app slug name and action list.`,
       'github', 'gitlab', 'bitbucket', 'circleci', 'jenkins', 'jira', 'asana', 'monday', 'trello', 'clickup',
       'google_ads', 'facebook_ads', 'linkedin_ads', 'twitter_x', 'mailchimp', 'surveymonkey', 'typeform', 'satismeter',
       'freshdesk', 'hubspot_feedback', 'aws_s3', 'google_storage', 'azure_blob', 'dropbox', 'google_drive', 'replicate',
-      'langsmith', 'mlflow', 'cohere', 'langchain_hub'
+      'langsmith', 'mlflow', 'cohere', 'langchain_hub',
+      'onesource', 'avalara', 'vertex', 'taxjar', 'sovos',
+      'zuora', 'chargebee', 'recurly', 'stripe_billing', 'paddle',
+      'docusign', 'dropbox_sign', 'pandadoc', 'esignatures_io', 'signaturely', 'stripe', 'braintree', 'square', 'quickbooks', 'xero'
     ]).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets', 'createBIM360RFI', 'getYardiPropertyLedger', 'updateYardiRentLedger',
@@ -1046,7 +1049,17 @@ Input: The app slug name and action list.`,
       'getHubSpotFeedback', 'deleteHubSpotFeedback', 'getS3Buckets', 'deleteS3Bucket', 'getGCSBuckets', 'deleteGCSBucket',
       'getAzureContainers', 'deleteAzureContainer', 'getDropboxFiles', 'deleteDropboxFolder', 'getDriveFiles', 'deleteDriveFile',
       'getReplicateModels', 'cancelReplicatePrediction', 'getLangSmithTraces', 'deleteLangSmithProject', 'getMLflowExperiments',
-      'deleteMLflowRun', 'getCohereModels', 'deployCohereModel', 'getHubPrompts', 'deleteHubPrompt'
+      'deleteMLflowRun', 'getCohereModels', 'deployCohereModel', 'getHubPrompts', 'deleteHubPrompt',
+      'getOneSourceTaxRates', 'calculateOneSourceTax', 'getAvalaraTaxTransactions', 'calculateAvalaraSalesTax',
+      'getVertexTaxRules', 'processVertexTaxFiling', 'getTaxJarTransactions', 'submitTaxJarTaxReturn',
+      'getSovosFilingStatus', 'submitSovosTaxDocument', 'getZuoraSubscriptionDetails', 'cancelZuoraSubscription',
+      'getChargebeeCustomers', 'modifyChargebeeSubscription', 'getRecurlyAccounts', 'terminateRecurlySubscription',
+      'getStripeInvoices', 'refundStripeInvoice', 'getPaddleTransactions', 'cancelPaddleSubscription',
+      'getDocuSignEnvelopes', 'sendDocuSignEnvelope', 'getDropboxSignRequests', 'sendDropboxSignatureRequest',
+      'getPandaDocDocuments', 'sendPandaDocDocument', 'getESignaturesContracts', 'sendESignaturesContract',
+      'getSignaturelyRequests', 'sendSignaturelyRequest', 'getStripeCharges', 'captureStripeCharge',
+      'getBraintreeTransactions', 'settleBraintreeTransaction', 'getSquarePayments', 'processSquarePayment',
+      'getQuickBooksInvoices', 'postQuickBooksInvoice', 'getXeroBankTransactions', 'voidXeroTransaction'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")

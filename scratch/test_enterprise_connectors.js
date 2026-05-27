@@ -330,7 +330,31 @@ async function runTests() {
     { app: 'langsmith', action: 'getLangSmithTraces', params: {} },
     { app: 'mlflow', action: 'getMLflowExperiments', params: {} },
     { app: 'cohere', action: 'getCohereModels', params: {} },
-    { app: 'langchain_hub', action: 'getHubPrompts', params: {} }
+    { app: 'langchain_hub', action: 'getHubPrompts', params: {} },
+    // Phase 31: Corporate Tax Compliance
+    { app: 'onesource', action: 'getOneSourceTaxRates', params: {} },
+    { app: 'avalara', action: 'getAvalaraTaxTransactions', params: {} },
+    { app: 'vertex', action: 'getVertexTaxRules', params: {} },
+    { app: 'taxjar', action: 'getTaxJarTransactions', params: {} },
+    { app: 'sovos', action: 'getSovosFilingStatus', params: {} },
+    // Phase 32: Subscription Billing & RevOps
+    { app: 'zuora', action: 'getZuoraSubscriptionDetails', params: {} },
+    { app: 'chargebee', action: 'getChargebeeCustomers', params: {} },
+    { app: 'recurly', action: 'getRecurlyAccounts', params: {} },
+    { app: 'stripe_billing', action: 'getStripeInvoices', params: {} },
+    { app: 'paddle', action: 'getPaddleTransactions', params: {} },
+    // Phase 33: Contract Management & e-Signatures
+    { app: 'docusign', action: 'getDocuSignEnvelopes', params: {} },
+    { app: 'dropbox_sign', action: 'getDropboxSignRequests', params: {} },
+    { app: 'pandadoc', action: 'getPandaDocDocuments', params: {} },
+    { app: 'esignatures_io', action: 'getESignaturesContracts', params: {} },
+    { app: 'signaturely', action: 'getSignaturelyRequests', params: {} },
+    // Phase 34: Digital Payments & Global Ledgers
+    { app: 'stripe', action: 'getStripeCharges', params: {} },
+    { app: 'braintree', action: 'getBraintreeTransactions', params: {} },
+    { app: 'square', action: 'getSquarePayments', params: {} },
+    { app: 'quickbooks', action: 'getQuickBooksInvoices', params: {} },
+    { app: 'xero', action: 'getXeroBankTransactions', params: {} }
   ];
 
 
@@ -465,7 +489,31 @@ async function runTests() {
     { app: 'langsmith', action: 'deleteLangSmithProject', params: { projectName: 'alti-debug' } },
     { app: 'mlflow', action: 'deleteMLflowRun', params: { runId: 'mlf-1' } },
     { app: 'cohere', action: 'deployCohereModel', params: { modelId: 'command-r-plus' } },
-    { app: 'langchain_hub', action: 'deleteHubPrompt', params: { promptId: 'prompt-1' } }
+    { app: 'langchain_hub', action: 'deleteHubPrompt', params: { promptId: 'prompt-1' } },
+    // Phase 31: Corporate Tax Compliance
+    { app: 'onesource', action: 'calculateOneSourceTax', params: { transactionId: 'tx-901' } },
+    { app: 'avalara', action: 'calculateAvalaraSalesTax', params: { transactionCode: 'av-802' } },
+    { app: 'vertex', action: 'processVertexTaxFiling', params: { filingId: 'vtx-99' } },
+    { app: 'taxjar', action: 'submitTaxJarTaxReturn', params: { returnId: 'tj-2026' } },
+    { app: 'sovos', action: 'submitSovosTaxDocument', params: { documentId: 'sv-302' } },
+    // Phase 32: Subscription Billing & RevOps
+    { app: 'zuora', action: 'cancelZuoraSubscription', params: { subscriptionId: 'zu-sub-101' } },
+    { app: 'chargebee', action: 'modifyChargebeeSubscription', params: { customerId: 'cb-01' } },
+    { app: 'recurly', action: 'terminateRecurlySubscription', params: { accountId: 'rec-92' } },
+    { app: 'stripe_billing', action: 'refundStripeInvoice', params: { invoiceId: 'stripe-in-99' } },
+    { app: 'paddle', action: 'cancelPaddleSubscription', params: { subscriptionId: 'pad-sub-01' } },
+    // Phase 33: Contract Management & e-Signatures
+    { app: 'docusign', action: 'sendDocuSignEnvelope', params: { envelopeId: 'ds-env-9902' } },
+    { app: 'dropbox_sign', action: 'sendDropboxSignatureRequest', params: { requestId: 'hs-req-4029' } },
+    { app: 'pandadoc', action: 'sendPandaDocDocument', params: { documentId: 'pd-doc-1229' } },
+    { app: 'esignatures_io', action: 'sendESignaturesContract', params: { contractId: 'esign-ctr-98' } },
+    { app: 'signaturely', action: 'sendSignaturelyRequest', params: { requestId: 'sigly-req-901' } },
+    // Phase 34: Digital Payments & Global Ledgers
+    { app: 'stripe', action: 'captureStripeCharge', params: { chargeId: 'ch_stripe_883' } },
+    { app: 'braintree', action: 'settleBraintreeTransaction', params: { transactionId: 'bt-tx-390' } },
+    { app: 'square', action: 'processSquarePayment', params: { amount: 150.00 } },
+    { app: 'quickbooks', action: 'postQuickBooksInvoice', params: { docNumber: '1092' } },
+    { app: 'xero', action: 'voidXeroTransaction', params: { transactionId: 'xe-tx-9922' } }
   ];
 
 
@@ -608,7 +656,11 @@ async function runTests() {
       { app: 'github', action: 'deleteGitHubRepository', parameters: { repository: 'test' }, verified: true },
       { app: 'google_ads', action: 'adjustGoogleAdsBudget', parameters: { campaignId: '123' }, verified: true },
       { app: 'aws_s3', action: 'deleteS3Bucket', parameters: { bucketName: 'test' }, verified: true },
-      { app: 'mlflow', action: 'deleteMLflowRun', parameters: { runId: 'test' }, verified: true }
+      { app: 'mlflow', action: 'deleteMLflowRun', parameters: { runId: 'test' }, verified: true },
+      { app: 'onesource', action: 'getOneSourceTaxRates', parameters: {} },
+      { app: 'onesource', action: 'calculateOneSourceTax', parameters: { transactionId: '123' }, verified: true },
+      { app: 'stripe_billing', action: 'getStripeInvoices', parameters: {} },
+      { app: 'stripe_billing', action: 'refundStripeInvoice', parameters: { invoiceId: 'in-99' }, verified: true }
     ];
 
     for (const input of validInputs) {

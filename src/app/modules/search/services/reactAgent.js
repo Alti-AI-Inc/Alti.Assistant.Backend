@@ -1897,7 +1897,27 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
             langsmith: 'https://api.langsmith.com',
             mlflow: 'https://api.mlflow.com',
             cohere: 'https://api.cohere.ai',
-            langchain_hub: 'https://api.langchain.com'
+            langchain_hub: 'https://api.langchain.com',
+            onesource: 'https://api.onesource.tax',
+            avalara: 'https://api.avalara.com',
+            vertex: 'https://api.vertex.com',
+            taxjar: 'https://api.taxjar.com',
+            sovos: 'https://api.sovos.com',
+            zuora: 'https://api.zuora.com',
+            chargebee: 'https://api.chargebee.com',
+            recurly: 'https://api.recurly.com',
+            stripe_billing: 'https://api.stripe.com',
+            paddle: 'https://api.paddle.com',
+            docusign: 'https://api.docusign.com',
+            dropbox_sign: 'https://api.hellosign.com',
+            pandadoc: 'https://api.pandadoc.com',
+            esignatures_io: 'https://esignatures.io',
+            signaturely: 'https://api.signaturely.com',
+            stripe: 'https://api.stripe.com',
+            braintree: 'https://api.braintreegateway.com',
+            square: 'https://connect.squareup.com',
+            quickbooks: 'https://quickbooks.api.intuit.com',
+            xero: 'https://api.xero.com'
           };
           const resolvedDomain = domains[app.toLowerCase()] || 'https://api.enterprise-connector.local';
           usedUrls.add(resolvedDomain);
