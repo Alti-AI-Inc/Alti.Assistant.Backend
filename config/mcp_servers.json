@@ -1,0 +1,61 @@
+{
+  "mcp_servers": {
+    "sequential-thinking": {
+      "id": "sequential-thinking",
+      "name": "Sequential Thinking Reasoning",
+      "description": "Expose a structured step-by-step reasoning scratchpad to prevent hallucinations and logically decompose complex designs.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "env": {}
+    },
+    "memory": {
+      "id": "memory",
+      "name": "Persistent Semantic Memory",
+      "description": "Connect a local knowledge graph database that maps entities and relationships to persist knowledge context across all sessions.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "env": {
+        "MEMORY_FILE_PATH": "storage/users/{{tenantId}}/mcp_memory/memory.json"
+      }
+    },
+    "puppeteer": {
+      "id": "puppeteer",
+      "name": "Puppeteer Web Browser",
+      "description": "Headless browser automation to dynamically scrape Single Page Applications, take screenshots, and click elements.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ],
+      "env": {}
+    },
+    "filesystem": {
+      "id": "filesystem",
+      "name": "Secure Workspace Filesystem",
+      "description": "Direct read, write, and search capabilities on sandboxed workspace folders with secure path restrictions.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "storage/users/{{tenantId}}/workspace"
+      ],
+      "env": {}
+    },
+    "composio": {
+      "id": "composio",
+      "name": "Composio Universal Integrations",
+      "description": "Access 500+ external SaaS tools (Slack, GitHub, Gmail, Asana) natively via Model Context Protocol JSON-RPC.",
+      "command": "node",
+      "args": [
+        "src/app/modules/mcp_toolbox/servers/composio_mcp_server.js"
+      ],
+      "env": {}
+    }
+  }
+}
