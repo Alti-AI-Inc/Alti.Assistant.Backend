@@ -8,7 +8,7 @@ import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import UserModel from '../auth/auth.model.js';
-import Llama from '../groq/groq.model.js';
+import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 
 const sessionMemoryStore = {}; // Stores session memory for each user session
@@ -70,7 +70,7 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
       total_time: res1?.usage?.total_time || 0,
     };
 
-    let llamaSession = await Llama.findOne({ user: userId, sessionId });
+    let llamaSession = await ChatHistory.findOne({ user: userId, sessionId });
 
     if (llamaSession) {
       logger.info('Existing Session Found:', llamaSession);
@@ -79,7 +79,7 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
       logger.info('Updated Session:', llamaSession);
     } else {
       logger.info('Creating New Session...');
-      llamaSession = await Llama.create({
+      llamaSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],

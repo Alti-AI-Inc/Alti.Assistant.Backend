@@ -9,7 +9,7 @@ import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import UserModel from '../auth/auth.model.js';
-import Llama from './groq.model.js';
+import ChatHistory from '../conversations/chatHistory.model.js';
 import { fetchSearchResults } from './groq.utilities.js';
 import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 import { GeminiAiService } from '../gemini/gemini.service.js';
@@ -144,7 +144,7 @@ const getAiResponsesByUserIdService = async (userId) => {
 };
 
 const getAiResponsesBySession = async (id) => {
-  const sessionData = await Llama.findOne({
+  const sessionData = await ChatHistory.findOne({
     sessionId: id,
   });
 
@@ -160,13 +160,13 @@ const getAiResponsesBySession = async (id) => {
 };
 
 const deleteOneLlamaAiSession = async (objectId) => {
-  const userData = await Llama.findOne({
+  const userData = await ChatHistory.findOne({
     _id: objectId,
   });
   if (!userData) {
     throw new Error('LlamaAiSession not found');
   }
-  const deleteResult = await Llama.deleteOne({
+  const deleteResult = await ChatHistory.deleteOne({
     _id: objectId,
   });
 
@@ -209,7 +209,7 @@ const deleteAllAiSessionsService = async (userId) => {
     const aiSessionIds = user.llamaAiSessions.map((id) => id.toString());
 
     const deleteResults = await Promise.all(
-      aiSessionIds.map((id) => Llama.deleteOne({ _id: id }).session(session))
+      aiSessionIds.map((id) => ChatHistory.deleteOne({ _id: id }).session(session))
     );
 
     const allDeleted = deleteResults.every(

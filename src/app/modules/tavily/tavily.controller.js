@@ -5,7 +5,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import generateSessionId from '../../../shared/sessionGenerate.js';
 import UserModel from '../auth/auth.model.js';
-import Llama from '../groq/groq.model.js';
+import ChatHistory from '../conversations/chatHistory.model.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
@@ -71,7 +71,7 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
       total_time: result.usageMetadata?.totalTokenCount || 0,
     };
 
-    let llamaSession = await Llama.findOne({
+    let llamaSession = await ChatHistory.findOne({
       user: userId,
       sessionId: currentSessionId,
     });
@@ -80,7 +80,7 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
       llamaSession.responses.push(responseData);
       await llamaSession.save();
     } else {
-      llamaSession = await Llama.create({
+      llamaSession = await ChatHistory.create({
         user: userId,
         sessionId: currentSessionId,
         responses: [responseData],

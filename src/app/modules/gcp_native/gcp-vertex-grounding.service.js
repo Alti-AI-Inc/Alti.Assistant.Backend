@@ -7,7 +7,7 @@ import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import UserModel from '../auth/auth.model.js';
-import Llama from '../groq/groq.model.js';
+import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { RedisClient } from '../../../shared/redis.js';
 
@@ -93,12 +93,12 @@ const groundedPromptResponse = async (sessionId, prompt, userId) => {
     };
 
     // Save prompt & response session in DB
-    let session = await Llama.findOne({ user: userId, sessionId });
+    let session = await ChatHistory.findOne({ user: userId, sessionId });
     if (session) {
       session.responses.push(responseData);
       await session.save();
     } else {
-      session = await Llama.create({
+      session = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],

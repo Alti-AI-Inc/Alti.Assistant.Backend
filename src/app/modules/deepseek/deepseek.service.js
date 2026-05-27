@@ -6,7 +6,7 @@ import { BufferMemory } from 'langchain/memory';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import UserModel from '../auth/auth.model.js';
-import Llama from '../groq/groq.model.js';
+import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { DEEPSEEK_RESPONSE_SERVICE_POST } from './deepseek.constatn.js';
 import { RedisClient } from '../../../shared/redis.js';
@@ -66,13 +66,13 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
       total_time: totalTime, // Add total time to response data
     };
 
-    let deepseekSession = await Llama.findOne({ user: userId, sessionId });
+    let deepseekSession = await ChatHistory.findOne({ user: userId, sessionId });
 
     if (deepseekSession) {
       deepseekSession.responses.push(responseData);
       await deepseekSession.save();
     } else {
-      deepseekSession = await Llama.create({
+      deepseekSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],

@@ -7,7 +7,7 @@ import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import UserModel from '../auth/auth.model.js';
-import Llama from '../groq/groq.model.js';
+import ChatHistory from '../conversations/chatHistory.model.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { GEMINI_RESPONSE_SERVICE_POST } from './gemini.constant.js';
 import { RedisClient } from '../../../shared/redis.js';
@@ -69,13 +69,13 @@ const geminiService = async (sessionId, prompt, userId) => {
       total_time: result?.usage?.total_time || 0,
     };
 
-    let geminiSession = await Llama.findOne({ user: userId, sessionId });
+    let geminiSession = await ChatHistory.findOne({ user: userId, sessionId });
 
     if (geminiSession) {
       geminiSession.responses.push(responseData);
       await geminiSession.save();
     } else {
-      geminiSession = await Llama.create({
+      geminiSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],
@@ -157,13 +157,13 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
       total_time: result?.usage?.total_time || 0,
     };
 
-    let geminiSession = await Llama.findOne({ user: userId, sessionId });
+    let geminiSession = await ChatHistory.findOne({ user: userId, sessionId });
 
     if (geminiSession) {
       geminiSession.responses.push(responseData);
       await geminiSession.save();
     } else {
-      geminiSession = await Llama.create({
+      geminiSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],

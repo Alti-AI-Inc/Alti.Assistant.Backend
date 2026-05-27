@@ -1,7 +1,6 @@
-// import mongoose from 'mongoose';
 import mongoose from 'mongoose';
 
-const llamaResponseSchema = new mongoose.Schema({
+const chatHistorySchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   sessionId: String,
   responses: [
@@ -16,7 +15,6 @@ const llamaResponseSchema = new mongoose.Schema({
       },
       reply: {
         type: String,
-        // required: true,
       },
       search_results: [
         {
@@ -55,6 +53,6 @@ const llamaResponseSchema = new mongoose.Schema({
   },
 });
 
-const Llama = mongoose.model('Chat-History', llamaResponseSchema);
+const ChatHistory = mongoose.model('Chat-History', chatHistorySchema);
 
-export default Llama;
+export default ChatHistory;
