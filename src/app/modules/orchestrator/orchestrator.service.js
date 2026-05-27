@@ -68,16 +68,38 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         });
         rawJson = classificationResult?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       } catch (geminiErr) {
-        logger.warn(`[Orchestrator] Gemini classification failed: ${geminiErr.message}. Falling back to Groq Llama-3.3...`);
+        logger.warn(`[Orchestrator] Gemini classification failed: ${geminiErr.message}. Falling back to Azure AI Foundry...`);
         try {
-          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          if (!config.azure.endpoint || !config.azure.apiKey) {
+            throw new Error('Azure AI Foundry endpoint or key is not configured.');
+          }
+
+          const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
+          const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
+
+          let requestUrl = endpoint;
+          let headers = {
+            'Content-Type': 'application/json',
+          };
+
+          if (isAzureOpenAI) {
+            headers['api-key'] = apiKey;
+            if (!requestUrl.includes('/openai/deployments/')) {
+              const baseUrl = requestUrl.split('/openai')[0];
+              requestUrl = `${baseUrl}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
+            }
+          } else {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+            if (!requestUrl.includes('/chat/completions')) {
+              requestUrl = requestUrl.replace(/\/$/, '') + '/chat/completions';
+            }
+          }
+
+          const response = await fetch(requestUrl, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${config.groq_secret_key || process.env.GROQ_API_KEY}`
-            },
+            headers,
             body: JSON.stringify({
-              model: 'llama-3.3-70b-versatile',
+              ...(isAzureOpenAI ? {} : { model: deploymentOrModel }),
               messages: [
                 { role: 'system', content: ORCHESTRATOR_SYSTEM_PROMPT },
                 { role: 'user', content: prompt }
@@ -86,16 +108,17 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
               temperature: 0.1
             })
           });
-          if (groqResponse.ok) {
-            const groqData = await groqResponse.json();
-            rawJson = groqData.choices?.[0]?.message?.content || '{}';
-            logger.info('[Orchestrator] Successfully classified intent using Groq fallback.');
+
+          if (response.ok) {
+            const data = await response.json();
+            rawJson = data.choices?.[0]?.message?.content || '{}';
+            logger.info('[Orchestrator] Successfully classified intent using Azure AI Foundry fallback.');
           } else {
-            const errBody = await groqResponse.text();
-            throw new Error(`Groq returned status ${groqResponse.status}: ${errBody}`);
+            const errBody = await response.text();
+            throw new Error(`Azure AI Foundry returned status ${response.status}: ${errBody}`);
           }
-        } catch (groqErr) {
-          logger.error('[Orchestrator] Both Gemini and Groq classification failed:', groqErr);
+        } catch (azureErr) {
+          logger.error('[Orchestrator] Both Gemini and Azure AI Foundry classification failed:', azureErr);
           rawJson = '{}';
         }
       }
