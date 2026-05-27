@@ -7,12 +7,25 @@ import { SwarmService } from './swarm.service.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 
 const performSwarmStreamingSearch = catchAsync(async (req, res) => {
-  const isGuest = req.isGuest || !req.user;
-  let userId = isGuest
-    ? searchService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
+  const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
+  
+  let userId;
+  if (!isGuest) {
+    // SECURE: Strictly load authenticated user ID from verified token, ignoring request body inputs
+    userId = req.user?.userId || req.user?._id;
+  } else {
+    // SECURE: Only accept body userId if it strictly conforms to a guest-prefixed format
+    const providedUserId = req.body.userId;
+    const isGuestPattern = providedUserId && typeof providedUserId === 'string' && providedUserId.startsWith('guest_');
+    
+    if (providedUserId && isGuestPattern) {
+      userId = providedUserId;
+    } else {
+      userId = searchService.generateGuestUserId();
+    }
+  }
+
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId;
 
   if (!message) {
     return sendResponse(res, {
