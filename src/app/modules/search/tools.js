@@ -7,6 +7,74 @@ import { getGreenlightIntelligenceData } from '../../helpers/v14DataIntegrations
 import { getPremiumIntelligenceData } from '../../helpers/v15DataIntegrations.js';
 import { getPremiumV16IntelligenceData } from '../../helpers/v16DataIntegrations.js';
 import { getPremiumV17IntelligenceData } from '../../helpers/v17DataIntegrations.js';
+import {
+  classifyAcademicQuery,
+  classifyDiscussionQuery,
+  classifyNewsQuery,
+  classifyWeatherQuery,
+  classifyMedicalQuery,
+  classifyFoodQuery,
+  classifyLegalQuery,
+  classifyPatentQuery,
+  classifySecurityQuery,
+  classifyGovFinanceQuery,
+  classifyRealEstateQuery,
+  classifyEconomicsQuery,
+  classifyBiologyQuery,
+  classifyEntertainmentQuery,
+  classifyTravelQuery,
+  classifyShoppingQuery,
+  classifyCareerQuery,
+  classifyAutomotiveQuery,
+  classifyGamingQuery,
+  classifyEnvironmentQuery,
+  classifyLocalQuery,
+  classifyEducationQuery,
+  classifyDIYQuery,
+  classifySpaceAviationQuery,
+  classifyHistoryQuery,
+  classifyArtDesignQuery,
+  classifyPhilosophyQuery,
+  classifyMusicQuery,
+  classifyPetsQuery,
+  classifyGeopoliticsQuery,
+  classifyArchitectureQuery,
+  classifyAgricultureQuery,
+  classifyChemistryQuery,
+  classifyHobbiesQuery,
+  classifyLogisticsQuery,
+  classifyPersonalFinanceQuery,
+  classifyCryptoQuery,
+  classifyFitnessQuery,
+  classifyPsychologyQuery,
+  classifyInsuranceQuery,
+  classifyRoboticsQuery,
+  classifyTicketingQuery,
+  classifyAstronomyQuery,
+  classifyAnthropologyQuery,
+  classifyLinguisticsQuery,
+  classifyPediatricsQuery,
+  classifySustainabilityQuery,
+  classifyDropshippingQuery,
+  classifyCivilLawQuery,
+  classifyPedagogyQuery,
+  classifyVeterinaryQuery,
+  classifyMeteorologyQuery,
+  classifyUrbanPlanningQuery,
+  classifyFoodChemistryQuery,
+  classifyMarineBiologyQuery,
+  classifyTheoreticalPhysicsQuery,
+  classifyPaleontologyQuery,
+  classifyBiomedicalQuery,
+  classifyClimatologyQuery,
+  classifyNeurotechQuery,
+  classifyAstrobiologyQuery,
+  classifyNanotechQuery,
+  classifyNuclearQuery,
+  classifyGeneticsQuery,
+  classifyVentureCapitalQuery,
+  classifyDigitalHumanitiesQuery,
+} from './services/queryClassifier.js';
 
 const rawGoogle = new GoogleCustomSearch({
   maxResults: 20, // Default max results
@@ -158,6 +226,274 @@ export const googleSearch = new DynamicStructuredTool({
     if (isSportsQuery(query)) {
       console.log(`🎯 Sports query detected: "${query}"`);
       finalQuery = enhanceSportsQuery(query);
+    } else {
+      // Run backend topic classifiers for smart search grounding in tools
+      const academicClass = classifyAcademicQuery(query);
+      const discussionClass = classifyDiscussionQuery(query);
+      const newsClass = classifyNewsQuery(query);
+      const weatherClass = classifyWeatherQuery(query);
+      const medicalClass = classifyMedicalQuery(query);
+      const foodClass = classifyFoodQuery(query);
+      const legalClass = classifyLegalQuery(query);
+      const patentClass = classifyPatentQuery(query);
+      const securityClass = classifySecurityQuery(query);
+      const govFinanceClass = classifyGovFinanceQuery(query);
+      const realEstateClass = classifyRealEstateQuery(query);
+      const economicsClass = classifyEconomicsQuery(query);
+      const biologyClass = classifyBiologyQuery(query);
+      const entertainmentClass = classifyEntertainmentQuery(query);
+      const travelClass = classifyTravelQuery(query);
+      const shoppingClass = classifyShoppingQuery(query);
+      const careerClass = classifyCareerQuery(query);
+      const automotiveClass = classifyAutomotiveQuery(query);
+      const gamingClass = classifyGamingQuery(query);
+      const environmentClass = classifyEnvironmentQuery(query);
+      const localClass = classifyLocalQuery(query);
+      const educationClass = classifyEducationQuery(query);
+      const diyClass = classifyDIYQuery(query);
+      const spaceAviationClass = classifySpaceAviationQuery(query);
+      const historyClass = classifyHistoryQuery(query);
+      const artDesignClass = classifyArtDesignQuery(query);
+      const philosophyClass = classifyPhilosophyQuery(query);
+      const musicClass = classifyMusicQuery(query);
+      const petsClass = classifyPetsQuery(query);
+      const geopoliticsClass = classifyGeopoliticsQuery(query);
+      const architectureClass = classifyArchitectureQuery(query);
+      const agricultureClass = classifyAgricultureQuery(query);
+      const chemistryClass = classifyChemistryQuery(query);
+      const hobbiesClass = classifyHobbiesQuery(query);
+      const logisticsClass = classifyLogisticsQuery(query);
+      const personalFinanceClass = classifyPersonalFinanceQuery(query);
+      const cryptoClass = classifyCryptoQuery(query);
+      const fitnessClass = classifyFitnessQuery(query);
+      const psychologyClass = classifyPsychologyQuery(query);
+      const insuranceClass = classifyInsuranceQuery(query);
+      const roboticsClass = classifyRoboticsQuery(query);
+      const ticketingClass = classifyTicketingQuery(query);
+      const astronomyClass = classifyAstronomyQuery(query);
+      const anthropologyClass = classifyAnthropologyQuery(query);
+      const linguisticsClass = classifyLinguisticsQuery(query);
+      const pediatricsClass = classifyPediatricsQuery(query);
+      const sustainabilityClass = classifySustainabilityQuery(query);
+      const dropshippingClass = classifyDropshippingQuery(query);
+      const civilLawClass = classifyCivilLawQuery(query);
+      const pedagogyClass = classifyPedagogyQuery(query);
+      const veterinaryClass = classifyVeterinaryQuery(query);
+      const meteorologyClass = classifyMeteorologyQuery(query);
+      const urbanPlanningClass = classifyUrbanPlanningQuery(query);
+      const foodChemistryClass = classifyFoodChemistryQuery(query);
+      const marineBiologyClass = classifyMarineBiologyQuery(query);
+      const theoreticalPhysicsClass = classifyTheoreticalPhysicsQuery(query);
+      const paleontologyClass = classifyPaleontologyQuery(query);
+      const biomedicalClass = classifyBiomedicalQuery(query);
+      const climatologyClass = classifyClimatologyQuery(query);
+      const neurotechClass = classifyNeurotechQuery(query);
+      const astrobiologyClass = classifyAstrobiologyQuery(query);
+      const nanotechClass = classifyNanotechQuery(query);
+      const nuclearClass = classifyNuclearQuery(query);
+      const geneticsClass = classifyGeneticsQuery(query);
+      const ventureCapitalClass = classifyVentureCapitalQuery(query);
+      const digitalHumanitiesClass = classifyDigitalHumanitiesQuery(query);
+
+      if (academicClass.isAcademic) {
+        console.log('🎓 Academic search query detected. Appending scientific site-restrictions...');
+        finalQuery = `${finalQuery} (site:arxiv.org OR site:pubmed.ncbi.nlm.nih.gov OR site:scholar.google.com OR site:nature.com OR site:researchgate.net OR site:ieee.org)`;
+      } else if (discussionClass.isDiscussion) {
+        console.log('💬 Discussion search query detected. Appending community site-restrictions...');
+        finalQuery = `${finalQuery} (site:reddit.com OR site:news.ycombinator.com OR site:quora.com OR site:producthunt.com)`;
+      } else if (weatherClass.isWeather) {
+        console.log('☀️ Weather search query detected. Appending meteorological site-restrictions...');
+        finalQuery = `${finalQuery} (site:weather.gov OR site:noaa.gov OR site:accuweather.com OR site:weather.com)`;
+      } else if (newsClass.isNews) {
+        console.log('📰 News search query detected. Appending news freshness context...');
+        finalQuery = `${finalQuery} news latest`;
+      } else if (medicalClass.isMedical) {
+        console.log('⚕️ Medical/Health search query detected. Appending health site-restrictions...');
+        finalQuery = `${finalQuery} (site:nih.gov OR site:fda.gov OR site:who.int OR site:cdc.gov OR site:pubmed.ncbi.nlm.nih.gov)`;
+      } else if (foodClass.isFood) {
+        console.log('🍎 Food/Nutrition search query detected. Appending food data site-restrictions...');
+        finalQuery = `${finalQuery} (site:usda.gov OR site:openfoodfacts.org OR site:fda.gov)`;
+      } else if (legalClass.isLegal) {
+        console.log('⚖️ Legal search query detected. Appending legal site-restrictions...');
+        finalQuery = `${finalQuery} (site:courtlistener.com OR site:justia.com OR site:oyez.org OR site:findlaw.com)`;
+      } else if (patentClass.isPatent) {
+        console.log('💡 Patent search query detected. Appending patent site-restrictions...');
+        finalQuery = `${finalQuery} (site:patents.google.com OR site:uspto.gov OR site:patentsview.org)`;
+      } else if (securityClass.isSecurity) {
+        console.log('🔒 Cybersecurity search query detected. Appending vulnerability site-restrictions...');
+        finalQuery = `${finalQuery} (site:nvd.nist.gov OR site:cisa.gov OR site:cve.org OR site:mitre.org)`;
+      } else if (govFinanceClass.isGovFinance) {
+        console.log('🏛️ Gov Finance search query detected. Appending fiscal site-restrictions...');
+        finalQuery = `${finalQuery} (site:fiscaldata.treasury.gov OR site:usaspending.gov OR site:sam.gov)`;
+      } else if (realEstateClass.isRealEstate) {
+        console.log('🏢 Real Estate search query detected. Appending building permit site-restrictions...');
+        finalQuery = `${finalQuery} (site:census.gov OR site:zillow.com OR site:redfin.com)`;
+      } else if (economicsClass.isEconomics) {
+        console.log('📊 Macroeconomics search query detected. Appending economic data site-restrictions...');
+        finalQuery = `${finalQuery} (site:worldbank.org OR site:imf.org OR site:oecd.org OR site:bls.gov OR site:bea.gov)`;
+      } else if (biologyClass.isBiology) {
+        console.log('🧬 Biology/Genomics search query detected. Appending scientific databases site-restrictions...');
+        finalQuery = `${finalQuery} (site:uniprot.org OR site:ensembl.org OR site:ncbi.nlm.nih.gov OR site:rcsb.org OR site:gnomad.broadinstitute.org)`;
+      } else if (entertainmentClass.isEntertainment) {
+        console.log('🎬 Entertainment/Pop Culture search query detected. Appending showbusiness site-restrictions...');
+        finalQuery = `${finalQuery} (site:imdb.com OR site:rottentomatoes.com OR site:spotify.com OR site:billboard.com OR site:metacritic.com)`;
+      } else if (travelClass.isTravel) {
+        console.log('✈️ Travel/Hospitality search query detected. Appending hospitality site-restrictions...');
+        finalQuery = `${finalQuery} (site:tripadvisor.com OR site:booking.com OR site:expedia.com OR site:airbnb.com OR site:lonelyplanet.com)`;
+      } else if (shoppingClass.isShopping) {
+        console.log('🛍️ Product Shopping search query detected. Appending e-commerce site-restrictions...');
+        finalQuery = `${finalQuery} (site:amazon.com OR site:bestbuy.com OR site:ebay.com OR site:target.com OR site:walmart.com)`;
+      } else if (careerClass.isCareer) {
+        console.log('💼 Job/Career search query detected. Appending job portal site-restrictions...');
+        finalQuery = `${finalQuery} (site:linkedin.com OR site:indeed.com OR site:glassdoor.com OR site:ziprecruiter.com OR site:salary.com)`;
+      } else if (automotiveClass.isAutomotive) {
+        console.log('🚗 Automotive/Vehicle search query detected. Appending automotive specs site-restrictions...');
+        finalQuery = `${finalQuery} (site:kbb.com OR site:edmunds.com OR site:caranddriver.com OR site:carfax.com OR site:motortrend.com)`;
+      } else if (gamingClass.isGaming) {
+        console.log('🎮 Gaming/Esports search query detected. Appending gaming site-restrictions...');
+        finalQuery = `${finalQuery} (site:ign.com OR site:gamespot.com OR site:twitch.tv OR site:steampowered.com OR site:liquipedia.net)`;
+      } else if (environmentClass.isEnvironment) {
+        console.log('🌱 Environment/Energy search query detected. Appending environmental site-restrictions...');
+        finalQuery = `${finalQuery} (site:epa.gov OR site:eia.gov OR site:usgs.gov OR site:climate.gov OR site:nrel.gov)`;
+      } else if (localClass.isLocal) {
+        console.log('📍 Local Services/Dining search query detected. Appending local site-restrictions...');
+        finalQuery = `${finalQuery} (site:yelp.com OR site:tripadvisor.com OR site:opentable.com OR site:foursquare.com OR site:yellowpages.com)`;
+      } else if (educationClass.isEducation) {
+        console.log('📚 Education/Parenting search query detected. Appending educational site-restrictions...');
+        finalQuery = `${finalQuery} (site:khanacademy.org OR site:coursera.org OR site:edx.org OR site:niche.com OR site:greatschools.org)`;
+      } else if (diyClass.isDIY) {
+        console.log('🛠️ DIY/Gardening search query detected. Appending DIY site-restrictions...');
+        finalQuery = `${finalQuery} (site:homedepot.com OR site:lowes.com OR site:almanac.com OR site:instructables.com OR site:houzz.com)`;
+      } else if (spaceAviationClass.isSpaceAviation) {
+        console.log('🚀 Space/Aviation search query detected. Appending airspace/space launch site-restrictions...');
+        finalQuery = `${finalQuery} (site:aviationstack.com OR site:nasa.gov OR site:spacex.com OR site:flightradar24.com OR site:faa.gov)`;
+      } else if (historyClass.isHistory) {
+        console.log('📜 History/Genealogy search query detected. Appending historical site-restrictions...');
+        finalQuery = `${finalQuery} (site:archive.org OR site:archives.gov OR site:ancestry.com OR site:history.com OR site:loc.gov OR site:britannica.com)`;
+      } else if (artDesignClass.isArtDesign) {
+        console.log('🎨 Art/Design/Fashion search query detected. Appending design site-restrictions...');
+        finalQuery = `${finalQuery} (site:behance.net OR site:dribbble.com OR site:artstation.com OR site:archdaily.com OR site:vogue.com OR site:metmuseum.org OR site:moma.org)`;
+      } else if (philosophyClass.isPhilosophy) {
+        console.log('🧠 Philosophy/Religion search query detected. Appending spiritual site-restrictions...');
+        finalQuery = `${finalQuery} (site:plato.stanford.edu OR site:iep.utm.edu OR site:biblegateway.com OR site:quran.com OR site:sacred-texts.com)`;
+      } else if (musicClass.isMusic) {
+        console.log('🎵 Music/Audio search query detected. Appending acoustics site-restrictions...');
+        finalQuery = `${finalQuery} (site:genius.com OR site:ultimate-guitar.com OR site:soundonsound.com OR site:gearnews.com OR site:musicradar.com OR site:discogs.com)`;
+      } else if (petsClass.isPets) {
+        console.log('🐾 Pets/Animals search query detected. Appending veterinary site-restrictions...');
+        finalQuery = `${finalQuery} (site:akc.org OR site:catster.com OR site:petmd.com OR site:aspca.org OR site:avma.org)`;
+      } else if (geopoliticsClass.isGeopolitics) {
+        console.log('🗺️ Geopolitics/Defense search query detected. Appending geopolitical site-restrictions...');
+        finalQuery = `${finalQuery} (site:defense.gov OR site:militarytimes.com OR site:globalsecurity.org OR site:defensenews.com OR site:janes.com)`;
+      } else if (architectureClass.isArchitecture) {
+        console.log('🏗️ Architecture/Engineering search query detected. Appending architecture site-restrictions...');
+        finalQuery = `${finalQuery} (site:archdaily.com OR site:enr.com OR site:asce.org OR site:engineering.com OR site:iccsafe.org)`;
+      } else if (agricultureClass.isAgriculture) {
+        console.log('🌾 Agriculture/Agronomy search query detected. Appending agricultural site-restrictions...');
+        finalQuery = `${finalQuery} (site:usda.gov OR site:fao.org OR site:agweb.com OR site:modernfarmer.com OR site:agri-pulse.com)`;
+      } else if (chemistryClass.isChemistry) {
+        console.log('🧪 Chemistry/Materials Science search query detected. Appending chemical site-restrictions...');
+        finalQuery = `${finalQuery} (site:pubchem.ncbi.nlm.nih.gov OR site:chemspider.com OR site:commonchemistry.org OR site:sigmaaldrich.com OR site:rsc.org)`;
+      } else if (hobbiesClass.isHobbies) {
+        console.log('🎲 Hobbies/Collectibles search query detected. Appending hobby site-restrictions...');
+        finalQuery = `${finalQuery} (site:boardgamegeek.com OR site:dpreview.com OR site:tcgplayer.com OR site:psacard.com OR site:instructables.com)`;
+      } else if (logisticsClass.isLogistics) {
+        console.log('🚢 Maritime/Logistics search query detected. Appending logistics site-restrictions...');
+        finalQuery = `${finalQuery} (site:marinetraffic.com OR site:joc.com OR site:shippingwatch.com OR site:freightwaves.com OR site:portoflosangeles.org)`;
+      } else if (personalFinanceClass.isPersonalFinance) {
+        console.log('💵 Personal Finance/Taxation search query detected. Appending personal finance site-restrictions...');
+        finalQuery = `${finalQuery} (site:irs.gov OR site:nerdwallet.com OR site:investopedia.com OR site:creditkarma.com OR site:bankrate.com)`;
+      } else if (cryptoClass.isCrypto) {
+        console.log('🪙 Crypto/Blockchain search query detected. Appending crypto site-restrictions...');
+        finalQuery = `${finalQuery} (site:coinmarketcap.com OR site:coingecko.com OR site:etherscan.io OR site:coindesk.com OR site:cointelegraph.com OR site:decrypt.co)`;
+      } else if (fitnessClass.isFitness) {
+        console.log('💪 Fitness/Exercise search query detected. Appending fitness site-restrictions...');
+        finalQuery = `${finalQuery} (site:bodybuilding.com OR site:healthline.com OR site:muscleandfitness.com OR site:runnersworld.com OR site:crossfit.com OR site:verywellfit.com)`;
+      } else if (psychologyClass.isPsychology) {
+        console.log('🧠 Psychology/Cognitive Science search query detected. Appending psychology site-restrictions...');
+        finalQuery = `${finalQuery} (site:psychologytoday.com OR site:apa.org OR site:simplypsychology.org OR site:ncbi.nlm.nih.gov/pmc OR site:frontiersin.org OR site:sciencedirect.com)`;
+      } else if (insuranceClass.isInsurance) {
+        console.log('🛡️ Insurance/Risk Management search query detected. Appending insurance site-restrictions...');
+        finalQuery = `${finalQuery} (site:healthcare.gov OR site:progressive.com OR site:geico.com OR site:statefarm.com OR site:allstate.com OR site:naic.org OR site:iii.org)`;
+      } else if (roboticsClass.isRobotics) {
+        console.log('🤖 Manufacturing & Robotics search query detected. Appending manufacturing site-restrictions...');
+        finalQuery = `${finalQuery} (site:robotics.org OR site:machinedesign.com OR site:thomasnet.com OR site:controlglobal.com OR site:3dprinting.com OR site:automation.com)`;
+      } else if (ticketingClass.isTicketing) {
+        console.log('🎟️ Event Ticketing & Live Shows search query detected. Appending ticketing site-restrictions...');
+        finalQuery = `${finalQuery} (site:ticketmaster.com OR site:stubhub.com OR site:seatgeek.com OR site:livenation.com OR site:broadway.com OR site:vividseats.com)`;
+      } else if (astronomyClass.isAstronomy) {
+        console.log('🌌 Astronomy & Astrophysics search query detected. Appending astronomy site-restrictions...');
+        finalQuery = `${finalQuery} (site:nasa.gov OR site:esa.int OR site:hubblesite.org OR site:stsci.edu OR site:space.com OR site:astronomy.com OR site:arxiv.org/archive/astro-ph)`;
+      } else if (anthropologyClass.isAnthropology) {
+        console.log('🏺 Anthropology & Archaeology search query detected. Appending anthropology site-restrictions...');
+        finalQuery = `${finalQuery} (site:archaeology.org OR site:nationalgeographic.com OR site:smithsonianmag.com OR site:nature.com OR site:worldhistory.org OR site:anthropology-news.org)`;
+      } else if (linguisticsClass.isLinguistics) {
+        console.log('🗣️ Linguistics & Etymology search query detected. Appending linguistics site-restrictions...');
+        finalQuery = `${finalQuery} (site:etymonline.com OR site:linguistlist.org OR site:wals.info OR site:ethnologue.com OR site:sil.org OR site:cambridge.org/core/journals/linguistics)`;
+      } else if (pediatricsClass.isPediatrics) {
+        console.log('👶 Pediatrics & Childcare search query detected. Appending child-care site-restrictions...');
+        finalQuery = `${finalQuery} (site:aap.org OR site:healthychildren.org OR site:cdc.gov/ncbddd/childdevelopment OR site:mayoclinic.org OR site:webmd.com/parenting OR site:whattoexpect.com)`;
+      } else if (sustainabilityClass.isSustainability) {
+        console.log('♻️ Renewable Energy & Sustainability search query detected. Appending sustainability site-restrictions...');
+        finalQuery = `${finalQuery} (site:nrel.gov OR site:iea.org OR site:irena.org OR site:seia.org OR site:energy.gov OR site:sustainability.com OR site:clean-energy.org)`;
+      } else if (dropshippingClass.isDropshipping) {
+        console.log('📦 Wholesale Sourcing & Dropshipping search query detected. Appending dropshipping site-restrictions...');
+        finalQuery = `${finalQuery} (site:alibaba.com OR site:shopify.com OR site:spocket.co OR site:salehoo.com OR site:worldwidebrands.com OR site:thomasnet.com)`;
+      } else if (civilLawClass.isCivilLaw) {
+        console.log('⚖️ Civil Law & Torts search query detected. Appending civil law site-restrictions...');
+        finalQuery = `${finalQuery} (site:courtlistener.com OR site:justia.com OR site:findlaw.com OR site:law.cornell.edu OR site:scotusblog.com OR site:nolo.com)`;
+      } else if (pedagogyClass.isPedagogy) {
+        console.log('🍎 Pedagogy & Instructional Design search query detected. Appending pedagogy site-restrictions...');
+        finalQuery = `${finalQuery} (site:edutopia.org OR site:ascd.org OR site:ed.gov OR site:instructionaldesign.org OR site:coursera.org OR site:facultyfocus.com)`;
+      } else if (veterinaryClass.isVeterinary) {
+        console.log('🐾 Veterinary Medicine & Pathology search query detected. Appending veterinary site-restrictions...');
+        finalQuery = `${finalQuery} (site:avma.org OR site:vin.com OR site:petmd.com OR site:merckvetmanual.com OR site:veterinarypartner.com OR site:aaha.org)`;
+      } else if (meteorologyClass.isMeteorology) {
+        console.log('⛈️ Meteorology & Synoptic Forecasting search query detected. Appending meteorology site-restrictions...');
+        finalQuery = `${finalQuery} (site:weather.gov OR site:noaa.gov OR site:spc.noaa.gov OR site:nhc.noaa.gov OR site:wmo.int OR site:ecmwf.int)`;
+      } else if (urbanPlanningClass.isUrbanPlanning) {
+        console.log('🗺️ Urban Planning & GIS search query detected. Appending urban planning site-restrictions...');
+        finalQuery = `${finalQuery} (site:planning.org OR site:esri.com OR site:hud.gov OR site:smartcitiesworld.net OR site:citylab.com OR site:urban.org)`;
+      } else if (foodChemistryClass.isFoodChemistry) {
+        console.log('🍳 Molecular Gastronomy & Food Chemistry search query detected. Appending molecular gastronomy site-restrictions...');
+        finalQuery = `${finalQuery} (site:foodscience.org OR site:ift.org OR site:seriouseats.com OR site:modernistcuisine.com OR site:scienceofcooking.com OR site:khymos.org)`;
+      } else if (marineBiologyClass.isMarineBiology) {
+        console.log('🐳 Marine Biology & Oceanography search query detected. Appending marine biology site-restrictions...');
+        finalQuery = `${finalQuery} (site:noaa.gov OR site:mbari.org OR site:whoi.edu OR site:marinebio.org OR site:sciencedirect.com OR site:nature.com)`;
+      } else if (theoreticalPhysicsClass.isTheoreticalPhysics) {
+        console.log('⚛️ Theoretical Physics & Quantum Mechanics search query detected. Appending theoretical physics site-restrictions...');
+        finalQuery = `${finalQuery} (site:arxiv.org OR site:cern.ch OR site:aps.org OR site:physicsworld.com OR site:nature.com OR site:quantum-journal.org)`;
+      } else if (paleontologyClass.isPaleontology) {
+        console.log('🦕 Paleontology & Evolutionary Biology search query detected. Appending paleontology site-restrictions...');
+        finalQuery = `${finalQuery} (site:paleosoc.org OR site:vertpaleo.org OR site:fossils-facts-and-finds.com OR site:nature.com OR site:ucmp.berkeley.edu OR site:amnh.org)`;
+      } else if (biomedicalClass.isBiomedical) {
+        console.log('🦾 Biomedical Engineering & Prosthetics search query detected. Appending biomedical site-restrictions...');
+        finalQuery = `${finalQuery} (site:embs.org OR site:bmes.org OR site:pubmed.ncbi.nlm.nih.gov OR site:nature.com OR site:sciencedirect.com OR site:asme.org)`;
+      } else if (climatologyClass.isClimatology) {
+        console.log('🌍 Climatology & Paleoclimatology search query detected. Appending climatology site-restrictions...');
+        finalQuery = `${finalQuery} (site:ipcc.ch OR site:ncdc.noaa.gov OR site:climate.nasa.gov OR site:wmo.int OR site:copernicus.eu OR site:nature.com)`;
+      } else if (neurotechClass.isNeurotech) {
+        console.log('🧠 Neurotechnology & BCI search query detected. Appending neurotech site-restrictions...');
+        finalQuery = `${finalQuery} (site:neurotechx.com OR site:frontiersin.org OR site:nature.com OR site:pubmed.ncbi.nlm.nih.gov OR site:ieee.org OR site:bci-info.org)`;
+      } else if (astrobiologyClass.isAstrobiology) {
+        console.log('🌌 Astrobiology & Planetary Habitability search query detected. Appending astrobiology site-restrictions...');
+        finalQuery = `${finalQuery} (site:nasa.gov OR site:astrobiology.nasa.gov OR site:nature.com OR site:liebertpub.com/ast OR site:planetary.org OR site:sciencedirect.com)`;
+      } else if (nanotechClass.isNanotech) {
+        console.log('🔬 Nanotechnology & Nanomaterials search query detected. Appending nanotech site-restrictions...');
+        finalQuery = `${finalQuery} (site:nano.gov OR site:nature.com/nano OR site:nanotechweb.org OR site:sciencedirect.com OR site:ieee.org OR site:acs.org)`;
+      } else if (nuclearClass.isNuclear) {
+        console.log('⚛️ Nuclear Engineering & Fusion Technology search query detected. Appending nuclear engineering site-restrictions...');
+        finalQuery = `${finalQuery} (site:iaea.org OR site:ans.org OR site:world-nuclear.org OR site:iter.org OR site:sciencedirect.com OR site:nature.com)`;
+      } else if (geneticsClass.isGenetics) {
+        console.log('🧬 Genetics & CRISPR Gene Editing search query detected. Appending gene-editing site-restrictions...');
+        finalQuery = `${finalQuery} (site:broadinstitute.org OR site:nature.com/nrg OR site:pubmed.ncbi.nlm.nih.gov OR site:crisprjournal.com OR site:sciencedirect.com OR site:cell.com)`;
+      } else if (ventureCapitalClass.isVentureCapital) {
+        console.log('💼 Venture Capital & Startup Finance search query detected. Appending venture capital site-restrictions...');
+        finalQuery = `${finalQuery} (site:nvca.org OR site:crunchbase.com OR site:pitchbook.com OR site:ycombinator.com OR site:sec.gov OR site:venturebeat.com)`;
+      } else if (digitalHumanitiesClass.isDigitalHumanities) {
+        console.log('📜 Digital Humanities & Cultural Heritage search query detected. Appending digital humanities site-restrictions...');
+        finalQuery = `${finalQuery} (site:dh.org OR site:digitalhumanities.org OR site:ach.org OR site:mith.umd.edu OR site:loc.gov OR site:ox.ac.uk/research/digital-humanities)`;
+      }
     }
 
     // pass extra params to CSE if you want recency/locale control
