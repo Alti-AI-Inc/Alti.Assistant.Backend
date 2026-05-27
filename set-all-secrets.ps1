@@ -82,11 +82,8 @@ Set-GcpSecret "MAILGUN_FROM"         "mm@accesseconomy.com"
 
 Write-Host ""; Write-Host "-- AI / LLM APIs --" -ForegroundColor Cyan
 Set-GcpSecret "GEMINI_API_KEY"    "AIzaSyATOQRmcM0DMO83Z9jEuuC4DIgna60TSJQ"
-Set-GcpSecret "OPENAI_API_KEY"    "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"
 Set-GcpSecret "ANTHROPIC_API_KEY" "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"
-Set-GcpSecret "GROQ_API_KEY"      "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"
 Set-GcpSecret "DEEPSEEK_API_KEY"  "a23af564-10b4-48a4-94c9-61981b986c86"
-Set-GcpSecret "TOGETHER_API_KEY"  "2ac0ae002dcef92f3d352eac9132715356c96398644d62a6032711902b14758b"
 Set-GcpSecret "TAVILY_API_KEY"    "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"
 Set-GcpSecret "SERPER_API_KEY"    "94ebb38131e657db165b257ad9ec2a64980b19ee"
 
