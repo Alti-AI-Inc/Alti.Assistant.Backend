@@ -79,7 +79,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -350,7 +350,57 @@ export class EnterpriseConnector {
       sagemaker: {
         apiToken: 'mock_sagemaker_token',
         endpoint: 'https://api.sagemaker.com/v1'
-      }
+      },
+      sharepoint: { apiToken: 'mock_sharepoint_token', endpoint: 'https://api.sharepoint.com/v1' },
+      confluence: { apiToken: 'mock_confluence_token', endpoint: 'https://api.confluence.com/v1' },
+      notion: { apiToken: 'mock_notion_token', endpoint: 'https://api.notion.com/v1' },
+      box: { apiToken: 'mock_box_token', endpoint: 'https://api.box.com/v1' },
+      slack_enterprise: { apiToken: 'mock_slack_token', endpoint: 'https://api.slack.com/v1' },
+      concur: { apiToken: 'mock_concur_token', endpoint: 'https://api.concur.com/v1' },
+      expensify: { apiToken: 'mock_expensify_token', endpoint: 'https://api.expensify.com/v1' },
+      bill: { apiToken: 'mock_bill_token', endpoint: 'https://api.bill.com/v1' },
+      tipalti: { apiToken: 'mock_tipalti_token', endpoint: 'https://api.tipalti.com/v1' },
+      ramp: { apiToken: 'mock_ramp_token', endpoint: 'https://api.ramp.com/v1' },
+      greenhouse: { apiToken: 'mock_greenhouse_token', endpoint: 'https://api.greenhouse.com/v1' },
+      lever: { apiToken: 'mock_lever_token', endpoint: 'https://api.lever.com/v1' },
+      lattice: { apiToken: 'mock_lattice_token', endpoint: 'https://api.lattice.com/v1' },
+      hirevue: { apiToken: 'mock_hirevue_token', endpoint: 'https://api.hirevue.com/v1' },
+      bamboohr: { apiToken: 'mock_bamboohr_token', endpoint: 'https://api.bamboohr.com/v1' },
+      manhattan_wms: { apiToken: 'mock_manhattan_token', endpoint: 'https://api.manhattan.com/v1' },
+      blue_yonder: { apiToken: 'mock_blueyonder_token', endpoint: 'https://api.blueyonder.com/v1' },
+      sps_commerce: { apiToken: 'mock_sps_token', endpoint: 'https://api.spscommerce.com/v1' },
+      sap_ibp: { apiToken: 'mock_sapibp_token', endpoint: 'https://api.sapibp.com/v1' },
+      netsuite_wms: { apiToken: 'mock_netsuite_wms_token', endpoint: 'https://api.netsuite.com/v1' },
+      genesys: { apiToken: 'mock_genesys_token', endpoint: 'https://api.genesys.com/v1' },
+      five9: { apiToken: 'mock_five9_token', endpoint: 'https://api.five9.com/v1' },
+      talkdesk: { apiToken: 'mock_talkdesk_token', endpoint: 'https://api.talkdesk.com/v1' },
+      zoom_phone: { apiToken: 'mock_zoomphone_token', endpoint: 'https://api.zoom.com/v1' },
+      twilio_flex: { apiToken: 'mock_twilio_flex_token', endpoint: 'https://api.twilio.com/v1' },
+      kyriba: { apiToken: 'mock_kyriba_token', endpoint: 'https://api.kyriba.com/v1' },
+      gtreasury: { apiToken: 'mock_gtreasury_token', endpoint: 'https://api.gtreasury.com/v1' },
+      reval: { apiToken: 'mock_reval_token', endpoint: 'https://api.reval.com/v1' },
+      sap_treasury: { apiToken: 'mock_saptreasury_token', endpoint: 'https://api.sap.com/v1' },
+      bloomberg_fx: { apiToken: 'mock_bloombergfx_token', endpoint: 'https://api.bloomberg.com/v1' },
+      ivalua: { apiToken: 'mock_ivalua_token', endpoint: 'https://api.ivalua.com/v1' },
+      gep_smart: { apiToken: 'mock_gepsmart_token', endpoint: 'https://api.gepsmart.com/v1' },
+      jaggaer: { apiToken: 'mock_jaggaer_token', endpoint: 'https://api.jaggaer.com/v1' },
+      zycus: { apiToken: 'mock_zycus_token', endpoint: 'https://api.zycus.com/v1' },
+      sap_fieldglass: { apiToken: 'mock_fieldglass_token', endpoint: 'https://api.sap.com/v1' },
+      cyberark: { apiToken: 'mock_cyberark_token', endpoint: 'https://api.cyberark.com/v1' },
+      sailpoint: { apiToken: 'mock_sailpoint_token', endpoint: 'https://api.sailpoint.com/v1' },
+      cloudflare_ent: { apiToken: 'mock_cloudflare_token', endpoint: 'https://api.cloudflare.com/v1' },
+      netskope: { apiToken: 'mock_netskope_token', endpoint: 'https://api.netskope.com/v1' },
+      entra_id: { apiToken: 'mock_entra_token', endpoint: 'https://api.entra.com/v1' },
+      ibm_maximo: { apiToken: 'mock_maximo_token', endpoint: 'https://api.maximo.com/v1' },
+      sap_asset_manager: { apiToken: 'mock_sapasset_token', endpoint: 'https://api.sap.com/v1' },
+      honeywell_forge: { apiToken: 'mock_honeywell_token', endpoint: 'https://api.honeywell.com/v1' },
+      siemens_desigo: { apiToken: 'mock_siemens_token', endpoint: 'https://api.siemens.com/v1' },
+      johnson_metasys: { apiToken: 'mock_metasys_token', endpoint: 'https://api.johnsoncontrols.com/v1' },
+      watershed: { apiToken: 'mock_watershed_token', endpoint: 'https://api.watershed.com/v1' },
+      persefoni: { apiToken: 'mock_persefoni_token', endpoint: 'https://api.persefoni.com/v1' },
+      sweep: { apiToken: 'mock_sweep_token', endpoint: 'https://api.sweep.net/v1' },
+      msci_esg: { apiToken: 'mock_msciesg_token', endpoint: 'https://api.msci.com/v1' },
+      net_zero_cloud: { apiToken: 'mock_netzerocloud_token', endpoint: 'https://api.salesforce.com/v1' }
     };
 
     return credentials[this.appSlug] || { endpoint: 'https://api.mock-connector.local' };
@@ -415,7 +465,28 @@ export class EnterpriseConnector {
       'updateZscalerAccessControlRule',
       'createOpenAIFinetuningJob',
       'stopWandBExperimentRun',
-      'deletePineconeIndexNamespace'
+      'deletePineconeIndexNamespace',
+      'deleteSharePointFolder',
+      'purgeSlackChannelMessages',
+      'approveConcurExpenseReport',
+      'initiateTipaltiVendorPayment',
+      'adjustRampCardSpendingLimit',
+      'extendGreenhouseJobOffer',
+      'modifyLatticeCompensationScore',
+      'dispatchManhattanWarehouseOrder',
+      'approveSPSCommerceEDITransaction',
+      'muteTalkdeskTelephonyLine',
+      'triggerFive9BatchDialer',
+      'executeRevalFXHedgingTrade',
+      'initiateKyribaTreasuryWire',
+      'approveIvaluaSourcingContract',
+      'terminateFieldglassContingentContract',
+      'rotateCyberArkPrivilegedKey',
+      'suspendEntraIDUserAccount',
+      'createMaximoEmergencyWorkOrder',
+      'overrideSiemensHVACTemperature',
+      'publishWatershedESGReport',
+      'allocateNetZeroOffsetCredits'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -1712,6 +1783,326 @@ export class EnterpriseConnector {
             trainingpayload: 'AWS Auto-Scaling rules updated. Compute instance scaling job active.',
             status: 'ENDPOINT_SCALED_SUCCESSFULLY'
           };
+          break;
+
+        // --- Phase 13: Collaboration & KM ---
+        case 'getSharePointDocumentMetadata':
+          result = { success: true, documentId: sanitizedParams.documentId || 'doc-sp-9922', title: 'Q3 Financial Review.docx', intranettoken: '[REDACTED SENSITIVE FIELD]', status: 'DOCUMENT_METADATA_LOADED' };
+          break;
+        case 'deleteSharePointFolder':
+          result = { success: true, folderPath: sanitizedParams.folderPath || '/Shared Documents/Old_Archive', deletedFilesCount: 240, documenthierarchy: '[REDACTED SENSITIVE FIELD]', status: 'FOLDER_DELETED' };
+          break;
+        case 'getConfluencePageContent':
+          result = { success: true, pageId: sanitizedParams.pageId || 'conf-3382', title: 'Architecture Playbook', spaceKey: 'ENG', status: 'PAGE_CONTENT_LOADED' };
+          break;
+        case 'archiveConfluenceSpace':
+          result = { success: true, spaceKey: sanitizedParams.spaceKey || 'ENG', archivedPageCount: 1450, status: 'SPACE_ARCHIVED' };
+          break;
+        case 'getNotionDatabaseRecords':
+          result = { success: true, databaseId: sanitizedParams.databaseId || 'notion-db-901', rowsCount: 88, status: 'NOTION_RECORDS_RETRIEVED' };
+          break;
+        case 'purgeNotionPage':
+          result = { success: true, pageId: sanitizedParams.pageId || 'notion-page-8822', status: 'NOTION_PAGE_PURGED' };
+          break;
+        case 'getBoxFileDetails':
+          result = { success: true, fileId: sanitizedParams.fileId || 'box-file-3392', sizeBytes: 1542000, status: 'BOX_FILE_RETRIEVED' };
+          break;
+        case 'modifyBoxFilePermissions':
+          result = { success: true, fileId: sanitizedParams.fileId || 'box-file-3392', newRole: sanitizedParams.role || 'viewer', status: 'BOX_PERMISSIONS_UPDATED' };
+          break;
+        case 'getSlackChannelHistory':
+          result = { success: true, channelId: sanitizedParams.channelId || 'C01234567', messageCount: 100, slackauthcookie: '[REDACTED SENSITIVE FIELD]', status: 'SLACK_HISTORY_RETRIEVED' };
+          break;
+        case 'purgeSlackChannelMessages':
+          result = { success: true, channelId: sanitizedParams.channelId || 'C01234567', deletedCount: 50, slackauthcookie: '[REDACTED SENSITIVE FIELD]', status: 'SLACK_CHANNEL_PURGED' };
+          break;
+
+        // --- Phase 14: Expense & AP ---
+        case 'getConcurExpenseReports':
+          result = { success: true, userId: sanitizedParams.userId || 'usr-concur-9922', pendingReportsCount: 4, vendorbankdetail: '[REDACTED SENSITIVE FIELD]', status: 'EXPENSE_REPORTS_LOADED' };
+          break;
+        case 'approveConcurExpenseReport':
+          result = { success: true, reportId: sanitizedParams.reportId || 'rep-concur-88223', approvedAmount: 420.50, vendorbankdetail: '[REDACTED SENSITIVE FIELD]', status: 'EXPENSE_REPORT_APPROVED' };
+          break;
+        case 'getExpensifyReceipts':
+          result = { success: true, scanStatus: 'Completed', receiptsCount: 12, status: 'EXPENSIFY_RECEIPTS_RETRIEVED' };
+          break;
+        case 'reimburseExpensifyReport':
+          result = { success: true, reportId: sanitizedParams.reportId || 'exp-rep-9922', status: 'REPORT_REIMBURSED' };
+          break;
+        case 'getBillInvoices':
+          result = { success: true, openInvoicesCount: 15, totalDueUSD: 14500.00, corporatecardpan: '[REDACTED SENSITIVE FIELD]', status: 'INVOICES_LOADED' };
+          break;
+        case 'createBillPayment':
+          result = { success: true, invoiceId: sanitizedParams.invoiceId || 'inv-bill-992', paidAmount: 1250.00, status: 'BILL_PAYMENT_CREATED' };
+          break;
+        case 'getTipaltiPayeeProfiles':
+          result = { success: true, activePayeesCount: 245, status: 'PAYEES_LOADED' };
+          break;
+        case 'initiateTipaltiVendorPayment':
+          result = { success: true, payeeId: sanitizedParams.payeeId || 'vendor-tipalti-992', wireAmount: sanitizedParams.amount || 5000.00, invoicebillingaddress: '[REDACTED SENSITIVE FIELD]', status: 'VENDOR_PAYMENT_INITIATED' };
+          break;
+        case 'getRampCardTransactions':
+          result = { success: true, activeCardsCount: 15, monthlySpendUSD: 4520.00, corporatecardpan: '[REDACTED SENSITIVE FIELD]', status: 'RAMP_TRANSACTIONS_LOADED' };
+          break;
+        case 'adjustRampCardSpendingLimit':
+          result = { success: true, cardId: sanitizedParams.cardId || 'card-ramp-9922', newLimit: sanitizedParams.limit || 1000.00, corporatecardpan: '[REDACTED SENSITIVE FIELD]', status: 'CARD_LIMIT_ADJUSTED' };
+          break;
+
+        // --- Phase 15: HR & Performance ---
+        case 'getGreenhouseJobApplicants':
+          result = { success: true, jobId: sanitizedParams.jobId || 'gh-job-901', applicantCount: 142, socialsecurity: '[REDACTED SENSITIVE FIELD]', status: 'APPLICANTS_RETRIEVED' };
+          break;
+        case 'extendGreenhouseJobOffer':
+          result = { success: true, applicantId: sanitizedParams.applicantId || 'app-gh-8829', baseSalary: 125000.00, socialsecurity: '[REDACTED SENSITIVE FIELD]', status: 'JOB_OFFER_EXTENDED' };
+          break;
+        case 'getLeverTalentPool':
+          result = { success: true, archivedTalentedCount: 540, activeCandidates: 45, status: 'LEVER_POOL_LOADED' };
+          break;
+        case 'modifyLeverCandidateStatus':
+          result = { success: true, candidateId: sanitizedParams.candidateId || 'cand-lever-992', newStage: sanitizedParams.stage || 'Phone Screen', status: 'CANDIDATE_STATUS_UPDATED' };
+          break;
+        case 'getLatticePerformanceReviews':
+          result = { success: true, employeeId: sanitizedParams.employeeId || 'emp-lat-339', scoreAverage: 4.8, performancecomments: '[REDACTED SENSITIVE FIELD]', status: 'REVIEWS_LOADED' };
+          break;
+        case 'modifyLatticeCompensationScore':
+          result = { success: true, employeeId: sanitizedParams.employeeId || 'emp-lat-339', previousRating: 4.0, newRating: 4.5, backgroundcheckdetails: '[REDACTED SENSITIVE FIELD]', status: 'COMPENSATION_RATING_MODIFIED' };
+          break;
+        case 'getHireVueInterviewRecordings':
+          result = { success: true, completedInterviewsCount: 34, status: 'HIREVUE_RECORDINGS_LOADED' };
+          break;
+        case 'evaluateHireVueApplicant':
+          result = { success: true, applicantId: sanitizedParams.applicantId || 'app-hv-90', recommendation: 'HIRE', status: 'APPLICANT_EVALUATED' };
+          break;
+        case 'getBambooHRHolidays':
+          result = { success: true, upcomingHolidaysCount: 3, status: 'BAMBOOHR_HOLIDAYS_LOADED' };
+          break;
+        case 'suspendBambooHREmployee':
+          result = { success: true, employeeId: sanitizedParams.employeeId || 'emp-bb-90', suspensionDate: '2026-05-27', status: 'EMPLOYEE_SUSPENDED' };
+          break;
+
+        // --- Phase 16: Supply Chain & WMS ---
+        case 'getManhattanInventoryStatus':
+          result = { success: true, totalSKUs: 15420, activeBins: 450, billofmaterials: '[REDACTED SENSITIVE FIELD]', status: 'INVENTORY_STATUS_RETRIEVED' };
+          break;
+        case 'dispatchManhattanWarehouseOrder':
+          result = { success: true, orderId: sanitizedParams.orderId || 'ord-man-39291', itemsCount: 12, shippingcontainernumber: '[REDACTED SENSITIVE FIELD]', status: 'WAREHOUSE_ORDER_DISPATCHED' };
+          break;
+        case 'getBlueYonderDemandForecast':
+          result = { success: true, forecastConfidence: 0.94, recommendedSafetyStock: 450, status: 'DEMAND_FORECAST_RETRIEVED' };
+          break;
+        case 'updateBlueYonderStockParameters':
+          result = { success: true, sku: sanitizedParams.sku || 'ALTI-PART-99', newSafetyStock: 500, status: 'SAFETY_STOCK_UPDATED' };
+          break;
+        case 'getSPSCommerceEDITelemetry':
+          result = { success: true, openPOTransactionsCount: 22, warehousecredentials: '[REDACTED SENSITIVE FIELD]', status: 'EDI_TELEMETRY_LOADED' };
+          break;
+        case 'approveSPSCommerceEDITransaction':
+          result = { success: true, transactionId: sanitizedParams.transactionId || 'edi-tx-8832', documentType: '850_PO', warehousecredentials: '[REDACTED SENSITIVE FIELD]', status: 'EDI_TRANSACTION_APPROVED' };
+          break;
+        case 'getSAPIBPSupplyPlan':
+          result = { success: true, netRevenuesForecastMillions: 14.50, stockoutRiskRatio: 0.02, status: 'SUPPLY_PLAN_LOADED' };
+          break;
+        case 'optimizeSAPIBPDistribution':
+          result = { success: true, distributionRouteId: sanitizedParams.routeId || 'rt-sapibp-99', status: 'DISTRIBUTION_OPTIMIZED' };
+          break;
+        case 'getNetSuiteWMSBinLocations':
+          result = { success: true, warehouseZone: 'ZONE-A', binLocationsCount: 120, status: 'NS_WMS_BINS_LOADED' };
+          break;
+        case 'createNetSuiteWMSReclassification':
+          result = { success: true, sku: sanitizedParams.sku || 'SKU-NS-09', fromZone: 'ZONE-A', toZone: 'ZONE-B', status: 'WMS_RECLASSIFIED' };
+          break;
+
+        // --- Phase 17: CCaaS & Telephony ---
+        case 'getGenesysCallAnalytics':
+          result = { success: true, abandonedCallRate: 0.015, averageHandleTimeSeconds: 240, status: 'GENESYS_ANALYTICS_LOADED' };
+          break;
+        case 'modifyGenesysRoutingRules':
+          result = { success: true, queueId: sanitizedParams.queueId || 'q-genesys-88', strategy: 'Skill-Based', status: 'ROUTING_RULES_UPDATED' };
+          break;
+        case 'getFive9AgentStatuses':
+          result = { success: true, activeAgentsCount: 85, readyAgentsCount: 40, status: 'FIVE9_STATUSES_LOADED' };
+          break;
+        case 'triggerFive9BatchDialer':
+          result = { success: true, campaignId: sanitizedParams.campaignId || 'camp-five9-009', recordsLoaded: 2500, telephonyrecording: '[REDACTED SENSITIVE FIELD]', status: 'BATCH_DIALER_TRIGGERED' };
+          break;
+        case 'getTalkdeskLiveQueues':
+          result = { success: true, averageWaitTimeMs: 14500, agentsLoggedOn: 110, phonemetadata: '[REDACTED SENSITIVE FIELD]', status: 'TALKDESK_QUEUES_LOADED' };
+          break;
+        case 'muteTalkdeskTelephonyLine':
+          result = { success: true, agentSessionId: sanitizedParams.sessionId || 'sess-td-99882', previousState: 'ACTIVE', newState: 'MUTED', voippassword: '[REDACTED SENSITIVE FIELD]', status: 'TELEPHONY_LINE_MUTED' };
+          break;
+        case 'getZoomPhoneCallRecordings':
+          result = { success: true, callLogRecordsCount: 124, status: 'ZOOM_PHONE_RECORDINGS_LOADED' };
+          break;
+        case 'revokeZoomPhoneLicense':
+          result = { success: true, userId: sanitizedParams.userId || 'zoom-usr-3392', status: 'ZOOM_LICENSE_REVOKED' };
+          break;
+        case 'getTwilioFlexActiveSessions':
+          result = { success: true, activeTasksCount: 42, longestWaitTimeMs: 8200, status: 'TWILIO_FLEX_SESSIONS_LOADED' };
+          break;
+        case 'terminateTwilioFlexCallFlow':
+          result = { success: true, taskSid: sanitizedParams.taskSid || 'WT-twilio-889', status: 'TWILIO_CALL_FLOW_TERMINATED' };
+          break;
+
+        // --- Phase 18: Treasury & Hedging ---
+        case 'getKyribaCashBalances':
+          result = { success: true, pooledBalancesUSD: 145020030.00, swiftbankcode: '[REDACTED SENSITIVE FIELD]', status: 'CASH_BALANCES_RETRIEVED' };
+          break;
+        case 'initiateKyribaTreasuryWire':
+          result = { success: true, transactionId: `tx-kyr-${Math.floor(Math.random() * 900000 + 100000)}`, payoutAmountUSD: sanitizedParams.amount || 250000.00, swiftbankcode: '[REDACTED SENSITIVE FIELD]', status: 'TREASURY_WIRE_INITIATED' };
+          break;
+        case 'getGTreasuryLiquidityPositions':
+          result = { success: true, cashSweepAvailableUSD: 45000000.00, cashsweepdetails: '[REDACTED SENSITIVE FIELD]', status: 'LIQUIDITY_POSITIONS_LOADED' };
+          break;
+        case 'adjustGTreasuryCashSweeps':
+          result = { success: true, targetAccount: sanitizedParams.account || 'acct-gtreas-8822', status: 'CASH_SWEEP_ADJUSTED' };
+          break;
+        case 'getRevalFXExposures':
+          result = { success: true, euroExposureUSD: 12500000.00, hedginglimit: '[REDACTED SENSITIVE FIELD]', status: 'FX_EXPOSURES_LOADED' };
+          break;
+        case 'executeRevalFXHedgingTrade':
+          result = { success: true, tradeId: 'trd-rev-9011', currencyPair: 'EUR/USD', volume: sanitizedParams.volume || 1000000, status: 'FX_HEDGING_TRADE_EXECUTED' };
+          break;
+        case 'getSAPTreasuryInstruments':
+          result = { success: true, activeDerivativesCount: 8, totalNominalValueUSD: 54000000.00, status: 'TREASURY_INSTRUMENTS_LOADED' };
+          break;
+        case 'liquidateSAPTreasuryInstrument':
+          result = { success: true, instrumentId: sanitizedParams.instrumentId || 'ins-sap-90', status: 'TREASURY_INSTRUMENT_LIQUIDATED' };
+          break;
+        case 'getBloombergFXSpotRates':
+          result = { success: true, rateEUR: 1.085, rateGBP: 1.264, status: 'BLOOMBERG_FX_SPOTS_RETRIEVED' };
+          break;
+        case 'lockBloombergFXForwardRate':
+          result = { success: true, currencyPair: 'EUR/USD', forwardDate: '2026-09-30', lockedRate: 1.088, status: 'FORWARD_RATE_LOCKED' };
+          break;
+
+        // --- Phase 19: Sourcing & Suppliers ---
+        case 'getIvaluaSourcingEvents':
+          result = { success: true, activeRFPsCount: 14, supplierbids: '[REDACTED SENSITIVE FIELD]', status: 'SOURCING_EVENTS_LOADED' };
+          break;
+        case 'approveIvaluaSourcingContract':
+          result = { success: true, contractId: sanitizedParams.contractId || 'cnt-iva-8823', awardedSupplierId: 'supp-iva-902', contractsignature: '[REDACTED SENSITIVE FIELD]', status: 'SOURCING_CONTRACT_APPROVED' };
+          break;
+        case 'getGEPSmartContractMetadata':
+          result = { success: true, complianceScore: 0.98, activeAgreementsCount: 110, status: 'GEP_CONTRACTS_LOADED' };
+          break;
+        case 'terminateGEPSmartContract':
+          result = { success: true, contractId: sanitizedParams.contractId || 'cnt-gep-001', terminationDate: '2026-05-27', status: 'GEP_CONTRACT_TERMINATED' };
+          break;
+        case 'getJaggaerSupplierRFQs':
+          result = { success: true, activeRequestsCount: 8, status: 'JAGGAER_RFQS_LOADED' };
+          break;
+        case 'submitJaggaerRFQSelection':
+          result = { success: true, rfqId: sanitizedParams.rfqId || 'rfq-jg-992', status: 'JAGGAER_RFQ_SUBMITTED' };
+          break;
+        case 'getZycusCatalogItems':
+          result = { success: true, totalItemsInCatalog: 5402, status: 'ZYCUS_CATALOG_RETRIEVED' };
+          break;
+        case 'approveZycusSupplierRegistration':
+          result = { success: true, supplierId: sanitizedParams.supplierId || 'supp-zyc-883', status: 'ZYCUS_SUPPLIER_APPROVED' };
+          break;
+        case 'getFieldglassContingentWorkers':
+          result = { success: true, activeContractorsCount: 345, fieldglassworkerid: '[REDACTED SENSITIVE FIELD]', status: 'CONTINGENT_WORKERS_LOADED' };
+          break;
+        case 'terminateFieldglassContingentContract':
+          result = { success: true, contractorId: sanitizedParams.contractorId || 'worker-fg-8822', fieldglassworkerid: '[REDACTED SENSITIVE FIELD]', status: 'CONTINGENT_CONTRACT_TERMINATED' };
+          break;
+
+        // --- Phase 20: Identity & Zero Trust ---
+        case 'getCyberArkPrivilegedVault':
+          result = { success: true, credentialSafeName: 'DB_ROOT_SAFE', secretsCount: 12, privilegedvaultsecret: '[REDACTED SENSITIVE FIELD]', status: 'CYBERARK_VAULT_LOADED' };
+          break;
+        case 'rotateCyberArkPrivilegedKey':
+          result = { success: true, safeName: sanitizedParams.safeName || 'DB_ROOT_SAFE', newVersion: 5, privilegedvaultsecret: '[REDACTED SENSITIVE FIELD]', status: 'PRIVILEGED_KEY_ROTATED' };
+          break;
+        case 'getSailPointIdentityGovernance':
+          result = { success: true, openAccessRequestsCount: 15, identityStatus: 'COMPLIANT', status: 'SAILPOINT_GOVERNANCE_LOADED' };
+          break;
+        case 'revokeSailPointAccessGrant':
+          result = { success: true, accessId: sanitizedParams.accessId || 'grant-sp-902', status: 'ACCESS_GRANT_REVOKED' };
+          break;
+        case 'getCloudflareNetworkRules':
+          result = { success: true, activeFirewallRulesCount: 84, activeDDoSProtection: true, cloudflarezoneid: '[REDACTED SENSITIVE FIELD]', status: 'CLOUDFLARE_RULES_RETRIEVED' };
+          break;
+        case 'blockCloudflareNetworkZone':
+          result = { success: true, targetIP: sanitizedParams.targetIP || '198.51.100.42', filterRuleId: 'rule-cf-882', status: 'CLOUDFLARE_ZONE_BLOCKED' };
+          break;
+        case 'getNetskopeAccessDetections':
+          result = { success: true, anomalySecurityScore: 98, activeCASBSynchronization: true, status: 'NETSKOPE_DETECTIONS_LOADED' };
+          break;
+        case 'remediateNetskopeSecurityIncident':
+          result = { success: true, incidentId: sanitizedParams.incidentId || 'inc-nsk-9988', status: 'NETSKOPE_INCIDENT_REMEDIATED' };
+          break;
+        case 'getEntraIDGroupDirectories':
+          result = { success: true, activeGroupsCount: 120, totalUsers: 14500, samlauthassertion: '[REDACTED SENSITIVE FIELD]', status: 'ENTRA_GROUPS_LOADED' };
+          break;
+        case 'suspendEntraIDUserAccount':
+          result = { success: true, userId: sanitizedParams.userId || 'usr-entra-9922', status: 'ENTRA_USER_SUSPENDED' };
+          break;
+
+        // --- Phase 21: Facility IoT & Maintenance ---
+        case 'getMaximoWorkOrders':
+          result = { success: true, buildingId: 'BLDG-HQ-DETROIT', activeWorkOrdersCount: 22, workordersignature: '[REDACTED SENSITIVE FIELD]', status: 'MAXIMO_WORK_ORDERS_LOADED' };
+          break;
+        case 'createMaximoEmergencyWorkOrder':
+          result = { success: true, workOrderId: `wo-max-${Math.floor(Math.random() * 900000 + 100000)}`, buildingId: sanitizedParams.buildingId || 'BLDG-HQ-DETROIT', priority: 'EMERGENCY', workordersignature: '[REDACTED SENSITIVE FIELD]', status: 'MAXIMO_EMERGENCY_WO_CREATED' };
+          break;
+        case 'getSAPAssetRegistry':
+          result = { success: true, physicalAssetsCount: 5402, status: 'SAP_ASSETS_LOADED' };
+          break;
+        case 'modifySAPAssetMaintenancePriority':
+          result = { success: true, assetId: sanitizedParams.assetId || 'as-sap-90', newPriority: sanitizedParams.priority || 'HIGH', status: 'ASSET_MAINTENANCE_MODIFIED' };
+          break;
+        case 'getHoneywellBuildingTelemetry':
+          result = { success: true, zoneId: 'FLOOR-2', averageTemperatureCelsius: 21.5, buildingblueprint: '[REDACTED SENSITIVE FIELD]', status: 'HONEYWELL_TELEMETRY_LOADED' };
+          break;
+        case 'adjustHoneywellForgeSetpoint':
+          result = { success: true, zoneId: sanitizedParams.zoneId || 'FLOOR-2', targetSetpoint: sanitizedParams.setpoint || 21.0, status: 'FORGE_SETPOINT_ADJUSTED' };
+          break;
+        case 'getSiemensDesigoAlerts':
+          result = { success: true, criticalFacilityAlarmsCount: 0, status: 'SIEMENS_ALERTS_LOADED' };
+          break;
+        case 'overrideSiemensHVACTemperature':
+          result = { success: true, hvacId: sanitizedParams.hvacId || 'hvac-sd-99', targetTemperature: sanitizedParams.temperature || 20.5, metasyscriticalsystemurl: '[REDACTED SENSITIVE FIELD]', status: 'SIEMENS_HVAC_OVERRIDDEN' };
+          break;
+        case 'getMetasysSensorDiagnostics':
+          result = { success: true, functionalSensorsRatio: 0.99, status: 'METASYS_DIAGNOSTICS_LOADED' };
+          break;
+        case 'toggleMetasysBuildingLock':
+          result = { success: true, buildingId: sanitizedParams.buildingId || 'BLDG-A', lockedState: sanitizedParams.locked || true, status: 'METASYS_LOCK_TOGGLED' };
+          break;
+
+        // --- Phase 22: ESG & Sustainability ---
+        case 'getWatershedCarbonAnalytics':
+          result = { success: true, carbonTonnesCO2e: 4520.40, scope1Percentage: 0.12, carbonoffsetsallocation: '[REDACTED SENSITIVE FIELD]', status: 'WATERSHED_ANALYTICS_LOADED' };
+          break;
+        case 'publishWatershedESGReport':
+          result = { success: true, reportId: `rep-wts-${Math.floor(Math.random() * 90000 + 10000)}`, publishYear: 2026, esgdisclosurepayload: '[REDACTED SENSITIVE FIELD]', status: 'WATERSHED_ESG_REPORT_PUBLISHED' };
+          break;
+        case 'getPersefoniEmissionsScorecard':
+          result = { success: true, emissionsConfidenceScore: 0.92, activeOffsetsCount: 4, status: 'PERSEFONI_SCORECARD_LOADED' };
+          break;
+        case 'updatePersefoniEmissionsMetrics':
+          result = { success: true, metricId: sanitizedParams.metricId || 'met-prs-90', value: sanitizedParams.value || 120.50, status: 'PERSEFONI_METRICS_UPDATED' };
+          break;
+        case 'getSweepActionPlan':
+          result = { success: true, openDecarbonizationTasksCount: 14, status: 'SWEEP_PLAN_LOADED' };
+          break;
+        case 'initiateSweepDecarbonizationTask':
+          result = { success: true, taskId: sanitizedParams.taskId || 'tsk-swp-902', assignedTo: 'Sustainability Team', status: 'SWEEP_TASK_INITIATED' };
+          break;
+        case 'getMSCIESGRatings':
+          result = { success: true, overallRating: 'AA', carbonRiskTrend: 'Improving', status: 'MSCI_ESG_RATINGS_LOADED' };
+          break;
+        case 'recalculateMSCIESGExposure':
+          result = { success: true, exposureScore: 0.85, status: 'MSCI_EXPOSURE_RECALCULATED' };
+          break;
+        case 'getNetZeroCloudOffsetCredits':
+          result = { success: true, availableCreditsMWh: 1542000, offsetcreditreceipt: '[REDACTED SENSITIVE FIELD]', status: 'OFFSET_CREDITS_LOADED' };
+          break;
+        case 'allocateNetZeroOffsetCredits':
+          result = { success: true, creditsToAllocate: sanitizedParams.credits || 10000, offsetcreditreceipt: '[REDACTED SENSITIVE FIELD]', status: 'OFFSET_CREDITS_ALLOCATED' };
           break;
 
         default:
