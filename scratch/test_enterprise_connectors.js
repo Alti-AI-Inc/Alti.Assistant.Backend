@@ -15,7 +15,7 @@ async function runTests() {
     ssn: '000-12-3456',
     phone: '555-867-5309',
     email: 'john.doe@enterprise-cre.com',
-    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10. Unstructured PO: PO-998877, driver license: DL-88776655. Employee ID: EMP-18239. Local server IP address is 192.168.1.1.',
+    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10. Unstructured PO: PO-998877, driver license: DL-88776655. Employee ID: EMP-18239. Local server IP address is 192.168.1.1. Network hardware address is 00-B0-D0-63-C2-26.',
     financials: {
       accountNumber: '1234567890',
       routingNumber: '987654321',
@@ -61,6 +61,15 @@ async function runTests() {
       clientCredit: 5000,
       pipelineSpot: 'negotiation',
       incidentDetails: 'Server crashed at midnight.'
+    },
+    devopsOps: {
+      alertPayload: 'Critical latency alert on billing server api-key: 12345-abcde.',
+      secretContent: 'Active database master password dbpassword: s3cr3t_p@ss.',
+      apmDetail: 'Trace error executing transaction on database instance.',
+      logMessage: 'Exception thrown at service flow controller 10.0.0.15.',
+      incidentDescription: 'Active outage resolved by engineers.',
+      anomalySettings: 'Adjust anomaly detection triggers: duration=10m.',
+      credentialPayload: 'HashiCorp Vault access token: s.vault_token_99332'
     }
   };
 
@@ -111,12 +120,20 @@ async function runTests() {
     redacted.customerOps.clientCredit !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.customerOps.pipelineSpot !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.customerOps.incidentDetails !== '[REDACTED SENSITIVE FIELD]' ||
-    !redacted.comment.includes('[REDACTED IP]')
+    redacted.devopsOps.alertPayload !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.devopsOps.secretContent !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.devopsOps.apmDetail !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.devopsOps.logMessage !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.devopsOps.incidentDescription !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.devopsOps.anomalySettings !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.devopsOps.credentialPayload !== '[REDACTED SENSITIVE FIELD]' ||
+    !redacted.comment.includes('[REDACTED IP]') ||
+    !redacted.comment.includes('[REDACTED MAC]')
   ) {
-    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, Logistics, and CRM/ITSM PII/PHI/PCI/GRC/Spend/IP redaction proxy failed to fully mask sensitive details.');
+    console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, Logistics, CRM/ITSM, and DevOps/SecOps PII/PHI/PCI/GRC/Spend/IP/MAC redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
-    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, employee IDs, salary values, and CRM/ITSM IP/lead metrics successfully redacted.');
+    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, employee IDs, salary values, CRM/ITSM IP/lead metrics, and DevOps/SecOps MAC/secret tokens successfully redacted.');
   }
 
   // Test 2: Read-Only Actions (Phase 1, Phase 2, & Phase 3)
@@ -156,7 +173,12 @@ async function runTests() {
     { app: 'servicenow', action: 'getServiceNowIncident', params: { incidentId: 'inc-sn-284' } },
     { app: 'snowflake', action: 'querySnowflakeTable', params: { tableName: 'users_gold' } },
     { app: 'hubspot', action: 'getHubSpotContact', params: { contactId: 'con-hs-912' } },
-    { app: 'zendesk', action: 'getZendeskTicket', params: { ticketId: 'tkt-zd-889' } }
+    { app: 'zendesk', action: 'getZendeskTicket', params: { ticketId: 'tkt-zd-889' } },
+    { app: 'datadog', action: 'getDatadogAPMMetrics', params: { service: 'billing-gateway' } },
+    { app: 'pagerduty', action: 'getPagerDutyOnCallSchedule', params: { scheduleId: 'sch-pd-1122' } },
+    { app: 'hashicorp_vault', action: 'getVaultSecretMetadata', params: { path: 'secret/data/db' } },
+    { app: 'splunk', action: 'querySplunkLogs', params: { query: 'search index=prod_web_errors' } },
+    { app: 'dynatrace', action: 'getDynatraceServiceFlow', params: { serviceId: 'service-dt-99332' } }
   ];
 
   for (const item of readActions) {
@@ -201,7 +223,12 @@ async function runTests() {
     { app: 'servicenow', action: 'updateServiceNowIncidentSeverity', params: { incidentId: 'inc-sn-284', severity: 'HIGH' } },
     { app: 'snowflake', action: 'createSnowflakeTable', params: { tableName: 'bi_report_q2', schema: 'id INT, revenue FLOAT' } },
     { app: 'hubspot', action: 'updateHubSpotContactStatus', params: { contactId: 'con-hs-912', lifecycleStage: 'customer' } },
-    { app: 'zendesk', action: 'escalateZendeskTicket', params: { ticketId: 'tkt-zd-889', priority: 'URGENT' } }
+    { app: 'zendesk', action: 'escalateZendeskTicket', params: { ticketId: 'tkt-zd-889', priority: 'URGENT' } },
+    { app: 'datadog', action: 'triggerDatadogMuteAlert', params: { monitorId: 'mon-88992', durationHours: 4 } },
+    { app: 'pagerduty', action: 'createPagerDutyIncident', params: { serviceId: 'srv-web-gateway', title: 'Critical Gateway Error' } },
+    { app: 'hashicorp_vault', action: 'rotateVaultSecretKey', params: { path: 'secret/data/db', keyRotated: 'db_root_key' } },
+    { app: 'splunk', action: 'createSplunkAlertRule', params: { alertName: 'HighErrorRateAlert', cronExpression: '*/5 * * * *' } },
+    { app: 'dynatrace', action: 'updateDynatraceAnomalyThreshold', params: { serviceId: 'service-dt-99332', thresholdMs: 1500 } }
   ];
 
   for (const item of mutativeActions) {
@@ -270,7 +297,17 @@ async function runTests() {
       { app: 'hubspot', action: 'getHubSpotContact', parameters: { contactId: 'con-hs-912' } },
       { app: 'hubspot', action: 'updateHubSpotContactStatus', parameters: { contactId: 'con-hs-912', lifecycleStage: 'customer' }, verified: true },
       { app: 'zendesk', action: 'getZendeskTicket', parameters: { ticketId: 'tkt-zd-889' } },
-      { app: 'zendesk', action: 'escalateZendeskTicket', parameters: { ticketId: 'tkt-zd-889', priority: 'URGENT' }, verified: true }
+      { app: 'zendesk', action: 'escalateZendeskTicket', parameters: { ticketId: 'tkt-zd-889', priority: 'URGENT' }, verified: true },
+      { app: 'datadog', action: 'getDatadogAPMMetrics', parameters: { service: 'billing-gateway' } },
+      { app: 'datadog', action: 'triggerDatadogMuteAlert', parameters: { monitorId: 'mon-88992' }, verified: true },
+      { app: 'pagerduty', action: 'getPagerDutyOnCallSchedule', parameters: {} },
+      { app: 'pagerduty', action: 'createPagerDutyIncident', parameters: { serviceId: 'srv' }, verified: true },
+      { app: 'hashicorp_vault', action: 'getVaultSecretMetadata', parameters: {} },
+      { app: 'hashicorp_vault', action: 'rotateVaultSecretKey', parameters: { path: 'secret' }, verified: true },
+      { app: 'splunk', action: 'querySplunkLogs', parameters: {} },
+      { app: 'splunk', action: 'createSplunkAlertRule', parameters: { alertName: 'High' }, verified: true },
+      { app: 'dynatrace', action: 'getDynatraceServiceFlow', parameters: {} },
+      { app: 'dynatrace', action: 'updateDynatraceAnomalyThreshold', parameters: { serviceId: 'srv', thresholdMs: 1000 }, verified: true }
     ];
 
     for (const input of validInputs) {
