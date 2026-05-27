@@ -15,7 +15,7 @@ async function runTests() {
     ssn: '000-12-3456',
     phone: '555-867-5309',
     email: 'john.doe@enterprise-cre.com',
-    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10. Unstructured PO: PO-998877, driver license: DL-88776655.',
+    comment: 'Tenant presented a diagnosis code: ICD-10-CM or a medical record number: MRN998822. Unstructured health DOB: 05/12/1984, ICD-10 code: I10. Unstructured PO: PO-998877, driver license: DL-88776655. Employee ID: EMP-18239.',
     financials: {
       accountNumber: '1234567890',
       routingNumber: '987654321',
@@ -47,6 +47,11 @@ async function runTests() {
       driverLicense: 'DL-88776655',
       fleetLocation: '42.3601,-71.0589',
       invoiceAmount: 24500.00
+    },
+    workforce: {
+      employeeProfile: 'Jane Doe',
+      compensation: 185000.00,
+      salary: 185000.00
     }
   };
 
@@ -65,6 +70,7 @@ async function runTests() {
     !redacted.comment.includes('[REDACTED DIAGNOSIS]') ||
     !redacted.comment.includes('[REDACTED PO]') ||
     !redacted.comment.includes('[REDACTED DL]') ||
+    !redacted.comment.includes('[REDACTED EMP]') ||
     redacted.financials.accountNumber !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.financials.routingNumber !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.financials.creditCard !== '[REDACTED SENSITIVE FIELD]' ||
@@ -85,12 +91,15 @@ async function runTests() {
     redacted.logistics.purchaseOrder !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.logistics.driverLicense !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.logistics.fleetLocation !== '[REDACTED SENSITIVE FIELD]' ||
-    redacted.logistics.invoiceAmount !== '[REDACTED SENSITIVE FIELD]'
+    redacted.logistics.invoiceAmount !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.workforce.employeeProfile !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.workforce.compensation !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.workforce.salary !== '[REDACTED SENSITIVE FIELD]'
   ) {
     console.error('❌ Test 1 Failed: Financial, Legal, Healthcare, and Logistics PII/PHI/PCI/GRC/Spend redaction proxy failed to fully mask sensitive details.');
     failures++;
   } else {
-    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, and invoice values successfully redacted.');
+    console.log('✅ Test 1 Passed: SSNs, Phones, Emails, Patient names, credit cards, bank accounts, EINs, dockets, privileged legal terms, ICD-10 diagnostics, patient birth dates, prescriptions, PO numbers, driver licenses, employee IDs, and salary values successfully redacted.');
   }
 
   // Test 2: Read-Only Actions (Phase 1, Phase 2, & Phase 3)
@@ -120,7 +129,12 @@ async function runTests() {
     { app: 'coupa', action: 'getCoupaPurchaseOrder', params: { purchaseOrder: 'PO-998877' } },
     { app: 'ariba', action: 'getAribaSupplierProfile', params: { supplierId: 'sup-ariba-302' } },
     { app: 'flexport', action: 'getFlexportShipmentDetails', params: { shipmentId: 'shp-flex-9988' } },
-    { app: 'samsara', action: 'getSamsaraFleetLocation', params: { vehicleId: 'veh-sam-302' } }
+    { app: 'samsara', action: 'getSamsaraFleetLocation', params: { vehicleId: 'veh-sam-302' } },
+    { app: 'workday', action: 'getWorkdayEmployeeProfile', params: { employeeId: 'EMP-18239' } },
+    { app: 'sap', action: 'getSAPEraLedgerSummary', params: { ledgerId: 'LDG-SAP-99' } },
+    { app: 'adp', action: 'getADPWorkforceTaxSummary', params: { payrollrun: 'PR-ADP-2026-05' } },
+    { app: 'deel', action: 'getDeelContractorDetails', params: { contractorId: 'con-deel-4921' } },
+    { app: 'netsuite', action: 'getNetSuiteInventoryLevels', params: { itemId: 'itm-net-3849' } }
   ];
 
   for (const item of readActions) {
@@ -155,7 +169,12 @@ async function runTests() {
     { app: 'coupa', action: 'approveCoupaInvoice', params: { invoiceAmount: 12500.00 } },
     { app: 'ariba', action: 'submitAribaSourcingBid', params: { bidAmount: 850000.00, sourcingbid: 'Enterprise bid' } },
     { app: 'flexport', action: 'updateFlexportShipment', params: { shipmentId: 'shp-flex-9988', declaredValue: 450000.00 } },
-    { app: 'samsara', action: 'dispatchSamsaraRoute', params: { vehicleId: 'veh-sam-302', routePoints: ['A', 'B'] } }
+    { app: 'samsara', action: 'dispatchSamsaraRoute', params: { vehicleId: 'veh-sam-302', routePoints: ['A', 'B'] } },
+    { app: 'workday', action: 'modifyWorkdayEmployeeStatus', params: { employeeId: 'EMP-18239', statusChange: 'PROMOTED' } },
+    { app: 'sap', action: 'postSAPJournalEntry', params: { debitAmount: 15000, creditAmount: 15000, costCenter: 'CC-MKTG-102' } },
+    { app: 'adp', action: 'updateADPPayrollWiring', params: { employeeId: 'EMP-18239', accountnumber: 'ACT-99881122', routingnumber: 'RTN-021000021' } },
+    { app: 'deel', action: 'approveDeelContractorPayment', params: { invoiceId: 'INV-DEEL-9302', paymentAmount: 9500 } },
+    { app: 'netsuite', action: 'createNetSuitePurchaseRequisition', params: { itemId: 'itm-net-3849', quantityRequested: 1500, estimatedCost: 22500 } }
   ];
 
   for (const item of mutativeActions) {
@@ -209,7 +228,12 @@ async function runTests() {
       { app: 'veevavault', action: 'getVeevaTrialMetadata', parameters: { trialId: 'trial-123' } },
       { app: 'epic', action: 'writeEpicClinicalNote', parameters: { patientId: 'pat-999', clinicalNote: 'Follow-up note' }, verified: true },
       { app: 'athenahealth', action: 'bookAthenaAppointment', parameters: { providerId: 'prov-111', slotId: 'slot-2' }, verified: true },
-      { app: 'changehealthcare', action: 'submitChangeMedicalClaim', parameters: { memberId: 'mem-111', claimAmount: 100 }, verified: true }
+      { app: 'changehealthcare', action: 'submitChangeMedicalClaim', parameters: { memberId: 'mem-111', claimAmount: 100 }, verified: true },
+      { app: 'workday', action: 'getWorkdayEmployeeProfile', parameters: { employeeId: 'EMP-18239' } },
+      { app: 'sap', action: 'postSAPJournalEntry', parameters: { debitAmount: 15000 }, verified: true },
+      { app: 'adp', action: 'getADPWorkforceTaxSummary', parameters: {} },
+      { app: 'deel', action: 'approveDeelContractorPayment', parameters: { invoiceId: 'INV-101' }, verified: true },
+      { app: 'netsuite', action: 'createNetSuitePurchaseRequisition', parameters: { itemId: 'itm-123' }, verified: true }
     ];
 
     for (const input of validInputs) {

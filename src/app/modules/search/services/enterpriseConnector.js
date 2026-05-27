@@ -55,6 +55,9 @@ export function redactSensitiveData(payload) {
     // 12. Redact Driver Licenses (Logistics/IoT)
     sanitized = sanitized.replace(/\bDL-\d{6,8}\b/gi, '[REDACTED DL]');
 
+    // 13. Redact Workforce Employee IDs (Workforce Capital)
+    sanitized = sanitized.replace(/\bEMP-\d{4,6}\b/gi, '[REDACTED EMP]');
+
     return sanitized;
   }
 
@@ -67,7 +70,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -198,6 +201,26 @@ export class EnterpriseConnector {
       samsara: {
         apiToken: 'mock_samsara_token',
         endpoint: 'https://api.samsara.com/v1'
+      },
+      workday: {
+        apiToken: 'mock_workday_token',
+        endpoint: 'https://api.workday.com/v1'
+      },
+      sap: {
+        apiToken: 'mock_sap_token',
+        endpoint: 'https://api.sap.com/v1'
+      },
+      adp: {
+        apiToken: 'mock_adp_token',
+        endpoint: 'https://api.adp.com/v1'
+      },
+      deel: {
+        apiToken: 'mock_deel_token',
+        endpoint: 'https://api.letsdeel.com/v1'
+      },
+      netsuite: {
+        apiToken: 'mock_netsuite_token',
+        endpoint: 'https://api.netsuite.com/v1'
       }
     };
 
@@ -233,7 +256,12 @@ export class EnterpriseConnector {
       'approveCoupaInvoice',
       'submitAribaSourcingBid',
       'updateFlexportShipment',
-      'dispatchSamsaraRoute'
+      'dispatchSamsaraRoute',
+      'modifyWorkdayEmployeeStatus',
+      'postSAPJournalEntry',
+      'updateADPPayrollWiring',
+      'approveDeelContractorPayment',
+      'createNetSuitePurchaseRequisition'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -732,6 +760,118 @@ export class EnterpriseConnector {
             vehicleId: sanitizedParams.vehicleId,
             routePoints: sanitizedParams.routePoints || ['Boston, MA', 'Worcester, MA', 'Springfield, MA'],
             status: 'ROUTE_DISPATCHED_TO_ELD'
+          };
+          break;
+
+        // --- Workday ---
+        case 'getWorkdayEmployeeProfile':
+          result = {
+            success: true,
+            employeeId: sanitizedParams.employeeId || 'EMP-18239',
+            employeeProfile: 'Jane Doe',
+            jobTitle: 'Principal Staff Engineer',
+            compensation: 185000.00,
+            status: 'ACTIVE_FULL_TIME'
+          };
+          break;
+
+        case 'modifyWorkdayEmployeeStatus':
+          result = {
+            success: true,
+            employeeId: sanitizedParams.employeeId,
+            statusChange: sanitizedParams.statusChange || 'PROMOTED',
+            reportingManager: sanitizedParams.reportingManager || 'EMP-0012',
+            effectiveDate: '2026-06-01'
+          };
+          break;
+
+        // --- SAP S/4HANA ---
+        case 'getSAPEraLedgerSummary':
+          result = {
+            success: true,
+            ledgerId: sanitizedParams.ledgerId || 'LDG-SAP-99',
+            generalledger: 'Corporate Operational Expenses Ledger v5.',
+            ledgerBalance: 42500000.00,
+            accountingPeriod: 'FY26-Q2',
+            status: 'POSTED_VERIFIED'
+          };
+          break;
+
+        case 'postSAPJournalEntry':
+          result = {
+            success: true,
+            entryId: `ENT-SAP-${Math.floor(Math.random() * 90000 + 10000)}`,
+            debitAmount: sanitizedParams.debitAmount || 15000.00,
+            creditAmount: sanitizedParams.creditAmount || 15000.00,
+            costCenter: sanitizedParams.costCenter || 'CC-MKTG-102',
+            status: 'JOURNAL_POSTED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- ADP Vantage ---
+        case 'getADPWorkforceTaxSummary':
+          result = {
+            success: true,
+            payrollrun: sanitizedParams.payrollrun || 'PR-ADP-2026-05',
+            taxsummary: 'Federal income tax withholding, state payroll surcharges, FICA/FUTA liabilities.',
+            totalWithheld: 843000.00,
+            employeesCount: 1250,
+            status: 'CALCULATED_LOCKED'
+          };
+          break;
+
+        case 'updateADPPayrollWiring':
+          result = {
+            success: true,
+            employeeId: sanitizedParams.employeeId,
+            accountnumber: sanitizedParams.accountnumber || 'ACT-99881122',
+            routingnumber: sanitizedParams.routingnumber || 'RTN-021000021',
+            status: 'PAYROLL_WIRING_UPDATED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Deel ---
+        case 'getDeelContractorDetails':
+          result = {
+            success: true,
+            contractorId: sanitizedParams.contractorId || 'con-deel-4921',
+            contractordetails: 'Global software development contractor services agreement.',
+            monthlyRate: 9500.00,
+            country: 'Poland',
+            taxFormStatus: 'W-8BEN_SUBMITTED'
+          };
+          break;
+
+        case 'approveDeelContractorPayment':
+          result = {
+            success: true,
+            paymentId: `PAY-DEEL-${Math.floor(Math.random() * 9000 + 1000)}`,
+            invoiceId: sanitizedParams.invoiceId || 'INV-DEEL-9302',
+            paymentAmount: sanitizedParams.paymentAmount || 9500.00,
+            status: 'FUNDS_RELEASED_TO_WALLET'
+          };
+          break;
+
+        // --- Oracle NetSuite ---
+        case 'getNetSuiteInventoryLevels':
+          result = {
+            success: true,
+            itemId: sanitizedParams.itemId || 'itm-net-3849',
+            inventorylevels: 'Physical goods stock tally at Central Distribution Facility B.',
+            quantityOnHand: 4500,
+            reorderPoint: 1000,
+            safetyStock: 500
+          };
+          break;
+
+        case 'createNetSuitePurchaseRequisition':
+          result = {
+            success: true,
+            requisitionId: `REQ-NET-${Math.floor(Math.random() * 90000 + 10000)}`,
+            itemId: sanitizedParams.itemId,
+            quantityRequested: sanitizedParams.quantityRequested || 1500,
+            estimatedCost: sanitizedParams.estimatedCost || 22500.00,
+            status: 'REQUISITION_CREATED_AWAITING_APPROVAL'
           };
           break;
 
