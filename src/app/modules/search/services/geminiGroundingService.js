@@ -71,6 +71,12 @@ import {
   classifyGeneticsQuery,
   classifyVentureCapitalQuery,
   classifyDigitalHumanitiesQuery,
+  classifyVirologyQuery,
+  classifyQuantumComputingQuery,
+  classifyMetallurgyQuery,
+  classifyOrganicChemistryQuery,
+  classifyGridInfrastructureQuery,
+  classifyMLOpsQuery,
 } from './queryClassifier.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 /**
@@ -387,6 +393,12 @@ export async function* executeGroundedSearchStream(
   const geneticsClass = classifyGeneticsQuery(query);
   const ventureCapitalClass = classifyVentureCapitalQuery(query);
   const digitalHumanitiesClass = classifyDigitalHumanitiesQuery(query);
+  const virologyClass = classifyVirologyQuery(query);
+  const quantumComputingClass = classifyQuantumComputingQuery(query);
+  const metallurgyClass = classifyMetallurgyQuery(query);
+  const organicChemistryClass = classifyOrganicChemistryQuery(query);
+  const gridInfrastructureClass = classifyGridInfrastructureQuery(query);
+  const mlopsClass = classifyMLOpsQuery(query);
 
   if (academicClass.isAcademic) {
     console.log('🎓 Academic query detected. Appending scientific site-restrictions...');
@@ -586,6 +598,24 @@ export async function* executeGroundedSearchStream(
   } else if (digitalHumanitiesClass.isDigitalHumanities) {
     console.log('📜 Digital Humanities & Cultural Heritage query detected. Appending digital humanities site-restrictions...');
     finalQuery = `${finalQuery} (site:dh.org OR site:digitalhumanities.org OR site:ach.org OR site:mith.umd.edu OR site:loc.gov OR site:ox.ac.uk/research/digital-humanities)`;
+  } else if (virologyClass.isVirology) {
+    console.log('🦠 Virology & Immunology query detected. Appending virology site-restrictions...');
+    finalQuery = `${finalQuery} (site:nature.com/nri OR site:pubmed.ncbi.nlm.nih.gov OR site:virology.ws OR site:cell.com/immunity OR site:who.int OR site:cdc.gov)`;
+  } else if (quantumComputingClass.isQuantumComputing) {
+    console.log('💻 Quantum Computing & Information query detected. Appending quantum computing site-restrictions...');
+    finalQuery = `${finalQuery} (site:arxiv.org/archive/quant-ph OR site:quantum-journal.org OR site:nature.com/npjqi OR site:ieee.org OR site:sciencedirect.com OR site:aps.org)`;
+  } else if (metallurgyClass.isMetallurgy) {
+    console.log('🔬 Materials Science & Metallurgy query detected. Appending materials science site-restrictions...');
+    finalQuery = `${finalQuery} (site:materialsscience.org OR site:nature.com/nmat OR site:sciencedirect.com OR site:metallurgy.org OR site:springer.com OR site:asminternational.org)`;
+  } else if (organicChemistryClass.isOrganicChemistry) {
+    console.log('🧪 Organic Chemistry & Drug Synthesis query detected. Appending organic chemistry site-restrictions...');
+    finalQuery = `${finalQuery} (site:acs.org OR site:rsc.org OR site:sciencedirect.com OR site:nature.com/nchem OR site:chemspider.com OR site:organic-chemistry.org)`;
+  } else if (gridInfrastructureClass.isGridInfrastructure) {
+    console.log('⚡ Renewable Grid Infrastructure query detected. Appending grid infrastructure site-restrictions...');
+    finalQuery = `${finalQuery} (site:ieee.org OR site:energy.gov OR site:epri.com OR site:nrel.gov OR site:cigre.org OR site:sciencedirect.com)`;
+  } else if (mlopsClass.isMLOps) {
+    console.log('🤖 MLOps query detected. Appending MLOps site-restrictions...');
+    finalQuery = `${finalQuery} (site:mlops.community OR site:arxiv.org OR site:medium.com/tag/mlops OR site:github.com OR site:kubernetes.io OR site:huggingface.co)`;
   }
 
   let videoReferences = [];
@@ -980,6 +1010,12 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
   const geneticsClass = classifyGeneticsQuery(query);
   const ventureCapitalClass = classifyVentureCapitalQuery(query);
   const digitalHumanitiesClass = classifyDigitalHumanitiesQuery(query);
+  const virologyClass = classifyVirologyQuery(query);
+  const quantumComputingClass = classifyQuantumComputingQuery(query);
+  const metallurgyClass = classifyMetallurgyQuery(query);
+  const organicChemistryClass = classifyOrganicChemistryQuery(query);
+  const gridInfrastructureClass = classifyGridInfrastructureQuery(query);
+  const mlopsClass = classifyMLOpsQuery(query);
 
   if (academicClass.isAcademic) {
     console.log('🎓 Academic query detected. Appending scientific site-restrictions...');
@@ -1179,6 +1215,24 @@ export async function executeGroundedSearch(query, conversationHistory = []) {
   } else if (digitalHumanitiesClass.isDigitalHumanities) {
     console.log('📜 Digital Humanities & Cultural Heritage query detected. Appending digital humanities site-restrictions...');
     finalQuery = `${finalQuery} (site:dh.org OR site:digitalhumanities.org OR site:ach.org OR site:mith.umd.edu OR site:loc.gov OR site:ox.ac.uk/research/digital-humanities)`;
+  } else if (virologyClass.isVirology) {
+    console.log('🦠 Virology & Immunology query detected. Appending virology site-restrictions...');
+    finalQuery = `${finalQuery} (site:nature.com/nri OR site:pubmed.ncbi.nlm.nih.gov OR site:virology.ws OR site:cell.com/immunity OR site:who.int OR site:cdc.gov)`;
+  } else if (quantumComputingClass.isQuantumComputing) {
+    console.log('💻 Quantum Computing & Information query detected. Appending quantum computing site-restrictions...');
+    finalQuery = `${finalQuery} (site:arxiv.org/archive/quant-ph OR site:quantum-journal.org OR site:nature.com/npjqi OR site:ieee.org OR site:sciencedirect.com OR site:aps.org)`;
+  } else if (metallurgyClass.isMetallurgy) {
+    console.log('🔬 Materials Science & Metallurgy query detected. Appending materials science site-restrictions...');
+    finalQuery = `${finalQuery} (site:materialsscience.org OR site:nature.com/nmat OR site:sciencedirect.com OR site:metallurgy.org OR site:springer.com OR site:asminternational.org)`;
+  } else if (organicChemistryClass.isOrganicChemistry) {
+    console.log('🧪 Organic Chemistry & Drug Synthesis query detected. Appending organic chemistry site-restrictions...');
+    finalQuery = `${finalQuery} (site:acs.org OR site:rsc.org OR site:sciencedirect.com OR site:nature.com/nchem OR site:chemspider.com OR site:organic-chemistry.org)`;
+  } else if (gridInfrastructureClass.isGridInfrastructure) {
+    console.log('⚡ Renewable Grid Infrastructure query detected. Appending grid infrastructure site-restrictions...');
+    finalQuery = `${finalQuery} (site:ieee.org OR site:energy.gov OR site:epri.com OR site:nrel.gov OR site:cigre.org OR site:sciencedirect.com)`;
+  } else if (mlopsClass.isMLOps) {
+    console.log('🤖 MLOps query detected. Appending MLOps site-restrictions...');
+    finalQuery = `${finalQuery} (site:mlops.community OR site:arxiv.org OR site:medium.com/tag/mlops OR site:github.com OR site:kubernetes.io OR site:huggingface.co)`;
   }
 
   let videoReferences = [];

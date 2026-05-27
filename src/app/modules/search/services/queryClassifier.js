@@ -2823,6 +2823,168 @@ export function classifyDigitalHumanitiesQuery(query) {
   return { isDigitalHumanities, confidence };
 }
 
+/**
+ * Classify whether a query is Virology & Immunology-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isVirology and confidence
+ */
+export function classifyVirologyQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isVirology: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const virologyKeywords = [
+    'virology', 'immunology', 'viral replication', 'antigenic drift',
+    'antigenic shift', 'cytokine storm', 'monoclonal antibody', 'vaccine vector'
+  ];
+
+  const matchCount = virologyKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isVirology = matchCount > 0;
+  const confidence = isVirology ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isVirology) {
+    console.log(`🦠 Virology & Immunology Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isVirology, confidence };
+}
+
+/**
+ * Classify whether a query is Quantum Computing & Information-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isQuantumComputing and confidence
+ */
+export function classifyQuantumComputingQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isQuantumComputing: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const qcKeywords = [
+    'quantum computing', 'qubit', 'bloch sphere', 'quantum gate', 'hadamard',
+    'cnot', 'shor\'s algorithm', 'grover\'s algorithm', 'quantum error correction'
+  ];
+
+  const matchCount = qcKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isQuantumComputing = matchCount > 0;
+  const confidence = isQuantumComputing ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isQuantumComputing) {
+    console.log(`💻 Quantum Computing & Information Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isQuantumComputing, confidence };
+}
+
+/**
+ * Classify whether a query is Materials Science & Metallurgy-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isMetallurgy and confidence
+ */
+export function classifyMetallurgyQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isMetallurgy: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const metallurgyKeywords = [
+    'materials science', 'metallurgy', 'crystalline lattice', 'phase diagram',
+    'superalloy', 'scanning electron microscopy', 'sem image', 'x-ray diffraction'
+  ];
+
+  const matchCount = metallurgyKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isMetallurgy = matchCount > 0;
+  const confidence = isMetallurgy ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isMetallurgy) {
+    console.log(`🔬 Materials Science & Metallurgy Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isMetallurgy, confidence };
+}
+
+/**
+ * Classify whether a query is Organic Chemistry & Drug Synthesis-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isOrganicChemistry and confidence
+ */
+export function classifyOrganicChemistryQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isOrganicChemistry: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const organicKeywords = [
+    'organic chemistry', 'drug synthesis', 'retrosynthetic', 'electrophilic substitution',
+    'enantiomer', 'chiral', 'arrow pushing', 'nmr shift'
+  ];
+
+  const matchCount = organicKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isOrganicChemistry = matchCount > 0;
+  const confidence = isOrganicChemistry ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isOrganicChemistry) {
+    console.log(`🧪 Organic Chemistry & Drug Synthesis Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isOrganicChemistry, confidence };
+}
+
+/**
+ * Classify whether a query is Renewable Grid Infrastructure-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isGridInfrastructure and confidence
+ */
+export function classifyGridInfrastructureQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isGridInfrastructure: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const gridKeywords = [
+    'grid infrastructure', 'hvdc', 'microgrid synchronization', 'frequency stabilization',
+    'phase locked loop', 'flow battery', 'synchrophasor'
+  ];
+
+  const matchCount = gridKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isGridInfrastructure = matchCount > 0;
+  const confidence = isGridInfrastructure ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isGridInfrastructure) {
+    console.log(`⚡ Renewable Grid Infrastructure Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isGridInfrastructure, confidence };
+}
+
+/**
+ * Classify whether a query is MLOps-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isMLOps and confidence
+ */
+export function classifyMLOpsQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isMLOps: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const mlopsKeywords = [
+    'mlops', 'feature store', 'hyperparameter tuning', 'model drift',
+    'triton inference', 'model quantization'
+  ];
+
+  const matchCount = mlopsKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isMLOps = matchCount > 0;
+  const confidence = isMLOps ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isMLOps) {
+    console.log(`🤖 MLOps Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isMLOps, confidence };
+}
+
 export default {
   classifyQuery,
   classifyQueryFast,
@@ -2898,4 +3060,10 @@ export default {
   classifyGeneticsQuery,
   classifyVentureCapitalQuery,
   classifyDigitalHumanitiesQuery,
+  classifyVirologyQuery,
+  classifyQuantumComputingQuery,
+  classifyMetallurgyQuery,
+  classifyOrganicChemistryQuery,
+  classifyGridInfrastructureQuery,
+  classifyMLOpsQuery,
 };

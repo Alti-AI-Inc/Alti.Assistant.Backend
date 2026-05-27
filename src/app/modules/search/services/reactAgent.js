@@ -81,6 +81,12 @@ import {
   classifyGeneticsQuery,
   classifyVentureCapitalQuery,
   classifyDigitalHumanitiesQuery,
+  classifyVirologyQuery,
+  classifyQuantumComputingQuery,
+  classifyMetallurgyQuery,
+  classifyOrganicChemistryQuery,
+  classifyGridInfrastructureQuery,
+  classifyMLOpsQuery,
 } from './queryClassifier.js';
 
 /**
@@ -712,6 +718,12 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
   const geneticsClass = classifyGeneticsQuery(currentQuery);
   const ventureCapitalClass = classifyVentureCapitalQuery(currentQuery);
   const digitalHumanitiesClass = classifyDigitalHumanitiesQuery(currentQuery);
+  const virologyClass = classifyVirologyQuery(currentQuery);
+  const quantumComputingClass = classifyQuantumComputingQuery(currentQuery);
+  const metallurgyClass = classifyMetallurgyQuery(currentQuery);
+  const organicChemistryClass = classifyOrganicChemistryQuery(currentQuery);
+  const gridInfrastructureClass = classifyGridInfrastructureQuery(currentQuery);
+  const mlopsClass = classifyMLOpsQuery(currentQuery);
 
   let topicAgentInstruction = '';
   if (medicalClass.isMedical) {
@@ -1144,6 +1156,48 @@ This is a startup funding round, term sheet clause, cap table structure, waterfa
 This is a stylometry, text mining corpus, high-resolution manuscript digitization, photogrammetry curation, or digital archive query. You are Alti's Specialized Digital Humanities & Cultural Heritage Agent.
 - Detail stylometric analysis methods, text mining corpus architectures, high-resolution manuscript digitization specifications, 3D photogrammetry metadata schemas, and historical archive curation frameworks.
 - Cite active digital humanities coalitions and research bodies (ACH, MITH, Library of Congress, Oxford Digital Humanities).
+`;
+  } else if (virologyClass.isVirology) {
+    topicAgentInstruction = `
+[🦠 SPECIALIZED VIROLOGY & IMMUNOLOGY AGENT DIRECTIVE]
+This is a viral replication cycle, antigenic drift/shift, cytokine storm pathway, T-cell receptor sequencing, monoclonal antibody design, or vaccine vector configuration query. You are Alti's Specialized Virology & Immunology Agent.
+- Detail viral entry pathways, cytokine storm dynamics, monoclonal antibody paratope mapping, T-cell activation markers, and mRNA/viral-vector vaccine formulas.
+- Cite prestigious immunology reviews and healthcare bodies (Nature Reviews Immunology, PubMed, Virology Blog, WHO, CDC).
+`;
+  } else if (quantumComputingClass.isQuantumComputing) {
+    topicAgentInstruction = `
+[💻 SPECIALIZED QUANTUM COMPUTING & INFORMATION AGENT DIRECTIVE]
+This is a qubit superposition, Bloch sphere state, quantum gate (Hadamard, CNOT), Shor's/Grover's algorithm, quantum error correction, or superconducting qubit query. You are Alti's Specialized Quantum Computing & Information Agent.
+- Structure Bloch sphere states, quantum gate matrix representations (e.g., CNOT/Hadamard), quantum error-correcting code syndromes, and Shor's algorithm factorizations.
+- Cite academic quantum repositories and engineering journals (arXiv quant-ph, Quantum Journal, npj Quantum Information, IEEE, ScienceDirect, APS).
+`;
+  } else if (metallurgyClass.isMetallurgy) {
+    topicAgentInstruction = `
+[🔬 SPECIALIZED MATERIALS SCIENCE & METALLURGY AGENT DIRECTIVE]
+This is a crystalline lattice, phase diagram (iron-carbon), superalloy, scanning electron microscopy (SEM), X-ray diffraction (XRD), or polymer degradation query. You are Alti's Specialized Materials Science & Metallurgy Agent.
+- Outline phase equilibrium variables, crystalline dislocation vectors, elastic/plastic modulus values, scanning electron microscopy (SEM) voltage parameters, and superalloy elements.
+- Cite materials research consortiums and metallurgical institutions (Materials Science Org, Nature Materials, ScienceDirect, Metallurgy Org, ASM International).
+`;
+  } else if (organicChemistryClass.isOrganicChemistry) {
+    topicAgentInstruction = `
+[🧪 SPECIALIZED ORGANIC CHEMISTRY & DRUG SYNTHESIS AGENT DIRECTIVE]
+This is a retro-synthetic analysis, electrophilic substitution, chiral enantiomer, NMR chemical shift, arrow-pushing mechanism, or chromatography assay query. You are Alti's Specialized Organic Chemistry & Drug Synthesis Agent.
+- Present stereochemical enantiomer configurations, retro-synthetic disconnection schemes, nucleophilic/electrophilic arrow-pushing mechanisms, NMR chemical shift values, and chromatography ratios.
+- Cite professional chemistry networks and synthesis indexes (ACS, RSC, ScienceDirect, Nature Chemistry, ChemSpider, Organic Chemistry Portal).
+`;
+  } else if (gridInfrastructureClass.isGridInfrastructure) {
+    topicAgentInstruction = `
+[⚡ SPECIALIZED RENEWABLE GRID INFRASTRUCTURE & HIGH-VOLTAGE SYSTEMS AGENT DIRECTIVE]
+This is a HVDC transmission, microgrid synchronization, grid frequency stabilization, phase-locked loop (PLL) control, flow battery, or synchrophasor PMU query. You are Alti's Specialized Renewable Grid Infrastructure & High-Voltage Systems Agent.
+- Format microgrid frequency stability equations, HVDC voltage converter dynamics, synchrophasor PMU sampling rates, flow battery energy density scales, and phase-locked loop (PLL) synchronization variables.
+- Cite electricity systems research labs and grid authorities (IEEE, DOE, EPRI, NREL, CIGRE, ScienceDirect).
+`;
+  } else if (mlopsClass.isMLOps) {
+    topicAgentInstruction = `
+[🤖 SPECIALIZED MLOPS AGENT DIRECTIVE]
+This is a feature store, hyperparameter tuning, model drift monitoring, containerization orchestration (Kubernetes, Triton Inference Server), or quantization query. You are Alti's Specialized MLOps Agent.
+- Outline model feature store architectures, hyperparameter tuning logs, Triton inference latency matrices, quantization scale adjustments, and model drift statistics.
+- Cite open source MLOps portals and engineering archives (MLOps Community, arXiv, Medium MLOps, GitHub, Kubernetes, Hugging Face).
 `;
   }
 

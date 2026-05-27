@@ -65,6 +65,12 @@ import {
   classifyGeneticsQuery,
   classifyVentureCapitalQuery,
   classifyDigitalHumanitiesQuery,
+  classifyVirologyQuery,
+  classifyQuantumComputingQuery,
+  classifyMetallurgyQuery,
+  classifyOrganicChemistryQuery,
+  classifyGridInfrastructureQuery,
+  classifyMLOpsQuery,
 } from '../src/app/modules/search/services/queryClassifier.js';
 import { executeGroundedSearchStream } from '../src/app/modules/search/services/geminiGroundingService.js';
 import { executeToolBasedConversation } from '../src/app/modules/search/services/reactAgent.js';
@@ -627,7 +633,55 @@ async function runTests() {
   assert.strictEqual(digitalHumanitiesResult.isDigitalHumanities, true);
   console.log('✅ Test 68 Passed!');
 
-  console.log('\n🎉 ALL BATCH 1 TO BATCH 11 TESTS COMPLETED SUCCESSFULLY!');
+  // Test 69: Virology & Immunology Intent Classification (Batch 12)
+  console.log('\n🧪 Test 69: Virology & Immunology Intent Classification (Batch 12)');
+  const virologyQuery = 'Analyze cytokine storm replication cycles and monoclonal antibody paratopes.';
+  const virologyResult = classifyVirologyQuery(virologyQuery);
+  console.log('Result:', virologyResult);
+  assert.strictEqual(virologyResult.isVirology, true);
+  console.log('✅ Test 69 Passed!');
+
+  // Test 70: Quantum Computing & Information Intent Classification (Batch 12)
+  console.log('\n🧪 Test 70: Quantum Computing & Information Intent Classification (Batch 12)');
+  const quantumQuery = 'Optimize Bloch sphere qubit superposition using Hadamard and CNOT gates.';
+  const quantumResult = classifyQuantumComputingQuery(quantumQuery);
+  console.log('Result:', quantumResult);
+  assert.strictEqual(quantumResult.isQuantumComputing, true);
+  console.log('✅ Test 70 Passed!');
+
+  // Test 71: Materials Science & Metallurgy Intent Classification (Batch 12)
+  console.log('\n🧪 Test 71: Materials Science & Metallurgy Intent Classification (Batch 12)');
+  const metallurgyQuery = 'Study crystalline lattice defects, superalloy phase diagrams, and scanning electron microscopy.';
+  const metallurgyResult = classifyMetallurgyQuery(metallurgyQuery);
+  console.log('Result:', metallurgyResult);
+  assert.strictEqual(metallurgyResult.isMetallurgy, true);
+  console.log('✅ Test 71 Passed!');
+
+  // Test 72: Organic Chemistry & Drug Synthesis Intent Classification (Batch 12)
+  console.log('\n🧪 Test 72: Organic Chemistry & Drug Synthesis Intent Classification (Batch 12)');
+  const organicQuery = 'Perform retrosynthetic analysis of electrophilic substitution with chiral enantiomer NMR shifts.';
+  const organicResult = classifyOrganicChemistryQuery(organicQuery);
+  console.log('Result:', organicResult);
+  assert.strictEqual(organicResult.isOrganicChemistry, true);
+  console.log('✅ Test 72 Passed!');
+
+  // Test 73: Renewable Grid Infrastructure & High-Voltage Systems Intent Classification (Batch 12)
+  console.log('\n🧪 Test 73: Renewable Grid Infrastructure & High-Voltage Systems Intent Classification (Batch 12)');
+  const gridQuery = 'Stabilize microgrid frequency synchronization, HVDC voltage converter PLLs, and flow battery storage.';
+  const gridResult = classifyGridInfrastructureQuery(gridQuery);
+  console.log('Result:', gridResult);
+  assert.strictEqual(gridResult.isGridInfrastructure, true);
+  console.log('✅ Test 73 Passed!');
+
+  // Test 74: MLOps Intent Classification (Batch 12)
+  console.log('\n🧪 Test 74: MLOps Intent Classification (Batch 12)');
+  const mlopsQuery = 'Setup feature store orchestration, model drift monitoring, and Triton inference quantization.';
+  const mlopsResult = classifyMLOpsQuery(mlopsQuery);
+  console.log('Result:', mlopsResult);
+  assert.strictEqual(mlopsResult.isMLOps, true);
+  console.log('✅ Test 74 Passed!');
+
+  console.log('\n🎉 ALL BATCH 1 TO BATCH 12 TESTS COMPLETED SUCCESSFULLY!');
 }
 
 runTests().catch(err => {
