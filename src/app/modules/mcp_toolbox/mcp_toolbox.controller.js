@@ -1,5 +1,6 @@
 import { mcpToolboxService } from './mcp_toolbox.service.js';
 import { mcpOrchestratorService } from './mcp_orchestrator.service.js';
+import { mcpCatalog } from './mcp_catalog.js';
 
 // ==========================================
 // A. Legacy Database MCP Toolbox Endpoints
@@ -237,6 +238,72 @@ const registerServerController = async (req, res) => {
   }
 };
 
+const installAppController = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id || 'default_user';
+    const { appId, env, databaseUrl } = req.body;
+
+    if (!appId) {
+      return res.status(400).json({ success: false, error: 'appId parameter is required.' });
+    }
+
+    const blueprint = mcpCatalog[appId];
+    if (!blueprint) {
+      return res.status(404).json({ success: false, error: `MCP Application "${appId}" not found in catalog.` });
+    }
+
+    // Clone to prevent modifying original static catalog
+    const config = JSON.parse(JSON.stringify(blueprint));
+
+    // 1. Enforce environment variable requirements
+    if (config.requiredEnv) {
+      for (const requiredKey of config.requiredEnv) {
+        const clientVal = env?.[requiredKey];
+        if (!clientVal) {
+          return res.status(400).json({
+            success: false,
+            error: `Missing required environment variable "${requiredKey}" for app "${appId}".`
+          });
+        }
+        config.env[requiredKey] = clientVal;
+      }
+    }
+
+    // Merge custom env properties if supplied
+    if (env) {
+      config.env = { ...config.env, ...env };
+    }
+
+    // 2. Map dynamic argument parameters
+    if (appId === 'postgres') {
+      if (!databaseUrl) {
+        return res.status(400).json({ success: false, error: 'databaseUrl is required to install postgres app.' });
+      }
+      config.args.push(databaseUrl);
+    } else if (appId === 'sqlite') {
+      // Dynamic path isolation per tenant sandbox
+      const tenantDbPath = `storage/users/${userId}/databases/sqlite.db`;
+      config.args[2] = tenantDbPath;
+    }
+
+    // 3. Register the server configuration (writes to disk, triggers dynamic hot-reloader)
+    const regResult = await mcpOrchestratorService.registerServer(userId, appId, config);
+
+    // 4. Synchronously boot the application process (auto-fetches dependencies over npx)
+    const startResult = await mcpOrchestratorService.startServer(userId, appId);
+
+    res.status(200).json({
+      success: true,
+      message: `Application "${config.name}" installed and booted successfully.`,
+      serverId: appId,
+      registration: regResult,
+      connection: startResult
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 const listUnifiedToolsController = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id || 'default_user';
@@ -279,6 +346,7 @@ export const mcpToolboxController = {
   mcpMessageHandler,
   // Gateway & Registration
   registerServerController,
+  installAppController,
   listUnifiedToolsController,
   callUnifiedToolController
 };

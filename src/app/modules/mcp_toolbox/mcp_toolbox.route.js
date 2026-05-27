@@ -88,6 +88,12 @@ router.post(
   mcpToolboxController.registerServerController
 );
 
+router.post(
+  '/install-app',
+  auth(),
+  mcpToolboxController.installAppController
+);
+
 router.get(
   '/unified/tools',
   auth(),
