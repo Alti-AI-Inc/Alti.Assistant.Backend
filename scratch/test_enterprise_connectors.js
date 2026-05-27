@@ -78,7 +78,16 @@ async function runTests() {
       dashboardSettings: 'Telemetry tracking metrics for company dashboard.',
       sqlQuery: 'SELECT ssn, creditCard FROM users WHERE salary > 150000',
       semanticModel: 'LookML dimension definitions compiler logs.',
-      queryParams: 'Filter metrics by tenant ID and segment.'
+      queryParams: 'Filter metrics by tenant ID and segment.',
+      cartData: 'Shopping cart payload with credit card token checkout details.',
+      subscriberList: 'Subscriber email database and active cohorts definitions.',
+      trafficLogs: 'Security traffic logs containing client IP and process IDs.',
+      firewallSchema: 'Access control firewall rule mapping logs.',
+      trainingPayload: 'OpenAI custom base model hyperparameters and datasets.',
+      fineTuningData: 'Training dataset fine-tuning weights content.',
+      modelWeights: 'Model bias float tensors and network parameters.',
+      indexMetadata: 'Pinecone index namespace telemetry details.',
+      endpointUrl: 'SageMaker model endpoint gateway URL.'
     }
   };
 
@@ -143,6 +152,15 @@ async function runTests() {
     redacted.analyticsOps.sqlQuery !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.analyticsOps.semanticModel !== '[REDACTED SENSITIVE FIELD]' ||
     redacted.analyticsOps.queryParams !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.cartData !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.subscriberList !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.trafficLogs !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.firewallSchema !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.trainingPayload !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.fineTuningData !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.modelWeights !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.indexMetadata !== '[REDACTED SENSITIVE FIELD]' ||
+    redacted.analyticsOps.endpointUrl !== '[REDACTED SENSITIVE FIELD]' ||
     !redacted.comment.includes('[REDACTED IP]') ||
     !redacted.comment.includes('[REDACTED MAC]')
   ) {
@@ -199,7 +217,22 @@ async function runTests() {
     { app: 'tableau', action: 'getTableauWorkbookMetadata', params: { workbookId: 'wb-tab-3392' } },
     { app: 'powerbi', action: 'getPowerBIDashboardTelemetry', params: { dashboardId: 'dash-pbi-8849' } },
     { app: 'googlebigquery', action: 'queryBigQueryWarehouse', params: { datasetId: 'analytics_prod', tableId: 'daily_revenue' } },
-    { app: 'looker', action: 'getLookerSemanticModelSchema', params: { modelId: 'looker-model-552' } }
+    { app: 'looker', action: 'getLookerSemanticModelSchema', params: { modelId: 'looker-model-552' } },
+    { app: 'shopify', action: 'getShopifyStoreAnalytics', params: {} },
+    { app: 'adobe_experience', action: 'getAdobeCustomerProfile', params: { profileId: 'adobe-cdp-99228' } },
+    { app: 'twilio_segment', action: 'getSegmentUserEvents', params: { userId: 'seg-user-29381' } },
+    { app: 'marketo', action: 'getMarketoLeadScore', params: { leadId: 'marketo-lead-48832' } },
+    { app: 'exacttarget', action: 'getExactTargetSubscriberDetails', params: { subscriberKey: 'et-sub-0019382' } },
+    { app: 'okta', action: 'getOktaUserDirectory', params: { userId: 'okta-usr-88339' } },
+    { app: 'crowdstrike', action: 'getCrowdStrikeThreatDetections', params: { hostId: 'cs-host-00192' } },
+    { app: 'sentinelone', action: 'getSentinelOneThreatIndicators', params: { threatId: 's1-threat-4482' } },
+    { app: 'zscaler', action: 'getZscalerNetworkTrafficLogs', params: { department: 'Finance' } },
+    { app: 'pingidentity', action: 'getPingAuthSessionTelemetry', params: { sessionId: 'ping-session-4882' } },
+    { app: 'openai', action: 'getOpenAIAssistantUsage', params: { assistantId: 'asst-openai-3392' } },
+    { app: 'weights_biases', action: 'getWandBExperimentRuns', params: { projectId: 'proj-wandb-4482' } },
+    { app: 'huggingface', action: 'getHuggingFaceModelMetadata', params: { modelId: 'meta-llama/Llama-3-8B-Instruct' } },
+    { app: 'pinecone', action: 'getPineconeIndexStats', params: { indexName: 'alti-kb-index' } },
+    { app: 'sagemaker', action: 'getSageMakerModelEndpoints', params: { endpointName: 'sm-llama-endpoint' } }
   ];
 
   for (const item of readActions) {
@@ -254,7 +287,17 @@ async function runTests() {
     { app: 'tableau', action: 'publishTableauWorkbook', params: { workbookId: 'wb-tab-3392', title: 'Q2 Sales Analytics Dashboard' } },
     { app: 'powerbi', action: 'refreshPowerBIDataset', params: { datasetId: 'ds-pbi-9933' } },
     { app: 'googlebigquery', action: 'executeBigQueryDML', params: { datasetId: 'analytics_prod', query: 'UPDATE daily_revenue SET revenue = 0' } },
-    { app: 'looker', action: 'updateLookerSemanticModel', params: { modelId: 'looker-model-552' } }
+    { app: 'looker', action: 'updateLookerSemanticModel', params: { modelId: 'looker-model-552' } },
+    { app: 'shopify', action: 'updateShopifyStoreInventory', params: { productId: 'prod-shopify-30291', quantity: 150 } },
+    { app: 'marketo', action: 'triggerMarketoEmailCampaign', params: { campaignId: 'camp-mk-99332' } },
+    { app: 'exacttarget', action: 'triggerExactTargetJourney', params: { journeyId: 'journey-et-88229' } },
+    { app: 'okta', action: 'deprovisionOktaUser', params: { userId: 'okta-usr-88339' } },
+    { app: 'crowdstrike', action: 'isolateCrowdStrikeEndpoint', params: { hostId: 'cs-host-00192' } },
+    { app: 'sentinelone', action: 'remediateSentinelOneThreat', params: { threatId: 's1-threat-4482' } },
+    { app: 'zscaler', action: 'updateZscalerAccessControlRule', params: { ruleId: 'rule-zs-99332' } },
+    { app: 'openai', action: 'createOpenAIFinetuningJob', params: { model: 'gpt-4o-mini' } },
+    { app: 'weights_biases', action: 'stopWandBExperimentRun', params: { runId: 'run-wandb-99332' } },
+    { app: 'pinecone', action: 'deletePineconeIndexNamespace', params: { indexName: 'alti-kb-index', namespace: 'temp-cache' } }
   ];
 
   for (const item of mutativeActions) {
@@ -343,7 +386,32 @@ async function runTests() {
       { app: 'googlebigquery', action: 'queryBigQueryWarehouse', parameters: { datasetId: 'db-1' } },
       { app: 'googlebigquery', action: 'executeBigQueryDML', parameters: { datasetId: 'db-1', query: 'SELECT 1' }, verified: true },
       { app: 'looker', action: 'getLookerSemanticModelSchema', parameters: { modelId: 'model-1' } },
-      { app: 'looker', action: 'updateLookerSemanticModel', parameters: { modelId: 'model-1' }, verified: true }
+      { app: 'looker', action: 'updateLookerSemanticModel', parameters: { modelId: 'model-1' }, verified: true },
+      { app: 'shopify', action: 'getShopifyStoreAnalytics', parameters: {} },
+      { app: 'shopify', action: 'updateShopifyStoreInventory', parameters: { productId: 'p1' }, verified: true },
+      { app: 'adobe_experience', action: 'getAdobeCustomerProfile', parameters: {} },
+      { app: 'twilio_segment', action: 'getSegmentUserEvents', parameters: {} },
+      { app: 'marketo', action: 'getMarketoLeadScore', parameters: {} },
+      { app: 'marketo', action: 'triggerMarketoEmailCampaign', parameters: { campaignId: 'c1' }, verified: true },
+      { app: 'exacttarget', action: 'getExactTargetSubscriberDetails', parameters: {} },
+      { app: 'exacttarget', action: 'triggerExactTargetJourney', parameters: { journeyId: 'j1' }, verified: true },
+      { app: 'okta', action: 'getOktaUserDirectory', parameters: {} },
+      { app: 'okta', action: 'deprovisionOktaUser', parameters: { userId: 'u1' }, verified: true },
+      { app: 'crowdstrike', action: 'getCrowdStrikeThreatDetections', parameters: {} },
+      { app: 'crowdstrike', action: 'isolateCrowdStrikeEndpoint', parameters: { hostId: 'h1' }, verified: true },
+      { app: 'sentinelone', action: 'getSentinelOneThreatIndicators', parameters: {} },
+      { app: 'sentinelone', action: 'remediateSentinelOneThreat', parameters: { threatId: 't1' }, verified: true },
+      { app: 'zscaler', action: 'getZscalerNetworkTrafficLogs', parameters: {} },
+      { app: 'zscaler', action: 'updateZscalerAccessControlRule', parameters: { ruleId: 'r1' }, verified: true },
+      { app: 'pingidentity', action: 'getPingAuthSessionTelemetry', parameters: {} },
+      { app: 'openai', action: 'getOpenAIAssistantUsage', parameters: {} },
+      { app: 'openai', action: 'createOpenAIFinetuningJob', parameters: { model: 'm1' }, verified: true },
+      { app: 'weights_biases', action: 'getWandBExperimentRuns', parameters: {} },
+      { app: 'weights_biases', action: 'stopWandBExperimentRun', parameters: { runId: 'r1' }, verified: true },
+      { app: 'huggingface', action: 'getHuggingFaceModelMetadata', parameters: {} },
+      { app: 'pinecone', action: 'getPineconeIndexStats', parameters: {} },
+      { app: 'pinecone', action: 'deletePineconeIndexNamespace', parameters: { indexName: 'idx1' }, verified: true },
+      { app: 'sagemaker', action: 'getSageMakerModelEndpoints', parameters: {} }
     ];
 
     for (const input of validInputs) {

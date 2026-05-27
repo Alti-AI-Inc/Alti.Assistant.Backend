@@ -79,7 +79,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -290,6 +290,66 @@ export class EnterpriseConnector {
       looker: {
         apiToken: 'mock_looker_token',
         endpoint: 'https://looker.enterprise.io/v1'
+      },
+      shopify: {
+        apiToken: 'mock_shopify_token',
+        endpoint: 'https://api.shopify.com/v1'
+      },
+      adobe_experience: {
+        apiToken: 'mock_adobe_token',
+        endpoint: 'https://api.adobe.com/v1'
+      },
+      twilio_segment: {
+        apiToken: 'mock_segment_token',
+        endpoint: 'https://api.segment.com/v1'
+      },
+      marketo: {
+        apiToken: 'mock_marketo_token',
+        endpoint: 'https://api.marketo.com/v1'
+      },
+      exacttarget: {
+        apiToken: 'mock_exacttarget_token',
+        endpoint: 'https://api.exacttarget.com/v1'
+      },
+      okta: {
+        apiToken: 'mock_okta_token',
+        endpoint: 'https://okta.enterprise.io/v1'
+      },
+      crowdstrike: {
+        apiToken: 'mock_crowdstrike_token',
+        endpoint: 'https://api.crowdstrike.com/v1'
+      },
+      sentinelone: {
+        apiToken: 'mock_sentinelone_token',
+        endpoint: 'https://api.sentinelone.com/v1'
+      },
+      zscaler: {
+        apiToken: 'mock_zscaler_token',
+        endpoint: 'https://api.zscaler.com/v1'
+      },
+      pingidentity: {
+        apiToken: 'mock_ping_token',
+        endpoint: 'https://api.pingidentity.com/v1'
+      },
+      openai: {
+        apiToken: 'mock_openai_token',
+        endpoint: 'https://api.openai.com/v1'
+      },
+      weights_biases: {
+        apiToken: 'mock_wandb_token',
+        endpoint: 'https://api.wandb.com/v1'
+      },
+      huggingface: {
+        apiToken: 'mock_hf_token',
+        endpoint: 'https://api.huggingface.co/v1'
+      },
+      pinecone: {
+        apiToken: 'mock_pinecone_token',
+        endpoint: 'https://api.pinecone.io/v1'
+      },
+      sagemaker: {
+        apiToken: 'mock_sagemaker_token',
+        endpoint: 'https://api.sagemaker.com/v1'
       }
     };
 
@@ -345,7 +405,17 @@ export class EnterpriseConnector {
       'publishTableauWorkbook',
       'refreshPowerBIDataset',
       'executeBigQueryDML',
-      'updateLookerSemanticModel'
+      'updateLookerSemanticModel',
+      'updateShopifyStoreInventory',
+      'triggerMarketoEmailCampaign',
+      'triggerExactTargetJourney',
+      'deprovisionOktaUser',
+      'isolateCrowdStrikeEndpoint',
+      'remediateSentinelOneThreat',
+      'updateZscalerAccessControlRule',
+      'createOpenAIFinetuningJob',
+      'stopWandBExperimentRun',
+      'deletePineconeIndexNamespace'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -1308,6 +1378,339 @@ export class EnterpriseConnector {
             commitHash: `git-looker-${Math.floor(Math.random() * 900000 + 100000)}`,
             semanticmodel: 'LookML model definitions compiled. Deployment branch synchronized.',
             status: 'SEMANTIC_MODEL_UPDATED'
+          };
+          break;
+
+        // --- Shopify ---
+        case 'getShopifyStoreAnalytics':
+          result = {
+            success: true,
+            storeId: sanitizedParams.storeId || 'shop-plus-1002',
+            storeName: 'Alti Enterprise Merchandise',
+            monthlyRevenue: 154200.50,
+            activeCarts: 124,
+            cartdata: 'Shopify Checkout cart details with customer IDs and token logs.',
+            status: 'STORE_TELEMETRY_RETRIEVED'
+          };
+          break;
+
+        case 'updateShopifyStoreInventory':
+          result = {
+            success: true,
+            productId: sanitizedParams.productId || 'prod-shopify-30291',
+            sku: sanitizedParams.sku || 'ALTI-TSHIRT-BLK',
+            previousQuantity: 50,
+            newQuantity: sanitizedParams.quantity !== undefined ? sanitizedParams.quantity : 150,
+            cartdata: 'Inventory record modified. Cache flushed.',
+            status: 'INVENTORY_UPDATED'
+          };
+          break;
+
+        // --- Adobe Experience ---
+        case 'getAdobeCustomerProfile':
+          result = {
+            success: true,
+            profileId: sanitizedParams.profileId || 'adobe-cdp-99228',
+            segmentMembership: ['High Value Buyers', 'Decade Loyal'],
+            lifetimeValue: 4200.75,
+            leadphone: 'Customer profile metadata loaded.',
+            status: 'CUSTOMER_PROFILE_RETRIEVED'
+          };
+          break;
+
+        case 'updateAdobeAssetMetadata':
+          result = {
+            success: true,
+            assetId: sanitizedParams.assetId || 'asset-adobe-00192',
+            assetName: sanitizedParams.assetName || 'q2_campaign_hero.png',
+            metadata: sanitizedParams.metadata || { author: 'Marketing Design', resolution: '4K' },
+            status: 'ASSET_METADATA_UPDATED'
+          };
+          break;
+
+        // --- Twilio Segment ---
+        case 'getSegmentUserEvents':
+          result = {
+            success: true,
+            userId: sanitizedParams.userId || 'seg-user-29381',
+            anonymousId: 'anon-seg-4882193',
+            eventsCount: 420,
+            trafficlogs: 'Segment real-time user event traffic logs and clickstream tracking.',
+            status: 'USER_EVENTS_RETRIEVED'
+          };
+          break;
+
+        case 'syncSegmentAudienceCohort':
+          result = {
+            success: true,
+            cohortId: sanitizedParams.cohortId || 'cohort-seg-0012',
+            audienceSize: 25400,
+            destination: sanitizedParams.destination || 'Facebook Ads',
+            subscriberlist: 'Sync queue flushed. Audience records successfully pushed.',
+            status: 'COHORT_SYNCHRONIZED'
+          };
+          break;
+
+        // --- Marketo ---
+        case 'getMarketoLeadScore':
+          result = {
+            success: true,
+            leadId: sanitizedParams.leadId || 'marketo-lead-48832',
+            score: 85,
+            behavioralScore: 60,
+            demographicScore: 25,
+            subscriberlist: 'Marketo lead qualification parameters loaded successfully.',
+            status: 'LEAD_SCORE_RETRIEVED'
+          };
+          break;
+
+        case 'triggerMarketoEmailCampaign':
+          result = {
+            success: true,
+            campaignId: sanitizedParams.campaignId || 'camp-mk-99332',
+            recipientCohort: sanitizedParams.cohort || 'Enterprise Leads',
+            emailSubject: sanitizedParams.subject || 'Unlock Smart Intelligence',
+            subscriberlist: 'Email trigger job queued and broadcast schedule active.',
+            status: 'EMAIL_CAMPAIGN_TRIGGERED'
+          };
+          break;
+
+        // --- ExactTarget ---
+        case 'getExactTargetSubscriberDetails':
+          result = {
+            success: true,
+            subscriberKey: sanitizedParams.subscriberKey || 'et-sub-0019382',
+            subscriberlist: 'Subscriber profile metrics, preferences, and journey tracking.',
+            status: 'SUBSCRIBER_DETAILS_RETRIEVED'
+          };
+          break;
+
+        case 'triggerExactTargetJourney':
+          result = {
+            success: true,
+            journeyId: sanitizedParams.journeyId || 'journey-et-88229',
+            subscriberKey: sanitizedParams.subscriberKey || 'et-sub-0019382',
+            subscriberlist: 'Multi-channel ExactTarget email journey execution initiated.',
+            status: 'JOURNEY_TRIGGERED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Okta ---
+        case 'getOktaUserDirectory':
+          result = {
+            success: true,
+            userId: sanitizedParams.userId || 'okta-usr-88339',
+            userName: 'jane.doe@enterprise.io',
+            mfaEnabled: true,
+            trafficlogs: 'Okta directory profile metadata and user group definitions loaded.',
+            status: 'OKTA_USER_LOADED'
+          };
+          break;
+
+        case 'deprovisionOktaUser':
+          result = {
+            success: true,
+            userId: sanitizedParams.userId || 'okta-usr-88339',
+            deprovisionMethod: sanitizedParams.method || 'SUSPEND',
+            trafficlogs: 'Okta user credentials revoked. Connected SSO accounts locked.',
+            status: 'USER_DEPROVISIONED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- CrowdStrike ---
+        case 'getCrowdStrikeThreatDetections':
+          result = {
+            success: true,
+            hostId: sanitizedParams.hostId || 'cs-host-00192',
+            severity: 'CRITICAL',
+            threatName: 'Cobalt Strike Beacon Execution',
+            trafficlogs: 'CrowdStrike Falcon behavioral intelligence and process lineage logs.',
+            status: 'THREAT_DETECTIONS_RETRIEVED'
+          };
+          break;
+
+        case 'isolateCrowdStrikeEndpoint':
+          result = {
+            success: true,
+            hostId: sanitizedParams.hostId || 'cs-host-00192',
+            quarantineNetwork: true,
+            trafficlogs: 'Endpoint isolated from internal corporate network routing structures.',
+            status: 'ENDPOINT_ISOLATED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- SentinelOne ---
+        case 'getSentinelOneThreatIndicators':
+          result = {
+            success: true,
+            threatId: sanitizedParams.threatId || 's1-threat-4482',
+            severity: 'HIGH',
+            filePath: '\\Device\\HarddiskVolume3\\Windows\\System32\\svchost.exe',
+            trafficlogs: 'SentinelOne threat execution sequence and process hashes loaded.',
+            status: 'THREAT_INDICATORS_RETRIEVED'
+          };
+          break;
+
+        case 'remediateSentinelOneThreat':
+          result = {
+            success: true,
+            threatId: sanitizedParams.threatId || 's1-threat-4482',
+            actionTaken: sanitizedParams.action || 'ROLLBACK',
+            trafficlogs: 'Threat process terminated. Malicious registry keys reverted to baseline.',
+            status: 'THREAT_REMEDIATED'
+          };
+          break;
+
+        // --- Zscaler ---
+        case 'getZscalerNetworkTrafficLogs':
+          result = {
+            success: true,
+            department: sanitizedParams.department || 'Finance',
+            packetsBlocked: 850,
+            trafficlogs: 'Zscaler SASE network traffic audit logging and firewall rule hits.',
+            status: 'TRAFFIC_LOGS_RETRIEVED'
+          };
+          break;
+
+        case 'updateZscalerAccessControlRule':
+          result = {
+            success: true,
+            ruleId: sanitizedParams.ruleId || 'rule-zs-99332',
+            action: sanitizedParams.ruleAction || 'BLOCK',
+            firewallschema: 'Zscaler Access Control policy updated and synchronized across SASE gateway nodes.',
+            status: 'ACCESS_CONTROL_RULE_UPDATED'
+          };
+          break;
+
+        // --- Ping Identity ---
+        case 'getPingAuthSessionTelemetry':
+          result = {
+            success: true,
+            sessionId: sanitizedParams.sessionId || 'ping-session-4882',
+            authMethod: 'SAML2.0 Federation',
+            trafficlogs: 'Ping Identity active session keys and token lifetimes loaded.',
+            status: 'TELEMETRY_LOADED'
+          };
+          break;
+
+        case 'revokePingSessionKey':
+          result = {
+            success: true,
+            sessionId: sanitizedParams.sessionId || 'ping-session-4882',
+            status: 'Revoked',
+            trafficlogs: 'Ping Federated authentication ticket invalidated. Cache cleared.',
+            status: 'SESSION_REVOKED'
+          };
+          break;
+
+        // --- OpenAI ---
+        case 'getOpenAIAssistantUsage':
+          result = {
+            success: true,
+            assistantId: sanitizedParams.assistantId || 'asst-openai-3392',
+            runsCreated: 4200,
+            totalTokensConsumed: 12500400,
+            trainingpayload: 'OpenAI assistant interaction telemetry and performance metrics.',
+            status: 'USAGE_RETRIEVED'
+          };
+          break;
+
+        case 'createOpenAIFinetuningJob':
+          result = {
+            success: true,
+            jobId: `ftjob-${Math.floor(Math.random() * 900000 + 100000)}`,
+            model: sanitizedParams.model || 'gpt-4o-mini',
+            finetuningdata: 'Fine-tuning dataset verified. Model fine-tuning job queued successfully.',
+            status: 'FINETUNING_JOB_CREATED'
+          };
+          break;
+
+        // --- Weights & Biases ---
+        case 'getWandBExperimentRuns':
+          result = {
+            success: true,
+            projectId: sanitizedParams.projectId || 'proj-wandb-4482',
+            activeRuns: 3,
+            bestAccuracy: 0.985,
+            modelweights: 'WandB experiment hyperparameters, runs list, and epoch loss metrics.',
+            status: 'RUNS_RETRIEVED'
+          };
+          break;
+
+        case 'stopWandBExperimentRun':
+          result = {
+            success: true,
+            runId: sanitizedParams.runId || 'run-wandb-99332',
+            exitCode: 137,
+            modelweights: 'WandB active training run terminated programmatically. Resources released.',
+            status: 'RUN_STOPPED'
+          };
+          break;
+
+        // --- Hugging Face ---
+        case 'getHuggingFaceModelMetadata':
+          result = {
+            success: true,
+            modelId: sanitizedParams.modelId || 'meta-llama/Llama-3-8B-Instruct',
+            downloadsCount: 540200,
+            likes: 12500,
+            modelweights: 'Hugging Face hub configuration files and tokenizer configurations.',
+            status: 'MODEL_METADATA_RETRIEVED'
+          };
+          break;
+
+        case 'deployHuggingFaceEndpoint':
+          result = {
+            success: true,
+            modelId: sanitizedParams.modelId || 'meta-llama/Llama-3-8B-Instruct',
+            endpointUrl: 'https://api.hf.co/endpoints/llama3-prod',
+            modelweights: 'HF Inference Endpoint initialized. Cloud compute resources active.',
+            status: 'ENDPOINT_DEPLOYED_SUCCESSFULLY'
+          };
+          break;
+
+        // --- Pinecone ---
+        case 'getPineconeIndexStats':
+          result = {
+            success: true,
+            indexName: sanitizedParams.indexName || 'alti-kb-index',
+            dimension: 1536,
+            totalVectorCount: 1542000,
+            indexmetadata: 'Pinecone namespace ratios, metric settings, and cluster ratios.',
+            status: 'INDEX_STATS_RETRIEVED'
+          };
+          break;
+
+        case 'deletePineconeIndexNamespace':
+          result = {
+            success: true,
+            indexName: sanitizedParams.indexName || 'alti-kb-index',
+            namespace: sanitizedParams.namespace || 'temp-cache',
+            indexmetadata: 'Pinecone index namespace metadata purged. Vectors permanently removed.',
+            status: 'NAMESPACE_DELETED'
+          };
+          break;
+
+        // --- SageMaker ---
+        case 'getSageMakerModelEndpoints':
+          result = {
+            success: true,
+            endpointName: sanitizedParams.endpointName || 'sm-llama-endpoint',
+            instanceType: 'ml.g5.4xlarge',
+            instanceCount: 2,
+            trainingpayload: 'AWS SageMaker compute endpoint details and traffic metrics.',
+            status: 'ENDPOINT_DETAILS_LOADED'
+          };
+          break;
+
+        case 'scaleSageMakerEndpoint':
+          result = {
+            success: true,
+            endpointName: sanitizedParams.endpointName || 'sm-llama-endpoint',
+            previousInstanceCount: 2,
+            newInstanceCount: sanitizedParams.desiredInstances || 4,
+            trainingpayload: 'AWS Auto-Scaling rules updated. Compute instance scaling job active.',
+            status: 'ENDPOINT_SCALED_SUCCESSFULLY'
           };
           break;
 

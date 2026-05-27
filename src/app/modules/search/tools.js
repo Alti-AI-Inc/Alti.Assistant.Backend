@@ -959,9 +959,9 @@ export const altiEnterpriseIntelligenceSearch = new DynamicStructuredTool({
 38. "hashicorp_vault" -> HashiCorp Vault secrets metadata, dynamic key rotations.
 39. "splunk" -> Splunk machine log query search, SIEM custom alert rule creation.
 40. "dynatrace" -> Dynatrace full-stack dependency flow maps, AI anomaly threshold updates.
-Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis, veevavault, epic, athenahealth, elationhealth, iqvia, changehealthcare, coupa, ariba, flexport, samsara, workday, sap, adp, deel, netsuite, salesforce, servicenow, snowflake, hubspot, zendesk, datadog, pagerduty, hashicorp_vault, splunk, dynatrace), the action name, and a JSON parameter object representing action arguments.`,
+Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, carta, fiserv, factset, bloomberg, harvey, ironclad, relativity, onetrust, lexisnexis, veevavault, epic, athenahealth, elationhealth, iqvia, changehealthcare, coupa, ariba, flexport, samsara, workday, sap, adp, deel, netsuite, salesforce, servicenow, snowflake, hubspot, zendesk, datadog, pagerduty, hashicorp_vault, splunk, dynatrace, databricks, tableau, powerbi, googlebigquery, looker, shopify, adobe_experience, twilio_segment, marketo, exacttarget, okta, crowdstrike, sentinelone, zscaler, pingidentity, openai, weights_biases, huggingface, pinecone, sagemaker), the action name, and a JSON parameter object representing action arguments.`,
   schema: z.object({
-    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare', 'coupa', 'ariba', 'flexport', 'samsara', 'workday', 'sap', 'adp', 'deel', 'netsuite', 'salesforce', 'servicenow', 'snowflake', 'hubspot', 'zendesk', 'datadog', 'pagerduty', 'hashicorp_vault', 'splunk', 'dynatrace', 'databricks', 'tableau', 'powerbi', 'googlebigquery', 'looker']).describe("The target enterprise application slug"),
+    app: z.enum(['autodesk', 'yardi', 'realpage', 'costar', 'argus', 'addepar', 'carta', 'fiserv', 'factset', 'bloomberg', 'harvey', 'ironclad', 'relativity', 'onetrust', 'lexisnexis', 'veevavault', 'epic', 'athenahealth', 'elationhealth', 'iqvia', 'changehealthcare', 'coupa', 'ariba', 'flexport', 'samsara', 'workday', 'sap', 'adp', 'deel', 'netsuite', 'salesforce', 'servicenow', 'snowflake', 'hubspot', 'zendesk', 'datadog', 'pagerduty', 'hashicorp_vault', 'splunk', 'dynatrace', 'databricks', 'tableau', 'powerbi', 'googlebigquery', 'looker', 'shopify', 'adobe_experience', 'twilio_segment', 'marketo', 'exacttarget', 'okta', 'crowdstrike', 'sentinelone', 'zscaler', 'pingidentity', 'openai', 'weights_biases', 'huggingface', 'pinecone', 'sagemaker']).describe("The target enterprise application slug"),
     action: z.enum([
       'getBIM360ProjectSheets',
       'createBIM360RFI',
@@ -1044,7 +1044,37 @@ Input: The app slug name (autodesk, yardi, realpage, costar, argus, addepar, car
       'queryBigQueryWarehouse',
       'executeBigQueryDML',
       'getLookerSemanticModelSchema',
-      'updateLookerSemanticModel'
+      'updateLookerSemanticModel',
+      'getShopifyStoreAnalytics',
+      'updateShopifyStoreInventory',
+      'getAdobeCustomerProfile',
+      'updateAdobeAssetMetadata',
+      'getSegmentUserEvents',
+      'syncSegmentAudienceCohort',
+      'getMarketoLeadScore',
+      'triggerMarketoEmailCampaign',
+      'getExactTargetSubscriberDetails',
+      'triggerExactTargetJourney',
+      'getOktaUserDirectory',
+      'deprovisionOktaUser',
+      'getCrowdStrikeThreatDetections',
+      'isolateCrowdStrikeEndpoint',
+      'getSentinelOneThreatIndicators',
+      'remediateSentinelOneThreat',
+      'getZscalerNetworkTrafficLogs',
+      'updateZscalerAccessControlRule',
+      'getPingAuthSessionTelemetry',
+      'revokePingSessionKey',
+      'getOpenAIAssistantUsage',
+      'createOpenAIFinetuningJob',
+      'getWandBExperimentRuns',
+      'stopWandBExperimentRun',
+      'getHuggingFaceModelMetadata',
+      'deployHuggingFaceEndpoint',
+      'getPineconeIndexStats',
+      'deletePineconeIndexNamespace',
+      'getSageMakerModelEndpoints',
+      'scaleSageMakerEndpoint'
     ]).describe("The action endpoint mapping to execute"),
     parameters: z.record(z.any()).default({}).describe("JSON key-value parameters matching the action arguments"),
     verified: z.boolean().optional().describe("Synchronous verification override flag for mutative operations")
