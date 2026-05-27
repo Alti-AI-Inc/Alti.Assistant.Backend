@@ -2985,6 +2985,168 @@ export function classifyMLOpsQuery(query) {
   return { isMLOps, confidence };
 }
 
+/**
+ * Classify whether a query is Computational Fluid Dynamics & Aerodynamics-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isFluidDynamics and confidence
+ */
+export function classifyFluidDynamicsQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isFluidDynamics: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const cfdKeywords = [
+    'fluid dynamics', 'aerodynamics', 'navier-stokes', 'reynolds number',
+    'boundary layer', 'turbulence modeling', 'mach number', 'cfd mesh'
+  ];
+
+  const matchCount = cfdKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isFluidDynamics = matchCount > 0;
+  const confidence = isFluidDynamics ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isFluidDynamics) {
+    console.log(`✈️ Computational Fluid Dynamics & Aerodynamics Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isFluidDynamics, confidence };
+}
+
+/**
+ * Classify whether a query is Endocrinology & Metabolic Disorders-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isEndocrinology and confidence
+ */
+export function classifyEndocrinologyQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isEndocrinology: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const endocrineKeywords = [
+    'endocrinology', 'pituitary adenoma', 'steroidogenesis', 'hormone signaling',
+    'thyroid hormone', 'insulin resistance'
+  ];
+
+  const matchCount = endocrineKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isEndocrinology = matchCount > 0;
+  const confidence = isEndocrinology ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isEndocrinology) {
+    console.log(`🩸 Endocrinology & Metabolic Disorders Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isEndocrinology, confidence };
+}
+
+/**
+ * Classify whether a query is Cryptography-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isCryptography and confidence
+ */
+export function classifyCryptographyQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isCryptography: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const cryptoKeywords = [
+    'cryptography', 'symmetric key', 'asymmetric key', 'elliptic curve',
+    'diffie-hellman', 'zero knowledge proof', 'post quantum', 'post-quantum'
+  ];
+
+  const matchCount = cryptoKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isCryptography = matchCount > 0;
+  const confidence = isCryptography ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isCryptography) {
+    console.log(`🔐 Cryptography Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isCryptography, confidence };
+}
+
+/**
+ * Classify whether a query is Behavioral Economics & Decision Theory-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isBehavioralEconomics and confidence
+ */
+export function classifyBehavioralEconomicsQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isBehavioralEconomics: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const behavioralKeywords = [
+    'behavioral economics', 'decision theory', 'prospect theory', 'loss aversion',
+    'anchoring bias', 'bounded rationality', 'nudge theory'
+  ];
+
+  const matchCount = behavioralKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isBehavioralEconomics = matchCount > 0;
+  const confidence = isBehavioralEconomics ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isBehavioralEconomics) {
+    console.log(`📈 Behavioral Economics & Decision Theory Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isBehavioralEconomics, confidence };
+}
+
+/**
+ * Classify whether a query is Seismology & Volcanology-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isSeismology and confidence
+ */
+export function classifySeismologyQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isSeismology: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const seismicKeywords = [
+    'seismology', 'volcanology', 'seismic wave', 'tectonic plate',
+    'richter scale', 'volcanic eruption', 'magma chamber'
+  ];
+
+  const matchCount = seismicKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isSeismology = matchCount > 0;
+  const confidence = isSeismology ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isSeismology) {
+    console.log(`🌋 Seismology & Volcanology Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isSeismology, confidence };
+}
+
+/**
+ * Classify whether a query is Compiler Design & PLT-related
+ * @param {string} query - The user query
+ * @returns {Object} - Result with isCompilerDesign and confidence
+ */
+export function classifyCompilerDesignQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { isCompilerDesign: false, confidence: 0 };
+  }
+
+  const lowerQuery = query.toLowerCase();
+  const compilerKeywords = [
+    'compiler design', 'lexical analysis', 'ast parsing', 'llvm pass',
+    'register allocation', 'type inference', 'hindley-milner'
+  ];
+
+  const matchCount = compilerKeywords.filter(keyword => lowerQuery.includes(keyword)).length;
+  const isCompilerDesign = matchCount > 0;
+  const confidence = isCompilerDesign ? Math.min(0.95, 0.7 + matchCount * 0.1) : 0;
+
+  if (isCompilerDesign) {
+    console.log(`💻 Compiler Design & PLT Classification: YES | Confidence: ${(confidence * 100).toFixed(1)}%`);
+  }
+
+  return { isCompilerDesign, confidence };
+}
+
 export default {
   classifyQuery,
   classifyQueryFast,
@@ -3066,4 +3228,10 @@ export default {
   classifyOrganicChemistryQuery,
   classifyGridInfrastructureQuery,
   classifyMLOpsQuery,
+  classifyFluidDynamicsQuery,
+  classifyEndocrinologyQuery,
+  classifyCryptographyQuery,
+  classifyBehavioralEconomicsQuery,
+  classifySeismologyQuery,
+  classifyCompilerDesignQuery,
 };

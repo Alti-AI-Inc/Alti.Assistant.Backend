@@ -80,6 +80,12 @@ import {
   classifyOrganicChemistryQuery,
   classifyGridInfrastructureQuery,
   classifyMLOpsQuery,
+  classifyFluidDynamicsQuery,
+  classifyEndocrinologyQuery,
+  classifyCryptographyQuery,
+  classifyBehavioralEconomicsQuery,
+  classifySeismologyQuery,
+  classifyCompilerDesignQuery,
 } from './services/queryClassifier.js';
 
 const rawGoogle = new GoogleCustomSearch({
@@ -306,6 +312,12 @@ export const googleSearch = new DynamicStructuredTool({
       const organicChemistryClass = classifyOrganicChemistryQuery(query);
       const gridInfrastructureClass = classifyGridInfrastructureQuery(query);
       const mlopsClass = classifyMLOpsQuery(query);
+      const fluidDynamicsClass = classifyFluidDynamicsQuery(query);
+      const endocrinologyClass = classifyEndocrinologyQuery(query);
+      const cryptographyClass = classifyCryptographyQuery(query);
+      const behavioralEconomicsClass = classifyBehavioralEconomicsQuery(query);
+      const seismologyClass = classifySeismologyQuery(query);
+      const compilerDesignClass = classifyCompilerDesignQuery(query);
 
       if (academicClass.isAcademic) {
         console.log('🎓 Academic search query detected. Appending scientific site-restrictions...');
@@ -523,6 +535,24 @@ export const googleSearch = new DynamicStructuredTool({
       } else if (mlopsClass.isMLOps) {
         console.log('🤖 MLOps search query detected. Appending MLOps site-restrictions...');
         finalQuery = `${finalQuery} (site:mlops.community OR site:arxiv.org OR site:medium.com/tag/mlops OR site:github.com OR site:kubernetes.io OR site:huggingface.co)`;
+      } else if (fluidDynamicsClass.isFluidDynamics) {
+        console.log('✈️ Computational Fluid Dynamics search query detected. Appending CFD site-restrictions...');
+        finalQuery = `${finalQuery} (site:cfd-online.com OR site:nasa.gov OR site:arxiv.org/archive/physics.flu-dyn OR site:sciencedirect.com OR site:journals.aps.org/prfluids OR site:ieee.org)`;
+      } else if (endocrinologyClass.isEndocrinology) {
+        console.log('🩸 Endocrinology search query detected. Appending endocrinology site-restrictions...');
+        finalQuery = `${finalQuery} (site:endocrine.org OR site:ncbi.nlm.nih.gov/pmc OR site:nature.com/nrendo OR site:who.int OR site:pubmed.ncbi.nlm.nih.gov OR site:diabetesjournals.org)`;
+      } else if (cryptographyClass.isCryptography) {
+        console.log('🔐 Cryptography search query detected. Appending cryptography site-restrictions...');
+        finalQuery = `${finalQuery} (site:iacr.org OR site:arxiv.org/archive/cs.cr OR site:nist.gov OR site:crypto.stackexchange.com OR site:github.com OR site:schneier.com)`;
+      } else if (behavioralEconomicsClass.isBehavioralEconomics) {
+        console.log('📈 Behavioral Economics search query detected. Appending behavioral economics site-restrictions...');
+        finalQuery = `${finalQuery} (site:nber.org OR site:nobelprize.org OR site:sciencedirect.com OR site:aeaweb.org OR site:behavioraleconomics.com OR site:nature.com/nature-human-behaviour)`;
+      } else if (seismologyClass.isSeismology) {
+        console.log('🌋 Seismology & Volcanology search query detected. Appending seismology site-restrictions...');
+        finalQuery = `${finalQuery} (site:usgs.gov OR site:iris.edu OR site:volcano.si.edu OR site:sciencedirect.com OR site:nature.com/ngeo OR site:agu.org)`;
+      } else if (compilerDesignClass.isCompilerDesign) {
+        console.log('💻 Compiler Design & PLT search query detected. Appending compiler design site-restrictions...');
+        finalQuery = `${finalQuery} (site:llvm.org OR site:arxiv.org/archive/cs.PL OR site:github.com OR site:gcc.gnu.org OR site:sigplan.org OR site:dspace.mit.edu)`;
       }
     }
 

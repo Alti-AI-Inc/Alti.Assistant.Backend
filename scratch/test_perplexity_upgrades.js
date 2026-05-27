@@ -71,6 +71,12 @@ import {
   classifyOrganicChemistryQuery,
   classifyGridInfrastructureQuery,
   classifyMLOpsQuery,
+  classifyFluidDynamicsQuery,
+  classifyEndocrinologyQuery,
+  classifyCryptographyQuery,
+  classifyBehavioralEconomicsQuery,
+  classifySeismologyQuery,
+  classifyCompilerDesignQuery,
 } from '../src/app/modules/search/services/queryClassifier.js';
 import { executeGroundedSearchStream } from '../src/app/modules/search/services/geminiGroundingService.js';
 import { executeToolBasedConversation } from '../src/app/modules/search/services/reactAgent.js';
@@ -681,7 +687,55 @@ async function runTests() {
   assert.strictEqual(mlopsResult.isMLOps, true);
   console.log('✅ Test 74 Passed!');
 
-  console.log('\n🎉 ALL BATCH 1 TO BATCH 12 TESTS COMPLETED SUCCESSFULLY!');
+  // Test 75: Computational Fluid Dynamics & Aerodynamics Intent Classification (Batch 13)
+  console.log('\n🧪 Test 75: Computational Fluid Dynamics & Aerodynamics Intent Classification (Batch 13)');
+  const fluidQuery = 'Solve Navier-Stokes equations inside boundary layer CFD meshes.';
+  const fluidResult = classifyFluidDynamicsQuery(fluidQuery);
+  console.log('Result:', fluidResult);
+  assert.strictEqual(fluidResult.isFluidDynamics, true);
+  console.log('✅ Test 75 Passed!');
+
+  // Test 76: Endocrinology & Metabolic Disorders Intent Classification (Batch 13)
+  console.log('\n🧪 Test 76: Endocrinology & Metabolic Disorders Intent Classification (Batch 13)');
+  const endocrineQuery = 'Analyze hypothalamic pituitary endocrinology, insulin resistance, and steroidogenesis hormone loops.';
+  const endocrineResult = classifyEndocrinologyQuery(endocrineQuery);
+  console.log('Result:', endocrineResult);
+  assert.strictEqual(endocrineResult.isEndocrinology, true);
+  console.log('✅ Test 76 Passed!');
+
+  // Test 77: Symmetric & Asymmetric Cryptography Intent Classification (Batch 13)
+  console.log('\n🧪 Test 77: Symmetric & Asymmetric Cryptography Intent Classification (Batch 13)');
+  const cryptographyQuery = 'Design zero knowledge proof ECC elliptic curves and Diffie-Hellman cryptographic handshakes.';
+  const cryptographyResult = classifyCryptographyQuery(cryptographyQuery);
+  console.log('Result:', cryptographyResult);
+  assert.strictEqual(cryptographyResult.isCryptography, true);
+  console.log('✅ Test 77 Passed!');
+
+  // Test 78: Behavioral Economics & Decision Theory Intent Classification (Batch 13)
+  console.log('\n🧪 Test 78: Behavioral Economics & Decision Theory Intent Classification (Batch 13)');
+  const behavioralQuery = 'Explain Prospect Theory value functions, nudge theory, loss aversion, and bounded rationality.';
+  const behavioralResult = classifyBehavioralEconomicsQuery(behavioralQuery);
+  console.log('Result:', behavioralResult);
+  assert.strictEqual(behavioralResult.isBehavioralEconomics, true);
+  console.log('✅ Test 78 Passed!');
+
+  // Test 79: Seismology & Volcanology Intent Classification (Batch 13)
+  console.log('\n🧪 Test 79: Seismology & Volcanology Intent Classification (Batch 13)');
+  const seismicQuery = 'Measure seismic waves, tectonic plate richter scales, and volcanic eruptions magma viscosity.';
+  const seismicResult = classifySeismologyQuery(seismicQuery);
+  console.log('Result:', seismicResult);
+  assert.strictEqual(seismicResult.isSeismology, true);
+  console.log('✅ Test 79 Passed!');
+
+  // Test 80: Compiler Design & Programming Language Theory Intent Classification (Batch 13)
+  console.log('\n🧪 Test 80: Compiler Design & Programming Language Theory Intent Classification (Batch 13)');
+  const compilerQuery = 'Develop lexical analysis AST parsers, Hindley-Milner type inference, and LLVM pass allocations.';
+  const compilerResult = classifyCompilerDesignQuery(compilerQuery);
+  console.log('Result:', compilerResult);
+  assert.strictEqual(compilerResult.isCompilerDesign, true);
+  console.log('✅ Test 80 Passed!');
+
+  console.log('\n🎉 ALL BATCH 1 TO BATCH 13 TESTS COMPLETED SUCCESSFULLY!');
 }
 
 runTests().catch(err => {

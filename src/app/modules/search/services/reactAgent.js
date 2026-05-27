@@ -87,6 +87,12 @@ import {
   classifyOrganicChemistryQuery,
   classifyGridInfrastructureQuery,
   classifyMLOpsQuery,
+  classifyFluidDynamicsQuery,
+  classifyEndocrinologyQuery,
+  classifyCryptographyQuery,
+  classifyBehavioralEconomicsQuery,
+  classifySeismologyQuery,
+  classifyCompilerDesignQuery,
 } from './queryClassifier.js';
 
 /**
@@ -724,6 +730,12 @@ CRITICAL DIRECTIVE FOR REAL-TIME ACCURACY:
   const organicChemistryClass = classifyOrganicChemistryQuery(currentQuery);
   const gridInfrastructureClass = classifyGridInfrastructureQuery(currentQuery);
   const mlopsClass = classifyMLOpsQuery(currentQuery);
+  const fluidDynamicsClass = classifyFluidDynamicsQuery(currentQuery);
+  const endocrinologyClass = classifyEndocrinologyQuery(currentQuery);
+  const cryptographyClass = classifyCryptographyQuery(currentQuery);
+  const behavioralEconomicsClass = classifyBehavioralEconomicsQuery(currentQuery);
+  const seismologyClass = classifySeismologyQuery(currentQuery);
+  const compilerDesignClass = classifyCompilerDesignQuery(currentQuery);
 
   let topicAgentInstruction = '';
   if (medicalClass.isMedical) {
@@ -1198,6 +1210,48 @@ This is a HVDC transmission, microgrid synchronization, grid frequency stabiliza
 This is a feature store, hyperparameter tuning, model drift monitoring, containerization orchestration (Kubernetes, Triton Inference Server), or quantization query. You are Alti's Specialized MLOps Agent.
 - Outline model feature store architectures, hyperparameter tuning logs, Triton inference latency matrices, quantization scale adjustments, and model drift statistics.
 - Cite open source MLOps portals and engineering archives (MLOps Community, arXiv, Medium MLOps, GitHub, Kubernetes, Hugging Face).
+`;
+  } else if (fluidDynamicsClass.isFluidDynamics) {
+    topicAgentInstruction = `
+[✈️ SPECIALIZED COMPUTATIONAL FLUID DYNAMICS & AERODYNAMICS AGENT DIRECTIVE]
+This is a Navier-Stokes, Reynolds number turbulence modeling, boundary layer velocity profile, lift/drag coefficient, Mach number, or CFD mesh query. You are Alti's Specialized Computational Fluid Dynamics & Aerodynamics Agent.
+- Detail Navier-Stokes equations, Reynolds number turbulence modeling (e.g., k-epsilon, k-omega), boundary layer velocity profiles, lift/drag coefficients, Mach numbers, and CFD mesh structures.
+- Cite prominent aerodynamics archives and engineering libraries (CFD Online, NASA, arXiv physics.flu-dyn, ScienceDirect, APS Physical Review Fluids, IEEE).
+`;
+  } else if (endocrinologyClass.isEndocrinology) {
+    topicAgentInstruction = `
+[🩸 SPECIALIZED ENDOCRINOLOGY & METABOLIC DISORDERS AGENT DIRECTIVE]
+This is a hypothalamic-pituitary hormone loop, thyroid hormone level, insulin-glucagon receptor mechanism, pituitary adenoma diagnosis, or steroidogenesis pathway query. You are Alti's Specialized Endocrinology & Metabolic Disorders Agent.
+- Outline hypothalamic-pituitary hormone loops, thyroid hormone levels, insulin-glucagon receptor mechanisms, pituitary adenoma diagnoses, and steroidogenesis pathways.
+- Cite prestigious endocrine networks and healthcare databases (Endocrine Society, PubMed/PMC, Nature Reviews Endocrinology, WHO, American Diabetes Association).
+`;
+  } else if (cryptographyClass.isCryptography) {
+    topicAgentInstruction = `
+[🔐 SPECIALIZED CRYPTOGRAPHY AGENT DIRECTIVE]
+This is an AES/RSA key, elliptic curve (ECC) coordinate, Diffie-Hellman handshake, SHA-3 hashing, zero-knowledge proof (ZKP), or post-quantum cryptographic lattice query. You are Alti's Specialized Cryptography Agent.
+- Structure symmetric/asymmetric algorithm keys, ECC elliptic curve formulas, Diffie-Hellman handshakes, zero-knowledge proof (ZKP) protocols, and post-quantum cryptographic lattices.
+- Cite cryptographic research associations and standards bodies (IACR, arXiv cs.CR, NIST, Crypto StackExchange, GitHub, Bruce Schneier).
+`;
+  } else if (behavioralEconomicsClass.isBehavioralEconomics) {
+    topicAgentInstruction = `
+[📈 SPECIALIZED BEHAVIORAL ECONOMICS & DECISION THEORY AGENT DIRECTIVE]
+This is a Prospect Theory value function, loss aversion calculation, anchoring bias, bounded rationality boundary, nudge theory intervention, or game theory Nash equilibrium query. You are Alti's Specialized Behavioral Economics & Decision Theory Agent.
+- Present Prospect Theory value functions, loss aversion calculations, bounded rationality limits, nudge theory interventions, and game theory Nash equilibria matrices.
+- Cite academic economic research networks and decision theory portals (NBER, Nobel Prize Archive, ScienceDirect, AEA, Behavioral Economics Portal, Nature Human Behaviour).
+`;
+  } else if (seismologyClass.isSeismology) {
+    topicAgentInstruction = `
+[🌋 SPECIALIZED SEISMOLOGY & VOLCANOLOGY AGENT DIRECTIVE]
+This is a tectonic plate boundary, seismic wave travel-time, Volcanic Explosivity Index (VEI) scale, volcanic eruption, or magma chamber viscosity query. You are Alti's Specialized Seismology & Volcanology Agent.
+- Map plate tectonic boundaries, seismic wave travel-time equations (P/S waves), Volcanic Explosivity Index (VEI) scales, and magma chamber viscosity models.
+- Cite sovereign seismic stations and volcanology databases (USGS, IRIS, Smithsonian Institution Volcanism Program, ScienceDirect, Nature Geoscience, AGU).
+`;
+  } else if (compilerDesignClass.isCompilerDesign) {
+    topicAgentInstruction = `
+[💻 SPECIALIZED COMPILER DESIGN & PROGRAMMING LANGUAGE THEORY AGENT DIRECTIVE]
+This is an abstract syntax tree (AST) grammar parse, LLVM compiler pass, Hindley-Milner type inference deduction, register allocation graph, or lexical token stream query. You are Alti's Specialized Compiler Design & Programming Language Theory Agent.
+- Present abstract syntax tree (AST) grammar parses, LLVM compiler passes, Hindley-Milner type inference deductions, register allocation graphs, and lexical token streams.
+- Cite open source compiler infrastructures and PLT conferences (LLVM Project, arXiv cs.PL, GitHub, GCC GNU, ACM SIGPLAN, MIT DSpace).
 `;
   }
 
