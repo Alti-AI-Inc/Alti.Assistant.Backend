@@ -9,9 +9,9 @@ const llm = new ChatGoogleGenerativeAI({
   maxRetries: 2,
 });
 
-export const runSimpleGroqTask = async (state, stream = false) => {
+export const runSimpleGeminiResearchTask = async (state, stream = false) => {
   try {
-    console.log('Running Groq task with search results:', state.searchResults);
+    console.log('Running Gemini deep research task with search results:', state.searchResults);
 
     const query = `
     Think you are an expert research assistant.
@@ -47,12 +47,12 @@ export const runSimpleGroqTask = async (state, stream = false) => {
     const response = await llm.invoke(messages);
     return response.content;
   } catch (error) {
-    console.error('Error calling Groq API:', error);
+    console.error('Error calling Gemini deep research API:', error);
     return 'Sorry, I encountered an error while processing your request with the coding model. Please try again.';
   }
 };
 
-export const runGroqTask = async (systemPrompt, messages, stream = false) => {
+export const runGeminiResearchTask = async (systemPrompt, messages, stream = false) => {
   try {
     // Convert messages to proper LangChain message format
     const formattedMessages = [
@@ -70,14 +70,14 @@ export const runGroqTask = async (systemPrompt, messages, stream = false) => {
 
     if (stream) {
       const response = await llm.stream(formattedMessages);
-      console.log('Streaming response from Groq API...', response);
+      console.log('Streaming response from Gemini deep research API...', response);
       return response; // Return the stream object directly
     } else {
       const response = await llm.invoke(formattedMessages);
       return response.content;
     }
   } catch (error) {
-    console.error('Error calling Groq API:', error);
+    console.error('Error calling Gemini deep research API:', error);
     return 'Sorry, I encountered an error while processing your request with the coding model. Please try again.';
   }
 };

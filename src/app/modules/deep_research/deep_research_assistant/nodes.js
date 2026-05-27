@@ -1,4 +1,4 @@
-import { runGroqTask } from '../services/groqService.js';
+import { runGeminiResearchTask } from '../services/geminiResearchService.js';
 import { TavilySearchTool } from '../utils/tavily-utils.js';
 import { generatePDFReport, savePDFToFile } from '../services/pdfService.js';
 import { saveResearchResult } from '../services/researchStorageService.js';
@@ -187,7 +187,7 @@ Identify 5-8 promising research leads that warrant deep investigation. For each 
 
 Format your response as a JSON array of lead objects.`;
 
-    const leadsAnalysis = await runGroqTask(
+    const leadsAnalysis = await runGeminiResearchTask(
       analysisPrompt,
       [
         {
@@ -500,7 +500,7 @@ ${conflictSection}
 
 Use markdown formatting, include proper citations [1], [2], etc., and ensure the report is comprehensive yet readable.`;
 
-    const finalReport = await runGroqTask(
+    const finalReport = await runGeminiResearchTask(
       synthesisPrompt,
       [
         {
@@ -767,7 +767,7 @@ Estimate the number of steps and complexity level (1-10) for comprehensive resea
 Return a JSON object with: estimatedSteps, complexityLevel, suggestedDepth, timeEstimate`;
 
   try {
-    const plan = await runGroqTask(planPrompt, [], false);
+    const plan = await runGeminiResearchTask(planPrompt, [], false);
     return JSON.parse(plan);
   } catch (error) {
     return {
@@ -793,7 +793,7 @@ Each query should explore different aspects, angles, or related concepts. Includ
 Return as a JSON array of query strings.`;
 
   try {
-    const queries = await runGroqTask(queriesPrompt, [], false);
+    const queries = await runGeminiResearchTask(queriesPrompt, [], false);
     const cleanQueries = queries.replace(/```json\s*|\s*```/g, '').trim();
     return JSON.parse(cleanQueries);
   } catch (error) {
@@ -820,7 +820,7 @@ Create queries that will uncover detailed, specific information about this lead.
 Return as a JSON array of query strings.`;
 
   try {
-    const queries = await runGroqTask(deepQueriesPrompt, [], false);
+    const queries = await runGeminiResearchTask(deepQueriesPrompt, [], false);
     const cleanQueries = queries.replace(/```json\s*|\s*```/g, '').trim();
     return JSON.parse(cleanQueries);
   } catch (error) {
@@ -854,7 +854,7 @@ Results: ${search.results.length} sources found
 Provide a comprehensive analysis of what was discovered about this lead. Include key insights, evidence, and how it relates to the original query.`;
 
   try {
-    return await runGroqTask(synthesisPrompt, [], false);
+    return await runGeminiResearchTask(synthesisPrompt, [], false);
   } catch (error) {
     return `Analysis failed for lead: ${lead.title}`;
   }
@@ -1325,7 +1325,7 @@ Simulate a structured, highly clinical, sharp, and constructive round-robin deba
 Format your output as a clean markdown document with clear headings for each persona's critique and a final section for consensus recommendations.`;
 
   try {
-    const debateTranscript = await runGroqTask(debatePrompt, [
+    const debateTranscript = await runGeminiResearchTask(debatePrompt, [
       {
         role: 'user',
         content: 'Please conduct the Executive Board Debate on the draft report.',
@@ -1401,7 +1401,7 @@ Re-synthesize and rewrite the report to perfectly resolve every point of strateg
 Produce the absolute best, most premium, PhD-grade final version of the report. Keep markdown formatting and all citations intact.`;
 
   try {
-    const refinedReport = await runGroqTask(refinePrompt, [
+    const refinedReport = await runGeminiResearchTask(refinePrompt, [
       {
         role: 'user',
         content: 'Please revise and finalize the report incorporating the executive board debate consensus.',
