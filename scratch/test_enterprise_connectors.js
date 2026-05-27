@@ -282,8 +282,57 @@ async function runTests() {
     { app: 'persefoni', action: 'getPersefoniEmissionsScorecard', params: {} },
     { app: 'sweep', action: 'getSweepActionPlan', params: {} },
     { app: 'msci_esg', action: 'getMSCIESGRatings', params: {} },
-    { app: 'net_zero_cloud', action: 'getNetZeroCloudOffsetCredits', params: {} }
+    { app: 'net_zero_cloud', action: 'getNetZeroCloudOffsetCredits', params: {} },
+    // Phase 23: Business Comm
+    { app: 'gmail', action: 'getGmailEmails', params: {} },
+    { app: 'outlook', action: 'getOutlookEmails', params: {} },
+    { app: 'zoom', action: 'getZoomMeetings', params: {} },
+    { app: 'webex', action: 'getWebexMeetings', params: {} },
+    { app: 'msteams', action: 'getTeamsChannels', params: {} },
+    // Phase 24: Cloud Databases
+    { app: 'mongodb', action: 'getMongoDBCollections', params: {} },
+    { app: 'dynamodb', action: 'getDynamoDBTables', params: {} },
+    { app: 'postgres', action: 'getPostgresSchemas', params: {} },
+    { app: 'mysql', action: 'getMySQLSchemas', params: {} },
+    { app: 'redis', action: 'getRedisKeys', params: {} },
+    // Phase 25: Version Control
+    { app: 'github', action: 'getGitHubRepositories', params: {} },
+    { app: 'gitlab', action: 'getGitLabProjects', params: {} },
+    { app: 'bitbucket', action: 'getBitbucketRepositories', params: {} },
+    { app: 'circleci', action: 'getCircleCIPipelines', params: {} },
+    { app: 'jenkins', action: 'getJenkinsJobs', params: {} },
+    // Phase 26: Agile/Project Mgmt
+    { app: 'jira', action: 'getJiraIssues', params: {} },
+    { app: 'asana', action: 'getAsanaTasks', params: {} },
+    { app: 'monday', action: 'getMondayBoards', params: {} },
+    { app: 'trello', action: 'getTrelloBoards', params: {} },
+    { app: 'clickup', action: 'getClickUpLists', params: {} },
+    // Phase 27: Marketing & Ads
+    { app: 'google_ads', action: 'getGoogleAdsCampaigns', params: {} },
+    { app: 'facebook_ads', action: 'getFacebookAdsCampaigns', params: {} },
+    { app: 'linkedin_ads', action: 'getLinkedInAdsCampaigns', params: {} },
+    { app: 'twitter_x', action: 'getTwitterTweets', params: {} },
+    { app: 'mailchimp', action: 'getMailchimpCampaigns', params: {} },
+    // Phase 28: Feedback & Surveys
+    { app: 'surveymonkey', action: 'getSurveyMonkeySurveys', params: {} },
+    { app: 'typeform', action: 'getTypeformForms', params: {} },
+    { app: 'satismeter', action: 'getSatisMeterFeedback', params: {} },
+    { app: 'freshdesk', action: 'getFreshdeskTickets', params: {} },
+    { app: 'hubspot_feedback', action: 'getHubSpotFeedback', params: {} },
+    // Phase 29: Cloud Storage
+    { app: 'aws_s3', action: 'getS3Buckets', params: {} },
+    { app: 'google_storage', action: 'getGCSBuckets', params: {} },
+    { app: 'azure_blob', action: 'getAzureContainers', params: {} },
+    { app: 'dropbox', action: 'getDropboxFiles', params: {} },
+    { app: 'google_drive', action: 'getDriveFiles', params: {} },
+    // Phase 30: AI Registry
+    { app: 'replicate', action: 'getReplicateModels', params: {} },
+    { app: 'langsmith', action: 'getLangSmithTraces', params: {} },
+    { app: 'mlflow', action: 'getMLflowExperiments', params: {} },
+    { app: 'cohere', action: 'getCohereModels', params: {} },
+    { app: 'langchain_hub', action: 'getHubPrompts', params: {} }
   ];
+
 
   for (const item of readActions) {
     const connector = new EnterpriseConnector(item.app, 'test-tenant');
@@ -368,8 +417,57 @@ async function runTests() {
     { app: 'ibm_maximo', action: 'createMaximoEmergencyWorkOrder', params: { buildingId: 'BLDG-HQ-DETROIT' } },
     { app: 'siemens_desigo', action: 'overrideSiemensHVACTemperature', params: { hvacId: 'hvac-sd-99', temperature: 20.5 } },
     { app: 'watershed', action: 'publishWatershedESGReport', params: {} },
-    { app: 'net_zero_cloud', action: 'allocateNetZeroOffsetCredits', params: { credits: 10000 } }
+    { app: 'net_zero_cloud', action: 'allocateNetZeroOffsetCredits', params: { credits: 10000 } },
+    // Phase 23: Business Comm
+    { app: 'gmail', action: 'sendGmailEmail', params: { recipient: 'ceo@alti.com' } },
+    { app: 'outlook', action: 'sendOutlookEmail', params: { recipient: 'board@alti.com' } },
+    { app: 'zoom', action: 'createZoomMeeting', params: { topic: 'Q2 Strategy' } },
+    { app: 'webex', action: 'deleteWebexMeeting', params: { meetingId: 'wx-101' } },
+    { app: 'msteams', action: 'postTeamsMessage', params: { channelId: 'general', message: 'Hello Teams' } },
+    // Phase 24: Cloud Databases
+    { app: 'mongodb', action: 'dropMongoDBCollection', params: { collection: 'users' } },
+    { app: 'dynamodb', action: 'deleteDynamoDBTable', params: { table: 'UserSessions' } },
+    { app: 'postgres', action: 'executePostgresQuery', params: { query: 'DROP TABLE users;' } },
+    { app: 'mysql', action: 'executeMySQLQuery', params: { query: 'DROP TABLE orders;' } },
+    { app: 'redis', action: 'flushRedisDatabase', params: {} },
+    // Phase 25: Version Control
+    { app: 'github', action: 'deleteGitHubRepository', params: { repository: 'alti-core' } },
+    { app: 'gitlab', action: 'deleteGitLabProject', params: { project: 'alti-pipeline' } },
+    { app: 'bitbucket', action: 'deleteBitbucketRepository', params: { repository: 'alti-secure' } },
+    { app: 'circleci', action: 'triggerCircleCIPipeline', params: { branch: 'main' } },
+    { app: 'jenkins', action: 'triggerJenkinsJob', params: { jobName: 'deploy-prod' } },
+    // Phase 26: Agile/Project Mgmt
+    { app: 'jira', action: 'deleteJiraProject', params: { projectId: 'AL-123' } },
+    { app: 'asana', action: 'deleteAsanaProject', params: { projectId: 'as-proj-99' } },
+    { app: 'monday', action: 'deleteMondayBoard', params: { boardId: 'mb-board-88' } },
+    { app: 'trello', action: 'deleteTrelloBoard', params: { boardId: 'tb-board-77' } },
+    { app: 'clickup', action: 'deleteClickUpList', params: { listId: 'cu-list-66' } },
+    // Phase 27: Marketing & Ads
+    { app: 'google_ads', action: 'adjustGoogleAdsBudget', params: { campaignId: 'ga-1', budget: 500 } },
+    { app: 'facebook_ads', action: 'adjustFacebookAdsBudget', params: { campaignId: 'fb-1', budget: 600 } },
+    { app: 'linkedin_ads', action: 'adjustLinkedInAdsBudget', params: { campaignId: 'li-1', budget: 1000 } },
+    { app: 'twitter_x', action: 'postTwitterTweet', params: { text: 'AI swarms are real' } },
+    { app: 'mailchimp', action: 'sendMailchimpCampaign', params: { campaignId: 'mc-1' } },
+    // Phase 28: Feedback & Surveys
+    { app: 'surveymonkey', action: 'deleteSurveyMonkeySurvey', params: { surveyId: 'sm-1' } },
+    { app: 'typeform', action: 'deleteTypeformForm', params: { formId: 'tf-1' } },
+    { app: 'satismeter', action: 'deleteSatisMeterProject', params: { projectId: 'sm-proj' } },
+    { app: 'freshdesk', action: 'deleteFreshdeskTicket', params: { ticketId: 'fd-1' } },
+    { app: 'hubspot_feedback', action: 'deleteHubSpotFeedback', params: { submissionId: 'hs-1' } },
+    // Phase 29: Cloud Storage
+    { app: 'aws_s3', action: 'deleteS3Bucket', params: { bucketName: 'alti-temp' } },
+    { app: 'google_storage', action: 'deleteGCSBucket', params: { bucketName: 'alti-gcp-temp' } },
+    { app: 'azure_blob', action: 'deleteAzureContainer', params: { containerName: 'alti-azure-temp' } },
+    { app: 'dropbox', action: 'deleteDropboxFolder', params: { folderPath: '/temp' } },
+    { app: 'google_drive', action: 'deleteDriveFile', params: { fileId: 'gd-1' } },
+    // Phase 30: AI Registry
+    { app: 'replicate', action: 'cancelReplicatePrediction', params: { predictionId: 'rep-1' } },
+    { app: 'langsmith', action: 'deleteLangSmithProject', params: { projectName: 'alti-debug' } },
+    { app: 'mlflow', action: 'deleteMLflowRun', params: { runId: 'mlf-1' } },
+    { app: 'cohere', action: 'deployCohereModel', params: { modelId: 'command-r-plus' } },
+    { app: 'langchain_hub', action: 'deleteHubPrompt', params: { promptId: 'prompt-1' } }
   ];
+
 
   for (const item of mutativeActions) {
     const connector = new EnterpriseConnector(item.app, 'test-tenant');
@@ -501,8 +599,16 @@ async function runTests() {
       { app: 'cyberark', action: 'rotateCyberArkPrivilegedKey', parameters: { safeName: 'safe-1' }, verified: true },
       { app: 'ibm_maximo', action: 'getMaximoWorkOrders', parameters: {} },
       { app: 'ibm_maximo', action: 'createMaximoEmergencyWorkOrder', parameters: { buildingId: 'bldg-1' }, verified: true },
-      { app: 'watershed', action: 'getWatershedCarbonAnalytics', parameters: {} },
-      { app: 'watershed', action: 'publishWatershedESGReport', parameters: {}, verified: true }
+      { app: 'watershed', action: 'publishWatershedESGReport', parameters: {}, verified: true },
+      { app: 'gmail', action: 'getGmailEmails', parameters: {} },
+      { app: 'gmail', action: 'sendGmailEmail', parameters: { recipient: 'test@gmail.com' }, verified: true },
+      { app: 'mongodb', action: 'getMongoDBCollections', parameters: {} },
+      { app: 'mongodb', action: 'dropMongoDBCollection', parameters: { collection: 'test' }, verified: true },
+      { app: 'github', action: 'getGitHubRepositories', parameters: {} },
+      { app: 'github', action: 'deleteGitHubRepository', parameters: { repository: 'test' }, verified: true },
+      { app: 'google_ads', action: 'adjustGoogleAdsBudget', parameters: { campaignId: '123' }, verified: true },
+      { app: 'aws_s3', action: 'deleteS3Bucket', parameters: { bucketName: 'test' }, verified: true },
+      { app: 'mlflow', action: 'deleteMLflowRun', parameters: { runId: 'test' }, verified: true }
     ];
 
     for (const input of validInputs) {

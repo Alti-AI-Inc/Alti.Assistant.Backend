@@ -79,7 +79,7 @@ export function redactSensitiveData(payload) {
     for (const [key, value] of Object.entries(payload)) {
       // Direct key checks for standard sensitive columns
       const lowerKey = key.toLowerCase();
-      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt'].some(k => lowerKey.includes(k))) {
+      if (['ssn', 'socialsecurity', 'phone', 'phonenumber', 'email', 'patientname', 'medicalrecord', 'accountnumber', 'routingnumber', 'networth', 'balance', 'cardnumber', 'creditcard', 'cvv', 'taxid', 'ein', 'docketnumber', 'casenumber', 'litigant', 'plaintiff', 'defendant', 'judge', 'contractmetadata', 'privacyrequest', 'subjectemail', 'diagnosiscode', 'clinicalnote', 'prescription', 'rxnorm', 'subjectdob', 'eligibilitystatus', 'clinicalsummary', 'purchaseorder', 'driverlicense', 'fleetlocation', 'invoiceamount', 'customsdeclaration', 'sourcingbid', 'shipmentstatus', 'supplierprofile', 'compensation', 'salary', 'payrollrun', 'employeeprofile', 'generalledger', 'taxsummary', 'contractordetails', 'inventorylevels', 'leadphone', 'dealvalue', 'ipaddress', 'ticketlog', 'clientcredit', 'pipelinespot', 'incidentdetails', 'alertpayload', 'secretcontent', 'apmdetail', 'logmessage', 'incidentdescription', 'anomalysettings', 'credentialpayload', 'jobpayload', 'workbookcontent', 'dashboardsettings', 'sqlquery', 'semanticmodel', 'queryparams', 'dburi', 'cartdata', 'subscriberlist', 'trafficlogs', 'firewallschema', 'trainingpayload', 'finetuningdata', 'modelweights', 'indexmetadata', 'endpointurl', 'intranettoken', 'documenthierarchy', 'slackauthcookie', 'vendorbankdetail', 'corporatecardpan', 'invoicebillingaddress', 'socialsecurity', 'backgroundcheckdetails', 'performancecomments', 'billofmaterials', 'shippingcontainernumber', 'warehousecredentials', 'telephonyrecording', 'phonemetadata', 'voippassword', 'swiftbankcode', 'hedginglimit', 'cashsweepdetails', 'supplierbids', 'contractsignature', 'fieldglassworkerid', 'privilegedvaultsecret', 'samlauthassertion', 'cloudflarezoneid', 'buildingblueprint', 'metasyscriticalsystemurl', 'workordersignature', 'carbonoffsetsallocation', 'esgdisclosurepayload', 'offsetcreditreceipt', 'emailbody', 'emailsubject', 'attachmentcontent', 'teamsmessage', 'dbconnectionstring', 'tabledata', 'queryresult', 'githubtoken', 'gitlabtoken', 'deploykey', 'gitlabsecret', 'projectmetadata', 'jiraissuecomment', 'mondayboarddata', 'clickuptask', 'campaignanalytics', 'adspendbudget', 'leadslist', 'surveyresponses', 'feedbackcomments', 's3bucketcontent', 'gcsbucketcontent', 'azureblobcontent', 'dropboxfile', 'gdrivefile', 'modelprediction', 'langsmithtrace', 'mlflowrun', 'coherekey'].some(k => lowerKey.includes(k))) {
         cleaned[key] = '[REDACTED SENSITIVE FIELD]';
       } else {
         cleaned[key] = redactSensitiveData(value);
@@ -400,7 +400,47 @@ export class EnterpriseConnector {
       persefoni: { apiToken: 'mock_persefoni_token', endpoint: 'https://api.persefoni.com/v1' },
       sweep: { apiToken: 'mock_sweep_token', endpoint: 'https://api.sweep.net/v1' },
       msci_esg: { apiToken: 'mock_msciesg_token', endpoint: 'https://api.msci.com/v1' },
-      net_zero_cloud: { apiToken: 'mock_netzerocloud_token', endpoint: 'https://api.salesforce.com/v1' }
+      net_zero_cloud: { apiToken: 'mock_netzerocloud_token', endpoint: 'https://api.salesforce.com/v1' },
+      gmail: { apiToken: 'mock_gmail_token', endpoint: 'https://api.gmail.com/v1' },
+      outlook: { apiToken: 'mock_outlook_token', endpoint: 'https://api.outlook.com/v1' },
+      zoom: { apiToken: 'mock_zoom_token', endpoint: 'https://api.zoom.us/v1' },
+      webex: { apiToken: 'mock_webex_token', endpoint: 'https://api.webex.com/v1' },
+      msteams: { apiToken: 'mock_msteams_token', endpoint: 'https://api.teams.microsoft.com/v1' },
+      mongodb: { apiToken: 'mock_mongodb_token', endpoint: 'https://api.mongodb.com/v1' },
+      dynamodb: { apiToken: 'mock_dynamodb_token', endpoint: 'https://api.dynamodb.com/v1' },
+      postgres: { apiToken: 'mock_postgres_token', endpoint: 'https://api.postgres.com/v1' },
+      mysql: { apiToken: 'mock_mysql_token', endpoint: 'https://api.mysql.com/v1' },
+      redis: { apiToken: 'mock_redis_token', endpoint: 'https://api.redis.com/v1' },
+      github: { apiToken: 'mock_github_token', endpoint: 'https://api.github.com/v1' },
+      gitlab: { apiToken: 'mock_gitlab_token', endpoint: 'https://api.gitlab.com/v1' },
+      bitbucket: { apiToken: 'mock_bitbucket_token', endpoint: 'https://api.bitbucket.com/v1' },
+      circleci: { apiToken: 'mock_circleci_token', endpoint: 'https://api.circleci.com/v1' },
+      jenkins: { apiToken: 'mock_jenkins_token', endpoint: 'https://api.jenkins.io/v1' },
+      jira: { apiToken: 'mock_jira_token', endpoint: 'https://api.jira.com/v1' },
+      asana: { apiToken: 'mock_asana_token', endpoint: 'https://api.asana.com/v1' },
+      monday: { apiToken: 'mock_monday_token', endpoint: 'https://api.monday.com/v1' },
+      trello: { apiToken: 'mock_trello_token', endpoint: 'https://api.trello.com/v1' },
+      clickup: { apiToken: 'mock_clickup_token', endpoint: 'https://api.clickup.com/v1' },
+      google_ads: { apiToken: 'mock_googleads_token', endpoint: 'https://api.googleads.com/v1' },
+      facebook_ads: { apiToken: 'mock_facebookads_token', endpoint: 'https://api.facebookads.com/v1' },
+      linkedin_ads: { apiToken: 'mock_linkedinads_token', endpoint: 'https://api.linkedinads.com/v1' },
+      twitter_x: { apiToken: 'mock_twitterx_token', endpoint: 'https://api.twitterx.com/v1' },
+      mailchimp: { apiToken: 'mock_mailchimp_token', endpoint: 'https://api.mailchimp.com/v1' },
+      surveymonkey: { apiToken: 'mock_surveymonkey_token', endpoint: 'https://api.surveymonkey.com/v1' },
+      typeform: { apiToken: 'mock_typeform_token', endpoint: 'https://api.typeform.com/v1' },
+      satismeter: { apiToken: 'mock_satismeter_token', endpoint: 'https://api.satismeter.com/v1' },
+      freshdesk: { apiToken: 'mock_freshdesk_token', endpoint: 'https://api.freshdesk.com/v1' },
+      hubspot_feedback: { apiToken: 'mock_hubspotfeedback_token', endpoint: 'https://api.hubspot.com/v1' },
+      aws_s3: { apiToken: 'mock_s3_token', endpoint: 'https://api.s3.amazonaws.com/v1' },
+      google_storage: { apiToken: 'mock_gcs_token', endpoint: 'https://api.gcs.com/v1' },
+      azure_blob: { apiToken: 'mock_azureblob_token', endpoint: 'https://api.azureblob.com/v1' },
+      dropbox: { apiToken: 'mock_dropbox_token', endpoint: 'https://api.dropbox.com/v1' },
+      google_drive: { apiToken: 'mock_gdrive_token', endpoint: 'https://api.googledrive.com/v1' },
+      replicate: { apiToken: 'mock_replicate_token', endpoint: 'https://api.replicate.com/v1' },
+      langsmith: { apiToken: 'mock_langsmith_token', endpoint: 'https://api.langsmith.com/v1' },
+      mlflow: { apiToken: 'mock_mlflow_token', endpoint: 'https://api.mlflow.com/v1' },
+      cohere: { apiToken: 'mock_cohere_token', endpoint: 'https://api.cohere.ai/v1' },
+      langchain_hub: { apiToken: 'mock_lchub_token', endpoint: 'https://api.langchain.com/v1' }
     };
 
     return credentials[this.appSlug] || { endpoint: 'https://api.mock-connector.local' };
@@ -486,7 +526,15 @@ export class EnterpriseConnector {
       'createMaximoEmergencyWorkOrder',
       'overrideSiemensHVACTemperature',
       'publishWatershedESGReport',
-      'allocateNetZeroOffsetCredits'
+      'allocateNetZeroOffsetCredits',
+      'sendGmailEmail', 'sendOutlookEmail', 'createZoomMeeting', 'deleteWebexMeeting', 'postTeamsMessage',
+      'dropMongoDBCollection', 'deleteDynamoDBTable', 'executePostgresQuery', 'executeMySQLQuery', 'flushRedisDatabase',
+      'deleteGitHubRepository', 'deleteGitLabProject', 'deleteBitbucketRepository', 'triggerCircleCIPipeline', 'triggerJenkinsJob',
+      'deleteJiraProject', 'deleteAsanaProject', 'deleteMondayBoard', 'deleteTrelloBoard', 'deleteClickUpList',
+      'adjustGoogleAdsBudget', 'adjustFacebookAdsBudget', 'adjustLinkedInAdsBudget', 'postTwitterTweet', 'sendMailchimpCampaign',
+      'deleteSurveyMonkeySurvey', 'deleteTypeformForm', 'deleteSatisMeterProject', 'deleteFreshdeskTicket', 'deleteHubSpotFeedback',
+      'deleteS3Bucket', 'deleteGCSBucket', 'deleteAzureContainer', 'deleteDropboxFolder', 'deleteDriveFile',
+      'cancelReplicatePrediction', 'deleteLangSmithProject', 'deleteMLflowRun', 'deployCohereModel', 'deleteHubPrompt'
     ].includes(actionName);
 
     if (isMutative && !options.verified) {
@@ -2104,6 +2152,262 @@ export class EnterpriseConnector {
         case 'allocateNetZeroOffsetCredits':
           result = { success: true, creditsToAllocate: sanitizedParams.credits || 10000, offsetcreditreceipt: '[REDACTED SENSITIVE FIELD]', status: 'OFFSET_CREDITS_ALLOCATED' };
           break;
+        // --- Phase 23: Business Communication & Email Core ---
+        case 'getGmailEmails':
+          result = { success: true, emails: [{ id: 'm1', from: 'ceo@alti.com', snippet: 'Strategic growth update' }], status: 'GMAIL_EMAILS_LOADED' };
+          break;
+        case 'sendGmailEmail':
+          result = { success: true, recipient: sanitizedParams.recipient || 'info@alti.com', emailbody: '[REDACTED SENSITIVE FIELD]', status: 'GMAIL_EMAIL_SENT' };
+          break;
+        case 'getOutlookEmails':
+          result = { success: true, emails: [{ id: 'om1', from: 'board@alti.com', snippet: 'Q2 Performance review' }], status: 'OUTLOOK_EMAILS_LOADED' };
+          break;
+        case 'sendOutlookEmail':
+          result = { success: true, recipient: sanitizedParams.recipient || 'board@alti.com', emailbody: '[REDACTED SENSITIVE FIELD]', status: 'OUTLOOK_EMAIL_SENT' };
+          break;
+        case 'getZoomMeetings':
+          result = { success: true, meetings: [{ id: 'z1', topic: 'Board Alignment Meeting', startTime: '2026-05-28T10:00:00Z' }], status: 'ZOOM_MEETINGS_LOADED' };
+          break;
+        case 'createZoomMeeting':
+          result = { success: true, topic: sanitizedParams.topic || 'Strategy Swarm', joinUrl: 'https://zoom.us/j/992211', status: 'ZOOM_MEETING_CREATED' };
+          break;
+        case 'getWebexMeetings':
+          result = { success: true, meetings: [{ id: 'wx1', topic: 'Operations Synch', startTime: '2026-05-28T14:00:00Z' }], status: 'WEBEX_MEETINGS_LOADED' };
+          break;
+        case 'deleteWebexMeeting':
+          result = { success: true, meetingId: sanitizedParams.meetingId || 'wx1', status: 'WEBEX_MEETING_DELETED' };
+          break;
+        case 'getTeamsChannels':
+          result = { success: true, channels: [{ id: 'tc1', name: 'General Strategy' }], status: 'TEAMS_CHANNELS_LOADED' };
+          break;
+        case 'postTeamsMessage':
+          result = { success: true, channelId: sanitizedParams.channelId || 'tc1', teamsmessage: '[REDACTED SENSITIVE FIELD]', status: 'TEAMS_MESSAGE_POSTED' };
+          break;
+
+        // --- Phase 24: Cloud Databases & Data Ingestion ---
+        case 'getMongoDBCollections':
+          result = { success: true, collections: ['users', 'conversations', 'consumption_logs'], status: 'MONGODB_COLLECTIONS_LOADED' };
+          break;
+        case 'dropMongoDBCollection':
+          result = { success: true, collection: sanitizedParams.collection || 'temp_cache', status: 'MONGODB_COLLECTION_DROPPED' };
+          break;
+        case 'getDynamoDBTables':
+          result = { success: true, tables: ['UserSessions', 'TenantBillingConfigs'], status: 'DYNAMODB_TABLES_LOADED' };
+          break;
+        case 'deleteDynamoDBTable':
+          result = { success: true, table: sanitizedParams.table || 'TempCacheTable', status: 'DYNAMODB_TABLE_DELETED' };
+          break;
+        case 'getPostgresSchemas':
+          result = { success: true, schemas: ['public', 'audit_logs'], status: 'POSTGRES_SCHEMAS_LOADED' };
+          break;
+        case 'executePostgresQuery':
+          result = { success: true, rowCount: 15, queryresult: '[REDACTED SENSITIVE FIELD]', status: 'POSTGRES_QUERY_EXECUTED' };
+          break;
+        case 'getMySQLSchemas':
+          result = { success: true, schemas: ['inventory', 'ecom_store'], status: 'MYSQL_SCHEMAS_LOADED' };
+          break;
+        case 'executeMySQLQuery':
+          result = { success: true, rowCount: 8, queryresult: '[REDACTED SENSITIVE FIELD]', status: 'MYSQL_QUERY_EXECUTED' };
+          break;
+        case 'getRedisKeys':
+          result = { success: true, keysCount: 1420, status: 'REDIS_KEYS_LOADED' };
+          break;
+        case 'flushRedisDatabase':
+          result = { success: true, keysFlushed: 1420, status: 'REDIS_DATABASE_FLUSHED' };
+          break;
+
+        // --- Phase 25: Version Control & DevOps Pipelines ---
+        case 'getGitHubRepositories':
+          result = { success: true, repositories: [{ id: 'r1', name: 'Alti.Assistant.Core' }], status: 'GITHUB_REPOSITORIES_LOADED' };
+          break;
+        case 'deleteGitHubRepository':
+          result = { success: true, repository: sanitizedParams.repository || 'sandbox-test', status: 'GITHUB_REPOSITORY_DELETED' };
+          break;
+        case 'getGitLabProjects':
+          result = { success: true, projects: [{ id: 'p1', name: 'Alti.Assistant.DevOps' }], status: 'GITLAB_PROJECTS_LOADED' };
+          break;
+        case 'deleteGitLabProject':
+          result = { success: true, project: sanitizedParams.project || 'sandbox-project', status: 'GITLAB_PROJECT_DELETED' };
+          break;
+        case 'getBitbucketRepositories':
+          result = { success: true, repositories: [{ id: 'b1', name: 'Alti.Assistant.Internal' }], status: 'BITBUCKET_REPOSITORIES_LOADED' };
+          break;
+        case 'deleteBitbucketRepository':
+          result = { success: true, repository: sanitizedParams.repository || 'sandbox-repo', status: 'BITBUCKET_REPOSITORY_DELETED' };
+          break;
+        case 'getCircleCIPipelines':
+          result = { success: true, pipelines: [{ id: 'c1', project: 'Alti.Assistant.Core', status: 'success' }], status: 'CIRCLECI_PIPELINES_LOADED' };
+          break;
+        case 'triggerCircleCIPipeline':
+          result = { success: true, pipelineId: 'c2', branch: sanitizedParams.branch || 'main', status: 'CIRCLECI_PIPELINE_TRIGGERED' };
+          break;
+        case 'getJenkinsJobs':
+          result = { success: true, jobs: [{ name: 'Alti.Assistant.Deploy', lastStatus: 'SUCCESS' }], status: 'JENKINS_JOBS_LOADED' };
+          break;
+        case 'triggerJenkinsJob':
+          result = { success: true, jobName: sanitizedParams.jobName || 'Alti.Assistant.Deploy', buildNumber: 142, status: 'JENKINS_JOB_TRIGGERED' };
+          break;
+
+        // --- Phase 26: Project Management & Agile Core ---
+        case 'getJiraIssues':
+          result = { success: true, openIssuesCount: 24, status: 'JIRA_ISSUES_LOADED' };
+          break;
+        case 'deleteJiraProject':
+          result = { success: true, projectId: sanitizedParams.projectId || 'sandbox-project', status: 'JIRA_PROJECT_DELETED' };
+          break;
+        case 'getAsanaTasks':
+          result = { success: true, openTasksCount: 18, status: 'ASANA_TASKS_LOADED' };
+          break;
+        case 'deleteAsanaProject':
+          result = { success: true, projectId: sanitizedParams.projectId || 'sandbox-project', status: 'ASANA_PROJECT_DELETED' };
+          break;
+        case 'getMondayBoards':
+          result = { success: true, boards: [{ id: 'mb1', name: 'Strategic Roadmap' }], status: 'MONDAY_BOARDS_LOADED' };
+          break;
+        case 'deleteMondayBoard':
+          result = { success: true, boardId: sanitizedParams.boardId || 'mb1', status: 'MONDAY_BOARD_DELETED' };
+          break;
+        case 'getTrelloBoards':
+          result = { success: true, boards: [{ id: 'tb1', name: 'Hiring Pipeline' }], status: 'TRELLO_BOARDS_LOADED' };
+          break;
+        case 'deleteTrelloBoard':
+          result = { success: true, boardId: sanitizedParams.boardId || 'tb1', status: 'TRELLO_BOARD_DELETED' };
+          break;
+        case 'getClickUpLists':
+          result = { success: true, lists: [{ id: 'cu1', name: 'Sprints Q2' }], status: 'CLICKUP_LISTS_LOADED' };
+          break;
+        case 'deleteClickUpList':
+          result = { success: true, listId: sanitizedParams.listId || 'cu1', status: 'CLICKUP_LIST_DELETED' };
+          break;
+
+        // --- Phase 27: Marketing & Social Platforms ---
+        case 'getGoogleAdsCampaigns':
+          result = { success: true, campaigns: [{ id: 'ga1', name: 'Alti Launch Search Campaign', dailyBudget: 150.00 }], status: 'GOOGLE_ADS_CAMPAIGNS_LOADED' };
+          break;
+        case 'adjustGoogleAdsBudget':
+          result = { success: true, campaignId: sanitizedParams.campaignId || 'ga1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'GOOGLE_ADS_BUDGET_ADJUSTED' };
+          break;
+        case 'getFacebookAdsCampaigns':
+          result = { success: true, campaigns: [{ id: 'fb1', name: 'Alti Brand Video Campaign', dailyBudget: 200.00 }], status: 'FACEBOOK_ADS_CAMPAIGNS_LOADED' };
+          break;
+        case 'adjustFacebookAdsBudget':
+          result = { success: true, campaignId: sanitizedParams.campaignId || 'fb1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'FACEBOOK_ADS_BUDGET_ADJUSTED' };
+          break;
+        case 'getLinkedInAdsCampaigns':
+          result = { success: true, campaigns: [{ id: 'li1', name: 'Alti Enterprise ABM Campaign', dailyBudget: 500.00 }], status: 'LINKEDIN_ADS_CAMPAIGNS_LOADED' };
+          break;
+        case 'adjustLinkedInAdsBudget':
+          result = { success: true, campaignId: sanitizedParams.campaignId || 'li1', adspendbudget: '[REDACTED SENSITIVE FIELD]', status: 'LINKEDIN_ADS_BUDGET_ADJUSTED' };
+          break;
+        case 'getTwitterTweets':
+          result = { success: true, tweets: [{ id: 'tw1', text: 'Alti v1.27.11 is now live!' }], status: 'TWITTER_TWEETS_LOADED' };
+          break;
+        case 'postTwitterTweet':
+          result = { success: true, text: sanitizedParams.text || 'Alti Swarms are taking over!', tweetId: 'tw2', status: 'TWITTER_TWEET_POSTED' };
+          break;
+        case 'getMailchimpCampaigns':
+          result = { success: true, campaigns: [{ id: 'mc1', subject: 'Alti Monthly Update' }], status: 'MAILCHIMP_CAMPAIGNS_LOADED' };
+          break;
+        case 'sendMailchimpCampaign':
+          result = { success: true, campaignId: sanitizedParams.campaignId || 'mc1', status: 'MAILCHIMP_CAMPAIGN_SENT' };
+          break;
+
+        // --- Phase 28: Customer Feedback & Survey Core ---
+        case 'getSurveyMonkeySurveys':
+          result = { success: true, surveys: [{ id: 'sm1', name: 'Alti Customer Satisfaction 2026' }], status: 'SURVEYMONKEY_SURVEYS_LOADED' };
+          break;
+        case 'deleteSurveyMonkeySurvey':
+          result = { success: true, surveyId: sanitizedParams.surveyId || 'sm1', status: 'SURVEYMONKEY_SURVEY_DELETED' };
+          break;
+        case 'getTypeformForms':
+          result = { success: true, forms: [{ id: 'tf1', title: 'Alti Beta Feedback Form' }], status: 'TYPEFORM_FORMS_LOADED' };
+          break;
+        case 'deleteTypeformForm':
+          result = { success: true, formId: sanitizedParams.formId || 'tf1', status: 'TYPEFORM_FORM_DELETED' };
+          break;
+        case 'getSatisMeterFeedback':
+          result = { success: true, feedbackResponsesCount: 420, status: 'SATISMETER_FEEDBACK_LOADED' };
+          break;
+        case 'deleteSatisMeterProject':
+          result = { success: true, projectId: sanitizedParams.projectId || 'sm-proj-01', status: 'SATISMETER_PROJECT_DELETED' };
+          break;
+        case 'getFreshdeskTickets':
+          result = { success: true, openTicketsCount: 12, status: 'FRESHDESK_TICKETS_LOADED' };
+          break;
+        case 'deleteFreshdeskTicket':
+          result = { success: true, ticketId: sanitizedParams.ticketId || 'fd-104', status: 'FRESHDESK_TICKET_DELETED' };
+          break;
+        case 'getHubSpotFeedback':
+          result = { success: true, feedbackSubmissionsCount: 94, status: 'HUBSPOT_FEEDBACK_LOADED' };
+          break;
+        case 'deleteHubSpotFeedback':
+          result = { success: true, submissionId: sanitizedParams.submissionId || 'hs-f-92', status: 'HUBSPOT_FEEDBACK_DELETED' };
+          break;
+
+        // --- Phase 29: Cloud Infrastructure & Storage ---
+        case 'getS3Buckets':
+          result = { success: true, buckets: ['alti-backups', 'alti-user-assets'], status: 'S3_BUCKETS_LOADED' };
+          break;
+        case 'deleteS3Bucket':
+          result = { success: true, bucketName: sanitizedParams.bucketName || 'alti-temp-sandbox', status: 'S3_BUCKET_DELETED' };
+          break;
+        case 'getGCSBuckets':
+          result = { success: true, buckets: ['alti-gcp-backups', 'alti-gcp-raw-assets'], status: 'GCS_BUCKETS_LOADED' };
+          break;
+        case 'deleteGCSBucket':
+          result = { success: true, bucketName: sanitizedParams.bucketName || 'alti-temp-gcs-sandbox', status: 'GCS_BUCKET_DELETED' };
+          break;
+        case 'getAzureContainers':
+          result = { success: true, containers: ['alti-azure-blobs', 'alti-azure-logs'], status: 'AZURE_CONTAINERS_LOADED' };
+          break;
+        case 'deleteAzureContainer':
+          result = { success: true, containerName: sanitizedParams.containerName || 'alti-temp-azure-sandbox', status: 'AZURE_CONTAINER_DELETED' };
+          break;
+        case 'getDropboxFiles':
+          result = { success: true, files: [{ path: '/Shared/AltiDocs', size: 1048576 }], status: 'DROPBOX_FILES_LOADED' };
+          break;
+        case 'deleteDropboxFolder':
+          result = { success: true, folderPath: sanitizedParams.folderPath || '/Shared/AltiTemp', status: 'DROPBOX_FOLDER_DELETED' };
+          break;
+        case 'getDriveFiles':
+          result = { success: true, files: [{ id: 'gd1', name: 'Alti Budget 2026.xlsx' }], status: 'GDRIVE_FILES_LOADED' };
+          break;
+        case 'deleteDriveFile':
+          result = { success: true, fileId: sanitizedParams.fileId || 'gd1', status: 'GDRIVE_FILE_DELETED' };
+          break;
+
+        // --- Phase 30: AI Services & Model Registries ---
+        case 'getReplicateModels':
+          result = { success: true, models: [{ name: 'flux-schnell', publisher: 'black-forest-labs' }], status: 'REPLICATE_MODELS_LOADED' };
+          break;
+        case 'cancelReplicatePrediction':
+          result = { success: true, predictionId: sanitizedParams.predictionId || 'pred-rep-902', status: 'REPLICATE_PREDICTION_CANCELED' };
+          break;
+        case 'getLangSmithTraces':
+          result = { success: true, activeTracesCount: 1420, status: 'LANGSMITH_TRACES_LOADED' };
+          break;
+        case 'deleteLangSmithProject':
+          result = { success: true, projectName: sanitizedParams.projectName || 'temp-debug-run', status: 'LANGSMITH_PROJECT_DELETED' };
+          break;
+        case 'getMLflowExperiments':
+          result = { success: true, experiments: [{ id: '0', name: 'Default', artifactLocation: 's3://alti-artifacts' }], status: 'MLFLOW_EXPERIMENTS_LOADED' };
+          break;
+        case 'deleteMLflowRun':
+          result = { success: true, runId: sanitizedParams.runId || 'run-mlf-90', status: 'MLFLOW_RUN_DELETED' };
+          break;
+        case 'getCohereModels':
+          result = { success: true, models: [{ id: 'command-r-plus' }], status: 'COHERE_MODELS_LOADED' };
+          break;
+        case 'deployCohereModel':
+          result = { success: true, modelId: sanitizedParams.modelId || 'command-r-plus', status: 'COHERE_MODEL_DEPLOYED' };
+          break;
+        case 'getHubPrompts':
+          result = { success: true, prompts: [{ id: 'alti-system-v1' }], status: 'LANGCHAIN_HUB_PROMPTS_LOADED' };
+          break;
+        case 'deleteHubPrompt':
+          result = { success: true, promptId: sanitizedParams.promptId || 'alti-temp-v1', status: 'LANGCHAIN_HUB_PROMPT_DELETED' };
+          break;
+
 
         default:
           throw new Error(`Unsupported action mapping: ${actionName} for enterprise application ${this.appSlug}`);
