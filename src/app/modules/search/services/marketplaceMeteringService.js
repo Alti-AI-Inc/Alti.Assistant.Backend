@@ -35,6 +35,22 @@ const TenantBillingConfigSchema = new mongoose.Schema({
 export const TenantBillingConfig = mongoose.models.TenantBillingConfig || mongoose.model('TenantBillingConfig', TenantBillingConfigSchema);
 
 /**
+ * Enterprise Transactional Outbox Schema for Marketplace Billing
+ */
+const BillingOutboxSchema = new mongoose.Schema({
+  tenantId: { type: String, required: true, index: true },
+  marketplaceSource: { type: String, required: true },
+  payload: { type: mongoose.Schema.Types.Mixed, required: true },
+  status: { type: String, enum: ['pending', 'failed', 'completed', 'dlq'], default: 'pending', index: true },
+  attempts: { type: Number, default: 0 },
+  lastAttempt: { type: Date },
+  nextRunAt: { type: Date, default: Date.now, index: true },
+  errorLog: { type: String }
+});
+
+export const BillingOutbox = mongoose.models.BillingOutbox || mongoose.model('BillingOutbox', BillingOutboxSchema);
+
+/**
  * Logs consumed AI resources for a given tenant.
  * @param {string} tenantId - Unique identifier of the enterprise tenant
  * @param {string} provider - Model provider ('gcp', 'azure', 'aws')
@@ -107,6 +123,8 @@ export async function aggregateHourlyUsage(tenantId) {
 
 /**
  * Reports hourly aggregated tenant consumption to the respective Cloud Marketplace Billing APIs.
+ * Utilizes the Transactional Outbox Pattern to persist a pending billing entry in the database,
+ * securing recovery against API failures, gateway timeouts, and throttling limit hits.
  * @param {string} tenantId - The target enterprise tenant
  * @param {string} marketplaceSource - 'aws_marketplace', 'azure_marketplace', 'gcp_marketplace'
  */
@@ -132,13 +150,46 @@ export async function reportUsageToCloudMarketplace(tenantId, marketplaceSource)
       ],
     };
 
+    // 1. Transactional Outbox Persistence
+    const outboxRecord = new BillingOutbox({
+      tenantId,
+      marketplaceSource,
+      payload,
+      status: 'pending',
+      nextRunAt: new Date(),
+    });
+    await outboxRecord.save();
+    console.log(`💾 [Billing Outbox] Created pending outbox record. ID: "${outboxRecord._id}"`);
+
+    // 2. Immediate asynchronous trigger
+    processSingleOutboxRecord(outboxRecord).catch(err => {
+      console.warn(`⚠️ [Billing Outbox] Async immediate outbox execution failed for "${outboxRecord._id}":`, err.message);
+    });
+
+    return { success: true, message: 'Billing outbox record queued', outboxId: outboxRecord._id };
+  } catch (error) {
+    console.error('❌ [Billing] Failed to report cloud marketplace usage:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Processes a single outbox entry, executing the actual billing request to the cloud provider.
+ * @param {Object} record - The BillingOutbox Mongoose document
+ */
+export async function processSingleOutboxRecord(record) {
+  record.lastAttempt = new Date();
+  record.attempts += 1;
+  
+  try {
+    const { tenantId, marketplaceSource, payload } = record;
     const source = (marketplaceSource || '').toLowerCase();
     
     if (source === 'aws_marketplace') {
       // ----------------------------------------------------
       // AWS Marketplace: batchMeterUsage API Integration
       // ----------------------------------------------------
-      console.log('🎯 [Billing] Executing AWS Marketplace "batchMeterUsage" call...');
+      console.log(`🎯 [Billing Outbox] [${record._id}] Executing AWS Marketplace "batchMeterUsage" call...`);
       console.log('📦 AWS SDK Payload:', JSON.stringify({
         UsageRecords: payload.usage.map(u => ({
           Dimension: u.dimension,
@@ -148,33 +199,25 @@ export async function reportUsageToCloudMarketplace(tenantId, marketplaceSource)
         })),
         ProductCode: 'alti-enterprise-assistant'
       }, null, 2));
-      
-      console.log('✅ [Billing] AWS batchMeterUsage accepted successfully.');
-      return { success: true, provider: 'aws', payload };
-    }
-    
-    if (source === 'azure_marketplace') {
+      console.log(`✅ [Billing Outbox] [${record._id}] AWS batchMeterUsage accepted successfully.`);
+    } else if (source === 'azure_marketplace') {
       // ----------------------------------------------------
       // Azure Marketplace: SaaS Billing Usage API
       // ----------------------------------------------------
-      console.log('🎯 [Billing] Executing Azure SaaS Marketplace Metered Usage call...');
+      console.log(`🎯 [Billing Outbox] [${record._id}] Executing Azure SaaS Marketplace Metered Usage call...`);
       console.log('📦 Azure API Payload:', JSON.stringify({
         resourceId: `azure-saas-subscription-${tenantId}`,
-        quantity: hourlyUsage.totalInputTokens + hourlyUsage.totalOutputTokens, // Azure aggregate dimension
+        quantity: payload.usage.reduce((sum, u) => u.dimension !== 'web_searches' ? sum + u.quantity : sum, 0),
         dimension: 'tokens_consumed',
         effectiveStartTime: payload.timestamp,
         planId: 'alti-enterprise-gold'
       }, null, 2));
-      
-      console.log('✅ [Billing] Azure Metered Usage accepted successfully.');
-      return { success: true, provider: 'azure', payload };
-    }
-    
-    if (source === 'gcp_marketplace') {
+      console.log(`✅ [Billing Outbox] [${record._id}] Azure Metered Usage accepted successfully.`);
+    } else if (source === 'gcp_marketplace') {
       // ----------------------------------------------------
       // GCP Marketplace: Partner Procurement Service
       // ----------------------------------------------------
-      console.log('🎯 [Billing] Executing Google Cloud Partner Procurement "services.report" call...');
+      console.log(`🎯 [Billing Outbox] [${record._id}] Executing Google Cloud Partner Procurement "services.report" call...`);
       console.log('📦 GCP API Payload:', JSON.stringify({
         operations: payload.usage.map(u => ({
           operationId: `gcp-op-${Date.now()}-${u.dimension}`,
@@ -186,15 +229,73 @@ export async function reportUsageToCloudMarketplace(tenantId, marketplaceSource)
           }
         }))
       }, null, 2));
-      
-      console.log('✅ [Billing] Google Partner Procurement accepted successfully.');
-      return { success: true, provider: 'gcp', payload };
+      console.log(`✅ [Billing Outbox] [${record._id}] Google Partner Procurement accepted successfully.`);
+    } else {
+      throw new Error(`Unknown marketplace source: "${marketplaceSource}"`);
     }
     
-    console.warn(`⚠️ [Billing] Unknown marketplace source: "${marketplaceSource}". No API post executed.`);
-    return { success: false, message: `Unknown source: ${marketplaceSource}` };
+    // Process success state
+    record.status = 'completed';
+    record.errorLog = '';
+    await record.save();
+    console.log(`✅ [Billing Outbox] [${record._id}] Outbox processed successfully.`);
+    return { success: true };
   } catch (error) {
-    console.error('❌ [Billing] Failed to report cloud marketplace usage:', error.message);
+    console.error(`❌ [Billing Outbox] [${record._id}] Attempt ${record.attempts} failed:`, error.message);
+    
+    record.errorLog = error.message;
+    
+    if (record.attempts >= 5) {
+      record.status = 'dlq';
+      console.error(`🚨 [Billing Outbox] [${record._id}] Exceeded maximum retries (5). Moved to Dead Letter Queue (DLQ).`);
+    } else {
+      record.status = 'failed';
+      // Exponential backoff retry delay calculation (2^attempts * 1000 ms)
+      const backoffSec = Math.pow(2, record.attempts);
+      record.nextRunAt = new Date(Date.now() + backoffSec * 1000);
+      console.log(`⏳ [Billing Outbox] [${record._id}] Scheduled retry in ${backoffSec} seconds (next run: ${record.nextRunAt.toISOString()})`);
+    }
+    
+    await record.save();
+    throw error;
+  }
+}
+
+/**
+ * Scans the database and processes all pending or failed billing outbox entries due for retrying.
+ * @returns {Promise<Object>} Process summary
+ */
+export async function processBillingOutbox() {
+  try {
+    const records = await BillingOutbox.find({
+      status: { $in: ['pending', 'failed'] },
+      nextRunAt: { $lte: new Date() }
+    });
+    
+    if (records.length === 0) {
+      return { processedCount: 0 };
+    }
+    
+    console.log(`🔄 [Billing Outbox Queue] Found ${records.length} records due for processing...`);
+    let successCount = 0;
+    let failureCount = 0;
+    
+    for (const record of records) {
+      try {
+        await processSingleOutboxRecord(record);
+        successCount++;
+      } catch (err) {
+        failureCount++;
+      }
+    }
+    
+    return {
+      processedCount: records.length,
+      successCount,
+      failureCount
+    };
+  } catch (error) {
+    console.error('❌ [Billing Outbox Queue] Failed to process outbox:', error.message);
     throw error;
   }
 }
@@ -367,5 +468,8 @@ export default {
   TenantBillingConfig,
   checkTenantBudgetStatus,
   getTenantSpendingHistory,
-  setTenantBillingConfig
+  setTenantBillingConfig,
+  BillingOutbox,
+  processSingleOutboxRecord,
+  processBillingOutbox
 };
