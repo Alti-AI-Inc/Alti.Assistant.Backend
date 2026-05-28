@@ -199,11 +199,31 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
           conversation = await Conversation.findOne({ conversationId: finalConversationId, userId });
         }
         
+        const assistantMetadata = {
+          reference: finalResponse.reference || finalResponse.citations || [],
+          webSearchQueries: finalResponse.webSearchQueries || [],
+          searchEntryPoint: finalResponse.searchEntryPoint || null,
+          relatedQuestions: finalResponse.relatedQuestions || [],
+          model: finalResponse.model || 'gemini-3.5-flash',
+          financialTicker: finalResponse.financialTicker || null,
+          domain: finalResponse.domain || null,
+          homeTeam: finalResponse.homeTeam || null,
+          address: finalResponse.address || null,
+          cveId: finalResponse.cveId || null,
+          brainstormData: finalResponse.brainstormData || null,
+          ideaAnalysis: finalResponse.ideaAnalysis || null,
+          planData: finalResponse.planData || null,
+          planAnalysis: finalResponse.planAnalysis || null,
+          planBrainstorm: finalResponse.planBrainstorm || null,
+          video: finalResponse.video || null,
+          document: finalResponse.document || null,
+        };
+
         if (conversation) {
           conversation.addMessage('user', prompt);
-          conversation.addMessage('assistant', finalResponse.reply);
+          conversation.addMessage('assistant', finalResponse.reply, assistantMetadata);
           await conversation.save();
-          logger.info(`[Orchestrator] Appended message history for conversation: ${finalConversationId}`);
+          logger.info(`[Orchestrator] Appended message history with rich metadata for conversation: ${finalConversationId}`);
         } else {
           // Create new conversation
           finalConversationId = crypto.randomUUID();
@@ -214,12 +234,12 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
             title: cleanTitle,
             messages: [
               { role: 'user', content: prompt, timestamp: new Date() },
-              { role: 'assistant', content: finalResponse.reply, timestamp: new Date() }
+              { role: 'assistant', content: finalResponse.reply, metadata: assistantMetadata, timestamp: new Date() }
             ],
             status: 'active'
           });
           await conversation.save();
-          logger.info(`[Orchestrator] Created and persisted new conversation history: ${finalConversationId}`);
+          logger.info(`[Orchestrator] Created and persisted new conversation history with rich metadata: ${finalConversationId}`);
         }
       }
     } catch (dbErr) {
