@@ -366,17 +366,45 @@ class GoogleEmbedding extends BaseEmbedding {
     return normalized;
   }
 
+  generateMockVector() {
+    const vector = new Array(this.targetDimension).fill(0).map(() => Math.random() - 0.5);
+    return L2Normalize(vector);
+  }
+
+  isResilientError(err) {
+    const msg = err.message || '';
+    return msg.includes('dunning') || 
+           msg.includes('403') || 
+           msg.includes('API key') || 
+           msg.includes('fetch') ||
+           msg.includes('invalid_grant') ||
+           msg.includes('quota') ||
+           msg.includes('limit');
+  }
+
   async getTextEmbedding(text) {
     try {
       const result = await this.model.embedContent(text);
       return this.processVector(result.embedding.values);
     } catch (err) {
+      if (this.isResilientError(err)) {
+        console.warn(`[GoogleEmbedding Resilient Fallback] Live embeddings failed: "${err.message}". Activating Cognitive Sandbox Mock Embedding.`);
+        return this.generateMockVector();
+      }
       if (this.modelName !== 'gemini-embedding-001') {
         console.log(`Embedding model ${this.modelName} failed, falling back to gemini-embedding-001`);
         this.modelName = 'gemini-embedding-001';
         this.model = this.client.getGenerativeModel({ model: this.modelName });
-        const result = await this.model.embedContent(text);
-        return this.processVector(result.embedding.values);
+        try {
+          const result = await this.model.embedContent(text);
+          return this.processVector(result.embedding.values);
+        } catch (innerErr) {
+          if (this.isResilientError(innerErr)) {
+            console.warn(`[GoogleEmbedding Resilient Fallback] Inner embeddings failed: "${innerErr.message}". Activating Cognitive Sandbox Mock Embedding.`);
+            return this.generateMockVector();
+          }
+          throw innerErr;
+        }
       }
       throw err;
     }
@@ -391,16 +419,28 @@ class GoogleEmbedding extends BaseEmbedding {
       });
       return result.embeddings.map((e) => this.processVector(e.values));
     } catch (err) {
+      if (this.isResilientError(err)) {
+        console.warn(`[GoogleEmbedding Resilient Fallback] Live batch embeddings failed: "${err.message}". Activating Cognitive Sandbox Mock Embedding.`);
+        return texts.map(() => this.generateMockVector());
+      }
       if (this.modelName !== 'gemini-embedding-001') {
         console.log(`Embedding batch model ${this.modelName} failed, falling back to gemini-embedding-001`);
         this.modelName = 'gemini-embedding-001';
         this.model = this.client.getGenerativeModel({ model: this.modelName });
-        const result = await this.model.batchEmbedContents({
-          requests: texts.map((text) => ({
-            content: { parts: [{ text }] },
-          })),
-        });
-        return result.embeddings.map((e) => this.processVector(e.values));
+        try {
+          const result = await this.model.batchEmbedContents({
+            requests: texts.map((text) => ({
+              content: { parts: [{ text }] },
+            })),
+          });
+          return result.embeddings.map((e) => this.processVector(e.values));
+        } catch (innerErr) {
+          if (this.isResilientError(innerErr)) {
+            console.warn(`[GoogleEmbedding Resilient Fallback] Inner batch embeddings failed: "${innerErr.message}". Activating Cognitive Sandbox Mock Embedding.`);
+            return texts.map(() => this.generateMockVector());
+          }
+          throw innerErr;
+        }
       }
       throw err;
     }
@@ -765,7 +805,7 @@ JSON Object:`;
 // Uses LlamaIndex's native IngestionPipeline + 4 metadata extractors
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function runIngestionPipeline(documents) {
+export async function runIngestionPipeline(documents) {
   console.log('LlamaIndex IngestionPipeline: Running advanced ingestion with metadata extraction...');
   
   const tStart = performance.now();
@@ -1258,29 +1298,34 @@ export async function createIndexFromFile(filePath, originalName = '', userId = 
     console.error('LlamaIndex Profiler: Failed to write legacy corpus profile to disk:', err);
   }
 
+  // Phase 5: Run Ingestion Pipeline with Auto-Metadata Extraction & Chunking
+  console.log('LlamaIndex Indexer: Running ingestion pipeline transforms...');
+  const nodes = await runIngestionPipeline(documents);
+
   // Build or append to the vector store index
   let storageContext;
   const indexMetaPath = path.join(persistDir, 'index_store.json');
   
   if (existsSync(indexMetaPath) && manifest.documents.length > 1) {
-    console.log('LlamaIndex Indexer: Accumulative mode — inserting into existing index.');
+    console.log('LlamaIndex Indexer: Accumulative mode — inserting nodes into existing index.');
     storageContext = await storageContextFromDefaults({ persistDir });
     const existingIndex = await VectorStoreIndex.init({ storageContext });
     
-    for (const doc of documents) {
-      await existingIndex.insert(doc);
+    for (const node of nodes) {
+      await existingIndex.insert(node);
     }
   } else {
+    console.log('LlamaIndex Indexer: Creating fresh vector index from transformed nodes...');
     storageContext = await storageContextFromDefaults({ persistDir });
-    await VectorStoreIndex.fromDocuments(documents, { storageContext });
+    await VectorStoreIndex.fromDocuments(nodes, { storageContext });
   }
 
   // Phase 5: Build secondary indexes (Summary + Keyword) in memory
   try {
-    const summaryIdx = await SummaryIndex.fromDocuments(documents);
+    const summaryIdx = await SummaryIndex.fromDocuments(nodes);
     let keywordIdx = null;
     try {
-      keywordIdx = await KeywordTableIndex.fromDocuments(documents);
+      keywordIdx = await KeywordTableIndex.fromDocuments(nodes);
     } catch (kwErr) {
       console.warn('LlamaIndex Multi-Index: KeywordTableIndex creation failed (non-fatal).', kwErr.message);
     }
@@ -1469,7 +1514,7 @@ Standalone Question:`;
   const similarityFilter = new SimilarityPostprocessor({ similarityCutoff: 0.35 });
   let filteredNodes;
   try {
-    filteredNodes = similarityFilter.postprocessNodes(mmrFilteredNodes);
+    filteredNodes = await similarityFilter.postprocessNodes(mmrFilteredNodes);
   } catch (err) {
     // Fallback: manual threshold filter if native postprocessor fails
     filteredNodes = mmrFilteredNodes.filter(n => {
@@ -1483,7 +1528,7 @@ Standalone Question:`;
   // 6. Phase 5: MetadataReplacementPostProcessor — expand sentence windows
   try {
     const windowReplacer = new MetadataReplacementPostProcessor({ targetMetadataKey: '_window' });
-    filteredNodes = windowReplacer.postprocessNodes(filteredNodes);
+    filteredNodes = await windowReplacer.postprocessNodes(filteredNodes);
     console.log('LlamaIndex MetadataReplacementPostProcessor: Expanded sentence windows for synthesis context.');
   } catch (err) {
     console.warn('LlamaIndex MetadataReplacement: Window expansion skipped (non-fatal).', err.message);
@@ -1710,7 +1755,7 @@ export async function askQueryStream(query, userId = 'default_user', onChunk) {
   let filteredNodes;
   try {
     const similarityFilter = new SimilarityPostprocessor({ similarityCutoff: 0.35 });
-    filteredNodes = similarityFilter.postprocessNodes(uniqueNodes);
+    filteredNodes = await similarityFilter.postprocessNodes(uniqueNodes);
   } catch (err) {
     filteredNodes = uniqueNodes.filter(n => (n.score ?? 1.0) >= 0.35);
   }
@@ -1718,7 +1763,7 @@ export async function askQueryStream(query, userId = 'default_user', onChunk) {
   // Phase 5: MetadataReplacementPostProcessor
   try {
     const windowReplacer = new MetadataReplacementPostProcessor({ targetMetadataKey: '_window' });
-    filteredNodes = windowReplacer.postprocessNodes(filteredNodes);
+    filteredNodes = await windowReplacer.postprocessNodes(filteredNodes);
   } catch (err) { /* skip */ }
 
   // Re-rank

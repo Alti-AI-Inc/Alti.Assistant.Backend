@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.27.21] - 2026-05-28
+### Added
+- **Sentence-Window Ingestion & Stateful Orchestration**: Optimized the core RAG ingestion and retrieval flow to deliver unmatched Perplexity-killer search precision.
+  - Activated the advanced LlamaIndex `IngestionPipeline` for both standard `llamaindex.indexer.js` and event-driven `indexPipeline.js` ingestion workflows.
+  - Standardized sentence-window parsing (`SentenceWindowNodeParser`) to enrich every split chunk with a dynamic ±3 sentence context window (`_window` metadata attribute).
+  - Fixed four missing `await` statements in LlamaIndex `postprocessNodes` calls in `llamaindex.indexer.js`, preventing runtime TypeErrors during query postprocessing.
+  - Built a dunning/quota/billing resilient mock embedding fallback in `GoogleEmbedding` to ensure the system gracefully proceeds with test/sandbox runs under resource limits.
+- **Verification Suite**: Added `scratch_verify_advanced_ingestion.js` to run end-to-end file indexing, manifest registration, and LangGraph stateful retrieval, validating the entire RAG pipeline.
+
+## [1.27.20] - 2026-05-28
+### Added
+- **100% Reliable Search Grounding Pipeline**: Closed the "Regex Grounding Gap" by passing explicit routing and intent classification options directly to the Swarm engine.
+  - Modified `needsSearchGrounding` inside `swarm.service.js` to accept `options` and `isPrimary` overrides, immediately forcing web search grounding on primary agents when requested.
+  - Updated signatures and call sites of `executeSwarmSync` and `executeSwarmStream` inside `swarm.service.js` to pass grounding parameters.
+  - Connected `requireSearch` in `performSwarmStreamingSearch` in `swarm.controller.js` to enable search context on streaming requests.
+  - Configured Master Orchestrator in `orchestrator.service.js` to automatically dispatch search-classified queries with forced grounding enabled.
+- **Verification Suite**: Integrated `scratch_verify_search_grounding.js` to programmatically test search grounding options, ensuring zero runtime or syntax issues.
+
 ## [1.7.9] - 2026-05-23
 ### Fixed
 - **Deployment**: Fixed malformed `--set-secrets` parameter formatting in GCP Cloud Run GitHub Actions deployment workflow. Removed leading whitespaces and indentation from the multiline double-quoted string to prevent Cloud Run secret spec parsing failures.

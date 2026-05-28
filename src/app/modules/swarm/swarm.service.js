@@ -15,6 +15,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { askQuery } from '../llamaindex/llamaindex.indexer.js';
 import { executeAgenticRAG } from '../llamaindex/langgraph/ragAgentGraph.js';
+import { GoogleSearchGroundingTool } from '../deep_research/utils/tavily-utils.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dynamicSkillService } from './dynamicSkill.service.js';
 import { logger } from '../../../shared/logger.js';
@@ -81,9 +82,12 @@ const FRESHNESS_SIGNALS = [
 
 /**
  * Determines if a query needs Google Search Grounding.
- * Returns true if: agent has search tools OR query contains freshness signals.
+ * Returns true if: options.requireSearch is enabled for primary agent,
+ * or agent has search tools, or query contains freshness signals.
  */
-const needsSearchGrounding = (agent, query = '') => {
+const needsSearchGrounding = (agent, query = '', options = {}, isPrimary = false) => {
+  // Explicit requireSearch grounding bypass for the primary pipeline execution agent
+  if (options?.requireSearch && isPrimary) return true;
   // Explicit tool-based grounding
   if (agent.tools && agent.tools.some(t => SEARCH_TOOLS.includes(t))) return true;
   // Smart intent-based grounding: detect if query needs fresh data
@@ -353,7 +357,7 @@ export class SwarmService {
    * @param {Array} conversationHistory - Previous conversation context
    * @returns {Object} Final accumulated response object with reply string
    */
-  static async executeSwarmSync(query, conversationHistory = [], userId = null) {
+  static async executeSwarmSync(query, conversationHistory = [], userId = null, options = {}) {
     console.log(`📡 Swarm Engine (Sync): Building execution pipeline for query "${query}"`);
     
     // 1. Scan and register custom OpenClaw skills in the user workspace
@@ -488,7 +492,7 @@ Instructions: ${agent.systemInstruction}`;
       }
 
       // Determine if this agent needs live web grounding (smart detection)
-      const useGrounding = needsSearchGrounding(agent, query);
+      const useGrounding = needsSearchGrounding(agent, query, options, isPrimary);
       let runWithGroundingFailed = false;
 
       if (useGrounding) {
@@ -496,195 +500,37 @@ Instructions: ${agent.systemInstruction}`;
         console.log(`🔍 Search Grounding ENABLED for agent [${agent.name}]`);
 
         try {
-          const contents = [
-            ...conversationHistory.map(msg => ({
-              role: msg.role === 'assistant' ? 'model' : 'user',
-              parts: [{ text: msg.content }]
-            })),
-            {
-              role: 'user',
-              parts: [{ text: finalPrompt }]
-            }
+          const searchTool = new GoogleSearchGroundingTool();
+          const searchResult = await searchTool.invoke({ query: finalPrompt, includeAnswer: true });
+
+          const citations = searchResult.results || [];
+          const cleanText = stripPreambles(searchResult.answer || '');
+
+          const relatedQuestions = await generateRelatedQuestions(query, cleanText).catch(() => []);
+
+          accumulatedText = cleanText;
+          currentContextInput = cleanText;
+
+          const combinedCitations = [
+            ...ragCitations,
+            ...citations.map((c, idx) => ({
+              index: ragCitations.length + idx + 1,
+              url: c.url,
+              title: c.title,
+              domain: c.domain
+            }))
           ];
 
-          let maxToolCallingIterations = 5;
-          let currentIteration = 0;
-          let stopLoop = false;
-          let lastGroundedResult = null;
-          const toolCallCorrectionAttempts = {};
-
-          while (currentIteration < maxToolCallingIterations && !stopLoop) {
-            currentIteration++;
-
-            const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
-            const config = {
-              temperature: 0.05,
-              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
-              systemInstruction: systemInstruction,
-              tools: [{ googleSearch: {} }, { functionDeclarations: activeTools }],
-            };
-
-            try {
-              lastGroundedResult = await ai.models.generateContent({
-                model: agent.model || 'gemini-3.5-flash',
-                contents,
-                config,
-              });
-            } catch (groundingErr) {
-              console.warn(`[executeSwarmSync Grounding Exception] Gemini grounded generation failed: ${groundingErr.message}. Falling back to Azure AI Foundry...`);
-              
-              const lastUserPrompt = contents[contents.length - 1]?.parts?.[0]?.text || query;
-              const enhancedPrompt = await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(lastUserPrompt);
-              
-              const history = [];
-              for (let i = 0; i < contents.length - 1; i++) {
-                const c = contents[i];
-                const textVal = c.parts?.map(p => p.text || '').join('\n') || '';
-                history.push({ role: c.role, content: textVal });
-              }
-              
-              const responseText = await queryAzureFoundryFallback(
-                systemInstruction,
-                history,
-                enhancedPrompt,
-                0.05,
-                isExploriumAgent(agent.id) ? 6000 : 4000
-              );
-              
-              lastGroundedResult = {
-                candidates: [{
-                  content: {
-                    parts: [{ text: responseText }]
-                  }
-                }]
-              };
-            }
-
-            const candidate = lastGroundedResult.candidates?.[0];
-            const functionCalls = lastGroundedResult.functionCalls || [];
-            let rawText = candidate?.content?.parts
-              ?.filter((part) => part.text && !part.thought)
-              ?.map((part) => part.text)
-              ?.join('') || '';
-
-            if (functionCalls.length > 0) {
-              console.log(`[Swarm Sync Grounded] Intercepted ${functionCalls.length} tool calls.`);
-
-              // Append model message to history
-              const modelParts = functionCalls.map(call => ({
-                functionCall: {
-                  name: call.name,
-                  args: call.args
-                }
-              }));
-              if (rawText) {
-                modelParts.unshift({ text: rawText });
-              }
-              contents.push({ role: 'model', parts: modelParts });
-
-              const responseParts = [];
-              for (const call of functionCalls) {
-                let toolResultText = '';
-                let isError = false;
-
-                if (call.name === 'save_custom_skill') {
-                  try {
-                    dynamicSkillService.saveGeneratedSkill(userId, call.args);
-                    toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
-                  } catch (err) {
-                    toolResultText = `Failed to save custom skill: ${err.message}`;
-                    isError = true;
-                  }
-                } else {
-                  const matchedSkill = userSkills.find(s => s.name === call.name);
-                  if (matchedSkill) {
-                    try {
-                      toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
-                      if (toolResultText.startsWith('Error executing skill:') || toolResultText.startsWith('Execution Error:') || toolResultText.startsWith('Error:')) {
-                        isError = true;
-                      }
-                    } catch (err) {
-                      toolResultText = `Execution error: ${err.message}`;
-                      isError = true;
-                    }
-                  } else {
-                    toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
-                    isError = true;
-                  }
-                }
-
-                // Nous Hermes-style Self-Correcting Reflection
-                if (isError) {
-                  const attemptKey = call.name;
-                  const attempts = (toolCallCorrectionAttempts[attemptKey] || 0) + 1;
-                  toolCallCorrectionAttempts[attemptKey] = attempts;
-
-                  if (attempts < 3) {
-                    const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
-                    logger.warn(`[Swarm Reflection Sync Grounded] Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`, {
-                      userId,
-                      agentId: agent.id,
-                      toolName: call.name,
-                      attempt: attempts,
-                      error: toolResultText
-                    });
-                    toolResultText = errorExplanation;
-                  }
-                }
-
-                responseParts.push({
-                  functionResponse: {
-                    name: call.name,
-                    response: { result: toolResultText }
-                  }
-                });
-              }
-
-              contents.push({ role: 'user', parts: responseParts });
-            } else {
-              stopLoop = true;
-
-              // Extract citations from Google Search Grounding
-              const citations = extractGroundingCitations(lastGroundedResult);
-              const groundingMeta = candidate?.groundingMetadata || null;
-
-              // Inject inline [1][2][3] markers + sources block
-              const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, citations, groundingMeta);
-
-              // Strip preambles
-              const cleanText = stripPreambles(citedText) + sourcesBlock;
-
-              if (citations.length > 0) {
-                console.log(`📎 Extracted ${citations.length} grounded citations for agent [${agent.name}]`);
-              }
-
-              // Generate related questions (non-blocking)
-              const relatedQuestions = await generateRelatedQuestions(query, cleanText).catch(() => []);
-
-              accumulatedText = cleanText;
-              currentContextInput = cleanText;
-
-              const combinedCitations = [
-                ...ragCitations,
-                ...citations.map((c, idx) => ({
-                  index: ragCitations.length + idx + 1,
-                  url: c.url,
-                  title: c.title,
-                  domain: c.domain
-                }))
-              ];
-
-              return {
-                reply: cleanText,
-                citations: combinedCitations,
-                reference: combinedCitations,
-                relatedQuestions,
-                groundingMetadata: groundingMeta,
-                webSearchQueries: groundingMeta?.webSearchQueries || [],
-                searchEntryPoint: groundingMeta?.searchEntryPoint || null,
-              };
-            }
-          }
+          return {
+            reply: cleanText,
+            citations: combinedCitations,
+            reference: combinedCitations,
+            relatedQuestions,
+            groundingMetadata: {
+              webSearchQueries: searchResult.search_metadata?.webSearchQueries || []
+            },
+            webSearchQueries: searchResult.search_metadata?.webSearchQueries || [],
+          };
         } catch (groundingErr) {
           console.warn(`🔍 Search Grounding failed: ${groundingErr.message}. Falling back to standard generation...`);
           runWithGroundingFailed = true;
@@ -847,7 +693,7 @@ Instructions: ${agent.systemInstruction}`;
    * @param {Array} conversationHistory - Previous conversation context
    * @yields {Object} Chunks containing streaming text, thoughts, or metadata
    */
-  static async* executeSwarmStream(query, conversationHistory = [], userId = null) {
+  static async* executeSwarmStream(query, conversationHistory = [], userId = null, options = {}) {
     console.log(`📡 Swarm Engine: Building execution pipeline for query "${query}"`);
     
     // 1. Scan and register custom OpenClaw skills in the user workspace
@@ -1034,7 +880,7 @@ Instructions: ${agent.systemInstruction}`;
 
       try {
         // Determine if this agent needs live web grounding (smart detection)
-        const useGrounding = needsSearchGrounding(agent, query);
+        const useGrounding = needsSearchGrounding(agent, query, options, isPrimary);
         let streamResult;
         let groundedCitations = [];
 
@@ -1043,218 +889,59 @@ Instructions: ${agent.systemInstruction}`;
           console.log(`🔍 Search Grounding ENABLED (streaming) for agent [${agent.name}]`);
 
           try {
-            const contents = [
-              ...conversationHistory.map(msg => ({
-                role: msg.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: msg.content }]
-              })),
-              {
-                role: 'user',
-                parts: [{ text: finalPrompt }]
-              }
-            ];
+            // Yield dynamic multi-query deconstruction status update immediately!
+            yield {
+              type: 'text',
+              content: `\n\n🔍 *Deconstructing search strategies for real-time fact compilation...*\n`,
+              agentId: agent.id
+            };
 
-            let maxToolCallingIterations = 5;
-            let currentIteration = 0;
-            let stopLoop = false;
-            let lastGroundedResult = null;
-            const toolCallCorrectionAttempts = {};
+            const searchTool = new GoogleSearchGroundingTool();
+            const searchResult = await searchTool.invoke({ query: finalPrompt, includeAnswer: true });
 
-            while (currentIteration < maxToolCallingIterations && !stopLoop) {
-              currentIteration++;
+            const citations = searchResult.results || [];
+            const subQueries = searchResult.search_metadata?.webSearchQueries || [];
 
-              const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
-              const config = {
-                temperature: 0.05,
-                maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000,
-                systemInstruction: systemInstruction,
-                tools: [{ googleSearch: {} }, { functionDeclarations: activeTools }],
+            // Yield sub-queries that were searched
+            yield {
+              type: 'text',
+              content: `*Concurrently queried parallel search streams:*\n${subQueries.map(q => `* ➔ \`"${q}"\``).join('\n')}\n*Consolidated **${citations.length}** highly verified sources. Grounding synthesis streaming now...*\n\n`,
+              agentId: agent.id
+            };
+
+            const fullOutput = stripPreambles(searchResult.answer || '');
+
+            // Simulate streaming by chunking the grounded response
+            const chunkSize = 80;
+            for (let i = 0; i < fullOutput.length; i += chunkSize) {
+              const textChunk = fullOutput.substring(i, i + chunkSize);
+              yield {
+                type: 'text',
+                content: textChunk,
+                agentId: agent.id
               };
-
-              try {
-                lastGroundedResult = await ai.models.generateContent({
-                  model: agent.model || 'gemini-3.5-flash',
-                  contents,
-                  config,
-                });
-              } catch (groundingErr) {
-                console.warn(`[executeSwarmStream Grounding Exception] Gemini grounded generation failed: ${groundingErr.message}. Falling back to Azure AI Foundry...`);
-                
-                const lastUserPrompt = contents[contents.length - 1]?.parts?.[0]?.text || query;
-                const enhancedPrompt = await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(lastUserPrompt);
-                
-                const history = [];
-                for (let i = 0; i < contents.length - 1; i++) {
-                  const c = contents[i];
-                  const textVal = c.parts?.map(p => p.text || '').join('\n') || '';
-                  history.push({ role: c.role, content: textVal });
-                }
-                
-                const responseText = await queryAzureFoundryFallback(
-                  systemInstruction,
-                  history,
-                  enhancedPrompt,
-                  0.05,
-                  isExploriumAgent(agent.id) ? 6000 : 4000
-                );
-                
-                lastGroundedResult = {
-                  candidates: [{
-                    content: {
-                      parts: [{ text: responseText }]
-                    }
-                  }]
-                };
-              }
-
-              const candidate = lastGroundedResult.candidates?.[0];
-              const functionCalls = lastGroundedResult.functionCalls || [];
-              let rawText = candidate?.content?.parts
-                ?.filter((part) => part.text && !part.thought)
-                ?.map((part) => part.text)
-                ?.join('') || '';
-
-              if (functionCalls.length > 0) {
-                console.log(`[Swarm Engine] Grounded search path intercepted ${functionCalls.length} tool calls.`);
-
-                // Append model message to history
-                const modelParts = functionCalls.map(call => ({
-                  functionCall: {
-                    name: call.name,
-                    args: call.args
-                  }
-                }));
-                if (rawText) {
-                  modelParts.unshift({ text: rawText });
-                }
-                contents.push({ role: 'model', parts: modelParts });
-
-                const responseParts = [];
-                for (const call of functionCalls) {
-                  yield {
-                    type: 'text',
-                    content: `\n\n⚙️ *Executing skill: ${call.name}...*\n`,
-                    agentId: agent.id
-                  };
-
-                  let toolResultText = '';
-                  let isError = false;
-
-                  if (call.name === 'save_custom_skill') {
-                    try {
-                      dynamicSkillService.saveGeneratedSkill(userId, call.args);
-                      toolResultText = `Successfully saved custom skill "${call.args.name}" to /workspace/skills/${call.args.scriptName}. It is now registered and immediately available as a dynamic tool.`;
-                    } catch (err) {
-                      toolResultText = `Failed to save custom skill: ${err.message}`;
-                      isError = true;
-                    }
-                  } else {
-                    const matchedSkill = userSkills.find(s => s.name === call.name);
-                    if (matchedSkill) {
-                      try {
-                        toolResultText = await dynamicSkillService.executeSkill(userId, matchedSkill, call.args);
-                        if (toolResultText.startsWith('Error executing skill:') || toolResultText.startsWith('Execution Error:') || toolResultText.startsWith('Error:')) {
-                          isError = true;
-                        }
-                      } catch (err) {
-                        toolResultText = `Execution error: ${err.message}`;
-                        isError = true;
-                      }
-                    } else {
-                      toolResultText = `Error: Skill "${call.name}" not found in discovered user skills.`;
-                      isError = true;
-                    }
-                  }
-
-                  // Nous Hermes-style Self-Correcting Reflection
-                  if (isError) {
-                    const attemptKey = call.name;
-                    const attempts = (toolCallCorrectionAttempts[attemptKey] || 0) + 1;
-                    toolCallCorrectionAttempts[attemptKey] = attempts;
-
-                    if (attempts < 3) {
-                      const errorExplanation = `Error: ${toolResultText}\n\n[REASONING REFLECTION REQUIREMENT]\nThe tool call "${call.name}" failed. Please analyze the error, identify parameter issues (e.g., incorrect directory path, syntax typo, missing optional params), correct your options, and generate a new tool call to retry. Attempt ${attempts}/3.`;
-                      logger.warn(`[Swarm Reflection] Grounded Tool "${call.name}" failed. Feeding error reflection prompt back to LLM (Attempt ${attempts}/3).`, {
-                        userId,
-                        agentId: agent.id,
-                        toolName: call.name,
-                        attempt: attempts,
-                        error: toolResultText
-                      });
-
-                      yield {
-                        type: 'text',
-                        content: `\n\n⚠️ *Skill execution failed. Retrying with error reflection (Attempt ${attempts}/3)...*\n`,
-                        agentId: agent.id
-                      };
-
-                      toolResultText = errorExplanation;
-                    }
-                  }
-
-                  yield {
-                    type: 'text',
-                    content: `*Skill Output:* \`\`\`\n${toolResultText}\n\`\`\`\n`,
-                    agentId: agent.id
-                  };
-
-                  responseParts.push({
-                    functionResponse: {
-                      name: call.name,
-                      response: { result: toolResultText }
-                    }
-                  });
-                }
-
-                contents.push({ role: 'user', parts: responseParts });
-              } else {
-                stopLoop = true;
-
-                // Finished generating text, yield final search cited output
-                groundedCitations = extractGroundingCitations(lastGroundedResult);
-                const groundingMeta = candidate?.groundingMetadata || null;
-
-                const { text: citedText, sourcesBlock } = injectInlineCitations(rawText, groundedCitations, groundingMeta);
-                const cleanText = stripPreambles(citedText);
-                const fullOutput = cleanText + sourcesBlock;
-
-                if (groundedCitations.length > 0) {
-                  console.log(`📎 Extracted ${groundedCitations.length} citations for agent [${agent.name}]`);
-                }
-
-                // Simulate streaming by chunking the grounded response
-                const chunkSize = 80;
-                for (let i = 0; i < fullOutput.length; i += chunkSize) {
-                  const textChunk = fullOutput.substring(i, i + chunkSize);
-                  yield {
-                    type: 'text',
-                    content: textChunk,
-                    agentId: agent.id
-                  };
-                }
-
-                accumulatedText += isPrimary ? fullOutput : `\n\n${fullOutput}`;
-                currentContextInput = cleanText;
-
-                // Yield grounding citations as structured metadata
-                const offsetCitations = groundedCitations.map((c, idx) => ({
-                  index: currentCitations.length + idx + 1,
-                  url: c.url,
-                  title: c.title,
-                  domain: c.domain
-                }));
-                currentCitations = [...currentCitations, ...offsetCitations];
-
-                yield {
-                  type: 'metadata',
-                  reference: currentCitations,
-                  citations: currentCitations,
-                  webSearchQueries: groundingMeta?.webSearchQueries || [],
-                  searchEntryPoint: groundingMeta?.searchEntryPoint || null,
-                  timestamp: Date.now()
-                };
-              }
             }
+
+            accumulatedText += isPrimary ? fullOutput : `\n\n${fullOutput}`;
+            currentContextInput = fullOutput;
+
+            // Yield grounding citations as structured metadata
+            const offsetCitations = citations.map((c, idx) => ({
+              index: currentCitations.length + idx + 1,
+              url: c.url,
+              title: c.title,
+              domain: c.domain
+            }));
+            currentCitations = [...currentCitations, ...offsetCitations];
+
+            yield {
+              type: 'metadata',
+              reference: currentCitations,
+              citations: currentCitations,
+              webSearchQueries: subQueries,
+              timestamp: Date.now()
+            };
+
           } catch (groundingErr) {
             console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to Azure AI Foundry stream...`);
             let agentTextAccumulator = '';
@@ -1275,7 +962,6 @@ Instructions: ${agent.systemInstruction}`;
             accumulatedText += isPrimary ? cleanText : `\n\n${cleanText}`;
             currentContextInput = cleanText;
           }
-
         } else {
           // ═══ STANDARD STREAMING PATH ═══
           let agentTextAccumulator = '';

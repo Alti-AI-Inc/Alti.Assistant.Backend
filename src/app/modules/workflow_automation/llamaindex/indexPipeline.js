@@ -20,7 +20,8 @@ import {
   generateDocumentProfile,
   generateCorpusProfile,
   userIndexCache,
-  semanticCache
+  semanticCache,
+  runIngestionPipeline
 } from '../../llamaindex/llamaindex.indexer.js';
 import { logger } from '../../../../shared/logger.js';
 import path from 'path';
@@ -171,33 +172,36 @@ ingestionWorkflow.handle([NodesGeneratedEvent], async (context, event) => {
  */
 ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
   const { userId, docId, documents, persistDir, manifest } = event.data;
-  logger.info(`[Event Ingestion] Step 4: Committing Vector Index and invalidating semantic cache`);
+  logger.info(`[Event Ingestion] Step 4: Running ingestion pipeline transforms, committing Vector Index and invalidating semantic cache`);
+
+  // Phase 5: Run Ingestion Pipeline with Auto-Metadata Extraction & Chunking
+  const nodes = await runIngestionPipeline(documents);
 
   const indexMetaPath = path.join(persistDir, 'index_store.json');
   let storageContext;
 
   // Perform accumulative index update if pre-existing, otherwise run initial fromDocuments
   if (existsSync(indexMetaPath) && manifest.documents.length > 1) {
-    logger.info('[Event Ingestion] Accumulative mode: inserting pages into existing vector store...');
+    logger.info('[Event Ingestion] Accumulative mode: inserting nodes into existing vector store...');
     storageContext = await storageContextFromDefaults({ persistDir });
     const existingIndex = await VectorStoreIndex.init({ storageContext });
     
-    for (const doc of documents) {
-      await existingIndex.insert(doc);
+    for (const node of nodes) {
+      await existingIndex.insert(node);
     }
   } else {
-    logger.info('[Event Ingestion] Creating fresh vector index for user...');
+    logger.info('[Event Ingestion] Creating fresh vector index for user from transformed nodes...');
     storageContext = await storageContextFromDefaults({ persistDir });
-    await VectorStoreIndex.fromDocuments(documents, { storageContext });
+    await VectorStoreIndex.fromDocuments(nodes, { storageContext });
   }
 
   // Compile secondary memory-based indexes (Summary + Keyword)
   try {
     logger.info('[Event Ingestion] Compiling memory-based secondary indexes...');
-    const summaryIdx = await SummaryIndex.fromDocuments(documents);
+    const summaryIdx = await SummaryIndex.fromDocuments(nodes);
     let keywordIdx = null;
     try {
-      keywordIdx = await KeywordTableIndex.fromDocuments(documents);
+      keywordIdx = await KeywordTableIndex.fromDocuments(nodes);
     } catch (kwErr) {
       logger.warn(`[Event Ingestion] Keyword Index creation skipped (non-fatal): ${kwErr.message}`);
     }

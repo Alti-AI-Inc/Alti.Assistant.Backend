@@ -91,6 +91,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       })}\n\n`
     );
 
+    const requireSearch = req.body.requireSearch !== undefined ? req.body.requireSearch : true;
     let fullText = '';
     let finalReferences = [];
 
@@ -98,7 +99,8 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     for await (const chunk of SwarmService.executeSwarmStream(
       message,
       conversationHistory,
-      userId
+      userId,
+      { requireSearch }
     )) {
       if (chunk.type === 'agent_start') {
         res.write(

@@ -181,12 +181,23 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
       case 'general_chat':
       case 'code_generation':
         // Run collaborative multi-agent execution pipeline synchronously
-        finalResponse = await SwarmService.executeSwarmSync(parameters.query || prompt, [], userId);
+        finalResponse = await SwarmService.executeSwarmSync(parameters?.query || prompt, [], userId, {
+          requireSearch: !!parameters?.require_search
+        });
+        break;
+
+      case 'web_search':
+        // Explicitly handle web search intent with search grounding forced
+        finalResponse = await SwarmService.executeSwarmSync(parameters?.query || prompt, [], userId, {
+          requireSearch: true
+        });
         break;
       
       default:
         // Default to collaborative multi-agent execution pipeline
-        finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId);
+        finalResponse = await SwarmService.executeSwarmSync(prompt, [], userId, {
+          requireSearch: !!parameters?.require_search || target_module === 'web_search'
+        });
         break;
     }
 
