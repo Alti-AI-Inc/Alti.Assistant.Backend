@@ -8,7 +8,7 @@ class DockerWorkspaceService {
     this.imageName = 'alti-sandbox:latest';
     this.dockerfileDir = path.resolve('src/app/modules/docker');
     this.userWorkspacesDir = path.resolve('storage/users');
-    this.activeSessions = new Map(); // userId -> { lastActivity: Date }
+    this.activeSessions = new Map(); // sessionId -> { lastActivity: Date }
     this.initialized = false;
     this.maxContainers = parseInt(process.env.DOCKER_MAX_CONTAINERS || '20', 10);
     this.concurrencyQueue = [];
@@ -69,8 +69,8 @@ class DockerWorkspaceService {
   /**
    * Ensures a user's persistent workspace directory exists on the host.
    */
-  _ensureHostUserDir(userId) {
-    const userDir = path.join(this.userWorkspacesDir, userId, 'workspace');
+  _ensureHostUserDir(userId, isolationId) {
+    const userDir = path.join(this.userWorkspacesDir, userId, 'workspaces', isolationId);
     if (!fs.existsSync(userDir)) {
       fs.mkdirSync(userDir, { recursive: true });
     }
@@ -80,7 +80,7 @@ class DockerWorkspaceService {
   /**
    * Performs LRU sandbox eviction if the total number of user containers exceeds the maximum limit.
    */
-  async _reclaimContainerSlot(excludeUserId = null) {
+  async _reclaimContainerSlot(excludeSessionId = null) {
     try {
       const containers = execSync(
         `docker ps -a --filter "name=alti_workspace_" --format "{{.Names}}"`,
@@ -97,41 +97,42 @@ class DockerWorkspaceService {
       for (const name of containers) {
         const match = name.match(/^alti_workspace_(.+)$/);
         if (match) {
-          const uId = match[1];
-          if (uId === excludeUserId) continue;
-          if (!this.activeSessions.has(uId)) {
+          const sId = match[1];
+          if (sId === excludeSessionId) continue;
+          if (!this.activeSessions.has(sId)) {
             logger.info(`[DOCKER EVICT] Evicting unregistered/leaked container: ${name}`);
-            await this.stopWorkspace(uId);
+            try { execSync(`docker rm -f ${name}`); } catch(e){}
             return;
           }
         }
       }
 
       // 2. Evict the least recently active registered session
-      let oldestUserId = null;
+      let oldestSessionId = null;
       let oldestTime = Infinity;
 
-      for (const [uId, session] of this.activeSessions.entries()) {
-        if (uId === excludeUserId) continue;
+      for (const [sId, session] of this.activeSessions.entries()) {
+        if (sId === excludeSessionId) continue;
         const lastAct = session.lastActivity.getTime();
         if (lastAct < oldestTime) {
           oldestTime = lastAct;
-          oldestUserId = uId;
+          oldestSessionId = sId;
         }
       }
 
-      if (oldestUserId) {
-        logger.info(`[DOCKER EVICT] Evicting LRU container for user ${oldestUserId} (inactive since ${new Date(oldestTime).toISOString()})`);
-        await this.stopWorkspace(oldestUserId);
+      if (oldestSessionId) {
+        logger.info(`[DOCKER EVICT] Evicting LRU container ${oldestSessionId} (inactive since ${new Date(oldestTime).toISOString()})`);
+        try { execSync(`docker rm -f alti_workspace_${oldestSessionId}`); } catch(e){}
+        this.activeSessions.delete(oldestSessionId);
       } else {
         // 3. Fallback eviction if map is empty/unavailable
         for (const name of containers) {
           const match = name.match(/^alti_workspace_(.+)$/);
           if (match) {
-            const uId = match[1];
-            if (uId !== excludeUserId) {
+            const sId = match[1];
+            if (sId !== excludeSessionId) {
               logger.info(`[DOCKER EVICT] Fallback evicting container: ${name}`);
-              await this.stopWorkspace(uId);
+              try { execSync(`docker rm -f ${name}`); } catch(e){}
               return;
             }
           }
@@ -175,20 +176,31 @@ class DockerWorkspaceService {
   /**
    * Retrieves or dynamically spins up the user's isolated container workspace.
    */
-  async getOrCreateWorkspace(userId) {
+  async getOrCreateWorkspace(userId, isolationId = 'default', projectId = null) {
     await this.initialize();
-    this.activeSessions.set(userId, { lastActivity: new Date() });
+    const uniqueSessionId = `${userId}_${isolationId}`;
+    this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() });
 
     if (!this.initialized) {
       return { success: false, mode: 'local-fallback', containerId: null };
     }
 
-    const containerName = `alti_workspace_${userId}`;
-    const hostVolumePath = this._ensureHostUserDir(userId);
+    const containerName = `alti_workspace_${uniqueSessionId}`;
+    const hostVolumePath = this._ensureHostUserDir(userId, isolationId);
+    
+    // Ensure project data directory exists if projectId is provided
+    let projectDataMount = '';
+    if (projectId) {
+      const projectDataDir = path.join(path.resolve('storage/projects'), projectId, 'data');
+      if (!fs.existsSync(projectDataDir)) {
+        fs.mkdirSync(projectDataDir, { recursive: true });
+      }
+      projectDataMount = `-v "${projectDataDir}:/mnt/project_data:ro"`;
+    }
 
     return this._enqueueDockerOperation(async () => {
       // Reclaim slot if at or above container limit
-      await this._reclaimContainerSlot(userId);
+      await this._reclaimContainerSlot(uniqueSessionId);
 
       try {
         // Check if container already exists
@@ -218,6 +230,7 @@ class DockerWorkspaceService {
             --read-only \
             --tmpfs /tmp:rw,noexec,nosuid,size=64m \
             -v "${hostVolumePath}:/workspace" \
+            ${projectDataMount} \
             -v "${skillsBaseDir}:/skills:ro" \
             -v "${mcpToolboxDir}:/mcp-toolbox:ro" \
             ${this.imageName} sleep infinity`;
@@ -243,9 +256,11 @@ class DockerWorkspaceService {
   /**
    * Executes a command securely inside the user's isolated workspace container.
    */
-  async executeCommand(userId, commandArgs, options = {}) {
-    const workspace = await this.getOrCreateWorkspace(userId);
-    this.activeSessions.set(userId, { lastActivity: new Date() });
+  async executeCommand(userId, isolationId = 'default', commandArgs, options = {}) {
+    const projectId = options.projectId || null;
+    const workspace = await this.getOrCreateWorkspace(userId, isolationId, projectId);
+    const uniqueSessionId = `${userId}_${isolationId}`;
+    this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() });
 
     const timeoutMs = options.timeoutMs || 20000;
 
@@ -312,7 +327,7 @@ class DockerWorkspaceService {
       monitorInterval = setInterval(async () => {
         if (aborted) return;
         try {
-          const metrics = await this.getWorkspaceMetrics(userId);
+          const metrics = await this.getWorkspaceMetrics(userId, isolationId);
           if (metrics.connected && !aborted) {
             const cpu = parseFloat(String(metrics.cpuPercent || '0').replace('%', ''));
             const mem = parseFloat(String(metrics.memoryPercent || '0').replace('%', ''));
@@ -364,8 +379,9 @@ class DockerWorkspaceService {
   /**
    * Pauses an active workspace container.
    */
-  async pauseWorkspace(userId) {
-    const containerName = `alti_workspace_${userId}`;
+  async pauseWorkspace(userId, isolationId = 'default') {
+    const uniqueSessionId = `${userId}_${isolationId}`;
+    const containerName = `alti_workspace_${uniqueSessionId}`;
     try {
       execSync(`docker pause ${containerName}`);
       logger.info(`[DOCKER] Successfully paused workspace container: ${containerName}`);
@@ -378,12 +394,13 @@ class DockerWorkspaceService {
   /**
    * Stops and cleans up a workspace container.
    */
-  async stopWorkspace(userId) {
-    const containerName = `alti_workspace_${userId}`;
+  async stopWorkspace(userId, isolationId = 'default') {
+    const uniqueSessionId = `${userId}_${isolationId}`;
+    const containerName = `alti_workspace_${uniqueSessionId}`;
     try {
       execSync(`docker rm -f ${containerName}`);
       logger.info(`[DOCKER] Safely destroyed workspace container: ${containerName}`);
-      this.activeSessions.delete(userId);
+      this.activeSessions.delete(uniqueSessionId);
       return true;
     } catch {
       return false;

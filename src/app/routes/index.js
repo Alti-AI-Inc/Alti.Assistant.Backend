@@ -63,6 +63,7 @@ import { composioCatalogRoutes } from '../modules/composio/composio-catalog.rout
 import { temporalRoutes } from '../modules/temporal/temporal.route.js';
 import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
 import { dockerRoutes } from './docker.route.js';
+import { chatbotRoutes } from '../modules/chatbots/chatbot.routes.js';
 
 const router = express.Router();
 
@@ -326,6 +327,10 @@ const moduleRoutes = [
   {
     path: '/mcp-toolbox',
     route: mcpToolboxRoutes,
+  },
+  {
+    path: '/chatbots',
+    route: chatbotRoutes,
   },
 ];
 
