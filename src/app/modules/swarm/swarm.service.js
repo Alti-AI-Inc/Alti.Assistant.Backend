@@ -19,6 +19,7 @@ import { GoogleSearchGroundingTool } from '../deep_research/utils/tavily-utils.j
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dynamicSkillService } from './dynamicSkill.service.js';
 import { logger } from '../../../shared/logger.js';
+import { VOICE_OF_THE_SPIRIT } from '../../shared/spirit.prompt.js';
 
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
@@ -440,7 +441,8 @@ ${ragResult.sources.map((s, idx) => `[Source #${idx + 1}] Document: ${s.extracte
     for (let index = 0; index < pipeline.chain.length; index++) {
       const agent = pipeline.chain[index];
       const isPrimary = index === 0;
-      const systemInstruction = userProfileBlock ? userProfileBlock + agent.systemInstruction : agent.systemInstruction;
+      let systemInstruction = userProfileBlock ? userProfileBlock + agent.systemInstruction : agent.systemInstruction;
+      systemInstruction = VOICE_OF_THE_SPIRIT + '\n\n' + systemInstruction;
 
       let customGcpGroundingBlock = '';
       if (agent.id === 'gcp_grounding') {
@@ -796,7 +798,8 @@ ${ragResult.sources.map((s, idx) => `[Source #${idx + 1}] Document: ${s.extracte
       const agent = pipeline.chain[index];
       const isPrimary = index === 0;
       const isLast = index === pipeline.chain.length - 1;
-      const systemInstruction = userProfileBlock ? userProfileBlock + agent.systemInstruction : agent.systemInstruction;
+      let systemInstruction = userProfileBlock ? userProfileBlock + agent.systemInstruction : agent.systemInstruction;
+      systemInstruction = VOICE_OF_THE_SPIRIT + '\n\n' + systemInstruction;
 
       console.log(`📡 Swarm Executor: Running agent [${agent.name}] (${index + 1}/${pipeline.chain.length})`);
 
