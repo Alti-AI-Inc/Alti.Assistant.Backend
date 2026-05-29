@@ -8,7 +8,10 @@ import KnowledgebaseFile from './knowledgebase.files.model.js';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { SafeGoogleGenerativeAIEmbeddings } from '../../../shared/embeddings.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleAIFileManager } from '@google/generative-ai/server';
 import { Storage } from '@google-cloud/storage';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
 import {
   withTenantContext,
   withTenantFilter,
@@ -42,6 +45,7 @@ enableHybridSearch(rag);
 
 // Initialize Google Generative AI for token counting and summarization
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+const fileManager = new GoogleAIFileManager(config.gemini_secret_key);
 
 // Initialize Google Cloud Storage
 const storage = new Storage({
@@ -183,8 +187,64 @@ User: Please summarize the following conversation history, keeping it under 2500
   }
 
   /**
+   * Extract content from media (image, audio, video) using Gemini
+   * @param {string} filePath - Path to the local file
+   * @param {string} mimeType - MIME type of the file
+   * @returns {Promise<string>} - Extracted JSON text
+   */
+  async extractMediaContent(filePath, mimeType) {
+    try {
+      logger.info(`Extracting media content using Gemini 1.5 Pro File API for mimeType: ${mimeType}`);
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-1.5-pro',
+        generationConfig: { responseMimeType: "application/json" }
+      });
+      const prompt = `You are a multi-modal ingestion pipeline. Please analyze this file. 
+      Return ONLY a raw JSON object (no markdown formatting) with the following exact structure:
+      {
+        "transcript": "Full transcript of speech or full OCR text of image, or extremely detailed visual description if no text",
+        "summary": "A 2-3 sentence overview of the file",
+        "tags": ["tag1", "tag2", "tag3"],
+        "language": "en"
+      }`;
+      
+      // Upload using File API to handle up to 2GB files
+      const uploadResult = await fileManager.uploadFile(filePath, {
+        mimeType: mimeType,
+      });
+      logger.info(`File uploaded to AI Studio: ${uploadResult.file.name}`);
+
+      // Wait for processing to complete if it's a video
+      let fileState = await fileManager.getFile(uploadResult.file.name);
+      while (fileState.state === "PROCESSING") {
+        logger.info(`Waiting for media processing...`);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        fileState = await fileManager.getFile(uploadResult.file.name);
+      }
+      if (fileState.state === "FAILED") {
+        throw new Error("Media processing failed in Google AI Studio.");
+      }
+
+      const result = await model.generateContent([
+        prompt, 
+        { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } }
+      ]);
+      
+      const textResult = result.response.text() || '{}';
+
+      // Clean up from Google AI Studio
+      await fileManager.deleteFile(uploadResult.file.name).catch(e => logger.warn(`Failed to delete AI file ${uploadResult.file.name}: ${e.message}`));
+      
+      return textResult;
+    } catch (error) {
+      logger.error('Error extracting media content with Gemini:', error);
+      throw new Error(`Media extraction failed: ${error.message}`);
+    }
+  }
+
+  /**
    * Process uploaded file or file path
-   * @param {Object|string} file - The uploaded file object (with buffer) or file path string
+   * @param {Object|string} file - The uploaded file object (with buffer or path) or file path string
    * @param {string} knowledgebotId - The knowledgebot ID
    * @param {string} userId - The user ID
    * @param {Object} req - Request object for tenant context
@@ -198,30 +258,88 @@ User: Please summarize the following conversation history, keeping it under 2500
       let result;
       let gcsUrl = null;
       let gcsFileName = null;
+      let metadata = {};
 
-      if (typeof file === 'string') {
-        // It's a file path - read the file and upload to GCS, then use addDocuments
-        const fs = await import('fs/promises');
-        const fileName = path.basename(file);
-        const fileStats = await fs.stat(file);
-        const fileExtension = path.extname(file).toLowerCase().substring(1);
-
+      if (typeof file === 'string' || file.path) {
+        // It's a file from multer diskStorage or a direct path
+        const filePath = typeof file === 'string' ? file : file.path;
+        const fileName = typeof file === 'string' ? path.basename(file) : file.originalname;
+        const fileExtension = path.extname(fileName).toLowerCase().substring(1);
+        
         logger.info(
           `Processing file from path for knowledgebot: ${knowledgebotId}, file: ${fileName}`
         );
 
-        // Read file buffer and upload to GCS
-        const fileBuffer = await fs.readFile(file);
+        // Read buffer to upload to GCS
+        const fileBuffer = await fsPromises.readFile(filePath);
+        
+        // Upload to Google Cloud Storage
         const timestamp = Date.now();
         gcsFileName = `${knowledgebotId}/${timestamp}_${fileName}`;
-        gcsUrl = await this.uploadToGCS(fileBuffer, fileName, knowledgebotId);
+        gcsUrl = await this.uploadToGCS(
+          fileBuffer,
+          fileName,
+          knowledgebotId
+        );
         logger.info(`File uploaded to GCS: ${gcsUrl}`);
 
-        // Process with RAG system
-        result = await rag.addDocuments(file, {
-          knowledgebotId: knowledgebotId,
-          gcsUrl: gcsUrl,
-        });
+        // Process the file with RAG system
+        const mediaExtensions = ['.png', '.jpg', '.jpeg', '.mp3', '.wav', '.m4a', '.mp4', '.mov'];
+        if (mediaExtensions.includes('.' + fileExtension)) {
+          logger.info(`Media file detected from disk (${fileExtension}), extracting content with Gemini File API...`);
+          
+          const contentTypeMap = {
+            'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+            'mp3': 'audio/mp3', 'wav': 'audio/wav', 'm4a': 'audio/m4a',
+            'mp4': 'video/mp4', 'mov': 'video/quicktime'
+          };
+          const mimeType = contentTypeMap[fileExtension] || 'application/octet-stream';
+          const jsonText = await this.extractMediaContent(filePath, mimeType);
+          
+          try {
+            const parsed = JSON.parse(jsonText);
+            metadata = {
+              summary: parsed.summary,
+              tags: parsed.tags,
+              language: parsed.language
+            };
+            const transcriptionBuffer = Buffer.from(parsed.transcript || jsonText, 'utf-8');
+            result = await rag.addDocumentFromBuffer(
+              transcriptionBuffer,
+              `${fileName}_transcription.txt`,
+              'txt',
+              {
+                knowledgebotId: knowledgebotId,
+                gcsUrl: gcsUrl, // Store GCS URL in metadata
+                originalFile: fileName
+              }
+            );
+          } catch(err) {
+            logger.error('Failed to parse JSON from Gemini', err);
+            const transcriptionBuffer = Buffer.from(jsonText, 'utf-8');
+            result = await rag.addDocumentFromBuffer(
+              transcriptionBuffer,
+              `${fileName}_transcription.txt`,
+              'txt',
+              { knowledgebotId: knowledgebotId, gcsUrl: gcsUrl, originalFile: fileName }
+            );
+          }
+        } else {
+          result = await rag.addDocumentFromBuffer(
+            fileBuffer,
+            fileName,
+            fileExtension,
+            {
+              knowledgebotId: knowledgebotId,
+              gcsUrl: gcsUrl, // Store GCS URL in metadata
+            }
+          );
+        }
+
+        // Clean up the local temp file if it's from multer
+        if (file.path) {
+          await fsPromises.unlink(filePath).catch(e => logger.warn(`Failed to delete local temp file ${filePath}: ${e.message}`));
+        }
 
         logger.info(
           `Successfully processed and stored document from path: ${fileName}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`
@@ -232,7 +350,7 @@ User: Please summarize the following conversation history, keeping it under 2500
           fileName: `${timestamp}_${fileName}`,
           originalName: fileName,
           fileType: fileExtension,
-          fileSize: fileStats.size,
+          fileSize: typeof file === 'string' ? fileBuffer.length : file.size,
           gcsUrl: gcsUrl,
           gcsPath: gcsFileName,
           documentId: result.documentId,
@@ -241,6 +359,7 @@ User: Please summarize the following conversation history, keeping it under 2500
           title: result.title,
           chunkCount: result.chunkCount,
           isActive: true,
+          metadata: metadata
         };
 
         const fileRecord = new KnowledgebaseFile(
@@ -255,72 +374,6 @@ User: Please summarize the following conversation history, keeping it under 2500
           fileName: fileName,
           filePath: file,
           fileType: fileExtension,
-          documentId: result.documentId,
-          title: result.title,
-          chunkCount: result.chunkCount,
-          gcsUrl: gcsUrl,
-          fileId: fileRecord._id.toString(),
-          uploadedAt: new Date().toISOString(),
-        };
-      } else if (file.buffer) {
-        // It's a buffer from file upload - upload to GCS first, then process
-        const fileExtension = path
-          .extname(file.originalname)
-          .toLowerCase()
-          .substring(1);
-        logger.info(
-          `Processing file upload from buffer for knowledgebot: ${knowledgebotId}, file: ${file.originalname}, type: ${fileExtension}, size: ${file.size} bytes`
-        );
-
-        // Upload to Google Cloud Storage
-        const timestamp = Date.now();
-        gcsFileName = `${knowledgebotId}/${timestamp}_${file.originalname}`;
-        gcsUrl = await this.uploadToGCS(
-          file.buffer,
-          file.originalname,
-          knowledgebotId
-        );
-        logger.info(`File uploaded to GCS: ${gcsUrl}`);
-
-        // Process the file with RAG system
-        result = await rag.addDocumentFromBuffer(
-          file.buffer,
-          file.originalname,
-          fileExtension,
-          {
-            knowledgebotId: knowledgebotId,
-            gcsUrl: gcsUrl, // Store GCS URL in metadata
-          }
-        );
-
-        logger.info(
-          `Successfully processed and stored document from buffer: ${file.originalname}, documentId: ${result.documentId}, chunks: ${result.chunkCount}`
-        );
-
-        // Save file information to MongoDB
-        const fileRecord = new KnowledgebaseFile({
-          fileName: `${timestamp}_${file.originalname}`,
-          originalName: file.originalname,
-          fileType: fileExtension,
-          fileSize: file.size,
-          gcsUrl: gcsUrl,
-          gcsPath: gcsFileName,
-          documentId: result.documentId,
-          knowledgebotId: knowledgebotId,
-          userId: userId,
-          title: result.title,
-          chunkCount: result.chunkCount,
-          isActive: true,
-        });
-
-        await fileRecord.save();
-        logger.info(`File record saved to database: ${fileRecord._id}`);
-
-        return {
-          success: result.success,
-          fileName: result.fileName,
-          fileType: fileExtension,
-          fileSize: file.size,
           documentId: result.documentId,
           title: result.title,
           chunkCount: result.chunkCount,

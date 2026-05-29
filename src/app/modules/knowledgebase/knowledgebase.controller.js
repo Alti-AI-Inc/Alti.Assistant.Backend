@@ -42,43 +42,52 @@ const uploadFile = catchAsync(async (req, res) => {
     });
   }
 
-  // Get the first uploaded file
-  const uploadedFile = req.files[0];
-
-  // Extract file extension from filename
-  const fileExtension = path
-    .extname(uploadedFile.originalname)
-    .toLowerCase()
-    .substring(1); // Remove the dot and convert to lowercase
-
   try {
-    // For now, just return success message
-    // You can add the actual processing logic later
-    logger.info(
-      `File upload attempted by user: ${userId}, file: ${uploadedFile.originalname}, type: ${fileExtension}, size: ${uploadedFile.size} bytes`
-    );
-    const response = await knowledgebaseService.processUploadedFile(
-      uploadedFile,
-      knowledgebotId,
-      userId,
-      req
+    const tenantId = req.currentTenantId ?? null;
+    const results = await Promise.allSettled(
+      req.files.map(async (uploadedFile) => {
+        const fileExtension = path
+          .extname(uploadedFile.originalname)
+          .toLowerCase()
+          .substring(1);
+          
+        logger.info(
+          `File upload attempted by user: ${userId}, file: ${uploadedFile.originalname}, type: ${fileExtension}, size: ${uploadedFile.size} bytes`
+        );
+        
+        const response = await knowledgebaseService.processUploadedFile(
+          uploadedFile,
+          knowledgebotId,
+          userId,
+          req
+        );
+
+        // Track storage usage
+        await UserUsageModel.updateStorage(
+          userId,
+          tenantId,
+          uploadedFile.size
+        ).catch((err) =>
+          logger.error('[Knowledgebase] Storage increment error:', err)
+        );
+
+        return response;
+      })
     );
 
-    // Track storage usage
-    const tenantId = req.currentTenantId ?? null;
-    await UserUsageModel.updateStorage(
-      userId,
-      tenantId,
-      uploadedFile.size
-    ).catch((err) =>
-      logger.error('[Knowledgebase] Storage increment error:', err)
-    );
+    const successfulUploads = results
+      .filter((r) => r.status === 'fulfilled')
+      .map((r) => r.value);
+    
+    const failedUploads = results
+      .filter((r) => r.status === 'rejected')
+      .map((r) => r.reason.message);
 
     sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Upload successful',
-      data: response,
+      statusCode: failedUploads.length === 0 ? httpStatus.OK : httpStatus.MULTI_STATUS,
+      success: successfulUploads.length > 0,
+      message: `Successfully uploaded ${successfulUploads.length} files. ${failedUploads.length > 0 ? failedUploads.length + ' failed.' : ''}`,
+      data: successfulUploads,
     });
   } catch (error) {
     logger.error('File upload error:', error);
@@ -86,7 +95,7 @@ const uploadFile = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'An error occurred while uploading the file',
+      message: 'An error occurred while uploading the files',
     });
   }
 });

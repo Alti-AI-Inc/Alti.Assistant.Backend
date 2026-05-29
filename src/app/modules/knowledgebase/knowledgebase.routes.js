@@ -10,8 +10,18 @@ import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageL
 
 const router = express.Router();
 
+import os from 'os';
+
 // Configure multer for file uploads
-const storage = multer.memoryStorage(); // Store in memory for now
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, os.tmpdir());
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
 const fileFilter = (req, file, cb) => {
   // Log the file details for debugging
@@ -29,7 +39,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 2000 * 1024 * 1024, // 2GB limit for large media files
   },
 });
 
