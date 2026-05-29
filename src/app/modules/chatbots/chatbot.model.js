@@ -57,6 +57,11 @@ const ChatbotSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    isShared: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,

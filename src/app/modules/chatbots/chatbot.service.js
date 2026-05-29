@@ -19,8 +19,21 @@ const createChatbot = async (chatbotData, userId, req = null) => {
 
 const getChatbots = async (userId, req = null) => {
   try {
-    const query = { userId, isActive: true };
-    const chatbots = await Chatbot.find(req ? withTenantFilter(req, query) : query).sort({ createdAt: -1 });
+    let query;
+    if (req && req.tenantId) {
+      query = {
+        isActive: true,
+        $or: [
+          { userId }, // The user's personal projects
+          { isShared: true, tenantId: req.tenantId } // The team's shared projects
+        ]
+      };
+    } else {
+      query = { userId, isActive: true };
+    }
+    
+    // We don't use withTenantFilter here because we need a custom $or that spans across the user's bots and shared tenant bots
+    const chatbots = await Chatbot.find(query).sort({ createdAt: -1 });
     return chatbots;
   } catch (error) {
     logger.error('Error fetching chatbots:', error);
