@@ -77,8 +77,8 @@ export const updateMemberRoleSchema = z.object({
     userId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid user ID'),
   }),
   body: z.object({
-    role: z.enum(['admin', 'member'], {
-      errorMap: () => ({ message: 'Role must be either admin or member' }),
+    role: z.enum(['admin', 'member', 'owner'], {
+      errorMap: () => ({ message: 'Role must be admin, member, or owner' }),
     }),
   }),
 });

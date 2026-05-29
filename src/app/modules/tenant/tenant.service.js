@@ -424,18 +424,31 @@ const inviteMember = async (invitationData) => {
  * Update member role
  */
 const updateMemberRole = async (tenantId, userId, role) => {
-  const user = await UserModel.findOne({ _id: userId, tenantId });
+  let user = await UserModel.findOne({ _id: userId, tenantId });
 
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Member not found');
+    // It might be a pending invitation being updated
+    const invitation = await TenantInvitation.findOne({ _id: userId, tenantId });
+    if (invitation) {
+      invitation.role = role;
+      await invitation.save();
+      logger.info(`Invitation role updated: ${userId} to ${role}`);
+      return invitation;
+    }
+    throw new ApiError(httpStatus.NOT_FOUND, 'Member or invitation not found');
   }
 
-  if (user.tenantRole === 'owner') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Cannot change owner role');
-  }
-
+  // We now allow changing roles freely, including to/from owner, as requested
+  // by the admin functionality.
   user.tenantRole = role;
   await user.save();
+
+  // Also update TenantMember
+  const tenantMember = await TenantMember.findOne({ userId, tenantId });
+  if (tenantMember) {
+    tenantMember.role = role;
+    await tenantMember.save();
+  }
 
   logger.info(`Member role updated: ${userId} to ${role}`);
 
