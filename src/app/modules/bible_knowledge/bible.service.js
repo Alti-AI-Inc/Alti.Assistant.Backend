@@ -3,33 +3,44 @@ import path from 'path';
 
 class BibleService {
     constructor() {
-        this.dbPath = path.join(process.cwd(), 'src/app/modules/bible_knowledge/data/flat_bsb.json');
-        this.bible = null;
+        this.dataDir = path.join(process.cwd(), 'src/app/modules/bible_knowledge/data');
+        this.databases = {
+            'BSB': null,
+            'JPS': null,
+            'HEBREW': null
+        };
+        this.files = {
+            'BSB': 'flat_bsb.json',
+            'JPS': 'flat_jps.json',
+            'HEBREW': 'flat_hebrew.json'
+        };
     }
 
-    loadDatabase() {
-        if (!this.bible) {
+    loadDatabase(translation = 'BSB') {
+        const trans = translation.toUpperCase();
+        if (!this.files[trans]) {
+            throw new Error(`Unsupported translation: ${translation}`);
+        }
+        
+        if (!this.databases[trans]) {
             try {
-                const data = fs.readFileSync(this.dbPath, 'utf8');
-                this.bible = JSON.parse(data);
+                const dbPath = path.join(this.dataDir, this.files[trans]);
+                const data = fs.readFileSync(dbPath, 'utf8');
+                this.databases[trans] = JSON.parse(data);
             } catch (err) {
-                console.error("Error loading Bible database:", err);
-                this.bible = [];
+                console.error(`Error loading Bible database (${trans}):`, err);
+                this.databases[trans] = [];
             }
         }
+        return this.databases[trans];
     }
 
     /**
      * Look up a specific passage by book code, chapter, and verse range.
-     * @param {string} book - Standard 3-letter book code (e.g. 'GEN', 'JHN', 'ROM')
-     * @param {number} chapter 
-     * @param {number} startVerse 
-     * @param {number} endVerse 
-     * @returns {Array} Array of verse objects
      */
-    lookupPassage(book, chapter, startVerse, endVerse = startVerse) {
-        this.loadDatabase();
-        return this.bible.filter(v => 
+    lookupPassage(book, chapter, startVerse, endVerse = startVerse, translation = 'BSB') {
+        const db = this.loadDatabase(translation);
+        return db.filter(v => 
             v.book.toUpperCase() === book.toUpperCase() && 
             v.chapter === parseInt(chapter, 10) && 
             v.verse >= parseInt(startVerse, 10) && 
@@ -39,16 +50,12 @@ class BibleService {
 
     /**
      * Perform a simple keyword/semantic-light search across the text.
-     * @param {string} query 
-     * @param {number} limit 
-     * @returns {Array} Array of verse objects
      */
-    search(query, limit = 10) {
-        this.loadDatabase();
+    search(query, limit = 10, translation = 'BSB') {
+        const db = this.loadDatabase(translation);
         const searchTerms = query.toLowerCase().split(/\s+/);
         
-        // Simple scoring based on word matches
-        const scoredVerses = this.bible.map(v => {
+        const scoredVerses = db.map(v => {
             let score = 0;
             const textLower = v.text.toLowerCase();
             for (const term of searchTerms) {
@@ -64,14 +71,14 @@ class BibleService {
     /**
      * Formats verses into a readable citation string.
      */
-    formatVerses(verses) {
+    formatVerses(verses, translation = 'BSB') {
         if (!verses || verses.length === 0) return "No verses found.";
         const book = verses[0].book;
         const chapter = verses[0].chapter;
         const start = verses[0].verse;
         const end = verses[verses.length - 1].verse;
         
-        const reference = `${book} ${chapter}:${start}${start !== end ? '-' + end : ''}`;
+        const reference = `${book} ${chapter}:${start}${start !== end ? '-' + end : ''} [${translation}]`;
         const text = verses.map(v => `[v${v.verse}] ${v.text}`).join(' ');
         
         return `${text} (${reference})`;
