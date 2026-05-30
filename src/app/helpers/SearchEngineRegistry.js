@@ -317,6 +317,14 @@ import {
   UsdaSoilSalinityProvider
 } from './providers/nicheNicheNicheNicheNicheNichePremiumProviders.js';
 
+import {
+  OpenCorporatesProvider,
+  NhtsaVehicleSafetyProvider,
+  FbiCrimeExplorerProvider,
+  CpscProductRecallProvider,
+  NsfGrantsProvider
+} from './providers/customPublicCommerceProviders.js';
+
 
 
 
@@ -1054,6 +1062,13 @@ SearchEngineRegistry.register(PortugalMacroeconomicsProvider);
 SearchEngineRegistry.register(GreeceMacroeconomicsProvider);
 SearchEngineRegistry.register(NewZealandMacroeconomicsProvider);
 SearchEngineRegistry.register(PolandMacroeconomicsProvider);
+
+// Stage 40 Premium Providers (Corporate, Automotive & Crime Grounding Registries)
+SearchEngineRegistry.register(OpenCorporatesProvider);
+SearchEngineRegistry.register(NhtsaVehicleSafetyProvider);
+SearchEngineRegistry.register(FbiCrimeExplorerProvider);
+SearchEngineRegistry.register(CpscProductRecallProvider);
+SearchEngineRegistry.register(NsfGrantsProvider);
 
 
 
