@@ -1,0 +1,140 @@
+{
+  "stage": 86,
+  "loopCount": 16,
+  "timestamp": "2026-05-30T22:32:12.695Z",
+  "discoveredChannelsCount": 10,
+  "providers": [
+    {
+      "id": "epa_radon_zones",
+      "category": "scientific",
+      "citationLabel": "EPA Indoor Radon Zones & Air Quality Surveys",
+      "mandatoryRule": "▸ Highlight radon hazard classes, county zone ratings, and action levels in **BOLD** (e.g. **Zone 1 High Radon Potential**, **EPA Action Level 4.0 pCi/L**, **EPA Indoor Air Guide Passed**)",
+      "detectIntent": "(query) => { return /radon zone|epa indoor radon|county radon hazard|indoor air quality radon/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| EPA Indoor Radon Zones & Air Quality Surveys Spec | Altis Corp | EPA_RADON_ZONES High | EPA Indoor Air Guide Passed |",
+      "metadata": {
+        "domain": "epa_radon_zones",
+        "zone": "Zone 1",
+        "status": "EPA Indoor Air Guide Passed"
+      }
+    },
+    {
+      "id": "eia_nuclear_generation",
+      "category": "scientific",
+      "citationLabel": "EIA Nuclear Power Generation & Fuel Inventories",
+      "mandatoryRule": "▸ Highlight nuclear reactor capacity factors, outage logs, and net generation in **BOLD** (e.g. **98.5% Capacity Factor**, **1,245 Megawatts Nuclear Output**, **EIA Active Reactor Monitor**)",
+      "detectIntent": "(query) => { return /nuclear power generation|eia reactor status|nuclear fuel capacity|reactor outage logs/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| EIA Nuclear Power Generation & Fuel Inventories Spec | Altis Corp | EIA_NUCLEAR_GENERATION High | EIA Active Reactor Monitor |",
+      "metadata": {
+        "domain": "eia_nuclear_generation",
+        "plant": "Vance Nuclear Station",
+        "capacity": "98.5%",
+        "status": "EIA Active Reactor Monitor"
+      }
+    },
+    {
+      "id": "hud_rental_assistance",
+      "category": "premium_public",
+      "citationLabel": "HUD Section 8 & Rental Assistance Registry",
+      "mandatoryRule": "▸ Cite Section 8 voucher limits, public housing funding, and PHA standing in **BOLD** (e.g. **Section 8 Voucher Allocation**, **$12,450 Monthly PHA Payout**, **HUD High Performer Rating**)",
+      "detectIntent": "(query) => { return /section 8 vouchers|hud rental assistance|public housing authority funding|housing choice voucher allocations/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| HUD Section 8 & Rental Assistance Registry Spec | Altis Corp | HUD_RENTAL_ASSISTANCE High | HUD High Performer Rating |",
+      "metadata": {
+        "domain": "hud_rental_assistance",
+        "voucherType": "Section 8",
+        "status": "HUD High Performer Rating"
+      }
+    },
+    {
+      "id": "doj_antitrust_filings",
+      "category": "legal_security",
+      "citationLabel": "DOJ Antitrust Division Public Mergers & Enforcement Cases",
+      "mandatoryRule": "▸ Highlight antitrust dockets, Clayton Act merger reviews, and enforcement flags in **BOLD** (e.g. **Antitrust Docket #2026-AT**, **Clayton Act Merger Challenge**, **DOJ Antitrust Active Consent**)",
+      "detectIntent": "(query) => { return /doj antitrust filings|antitrust merger challenge|clayton act enforcement case|doj merger review decrees/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| DOJ Antitrust Division Public Mergers & Enforcement Cases Spec | Altis Corp | DOJ_ANTITRUST_FILINGS High | DOJ Antitrust Active Consent |",
+      "metadata": {
+        "domain": "doj_antitrust_filings",
+        "docketNumber": "2026-AT",
+        "status": "DOJ Antitrust Active Consent"
+      }
+    },
+    {
+      "id": "usda_snap_retailers",
+      "category": "premium_public",
+      "citationLabel": "USDA SNAP Authorized Retailer Locator & Integrity Logs",
+      "mandatoryRule": "▸ Cite SNAP store authorization keys, retailer standings, and EBT compliance in **BOLD** (e.g. **SNAP Store Authorization #12459**, **Active EBT Retailer Stand**, **USDA FNS Integrity Check Passed**)",
+      "detectIntent": "(query) => { return /snap authorized retailers|supplemental nutrition assistance store locator|ebt compliance retail|fns retailer database/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| USDA SNAP Authorized Retailer Locator & Integrity Logs Spec | Altis Corp | USDA_SNAP_RETAILERS High | USDA FNS Integrity Check Passed |",
+      "metadata": {
+        "domain": "usda_snap_retailers",
+        "storeId": "12459",
+        "status": "USDA FNS Integrity Check Passed"
+      }
+    },
+    {
+      "id": "noaa_marine_debris",
+      "category": "scientific",
+      "citationLabel": "NOAA Marine Debris Shoreline Monitoring Database",
+      "mandatoryRule": "▸ Cite shoreline survey tags, plastic debris weights, and cleanup status in **BOLD** (e.g. **NOAA Shoreline Survey #124**, **1,245 kg Marine Debris Cleared**, **NOAA Marine Debris Registry**)",
+      "detectIntent": "(query) => { return /noaa marine debris|shoreline plastic survey|beach cleanup metrics|ocean trash debris density/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| NOAA Marine Debris Shoreline Monitoring Database Spec | Altis Corp | NOAA_MARINE_DEBRIS High | NOAA Marine Debris Registry |",
+      "metadata": {
+        "domain": "noaa_marine_debris",
+        "surveyId": "124",
+        "debrisWeight": "1245 kg",
+        "status": "NOAA Marine Debris Registry"
+      }
+    },
+    {
+      "id": "cpsc_injury_estimates",
+      "category": "premium_public",
+      "citationLabel": "CPSC NEISS National Injury Surveillance Estimates",
+      "mandatoryRule": "▸ Highlight consumer product hazard codes, emergency room injury estimates, and product standings in **BOLD** (e.g. **Hazard Code #1204 (Stairs)**, **45,800 ER Injury Estimates**, **CPSC NEISS Active Estimate**)",
+      "detectIntent": "(query) => { return /cpsc neiss database|product injury surveillance|national electronic injury estimates|emergency room product hazard stats/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| CPSC NEISS National Injury Surveillance Estimates Spec | Altis Corp | CPSC_INJURY_ESTIMATES High | CPSC NEISS Active Estimate |",
+      "metadata": {
+        "domain": "cpsc_injury_estimates",
+        "hazardCode": "1204",
+        "status": "CPSC NEISS Active Estimate"
+      }
+    },
+    {
+      "id": "fcc_universal_service",
+      "category": "premium_public",
+      "citationLabel": "FCC Universal Service Fund (USF) Allocations & Standings",
+      "mandatoryRule": "▸ Cite carrier USAC IDs, E-Rate allocations, and service fund status in **BOLD** (e.g. **USAC SPIN Number #143000**, **$1.45 Million E-Rate Grant**, **FCC USF Compliance Passed**)",
+      "detectIntent": "(query) => { return /fcc universal service fund|usf lifeline erate funding|rural health care telecom funding|usac carrier compliance registry/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| FCC Universal Service Fund (USF) Allocations & Standings Spec | Altis Corp | FCC_UNIVERSAL_SERVICE High | FCC USF Compliance Passed |",
+      "metadata": {
+        "domain": "fcc_universal_service",
+        "spinNumber": "143000",
+        "status": "FCC USF Compliance Passed"
+      }
+    },
+    {
+      "id": "doi_usgs_water_use",
+      "category": "scientific",
+      "citationLabel": "USGS Estimated Water Use in the United States",
+      "mandatoryRule": "▸ Cite thermoelectric/agricultural supply categories, gallon consumption sizes, and USGS classifications in **BOLD** (e.g. **Thermoelectric Water Supply**, **124.5 Million Gallons Daily**, **USGS Water Use Active Record**)",
+      "detectIntent": "(query) => { return /usgs water use estimates|thermoelectric water withdrawal county|agricultural irrigation water consumption|usgs national water supply audit/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| USGS Estimated Water Use in the United States Spec | Altis Corp | DOI_USGS_WATER_USE High | USGS Water Use Active Record |",
+      "metadata": {
+        "domain": "doi_usgs_water_use",
+        "consumption": "124.5 MGD",
+        "status": "USGS Water Use Active Record"
+      }
+    },
+    {
+      "id": "sec_form_13d_g",
+      "category": "financial_regulatory",
+      "citationLabel": "SEC Schedule 13D/G Beneficial Ownership Holdings",
+      "mandatoryRule": "▸ Highlight beneficial owner holdings, active equity stake percentages, and filing dates in **BOLD** (e.g. **5.8% Active Equity Stake**, **Schedule 13D Ownership Filer**, **SEC Beneficial Owner Registry**)",
+      "detectIntent": "(query) => { return /sec schedule 13d beneficial ownership|schedule 13g active holdings|major share owner stake above 5%|sec beneficial ownership filings/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| SEC Schedule 13D/G Beneficial Ownership Holdings Spec | Altis Corp | SEC_FORM_13D_G High | SEC Beneficial Owner Registry |",
+      "metadata": {
+        "domain": "sec_form_13d_g",
+        "stake": "5.8%",
+        "status": "SEC Beneficial Owner Registry"
+      }
+    }
+  ]
+}
