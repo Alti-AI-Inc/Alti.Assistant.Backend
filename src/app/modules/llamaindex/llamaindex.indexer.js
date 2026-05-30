@@ -491,6 +491,8 @@ callbackManager.on('llm-end', (event) => {
 
 console.log('LlamaIndex Phase 7: CallbackManager initialized for pipeline observability.');
 
+export { Settings };
+
 // ═════════════════════════════════════════════════════════════════════════════
 // SECTION 3: SEMANTIC RESPONSE CACHE (Phase 4 + Phase 7 Native Similarity)
 // ═════════════════════════════════════════════════════════════════════════════
