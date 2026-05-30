@@ -1,6 +1,6 @@
 import express from 'express';
 import { chatbotController } from './chatbot.controller.js';
-import auth from '../../middlewares/auth.js';
+import auth from '../../middlewares/auth/auth.js';
 import { ENUM_USER_ROLE } from '../../../enums/user.js';
 
 const router = express.Router();

@@ -40,12 +40,10 @@ COPY --from=builder /app/alti-core-service/server.js ./
 COPY --from=builder /app/alti-core-service/package.json /app/alti-core-service/alti_gcp.jso[n] ./
 COPY --from=builder /app/alti-core-service/imagegen.json ./
 COPY --from=builder /app/alti-core-service/env.yaml ./
-COPY --from=builder /app/alti-core-service/output ./output
 COPY --from=builder /app/alti-core-service/preload.cjs ./
-COPY --from=builder /app/alti-core-service/mcp-toolbox ./mcp-toolbox
 
 # Create necessary directories
-RUN mkdir -p logs/errors logs/successes uploads/ragsystem uploads/mcp_toolbox storage/ragsystem
+RUN mkdir -p logs/errors logs/successes uploads/ragsystem uploads/mcp_toolbox storage/ragsystem output
 
 # Cloud Run sets PORT=8080 by default; app reads process.env.PORT
 EXPOSE 8080
