@@ -406,6 +406,19 @@ import {
   BrownCostOfWarProvider
 } from './providers/customUniversityRegistriesProviders.js';
 
+import {
+  JhuCsseHealthProvider,
+  UchicagoCrspProvider,
+  GeorgetownCewProvider,
+  DukeCfoSurveyProvider,
+  NorthwesternCssiProvider,
+  CaltechIpacAstronomyProvider,
+  CmuDelphiProvider,
+  VanderbiltLapopProvider,
+  UcBerkeleyHaasProvider,
+  UwMadisonChsraProvider
+} from './providers/customScientificAcademicProviders.js';
+
 
 
 
@@ -1225,6 +1238,18 @@ SearchEngineRegistry.register(PrincetonEvictionProvider);
 SearchEngineRegistry.register(UpennPwtMacroProvider);
 SearchEngineRegistry.register(CornellEbirdProvider);
 SearchEngineRegistry.register(BrownCostOfWarProvider);
+
+// Stage 48 Premium Providers (Scientific Academic & Medical Research Registries)
+SearchEngineRegistry.register(JhuCsseHealthProvider);
+SearchEngineRegistry.register(UchicagoCrspProvider);
+SearchEngineRegistry.register(GeorgetownCewProvider);
+SearchEngineRegistry.register(DukeCfoSurveyProvider);
+SearchEngineRegistry.register(NorthwesternCssiProvider);
+SearchEngineRegistry.register(CaltechIpacAstronomyProvider);
+SearchEngineRegistry.register(CmuDelphiProvider);
+SearchEngineRegistry.register(VanderbiltLapopProvider);
+SearchEngineRegistry.register(UcBerkeleyHaasProvider);
+SearchEngineRegistry.register(UwMadisonChsraProvider);
 
 
 
