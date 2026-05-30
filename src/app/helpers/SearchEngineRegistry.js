@@ -354,6 +354,19 @@ import {
   DoeAlternativeFuelsProvider
 } from './providers/customRegulatorySafetyProviders.js';
 
+import {
+  FdaPurpleBookProvider,
+  EpaTriProvider,
+  BlmLandPatentProvider,
+  FtcScamsProvider,
+  FecRawFilingsProvider,
+  FaaAircraftProvider,
+  FccEasProvider,
+  UsgsMineralsProvider,
+  NhtsaManufacturersProvider,
+  UsdaOrganicProvider
+} from './providers/customBiopharmaEnvironmentalProviders.js';
+
 
 
 
@@ -1125,6 +1138,18 @@ SearchEngineRegistry.register(MsrbEmmaProvider);
 SearchEngineRegistry.register(DolEbsaProvider);
 SearchEngineRegistry.register(NcuaCreditUnionProvider);
 SearchEngineRegistry.register(DoeAlternativeFuelsProvider);
+
+// Stage 44 Premium Providers (Biopharma, Environmental & Public Registries)
+SearchEngineRegistry.register(FdaPurpleBookProvider);
+SearchEngineRegistry.register(EpaTriProvider);
+SearchEngineRegistry.register(BlmLandPatentProvider);
+SearchEngineRegistry.register(FtcScamsProvider);
+SearchEngineRegistry.register(FecRawFilingsProvider);
+SearchEngineRegistry.register(FaaAircraftProvider);
+SearchEngineRegistry.register(FccEasProvider);
+SearchEngineRegistry.register(UsgsMineralsProvider);
+SearchEngineRegistry.register(NhtsaManufacturersProvider);
+SearchEngineRegistry.register(UsdaOrganicProvider);
 
 
 
