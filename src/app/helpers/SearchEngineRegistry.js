@@ -393,6 +393,19 @@ import {
   FmcOtiOceanShippingProvider
 } from './providers/customScientificLogisticsProviders.js';
 
+import {
+  UmichICPSRProvider,
+  HarvardDataverseProvider,
+  MitBppInflationProvider,
+  StanfordHelmProvider,
+  ColumbiaCiesinProvider,
+  YaleEpiEnvironmentalProvider,
+  PrincetonEvictionProvider,
+  UpennPwtMacroProvider,
+  CornellEbirdProvider,
+  BrownCostOfWarProvider
+} from './providers/customUniversityRegistriesProviders.js';
+
 
 
 
@@ -1200,6 +1213,18 @@ SearchEngineRegistry.register(UsdaAquacultureProvider);
 SearchEngineRegistry.register(FaaSpaceLaunchesProvider);
 SearchEngineRegistry.register(NpsVisitorRegistryProvider);
 SearchEngineRegistry.register(FmcOtiOceanShippingProvider);
+
+// Stage 47 Premium Providers (Academic Research & Ivy League Registries)
+SearchEngineRegistry.register(UmichICPSRProvider);
+SearchEngineRegistry.register(HarvardDataverseProvider);
+SearchEngineRegistry.register(MitBppInflationProvider);
+SearchEngineRegistry.register(StanfordHelmProvider);
+SearchEngineRegistry.register(ColumbiaCiesinProvider);
+SearchEngineRegistry.register(YaleEpiEnvironmentalProvider);
+SearchEngineRegistry.register(PrincetonEvictionProvider);
+SearchEngineRegistry.register(UpennPwtMacroProvider);
+SearchEngineRegistry.register(CornellEbirdProvider);
+SearchEngineRegistry.register(BrownCostOfWarProvider);
 
 
 
