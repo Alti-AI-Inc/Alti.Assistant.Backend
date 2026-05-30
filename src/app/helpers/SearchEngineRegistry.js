@@ -380,6 +380,19 @@ import {
   TracImmigrationProvider
 } from './providers/customPublicHealthEnvironmentalProviders.js';
 
+import {
+  DoeSolarInstallationsProvider,
+  EpaRadnetProvider,
+  NistStandardTimeProvider,
+  UsdaFsisRecallsProvider,
+  HrsaOptnTransplantsProvider,
+  CdcNcehLeadProvider,
+  UsdaAquacultureProvider,
+  FaaSpaceLaunchesProvider,
+  NpsVisitorRegistryProvider,
+  FmcOtiOceanShippingProvider
+} from './providers/customScientificLogisticsProviders.js';
+
 
 
 
@@ -1175,6 +1188,18 @@ SearchEngineRegistry.register(UsdaFarmersMarketsProvider);
 SearchEngineRegistry.register(FaaRunwaySafetyProvider);
 SearchEngineRegistry.register(NsfRdFundingProvider);
 SearchEngineRegistry.register(TracImmigrationProvider);
+
+// Stage 46 Premium Providers (Scientific Research, Transport & Logistics Registries)
+SearchEngineRegistry.register(DoeSolarInstallationsProvider);
+SearchEngineRegistry.register(EpaRadnetProvider);
+SearchEngineRegistry.register(NistStandardTimeProvider);
+SearchEngineRegistry.register(UsdaFsisRecallsProvider);
+SearchEngineRegistry.register(HrsaOptnTransplantsProvider);
+SearchEngineRegistry.register(CdcNcehLeadProvider);
+SearchEngineRegistry.register(UsdaAquacultureProvider);
+SearchEngineRegistry.register(FaaSpaceLaunchesProvider);
+SearchEngineRegistry.register(NpsVisitorRegistryProvider);
+SearchEngineRegistry.register(FmcOtiOceanShippingProvider);
 
 
 
