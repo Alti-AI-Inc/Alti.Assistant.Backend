@@ -1,0 +1,138 @@
+{
+  "stage": 73,
+  "loopCount": 9,
+  "timestamp": "2026-05-30T22:19:12.625Z",
+  "discoveredChannelsCount": 10,
+  "providers": [
+    {
+      "id": "dot_bts_border_crossing",
+      "category": "premium_public",
+      "citationLabel": "DOT BTS Border Crossing & Port Log Entry Data",
+      "mandatoryRule": "▸ Cite border port codes, monthly container/truck entry counts, and transport standings in **BOLD** (e.g. **Port of Detroit Crossing**, **124,500 Monthly Truck Entries**, **DOT BTS Entry Active**)",
+      "detectIntent": "(query) => { return /dot bts border crossing|border port entry statistics|truck container arrivals customs|bts transport border logs/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| DOT BTS Border Crossing & Port Log Entry Data Spec | Altis Corp | DOT_BTS_BORDER_CROSSING High | DOT BTS Entry Active |",
+      "metadata": {
+        "domain": "dot_bts_border_crossing",
+        "port": "Port of Detroit",
+        "status": "DOT BTS Entry Active"
+      }
+    },
+    {
+      "id": "dol_whd_enforcement",
+      "category": "legal_security",
+      "citationLabel": "DOL Wage and Hour Division Enforcement Cases",
+      "mandatoryRule": "▸ Highlight recovered back wages, employer FLSA violation counts, and DOL enforcements in **BOLD** (e.g. **$24,500 Recovered Back Wages**, **FLSA Wage Violation Flag**, **DOL Wage Hour Active Case**)",
+      "detectIntent": "(query) => { return /dol wage hour enforcement|whd back wage recovery|flsa labor standard violation cases|dol wage hour civil penalty logs/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| DOL Wage and Hour Division Enforcement Cases Spec | Altis Corp | DOL_WHD_ENFORCEMENT High | DOL Wage Hour Active Case |",
+      "metadata": {
+        "domain": "dol_whd_enforcement",
+        "backWages": "$24,500",
+        "status": "DOL Wage Hour Active Case"
+      }
+    },
+    {
+      "id": "usda_ams_market_news",
+      "category": "premium_public",
+      "citationLabel": "USDA Agricultural Marketing Service Market News",
+      "mandatoryRule": "▸ Highlight wholesale crop price indexes, commodity shipping points, and agricultural news in **BOLD** (e.g. **Wholesale Corn Index ($3.80/bu)**, **Detroit Terminal Market Shipping**, **USDA AMS Pricing Passed**)",
+      "detectIntent": "(query) => { return /usda ams market news|agricultural wholesale price indices|terminal market crop shipping cost|ams crop commodity supply index/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| USDA Agricultural Marketing Service Market News Spec | Altis Corp | USDA_AMS_MARKET_NEWS High | USDA AMS Pricing Passed |",
+      "metadata": {
+        "domain": "usda_ams_market_news",
+        "priceIndex": "$3.80/bu",
+        "status": "USDA AMS Pricing Passed"
+      }
+    },
+    {
+      "id": "noaa_fisheries_landings",
+      "category": "scientific",
+      "citationLabel": "NOAA Fisheries Commercial Landings & Catch Valuations",
+      "mandatoryRule": "▸ Highlight seafood landing weights, dockside financial values, and NOAA standings in **BOLD** (e.g. **124,500 lbs Seafood Landed**, **$245,000 Dockside Seafood Value**, **NOAA Fisheries Active Record**)",
+      "detectIntent": "(query) => { return /noaa commercial landings|seafood catch dockside values|commercial fisheries species counts|noaa marine landing quotas/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| NOAA Fisheries Commercial Landings & Catch Valuations Spec | Altis Corp | NOAA_FISHERIES_LANDINGS High | NOAA Fisheries Active Record |",
+      "metadata": {
+        "domain": "noaa_fisheries_landings",
+        "weight": "124,500 lbs",
+        "status": "NOAA Fisheries Active Record"
+      }
+    },
+    {
+      "id": "fema_disaster_declarations",
+      "category": "premium_public",
+      "citationLabel": "FEMA Disaster Declarations & Assistance Registry",
+      "mandatoryRule": "▸ Cite FEMA disaster event codes, emergency public assistance values, and hazard standing in **BOLD** (e.g. **FEMA Disaster Code #4820-DR**, **$24.5 Million Emergency Public Grant**, **FEMA Disaster Active Record**)",
+      "detectIntent": "(query) => { return /fema disaster declarations summary|presidential disaster emergency declarations|fema public assistance funding awards|disaster hazard mitigation grant registry/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| FEMA Disaster Declarations & Assistance Registry Spec | Altis Corp | FEMA_DISASTER_DECLARATIONS High | FEMA Disaster Active Record |",
+      "metadata": {
+        "domain": "fema_disaster_declarations",
+        "disasterCode": "4820-DR",
+        "status": "FEMA Disaster Active Record"
+      }
+    },
+    {
+      "id": "cftc_margin_requirements",
+      "category": "financial_regulatory",
+      "citationLabel": "CFTC Minimum Margin Requirements for Futures & Options",
+      "mandatoryRule": "▸ Highlight futures clearing margins, contract margin requirements, and CFTC dockets in **BOLD** (e.g. **Gold Futures Margin ($8,500)**, **Clearing Margin Requirement**, **CFTC Margin Registry Filer**)",
+      "detectIntent": "(query) => { return /cftc margin requirements|futures clearinghouse margin rules|commodity option margins|clearing margin assessment/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| CFTC Minimum Margin Requirements for Futures & Options Spec | Altis Corp | CFTC_MARGIN_REQUIREMENTS High | CFTC Margin Registry Filer |",
+      "metadata": {
+        "domain": "cftc_margin_requirements",
+        "margin": "$8,500",
+        "status": "CFTC Margin Registry Filer"
+      }
+    },
+    {
+      "id": "eeoc_employer_surveys",
+      "category": "legal_security",
+      "citationLabel": "EEOC EEO-1 Employer Information Surveys",
+      "mandatoryRule": "▸ Highlight EEO-1 filing codes, employer workforce counts, and diversity metrics in **BOLD** (e.g. **EEO-1 Audit Filer #12450**, **4,800 Employee Staff Count**, **EEOC Diversity Compliance Passed**)",
+      "detectIntent": "(query) => { return /eeoc eeo-1 surveys|eeo-1 employer demographic data|workforce classification reporting|eeoc diversity compliance audit/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| EEOC EEO-1 Employer Information Surveys Spec | Altis Corp | EEOC_EMPLOYER_SURVEYS High | EEOC Diversity Compliance Passed |",
+      "metadata": {
+        "domain": "eeoc_employer_surveys",
+        "employees": 4800,
+        "status": "EEOC Diversity Compliance Passed"
+      }
+    },
+    {
+      "id": "ftc_merger_decisions",
+      "category": "legal_security",
+      "citationLabel": "FTC Hart-Scott-Rodino (HSR) Merger Decisions",
+      "mandatoryRule": "▸ Highlight HSR premerger notifications, antitrust transactions, and FTC decisions in **BOLD** (e.g. **HSR Transaction #2026-HSR**, **FTC Active Merger Review**, **HSR Regulatory Consent Decreed**)",
+      "detectIntent": "(query) => { return /ftc hsr merger decisions|hart-scott-rodino premerger notifications|ftc antitrust transaction reviews|hsr merger clearances/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| FTC Hart-Scott-Rodino (HSR) Merger Decisions Spec | Altis Corp | FTC_MERGER_DECISIONS High | HSR Regulatory Consent Decreed |",
+      "metadata": {
+        "domain": "ftc_merger_decisions",
+        "transactionId": "2026-HSR",
+        "status": "HSR Regulatory Consent Decreed"
+      }
+    },
+    {
+      "id": "faa_aviation_accidents",
+      "category": "premium_public",
+      "citationLabel": "NTSB/FAA Aviation Accident & Investigation Database",
+      "mandatoryRule": "▸ Cite NTSB accident numbers, aircraft registrations, and investigation status in **BOLD** (e.g. **NTSB Accident #ANC26FA104**, **N-Number Aircraft Filer**, **NTSB Active Safety Docket**)",
+      "detectIntent": "(query) => { return /faa aviation accidents|ntsb aircraft crash investigations|aviation preliminary safety report|aircraft incident docket logs/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| NTSB/FAA Aviation Accident & Investigation Database Spec | Altis Corp | FAA_AVIATION_ACCIDENTS High | NTSB Active Safety Docket |",
+      "metadata": {
+        "domain": "faa_aviation_accidents",
+        "accidentNumber": "ANC26FA104",
+        "status": "NTSB Active Safety Docket"
+      }
+    },
+    {
+      "id": "irs_charity_exempt",
+      "category": "premium_public",
+      "citationLabel": "IRS Exempt Organizations Pub 78 & Form 990-N Registry",
+      "mandatoryRule": "▸ Highlight exempt organization EINs, Form 990 standing status, and IRS exemptions in **BOLD** (e.g. **Charity EIN #38-1245908**, **Form 990-N Electronic Notice**, **IRS Tax-Exempt Status Confirmed**)",
+      "detectIntent": "(query) => { return /irs exempt organizations list|pub 78 charity database|form 990-n filing search|501c3 tax exempt standing/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| IRS Exempt Organizations Pub 78 & Form 990-N Registry Spec | Altis Corp | IRS_CHARITY_EXEMPT High | IRS Tax-Exempt Status Confirmed |",
+      "metadata": {
+        "domain": "irs_charity_exempt",
+        "charityEin": "38-1245908",
+        "status": "IRS Tax-Exempt Status Confirmed"
+      }
+    }
+  ]
+}
