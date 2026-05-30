@@ -346,6 +346,15 @@ import {
   FercUtilityProvider
 } from './providers/customFinanceRatesProviders.js';
 
+import {
+  FinraBrokerProvider,
+  MsrbEmmaProvider,
+  DolEbsaProvider,
+  NcuaCreditUnionProvider,
+  DoeAlternativeFuelsProvider
+} from './providers/customRegulatorySafetyProviders.js';
+
+
 
 
 
@@ -1109,6 +1118,14 @@ SearchEngineRegistry.register(FmcsaSaferProvider);
 SearchEngineRegistry.register(UsptoTrademarksProvider);
 SearchEngineRegistry.register(WipoIpProvider);
 SearchEngineRegistry.register(FercUtilityProvider);
+
+// Stage 43 Premium Providers (Regulatory, Corporate Benefit & Energy Grounding Registries)
+SearchEngineRegistry.register(FinraBrokerProvider);
+SearchEngineRegistry.register(MsrbEmmaProvider);
+SearchEngineRegistry.register(DolEbsaProvider);
+SearchEngineRegistry.register(NcuaCreditUnionProvider);
+SearchEngineRegistry.register(DoeAlternativeFuelsProvider);
+
 
 
 
