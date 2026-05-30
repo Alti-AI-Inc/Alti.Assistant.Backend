@@ -471,6 +471,19 @@ import {
   SecFormAdvWWithdrawalsProvider
 } from './providers/customHighValuePublicStage52Providers.js';
 
+import {
+  FaaWildlifeStrikesProvider,
+  EeocDiscriminationStatsProvider,
+  CbpAdCvdOrdersProvider,
+  NpsSpeciesInventoryProvider,
+  SecFailsToDeliverProvider,
+  EpaCerclaSuperfundProvider,
+  HudCocAwardsProvider,
+  NoaaMarineMicroplasticsProvider,
+  FtcFuneralRuleProvider,
+  UsdaFsaCropAcreageProvider
+} from './providers/customHighValuePublicStage53Providers.js';
+
 
 
 
@@ -1350,6 +1363,18 @@ SearchEngineRegistry.register(HudPitHomelessnessProvider);
 SearchEngineRegistry.register(FaaRepairStationsProvider);
 SearchEngineRegistry.register(NoaaNceiClimateNormalsProvider);
 SearchEngineRegistry.register(SecFormAdvWWithdrawalsProvider);
+
+// Stage 53 Premium Providers (High-Value Public Grounding Channels)
+SearchEngineRegistry.register(FaaWildlifeStrikesProvider);
+SearchEngineRegistry.register(EeocDiscriminationStatsProvider);
+SearchEngineRegistry.register(CbpAdCvdOrdersProvider);
+SearchEngineRegistry.register(NpsSpeciesInventoryProvider);
+SearchEngineRegistry.register(SecFailsToDeliverProvider);
+SearchEngineRegistry.register(EpaCerclaSuperfundProvider);
+SearchEngineRegistry.register(HudCocAwardsProvider);
+SearchEngineRegistry.register(NoaaMarineMicroplasticsProvider);
+SearchEngineRegistry.register(FtcFuneralRuleProvider);
+SearchEngineRegistry.register(UsdaFsaCropAcreageProvider);
 
 
 
