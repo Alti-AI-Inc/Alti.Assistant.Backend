@@ -333,6 +333,19 @@ import {
   EpaIrisToxicityProvider
 } from './providers/customPublicProcurementSafetyProviders.js';
 
+import {
+  FrbnyRatesProvider,
+  FhfaMirsProvider,
+  SbaLoanRatesProvider,
+  OccDecisionsProvider,
+  FfiecCraProvider,
+  FdicFailedBanksProvider,
+  FmcsaSaferProvider,
+  UsptoTrademarksProvider,
+  WipoIpProvider,
+  FercUtilityProvider
+} from './providers/customFinanceRatesProviders.js';
+
 
 
 
@@ -1084,6 +1097,18 @@ SearchEngineRegistry.register(UsdaFasAgricultureProvider);
 SearchEngineRegistry.register(NtsbTransportSafetyProvider);
 SearchEngineRegistry.register(CfpbEnforcementProvider);
 SearchEngineRegistry.register(EpaIrisToxicityProvider);
+
+// Stage 42 Premium Providers (Finance, Mortgage, Rate & Regulatory Registries)
+SearchEngineRegistry.register(FrbnyRatesProvider);
+SearchEngineRegistry.register(FhfaMirsProvider);
+SearchEngineRegistry.register(SbaLoanRatesProvider);
+SearchEngineRegistry.register(OccDecisionsProvider);
+SearchEngineRegistry.register(FfiecCraProvider);
+SearchEngineRegistry.register(FdicFailedBanksProvider);
+SearchEngineRegistry.register(FmcsaSaferProvider);
+SearchEngineRegistry.register(UsptoTrademarksProvider);
+SearchEngineRegistry.register(WipoIpProvider);
+SearchEngineRegistry.register(FercUtilityProvider);
 
 
 
