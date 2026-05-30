@@ -1,5 +1,5 @@
 {
-  "currentStage": 60,
+  "currentStage": 61,
   "loopCount": 3,
   "processedIds": [
     "epa_radon_zones",
@@ -11,6 +11,16 @@
     "cpsc_injury_estimates",
     "fcc_universal_service",
     "doi_usgs_water_use",
-    "sec_form_13d_g"
+    "sec_form_13d_g",
+    "dot_bts_border_crossing",
+    "dol_whd_enforcement",
+    "usda_ams_market_news",
+    "noaa_fisheries_landings",
+    "fema_disaster_declarations",
+    "cftc_margin_requirements",
+    "eeoc_employer_surveys",
+    "ftc_merger_decisions",
+    "faa_aviation_accidents",
+    "irs_charity_exempt"
   ]
 }
