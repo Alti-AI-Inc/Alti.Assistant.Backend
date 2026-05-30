@@ -419,6 +419,19 @@ import {
   UwMadisonChsraProvider
 } from './providers/customScientificAcademicProviders.js';
 
+import {
+  NtiaSpectrumBroadbandProvider,
+  BlmWildHorsesProvider,
+  EiaGreenhouseGasesProvider,
+  IrsSoiCorporateProvider,
+  FwsCriticalHabitatsProvider,
+  NhtsaEwrDefectsProvider,
+  OfacFiftyPercentRuleProvider,
+  BeaInternationalServicesProvider,
+  NihClinicalProtocolsProvider,
+  FaaPilotsCertificationProvider
+} from './providers/customHighValuePublicProviders.js';
+
 
 
 
@@ -1250,6 +1263,18 @@ SearchEngineRegistry.register(CmuDelphiProvider);
 SearchEngineRegistry.register(VanderbiltLapopProvider);
 SearchEngineRegistry.register(UcBerkeleyHaasProvider);
 SearchEngineRegistry.register(UwMadisonChsraProvider);
+
+// Stage 49 Premium Providers (High-Value Public Grounding Channels)
+SearchEngineRegistry.register(NtiaSpectrumBroadbandProvider);
+SearchEngineRegistry.register(BlmWildHorsesProvider);
+SearchEngineRegistry.register(EiaGreenhouseGasesProvider);
+SearchEngineRegistry.register(IrsSoiCorporateProvider);
+SearchEngineRegistry.register(FwsCriticalHabitatsProvider);
+SearchEngineRegistry.register(NhtsaEwrDefectsProvider);
+SearchEngineRegistry.register(OfacFiftyPercentRuleProvider);
+SearchEngineRegistry.register(BeaInternationalServicesProvider);
+SearchEngineRegistry.register(NihClinicalProtocolsProvider);
+SearchEngineRegistry.register(FaaPilotsCertificationProvider);
 
 
 
