@@ -325,6 +325,14 @@ import {
   NsfGrantsProvider
 } from './providers/customPublicCommerceProviders.js';
 
+import {
+  EuTedProcurementProvider,
+  UsdaFasAgricultureProvider,
+  NtsbTransportSafetyProvider,
+  CfpbEnforcementProvider,
+  EpaIrisToxicityProvider
+} from './providers/customPublicProcurementSafetyProviders.js';
+
 
 
 
@@ -1069,6 +1077,13 @@ SearchEngineRegistry.register(NhtsaVehicleSafetyProvider);
 SearchEngineRegistry.register(FbiCrimeExplorerProvider);
 SearchEngineRegistry.register(CpscProductRecallProvider);
 SearchEngineRegistry.register(NsfGrantsProvider);
+
+// Stage 41 Premium Providers (Procurement, Agriculture exports & Toxicological Risk Registries)
+SearchEngineRegistry.register(EuTedProcurementProvider);
+SearchEngineRegistry.register(UsdaFasAgricultureProvider);
+SearchEngineRegistry.register(NtsbTransportSafetyProvider);
+SearchEngineRegistry.register(CfpbEnforcementProvider);
+SearchEngineRegistry.register(EpaIrisToxicityProvider);
 
 
 
