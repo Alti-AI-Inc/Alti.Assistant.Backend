@@ -458,6 +458,19 @@ import {
   UsdaFsForestInventoryProvider
 } from './providers/customHighValuePublicStage51Providers.js';
 
+import {
+  EpaFuelEconomyProvider,
+  CftcCommitmentsTradersProvider,
+  DojAdaEnforcementProvider,
+  GsaElibraryContractsProvider,
+  EpaAqsPollutantsProvider,
+  DoiBseeOffshoreProductionProvider,
+  HudPitHomelessnessProvider,
+  FaaRepairStationsProvider,
+  NoaaNceiClimateNormalsProvider,
+  SecFormAdvWWithdrawalsProvider
+} from './providers/customHighValuePublicStage52Providers.js';
+
 
 
 
@@ -1325,6 +1338,18 @@ SearchEngineRegistry.register(NhtsaFarsFatalitiesProvider);
 SearchEngineRegistry.register(FccOetExperimentalProvider);
 SearchEngineRegistry.register(NpsHistoricPlacesProvider);
 SearchEngineRegistry.register(UsdaFsForestInventoryProvider);
+
+// Stage 52 Premium Providers (High-Value Public Grounding Channels)
+SearchEngineRegistry.register(EpaFuelEconomyProvider);
+SearchEngineRegistry.register(CftcCommitmentsTradersProvider);
+SearchEngineRegistry.register(DojAdaEnforcementProvider);
+SearchEngineRegistry.register(GsaElibraryContractsProvider);
+SearchEngineRegistry.register(EpaAqsPollutantsProvider);
+SearchEngineRegistry.register(DoiBseeOffshoreProductionProvider);
+SearchEngineRegistry.register(HudPitHomelessnessProvider);
+SearchEngineRegistry.register(FaaRepairStationsProvider);
+SearchEngineRegistry.register(NoaaNceiClimateNormalsProvider);
+SearchEngineRegistry.register(SecFormAdvWWithdrawalsProvider);
 
 
 
