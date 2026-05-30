@@ -432,6 +432,19 @@ import {
   FaaPilotsCertificationProvider
 } from './providers/customHighValuePublicProviders.js';
 
+import {
+  UscisH1bEmployersProvider,
+  GsaSamExclusionsProvider,
+  UsptoPtabDecisionsProvider,
+  SecFormAdvAdvisersProvider,
+  EpaEjscreenEnvironmentalProvider,
+  CbpImportManifestsProvider,
+  NoaaNceiStormsProvider,
+  HudLihtcHousingProvider,
+  FaaOeAaaObstructionsProvider,
+  DotNtdTransitProvider
+} from './providers/customHighValuePublicStage50Providers.js';
+
 
 
 
@@ -1275,6 +1288,18 @@ SearchEngineRegistry.register(OfacFiftyPercentRuleProvider);
 SearchEngineRegistry.register(BeaInternationalServicesProvider);
 SearchEngineRegistry.register(NihClinicalProtocolsProvider);
 SearchEngineRegistry.register(FaaPilotsCertificationProvider);
+
+// Stage 50 Premium Providers (High-Value Public Grounding Channels)
+SearchEngineRegistry.register(UscisH1bEmployersProvider);
+SearchEngineRegistry.register(GsaSamExclusionsProvider);
+SearchEngineRegistry.register(UsptoPtabDecisionsProvider);
+SearchEngineRegistry.register(SecFormAdvAdvisersProvider);
+SearchEngineRegistry.register(EpaEjscreenEnvironmentalProvider);
+SearchEngineRegistry.register(CbpImportManifestsProvider);
+SearchEngineRegistry.register(NoaaNceiStormsProvider);
+SearchEngineRegistry.register(HudLihtcHousingProvider);
+SearchEngineRegistry.register(FaaOeAaaObstructionsProvider);
+SearchEngineRegistry.register(DotNtdTransitProvider);
 
 
 
