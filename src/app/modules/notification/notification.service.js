@@ -112,6 +112,35 @@ const deleteAllNotificationService = async (req = null) => {
     session.endSession();
   }
 };
+
+const getUserInboxService = async (userId, category, isArchived, req = null) => {
+  let query = { userId };
+  if (category) {
+    query.category = category;
+  }
+  if (isArchived !== undefined) {
+    query.isArchived = isArchived;
+  }
+  // Fetch from newest to oldest
+  const result = await Notification.find(
+    req ? withTenantFilter(req, query) : query
+  ).sort({ createdAt: -1 });
+  return result;
+};
+
+const archiveNotificationService = async (notificationId, isArchived = true, req = null) => {
+  const query = { _id: notificationId };
+  const result = await Notification.findOneAndUpdate(
+    req ? withTenantFilter(req, query) : query,
+    { $set: { isArchived } },
+    { new: true }
+  );
+  if (!result) {
+    throw new Error('Notification not found or access denied');
+  }
+  return result;
+};
+
 export const NotificationService = {
   sendNotificationService,
   getNotificationService,
@@ -120,4 +149,6 @@ export const NotificationService = {
   updateNotificationByIdService,
   deleteNotificationByIdService,
   deleteAllNotificationService,
+  getUserInboxService,
+  archiveNotificationService,
 };

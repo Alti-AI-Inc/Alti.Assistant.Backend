@@ -16,6 +16,7 @@ import { deepResearchService } from '../../deep_research/deep_research.service.j
 import { runDeepResearchAgent } from '../../deep_research/deep_research_assistant/workflow.js';
 import { SwarmService } from '../../swarm/swarm.service.js';
 import { DatasetsService } from '../../datasets/datasets.service.js';
+import { NotificationService } from '../../notification/notification.service.js';
 
 // Initialize Composio
 const composio = new Composio({
@@ -616,6 +617,29 @@ class WorkflowExecutionService {
         }
       );
 
+      // Dispatch success notification to User Inbox
+      try {
+        await NotificationService.sendNotificationByIdService(execution.userId, {
+          title: `${workflow.name} Completed`,
+          description: `Successfully executed ${completedSteps}/${steps.length} automation steps.`,
+          category: 'workflow',
+          link: `/inbox?id=${execution.executionId}`,
+          userId: execution.userId,
+          payload: {
+            status: 'success',
+            executionId: execution.executionId,
+            workflowName: workflow.name,
+            completedSteps,
+            totalSteps: steps.length,
+            duration: totalDuration,
+            summary: `Completed DAG run successfully: ${completedSteps}/${steps.length} steps complete.`,
+            results: stepReports
+          }
+        });
+      } catch (notifErr) {
+        logger.error(`Failed to send success inbox notification for execution ${execution.executionId}:`, notifErr);
+      }
+
       this.executingWorkflows.delete(execution.executionId);
 
       return {
@@ -655,6 +679,26 @@ class WorkflowExecutionService {
           },
         }
       );
+
+      // Dispatch failed notification to User Inbox
+      try {
+        await NotificationService.sendNotificationByIdService(execution.userId, {
+          title: `${workflow.name} Failed`,
+          description: `Automation failed at runtime: ${error.message}`,
+          category: 'workflow',
+          link: `/inbox?id=${execution.executionId}`,
+          userId: execution.userId,
+          payload: {
+            status: 'failed',
+            executionId: execution.executionId,
+            workflowName: workflow.name,
+            error: error.message,
+            summary: `Run failed: ${error.message}`
+          }
+        });
+      } catch (notifErr) {
+        logger.error(`Failed to send failed inbox notification for execution ${execution.executionId}:`, notifErr);
+      }
 
       this.executingWorkflows.delete(execution.executionId);
       throw error;

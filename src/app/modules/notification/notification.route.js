@@ -43,4 +43,12 @@ router
 
 router.route('/get-all').get(NotificationController.getNotification);
 
+router
+  .route('/user/:userId/inbox')
+  .get(extractTenantContext, NotificationController.getUserInbox);
+
+router
+  .route('/archive/:notificationId')
+  .put(extractTenantContext, NotificationController.archiveNotification);
+
 export const notificationRoutes = router;

@@ -43,6 +43,15 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
+    payload: {
+      type: mongoose.Schema.Types.Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
 
     // Multi-tenant support
     tenantId: {

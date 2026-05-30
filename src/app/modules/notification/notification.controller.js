@@ -132,6 +132,52 @@ const deleteAllNotification = catchAsync(async (req, res) => {
   });
 });
 
+const getUserInbox = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const { category, archived } = req.query;
+  
+  // By default, only show active (unarchived) inbox items unless archived=true is passed
+  const isArchived = archived === 'true' ? true : archived === 'false' ? false : false;
+
+  const user = await UserModel.findOne({ _id: userId });
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const result = await NotificationService.getUserInboxService(
+    userId,
+    category,
+    isArchived,
+    req
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Get User Inbox Successfully',
+    data: result,
+  });
+});
+
+const archiveNotification = catchAsync(async (req, res) => {
+  const { notificationId } = req.params;
+  const { archived } = req.body;
+  const isArchived = archived === undefined ? true : !!archived;
+
+  const result = await NotificationService.archiveNotificationService(
+    notificationId,
+    isArchived,
+    req
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: isArchived ? 'Archive Notification Successfully' : 'Unarchive Notification Successfully',
+    data: result,
+  });
+});
+
 export const NotificationController = {
   sendNotification,
   getNotification,
@@ -140,4 +186,6 @@ export const NotificationController = {
   updateNotificationById,
   deleteNotificationById,
   deleteAllNotification,
+  getUserInbox,
+  archiveNotification,
 };
