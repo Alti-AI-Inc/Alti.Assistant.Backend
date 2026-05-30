@@ -367,6 +367,19 @@ import {
   UsdaOrganicProvider
 } from './providers/customBiopharmaEnvironmentalProviders.js';
 
+import {
+  NoaaSpaceWeatherProvider,
+  UsgsLandslidesProvider,
+  EpaSdwisProvider,
+  NhtsaRecallsProvider,
+  HrsaHealthCentersProvider,
+  CdcNchsProvider,
+  UsdaFarmersMarketsProvider,
+  FaaRunwaySafetyProvider,
+  NsfRdFundingProvider,
+  TracImmigrationProvider
+} from './providers/customPublicHealthEnvironmentalProviders.js';
+
 
 
 
@@ -1150,6 +1163,18 @@ SearchEngineRegistry.register(FccEasProvider);
 SearchEngineRegistry.register(UsgsMineralsProvider);
 SearchEngineRegistry.register(NhtsaManufacturersProvider);
 SearchEngineRegistry.register(UsdaOrganicProvider);
+
+// Stage 45 Premium Providers (Public Health, Space Weather & Environmental Registries)
+SearchEngineRegistry.register(NoaaSpaceWeatherProvider);
+SearchEngineRegistry.register(UsgsLandslidesProvider);
+SearchEngineRegistry.register(EpaSdwisProvider);
+SearchEngineRegistry.register(NhtsaRecallsProvider);
+SearchEngineRegistry.register(HrsaHealthCentersProvider);
+SearchEngineRegistry.register(CdcNchsProvider);
+SearchEngineRegistry.register(UsdaFarmersMarketsProvider);
+SearchEngineRegistry.register(FaaRunwaySafetyProvider);
+SearchEngineRegistry.register(NsfRdFundingProvider);
+SearchEngineRegistry.register(TracImmigrationProvider);
 
 
 
