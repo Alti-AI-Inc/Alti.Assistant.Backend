@@ -1,137 +1,139 @@
 {
   "stage": 419,
-  "loopCount": 182,
-  "timestamp": "2026-05-31T04:09:17.169Z",
+  "loopCount": 183,
+  "timestamp": "2026-05-31T04:10:10.853Z",
   "discoveredChannelsCount": 10,
   "providers": [
     {
-      "id": "dot_bts_border_crossing",
-      "category": "premium_public",
-      "citationLabel": "DOT BTS Border Crossing & Port Log Entry Data",
-      "mandatoryRule": "▸ Cite border port codes, monthly container/truck entry counts, and transport standings in **BOLD** (e.g. **Port of Detroit Crossing**, **124,500 Monthly Truck Entries**, **DOT BTS Entry Active**)",
-      "detectIntent": "(query) => { return /dot bts border crossing|border port entry statistics|truck container arrivals customs|bts transport border logs/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| DOT BTS Border Crossing & Port Log Entry Data Spec | Altis Corp | DOT_BTS_BORDER_CROSSING High | DOT BTS Entry Active |",
-      "metadata": {
-        "domain": "dot_bts_border_crossing",
-        "port": "Port of Detroit",
-        "status": "DOT BTS Entry Active"
-      }
-    },
-    {
-      "id": "dol_whd_enforcement",
-      "category": "legal_security",
-      "citationLabel": "DOL Wage and Hour Division Enforcement Cases",
-      "mandatoryRule": "▸ Highlight recovered back wages, employer FLSA violation counts, and DOL enforcements in **BOLD** (e.g. **$24,500 Recovered Back Wages**, **FLSA Wage Violation Flag**, **DOL Wage Hour Active Case**)",
-      "detectIntent": "(query) => { return /dol wage hour enforcement|whd back wage recovery|flsa labor standard violation cases|dol wage hour civil penalty logs/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| DOL Wage and Hour Division Enforcement Cases Spec | Altis Corp | DOL_WHD_ENFORCEMENT High | DOL Wage Hour Active Case |",
-      "metadata": {
-        "domain": "dol_whd_enforcement",
-        "backWages": "$24,500",
-        "status": "DOL Wage Hour Active Case"
-      }
-    },
-    {
-      "id": "usda_ams_market_news",
-      "category": "premium_public",
-      "citationLabel": "USDA Agricultural Marketing Service Market News",
-      "mandatoryRule": "▸ Highlight wholesale crop price indexes, commodity shipping points, and agricultural news in **BOLD** (e.g. **Wholesale Corn Index ($3.80/bu)**, **Detroit Terminal Market Shipping**, **USDA AMS Pricing Passed**)",
-      "detectIntent": "(query) => { return /usda ams market news|agricultural wholesale price indices|terminal market crop shipping cost|ams crop commodity supply index/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| USDA Agricultural Marketing Service Market News Spec | Altis Corp | USDA_AMS_MARKET_NEWS High | USDA AMS Pricing Passed |",
-      "metadata": {
-        "domain": "usda_ams_market_news",
-        "priceIndex": "$3.80/bu",
-        "status": "USDA AMS Pricing Passed"
-      }
-    },
-    {
-      "id": "noaa_fisheries_landings",
+      "id": "epa_radon_zones",
       "category": "scientific",
-      "citationLabel": "NOAA Fisheries Commercial Landings & Catch Valuations",
-      "mandatoryRule": "▸ Highlight seafood landing weights, dockside financial values, and NOAA standings in **BOLD** (e.g. **124,500 lbs Seafood Landed**, **$245,000 Dockside Seafood Value**, **NOAA Fisheries Active Record**)",
-      "detectIntent": "(query) => { return /noaa commercial landings|seafood catch dockside values|commercial fisheries species counts|noaa marine landing quotas/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| NOAA Fisheries Commercial Landings & Catch Valuations Spec | Altis Corp | NOAA_FISHERIES_LANDINGS High | NOAA Fisheries Active Record |",
+      "citationLabel": "EPA Indoor Radon Zones & Air Quality Surveys",
+      "mandatoryRule": "▸ Highlight radon hazard classes, county zone ratings, and action levels in **BOLD** (e.g. **Zone 1 High Radon Potential**, **EPA Action Level 4.0 pCi/L**, **EPA Indoor Air Guide Passed**)",
+      "detectIntent": "(query) => { return /radon zone|epa indoor radon|county radon hazard|indoor air quality radon/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| EPA Indoor Radon Zones & Air Quality Surveys Spec | Altis Corp | EPA_RADON_ZONES High | EPA Indoor Air Guide Passed |",
       "metadata": {
-        "domain": "noaa_fisheries_landings",
-        "weight": "124,500 lbs",
-        "status": "NOAA Fisheries Active Record"
+        "domain": "epa_radon_zones",
+        "zone": "Zone 1",
+        "status": "EPA Indoor Air Guide Passed"
       }
     },
     {
-      "id": "fema_disaster_declarations",
+      "id": "eia_nuclear_generation",
+      "category": "scientific",
+      "citationLabel": "EIA Nuclear Power Generation & Fuel Inventories",
+      "mandatoryRule": "▸ Highlight nuclear reactor capacity factors, outage logs, and net generation in **BOLD** (e.g. **98.5% Capacity Factor**, **1,245 Megawatts Nuclear Output**, **EIA Active Reactor Monitor**)",
+      "detectIntent": "(query) => { return /nuclear power generation|eia reactor status|nuclear fuel capacity|reactor outage logs/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| EIA Nuclear Power Generation & Fuel Inventories Spec | Altis Corp | EIA_NUCLEAR_GENERATION High | EIA Active Reactor Monitor |",
+      "metadata": {
+        "domain": "eia_nuclear_generation",
+        "plant": "Vance Nuclear Station",
+        "capacity": "98.5%",
+        "status": "EIA Active Reactor Monitor"
+      }
+    },
+    {
+      "id": "hud_rental_assistance",
       "category": "premium_public",
-      "citationLabel": "FEMA Disaster Declarations & Assistance Registry",
-      "mandatoryRule": "▸ Cite FEMA disaster event codes, emergency public assistance values, and hazard standing in **BOLD** (e.g. **FEMA Disaster Code #4820-DR**, **$24.5 Million Emergency Public Grant**, **FEMA Disaster Active Record**)",
-      "detectIntent": "(query) => { return /fema disaster declarations summary|presidential disaster emergency declarations|fema public assistance funding awards|disaster hazard mitigation grant registry/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| FEMA Disaster Declarations & Assistance Registry Spec | Altis Corp | FEMA_DISASTER_DECLARATIONS High | FEMA Disaster Active Record |",
+      "citationLabel": "HUD Section 8 & Rental Assistance Registry",
+      "mandatoryRule": "▸ Cite Section 8 voucher limits, public housing funding, and PHA standing in **BOLD** (e.g. **Section 8 Voucher Allocation**, **$12,450 Monthly PHA Payout**, **HUD High Performer Rating**)",
+      "detectIntent": "(query) => { return /section 8 vouchers|hud rental assistance|public housing authority funding|housing choice voucher allocations/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| HUD Section 8 & Rental Assistance Registry Spec | Altis Corp | HUD_RENTAL_ASSISTANCE High | HUD High Performer Rating |",
       "metadata": {
-        "domain": "fema_disaster_declarations",
-        "disasterCode": "4820-DR",
-        "status": "FEMA Disaster Active Record"
+        "domain": "hud_rental_assistance",
+        "voucherType": "Section 8",
+        "status": "HUD High Performer Rating"
       }
     },
     {
-      "id": "cftc_margin_requirements",
+      "id": "doj_antitrust_filings",
+      "category": "legal_security",
+      "citationLabel": "DOJ Antitrust Division Public Mergers & Enforcement Cases",
+      "mandatoryRule": "▸ Highlight antitrust dockets, Clayton Act merger reviews, and enforcement flags in **BOLD** (e.g. **Antitrust Docket #2026-AT**, **Clayton Act Merger Challenge**, **DOJ Antitrust Active Consent**)",
+      "detectIntent": "(query) => { return /doj antitrust filings|antitrust merger challenge|clayton act enforcement case|doj merger review decrees/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| DOJ Antitrust Division Public Mergers & Enforcement Cases Spec | Altis Corp | DOJ_ANTITRUST_FILINGS High | DOJ Antitrust Active Consent |",
+      "metadata": {
+        "domain": "doj_antitrust_filings",
+        "docketNumber": "2026-AT",
+        "status": "DOJ Antitrust Active Consent"
+      }
+    },
+    {
+      "id": "usda_snap_retailers",
+      "category": "premium_public",
+      "citationLabel": "USDA SNAP Authorized Retailer Locator & Integrity Logs",
+      "mandatoryRule": "▸ Cite SNAP store authorization keys, retailer standings, and EBT compliance in **BOLD** (e.g. **SNAP Store Authorization #12459**, **Active EBT Retailer Stand**, **USDA FNS Integrity Check Passed**)",
+      "detectIntent": "(query) => { return /snap authorized retailers|supplemental nutrition assistance store locator|ebt compliance retail|fns retailer database/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| USDA SNAP Authorized Retailer Locator & Integrity Logs Spec | Altis Corp | USDA_SNAP_RETAILERS High | USDA FNS Integrity Check Passed |",
+      "metadata": {
+        "domain": "usda_snap_retailers",
+        "storeId": "12459",
+        "status": "USDA FNS Integrity Check Passed"
+      }
+    },
+    {
+      "id": "noaa_marine_debris",
+      "category": "scientific",
+      "citationLabel": "NOAA Marine Debris Shoreline Monitoring Database",
+      "mandatoryRule": "▸ Cite shoreline survey tags, plastic debris weights, and cleanup status in **BOLD** (e.g. **NOAA Shoreline Survey #124**, **1,245 kg Marine Debris Cleared**, **NOAA Marine Debris Registry**)",
+      "detectIntent": "(query) => { return /noaa marine debris|shoreline plastic survey|beach cleanup metrics|ocean trash debris density/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| NOAA Marine Debris Shoreline Monitoring Database Spec | Altis Corp | NOAA_MARINE_DEBRIS High | NOAA Marine Debris Registry |",
+      "metadata": {
+        "domain": "noaa_marine_debris",
+        "surveyId": "124",
+        "debrisWeight": "1245 kg",
+        "status": "NOAA Marine Debris Registry"
+      }
+    },
+    {
+      "id": "cpsc_injury_estimates",
+      "category": "premium_public",
+      "citationLabel": "CPSC NEISS National Injury Surveillance Estimates",
+      "mandatoryRule": "▸ Highlight consumer product hazard codes, emergency room injury estimates, and product standings in **BOLD** (e.g. **Hazard Code #1204 (Stairs)**, **45,800 ER Injury Estimates**, **CPSC NEISS Active Estimate**)",
+      "detectIntent": "(query) => { return /cpsc neiss database|product injury surveillance|national electronic injury estimates|emergency room product hazard stats/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| CPSC NEISS National Injury Surveillance Estimates Spec | Altis Corp | CPSC_INJURY_ESTIMATES High | CPSC NEISS Active Estimate |",
+      "metadata": {
+        "domain": "cpsc_injury_estimates",
+        "hazardCode": "1204",
+        "status": "CPSC NEISS Active Estimate"
+      }
+    },
+    {
+      "id": "fcc_universal_service",
+      "category": "premium_public",
+      "citationLabel": "FCC Universal Service Fund (USF) Allocations & Standings",
+      "mandatoryRule": "▸ Cite carrier USAC IDs, E-Rate allocations, and service fund status in **BOLD** (e.g. **USAC SPIN Number #143000**, **$1.45 Million E-Rate Grant**, **FCC USF Compliance Passed**)",
+      "detectIntent": "(query) => { return /fcc universal service fund|usf lifeline erate funding|rural health care telecom funding|usac carrier compliance registry/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| FCC Universal Service Fund (USF) Allocations & Standings Spec | Altis Corp | FCC_UNIVERSAL_SERVICE High | FCC USF Compliance Passed |",
+      "metadata": {
+        "domain": "fcc_universal_service",
+        "spinNumber": "143000",
+        "status": "FCC USF Compliance Passed"
+      }
+    },
+    {
+      "id": "doi_usgs_water_use",
+      "category": "scientific",
+      "citationLabel": "USGS Estimated Water Use in the United States",
+      "mandatoryRule": "▸ Cite thermoelectric/agricultural supply categories, gallon consumption sizes, and USGS classifications in **BOLD** (e.g. **Thermoelectric Water Supply**, **124.5 Million Gallons Daily**, **USGS Water Use Active Record**)",
+      "detectIntent": "(query) => { return /usgs water use estimates|thermoelectric water withdrawal county|agricultural irrigation water consumption|usgs national water supply audit/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| USGS Estimated Water Use in the United States Spec | Altis Corp | DOI_USGS_WATER_USE High | USGS Water Use Active Record |",
+      "metadata": {
+        "domain": "doi_usgs_water_use",
+        "consumption": "124.5 MGD",
+        "status": "USGS Water Use Active Record"
+      }
+    },
+    {
+      "id": "sec_form_13d_g",
       "category": "financial_regulatory",
-      "citationLabel": "CFTC Minimum Margin Requirements for Futures & Options",
-      "mandatoryRule": "▸ Highlight futures clearing margins, contract margin requirements, and CFTC dockets in **BOLD** (e.g. **Gold Futures Margin ($8,500)**, **Clearing Margin Requirement**, **CFTC Margin Registry Filer**)",
-      "detectIntent": "(query) => { return /cftc margin requirements|futures clearinghouse margin rules|commodity option margins|clearing margin assessment/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| CFTC Minimum Margin Requirements for Futures & Options Spec | Altis Corp | CFTC_MARGIN_REQUIREMENTS High | CFTC Margin Registry Filer |",
+      "citationLabel": "SEC Schedule 13D/G Beneficial Ownership Holdings",
+      "mandatoryRule": "▸ Highlight beneficial owner holdings, active equity stake percentages, and filing dates in **BOLD** (e.g. **5.8% Active Equity Stake**, **Schedule 13D Ownership Filer**, **SEC Beneficial Owner Registry**)",
+      "detectIntent": "(query) => { return /sec schedule 13d beneficial ownership|schedule 13g active holdings|major share owner stake above 5%|sec beneficial ownership filings/i.test(query); }",
+      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| SEC Schedule 13D/G Beneficial Ownership Holdings Spec | Altis Corp | SEC_FORM_13D_G High | SEC Beneficial Owner Registry |",
       "metadata": {
-        "domain": "cftc_margin_requirements",
-        "margin": "$8,500",
-        "status": "CFTC Margin Registry Filer"
-      }
-    },
-    {
-      "id": "eeoc_employer_surveys",
-      "category": "legal_security",
-      "citationLabel": "EEOC EEO-1 Employer Information Surveys",
-      "mandatoryRule": "▸ Highlight EEO-1 filing codes, employer workforce counts, and diversity metrics in **BOLD** (e.g. **EEO-1 Audit Filer #12450**, **4,800 Employee Staff Count**, **EEOC Diversity Compliance Passed**)",
-      "detectIntent": "(query) => { return /eeoc eeo-1 surveys|eeo-1 employer demographic data|workforce classification reporting|eeoc diversity compliance audit/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| EEOC EEO-1 Employer Information Surveys Spec | Altis Corp | EEOC_EMPLOYER_SURVEYS High | EEOC Diversity Compliance Passed |",
-      "metadata": {
-        "domain": "eeoc_employer_surveys",
-        "employees": 4800,
-        "status": "EEOC Diversity Compliance Passed"
-      }
-    },
-    {
-      "id": "ftc_merger_decisions",
-      "category": "legal_security",
-      "citationLabel": "FTC Hart-Scott-Rodino (HSR) Merger Decisions",
-      "mandatoryRule": "▸ Highlight HSR premerger notifications, antitrust transactions, and FTC decisions in **BOLD** (e.g. **HSR Transaction #2026-HSR**, **FTC Active Merger Review**, **HSR Regulatory Consent Decreed**)",
-      "detectIntent": "(query) => { return /ftc hsr merger decisions|hart-scott-rodino premerger notifications|ftc antitrust transaction reviews|hsr merger clearances/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| FTC Hart-Scott-Rodino (HSR) Merger Decisions Spec | Altis Corp | FTC_MERGER_DECISIONS High | HSR Regulatory Consent Decreed |",
-      "metadata": {
-        "domain": "ftc_merger_decisions",
-        "transactionId": "2026-HSR",
-        "status": "HSR Regulatory Consent Decreed"
-      }
-    },
-    {
-      "id": "faa_aviation_accidents",
-      "category": "premium_public",
-      "citationLabel": "NTSB/FAA Aviation Accident & Investigation Database",
-      "mandatoryRule": "▸ Cite NTSB accident numbers, aircraft registrations, and investigation status in **BOLD** (e.g. **NTSB Accident #ANC26FA104**, **N-Number Aircraft Filer**, **NTSB Active Safety Docket**)",
-      "detectIntent": "(query) => { return /faa aviation accidents|ntsb aircraft crash investigations|aviation preliminary safety report|aircraft incident docket logs/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| NTSB/FAA Aviation Accident & Investigation Database Spec | Altis Corp | FAA_AVIATION_ACCIDENTS High | NTSB Active Safety Docket |",
-      "metadata": {
-        "domain": "faa_aviation_accidents",
-        "accidentNumber": "ANC26FA104",
-        "status": "NTSB Active Safety Docket"
-      }
-    },
-    {
-      "id": "irs_charity_exempt",
-      "category": "premium_public",
-      "citationLabel": "IRS Exempt Organizations Pub 78 & Form 990-N Registry",
-      "mandatoryRule": "▸ Highlight exempt organization EINs, Form 990 standing status, and IRS exemptions in **BOLD** (e.g. **Charity EIN #38-1245908**, **Form 990-N Electronic Notice**, **IRS Tax-Exempt Status Confirmed**)",
-      "detectIntent": "(query) => { return /irs exempt organizations list|pub 78 charity database|form 990-n filing search|501c3 tax exempt standing/i.test(query); }",
-      "sampleTable": "| Monitored Metric | Target Filer | Standard Level | Regulatory Status |\n|------------------|--------------|----------------|-------------------|\n| IRS Exempt Organizations Pub 78 & Form 990-N Registry Spec | Altis Corp | IRS_CHARITY_EXEMPT High | IRS Tax-Exempt Status Confirmed |",
-      "metadata": {
-        "domain": "irs_charity_exempt",
-        "charityEin": "38-1245908",
-        "status": "IRS Tax-Exempt Status Confirmed"
+        "domain": "sec_form_13d_g",
+        "stake": "5.8%",
+        "status": "SEC Beneficial Owner Registry"
       }
     }
   ]
