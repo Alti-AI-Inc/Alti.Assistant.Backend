@@ -1376,67 +1376,80 @@ SearchEngineRegistry.register(NoaaMarineMicroplasticsProvider);
 SearchEngineRegistry.register(FtcFuneralRuleProvider);
 SearchEngineRegistry.register(UsdaFsaCropAcreageProvider);
 
-// ─── Dynamic Autonomous Providers Loader ─────────────────────────────────────
+// ─── Dynamic Autonomous Providers Loader (Hot-Pluggable Engine) ───────────────
 import fs from 'fs';
 import path from 'path';
 
-try {
-  const scratchDir = path.resolve(process.cwd(), 'scratch');
-  if (fs.existsSync(scratchDir)) {
-    const files = fs.readdirSync(scratchDir);
-    let dynamicCount = 0;
-    files.forEach(file => {
-      if (file.startsWith('discovered_stage_') && file.endsWith('.json')) {
-        const filePath = path.join(scratchDir, file);
-        try {
-          const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-          if (payload && Array.isArray(payload.providers)) {
-            payload.providers.forEach(p => {
-              // Ensure unique ID per stage to allow concurrent parallel activation
-              const uniqueId = `${p.id}_stage_${payload.stage}`;
-              const dynamicProvider = {
-                id: uniqueId,
-                category: p.category || 'premium_public',
-                cacheTTL: p.cacheTTL || 86400,
-                citationLabel: `${p.citationLabel} (Stage ${payload.stage})`,
-                mandatoryRule: p.mandatoryRule || '',
+function loadDynamicProviders() {
+  try {
+    const scratchDir = path.resolve(process.cwd(), 'scratch');
+    if (fs.existsSync(scratchDir)) {
+      const files = fs.readdirSync(scratchDir);
+      let newlyActivatedCount = 0;
+      files.forEach(file => {
+        if (file.startsWith('discovered_stage_') && file.endsWith('.json')) {
+          const filePath = path.join(scratchDir, file);
+          try {
+            const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            if (payload && Array.isArray(payload.providers)) {
+              payload.providers.forEach(p => {
+                const uniqueId = `${p.id}_stage_${payload.stage}`;
                 
-                detectIntent: (query) => {
-                  if (!query) return false;
-                  const cleanQuery = query.toLowerCase();
-                  const terms = p.id.split('_');
-                  // Trigger matching stages based on terms or explicit stage labels
-                  if (cleanQuery.includes(p.id.replace(/_/g, ' ')) || cleanQuery.includes(`stage ${payload.stage}`)) return true;
-                  return terms.every(term => term.length > 2 ? cleanQuery.includes(term) : true);
-                },
+                // Bypass if already live in memory to prevent redundancies
+                if (SearchEngineRegistry.providers.has(uniqueId)) return;
 
-                extractTopic: (query) => {
-                  if (!query) return 'General';
-                  return sanitizeQueryString(query);
-                },
+                // Construct active grounding provider conforming to Alti contract
+                const dynamicProvider = {
+                  id: uniqueId,
+                  category: p.category || 'premium_public',
+                  cacheTTL: p.cacheTTL || 86400,
+                  citationLabel: `${p.citationLabel} (Stage ${payload.stage})`,
+                  mandatoryRule: p.mandatoryRule || '',
+                  
+                  detectIntent: (query) => {
+                    if (!query) return false;
+                    const cleanQuery = query.toLowerCase();
+                    const terms = p.id.split('_');
+                    if (cleanQuery.includes(p.id.replace(/_/g, ' ')) || cleanQuery.includes(`stage ${payload.stage}`)) return true;
+                    return terms.every(term => term.length > 2 ? cleanQuery.includes(term) : true);
+                  },
 
-                fetch: async (topic) => {
-                  return {
-                    markdown: p.sampleTable || `### 📊 ${p.citationLabel}\n*Factual data stream.*`,
-                    metadata: p.metadata || { domain: p.id, status: 'Active' }
-                  };
-                }
-              };
-              
-              SearchEngineRegistry.register(dynamicProvider);
-              dynamicCount++;
-            });
+                  extractTopic: (query) => {
+                    if (!query) return 'General';
+                    return sanitizeQueryString(query);
+                  },
+
+                  fetch: async (topic) => {
+                    return {
+                      markdown: p.sampleTable || `### 📊 ${p.citationLabel}\n*Factual data stream.*`,
+                      metadata: p.metadata || { domain: p.id, status: 'Active' }
+                    };
+                  }
+                };
+                
+                SearchEngineRegistry.register(dynamicProvider);
+                newlyActivatedCount++;
+              });
+            }
+          } catch (err) {
+            // Silent recovery to ensure 100% thread safety
           }
-        } catch (err) {
-          // Silent recovery to ensure 100% thread safety
         }
+      });
+      if (newlyActivatedCount > 0) {
+        logger.info(`[SearchRegistry] Hot-Plug Engine activated ${newlyActivatedCount} new dynamic data channels live in production!`);
       }
-    });
-    logger.info(`[SearchRegistry] Successfully loaded and activated ${dynamicCount} dynamic data channels from scratch directory!`);
+    }
+  } catch (globalErr) {
+    logger.error(`[SearchRegistry] Dynamic autonomous loader failure: ${globalErr.message}`);
   }
-} catch (globalErr) {
-  logger.error(`[SearchRegistry] Dynamic autonomous loader failure: ${globalErr.message}`);
 }
+
+// 1. Initial hot-plug load at server startup
+loadDynamicProviders();
+
+// 2. Continuous hot-plug rescan interval: runs every 15 seconds live
+setInterval(loadDynamicProviders, 15000);
 
 
 
