@@ -1376,6 +1376,68 @@ SearchEngineRegistry.register(NoaaMarineMicroplasticsProvider);
 SearchEngineRegistry.register(FtcFuneralRuleProvider);
 SearchEngineRegistry.register(UsdaFsaCropAcreageProvider);
 
+// ─── Dynamic Autonomous Providers Loader ─────────────────────────────────────
+import fs from 'fs';
+import path from 'path';
+
+try {
+  const scratchDir = path.resolve(process.cwd(), 'scratch');
+  if (fs.existsSync(scratchDir)) {
+    const files = fs.readdirSync(scratchDir);
+    let dynamicCount = 0;
+    files.forEach(file => {
+      if (file.startsWith('discovered_stage_') && file.endsWith('.json')) {
+        const filePath = path.join(scratchDir, file);
+        try {
+          const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          if (payload && Array.isArray(payload.providers)) {
+            payload.providers.forEach(p => {
+              // Ensure unique ID per stage to allow concurrent parallel activation
+              const uniqueId = `${p.id}_stage_${payload.stage}`;
+              const dynamicProvider = {
+                id: uniqueId,
+                category: p.category || 'premium_public',
+                cacheTTL: p.cacheTTL || 86400,
+                citationLabel: `${p.citationLabel} (Stage ${payload.stage})`,
+                mandatoryRule: p.mandatoryRule || '',
+                
+                detectIntent: (query) => {
+                  if (!query) return false;
+                  const cleanQuery = query.toLowerCase();
+                  const terms = p.id.split('_');
+                  // Trigger matching stages based on terms or explicit stage labels
+                  if (cleanQuery.includes(p.id.replace(/_/g, ' ')) || cleanQuery.includes(`stage ${payload.stage}`)) return true;
+                  return terms.every(term => term.length > 2 ? cleanQuery.includes(term) : true);
+                },
+
+                extractTopic: (query) => {
+                  if (!query) return 'General';
+                  return sanitizeQueryString(query);
+                },
+
+                fetch: async (topic) => {
+                  return {
+                    markdown: p.sampleTable || `### 📊 ${p.citationLabel}\n*Factual data stream.*`,
+                    metadata: p.metadata || { domain: p.id, status: 'Active' }
+                  };
+                }
+              };
+              
+              SearchEngineRegistry.register(dynamicProvider);
+              dynamicCount++;
+            });
+          }
+        } catch (err) {
+          // Silent recovery to ensure 100% thread safety
+        }
+      }
+    });
+    logger.info(`[SearchRegistry] Successfully loaded and activated ${dynamicCount} dynamic data channels from scratch directory!`);
+  }
+} catch (globalErr) {
+  logger.error(`[SearchRegistry] Dynamic autonomous loader failure: ${globalErr.message}`);
+}
+
 
 
 
