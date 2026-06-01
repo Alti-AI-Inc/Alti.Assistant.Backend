@@ -12,6 +12,11 @@ import helmet from 'helmet';
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import toobusy from 'toobusy-js';
+import tenantGuardrail from './src/shared/tenantGuardrail.js';
+
+// Enforce tenant isolation boundaries globally on all queries
+mongoose.plugin(tenantGuardrail);
+
 // import config from './config';
 import globalErrorHandler from './src/app/middlewares/globalErrorHandler/globalErrorHandler.js';
 import router from './src/app/routes/index.js';

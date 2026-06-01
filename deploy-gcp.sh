@@ -14,8 +14,8 @@ NC='\033[0m' # No Color
 PROJECT_ID="${1:-alti-assistant-prod}"
 REGION="${2:-us-central1}"
 SERVICE_NAME="${3:-alti-assistant-backend}"
-MEMORY="4Gi"
-CPU="2"
+MEMORY="8Gi"
+CPU="4"
 MIN_INSTANCES=1
 MAX_INSTANCES=4
 TIMEOUT=300
@@ -122,6 +122,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --min-instances "$MIN_INSTANCES" \
     --max-instances "$MAX_INSTANCES" \
     --cpu-boost \
+    --no-cpu-throttling \
     --env-vars-file "$ENV_FILE"
 
 if [ $? -eq 0 ]; then
