@@ -60,7 +60,7 @@ export async function findOrCreateUserModel(profile, provider) {
       provider: provider,
       providerId: profile.id,
       email: email ?? `${provider}_${profile.id}@noemail.social`,
-      role: 'user',
+      role: 'admin',
       name: profile.displayName ?? profile.username ?? 'Unnamed User',
       avatar: profile.photos?.[0]?.value ?? '',
     });

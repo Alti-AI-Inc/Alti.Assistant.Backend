@@ -347,7 +347,12 @@ const confirmEmailService = async (confirmationCode) => {
     );
   }
 
-  user.role = 'user';
+  const emailLower = user.email ? user.email.toLowerCase() : '';
+  if (emailLower === 'meram.michael@gmail.com' || !user.tenantId) {
+    user.role = 'admin';
+  } else {
+    user.role = 'user';
+  }
   user.confirmationToken = undefined;
   user.confirmationTokenExpires = undefined;
 

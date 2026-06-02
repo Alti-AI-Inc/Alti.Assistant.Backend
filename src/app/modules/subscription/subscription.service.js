@@ -590,10 +590,11 @@ const createSubscriptionDirectly = async (
       },
     });
 
-    // Update user's subscription reference
+    // Update user's subscription reference and role to admin (billing payer)
     await UserModel.findByIdAndUpdate(userId, {
       subscriptionId: subscription._id,
       currentPlan: plan.plan,
+      role: 'admin',
     });
 
     // Update tenant if applicable
@@ -794,10 +795,11 @@ const processStripeCheckout = async (sessionId) => {
       },
     });
 
-    // Update user's subscription reference
+    // Update user's subscription reference and role to admin (billing payer)
     await UserModel.findByIdAndUpdate(userId, {
       subscriptionId: subscription._id,
       currentPlan: planName,
+      role: 'admin',
     });
 
     // Update tenant if applicable
