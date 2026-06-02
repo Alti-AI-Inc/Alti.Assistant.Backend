@@ -174,13 +174,22 @@ const ConversationSchema = new mongoose.Schema(
 );
 
 // Indexes for better query performance
+ConversationSchema.index({ tenantId: 1, userId: 1, createdAt: -1 });
+ConversationSchema.index({ tenantId: 1, userId: 1, status: 1 });
+ConversationSchema.index({ tenantId: 1, userId: 1, knowledgebaseId: 1 });
+ConversationSchema.index({ tenantId: 1, knowledgebaseId: 1, status: 1 });
+ConversationSchema.index({ tenantId: 1, 'metadata.category': 1 });
+ConversationSchema.index({ tenantId: 1, lastActivity: -1 });
+ConversationSchema.index({ tenantId: 1, userId: 1, is_deep_search: 1 }); // Index for deep search filtering
+
+// Legacy / fallback simple indexes (retained for direct cross-tenant or admin queries)
 ConversationSchema.index({ userId: 1, createdAt: -1 });
 ConversationSchema.index({ userId: 1, status: 1 });
 ConversationSchema.index({ userId: 1, knowledgebaseId: 1 });
 ConversationSchema.index({ knowledgebaseId: 1, status: 1 });
 ConversationSchema.index({ 'metadata.category': 1 });
 ConversationSchema.index({ lastActivity: -1 });
-ConversationSchema.index({ userId: 1, is_deep_search: 1 }); // Index for deep search filtering
+ConversationSchema.index({ userId: 1, is_deep_search: 1 });
 
 // Update lastActivity on message operations
 ConversationSchema.pre('save', function (next) {

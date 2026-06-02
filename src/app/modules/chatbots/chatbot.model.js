@@ -79,7 +79,9 @@ const ChatbotSchema = new mongoose.Schema(
 );
 
 // Indexes
-ChatbotSchema.index({ userId: 1, isActive: 1 });
+ChatbotSchema.index({ tenantId: 1, userId: 1, isActive: 1 });
+ChatbotSchema.index({ tenantId: 1, isShared: 1, isActive: 1 });
+ChatbotSchema.index({ userId: 1, isActive: 1 }); // Legacy fallback
 
 const Chatbot = mongoose.model('Chatbot', ChatbotSchema);
 

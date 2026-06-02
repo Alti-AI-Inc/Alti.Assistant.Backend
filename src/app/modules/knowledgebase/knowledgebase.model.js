@@ -65,7 +65,11 @@ const KnowledgeBaseSchema = new mongoose.Schema(
   }
 );
 
-// Index for efficient queries
+// Indexes for efficient queries in multi-tenant environments
+KnowledgeBaseSchema.index({ tenantId: 1, userId: 1, name: 1 });
+KnowledgeBaseSchema.index({ tenantId: 1, userId: 1, isActive: 1 });
+
+// Legacy fallback indexes (retained for backward compatibility or direct cross-tenant queries)
 KnowledgeBaseSchema.index({ userId: 1, name: 1 });
 KnowledgeBaseSchema.index({ userId: 1, isActive: 1 });
 

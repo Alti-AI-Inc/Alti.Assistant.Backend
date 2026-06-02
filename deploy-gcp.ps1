@@ -7,8 +7,8 @@ param(
     
     [string]$Region = "us-central1",
     [string]$ServiceName = "alti-assistant-backend",
-    [string]$Memory = "4Gi",
-    [string]$Cpu = "2",
+    [string]$Memory = "8Gi",
+    [string]$Cpu = "4",
     [int]$MinInstances = 1,
     [int]$MaxInstances = 4,
     [int]$Timeout = 300,
@@ -95,6 +95,7 @@ gcloud run deploy $ServiceName `
     --min-instances $MinInstances `
     --max-instances $MaxInstances `
     --cpu-boost `
+    --no-cpu-throttling `
     --execution-environment gen2 `
     --env-vars-file $EnvFile
 
