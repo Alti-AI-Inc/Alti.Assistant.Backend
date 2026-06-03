@@ -62,11 +62,14 @@ jobs:
             docker stop $CONTAINER 2>/dev/null || true
             sleep 2
 
+            # ── Save old package.json BEFORE overwriting (for dep diff) ──
+            docker cp "$CONTAINER:$APP_ROOT/package.json" /tmp/old-pkg.json 2>/dev/null || true
+
             # ── Copy files using docker cp (works on stopped containers) ──
             echo "=== Copying files into container ==="
             cd /tmp/app-staging
 
-            # Copy root files first
+            # Copy root files
             for item in config index.js server.js package.json preload.cjs imagegen.json; do
               if [ -e "/tmp/app-staging/$item" ]; then
                 docker cp "/tmp/app-staging/$item" "$CONTAINER:$APP_ROOT/$item"
@@ -75,19 +78,41 @@ jobs:
             done
 
             # Merge src/ directory
-            cd /tmp/app-staging
             docker cp src/. "$CONTAINER:$APP_ROOT/src/"
             echo "  ✅ src/ merged"
 
-            # ── Start container so npm install and verifications work ──
+            # ── Install any NEW dependencies into the stopped container ──
+            echo "=== Syncing dependencies ==="
+            MISSING=""
+            if [ -f /tmp/old-pkg.json ]; then
+              MISSING=$(node -e "
+                const o=require('/tmp/old-pkg.json').dependencies||{};
+                const n=require('/tmp/app-staging/package.json').dependencies||{};
+                const m=Object.keys(n).filter(k=>!o[k]);
+                if(m.length)console.log(m.join(' '));
+              " 2>/dev/null || echo "")
+            fi
+            if [ -n "$MISSING" ]; then
+              echo "  New packages: $MISSING"
+              mkdir -p /tmp/npm-tmp && cd /tmp/npm-tmp
+              npm init -y > /dev/null 2>&1
+              npm install $MISSING --legacy-peer-deps 2>&1 | tail -3
+              for pkg in $MISSING; do
+                if [ -d "/tmp/npm-tmp/node_modules/$pkg" ]; then
+                  docker cp "/tmp/npm-tmp/node_modules/$pkg" "$CONTAINER:$APP_ROOT/node_modules/$pkg"
+                  echo "  ✅ Installed: $pkg"
+                fi
+              done
+              rm -rf /tmp/npm-tmp
+            else
+              echo "  ✅ No new dependencies"
+            fi
+            rm -f /tmp/old-pkg.json
+
+            # ── Start the container (now with all deps) ──
             echo "=== Starting container ==="
             docker start $CONTAINER
-            sleep 8
-
-            # ── Install any new dependencies inside the container ──
-            echo "=== Installing dependencies ==="
-            docker exec $CONTAINER npm install --production --legacy-peer-deps 2>&1 | tail -5
-            echo "  ✅ Dependencies synced"
+            sleep 10
 
             echo "=== Verifying key changes ==="
             docker exec $CONTAINER grep -c "gracefulShutdown" index.js && echo "  ✅ Graceful shutdown" || echo "  ❌ Graceful shutdown"
