@@ -21,7 +21,6 @@ jobs:
 
       - name: Package application code
         run: |
-          # Create a tarball of just the application code (no node_modules, no secrets)
           tar czf /tmp/app-code.tar.gz \
             --exclude='node_modules' \
             --exclude='.git' \
@@ -50,42 +49,46 @@ jobs:
             set -e
 
             CONTAINER="alti-backend"
+            APP_ROOT="/app/alti-core-service"
 
-            echo "=== Finding app root in container ==="
-            APP_ROOT=$(docker exec $CONTAINER pwd)
-            echo "Container workdir: $APP_ROOT"
-
-            echo "=== Extracting code into container ==="
-            # Create staging dir on host, extract, then docker cp
+            echo "=== Extracting code on host ==="
+            rm -rf /tmp/app-staging
             mkdir -p /tmp/app-staging
             cd /tmp/app-staging
             tar xzf /tmp/app-code.tar.gz
 
-            echo "=== Copying files into container ==="
-            for item in src config index.js server.js package.json preload.cjs imagegen.json; do
-              if [ -e "$item" ]; then
-                docker cp "$item" "$CONTAINER:$APP_ROOT/$item"
+            # ── MERGE src/ into container (don't replace the whole dir) ──
+            # Use tar piping: tar the local src/ and extract inside container
+            # This MERGES files (overwrites existing, keeps files not in tar)
+            echo "=== Merging src/ into container ==="
+            cd /tmp/app-staging
+            tar cf - src/ | docker exec -i $CONTAINER tar xf - -C $APP_ROOT
+            echo "  ✅ src/ merged"
+
+            echo "=== Copying root files into container ==="
+            for item in config index.js server.js package.json preload.cjs imagegen.json; do
+              if [ -e "/tmp/app-staging/$item" ]; then
+                docker cp "/tmp/app-staging/$item" "$CONTAINER:$APP_ROOT/$item"
                 echo "  ✅ $item"
               fi
             done
 
             echo "=== Verifying key changes ==="
-            # Check graceful shutdown
-            docker exec $CONTAINER grep -c "gracefulShutdown" index.js && echo "  ✅ Graceful shutdown present" || echo "  ❌ Graceful shutdown missing"
-            # Check Sentry
-            docker exec $CONTAINER grep -c "initSentry" index.js && echo "  ✅ Sentry integration present" || echo "  ❌ Sentry missing"
-            # Check CORS fix
-            docker exec $CONTAINER grep -c "allowedOrigins" index.js && echo "  ✅ CORS fix present" || echo "  ❌ CORS fix missing"
-            # Check health check
-            docker exec $CONTAINER grep -c "mongoose.connection.readyState" index.js && echo "  ✅ Deep health check present" || echo "  ❌ Deep health check missing"
-            # Check orchestrator
-            docker exec $CONTAINER grep -c "classifyLocally" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Orchestrator fix present" || echo "  ❌ Orchestrator fix missing"
+            docker exec $CONTAINER grep -c "gracefulShutdown" index.js && echo "  ✅ Graceful shutdown" || echo "  ❌ Graceful shutdown"
+            docker exec $CONTAINER grep -c "initSentry" index.js && echo "  ✅ Sentry integration" || echo "  ❌ Sentry"
+            docker exec $CONTAINER grep -c "allowedOrigins" index.js && echo "  ✅ CORS fix" || echo "  ❌ CORS fix"
+            docker exec $CONTAINER grep -c "mongoose.connection.readyState" index.js && echo "  ✅ Deep health check" || echo "  ❌ Deep health check"
+            docker exec $CONTAINER grep -c "classifyLocally" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Orchestrator fix" || echo "  ❌ Orchestrator fix"
+
+            # Verify that existing container files were NOT wiped
+            docker exec $CONTAINER test -f src/shared/tenantGuardrail.js && echo "  ✅ tenantGuardrail.js intact" || echo "  ❌ tenantGuardrail.js MISSING"
+            docker exec $CONTAINER test -f src/shared/sentry.js && echo "  ✅ sentry.js present" || echo "  ❌ sentry.js missing"
 
             echo "=== Restarting container ==="
             docker restart $CONTAINER
 
-            echo "=== Waiting for startup ==="
-            sleep 12
+            echo "=== Waiting for startup (15s) ==="
+            sleep 15
 
             echo "=== Container status ==="
             docker ps --filter name=$CONTAINER --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
