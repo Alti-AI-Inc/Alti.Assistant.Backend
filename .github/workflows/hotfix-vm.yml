@@ -39,23 +39,27 @@ jobs:
 
             CONTAINER="alti-backend"
 
-            echo "=== Checking target paths in container ==="
-            docker exec $CONTAINER ls -la src/app/modules/orchestrator/orchestrator.service.js
-            docker exec $CONTAINER ls -la src/app/modules/swarm/swarm.service.js
+            echo "=== Finding actual file paths in container ==="
+            ORCH_PATH=$(docker exec $CONTAINER find / -path "*/orchestrator/orchestrator.service.js" -not -path "*/node_modules/*" 2>/dev/null | head -1)
+            SWARM_PATH=$(docker exec $CONTAINER find / -path "*/swarm/swarm.service.js" -not -path "*/node_modules/*" 2>/dev/null | head -1)
+            echo "Orchestrator: $ORCH_PATH"
+            echo "Swarm: $SWARM_PATH"
+
+            if [ -z "$ORCH_PATH" ] || [ -z "$SWARM_PATH" ]; then
+              echo "❌ Could not find files in container"
+              exit 1
+            fi
 
             echo "=== Backing up originals ==="
-            docker exec $CONTAINER cp src/app/modules/orchestrator/orchestrator.service.js \
-              src/app/modules/orchestrator/orchestrator.service.js.bak
-            docker exec $CONTAINER cp src/app/modules/swarm/swarm.service.js \
-              src/app/modules/swarm/swarm.service.js.bak
+            docker exec $CONTAINER cp "$ORCH_PATH" "${ORCH_PATH}.bak"
+            docker exec $CONTAINER cp "$SWARM_PATH" "${SWARM_PATH}.bak"
 
             echo "=== Copying fixed files into container ==="
-            docker cp /tmp/orchestrator.service.js $CONTAINER:/app/src/app/modules/orchestrator/orchestrator.service.js
-            docker cp /tmp/swarm.service.js $CONTAINER:/app/src/app/modules/swarm/swarm.service.js
+            docker cp /tmp/orchestrator.service.js "$CONTAINER:$ORCH_PATH"
+            docker cp /tmp/swarm.service.js "$CONTAINER:$SWARM_PATH"
 
-            echo "=== Verifying files ==="
-            docker exec $CONTAINER head -5 src/app/modules/orchestrator/orchestrator.service.js
-            docker exec $CONTAINER grep -c "classifyLocally" src/app/modules/orchestrator/orchestrator.service.js || echo "classifyLocally not found"
+            echo "=== Verifying fix is present ==="
+            docker exec $CONTAINER grep -c "classifyLocally" "$ORCH_PATH" && echo "✅ classifyLocally found" || echo "❌ classifyLocally NOT found"
 
             echo "=== Restarting container ==="
             docker restart $CONTAINER
