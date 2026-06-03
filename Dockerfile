@@ -39,7 +39,8 @@ COPY --from=builder /app/alti-core-service/index.js ./
 COPY --from=builder /app/alti-core-service/server.js ./
 COPY --from=builder /app/alti-core-service/package.json /app/alti-core-service/alti_gcp.jso[n] ./
 COPY --from=builder /app/alti-core-service/imagegen.json ./
-COPY --from=builder /app/alti-core-service/env.yaml ./
+# env.yaml is gitignored (secrets); Cloud Run injects vars via --set-env-vars/--set-secrets
+COPY --from=builder /app/alti-core-service/env.yam[l] ./
 COPY --from=builder /app/alti-core-service/preload.cjs ./
 
 # Create necessary directories

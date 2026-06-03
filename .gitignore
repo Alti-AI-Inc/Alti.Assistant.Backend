@@ -1,6 +1,8 @@
 node_modules/
 logs/
 *.env
+env
+env.yaml
 app_data/
 output/
 alti_gcp.json
