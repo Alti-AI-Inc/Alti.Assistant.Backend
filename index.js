@@ -48,15 +48,17 @@ app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/v1/subscription/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' }));
 
+const allowedOrigins = [
+  'https://altihq.com',
+  'https://www.altihq.com',
+];
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:3000', 'http://localhost:8080', 'http://localhost:3001');
+}
+
 app.use(
   cors({
-    origin: [
-      'https://altihq.com',
-      'https://www.altihq.com',
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'http://localhost:3001',
-    ],
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -198,13 +200,26 @@ app.get('/api/user', (req, res) => {
 app.use('/api/v1', router);
 
 // Health check endpoint for Cloud Run
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Service is healthy',
-    timestamp: new Date().toISOString(),
+app.get('/health', async (req, res) => {
+  const checks = {
+    server: 'ok',
     uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+  };
+
+  // Check MongoDB
+  try {
+    checks.mongodb = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  } catch {
+    checks.mongodb = 'error';
+  }
+
+  const allHealthy = checks.mongodb === 'connected';
+  res.status(allHealthy ? 200 : 503).json({
+    success: allHealthy,
+    message: allHealthy ? 'Service is healthy' : 'Service degraded',
+    checks,
   });
 });
 
@@ -232,7 +247,36 @@ app.use((req, res) => {
 
 // Start server
 const port = process.env.PORT || config.port || 5100;
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info(`✅ App is running on 0.0.0.0:${port}`);
 });
+
+// Graceful shutdown handlers
+const gracefulShutdown = (signal) => {
+  logger.info(`Received ${signal}, shutting down gracefully`);
+  server.close(() => {
+    logger.info('HTTP server closed, draining complete');
+    mongoose.connection.close(false).then(() => {
+      logger.info('MongoDB connection closed');
+      process.exit(0);
+    }).catch((err) => {
+      logger.error('Error closing MongoDB connection:', err);
+      process.exit(0);
+    });
+  });
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Rejection:', reason);
+  process.exit(1);
+});
+
 export default app;

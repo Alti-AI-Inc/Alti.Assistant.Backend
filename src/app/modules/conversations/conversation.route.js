@@ -68,7 +68,7 @@ router.route('/search').get(
 router.route('/rename/:conversationId').patch(
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   extractTenantContext,
-  // createRateLimiter(30, 15), // 30 rename operations per 15 minutes
+  createRateLimiter(30, 15),
   // validateRequest(ConversationValidation.renameChatSchema),
   conversationController.renameChatConversation
 );
@@ -76,7 +76,7 @@ router.route('/rename/:conversationId').patch(
 router.route('/save/:conversationId').patch(
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   extractTenantContext,
-  // createRateLimiter(30, 15), // 30 save operations per 15 minutes
+  createRateLimiter(30, 15),
   conversationController.saveChatConversation
 );
 

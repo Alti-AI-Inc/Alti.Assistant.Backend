@@ -44,19 +44,16 @@ jobs:
       - name: Authenticate to Google Cloud
         id: auth_setup
         uses: google-github-actions/auth@v2
-        continue-on-error: true
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Verify Google Cloud Auth
         id: auth
-        continue-on-error: true
         run: |
           gcloud auth print-access-token --quiet
 
       # ── 4. Docker for Artifact Registry ─────────────────────────────────────
       - name: Configure Docker for Artifact Registry
-        if: steps.auth.outcome == 'success'
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       # ── 5. Docker Buildx ─────────────────────────────────────────────────────
@@ -69,7 +66,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
-          push: ${{ steps.auth.outcome == 'success' }}
+          push: true
           tags: |
             ${{ steps.vars.outputs.image_versioned }}
             ${{ steps.vars.outputs.image_latest }}
@@ -77,7 +74,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy to Cloud Run
-        if: steps.auth.outcome == 'success'
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image "${{ steps.vars.outputs.image_latest }}" \
@@ -100,7 +96,6 @@ jobs:
 
       # ── 8. Print Service URL + Job Summary ──────────────────────────────────
       - name: Report deployment
-        if: steps.auth.outcome == 'success'
         run: |
           SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region=${{ env.REGION }} \
@@ -137,18 +132,3 @@ jobs:
           - [Cloud Logging](https://console.cloud.google.com/logs/query;query=resource.type%3D%22cloud_run_revision%22%20resource.labels.service_name%3D%22${{ env.SERVICE_NAME }}%22?project=${{ env.PROJECT_ID }})
           EOF
 
-      # ── 9. Report Bypass ────────────────────────────────────────────────────
-      - name: Report bypass
-        if: steps.auth.outcome != 'success'
-        run: |
-          echo "⚠️ GCP Authentication failed. Docker push and Cloud Run deployment were bypassed."
-
-          # Write to GitHub Actions job summary
-          cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## ⚠️ Cloud Run Deployment Bypassed
-
-          GCP Authentication failed. The Docker image was successfully built locally to verify correctness, but it was not pushed to the registry or deployed to Cloud Run.
-
-          ### 🔧 Action Required
-          Please update or fix the \`GCP_SA_KEY\` secret in your repository settings if you wish to deploy.
-          EOF

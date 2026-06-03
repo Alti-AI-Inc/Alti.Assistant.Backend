@@ -21,7 +21,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  createRateLimiter(30, 15),
   validateRequest(CreativeWritingValidation.conversationalRequestSchema),
   creativeWritingController.conversationalAssistant
 );

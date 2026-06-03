@@ -27,7 +27,7 @@ router.post(
   checkStorageLimit,
   uploadDocumentReview.single('file'),
   checkRAGFeature,
-  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  createRateLimiter(30, 15),
   validateRequest(DocumentReviewValidation.conversationalRequestSchema),
   documentReviewController.conversationalAssistant
 );
@@ -44,7 +44,7 @@ router.post(
   checkStorageLimit,
   uploadDocumentReview.single('file'),
   checkRAGFeature,
-  // createRateLimiter(20, 15), // 20 reviews per 15 minutes
+  createRateLimiter(20, 15),
   validateRequest(DocumentReviewValidation.reviewDocumentSchema),
   documentReviewController.reviewDocument
 );

@@ -21,7 +21,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  createRateLimiter(30, 15),
   validateRequest(BrainstormValidation.conversationalBrainstormSchema),
   brainstormController.conversationalAssistant
 );
@@ -34,7 +34,7 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext,
-  // createRateLimiter(20, 15), // 20 requests per 15 minutes
+  createRateLimiter(20, 15),
   validateRequest(BrainstormValidation.structuredBrainstormSchema),
   brainstormController.generateBrainstorm
 );
@@ -57,7 +57,7 @@ router.post(
   '/export',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
-  // createRateLimiter(10, 15), // 10 exports per 15 minutes
+  createRateLimiter(10, 15),
   validateRequest(BrainstormValidation.exportBrainstormSchema),
   brainstormController.exportBrainstorm
 );
@@ -69,7 +69,7 @@ router.post(
   '/refine',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
-  // createRateLimiter(20, 15), // 20 refinements per 15 minutes
+  createRateLimiter(20, 15),
   validateRequest(BrainstormValidation.refineBrainstormSchema),
   brainstormController.refineBrainstorm
 );
