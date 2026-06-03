@@ -78,7 +78,8 @@ jobs:
             docker exec $CONTAINER grep -c "initSentry" index.js && echo "  ✅ Sentry integration" || echo "  ❌ Sentry"
             docker exec $CONTAINER grep -c "allowedOrigins" index.js && echo "  ✅ CORS fix" || echo "  ❌ CORS fix"
             docker exec $CONTAINER grep -c "mongoose.connection.readyState" index.js && echo "  ✅ Deep health check" || echo "  ❌ Deep health check"
-            docker exec $CONTAINER grep -c "classifyLocally" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Orchestrator fix" || echo "  ❌ Orchestrator fix"
+            docker exec $CONTAINER grep -c "MODULE_REGISTRY" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Orchestrator v2" || echo "  ❌ Orchestrator v2"
+            docker exec $CONTAINER grep -c "gemini-2.5-flash" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Model name fixed" || echo "  ❌ Model name"
 
             # Verify that existing container files were NOT wiped
             docker exec $CONTAINER test -f src/shared/tenantGuardrail.js && echo "  ✅ tenantGuardrail.js intact" || echo "  ❌ tenantGuardrail.js MISSING"
