@@ -8,8 +8,14 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 
-const STATUS_FILE = path.join(process.cwd(), 'scratch', 'discovery_status.json');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const STATUS_FILE = path.join(__dirname, 'discovery_status.json');
+const backendDir = path.resolve(__dirname, '..');
+const parentDir = path.resolve(__dirname, '../..');
 
 // Curated pool of premium, legally and commercially allowed public databases
 const DATABASE_POOL = [
@@ -198,6 +204,26 @@ const DATABASE_POOL = [
   }
 ];
 
+function cleanupGitLocks(backendDir, parentDir) {
+  const lockPaths = [
+    path.join(parentDir, '.git/index.lock'),
+    path.join(backendDir, '.git/index.lock'),
+    'C:\\Users\\hyper\\workspace\\.git\\modules\\Alti.Assistant\\index.lock',
+    'C:\\Users\\hyper\\workspace\\.git\\modules\\Alti.Assistant\\modules\\Alti.Assistant.Backend\\index.lock'
+  ];
+  
+  lockPaths.forEach(lockPath => {
+    if (fs.existsSync(lockPath)) {
+      try {
+        fs.unlinkSync(lockPath);
+        console.log(`🧹 [Git Autonomy] Cleaned up stale lock file: ${lockPath}`);
+      } catch (err) {
+        console.warn(`⚠️ [Git Autonomy] Failed to remove lock file ${lockPath}:`, err.message);
+      }
+    }
+  });
+}
+
 function runDaemon() {
   console.log(`🤖 [RAG Discovery Daemon] Initializing continuous database search pipeline...`);
   
@@ -218,7 +244,7 @@ function runDaemon() {
   status.processedIds = status.processedIds || [];
   status.loopCount = status.loopCount || 0;
 
-  const intervalSeconds = 60; // Tick every 60 seconds
+  const intervalSeconds = 30; // Tick every 30 seconds as requested
   console.log(`🕒 [Daemon] Configured interval: ${intervalSeconds} seconds. Running in background...`);
 
   const runTick = () => {
@@ -241,7 +267,7 @@ function runDaemon() {
 
       const stageLabel = `Stage ${status.currentStage} (Loop: ${status.loopCount})`;
       const timestamp = new Date().toISOString();
-      const outputFilename = path.join(process.cwd(), 'scratch', `discovered_stage_${status.currentStage}_providers.json`);
+      const outputFilename = path.join(__dirname, `discovered_stage_${status.currentStage}_providers.json`);
 
       // Construct high-fidelity mock grounding payloads
       const stagePayload = {
@@ -278,26 +304,15 @@ function runDaemon() {
 
       // ─── Git Autonomy pushes to trigger GitHub Actions CI/CD ─────────────────
       try {
+        cleanupGitLocks(backendDir, parentDir);
+
         console.log(`🚀 [Git Autonomy] Staging, committing, and pushing new configurations in backend submodule...`);
-        execSync(`git add scratch/discovered_stage_${status.currentStage}_providers.json scratch/discovery_status.json`, { stdio: 'inherit' });
-        execSync(`git commit -m "feat(rag): autonomously discovered and structured Stage ${status.currentStage} Grounding Channels (Loop ${status.loopCount})"`, { stdio: 'inherit' });
-        execSync(`git push origin main`, { stdio: 'inherit' });
+        execSync(`git add scratch/discovered_stage_${status.currentStage}_providers.json scratch/discovery_status.json`, { cwd: backendDir, stdio: 'inherit' });
+        execSync(`git commit -m "feat(rag): autonomously discovered and structured Stage ${status.currentStage} Grounding Channels (Loop ${status.loopCount})"`, { cwd: backendDir, stdio: 'inherit' });
+        execSync(`git push origin main`, { cwd: backendDir, stdio: 'inherit' });
         console.log(`✅ [Git Autonomy] Submodule pushed!`);
 
         console.log(`🚀 [Git Autonomy] Staging, committing, and pushing in parent repository to trigger CD...`);
-        const parentDir = path.resolve(process.cwd(), '..');
-        
-        // Unlink any stale lock file in the parent repository modules
-        const lockPath = 'C:\\Users\\hyper\\workspace\\.git\\modules\\Alti.Assistant\\index.lock';
-        if (fs.existsSync(lockPath)) {
-          try {
-            fs.unlinkSync(lockPath);
-            console.log(`🧹 [Git Autonomy] Removed stale parent module lock file.`);
-          } catch (e) {
-            console.warn(`[Git Autonomy] Lock cleanup warning:`, e.message);
-          }
-        }
-
         execSync(`git add Alti.Assistant.Backend`, { cwd: parentDir, stdio: 'inherit' });
         execSync(`git commit -m "feat(rag): update submodule pointer for Stage ${status.currentStage} Grounding (Loop ${status.loopCount})"`, { cwd: parentDir, stdio: 'inherit' });
         execSync(`git push origin main`, { cwd: parentDir, stdio: 'inherit' });
