@@ -23,9 +23,9 @@ export default {
   google_engine_id: process.env.GOOGLE_CSE_ID,
   jwt: {
     access_token: process.env.JWT_ACCESS_TOKEN,
-    access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN,
+    access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN || '3650d',
     refresh_token: process.env.JWT_REFRESH_REFRESH_TOKEN,
-    refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN,
+    refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN || '36500d',
   },
   email: process.env.email,
   password: process.env.password,
