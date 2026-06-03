@@ -12,7 +12,7 @@ const composio = new Composio({
  * This service handles AI-powered classification and reasoning tasks
  */
 const llm = new ChatGoogleGenerativeAI({
-  model: 'gemini-3.5-flash',
+  model: 'gemini-1.5-flash',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
@@ -245,7 +245,7 @@ export const runGeminiTaskWithTools = async (
     }
 
     const modelInstance = ai.getGenerativeModel({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-1.5-flash',
       tools: geminiTools
     }, modelOptions);
 

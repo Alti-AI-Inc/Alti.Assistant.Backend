@@ -113,7 +113,7 @@ Return your output as a clean, structured JSON array following this exact schema
 Ensure your response is raw JSON only, with no markdown block ticks.`;
 
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         const result = await model.generateContent({
           contents: [{ role: 'user', parts: [{ text: linkagePrompt }] }],
           generationConfig: {

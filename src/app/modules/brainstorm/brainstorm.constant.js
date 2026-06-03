@@ -1,6 +1,6 @@
 // Brainstorm Configuration
 export const BRAINSTORM_CONFIG = {
-  MODEL: 'gemini-3.5-flash',
+  MODEL: 'gemini-1.5-flash',
   TEMPERATURE: 0.8,
   MAX_OUTPUT_TOKENS: 8192,
   MAX_IDEA_LENGTH: 5000,
@@ -81,7 +81,7 @@ export const BRAINSTORM_INTENTS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'brainstorm';
-export const CONVERSATION_MODEL = 'gemini-3.5-flash';
+export const CONVERSATION_MODEL = 'gemini-1.5-flash';
 
 // Default Parameters
 export const DEFAULT_PARAMS = {

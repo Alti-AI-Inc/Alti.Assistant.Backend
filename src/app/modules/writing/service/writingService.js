@@ -14,7 +14,7 @@ async function runClaudeTask(systemPrompt, message, stream = false) {
     const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY;
     const ai = new GoogleGenerativeAI(apiKey);
     const model = ai.getGenerativeModel({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-1.5-flash',
       systemInstruction: systemPrompt
     });
 

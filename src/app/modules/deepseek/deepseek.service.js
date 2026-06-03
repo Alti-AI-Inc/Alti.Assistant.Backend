@@ -32,8 +32,8 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
 
     const startTime = Date.now(); // Record start time
 
-    // Call Google Generative AI to generate a response using the gemini-3.5-flash model
-    const model = client.getGenerativeModel({ model: 'gemini-3.5-flash' });
+    // Call Google Generative AI to generate a response using the gemini-1.5-flash model
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent(prompt);
     
     const endTime = Date.now(); // Record end time
@@ -61,7 +61,7 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-3.5-flash',
+      model: 'gemini-1.5-flash',
       reply,
       total_time: totalTime, // Add total time to response data
     };

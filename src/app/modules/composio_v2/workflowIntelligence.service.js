@@ -69,7 +69,7 @@ const extractSubSequences = (session) => {
  */
 const generateGeminiSuggestion = async (sequence, occurrenceCount, successRate, avgLatencyMs) => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `You are an expert workflow automation consultant. 
 A user has repeatedly performed the following sequence of actions ${occurrenceCount} times:

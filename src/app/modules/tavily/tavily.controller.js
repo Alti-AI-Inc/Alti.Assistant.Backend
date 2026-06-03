@@ -36,7 +36,7 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
   try {
     // Use Gemini with Google Search Grounding — replaces Tavily + Groq
     const result = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         temperature: 0.1,
@@ -66,7 +66,7 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
 
     const responseData = {
       prompt,
-      model: 'gemini-3.5-flash-grounded',
+      model: 'gemini-1.5-flash-grounded',
       reply,
       total_time: result.usageMetadata?.totalTokenCount || 0,
     };

@@ -11,7 +11,7 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
  * Grades the output of a chain run using Gemini.
  */
 const gradeOutputWithGemini = async (input, output, expectedCriteria) => {
-  const modelName = 'gemini-3.5-flash';
+  const modelName = 'gemini-1.5-flash';
   const model = genAI.getGenerativeModel({ model: modelName });
   
   const evaluationPrompt = `

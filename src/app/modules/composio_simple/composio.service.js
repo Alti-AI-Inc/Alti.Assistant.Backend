@@ -140,7 +140,7 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
     constructMessasges += ` ${message.content}`;
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   const tokenCount = await model.countTokens(constructMessasges);
   totalTokens = tokenCount;
 
