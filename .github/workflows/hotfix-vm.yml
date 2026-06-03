@@ -62,13 +62,11 @@ jobs:
             docker stop $CONTAINER 2>/dev/null || true
             sleep 2
 
-            # ── MERGE src/ into container (works on stopped containers with docker cp) ──
-            echo "=== Merging src/ into container ==="
+            # ── Copy files using docker cp (works on stopped containers) ──
+            echo "=== Copying files into container ==="
             cd /tmp/app-staging
-            tar cf - src/ | docker cp - $CONTAINER:$APP_ROOT/
-            echo "  ✅ src/ merged"
 
-            echo "=== Copying root files into container ==="
+            # Copy root files first
             for item in config index.js server.js package.json preload.cjs imagegen.json; do
               if [ -e "/tmp/app-staging/$item" ]; then
                 docker cp "/tmp/app-staging/$item" "$CONTAINER:$APP_ROOT/$item"
@@ -76,10 +74,15 @@ jobs:
               fi
             done
 
-            # ── Start container so we can run npm install inside it ──
-            echo "=== Starting container for dependency install ==="
+            # Merge src/ directory
+            cd /tmp/app-staging
+            docker cp src/. "$CONTAINER:$APP_ROOT/src/"
+            echo "  ✅ src/ merged"
+
+            # ── Start container so npm install and verifications work ──
+            echo "=== Starting container ==="
             docker start $CONTAINER
-            sleep 5
+            sleep 8
 
             # ── Install any new dependencies inside the container ──
             echo "=== Installing dependencies ==="
@@ -93,8 +96,6 @@ jobs:
             docker exec $CONTAINER grep -c "mongoose.connection.readyState" index.js && echo "  ✅ Deep health check" || echo "  ❌ Deep health check"
             docker exec $CONTAINER grep -c "MODULE_REGISTRY" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Orchestrator v2" || echo "  ❌ Orchestrator v2"
             docker exec $CONTAINER grep -c "gemini-2.5-flash" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Model name fixed" || echo "  ❌ Model name"
-
-            # Verify that existing container files were NOT wiped
             docker exec $CONTAINER test -f src/shared/tenantGuardrail.js && echo "  ✅ tenantGuardrail.js intact" || echo "  ❌ tenantGuardrail.js MISSING"
             docker exec $CONTAINER test -f src/shared/sentry.js && echo "  ✅ sentry.js present" || echo "  ❌ sentry.js missing"
 
