@@ -57,12 +57,15 @@ jobs:
             cd /tmp/app-staging
             tar xzf /tmp/app-code.tar.gz
 
-            # ── MERGE src/ into container (don't replace the whole dir) ──
-            # Use tar piping: tar the local src/ and extract inside container
-            # This MERGES files (overwrites existing, keeps files not in tar)
+            # ── Stop container to break any crash-restart loop ──
+            echo "=== Stopping container ==="
+            docker stop $CONTAINER 2>/dev/null || true
+            sleep 2
+
+            # ── MERGE src/ into container (works on stopped containers with docker cp) ──
             echo "=== Merging src/ into container ==="
             cd /tmp/app-staging
-            tar cf - src/ | docker exec -i $CONTAINER tar xf - -C $APP_ROOT
+            tar cf - src/ | docker cp - $CONTAINER:$APP_ROOT/
             echo "  ✅ src/ merged"
 
             echo "=== Copying root files into container ==="
@@ -72,6 +75,16 @@ jobs:
                 echo "  ✅ $item"
               fi
             done
+
+            # ── Start container so we can run npm install inside it ──
+            echo "=== Starting container for dependency install ==="
+            docker start $CONTAINER
+            sleep 5
+
+            # ── Install any new dependencies inside the container ──
+            echo "=== Installing dependencies ==="
+            docker exec $CONTAINER npm install --production --legacy-peer-deps 2>&1 | tail -5
+            echo "  ✅ Dependencies synced"
 
             echo "=== Verifying key changes ==="
             docker exec $CONTAINER grep -c "gracefulShutdown" index.js && echo "  ✅ Graceful shutdown" || echo "  ❌ Graceful shutdown"
@@ -85,12 +98,7 @@ jobs:
             docker exec $CONTAINER test -f src/shared/tenantGuardrail.js && echo "  ✅ tenantGuardrail.js intact" || echo "  ❌ tenantGuardrail.js MISSING"
             docker exec $CONTAINER test -f src/shared/sentry.js && echo "  ✅ sentry.js present" || echo "  ❌ sentry.js missing"
 
-            # ── Install any new dependencies inside the container ──
-            echo "=== Installing dependencies ==="
-            docker exec $CONTAINER npm install --production --legacy-peer-deps 2>&1 | tail -5
-            echo "  ✅ Dependencies synced"
-
-            echo "=== Restarting container ==="
+            echo "=== Restarting container (clean start) ==="
             docker restart $CONTAINER
 
             echo "=== Waiting for startup (20s) ==="
