@@ -57,12 +57,15 @@ jobs:
             cd /tmp/app-staging
             tar xzf /tmp/app-code.tar.gz
 
-            # ── MERGE src/ into container (don't replace the whole dir) ──
-            # Use tar piping: tar the local src/ and extract inside container
-            # This MERGES files (overwrites existing, keeps files not in tar)
+            # ── Stop container to break any crash-restart loop ──
+            echo "=== Stopping container ==="
+            docker stop $CONTAINER 2>/dev/null || true
+            sleep 2
+
+            # ── MERGE src/ into container (works on stopped containers with docker cp) ──
             echo "=== Merging src/ into container ==="
             cd /tmp/app-staging
-            tar cf - src/ | docker exec -i $CONTAINER tar xf - -C $APP_ROOT
+            tar cf - src/ | docker cp - $CONTAINER:$APP_ROOT/
             echo "  ✅ src/ merged"
 
             echo "=== Copying root files into container ==="
@@ -72,6 +75,16 @@ jobs:
                 echo "  ✅ $item"
               fi
             done
+
+            # ── Start container so we can run npm install inside it ──
+            echo "=== Starting container for dependency install ==="
+            docker start $CONTAINER
+            sleep 5
+
+            # ── Install any new dependencies inside the container ──
+            echo "=== Installing dependencies ==="
+            docker exec $CONTAINER npm install --production --legacy-peer-deps 2>&1 | tail -5
+            echo "  ✅ Dependencies synced"
 
             echo "=== Verifying key changes ==="
             docker exec $CONTAINER grep -c "gracefulShutdown" index.js && echo "  ✅ Graceful shutdown" || echo "  ❌ Graceful shutdown"
@@ -85,24 +98,24 @@ jobs:
             docker exec $CONTAINER test -f src/shared/tenantGuardrail.js && echo "  ✅ tenantGuardrail.js intact" || echo "  ❌ tenantGuardrail.js MISSING"
             docker exec $CONTAINER test -f src/shared/sentry.js && echo "  ✅ sentry.js present" || echo "  ❌ sentry.js missing"
 
-            echo "=== Restarting container ==="
+            echo "=== Restarting container (clean start) ==="
             docker restart $CONTAINER
 
-            echo "=== Waiting for startup (15s) ==="
-            sleep 15
+            echo "=== Waiting for startup (20s) ==="
+            sleep 20
 
             echo "=== Container status ==="
             docker ps --filter name=$CONTAINER --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
             echo "=== Post-deploy smoke test ==="
-            HEALTH=$(docker exec $CONTAINER node -e "fetch('http://localhost:5100/health').then(r=>r.json()).then(d=>console.log(JSON.stringify(d))).catch(e=>console.log('FAIL:'+e.message))" 2>&1)
+            HEALTH=$(docker exec $CONTAINER node -e "fetch('http://localhost:5100/health').then(r=>r.json()).then(d=>console.log(JSON.stringify(d))).catch(e=>console.log('FAIL:'+e.message))" 2>&1) || true
             if echo "$HEALTH" | grep -q '"success":true'; then
               echo "  ✅ Health check passed: $HEALTH"
             else
               echo "  ⚠️ Health check response: $HEALTH"
             fi
 
-            echo "=== Phase 3 verifications ==="
+            echo "=== Phase 3+ verifications ==="
             docker exec $CONTAINER grep -c "compression" index.js && echo "  ✅ Compression middleware" || echo "  ❌ Compression"
             docker exec $CONTAINER grep -c "requestIdMiddleware" index.js && echo "  ✅ Request ID tracing" || echo "  ❌ Request ID"
             docker exec $CONTAINER grep -c "REQUIRED_ENV" index.js && echo "  ✅ Startup env validation" || echo "  ❌ Env validation"
@@ -121,3 +134,4 @@ jobs:
       - name: Clean up SSH key
         if: always()
         run: rm -f ~/.ssh/alti-vm-key
+
