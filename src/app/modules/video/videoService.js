@@ -3,7 +3,6 @@ import { Storage } from '@google-cloud/storage';
 import globalConfig from '../../../../config/index.js';
 import path from 'path';
 import { pipeline } from 'stream/promises';
-import fetch from 'node-fetch';
 import { GoogleAuth } from 'google-auth-library';
 /**
  * Generates a video using the specified parameters.
@@ -260,7 +259,7 @@ const uploadVideoDirectlyToBucket = async (videoFile, fileName, ai) => {
         );
       }
 
-      const videoBuffer = await response.buffer();
+      const videoBuffer = Buffer.from(await response.arrayBuffer());
 
       // Create a file in the bucket and upload the buffer
       const file = storage.bucket(bucketName).file(fileName);

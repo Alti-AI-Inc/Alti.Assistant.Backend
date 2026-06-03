@@ -94,6 +94,21 @@ jobs:
             echo "=== Container status ==="
             docker ps --filter name=$CONTAINER --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
+            echo "=== Post-deploy smoke test ==="
+            HEALTH=$(docker exec $CONTAINER node -e "fetch('http://localhost:5100/health').then(r=>r.json()).then(d=>console.log(JSON.stringify(d))).catch(e=>console.log('FAIL:'+e.message))" 2>&1)
+            if echo "$HEALTH" | grep -q '"success":true'; then
+              echo "  ✅ Health check passed: $HEALTH"
+            else
+              echo "  ⚠️ Health check response: $HEALTH"
+            fi
+
+            echo "=== Phase 3 verifications ==="
+            docker exec $CONTAINER grep -c "compression" index.js && echo "  ✅ Compression middleware" || echo "  ❌ Compression"
+            docker exec $CONTAINER grep -c "requestIdMiddleware" index.js && echo "  ✅ Request ID tracing" || echo "  ❌ Request ID"
+            docker exec $CONTAINER grep -c "REQUIRED_ENV" index.js && echo "  ✅ Startup env validation" || echo "  ❌ Env validation"
+            docker exec $CONTAINER grep -c "maxPoolSize" index.js && echo "  ✅ MongoDB pool tuning" || echo "  ❌ Pool tuning"
+            docker exec $CONTAINER test -f src/app/middlewares/requestId.js && echo "  ✅ requestId.js present" || echo "  ❌ requestId.js missing"
+
             echo "=== Startup logs ==="
             docker logs --tail=40 $CONTAINER 2>&1
 

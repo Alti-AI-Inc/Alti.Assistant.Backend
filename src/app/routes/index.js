@@ -1,4 +1,5 @@
 import express from 'express';
+import { logger } from '../../shared/logger.js';
 import { authRoutes } from '../modules/auth/auth.route.js';
 import { deepseekAiRoutes } from '../modules/deepseek/deepseek.route.js';
 import { geminiAiRoutes } from '../modules/gemini/gemini.route.js';
@@ -335,7 +336,7 @@ const moduleRoutes = [
 ];
 
 moduleRoutes.forEach((route) => {
-  console.log(`Registering route: ${route.path}`);
+  logger.info(`Registering route: ${route.path}`);
 
   return router.use(route.path, route.route);
 });

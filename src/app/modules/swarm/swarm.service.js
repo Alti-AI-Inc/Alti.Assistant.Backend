@@ -1,7 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
-import fetch from 'node-fetch';
 import { SynapseRouter } from './synapseRouter.js';
 import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 import { GcpNativeService } from '../gcp_native/gcp-native.service.js';
