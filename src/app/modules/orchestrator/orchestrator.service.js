@@ -16,7 +16,7 @@ const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
 // For lightning-fast classification, use Flash and force strict JSON response
 const model = client.getGenerativeModel({
-  model: 'gemini-3.5-flash',
+  model: 'gemini-1.5-flash',
   generationConfig: {
     temperature: 0.1, // extremely low temp for high deterministic accuracy
     responseMimeType: "application/json",
@@ -215,7 +215,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
           webSearchQueries: finalResponse.webSearchQueries || [],
           searchEntryPoint: finalResponse.searchEntryPoint || null,
           relatedQuestions: finalResponse.relatedQuestions || [],
-          model: finalResponse.model || 'gemini-3.5-flash',
+          model: finalResponse.model || 'gemini-1.5-flash',
           financialTicker: finalResponse.financialTicker || null,
           domain: finalResponse.domain || null,
           homeTeam: finalResponse.homeTeam || null,
@@ -277,7 +277,29 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
     };
   } catch (err) {
     logger.error('Orchestrator Service Error:', err);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Orchestrator routing failed');
+    
+    // Provide a graceful fallback response to the user instead of a 500 block error
+    const friendlyErrorMessage = `⚠️ **Orchestration Routing Failed**
+
+We encountered an issue processing your request: *${err.message || 'Unknown internal error'}*.
+
+This is usually caused by:
+1. **API Key Revocation**: The configured **GEMINI_API_KEY** might be leaked, expired, or blocked.
+2. **Missing Fallbacks**: Azure AI Foundry is not fully configured to serve as a backup model provider.
+
+Please contact the system administrator or check the backend \`.env\` configuration variables.`;
+
+    return {
+      conversationId: conversationId || crypto.randomUUID(),
+      orchestrator_decision: 'general_chat',
+      extracted_parameters: {},
+      original_prompt: prompt,
+      reply: friendlyErrorMessage,
+      responseMessage: { 
+        answer: friendlyErrorMessage,
+        reference: []
+      }
+    };
   }
 };
 
