@@ -64,7 +64,7 @@ export const agenticRAGState = {
 
 // Initialize Gemini LLM using `@langchain/google-genai`
 const primaryLLM = new ChatGoogleGenerativeAI({
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   temperature: 0,
   apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
 });

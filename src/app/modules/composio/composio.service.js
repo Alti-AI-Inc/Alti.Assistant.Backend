@@ -118,7 +118,7 @@ const sendGmailFromAuthorizedAccountService = async (body) => {
   ];
 
   const modelInstance = ai.getGenerativeModel({
-    model: 'gemini-3.5-flash',
+    model: 'gemini-2.5-flash',
     tools: geminiTools
   }, {
     systemInstruction: 'You are a helpful assistant that can help with tasks.'

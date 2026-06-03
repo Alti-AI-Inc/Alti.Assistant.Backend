@@ -291,7 +291,7 @@ function htmlToMarkdown(html) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 class GoogleLLM extends BaseLLM {
-  constructor(apiKey, modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash') {
+  constructor(apiKey, modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash') {
     super();
     this.client = new GoogleGenerativeAI(apiKey);
     this.modelName = modelName;
@@ -1107,7 +1107,7 @@ async function queryGoogleSearchGrounding(query) {
   try {
     const client = new GoogleGenerativeAI(geminiApiKey);
     const model = client.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       tools: [{ googleSearch: {} }]
     });
     
@@ -1797,7 +1797,7 @@ Rules: Answer ONLY from context. If context lacks the answer, say so. Be direct 
   // Streaming via Gemini generateContentStream
   const tSynthesis = performance.now();
   const client = new GoogleGenerativeAI(geminiApiKey);
-  const streamModel = client.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash' });
+  const streamModel = client.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.5-flash' });
   
   const streamResult = await streamModel.generateContentStream(responsePrompt);
   let fullReply = '';

@@ -1,6 +1,6 @@
 const aiEndpoints = [
   {
-    title: 'gemini-3.5-flash',
+    title: 'gemini-2.5-flash',
     enabled: true,
     default: true,
     add: '/gemini/get-response',
