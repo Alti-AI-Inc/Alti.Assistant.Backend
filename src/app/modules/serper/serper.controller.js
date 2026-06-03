@@ -10,7 +10,7 @@ const SerperAiGetResponse = catchAsync(async (req, res) => {
 
     // Use Gemini with Google Search Grounding — replaces Serper API
     const result = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.5-flash',
       contents: `Search the web for: ${prompt}`,
       config: {
         temperature: 0.1,

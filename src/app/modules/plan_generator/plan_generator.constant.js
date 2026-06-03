@@ -1,7 +1,7 @@
 // Plan Generator Configuration
 export const PLAN_GENERATOR_CONFIG = {
-  MODEL: 'gemini-1.5-pro',
-  FALLBACK_MODEL: 'gemini-1.5-flash',
+  MODEL: 'gemini-3.1-pro-preview',
+  FALLBACK_MODEL: 'gemini-3.5-flash',
   TEMPERATURE_BRAINSTORM: 0.8,
   TEMPERATURE_PLANNING: 0.6,
   MAX_OUTPUT_TOKENS: 8192,
@@ -83,7 +83,7 @@ export const DOMAINS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'plan_generation';
-export const CONVERSATION_MODEL = 'gemini-1.5-pro';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro-preview';
 
 // Default parameters
 export const DEFAULT_PARAMS = {

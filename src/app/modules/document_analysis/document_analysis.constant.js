@@ -1,6 +1,6 @@
 // Document Analysis Configuration
 export const DOCUMENT_ANALYSIS_CONFIG = {
-  MODEL: 'gemini-1.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.7,
   MAX_OUTPUT_TOKENS: 4096,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -45,7 +45,7 @@ export const OUTPUT_FORMATS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'document_analysis';
-export const CONVERSATION_MODEL = 'gemini-1.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 // System prompts for different analysis types
 export const SYSTEM_PROMPTS = {

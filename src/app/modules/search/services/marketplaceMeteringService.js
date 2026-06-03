@@ -62,6 +62,11 @@ export const BillingOutbox = mongoose.models.BillingOutbox || mongoose.model('Bi
 export async function logTenantUsage(tenantId, provider, metrics = {}) {
   const { inputTokens = 0, outputTokens = 0, webSearchCount = 0 } = metrics;
   
+  if (mongoose.connection.readyState !== 1) {
+    console.warn(`⚠️ [Metering] MongoDB is not connected (readyState: ${mongoose.connection.readyState}). Skipping save.`);
+    return null;
+  }
+
   try {
     const log = new ConsumptionLog({
       tenantId,
@@ -306,6 +311,26 @@ export async function processBillingOutbox() {
  * @returns {Promise<Object>} Budget status object
  */
 export async function checkTenantBudgetStatus(tenantId) {
+  if (mongoose.connection.readyState !== 1) {
+    return {
+      tenantId,
+      currentSpend: 0,
+      budgetLimit: 5000,
+      alertThreshold: 4000,
+      alertTriggered: false,
+      limitExceeded: false,
+      isBlocked: false,
+      details: {
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalSearches: 0,
+        inputCost: 0,
+        outputCost: 0,
+        searchCost: 0
+      }
+    };
+  }
+
   try {
     let billingConfig = await TenantBillingConfig.findOne({ tenantId });
     if (!billingConfig) {
@@ -390,6 +415,25 @@ export async function checkTenantBudgetStatus(tenantId) {
  * @returns {Promise<Object>} Spending breakdown object
  */
 export async function getTenantSpendingHistory(tenantId, year, month) {
+  if (mongoose.connection.readyState !== 1) {
+    const queryYear = year !== undefined ? year : new Date().getFullYear();
+    const queryMonth = month !== undefined ? month : new Date().getMonth();
+    return {
+      tenantId,
+      year: queryYear,
+      month: queryMonth,
+      totalCost: 0,
+      details: {
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalSearches: 0,
+        inputCost: 0,
+        outputCost: 0,
+        searchCost: 0
+      }
+    };
+  }
+
   try {
     const billingConfig = await TenantBillingConfig.findOne({ tenantId }) || new TenantBillingConfig({ tenantId });
     

@@ -1447,12 +1447,13 @@ CRITICAL REASONING GUIDELINES:${openMemoryInstruction}
 - Reason about whether you have COMPLETE information before answering`;
 
   // Update the first message with ReAct instructions
+  const hasSystemFirst = messages.length > 0 && messages[0].role === 'system';
   const reactMessages = [
     {
       role: 'system',
       content: reactSystemPrompt,
     },
-    ...messages.slice(1),
+    ...(hasSystemFirst ? messages.slice(1) : messages),
   ];
 
     let currentMessages = [...reactMessages];

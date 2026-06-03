@@ -16,7 +16,7 @@ const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
 // For lightning-fast classification, use Flash and force strict JSON response
 const model = client.getGenerativeModel({
-  model: 'gemini-1.5-flash',
+  model: 'gemini-3.5-flash',
   generationConfig: {
     temperature: 0.1, // extremely low temp for high deterministic accuracy
     responseMimeType: "application/json",
@@ -215,7 +215,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
           webSearchQueries: finalResponse.webSearchQueries || [],
           searchEntryPoint: finalResponse.searchEntryPoint || null,
           relatedQuestions: finalResponse.relatedQuestions || [],
-          model: finalResponse.model || 'gemini-1.5-flash',
+          model: finalResponse.model || 'gemini-3.5-flash',
           financialTicker: finalResponse.financialTicker || null,
           domain: finalResponse.domain || null,
           homeTeam: finalResponse.homeTeam || null,

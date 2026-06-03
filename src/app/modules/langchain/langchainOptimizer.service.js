@@ -125,7 +125,7 @@ Return your output as a clean, structured JSON object following this exact schem
 
 Ensure your response is raw JSON only, with no markdown styling or wrapping backticks.`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: optimizationPrompt }] }],
       generationConfig: {

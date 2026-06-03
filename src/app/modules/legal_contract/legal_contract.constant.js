@@ -1,6 +1,6 @@
 // Legal Contract Configuration
 export const LEGAL_CONTRACT_CONFIG = {
-  MODEL: 'gemini-1.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.3, // Lower temperature for more precise legal language
   MAX_OUTPUT_TOKENS: 8192,
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -63,7 +63,7 @@ export const COMPLEXITY_LEVELS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'legal_contract';
-export const CONVERSATION_MODEL = 'gemini-1.5-pro';
+export const CONVERSATION_MODEL = 'gemini-3.1-pro-preview';
 
 // Output formats
 export const OUTPUT_FORMATS = {

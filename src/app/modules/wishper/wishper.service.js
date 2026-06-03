@@ -172,8 +172,8 @@ const transcribeAudioToTextService = async (audioPath) => {
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      // Use gemini-1.5-flash as the standard highly accurate multimodal transcription model
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      // Use gemini-3.5-flash as the standard highly accurate multimodal transcription model
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
 
       const audioBuffer = fs.readFileSync(audioPath);
       const mimeType = getMimeType(audioPath);

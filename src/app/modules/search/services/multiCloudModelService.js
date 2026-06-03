@@ -93,7 +93,7 @@ function createBillingCallback(providerName) {
 
 // 1. Google Cloud Platform (Gemini) standard configurations
 const gcpFlash = new ChatGoogleGenerativeAI({
-  model: 'gemini-1.5-flash',
+  model: 'gemini-3.5-flash',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,
@@ -101,7 +101,7 @@ const gcpFlash = new ChatGoogleGenerativeAI({
 });
 
 const gcpPro = new ChatGoogleGenerativeAI({
-  model: 'gemini-1.5-pro',
+  model: 'gemini-3.1-pro-preview',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,

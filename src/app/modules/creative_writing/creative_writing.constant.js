@@ -1,6 +1,6 @@
 // Creative Writing Configuration
 export const CREATIVE_WRITING_CONFIG = {
-  MODEL: 'gemini-1.5-flash',
+  MODEL: 'gemini-3.5-flash',
   TEMPERATURE: 0.9, // Higher temperature for creativity
   MAX_OUTPUT_TOKENS: 8192,
 };
@@ -83,7 +83,7 @@ export const WRITING_INTENTS = {
 
 // Conversation configuration
 export const CONVERSATION_CATEGORY = 'creative_writing';
-export const CONVERSATION_MODEL = 'gemini-1.5-flash';
+export const CONVERSATION_MODEL = 'gemini-3.5-flash';
 
 // Default parameters
 export const DEFAULT_PARAMS = {
