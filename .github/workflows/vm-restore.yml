@@ -1,0 +1,41 @@
+name: VM Emergency Restore
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restore:
+    name: Restore Container from Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
+          ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+      - name: Restore container
+        run: |
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'EOF'
+            set -e
+            echo "=== Recreating container from original image ==="
+            docker compose down
+            docker compose up -d
+            
+            echo "=== Waiting for startup (15s) ==="
+            sleep 15
+            
+            echo "=== Container status ==="
+            docker compose ps
+            
+            echo "=== Startup logs ==="
+            docker compose logs --tail=30
+            
+            echo "=== Restore complete ==="
+          EOF
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/alti-vm-key

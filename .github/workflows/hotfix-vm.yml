@@ -1,11 +1,11 @@
-name: Hotfix VM Code
+name: Full Deploy to VM (Hotfix)
 
 on:
   workflow_dispatch:
 
 jobs:
-  hotfix:
-    name: Deploy Code Hotfix to Production VM
+  deploy:
+    name: Deploy Full Codebase to Production VM
     runs-on: ubuntu-latest
 
     steps:
@@ -19,64 +19,90 @@ jobs:
           chmod 600 ~/.ssh/alti-vm-key
           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
 
-      - name: Copy fixed files to VM
+      - name: Package application code
         run: |
-          # Copy the orchestrator and swarm service fixes into the running container
-          echo "=== Copying orchestrator.service.js ==="
-          scp -i ~/.ssh/alti-vm-key \
-            src/app/modules/orchestrator/orchestrator.service.js \
-            alti_deployer@35.239.192.33:/tmp/orchestrator.service.js
+          tar czf /tmp/app-code.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='.env' \
+            --exclude='env' \
+            --exclude='env.yaml' \
+            --exclude='test' \
+            --exclude='scratch' \
+            --exclude='data' \
+            --exclude='db_data' \
+            --exclude='*.tar.gz' \
+            --exclude='*.zip' \
+            -C . \
+            src/ config/ index.js server.js package.json preload.cjs imagegen.json
 
-          echo "=== Copying swarm.service.js ==="
-          scp -i ~/.ssh/alti-vm-key \
-            src/app/modules/swarm/swarm.service.js \
-            alti_deployer@35.239.192.33:/tmp/swarm.service.js
+          echo "Archive size: $(du -h /tmp/app-code.tar.gz | cut -f1)"
 
-      - name: Apply hotfix and restart
+      - name: Upload code to VM
         run: |
-          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'EOF'
+          scp -i ~/.ssh/alti-vm-key /tmp/app-code.tar.gz \
+            alti_deployer@35.239.192.33:/tmp/app-code.tar.gz
+
+      - name: Deploy into container and restart
+        run: |
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'DEPLOY'
             set -e
 
             CONTAINER="alti-backend"
+            APP_ROOT="/app/alti-core-service"
 
-            echo "=== Finding actual file paths in container ==="
-            ORCH_PATH=$(docker exec $CONTAINER find / -path "*/orchestrator/orchestrator.service.js" -not -path "*/node_modules/*" 2>/dev/null | head -1)
-            SWARM_PATH=$(docker exec $CONTAINER find / -path "*/swarm/swarm.service.js" -not -path "*/node_modules/*" 2>/dev/null | head -1)
-            echo "Orchestrator: $ORCH_PATH"
-            echo "Swarm: $SWARM_PATH"
+            echo "=== Extracting code on host ==="
+            rm -rf /tmp/app-staging
+            mkdir -p /tmp/app-staging
+            cd /tmp/app-staging
+            tar xzf /tmp/app-code.tar.gz
 
-            if [ -z "$ORCH_PATH" ] || [ -z "$SWARM_PATH" ]; then
-              echo "❌ Could not find files in container"
-              exit 1
-            fi
+            # ── MERGE src/ into container (don't replace the whole dir) ──
+            # Use tar piping: tar the local src/ and extract inside container
+            # This MERGES files (overwrites existing, keeps files not in tar)
+            echo "=== Merging src/ into container ==="
+            cd /tmp/app-staging
+            tar cf - src/ | docker exec -i $CONTAINER tar xf - -C $APP_ROOT
+            echo "  ✅ src/ merged"
 
-            echo "=== Backing up originals ==="
-            docker exec $CONTAINER cp "$ORCH_PATH" "${ORCH_PATH}.bak"
-            docker exec $CONTAINER cp "$SWARM_PATH" "${SWARM_PATH}.bak"
+            echo "=== Copying root files into container ==="
+            for item in config index.js server.js package.json preload.cjs imagegen.json; do
+              if [ -e "/tmp/app-staging/$item" ]; then
+                docker cp "/tmp/app-staging/$item" "$CONTAINER:$APP_ROOT/$item"
+                echo "  ✅ $item"
+              fi
+            done
 
-            echo "=== Copying fixed files into container ==="
-            docker cp /tmp/orchestrator.service.js "$CONTAINER:$ORCH_PATH"
-            docker cp /tmp/swarm.service.js "$CONTAINER:$SWARM_PATH"
+            echo "=== Verifying key changes ==="
+            docker exec $CONTAINER grep -c "gracefulShutdown" index.js && echo "  ✅ Graceful shutdown" || echo "  ❌ Graceful shutdown"
+            docker exec $CONTAINER grep -c "initSentry" index.js && echo "  ✅ Sentry integration" || echo "  ❌ Sentry"
+            docker exec $CONTAINER grep -c "allowedOrigins" index.js && echo "  ✅ CORS fix" || echo "  ❌ CORS fix"
+            docker exec $CONTAINER grep -c "mongoose.connection.readyState" index.js && echo "  ✅ Deep health check" || echo "  ❌ Deep health check"
+            docker exec $CONTAINER grep -c "MODULE_REGISTRY" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Orchestrator v2" || echo "  ❌ Orchestrator v2"
+            docker exec $CONTAINER grep -c "gemini-2.5-flash" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Model name fixed" || echo "  ❌ Model name"
 
-            echo "=== Verifying fix is present ==="
-            docker exec $CONTAINER grep -c "classifyLocally" "$ORCH_PATH" && echo "✅ classifyLocally found" || echo "❌ classifyLocally NOT found"
+            # Verify that existing container files were NOT wiped
+            docker exec $CONTAINER test -f src/shared/tenantGuardrail.js && echo "  ✅ tenantGuardrail.js intact" || echo "  ❌ tenantGuardrail.js MISSING"
+            docker exec $CONTAINER test -f src/shared/sentry.js && echo "  ✅ sentry.js present" || echo "  ❌ sentry.js missing"
 
             echo "=== Restarting container ==="
             docker restart $CONTAINER
 
-            echo "=== Waiting for startup ==="
-            sleep 10
+            echo "=== Waiting for startup (15s) ==="
+            sleep 15
 
             echo "=== Container status ==="
             docker ps --filter name=$CONTAINER --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-            echo "=== Recent logs ==="
-            docker logs --tail=30 $CONTAINER
+            echo "=== Startup logs ==="
+            docker logs --tail=40 $CONTAINER 2>&1
 
-            echo "=== Hotfix complete! ==="
-          EOF
+            echo "=== Cleanup ==="
+            rm -rf /tmp/app-staging /tmp/app-code.tar.gz
 
-      - name: Clean up
+            echo "=== Full deploy complete! ==="
+          DEPLOY
+
+      - name: Clean up SSH key
         if: always()
         run: rm -f ~/.ssh/alti-vm-key
-
