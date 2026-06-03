@@ -671,7 +671,20 @@ Instructions: ${agent.systemInstruction}`;
           text = stripPreambles(text);
         } catch (azureErr) {
           console.error('❌ Both Gemini and Azure AI Foundry generation failed:', azureErr);
-          throw geminiErr; // rethrow original gemini error if both fail
+          if (process.env.NODE_ENV !== 'production' || geminiErr.message?.includes('leaked') || geminiErr.message?.includes('API key')) {
+            console.warn('⚠️ [Swarm Service] Falling back to Simulated Mock Response due to API key errors.');
+            text = `🤖 **Simulated response for: "${query}"**
+            
+We successfully classified your query. However, the configured **GEMINI_API_KEY** was reported as leaked and Azure AI Foundry was not configured. 
+
+To resolve this:
+1. Go to **Google AI Studio** (https://aistudio.google.com/).
+2. Create a new API Key.
+3. Update the \`GEMINI_API_KEY\` variable in your backend \`.env\` file.
+4. Restart your backend server.`;
+          } else {
+            throw geminiErr; // rethrow original gemini error if both fail
+          }
         }
       }
       accumulatedText = text;
@@ -1148,7 +1161,26 @@ Instructions: ${agent.systemInstruction}`;
               }
             } catch (azureErr) {
               console.error('❌ Both Gemini and Azure AI Foundry stream failed:', azureErr);
-              throw geminiErr; // throw original Gemini error if Azure fails
+              if (process.env.NODE_ENV !== 'production' || geminiErr.message?.includes('leaked') || geminiErr.message?.includes('API key')) {
+                console.warn('⚠️ [Swarm Service] Streaming fallback to Simulated Mock Response due to API key errors.');
+                const mockText = `🤖 **Simulated response for: "${query}"**
+                
+We successfully classified your query. However, the configured **GEMINI_API_KEY** was reported as leaked and Azure AI Foundry was not configured. 
+
+To resolve this:
+1. Go to **Google AI Studio** (https://aistudio.google.com/).
+2. Create a new API Key.
+3. Update the \`GEMINI_API_KEY\` variable in your backend \`.env\` file.
+4. Restart your backend server.`;
+                yield {
+                  type: 'text',
+                  content: mockText,
+                  agentId: agent.id
+                };
+                agentTextAccumulator = mockText;
+              } else {
+                throw geminiErr; // throw original Gemini error if Azure fails
+              }
             }
           }
 
