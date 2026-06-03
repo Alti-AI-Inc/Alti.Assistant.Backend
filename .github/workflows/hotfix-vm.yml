@@ -62,9 +62,6 @@ jobs:
             docker stop $CONTAINER 2>/dev/null || true
             sleep 2
 
-            # ── Save old package.json BEFORE overwriting (for dep diff) ──
-            docker cp "$CONTAINER:$APP_ROOT/package.json" /tmp/old-pkg.json 2>/dev/null || true
-
             # ── Copy files using docker cp (works on stopped containers) ──
             echo "=== Copying files into container ==="
             cd /tmp/app-staging
@@ -81,33 +78,22 @@ jobs:
             docker cp src/. "$CONTAINER:$APP_ROOT/src/"
             echo "  ✅ src/ merged"
 
-            # ── Install any NEW dependencies into the stopped container ──
+            # ── Sync ALL dependencies: npm install on HOST, copy to container ──
+            # Copies existing node_modules out of stopped container, runs npm install
+            # with the NEW package.json, then copies everything back. Bulletproof.
             echo "=== Syncing dependencies ==="
-            MISSING=""
-            if [ -f /tmp/old-pkg.json ]; then
-              MISSING=$(node -e "
-                const o=require('/tmp/old-pkg.json').dependencies||{};
-                const n=require('/tmp/app-staging/package.json').dependencies||{};
-                const m=Object.keys(n).filter(k=>!o[k]);
-                if(m.length)console.log(m.join(' '));
-              " 2>/dev/null || echo "")
-            fi
-            if [ -n "$MISSING" ]; then
-              echo "  New packages: $MISSING"
-              mkdir -p /tmp/npm-tmp && cd /tmp/npm-tmp
-              npm init -y > /dev/null 2>&1
-              npm install $MISSING --legacy-peer-deps 2>&1 | tail -3
-              for pkg in $MISSING; do
-                if [ -d "/tmp/npm-tmp/node_modules/$pkg" ]; then
-                  docker cp "/tmp/npm-tmp/node_modules/$pkg" "$CONTAINER:$APP_ROOT/node_modules/$pkg"
-                  echo "  ✅ Installed: $pkg"
-                fi
-              done
-              rm -rf /tmp/npm-tmp
-            else
-              echo "  ✅ No new dependencies"
-            fi
-            rm -f /tmp/old-pkg.json
+            rm -rf /tmp/npm-sync && mkdir -p /tmp/npm-sync
+            # Get existing node_modules from container (if any) to speed up install
+            docker cp "$CONTAINER:$APP_ROOT/node_modules" /tmp/npm-sync/node_modules 2>/dev/null || mkdir -p /tmp/npm-sync/node_modules
+            # Use new package.json
+            cp /tmp/app-staging/package.json /tmp/npm-sync/package.json
+            # Install
+            cd /tmp/npm-sync && npm install --production --legacy-peer-deps 2>&1 | tail -5
+            echo "  Installed $(ls node_modules | wc -l) packages"
+            # Copy back to container
+            docker cp /tmp/npm-sync/node_modules/. "$CONTAINER:$APP_ROOT/node_modules/"
+            echo "  ✅ Dependencies synced"
+            rm -rf /tmp/npm-sync
 
             # ── Start the container (now with all deps) ──
             echo "=== Starting container ==="
