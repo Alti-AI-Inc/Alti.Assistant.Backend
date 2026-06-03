@@ -69,6 +69,8 @@ export default {
   tavily_api_key: process.env.TAVILY_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   serper_api_key: process.env.SERPER_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   gemini_secret_key: process.env.GEMINI_API_KEY,
+  gemini_model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
   realestate_api_key: process.env.REALESTATE_API_KEY,
   azure: {
     endpoint: process.env.AZURE_AI_FOUNDRY_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT,

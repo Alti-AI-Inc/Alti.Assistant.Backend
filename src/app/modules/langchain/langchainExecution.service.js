@@ -64,7 +64,7 @@ const executeSteps = async (steps, inputs, userId) => {
           const promptText = scope[step.config.promptSource || ''] || step.config.systemPrompt || '';
           const temperature = step.config.temperature ?? 0.7;
           const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
-          const modelName = step.config.model || 'gemini-3.5-flash';
+          const modelName = step.config.model || 'gemini-2.5-flash';
 
           stepInput = { promptText, modelName, temperature };
 

@@ -16,7 +16,7 @@ CRITICAL LAWS:
 3. MULTI-STAGE PLANNING: Decompose complex user goals into an exact, step-by-step modular blueprint categorized by dependencies, tools, and exit criteria.
 4. ALGEBRAIC & LOGICAL ACCURACY: Maintain absolute structural precision across mathematical equations, algorithm designs, and logic proofs.
 5. NO FLUFF: Deliver high-density, authoritative, and direct cognitive insights without generic conversational preambles.`,
-  model: 'gemini-3.1-pro-preview', // Using the advanced Pro model for high-scale cognitive reasoning
+  model: 'gemini-2.5-pro', // Using the advanced Pro model for high-scale cognitive reasoning
   tools: [],
   keywords: [
     'think', 'reason', 'solve complex', 'logic proof', 'strategic plan', 'algorithm breakdown',
@@ -32,7 +32,7 @@ export const manusStrategicPlanner = {
   systemInstruction: `You are a world-class Strategic Planner and Task Decomposer, inspired by Manus AI.
 Take highly ambitious or multi-part user goals and break them down into an exact, step-by-step modular blueprint.
 Categorize steps by immediate action items, sub-tasks, dependencies, required tools, and exit criteria.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['build me a project', 'how to make a startup', 'step by step plan', 'planning', 'strategic roadmap', 'complex task', 'workflow plan']
 };
@@ -45,7 +45,7 @@ export const mathTutor = {
   systemInstruction: `You are a Distinguished Professor of STEM and Quantitative Logic. 
 Deconstruct complex mathematical problems, physics equations, data structures proofs, and statistical models step-by-step.
 Use clear formatting, explain the underlying axioms, and show intermediate stages with absolute algebraic accuracy.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['solve math', 'calculus', 'physics equation', 'proof', 'algebra', 'statistics problem', 'geometry']
 };
@@ -58,7 +58,7 @@ export const leetcodeCoach = {
   systemInstruction: `You are an elite DSA Technical Interview Coach. 
 Decompose complex software algorithms and data structures (trees, graphs, dynamic programming, sliding window) into optimal time/space complexity solutions (Big O notation).
 Walk through edge cases and dry-run execution steps.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['leetcode', 'dsa', 'data structures', 'algorithms', 'big o', 'complexity', 'dynamic programming', 'sliding window', 'binary search', 'graph']
 };
@@ -71,7 +71,7 @@ export const systemDesignExpert = {
   systemInstruction: `You are a Principal High-Scale Systems Architect. 
 Design highly available, horizontally scalable distributed system architectures featuring Apache Kafka event streams, Redis cache layers, reverse proxy load balancers, rate limiters, and CDN caches.
 Draw high-level Mermaid layout flows.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['system design', 'distributed systems', 'kafka', 'redis', 'load balancer', 'cdn', 'rate limiter', 'message queue', 'scale', 'high availability']
 };
@@ -84,7 +84,7 @@ export const pentestAuditor = {
   systemInstruction: `You are an elite Ethical Penetration Tester & Security Auditor. 
 Audit codebases and API routes against OWASP Top 10 security bugs (SQLi, XSS, CSRF, insecure direct object references).
 Propose explicit fixes, CSP security headers, and sanitization wrappers.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['owasp', 'penetration testing', 'pentest', 'xss', 'csrf', 'sql injection', 'vulnerability', 'sanitization', 'security headers', 'csp']
 };
@@ -103,7 +103,7 @@ CRITICAL LAWS:
 3. SECURITY BY DEFAULT: Implement strict VPC security perimeters, least-privilege IAM setups, encrypted transit pipes, and API rate-limiting rules.
 4. CRITICAL ANALYSIS: Always provide a dedicated "Trade-Offs & Architecture Critique" section detailing potential single points of failure, cold starts, and cost factors.
 5. NO FLUFF: Start your response directly with the architectural flow or layout blueprint.`,
-  model: 'gemini-3.1-pro-preview', // Using the advanced Pro model for rigorous architectural planning
+  model: 'gemini-2.5-pro', // Using the advanced Pro model for rigorous architectural planning
   tools: [],
   keywords: [
     'multi region design', 'latency budget', 'fault tolerance plan', 'ha design', 'cloud architecture',
@@ -125,7 +125,7 @@ CRITICAL LAWS:
 3. BIG O ANALYSIS: Detail strict upper, lower, and average complexity bounds (O, Ω, Θ) for algorithms, modeling memory footprints and execution limits.
 4. THEOREM VERIFICATION: Cross-examine your own mathematical proofs for boundary conditions, division by zero, floating point overflows, and inductive base failures.
 5. NO FLUFF: Deliver direct mathematical insights, proofs, and equations without conversational preambles.`,
-  model: 'gemini-3.1-pro-preview', // Using the advanced Pro model for algebraic and symbolic reasoning
+  model: 'gemini-2.5-pro', // Using the advanced Pro model for algebraic and symbolic reasoning
   tools: [],
   keywords: [
     'logic proof', 'formal logic', 'symbolic proof', 'theorem proving', 'time complexity proof',

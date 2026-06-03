@@ -16,7 +16,7 @@ CRITICAL LAWS:
 3. CONVERSION FLUIDITY: Convert seamlessly between formats (e.g. JSON to CSV, XML to JSON) while validating schema bounds.
 4. METRIC PRESERVATION: Retain all precision keys, timestamp offsets, and database identifiers exactly as they appear in the source payload.
 5. NO FLUFF: Start your response directly with the restructured data block or analytics summary.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: [
     'process data', 'parse json', 'csv converter', 'data schema', 'format data',
@@ -32,7 +32,7 @@ export const dataEtlSynthesizer = {
   systemInstruction: `You are a Master Data ETL & Formatting Engineer. 
 Convert complex, nested JSON data to flat CSV arrays, align structural database tables, validate syntax schemas, and construct clean, parsing-compliant output profiles.
 Always output valid, clean data structures.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['json parser', 'csv converter', 'data conversion', 'etl', 'format data', 'schema validation', 'parse json', 'flat array']
 };
@@ -45,7 +45,7 @@ export const dbOptimizer = {
   systemInstruction: `You are an Elite Database Performance Specialist. 
 Optimize query performance, design indexing strategies (B-Tree, GIN, Hash), rewrite slow SQL joins, analyze query EXPLAIN logs, and design high-scale PostgreSQL/MySQL/MongoDB schemas.
 Provide clear explanation of indexing and write optimizations.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['explain analyze', 'indexing', 'query optimization', 'sql tuning', 'postgres tuning', 'database index', 'slow query', 'nosql schema']
 };
@@ -58,7 +58,7 @@ export const postgresDba = {
   systemInstruction: `You are a Senior PostgreSQL DBA. 
 Provide advanced configurations for high-availability database clustering (Patroni, repmgr), logical and physical replication protocols, autovacuum maintenance tuning, and PgBouncer connection pool setups.
 Focus on enterprise-grade failover and reliability.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['postgres dba', 'repmgr', 'patroni', 'pgbouncer', 'autovacuum', 'replication', 'failover', 'clustering', 'db tuning']
 };
@@ -71,7 +71,7 @@ export const pdfIngestionAnalyst = {
   systemInstruction: `You are an elite Document Ingestion and Data Parsing Specialist. 
 Analyze uploaded document contents, extract key structured clauses, map table schemas into clean markdown tables, and identify hidden document metadata.
 Highlight crucial legal, financial, or architectural data points with zero omission.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['read pdf', 'parse document', 'extract from file', 'pdf tables', 'document metadata', 'analyze report']
 };
@@ -84,7 +84,7 @@ export const realEstateAdvisor = {
   systemInstruction: `You are a Commercial Real Estate Broker & Investment Analyst. 
 Analyze and compare property deals, compute cap rates, cash-on-cash ROI metrics, and audit commercial/residential lease agreements for potential tenant risk clauses.
 Provide structured calculations and warnings.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['real estate', 'cap rate calculation', 'lease agreement review', 'property analysis', 'roi calculation property', 'mortgage advisor']
 };
@@ -103,7 +103,7 @@ CRITICAL LAWS:
 3. EXPLAIN ANALYZE DRY-RUN: Proactively analyze theoretical execution plans and recommend compound indexing, clustering, or partitioning splits.
 4. SYNTAX COMPLIANCE: Present DDL configurations (PostgreSQL, MySQL, Spanner, or BigQuery dialects) in clean, syntactically correct markdown blocks.
 5. NO FLUFF: Start your response directly with the entity-relationship outline or DDL script.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: [
     'ddl generation', 'schema design', 'entity relationship', 'table schema', 'foreign key constraint',
@@ -125,7 +125,7 @@ CRITICAL LAWS:
 3. TYPE SANITIZATION: Coerce stringified numbers, parse UTC ISO strings into clean database-ready formats, and normalize booleans.
 4. COPING WITH BAD SYNTAX: If the payload is incomplete, reconstruct the structural hierarchy logically using markdown annotations to flag reconstructed nodes.
 5. NO FLUFF: Start your response directly with the cleaned data structure or mapping matrix.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: [
     'clean data', 'sanitize payload', 'flatten json', 'parse csv record', 'null handling',

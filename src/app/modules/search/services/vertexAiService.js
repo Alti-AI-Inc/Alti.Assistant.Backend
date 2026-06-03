@@ -26,7 +26,7 @@ class VertexAiService {
 
     try {
       const result = await this.ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: query,
         config: {
           temperature: 0.2,
@@ -86,7 +86,7 @@ class VertexAiService {
       const citationMetadata = groundingMetadata
         ? {
             searchTimestamp: new Date().toISOString(),
-            model: 'gemini-3.5-flash',
+            model: 'gemini-2.5-flash',
             totalSources: groundingMetadata.groundingChunks?.length || 0,
             searchMethod: 'vertex_ai_search',
           }

@@ -23,7 +23,7 @@ const embeddings = new SafeGoogleGenerativeAIEmbeddings({
 
 const llm = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   temperature: 0.7,
 });
 const ragConfig = {
@@ -78,7 +78,7 @@ class KnowledgebaseService {
     try {
       logger.info('Summarizing conversation context due to token limit');
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const prompt = `System: You are a helpful assistant that summarizes conversation history. Preserve the key context and important details while making it concise. Focus on maintaining the flow of the conversation and any important information that might be relevant for future responses.
       
 User: Please summarize the following conversation history, keeping it under 2500 tokens while preserving important context and details:\n\n${contextString}`;
@@ -196,7 +196,7 @@ User: Please summarize the following conversation history, keeping it under 2500
     try {
       logger.info(`Extracting media content using Gemini 1.5 Pro File API for mimeType: ${mimeType}`);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-2.5-pro',
         generationConfig: { responseMimeType: "application/json" }
       });
       const prompt = `You are a multi-modal ingestion pipeline. Please analyze this file. 
@@ -666,7 +666,7 @@ User: Please summarize the following conversation history, keeping it under 2500
           "I apologize, but I couldn't find relevant information in the knowledge base to answer your question.",
         sources: ragResponse.sources || [],
         confidence: ragResponse.confidence || 0.8,
-        model: ragResponse.model || 'gemini-3.5-flash',
+        model: ragResponse.model || 'gemini-2.5-flash',
         tokensUsed: ragResponse.tokensUsed || ragResponse.token_usage || 0,
         chatHistory: ragResponse.chatHistory || conversationHistory,
         sessionId: ragResponse.sessionId || conversationId,

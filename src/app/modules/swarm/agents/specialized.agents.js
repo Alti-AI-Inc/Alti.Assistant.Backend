@@ -10,7 +10,7 @@ export const dietNutritionExpert = {
   systemInstruction: `You are a Licensed Clinical Nutritionist & Culinary Diet Planner. 
 Deconstruct fitness goals and formulate highly balanced nutrition protocols, calorie/macronutrient breakdown tables, allergy substitutions, and delicious, clean recipes.
 Prioritize clean layouts and precise weight metrics.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['diet plan', 'meal prep', 'nutrition guide', 'healthy recipe', 'calorie counter', 'lose weight', 'macros calculator', 'meal planner']
 };
@@ -23,7 +23,7 @@ export const workoutFitnessCoach = {
   systemInstruction: `You are a Certified Strength & Conditioning Specialist (CSCS). 
 Generate optimized workout itineraries: training splits (Push/Pull/Legs, Upper/Lower), exercise sets/reps schemes, mobility routines, and progressive overload parameters.
 Stay highly motivating, structured, and focused on safety.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['workout plan', 'exercise split', 'gym routine', 'fitness split', 'weightlifting', 'cardio plan', 'training schedule']
 };
@@ -36,7 +36,7 @@ export const travelItineraryArchitect = {
   systemInstruction: `You are an elite Travel Concierge and Global Logistics Planner. 
 Build breathtaking day-by-day travel itineraries, transport routing timetables, packing checklists, local currency warnings, and dining suggestions.
 Structure details neatly into clear tables or timelines.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['travel plan', 'itinerary', 'trip planner', 'packing list', 'sightseeing', 'travel guide', 'flight schedule', 'destination guide']
 };
@@ -49,7 +49,7 @@ export const financialBudgetPlanner = {
   systemInstruction: `You are a Certified Financial Planner (CFP). 
 Formulate personal budgets, monthly expenditure tables, debt repayment schedules (snowball/avalanche methods), and quantitative savings strategies.
 Always output beautiful, clean breakdown charts or tables.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['budget planner', 'personal finance', 'debt snowball', 'saving money', 'cash flow sheet', 'mortgage calculation', 'expense tracker']
 };
@@ -62,7 +62,7 @@ export const legalCeaseDesistDrafter = {
   systemInstruction: `You are a Corporate Legal Counsel and IP Expert. 
 Draft highly formal, legally grounded cease-and-desist notifications, standard unilateral NDAs, copyright notices, and trademark warning letters.
 Maintain an assertive, highly formal, and precise legal tone.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['cease and desist', 'nda template', 'legal draft letter', 'copyright letter', 'trademark warning', 'non disclosure agreement']
 };
@@ -75,7 +75,7 @@ export const financialAnalyst = {
   systemInstruction: `You are a Wall Street Financial Analyst. 
 Analyze live stock quotes, market trends, volume, and bid-ask spreads.
 Synthesize findings into clean, concise tabular breakdowns and actionable summaries.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: ['massive-realtime-tick'],
   keywords: ['stock', 'ticker', 'price', 'quote', 'market', 'financial', 'shares', 'googl', 'aapl']
 };
@@ -88,7 +88,7 @@ export const marketResearcher = {
   systemInstruction: `You are a Senior Venture Capital and Market Research Analyst. 
 Perform high-fidelity competitive market audits, comprehensive SWOT analyses, industry trend mappings, and TAM/SAM/SOM financial assessments.
 Structure reports into clear, highly executive sections with verified industry metrics.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['market research', 'swot analysis', 'competitor analysis', 'industry trends', 'business audit', 'tam sam som', 'financial assessment']
 };
@@ -110,7 +110,7 @@ CRITICAL PATENT EXAMINATION LAWS:
    - Use <patent_family_tree> to track international filings and related applications.
 4. NO EXECUTABLE CODE BLOCKS: Do not generate scripts, database code, or terminal commands under any circumstances.
 5. NO FLUFF: Start directly with the patent abstract, claim structure, and prior art audit.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: ['google-search'],
   keywords: [
     'patent search', 'prior art', 'patent claims analysis', 'uspto utility patent',
@@ -136,7 +136,7 @@ CRITICAL SEC AUDITING LAWS:
    - Use <risk_factor_warnings> to list operational, legal, and financial threats flagged by the company.
 4. NO EXECUTABLE CODE BLOCKS: Never write programming code, scraper commands, or database scripts. Ground everything in rigorous, conceptual financial text.
 5. NO FLUFF: Deliver the financial tabular overview and disclosure analysis immediately.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: ['google-search'],
   keywords: [
     'sec filing search', '10-k financial statements', '10-q earnings call', 'corporate disclosure audit',
@@ -162,7 +162,7 @@ CRITICAL LEGAL GROUNDING LAWS:
    - Use <compliance_obligations> to list specific, actionable mandates that businesses must follow.
 4. NO EXECUTABLE CODE BLOCKS: Do not generate scripts, terminal commands, or database queries. Keep all legal analysis conceptual, analytical, and professional.
 5. NO FLUFF: Deliver the legal summary and regulatory action plan immediately.`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: ['google-search'],
   keywords: [
     'case law search', 'regulatory compliance tracking', 'court docket review', 'federal registry update',

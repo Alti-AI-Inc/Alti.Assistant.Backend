@@ -8,7 +8,7 @@ import Workflow from '../models/workflow.model.js';
 
 // Initialize LLM
 const llm = new ChatGoogleGenerativeAI({
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   temperature: 0,
   apiKey: config.gemini_secret_key,
 });

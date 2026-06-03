@@ -563,7 +563,7 @@ Instructions: ${agent.systemInstruction}`;
 
           const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
           const modelInstance = genAI.getGenerativeModel({
-            model: agent.model || 'gemini-3.5-flash',
+            model: agent.model || 'gemini-2.5-flash',
             systemInstruction: systemInstruction,
             tools: [{ functionDeclarations: activeTools }]
           });
@@ -999,7 +999,7 @@ Instructions: ${agent.systemInstruction}`;
 
               const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
               const modelInstance = genAI.getGenerativeModel({
-                model: agent.model || 'gemini-3.5-flash',
+                model: agent.model || 'gemini-2.5-flash',
                 systemInstruction: systemInstruction,
                 tools: [{ functionDeclarations: activeTools }]
               });

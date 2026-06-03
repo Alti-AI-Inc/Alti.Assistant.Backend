@@ -28,7 +28,7 @@ EXAMPLES OF GOOD RESPONSES:
 Q: "What's the capital of France?" → "Paris."
 Q: "Who won the 2024 Super Bowl?" → "The Kansas City Chiefs defeated the San Francisco 49ers 25-22 in overtime."
 Q: "Explain quantum computing" → "Quantum computing uses qubits that can be 0, 1, or both simultaneously (superposition), enabling parallel processing of certain problems exponentially faster than classical computers. Key applications include cryptography, drug discovery, and optimization problems."`,
-  model: 'gemini-3.5-flash',
+  model: 'gemini-2.5-flash',
   tools: [],
   keywords: ['hello', 'hi', 'how are you', 'operating system for law', 'would you rather', 'conceptual', 'general chat', 'explanation', 'discussion', 'what is', 'opinion', 'philosophical', 'question']
 };

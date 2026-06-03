@@ -8,7 +8,7 @@ import { massiveSmartRouter } from '../../../helpers/massiveSmartRouter.js';
  */
 class ClaudeService {
   constructor() {
-    this.modelName = 'gemini-3.5-flash';
+    this.modelName = 'gemini-2.5-flash';
     this.client = null;
     this.initialized = false;
   }

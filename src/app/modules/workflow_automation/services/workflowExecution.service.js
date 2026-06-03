@@ -490,7 +490,7 @@ class WorkflowExecutionService {
                   const prompt = `Failed Step ID: "${step.stepId}"\nApp: "${step.app}"\nAction: "${step.action}"\nOriginal Parameters: ${JSON.stringify(step.parameters)}\nError Message: "${stepError.message}"\nCurrent Context: ${JSON.stringify(currentContext)}\n\nGenerate the corrected set of parameters to successfully retry this step inside a JSON block mapping to 'healedParameters'.`;
 
                   const geminiResult = await aiClient.models.generateContent({
-                    model: 'gemini-3.5-flash',
+                    model: 'gemini-2.5-flash',
                     contents: prompt,
                     config: {
                       temperature: 0.2,
@@ -1105,7 +1105,7 @@ class WorkflowExecutionService {
             const prompt = `Input text to classify: "${input}"\n\nAvailable routes:\n${routesListing}\n\nSelect the most appropriate route. If none of the routes match, select the route key 'default' if it exists, otherwise select the first route.`;
 
             const geminiResult = await aiClient.models.generateContent({
-              model: 'gemini-3.5-flash',
+              model: 'gemini-2.5-flash',
               contents: prompt,
               config: {
                 temperature: 0.1,
@@ -1196,7 +1196,7 @@ class WorkflowExecutionService {
             const prompt = `Data to transform:\n${dataString}\n\nInstructions: "${instructions}"\n\nPerform the transformation and return the result inside a JSON object with a single key 'transformedData'.`;
 
             const geminiResult = await aiClient.models.generateContent({
-              model: 'gemini-3.5-flash',
+              model: 'gemini-2.5-flash',
               contents: prompt,
               config: {
                 temperature: 0.1,
@@ -1262,13 +1262,13 @@ class WorkflowExecutionService {
             throw new Error(`Required parameter 'prompt' is missing for google_cloud.${step.action}`);
           }
           if (isMock) {
-            const mockText = `[Mock Vertex AI / Gemini Response for model '${model || 'gemini-3.5-flash'}'] Based on your prompt: "${prompt.slice(0, 100)}...", here is the structured analysis. Apple Inc. Q2 Revenue margin is 0.466 and sentiment is positive.`;
+            const mockText = `[Mock Vertex AI / Gemini Response for model '${model || 'gemini-2.5-flash'}'] Based on your prompt: "${prompt.slice(0, 100)}...", here is the structured analysis. Apple Inc. Q2 Revenue margin is 0.466 and sentiment is positive.`;
             result = { text: mockText, reply: mockText, answer: mockText, success: true };
           } else {
             const { GoogleGenAI } = await import('@google/genai');
             const aiClient = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
             const geminiResult = await aiClient.models.generateContent({
-              model: model || 'gemini-3.5-flash',
+              model: model || 'gemini-2.5-flash',
               contents: prompt,
               config: {
                 temperature: temperature ? parseFloat(temperature) : 0.2,
