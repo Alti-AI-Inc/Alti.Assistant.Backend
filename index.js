@@ -37,11 +37,15 @@ import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation
 import { requestContextStore } from './src/shared/requestContext.js';
 import { dockerWorkspaceService } from './src/app/modules/docker/dockerWorkspace.service.js';
 import { jwtHelpers } from './src/app/helpers/jwtHelpers.js';
+import { initSentry, captureException, flushSentry } from './src/shared/sentry.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+
+// Initialize Sentry error tracking (no-op if SENTRY_DSN is not set)
+initSentry(app);
 
 // ✅ Register raw body parsers for Stripe webhooks FIRST (essential for signature checks)
 app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
@@ -252,17 +256,18 @@ const server = app.listen(port, () => {
 });
 
 // Graceful shutdown handlers
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = async (signal) => {
   logger.info(`Received ${signal}, shutting down gracefully`);
-  server.close(() => {
+  server.close(async () => {
     logger.info('HTTP server closed, draining complete');
-    mongoose.connection.close(false).then(() => {
+    try {
+      await mongoose.connection.close(false);
       logger.info('MongoDB connection closed');
-      process.exit(0);
-    }).catch((err) => {
+    } catch (err) {
       logger.error('Error closing MongoDB connection:', err);
-      process.exit(0);
-    });
+    }
+    await flushSentry();
+    process.exit(0);
   });
 };
 
@@ -271,12 +276,14 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 process.on('uncaughtException', (err) => {
   logger.error('Uncaught Exception:', err);
-  process.exit(1);
+  captureException(err, { fatal: true });
+  flushSentry().finally(() => process.exit(1));
 });
 
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled Rejection:', reason);
-  process.exit(1);
+  captureException(reason, { type: 'unhandledRejection' });
+  flushSentry().finally(() => process.exit(1));
 });
 
 export default app;
