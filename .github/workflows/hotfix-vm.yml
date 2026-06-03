@@ -1,0 +1,78 @@
+name: Hotfix VM Code
+
+on:
+  workflow_dispatch:
+
+jobs:
+  hotfix:
+    name: Deploy Code Hotfix to Production VM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
+          ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+      - name: Copy fixed files to VM
+        run: |
+          # Copy the orchestrator and swarm service fixes into the running container
+          echo "=== Copying orchestrator.service.js ==="
+          scp -i ~/.ssh/alti-vm-key \
+            src/app/modules/orchestrator/orchestrator.service.js \
+            alti_deployer@35.239.192.33:/tmp/orchestrator.service.js
+
+          echo "=== Copying swarm.service.js ==="
+          scp -i ~/.ssh/alti-vm-key \
+            src/app/modules/swarm/swarm.service.js \
+            alti_deployer@35.239.192.33:/tmp/swarm.service.js
+
+      - name: Apply hotfix and restart
+        run: |
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'EOF'
+            set -e
+
+            CONTAINER="alti-backend"
+
+            echo "=== Checking target paths in container ==="
+            docker exec $CONTAINER ls -la src/app/modules/orchestrator/orchestrator.service.js
+            docker exec $CONTAINER ls -la src/app/modules/swarm/swarm.service.js
+
+            echo "=== Backing up originals ==="
+            docker exec $CONTAINER cp src/app/modules/orchestrator/orchestrator.service.js \
+              src/app/modules/orchestrator/orchestrator.service.js.bak
+            docker exec $CONTAINER cp src/app/modules/swarm/swarm.service.js \
+              src/app/modules/swarm/swarm.service.js.bak
+
+            echo "=== Copying fixed files into container ==="
+            docker cp /tmp/orchestrator.service.js $CONTAINER:/app/src/app/modules/orchestrator/orchestrator.service.js
+            docker cp /tmp/swarm.service.js $CONTAINER:/app/src/app/modules/swarm/swarm.service.js
+
+            echo "=== Verifying files ==="
+            docker exec $CONTAINER head -5 src/app/modules/orchestrator/orchestrator.service.js
+            docker exec $CONTAINER grep -c "classifyLocally" src/app/modules/orchestrator/orchestrator.service.js || echo "classifyLocally not found"
+
+            echo "=== Restarting container ==="
+            docker restart $CONTAINER
+
+            echo "=== Waiting for startup ==="
+            sleep 10
+
+            echo "=== Container status ==="
+            docker ps --filter name=$CONTAINER --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+            echo "=== Recent logs ==="
+            docker logs --tail=30 $CONTAINER
+
+            echo "=== Hotfix complete! ==="
+          EOF
+
+      - name: Clean up
+        if: always()
+        run: rm -f ~/.ssh/alti-vm-key
+
