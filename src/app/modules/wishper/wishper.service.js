@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { GoogleAuth } from 'google-auth-library';
-import fetch from 'node-fetch';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 

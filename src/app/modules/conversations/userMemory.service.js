@@ -2,7 +2,6 @@ import UserMemory from './userMemory.model.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
-import fetch from 'node-fetch';
 
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
