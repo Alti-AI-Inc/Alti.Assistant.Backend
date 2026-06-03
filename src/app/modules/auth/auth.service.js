@@ -553,10 +553,84 @@ const loginService = async (
   }
 
   // Fetch all tenantIds for the user from TenantMember collection
-  const tenantMemberships = await TenantMember.find({
+  let tenantMemberships = await TenantMember.find({
     userId: user._id,
     status: 'active',
   }).select('tenantId role');
+
+  if (tenantMemberships.length === 0) {
+    const emailPrefix = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') || 'workspace';
+    const randomSuffix = crypto.randomBytes(3).toString('hex');
+    const uniqueSlug = `${emailPrefix}-${randomSuffix}`;
+    const uniqueSubdomain = `${emailPrefix}-${randomSuffix}`;
+    const workspaceName = `${user.username || user.email.split('@')[0]}'s Workspace`;
+
+    logger.info(`Auto-creating tenant for user ${user._id}: slug=${uniqueSlug}, subdomain=${uniqueSubdomain}`);
+
+    try {
+      // 1. Create tenant
+      const newTenant = await Tenant.create({
+        name: workspaceName,
+        slug: uniqueSlug,
+        subdomain: uniqueSubdomain,
+        ownerId: user._id,
+        plan: 'free',
+        status: 'trial',
+      });
+
+      // 2. Create TenantMember record for owner
+      await TenantMember.create({
+        userId: user._id,
+        tenantId: newTenant._id,
+        role: 'admin',
+        permissions: ['*'],
+        status: 'active',
+        joinedAt: new Date(),
+      });
+
+      // 3. Update user profile to link activeTenantId
+      user.tenantId = newTenant._id;
+      user.tenantRole = 'admin';
+      user.tenantPermissions = ['*'];
+      user.activeTenantId = newTenant._id;
+      await user.save();
+
+      // 4. Create Stripe customer for the tenant
+      try {
+        const stripeCustomer = await createCustomerService({
+          email: user.email,
+          name: workspaceName,
+          metadata: {
+            tenantId: newTenant._id.toString(),
+            tenantSlug: newTenant.slug,
+            ownerId: user._id.toString(),
+          },
+        });
+        newTenant.subscription = {
+          ...newTenant.subscription,
+          stripeCustomerId: stripeCustomer.id,
+        };
+        await newTenant.save();
+      } catch (stripeError) {
+        logger.error('Error creating Stripe customer for auto-created tenant:', stripeError);
+      }
+
+      // 5. Create free subscription for the tenant
+      try {
+        await subscriptionService.createFreeSubscription(user._id, newTenant._id);
+      } catch (subError) {
+        logger.error('Failed to create subscription for auto-created tenant:', subError);
+      }
+
+      // Refetch memberships
+      tenantMemberships = await TenantMember.find({
+        userId: user._id,
+        status: 'active',
+      }).select('tenantId role');
+    } catch (createError) {
+      logger.error('Failed to auto-create tenant on login:', createError);
+    }
+  }
 
   const tenantIds = tenantMemberships.map((membership) => ({
     tenantId: membership.tenantId,
