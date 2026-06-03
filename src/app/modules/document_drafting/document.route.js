@@ -21,7 +21,7 @@ router.post(
   optionalAuth(),
   extractTenantContext, // Extract tenant context after auth
   checkDailyRequestLimit,
-  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  createRateLimiter(30, 15),
   validateRequest(DocumentValidation.conversationalRequestSchema),
   documentController.conversationalAssistant
 );
@@ -34,7 +34,7 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext, // Extract tenant context after auth
-  // createRateLimiter(20, 15), // 20 generations per 15 minutes
+  createRateLimiter(20, 15),
   validateRequest(DocumentValidation.generateDocumentSchema),
   documentController.generateDocument
 );
@@ -46,7 +46,7 @@ router.post(
   '/export',
   optionalAuth(),
   extractTenantContext, // Extract tenant context after auth
-  // createRateLimiter(20, 15), // 20 exports per 15 minutes
+  createRateLimiter(20, 15),
   validateRequest(DocumentValidation.exportDocumentSchema),
   documentController.exportDocument
 );
@@ -58,7 +58,7 @@ router.post(
   '/edit',
   optionalAuth(),
   extractTenantContext, // Extract tenant context after auth
-  // createRateLimiter(20, 15), // 20 edits per 15 minutes
+  createRateLimiter(20, 15),
   validateRequest(DocumentValidation.editDocumentSchema),
   documentController.editDocument
 );

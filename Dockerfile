@@ -37,16 +37,26 @@ COPY --from=builder /app/alti-core-service/config ./config
 # test/ intentionally excluded from production image
 COPY --from=builder /app/alti-core-service/index.js ./
 COPY --from=builder /app/alti-core-service/server.js ./
-COPY --from=builder /app/alti-core-service/package.json /app/alti-core-service/alti_gcp.jso[n] ./
+COPY --from=builder /app/alti-core-service/package.json ./
+# alti_gcp.json excluded from image — mount at runtime via secret volume
 COPY --from=builder /app/alti-core-service/imagegen.json ./
-COPY --from=builder /app/alti-core-service/env.yaml ./
+# env.yaml is gitignored (secrets); Cloud Run injects vars via --set-env-vars/--set-secrets
+COPY --from=builder /app/alti-core-service/env.yam[l] ./
 COPY --from=builder /app/alti-core-service/preload.cjs ./
 
 # Create necessary directories
 RUN mkdir -p logs/errors logs/successes uploads/ragsystem uploads/mcp_toolbox storage/ragsystem output
 
+# Run as non-root user for security
+RUN chown -R node:node /app/alti-core-service
+USER node
+
 # Cloud Run sets PORT=8080 by default; app reads process.env.PORT
 EXPOSE 8080
+
+# Docker-level health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://localhost:' + (process.env.PORT || 8080) + '/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 # Use node instead of nodemon in production
 CMD ["node", "--require", "./preload.cjs", "--dns-result-order=ipv4first", "index.js"]

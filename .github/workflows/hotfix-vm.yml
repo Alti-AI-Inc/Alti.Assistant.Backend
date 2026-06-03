@@ -1,0 +1,82 @@
+name: Hotfix VM Code
+
+on:
+  workflow_dispatch:
+
+jobs:
+  hotfix:
+    name: Deploy Code Hotfix to Production VM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
+          ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+      - name: Copy fixed files to VM
+        run: |
+          # Copy the orchestrator and swarm service fixes into the running container
+          echo "=== Copying orchestrator.service.js ==="
+          scp -i ~/.ssh/alti-vm-key \
+            src/app/modules/orchestrator/orchestrator.service.js \
+            alti_deployer@35.239.192.33:/tmp/orchestrator.service.js
+
+          echo "=== Copying swarm.service.js ==="
+          scp -i ~/.ssh/alti-vm-key \
+            src/app/modules/swarm/swarm.service.js \
+            alti_deployer@35.239.192.33:/tmp/swarm.service.js
+
+      - name: Apply hotfix and restart
+        run: |
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'EOF'
+            set -e
+
+            CONTAINER="alti-backend"
+
+            echo "=== Finding actual file paths in container ==="
+            ORCH_PATH=$(docker exec $CONTAINER find / -path "*/orchestrator/orchestrator.service.js" -not -path "*/node_modules/*" 2>/dev/null | head -1)
+            SWARM_PATH=$(docker exec $CONTAINER find / -path "*/swarm/swarm.service.js" -not -path "*/node_modules/*" 2>/dev/null | head -1)
+            echo "Orchestrator: $ORCH_PATH"
+            echo "Swarm: $SWARM_PATH"
+
+            if [ -z "$ORCH_PATH" ] || [ -z "$SWARM_PATH" ]; then
+              echo "❌ Could not find files in container"
+              exit 1
+            fi
+
+            echo "=== Backing up originals ==="
+            docker exec $CONTAINER cp "$ORCH_PATH" "${ORCH_PATH}.bak"
+            docker exec $CONTAINER cp "$SWARM_PATH" "${SWARM_PATH}.bak"
+
+            echo "=== Copying fixed files into container ==="
+            docker cp /tmp/orchestrator.service.js "$CONTAINER:$ORCH_PATH"
+            docker cp /tmp/swarm.service.js "$CONTAINER:$SWARM_PATH"
+
+            echo "=== Verifying fix is present ==="
+            docker exec $CONTAINER grep -c "classifyLocally" "$ORCH_PATH" && echo "✅ classifyLocally found" || echo "❌ classifyLocally NOT found"
+
+            echo "=== Restarting container ==="
+            docker restart $CONTAINER
+
+            echo "=== Waiting for startup ==="
+            sleep 10
+
+            echo "=== Container status ==="
+            docker ps --filter name=$CONTAINER --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+            echo "=== Recent logs ==="
+            docker logs --tail=30 $CONTAINER
+
+            echo "=== Hotfix complete! ==="
+          EOF
+
+      - name: Clean up
+        if: always()
+        run: rm -f ~/.ssh/alti-vm-key
+

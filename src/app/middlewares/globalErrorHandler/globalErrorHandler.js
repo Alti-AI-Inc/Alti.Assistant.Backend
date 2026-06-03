@@ -5,6 +5,7 @@ import handleCastError from '../../../errors/handleCastError.js';
 import handleValidationError from '../../../errors/handleValidationError.js';
 import handleZodError from '../../../errors/handleZodError.js';
 import { logger, errorlogger } from '../../../shared/logger.js';
+import { captureException } from '../../../shared/sentry.js';
 
 const globalErrorHandler = (error, req, res, next) => {
   if (config.env === 'development') {
@@ -49,6 +50,15 @@ const globalErrorHandler = (error, req, res, next) => {
     message = error ? error.message : message;
     errorMessages =
       error && error.message ? [{ path: '', message: error.message }] : [];
+  }
+
+  // Report server errors (5xx) to Sentry for tracking
+  if (statusCode >= 500) {
+    captureException(error, {
+      statusCode,
+      path: req.originalUrl,
+      method: req.method,
+    });
   }
 
   res.status(statusCode).json({

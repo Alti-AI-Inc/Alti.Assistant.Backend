@@ -1,0 +1,62 @@
+name: Deploy Code to VM (Direct)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - 'data/**'
+      - '*.md'
+
+jobs:
+  deploy:
+    name: Deploy Latest Code to Production VM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
+          ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+      - name: Deploy to VM
+        run: |
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'DEPLOY'
+            set -e
+            
+            echo "=== Pulling latest code ==="
+            cd ~/Alti.Assistant.Backend || cd ~/app || cd ~
+            
+            # Try git pull if it's a git repo
+            if [ -d ".git" ]; then
+              git fetch origin dev
+              git checkout dev
+              git pull origin dev
+              echo "✅ Code updated from git"
+            else
+              echo "⚠️ Not a git repo, skipping code update"
+            fi
+            
+            echo "=== Rebuilding Docker image locally ==="
+            docker compose build --no-cache
+            
+            echo "=== Restarting containers ==="
+            docker compose down
+            docker compose up -d
+            
+            echo "=== Container status ==="
+            docker compose ps
+            
+            echo "=== Recent logs ==="
+            sleep 5
+            docker compose logs --tail=20
+            
+            echo "=== Deploy complete! ==="
+          DEPLOY
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/alti-vm-key

@@ -27,7 +27,7 @@ router.post(
   checkStorageLimit,
   uploadArticleFile.single('file'),
   checkRAGFeature,
-  // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  createRateLimiter(30, 15),
   validateRequest(ArticleWriterValidation.conversationalRequestSchema),
   articleWriterController.conversationalAssistant
 );

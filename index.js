@@ -37,26 +37,32 @@ import { temporalWorkerCoordinator } from './src/app/modules/workflow_automation
 import { requestContextStore } from './src/shared/requestContext.js';
 import { dockerWorkspaceService } from './src/app/modules/docker/dockerWorkspace.service.js';
 import { jwtHelpers } from './src/app/helpers/jwtHelpers.js';
+import { initSentry, captureException, flushSentry } from './src/shared/sentry.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
+// Initialize Sentry error tracking (no-op if SENTRY_DSN is not set)
+initSentry(app);
+
 // ✅ Register raw body parsers for Stripe webhooks FIRST (essential for signature checks)
 app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/v1/subscription/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' }));
 
+const allowedOrigins = [
+  'https://altihq.com',
+  'https://www.altihq.com',
+];
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:3000', 'http://localhost:8080', 'http://localhost:3001');
+}
+
 app.use(
   cors({
-    origin: [
-      'https://altihq.com',
-      'https://www.altihq.com',
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'http://localhost:3001',
-    ],
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -198,13 +204,26 @@ app.get('/api/user', (req, res) => {
 app.use('/api/v1', router);
 
 // Health check endpoint for Cloud Run
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Service is healthy',
-    timestamp: new Date().toISOString(),
+app.get('/health', async (req, res) => {
+  const checks = {
+    server: 'ok',
     uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+  };
+
+  // Check MongoDB
+  try {
+    checks.mongodb = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  } catch {
+    checks.mongodb = 'error';
+  }
+
+  const allHealthy = checks.mongodb === 'connected';
+  res.status(allHealthy ? 200 : 503).json({
+    success: allHealthy,
+    message: allHealthy ? 'Service is healthy' : 'Service degraded',
+    checks,
   });
 });
 
@@ -232,7 +251,39 @@ app.use((req, res) => {
 
 // Start server
 const port = process.env.PORT || config.port || 5100;
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info(`✅ App is running on 0.0.0.0:${port}`);
 });
+
+// Graceful shutdown handlers
+const gracefulShutdown = async (signal) => {
+  logger.info(`Received ${signal}, shutting down gracefully`);
+  server.close(async () => {
+    logger.info('HTTP server closed, draining complete');
+    try {
+      await mongoose.connection.close(false);
+      logger.info('MongoDB connection closed');
+    } catch (err) {
+      logger.error('Error closing MongoDB connection:', err);
+    }
+    await flushSentry();
+    process.exit(0);
+  });
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception:', err);
+  captureException(err, { fatal: true });
+  flushSentry().finally(() => process.exit(1));
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Rejection:', reason);
+  captureException(reason, { type: 'unhandledRejection' });
+  flushSentry().finally(() => process.exit(1));
+});
+
 export default app;

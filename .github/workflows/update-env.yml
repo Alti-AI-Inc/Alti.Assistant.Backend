@@ -1,0 +1,44 @@
+name: Update VM Environment Variable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-env:
+    name: Update GEMINI_API_KEY on Production VM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
+          ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+      - name: Update GEMINI_API_KEY in VM .env
+        run: |
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'EOF'
+            set -e
+            echo "=== Current GEMINI_API_KEY ==="
+            grep "GEMINI_API_KEY" .env | head -1
+
+            echo "=== Updating GEMINI_API_KEY ==="
+            sed -i 's|GEMINI_API_KEY=.*|GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}|' .env
+
+            echo "=== Verifying update ==="
+            grep "GEMINI_API_KEY" .env | head -1
+
+            echo "=== Restarting containers ==="
+            docker compose down
+            docker compose up -d
+
+            echo "=== Container status ==="
+            docker compose ps
+
+            echo "=== Done! ==="
+          EOF
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/alti-vm-key

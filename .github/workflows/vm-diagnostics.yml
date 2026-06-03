@@ -1,0 +1,53 @@
+name: VM Diagnostics
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Check VM Environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
+          chmod 600 ~/.ssh/alti-vm-key
+          ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+      - name: Diagnose VM
+        run: |
+          ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'EOF'
+            echo "=== Hostname ==="
+            hostname
+            
+            echo "=== Current directory ==="
+            pwd
+            
+            echo "=== Directory listing ==="
+            ls -la
+            
+            echo "=== Docker compose file ==="
+            cat docker-compose.yml 2>/dev/null || echo "No docker-compose.yml in home"
+            
+            echo "=== Docker images ==="
+            docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}" | head -20
+            
+            echo "=== Docker containers ==="
+            docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+            
+            echo "=== Git repos ==="
+            find ~ -maxdepth 3 -name ".git" -type d 2>/dev/null
+            
+            echo "=== Disk space ==="
+            df -h /
+            
+            echo "=== Docker version ==="
+            docker --version
+            docker compose version
+          EOF
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/alti-vm-key

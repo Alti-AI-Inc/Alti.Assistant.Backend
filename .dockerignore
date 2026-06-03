@@ -11,3 +11,20 @@ coverage/
 .nyc_output/
 *.log
 mcp-toolbox/
+
+# Dev/test files excluded from Docker build context
+test/
+scratch/
+docs/
+postman_collections/
+*.zip
+*.tar.gz
+db_data/
+data/
+backend.log
+CHANGELOG.md
+env
+env.yaml
+*.env.*
+.github/
+.gemini/
