@@ -100,7 +100,7 @@ const UserSchema = new mongoose.Schema(
     },
     tenantRole: {
       type: String,
-      enum: ['owner', 'admin', 'member'],
+      enum: ['admin', 'manager', 'user'],
       default: null,
       // DEPRECATED: Use TenantMember collection for role management
     },

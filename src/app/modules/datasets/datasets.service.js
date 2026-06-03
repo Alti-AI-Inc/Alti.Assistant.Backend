@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
+import fs from 'fs';
 import Dataset from './datasets.model.js';
 import config from '../../../../config/index.js';
 import { parquetReadObjects } from 'hyparquet';
@@ -151,7 +152,7 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
     dataset.status = 'downloading';
     await dataset.save();
 
-    console.log(`Starting GCS archival process for HF Dataset: ${datasetId}`);
+    console.log(`Starting GCS archival/download process for HF Dataset: ${datasetId}`);
 
     // Fetch Parquet files list from HF Dataset Server
     let fileListResponse;
@@ -165,16 +166,27 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
       throw new Error('No Parquet files found for this dataset on Hugging Face server.');
     }
 
-    const { bucket, bucketName } = getGcsBucket();
-    if (!bucket) {
-      throw new Error('Google Cloud Storage bucket not configured or failed to initialize.');
-    }
+    let useLocalFallback = false;
+    let bucket = null;
+    let bucketName = null;
 
-    // Check bucket access/exists
-    const [bucketExists] = await bucket.exists();
-    if (!bucketExists) {
-      console.log(`GCS Bucket "${bucketName}" does not exist. Attempting to create...`);
-      await bucket.create();
+    try {
+      const gcsConfig = getGcsBucket();
+      bucket = gcsConfig.bucket;
+      bucketName = gcsConfig.bucketName;
+      if (!bucket) {
+        useLocalFallback = true;
+      } else {
+        // Check bucket access/exists
+        const [bucketExists] = await bucket.exists();
+        if (!bucketExists) {
+          console.log(`GCS Bucket "${bucketName}" does not exist. Attempting to create...`);
+          await bucket.create();
+        }
+      }
+    } catch (gcsAuthErr) {
+      console.warn(`[Datasets] GCS Connection failed (${gcsAuthErr.message}). Switching to local disk fallback storage.`);
+      useLocalFallback = true;
     }
 
     const parquetFiles = fileListResponse.data.parquet_files;
@@ -188,24 +200,32 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
       const splitName = fileItem.split;
       const fileSize = fileItem.size || 0;
 
-      console.log(`Streaming Parquet file: ${fileName} (${(fileSize / (1024 * 1024)).toFixed(2)} MB) for configuration: ${configName}`);
+      console.log(`Streaming Parquet file: ${fileName} (${(fileSize / (1024 * 1024)).toFixed(2)} MB) for configuration: ${configName} (Local Fallback: ${useLocalFallback})`);
 
-      // Stream from HF to GCS
       const destPath = `datasets/${datasetId}/${configName}/${splitName}/${fileName}`;
-      const gcsFileObj = bucket.file(destPath);
+      let writeStream;
+      let localFilePath = '';
 
-      const writeStream = gcsFileObj.createWriteStream({
-        metadata: {
-          contentType: 'application/octet-stream',
-          storageClass: config.gcs.datasetStorageClass || 'ARCHIVE',
+      if (useLocalFallback) {
+        const localDir = path.join(process.cwd(), 'storage', 'datasets', datasetId.replace(/\//g, '_'), configName, splitName);
+        fs.mkdirSync(localDir, { recursive: true });
+        localFilePath = path.join(localDir, fileName);
+        writeStream = fs.createWriteStream(localFilePath);
+      } else {
+        const gcsFileObj = bucket.file(destPath);
+        writeStream = gcsFileObj.createWriteStream({
           metadata: {
-            originalUrl: downloadUrl,
-            datasetId: datasetId,
-            config: configName,
-            split: splitName
+            contentType: 'application/octet-stream',
+            storageClass: config.gcs.datasetStorageClass || 'ARCHIVE',
+            metadata: {
+              originalUrl: downloadUrl,
+              datasetId: datasetId,
+              config: configName,
+              split: splitName
+            }
           }
-        }
-      });
+        });
+      }
 
       // Use axios to fetch source stream
       const sourceResponse = await axios({
@@ -219,14 +239,14 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
         sourceResponse.data
           .pipe(writeStream)
           .on('finish', () => {
-            const gsUri = `gs://${bucketName}/${destPath}`;
+            const gsUri = useLocalFallback ? `local://${localFilePath.replace(/\\/g, '/')}` : `gs://${bucketName}/${destPath}`;
             uploadedGcsPaths.push(gsUri);
             totalBytes += fileSize;
-            console.log(`Successfully uploaded to GCS: ${gsUri}`);
+            console.log(useLocalFallback ? `Successfully saved locally: ${gsUri}` : `Successfully uploaded to GCS: ${gsUri}`);
             resolve();
           })
           .on('error', (err) => {
-            console.error(`Piping stream to GCS failed for file ${fileName}:`, err);
+            console.error(`Piping stream failed for file ${fileName}:`, err);
             reject(err);
           });
       });
@@ -234,7 +254,7 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
 
     // Update database model to archived
     dataset.status = 'archived';
-    dataset.gcsBucket = bucketName;
+    dataset.gcsBucket = useLocalFallback ? 'local' : bucketName;
     dataset.gcsPaths = uploadedGcsPaths;
     dataset.sizeBytes = totalBytes;
     
@@ -256,14 +276,14 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
       const previewData = await getHFDatasetRows(datasetId, dataset.configs[0] || 'default', 'train', 0, 1);
       dataset.features = previewData.features || {};
     } catch (e) {
-      console.warn(`Could not extract column features during GCS archiving: ${e.message}`);
+      console.warn(`Could not extract column features during archiving: ${e.message}`);
     }
 
     await dataset.save();
-    console.log(`GCS Archival completed for ${datasetId}. Total size: ${(totalBytes / (1024 * 1024)).toFixed(2)} MB`);
+    console.log(`Archival completed for ${datasetId}. Total size: ${(totalBytes / (1024 * 1024)).toFixed(2)} MB`);
 
   } catch (error) {
-    console.error(`Error during GCS archival of ${datasetId}:`, error);
+    console.error(`Error during archival of ${datasetId}:`, error);
     dataset.status = 'failed';
     dataset.error = error.message;
     await dataset.save();
@@ -333,22 +353,51 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
     // 1. Initialize the RAG system (ensures pgvector and database schemas are setup)
     await rag.initialize();
 
-    const { bucket, bucketName } = getGcsBucket();
-    if (!bucket) {
-      throw new Error('Google Cloud Storage bucket not configured or failed to initialize.');
-    }
+    const gcsConfig = getGcsBucket();
+    const bucket = gcsConfig.bucket;
+    const bucketName = gcsConfig.bucketName;
 
     let totalIndexedChunks = 0;
     const maxRowsPerFile = 2000; // Guardrail to prevent runaway embedding costs
 
     for (const gcsPath of dataset.gcsPaths) {
-      // Strip the gs://[bucketName]/ prefix to get the relative object path
-      const prefix = `gs://${bucketName}/`;
-      const relativePath = gcsPath.startsWith(prefix) ? gcsPath.slice(prefix.length) : gcsPath;
+      let buffer;
+      let relativePath = '';
+      let configName = 'default';
+      let splitName = 'train';
+      let fileName = 'data.parquet';
 
-      console.log(`Downloading Parquet file from GCS for indexing: ${relativePath}`);
-      const fileObj = bucket.file(relativePath);
-      const [buffer] = await fileObj.download();
+      if (gcsPath.startsWith('local://')) {
+        const localPath = gcsPath.slice('local://'.length);
+        console.log(`Reading Parquet file from local storage for indexing: ${localPath}`);
+        buffer = fs.readFileSync(localPath);
+        
+        // Parse metadata/config/split from the local file path or directory structure
+        // localPath: .../storage/datasets/[datasetId]/[configName]/[splitName]/[fileName].parquet
+        const normalizedPath = localPath.replace(/\\/g, '/');
+        const parts = normalizedPath.split('/');
+        configName = parts[parts.length - 3] || 'default';
+        splitName = parts[parts.length - 2] || 'train';
+        fileName = parts[parts.length - 1];
+        relativePath = `local/${datasetId}/${configName}/${splitName}/${fileName}`;
+      } else {
+        if (!bucket) {
+          throw new Error('GCS bucket not configured, cannot download GCS path: ' + gcsPath);
+        }
+        // Strip the gs://[bucketName]/ prefix to get the relative object path
+        const prefix = `gs://${bucketName}/`;
+        relativePath = gcsPath.startsWith(prefix) ? gcsPath.slice(prefix.length) : gcsPath;
+
+        console.log(`Downloading Parquet file from GCS for indexing: ${relativePath}`);
+        const fileObj = bucket.file(relativePath);
+        const [downloadedBuffer] = await fileObj.download();
+        buffer = downloadedBuffer;
+
+        const parts = relativePath.split('/');
+        configName = parts[parts.length - 3] || 'default';
+        splitName = parts[parts.length - 2] || 'train';
+        fileName = parts[parts.length - 1];
+      }
 
       // Convert Buffer to ArrayBuffer safely
       const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
@@ -356,13 +405,6 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
         byteLength: arrayBuffer.byteLength,
         slice: (start, end) => arrayBuffer.slice(start, end)
       };
-
-      // Extract metadata info from the file path
-      // format: datasets/[datasetId]/[configName]/[splitName]/[fileName].parquet
-      const parts = relativePath.split('/');
-      const configName = parts[parts.length - 3] || 'default';
-      const splitName = parts[parts.length - 2] || 'train';
-      const fileName = parts[parts.length - 1];
 
       console.log(`Parsing Parquet objects for split "${splitName}" / config "${configName}"...`);
       const rows = await parquetReadObjects({

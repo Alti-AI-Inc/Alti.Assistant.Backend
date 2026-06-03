@@ -392,13 +392,22 @@ const startWorker = () => {
   }
   isWorkerRunning = true;
 
-  if (temporalClientCoordinator.isMock) {
-    console.log('[HF Worker] System is in Offline/Mock Standby Mode. Launching Legacy sequential loop fallback.');
-    runWorkerLoop();
-  } else {
-    console.log('[HF Worker] System is connected to a live cluster. Launching Resilient Temporal Workflow coordinator.');
-    runTemporalWorkerLoop();
-  }
+  // Asynchronously connect to Temporal and start the correct worker loop
+  (async () => {
+    try {
+      await temporalClientCoordinator.connect();
+      if (temporalClientCoordinator.isMock) {
+        console.log('[HF Worker] System is in Offline/Mock Standby Mode. Launching Legacy sequential loop fallback.');
+        runWorkerLoop();
+      } else {
+        console.log('[HF Worker] System is connected to a live cluster. Launching Resilient Temporal Workflow coordinator.');
+        runTemporalWorkerLoop();
+      }
+    } catch (err) {
+      console.error('[HF Worker] Failed to initialize temporal client, falling back to legacy loop:', err);
+      runWorkerLoop();
+    }
+  })();
 
   return { success: true, message: 'Continuous sequential background queue worker started.' };
 };

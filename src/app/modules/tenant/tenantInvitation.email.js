@@ -79,7 +79,7 @@ export const sendInvitationEmail = async (invitationData) => {
     inviterName,
     tenantName,
     token,
-    role = 'member',
+    role = 'user',
     expiryDays = 7,
   } = invitationData;
 
@@ -184,7 +184,7 @@ export const sendInvitationReminderEmail = async (invitationData) => {
     inviterName,
     tenantName,
     token,
-    role = 'member',
+    role = 'user',
     expiryDays = 7,
   } = invitationData;
 

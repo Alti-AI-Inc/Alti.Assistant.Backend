@@ -91,7 +91,7 @@ const registerService = async (req) => {
                     tenantId: invitation.tenantId,
                     role: invitation.role,
                     permissions:
-                      invitation.role === 'admin'
+                      invitation.role === 'admin' || invitation.role === 'manager'
                         ? ['manage_members', 'manage_content']
                         : ['view_content'],
                     status: 'active',
@@ -107,7 +107,7 @@ const registerService = async (req) => {
               user[0].tenantRole = invitation.role;
               user[0].activeTenantId = invitation.tenantId;
               user[0].tenantPermissions =
-                invitation.role === 'admin'
+                invitation.role === 'admin' || invitation.role === 'manager'
                   ? ['manage_members', 'manage_content']
                   : ['view_content'];
               user[0].role = 'user'; // Auto-verify user with invitation
@@ -479,7 +479,7 @@ const loginService = async (
               tenantId: invitation.tenantId,
               role: invitation.role,
               permissions:
-                invitation.role === 'admin'
+                invitation.role === 'admin' || invitation.role === 'manager'
                   ? ['manage_members', 'manage_content']
                   : ['view_content'],
               status: 'active',
@@ -492,7 +492,7 @@ const loginService = async (
             user.tenantRole = invitation.role;
             user.activeTenantId = invitation.tenantId;
             user.tenantPermissions =
-              invitation.role === 'admin'
+              invitation.role === 'admin' || invitation.role === 'manager'
                 ? ['manage_members', 'manage_content']
                 : ['view_content'];
             await user.save();

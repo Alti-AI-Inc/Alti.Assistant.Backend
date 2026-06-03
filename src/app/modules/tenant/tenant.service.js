@@ -44,7 +44,7 @@ const createTenant = async (tenantData) => {
     await TenantMember.create({
       userId: ownerId,
       tenantId: tenant._id,
-      role: 'owner',
+      role: 'admin',
       permissions: ['*'], // Full permissions for owner
       status: 'active',
       joinedAt: new Date(),
@@ -55,7 +55,7 @@ const createTenant = async (tenantData) => {
       ownerId,
       {
         tenantId: tenant._id,
-        tenantRole: 'owner',
+        tenantRole: 'admin',
         tenantPermissions: ['*'],
         activeTenantId: tenant._id, // Set as active tenant
       },
@@ -469,13 +469,13 @@ const removeMember = async (tenantId, userId, removedBy) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Member not found in tenant');
   }
 
-  if (tenantMember.role === 'owner') {
+  if (tenantMember.role === 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Cannot remove tenant owner');
   }
 
   // Verify permissions - only owner or admin can remove members
   const remover = await TenantMember.findOne({ userId: removedBy, tenantId });
-  if (!remover || !['owner', 'admin'].includes(remover.role)) {
+  if (!remover || !['admin', 'manager'].includes(remover.role)) {
     throw new ApiError(
       httpStatus.FORBIDDEN,
       'Insufficient permissions to remove members'
