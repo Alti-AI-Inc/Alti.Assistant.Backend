@@ -671,7 +671,16 @@ Instructions: ${agent.systemInstruction}`;
           text = stripPreambles(text);
         } catch (azureErr) {
           console.error('❌ Both Gemini and Azure AI Foundry generation failed:', azureErr);
-          throw geminiErr; // rethrow original gemini error if both fail
+          console.warn('⚠️ [Swarm Service] All LLM providers unavailable. Returning graceful fallback.');
+          text = `I understand your question about "${query.length > 80 ? query.substring(0, 80) + '...' : query}".
+
+I'm temporarily unable to generate a full response because the AI backend services are experiencing connectivity issues.
+
+**This will resolve when:**
+• The API credentials are refreshed
+• The backend services reconnect
+
+Please try again shortly — your request has been received and understood.`;
         }
       }
       accumulatedText = text;
@@ -1148,7 +1157,22 @@ Instructions: ${agent.systemInstruction}`;
               }
             } catch (azureErr) {
               console.error('❌ Both Gemini and Azure AI Foundry stream failed:', azureErr);
-              throw geminiErr; // throw original Gemini error if Azure fails
+              console.warn('⚠️ [Swarm Service] All streaming providers unavailable. Yielding graceful fallback.');
+              const fallbackText = `I understand your question about "${query.length > 80 ? query.substring(0, 80) + '...' : query}".
+
+I'm temporarily unable to generate a full response because the AI backend services are experiencing connectivity issues.
+
+**This will resolve when:**
+• The API credentials are refreshed
+• The backend services reconnect
+
+Please try again shortly — your request has been received and understood.`;
+              yield {
+                type: 'text',
+                content: fallbackText,
+                agentId: agent.id
+              };
+              agentTextAccumulator = fallbackText;
             }
           }
 

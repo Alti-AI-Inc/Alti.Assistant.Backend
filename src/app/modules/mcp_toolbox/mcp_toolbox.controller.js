@@ -275,9 +275,9 @@ const installAppController = async (req, res) => {
     }
 
     // 2. Map dynamic argument parameters
-    if (appId === 'postgres') {
+    if (appId === 'postgres' || appId === 'postgresql') {
       if (!databaseUrl) {
-        return res.status(400).json({ success: false, error: 'databaseUrl is required to install postgres app.' });
+        return res.status(400).json({ success: false, error: 'databaseUrl is required to install postgres/postgresql app.' });
       }
       config.args.push(databaseUrl);
     } else if (appId === 'sqlite') {

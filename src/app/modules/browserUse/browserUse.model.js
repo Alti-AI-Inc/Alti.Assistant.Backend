@@ -46,6 +46,11 @@ const browserSessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes for multi-tenant production efficiency
+browserSessionSchema.index({ tenantId: 1, user: 1, createdAt: -1 });
+browserSessionSchema.index({ tenantId: 1, createdAt: -1 });
+browserSessionSchema.index({ user: 1, createdAt: -1 }); // Legacy fallback
+
 const BrowserSession = mongoose.model(
   'BrowserSession',
   browserSessionSchema,

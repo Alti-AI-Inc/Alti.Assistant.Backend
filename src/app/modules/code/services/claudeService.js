@@ -11,7 +11,7 @@ async function runClaudeTask(systemPrompt, history) {
   try {
     const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3.1-pro',
+      model: 'gemini-3.1-pro-preview',
       systemInstruction: systemPrompt,
     });
 

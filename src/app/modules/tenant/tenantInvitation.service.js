@@ -4,6 +4,7 @@ import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import TenantInvitation from './tenantInvitation.model.js';
 import Tenant from './tenant.model.js';
+import TenantMember from './tenantMember.model.js';
 import UserModel from '../auth/auth.model.js';
 import { jwtHelpers } from '../../helpers/jwtHelpers.js';
 import { sendInvitationEmail } from './tenantInvitation.email.js';
@@ -166,6 +167,27 @@ const acceptInvitation = async (token, userId) => {
       ? ['manage_members', 'manage_content']
       : ['view_content'];
   await user.save();
+
+  // Create TenantMember record if not already present
+  const existingMember = await TenantMember.findOne({
+    userId,
+    tenantId: invitation.tenantId,
+  });
+
+  if (!existingMember) {
+    await TenantMember.create({
+      userId,
+      tenantId: invitation.tenantId,
+      role: invitation.role,
+      permissions:
+        invitation.role === 'admin'
+          ? ['manage_members', 'manage_content']
+          : ['view_content'],
+      status: 'active',
+      invitedBy: invitation.invitedBy,
+      joinedAt: new Date(),
+    });
+  }
 
   // Update tenant user count
   const tenant = await Tenant.findById(invitation.tenantId);

@@ -22,9 +22,9 @@ const TenantInvitationSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['admin', 'member'],
+      enum: ['admin', 'manager', 'user'],
       required: [true, 'Role is required'],
-      default: 'member',
+      default: 'user',
     },
     invitedBy: {
       type: mongoose.Schema.Types.ObjectId,

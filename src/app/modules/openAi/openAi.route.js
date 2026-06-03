@@ -17,4 +17,9 @@ router.post(
   openAIAiController.Gpt4NanoGetResponse
 );
 
+router.post(
+  '/anonymous-response',
+  openAIAiController.OpenAiGetResponseAnonymously
+);
+
 export const openAIAiRoutes = router;

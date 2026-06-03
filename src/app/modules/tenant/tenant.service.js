@@ -44,7 +44,7 @@ const createTenant = async (tenantData) => {
     await TenantMember.create({
       userId: ownerId,
       tenantId: tenant._id,
-      role: 'owner',
+      role: 'admin',
       permissions: ['*'], // Full permissions for owner
       status: 'active',
       joinedAt: new Date(),
@@ -55,7 +55,7 @@ const createTenant = async (tenantData) => {
       ownerId,
       {
         tenantId: tenant._id,
-        tenantRole: 'owner',
+        tenantRole: 'admin',
         tenantPermissions: ['*'],
         activeTenantId: tenant._id, // Set as active tenant
       },
@@ -424,10 +424,11 @@ const inviteMember = async (invitationData) => {
  * Update member role
  */
 const updateMemberRole = async (tenantId, userId, role) => {
-  let user = await UserModel.findOne({ _id: userId, tenantId });
+  // 1. Search for active membership first as it's the source of truth
+  const tenantMember = await TenantMember.findOne({ userId, tenantId });
 
-  if (!user) {
-    // It might be a pending invitation being updated
+  if (!tenantMember) {
+    // 2. It might be a pending invitation being updated
     const invitation = await TenantInvitation.findOne({ _id: userId, tenantId });
     if (invitation) {
       invitation.role = role;
@@ -438,21 +439,23 @@ const updateMemberRole = async (tenantId, userId, role) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Member or invitation not found');
   }
 
-  // We now allow changing roles freely, including to/from owner, as requested
-  // by the admin functionality.
-  user.tenantRole = role;
-  await user.save();
+  // 3. Update the role in the TenantMember record
+  tenantMember.role = role;
+  await tenantMember.save();
 
-  // Also update TenantMember
-  const tenantMember = await TenantMember.findOne({ userId, tenantId });
-  if (tenantMember) {
-    tenantMember.role = role;
-    await tenantMember.save();
+  // 4. Update UserModel representation if user exists
+  const user = await UserModel.findById(userId);
+  if (user) {
+    // If this is currently their active or primary tenant in their profile, sync it
+    if (user.tenantId?.toString() === tenantId.toString() || user.activeTenantId?.toString() === tenantId.toString()) {
+      user.tenantRole = role;
+      await user.save();
+    }
   }
 
   logger.info(`Member role updated: ${userId} to ${role}`);
 
-  return user;
+  return user || tenantMember;
 };
 
 /**
@@ -466,13 +469,13 @@ const removeMember = async (tenantId, userId, removedBy) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Member not found in tenant');
   }
 
-  if (tenantMember.role === 'owner') {
+  if (tenantMember.role === 'admin') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Cannot remove tenant owner');
   }
 
   // Verify permissions - only owner or admin can remove members
   const remover = await TenantMember.findOne({ userId: removedBy, tenantId });
-  if (!remover || !['owner', 'admin'].includes(remover.role)) {
+  if (!remover || !['admin', 'manager'].includes(remover.role)) {
     throw new ApiError(
       httpStatus.FORBIDDEN,
       'Insufficient permissions to remove members'

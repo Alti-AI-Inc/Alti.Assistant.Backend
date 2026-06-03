@@ -196,7 +196,7 @@ User: Please summarize the following conversation history, keeping it under 2500
     try {
       logger.info(`Extracting media content using Gemini 1.5 Pro File API for mimeType: ${mimeType}`);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-pro',
+        model: 'gemini-3.1-pro-preview',
         generationConfig: { responseMimeType: "application/json" }
       });
       const prompt = `You are a multi-modal ingestion pipeline. Please analyze this file. 

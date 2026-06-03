@@ -30,6 +30,7 @@ class BlockedBillingModel {
   }
 
   async *stream() {
+    yield;
     throw new Error(this.message);
   }
 
@@ -100,7 +101,7 @@ const gcpFlash = new ChatGoogleGenerativeAI({
 });
 
 const gcpPro = new ChatGoogleGenerativeAI({
-  model: 'gemini-3.1-pro',
+  model: 'gemini-3.1-pro-preview',
   apiKey: config.gemini_secret_key,
   temperature: 0,
   maxRetries: 2,

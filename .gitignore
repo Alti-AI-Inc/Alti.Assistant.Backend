@@ -6,3 +6,6 @@ output/
 alti_gcp.json
 db_data/
 *.log
+data/
+storage/
+*.zip

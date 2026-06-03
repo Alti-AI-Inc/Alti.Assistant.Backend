@@ -20,8 +20,8 @@ const TenantMemberSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['owner', 'admin', 'member'],
-      default: 'member',
+      enum: ['admin', 'manager', 'user'],
+      default: 'user',
       required: true,
       index: true,
     },

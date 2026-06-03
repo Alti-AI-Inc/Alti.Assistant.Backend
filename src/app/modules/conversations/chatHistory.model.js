@@ -53,6 +53,11 @@ const chatHistorySchema = new mongoose.Schema({
   },
 });
 
+// Indexes for better query performance in production
+chatHistorySchema.index({ tenantId: 1, user: 1, createdAt: -1 });
+chatHistorySchema.index({ tenantId: 1, sessionId: 1 });
+chatHistorySchema.index({ user: 1, createdAt: -1 }); // Legacy fallback
+
 const ChatHistory = mongoose.model('Chat-History', chatHistorySchema);
 
 export default ChatHistory;

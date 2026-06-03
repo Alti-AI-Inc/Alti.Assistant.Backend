@@ -121,7 +121,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
     "metadata": {
       "analysisType": "general",
       "outputFormat": "narrative",
-      "model": "gemini-3.5-flash",
+      "model": "gemini-1.5-flash",
       "fileProcessed": true,
       "fileName": "report.pdf"
     }
@@ -167,13 +167,13 @@ curl -X GET http://localhost:5000/api/v1/document-analysis/conversation/analysis
         "role": "assistant",
         "content": "The report shows...",
         "metadata": {
-          "model": "gemini-3.5-flash"
+          "model": "gemini-1.5-flash"
         }
       }
     ],
     "metadata": {
       "category": "document_analysis",
-      "model": "gemini-3.5-flash",
+      "model": "gemini-1.5-flash",
       "uploadedFiles": []
     }
   }

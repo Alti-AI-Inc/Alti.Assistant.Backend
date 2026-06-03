@@ -211,6 +211,11 @@ const addPaymentMethodController = catchAsync(async (req, res, next) => {
     paymentMethodId
   );
 
+  // Automatically promote user to admin when they enter billing details
+  if (req.user && req.user._id) {
+    await UserModel.findByIdAndUpdate(req.user._id, { role: 'admin' });
+  }
+
   return sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -288,6 +293,11 @@ const createSubscriptionController = catchAsync(async (req, res, next) => {
   const { customerId, context } = await getStripeCustomerId(req);
 
   const subscription = await createSubscriptionService(customerId, priceId);
+
+  // Automatically promote user to admin when they start a subscription
+  if (req.user && req.user._id) {
+    await UserModel.findByIdAndUpdate(req.user._id, { role: 'admin' });
+  }
 
   const product = await Product.findOne({ stripePriceId: priceId });
   const query = { stripeSubscriptionId: subscription.id };

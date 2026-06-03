@@ -74,6 +74,10 @@ const getSubscriptionsByUserId = catchAsync(async (req, res, next) => {
 });
 
 const incrementPromptsUsed = async (userId) => {
+  if (mongoose.connection.readyState !== 1) {
+    console.warn('⚠️ [Payment Controller] Database is not connected. Bypassing prompt usage increment.');
+    return { success: true, message: 'Database disconnected. Bypassed prompt usage update.' };
+  }
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
@@ -114,6 +118,10 @@ const incrementPromptsUsed = async (userId) => {
 };
 
 const incrementImagesUsed = async (userId) => {
+  if (mongoose.connection.readyState !== 1) {
+    console.warn('⚠️ [Payment Controller] Database is not connected. Bypassing image usage increment.');
+    return { success: true, message: 'Database disconnected. Bypassed image usage update.' };
+  }
   const session = await mongoose.startSession();
   try {
     session.startTransaction();

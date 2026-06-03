@@ -32,6 +32,14 @@ const globalErrorHandler = (error, req, res, next) => {
     statusCode = simplifiedError.statusCode;
     message = simplifiedError.message;
     errorMessages = simplifiedError.errorMessages;
+  } else if (error && error.name === 'TokenExpiredError') {
+    statusCode = 401;
+    message = 'Session expired. Please log in again.';
+    errorMessages = [{ path: '', message: 'jwt expired' }];
+  } else if (error && error.name === 'JsonWebTokenError') {
+    statusCode = 401;
+    message = 'Invalid session token. Please log in again.';
+    errorMessages = [{ path: '', message: error.message }];
   } else if (error instanceof ApiError) {
     statusCode = error ? error.statusCode : statusCode;
     message = error ? error.message : message;

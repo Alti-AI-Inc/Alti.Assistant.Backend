@@ -89,7 +89,7 @@ export async function generateImageWithImagen3(prompt, filename, apiKey) {
   const ai = new GoogleGenAI({ apiKey });
 
   const chat = ai.chats.create({
-    model: 'gemini-3-pro-image-preview',
+    model: 'imagen-3.0-generate-002',
     config: {
       responseModalities: ['TEXT', 'IMAGE'],
       tools: [{ googleSearch: {} }],

@@ -79,3 +79,9 @@ logs/successes/*.log
 # Local development
 .local
 .cache
+
+# Exclude local data and storage backups
+data/
+storage/
+db_data/
+*.zip

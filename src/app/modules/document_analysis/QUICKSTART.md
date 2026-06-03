@@ -123,7 +123,7 @@ curl -X POST http://localhost:5000/api/v1/document-analysis/analyze \
     "metadata": {
       "analysisType": "sentiment",
       "outputFormat": "narrative",
-      "model": "gemini-3.5-flash",
+      "model": "gemini-1.5-flash",
       "fileProcessed": false,
       "fileName": null
     }

@@ -176,7 +176,31 @@ const KnowledgeFileSchema = new mongoose.Schema(
   }
 );
 
-// Compound indexes
+// Compound indexes for multi-tenant production efficiency
+KnowledgeFileSchema.index({
+  tenantId: 1,
+  ownerType: 1,
+  ownerId: 1,
+  isActive: 1,
+  createdAt: -1,
+});
+KnowledgeFileSchema.index({
+  tenantId: 1,
+  ownerType: 1,
+  ownerId: 1,
+  folderId: 1,
+  isActive: 1,
+});
+KnowledgeFileSchema.index({
+  tenantId: 1,
+  ownerType: 1,
+  ownerId: 1,
+  fileType: 1,
+  isActive: 1,
+});
+KnowledgeFileSchema.index({ tenantId: 1, ownerType: 1, ownerId: 1, processingStatus: 1 });
+
+// Legacy fallback indexes (retained for direct cross-tenant or admin queries)
 KnowledgeFileSchema.index({
   ownerType: 1,
   ownerId: 1,

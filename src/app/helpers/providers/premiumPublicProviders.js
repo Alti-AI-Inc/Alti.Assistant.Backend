@@ -264,6 +264,41 @@ ${tableRows}
   };
 };
 
+const formatLiveTreasuryInterestRates = (liveData, query) => {
+  const records = liveData.records || [];
+  let tableRows = '';
+  records.slice(0, 15).forEach(rec => {
+    const date = rec.record_date || 'N/A';
+    const type = rec.security_type_desc || 'N/A';
+    const rate = parseFloat(rec.avg_interest_rate_amt);
+    const rateStr = isNaN(rate) ? 'N/A' : `${rate.toFixed(3)}%`;
+
+    tableRows += `| **${type}** | **${rateStr}** | ${date} | U.S. Treasury Security |\n`;
+  });
+
+  const markdown = `### 🏦 Live Average U.S. Government Interest Rates on Federal Debt
+*Official current yield rates on outstanding Treasury securities retrieved live from fiscaldata.treasury.gov.*
+
+| Security Type / Description | Average Interest Rate | As of Record Date | Security Standing |
+|:---|:---|:---|:---|
+${tableRows}
+*Source: Bureau of the Fiscal Service, U.S. Department of the Treasury.*`;
+
+  return {
+    markdown,
+    metadata: {
+      domain: 'us_treasury_fiscal',
+      targetAccount: query,
+      recordsCount: records.length,
+      rates: records.slice(0, 15).map(rec => ({
+        securityType: rec.security_type_desc,
+        rate: rec.avg_interest_rate_amt,
+        date: rec.record_date
+      }))
+    }
+  };
+};
+
 const generateTreasuryData = (query, hash) => {
   const operatingCash = (hash % 350) * 1000000000 + 450000000000;
   const totalDebt = (hash % 850) * 10000000000 + 34200000000000;
@@ -968,12 +1003,20 @@ export const UsTreasuryFiscalProvider = {
     return sanitizeQueryString(match ? match[1] : query);
   },
 
-  fetch: async (topic) => {
+  fetch: async (topic, prompt) => {
     const hash = getDeterministicHash(topic);
+    const isInterestRates = /\b(interest|rate|rates|yield|yields|coupon|daily\s+yield)\b/i.test(prompt || topic);
     try {
-      const liveData = await runPythonScript('us_treasury_fiscal', 'treasury_fiscal_query.py', ['debt', '--limit', '5']);
-      if (liveData && liveData.status !== 'error' && liveData.records && liveData.records.length > 0) {
-        return formatLiveTreasury(liveData, topic);
+      if (isInterestRates) {
+        const liveData = await runPythonScript('us_treasury_fiscal', 'treasury_fiscal_query.py', ['interest-rates', '--limit', '20']);
+        if (liveData && liveData.status !== 'error' && liveData.records && liveData.records.length > 0) {
+          return formatLiveTreasuryInterestRates(liveData, topic);
+        }
+      } else {
+        const liveData = await runPythonScript('us_treasury_fiscal', 'treasury_fiscal_query.py', ['debt', '--limit', '5']);
+        if (liveData && liveData.status !== 'error' && liveData.records && liveData.records.length > 0) {
+          return formatLiveTreasury(liveData, topic);
+        }
       }
     } catch (err) {
       logger.warn(`Live query failed for us_treasury_fiscal: ${err.message}. Falling back to mock.`);

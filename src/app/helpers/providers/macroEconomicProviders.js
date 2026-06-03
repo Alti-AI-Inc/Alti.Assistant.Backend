@@ -27,6 +27,9 @@ const formatLiveFred = (liveData, query) => {
   const treasuryVal = series.GS10?.last_value || '4.35%';
   const treasuryDate = series.GS10?.last_date || 'N/A';
 
+  const mortgageVal = series.MORTGAGE30US?.last_value || '6.85%';
+  const mortgageDate = series.MORTGAGE30US?.last_date || 'N/A';
+
   const gdpNum = parseFloat(gdpVal);
   let gdpStr = gdpVal;
   if (!isNaN(gdpNum)) {
@@ -45,15 +48,19 @@ const formatLiveFred = (liveData, query) => {
   const treasuryNum = parseFloat(treasuryVal);
   const treasuryStr = !isNaN(treasuryNum) ? `${treasuryNum.toFixed(2)}%` : treasuryVal;
 
-  const markdown = `### 🏦 Macroeconomic indicators & Treasury Yield Rates
-*Tracking national monetary policy, sovereign debt yields, and gross output indices.*
+  const mortgageNum = parseFloat(mortgageVal);
+  const mortgageStr = !isNaN(mortgageNum) ? `${mortgageNum.toFixed(2)}%` : mortgageVal;
+
+  const markdown = `### 🏦 Macroeconomic Indicators, Mortgage & Treasury Yield Rates
+*Tracking national monetary policy, Freddie Mac mortgage averages, sovereign debt yields, and gross output indices.*
 
 | Economic Indicator | Current Value | Latest Reporting Date | Status / Rating |
 |--------------------|---------------|-----------------------|-----------------|
 | **Gross Domestic Product (GDP)** | **${gdpStr}** | ${gdpDate} | Real GDP (Chained Billions) |
 | **Consumer Price Index (CPI Index)** | **${cpiStr}** | ${cpiDate} | CPI Urban Base Value |
 | **Effective Federal Funds Rate** | **${fedFundsStr}** | ${fedFundsDate} | Policy Target Bound |
-| **10-Year U.S. Treasury Yield** | **${treasuryStr}** | ${treasuryDate} | Constant Maturity Yield |`;
+| **10-Year U.S. Treasury Yield** | **${treasuryStr}** | ${treasuryDate} | Constant Maturity Yield |
+| **30-Year Fixed Mortgage Average** | **${mortgageStr}** | ${mortgageDate} | Freddie Mac Primary Mortgage Market |`;
 
   return {
     markdown,
@@ -63,11 +70,13 @@ const formatLiveFred = (liveData, query) => {
       cpiFormatted: cpiStr,
       fedFundsRate: fedFundsVal,
       treasuryYield10Yr: treasuryVal,
+      mortgageRate30Yr: mortgageVal,
       reportingDates: {
         gdp: gdpDate,
         cpi: cpiDate,
         fedFunds: fedFundsDate,
-        treasury: treasuryDate
+        treasury: treasuryDate,
+        mortgage: mortgageDate
       }
     }
   };
@@ -253,20 +262,20 @@ export const FredProvider = {
   category: 'macro_economic',
   cacheTTL: 86400,
   citationLabel: 'St. Louis Federal Reserve Economic Data (FRED)',
-  mandatoryRule: '▸ Present Gross Domestic Product (GDP) totals and interest rates in **BOLD** (e.g. **$28.25T**, **5.25%**)',
+  mandatoryRule: '▸ Present Gross Domestic Product (GDP) totals, interest rates, and mortgage rates in **BOLD** (e.g. **$28.25T**, **5.25%**, **6.85%**)',
 
   detectIntent: (query) => {
-    return /\b(fred|gdp|inflation rate|interest rates|treasury yield|fed funds rate|macro indicators)\b/i.test(query);
+    return /\b(fred|gdp|inflation rate|interest rates|treasury yield|fed funds rate|macro indicators|mortgage|mortgage rate|conforming rate)\b/i.test(query);
   },
 
   extractTopic: (query) => {
-    const match = query.match(/(?:fred|gdp|inflation|rate|yield)\s+([^?]+)/i);
+    const match = query.match(/(?:fred|gdp|inflation|rate|yield|mortgage)\s+([^?]+)/i);
     return sanitizeQueryString(match ? match[1] : query);
   },
 
   fetch: async (topic) => {
     const hash = getDeterministicHash(topic || 'macro');
-    const isSearchQuery = topic && topic.length > 2 && !/^(gdp|inflation|interest|treasury|macro|cpi)/i.test(topic);
+    const isSearchQuery = topic && topic.length > 2 && !/^(gdp|inflation|interest|treasury|macro|cpi|mortgage)/i.test(topic);
 
     try {
       if (isSearchQuery) {
@@ -275,7 +284,7 @@ export const FredProvider = {
           return formatLiveFredSearch(liveData, topic);
         }
       } else {
-        const liveData = await runPythonScript('fred_economic_data', 'fred_query.py', ['bulk', '--series-ids', 'GDPC1,CPIAUCSL,FEDFUNDS,GS10']);
+        const liveData = await runPythonScript('fred_economic_data', 'fred_query.py', ['bulk', '--series-ids', 'GDPC1,CPIAUCSL,FEDFUNDS,GS10,MORTGAGE30US']);
         if (liveData && liveData.status !== 'error' && liveData.series) {
           return formatLiveFred(liveData, topic);
         }
@@ -287,16 +296,18 @@ export const FredProvider = {
     const gdpVal = (hash % 100) / 100 + 28.0;
     const cpiVal = (hash % 50) / 100 + 2.9;
     const fedFunds = (hash % 25) / 100 + 5.15;
+    const mortgageVal = (hash % 30) / 100 + 6.75;
 
-    const markdown = `### 🏦 FRED Economic indicators & Treasury Yield Rates
-*Tracking national monetary policy, sovereign debt yields, and gross output indices.*
+    const markdown = `### 🏦 FRED Economic Indicators, Mortgage & Treasury Yield Rates
+*Tracking national monetary policy, Freddie Mac mortgage averages, sovereign debt yields, and gross output indices.*
 
-| Economic Indicator | Current Value | YoY Growth Rate | Status / Rating |
-|--------------------|---------------|-----------------|-----------------|
+| Economic Indicator | Current Value | YoY Growth Rate / Status | Status / Rating |
+|--------------------|---------------|--------------------------|-----------------|
 | **Gross Domestic Product (GDP)** | **$${gdpVal.toFixed(2)}T** | **+2.90%** | Standard Economic Growth |
 | **Consumer Price Index (CPI)** | **${cpiVal.toFixed(2)}%** | **-0.30%** | Disinflation Trend |
 | **Federal Funds Rate** | **${fedFunds.toFixed(2)}%** | N/A | High-Interest Tightening |
-| **10-Year U.S. Treasury Yield** | **4.35%** | N/A | Flat Yield Curve Boundary |`;
+| **10-Year U.S. Treasury Yield** | **4.35%** | N/A | Flat Yield Curve Boundary |
+| **30-Year Fixed Mortgage Average** | **${mortgageVal.toFixed(2)}%** | N/A | Freddie Mac National Average |`;
 
     return {
       markdown,
@@ -307,7 +318,8 @@ export const FredProvider = {
         cpiInflation: parseFloat(cpiVal.toFixed(2)),
         cpiYoYChange: -0.30,
         fedFundsRate: parseFloat(fedFunds.toFixed(2)),
-        treasuryYield10Yr: 4.35
+        treasuryYield10Yr: 4.35,
+        mortgageRate30Yr: parseFloat(mortgageVal.toFixed(2))
       }
     };
   }

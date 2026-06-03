@@ -91,8 +91,8 @@ export const checkTenantPermission = (...requiredPermissions) => {
       const userRole = req.tenantRole;
       const userPermissions = req.tenantPermissions || [];
 
-      // Owners have all permissions
-      if (userRole === 'owner') {
+      // Owners (Admin in UI) have all permissions
+      if (userRole === 'admin') {
         return next();
       }
 
@@ -261,10 +261,10 @@ export const requireTenantAdmin = async (req, res, next) => {
 
     const userRole = req.tenantRole;
 
-    if (userRole !== 'owner' && userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'manager') {
       throw new ApiError(
         httpStatus.FORBIDDEN,
-        'This action requires owner or admin privileges'
+        'This action requires admin or manager privileges'
       );
     }
 
@@ -283,10 +283,10 @@ export const requireTenantOwner = async (req, res, next) => {
       throw new ApiError(httpStatus.FORBIDDEN, 'Tenant membership required');
     }
 
-    if (req.tenantRole !== 'owner') {
+    if (req.tenantRole !== 'admin') {
       throw new ApiError(
         httpStatus.FORBIDDEN,
-        'This action requires owner privileges'
+        'This action requires admin privileges'
       );
     }
 
