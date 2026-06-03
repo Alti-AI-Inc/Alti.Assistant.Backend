@@ -91,7 +91,7 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
     }
     return payload;
   } catch (error) {
-    logger.error('Error in openAiResponseService:', error);
+    logger.error('Error in deepseekResponseService:', error);
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'AI service failed.');
   }
 };

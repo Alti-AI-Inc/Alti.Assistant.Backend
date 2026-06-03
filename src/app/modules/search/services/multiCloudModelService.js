@@ -30,6 +30,7 @@ class BlockedBillingModel {
   }
 
   async *stream() {
+    yield;
     throw new Error(this.message);
   }
 
