@@ -11,3 +11,10 @@ db_data/
 data/
 storage/
 *.zip
+
+# Security - never commit secrets or scratch scripts
+set-all-secrets.ps1
+scratch/
+scripts/*-local*
+*.env.local
+*.env.production
