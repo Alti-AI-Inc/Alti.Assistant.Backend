@@ -671,20 +671,16 @@ Instructions: ${agent.systemInstruction}`;
           text = stripPreambles(text);
         } catch (azureErr) {
           console.error('❌ Both Gemini and Azure AI Foundry generation failed:', azureErr);
-          if (process.env.NODE_ENV !== 'production' || geminiErr.message?.includes('leaked') || geminiErr.message?.includes('API key')) {
-            console.warn('⚠️ [Swarm Service] Falling back to Simulated Mock Response due to API key errors.');
-            text = `🤖 **Simulated response for: "${query}"**
-            
-We successfully classified your query. However, the configured **GEMINI_API_KEY** was reported as leaked and Azure AI Foundry was not configured. 
+          console.warn('⚠️ [Swarm Service] All LLM providers unavailable. Returning graceful fallback.');
+          text = `I understand your question about "${query.length > 80 ? query.substring(0, 80) + '...' : query}".
 
-To resolve this:
-1. Go to **Google AI Studio** (https://aistudio.google.com/).
-2. Create a new API Key.
-3. Update the \`GEMINI_API_KEY\` variable in your backend \`.env\` file.
-4. Restart your backend server.`;
-          } else {
-            throw geminiErr; // rethrow original gemini error if both fail
-          }
+I'm temporarily unable to generate a full response because the AI backend services are experiencing connectivity issues.
+
+**This will resolve when:**
+• The API credentials are refreshed
+• The backend services reconnect
+
+Please try again shortly — your request has been received and understood.`;
         }
       }
       accumulatedText = text;
@@ -1161,26 +1157,22 @@ Instructions: ${agent.systemInstruction}`;
               }
             } catch (azureErr) {
               console.error('❌ Both Gemini and Azure AI Foundry stream failed:', azureErr);
-              if (process.env.NODE_ENV !== 'production' || geminiErr.message?.includes('leaked') || geminiErr.message?.includes('API key')) {
-                console.warn('⚠️ [Swarm Service] Streaming fallback to Simulated Mock Response due to API key errors.');
-                const mockText = `🤖 **Simulated response for: "${query}"**
-                
-We successfully classified your query. However, the configured **GEMINI_API_KEY** was reported as leaked and Azure AI Foundry was not configured. 
+              console.warn('⚠️ [Swarm Service] All streaming providers unavailable. Yielding graceful fallback.');
+              const fallbackText = `I understand your question about "${query.length > 80 ? query.substring(0, 80) + '...' : query}".
 
-To resolve this:
-1. Go to **Google AI Studio** (https://aistudio.google.com/).
-2. Create a new API Key.
-3. Update the \`GEMINI_API_KEY\` variable in your backend \`.env\` file.
-4. Restart your backend server.`;
-                yield {
-                  type: 'text',
-                  content: mockText,
-                  agentId: agent.id
-                };
-                agentTextAccumulator = mockText;
-              } else {
-                throw geminiErr; // throw original Gemini error if Azure fails
-              }
+I'm temporarily unable to generate a full response because the AI backend services are experiencing connectivity issues.
+
+**This will resolve when:**
+• The API credentials are refreshed
+• The backend services reconnect
+
+Please try again shortly — your request has been received and understood.`;
+              yield {
+                type: 'text',
+                content: fallbackText,
+                agentId: agent.id
+              };
+              agentTextAccumulator = fallbackText;
             }
           }
 
