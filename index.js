@@ -5,6 +5,7 @@ try {
   console.warn('Failed to set custom DNS servers:', e);
 }
 
+import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -12,6 +13,7 @@ import helmet from 'helmet';
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import toobusy from 'toobusy-js';
+import requestIdMiddleware from './src/app/middlewares/requestId.js';
 import tenantGuardrail from './src/shared/tenantGuardrail.js';
 
 // Enforce tenant isolation boundaries globally on all queries
@@ -42,6 +44,24 @@ import { initSentry, captureException, flushSentry } from './src/shared/sentry.j
 // Load environment variables
 dotenv.config();
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// STARTUP ENV VALIDATION — fail fast if critical config is missing
+// ═══════════════════════════════════════════════════════════════════════════════
+const REQUIRED_ENV = ['DATABASE_LOCAL'];
+const RECOMMENDED_ENV = ['GEMINI_API_KEY', 'JWT_ACCESS_TOKEN', 'JWT_REFRESH_REFRESH_TOKEN'];
+
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    logger.error(`❌ FATAL: Required environment variable ${key} is not set. Server cannot start reliably.`);
+    // Don't exit — let Cloud Run accept the revision, but log loudly
+  }
+}
+for (const key of RECOMMENDED_ENV) {
+  if (!process.env[key]) {
+    logger.warn(`⚠️ Recommended environment variable ${key} is not set. Some features may not work.`);
+  }
+}
+
 const app = express();
 
 // Initialize Sentry error tracking (no-op if SENTRY_DSN is not set)
@@ -67,19 +87,25 @@ app.use(
   })
 );
 
-// Middleware
-// Exclude Stripe webhook paths from JSON parsing (they need raw body for signature verification)
+// Request ID tracing — must be early for correlation across all middleware
+app.use(requestIdMiddleware);
+
+// Compression — gzip all responses for bandwidth savings
+app.use(compression());
+
+// Body parsing with explicit size limits
+// Exclude Stripe webhook paths (they need raw body for signature verification)
 app.use((req, res, next) => {
   if (req.originalUrl.includes('/webhook') && req.method === 'POST') {
     next();
   } else {
-    express.json()(req, res, next);
+    express.json({ limit: '2mb' })(req, res, next);
   }
 });
 
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
 app.disable('x-powered-by');
 
 // Enable trust proxy (For Rate-Limit)
@@ -129,10 +155,12 @@ app.use((req, res, next) => {
 const connectDB = (retries = 5, delay = 5000) => {
   mongoose
     .connect(config.database_local, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       family: 4,
       serverSelectionTimeoutMS: 10000,
+      maxPoolSize: 20,
+      minPoolSize: 2,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
     })
     .then(() => {
       logger.info('✅ Database connection successfully');
@@ -253,6 +281,8 @@ app.use((req, res) => {
 const port = process.env.PORT || config.port || 5100;
 const server = app.listen(port, () => {
   logger.info(`✅ App is running on 0.0.0.0:${port}`);
+  logger.info(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`   Gemini model: ${config.gemini_model}`);
 });
 
 // Graceful shutdown handlers

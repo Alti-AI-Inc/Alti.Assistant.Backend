@@ -290,7 +290,7 @@ const registerService = async (req) => {
     if (error instanceof ApiError) {
       throw error;
     }
-    console.error('Registration Error:', error);
+    logger.error('Registration Error:', error);
 
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
@@ -330,13 +330,11 @@ const confirmEmailService = async (confirmationCode) => {
   if (!token) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Invalid or expired token');
   }
-  console.log(token, 'token');
 
   const user = await UserModel.findById(token.userId);
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
-  console.log(user, 'user');
 
   const expired = new Date() > new Date(token.expiresAt);
 
@@ -615,7 +613,6 @@ const refreshToken = async (token) => {
     throw new ApiError(httpStatus.FORBIDDEN, 'Invalid Refresh Token');
   }
 
-  console.log(verifiedToken, 'verifiedToken');
   const { _id, role } = verifiedToken;
   const user = await UserModel.findById(_id);
   if (!user) {

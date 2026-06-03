@@ -324,7 +324,6 @@ const changePassword = async (req, res, next) => {
   try {
     // const userId = req.params?.userId;
     const userId = req.user?._id;
-    console.log(userId, 'userId from token in controller');
     const { newPassword, oldPassword } = req.body;
     if (!oldPassword || !newPassword) {
       await session.abortTransaction();
@@ -390,7 +389,6 @@ const changePassword = async (req, res, next) => {
 const getUser = catchAsync(async (req, res) => {
   // const userId = req.params?.userId;
   const userId = req.user?._id;
-  console.log(userId, 'userId from token in controller');
 
   const result = await authService.getUserService(userId);
 
@@ -441,7 +439,7 @@ const sendMailWithMailGunController = async (req, res) => {
     res.status(201).send(result);
     logger.info(result); // logs response data
   } catch (error) {
-    console.error(error); // logs any error
+    logger.error(error); // logs any error
   }
 };
 
