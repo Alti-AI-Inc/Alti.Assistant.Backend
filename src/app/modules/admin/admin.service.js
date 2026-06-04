@@ -129,7 +129,7 @@ const getAdminServices = async (email) => {
     return true;
   }
   const admin = await UserModel.findOne({ email: email });
-  if (admin && admin.role === 'admin') {
+  if (admin && (admin.role === 'admin' || admin.role === 'super_admin')) {
     return true;
   } else {
     return false;
