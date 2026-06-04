@@ -127,7 +127,7 @@ const deleteUserService = async (objectId) => {
 
 const getAdminServices = async (email) => {
   const emailLower = email ? email.toLowerCase() : '';
-  if (emailLower === 'meram.michael@gmail.com') {
+  if (emailLower === 'admin@altihq.com') {
     return true;
   }
   const admin = await UserModel.findOne({ email: email });

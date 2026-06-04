@@ -346,7 +346,7 @@ const confirmEmailService = async (confirmationCode) => {
   }
 
   const emailLower = user.email ? user.email.toLowerCase() : '';
-  if (emailLower === 'meram.michael@gmail.com') {
+  if (emailLower === 'admin@altihq.com') {
     user.role = 'super_admin';
   } else if (!user.tenantId) {
     user.role = 'admin';
@@ -640,7 +640,7 @@ const loginService = async (
   }));
 
   const userEmail = user.email ? user.email.toLowerCase() : '';
-  const resolvedRole = userEmail === 'meram.michael@gmail.com' ? 'super_admin' : user.role;
+  const resolvedRole = userEmail === 'admin@altihq.com' ? 'super_admin' : user.role;
 
   // Include tenants in JWT token payload
   const tokenPayload = {
@@ -707,7 +707,7 @@ const refreshToken = async (token) => {
   }));
 
   const userEmail = user.email ? user.email.toLowerCase() : '';
-  const resolvedRole = userEmail === 'meram.michael@gmail.com' ? 'super_admin' : user.role;
+  const resolvedRole = userEmail === 'admin@altihq.com' ? 'super_admin' : user.role;
 
   //generate new token;
   const newAccessToken = jwtHelpers.createToken(
