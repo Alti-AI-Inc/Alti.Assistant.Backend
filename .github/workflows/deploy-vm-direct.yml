@@ -2,6 +2,11 @@ name: Deploy Code to VM (Direct)
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy (e.g. main, dev)'
+        required: true
+        default: 'main'
   push:
     branches:
       - dev
@@ -27,15 +32,19 @@ jobs:
           ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'DEPLOY'
             set -e
             
+            DEPLOY_BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
+            echo "=== Target deploy branch: $DEPLOY_BRANCH ==="
+            
             echo "=== Pulling latest code ==="
             cd ~/Alti.Assistant.Backend || cd ~/app || cd ~
             
             # Try git pull if it's a git repo
             if [ -d ".git" ]; then
-              git fetch origin dev
-              git checkout dev
-              git pull origin dev
-              echo "✅ Code updated from git"
+              git fetch origin
+              git checkout -f $DEPLOY_BRANCH
+              git reset --hard origin/$DEPLOY_BRANCH
+              git pull origin $DEPLOY_BRANCH
+              echo "✅ Code updated from git (branch: $DEPLOY_BRANCH)"
             else
               echo "⚠️ Not a git repo, skipping code update"
             fi
