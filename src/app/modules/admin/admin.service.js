@@ -41,11 +41,13 @@ const getAllUsersService = async (filters, paginationOptions) => {
     .skip(skip)
     .limit(limit);
 
-  const total = await UserModel.estimatedDocumentCount();
+  const total = await UserModel.countDocuments({ $and: andConditions });
   const paidUser = await UserModel.countDocuments({
-    'subscription.status': 'paid',
+    isSubscribed: true,
   });
-  const freeUser = await UserModel.countDocuments({ plan: 'free' });
+  const freeUser = await UserModel.countDocuments({
+    isSubscribed: { $ne: true },
+  });
   const unverifyUsers = await UserModel.countDocuments({
     role: 'unauthorized',
   });
@@ -227,11 +229,11 @@ const getAllPaymentService = async (filters, paginationOptions) => {
     .skip(skip)
     .limit(limit);
 
-  const total = await SubscriptionModel.estimatedDocumentCount();
+  const total = await SubscriptionModel.countDocuments({ $and: andConditions });
   const paidUser = await SubscriptionModel.countDocuments({
     paymentStatus: 'paid',
   });
-  const freeUser = await SubscriptionModel.countDocuments({ plan: 'free' });
+  const freeUser = await SubscriptionModel.countDocuments({ plan_name: 'free' });
   const professionalPlan = await SubscriptionModel.countDocuments({
     plan_name: 'professional',
   });
