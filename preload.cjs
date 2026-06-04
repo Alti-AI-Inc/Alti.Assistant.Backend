@@ -13,28 +13,14 @@ if (stripped > 0) {
   console.log(`[preload] Stripped BOM from ${stripped} environment variable(s)`);
 }
 
-// ── Automated DNS SRV Fallback for MongoDB Atlas ────────────────────────────
+// ── Configure DNS Servers Synchronously for MongoDB Atlas ───────────────────
 // In some networks or ISP environments, resolving MongoDB SRV records fails.
-// We try resolving the Atlas host, and if it fails, fallback to Google DNS.
+// We configure Google DNS servers synchronously before any mongoose connections are initiated.
 const dns = require('dns');
-
-function checkDnsResolution() {
-  const host = 'cluster0.piwgo1l.mongodb.net';
-  dns.resolveSrv('_mongodb._tcp.' + host, (err) => {
-    if (err) {
-      console.warn(`[preload] DNS SRV resolution failed for ${host}: ${err.message}. Applying Google DNS fallback...`);
-      try {
-        dns.setServers(['8.8.8.8', '8.8.4.4']);
-        console.log('[preload] Successfully configured Google DNS fallback servers.');
-      } catch (dnsErr) {
-        console.error('[preload] Failed to set fallback DNS servers:', dnsErr.message);
-      }
-    } else {
-      console.log(`[preload] DNS SRV resolution for ${host} is healthy.`);
-    }
-  });
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+  console.log('[preload] Configured Google DNS servers synchronously for MongoDB resolution.');
+} catch (dnsErr) {
+  console.error('[preload] Failed to set fallback DNS servers:', dnsErr.message);
 }
-
-// Run the check asynchronously at startup
-checkDnsResolution();
 

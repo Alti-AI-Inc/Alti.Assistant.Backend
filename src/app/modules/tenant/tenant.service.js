@@ -1,5 +1,6 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import Tenant from './tenant.model.js';
@@ -208,7 +209,7 @@ const deleteTenant = async (tenantId) => {
 const getUserTenants = async (userId) => {
   try {
     // Find all active memberships for the user
-    const tenantMemberships = await TenantMember.find({
+    let tenantMemberships = await TenantMember.find({
       userId,
       status: 'active',
     })
@@ -216,10 +217,45 @@ const getUserTenants = async (userId) => {
       .sort({ joinedAt: -1 });
 
     if (!tenantMemberships || tenantMemberships.length === 0) {
-      return {
-        tenants: [],
-        total: 0,
-      };
+      const user = await UserModel.findById(userId);
+      if (!user) {
+        return {
+          tenants: [],
+          total: 0,
+        };
+      }
+
+      const emailPrefix = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') || 'workspace';
+      const randomSuffix = crypto.randomBytes(3).toString('hex');
+      const uniqueSlug = `${emailPrefix}-${randomSuffix}`;
+      const uniqueSubdomain = `${emailPrefix}-${randomSuffix}`;
+      const workspaceName = `${user.username || user.email.split('@')[0]}'s Workspace`;
+
+      logger.info(`Auto-creating tenant for user ${userId} in getUserTenants: slug=${uniqueSlug}, subdomain=${uniqueSubdomain}`);
+
+      try {
+        await createTenant({
+          name: workspaceName,
+          slug: uniqueSlug,
+          subdomain: uniqueSubdomain,
+          ownerId: userId,
+          plan: 'free',
+        });
+
+        // Refetch memberships
+        tenantMemberships = await TenantMember.find({
+          userId,
+          status: 'active',
+        })
+          .populate('tenantId', 'name slug subdomain status plan')
+          .sort({ joinedAt: -1 });
+      } catch (createError) {
+        logger.error('Failed to auto-create tenant in getUserTenants:', createError);
+        return {
+          tenants: [],
+          total: 0,
+        };
+      }
     }
 
     // Format the response

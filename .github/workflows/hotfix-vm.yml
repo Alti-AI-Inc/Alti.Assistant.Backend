@@ -62,13 +62,11 @@ jobs:
             docker stop $CONTAINER 2>/dev/null || true
             sleep 2
 
-            # ── MERGE src/ into container (works on stopped containers with docker cp) ──
-            echo "=== Merging src/ into container ==="
+            # ── Copy files using docker cp (works on stopped containers) ──
+            echo "=== Copying files into container ==="
             cd /tmp/app-staging
-            tar cf - src/ | docker cp - $CONTAINER:$APP_ROOT/
-            echo "  ✅ src/ merged"
 
-            echo "=== Copying root files into container ==="
+            # Copy root files
             for item in config index.js server.js package.json preload.cjs imagegen.json; do
               if [ -e "/tmp/app-staging/$item" ]; then
                 docker cp "/tmp/app-staging/$item" "$CONTAINER:$APP_ROOT/$item"
@@ -76,15 +74,31 @@ jobs:
               fi
             done
 
-            # ── Start container so we can run npm install inside it ──
-            echo "=== Starting container for dependency install ==="
-            docker start $CONTAINER
-            sleep 5
+            # Merge src/ directory
+            docker cp src/. "$CONTAINER:$APP_ROOT/src/"
+            echo "  ✅ src/ merged"
 
-            # ── Install any new dependencies inside the container ──
-            echo "=== Installing dependencies ==="
-            docker exec $CONTAINER npm install --production --legacy-peer-deps 2>&1 | tail -5
+            # ── Sync ALL dependencies: npm install on HOST, copy to container ──
+            # Copies existing node_modules out of stopped container, runs npm install
+            # with the NEW package.json, then copies everything back. Bulletproof.
+            echo "=== Syncing dependencies ==="
+            rm -rf /tmp/npm-sync && mkdir -p /tmp/npm-sync
+            # Get existing node_modules from container (if any) to speed up install
+            docker cp "$CONTAINER:$APP_ROOT/node_modules" /tmp/npm-sync/node_modules 2>/dev/null || mkdir -p /tmp/npm-sync/node_modules
+            # Use new package.json
+            cp /tmp/app-staging/package.json /tmp/npm-sync/package.json
+            # Install
+            cd /tmp/npm-sync && npm install --production --legacy-peer-deps 2>&1 | tail -5
+            echo "  Installed $(ls node_modules | wc -l) packages"
+            # Copy back to container
+            docker cp /tmp/npm-sync/node_modules/. "$CONTAINER:$APP_ROOT/node_modules/"
             echo "  ✅ Dependencies synced"
+            rm -rf /tmp/npm-sync
+
+            # ── Start the container (now with all deps) ──
+            echo "=== Starting container ==="
+            docker start $CONTAINER
+            sleep 10
 
             echo "=== Verifying key changes ==="
             docker exec $CONTAINER grep -c "gracefulShutdown" index.js && echo "  ✅ Graceful shutdown" || echo "  ❌ Graceful shutdown"
@@ -93,8 +107,6 @@ jobs:
             docker exec $CONTAINER grep -c "mongoose.connection.readyState" index.js && echo "  ✅ Deep health check" || echo "  ❌ Deep health check"
             docker exec $CONTAINER grep -c "MODULE_REGISTRY" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Orchestrator v2" || echo "  ❌ Orchestrator v2"
             docker exec $CONTAINER grep -c "gemini-2.5-flash" src/app/modules/orchestrator/orchestrator.service.js && echo "  ✅ Model name fixed" || echo "  ❌ Model name"
-
-            # Verify that existing container files were NOT wiped
             docker exec $CONTAINER test -f src/shared/tenantGuardrail.js && echo "  ✅ tenantGuardrail.js intact" || echo "  ❌ tenantGuardrail.js MISSING"
             docker exec $CONTAINER test -f src/shared/sentry.js && echo "  ✅ sentry.js present" || echo "  ❌ sentry.js missing"
 

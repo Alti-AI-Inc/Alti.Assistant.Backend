@@ -76,9 +76,17 @@ const allowedOrigins = [
   'https://altihq.com',
   'https://www.altihq.com',
 ];
-if (process.env.NODE_ENV !== 'production') {
-  allowedOrigins.push('http://localhost:3000', 'http://localhost:8080', 'http://localhost:3001');
-}
+
+// Always allow local development origins in both development and local production runs
+allowedOrigins.push(
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080'
+);
+
 
 app.use(
   cors({

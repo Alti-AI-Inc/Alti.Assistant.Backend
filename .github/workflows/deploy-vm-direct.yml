@@ -2,6 +2,11 @@ name: Deploy Code to VM (Direct)
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy (e.g. main, dev)'
+        required: true
+        default: 'main'
   push:
     branches:
       - dev
@@ -15,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
@@ -22,41 +32,63 @@ jobs:
           chmod 600 ~/.ssh/alti-vm-key
           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image on runner
+        run: |
+          docker build -t us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest .
+
+      - name: Export and compress Docker image
+        run: |
+          echo "Exporting and compressing image..."
+          docker save us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest | gzip > /tmp/backend-image.tar.gz
+          echo "Compressed image size: $(du -h /tmp/backend-image.tar.gz | cut -f1)"
+
+      - name: Upload image to VM
+        run: |
+          echo "Uploading image to VM..."
+          scp -i ~/.ssh/alti-vm-key /tmp/backend-image.tar.gz \
+            alti_deployer@35.239.192.33:/tmp/backend-image.tar.gz
+
       - name: Deploy to VM
         run: |
           ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'DEPLOY'
             set -e
             
-            echo "=== Pulling latest code ==="
-            cd ~/Alti.Assistant.Backend || cd ~/app || cd ~
+            echo "=== Loading Docker image on VM ==="
+            docker load -i /tmp/backend-image.tar.gz
             
-            # Try git pull if it's a git repo
-            if [ -d ".git" ]; then
-              git fetch origin dev
-              git checkout dev
-              git pull origin dev
-              echo "✅ Code updated from git"
-            else
-              echo "⚠️ Not a git repo, skipping code update"
+            echo "=== Restarting production compose stack ==="
+            cd ~
+            COMPOSE_FILE="docker-compose.yml"
+            if [ -f "docker-compose.presenton.yml" ]; then
+              COMPOSE_FILE="docker-compose.presenton.yml"
             fi
+            echo "Using production compose file: $COMPOSE_FILE"
             
-            echo "=== Rebuilding Docker image locally ==="
-            docker compose build --no-cache
+            docker compose -f $COMPOSE_FILE down
+            docker compose -f $COMPOSE_FILE up -d
+            sleep 5
             
-            echo "=== Restarting containers ==="
-            docker compose down
-            docker compose up -d
+            echo "=== Updating admin password ==="
+            docker exec alti-backend node scripts/change-password.js admin@altihq.com "ShelbyTownship#1" || echo "⚠️ Warning: Password update command failed."
             
             echo "=== Container status ==="
-            docker compose ps
+            docker compose -f $COMPOSE_FILE ps
             
             echo "=== Recent logs ==="
             sleep 5
-            docker compose logs --tail=20
+            docker compose -f $COMPOSE_FILE logs --tail=20
+            
+            echo "=== Cleaning up uploaded files on VM ==="
+            rm -f /tmp/backend-image.tar.gz
             
             echo "=== Deploy complete! ==="
           DEPLOY
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/alti-vm-key
+        run: |
+          rm -f ~/.ssh/alti-vm-key
+          rm -f /tmp/backend-image.tar.gz
