@@ -50,18 +50,25 @@ jobs:
             fi
             
             echo "=== Rebuilding Docker image locally ==="
-            docker compose build --no-cache
+            docker build --no-cache -t us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest .
             
-            echo "=== Restarting containers ==="
-            docker compose down
-            docker compose up -d
+            echo "=== Restarting production compose stack ==="
+            cd ~
+            COMPOSE_FILE="docker-compose.yml"
+            if [ -f "docker-compose.presenton.yml" ]; then
+              COMPOSE_FILE="docker-compose.presenton.yml"
+            fi
+            echo "Using production compose file: $COMPOSE_FILE"
+            
+            docker compose -f $COMPOSE_FILE down
+            docker compose -f $COMPOSE_FILE up -d
             
             echo "=== Container status ==="
-            docker compose ps
+            docker compose -f $COMPOSE_FILE ps
             
             echo "=== Recent logs ==="
             sleep 5
-            docker compose logs --tail=20
+            docker compose -f $COMPOSE_FILE logs --tail=20
             
             echo "=== Deploy complete! ==="
           DEPLOY
