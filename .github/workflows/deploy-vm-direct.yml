@@ -32,44 +32,32 @@ jobs:
           chmod 600 ~/.ssh/alti-vm-key
           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
 
-      - name: Package application code
-        run: |
-          tar czf /tmp/backend-code.tar.gz \
-            --exclude='node_modules' \
-            --exclude='.git' \
-            --exclude='.env' \
-            --exclude='env' \
-            --exclude='env.yaml' \
-            --exclude='test' \
-            --exclude='scratch' \
-            --exclude='data' \
-            --exclude='db_data' \
-            --exclude='*.tar.gz' \
-            --exclude='*.zip' \
-            -C . .
-          echo "Archive size: $(du -h /tmp/backend-code.tar.gz | cut -f1)"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Upload code to VM
+      - name: Build Docker image on runner
         run: |
-          scp -i ~/.ssh/alti-vm-key /tmp/backend-code.tar.gz \
-            alti_deployer@35.239.192.33:/tmp/backend-code.tar.gz
+          docker build -t us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest .
+
+      - name: Export and compress Docker image
+        run: |
+          echo "Exporting and compressing image..."
+          docker save us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest | gzip > /tmp/backend-image.tar.gz
+          echo "Compressed image size: $(du -h /tmp/backend-image.tar.gz | cut -f1)"
+
+      - name: Upload image to VM
+        run: |
+          echo "Uploading image to VM..."
+          scp -i ~/.ssh/alti-vm-key /tmp/backend-image.tar.gz \
+            alti_deployer@35.239.192.33:/tmp/backend-image.tar.gz
 
       - name: Deploy to VM
         run: |
           ssh -i ~/.ssh/alti-vm-key alti_deployer@35.239.192.33 bash <<'DEPLOY'
             set -e
             
-            DEPLOY_BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
-            echo "=== Target deploy branch: $DEPLOY_BRANCH ==="
-            
-            echo "=== Extracting code on host ==="
-            rm -rf /tmp/backend-build-staging
-            mkdir -p /tmp/backend-build-staging
-            tar xzf /tmp/backend-code.tar.gz -C /tmp/backend-build-staging
-            
-            echo "=== Rebuilding Docker image locally ==="
-            cd /tmp/backend-build-staging
-            docker build --no-cache -t us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest .
+            echo "=== Loading Docker image on VM ==="
+            docker load -i /tmp/backend-image.tar.gz
             
             echo "=== Restarting production compose stack ==="
             cd ~
@@ -93,8 +81,8 @@ jobs:
             sleep 5
             docker compose -f $COMPOSE_FILE logs --tail=20
             
-            echo "=== Cleaning up build files ==="
-            rm -rf /tmp/backend-build-staging /tmp/backend-code.tar.gz
+            echo "=== Cleaning up uploaded files on VM ==="
+            rm -f /tmp/backend-image.tar.gz
             
             echo "=== Deploy complete! ==="
           DEPLOY
@@ -103,4 +91,4 @@ jobs:
         if: always()
         run: |
           rm -f ~/.ssh/alti-vm-key
-          rm -f /tmp/backend-code.tar.gz
+          rm -f /tmp/backend-image.tar.gz
