@@ -65,6 +65,7 @@ import { temporalRoutes } from '../modules/temporal/temporal.route.js';
 import { mcpToolboxRoutes } from '../modules/mcp_toolbox/mcp_toolbox.route.js';
 import { dockerRoutes } from './docker.route.js';
 import { chatbotRoutes } from '../modules/chatbots/chatbot.routes.js';
+import { usageRoutes } from '../modules/usage/usage.route.js';
 
 const router = express.Router();
 
@@ -240,6 +241,10 @@ const moduleRoutes = [
   {
     path: '/stripe',
     route: stripeRoutes,
+  },
+  {
+    path: '/usage',
+    route: usageRoutes,
   },
   {
     path: '/enhanced-image',
