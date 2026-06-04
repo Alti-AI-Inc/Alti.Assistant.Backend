@@ -20,12 +20,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/alti-vm-key
           chmod 600 ~/.ssh/alti-vm-key
           ssh-keyscan -H 35.239.192.33 >> ~/.ssh/known_hosts
+
+      - name: Package application code
+        run: |
+          tar czf /tmp/backend-code.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='.env' \
+            --exclude='env' \
+            --exclude='env.yaml' \
+            --exclude='test' \
+            --exclude='scratch' \
+            --exclude='data' \
+            --exclude='db_data' \
+            --exclude='*.tar.gz' \
+            --exclude='*.zip' \
+            -C . .
+          echo "Archive size: $(du -h /tmp/backend-code.tar.gz | cut -f1)"
+
+      - name: Upload code to VM
+        run: |
+          scp -i ~/.ssh/alti-vm-key /tmp/backend-code.tar.gz \
+            alti_deployer@35.239.192.33:/tmp/backend-code.tar.gz
 
       - name: Deploy to VM
         run: |
@@ -35,21 +62,13 @@ jobs:
             DEPLOY_BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
             echo "=== Target deploy branch: $DEPLOY_BRANCH ==="
             
-            echo "=== Pulling latest code ==="
-            cd ~/Alti.Assistant.Backend || cd ~/app || cd ~
-            
-            # Try git pull if it's a git repo
-            if [ -d ".git" ]; then
-              git fetch origin
-              git checkout -f $DEPLOY_BRANCH
-              git reset --hard origin/$DEPLOY_BRANCH
-              git pull origin $DEPLOY_BRANCH
-              echo "✅ Code updated from git (branch: $DEPLOY_BRANCH)"
-            else
-              echo "⚠️ Not a git repo, skipping code update"
-            fi
+            echo "=== Extracting code on host ==="
+            rm -rf /tmp/backend-build-staging
+            mkdir -p /tmp/backend-build-staging
+            tar xzf /tmp/backend-code.tar.gz -C /tmp/backend-build-staging
             
             echo "=== Rebuilding Docker image locally ==="
+            cd /tmp/backend-build-staging
             docker build --no-cache -t us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo/alti-assistant-backend:latest .
             
             echo "=== Restarting production compose stack ==="
@@ -74,9 +93,14 @@ jobs:
             sleep 5
             docker compose -f $COMPOSE_FILE logs --tail=20
             
+            echo "=== Cleaning up build files ==="
+            rm -rf /tmp/backend-build-staging /tmp/backend-code.tar.gz
+            
             echo "=== Deploy complete! ==="
           DEPLOY
 
       - name: Clean up SSH key
         if: always()
-        run: rm -f ~/.ssh/alti-vm-key
+        run: |
+          rm -f ~/.ssh/alti-vm-key
+          rm -f /tmp/backend-code.tar.gz
