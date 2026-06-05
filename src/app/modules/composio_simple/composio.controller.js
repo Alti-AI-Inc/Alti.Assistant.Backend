@@ -156,10 +156,23 @@ export const initiateAuthController = catchAsync(async (req, res) => {
       data: result.data,
     });
   } else {
+    const isApiKeyError = result.error && (
+      result.error.includes('Invalid API key') ||
+      result.error.includes('AuthenticationError') ||
+      result.error.includes('API key') ||
+      result.error.includes('auth') ||
+      result.error.includes('key')
+    );
+
+    const statusCode = isApiKeyError ? httpStatus.BAD_REQUEST : httpStatus.INTERNAL_SERVER_ERROR;
+    const message = isApiKeyError 
+      ? "Failed to connect to Composio. Please verify that your COMPOSIO_API_KEY or COMPOSIO_ORG_API_KEY is valid and configured in the backend's .env file." 
+      : 'Failed to initiate authentication';
+
     return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      statusCode,
       success: false,
-      message: 'Failed to initiate authentication',
+      message,
       data: { error: result.error },
     });
   }
