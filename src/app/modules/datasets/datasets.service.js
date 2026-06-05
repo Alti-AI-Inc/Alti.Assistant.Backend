@@ -166,6 +166,16 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
       throw new Error('No Parquet files found for this dataset on Hugging Face server.');
     }
 
+    const parquetFiles = fileListResponse.data.parquet_files;
+    let totalBytes = 0;
+    for (const fileItem of parquetFiles) {
+      totalBytes += fileItem.size || 0;
+    }
+    const maxSizeBytes = parseFloat(process.env.HF_CRAWLER_MAX_SIZE_GB || '2') * 1024 * 1024 * 1024;
+    if (totalBytes > maxSizeBytes) {
+      throw new Error(`Dataset actual size (${(totalBytes / (1024 * 1024 * 1024)).toFixed(2)} GB) exceeds max size limit (${(maxSizeBytes / (1024 * 1024 * 1024)).toFixed(2)} GB)`);
+    }
+
     let useLocalFallback = false;
     let bucket = null;
     let bucketName = null;
@@ -189,9 +199,8 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
       useLocalFallback = true;
     }
 
-    const parquetFiles = fileListResponse.data.parquet_files;
     const uploadedGcsPaths = [];
-    let totalBytes = 0;
+    totalBytes = 0;
 
     for (const fileItem of parquetFiles) {
       const downloadUrl = fileItem.url;
@@ -399,11 +408,14 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
         fileName = parts[parts.length - 1];
       }
 
-      // Convert Buffer to ArrayBuffer safely
-      const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      // Use the Node.js Buffer directly without duplicating the entire ArrayBuffer in memory.
+      // hyparquet calls file.slice(start, end) incrementally, so we only slice/copy the required byte chunks.
       const file = {
-        byteLength: arrayBuffer.byteLength,
-        slice: (start, end) => arrayBuffer.slice(start, end)
+        byteLength: buffer.length,
+        slice: (start, end) => {
+          const view = buffer.subarray(start, end);
+          return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+        }
       };
 
       console.log(`Parsing Parquet objects for split "${splitName}" / config "${configName}"...`);
@@ -423,9 +435,25 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
         for (const [key, value] of Object.entries(row)) {
           if (value === null || value === undefined || value === '') continue;
           let valStr;
-          if (typeof value === 'object') {
+          if (value instanceof Uint8Array || value instanceof ArrayBuffer || Buffer.isBuffer(value)) {
+            valStr = `[Binary Data: ${value.byteLength || value.length || 0} bytes]`;
+          } else if (Array.isArray(value) && value.length > 100) {
+            valStr = `[Large Array: ${value.length} items]`;
+          } else if (typeof value === 'object') {
             try {
-              valStr = JSON.stringify(value);
+              // Quick check if object has binary fields or properties that are Uint8Array/Buffer
+              let hasBinary = false;
+              for (const v of Object.values(value)) {
+                if (v instanceof Uint8Array || v instanceof ArrayBuffer || Buffer.isBuffer(v)) {
+                  hasBinary = true;
+                  break;
+                }
+              }
+              if (hasBinary) {
+                valStr = `[Object containing binary fields]`;
+              } else {
+                valStr = JSON.stringify(value);
+              }
             } catch (e) {
               valStr = String(value);
             }

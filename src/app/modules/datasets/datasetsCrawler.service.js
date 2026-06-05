@@ -117,6 +117,56 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
           continue;
         }
 
+        // 2.5 Gatekeeper Filter: Media/Non-Text (Image, Audio, Video, 3D) dataset detection
+        const tags = item.tags || [];
+        const blacklistedTasks = [
+          'image-classification', 'image-segmentation', 'zero-shot-image-classification', 
+          'image-to-image', 'unconditional-image-generation', 'video-classification', 
+          'text-to-video', 'zero-shot-video-classification', 'depth-estimation', 
+          'image-to-text', 'image-to-video', 'text-to-image', 'mask-generation',
+          'audio-classification', 'text-to-speech', 'automatic-speech-recognition', 
+          'audio-to-audio', 'voice-activity-detection', 'text-to-3d', 'image-to-3d', '3d'
+        ];
+        
+        let isMedia = false;
+        let matchedMediaTag = '';
+        for (const tag of tags) {
+          if (tag.startsWith('task_categories:')) {
+            const category = tag.replace('task_categories:', '').trim().toLowerCase();
+            if (blacklistedTasks.includes(category)) {
+              isMedia = true;
+              matchedMediaTag = tag;
+              break;
+            }
+          }
+        }
+        
+        // Check dataset ID or tags for keywords like 'image', 'audio', 'video', 'objaverse'
+        const lowerId = datasetId.toLowerCase();
+        if (!isMedia) {
+          const mediaKeywords = ['image', 'audio', 'video', 'spectrogram', 'speech', 'objaverse', 'point-cloud', 'pointcloud', '3d-mesh', 'voxels'];
+          for (const keyword of mediaKeywords) {
+            if (lowerId.includes(keyword)) {
+              isMedia = true;
+              matchedMediaTag = `keyword:${keyword}`;
+              break;
+            }
+          }
+        }
+
+        if (isMedia) {
+          stats.skippedLicense++; // Count as skipped/license skip metric
+          await DatasetQueue.create({
+            datasetId,
+            downloads,
+            likes,
+            license: rawLicense,
+            status: 'skipped',
+            skipReason: `Media/Non-Text Dataset: matched ${matchedMediaTag}`
+          });
+          continue;
+        }
+
         // 3. Gatekeeper Filter: Strict Legal License Purity (Pure MIT or pure Apache 2.0 only)
         const isMIT = rawLicense === 'mit';
         const isApache = rawLicense === 'apache-2.0' || rawLicense === 'apache-2.0-only';
