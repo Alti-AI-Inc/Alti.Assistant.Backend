@@ -3,6 +3,9 @@ name: Update Frontend Proxy to Cloud Run
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   VM_USER: alti_deployer
   VM_HOST: 35.239.192.33

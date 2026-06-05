@@ -3,6 +3,9 @@ name: Update VM Environment Variable
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   update-env:
     name: Update GEMINI_API_KEY on Production VM

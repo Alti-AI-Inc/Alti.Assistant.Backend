@@ -20,7 +20,8 @@ function sendTokenResponse(user, res) {
 
   try {
     const userEmail = user.email ? user.email.toLowerCase() : '';
-    const resolvedRole = userEmail === 'admin@altihq.com' ? 'super_admin' : user.role;
+    const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+    const resolvedRole = (superAdminEmail && userEmail === superAdminEmail) ? 'super_admin' : user.role;
 
     const payload = {
       role: resolvedRole,

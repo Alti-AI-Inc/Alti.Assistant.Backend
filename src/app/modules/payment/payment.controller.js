@@ -40,7 +40,7 @@ const handleWebhook = catchAsync(async (req, res, next) => {
 const getAllSubscriptions = catchAsync(async (req, res, next) => {
   const subscriptions = await SubscriptionModel.find({}).sort({
     createdAt: -1,
-  });
+  }).limit(500);
   sendResponse(res, {
     statusCode: 200,
     success: true,

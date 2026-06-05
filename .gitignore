@@ -13,6 +13,13 @@ storage/
 *.zip
 
 # Security - never commit secrets or scratch scripts
+.env
+.env.*
+.env.local
+.env.production
+gcp-sa-key.json
+*.pem
+*.key
 set-all-secrets.ps1
 scratch/
 scripts/*-local*

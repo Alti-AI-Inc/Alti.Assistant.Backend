@@ -5,6 +5,8 @@ on:
     branches:
       - dev
 
+permissions:
+  contents: read
 env:
   REGISTRY: us-central1-docker.pkg.dev/alti-assistant-prod/alti-assistant-core-backend-repo
   IMAGE_NAME: alti-assistant-backend

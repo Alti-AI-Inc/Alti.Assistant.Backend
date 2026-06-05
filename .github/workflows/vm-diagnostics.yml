@@ -3,6 +3,9 @@ name: VM Diagnostics
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   diagnose:
     name: Check VM Environment

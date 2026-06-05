@@ -36,7 +36,6 @@ COPY --from=builder /app/alti-core-service/src ./src
 COPY --from=builder /app/alti-core-service/config ./config
 # test/ intentionally excluded from production image
 COPY --from=builder /app/alti-core-service/index.js ./
-COPY --from=builder /app/alti-core-service/server.js ./
 COPY --from=builder /app/alti-core-service/package.json ./
 # alti_gcp.json excluded from image — mount at runtime via secret volume
 COPY --from=builder /app/alti-core-service/imagegen.json ./
