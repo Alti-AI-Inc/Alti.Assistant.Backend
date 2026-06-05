@@ -476,7 +476,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         }
         
         const assistantMetadata = {
-          reference: finalResponse.reference || finalResponse.citations || [],
+          reference: [],
           webSearchQueries: finalResponse.webSearchQueries || [],
           searchEntryPoint: finalResponse.searchEntryPoint || null,
           relatedQuestions: finalResponse.relatedQuestions || [],
@@ -537,7 +537,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
       reply: finalResponse.reply,
       responseMessage: { 
         answer: finalResponse.reply,
-        reference: finalResponse.reference || finalResponse.citations || []
+        reference: []
       },
       classification: {
         source: classificationSource,

@@ -120,12 +120,12 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
           })}\n\n`
         );
       } else if (chunk.type === 'metadata') {
-        finalReferences = chunk.reference;
+        finalReferences = [];
         res.write(
           `data: ${JSON.stringify({
             type: 'metadata',
-            reference: chunk.reference,
-            citations: chunk.citations,
+            reference: [],
+            citations: [],
             timestamp: chunk.timestamp,
           })}\n\n`
         );
@@ -134,7 +134,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
     // Save the complete response and citations to conversation database
     const messageMetadata = {
-      reference: finalReferences || [],
+      reference: [],
       citationMetadata: null,
       searchQuery: message,
       searchTimestamp: new Date().toISOString(),
