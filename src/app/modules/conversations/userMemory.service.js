@@ -104,58 +104,8 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
 
         rawJson = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
       } catch (geminiErr) {
-        logger.warn(`[UserMemory] Gemini extraction failed: ${geminiErr.message}. Falling back to Azure AI Foundry...`);
-        try {
-          if (!config.azure.endpoint || !config.azure.apiKey) {
-            throw new Error('Azure AI Foundry endpoint or key is not configured.');
-          }
-
-          const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
-          const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
-
-          let requestUrl = endpoint;
-          let headers = {
-            'Content-Type': 'application/json',
-          };
-
-          if (isAzureOpenAI) {
-            headers['api-key'] = apiKey;
-            if (!requestUrl.includes('/openai/deployments/')) {
-              const baseUrl = requestUrl.split('/openai')[0];
-              requestUrl = `${baseUrl}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
-            }
-          } else {
-            headers['Authorization'] = `Bearer ${apiKey}`;
-            if (!requestUrl.includes('/chat/completions')) {
-              requestUrl = requestUrl.replace(/\/$/, '') + '/chat/completions';
-            }
-          }
-
-          const response = await fetch(requestUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              ...(isAzureOpenAI ? {} : { model: deploymentOrModel }),
-              messages: [
-                { role: 'system', content: FACT_EXTRACTION_PROMPT },
-                { role: 'user', content: turnText }
-              ],
-              response_format: { type: 'json_object' },
-              temperature: 0.1
-            })
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            rawJson = data.choices?.[0]?.message?.content || '[]';
-          } else {
-            const errBody = await response.text();
-            throw new Error(`Azure AI Foundry returned status ${response.status}: ${errBody}`);
-          }
-        } catch (azureErr) {
-          logger.error('[UserMemory] Both Gemini and Azure AI Foundry fact extraction failed:', azureErr);
-          return;
-        }
+        logger.error(`[UserMemory] Gemini fact extraction failed: ${geminiErr.message}`);
+        return;
       }
 
       // Clean markdown code blocks just in case

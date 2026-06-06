@@ -324,66 +324,9 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         classificationSource = 'gemini';
         logger.info(`[Orchestrator] ✅ Gemini classified in ${Date.now() - classifyStart}ms`);
       } catch (geminiErr) {
-        logger.warn(`[Orchestrator] ⚠️ Gemini failed (${geminiErr.message}). Trying Azure...`);
+        logger.warn(`[Orchestrator] ⚠️ Gemini failed (${geminiErr.message}). Defaulting to local classifier.`);
         captureException(geminiErr, { stage: 'orchestrator-gemini', model: CLASSIFIER_MODEL });
-
-        // Try Azure fallback
-        try {
-          if (!config.azure?.endpoint || !config.azure?.apiKey) {
-            throw new Error('Azure AI Foundry not configured');
-          }
-
-          const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
-          const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
-
-          let requestUrl = endpoint;
-          const headers = { 'Content-Type': 'application/json' };
-
-          if (isAzureOpenAI) {
-            headers['api-key'] = apiKey;
-            if (!requestUrl.includes('/openai/deployments/')) {
-              const baseUrl = requestUrl.split('/openai')[0];
-              requestUrl = `${baseUrl}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
-            }
-          } else {
-            headers['Authorization'] = `Bearer ${apiKey}`;
-            if (!requestUrl.includes('/chat/completions')) {
-              requestUrl = requestUrl.replace(/\/$/, '') + '/chat/completions';
-            }
-          }
-
-          const classificationPrompt = conversationContext
-            ? `${conversationContext}\n\nNew user message to classify:\n${prompt}`
-            : prompt;
-
-          const response = await fetch(requestUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              ...(isAzureOpenAI ? {} : { model: deploymentOrModel }),
-              messages: [
-                { role: 'system', content: ORCHESTRATOR_SYSTEM_PROMPT },
-                { role: 'user', content: classificationPrompt }
-              ],
-              response_format: { type: 'json_object' },
-              temperature: 0.1
-            })
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            rawJson = data.choices?.[0]?.message?.content || '{}';
-            classificationSource = 'azure';
-            logger.info(`[Orchestrator] ✅ Azure classified in ${Date.now() - classifyStart}ms`);
-          } else {
-            const errBody = await response.text();
-            throw new Error(`Azure returned ${response.status}: ${errBody}`);
-          }
-        } catch (azureErr) {
-          logger.error(`[Orchestrator] ❌ Azure also failed: ${azureErr.message}`);
-          captureException(azureErr, { stage: 'orchestrator-azure' });
-          rawJson = '{}';
-        }
+        rawJson = '{}';
       }
 
       // Clean markdown blocks if LLM ignored instructions

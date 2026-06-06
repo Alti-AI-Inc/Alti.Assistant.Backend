@@ -280,161 +280,6 @@ const stripPreambles = (text) => {
   return cleaned;
 };
 
-/**
- * Calls Azure AI Foundry (or Azure OpenAI) as a fallback if Gemini fails.
- */
-const queryAzureFoundryFallback = async (systemInstruction, conversationHistory, finalPrompt, temperature = 0.15, maxTokens = 1500) => {
-  try {
-    if (!config.azure.endpoint || !config.azure.apiKey) {
-      throw new Error('Azure AI Foundry endpoint or key is not configured.');
-    }
-
-    console.log('[Azure Fallback] Querying Azure AI Foundry...');
-    const messages = [];
-    if (systemInstruction) {
-      const systemContent = typeof systemInstruction === 'string' 
-        ? systemInstruction 
-        : (systemInstruction.parts?.[0]?.text || '');
-      if (systemContent) {
-        messages.push({ role: 'system', content: systemContent });
-      }
-    }
-    for (const msg of conversationHistory) {
-      messages.push({
-        role: msg.role === 'assistant' || msg.role === 'model' ? 'assistant' : 'user',
-        content: msg.content
-      });
-    }
-    messages.push({ role: 'user', content: finalPrompt });
-
-    const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
-    const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
-    
-    let requestUrl = '';
-    const headers = { 'Content-Type': 'application/json' };
-    
-    if (isAzureOpenAI) {
-      const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
-      requestUrl = `${cleanEndpoint}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
-      headers['api-key'] = apiKey;
-    } else {
-      const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
-      const suffix = cleanEndpoint.endsWith('/chat/completions') ? '' : '/chat/completions';
-      requestUrl = `${cleanEndpoint}${suffix}?api-version=${apiVersion}`;
-      headers['Authorization'] = `Bearer ${apiKey}`;
-    }
-
-    const response = await fetch(requestUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        messages,
-        temperature,
-        max_tokens: maxTokens
-      })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || '';
-    } else {
-      const errText = await response.text();
-      throw new Error(`Azure AI Foundry returned status ${response.status}: ${errText}`);
-    }
-  } catch (err) {
-    console.error('[Azure Fallback] Azure call failed:', err);
-    throw err;
-  }
-};
-
-/**
- * Streams chat completions from Azure AI Foundry (or Azure OpenAI).
- * Yields `{ type: 'text', content: string, agentId }` chunks.
- */
-async function* streamAzureFoundryFallback(systemInstruction, conversationHistory, finalPrompt, agentId, temperature = 0.15, maxTokens = 4000) {
-  if (!config.azure.endpoint || !config.azure.apiKey) {
-    throw new Error('Azure AI Foundry endpoint or key is not configured.');
-  }
-
-  console.log('[Azure Stream Fallback] Querying Azure AI Foundry streaming...');
-  const messages = [];
-  if (systemInstruction) {
-    const systemContent = typeof systemInstruction === 'string' 
-      ? systemInstruction 
-      : (systemInstruction.parts?.[0]?.text || '');
-    if (systemContent) {
-      messages.push({ role: 'system', content: systemContent });
-    }
-  }
-  for (const msg of conversationHistory) {
-    messages.push({
-      role: msg.role === 'assistant' || msg.role === 'model' ? 'assistant' : 'user',
-      content: msg.content
-    });
-  }
-  messages.push({ role: 'user', content: finalPrompt });
-
-  const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
-  const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
-  
-  let requestUrl = '';
-  const headers = { 'Content-Type': 'application/json' };
-  
-  if (isAzureOpenAI) {
-    const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
-    requestUrl = `${cleanEndpoint}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
-    headers['api-key'] = apiKey;
-  } else {
-    const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
-    const suffix = cleanEndpoint.endsWith('/chat/completions') ? '' : '/chat/completions';
-    requestUrl = `${cleanEndpoint}${suffix}?api-version=${apiVersion}`;
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  }
-
-  const response = await fetch(requestUrl, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      stream: true
-    })
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Azure stream failed with status ${response.status}: ${errText}`);
-  }
-
-  const stream = response.body;
-  let buffer = '';
-  for await (const chunk of stream) {
-    buffer += chunk.toString();
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-    for (const line of lines) {
-      const cleanLine = line.trim();
-      if (cleanLine.startsWith('data: ')) {
-        const dataStr = cleanLine.slice(6);
-        if (dataStr === '[DONE]') break;
-        try {
-          const dataObj = JSON.parse(dataStr);
-          const textChunk = dataObj.choices?.[0]?.delta?.content;
-          if (textChunk) {
-            yield {
-              type: 'text',
-              content: textChunk,
-              agentId
-            };
-          }
-        } catch (e) {
-          // ignore parsing error
-        }
-      }
-    }
-  }
-}
 
 export class SwarmService {
   /**
@@ -735,20 +580,9 @@ Instructions: ${agent.systemInstruction}`;
           }
         }
       } catch (geminiErr) {
-        console.warn(`📡 Gemini generation failed: ${geminiErr.message}. Falling back to Azure AI Foundry...`);
-        try {
-          text = await queryAzureFoundryFallback(
-            systemInstruction,
-            conversationHistory,
-            finalPrompt,
-            isPrimary ? 0.15 : 0.05,
-            isExploriumAgent(agent.id) ? 6000 : 4000
-          );
-          text = stripPreambles(text);
-        } catch (azureErr) {
-          console.error('❌ Both Gemini and Azure AI Foundry generation failed:', azureErr);
-          console.warn('⚠️ [Swarm Service] All LLM providers unavailable. Returning graceful fallback.');
-          text = `I understand your question about "${query.length > 80 ? query.substring(0, 80) + '...' : query}".
+        console.error('❌ Gemini generation failed:', geminiErr);
+        console.warn('⚠️ [Swarm Service] Gemini LLM provider unavailable. Returning graceful fallback.');
+        text = `I understand your question about "${query.length > 80 ? query.substring(0, 80) + '...' : query}".
 
 I'm temporarily unable to generate a full response because the AI backend services are experiencing connectivity issues.
 
@@ -757,7 +591,6 @@ I'm temporarily unable to generate a full response because the AI backend servic
 • The backend services reconnect
 
 Please try again shortly — your request has been received and understood.`;
-        }
       }
       accumulatedText = text;
       currentContextInput = text;
@@ -1031,20 +864,34 @@ Instructions: ${agent.systemInstruction}`;
             };
 
           } catch (groundingErr) {
-            console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to Azure AI Foundry stream...`);
+            console.warn(`🔍 Streaming search grounding failed: ${groundingErr.message}. Falling back to standard Gemini stream...`);
             let agentTextAccumulator = '';
-            for await (const chunk of streamAzureFoundryFallback(
-              systemInstruction,
-              conversationHistory,
-              finalPrompt,
-              agent.id,
-              isPrimary ? 0.15 : 0.05,
-              isExploriumAgent(agent.id) ? 6000 : 4000
-            )) {
-              if (chunk.content) {
-                agentTextAccumulator += chunk.content;
+            try {
+              const modelInstance = genAI.getGenerativeModel({
+                model: config.gemini_model || agent.model || 'gemini-3.5-flash',
+                systemInstruction: systemInstruction
+              });
+              const contents = formatGeminiContents(conversationHistory, finalPrompt);
+              const streamResult = await modelInstance.generateContentStream({
+                contents,
+                generationConfig: {
+                  temperature: isPrimary ? 0.15 : 0.05,
+                  maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 1500
+                }
+              });
+              for await (const chunk of streamResult.stream) {
+                const textChunk = chunk.text();
+                if (textChunk) {
+                  agentTextAccumulator += textChunk;
+                  yield {
+                    type: 'text',
+                    content: textChunk,
+                    agentId: agent.id
+                  };
+                }
               }
-              yield chunk;
+            } catch (geminiErr) {
+              console.error('❌ Both Search Grounding and Gemini stream fallback failed:', geminiErr);
             }
             const cleanText = stripPreambles(agentTextAccumulator);
             accumulatedText += isPrimary ? cleanText : `\n\n${cleanText}`;
@@ -1210,26 +1057,9 @@ Instructions: ${agent.systemInstruction}`;
               }
             }
           } catch (geminiErr) {
-            console.warn(`📡 Gemini stream generation failed: ${geminiErr.message}. Falling back to Azure AI Foundry stream...`);
-            agentTextAccumulator = '';
-            try {
-              for await (const chunk of streamAzureFoundryFallback(
-                systemInstruction,
-                conversationHistory,
-                finalPrompt,
-                agent.id,
-                isPrimary ? 0.15 : 0.05,
-                isExploriumAgent(agent.id) ? 6000 : 4000
-              )) {
-                if (chunk.content) {
-                  agentTextAccumulator += chunk.content;
-                }
-                yield chunk;
-              }
-            } catch (azureErr) {
-              console.error('❌ Both Gemini and Azure AI Foundry stream failed:', azureErr);
-              console.warn('⚠️ [Swarm Service] All streaming providers unavailable. Yielding graceful fallback.');
-              const fallbackText = `I understand your question about "${query.length > 80 ? query.substring(0, 80) + '...' : query}".
+            console.error('❌ Gemini stream generation failed:', geminiErr);
+            console.warn('⚠️ [Swarm Service] Gemini streaming provider unavailable. Yielding graceful fallback.');
+            const fallbackText = `I understand your question about "${query.length > 80 ? query.substring(0, 80) + '...' : query}".
 
 I'm temporarily unable to generate a full response because the AI backend services are experiencing connectivity issues.
 
@@ -1238,13 +1068,12 @@ I'm temporarily unable to generate a full response because the AI backend servic
 • The backend services reconnect
 
 Please try again shortly — your request has been received and understood.`;
-              yield {
-                type: 'text',
-                content: fallbackText,
-                agentId: agent.id
-              };
-              agentTextAccumulator = fallbackText;
-            }
+            yield {
+              type: 'text',
+              content: fallbackText,
+              agentId: agent.id
+            };
+            agentTextAccumulator = fallbackText;
           }
 
           // Append output seamlessly without technical headers

@@ -241,56 +241,8 @@ Return the complete, corrected clean source code now:`;
     const result = await model.generateContent(promptText);
     healedCode = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   } catch (err) {
-    logger.warn(`[DynamicSkill Code-Healer Warning] Gemini self-healing failed: ${err.message}. Trying Azure AI Foundry SOTA fallback...`);
-    
-    if (config.azure.endpoint && config.azure.apiKey) {
-      try {
-        const { endpoint, apiKey, deploymentOrModel, apiVersion } = config.azure;
-        
-        // 1. Detect if it is Azure OpenAI or Azure AI Inference endpoint format
-        const isAzureOpenAI = endpoint.includes('openai.azure.com') || endpoint.includes('deployments');
-        
-        let requestUrl = '';
-        const headers = { 'Content-Type': 'application/json' };
-        
-        if (isAzureOpenAI) {
-          // Azure OpenAI endpoint formatting
-          const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
-          requestUrl = `${cleanEndpoint}/openai/deployments/${deploymentOrModel}/chat/completions?api-version=${apiVersion}`;
-          headers['api-key'] = apiKey;
-        } else {
-          // Standard Azure AI Foundry model inference endpoint formatting
-          const cleanEndpoint = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
-          const suffix = cleanEndpoint.endsWith('/chat/completions') ? '' : '/chat/completions';
-          requestUrl = `${cleanEndpoint}${suffix}?api-version=${apiVersion}`;
-          headers['Authorization'] = `Bearer ${apiKey}`;
-        }
-        
-        const response = await fetch(requestUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            messages: [{ role: 'user', content: promptText }],
-            temperature: 0.1,
-            max_tokens: 4000
-          })
-        });
-        
-        if (!response.ok) {
-          const errBody = await response.text();
-          throw new Error(`Azure AI Foundry HTTP ${response.status}: ${errBody}`);
-        }
-        
-        const data = await response.json();
-        healedCode = data.choices?.[0]?.message?.content || '';
-        logger.info(`[DynamicSkill Code-Healer] Successfully healed script using Azure AI Foundry SOTA fallback.`);
-      } catch (azureErr) {
-        logger.error(`[DynamicSkill Code-Healer Error] Azure AI Foundry SOTA fallback also failed: ${azureErr.message}`);
-        throw new Error(`Self-healing failed on all LLM backends. Primary (Gemini): ${err.message}. Fallback (Azure): ${azureErr.message}`);
-      }
-    } else {
-      throw err;
-    }
+    logger.error(`[DynamicSkill Code-Healer Error] Gemini self-healing failed: ${err.message}`);
+    throw err;
   }
 
   // Safety clean markdown blocks if returned by accident
