@@ -724,11 +724,11 @@ Please try again shortly — your request has been received and understood.`;
     console.log(`📡 Swarm Pipeline: Dynamic Chain composed of [${pipeline.chain.map(a => a.name).join(' -> ')}]`);
 
     // Yield Nous Hermes-style Cognitive Plan stream chunk immediately to the client
-    yield {
+    /* yield {
       type: 'text',
       content: `\n\n🧠 *[Hermes Agent Cognitive Plan]*\n* **Swarm Execution Route**: ${pipeline.chain.map(a => `\`${a.name}\``).join(' ➔ ')}\n* **Data Integration**: State-of-the-art live grounding + RAG context extraction.\n* **Isolated Execution Strategy**: Enforcing strict, container-sandboxed Python/JS executions.\n\n`,
       timestamp: Date.now()
-    };
+    }; */
 
     // ════ RAG GROUNDING: Pull context from user's indexed documents ════
     let ragGroundingBlock = '';
@@ -901,11 +901,11 @@ Instructions: ${agent.systemInstruction}`;
 
           try {
             // Yield dynamic multi-query deconstruction status update immediately!
-            yield {
+            /* yield {
               type: 'text',
               content: `\n\n🔍 *Deconstructing search strategies for real-time fact compilation...*\n`,
               agentId: agent.id
-            };
+            }; */
 
             const searchTool = new GoogleSearchGroundingTool();
             const searchResult = await searchTool.invoke({ query: finalPrompt, includeAnswer: true });
@@ -914,11 +914,11 @@ Instructions: ${agent.systemInstruction}`;
             const subQueries = searchResult.search_metadata?.webSearchQueries || [];
 
             // Yield sub-queries that were searched
-            yield {
+            /* yield {
               type: 'text',
               content: `*Concurrently queried parallel search streams:*\n${subQueries.map(q => `* ➔ \`"${q}"\``).join('\n')}\n*Consolidated **${citations.length}** highly verified sources. Grounding synthesis streaming now...*\n\n`,
               agentId: agent.id
-            };
+            }; */
 
             const fullOutput = stripPreambles(searchResult.answer || '');
 
@@ -1056,11 +1056,11 @@ Instructions: ${agent.systemInstruction}`;
 
                 const responseParts = [];
                 for (const call of functionCalls) {
-                  yield {
+                  /* yield {
                     type: 'text',
                     content: `\n\n⚙️ *Executing skill: ${call.name}...*\n`,
                     agentId: agent.id
-                  };
+                  }; */
 
                   let toolResultText = '';
                   let isError = false;
@@ -1107,21 +1107,21 @@ Instructions: ${agent.systemInstruction}`;
                         error: toolResultText
                       });
 
-                      yield {
+                      /* yield {
                         type: 'text',
                         content: `\n\n⚠️ *Skill execution failed. Retrying with error reflection (Attempt ${attempts}/3)...*\n`,
                         agentId: agent.id
-                      };
+                      }; */
 
                       toolResultText = errorExplanation;
                     }
                   }
 
-                  yield {
+                  /* yield {
                     type: 'text',
                     content: `*Skill Output:* \`\`\`\n${toolResultText}\n\`\`\`\n`,
                     agentId: agent.id
-                  };
+                  }; */
 
                   responseParts.push({
                     functionResponse: {

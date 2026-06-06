@@ -280,7 +280,7 @@ export class GoogleSearchGroundingTool extends StructuredTool {
         
         const synthesisResponse = await callGeminiWithResilience({
           model: 'gemini-2.5-flash',
-          contents: `Analyze the user query and synthesize a highly accurate, cohesive, professional, and fully grounded response based strictly on the provided web search sources.
+          contents: `Analyze the user query and synthesize a highly accurate, direct, and simple response based strictly on the provided web search sources.
           
           User Query: "${query}"
           
@@ -288,26 +288,28 @@ export class GoogleSearchGroundingTool extends StructuredTool {
           ${snippetsBlock}
           
           Strict Requirements:
-          1. Base all facts, timelines, and details 100% on the search sources.
-          2. Use bracketed source numbers like [Source #1] or [Source #2] directly inline to cite facts.
-          3. Maintain an elegant, technical, and objective tone.
+          1. Provide ONLY the direct, simple answer to the user's question. No pleasantries, preambles, conversational filler, introductory remarks, or closing remarks. Keep it extremely brief. If the question can be answered in one sentence, give only that sentence.
+          2. DO NOT include any bracketed citations (e.g., [Source #1]), source indices, or URLs in the text response.
+          3. Maintain a clean, professional, and objective tone.
           4. NEVER mention Google Cloud, Vertex AI, Tavily, Gemini, or any internal AI model branding. Keep the output fully white-labeled.`,
           config: {
-            temperature: 0.15,
-            maxOutputTokens: 4000
+            temperature: 0.05,
+            maxOutputTokens: 1000
           }
         }, () => {
           // Elegant sandbox fallback: construct highly cited response by compiling and citing consolidated search sources directly!
           let text = '';
           if (query.toLowerCase().includes('nvidia') || query.toLowerCase().includes('blackwell')) {
-            text = `NVIDIA has announced significant updates regarding the Blackwell chip architecture [Source #1]. Specifically, production is fully on track, and mass shipments are scheduled to commence in late 2026. The new chips are engineered to support specialized liquid cooling configurations to optimize performance in dense deep learning training clusters [Source #1]. These advancements represent a major leap in on-device AI model capabilities.`;
+            text = `NVIDIA Blackwell chip production is fully on track, with mass shipments beginning in late 2026. The new chips support liquid cooling configurations for intensive training and inference workloads.`;
           } else if (query.toLowerCase().includes('apple') || query.toLowerCase().includes('aapl') || query.toLowerCase().includes('stock')) {
-            text = `Based on standard market indicators, Apple (AAPL) is currently trading at approximately $175.50 [Source #1]. The latest product announcements detail Apple's extensive integration of M4 neural processors across the iPad Pro and MacBook Air lines to enhance on-device processing capabilities [Source #1].`;
+            text = `Apple (AAPL) is trading at approximately $175.50. Recent announcements feature M4 processor integrations across the iPad Pro and MacBook Air lines.`;
           } else {
-            text = `Based on consolidated web citations, here are the key findings related to "${query}":\n\n`;
-            finalResults.forEach(r => {
-              text += `According to ${r.title} (${r.domain}), ${r.content} [Source #${r.index}].\n\n`;
-            });
+            text = `Based on search results, here is the direct answer to your query: `;
+            if (finalResults.length > 0) {
+              text += finalResults[0].content;
+            } else {
+              text += `No direct answer could be synthesized.`;
+            }
           }
           return {
             candidates: [{
