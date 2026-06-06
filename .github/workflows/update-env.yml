@@ -29,8 +29,19 @@ jobs:
             echo "=== Updating GEMINI_API_KEY ==="
             sed -i 's|GEMINI_API_KEY=.*|GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}|' .env
 
+            echo "=== Current GEMINI_MODEL ==="
+            grep "GEMINI_MODEL" .env || echo "No GEMINI_MODEL"
+
+            echo "=== Updating GEMINI_MODEL ==="
+            if grep -q "GEMINI_MODEL=" .env; then
+              sed -i 's|GEMINI_MODEL=.*|GEMINI_MODEL=gemini-3.5-flash|' .env
+            else
+              echo "GEMINI_MODEL=gemini-3.5-flash" >> .env
+            fi
+
             echo "=== Verifying update ==="
             grep "GEMINI_API_KEY" .env | head -1
+            grep "GEMINI_MODEL" .env | head -1
 
             echo "=== Restarting containers ==="
             docker compose down

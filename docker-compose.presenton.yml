@@ -10,6 +10,7 @@ services:
     environment:
       # Override Presenton URL to use internal container network
       - PRESENTON_API_URL=http://presenton:80
+      - PORT=5100
     volumes:
       # Shared volume with Presenton - Presenton's /app_data mounted to backend's /app/presenton_files
       - presenton_data:/app/presenton_files
@@ -27,7 +28,7 @@ services:
     restart: unless-stopped
     environment:
       - LLM=google
-      - GOOGLE_API_KEY=AIzaSyATOQRmcM0DMO83Z9jEuuC4DIgna60TSJQ
+      - GOOGLE_API_KEY=${GEMINI_API_KEY}
       - IMAGE_PROVIDER=gemini_flash
       - CAN_CHANGE_KEYS=false
     volumes:

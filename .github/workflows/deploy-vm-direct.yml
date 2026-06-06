@@ -54,6 +54,12 @@ jobs:
           scp -i ~/.ssh/alti-vm-key /tmp/backend-image.tar.gz \
             ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:/tmp/backend-image.tar.gz
 
+      - name: Upload compose file to VM
+        run: |
+          echo "Uploading docker-compose.presenton.yml to VM..."
+          scp -i ~/.ssh/alti-vm-key docker-compose.presenton.yml \
+            ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/docker-compose.yml
+
       - name: Deploy to VM
         run: |
           ssh -i ~/.ssh/alti-vm-key ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} bash <<'DEPLOY'
