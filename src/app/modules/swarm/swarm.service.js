@@ -161,20 +161,36 @@ const injectInlineCitations = (text, citations, groundingMetadata) => {
 const generateRelatedQuestions = async (query, responseText) => {
   try {
     const result = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-lite',
-      contents: `Based on this Q&A, generate exactly 3 follow-up questions the user might ask next. Return ONLY a JSON array of strings, nothing else.
+      model: 'gemini-2.5-flash',
+      contents: `Based on this Q&A, generate exactly 3 follow-up questions the user might ask next.
 
 Question: ${query}
 Answer summary: ${responseText.substring(0, 500)}`,
       config: {
         temperature: 0.3,
-        maxOutputTokens: 200,
+        maxOutputTokens: 1000,
         responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'array',
+          items: {
+            type: 'string'
+          }
+        }
       },
     });
 
     const raw = result?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-    const parsed = JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
+    let parsed = [];
+    try {
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        parsed = JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
+      }
+    } catch (e) {
+      console.warn(`[RelatedQ] JSON parse error: ${e.message}. Raw: ${raw}`);
+    }
     return Array.isArray(parsed) ? parsed.slice(0, 4) : [];
   } catch (err) {
     console.warn(`[RelatedQ] Failed to generate: ${err.message}`);
@@ -1035,9 +1051,13 @@ Instructions: ${agent.systemInstruction}`;
                   };
                 }
 
-                // Robust check for functionCalls in stream chunk
-                const calls = chunk.functionCalls || (typeof chunk.functionCalls === 'function' ? chunk.functionCalls() : null);
-                if (calls) {
+                let calls = null;
+                if (typeof chunk.functionCalls === 'function') {
+                  calls = chunk.functionCalls();
+                } else if (Array.isArray(chunk.functionCalls)) {
+                  calls = chunk.functionCalls;
+                }
+                if (calls && Array.isArray(calls)) {
                   functionCalls.push(...calls);
                 } else {
                   const parts = chunk.candidates?.[0]?.content?.parts || [];
