@@ -45,11 +45,7 @@ export default {
     url: process.env.REDIS_URL,
     expires_in: process.env.REDIS_TOKEN_EXPIRES_IN,
   },
-  mailgun: {
-    mailgun_domain: process.env.MAILGUN_DOMAIN,
-    mailgun_key: process.env.MAILGUN_KEY,
-    mailgun_from: process.env.MAILGUN_FROM,
-  },
+
   composio: {
     projectId: process.env.COMPOSIO_PROJECT_ID,
     clientId: process.env.COMPOSIO_CLIENT_ID,
@@ -73,18 +69,7 @@ export default {
   gemini_model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
   gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
   realestate_api_key: process.env.REALESTATE_API_KEY,
-  azure: { // DEPRECATED: Platform runs exclusively on Google Cloud
-    endpoint: process.env.AZURE_AI_FOUNDRY_ENDPOINT || process.env.AZURE_OPENAI_ENDPOINT,
-    apiKey: process.env.AZURE_AI_FOUNDRY_KEY || process.env.AZURE_OPENAI_API_KEY,
-    deploymentOrModel: process.env.AZURE_AI_FOUNDRY_MODEL || process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4o-mini',
-    apiVersion: process.env.AZURE_AI_API_VERSION || '2024-05-01-preview'
-  },
-  aws: { // DEPRECATED: Platform runs exclusively on Google Cloud
-    region: process.env.AWS_REGION || 'us-east-1',
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    modelId: process.env.AWS_BEDROCK_MODEL_ID || 'anthropic.claude-3-5-sonnet-20241022-v2:0'
-  },
+
   llmProvider: 'gcp', // Enforced GCP provider for exclusive Google Cloud architecture
 
   browser_use_secret_key: process.env.BROWSER_USE_SECRET_KEY,

@@ -2,10 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { composioService } from './composio.service.js';
-// import { ChatOpenAI } from "@langchain/openai";
-// import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
-// import { pull } from "langchain/hub";
-// import { LangchainToolSet } from "@composio/langchain";
+// Consolidated on Google Cloud native integrations
 
 const integrationId = '5c9834e1-14b3-4c06-9262-606bce538a9f'; // Put your Composio Gmail integration ID here
 const linkedInIntegrationId = 'ff2c1c00-03ca-4135-9fe7-afa775098c26'; // Put your Composio Gmail integration ID here

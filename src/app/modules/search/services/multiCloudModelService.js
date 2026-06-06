@@ -1,7 +1,5 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-// Deprecated: Multi-cloud model imports are disabled for Google Cloud exclusivity.
-// import { AzureChatOpenAI } from '@langchain/openai';
-// import { ChatBedrockConverse } from '@langchain/aws';
+// Enforce exclusive Google Cloud architecture for model execution
 import config from '../../../../../config/index.js';
 import { googleSearch, YouTubeSearchTool } from '../tools.js';
 import {

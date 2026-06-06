@@ -5,7 +5,7 @@ import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { jwtHelpers } from '../../helpers/jwtHelpers.js';
-import { sendMailWithNodeMailer } from '../../middlewares/sendEmail/sendMailWithMailGun.js';
+import { sendMailWithNodeMailer } from '../../middlewares/sendEmail/sendMail.js';
 import UserModel from './auth.model.js';
 import { registrationOtpTemplate } from './auth.utils.js';
 import Token from './token.model.js';

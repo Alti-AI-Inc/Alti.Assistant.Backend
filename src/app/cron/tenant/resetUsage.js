@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { logger } from '../../../shared/logger.js';
 import Tenant from '../../modules/tenant/tenant.model.js';
-import { sendMailWithNodeMailer } from '../../middlewares/sendEmail/sendMailWithMailGun.js';
+import { sendMailWithNodeMailer } from '../../middlewares/sendEmail/sendMail.js';
 import config from '../../../../config/index.js';
 
 /**

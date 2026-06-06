@@ -305,7 +305,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         }
       }
 
-      // ── 3. LLM CLASSIFICATION (Gemini → Azure → Local fallback) ──
+      // ── 3. LLM CLASSIFICATION (Gemini → Local fallback) ──
       logger.info(`[Orchestrator] Classifying prompt from user ${userId} (model: ${CLASSIFIER_MODEL})...`);
       const classifyStart = Date.now();
       let rawJson = '{}';

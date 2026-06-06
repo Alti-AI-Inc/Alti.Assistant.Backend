@@ -6,7 +6,7 @@ import ApiError from '../../../errors/ApiError.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
-import { sendMailWithMailGun } from '../../middlewares/sendEmail/sendMailWithMailGun.js';
+import { sendMailWithMailGun } from '../../middlewares/sendEmail/sendMail.js';
 import UserModel from './auth.model.js';
 import { authService } from './auth.service.js';
 import {

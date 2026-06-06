@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import Stripe from 'stripe';
 import winston from 'winston';
 import config from '../../../../config/index.js';
-import { sendMailWithMailGun } from '../../middlewares/sendEmail/sendMailWithMailGun.js';
+import { sendMailWithMailGun } from '../../middlewares/sendEmail/sendMail.js';
 import UserModel from '../auth/auth.model.js';
 import SubscriptionModel from './payment.model.js';
 import { purchasePlanTemplate } from './payment.utils.js';

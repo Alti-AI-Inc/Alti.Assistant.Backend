@@ -27,7 +27,5 @@ export const sendMailWithNodeMailer = async (mailData) => {
   return info;
 };
 
-export const sendMailWithMailGun = async (mailData) => {
-  logger.info('Redirecting Mailgun email request to Google SMTP NodeMailer exclusively.');
-  return sendMailWithNodeMailer(mailData);
-};
+// Backward-compatible export alias for any legacy modules
+export const sendMailWithMailGun = sendMailWithNodeMailer;

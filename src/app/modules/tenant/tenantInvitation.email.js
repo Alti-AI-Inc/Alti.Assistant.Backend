@@ -1,4 +1,4 @@
-import { sendMailWithNodeMailer } from '../../middlewares/sendEmail/sendMailWithMailGun.js';
+import { sendMailWithNodeMailer } from '../../middlewares/sendEmail/sendMail.js';
 import {
   generateInvitationEmailHTML,
   generateInvitationEmailText,
