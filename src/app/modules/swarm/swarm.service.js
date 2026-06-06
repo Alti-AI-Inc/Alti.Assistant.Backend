@@ -161,7 +161,7 @@ const injectInlineCitations = (text, citations, groundingMetadata) => {
 const generateRelatedQuestions = async (query, responseText) => {
   try {
     const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: config.gemini_model || 'gemini-3.5-flash',
       contents: `Based on this Q&A, generate exactly 3 follow-up questions the user might ask next.
 
 Question: ${query}
@@ -588,7 +588,7 @@ Instructions: ${agent.systemInstruction}`;
 
           const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
           const modelInstance = genAI.getGenerativeModel({
-            model: agent.model || 'gemini-2.5-flash',
+            model: config.gemini_model || agent.model || 'gemini-3.5-flash',
             systemInstruction: systemInstruction,
             tools: [{ functionDeclarations: activeTools }]
           });
@@ -1024,7 +1024,7 @@ Instructions: ${agent.systemInstruction}`;
 
               const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
               const modelInstance = genAI.getGenerativeModel({
-                model: agent.model || 'gemini-2.5-flash',
+                model: config.gemini_model || agent.model || 'gemini-3.5-flash',
                 systemInstruction: systemInstruction,
                 tools: [{ functionDeclarations: activeTools }]
               });
