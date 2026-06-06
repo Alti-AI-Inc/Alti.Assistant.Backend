@@ -30,15 +30,54 @@ export async function initSentry(app) {
       // Only send errors in production/staging
       enabled: process.env.NODE_ENV !== 'test',
 
-      // Scrub sensitive data
+      // Scrub sensitive data from all event fields
       beforeSend(event) {
-        // Remove any API keys or tokens that may have leaked into error messages
+        const redactSecrets = (str) => {
+          if (typeof str !== 'string') return str;
+          return str
+            .replace(/(?:api[_-]?key|token|secret|password|authorization)\s*[:=]\s*\S+/gi, '[REDACTED]')
+            .replace(/Bearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+/gi, 'Bearer [REDACTED]')
+            .replace(/eyJ[A-Za-z0-9\-_]{10,}\.[A-Za-z0-9\-_]{10,}\.[A-Za-z0-9\-_]{10,}/g, '[REDACTED_JWT]')
+            .replace(/mongodb(\+srv)?:\/\/[^\s"']+/gi, '[REDACTED_MONGODB_URI]')
+            .replace(/sk_live_[A-Za-z0-9]{20,}/g, '[REDACTED_STRIPE_KEY]')
+            .replace(/sk_test_[A-Za-z0-9]{20,}/g, '[REDACTED_STRIPE_KEY]');
+        };
+
+        // Scrub event message
         if (event.message) {
-          event.message = event.message.replace(
-            /(?:api[_-]?key|token|secret|password|authorization)\s*[:=]\s*\S+/gi,
-            '[REDACTED]'
-          );
+          event.message = redactSecrets(event.message);
         }
+
+        // Scrub extra context
+        if (event.extra) {
+          for (const key of Object.keys(event.extra)) {
+            if (typeof event.extra[key] === 'string') {
+              event.extra[key] = redactSecrets(event.extra[key]);
+            }
+          }
+        }
+
+        // Scrub exception frames
+        if (event.exception?.values) {
+          for (const exc of event.exception.values) {
+            if (exc.value) exc.value = redactSecrets(exc.value);
+          }
+        }
+
+        // Scrub breadcrumbs
+        if (event.breadcrumbs) {
+          for (const crumb of event.breadcrumbs) {
+            if (crumb.message) crumb.message = redactSecrets(crumb.message);
+            if (crumb.data) {
+              for (const key of Object.keys(crumb.data)) {
+                if (typeof crumb.data[key] === 'string') {
+                  crumb.data[key] = redactSecrets(crumb.data[key]);
+                }
+              }
+            }
+          }
+        }
+
         return event;
       },
 

@@ -103,13 +103,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       { requireSearch }
     )) {
       if (chunk.type === 'agent_start') {
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'thinking',
-            content: `[Recruiting Swarm Specialist: ${chunk.agent.name}...]\n`,
-            timestamp: Date.now(),
-          })}\n\n`
-        );
+        // Silent - don't send agent routing details to the user
       } else if (chunk.type === 'text') {
         fullText += chunk.content;
         res.write(
@@ -120,12 +114,12 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
           })}\n\n`
         );
       } else if (chunk.type === 'metadata') {
-        finalReferences = chunk.reference;
+        finalReferences = [];
         res.write(
           `data: ${JSON.stringify({
             type: 'metadata',
-            reference: chunk.reference,
-            citations: chunk.citations,
+            reference: [],
+            citations: [],
             timestamp: chunk.timestamp,
           })}\n\n`
         );
@@ -134,7 +128,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
     // Save the complete response and citations to conversation database
     const messageMetadata = {
-      reference: finalReferences || [],
+      reference: [],
       citationMetadata: null,
       searchQuery: message,
       searchTimestamp: new Date().toISOString(),

@@ -3,6 +3,9 @@ name: Full Deploy to VM (Hotfix)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy Full Codebase to Production VM

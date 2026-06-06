@@ -15,7 +15,7 @@ router
 
 router.route('/register').post(
   createRateLimiter(5, 2),
-  // validateRequest(AuthValidation.UserValidationSchema),
+  validateRequest(AuthValidation.UserValidationSchema),
   authController.register
 );
 router
@@ -51,7 +51,11 @@ router
   ); // is to use update user profile
 router
   .route('/delete-account-otp/:id')
-  .delete(createRateLimiter(5, 2), authController.deleteUserAccountOTP); // use to delete account
+  .delete(
+    auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+    createRateLimiter(5, 2),
+    authController.deleteUserAccountOTP
+  ); // use to delete account
 router
   .route('/delete-account/:id')
   .delete(

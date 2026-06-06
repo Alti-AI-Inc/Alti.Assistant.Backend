@@ -14,7 +14,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { askQuery } from '../llamaindex/llamaindex.indexer.js';
 import { executeAgenticRAG } from '../llamaindex/langgraph/ragAgentGraph.js';
-import { GoogleSearchGroundingTool } from '../deep_research/utils/tavily-utils.js';
+import { GoogleSearchGroundingTool } from '../deep_research/utils/google-search-grounding.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dynamicSkillService } from './dynamicSkill.service.js';
 import { logger } from '../../../shared/logger.js';
@@ -161,20 +161,36 @@ const injectInlineCitations = (text, citations, groundingMetadata) => {
 const generateRelatedQuestions = async (query, responseText) => {
   try {
     const result = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-lite',
-      contents: `Based on this Q&A, generate exactly 3 follow-up questions the user might ask next. Return ONLY a JSON array of strings, nothing else.
+      model: config.gemini_model || 'gemini-3.5-flash',
+      contents: `Based on this Q&A, generate exactly 3 follow-up questions the user might ask next.
 
 Question: ${query}
 Answer summary: ${responseText.substring(0, 500)}`,
       config: {
         temperature: 0.3,
-        maxOutputTokens: 200,
+        maxOutputTokens: 1000,
         responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'array',
+          items: {
+            type: 'string'
+          }
+        }
       },
     });
 
     const raw = result?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-    const parsed = JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
+    let parsed = [];
+    try {
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      } else {
+        parsed = JSON.parse(raw.replace(/```json/g, '').replace(/```/g, '').trim());
+      }
+    } catch (e) {
+      console.warn(`[RelatedQ] JSON parse error: ${e.message}. Raw: ${raw}`);
+    }
     return Array.isArray(parsed) ? parsed.slice(0, 4) : [];
   } catch (err) {
     console.warn(`[RelatedQ] Failed to generate: ${err.message}`);
@@ -188,16 +204,26 @@ Answer summary: ${responseText.substring(0, 500)}`,
 const stripPreambles = (text) => {
   if (!text) return text;
   // Remove common AI preambles
-  return text
+  let cleaned = text
     .replace(/^(Great question!|Sure!|Absolutely!|Of course!|I'd be happy to help!|Let me help you with that\.|Here's what I found:?|Based on my (research|analysis|search):?)\s*/i, '')
     .replace(/^(Certainly!|Indeed!|That's a great question!|I can help with that!|Let me explain\.?)\s*/i, '')
+    .replace(/^(Here's a|Here is a|Here are|Below is|The following)\s+(comprehensive|detailed|brief|quick|thorough)\s+(overview|summary|breakdown|analysis|look|explanation):?\s*/i, '')
     .trim();
+  // Remove closing filler
+  cleaned = cleaned
+    .replace(/\n+(Let me know if you('d like| need| want)|Feel free to|Hope this helps|I hope this|Don't hesitate to|Happy to help|If you have any (other |more |further )?questions).*/is, '')
+    .trim();
+  // Remove leading markdown headers if they just restate the question
+  cleaned = cleaned
+    .replace(/^#{1,3}\s+.{0,80}\n+/m, '')
+    .trim();
+  return cleaned;
 };
 
 /**
  * Calls Azure AI Foundry (or Azure OpenAI) as a fallback if Gemini fails.
  */
-const queryAzureFoundryFallback = async (systemInstruction, conversationHistory, finalPrompt, temperature = 0.15, maxTokens = 4000) => {
+const queryAzureFoundryFallback = async (systemInstruction, conversationHistory, finalPrompt, temperature = 0.15, maxTokens = 1500) => {
   try {
     if (!config.azure.endpoint || !config.azure.apiKey) {
       throw new Error('Azure AI Foundry endpoint or key is not configured.');
@@ -562,7 +588,7 @@ Instructions: ${agent.systemInstruction}`;
 
           const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
           const modelInstance = genAI.getGenerativeModel({
-            model: agent.model || 'gemini-2.5-flash',
+            model: config.gemini_model || agent.model || 'gemini-3.5-flash',
             systemInstruction: systemInstruction,
             tools: [{ functionDeclarations: activeTools }]
           });
@@ -571,7 +597,7 @@ Instructions: ${agent.systemInstruction}`;
             contents,
             generationConfig: {
               temperature: isPrimary ? 0.15 : 0.05,
-              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 1500
             }
           });
 
@@ -724,11 +750,11 @@ Please try again shortly — your request has been received and understood.`;
     console.log(`📡 Swarm Pipeline: Dynamic Chain composed of [${pipeline.chain.map(a => a.name).join(' -> ')}]`);
 
     // Yield Nous Hermes-style Cognitive Plan stream chunk immediately to the client
-    yield {
+    /* yield {
       type: 'text',
       content: `\n\n🧠 *[Hermes Agent Cognitive Plan]*\n* **Swarm Execution Route**: ${pipeline.chain.map(a => `\`${a.name}\``).join(' ➔ ')}\n* **Data Integration**: State-of-the-art live grounding + RAG context extraction.\n* **Isolated Execution Strategy**: Enforcing strict, container-sandboxed Python/JS executions.\n\n`,
       timestamp: Date.now()
-    };
+    }; */
 
     // ════ RAG GROUNDING: Pull context from user's indexed documents ════
     let ragGroundingBlock = '';
@@ -901,11 +927,11 @@ Instructions: ${agent.systemInstruction}`;
 
           try {
             // Yield dynamic multi-query deconstruction status update immediately!
-            yield {
+            /* yield {
               type: 'text',
               content: `\n\n🔍 *Deconstructing search strategies for real-time fact compilation...*\n`,
               agentId: agent.id
-            };
+            }; */
 
             const searchTool = new GoogleSearchGroundingTool();
             const searchResult = await searchTool.invoke({ query: finalPrompt, includeAnswer: true });
@@ -914,11 +940,11 @@ Instructions: ${agent.systemInstruction}`;
             const subQueries = searchResult.search_metadata?.webSearchQueries || [];
 
             // Yield sub-queries that were searched
-            yield {
+            /* yield {
               type: 'text',
               content: `*Concurrently queried parallel search streams:*\n${subQueries.map(q => `* ➔ \`"${q}"\``).join('\n')}\n*Consolidated **${citations.length}** highly verified sources. Grounding synthesis streaming now...*\n\n`,
               agentId: agent.id
-            };
+            }; */
 
             const fullOutput = stripPreambles(searchResult.answer || '');
 
@@ -998,7 +1024,7 @@ Instructions: ${agent.systemInstruction}`;
 
               const activeTools = [SAVE_CUSTOM_SKILL_TOOL, ...userTools];
               const modelInstance = genAI.getGenerativeModel({
-                model: agent.model || 'gemini-2.5-flash',
+                model: config.gemini_model || agent.model || 'gemini-3.5-flash',
                 systemInstruction: systemInstruction,
                 tools: [{ functionDeclarations: activeTools }]
               });
@@ -1007,7 +1033,7 @@ Instructions: ${agent.systemInstruction}`;
                 contents,
                 generationConfig: {
                   temperature: isPrimary ? 0.15 : 0.05,
-                  maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+                  maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 1500
                 }
               });
 
@@ -1025,9 +1051,13 @@ Instructions: ${agent.systemInstruction}`;
                   };
                 }
 
-                // Robust check for functionCalls in stream chunk
-                const calls = chunk.functionCalls || (typeof chunk.functionCalls === 'function' ? chunk.functionCalls() : null);
-                if (calls) {
+                let calls = null;
+                if (typeof chunk.functionCalls === 'function') {
+                  calls = chunk.functionCalls();
+                } else if (Array.isArray(chunk.functionCalls)) {
+                  calls = chunk.functionCalls;
+                }
+                if (calls && Array.isArray(calls)) {
                   functionCalls.push(...calls);
                 } else {
                   const parts = chunk.candidates?.[0]?.content?.parts || [];
@@ -1056,11 +1086,11 @@ Instructions: ${agent.systemInstruction}`;
 
                 const responseParts = [];
                 for (const call of functionCalls) {
-                  yield {
+                  /* yield {
                     type: 'text',
                     content: `\n\n⚙️ *Executing skill: ${call.name}...*\n`,
                     agentId: agent.id
-                  };
+                  }; */
 
                   let toolResultText = '';
                   let isError = false;
@@ -1107,21 +1137,21 @@ Instructions: ${agent.systemInstruction}`;
                         error: toolResultText
                       });
 
-                      yield {
+                      /* yield {
                         type: 'text',
                         content: `\n\n⚠️ *Skill execution failed. Retrying with error reflection (Attempt ${attempts}/3)...*\n`,
                         agentId: agent.id
-                      };
+                      }; */
 
                       toolResultText = errorExplanation;
                     }
                   }
 
-                  yield {
+                  /* yield {
                     type: 'text',
                     content: `*Skill Output:* \`\`\`\n${toolResultText}\n\`\`\`\n`,
                     agentId: agent.id
-                  };
+                  }; */
 
                   responseParts.push({
                     functionResponse: {

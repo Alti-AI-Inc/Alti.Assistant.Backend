@@ -3,6 +3,9 @@ name: VM Emergency Restore
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   restore:
     name: Restore Container from Image

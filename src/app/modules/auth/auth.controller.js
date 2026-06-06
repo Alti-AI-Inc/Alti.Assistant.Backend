@@ -22,7 +22,7 @@ const mailgun = new Mailgun(formData);
 
 const register = catchAsync(async (req, res) => {
   const result = await authService.registerService(req);
-  logger.info(result, 'resultttttttttttttttt');
+  logger.info('User registration completed');
   sendResponse(res, {
     statusCode: result.statusCode || httpStatus.OK,
     success: true,
@@ -79,7 +79,7 @@ const login = catchAsync(async (req, res) => {
     invitationToken,
     subdomain
   );
-  logger.info(result, 'resultttttttttttttttt');
+  logger.info('User login completed');
 
   const { refreshToken, ...others } = result;
 
@@ -88,6 +88,7 @@ const login = catchAsync(async (req, res) => {
     secure: config.env === 'production',
     httpOnly: true,
     sameSite: config.env === 'production' ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds — matches JWT refresh expiry
   };
   const invitation = TenantInvitation.findByToken(invitationToken);
   res.cookie('refreshToken', refreshToken, cookieOption);
@@ -108,14 +109,16 @@ const refreshToken = catchAsync(async (req, res) => {
 
   const result = await authService.refreshToken(refreshToken);
 
-  // set refresh token into cookie
+  // Set refresh token cookie with rotation — issue new refresh token
   const cookieOptions = {
     secure: config.env === 'production',
     httpOnly: true,
     sameSite: config.env === 'production' ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
 
-  res.cookie('refreshToken', refreshToken, cookieOptions);
+  // Token rotation: set the NEW refresh token from the result
+  res.cookie('refreshToken', result.newRefreshToken || refreshToken, cookieOptions);
 
   sendResponse(res, {
     statusCode: 200,
@@ -189,7 +192,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).send({ error: 'OTP expired' });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     user.password = hashedPassword;
     user.resetPasswordOTP = undefined;
@@ -254,7 +257,6 @@ const deleteUserAccountOTP = async (req, res, next) => {
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'Fail',
       message: "Couldn't send delete account OTP",
-      error: error.message,
     });
   }
 };
@@ -312,7 +314,6 @@ const deleteUserAccount = async (req, res, next) => {
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'Fail',
       message: "Couldn't delete account",
-      error: error.message,
     });
   }
 };
@@ -362,7 +363,7 @@ const changePassword = async (req, res, next) => {
     }
 
     // Hash the new password
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
 
     // Update the password in the database
     user.password = hashedNewPassword;
@@ -381,7 +382,6 @@ const changePassword = async (req, res, next) => {
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'Fail',
       message: "Couldn't change password",
-      error: error.message,
     });
   }
 };

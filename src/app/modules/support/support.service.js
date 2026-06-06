@@ -20,7 +20,7 @@ const reqForSupportService = async (userId, data) => {
 };
 
 const getAllSupportService = async () => {
-  const result = await Support.find({});
+  const result = await Support.find({}).limit(200);
   // logger.info(result, 'resulttttttt');
   return result;
 };

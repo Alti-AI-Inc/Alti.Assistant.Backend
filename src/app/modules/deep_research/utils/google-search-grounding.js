@@ -353,5 +353,3 @@ export class GoogleSearchGroundingTool extends StructuredTool {
   }
 }
 
-// Backward-compatible export alias
-export const TavilySearchTool = GoogleSearchGroundingTool;

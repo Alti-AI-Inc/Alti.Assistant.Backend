@@ -6,7 +6,7 @@ import { geminiAiRoutes } from '../modules/gemini/gemini.route.js';
 import { llamaAiRoutes } from '../modules/groq/groq.route.js';
 import { subscriptionRoutes } from '../modules/payment/payment.route.js';
 import newSubscriptionRoutes from '../modules/subscription/subscription.routes.js';
-import { tavilyAiRoutes } from '../modules/tavily/tavily.route.js';
+import { googleSearchRoutes } from '../modules/google_search/google-search.route.js';
 import { qwenAiRoutes } from '../modules/qwen/qwen.route.js';
 import { aiModelEndpointRoutes } from '../modules/aiModelServices/aiEndpoint.route.js';
 import { openAIAiRoutes } from '../modules/openAi/openAi.route.js';
@@ -135,8 +135,8 @@ const moduleRoutes = [
     route: llamaAiRoutes,
   },
   {
-    path: '/tavily',
-    route: tavilyAiRoutes,
+    path: '/google-search',
+    route: googleSearchRoutes,
   },
   {
     path: '/gemini',

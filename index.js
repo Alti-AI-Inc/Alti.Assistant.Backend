@@ -12,6 +12,8 @@ import express from 'express';
 import helmet from 'helmet';
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
 import toobusy from 'toobusy-js';
 import requestIdMiddleware from './src/app/middlewares/requestId.js';
 import tenantGuardrail from './src/shared/tenantGuardrail.js';
@@ -40,6 +42,7 @@ import { requestContextStore } from './src/shared/requestContext.js';
 import { dockerWorkspaceService } from './src/app/modules/docker/dockerWorkspace.service.js';
 import { jwtHelpers } from './src/app/helpers/jwtHelpers.js';
 import { initSentry, captureException, flushSentry } from './src/shared/sentry.js';
+import { RedisClient } from './src/shared/redis.js';
 
 // Load environment variables
 dotenv.config();
@@ -77,15 +80,17 @@ const allowedOrigins = [
   'https://www.altihq.com',
 ];
 
-// Always allow local development origins in both development and local production runs
-allowedOrigins.push(
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3001',
-  'http://localhost:8080',
-  'http://127.0.0.1:8080'
-);
+// Only allow localhost origins in non-production environments
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push(
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080'
+  );
+}
 
 
 app.use(
@@ -114,10 +119,17 @@ app.use((req, res, next) => {
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
+
+// NoSQL injection protection — strips $ operators from user input
+app.use(mongoSanitize());
+
+// HTTP Parameter Pollution protection
+app.use(hpp());
+
 app.disable('x-powered-by');
 
-// Enable trust proxy (For Rate-Limit)
-app.set('trust proxy', 'loopback');
+// Enable trust proxy for Cloud Run behind Google's load balancer
+app.set('trust proxy', true);
 
 // Helmet middleware for robust security headers
 app.use(
@@ -145,14 +157,13 @@ app.use(
 );
 app.disable('etag');
 
-// Prevent DOS attacks with toobusy
+// Prevent DOS attacks with toobusy — active in all environments
 app.use((req, res, next) => {
-  // Bypass in production/serverless environments where CPU throttling causes false-positives
-  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_TOOBUSY !== 'true') {
-    return next();
-  }
   if (toobusy()) {
-    res.status(503).send('Server too busy!');
+    res.status(503).json({
+      success: false,
+      message: 'Server is under heavy load. Please try again shortly.',
+    });
   } else {
     next();
   }
@@ -246,6 +257,7 @@ app.get('/health', async (req, res) => {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+    version: process.env.APP_VERSION || 'unknown',
   };
 
   // Check MongoDB
@@ -255,11 +267,52 @@ app.get('/health', async (req, res) => {
     checks.mongodb = 'error';
   }
 
+  // Check Redis
+  try {
+    if (RedisClient.isEnabled) {
+      await RedisClient.set('health:ping', 'pong', { EX: 10 });
+      const pong = await RedisClient.get('health:ping');
+      checks.redis = pong === 'pong' ? 'connected' : 'degraded';
+    } else {
+      checks.redis = 'disabled (in-memory fallback active)';
+    }
+  } catch {
+    checks.redis = 'error';
+  }
+
   const allHealthy = checks.mongodb === 'connected';
   res.status(allHealthy ? 200 : 503).json({
     success: allHealthy,
     message: allHealthy ? 'Service is healthy' : 'Service degraded',
     checks,
+  });
+});
+
+// Liveness probe — is the process alive and accepting connections?
+app.get('/liveness', (req, res) => {
+  res.status(200).json({ status: 'alive', uptime: process.uptime() });
+});
+
+// Readiness probe — is the service ready to accept traffic?
+app.get('/readiness', async (req, res) => {
+  const ready = {
+    mongodb: mongoose.connection.readyState === 1,
+  };
+
+  if (RedisClient.isEnabled) {
+    try {
+      await RedisClient.set('readiness:ping', 'pong', { EX: 5 });
+      ready.redis = true;
+    } catch {
+      ready.redis = false;
+    }
+  }
+
+  const isReady = ready.mongodb; // MongoDB is required, Redis is optional
+  res.status(isReady ? 200 : 503).json({
+    success: isReady,
+    message: isReady ? 'Service is ready' : 'Service is not ready',
+    checks: ready,
   });
 });
 
@@ -294,8 +347,18 @@ const server = app.listen(port, () => {
 });
 
 // Graceful shutdown handlers
+const SHUTDOWN_TIMEOUT_MS = 10000; // Force exit after 10s if graceful shutdown hangs
+
 const gracefulShutdown = async (signal) => {
   logger.info(`Received ${signal}, shutting down gracefully`);
+
+  // Safety net: force exit if graceful shutdown takes too long
+  const forceExitTimer = setTimeout(() => {
+    logger.error('Graceful shutdown timed out, forcing exit');
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExitTimer.unref(); // Don't keep process alive just for this timer
+
   server.close(async () => {
     logger.info('HTTP server closed, draining complete');
     try {
@@ -304,7 +367,14 @@ const gracefulShutdown = async (signal) => {
     } catch (err) {
       logger.error('Error closing MongoDB connection:', err);
     }
+    try {
+      await RedisClient.disconnect();
+      logger.info('Redis connections closed');
+    } catch (err) {
+      logger.error('Error closing Redis connections:', err);
+    }
     await flushSentry();
+    clearTimeout(forceExitTimer);
     process.exit(0);
   });
 };
@@ -321,7 +391,7 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled Rejection:', reason);
   captureException(reason, { type: 'unhandledRejection' });
-  flushSentry().finally(() => process.exit(1));
+  // Log but don't exit — unhandled rejections shouldn't crash the server
 });
 
 export default app;

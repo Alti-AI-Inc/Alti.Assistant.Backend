@@ -23,10 +23,11 @@ export default {
   google_engine_id: process.env.GOOGLE_CSE_ID,
   jwt: {
     access_token: process.env.JWT_ACCESS_TOKEN,
-    access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN || '3650d',
+    access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
     refresh_token: process.env.JWT_REFRESH_REFRESH_TOKEN,
-    refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN || '36500d',
+    refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
+  superAdminEmail: process.env.SUPER_ADMIN_EMAIL || 'admin@altihq.com',
   email: process.env.email,
   password: process.env.password,
   client_id: process.env.CLIENT_ID,
@@ -69,7 +70,7 @@ export default {
   tavily_api_key: process.env.TAVILY_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   serper_api_key: process.env.SERPER_API_KEY, // DEPRECATED: Migrated to Google Search Grounding
   gemini_secret_key: process.env.GEMINI_API_KEY,
-  gemini_model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  gemini_model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
   gemini_pro_model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
   realestate_api_key: process.env.REALESTATE_API_KEY,
   azure: {

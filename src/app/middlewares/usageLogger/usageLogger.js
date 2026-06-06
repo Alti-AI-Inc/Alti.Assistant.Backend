@@ -1,5 +1,13 @@
 import { usageLogService } from '../../modules/usage/usageLog.service.js';
 import { logger } from '../../../shared/logger.js';
+import crypto from 'crypto';
+
+// GDPR: Hash IP addresses before storage to prevent raw PII logging
+const IP_HASH_SALT = process.env.IP_HASH_SALT || 'alti-ip-hash-salt';
+const hashIp = (ip) => {
+  if (!ip) return null;
+  return crypto.createHash('sha256').update(`${IP_HASH_SALT}:${ip}`).digest('hex').substring(0, 16);
+};
 
 /**
  * Usage Logging Middleware
@@ -61,12 +69,13 @@ const usageLogger = (req, res, next) => {
       const method = req.method;
       const statusCode = res.statusCode;
 
-      // Get IP and User Agent
-      const ipAddress =
+      // Get IP and User Agent (hashed for GDPR compliance)
+      const rawIp =
         req.ip ||
         req.connection.remoteAddress ||
         req.headers['x-forwarded-for'];
-      const userAgent = req.headers['user-agent'];
+      const ipAddress = hashIp(rawIp);
+      const userAgent = (req.headers['user-agent'] || '').substring(0, 100); // Truncate UA
 
       // Calculate request/response sizes
       const inputSize = req.headers['content-length']

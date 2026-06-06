@@ -34,8 +34,7 @@ services:
         condition: service_healthy
       kibana:
         condition: service_started
-      rabbitmq:
-        condition: service_started
+
 
   elasticsearch:
     image: elasticsearch:8.18.1
@@ -67,7 +66,7 @@ services:
       - alti-network
 
   redis-stack:
-    image: redis/redis-stack:latest
+    image: redis/redis-stack:7.4.0-v3
     container_name: redis-stack
     ports:
       - '6379:6379'
@@ -79,22 +78,10 @@ services:
     networks:
       - alti-network
 
-  rabbitmq:
-    image: rabbitmq:3.8-management
-    container_name: rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: password
-    ports:
-      - '5672:5672'
-      - '15672:15672'
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - alti-network
+
 
   mongodb:
-    image: mongo:latest
+    image: mongo:7.0
     container_name: mongodb
     ports:
       - '27017:27017'
@@ -110,8 +97,8 @@ services:
     environment:
       ME_CONFIG_MONGODB_SERVER: mongodb
       ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: password
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_BASIC_AUTH_USERNAME:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_BASIC_AUTH_PASSWORD:-changeme}
     ports:
       - '8081:8081'
     networks:
@@ -123,8 +110,8 @@ services:
     image: postgres:latest
     container_name: postgresql
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: alti_db
     ports:
       - '5432:5432'
@@ -137,8 +124,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: anikh499@gmail.com
-      PGADMIN_DEFAULT_PASSWORD: password
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-changeme}
     ports:
       - '5050:80'
     networks:
@@ -154,5 +141,4 @@ volumes:
   mongodb_data:
   postgres_data:
   redis_data:
-  rabbitmq_data:
 # end

@@ -1,3 +1,4 @@
+import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import paginationHelpers from '../../helpers/paginationHelpers.js';
 import UserModel from '../auth/auth.model.js';
@@ -127,7 +128,8 @@ const deleteUserService = async (objectId) => {
 
 const getAdminServices = async (email) => {
   const emailLower = email ? email.toLowerCase() : '';
-  if (emailLower === 'admin@altihq.com') {
+  const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+  if (superAdminEmail && emailLower === superAdminEmail) {
     return true;
   }
   const admin = await UserModel.findOne({ email: email });

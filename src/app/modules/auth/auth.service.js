@@ -35,7 +35,7 @@ const registerService = async (req) => {
     }
 
     if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 12);
 
       const userData = { email, password: hashedPassword };
 
@@ -346,7 +346,8 @@ const confirmEmailService = async (confirmationCode) => {
   }
 
   const emailLower = user.email ? user.email.toLowerCase() : '';
-  if (emailLower === 'admin@altihq.com') {
+  const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+  if (superAdminEmail && emailLower === superAdminEmail) {
     user.role = 'super_admin';
   } else if (!user.tenantId) {
     user.role = 'admin';
@@ -640,7 +641,8 @@ const loginService = async (
   }));
 
   const userEmail = user.email ? user.email.toLowerCase() : '';
-  const resolvedRole = userEmail === 'admin@altihq.com' ? 'super_admin' : user.role;
+  const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+  const resolvedRole = (superAdminEmail && userEmail === superAdminEmail) ? 'super_admin' : user.role;
 
   // Include tenants in JWT token payload
   const tokenPayload = {
@@ -707,21 +709,34 @@ const refreshToken = async (token) => {
   }));
 
   const userEmail = user.email ? user.email.toLowerCase() : '';
-  const resolvedRole = userEmail === 'admin@altihq.com' ? 'super_admin' : user.role;
+  const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+  const resolvedRole = (superAdminEmail && userEmail === superAdminEmail) ? 'super_admin' : user.role;
 
-  //generate new token;
+  // Token payload for both access and refresh tokens
+  const tokenPayload = {
+    _id: user._id,
+    id: user._id,
+    role: resolvedRole,
+    tenants: tenantIds,
+  };
+
+  // Generate new access token
   const newAccessToken = jwtHelpers.createToken(
-    {
-      _id: user._id,
-      id: user._id,
-      role: resolvedRole,
-      tenants: tenantIds,
-    },
+    tokenPayload,
     config.jwt.access_token,
     config.jwt.access_expires_in
   );
+
+  // Token rotation: generate a NEW refresh token and invalidate the old one
+  const newRefreshToken = jwtHelpers.createToken(
+    tokenPayload,
+    config.jwt.refresh_token,
+    config.jwt.refresh_expires_in
+  );
+
   return {
     accessToken: newAccessToken,
+    newRefreshToken,
     tenants: tenantIds,
   };
 };
@@ -741,7 +756,7 @@ const updateUserService = async (userId, data) => {
 
   // Update the data
   const result = await UserModel.updateOne({ _id: userId }, updateData);
-  logger.info(result, 'result');
+  logger.info('User profile updated');
   return result;
 };
 

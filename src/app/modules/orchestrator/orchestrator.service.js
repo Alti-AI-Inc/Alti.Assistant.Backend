@@ -14,7 +14,7 @@ import { captureException } from '../../../shared/sentry.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Read model from env or default to gemini-2.5-flash (the current valid model)
-const CLASSIFIER_MODEL = process.env.GEMINI_CLASSIFIER_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const CLASSIFIER_MODEL = process.env.GEMINI_CLASSIFIER_MODEL || process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
 
@@ -476,7 +476,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
         }
         
         const assistantMetadata = {
-          reference: finalResponse.reference || finalResponse.citations || [],
+          reference: [],
           webSearchQueries: finalResponse.webSearchQueries || [],
           searchEntryPoint: finalResponse.searchEntryPoint || null,
           relatedQuestions: finalResponse.relatedQuestions || [],
@@ -537,7 +537,7 @@ const classifyAndDispatch = async (prompt, sessionId, userId, conversationId) =>
       reply: finalResponse.reply,
       responseMessage: { 
         answer: finalResponse.reply,
-        reference: finalResponse.reference || finalResponse.citations || []
+        reference: []
       },
       classification: {
         source: classificationSource,

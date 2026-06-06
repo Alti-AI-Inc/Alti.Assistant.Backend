@@ -21,17 +21,44 @@ if (!redisEnabled) {
 }
 
 // ── High-performance in-memory fallback cache store ─────────────────────────
+const MAX_MEMORY_STORE_SIZE = 5000; // Prevent unbounded memory growth
 const memoryStore = new Map();
+
+// LRU-style eviction: remove oldest entries when max size exceeded
+const memoryStoreSet = (key, value) => {
+  if (memoryStore.size >= MAX_MEMORY_STORE_SIZE && !memoryStore.has(key)) {
+    // Delete the first (oldest) entry
+    const firstKey = memoryStore.keys().next().value;
+    memoryStore.delete(firstKey);
+  }
+  memoryStore.set(key, value);
+};
 
 let redisClient, redisPubClient, redisSubClient;
 
-if (redisEnabled) {
-  redisClient    = createClient({ url: rawRedisUrl });
-  redisPubClient = createClient({ url: rawRedisUrl });
-  redisSubClient = createClient({ url: rawRedisUrl });
+// Reconnection strategy with exponential backoff
+const socketOptions = {
+  reconnectStrategy: (retries) => {
+    if (retries > 10) {
+      logger.error('Redis: Max reconnection attempts (10) reached. Giving up.');
+      return new Error('Redis max retries reached');
+    }
+    const delay = Math.min(retries * 1000, 30000); // Max 30s between retries
+    logger.warn(`Redis: Reconnecting in ${delay}ms (attempt ${retries}/10)`);
+    return delay;
+  },
+};
 
-  redisClient.on('error',   (err) => logger.error('RedisError', err));
-  redisClient.on('connect', ()    => logger.info('Redis Connected'));
+if (redisEnabled) {
+  redisClient    = createClient({ url: rawRedisUrl, socket: socketOptions });
+  redisPubClient = createClient({ url: rawRedisUrl, socket: socketOptions });
+  redisSubClient = createClient({ url: rawRedisUrl, socket: socketOptions });
+
+  redisClient.on('error',        (err) => logger.error('Redis client error:', err.message));
+  redisClient.on('connect',      ()    => logger.info('Redis: Connected'));
+  redisClient.on('reconnecting', ()    => logger.warn('Redis: Reconnecting...'));
+  redisClient.on('ready',        ()    => logger.info('Redis: Ready to accept commands'));
+  redisClient.on('end',          ()    => logger.warn('Redis: Connection closed'));
 }
 
 const connect = async () => {
@@ -54,7 +81,7 @@ const set = async (key, value, options) => {
   if (options && options.EX) {
     expiry = Date.now() + options.EX * 1000;
   }
-  memoryStore.set(key, { value, expiry });
+  memoryStoreSet(key, { value, expiry });
 };
 
 const get = async (key) => {
@@ -124,7 +151,7 @@ const mset = async (keyValuePairs, ttlSecs) => {
   }
   const expiry = ttlSecs ? Date.now() + ttlSecs * 1000 : null;
   for (const [key, value] of keyValuePairs) {
-    memoryStore.set(key, { value, expiry });
+    memoryStoreSet(key, { value, expiry });
   }
 };
 
@@ -139,7 +166,7 @@ const lpush = async (key, value) => {
   const entry = memoryStore.get(key) || { value: [] };
   const arr = Array.isArray(entry.value) ? entry.value : [];
   arr.unshift(value);
-  memoryStore.set(key, { value: arr, expiry: entry.expiry });
+  memoryStoreSet(key, { value: arr, expiry: entry.expiry });
   return arr.length;
 };
 
@@ -154,7 +181,7 @@ const ltrim = async (key, start, stop) => {
   const entry = memoryStore.get(key);
   if (!entry || !Array.isArray(entry.value)) return;
   const arr = entry.value.slice(start, stop === -1 ? undefined : stop + 1);
-  memoryStore.set(key, { value: arr, expiry: entry.expiry });
+  memoryStoreSet(key, { value: arr, expiry: entry.expiry });
 };
 
 const lrange = async (key, start, stop) => {
@@ -186,7 +213,7 @@ const expire = async (key, seconds) => {
   const entry = memoryStore.get(key);
   if (entry) {
     entry.expiry = Date.now() + seconds * 1000;
-    memoryStore.set(key, entry);
+    memoryStoreSet(key, entry);
   }
 };
 
