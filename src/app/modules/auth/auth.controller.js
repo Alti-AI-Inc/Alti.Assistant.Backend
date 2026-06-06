@@ -1,7 +1,5 @@
 import bcrypt from 'bcryptjs';
-import formData from 'form-data';
 import httpStatus from 'http-status';
-import Mailgun from 'mailgun.js';
 import mongoose from 'mongoose';
 import config from '../../../../config/index.js';
 import ApiError from '../../../errors/ApiError.js';
@@ -17,8 +15,6 @@ import {
   generateOTP,
 } from './auth.utils.js';
 import TenantInvitation from '../tenant/tenantInvitation.model.js';
-
-const mailgun = new Mailgun(formData);
 
 const register = catchAsync(async (req, res) => {
   const result = await authService.registerService(req);
@@ -418,28 +414,18 @@ const updateUser = catchAsync(async (req, res) => {
   });
 });
 
-const mg = mailgun.client({
-  username: 'api',
-  key: `${config.mailgun?.mailgun_key}`,
-});
-
 const sendMailWithMailGunController = async (req, res) => {
   try {
-    const result = await mg.messages.create(config.mailgun?.mailgun_domain, {
-      from: config.mailgun?.mailgun_from,
-      to: [
-        'anikh499@gmail.com',
-        'anik561460@gmail.com',
-        'rana286090@gmail.com ',
-      ],
-      subject: 'Verify Email',
-      // text: 'Testing some Mailgun awesomeness!',
-      html: '<h1>Testing some Mailgun awesomeness!</h1>',
+    const result = await sendMailWithMailGun({
+      sub: 'Verify Email',
+      message: '<h1>Testing some Google SMTP NodeMailer awesomeness!</h1>',
+      userEmail: 'anikh499@gmail.com',
     });
     res.status(201).send(result);
     logger.info(result); // logs response data
   } catch (error) {
     logger.error(error); // logs any error
+    res.status(500).send({ error: error.message });
   }
 };
 

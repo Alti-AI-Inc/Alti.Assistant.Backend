@@ -1,37 +1,6 @@
-import formData from 'form-data';
-import Mailgun from 'mailgun.js';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
-
 import nodemailer from 'nodemailer';
-const mailgun = new Mailgun(formData);
-
-const mg = mailgun.client({
-  username: 'api',
-  key: `${config.mailgun?.mailgun_key}`,
-});
-
-export const sendMailWithMailGun = async (mailData) => {
-  const { sub, message, userEmail } = mailData;
-
-  return new Promise((resolve, reject) => {
-    mg.messages
-      .create(config.mailgun?.mailgun_domain, {
-        from: config.mailgun?.mailgun_from,
-        to: userEmail,
-        subject: sub,
-        html: message,
-      })
-      .then((msg) => {
-        logger.info(msg); // logs response data
-        resolve(msg);
-      })
-      .catch((err) => {
-        console.error(err); // logs any error
-        reject(err);
-      });
-  });
-};
 
 export const sendMailWithNodeMailer = async (mailData) => {
   const { sub, message, userEmail } = mailData;
@@ -56,4 +25,9 @@ export const sendMailWithNodeMailer = async (mailData) => {
   });
   logger.info('Message sent: %s', info.messageId);
   return info;
+};
+
+export const sendMailWithMailGun = async (mailData) => {
+  logger.info('Redirecting Mailgun email request to Google SMTP NodeMailer exclusively.');
+  return sendMailWithNodeMailer(mailData);
 };

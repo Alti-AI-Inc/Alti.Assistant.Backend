@@ -196,36 +196,6 @@ const transcribeAudioToTextService = async (audioPath) => {
     } catch (geminiError) {
       console.error('❌ Google Gemini transcription fallback failed:', geminiError.message);
 
-      // --- STEP 3: Self-Hosted open-source Whisper Fallback ---
-      const selfHostedWhisperUrl = process.env.SELF_HOSTED_WHISPER_URL || config.self_hosted_whisper_url;
-      if (selfHostedWhisperUrl) {
-        console.log(`🔄 Attempting fallback to self-hosted Whisper at: ${selfHostedWhisperUrl}...`);
-        try {
-          const audioBuffer = fs.readFileSync(audioPath);
-          const mimeType = getMimeType(audioPath);
-
-          const fileBlob = new Blob([audioBuffer], { type: mimeType });
-          const formData = new FormData();
-          formData.append('file', fileBlob, path.basename(audioPath));
-          formData.append('model', 'whisper-1');
-
-          const response = await fetch(selfHostedWhisperUrl, {
-            method: 'POST',
-            body: formData,
-          });
-
-          const responseData = await response.json();
-          if (response.ok && responseData.text) {
-            console.log('🟢 Self-hosted Whisper transcription succeeded!');
-            return responseData.text;
-          } else {
-            console.error('❌ Self-hosted Whisper fallback failed:', responseData.error?.message || responseData);
-          }
-        } catch (whisperError) {
-          console.error('❌ Self-hosted Whisper fallback error:', whisperError.message);
-        }
-      }
-
       throw new Error(`All transcription services failed. Google Cloud STT: ${gcpError.message}. Google Gemini: ${geminiError.message}`);
     }
   }

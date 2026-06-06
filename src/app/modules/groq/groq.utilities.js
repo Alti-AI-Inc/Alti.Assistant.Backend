@@ -1,21 +1,16 @@
-import axios from 'axios';
-import config from '../../../../config/index.js';
+import { GoogleSearchGroundingTool } from '../deep_research/utils/google-search-grounding.js';
 
 export const fetchSearchResults = async (query) => {
   try {
-    const response = await axios.post(
-      'https://google.serper.dev/search',
-      { q: query },
-      {
-        headers: {
-          'X-API-KEY': config.serper_api_key,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    return response.data?.organic?.slice(0, 3) || []; // Limit to top 3 results
+    const searchTool = new GoogleSearchGroundingTool({ maxResults: 3 });
+    const response = await searchTool.invoke({ query, includeAnswer: false });
+    return (response.results || []).map(r => ({
+      title: r.title,
+      link: r.url,
+      snippet: r.content
+    }));
   } catch (error) {
-    console.error('Serper API Error:', error.message);
+    console.error('Google Search Grounding Error in Groq utility:', error.message);
     return [];
   }
 };
