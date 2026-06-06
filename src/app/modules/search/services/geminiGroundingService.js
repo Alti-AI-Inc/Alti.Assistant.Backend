@@ -91,6 +91,66 @@ import {
   classifyFormalVerificationQuery,
 } from './queryClassifier.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
+
+/**
+ * Safely sanitizes and formats conversation history + final prompt into alternating Gemini-compatible role format.
+ */
+const formatGeminiContents = (conversationHistory, finalPrompt) => {
+  const messages = [];
+
+  // 1. Sanitize history
+  if (Array.isArray(conversationHistory)) {
+    for (const msg of conversationHistory) {
+      if (!msg) continue;
+      const role = msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user';
+      let text = '';
+      if (typeof msg.content === 'string') {
+        text = msg.content.trim();
+      } else if (msg.content && Array.isArray(msg.content)) {
+        text = msg.content
+          .map(part => (typeof part === 'string' ? part : part.text || ''))
+          .join('\n')
+          .trim();
+      }
+      
+      if (!text) continue; // skip empty messages
+
+      messages.push({ role, text });
+    }
+  }
+
+  // 2. Append final prompt
+  if (typeof finalPrompt === 'string' && finalPrompt.trim()) {
+    messages.push({ role: 'user', text: finalPrompt.trim() });
+  }
+
+  if (messages.length === 0) {
+    return [{ role: 'user', parts: [{ text: 'Hello' }] }];
+  }
+
+  // 3. Ensure alternating roles by merging consecutive messages of the same role
+  const finalized = [];
+  for (const msg of messages) {
+    if (finalized.length === 0) {
+      if (msg.role === 'user') {
+        finalized.push({ role: 'user', parts: [{ text: msg.text }] });
+      }
+    } else {
+      const lastMsg = finalized[finalized.length - 1];
+      if (lastMsg.role === msg.role) {
+        lastMsg.parts[0].text += '\n\n' + msg.text;
+      } else {
+        finalized.push({ role: msg.role, parts: [{ text: msg.text }] });
+      }
+    }
+  }
+
+  if (finalized.length === 0) {
+    return [{ role: 'user', parts: [{ text: finalPrompt || 'Hello' }] }];
+  }
+
+  return finalized;
+};
 /**
  * Gemini Grounding Service with Native Google Search
  * Uses Google's built-in grounding for simpler, more reliable search
@@ -819,17 +879,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         }
       }
 
-      // Build contents with proper format for Google GenAI
-      const contents = [
-        ...processedHistory.map((msg) => ({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }],
-        })),
-        {
-          role: 'user',
-          parts: [{ text: finalQuery }],
-        },
-      ];
+      const contents = formatGeminiContents(processedHistory, finalQuery);
 
       const stream = await ai.models.generateContentStream({
         model: 'gemini-2.5-flash',
@@ -1485,17 +1535,7 @@ INSTRUCTIONS FOR HARNESSING THESE BLUEPRINTS:
         }
       }
 
-      // Build contents with proper format for Google GenAI
-      const contents = [
-        ...processedHistory.map((msg) => ({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }],
-        })),
-        {
-          role: 'user',
-          parts: [{ text: finalQuery }],
-        },
-      ];
+      const contents = formatGeminiContents(processedHistory, finalQuery);
       console.log(`📄 Total messages sent: ${JSON.stringify(contents)}`);
 
       const result = await ai.models.generateContent({
@@ -1680,17 +1720,7 @@ export async function executeGroundedSearchWithModel(
     console.log(`💹 [executeGroundedSearchWithModel] Massive financial data injected for: "${query.substring(0, 60)}..."`);
   }
 
-  // Build contents with proper format for Google GenAI
-  const contents = [
-    ...conversationHistory.map((msg) => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }],
-    })),
-    {
-      role: 'user',
-      parts: [{ text: enhancedQuery }],
-    },
-  ];
+  const contents = formatGeminiContents(conversationHistory, enhancedQuery);
 
   try {
     const result = await ai.models.generateContent({

@@ -23,6 +23,66 @@ import { VOICE_OF_THE_SPIRIT } from '../../shared/spirit.prompt.js';
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
+/**
+ * Safely sanitizes and formats conversation history + final prompt into alternating Gemini-compatible role format.
+ */
+const formatGeminiContents = (conversationHistory, finalPrompt) => {
+  const messages = [];
+
+  // 1. Sanitize history
+  if (Array.isArray(conversationHistory)) {
+    for (const msg of conversationHistory) {
+      if (!msg) continue;
+      const role = msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user';
+      let text = '';
+      if (typeof msg.content === 'string') {
+        text = msg.content.trim();
+      } else if (msg.content && Array.isArray(msg.content)) {
+        text = msg.content
+          .map(part => (typeof part === 'string' ? part : part.text || ''))
+          .join('\n')
+          .trim();
+      }
+      
+      if (!text) continue; // skip empty messages
+
+      messages.push({ role, text });
+    }
+  }
+
+  // 2. Append final prompt
+  if (typeof finalPrompt === 'string' && finalPrompt.trim()) {
+    messages.push({ role: 'user', text: finalPrompt.trim() });
+  }
+
+  if (messages.length === 0) {
+    return [{ role: 'user', parts: [{ text: 'Hello' }] }];
+  }
+
+  // 3. Ensure alternating roles by merging consecutive messages of the same role
+  const finalized = [];
+  for (const msg of messages) {
+    if (finalized.length === 0) {
+      if (msg.role === 'user') {
+        finalized.push({ role: 'user', parts: [{ text: msg.text }] });
+      }
+    } else {
+      const lastMsg = finalized[finalized.length - 1];
+      if (lastMsg.role === msg.role) {
+        lastMsg.parts[0].text += '\n\n' + msg.text;
+      } else {
+        finalized.push({ role: msg.role, parts: [{ text: msg.text }] });
+      }
+    }
+  }
+
+  if (finalized.length === 0) {
+    return [{ role: 'user', parts: [{ text: finalPrompt || 'Hello' }] }];
+  }
+
+  return finalized;
+};
+
 // Core dynamic self-evolution tool schema (Hermes style tool creation)
 const SAVE_CUSTOM_SKILL_TOOL = {
   name: 'save_custom_skill',
@@ -567,16 +627,7 @@ Instructions: ${agent.systemInstruction}`;
       // ═══ STANDARD PATH (no web search needed, or grounding failed) ═══
       let text = '';
       try {
-        const contents = [
-          ...conversationHistory.map(msg => ({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-          })),
-          {
-            role: 'user',
-            parts: [{ text: finalPrompt }]
-          }
-        ];
+        const contents = formatGeminiContents(conversationHistory, finalPrompt);
 
         let maxToolCallingIterations = 5;
         let currentIteration = 0;
@@ -1003,16 +1054,7 @@ Instructions: ${agent.systemInstruction}`;
           // ═══ STANDARD STREAMING PATH ═══
           let agentTextAccumulator = '';
           try {
-            const contents = [
-              ...conversationHistory.map(msg => ({
-                role: msg.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: msg.content }]
-              })),
-              {
-                role: 'user',
-                parts: [{ text: finalPrompt }]
-              }
-            ];
+            const contents = formatGeminiContents(conversationHistory, finalPrompt);
 
             let maxToolCallingIterations = 5;
             let currentIteration = 0;
