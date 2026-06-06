@@ -1,6 +1,7 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { AzureChatOpenAI } from '@langchain/openai';
-import { ChatBedrockConverse } from '@langchain/aws';
+// Deprecated: Multi-cloud model imports are disabled for Google Cloud exclusivity.
+// import { AzureChatOpenAI } from '@langchain/openai';
+// import { ChatBedrockConverse } from '@langchain/aws';
 import config from '../../../../../config/index.js';
 import { googleSearch, YouTubeSearchTool } from '../tools.js';
 import {
@@ -108,9 +109,9 @@ const gcpPro = new ChatGoogleGenerativeAI({
   callbacks: createBillingCallback('gcp'),
 });
 
-// 2. Azure and AWS model caches
-let azureModel = null;
-let awsModel = null;
+// 2. Azure and AWS model caches are deprecated.
+const azureModel = null;
+const awsModel = null;
 
 /**
  * Resolves the active provider model instance based on configuration and requested complexity.
@@ -126,55 +127,11 @@ function resolveActiveModelInstance(complexity = 'simple') {
   const provider = (config.llmProvider || 'gcp').toLowerCase();
   const primaryGcp = complexity === 'complex' ? gcpPro : gcpFlash;
   
-  if (provider === 'azure') {
-    if (!azureModel && config.azure && config.azure.apiKey && config.azure.endpoint) {
-      try {
-        azureModel = new AzureChatOpenAI({
-          azureOpenAIApiKey: config.azure.apiKey,
-          azureOpenAIApiInstanceName: new URL(config.azure.endpoint).hostname.split('.')[0],
-          azureOpenAIApiDeploymentName: config.azure.deploymentOrModel,
-          azureOpenAIApiVersion: config.azure.apiVersion,
-          temperature: 0,
-          maxRetries: 2,
-          callbacks: createBillingCallback('azure'),
-        });
-        console.log(`☁️ Azure OpenAI / Foundry model instantiated: "${config.azure.deploymentOrModel}"`);
-      } catch (err) {
-        console.error('⚠️ Failed to instantiate Azure OpenAI model:', err.message);
-      }
-    }
-    if (azureModel) {
-      console.log('🔗 Configuring Azure OpenAI model with auto-failback to GCP');
-      return azureModel.withFallbacks([primaryGcp]);
-    }
+  if (provider !== 'gcp') {
+    console.warn(`☁️ [Multi-Cloud Deprecation] Non-GCP provider "${provider}" configuration bypassed. Exclusively routing model execution to Google Cloud (Gemini).`);
   }
   
-  if (provider === 'aws') {
-    if (!awsModel && config.aws && config.aws.accessKeyId && config.aws.secretAccessKey) {
-      try {
-        awsModel = new ChatBedrockConverse({
-          region: config.aws.region,
-          credentials: {
-            accessKeyId: config.aws.accessKeyId,
-            secretAccessKey: config.aws.secretAccessKey,
-          },
-          model: config.aws.modelId,
-          temperature: 0,
-          maxRetries: 2,
-          callbacks: createBillingCallback('aws'),
-        });
-        console.log(`☁️ AWS Bedrock model instantiated: "${config.aws.modelId}"`);
-      } catch (err) {
-        console.error('⚠️ Failed to instantiate AWS Bedrock model:', err.message);
-      }
-    }
-    if (awsModel) {
-      console.log('🔗 Configuring AWS Bedrock model with auto-failback to GCP');
-      return awsModel.withFallbacks([primaryGcp]);
-    }
-  }
-  
-  // Default and fallback: Google Cloud Platform (Gemini)
+  // Exclusively return Google Cloud Platform (Gemini)
   return primaryGcp;
 }
 

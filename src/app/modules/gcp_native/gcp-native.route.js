@@ -292,11 +292,23 @@ router.post(
   GcpNativeController.observabilityReportError
 );
 
+router.post(
+  '/security/recaptcha-verify',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.securityRecaptchaVerify
+);
+
 // ── Phase 7: Advanced Search & Knowledge Intelligence ───────────────────────
 router.post(
   '/search/advanced',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   GcpNativeController.searchAdvanced
+);
+
+router.post(
+  '/search/knowledge-graph',
+  auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
+  GcpNativeController.searchKnowledgeGraph
 );
 
 // ── Phase 8: Distributed Tasks, Security & Design Intelligence ──────────────

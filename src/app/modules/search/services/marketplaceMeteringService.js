@@ -190,34 +190,8 @@ export async function processSingleOutboxRecord(record) {
     const { tenantId, marketplaceSource, payload } = record;
     const source = (marketplaceSource || '').toLowerCase();
     
-    if (source === 'aws_marketplace') {
-      // ----------------------------------------------------
-      // AWS Marketplace: batchMeterUsage API Integration
-      // ----------------------------------------------------
-      console.log(`🎯 [Billing Outbox] [${record._id}] Executing AWS Marketplace "batchMeterUsage" call...`);
-      console.log('📦 AWS SDK Payload:', JSON.stringify({
-        UsageRecords: payload.usage.map(u => ({
-          Dimension: u.dimension,
-          Quantity: u.quantity,
-          Timestamp: payload.timestamp,
-          CustomerIdentifier: tenantId
-        })),
-        ProductCode: 'alti-enterprise-assistant'
-      }, null, 2));
-      console.log(`✅ [Billing Outbox] [${record._id}] AWS batchMeterUsage accepted successfully.`);
-    } else if (source === 'azure_marketplace') {
-      // ----------------------------------------------------
-      // Azure Marketplace: SaaS Billing Usage API
-      // ----------------------------------------------------
-      console.log(`🎯 [Billing Outbox] [${record._id}] Executing Azure SaaS Marketplace Metered Usage call...`);
-      console.log('📦 Azure API Payload:', JSON.stringify({
-        resourceId: `azure-saas-subscription-${tenantId}`,
-        quantity: payload.usage.reduce((sum, u) => u.dimension !== 'web_searches' ? sum + u.quantity : sum, 0),
-        dimension: 'tokens_consumed',
-        effectiveStartTime: payload.timestamp,
-        planId: 'alti-enterprise-gold'
-      }, null, 2));
-      console.log(`✅ [Billing Outbox] [${record._id}] Azure Metered Usage accepted successfully.`);
+    if (source === 'aws_marketplace' || source === 'azure_marketplace') {
+      throw new Error(`CloudMarketplaceExclusivityError: Billing reporting to "${marketplaceSource}" is deprecated. Alti Assistant runs exclusively on Google Cloud. Please route billing records via "gcp_marketplace".`);
     } else if (source === 'gcp_marketplace') {
       // ----------------------------------------------------
       // GCP Marketplace: Partner Procurement Service
