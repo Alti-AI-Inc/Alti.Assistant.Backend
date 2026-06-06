@@ -103,13 +103,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       { requireSearch }
     )) {
       if (chunk.type === 'agent_start') {
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'thinking',
-            content: `[Recruiting Swarm Specialist: ${chunk.agent.name}...]\n`,
-            timestamp: Date.now(),
-          })}\n\n`
-        );
+        // Silent - don't send agent routing details to the user
       } else if (chunk.type === 'text') {
         fullText += chunk.content;
         res.write(

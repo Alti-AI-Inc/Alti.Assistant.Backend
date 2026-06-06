@@ -14,7 +14,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { askQuery } from '../llamaindex/llamaindex.indexer.js';
 import { executeAgenticRAG } from '../llamaindex/langgraph/ragAgentGraph.js';
-import { GoogleSearchGroundingTool } from '../deep_research/utils/tavily-utils.js';
+import { GoogleSearchGroundingTool } from '../deep_research/utils/google-search-grounding.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dynamicSkillService } from './dynamicSkill.service.js';
 import { logger } from '../../../shared/logger.js';
@@ -188,16 +188,26 @@ Answer summary: ${responseText.substring(0, 500)}`,
 const stripPreambles = (text) => {
   if (!text) return text;
   // Remove common AI preambles
-  return text
+  let cleaned = text
     .replace(/^(Great question!|Sure!|Absolutely!|Of course!|I'd be happy to help!|Let me help you with that\.|Here's what I found:?|Based on my (research|analysis|search):?)\s*/i, '')
     .replace(/^(Certainly!|Indeed!|That's a great question!|I can help with that!|Let me explain\.?)\s*/i, '')
+    .replace(/^(Here's a|Here is a|Here are|Below is|The following)\s+(comprehensive|detailed|brief|quick|thorough)\s+(overview|summary|breakdown|analysis|look|explanation):?\s*/i, '')
     .trim();
+  // Remove closing filler
+  cleaned = cleaned
+    .replace(/\n+(Let me know if you('d like| need| want)|Feel free to|Hope this helps|I hope this|Don't hesitate to|Happy to help|If you have any (other |more |further )?questions).*/is, '')
+    .trim();
+  // Remove leading markdown headers if they just restate the question
+  cleaned = cleaned
+    .replace(/^#{1,3}\s+.{0,80}\n+/m, '')
+    .trim();
+  return cleaned;
 };
 
 /**
  * Calls Azure AI Foundry (or Azure OpenAI) as a fallback if Gemini fails.
  */
-const queryAzureFoundryFallback = async (systemInstruction, conversationHistory, finalPrompt, temperature = 0.15, maxTokens = 4000) => {
+const queryAzureFoundryFallback = async (systemInstruction, conversationHistory, finalPrompt, temperature = 0.15, maxTokens = 1500) => {
   try {
     if (!config.azure.endpoint || !config.azure.apiKey) {
       throw new Error('Azure AI Foundry endpoint or key is not configured.');
@@ -571,7 +581,7 @@ Instructions: ${agent.systemInstruction}`;
             contents,
             generationConfig: {
               temperature: isPrimary ? 0.15 : 0.05,
-              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+              maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 1500
             }
           });
 
@@ -1007,7 +1017,7 @@ Instructions: ${agent.systemInstruction}`;
                 contents,
                 generationConfig: {
                   temperature: isPrimary ? 0.15 : 0.05,
-                  maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 4000
+                  maxOutputTokens: isExploriumAgent(agent.id) ? 6000 : 1500
                 }
               });
 

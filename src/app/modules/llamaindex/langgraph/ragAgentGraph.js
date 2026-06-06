@@ -2,7 +2,7 @@ import { StateGraph, END, START } from '@langchain/langgraph';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { askQuery } from '../llamaindex.indexer.js';
-import { GoogleSearchGroundingTool } from '../../deep_research/utils/tavily-utils.js';
+import { GoogleSearchGroundingTool } from '../../deep_research/utils/google-search-grounding.js';
 import { langsmithMiddleware } from './langsmithMiddleware.js';
 import { logger } from '../../../../shared/logger.js';
 import config from '../../../../../config/index.js';

@@ -1,5 +1,5 @@
 import { runGeminiResearchTask } from '../services/geminiResearchService.js';
-import { TavilySearchTool } from '../utils/tavily-utils.js';
+import { GoogleSearchGroundingTool } from '../utils/google-search-grounding.js';
 import { generatePDFReport, savePDFToFile } from '../services/pdfService.js';
 import { saveResearchResult } from '../services/researchStorageService.js';
 import { emitTelemetryProgress } from '../services/telemetryService.js';
@@ -65,8 +65,8 @@ export const breadthFirstSearchNode = async (state) => {
       percentage: 25,
     });
 
-    const searchTool = new TavilySearchTool({
-      apiKey: process.env.TAVILY_API_KEY,
+    const searchTool = new GoogleSearchGroundingTool({
+      // Google search grounding (no external API key needed)
       maxResults: 15, // More results for breadth
     });
 
@@ -260,8 +260,8 @@ export const deepDiveResearchNode = async (state) => {
   });
 
   try {
-    const searchTool = new TavilySearchTool({
-      apiKey: process.env.TAVILY_API_KEY,
+    const searchTool = new GoogleSearchGroundingTool({
+      // Google search grounding (no external API key needed)
       maxResults: 10,
     });
 
