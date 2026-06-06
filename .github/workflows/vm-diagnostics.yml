@@ -31,8 +31,11 @@ jobs:
             echo "=== Directory listing ==="
             ls -la
             
-            echo "=== Docker compose file ==="
-            cat docker-compose.yml 2>/dev/null || echo "No docker-compose.yml in home"
+            echo "=== Docker compose file (docker-compose.yml) ==="
+            cat docker-compose.yml 2>/dev/null || echo "No docker-compose.yml"
+            
+            echo "=== Docker compose file (docker-compose.presenton.yml) ==="
+            cat docker-compose.presenton.yml 2>/dev/null || echo "No docker-compose.presenton.yml"
             
             echo "=== Docker images ==="
             docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}" | head -20
@@ -40,8 +43,11 @@ jobs:
             echo "=== Docker containers ==="
             docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
             
-            echo "=== Git repos ==="
-            find ~ -maxdepth 3 -name ".git" -type d 2>/dev/null
+            echo "=== Backend Logs ==="
+            docker compose logs alti-backend --tail=100 2>/dev/null || docker logs alti-backend --tail=100
+            
+            echo "=== Presenton Logs ==="
+            docker compose logs presenton --tail=100 2>/dev/null || docker logs presenton --tail=100
             
             echo "=== Disk space ==="
             df -h /
@@ -54,3 +60,4 @@ jobs:
       - name: Clean up SSH key
         if: always()
         run: rm -f ~/.ssh/alti-vm-key
+
