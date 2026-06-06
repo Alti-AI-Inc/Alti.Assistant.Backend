@@ -34,6 +34,10 @@ jobs:
             echo "=== Docker compose file (docker-compose.yml) ==="
             cat docker-compose.yml 2>/dev/null || echo "No docker-compose.yml"
             
+            echo "=== Cleaning up Docker to free space ==="
+            docker system prune -f
+            docker image prune -a -f
+            
             echo "=== Environment configuration on VM ==="
             grep -E "GEMINI|MODEL|PORT|PROVIDER" .env 2>/dev/null || echo "No .env file or variables"
             
