@@ -34,6 +34,9 @@ jobs:
             echo "=== Docker compose file (docker-compose.yml) ==="
             cat docker-compose.yml 2>/dev/null || echo "No docker-compose.yml"
             
+            echo "=== Environment configuration on VM ==="
+            grep -E "GEMINI|MODEL|PORT|PROVIDER" .env 2>/dev/null || echo "No .env file or variables"
+            
             echo "=== Docker compose file (docker-compose.presenton.yml) ==="
             cat docker-compose.presenton.yml 2>/dev/null || echo "No docker-compose.presenton.yml"
             
