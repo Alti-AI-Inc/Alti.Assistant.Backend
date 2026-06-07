@@ -48,6 +48,7 @@ jobs:
         id: auth_setup
         uses: google-github-actions/auth@v2
         with:
+          token_format: 'access_token'
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Verify Google Cloud Auth
@@ -55,11 +56,25 @@ jobs:
         run: |
           gcloud auth print-access-token --quiet
 
-      # ── 4. Docker for Artifact Registry ─────────────────────────────────────
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      # ── 4. Create Artifact Registry repository if needed ───────────────────
+      - name: Ensure Artifact Registry repository exists
+        continue-on-error: true
+        run: |
+          gcloud artifacts repositories create alti-assistant-core-backend-repo \
+            --repository-format=docker \
+            --location=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --description="Alti assistant core backend Docker images" --quiet || true
 
-      # ── 5. Docker Buildx ─────────────────────────────────────────────────────
+      # ── 5. Log in to Google Artifact Registry ───────────────────────────────
+      - name: Log in to Google Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth_setup.outputs.access_token }}
+
+      # ── 6. Docker Buildx ─────────────────────────────────────────────────────
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
