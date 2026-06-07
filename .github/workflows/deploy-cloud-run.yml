@@ -48,7 +48,6 @@ jobs:
         id: auth_setup
         uses: google-github-actions/auth@v2
         with:
-          token_format: 'access_token'
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Verify Google Cloud Auth
@@ -71,8 +70,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGION }}-docker.pkg.dev
-          username: oauth2accesstoken
-          password: ${{ steps.auth_setup.outputs.access_token }}
+          username: _json_key
+          password: ${{ secrets.GCP_SA_KEY }}
 
       # ── 6. Docker Buildx ─────────────────────────────────────────────────────
       - name: Set up Docker Buildx
