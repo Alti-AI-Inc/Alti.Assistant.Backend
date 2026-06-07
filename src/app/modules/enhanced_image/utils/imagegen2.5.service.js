@@ -42,7 +42,7 @@ export async function imagen3(prompt, referenceImages, filename = 'image.png') {
   }
 
   let response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
+    model: 'gemini-3.1-flash-image',
     contents: content,
   });
 

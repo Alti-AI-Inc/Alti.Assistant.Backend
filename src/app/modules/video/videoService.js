@@ -37,7 +37,7 @@ export const generateVideo = async ({
       },
     });
     let operation = await ai.models.generateVideos({
-      model: 'veo-3.0-fast-generate-001',
+      model: 'veo-3.1-fast-generate-preview',
       prompt: prompt,
       config: {
         durationSeconds: 8,
@@ -104,7 +104,7 @@ export const generateVideoWithVertexAI = async ({
 }) => {
   const imageEndpoint = globalConfig.google.vertex_ai_endpoint;
   const location = globalConfig.google.vertex_ai_region;
-  const modelId = 'veo-3.0-fast-generate-001';
+  const modelId = 'veo-3.1-fast-generate-preview';
   const projectId = globalConfig.google.gcp_project_id;
   const auth = new GoogleAuth({
     scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -161,7 +161,7 @@ export const generateVideoWithVertexAI = async ({
 export const getOperationStatus = async (operationName) => {
   const imageEndpoint = globalConfig.google.vertex_ai_endpoint;
   const location = globalConfig.google.vertex_ai_region;
-  const modelId = 'veo-3.0-fast-generate-001';
+  const modelId = 'veo-3.1-fast-generate-preview';
   const projectId = globalConfig.google.gcp_project_id;
 
   const auth = new GoogleAuth({
@@ -351,15 +351,15 @@ export const checkVideoGenerationStatus = async (jobId) => {
 export const getAvailableVideoModels = async () => {
   return [
     {
-      id: 'veo-3.0-fast-generate-001',
-      name: 'Google Veo 3.0 Fast',
+      id: 'veo-3.1-fast-generate-preview',
+      name: 'Google Veo 3.1 Fast',
       description: 'Optimized fast high-quality video generation model',
       maxDuration: 8,
       resolutions: ['720p', '1024x576'],
     },
     {
-      id: 'veo-3.0-generate-001',
-      name: 'Google Veo 3.0 Standard',
+      id: 'veo-3.1-generate-preview',
+      name: 'Google Veo 3.1 Standard',
       description: 'Cinematic high-fidelity video generation model',
       maxDuration: 10,
       resolutions: ['720p', '1080p', '1920x1080'],

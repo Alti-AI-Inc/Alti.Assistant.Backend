@@ -26,7 +26,7 @@ async function runGeminiTask(systemPrompt, history) {
       }));
 
     const result = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-3.1-pro-preview',
       contents: contents,
       config: {
         systemInstruction: systemPrompt,

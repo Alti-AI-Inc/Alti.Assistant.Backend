@@ -53,7 +53,7 @@ Analyze the prompt quality and provide specific, actionable suggestions if it's 
 export async function evaluatePromptQuality(
   prompt,
   history = 'No previous conversation.',
-  { apiKey, modelName = 'gemini-2.5-flash' } = {}
+  { apiKey, modelName = 'gemini-3.5-flash' } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
@@ -124,7 +124,7 @@ export async function evaluatePromptQuality(
  */
 export async function buildEnhancedPrompt(
   conversationHistory,
-  { apiKey, modelName = 'gemini-2.5-flash' } = {}
+  { apiKey, modelName = 'gemini-3.5-flash' } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
