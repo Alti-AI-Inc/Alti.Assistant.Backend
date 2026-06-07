@@ -65,6 +65,28 @@ jobs:
             --project=${{ env.PROJECT_ID }} \
             --description="Alti assistant core backend Docker images" --quiet || true
 
+      # ── 4.5 Ensure missing Secret Manager secrets exist ─────────────────────
+      - name: Ensure missing Secret Manager secrets exist
+        continue-on-error: true
+        run: |
+          for secret in ALLOYDB_HOST ALLOYDB_PORT ALLOYDB_DATABASE ALLOYDB_USER ALLOYDB_PASSWORD TEMPORAL_ADDRESS; do
+            if ! gcloud secrets describe $secret --project=${{ env.PROJECT_ID }} >/dev/null 2>&1; then
+              echo "Creating secret $secret..."
+              gcloud secrets create $secret --replication-policy=automatic --project=${{ env.PROJECT_ID }} --quiet
+              
+              val=""
+              if [ "$secret" = "ALLOYDB_HOST" ]; then val="34.135.175.69"; fi
+              if [ "$secret" = "ALLOYDB_PORT" ]; then val="5432"; fi
+              if [ "$secret" = "ALLOYDB_DATABASE" ]; then val="rag_database"; fi
+              if [ "$secret" = "ALLOYDB_USER" ]; then val="postgres"; fi
+              if [ "$secret" = "ALLOYDB_PASSWORD" ]; then val="Em0nd4r0ck@2"; fi
+              if [ "$secret" = "TEMPORAL_ADDRESS" ]; then val="localhost:7233"; fi
+              
+              echo -n "$val" | gcloud secrets versions add $secret --data-file=- --project=${{ env.PROJECT_ID }} --quiet
+            fi
+          done
+
+
       # ── 5. Log in to Google Artifact Registry ───────────────────────────────
       - name: Log in to Google Artifact Registry
         uses: docker/login-action@v3
