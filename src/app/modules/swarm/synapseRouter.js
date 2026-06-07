@@ -42,6 +42,18 @@ export class SynapseRouter {
 
     const isFinancialSearch   = ['stock price', 'annual revenue', 'stock ticker', 'trading volume', 'financial stats', 'ticker lookup', 'share price'].some(k => q.includes(k));
 
+    // Specialized Writing Intents
+    const isEmailWriter       = ['write an email', 'draft an email', 'write email', 'draft email', 'email template', 'cold outreach email', 'email subject line'].some(k => q.includes(k));
+    const isLetterWriter      = ['cover letter', 'recommendation letter', 'formal letter', 'business letter', 'official memo'].some(k => q.includes(k));
+    const isSongWriter        = ['write a song', 'song lyrics', 'write lyrics', 'write a poem', 'draft a poem', 'poetry writing', 'write rap', 'write verses'].some(k => q.includes(k));
+    const isEssayWriter       = ['write an essay', 'draft an essay', 'essay on', 'write a research paper', 'draft a literature review', 'academic essay'].some(k => q.includes(k));
+    const isBlogWriter        = ['write a blog', 'draft a blog', 'write an article', 'draft an article', 'write a news article', 'listicle writing', 'substack post'].some(k => q.includes(k));
+    const isCopywriter        = ['copywrite', 'ad copy', 'landing page', 'pitch', 'sales copy', 'value proposition', 'tagline'].some(k => q.includes(k));
+    const isTechnicalDoc      = ['technical documentation', 'readme', 'api reference', 'manual', 'software spec', 'developer guide'].some(k => q.includes(k));
+    const isProposalWriter    = ['proposal', 'rfp', 'business proposal', 'grant proposal', 'project pitch', 'rfp response'].some(k => q.includes(k));
+    const isSpeechWriter      = ['write a speech', 'draft a speech', 'speech script', 'wedding toast script', 'write a keynote'].some(k => q.includes(k));
+    const isSocialMediaWriter = ['tweet', 'twitter thread', 'linkedin post', 'social copy', 'instagram caption', 'viral post'].some(k => q.includes(k));
+
     // ─────────────────────────────────────────────────────────────────────────
     // 1. HIGH-SPECIFICITY DOMAIN SPECIALIST ROUTING (Pre-empts general financial routing)
     // ─────────────────────────────────────────────────────────────────────────
@@ -78,6 +90,42 @@ export class SynapseRouter {
     if (isAcademicSearch && SWARM_REGISTRY.academic_search_agent) {
       return [SWARM_REGISTRY.academic_search_agent];
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1.5. SPECIALIZED WRITING SWARM ROUTING
+    // ─────────────────────────────────────────────────────────────────────────
+    if (isEmailWriter && SWARM_REGISTRY.email_writer) {
+      return [SWARM_REGISTRY.email_writer];
+    }
+    if (isLetterWriter && SWARM_REGISTRY.letter_writer) {
+      return [SWARM_REGISTRY.letter_writer];
+    }
+    if (isSongWriter && SWARM_REGISTRY.song_writer) {
+      return [SWARM_REGISTRY.song_writer];
+    }
+    if (isEssayWriter && SWARM_REGISTRY.essay_writer) {
+      return [SWARM_REGISTRY.essay_writer];
+    }
+    if (isBlogWriter && SWARM_REGISTRY.blog_writer) {
+      return [SWARM_REGISTRY.blog_writer];
+    }
+    if (isCopywriter && SWARM_REGISTRY.copywriter) {
+      return [SWARM_REGISTRY.copywriter];
+    }
+    if (isTechnicalDoc && SWARM_REGISTRY.technical_doc_writer) {
+      return [SWARM_REGISTRY.technical_doc_writer];
+    }
+    if (isProposalWriter && SWARM_REGISTRY.proposal_writer) {
+      return [SWARM_REGISTRY.proposal_writer];
+    }
+    if (isSpeechWriter && SWARM_REGISTRY.speech_writer) {
+      return [SWARM_REGISTRY.speech_writer];
+    }
+    if (isSocialMediaWriter && SWARM_REGISTRY.social_media_writer) {
+      return [SWARM_REGISTRY.social_media_writer];
+    }
+
+
 
     // ═════════════════════════════════════════════════════════════════════════
     // MASSIVE.COM FINANCIAL INTELLIGENCE ROUTING — 32 SPECIALIST AGENTS

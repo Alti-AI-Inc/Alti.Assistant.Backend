@@ -197,6 +197,20 @@ import {
   legalRegulatoryResearcher
 } from './specialized.agents.js';
 
+import {
+  emailWriter,
+  letterWriter,
+  songWriter,
+  essayWriter,
+  blogWriter,
+  copywriter,
+  technicalDocWriter,
+  proposalWriter,
+  speechWriter,
+  socialMediaSwarmWriter
+} from './writing.agents.js';
+
+
 // Compile all custom modular agents for global registry loading
 export const customAgents = [
   generalChatAssistant,
@@ -378,6 +392,18 @@ export const customAgents = [
   exploriumLeadScorer,
   exploriumOutreachWriter,
   exploriumMarketMapper,
+
+  // ── Specialized Writing Swarm Agents ───────────────────────────────────────
+  emailWriter,
+  letterWriter,
+  songWriter,
+  essayWriter,
+  blogWriter,
+  copywriter,
+  technicalDocWriter,
+  proposalWriter,
+  speechWriter,
+  socialMediaSwarmWriter,
 ];
 
 export {
@@ -555,4 +581,16 @@ export {
   exploriumLeadScorer,
   exploriumOutreachWriter,
   exploriumMarketMapper,
+
+  // ── Specialized Writing Swarm Agents ───────────────────────────────────────
+  emailWriter,
+  letterWriter,
+  songWriter,
+  essayWriter,
+  blogWriter,
+  copywriter,
+  technicalDocWriter,
+  proposalWriter,
+  speechWriter,
+  socialMediaSwarmWriter,
 };
