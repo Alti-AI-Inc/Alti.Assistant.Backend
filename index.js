@@ -172,45 +172,66 @@ app.use((req, res, next) => {
 // MongoDB connection with retry — do NOT exit on failure so Cloud Run
 // accepts the revision. The server starts immediately and DB reconnects.
 const connectDB = (retries = 5, delay = 5000) => {
-  mongoose
-    .connect(config.database_local, {
-      family: 4,
-      serverSelectionTimeoutMS: 10000,
-      maxPoolSize: 20,
-      minPoolSize: 2,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
-    })
-    .then(() => {
-      logger.info('✅ Database connection successfully');
-      initializeCronJobs();
-      
-      // Start background Temporal Worker
-      temporalWorkerCoordinator.start().catch((err) =>
-        logger.error('⚠️ Failed to start background Temporal Worker:', err.message)
-      );
+  const dbUri = config.database_local;
+  
+  if (!dbUri || typeof dbUri !== 'string' || (!dbUri.startsWith('mongodb://') && !dbUri.startsWith('mongodb+srv://'))) {
+    logger.error(`❌ DB connection failed: Invalid database URI format (got: "${dbUri}").`);
+    if (retries > 0) {
+      setTimeout(() => connectDB(retries - 1, delay), delay);
+    } else {
+      logger.error('❌ All DB retries exhausted. Running without database.');
+    }
+    return;
+  }
 
-      fetchStripeIps().catch((err) =>
-        logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err)
-      );
-      // Start PredictionData.io background cache warming
-      setTimeout(() => {
-        try {
-          warmSportsCache();
-          logger.info('✅ PredictionData.io sports cache warming started');
-        } catch (err) {
-          logger.warn('⚠️ Sports cache warm failed to start:', err.message);
+  try {
+    mongoose
+      .connect(dbUri, {
+        family: 4,
+        serverSelectionTimeoutMS: 10000,
+        maxPoolSize: 20,
+        minPoolSize: 2,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 10000,
+      })
+      .then(() => {
+        logger.info('✅ Database connection successfully');
+        initializeCronJobs();
+        
+        // Start background Temporal Worker
+        temporalWorkerCoordinator.start().catch((err) =>
+          logger.error('⚠️ Failed to start background Temporal Worker:', err.message)
+        );
+
+        fetchStripeIps().catch((err) =>
+          logger.error('Failed to pre-fetch Stripe webhook IPs at boot:', err)
+        );
+        // Start PredictionData.io background cache warming
+        setTimeout(() => {
+          try {
+            warmSportsCache();
+            logger.info('✅ PredictionData.io sports cache warming started');
+          } catch (err) {
+            logger.warn('⚠️ Sports cache warm failed to start:', err.message);
+          }
+        }, 3000); // 3s delay so DB + Redis are fully ready
+      })
+      .catch((err) => {
+        logger.error(`❌ DB connection failed (${retries} retries left): ${err.message}`);
+        if (retries > 0) {
+          setTimeout(() => connectDB(retries - 1, delay), delay);
+        } else {
+          logger.error('❌ All DB retries exhausted. Running without database.');
         }
-      }, 3000); // 3s delay so DB + Redis are fully ready
-    })
-    .catch((err) => {
-      logger.error(`❌ DB connection failed (${retries} retries left): ${err.message}`);
-      if (retries > 0) {
-        setTimeout(() => connectDB(retries - 1, delay), delay);
-      } else {
-        logger.error('❌ All DB retries exhausted. Running without database.');
-      }
-    });
+      });
+  } catch (err) {
+    logger.error(`❌ DB connection synchronous exception: ${err.message}`);
+    if (retries > 0) {
+      setTimeout(() => connectDB(retries - 1, delay), delay);
+    } else {
+      logger.error('❌ All DB retries exhausted. Running without database.');
+    }
+  }
 };
 connectDB();
 
