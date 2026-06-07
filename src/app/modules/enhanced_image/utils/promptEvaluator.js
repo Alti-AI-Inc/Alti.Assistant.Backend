@@ -2,6 +2,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
+import config from '../../../../../config/index.js';
 
 // Define the prompt quality schema
 const promptQualitySchema = z.object({
@@ -56,7 +57,8 @@ export async function evaluatePromptQuality(
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
-    apiKey,
+    project: config.google.gcp_project_id,
+    location: config.google.vertex_ai_region || 'us-central1',
     temperature: 0,
   });
 
@@ -126,7 +128,8 @@ export async function buildEnhancedPrompt(
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
-    apiKey,
+    project: config.google.gcp_project_id,
+    location: config.google.vertex_ai_region || 'us-central1',
     temperature: 0.3,
   });
 

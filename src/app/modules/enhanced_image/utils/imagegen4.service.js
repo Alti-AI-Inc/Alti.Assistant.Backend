@@ -16,7 +16,10 @@ const gcpStorage = new GCPStorageService(
 
 export async function imagegen_4(prompt, download_path) {
   const ai = new GoogleGenAI({
-    apiKey: config.gemini_secret_key,
+    vertexAI: {
+      project: config.google.gcp_project_id,
+      location: config.google.vertex_ai_region || 'us-central1',
+    },
   });
 
   const response = await ai.models.generateImages({

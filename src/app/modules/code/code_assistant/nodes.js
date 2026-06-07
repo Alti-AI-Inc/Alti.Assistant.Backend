@@ -1,14 +1,14 @@
-import { llm } from '../llm.js';
+import { ai } from '../llm.js';
 import {
   codeGenerator,
   codeExplainer,
   codeDebugger,
   bestPracticesAdvisor,
   generalCodeAssistant,
-} from '../services/claudeService.js';
+} from '../services/geminiCodeService.js';
 
 /**
- * Node: Detects the user's intent using OpenAI.
+ * Node: Detects the user's intent using GoogleGenAI.
  */
 export const detectIntentNode = async (state) => {
   console.log('--- Node: detectIntentNode ---');
@@ -29,8 +29,11 @@ export const detectIntentNode = async (state) => {
         Return only the single intent string (e.g., "generate_code").
     `;
 
-  const response = await llm.invoke(intentDetectionPrompt);
-  const intent = response.content.trim();
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: intentDetectionPrompt,
+  });
+  const intent = response.text.trim();
   console.log('Detected Intent:', intent);
   return { intent };
 };

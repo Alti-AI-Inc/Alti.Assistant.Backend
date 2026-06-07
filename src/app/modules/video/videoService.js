@@ -30,7 +30,12 @@ export const generateVideo = async ({
   });
 
   try {
-    const ai = new GoogleGenAI({ apiKey: globalConfig.gemini_secret_key });
+    const ai = new GoogleGenAI({
+      vertexAI: {
+        project: globalConfig.google.gcp_project_id,
+        location: globalConfig.google.vertex_ai_region || 'us-central1',
+      },
+    });
     let operation = await ai.models.generateVideos({
       model: 'veo-3.0-fast-generate-001',
       prompt: prompt,

@@ -82,7 +82,8 @@ export async function classifyImageGenIntent(
 ) {
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
-    apiKey,
+    project: config.google.gcp_project_id,
+    location: config.google.vertex_ai_region || 'us-central1',
     temperature: 0,
   });
 

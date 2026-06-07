@@ -2,6 +2,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
+import config from '../../../../../config/index.js';
 
 // Define the image intent schema
 const imageIntentSchema = z.object({
@@ -71,10 +72,11 @@ export async function analyzeImageIntent(
   context = 'No previous context.',
   { apiKey, modelName = 'gemini-2.5-flash' } = {}
 ) {
-  console.log('Analyzing image intent for request:', apiKey);
+  console.log('Analyzing image intent for request using Vertex AI');
   const model = new ChatGoogleGenerativeAI({
     model: modelName,
-    apiKey,
+    project: config.google.gcp_project_id,
+    location: config.google.vertex_ai_region || 'us-central1',
     temperature: 0,
   });
 
