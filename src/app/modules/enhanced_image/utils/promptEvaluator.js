@@ -56,6 +56,7 @@ export async function evaluatePromptQuality(
   { apiKey, modelName = 'gemini-3.5-flash' } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
+    apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
     model: modelName,
     project: config.google.gcp_project_id,
     location: config.google.vertex_ai_region || 'us-central1',
@@ -127,6 +128,7 @@ export async function buildEnhancedPrompt(
   { apiKey, modelName = 'gemini-3.5-flash' } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
+    apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
     model: modelName,
     project: config.google.gcp_project_id,
     location: config.google.vertex_ai_region || 'us-central1',

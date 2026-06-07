@@ -63,13 +63,13 @@ export const PROCESSING_STATUS = {
   FAILED: 'failed',
 };
 
-// RAG Database Configuration
+// RAG Database Configuration (AlloyDB / Cloud SQL PostgreSQL)
 export const RAG_DATABASE_CONFIG = {
-  HOST: '34.135.175.69',
-  PORT: 5432,
-  DATABASE: 'rag_database',
-  USERNAME: 'postgres',
-  PASSWORD: 'Em0nd4r0ck@2',
+  HOST: process.env.ALLOYDB_HOST || process.env.RAG_DATABASE_HOST || '34.135.175.69',
+  PORT: parseInt(process.env.ALLOYDB_PORT || process.env.RAG_DATABASE_PORT || '5432'),
+  DATABASE: process.env.ALLOYDB_DATABASE || process.env.RAG_DATABASE_NAME || 'rag_database',
+  USERNAME: process.env.ALLOYDB_USER || process.env.RAG_DATABASE_USER || 'postgres',
+  PASSWORD: process.env.ALLOYDB_PASSWORD || process.env.RAG_DATABASE_PASSWORD || 'Em0nd4r0ck@2',
 };
 
 // Search types

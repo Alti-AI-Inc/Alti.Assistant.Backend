@@ -45,6 +45,17 @@ export default {
     url: process.env.REDIS_URL,
     expires_in: process.env.REDIS_TOKEN_EXPIRES_IN,
   },
+  alloydb: {
+    host: process.env.ALLOYDB_HOST || '34.135.175.69',
+    port: parseInt(process.env.ALLOYDB_PORT || '5432'),
+    database: process.env.ALLOYDB_DATABASE || 'rag_database',
+    user: process.env.ALLOYDB_USER || 'postgres',
+    password: process.env.ALLOYDB_PASSWORD || 'Em0nd4r0ck@2',
+  },
+  temporal: {
+    address: process.env.TEMPORAL_ADDRESS || 'localhost:7233',
+    namespace: process.env.TEMPORAL_NAMESPACE || 'default',
+  },
 
   composio: {
     projectId: process.env.COMPOSIO_PROJECT_ID,
@@ -95,6 +106,10 @@ export default {
     model_id: process.env.MODEL_ID,
   },
   gcs: {
+    uploads_bucket:
+      process.env.GCS_UPLOADS_BUCKET || 'alti_assistant_uploads',
+    transcription_bucket:
+      process.env.GCS_TRANSCRIPTION_BUCKET || 'alti_assistant_transcription',
     knowledge_bank_bucket:
       process.env.GCS_KNOWLEDGE_BANK_BUCKET || 'alti_knowledge_bank_files',
     knowledgebot_bucket:

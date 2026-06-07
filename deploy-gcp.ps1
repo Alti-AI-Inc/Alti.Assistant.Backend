@@ -12,7 +12,8 @@ param(
     [int]$MinInstances = 1,
     [int]$MaxInstances = 4,
     [int]$Timeout = 300,
-    [string]$EnvFile = "env.yaml"
+    [string]$EnvFile = "env.yaml",
+    [string]$VpcConnector = "alti-vpc-connector"
 )
 
 Write-Host "================================================" -ForegroundColor Cyan
@@ -97,6 +98,7 @@ gcloud run deploy $ServiceName `
     --cpu-boost `
     --no-cpu-throttling `
     --execution-environment gen2 `
+    --vpc-connector $VpcConnector `
     --env-vars-file $EnvFile
 
 if ($LASTEXITCODE -eq 0) {

@@ -74,6 +74,7 @@ export async function analyzeImageIntent(
 ) {
   console.log('Analyzing image intent for request using Vertex AI');
   const model = new ChatGoogleGenerativeAI({
+    apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
     model: modelName,
     project: config.google.gcp_project_id,
     location: config.google.vertex_ai_region || 'us-central1',

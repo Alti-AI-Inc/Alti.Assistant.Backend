@@ -2,6 +2,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
+import config from '../../../../../config/index.js';
 
 // Define the output schema
 const intentSchema = z.object({
@@ -81,6 +82,7 @@ export async function classifyImageGenIntent(
   { apiKey, modelName = 'gemini-3.5-flash', memory = null } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
+    apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
     model: modelName,
     project: config.google.gcp_project_id,
     location: config.google.vertex_ai_region || 'us-central1',
