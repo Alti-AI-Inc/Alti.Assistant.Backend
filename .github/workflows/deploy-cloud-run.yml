@@ -130,8 +130,10 @@ jobs:
             echo "🟢 Serverless VPC Connector 'alti-vpc-connector' found. Routing traffic privately."
             VPC_FLAG="--vpc-connector=alti-vpc-connector"
           else
-            echo "⚠️ Serverless VPC Connector 'alti-vpc-connector' not found. Routing traffic publicly."
+            echo "⚠️ Serverless VPC Connector 'alti-vpc-connector' not found. Explicitly clearing VPC association to route publicly."
+            VPC_FLAG="--clear-vpc-connector"
           fi
+
 
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image "${{ steps.vars.outputs.image_latest }}" \
