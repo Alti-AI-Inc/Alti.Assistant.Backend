@@ -9,7 +9,7 @@ const YELLOW = '\x1b[33m';
 const CYAN = '\x1b[36m';
 const RESET = '\x1b[0m';
 
-const PROJECT_ID = config.google.gcp_project_id || process.env.GCP_PROJECT_ID || 'gen-lang-client-0273900650';
+const PROJECT_ID = config.google.gcp_project_id || process.env.GCP_PROJECT_ID || 'alti-assistant-prod';
 
 function runSecretsSync() {
   console.log(`\n${CYAN}================================================${RESET}`);
