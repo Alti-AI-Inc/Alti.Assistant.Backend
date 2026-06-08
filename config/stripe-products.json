@@ -1,12 +1,12 @@
 {
-  "updatedAt": "2026-02-24T15:54:40.586Z",
-  "environment": "production",
+  "createdAt": "2026-06-08T20:09:02.154Z",
+  "environment": "development",
   "plans": [
     {
       "plan": "free",
       "name": "Free Trial",
-      "productId": "prod_Tsz2pOQMePPps3",
-      "priceId": "price_1SvD4YKunQzDWl59WAtnzPIp",
+      "productId": "prod_UfUSCRZH3ww33I",
+      "priceId": "price_1Tg9TiKunQzDWl5914mP5mTf",
       "price": 0,
       "currency": "usd",
       "interval": "month",
@@ -15,19 +15,13 @@
         "ragType": "none",
         "storagePerUser": 0,
         "canInviteTeam": false
-      },
-      "featuresList": [
-        "10 requests/day",
-        "No Team Collaboration",
-        "No document storage",
-        "Basic support"
-      ]
+      }
     },
     {
       "plan": "explore",
       "name": "Explore",
-      "productId": "prod_Tsz2suDd1JIZ8z",
-      "priceId": "price_1SvD4aKunQzDWl59VdfdTeqZ",
+      "productId": "prod_UfUSB1DGg1TJ0P",
+      "priceId": "price_1Tg9TjKunQzDWl59cbj4OvwX",
       "price": 20,
       "currency": "usd",
       "interval": "month",
@@ -36,20 +30,13 @@
         "ragType": "basic_text",
         "storagePerUser": 10737418240,
         "canInviteTeam": true
-      },
-      "featuresList": [
-        "1,000 requests/day",
-        "Basic Text Document RAG",
-        "10GB storage per user",
-        "Invite Your Team",
-        "Email support"
-      ]
+      }
     },
     {
       "plan": "execute",
       "name": "Execute",
-      "productId": "prod_Tsz2XzWZ8CgAPo",
-      "priceId": "price_1SvD4bKunQzDWl59UQwqGLMD",
+      "productId": "prod_UfUShpmEfDkmj1",
+      "priceId": "price_1Tg9TkKunQzDWl59XxmxK9Qn",
       "price": 25,
       "currency": "usd",
       "interval": "month",
@@ -58,21 +45,13 @@
         "ragType": "advanced_multimodal",
         "storagePerUser": 53687091200,
         "canInviteTeam": true
-      },
-      "featuresList": [
-        "5,000 requests/day",
-        "Advanced Multi-Modal RAG",
-        "50GB storage per user",
-        "Invite Your Team",
-        "Priority email support",
-        "Advanced analytics"
-      ]
+      }
     },
     {
       "plan": "command",
       "name": "Command",
-      "productId": "prod_Tsz2e4GoTtelZw",
-      "priceId": "price_1SvD4dKunQzDWl59PDLuSvJI",
+      "productId": "prod_UfUSxb610hmJKC",
+      "priceId": "price_1Tg9TkKunQzDWl59fvXY5iV5",
       "price": 100,
       "currency": "usd",
       "interval": "month",
@@ -81,16 +60,7 @@
         "ragType": "premium_agentic",
         "storagePerUser": 107374182400,
         "canInviteTeam": true
-      },
-      "featuresList": [
-        "15,000 requests/day",
-        "Premium Agentic RAG",
-        "100GB storage per user",
-        "Invite Your Team",
-        "Priority support with dedicated account manager",
-        "Advanced analytics",
-        "Custom integrations"
-      ]
+      }
     }
   ]
 }
