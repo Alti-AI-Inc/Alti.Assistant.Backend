@@ -14,19 +14,27 @@ module.exports.addTaskServices = async (userId, data) => {
 };
 
 module.exports.getAllTaskServiceById = async (id) => {
-  const result = await Task.find({ userId: id }).populate({
-    path: 'userId',
-    select: '-password -wishlist -task -role -contract', // Exclude the 'password' field
-  });
+  // Optimization: Added .lean() for read-only operations to reduce Mongoose document overhead.
+  // Recommendation: Consider adding an index to the 'userId' field in the Task model for better query performance.
+  // Example: In notes.model.js, for the userId field, add `index: true` (e.g., `userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true }`).
+  const result = await Task.find({ userId: id })
+    .populate({
+      path: 'userId',
+      select: '-password -wishlist -task -role -contract', // Exclude unnecessary fields
+    })
+    .lean(); // Added .lean() for performance
   // logger.info(result, 'resulttttttt');
   return result;
 };
 
 module.exports.getTaskServiceById = async (id) => {
-  const result = await Task.findOne({ _id: id }).populate({
-    path: 'userId',
-    select: '-password -wishlist -task -role -contract', // Exclude the 'password' field
-  });
+  // Optimization: Added .lean() for read-only operations to reduce Mongoose document overhead.
+  const result = await Task.findOne({ _id: id })
+    .populate({
+      path: 'userId',
+      select: '-password -wishlist -task -role -contract', // Exclude unnecessary fields
+    })
+    .lean(); // Added .lean() for performance
   // logger.info(result, 'resulttttttt');
   return result;
 };
