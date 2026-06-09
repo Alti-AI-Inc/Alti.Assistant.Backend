@@ -3,7 +3,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { presentationService } from './presentation.service.js';
-import SubscriptionModel from '../subscription/subscription.model.js';
+// import SubscriptionModel from '../subscription/subscription.model.js'; // Not used in this file, removed for cleaner code
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { conversationService } from '../conversations/conversation.service.js';
 
@@ -194,6 +194,11 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
         userId,
         req
       );
+      // Optimization Note: If 'conversationHelpers.getConversationById' performs a Mongoose query,
+      // consider adding '.lean()' to the query for read-only operations to improve performance
+      // by returning plain JavaScript objects instead of Mongoose documents.
+      // Also, ensure that 'conversationId' and 'userId' fields are indexed in the database
+      // if they are frequently used for querying conversations.
       taskId = conversation.metadata?.presentation_metadata?.taskId;
 
       if (!taskId) {
