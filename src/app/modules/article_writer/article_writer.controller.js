@@ -7,8 +7,119 @@ import SubscriptionModel from '../subscription/subscription.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
 /**
- * Conversational article writer assistant endpoint
- * Handles natural language requests for article writing with file upload
+ * @swagger
+ * /api/v1/article-writer/conversational-assistant:
+ *   post:
+ *     summary: Conversational Article Writer Assistant
+ *     description: Handles natural language requests for article writing, supporting file uploads and managing user subscriptions.
+ *     tags:
+ *       - Article Writer
+ *     security:
+ *       - bearerAuth: []
+ *     consumes:
+ *       - multipart/form-data
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - in: formData
+ *         name: message
+ *         type: string
+ *         required: true
+ *         description: The user's natural language prompt for article generation.
+ *       - in: formData
+ *         name: conversationId
+ *         type: string
+ *         required: false
+ *         description: Optional ID of an existing conversation to continue.
+ *       - in: formData
+ *         name: articleType
+ *         type: string
+ *         required: false
+ *         description: Desired type of article (e.g., "blog post", "news article").
+ *       - in: formData
+ *         name: tone
+ *         type: string
+ *         required: false
+ *         description: Desired tone of the article (e.g., "formal", "casual", "informative").
+ *       - in: formData
+ *         name: length
+ *         type: string
+ *         required: false
+ *         description: Desired length of the article (e.g., "short", "medium", "long").
+ *       - in: formData
+ *         name: file
+ *         type: file
+ *         required: false
+ *         description: Optional file to be used as context or source material for the article.
+ *     responses:
+ *       200:
+ *         description: Article generated successfully.
+ *         schema:
+ *           type: object
+ *           properties:
+ *             statusCode:
+ *               type: number
+ *               example: 200
+ *             success:
+ *               type: boolean
+ *               example: true
+ *             message:
+ *               type: string
+ *               example: Article generated successfully
+ *             data:
+ *               type: object
+ *               properties:
+ *                 conversationId:
+ *                   type: string
+ *                   description: The ID of the conversation.
+ *                 response:
+ *                   type: string
+ *                   description: The generated article content.
+ *                 isGuest:
+ *                   type: boolean
+ *                   description: Indicates if the request was from a guest user.
+ *       400:
+ *         description: Bad Request - Message is required.
+ *         schema:
+ *           type: object
+ *           properties:
+ *             statusCode:
+ *               type: number
+ *               example: 400
+ *             success:
+ *               type: boolean
+ *               example: false
+ *             message:
+ *               type: string
+ *               example: Message is required
+ *       403:
+ *         description: Forbidden - Subscription limit reached.
+ *         schema:
+ *           type: object
+ *           properties:
+ *             statusCode:
+ *               type: number
+ *               example: 403
+ *             success:
+ *               type: boolean
+ *               example: false
+ *             message:
+ *               type: string
+ *               example: You have reached your article writing limit for this month. Please upgrade your plan to continue.
+ *       500:
+ *         description: Internal Server Error - Failed to generate article or user identifier.
+ *         schema:
+ *           type: object
+ *           properties:
+ *             statusCode:
+ *               type: number
+ *               example: 500
+ *             success:
+ *               type: boolean
+ *               example: false
+ *             message:
+ *               type: string
+ *               example: Failed to generate article
  */
 export const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -123,7 +234,74 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 });
 
 /**
- * Get conversation history
+ * @swagger
+ * /api/v1/article-writer/conversations/{conversationId}:
+ *   get:
+ *     summary: Get Conversation History
+ *     description: Retrieves the complete history of a specific article writing conversation.
+ *     tags:
+ *       - Article Writer
+ *     security:
+ *       - bearerAuth: []
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         type: string
+ *         required: true
+ *         description: The ID of the conversation to retrieve.
+ *     responses:
+ *       200:
+ *         description: Conversation history retrieved successfully.
+ *         schema:
+ *           type: object
+ *           properties:
+ *             statusCode:
+ *               type: number
+ *               example: 200
+ *             success:
+ *               type: boolean
+ *               example: true
+ *             message:
+ *               type: string
+ *               example: Conversation history retrieved successfully
+ *             data:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   userId:
+ *                     type: string
+ *                   conversationId:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                     enum: [user, assistant]
+ *                   content:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   updatedAt:
+ *                     type: string
+ *                     format: date-time
+ *       500:
+ *         description: Internal Server Error - Failed to fetch conversation history.
+ *         schema:
+ *           type: object
+ *           properties:
+ *             statusCode:
+ *               type: number
+ *               example: 500
+ *             success:
+ *               type: boolean
+ *               example: false
+ *             message:
+ *               type: string
+ *               example: Failed to fetch conversation history
  */
 export const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
@@ -154,6 +332,16 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @typedef {Object} ArticleWriterController
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} conversationalAssistant - Handles conversational article writing requests.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getConversationHistory - Retrieves the history of a specific article writing conversation.
+ */
+
+/**
+ * Controller for handling article writer related operations.
+ * @type {ArticleWriterController}
+ */
 export const articleWriterController = {
   conversationalAssistant,
   getConversationHistory,
