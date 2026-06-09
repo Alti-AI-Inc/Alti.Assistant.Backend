@@ -3,7 +3,7 @@ import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import { paymentController } from '../payment/payment.controller.js';
 import { SwarmService } from '../swarm/swarm.service.js';
-import Conversation from '../conversations/conversation.model.js';
+import Conversation from '../conversations/conversation.model.js'; // OPTIMIZATION: For efficient lookups, ensure 'conversationId' and 'userId' are indexed in the Conversation model. A compound index { conversationId: 1, userId: 1 } is highly recommended.
 import crypto from 'crypto';
 import { aiClassificationService } from '../composio_v2/aiClassification.service.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
