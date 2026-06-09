@@ -1,3 +1,32 @@
+/**
+ * @typedef {object} ScanHFHubReport
+ * @property {number} scannedCount - The total number of datasets scanned on Hugging Face Hub.
+ * @property {number} newDatasetsCount - The number of new datasets discovered and added to the catalog.
+ * @property {number} queuedDatasetsCount - The number of datasets successfully added to the ingestion queue.
+ */
+
+/**
+ * @typedef {object} GCSUploadReport
+ * @property {boolean} success - Indicates if the archival process was successful.
+ * @property {string} datasetId - The identifier of the dataset that was processed.
+ * @property {number} sizeBytes - The total size of the archived dataset files in bytes.
+ * @property {string[]} gcsPaths - An array of Google Cloud Storage paths where the dataset files are stored.
+ */
+
+/**
+ * @typedef {object} PgVectorIndexingReport
+ * @property {boolean} success - Indicates if the indexing process was successful.
+ * @property {string} datasetId - The identifier of the dataset that was processed.
+ * @property {string} status - The updated status of the dataset after indexing (e.g., 'indexed', 'failed').
+ */
+
+/**
+ * @typedef {object} RollbackReport
+ * @property {boolean} success - Indicates if the purge operation was successful.
+ * @property {string} datasetId - The identifier of the dataset that was purged.
+ * @property {boolean} purged - True if the dataset's associated resources were purged.
+ */
+
 import { DatasetsCrawlerService } from '../datasetsCrawler.service.js';
 import { DatasetsService } from '../datasets.service.js';
 import Dataset from '../datasets.model.js';
@@ -8,9 +37,13 @@ import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 
 /**
- * Resilient Temporal Activity wrapping programmatical Hugging Face Hub scanning
- * @param {number} maxDatasetsToScan - Limits the scan to a specific dataset count
- * @returns {Promise<object>} Discovery and queueing report
+ * Resilient Temporal Activity wrapping programmatical Hugging Face Hub scanning.
+ * This activity initiates a scan of the Hugging Face Hub to discover new datasets
+ * and queue them for ingestion if they meet specified criteria.
+ * @param {number} [maxDatasetsToScan=500] - Limits the scan to a specific dataset count.
+ *                                         If not provided, defaults to 500.
+ * @returns {Promise<ScanHFHubReport>} A report detailing the discovery and queueing process.
+ * @throws {Error} If the Hugging Face Hub scan fails for any reason.
  */
 export async function scanHFHubActivity(maxDatasetsToScan = 500) {
   logger.info(`[Temporal Activity] Scanning Hugging Face Hub (Limit: ${maxDatasetsToScan})`);
@@ -24,9 +57,12 @@ export async function scanHFHubActivity(maxDatasetsToScan = 500) {
 }
 
 /**
- * Resilient Temporal Activity streaming dataset Parquet files directly from HF to GCS
- * @param {string} datasetId - Target Hugging Face dataset identifier
- * @returns {Promise<object>} GCS upload report
+ * Resilient Temporal Activity streaming dataset Parquet files directly from Hugging Face Hub to Google Cloud Storage.
+ * This activity fetches dataset information, updates or creates a dataset entry in the catalog,
+ * and then archives its Parquet files to GCS.
+ * @param {string} datasetId - The target Hugging Face dataset identifier (e.g., "HuggingFaceH4/ultrachat_200k").
+ * @returns {Promise<GCSUploadReport>} A report detailing the GCS upload status and paths.
+ * @throws {Error} If fetching dataset info fails, database operations fail, or GCS archival fails.
  */
 export async function downloadAndArchiveActivity(datasetId) {
   logger.info(`[Temporal Activity] Downloading and Archiving dataset to GCS: ${datasetId}`);
@@ -67,9 +103,12 @@ export async function downloadAndArchiveActivity(datasetId) {
 }
 
 /**
- * Resilient Temporal Activity parsing Parquet from GCS and loading chunk embeddings into pgvector
- * @param {string} datasetId - Target Hugging Face dataset identifier
- * @returns {Promise<object>} pgvector indexing report
+ * Resilient Temporal Activity parsing Parquet files from GCS and loading chunk embeddings into pgvector.
+ * This activity retrieves a dataset from the catalog, processes its archived Parquet files,
+ * extracts relevant data, generates embeddings, and stores them in the pgvector database for RAG.
+ * @param {string} datasetId - The target Hugging Face dataset identifier.
+ * @returns {Promise<PgVectorIndexingReport>} A report detailing the pgvector indexing status.
+ * @throws {Error} If the dataset is not found in the catalog, or if the indexing process fails.
  */
 export async function indexRAGActivity(datasetId) {
   logger.info(`[Temporal Activity] Indexing dataset into pgvector RAG: ${datasetId}`);
@@ -91,9 +130,12 @@ export async function indexRAGActivity(datasetId) {
 }
 
 /**
- * Saga compensating activity to delete partially uploaded GCS files and mark status as failed
- * @param {string} datasetId - Target Hugging Face dataset identifier
- * @returns {Promise<object>} Rollback report
+ * Saga compensating activity to delete partially uploaded GCS files and mark dataset status as failed.
+ * This activity is triggered as part of a Temporal Saga to roll back an ingestion process
+ * if an error occurs. It attempts to clean up GCS artifacts and update the dataset's status.
+ * @param {string} datasetId - The target Hugging Face dataset identifier to be purged.
+ * @returns {Promise<RollbackReport>} A report detailing the rollback and purge operation.
+ * @throws {Error} If critical parts of the Saga rollback fail (e.g., updating database status).
  */
 export async function purgeCorruptDatasetActivity(datasetId) {
   logger.info(`[Temporal Saga Activity] Purging corrupt or failed dataset: ${datasetId}`);
@@ -111,7 +153,7 @@ export async function purgeCorruptDatasetActivity(datasetId) {
         await file.delete();
       }
     } catch (gcsErr) {
-      logger.warn(`[Temporal Saga] GCS purge error (non-fatal, bucket might be uninitialized): ${gcsErr.message}`);
+      logger.warn(`[Temporal Saga] GCS purge error (non-fatal, bucket might be uninitialized or files already gone): ${gcsErr.message}`);
     }
 
     // 2. Mark queue item as failed or update catalog
