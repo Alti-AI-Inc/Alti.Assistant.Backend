@@ -5,16 +5,54 @@ import { workflowExecutor } from './workflowExecutor.service.js';
 import parser from 'cron-parser'; // Import cron-parser for accurate next execution time calculation
 
 /**
- * Cron Manager Service - Handles scheduling and execution of workflows
+ * @typedef {object} ScheduleConfig
+ * @property {boolean} isActive - Whether the schedule is active.
+ * @property {string} [triggerDate] - For 'scheduled' workflows, the specific date/time for one-time execution (ISO string).
+ * @property {string} [cronExpression] - For 'recurring' workflows, the cron expression defining the recurrence.
+ * @property {string} [timezone='UTC'] - The timezone for the cron schedule (e.g., 'America/New_York', 'UTC').
+ */
+
+/**
+ * @typedef {object} Workflow
+ * @property {string} workflowId - Unique identifier for the workflow.
+ * @property {string} triggerType - The type of trigger for the workflow ('scheduled', 'recurring', 'manual').
+ * @property {ScheduleConfig} scheduleConfig - Configuration for scheduling the workflow.
+ * @property {string} status - The current status of the workflow (e.g., 'active', 'completed').
+ * @property {Date} [updatedAt] - The last update timestamp for the workflow.
+ * @property {string} [_id] - MongoDB document ID.
+ */
+
+/**
+ * Cron Manager Service - Handles scheduling and execution of workflows based on cron expressions.
+ * It manages active cron jobs, initializes schedules from the database, and performs cleanup tasks.
  */
 class CronManager {
+  /**
+   * Creates an instance of CronManager.
+   * @constructor
+   */
   constructor() {
-    this.activeCronJobs = new Map(); // Map<workflowId, cronJob>
+    /**
+     * A map to store active cron jobs.
+     * Key: workflowId (string)
+     * Value: { job: cron.CronJob, cronExpression: string, description: string, createdAt: Date }
+     * @type {Map<string, { job: import('node-cron').CronJob, cronExpression: string, description: string, createdAt: Date }>}
+     */
+    this.activeCronJobs = new Map();
+    /**
+     * Indicates whether the CronManager has been initialized.
+     * @type {boolean}
+     */
     this.isInitialized = false;
   }
 
   /**
-   * Initialize the cron manager
+   * Initializes the cron manager by loading existing active workflows from the database,
+   * setting up their cron jobs, and scheduling internal cleanup and health check jobs.
+   * Prevents re-initialization if already initialized.
+   * @async
+   * @returns {Promise<void>} A promise that resolves when initialization is complete.
+   * @throws {Error} If initialization fails for any reason (e.g., database error).
    */
   async initialize() {
     if (this.isInitialized) {
@@ -43,7 +81,17 @@ class CronManager {
   }
 
   /**
-   * Schedule a workflow for execution
+   * Schedules a workflow for execution based on its `triggerType` and `scheduleConfig`.
+   * If the workflow is already scheduled, it will be unscheduled first.
+   * Supports 'scheduled' (one-time) and 'recurring' (cron-based) trigger types.
+   * Manual trigger workflows do not require cron scheduling.
+   *
+   * @async
+   * @param {Workflow} workflow - The workflow object to schedule.
+   * @returns {Promise<{success: boolean, message?: string, error?: string, data?: {cronExpression: string, description: string, nextExecution: Date|null}}>}
+   *   An object indicating the success or failure of the scheduling operation,
+   *   along with a message, error details, and scheduling data if successful.
+   * @throws {Error} If the `scheduleConfig` is invalid or the cron expression is malformed.
    */
   async scheduleWorkflow(workflow) {
     try {
@@ -157,7 +205,12 @@ class CronManager {
   }
 
   /**
-   * Unschedule a workflow
+   * Unschedules a workflow by stopping and destroying its associated cron job.
+   * Also clears the `nextExecution` time in the database for the workflow.
+   *
+   * @async
+   * @param {string} workflowId - The unique identifier of the workflow to unschedule.
+   * @returns {Promise<{success: boolean, error?: string}>} An object indicating the success or failure of the operation.
    */
   async unscheduleWorkflow(workflowId) {
     try {
@@ -188,7 +241,12 @@ class CronManager {
   }
 
   /**
-   * Reschedule a workflow (update existing schedule)
+   * Reschedules an existing workflow. This is effectively an unschedule followed by a schedule.
+   *
+   * @async
+   * @param {Workflow} workflow - The workflow object to reschedule.
+   * @returns {Promise<{success: boolean, message?: string, error?: string, data?: {cronExpression: string, description: string, nextExecution: Date|null}}>}
+   *   An object indicating the success or failure of the rescheduling operation.
    */
   async rescheduleWorkflow(workflow) {
     try {
@@ -208,7 +266,15 @@ class CronManager {
   }
 
   /**
-   * Execute a cron job
+   * Executes a specific workflow identified by its ID.
+   * This method is typically called by the cron job callback.
+   * It fetches the workflow, executes it using `workflowExecutor`,
+   * and handles post-execution logic such as marking one-time workflows as completed
+   * and updating the `nextExecution` time for recurring workflows.
+   *
+   * @async
+   * @param {string} workflowId - The unique identifier of the workflow to execute.
+   * @returns {Promise<void>} A promise that resolves when the execution logic is complete.
    */
   async executeCronJob(workflowId) {
     try {
@@ -277,7 +343,12 @@ class CronManager {
   }
 
   /**
-   * Load and schedule all active workflows from database
+   * Loads all active and scheduled/recurring workflows from the database
+   * and schedules them using the `scheduleWorkflow` method.
+   * This is typically called during manager initialization.
+   *
+   * @async
+   * @returns {Promise<void>} A promise that resolves when all active workflows have been processed.
    */
   async loadActiveWorkflows() {
     try {
@@ -300,7 +371,11 @@ class CronManager {
   }
 
   /**
-   * Set up cleanup job to remove completed one-time workflows
+   * Sets up a recurring cron job to clean up completed one-time workflows.
+   * This job runs every hour and identifies 'scheduled' workflows that are
+   * 'completed' and were updated more than 24 hours ago, then unschedules them.
+   *
+   * @returns {void}
    */
   setupCleanupJob() {
     // Run cleanup every hour
@@ -340,7 +415,11 @@ class CronManager {
   }
 
   /**
-   * Set up health check job
+   * Sets up a recurring cron job for health checks.
+   * This job runs every 5 minutes and logs the number of active cron jobs,
+   * providing a basic health status of the CronManager.
+   *
+   * @returns {void}
    */
   setupHealthCheckJob() {
     // Health check every 5 minutes
@@ -361,7 +440,12 @@ class CronManager {
   }
 
   /**
-   * Convert DateTime to cron expression for one-time execution
+   * Converts a specific `Date` or `DateTime` object into a cron expression
+   * suitable for one-time execution at that exact moment.
+   * The format is `minute hour day month *`.
+   *
+   * @param {Date|string} dateTime - The date and time to convert. Can be a Date object or an ISO string.
+   * @returns {string} The cron expression for the specified date and time.
    */
   dateTimeToCron(dateTime) {
     const date = new Date(dateTime);
@@ -376,7 +460,12 @@ class CronManager {
   }
 
   /**
-   * Get next execution time for a cron expression
+   * Calculates the next execution time for a given cron expression.
+   * Uses the `cron-parser` library for accurate calculation, considering the specified timezone.
+   *
+   * @param {string} cronExpression - The cron expression (e.g., "0 0 * * *").
+   * @param {string} [timezone='UTC'] - The timezone to use for calculation (e.g., 'America/New_York').
+   * @returns {Date|null} The next scheduled execution time as a Date object, or null if parsing fails.
    */
   getNextExecutionTime(cronExpression, timezone = 'UTC') {
     // BUG FIX: Replaced placeholder implementation with actual cron expression parsing
@@ -397,7 +486,11 @@ class CronManager {
   }
 
   /**
-   * Get status of all active cron jobs
+   * Retrieves the current status of the CronManager, including its initialization state
+   * and details about all active cron jobs.
+   *
+   * @returns {{isInitialized: boolean, activeJobsCount: number, jobs: Array<{workflowId: string, cronExpression: string, description: string, createdAt: Date, isRunning: boolean}>}}
+   *   An object containing the manager's status.
    */
   getStatus() {
     const jobs = Array.from(this.activeCronJobs.entries()).map(
@@ -418,7 +511,11 @@ class CronManager {
   }
 
   /**
-   * Stop all cron jobs (for graceful shutdown)
+   * Stops all active cron jobs and clears the `activeCronJobs` map.
+   * This method is crucial for graceful shutdown of the application.
+   *
+   * @async
+   * @returns {Promise<void>} A promise that resolves when all cron jobs have been stopped.
    */
   async shutdown() {
     try {
@@ -439,7 +536,14 @@ class CronManager {
   }
 
   /**
-   * Manually trigger a scheduled workflow
+   * Manually triggers the execution of a specific scheduled workflow.
+   * This bypasses the cron schedule and executes the workflow immediately.
+   *
+   * @async
+   * @param {string} workflowId - The unique identifier of the workflow to trigger.
+   * @returns {Promise<{success: boolean, data?: object, error?: string, message?: string}>}
+   *   An object indicating the success or failure of the manual trigger,
+   *   along with execution results or an error message.
    */
   async triggerScheduledWorkflow(workflowId) {
     try {
@@ -474,6 +578,10 @@ class CronManager {
   }
 }
 
-// Export singleton instance
+/**
+ * The singleton instance of the CronManager.
+ * This instance should be used throughout the application to manage scheduled workflows.
+ * @type {CronManager}
+ */
 export const cronManager = new CronManager();
 export default cronManager;
