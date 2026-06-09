@@ -264,10 +264,21 @@ WorkflowExecutionSchema.virtual('isCompleted').get(function () {
 });
 
 WorkflowExecutionSchema.virtual('executionTime').get(function () {
-  if (!this.executionEndTime || !this.executionStartTime) {
-    return this.isRunning ? Date.now() - this.executionStartTime.getTime() : 0;
+  // If the workflow is still queued, execution hasn't truly started, so duration is 0.
+  if (this.status === 'queued') {
+    return 0;
   }
-  return this.executionEndTime.getTime() - this.executionStartTime.getTime();
+  // If execution has ended, calculate the duration.
+  if (this.executionEndTime && this.executionStartTime) {
+    return this.executionEndTime.getTime() - this.executionStartTime.getTime();
+  }
+  // If execution is running but not yet ended, calculate duration from start to now.
+  // executionStartTime is required and defaults to Date.now, so it should always exist.
+  if (this.isRunning && this.executionStartTime) {
+    return Date.now() - this.executionStartTime.getTime();
+  }
+  // Default case for other statuses or if times are unexpectedly missing.
+  return 0;
 });
 
 // Methods
@@ -283,8 +294,13 @@ WorkflowExecutionSchema.methods.completeExecution = function (
 ) {
   this.status = success ? 'completed' : 'failed';
   this.executionEndTime = new Date();
-  this.executionDuration =
-    this.executionEndTime.getTime() - this.executionStartTime.getTime();
+  // Ensure executionStartTime is available before calculating duration
+  if (this.executionStartTime) {
+    this.executionDuration =
+      this.executionEndTime.getTime() - this.executionStartTime.getTime();
+  } else {
+    this.executionDuration = 0; // Default to 0 if start time is missing
+  }
   this.executionResult.success = success;
 
   if (result) {
@@ -341,12 +357,18 @@ WorkflowExecutionSchema.methods.addLog = function (
   return this.save();
 };
 
-WorkflowExecutionSchema.methods.cancel = function (reason = 'User cancelled') {
+WorkflowExecutionSchema.methods.cancel = async function (reason = 'User cancelled') {
   this.status = 'cancelled';
   this.executionEndTime = new Date();
-  this.executionDuration =
-    this.executionEndTime.getTime() - this.executionStartTime.getTime();
-  this.addLog('info', reason);
+  // Ensure executionStartTime is available before calculating duration
+  if (this.executionStartTime) {
+    this.executionDuration =
+      this.executionEndTime.getTime() - this.executionStartTime.getTime();
+  } else {
+    this.executionDuration = 0; // Default to 0 if start time is missing
+  }
+  // Await the log addition to ensure it's saved before the main document save
+  await this.addLog('info', reason);
 
   return this.save();
 };
@@ -386,10 +408,13 @@ WorkflowExecutionSchema.statics.findByUser = function (
 };
 
 WorkflowExecutionSchema.statics.findPendingRetries = function () {
+  // Find queued executions that are past their nextRetryTime and still within their maxRetries limit.
+  // Using $expr for field-to-field comparison (retryCount <= maxRetries) requires MongoDB 3.6+.
   return this.find({
     status: 'queued',
     nextRetryTime: { $lte: new Date() },
-    retryCount: { $gt: 0, $lte: this.maxRetries },
+    retryCount: { $gt: 0 }, // Only consider documents that have been retried at least once
+    $expr: { $lte: ['$retryCount', '$maxRetries'] }, // Ensure retryCount is less than or equal to document's maxRetries
   });
 };
 
