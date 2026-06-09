@@ -35,9 +35,12 @@ export const chatController = catchAsync(async (req, res) => {
   }
 
   // Check subscription limits (optional - can be removed if not needed)
+  // Optimization: Added .lean() for read-only query to return a plain JavaScript object.
+  // Recommendation: Consider adding an index on `userId` and a compound index on `{ userId: 1, createdAt: -1 }`
+  // to the SubscriptionModel for efficient querying and sorting.
   const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
     createdAt: -1,
-  });
+  }).lean();
   if (userSubscription && userSubscription.usage <= 0) {
     return sendResponse(res, {
       statusCode: httpStatus.FORBIDDEN,
@@ -49,6 +52,8 @@ export const chatController = catchAsync(async (req, res) => {
   try {
     // Get or create conversation
     const activeConversationId = conversationId || generateConversationId();
+    // Recommendation: Ensure `conversationService.getOrCreateConversation` uses .lean() if the returned conversation
+    // object is not modified, and that `userId` and `conversationId` are indexed on the Conversation model.
     const conversation = await conversationService.getOrCreateConversation(
       userId,
       activeConversationId,
@@ -56,6 +61,8 @@ export const chatController = catchAsync(async (req, res) => {
     );
 
     // Save user message
+    // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
+    // If it queries before saving, ensure relevant fields are indexed.
     await conversationService.saveMessage(
       conversation.conversationId,
       userId,
@@ -74,6 +81,8 @@ export const chatController = catchAsync(async (req, res) => {
 
     if (result.success) {
       // Save assistant response
+      // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
+      // If it queries before saving, ensure relevant fields are indexed.
       await conversationService.saveMessage(
         conversation.conversationId,
         userId,
@@ -98,6 +107,8 @@ export const chatController = catchAsync(async (req, res) => {
       });
     } else {
       // Save error message
+      // Recommendation: Ensure `conversationService.saveMessage` performs efficient writes.
+      // If it queries before saving, ensure relevant fields are indexed.
       await conversationService.saveMessage(
         conversation.conversationId,
         userId,
@@ -165,8 +176,8 @@ export const initiateAuthController = catchAsync(async (req, res) => {
     );
 
     const statusCode = isApiKeyError ? httpStatus.BAD_REQUEST : httpStatus.INTERNAL_SERVER_ERROR;
-    const message = isApiKeyError 
-      ? "Failed to connect to Composio. Please verify that your COMPOSIO_API_KEY or COMPOSIO_ORG_API_KEY is valid and configured in the backend's .env file." 
+    const message = isApiKeyError
+      ? "Failed to connect to Composio. Please verify that your COMPOSIO_API_KEY or COMPOSIO_ORG_API_KEY is valid and configured in the backend's .env file."
       : 'Failed to initiate authentication';
 
     return sendResponse(res, {
@@ -226,8 +237,10 @@ export const getAppCapabilitiesController = catchAsync(async (req, res) => {
 
   // Find all tools associated with this appName
   // We use regex to handle case insensitivity
+  // Optimization: Already uses .lean() for read-only data.
+  // Recommendation: Add an index on `appName` to the Tool model for efficient querying, especially with regex.
   const capabilities = await Tool.find({
-    appName: new RegExp(`^${app}$`, 'i')
+    appName: new RegExp(`^${app}`, 'i')
   }, { name: 1, description: 1, _id: 0 }).lean();
 
   return sendResponse(res, {
@@ -254,6 +267,8 @@ export const connectionStatusStreamController = catchAsync(async (req, res) => {
   // Helper to fetch and send
   const sendStatus = async () => {
     try {
+      // Recommendation: If `composioService.getConnectedAccountsService` queries a Mongoose model,
+      // ensure it uses .lean() for read-only data and that `userId` is indexed on the relevant model.
       const accounts = await composioService.getConnectedAccountsService(userId);
       // Write SSE format: data: {...}\n\n
       res.write(`data: ${JSON.stringify({ type: 'connected_apps', data: accounts.data || [] })}\n\n`);
@@ -322,6 +337,9 @@ export const getConversationsController = catchAsync(async (req, res) => {
     sortOrder: parseInt(req.query.sortOrder) || -1,
   };
 
+  // Recommendation: Ensure `conversationService.getUserConversations` uses .lean() for read-only data.
+  // Also, ensure that `userId` is indexed on the Conversation model, and if `lastActivity` is a field
+  // used for sorting, a compound index like `{ userId: 1, lastActivity: -1 }` would be highly beneficial.
   const result = await conversationService.getUserConversations(
     userId,
     options
@@ -342,6 +360,8 @@ export const getConversationController = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { conversationId } = req.params;
 
+  // Recommendation: Ensure `conversationService.getOrCreateConversation` uses .lean() if the returned conversation
+  // object is not modified, and that `userId` and `conversationId` are indexed on the Conversation model.
   const conversation = await conversationService.getOrCreateConversation(
     userId,
     conversationId,
@@ -362,6 +382,8 @@ export const getConversationController = catchAsync(async (req, res) => {
 export const getConnectedAccountsController = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
 
+  // Recommendation: If `composioService.getUserConnectedAccounts` queries a Mongoose model,
+  // ensure it uses .lean() for read-only data and that `userId` is indexed on the relevant model.
   const result = await composioService.getUserConnectedAccounts(userId);
 
   if (result.success) {
@@ -417,6 +439,8 @@ export const compareController = catchAsync(async (req, res) => {
   try {
     logger.info(`Comparison: Running simplified system for user ${userId}`);
     const simpleStart = Date.now();
+    // Recommendation: If `composioService.executeUserRequest` queries Mongoose models,
+    // ensure it uses .lean() for read-only data and relevant fields are indexed.
     simplifiedResult = await composioService.executeUserRequest(
       message,
       userId
@@ -438,6 +462,8 @@ export const compareController = catchAsync(async (req, res) => {
     const { executeComposio } = await import(
       '../composio_v2/composio.service.js'
     );
+    // Recommendation: If `executeComposio` queries Mongoose models,
+    // ensure it uses .lean() for read-only data and relevant fields are indexed.
     complexResult = await executeComposio(message, { userId });
     complexTime = Date.now() - complexStart;
     logger.info(`Comparison: V2 completed in ${complexTime}ms`);
