@@ -5,6 +5,13 @@ import { runAIClassificationAgent } from '../ai_classification/workflow.js';
 import { executeComposioWithGemini } from '../services/aiClassificationService.js';
 import ComposioAuth from '../composio.model.js';
 
+// Optimization Recommendation: Add indexes to Mongoose models for improved query performance.
+// For WorkflowExecution model:
+// - Consider a compound index on `{ executionId: 1, userId: 1 }` for `findOne` queries in `cancelExecution` and `retryExecution`.
+// - Consider an index on `{ workflowId: 1 }` for `getExecutionStats` and `retryExecution`.
+// For ComposioAuth model:
+// - Consider a compound index on `{ userId: 1, integrationId: 1, status: 1 }` for `findOne` and `find` queries.
+
 /**
  * Workflow Executor Service - Executes saved workflows
  */
@@ -18,6 +25,7 @@ class WorkflowExecutor {
     triggerSource = 'api_call'
   ) {
     const executionId = WorkflowExecution.generateExecutionId();
+    let execution; // Declare execution here to make it accessible in catch block
 
     try {
       logger.info(
@@ -25,7 +33,7 @@ class WorkflowExecutor {
       );
 
       // Create execution record
-      const execution = new WorkflowExecution({
+      execution = new WorkflowExecution({
         executionId,
         workflowId: workflow.workflowId,
         userId: workflow.userId,
@@ -102,10 +110,16 @@ class WorkflowExecutor {
 
       // Update execution record with error
       try {
-        const execution = await WorkflowExecution.findOne({ executionId });
-        if (execution) {
+        // Optimization: Reuse the 'execution' object if it was successfully saved.
+        // Avoids a redundant database query if the error occurred after execution.save().
+        // Check for `_id` to ensure the document was persisted.
+        if (execution && execution._id) {
           await execution.addLog('error', `Execution failed: ${error.message}`);
           await execution.completeExecution(false, { error: error.message });
+        } else {
+          logger.warn(
+            `Execution record for ${executionId} was not found or not saved, cannot update with error.`
+          );
         }
 
         // Update workflow failure count
@@ -210,6 +224,8 @@ class WorkflowExecutor {
   async executeMultiStepWorkflow(workflow, execution) {
     const stepResults = [];
     const stepOutputs = {}; // Store outputs for cross-step parameter mapping
+    // Optimization: Cache connected accounts to avoid N+1 queries if multiple steps use the same app.
+    const connectedAccountsCache = new Map();
 
     try {
       await execution.addLog(
@@ -257,11 +273,18 @@ class WorkflowExecutor {
             workflow.crossStepParameters
           );
 
-          // Get connected account
-          const connectedAccount = await this.getConnectedAccount(
-            workflow.userId,
-            step.app
-          );
+          // Get connected account - use cache to prevent N+1 queries for the same app
+          let connectedAccount = connectedAccountsCache.get(step.app);
+          if (!connectedAccount) {
+            connectedAccount = await this.getConnectedAccount(
+              workflow.userId,
+              step.app
+            );
+            if (connectedAccount) {
+              connectedAccountsCache.set(step.app, connectedAccount);
+            }
+          }
+
           if (!connectedAccount) {
             throw new Error(`No connected account found for ${step.app}`);
           }
@@ -434,11 +457,29 @@ class WorkflowExecutor {
    */
   async validateConnections(workflow) {
     try {
-      const missingApps = [];
+      const requiredApps = workflow.requiredApps || [];
+      if (requiredApps.length === 0) {
+        return { success: true }; // No apps to validate
+      }
 
-      for (const app of workflow.requiredApps) {
-        const account = await this.getConnectedAccount(workflow.userId, app);
-        if (!account) {
+      // Optimization: Fetch all required ComposioAuth documents in a single query
+      // to avoid N+1 query problem. Use .lean() as we only need to read data.
+      const connectedAccounts = await ComposioAuth.find({
+        userId: workflow.userId,
+        // Using regex for $in to match the behavior of getConnectedAccount's regex
+        integrationId: { $in: requiredApps.map(app => new RegExp(app, 'i')) },
+        status: 'active',
+      }).lean();
+
+      // Create a set of connected app IDs (case-insensitive) for efficient lookup
+      const connectedAppSet = new Set(
+        connectedAccounts.map((account) => account.integrationId.toLowerCase())
+      );
+
+      const missingApps = [];
+      for (const app of requiredApps) {
+        // Check if a connected account exists for the app (case-insensitive)
+        if (!connectedAppSet.has(app.toLowerCase())) {
           missingApps.push(app);
         }
       }
@@ -465,11 +506,13 @@ class WorkflowExecutor {
    */
   async getConnectedAccount(userId, app) {
     try {
+      // Optimization: Use .lean() as this method returns a plain JavaScript object,
+      // reducing Mongoose document overhead for read-only operations.
       const account = await ComposioAuth.findOne({
         userId: userId,
         integrationId: { $regex: new RegExp(app, 'i') },
         status: 'active',
-      });
+      }).lean();
 
       return account
         ? {
@@ -508,6 +551,7 @@ class WorkflowExecutor {
    */
   async cancelExecution(executionId, userId) {
     try {
+      // .lean() cannot be used here as `execution.cancel()` is a Mongoose document method.
       const execution = await WorkflowExecution.findOne({
         executionId,
         userId,
@@ -549,6 +593,8 @@ class WorkflowExecutor {
    */
   async retryExecution(executionId, userId) {
     try {
+      // .lean() cannot be used here as `execution.status` is accessed and `this.executeWorkflow`
+      // expects a Mongoose document for `workflow` which calls `workflow.updateExecutionStats`.
       const execution = await WorkflowExecution.findOne({
         executionId,
         userId,
@@ -569,6 +615,8 @@ class WorkflowExecutor {
       }
 
       // Get the original workflow
+      // .lean() cannot be used here as `this.executeWorkflow` expects a Mongoose document
+      // for `workflow` which calls `workflow.updateExecutionStats`.
       const workflow = await ScheduledWorkflow.findOne({
         workflowId: execution.workflowId,
       });

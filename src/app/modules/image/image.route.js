@@ -13,6 +13,44 @@ const router = express.Router();
 
 console.log('Image routes initialized');
 
+// Middleware to ensure a guest can only access their own conversations
+// and authenticated users (non-admin) cannot access arbitrary guest conversations.
+// This prevents Insecure Direct Object Reference (IDOR) for guest conversations.
+const checkGuestUserOwnership = (req, res, next) => {
+  const requestedGuestUserId = req.params.guestUserId;
+
+  // Case 1: Authenticated user
+  if (req.user) {
+    // Allow admins to view any guest conversations
+    if (req.user.role === ENUM_USER_ROLE.ADMIN) {
+      return next();
+    }
+    // For non-admin authenticated users, deny access to guest conversations.
+    // If there's a business requirement for an authenticated user to view their *own* past guest conversations,
+    // the guestUserId would need to be linked to their userId, and that check would go here.
+    // Without that specific requirement, it's safer to deny.
+    return res.status(403).json({
+      success: false,
+      message: 'Forbidden: Authenticated users cannot access guest conversations directly unless they are an administrator.',
+    });
+  }
+
+  // Case 2: Guest user (from optionalAuth)
+  // Assuming optionalAuth populates req.guestUser with an 'id' property for guests.
+  // This check prevents IDOR for guest users trying to access other guest's conversations.
+  if (req.guestUser && req.guestUser.id === requestedGuestUserId) {
+    return next();
+  }
+
+  // Case 3: No user/guest context or mismatch
+  // This covers scenarios where optionalAuth didn't identify a user/guest,
+  // or the guestUser.id doesn't match the requestedGuestUserId.
+  return res.status(403).json({
+    success: false,
+    message: 'Forbidden: You are not authorized to access these guest conversations.',
+  });
+};
+
 // Image generation endpoint - open to all (with optional auth)
 router.post(
   '/generate',
@@ -57,6 +95,7 @@ router.get(
   '/guest/:guestUserId/conversations',
   optionalAuth(), // Use optional auth to allow guest access
   extractTenantContext,
+  checkGuestUserOwnership, // Add middleware to prevent IDOR for guest conversations
   validateRequest(ImageValidation.guestUserSchema),
   imageController.getGuestConversations
 );
