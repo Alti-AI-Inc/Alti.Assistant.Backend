@@ -34,11 +34,14 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   // Check subscription limits for authenticated users
   if (!isGuest && conversationId) {
     try {
-      const userSubscription = await SubscriptionModel.findOne({ userId }).sort(
-        {
+      // Optimization: Added .lean() for read-only query to improve performance
+      // Recommendation: For optimal performance, ensure an index exists on `userId` and `createdAt`
+      // (e.g., { userId: 1, createdAt: -1 }) in your SubscriptionModel schema.
+      const userSubscription = await SubscriptionModel.findOne({ userId })
+        .sort({
           createdAt: -1,
-        }
-      );
+        })
+        .lean(); // Added .lean()
       const promptUsage = userSubscription ? userSubscription.usage : 0;
       const totalConversationWithConvId = conversationId
         ? await conversationHelpers.getConversationById(
