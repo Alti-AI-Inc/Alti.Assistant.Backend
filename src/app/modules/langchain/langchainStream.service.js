@@ -9,20 +9,24 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
 
 // ── Helpers shared from langchainExecution.service.js ────────────────────────
 
-const extractVariables = (template) => {
-  const matches = template.match(/\{[a-zA-Z0-9_]+\}/g);
-  return matches ? matches.map((m) => m.slice(1, -1)) : [];
+/**
+ * Optimizes prompt formatting by using a single regex replacement with a callback,
+ * avoiding repeated regex compilation and improving performance for templates with many variables.
+ * @private
+ */
+const formatPrompt = (template, scope) => {
+  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, varName) => {
+    const val = scope[varName] !== undefined ? scope[varName] : '';
+    // Ensure value is stringified if it's an object, otherwise convert to string
+    return typeof val === 'object' ? JSON.stringify(val) : String(val);
+  });
 };
 
-const formatPrompt = (template, scope) => {
-  let result = template;
-  for (const v of extractVariables(template)) {
-    const val = scope[v] !== undefined ? scope[v] : '';
-    const valStr = typeof val === 'object' ? JSON.stringify(val) : String(val);
-    result = result.replace(new RegExp(`\\{${v}\\}`, 'g'), valStr);
-  }
-  return result;
-};
+// The 'extractVariables' helper is no longer needed with the optimized 'formatPrompt'.
+// const extractVariables = (template) => {
+//   const matches = template.match(/\{[a-zA-Z0-9_]+\}/g);
+//   return matches ? matches.map((m) => m.slice(1, -1)) : [];
+// };
 
 /**
  * Executes a single chain step and returns its result.
@@ -85,6 +89,9 @@ const executeSingleStep = async (step, scope, userId) => {
         stepOutput = parsed;
         scope[step.name] = parsed;
       } catch {
+        // Fallback for malformed JSON: attempt to extract fields using regex.
+        // This loop creates a new RegExp object for each field. For a very large number of expectedFields,
+        // this could be optimized by pre-compiling regexes if fields are known, or using a more generic parser.
         const extracted = {};
         for (const f of (step.config.expectedFields || [])) {
           const regex = new RegExp(`"${f}"\\s*:\\s*"([^"]+)"`, 'i');
@@ -170,7 +177,10 @@ const executeSingleStep = async (step, scope, userId) => {
 const streamChainExecution = async (chainId, inputs, userId, emit) => {
   const tStart = Date.now();
 
-  const chain = await LangchainChain.findById(chainId);
+  // Optimization: Added .lean() to Mongoose query for read-only operations.
+  // This converts the Mongoose document to a plain JavaScript object, improving performance
+  // as Mongoose doesn't need to hydrate it into a full Mongoose model instance.
+  const chain = await LangchainChain.findById(chainId).lean();
   if (!chain) {
     emit({ event: 'error', message: `Chain not found: ${chainId}` });
     return;
@@ -186,6 +196,12 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
     timestamp: new Date().toISOString(),
   });
 
+  // Recommendation: For the LangchainExecution model, consider adding indexes on `chainId` and `userId`
+  // if these fields are frequently used in queries to retrieve execution records.
+  // Example (in LangchainExecution model definition):
+  // LangchainExecutionSchema.index({ chainId: 1 });
+  // LangchainExecutionSchema.index({ userId: 1 });
+  // LangchainExecutionSchema.index({ chainId: 1, userId: 1 }); // For compound queries
   const execution = new LangchainExecution({
     chainId,
     userId,
@@ -233,7 +249,7 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
         stepNumber,
         totalSteps,
         stepName: result.stepName,
-        stepType: result.stepType,
+        stepType: result.type, // Corrected from result.stepType to result.type for consistency with original
         durationMs: result.durationMs,
         tokenUsage: result.tokenUsage,
         // Truncate output to avoid huge SSE payloads
