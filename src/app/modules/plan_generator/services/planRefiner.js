@@ -194,7 +194,20 @@ Generate 2-3 alternative approaches or variations. Return only JSON:
     const response = result.response.text();
     const jsonMatch = response.match(/\{[\s\S]*\}/);
 
-    return jsonMatch ? JSON.parse(jsonMatch[0]).alternatives : [];
+    // Bug fix: Ensure that if JSON is parsed, it actually contains the 'alternatives' array.
+    // If not, or if parsing fails, return an empty array as per JSDoc.
+    if (jsonMatch) {
+      try {
+        const parsedResponse = JSON.parse(jsonMatch[0]);
+        if (parsedResponse && Array.isArray(parsedResponse.alternatives)) {
+          return parsedResponse.alternatives;
+        }
+      } catch (parseError) {
+        logger.error('Failed to parse JSON for alternatives or invalid structure:', parseError);
+        // Fall through to return []
+      }
+    }
+    return []; // Return empty array on no match, parse error, or invalid structure
   } catch (error) {
     logger.error('Error adding alternatives:', error);
     return [];
@@ -240,7 +253,20 @@ Return optimized phases in same JSON format.`;
     const response = result.response.text();
     const jsonMatch = response.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
 
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : plan.phases;
+    // Bug fix: Ensure that if JSON is parsed, it is an array as expected for phases.
+    // If not, or if parsing fails, return the original phases array as per JSDoc.
+    if (jsonMatch) {
+      try {
+        const parsedResponse = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsedResponse)) {
+          return parsedResponse;
+        }
+      } catch (parseError) {
+        logger.error('Failed to parse JSON for optimized timeline or invalid structure:', parseError);
+        // Fall through to return plan.phases
+      }
+    }
+    return plan.phases; // Return original phases on no match, parse error, or invalid structure
   } catch (error) {
     logger.error('Error optimizing timeline:', error);
     return plan.phases;
