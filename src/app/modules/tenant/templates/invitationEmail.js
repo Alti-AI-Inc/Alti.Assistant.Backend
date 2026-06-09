@@ -4,6 +4,42 @@
  */
 
 /**
+ * Helper function to HTML-escape a string to prevent XSS.
+ * @param {string} text - The string to escape.
+ * @returns {string} The HTML-escaped string.
+ */
+const escapeHtml = (text) => {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+};
+
+/**
+ * Helper function to sanitize a URL for use in an HTML href attribute.
+ * Prevents 'javascript:' and other malicious schemes.
+ * @param {string} url - The URL to sanitize.
+ * @returns {string} The sanitized and HTML-escaped URL, or '#' if invalid.
+ */
+const sanitizeUrl = (url) => {
+  try {
+    const parsedUrl = new URL(url);
+    // Only allow http and https protocols
+    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
+      return escapeHtml(url); // HTML-escape the valid URL
+    }
+  } catch (e) {
+    // URL parsing failed, likely an invalid URL
+  }
+  // Fallback to a safe, non-functional link if the URL is invalid or uses a disallowed protocol
+  return '#';
+};
+
+/**
  * Generate HTML email template for tenant invitation
  * @param {Object} data - Email template data
  * @param {string} data.inviterName - Name of person sending the invitation
@@ -22,13 +58,21 @@ export const generateInvitationEmailHTML = (data) => {
     expiryDays = 7,
   } = data;
 
+  // HTML-escape all user-provided data to prevent XSS vulnerabilities
+  const escapedInviterName = escapeHtml(inviterName);
+  const escapedTenantName = escapeHtml(tenantName);
+  const sanitizedInvitationLink = sanitizeUrl(invitationLink);
+  const escapedInvitationLinkText = escapeHtml(invitationLink); // For displaying the link as text
+  const escapedRole = escapeHtml(role);
+  const escapedExpiryDays = escapeHtml(String(expiryDays)); // Ensure expiryDays is treated as string for escaping
+
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You're Invited to ${tenantName}</title>
+  <title>You're Invited to ${escapedTenantName}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -146,7 +190,7 @@ export const generateInvitationEmailHTML = (data) => {
     <div class="content">
       <p>Hello,</p>
       
-      <p><strong>${inviterName}</strong> has invited you to join <strong>${tenantName}</strong> workspace as a <strong>${role}</strong>.</p>
+      <p><strong>${escapedInviterName}</strong> has invited you to join <strong>${escapedTenantName}</strong> workspace as a <strong>${escapedRole}</strong>.</p>
       
       <div class="highlight">
         <p><strong>What's a workspace?</strong></p>
@@ -158,20 +202,20 @@ export const generateInvitationEmailHTML = (data) => {
         <li>✨ Collaborative workspace features</li>
         <li>📊 Shared resources and data</li>
         <li>👥 Team collaboration tools</li>
-        <li>🔐 ${role === 'admin' ? 'Full administrative access' : 'Member access to team features'}</li>
+        <li>🔐 ${escapedRole === 'admin' ? 'Full administrative access' : 'Member access to team features'}</li>
       </ul>
       
       <div class="button-container">
-        <a href="${invitationLink}" class="cta-button">Accept Invitation</a>
+        <a href="${sanitizedInvitationLink}" class="cta-button">Accept Invitation</a>
       </div>
       
       <div class="expiry-notice">
-        ⏰ <strong>Important:</strong> This invitation will expire in ${expiryDays} days. Please accept it before it expires.
+        ⏰ <strong>Important:</strong> This invitation will expire in ${escapedExpiryDays} days. Please accept it before it expires.
       </div>
       
       <p class="link-fallback">
         If the button doesn't work, copy and paste this link into your browser:<br>
-        <a href="${invitationLink}">${invitationLink}</a>
+        <a href="${sanitizedInvitationLink}">${escapedInvitationLinkText}</a>
       </p>
       
       <p style="margin-top: 30px; font-size: 14px; color: #6c757d;">
