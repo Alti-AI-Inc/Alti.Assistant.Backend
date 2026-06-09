@@ -6,6 +6,12 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import mongoose from 'mongoose';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
 
+// Optimization Note: For the Conversation model (likely used by conversationHelpers and conversationService),
+// consider adding indexes for frequently queried fields to improve read performance:
+// - `userId`: For efficient lookup of conversations by user.
+// - `metadata.category`: For filtering conversations by category (e.g., 'search').
+// A compound index like `{ userId: 1, 'metadata.category': 1 }` could be highly beneficial for queries that filter by both.
+
 /**
  * Generate unique guest user ID
  * @returns {string}
@@ -36,6 +42,9 @@ const handleSearchConversation = async (
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
+        // Optimization Note: If conversationHelpers.getConversationById only reads data
+        // and doesn't modify the Mongoose document in this context, consider adding .lean()
+        // to the query within getConversationById for better performance by returning a plain JS object.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           isGuest ? null : userId,
@@ -308,6 +317,9 @@ const getSearchHistory = async (
   req = null
 ) => {
   try {
+    // Optimization Note: Since this function only reads conversation data and its messages,
+    // ensure that conversationHelpers.getConversationById uses .lean() for optimal performance
+    // by returning a plain JS object instead of a full Mongoose document.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -372,6 +384,9 @@ const generateSearchConversationId = () => {
  */
 const getSearchStats = async (userId, req = null) => {
   try {
+    // Optimization Note: Since this function only reads conversation data for aggregation (length, messageCount),
+    // ensure that conversationHelpers.getUserConversations uses .lean() for optimal performance
+    // by returning plain JS objects instead of full Mongoose documents.
     const searchConversations = await conversationHelpers.getUserConversations(
       userId,
       {
