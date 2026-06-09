@@ -125,13 +125,15 @@ User Query: ${enhancedPrompt}`;
 };
 
 const getAiResponsesByUserIdService = async (userId) => {
+  // Optimization: Added .lean() for read-only query to improve performance
   const sessionData = await UserModel.findOne({
     _id: userId,
   })
     .select('email profile')
     .populate({
       path: 'llamaAiSessions',
-    });
+    })
+    .lean(); // Added .lean()
   if (!sessionData) {
     return {
       statusCode: httpStatus.NOT_FOUND,
@@ -144,9 +146,11 @@ const getAiResponsesByUserIdService = async (userId) => {
 };
 
 const getAiResponsesBySession = async (id) => {
+  // Optimization: Added .lean() for read-only query to improve performance
+  // Recommendation: Ensure an index exists on `sessionId` in the ChatHistory model schema for efficient lookups.
   const sessionData = await ChatHistory.findOne({
     sessionId: id,
-  });
+  }).lean(); // Added .lean()
 
   if (!sessionData) {
     return {
@@ -160,9 +164,10 @@ const getAiResponsesBySession = async (id) => {
 };
 
 const deleteOneLlamaAiSession = async (objectId) => {
+  // Optimization: Added .lean() for read-only query to improve performance
   const userData = await ChatHistory.findOne({
     _id: objectId,
-  });
+  }).lean(); // Added .lean()
   if (!userData) {
     throw new Error('LlamaAiSession not found');
   }
@@ -197,7 +202,8 @@ const deleteAllAiSessionsService = async (userId) => {
   try {
     await session.startTransaction();
 
-    const user = await UserModel.findById(userId).session(session);
+    // Optimization: Added .lean() for read-only query to improve performance
+    const user = await UserModel.findById(userId).session(session).lean(); // Added .lean()
     if (
       !user ||
       !user.llamaAiSessions ||
@@ -208,15 +214,14 @@ const deleteAllAiSessionsService = async (userId) => {
 
     const aiSessionIds = user.llamaAiSessions.map((id) => id.toString());
 
-    const deleteResults = await Promise.all(
-      aiSessionIds.map((id) => ChatHistory.deleteOne({ _id: id }).session(session))
-    );
+    // Optimization: Replaced N+1 delete operations with a single deleteMany for efficiency
+    const deleteResult = await ChatHistory.deleteMany({ _id: { $in: aiSessionIds } }).session(session);
 
-    const allDeleted = deleteResults.every(
-      (result) => result.deletedCount === 1
-    );
-    if (!allDeleted) {
-      throw new Error('Failed to delete one or more AI sessions');
+    // Check if all intended sessions were deleted
+    if (aiSessionIds.length > 0 && deleteResult.deletedCount !== aiSessionIds.length) {
+      // This check ensures that if there were IDs to delete, the count matches.
+      // If aiSessionIds is empty, deletedCount will be 0, and the condition won't trigger.
+      throw new Error('Failed to delete all specified AI sessions');
     }
 
     const userUpdateResult = await UserModel.updateOne(
@@ -233,7 +238,20 @@ const deleteAllAiSessionsService = async (userId) => {
         message: 'AI sessions and user references deleted successfully',
       };
     } else {
-      throw new Error('Failed to update the user model');
+      // If no sessions were in llamaAiSessions, modifiedCount might be 0, but the operation is still successful.
+      // We should only throw if there were sessions to pull but the update failed.
+      if (aiSessionIds.length > 0) {
+        throw new Error('Failed to update the user model');
+      } else {
+        // No sessions to pull, so user model didn't need modification. Consider it successful.
+        await session.commitTransaction();
+        session.endSession();
+        return {
+          statusCode: 200,
+          success: true,
+          message: 'No AI sessions to delete or user references to update.',
+        };
+      }
     }
   } catch (error) {
     await session.abortTransaction();
