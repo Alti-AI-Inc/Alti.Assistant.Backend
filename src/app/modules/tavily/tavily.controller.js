@@ -24,7 +24,9 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
     });
   }
 
-  const user = await UserModel.findById(userId);
+  // Optimization: Use .lean() as we only check for user existence and don't modify the user object here.
+  // This avoids hydrating a full Mongoose document, reducing memory overhead.
+  const user = await UserModel.findById(userId).lean();
   if (!user) {
     return sendResponse(res, {
       statusCode: httpStatus.NOT_FOUND,
@@ -71,6 +73,8 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
       total_time: result.usageMetadata?.totalTokenCount || 0,
     };
 
+    // Optimization: For faster lookups on ChatHistory, consider adding a compound index
+    // to the ChatHistory model: `schema.index({ user: 1, sessionId: 1 });`
     let llamaSession = await ChatHistory.findOne({
       user: userId,
       sessionId: currentSessionId,
