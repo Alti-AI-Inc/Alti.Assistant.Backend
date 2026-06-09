@@ -1,3 +1,21 @@
+/**
+ * @typedef {object} AIEndpoint
+ * @property {string} title - The display title or identifier for the AI model.
+ * @property {boolean} enabled - Indicates whether the AI model endpoint is currently active and usable.
+ * @property {boolean} default - Indicates if this AI model is the default choice when multiple are available.
+ * @property {string} add - The API endpoint path for sending new requests to this AI model.
+ * @property {string} history - The API endpoint path for retrieving conversation history related to this AI model.
+ * @property {string} delete - The API endpoint path for deleting all conversation history related to this AI model.
+ */
+
+/**
+ * An array of AI endpoint configurations.
+ * Each object in the array defines a specific AI model service,
+ * including its title, status, default setting, and associated API endpoint paths
+ * for various operations like adding new requests, retrieving history, and deleting history.
+ *
+ * @type {AIEndpoint[]}
+ */
 const aiEndpoints = [
   {
     title: 'gemini-2.5-flash',
