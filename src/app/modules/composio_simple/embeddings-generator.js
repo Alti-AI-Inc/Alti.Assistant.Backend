@@ -1,6 +1,6 @@
 /**
- * Utility script to generate embeddings for tools in the database
- * Run this script to backfill embeddings for existing tools
+ * Utility script to generate embeddings for tools in the database.
+ * Run this script to backfill embeddings for existing tools.
  *
  * Usage: node embeddings-generator.js
  */
@@ -10,11 +10,19 @@ import mongoose from 'mongoose';
 import Tool from '../composio_v2/tools.model.js';
 import config from '../../../../config/index.js';
 
-// Initialize Gemini
+/**
+ * @constant {GoogleGenerativeAI} genAI - An instance of GoogleGenerativeAI initialized with the API key.
+ * Used to interact with Google's Generative AI models, specifically for embedding generation.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Generate embedding for text using Gemini
+ * Generates a vector embedding for a given text string using the Gemini `text-embedding-004` model.
+ *
+ * @async
+ * @param {string} text - The input text for which to generate an embedding.
+ * @returns {Promise<number[]|null>} A promise that resolves to an array of numbers representing the embedding vector,
+ *                                   or `null` if an error occurs during embedding generation.
  */
 async function generateEmbedding(text) {
   try {
@@ -28,7 +36,16 @@ async function generateEmbedding(text) {
 }
 
 /**
- * Generate embeddings for all tools without embeddings
+ * Connects to MongoDB, finds tools that do not have embeddings, generates embeddings for them
+ * using the `generateEmbedding` function, and updates the tools in the database.
+ * It processes tools in batches and includes rate limiting.
+ *
+ * After processing, it provides a summary and instructions for creating a MongoDB Atlas
+ * vector search index.
+ *
+ * @async
+ * @returns {Promise<void>} A promise that resolves when all eligible tools have been processed
+ *                          or an error occurs.
  */
 async function generateEmbeddingsForTools() {
   try {
@@ -139,4 +156,8 @@ async function generateEmbeddingsForTools() {
 
 // Run the script
 console.log('🚀 Starting embeddings generation...\n');
+/**
+ * Initiates the process of generating embeddings for tools.
+ * This is the main entry point for the script's execution.
+ */
 generateEmbeddingsForTools();
