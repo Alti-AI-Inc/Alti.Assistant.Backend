@@ -18,6 +18,35 @@
  */
 
 // ─── 1. Company Researcher ────────────────────────────────────────────────────
+/**
+ * @typedef {object} AgentDefinition
+ * @property {string} id - A unique identifier for the agent.
+ * @property {string} name - The human-readable name of the agent.
+ * @property {string} description - A brief description of the agent's capabilities.
+ * @property {string} systemInstruction - The detailed system prompt guiding the agent's behavior and output format.
+ * @property {string} model - The AI model to be used by this agent (e.g., 'gemini-2.0-flash').
+ * @property {Array<string>} tools - A list of tools the agent can use (currently empty).
+ * @property {Array<string>} keywords - A list of keywords or phrases that might trigger this agent.
+ */
+
+/**
+ * @type {AgentDefinition}
+ * @constant
+ * @description
+ * The Explorium Company Researcher agent specializes in providing comprehensive, data-driven company intelligence briefs.
+ * It synthesizes live Explorium AgentSource data covering firmographics, funding history, competitive positioning,
+ * workforce trends, and strategic insights into a detailed report.
+ *
+ * **Key Capabilities:**
+ * - **Identity First:** Provides core company details like name, domain, industry, HQ, and founding year.
+ * - **Scale & Financials:** Reports employee count, revenue estimates, and funding stage.
+ * - **Funding Narrative:** Details chronological funding history, key investors, and round specifics.
+ * - **Technology Fingerprint:** Lists detected technologies, revealing architecture and vendor relationships.
+ * - **Competitive Position:** Analyzes the competitive landscape, identifying top competitors and differentiation.
+ * - **Workforce Signal:** Interprets hiring trends and departmental growth.
+ * - **Strategic Insights:** Surfaces strategic initiatives and market positioning shifts.
+ * - **Intelligence Verdict:** Concludes with an executive synthesis of key takeaways.
+ */
 export const exploriumCompanyResearcher = {
   id: 'explorium_company_researcher',
   name: 'Explorium Company Researcher',
@@ -53,6 +82,23 @@ FORMAT RULES:
 };
 
 // ─── 2. Prospect Hunter ───────────────────────────────────────────────────────
+/**
+ * @type {AgentDefinition}
+ * @constant
+ * @description
+ * The Explorium Prospect Hunter agent is an elite B2B prospecting tool that leverages live Explorium contact intelligence.
+ * It identifies, profiles, and ranks key decision-makers within target companies, providing verified contact data,
+ * employment history, and professional backgrounds to empower sales teams.
+ *
+ * **Key Capabilities:**
+ * - **Decision-Maker Identification:** Pinpoints key decision-makers, their titles, seniority, and departments, ranked by relevance.
+ * - **Contact Confidence:** Reports email confidence scores and flags verified contacts.
+ * - **Professional Background:** Summarizes career history to reveal tenure, stability, and past vendor relationships.
+ * - **Buying Signals:** Extracts signals like recent role changes or team building to indicate buying intent.
+ * - **Skills & Expertise:** Identifies technological and domain specializations.
+ * - **Outreach Priority Ranking:** Ranks prospects by their likelihood of being an economic buyer, decision-maker, or champion.
+ * - **Contact Strategy:** Recommends optimal outreach channels (email, LinkedIn, phone).
+ */
 export const exploriumProspectHunter = {
   id: 'explorium_prospect_hunter',
   name: 'Explorium Prospect Hunter',
@@ -88,6 +134,22 @@ FORMAT RULES:
 };
 
 // ─── 3. Signal Scout ──────────────────────────────────────────────────────────
+/**
+ * @type {AgentDefinition}
+ * @constant
+ * @description
+ * The Explorium Signal Scout agent provides real-time B2B event signal analysis, leveraging live Explorium trigger data.
+ * It identifies and prioritizes high-value business trigger events such as funding rounds, hiring surges,
+ * leadership changes, technology adoptions, and intent signals, transforming them into actionable sales triggers.
+ *
+ * **Key Capabilities:**
+ * - **Signal Classification:** Categorizes signals into types like Funding, Hiring, Intent, Leadership, Tech Change, and Growth.
+ * - **Signal Strength:** Rates signals as Hot, Warm, or Cold to indicate urgency.
+ * - **Sales Timing Implication:** Explains the actionability and optimal timing for each signal.
+ * - **Target Profile:** Provides company name, size, industry, signal date, and recommended action for each signal.
+ * - **Priority Ranking:** Sorts companies by signal strength and timing for immediate action.
+ * - **Outreach Hook:** Suggests specific opening lines for outreach based on the trigger event.
+ */
 export const exploriumSignalScout = {
   id: 'explorium_signal_scout',
   name: 'Explorium Signal Scout',
@@ -128,6 +190,23 @@ FORMAT RULES:
 };
 
 // ─── 4. ICP Builder ───────────────────────────────────────────────────────────
+/**
+ * @type {AgentDefinition}
+ * @constant
+ * @description
+ * The Explorium ICP Builder agent is an AI-powered Ideal Customer Profile (ICP) builder that uses live Explorium data.
+ * It translates natural language ICP descriptions into validated Explorium filter sets, providing real-time Total
+ * Addressable Market (TAM) counts and representative company samples.
+ *
+ * **Key Capabilities:**
+ * - **ICP Validation:** Restates and validates the ICP in precise business language.
+ * - **Filter Transparency:** Shows applied Explorium filters and their rationale.
+ * - **Market Size Reality Check:** Presents live TAM count with contextual classification (hyper-niche, focused ABM, scalable outbound).
+ * - **Representative Sample:** Provides a list of top matching companies to validate filter accuracy.
+ * - **ICP Refinement Suggestions:** Offers ways to tighten or expand the ICP for better results.
+ * - **Tier Stratification:** Suggests breaking the list into Tier 1, 2, and 3 based on ICP fit.
+ * - **Outbound Sequencing:** Recommends the best outreach approach for the defined ICP.
+ */
 export const exploriumICPBuilder = {
   id: 'explorium_icp_builder',
   name: 'Explorium ICP Builder',
@@ -168,6 +247,24 @@ FORMAT RULES:
 };
 
 // ─── 5. Sales Coach ───────────────────────────────────────────────────────────
+/**
+ * @type {AgentDefinition}
+ * @constant
+ * @description
+ * The Explorium Sales Coach agent is an elite pre-meeting sales intelligence coach that uses live Explorium
+ * prospect and company data. It generates hyper-personalized pre-call briefs with background research,
+ * pain point mapping, conversation hooks, and objection preparation.
+ *
+ * **Key Capabilities:**
+ * - **Who You're Meeting:** Provides a crisp summary of the prospect's name, title, company, and career background.
+ * - **The Company Snapshot:** Offers 5 key company facts for quick understanding.
+ * - **Power Conversation Starters:** Generates 3-5 specific, data-driven conversation openers.
+ * - **Pain Point Mapping:** Identifies top 3 likely pain points based on role, company stage, and industry, mapping them to solutions.
+ * - **Objection Forecast:** Predicts likely objections and prepares concise rebuttals.
+ * - **Questions to Ask:** Provides 5 high-value discovery questions tailored to the prospect.
+ * - **Do Not Do:** Lists specific pitfalls to avoid during the meeting.
+ * - **Meeting Goal:** Suggests a specific next step to aim for at the end of the meeting.
+ */
 export const exploriumSalesCoach = {
   id: 'explorium_sales_coach',
   name: 'Explorium Sales Coach',
@@ -204,6 +301,22 @@ FORMAT RULES:
 };
 
 // ─── 6. Lead Scorer ───────────────────────────────────────────────────────────
+/**
+ * @type {AgentDefinition}
+ * @constant
+ * @description
+ * The Explorium Lead Scorer agent is an AI-powered B2B lead scoring engine that uses live Explorium firmographic
+ * and signal data. It scores and ranks companies from 0-100 based on ICP fit, buying readiness, and engagement signals,
+ * providing transparent reasoning for each score.
+ *
+ * **Key Capabilities:**
+ * - **Scoring Framework:** Utilizes a 100-point system across Firmographic Fit, Technographic Fit, Signal Strength, and Contact Quality.
+ * - **Tier Classification:** Categorizes leads into Tier 1 (Hot), Tier 2 (Warm), Tier 3 (Nurture), and Tier 4 (Deprioritize).
+ * - **Score Breakdown:** Shows a detailed score breakdown by dimension for each company.
+ * - **Top Insight:** Highlights the most compelling reason to contact Tier 1-2 companies immediately.
+ * - **Ranking Table:** Presents all scored companies in a ranked table.
+ * - **Pipeline Recommendation:** Suggests how many companies from each tier to sequence and at what cadence.
+ */
 export const exploriumLeadScorer = {
   id: 'explorium_lead_scorer',
   name: 'Explorium Lead Scorer',
@@ -245,6 +358,24 @@ FORMAT RULES:
 };
 
 // ─── 7. Outreach Writer ───────────────────────────────────────────────────────
+/**
+ * @type {AgentDefinition}
+ * @constant
+ * @description
+ * The Explorium Outreach Writer agent is a world-class B2B copywriter specializing in hyper-personalized cold outreach.
+ * It generates emails and LinkedIn messages that are grounded in real, verified intelligence from Explorium,
+ * ensuring every word references specific data points about the recipient or their company.
+ *
+ * **Key Capabilities:**
+ * - **Personalization First:** Crafts opening lines that reference specific Explorium data points.
+ * - **Problem-First Framing:** Identifies and frames a problem specific to the prospect's role or company.
+ * - **Credibility Bridge:** Establishes sender credibility by referencing industry experience or comparable successes.
+ * - **Crystal-Clear CTA:** Provides a specific, low-friction call to action.
+ * - **Signal Reference (optional):** Naturally incorporates strong trigger events to increase reply rates.
+ * - **Concise Length:** Adheres to optimal lengths for emails (3-5 sentences) and LinkedIn messages (2-3 sentences).
+ * - **Variants:** Produces 3 distinct variants (data-heavy, problem-focused, relationship-angle) for A/B testing.
+ * - **Subject Lines:** Provides 3 subject line options, often referencing company name and specific insights.
+ */
 export const exploriumOutreachWriter = {
   id: 'explorium_outreach_writer',
   name: 'Explorium Outreach Writer',
@@ -281,6 +412,24 @@ FORMAT RULES:
 };
 
 // ─── 8. Market Mapper ─────────────────────────────────────────────────────────
+/**
+ * @type {AgentDefinition}
+ * @constant
+ * @description
+ * The Explorium Market Mapper agent is a strategic B2B market intelligence analyst that uses Explorium's live
+ * database to map competitive landscapes, identify market players, find lookalike companies, and surface
+ * white space opportunities.
+ *
+ * **Key Capabilities:**
+ * - **Market Definition:** Precisely defines the market, including customer segment, geography, and problem space, with TAM estimates.
+ * - **Player Tiers:** Organizes competitors into Market Leaders, Challengers, and Emerging players.
+ * - **Competitive Dimensions Table:** Compares players across key metrics like employees, revenue, funding, and tech.
+ * - **Market Concentration:** Analyzes market concentration and estimated combined market share of top players.
+ * - **Technology Landscape:** Identifies common technologies and vendor relationships among players.
+ * - **White Space Analysis:** Pinpoints underserved segments or geographies.
+ * - **Lookalike Companies:** Shows closest company matches with similarity reasoning.
+ * - **Strategic Implications:** Provides 3 actionable strategic takeaways from the market map.
+ */
 export const exploriumMarketMapper = {
   id: 'explorium_market_mapper',
   name: 'Explorium Market Mapper',
