@@ -1,7 +1,16 @@
 import { GoogleGenAI } from '@google/genai';
 
 export const searchWithGemini = async (query) => {
-  const ai = new GoogleGenAI({});
+  // Retrieve API key from environment variables for security and flexibility.
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    // Ensure API key is present before attempting to use the service.
+    // This prevents runtime errors due to missing credentials.
+    throw new Error('GEMINI_API_KEY environment variable is not set.');
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   const groundingTool = {
     googleSearch: {},
@@ -11,11 +20,21 @@ export const searchWithGemini = async (query) => {
     tools: [groundingTool],
   };
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: query,
-    config,
-  });
+  try {
+    // Wrap the asynchronous call in a try-catch block to gracefully handle API errors,
+    // network issues, or other exceptions, preventing the Node.js process from crashing.
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: query,
+      config,
+    });
 
-  console.log(response.text);
+    // Return the response text so the calling function can utilize it.
+    return response.text;
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    // Re-throw a more generic error to avoid exposing internal API details,
+    // or handle specific error types as needed by the calling context.
+    throw new Error('Failed to get response from Gemini API.');
+  }
 };
