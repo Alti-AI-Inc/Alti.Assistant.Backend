@@ -11,6 +11,177 @@ import { generatePDFReport } from './services/pdfService.js';
 import { generatePPTXReport } from './services/pptxService.js';
 import { telemetryEmitter } from './services/telemetryService.js';
 
+/**
+ * @swagger
+ * /api/deep-research/perform:
+ *   post:
+ *     summary: Initiate a deep research query
+ *     description: |
+ *       Performs a comprehensive deep research based on the provided message,
+ *       leveraging AI agents and various data sources. Supports both authenticated
+ *       and guest users. Includes options for PDF generation, conversation context,
+ *       research depth, and persona-based consensus.
+ *     tags:
+ *       - Deep Research
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The research query or topic.
+ *                 example: "What are the key trends in AI ethics and governance for 2024?"
+ *               generatePdf:
+ *                 type: boolean
+ *                 description: Whether to generate a PDF report of the research results.
+ *                 default: false
+ *               conversationId:
+ *                 type: string
+ *                 description: Optional ID of an existing conversation to provide context.
+ *                 nullable: true
+ *                 example: "65e8a2b0f1d4e5c6b7a8d9e0"
+ *               maxDepth:
+ *                 type: number
+ *                 description: Maximum depth for recursive research (overrides 'depth' if provided).
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 nullable: true
+ *                 example: 3
+ *               depth:
+ *                 type: string
+ *                 description: Pre-defined research depth level. 'fast' (depth 2) or 'thorough' (depth 4).
+ *                 enum: [fast, thorough]
+ *                 default: thorough
+ *               boardPersonas:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of personas to simulate for consensus building during research.
+ *                 default: ["McKinsey Strategy Partner", "Gartner Research Director", "YC Technical Architect"]
+ *                 example: ["Tech Lead", "Product Manager"]
+ *               consensusLevel:
+ *                 type: string
+ *                 description: Level of consensus required among personas.
+ *                 enum: [majority, unanimous, simple]
+ *                 default: majority
+ *               userId:
+ *                 type: string
+ *                 description: (For guest users or specific overrides) A temporary or explicit user ID.
+ *                 nullable: true
+ *                 readOnly: true
+ *     responses:
+ *       200:
+ *         description: Deep research completed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Deep research completed successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                     responseMessage:
+ *                       type: object
+ *                       properties:
+ *                         answer:
+ *                           type: string
+ *                           description: The main answer or summary of the research.
+ *                         reference:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               title:
+ *                                 type: string
+ *                               url:
+ *                                 type: string
+ *                           description: List of sources and references used.
+ *                     qualityMetrics:
+ *                       type: object
+ *                       description: Metrics related to the quality and depth of the research.
+ *                     knowledgeGraph:
+ *                       type: object
+ *                       description: Structured data representing key entities and relationships.
+ *                     metadata:
+ *                       type: object
+ *                       description: Additional metadata about the research process.
+ *                     conversationId:
+ *                       type: string
+ *                       description: The ID of the conversation where this research is stored.
+ *                     researchProgress:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           step:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                           details:
+ *                             type: string
+ *                       description: A log of the research steps taken.
+ *                     messageCount:
+ *                       type: number
+ *                       description: Total number of messages in the conversation after this research.
+ *                     userType:
+ *                       type: string
+ *                       enum: [guest, authenticated]
+ *                       description: Type of user who initiated the research.
+ *                     userId:
+ *                       type: string
+ *                       description: The ID of the user (only included for guest users).
+ *                       nullable: true
+ *                     pdf:
+ *                       type: object
+ *                       properties:
+ *                         filename:
+ *                           type: string
+ *                         size:
+ *                           type: number
+ *                         downloadUrl:
+ *                           type: string
+ *                       description: Details for downloading the generated PDF report, if requested.
+ *       400:
+ *         description: Bad Request - Missing research query or invalid parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized - User not authenticated.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Forbidden - User has reached their deep research limit.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error - An unexpected error occurred during research.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 export const performDeepResearch = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
   const isGuest = req.isGuest || !req.user;
@@ -221,7 +392,63 @@ export const performDeepResearch = catchAsync(async (req, res) => {
 });
 
 /**
- * Get deep research statistics for the user (authenticated users only)
+ * @swagger
+ * /api/deep-research/stats:
+ *   get:
+ *     summary: Get deep research statistics for the authenticated user
+ *     description: Retrieves usage statistics and historical data related to deep research for the current authenticated user.
+ *     tags:
+ *       - Deep Research
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Deep research statistics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Deep research statistics retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalResearches:
+ *                       type: number
+ *                       description: Total number of deep researches performed by the user.
+ *                       example: 15
+ *                     lastResearchDate:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Timestamp of the last deep research performed.
+ *                       example: "2024-03-15T10:30:00Z"
+ *                     averageDepth:
+ *                       type: number
+ *                       description: Average depth of researches performed.
+ *                       example: 3.5
+ *                     topTopics:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: List of frequently researched topics.
+ *                       example: ["AI Ethics", "Market Trends", "Blockchain"]
+ *       401:
+ *         description: Unauthorized - User not authenticated or statistics not available for guest users.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error - An unexpected error occurred.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 const getDeepResearchStats = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -255,7 +482,45 @@ const getDeepResearchStats = catchAsync(async (req, res) => {
 });
 
 /**
- * Download PDF file (supports both authenticated and guest users)
+ * @swagger
+ * /api/deep-research/download-pdf/{savedId}:
+ *   get:
+ *     summary: Download a deep research report as a PDF
+ *     description: |
+ *       Retrieves a previously saved deep research result by its ID and generates a PDF report on the fly.
+ *       This endpoint supports both authenticated and guest users, provided they have the correct `savedId`.
+ *     tags:
+ *       - Deep Research
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: savedId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The unique identifier of the saved deep research result.
+ *         example: "65e8a2b0f1d4e5c6b7a8d9e0"
+ *     responses:
+ *       200:
+ *         description: PDF report generated and downloaded successfully.
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Research result not found or has expired.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error - Failed to compile or download the PDF.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 const downloadPDF = catchAsync(async (req, res) => {
   const { savedId } = req.params;
@@ -301,7 +566,45 @@ const downloadPDF = catchAsync(async (req, res) => {
 });
 
 /**
- * Download PowerPoint (PPTX) slide deck (supports both authenticated and guest users)
+ * @swagger
+ * /api/deep-research/download-pptx/{savedId}:
+ *   get:
+ *     summary: Download a deep research report as a PowerPoint (PPTX) presentation
+ *     description: |
+ *       Retrieves a previously saved deep research result by its ID and generates a PPTX slide deck on the fly.
+ *       This endpoint supports both authenticated and guest users, provided they have the correct `savedId`.
+ *     tags:
+ *       - Deep Research
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: savedId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The unique identifier of the saved deep research result.
+ *         example: "65e8a2b0f1d4e5c6b7a8d9e0"
+ *     responses:
+ *       200:
+ *         description: PPTX presentation generated and downloaded successfully.
+ *         content:
+ *           application/vnd.openxmlformats-officedocument.presentationml.presentation:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Research result not found or has expired.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error - Failed to compile or download the PPTX.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 const downloadPPTX = catchAsync(async (req, res) => {
   const { savedId } = req.params;
@@ -347,7 +650,43 @@ const downloadPPTX = catchAsync(async (req, res) => {
 });
 
 /**
- * Real-time SSE telemetry stream for deep research execution
+ * @swagger
+ * /api/deep-research/telemetry:
+ *   get:
+ *     summary: Real-time Server-Sent Events (SSE) stream for deep research progress
+ *     description: |
+ *       Establishes an SSE connection to stream real-time progress updates for a deep research task.
+ *       Clients can subscribe to this endpoint using a `conversationId` to receive updates
+ *       on the research steps, status, and percentage completion.
+ *     tags:
+ *       - Deep Research
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: conversationId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the conversation for which to stream telemetry updates.
+ *         example: "65e8a2b0f1d4e5c6b7a8d9e0"
+ *     responses:
+ *       200:
+ *         description: An active SSE stream providing real-time research progress.
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               example: |
+ *                 data: {"step":"connection_established","message":"SSE connection active.","percentage":0}
+ *                 data: {"step":"initial_search","status":"in_progress","message":"Searching for initial data...","percentage":10}
+ *                 data: {"step":"data_synthesis","status":"completed","message":"Synthesizing findings.","percentage":50}
+ *       400:
+ *         description: Bad Request - `conversationId` query parameter is missing.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 const telemetryStream = catchAsync(async (req, res) => {
   const { conversationId } = req.query;
@@ -392,6 +731,18 @@ const telemetryStream = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @typedef {object} DeepResearchController
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} performDeepResearch - Handles initiating a deep research query.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getDeepResearchStats - Retrieves deep research statistics for the user.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} downloadPDF - Handles downloading a deep research report as a PDF.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} downloadPPTX - Handles downloading a deep research report as a PPTX.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} telemetryStream - Provides a real-time SSE stream for deep research progress.
+ */
+/**
+ * DeepResearchController object containing all controller methods for deep research operations.
+ * @type {DeepResearchController}
+ */
 export const deepResearchController = {
   performDeepResearch,
   getDeepResearchStats,

@@ -20,7 +20,7 @@ import mongoose from 'mongoose';
  */
 const generateGuestUserId = () => {
   // Generate a proper MongoDB ObjectId for guest users
-  return new mongoose.Types.ObjectId().toString();
+  return new new mongoose.Types.ObjectId().toString();
 };
 
 /**
@@ -61,6 +61,13 @@ const handleComposioConversation = async (
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
+        // Optimization Recommendation:
+        // 1. The `conversationHelpers.getConversationById` function should internally use `.lean()`
+        //    when fetching the conversation document, as it's only read here and not modified.
+        //    Example: `Conversation.findById(conversationId).lean().exec()`
+        // 2. Ensure that the 'conversationId' field (if not '_id') and 'userId' field in the
+        //    Conversation model are indexed for efficient lookups. A compound index on
+        //    `(conversationId, userId)` might be beneficial depending on query patterns.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           isGuest ? null : userId,
@@ -308,6 +315,19 @@ const getComposioHistory = async (
   req = null
 ) => {
   try {
+    // Optimization Recommendation:
+    // 1. The `conversationHelpers.getConversationById` function should internally use `.lean()`
+    //    when fetching the conversation document, as it's only read here and not modified.
+    //    Example: `Conversation.findById(conversationId).lean().exec()`
+    // 2. If the `messages` array within the conversation document can be very large,
+    //    consider optimizing `getConversationById` (or creating a new helper function)
+    //    to fetch only the `messages` field and use MongoDB's `$slice` operator
+    //    to retrieve only the last `limit` messages directly from the database.
+    //    This avoids fetching the entire potentially large array into application memory.
+    //    Example: `Conversation.findById(conversationId, { messages: { $slice: -limit } }).lean().exec()`
+    // 3. Ensure that the 'conversationId' field (if not '_id') and 'userId' field in the
+    //    Conversation model are indexed for efficient lookups. A compound index on
+    //    `(conversationId, userId)` might be beneficial depending on query patterns.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -392,6 +412,20 @@ const updateComposioConversationTitle = async (
  */
 const getComposioStats = async (userId, req = null) => {
   try {
+    // Optimization Recommendation:
+    // 1. The `conversationHelpers.getUserConversations` function should internally use `.lean()`
+    //    when fetching conversation documents, as they are only read here for statistics.
+    //    Example: `Conversation.find(...).lean().exec()`
+    // 2. For calculating statistics like total count, total messages, and average messages,
+    //    it is highly recommended to use MongoDB aggregation pipelines directly within
+    //    `conversationHelpers` (or a new dedicated service method). This avoids fetching
+    //    potentially many documents (up to 1000 in this case) into application memory
+    //    and performing in-memory calculations, which can be inefficient for large datasets.
+    //    An aggregation pipeline can calculate these metrics directly on the database server.
+    //    Example aggregation stages: `$match`, `$group`, `$project`.
+    // 3. Ensure that the 'userId' field and 'metadata.category' field in the Conversation model
+    //    are indexed for efficient lookups. A compound index on `(userId, metadata.category)`
+    //    would be optimal for the specific query `getUserConversations(userId, { 'metadata.category': 'composio' })`.
     const composioConversations =
       await conversationHelpers.getUserConversations(
         userId,
