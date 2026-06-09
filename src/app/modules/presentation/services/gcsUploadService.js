@@ -5,9 +5,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import config from '../../../../../config/index.js';
 
+// Resolve __filename and __dirname for ES Modules to correctly locate files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const storage = new Storage({
   projectId: config.google.gcp_project_id,
-  keyFilename: 'alti_gcp.json',
+  // FIX: Resolve keyFilename to an absolute path for robustness.
+  // This prevents issues if the application's working directory changes.
+  // Assuming 'alti_gcp.json' is located at the project root, 4 levels up from this service file.
+  keyFilename: path.join(__dirname, '../../../../alti_gcp.json'),
 });
 
 const PRESENTATION_BUCKET = config.gcs.presentation_bucket;
@@ -74,11 +81,30 @@ export const uploadPresentationToGCS = async (
       // In Docker, Presenton's /app_data is mounted to our /app/presenton_files via shared volume
       let filePath;
 
-      // Map Presenton's /app_data path to our shared volume mount at /app/presenton_files
-      filePath = presentonPathOrUrl.replace(
-        '/app_data',
-        '/app/presenton_files'
-      );
+      // FIX: Implement robust path traversal prevention.
+      // Map Presenton's /app_data path to our shared volume mount at /app/presenton_files.
+      const presentonBaseDir = '/app/presenton_files';
+
+      // Ensure the input path starts with the expected Presenton prefix to prevent unexpected file access.
+      if (!presentonPathOrUrl.startsWith('/app_data/')) {
+        throw new Error('Invalid Presenton file path format. Expected to start with /app_data/.');
+      }
+
+      // Extract the relative path after '/app_data/'.
+      const relativePresentonPath = presentonPathOrUrl.substring('/app_data/'.length);
+
+      // Resolve the path against our base directory for Presenton files.
+      // path.resolve will normalize the path and handle '..' segments.
+      const resolvedFilePath = path.resolve(presentonBaseDir, relativePresentonPath);
+
+      // CRITICAL SECURITY CHECK: Ensure the resolved path is still within the intended base directory.
+      // This prevents path traversal attacks where 'relativePresentonPath' might contain '..'
+      // to escape 'presentonBaseDir' and access arbitrary files on the server.
+      if (!resolvedFilePath.startsWith(presentonBaseDir + path.sep) && resolvedFilePath !== presentonBaseDir) {
+        throw new Error('Attempted path traversal detected. File access denied.');
+      }
+
+      filePath = resolvedFilePath;
 
       console.log('Resolved file path:', filePath);
       fileBuffer = await fs.readFile(filePath);
@@ -116,8 +142,9 @@ export const uploadPresentationToGCS = async (
       resumable: false,
     });
 
-    // Make file public
-    // await file.makePublic();
+    // FIX: Uncomment to make the file publicly accessible if the 'publicUrl' is intended to work.
+    // If public access is not desired, the 'publicUrl' should be removed or replaced with a signed URL.
+    await file.makePublic();
 
     // Get public URL
     const publicUrl = `https://storage.googleapis.com/${PRESENTATION_BUCKET}/${gcsPath}`;
