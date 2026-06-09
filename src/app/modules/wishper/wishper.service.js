@@ -1,4 +1,5 @@
 import fs from 'fs';
+import fsp from 'fs/promises'; // Import fs.promises for asynchronous file operations
 import path from 'path';
 import { GoogleAuth } from 'google-auth-library';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -62,8 +63,18 @@ const getGcpSpeechConfig = (filePath) => {
   }
 };
 
+// Module-scoped cache for Google Cloud access token
+let cachedAccessToken = null;
+let tokenExpiryTime = 0; // Unix timestamp in milliseconds
+
 // Helper function to resolve Google Cloud credentials and get an access token
 const getGcpAccessToken = async () => {
+  // Check if the cached token is still valid (refresh 1 minute before actual expiry)
+  if (cachedAccessToken && tokenExpiryTime > Date.now() + 60 * 1000) {
+    console.log('🟢 Using cached Google Cloud access token.');
+    return cachedAccessToken;
+  }
+
   const possiblePaths = [
     path.join(process.cwd(), 'alti_gcp.json'),
     path.join(process.cwd(), '../gcp-sa-key.json'),
@@ -88,7 +99,11 @@ const getGcpAccessToken = async () => {
         const tokenResponse = await client.getAccessToken();
         if (tokenResponse.token) {
           console.log(`🟢 Successfully authenticated using key: ${keyPath}`);
-          return tokenResponse.token;
+          // Cache the token and its expiry time
+          cachedAccessToken = tokenResponse.token;
+          // GoogleAuth client.getAccessToken() returns { token, res } where res.expires_in is seconds
+          tokenExpiryTime = Date.now() + (tokenResponse.res.expires_in * 1000);
+          return cachedAccessToken;
         }
       } catch (authError) {
         console.warn(`⚠️ Authentication failed using key ${keyPath}: ${authError.message}`);
@@ -105,7 +120,10 @@ const getGcpAccessToken = async () => {
     const tokenResponse = await client.getAccessToken();
     if (tokenResponse.token) {
       console.log('🟢 Successfully authenticated using Application Default Credentials (ADC)');
-      return tokenResponse.token;
+      // Cache the token and its expiry time
+      cachedAccessToken = tokenResponse.token;
+      tokenExpiryTime = Date.now() + (tokenResponse.res.expires_in * 1000);
+      return cachedAccessToken;
     }
   } catch (error) {
     console.warn('⚠️ Application Default Credentials authentication failed');
@@ -124,7 +142,8 @@ const transcribeAudioToTextService = async (audioPath) => {
       throw new Error('No valid Google Cloud Service Account key or credentials found');
     }
 
-    const audioBuffer = fs.readFileSync(audioPath);
+    // Use fs.promises.readFile for asynchronous file reading to prevent blocking the event loop
+    const audioBuffer = await fsp.readFile(audioPath);
     const gcpConfig = getGcpSpeechConfig(audioPath);
 
     const requestBody = {
@@ -174,7 +193,8 @@ const transcribeAudioToTextService = async (audioPath) => {
       // Use gemini-2.5-flash as the standard highly accurate multimodal transcription model
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-      const audioBuffer = fs.readFileSync(audioPath);
+      // Use fs.promises.readFile for asynchronous file reading
+      const audioBuffer = await fsp.readFile(audioPath);
       const mimeType = getMimeType(audioPath);
 
       const audioPart = {
