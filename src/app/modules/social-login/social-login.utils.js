@@ -17,7 +17,10 @@ export async function findOrCreateUserModel(profile, provider) {
     const email = profile.emails?.[0]?.value;
 
     if (email) {
-      user = await UserModel.findOne({ email: email });
+      // Explicitly select the password field to check if the user has a password set.
+      // This is crucial if the password field is marked as 'select: false' in the Mongoose schema,
+      // which is a common and recommended security practice.
+      user = await UserModel.findOne({ email: email }).select('+password');
 
       if (user) {
         // A user with this email already exists.
@@ -60,7 +63,10 @@ export async function findOrCreateUserModel(profile, provider) {
       provider: provider,
       providerId: profile.id,
       email: email ?? `${provider}_${profile.id}@noemail.social`,
-      role: 'admin',
+      // Assign a default 'user' role for new social logins.
+      // Hardcoding 'admin' is a critical security vulnerability as it grants elevated privileges
+      // to all new users created via social login.
+      role: 'user',
       name: profile.displayName ?? profile.username ?? 'Unnamed User',
       avatar: profile.photos?.[0]?.value ?? '',
     });
