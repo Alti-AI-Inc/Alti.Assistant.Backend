@@ -123,6 +123,9 @@ const handleCreativeWritingConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization: Consider adding .lean() to conversationHelpers.getConversationById
+        // if the returned 'conversation' object is only read from and not directly saved
+        // or modified via Mongoose document methods later in this flow.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -330,34 +333,38 @@ const generateCreativeWriting = async (
 
 /**
  * Store writing in conversation history
+ * @param {object} conversation - The conversation object (Mongoose document or lean object)
+ * @param {string} userId - The ID of the user
+ * @param {object} writingData - The data about the generated writing
+ * @param {object} req - The request object (optional)
  */
 const storeWritingInConversation = async (
-  conversationId,
+  conversation, // Optimization: Changed to accept the conversation object directly to avoid redundant fetch
   userId,
   writingData,
   req = null
 ) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(
-      conversationId,
-      userId,
-      req
-    );
+    // The conversation object is now passed directly, avoiding a redundant database fetch.
+    const conversationId = conversation.conversationId; // Extract ID from the passed object
 
-    if (!conversation.metadata.writingHistory) {
-      conversation.metadata.writingHistory = [];
-    }
+    // Ensure writingHistory exists and is an array
+    const currentWritingHistory = conversation.metadata.writingHistory || [];
 
-    conversation.metadata.writingHistory.push({
-      ...writingData,
-      timestamp: new Date(),
-    });
+    // Create a new array with the added writing data
+    const updatedWritingHistory = [
+      ...currentWritingHistory,
+      {
+        ...writingData,
+        timestamp: new Date(),
+      },
+    ];
 
     await conversationService.updateConversationMetadata(
       conversationId,
       userId,
       {
-        writingHistory: conversation.metadata.writingHistory,
+        writingHistory: updatedWritingHistory,
         lastWritingType: writingData.writingType,
       },
       req
@@ -433,6 +440,8 @@ const processConversationalRequest = async (
     await addMessage(actualConversationId, userId, 'user', message, {}, req);
 
     // Get conversation history
+    // If conversation is a lean object, conversation.messages will be a plain array.
+    // If it's a Mongoose document, it will be a Mongoose array. Both are iterable.
     const conversationHistory = conversation.messages || [];
 
     // Analyze user message
@@ -498,9 +507,9 @@ const processConversationalRequest = async (
       writingParams.temperature
     );
 
-    // Store the writing
+    // Optimization: Pass the 'conversation' object directly to avoid a redundant database fetch.
     await storeWritingInConversation(
-      actualConversationId,
+      conversation, // Pass the conversation object
       userId,
       {
         userRequest: message,
@@ -553,6 +562,8 @@ const processConversationalRequest = async (
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
+    // Optimization: Add .lean() to conversationHelpers.getConversationById
+    // as this function is purely for retrieving and returning data.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
