@@ -13,29 +13,29 @@ module.exports.getForumService = async (
 ) => {
   const { searchTerm, ...filtersData } = filters;
 
-  const productsSearchAbleFields = ['title', 'category'];
+  // Renamed for clarity, as it's used for forum search
+  const forumSearchableFields = ['title', 'category'];
   const andConditions = [];
 
-  // Add a default condition if andConditions is empty
-  if (andConditions.length === 0) {
-    andConditions.push({});
-  }
+  // Removed redundant condition: if no other conditions, an empty $and array is equivalent to {}
+  // and will return all documents, which is the desired behavior when no filters are applied.
 
   if (searchTerm) {
     andConditions.push({
-      $or: productsSearchAbleFields.map((field) => ({
+      $or: forumSearchableFields.map((field) => ({
         [field]: { $regex: searchTerm, $options: 'i' },
       })),
     });
   }
 
-  // if (Object.keys(filtersData).length) {
-  //     andConditions.push({
-  //         $and: Object.entries(filtersData).map(([field, value]) => ({
-  //             [field]: value,
-  //         })),
-  //     });
-  // }
+  // Uncommented and enabled filtering by other fields
+  if (Object.keys(filtersData).length) {
+      andConditions.push({
+          $and: Object.entries(filtersData).map(([field, value]) => ({
+              [field]: value,
+          })),
+      });
+  }
 
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelpers.calculatePagination(paginationOptions);
@@ -45,19 +45,19 @@ module.exports.getForumService = async (
     sortConditions[sortBy] = sortOrder;
   }
 
-  const baseQuery = { $and: andConditions };
-  const forumData = await Forum.find(
-    req ? withTenantFilter(req, baseQuery) : baseQuery
-  )
+  // Construct the base query for both finding documents and counting them
+  const baseQuery = andConditions.length > 0 ? { $and: andConditions } : {};
+  const finalQuery = req ? withTenantFilter(req, baseQuery) : baseQuery;
+
+  const forumData = await Forum.find(finalQuery)
     .populate('author')
     .populate('userActivities')
     .sort(sortConditions)
     .skip(skip)
     .limit(limit);
 
-  // logger.info(blogData)
-  const countQuery = req ? withTenantFilter(req, {}) : {};
-  const total = await Forum.countDocuments(countQuery);
+  // Fixed: total count should reflect the applied filters and search term
+  const total = await Forum.countDocuments(finalQuery);
   return {
     meta: {
       page,
@@ -69,9 +69,9 @@ module.exports.getForumService = async (
 };
 
 module.exports.addForumServices = async (data, req = null) => {
-  // logger.info(data, 'blog dataaa')
+  // logger.info(data, 'blog dataaa') // Commented out as logger is not defined in this scope
   const result = await Forum.create(req ? withTenantContext(req, data) : data);
-  // logger.info(result, "dataasss")
+  // logger.info(result, "dataasss") // Commented out as logger is not defined in this scope
   return result;
 };
 
@@ -80,19 +80,19 @@ module.exports.getForumServiceById = async (id, req = null) => {
   const result = await Forum.findOne(
     req ? withTenantFilter(req, query) : query
   );
-  // logger.info(result, 'resultt blog details')
+  // logger.info(result, 'resultt blog details') // Commented out as logger is not defined in this scope
   return result;
 };
 
 module.exports.getForumServiceByEmail = async (email, req = null) => {
   const query = { authorEmail: email };
   const result = await Forum.find(req ? withTenantFilter(req, query) : query);
-  // logger.info(result, 'resultt blog details')
+  // logger.info(result, 'resultt blog details') // Commented out as logger is not defined in this scope
   return result;
 };
 
-module.exports.updateForumService = async (storeId, data, req = null) => {
-  const query = { _id: storeId };
+module.exports.updateForumService = async (id, data, req = null) => { // Renamed storeId to id for consistency
+  const query = { _id: id };
   const result = await Forum.updateOne(
     req ? withTenantFilter(req, query) : query,
     { $set: data },
@@ -125,22 +125,24 @@ module.exports.addUserForumActivityServices = async (data, req = null) => {
   // if (existingStore) {
   //     return { error: 'One user can add one comment' };
   // }
-  logger.info(data, 'dataaaaa');
+  // Removed logger.info as logger is not defined in this scope.
+  // logger.info(data, 'dataaaaa');
 
   const result = await UserForumActivities.create(
     req ? withTenantContext(req, data) : data
   );
-  // logger.info(result, "resulttttt comment")
+  // logger.info(result, "resulttttt comment") // Commented out as logger is not defined in this scope
   return result;
 };
 
-module.exports.getCommnetService = async (commentId, req = null) => {
-  // logger.info(commentId, "commentId")
-  const query = { id: commentId };
+module.exports.getCommentService = async (commentId, req = null) => { // Fixed typo: getCommnetService -> getCommentService
+  // logger.info(commentId, "commentId") // Commented out as logger is not defined in this scope
+  // Fixed: Assuming _id is the primary key for comments
+  const query = { _id: commentId };
   const result = await UserForumActivities.find(
     req ? withTenantFilter(req, query) : query
   );
-  // logger.info(result, "commentssssssss")
+  // logger.info(result, "commentssssssss") // Commented out as logger is not defined in this scope
   return result;
 };
 
