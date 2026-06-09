@@ -10,7 +10,10 @@ import { logger } from '../../../shared/logger.js';
 const getRecommendations = async (userId) => {
   try {
     // 1. Fetch currently ACTIVE connected accounts
-    const connections = await ComposioAuth.find({ userId, status: 'ACTIVE' });
+    // Optimization: Added .lean() for performance as connections are read-only.
+    // Indexing Recommendation: Consider adding an index to ComposioAuth model for { userId: 1, status: 1 }
+    // to speed up this query.
+    const connections = await ComposioAuth.find({ userId, status: 'ACTIVE' }).lean();
     const connectedAppNames = new Set(
       connections.map((c) => {
         // Use toolkit.slug as primary identifier, fallback to authConfigId without prefix
@@ -79,6 +82,8 @@ const getRecommendations = async (userId) => {
 
       // Activity/Failed Attempts Boost: If user attempts actions on apps they don't have
       if (auditAnalytics && auditAnalytics.appBreakdown) {
+        // Optimization: For very large auditAnalytics.appBreakdown, converting it to a Map
+        // keyed by 'app' could improve lookup from O(N) to O(1).
         const attempted = auditAnalytics.appBreakdown.find((a) => a.app === appName);
         if (attempted) {
           score += 30;
