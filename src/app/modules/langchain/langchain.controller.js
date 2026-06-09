@@ -55,7 +55,9 @@ const createChain = async (req, res, next) => {
     const userId = req.user?.userId || req.user?.id || 'default_user';
 
     // Check if the chain already exists; if so, snapshot it first before overwriting
-    const existingChain = await LangchainChain.findOne({ userId, name });
+    // Optimization: Added .lean() for read-only query to get plain JavaScript objects, improving performance.
+    // Indexing Recommendation: Consider adding a compound index on `{ userId: 1, name: 1 }` to LangchainChain model for faster lookups.
+    const existingChain = await LangchainChain.findOne({ userId, name }).lean();
     if (existingChain) {
       await langchainVersionService.createSnapshot(
         existingChain._id,
@@ -92,7 +94,9 @@ const createChain = async (req, res, next) => {
 const listChains = async (req, res, next) => {
   try {
     const userId = req.user?.userId || req.user?.id || 'default_user';
-    const chains = await LangchainChain.find({ userId, isActive: true });
+    // Optimization: Added .lean() for read-only query to get plain JavaScript objects, improving performance.
+    // Indexing Recommendation: Consider adding a compound index on `{ userId: 1, isActive: 1 }` to LangchainChain model for faster lookups.
+    const chains = await LangchainChain.find({ userId, isActive: true }).lean();
     res.status(httpStatus.OK).json({ success: true, chains });
   } catch (error) {
     next(error);
@@ -123,7 +127,9 @@ const getExecutions = async (req, res, next) => {
   try {
     const { chainId } = req.params;
     const userId = req.user?.userId || req.user?.id || 'default_user';
-    const executions = await LangchainExecution.find({ chainId, userId }).sort({ createdAt: -1 }).limit(50);
+    // Optimization: Added .lean() for read-only query to get plain JavaScript objects, improving performance.
+    // Indexing Recommendation: Consider adding a compound index on `{ chainId: 1, userId: 1, createdAt: -1 }` to LangchainExecution model for faster lookups and sorting.
+    const executions = await LangchainExecution.find({ chainId, userId }).sort({ createdAt: -1 }).limit(50).lean();
     res.status(httpStatus.OK).json({ success: true, executions });
   } catch (error) {
     next(error);
