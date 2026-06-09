@@ -3,6 +3,38 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { enhancedImageService } from './enhanced_image.service.js';
+// Optimization: Added missing import for conversationHelpers. Adjust path if necessary.
+import { conversationHelpers } from '../conversation/conversation.helpers.js';
+
+/**
+ * Optimization Recommendations:
+ *
+ * 1.  Database Indexing:
+ *     For the 'Conversation' model (or whichever model `conversationHelpers` and `enhancedImageService.handleImageConversation` interact with),
+ *     it is highly recommended to create indexes on the following fields to speed up queries:
+ *     -   `conversationId`: Used frequently for direct lookup.
+ *     -   `userId`: Used for filtering conversations by user.
+ *     Example (in your Mongoose schema definition):
+ *     ConversationSchema.index({ conversationId: 1 });
+ *     ConversationSchema.index({ userId: 1 });
+ *     ConversationSchema.index({ conversationId: 1, userId: 1 }); // Compound index for specific lookups
+ *
+ * 2.  Mongoose .lean() for Read-Only Operations:
+ *     Many calls to `enhancedImageService.handleImageConversation` and `conversationHelpers.getConversationById`
+ *     retrieve conversation documents that are then only read from (e.g., accessing `conversation.messages`, `conversation.conversationId`).
+ *     Ensure that the underlying service methods (`handleImageConversation`, `getConversationById`) use `.lean()`
+ *     when fetching documents that will not be modified and saved back to the database. This returns a plain JavaScript object
+ *     instead of a full Mongoose document, reducing overhead and improving performance.
+ *     Example (in service layer): `ConversationModel.findOne({ ... }).lean();`
+ *
+ * 3.  CPU-intensive synchronous loops:
+ *     Operations like `.map()` and `.filter()` on `conversation.messages` are synchronous. While `slice(-N)` is used to limit context,
+ *     some functions (e.g., `evaluatePrompt`, `addDetail`, `finalizePrompt`, `buildEnhancedPrompt`, `generateFromConversation`)
+ *     process the entire `conversation.messages` array. For typical conversation lengths (tens to hundreds of messages), this is usually
+ *     acceptable. However, if conversations can grow to thousands or millions of messages, these operations could become a bottleneck.
+ *     Consider implementing pagination or server-side aggregation/projection to limit the amount of data processed in memory
+ *     if this becomes an issue.
+ */
 
 /**
  * Generate image directly with prompt
@@ -39,6 +71,7 @@ export const generateImageDirect = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization: Ensure enhancedImageService.handleImageConversation uses .lean() if 'conversation' is only read from.
     const conversation = await enhancedImageService.handleImageConversation(
       userId,
       conversationId,
@@ -51,6 +84,7 @@ export const generateImageDirect = catchAsync(async (req, res) => {
     // Get conversation history for context-aware processing
     let conversationHistory = [];
     if (conversationId && conversation.messages) {
+      // Optimization: .slice(-10) limits the array processing, preventing large synchronous loops.
       conversationHistory = conversation.messages.slice(-10).map((msg) => ({
         role: msg.role,
         content: msg.content,
@@ -190,6 +224,7 @@ export const editImage = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization: Ensure enhancedImageService.handleImageConversation uses .lean() if 'conversation' is only read from.
     const conversation = await enhancedImageService.handleImageConversation(
       userId,
       conversationId,
@@ -313,6 +348,7 @@ export const analyzeIntent = catchAsync(async (req, res) => {
     // Create conversation if not exists
     if (!conversationId) {
       conversationId = enhancedImageService.generateImageConversationId();
+      // Optimization: Ensure enhancedImageService.handleImageConversation uses .lean() if 'conversation' is only read from.
       conversation = await enhancedImageService.handleImageConversation(
         userId,
         conversationId,
@@ -321,6 +357,7 @@ export const analyzeIntent = catchAsync(async (req, res) => {
         'intent_analysis'
       );
     } else {
+      // Optimization: Ensure conversationHelpers.getConversationById uses .lean() if 'conversation' is only read from.
       conversation = await conversationHelpers.getConversationById(
         conversationId,
         isGuest ? null : userId
@@ -427,6 +464,7 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
 
     if (conversationId) {
       try {
+        // Optimization: Ensure conversationHelpers.getConversationById uses .lean() if 'conversation' is only read from.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           isGuest ? null : userId
@@ -436,6 +474,7 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
           conversation.messages &&
           conversation.messages.length > 0
         ) {
+          // Optimization: .slice(-5) limits the array processing, preventing large synchronous loops.
           context = conversation.messages
             .slice(-5)
             .map((msg) => `${msg.role}: ${msg.content}`)
@@ -449,6 +488,7 @@ export const analyzeImageIntent = catchAsync(async (req, res) => {
     // Create conversation if not exists
     if (!conversationId) {
       conversationId = enhancedImageService.generateImageConversationId();
+      // Optimization: Ensure enhancedImageService.handleImageConversation uses .lean() if 'conversation' is only read from.
       conversation = await enhancedImageService.handleImageConversation(
         userId,
         conversationId,
@@ -548,6 +588,7 @@ export const evaluatePrompt = catchAsync(async (req, res) => {
 
     if (conversationId) {
       try {
+        // Optimization: Ensure conversationHelpers.getConversationById uses .lean() if 'conversation' is only read from.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           isGuest ? null : userId
@@ -557,6 +598,8 @@ export const evaluatePrompt = catchAsync(async (req, res) => {
           conversation.messages &&
           conversation.messages.length > 0
         ) {
+          // Optimization: While .map() on all messages is synchronous, for typical conversation lengths
+          // it's usually not a bottleneck. Consider pagination or limiting messages if conversations can be extremely long.
           history = conversation.messages
             .map((msg) => `${msg.role}: ${msg.content}`)
             .join('\n');
@@ -569,6 +612,7 @@ export const evaluatePrompt = catchAsync(async (req, res) => {
     // Create conversation if not exists
     if (!conversationId) {
       conversationId = enhancedImageService.generateImageConversationId();
+      // Optimization: Ensure enhancedImageService.handleImageConversation uses .lean() if 'conversation' is only read from.
       conversation = await enhancedImageService.handleImageConversation(
         userId,
         conversationId,
@@ -641,6 +685,7 @@ export const addDetail = catchAsync(async (req, res) => {
       : req.user?.userId || req.user?._id;
     userId = req.body.userId || userId;
 
+    // Optimization: Ensure conversationHelpers.getConversationById uses .lean() if 'conversation' is only read from.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       isGuest ? null : userId
@@ -681,12 +726,16 @@ export const addDetail = catchAsync(async (req, res) => {
     );
 
     // Get all user messages
+    // Optimization: While .filter() and .map() on all messages is synchronous, for typical conversation lengths
+    // it's usually not a bottleneck. Consider pagination or limiting messages if conversations can be extremely long.
     const conversationHistory = conversation.messages
       .filter((msg) => msg.role === 'user')
       .map((msg) => msg.content);
     conversationHistory.push(detail);
 
     // Get full history for context
+    // Optimization: While .map() on all messages is synchronous, for typical conversation lengths
+    // it's usually not a bottleneck. Consider pagination or limiting messages if conversations can be extremely long.
     const history =
       conversation.messages
         .map((msg) => `${msg.role}: ${msg.content}`)
@@ -748,6 +797,7 @@ export const finalizePrompt = catchAsync(async (req, res) => {
       ? enhancedImageService.generateGuestUserId()
       : req.user?.userId || req.user?._id;
     userId = req.body.userId || userId;
+    // Optimization: Ensure conversationHelpers.getConversationById uses .lean() if 'conversation' is only read from.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       isGuest ? null : userId
@@ -766,6 +816,8 @@ export const finalizePrompt = catchAsync(async (req, res) => {
     }
 
     // Extract user messages to build enhanced prompt
+    // Optimization: While .filter() and .map() on all messages is synchronous, for typical conversation lengths
+    // it's usually not a bottleneck. Consider pagination or limiting messages if conversations can be extremely long.
     const conversationHistory = conversation.messages
       .filter((msg) => msg.role === 'user')
       .map((msg) => msg.content);
@@ -819,6 +871,7 @@ export const buildEnhancedPrompt = catchAsync(async (req, res) => {
       ? enhancedImageService.generateGuestUserId()
       : req.user?.userId || req.user?._id;
 
+    // Optimization: Ensure conversationHelpers.getConversationById uses .lean() if 'conversation' is only read from.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       isGuest ? null : userId
@@ -837,6 +890,8 @@ export const buildEnhancedPrompt = catchAsync(async (req, res) => {
     }
 
     // Extract user messages to build enhanced prompt
+    // Optimization: While .filter() and .map() on all messages is synchronous, for typical conversation lengths
+    // it's usually not a bottleneck. Consider pagination or limiting messages if conversations can be extremely long.
     const conversationHistory = conversation.messages
       .filter((msg) => msg.role === 'user')
       .map((msg) => msg.content);
@@ -890,6 +945,7 @@ export const generateFromConversation = catchAsync(async (req, res) => {
   userId = req.body.userId || userId;
 
   try {
+    // Optimization: Ensure conversationHelpers.getConversationById uses .lean() if 'conversation' is only read from.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       isGuest ? null : userId
@@ -908,6 +964,8 @@ export const generateFromConversation = catchAsync(async (req, res) => {
     }
 
     // Extract user messages to build enhanced prompt
+    // Optimization: While .filter() and .map() on all messages is synchronous, for typical conversation lengths
+    // it's usually not a bottleneck. Consider pagination or limiting messages if conversations can be extremely long.
     const conversationHistory = conversation.messages
       .filter((msg) => msg.role === 'user')
       .map((msg) => msg.content);
