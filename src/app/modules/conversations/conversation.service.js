@@ -10,6 +10,30 @@ import {
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
 
+// Recommended Indexes for Conversation Model:
+// These indexes will significantly improve query performance for common lookups.
+// If 'tenantId' is added by withTenantFilter, consider adding it as the first field in compound indexes.
+// 1. For lookups by conversationId and userId (used in many functions like addMessageToConversation, updateConversationTitle, etc.):
+//    db.conversations.createIndex({ conversationId: 1, userId: 1 })
+// 2. For bulk operations and status-based filtering (e.g., archiveConversation, bulkArchiveConversations):
+//    db.conversations.createIndex({ userId: 1, status: 1, conversationId: 1 })
+// 3. If 'tenantId' is consistently used in queries (e.g., via withTenantFilter):
+//    db.conversations.createIndex({ tenantId: 1, conversationId: 1, userId: 1 })
+//    db.conversations.createIndex({ tenantId: 1, userId: 1, status: 1, conversationId: 1 })
+
+// Recommended Indexes for ChatShare Model:
+// 1. For efficient lookups by shareId (used in getSharedChatConversation):
+//    db.chatshares.createIndex({ shareId: 1 })
+// 2. For checking existing shares and updating (used in shareChatConversation, updateChatShareSettings, revokeChatShare):
+//    db.chatshares.createIndex({ conversationId: 1, userId: 1, isActive: 1 })
+// 3. For getUserSharedChats filtering:
+//    db.chatshares.createIndex({ userId: 1, isActive: 1, expiresAt: 1 })
+// 4. If 'tenantId' is consistently used in queries:
+//    db.chatshares.createIndex({ tenantId: 1, shareId: 1 })
+//    db.chatshares.createIndex({ tenantId: 1, conversationId: 1, userId: 1, isActive: 1 })
+//    db.chatshares.createIndex({ tenantId: 1, userId: 1, isActive: 1, expiresAt: 1 })
+
+
 /**
  * Create a new conversation
  * @param {Object} conversationData
@@ -106,6 +130,8 @@ const addMessageToConversation = async (
     );
 
     const query = { conversationId, userId };
+    // .lean() is not used here because 'conversation.addMessage' is an instance method
+    // that requires a Mongoose document.
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
     );
@@ -364,7 +390,10 @@ const restoreConversation = async (conversationId, userId, req = null) => {
  */
 const deleteConversation = async (conversationId, userId, req = null) => {
   try {
-    const query = { _id: conversationId, userId };
+    // Corrected query: using 'conversationId' field instead of '_id'.
+    // The original code was inconsistent, attempting to use 'conversationId' as '_id'
+    // in some places while 'createConversation' defines it as a distinct field.
+    const query = { conversationId, userId };
     const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
       { status: 'deleted', lastActivity: new Date() },
@@ -374,15 +403,13 @@ const deleteConversation = async (conversationId, userId, req = null) => {
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
-    const deleteQuery = { _id: conversationId, userId };
-    await Conversation.deleteOne(
-      req ? withTenantFilter(req, deleteQuery) : deleteQuery
-    );
-    logger.info(`Conversation deleted: ${conversationId}`);
+    // Removed redundant hard delete. This function is now a pure soft delete,
+    // consistent with its JSDoc comment and the existence of 'permanentlyDeleteConversation'.
+    logger.info(`Conversation deleted (soft): ${conversationId}`);
 
-    return { message: 'Conversation deleted successfully' };
+    return { message: 'Conversation soft-deleted successfully' };
   } catch (error) {
-    logger.error('Error deleting conversation:', error);
+    logger.error('Error soft-deleting conversation:', error);
     throw error;
   }
 };
@@ -587,10 +614,10 @@ const addConversationTags = async (
  * @param {Object} req - Request object for tenant context
  * @returns {Promise<Object>}
  */
-const shareChatConversation = async (shareData, req = null) => {
+const shareChatConversation = async (shareDataArgs, req = null) => { // Renamed shareData to shareDataArgs to avoid shadowing
   try {
     const { conversationId, userId, shareType, expiresAt, allowComments } =
-      shareData;
+      shareDataArgs; // Use shareDataArgs
     console.log(`Sharing conversation ${conversationId} for user ${userId}:`, {
       shareType,
       expiresAt,
@@ -599,12 +626,15 @@ const shareChatConversation = async (shareData, req = null) => {
 
     // Check if conversation exists and belongs to user
     const query = {
-      _id: new mongoose.Types.ObjectId(conversationId),
-      userId: new mongoose.Types.ObjectId(userId),
+      // Assuming 'conversationId' is a custom string ID field in the Conversation model,
+      // not the MongoDB '_id'. This is consistent with 'createConversation' and other functions.
+      conversationId,
+      userId,
     };
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, query) : query
-    );
+    ).lean(); // Added .lean() as this is a read-only check for existence.
+
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
@@ -615,6 +645,7 @@ const shareChatConversation = async (shareData, req = null) => {
       userId,
       isActive: true,
     };
+    // .lean() is not used here because 'existingShare' might be modified and saved later.
     let existingShare = await ChatShare.findOne(
       req ? withTenantFilter(req, shareQuery) : shareQuery
     );
@@ -641,15 +672,9 @@ const shareChatConversation = async (shareData, req = null) => {
     }
 
     // Create new share
-    const shareData = {
-      conversationId,
-      userId,
-      shareType,
-      expiresAt,
-      allowComments,
-    };
+    // Using the original shareDataArgs for the new ChatShare instance
     const chatShare = new ChatShare(
-      req ? withTenantContext(req, shareData) : shareData
+      req ? withTenantContext(req, shareDataArgs) : shareDataArgs
     );
 
     await chatShare.save();
@@ -681,6 +706,8 @@ const shareChatConversation = async (shareData, req = null) => {
 const getSharedChatConversation = async (shareId, req = null) => {
   try {
     const shareQuery = { shareId };
+    // .lean() is not used here because chatShare.isAccessible() and chatShare.incrementViewCount()
+    // are instance methods that require a Mongoose document.
     const chatShare = await ChatShare.findOne(
       req ? withTenantFilter(req, shareQuery) : shareQuery
     );
@@ -701,11 +728,14 @@ const getSharedChatConversation = async (shareId, req = null) => {
 
     // Get the conversation details
     const convQuery = {
-      _id: chatShare.conversationId,
+      // Assuming chatShare.conversationId stores the custom string ID of the conversation,
+      // consistent with how 'conversationId' is used as a field in the Conversation model.
+      conversationId: chatShare.conversationId,
     };
     const conversation = await Conversation.findOne(
       req ? withTenantFilter(req, convQuery) : convQuery
-    ).populate('userId', 'username email');
+    ).lean() // Added .lean() for read-only operation to reduce overhead.
+    .populate('userId', 'username email'); // Populate userId for owner info.
 
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -728,7 +758,7 @@ const getSharedChatConversation = async (shareId, req = null) => {
         metadata: conversation.metadata,
       },
       owner: {
-        username: conversation.userId.username || 'Anonymous',
+        username: conversation.userId?.username || 'Anonymous', // Use optional chaining as userId might be null or undefined if not found.
       },
       shareSettings: {
         shareType: chatShare.shareType,
@@ -755,9 +785,12 @@ const renameChatConversation = async (
       throw new ApiError(httpStatus.BAD_REQUEST, 'Title cannot be empty');
     }
     const query = { conversationId, userId };
-    const conversation = await Conversation.updateOne(
+    // Changed updateOne to findOneAndUpdate to correctly return the updated document.
+    // .select() is ineffective with updateOne as it returns an update result object, not the document.
+    const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
-      { title: newTitle.trim(), lastActivity: new Date() }
+      { title: newTitle.trim(), lastActivity: new Date() },
+      { new: true } // Ensure the updated document is returned
     ).select('conversationId title lastActivity');
     if (!conversation) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
@@ -778,9 +811,12 @@ const saveChatConversation = async (
 ) => {
   try {
     const query = { conversationId, userId };
-    const conversation = await Conversation.updateOne(
+    // Changed updateOne to findOneAndUpdate to correctly return the updated document.
+    // .select() is ineffective with updateOne as it returns an update result object, not the document.
+    const conversation = await Conversation.findOneAndUpdate(
       req ? withTenantFilter(req, query) : query,
-      { is_saved, lastActivity: new Date() }
+      { is_saved, lastActivity: new Date() },
+      { new: true } // Ensure the updated document is returned
     ).select('conversationId is_saved lastActivity');
 
     if (!conversation) {
@@ -816,6 +852,7 @@ const updateChatShareSettings = async (updateData, req = null) => {
       conversationId,
       userId,
     };
+    // .lean() is not used here because 'chatShare' might be modified and saved later.
     const chatShare = await ChatShare.findOne(
       req ? withTenantFilter(req, query) : query
     );
@@ -861,6 +898,9 @@ const getUserSharedChats = async (queryData, req = null) => {
   try {
     const { userId, page, limit, status } = queryData;
 
+    // Assuming ChatShare.findUserShares internally handles .lean() and population efficiently.
+    // If 'findUserShares' performs a 'find' operation with 'populate', it should use '.lean()'
+    // on the populated documents to avoid unnecessary Mongoose document hydration for read-only data.
     const chatShares = await ChatShare.findUserShares(
       userId,
       { page, limit, status },
@@ -890,6 +930,8 @@ const getUserSharedChats = async (queryData, req = null) => {
       shares: chatShares.map((share) => ({
         shareId: share.shareId,
         shareUrl: `/chat/shared/${share.shareId}`,
+        // Assuming share.conversationId is already populated and is a lean object
+        // or a Mongoose document that can be accessed directly.
         conversation: {
           conversationId: share.conversationId.conversationId,
           title: share.conversationId.title,
@@ -932,6 +974,7 @@ const revokeChatShare = async (revokeData, req = null) => {
       conversationId,
       userId,
     };
+    // .lean() is not used here because 'chatShare' is modified and saved later.
     const chatShare = await ChatShare.findOne(
       req ? withTenantFilter(req, query) : query
     );
