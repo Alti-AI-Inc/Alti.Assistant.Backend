@@ -88,17 +88,24 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
       total_time: totalTime, // Add total time to response data
     };
 
-    let deepseekSession = await ChatHistory.findOne({ user: userId, sessionId });
+    // Optimization: Use findOneAndUpdate to update an existing session or determine if a new one needs to be created.
+    // This reduces the number of database operations for existing sessions from two (findOne + save) to one.
+    // Recommendation: Ensure that `user` and `sessionId` fields in the `ChatHistory` model are indexed
+    // for efficient lookups: `ChatHistorySchema.index({ user: 1, sessionId: 1 });`
+    let deepseekSession = await ChatHistory.findOneAndUpdate(
+      { user: userId, sessionId },
+      { $push: { responses: responseData } },
+      { new: true } // Return the updated document
+    );
 
-    if (deepseekSession) {
-      deepseekSession.responses.push(responseData);
-      await deepseekSession.save();
-    } else {
+    if (!deepseekSession) {
+      // If no existing session was found and updated, create a new one
       deepseekSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],
       });
+      // Only update UserModel if a new session was created
       await UserModel.findByIdAndUpdate(userId, {
         $push: { llamaAiSessions: deepseekSession._id },
       });
