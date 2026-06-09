@@ -1,17 +1,46 @@
 import { GoogleAuth } from 'google-auth-library';
 import { logger } from '../../../shared/logger.js';
 
-// Initialize auth helper with scopes
+/**
+ * Initializes a GoogleAuth client with the necessary scopes for accessing Google Cloud Platform services.
+ * This client is used to obtain authenticated requests for GCP APIs.
+ * @type {import('google-auth-library').GoogleAuth}
+ */
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
 
 /**
- * Analyzes natural language text for sentiment, classification, and entities.
- * 
- * @param {string} text - Text to analyze
- * @param {Array<string>} operations - NLP operations (e.g. SENTIMENT, ENTITY, CLASSIFY)
- * @returns {Promise<object>} NLP analysis report
+ * Analyzes natural language text using Google Cloud Natural Language API for various operations.
+ * It can perform sentiment analysis, named entity recognition, and text classification.
+ *
+ * @param {string} text - The input text string to be analyzed.
+ * @param {Array<('SENTIMENT'|'ENTITY'|'CLASSIFY')>} [operations=['SENTIMENT', 'ENTITY']] - An array of NLP operations to perform.
+ *   Valid operations include:
+ *   - 'SENTIMENT': Performs sentiment analysis on the document and individual sentences.
+ *   - 'ENTITY': Performs named entity recognition, identifying people, places, events, etc.
+ *   - 'CLASSIFY': Classifies the document into categories (requires a minimum of 20 words).
+ * @returns {Promise<object>} A promise that resolves to an object containing the analysis results.
+ *   The object structure includes:
+ *   - `success`: {boolean} Indicates if the analysis was successful.
+ *   - `results`: {object} An object containing the specific analysis outputs:
+ *     - `sentiment`: {object} (if 'SENTIMENT' operation is included)
+ *       - `score`: {number} Overall sentiment score (-1.0 to 1.0).
+ *       - `magnitude`: {number} Overall magnitude of sentiment (0.0 to +inf).
+ *       - `sentences`: {Array<object>} Sentiment analysis for each sentence.
+ *         - `text`: {string} Content of the sentence.
+ *         - `score`: {number} Sentiment score for the sentence.
+ *         - `magnitude`: {number} Magnitude for the sentence.
+ *     - `entities`: {Array<object>} (if 'ENTITY' operation is included)
+ *       - `name`: {string} The entity's name.
+ *       - `type`: {string} The entity's type (e.g., PERSON, LOCATION, ORGANIZATION).
+ *       - `salience`: {number} The salience score of the entity.
+ *       - `metadata`: {object} Additional metadata about the entity.
+ *     - `classification`: {Array<object>} (if 'CLASSIFY' operation is included and text has >= 20 words)
+ *       - `name`: {string} The category name (e.g., "/Arts & Entertainment").
+ *       - `confidence`: {number} The confidence score for the category.
+ *   - `textLength`: {number} The length of the input text.
+ * @throws {Error} Throws an error if the GCP NLP analysis fails due to API errors or network issues.
  */
 const analyzeText = async (text, operations = ['SENTIMENT', 'ENTITY']) => {
   try {
@@ -89,6 +118,17 @@ const analyzeText = async (text, operations = ['SENTIMENT', 'ENTITY']) => {
   }
 };
 
+/**
+ * @namespace GcpNlpService
+ * @description Provides a collection of functions for interacting with the Google Cloud Natural Language API.
+ * This service encapsulates the logic for performing various NLP tasks such as sentiment analysis,
+ * entity recognition, and text classification.
+ */
 export const GcpNlpService = {
+  /**
+   * @function analyzeText
+   * @memberof GcpNlpService
+   * @see {@link analyzeText} for detailed documentation.
+   */
   analyzeText
 };
