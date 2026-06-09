@@ -132,9 +132,7 @@ Text: "${text.substring(0, 500)}"
 JSON response:`;
 
       const response = await this.detectionModel.invoke(prompt);
-      console.log('Detection response:', response);
       const content = response.content.trim();
-      console.log('Detection response content:', content);
       // Extract JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
@@ -213,13 +211,23 @@ JSON response:`;
         );
       }
 
+      // Determine the actual source language, detecting if 'auto' or null
+      let actualSourceLanguage = sourceLanguage;
+      if (!sourceLanguage || sourceLanguage === 'auto') {
+        const detection = await this.detectLanguage(text);
+        actualSourceLanguage = detection.languageCode;
+        logger.info('Source language auto-detected for translation', {
+          language: actualSourceLanguage,
+        });
+      }
+
       const targetLanguageName = LANGUAGE_NAMES[targetLanguage];
       const sourceLanguageName =
-        sourceLanguage && sourceLanguage !== 'auto'
-          ? LANGUAGE_NAMES[sourceLanguage]
+        actualSourceLanguage && actualSourceLanguage !== 'auto'
+          ? LANGUAGE_NAMES[actualSourceLanguage]
           : null;
 
-      // Build translation prompt
+      // Build translation prompt using the determined source language
       const prompt = sourceLanguageName
         ? `Translate the following text from ${sourceLanguageName} to ${targetLanguageName}.
 
@@ -255,15 +263,8 @@ Translated text:`;
       const response = await this.model.invoke(prompt);
       const translation = response.content.trim();
 
-      // Detect source language if not provided
-      let detectedSourceLanguage = sourceLanguage;
-      if (!sourceLanguage || sourceLanguage === 'auto') {
-        const detection = await this.detectLanguage(text);
-        detectedSourceLanguage = detection.languageCode;
-      }
-
       logger.info('Translation completed with LLM', {
-        sourceLanguage: detectedSourceLanguage,
+        sourceLanguage: actualSourceLanguage,
         targetLanguage,
         originalLength: text.length,
         translatedLength: translation.length,
@@ -273,9 +274,9 @@ Translated text:`;
         success: true,
         originalText: text,
         translatedText: translation,
-        sourceLanguage: detectedSourceLanguage,
+        sourceLanguage: actualSourceLanguage,
         sourceLanguageName:
-          LANGUAGE_NAMES[detectedSourceLanguage] || detectedSourceLanguage,
+          LANGUAGE_NAMES[actualSourceLanguage] || actualSourceLanguage,
         targetLanguage,
         targetLanguageName: LANGUAGE_NAMES[targetLanguage],
         characterCount: text.length,
@@ -301,6 +302,7 @@ Translated text:`;
       // Detect source language once for the entire text
       let detectedSourceLanguage = sourceLanguage;
       if (!sourceLanguage || sourceLanguage === 'auto') {
+        // Use a substring for detection to save tokens and time
         const detection = await this.detectLanguage(text.substring(0, 5000));
         detectedSourceLanguage = detection.languageCode;
         logger.info('Source language detected for large text', {
