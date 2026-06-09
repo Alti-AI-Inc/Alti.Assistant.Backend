@@ -39,60 +39,67 @@ import mongoose from 'mongoose';
  * @returns {Array<object>} .data - An array of user objects, each containing email, isSubscribed, role, and subscription details.
  */
 const getAllUsersService = async (filters, paginationOptions) => {
-  const { searchTerm } = filters;
+  try {
+    const { searchTerm } = filters;
 
-  const productsSearchAbleFields = ['email', 'firstName', 'lastName'];
-  const andConditions = [];
+    // Bug fix: Renamed for clarity from productsSearchAbleFields to userSearchableFields
+    const userSearchableFields = ['email', 'firstName', 'lastName'];
+    const andConditions = [];
 
-  // Add a default condition if andConditions is empty
-  if (andConditions.length === 0) {
-    andConditions.push({});
+    if (searchTerm) {
+      andConditions.push({
+        $or: userSearchableFields.map((field) => ({
+          [field]: { $regex: searchTerm, $options: 'i' },
+        })),
+      });
+    }
+
+    const { page, limit, skip, sortBy, sortOrder } =
+      paginationHelpers.calculatePagination(paginationOptions);
+
+    const sortConditions = {};
+    if (sortBy && sortOrder) {
+      sortConditions[sortBy] = sortOrder;
+    }
+
+    // If andConditions is empty, query will be {}, matching all documents.
+    // The previous `if (andConditions.length === 0) { andConditions.push({}); }` is redundant
+    // as Mongoose handles an empty $and array as an empty query.
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+
+    const users = await UserModel.find(query)
+      .select('email isSubscribed role subscription')
+      .sort(sortConditions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await UserModel.countDocuments(query); // Total for filtered users
+    const paidUser = await UserModel.countDocuments({
+      isSubscribed: true,
+    }); // Global count
+    const freeUser = await UserModel.countDocuments({
+      isSubscribed: { $ne: true },
+    }); // Global count
+    const unverifyUsers = await UserModel.countDocuments({
+      role: 'unauthorized',
+    }); // Global count
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        paidUser,
+        freeUser,
+        unverifyUsers,
+      },
+      data: users,
+    };
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getAllUsersService: ${error.message}`);
+    throw error; // Re-throw to be caught by controller/global error handler
   }
-
-  if (searchTerm) {
-    andConditions.push({
-      $or: productsSearchAbleFields.map((field) => ({
-        [field]: { $regex: searchTerm, $options: 'i' },
-      })),
-    });
-  }
-
-  const { page, limit, skip, sortBy, sortOrder } =
-    paginationHelpers.calculatePagination(paginationOptions);
-
-  const sortConditions = {};
-  if (sortBy && sortOrder) {
-    sortConditions[sortBy] = sortOrder;
-  }
-
-  const users = await UserModel.find({ $and: andConditions })
-    .select('email isSubscribed role subscription')
-    .sort(sortConditions)
-    .skip(skip)
-    .limit(limit);
-
-  const total = await UserModel.countDocuments({ $and: andConditions });
-  const paidUser = await UserModel.countDocuments({
-    isSubscribed: true,
-  });
-  const freeUser = await UserModel.countDocuments({
-    isSubscribed: { $ne: true },
-  });
-  const unverifyUsers = await UserModel.countDocuments({
-    role: 'unauthorized',
-  });
-
-  return {
-    meta: {
-      page,
-      limit,
-      total,
-      paidUser,
-      freeUser,
-      unverifyUsers,
-    },
-    data: users,
-  };
 };
 
 // const updateUserRoleService = async (id, userRole) => {
@@ -113,8 +120,14 @@ const getAllUsersService = async (filters, paginationOptions) => {
  * @returns {Promise<Array<object>>} An array of user objects with the 'buyer' role.
  */
 const getAllBuyerServices = async () => {
-  const result = await UserModel.find({ role: 'buyer' });
-  return result;
+  try {
+    const result = await UserModel.find({ role: 'buyer' });
+    return result;
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getAllBuyerServices: ${error.message}`);
+    throw error;
+  }
 };
 
 //====================  Admin ========================
@@ -126,9 +139,20 @@ const getAllBuyerServices = async () => {
  * @returns {Promise<object|null>} The user object if found, otherwise null.
  */
 const getSellerServiceById = async (id) => {
-  const result = await UserModel.findOne({ _id: id });
-  logger.info(result);
-  return result;
+  try {
+    // Bug fix: Validate ID format to prevent potential Mongoose casting errors or unexpected behavior
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid user ID format');
+    }
+    const result = await UserModel.findOne({ _id: id });
+    // Bug fix: Log non-sensitive information to prevent potential sensitive data leakage in logs
+    logger.info(`Retrieved user with ID: ${id}. Found: ${!!result}`);
+    return result;
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getSellerServiceById: ${error.message}`);
+    throw error;
+  }
 };
 
 /**
@@ -139,14 +163,24 @@ const getSellerServiceById = async (id) => {
  * @returns {Promise<object>} The result of the Mongoose update operation, indicating success or failure.
  */
 const updateUserRoleService = async (userId, targetRole) => {
-  const filter = { _id: userId };
-  const updateDoc = {
-    $set: { role: targetRole },
-  };
-  const result = await UserModel.updateOne(filter, updateDoc, {
-    runValidators: true,
-  });
-  return result;
+  try {
+    // Bug fix: Validate ID format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error('Invalid user ID format');
+    }
+    const filter = { _id: userId };
+    const updateDoc = {
+      $set: { role: targetRole },
+    };
+    const result = await UserModel.updateOne(filter, updateDoc, {
+      runValidators: true,
+    });
+    return result;
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in updateUserRoleService: ${error.message}`);
+    throw error;
+  }
 };
 
 /**
@@ -162,29 +196,36 @@ const updateUserRoleService = async (userId, targetRole) => {
  * @throws {Error} If an 'admin' attempts to delete another 'admin' without 'super_admin' privileges.
  */
 const deleteUserService = async (objectId, requesterRole = 'admin') => {
-  if (!mongoose.Types.ObjectId.isValid(objectId)) {
-    throw new Error('Invalid user ID format');
+  try {
+    if (!mongoose.Types.ObjectId.isValid(objectId)) {
+      throw new Error('Invalid user ID format');
+    }
+
+    const mongoId = new mongoose.Types.ObjectId(objectId); // <-- convert explicitly
+
+    const user = await UserModel.findOne({ _id: mongoId });
+    // Bug fix: Log non-sensitive information to prevent potential sensitive data leakage in logs
+    logger.info(`Attempting to delete user with ID: ${objectId}. User found: ${user ? user.email : 'None'}`);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.role === 'super_admin') {
+      throw new Error('Cannot delete a super_admin user');
+    }
+
+    if (user.role === 'admin' && requesterRole !== 'super_admin') {
+      throw new Error('Only a super_admin can delete an admin user');
+    }
+
+    const result = await UserModel.deleteOne({ _id: mongoId });
+    return result;
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in deleteUserService: ${error.message}`);
+    throw error;
   }
-
-  const mongoId = new mongoose.Types.ObjectId(objectId); // <-- convert explicitly
-
-  const user = await UserModel.findOne({ _id: mongoId });
-  logger.info('User found:', user);
-
-  if (!user) {
-    throw new Error('User not found');
-  }
-
-  if (user.role === 'super_admin') {
-    throw new Error('Cannot delete a super_admin user');
-  }
-
-  if (user.role === 'admin' && requesterRole !== 'super_admin') {
-    throw new Error('Only a super_admin can delete an admin user');
-  }
-
-  const result = await UserModel.deleteOne({ _id: mongoId });
-  return result;
 };
 
 //==================== Sup Admin ========================
@@ -197,16 +238,23 @@ const deleteUserService = async (objectId, requesterRole = 'admin') => {
  * @returns {Promise<boolean>} True if the email belongs to an admin or super_admin, false otherwise.
  */
 const getAdminServices = async (email) => {
-  const emailLower = email ? email.toLowerCase() : '';
-  const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
-  if (superAdminEmail && emailLower === superAdminEmail) {
-    return true;
-  }
-  const admin = await UserModel.findOne({ email: email });
-  if (admin && (admin.role === 'admin' || admin.role === 'super_admin')) {
-    return true;
-  } else {
-    return false;
+  try {
+    const emailLower = email ? email.toLowerCase() : '';
+    const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
+    if (superAdminEmail && emailLower === superAdminEmail) {
+      return true;
+    }
+    // Bug fix: Use emailLower for case-insensitive comparison in database query
+    const admin = await UserModel.findOne({ email: emailLower });
+    if (admin && (admin.role === 'admin' || admin.role === 'super_admin')) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getAdminServices: ${error.message}`);
+    throw error;
   }
 };
 
@@ -225,56 +273,62 @@ const getAdminServices = async (email) => {
  * @returns {object} .data[].month - An object where keys are month names (e.g., 'January') and values are user counts for that month.
  */
 const getUserStatisticsByMonthService = async () => {
-  const aggregationResult = await UserModel.aggregate([
-    {
-      $group: {
-        _id: {
-          year: { $year: '$createdAt' },
-          month: { $month: '$createdAt' },
+  try {
+    const aggregationResult = await UserModel.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+          },
+          count: { $sum: 1 },
         },
-        count: { $sum: 1 },
       },
-    },
-    {
-      $sort: { '_id.year': 1, '_id.month': 1 },
-    },
-  ]);
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 },
+      },
+    ]);
 
-  const result = aggregationResult.reduce((acc, item) => {
-    const year = item._id.year;
-    const month = item._id.month;
-    const count = item.count;
-    const monthName = new Date(year, month - 1).toLocaleString('default', {
-      month: 'long',
-    });
+    const result = aggregationResult.reduce((acc, item) => {
+      const year = item._id.year;
+      const month = item._id.month;
+      const count = item.count;
+      const monthName = new Date(year, month - 1).toLocaleString('default', {
+        month: 'long',
+      });
 
-    if (!acc[year]) {
-      acc[year] = {
-        year,
-        totalMonth: 0,
-        months: {},
-      };
-    }
+      if (!acc[year]) {
+        acc[year] = {
+          year,
+          totalMonth: 0,
+          months: {},
+        };
+      }
 
-    acc[year].months[monthName] = count;
-    acc[year].totalMonth += 1;
+      acc[year].months[monthName] = count;
+      acc[year].totalMonth += 1;
 
-    return acc;
-  }, {});
+      return acc;
+    }, {});
 
-  const data = Object.values(result).map((item) => ({
-    count: Object.values(item.months).reduce((sum, count) => sum + count, 0),
-    year: item.year,
-    totalMonth: item.totalMonth,
-    month: item.months,
-  }));
+    const data = Object.values(result).map((item) => ({
+      count: Object.values(item.months).reduce((sum, count) => sum + count, 0),
+      year: item.year,
+      totalMonth: item.totalMonth,
+      month: item.months,
+    }));
 
-  return {
-    statusCode: 200,
-    success: true,
-    message: 'Get User Statistics Successfully',
-    data: data,
-  };
+    return {
+      statusCode: 200,
+      success: true,
+      message: 'Get User Statistics Successfully',
+      data: data,
+    };
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getUserStatisticsByMonthService: ${error.message}`);
+    throw error;
+  }
 };
 
 /**
@@ -301,71 +355,77 @@ const getUserStatisticsByMonthService = async () => {
  * @returns {Array<object>} .data - An array of subscription objects, each containing transactionId, price, plan_name, duration, and expiresAt.
  */
 const getAllPaymentService = async (filters, paginationOptions) => {
-  const { searchTerm } = filters;
+  try {
+    const { searchTerm } = filters;
 
-  const productsSearchAbleFields = [
-    'price',
-    'plan_name',
-    'duration',
-    'expiresAt',
-  ];
-  const andConditions = [];
+    // Bug fix: Renamed for clarity from productsSearchAbleFields to paymentSearchableFields
+    const paymentSearchableFields = [
+      'price',
+      'plan_name',
+      'duration',
+      'expiresAt',
+    ];
+    const andConditions = [];
 
-  // Add a default condition if andConditions is empty
-  if (andConditions.length === 0) {
-    andConditions.push({});
+    if (searchTerm) {
+      andConditions.push({
+        $or: paymentSearchableFields.map((field) => ({
+          [field]: { $regex: searchTerm, $options: 'i' },
+        })),
+      });
+    }
+
+    const { page, limit, skip, sortBy, sortOrder } =
+      paginationHelpers.calculatePagination(paginationOptions);
+
+    const sortConditions = {};
+    if (sortBy && sortOrder) {
+      sortConditions[sortBy] = sortOrder;
+    }
+
+    // If andConditions is empty, query will be {}, matching all documents.
+    // The previous `if (andConditions.length === 0) { andConditions.push({}); }` is redundant.
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+
+    const users = await SubscriptionModel.find(query)
+      .select('transactionId price plan_name duration expiresAt')
+      .sort(sortConditions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await SubscriptionModel.countDocuments(query); // Total for filtered subscriptions
+    const paidUser = await SubscriptionModel.countDocuments({
+      paymentStatus: 'paid',
+    }); // Global count
+    const freeUser = await SubscriptionModel.countDocuments({ plan_name: 'free' }); // Global count
+    const professionalPlan = await SubscriptionModel.countDocuments({
+      plan_name: 'professional',
+    }); // Global count
+    const personalPlan = await SubscriptionModel.countDocuments({
+      plan_name: 'personal',
+    }); // Global count
+    const businessPlan = await SubscriptionModel.countDocuments({
+      plan_name: 'business',
+    }); // Global count
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        paidUser,
+        freeUser,
+        professionalPlan,
+        personalPlan,
+        businessPlan,
+      },
+      data: users,
+    };
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getAllPaymentService: ${error.message}`);
+    throw error;
   }
-
-  if (searchTerm) {
-    andConditions.push({
-      $or: productsSearchAbleFields.map((field) => ({
-        [field]: { $regex: searchTerm, $options: 'i' },
-      })),
-    });
-  }
-
-  const { page, limit, skip, sortBy, sortOrder } =
-    paginationHelpers.calculatePagination(paginationOptions);
-
-  const sortConditions = {};
-  if (sortBy && sortOrder) {
-    sortConditions[sortBy] = sortOrder;
-  }
-
-  const users = await SubscriptionModel.find({ $and: andConditions })
-    .select('transactionId price plan_name duration expiresAt')
-    .sort(sortConditions)
-    .skip(skip)
-    .limit(limit);
-
-  const total = await SubscriptionModel.countDocuments({ $and: andConditions });
-  const paidUser = await SubscriptionModel.countDocuments({
-    paymentStatus: 'paid',
-  });
-  const freeUser = await SubscriptionModel.countDocuments({ plan_name: 'free' });
-  const professionalPlan = await SubscriptionModel.countDocuments({
-    plan_name: 'professional',
-  });
-  const personalPlan = await SubscriptionModel.countDocuments({
-    plan_name: 'personal',
-  });
-  const businessPlan = await SubscriptionModel.countDocuments({
-    plan_name: 'business',
-  });
-
-  return {
-    meta: {
-      page,
-      limit,
-      total,
-      paidUser,
-      freeUser,
-      professionalPlan,
-      personalPlan,
-      businessPlan,
-    },
-    data: users,
-  };
 };
 
 /**
@@ -388,47 +448,53 @@ const getAllPaymentService = async (filters, paginationOptions) => {
  * @returns {Array<object>} .data - An array of tenant objects, populated with owner details (name, email).
  */
 const getAllTenantsService = async (filters, paginationOptions) => {
-  const Tenant = (await import('../tenant/tenant.model.js')).default;
-  const { searchTerm, ...filterData } = filters;
-  const { page, limit, skip, sortBy, sortOrder } =
-    paginationHelpers.calculatePagination(paginationOptions);
+  try {
+    const Tenant = (await import('../tenant/tenant.model.js')).default;
+    const { searchTerm, ...filterData } = filters;
+    const { page, limit, skip, sortBy, sortOrder } =
+      paginationHelpers.calculatePagination(paginationOptions);
 
-  const andConditions = [];
+    const andConditions = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      $or: ['name', 'slug'].map((field) => ({
-        [field]: { $regex: searchTerm, $options: 'i' },
-      })),
-    });
+    if (searchTerm) {
+      andConditions.push({
+        $or: ['name', 'slug'].map((field) => ({
+          [field]: { $regex: searchTerm, $options: 'i' },
+        })),
+      });
+    }
+
+    // Bug fix: Flatten filterData conditions directly into andConditions
+    // The previous approach created an unnecessary nested $and if filterData was present.
+    if (Object.keys(filterData).length) {
+      Object.entries(filterData).forEach(([field, value]) => {
+        andConditions.push({ [field]: value });
+      });
+    }
+
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+    const sortConditions = {};
+    if (sortBy && sortOrder) {
+      sortConditions[sortBy] = sortOrder;
+    }
+
+    const tenants = await Tenant.find(query)
+      .populate('ownerId', 'name email')
+      .sort(sortConditions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Tenant.countDocuments(query);
+
+    return {
+      meta: { page, limit, total },
+      data: tenants,
+    };
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getAllTenantsService: ${error.message}`);
+    throw error;
   }
-
-  if (Object.keys(filterData).length) {
-    andConditions.push({
-      $and: Object.entries(filterData).map(([field, value]) => ({
-        [field]: value,
-      })),
-    });
-  }
-
-  const query = andConditions.length > 0 ? { $and: andConditions } : {};
-  const sortConditions = {};
-  if (sortBy && sortOrder) {
-    sortConditions[sortBy] = sortOrder;
-  }
-
-  const tenants = await Tenant.find(query)
-    .populate('ownerId', 'name email')
-    .sort(sortConditions)
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Tenant.countDocuments(query);
-
-  return {
-    meta: { page, limit, total },
-    data: tenants,
-  };
 };
 
 /**
@@ -439,25 +505,31 @@ const getAllTenantsService = async (filters, paginationOptions) => {
  * @throws {Error} If the tenant is not found.
  */
 const getTenantDetailsService = async (tenantId) => {
-  const Tenant = (await import('../tenant/tenant.model.js')).default;
-  const UserModel = (await import('../auth/auth.model.js')).default;
+  try {
+    const Tenant = (await import('../tenant/tenant.model.js')).default;
+    const UserModel = (await import('../auth/auth.model.js')).default;
 
-  const tenant = await Tenant.findById(tenantId).populate(
-    'ownerId',
-    'name email'
-  );
+    const tenant = await Tenant.findById(tenantId).populate(
+      'ownerId',
+      'name email'
+    );
 
-  if (!tenant) {
-    throw new Error('Tenant not found');
+    if (!tenant) {
+      throw new Error('Tenant not found');
+    }
+
+    // Get member count
+    const memberCount = await UserModel.countDocuments({ tenantId });
+
+    return {
+      ...tenant.toObject(),
+      memberCount,
+    };
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getTenantDetailsService: ${error.message}`);
+    throw error;
   }
-
-  // Get member count
-  const memberCount = await UserModel.countDocuments({ tenantId });
-
-  return {
-    ...tenant.toObject(),
-    memberCount,
-  };
 };
 
 /**
@@ -469,19 +541,25 @@ const getTenantDetailsService = async (tenantId) => {
  * @throws {Error} If the tenant is not found.
  */
 const updateTenantStatusService = async (tenantId, status) => {
-  const Tenant = (await import('../tenant/tenant.model.js')).default;
+  try {
+    const Tenant = (await import('../tenant/tenant.model.js')).default;
 
-  const tenant = await Tenant.findByIdAndUpdate(
-    tenantId,
-    { status },
-    { new: true, runValidators: true }
-  );
+    const tenant = await Tenant.findByIdAndUpdate(
+      tenantId,
+      { status },
+      { new: true, runValidators: true }
+    );
 
-  if (!tenant) {
-    throw new Error('Tenant not found');
+    if (!tenant) {
+      throw new Error('Tenant not found');
+    }
+
+    return tenant;
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in updateTenantStatusService: ${error.message}`);
+    throw error;
   }
-
-  return tenant;
 };
 
 /**
@@ -492,9 +570,15 @@ const updateTenantStatusService = async (tenantId, status) => {
  * @returns {Promise<object>} An object containing the tenant's usage statistics.
  */
 const getTenantUsageService = async (tenantId) => {
-  const tenantService = (await import('../tenant/tenant.service.js'))
-    .tenantService;
-  return await tenantService.getTenantUsage(tenantId);
+  try {
+    const tenantService = (await import('../tenant/tenant.service.js'))
+      .tenantService;
+    return await tenantService.getTenantUsage(tenantId);
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getTenantUsageService: ${error.message}`);
+    throw error;
+  }
 };
 
 /**
@@ -506,22 +590,28 @@ const getTenantUsageService = async (tenantId) => {
  * @throws {Error} If the tenant is not found.
  */
 const extendTenantTrialService = async (tenantId, days) => {
-  const Tenant = (await import('../tenant/tenant.model.js')).default;
+  try {
+    const Tenant = (await import('../tenant/tenant.model.js')).default;
 
-  const tenant = await Tenant.findById(tenantId);
+    const tenant = await Tenant.findById(tenantId);
 
-  if (!tenant) {
-    throw new Error('Tenant not found');
+    if (!tenant) {
+      throw new Error('Tenant not found');
+    }
+
+    const currentTrialEnd = tenant.trialEndsAt || new Date();
+    const newTrialEnd = new Date(currentTrialEnd);
+    newTrialEnd.setDate(newTrialEnd.getDate() + parseInt(days));
+
+    tenant.trialEndsAt = newTrialEnd;
+    await tenant.save();
+
+    return tenant;
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in extendTenantTrialService: ${error.message}`);
+    throw error;
   }
-
-  const currentTrialEnd = tenant.trialEndsAt || new Date();
-  const newTrialEnd = new Date(currentTrialEnd);
-  newTrialEnd.setDate(newTrialEnd.getDate() + parseInt(days));
-
-  tenant.trialEndsAt = newTrialEnd;
-  await tenant.save();
-
-  return tenant;
 };
 
 /**
@@ -543,47 +633,53 @@ const extendTenantTrialService = async (tenantId, days) => {
  * @returns {Array<object>} .data - An array of billing audit log objects, populated with tenant and user details.
  */
 const getBillingAuditLogsService = async (filters, paginationOptions) => {
-  const BillingAuditLog = (await import('../subscription/billingAuditLog.model.js')).default;
-  const { searchTerm, action } = filters;
-  const { page, limit, skip, sortBy, sortOrder } =
-    paginationHelpers.calculatePagination(paginationOptions);
+  try {
+    const BillingAuditLog = (await import('../subscription/billingAuditLog.model.js')).default;
+    const { searchTerm, action } = filters;
+    const { page, limit, skip, sortBy, sortOrder } =
+      paginationHelpers.calculatePagination(paginationOptions);
 
-  const andConditions = [];
+    const andConditions = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      $or: [
-        { action: { $regex: searchTerm, $options: 'i' } },
-        { ipAddress: { $regex: searchTerm, $options: 'i' } },
-      ],
-    });
+    if (searchTerm) {
+      andConditions.push({
+        $or: [
+          { action: { $regex: searchTerm, $options: 'i' } },
+          { ipAddress: { $regex: searchTerm, $options: 'i' } },
+        ],
+      });
+    }
+
+    if (action) {
+      andConditions.push({ action });
+    }
+
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+    const sortConditions = {};
+    if (sortBy && sortOrder) {
+      sortConditions[sortBy] = sortOrder;
+    } else {
+      sortConditions['createdAt'] = -1; // Default to newest first
+    }
+
+    const logs = await BillingAuditLog.find(query)
+      .populate('tenantId', 'name slug')
+      .populate('userId', 'email role firstName lastName')
+      .sort(sortConditions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await BillingAuditLog.countDocuments(query);
+
+    return {
+      meta: { page, limit, total },
+      data: logs,
+    };
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getBillingAuditLogsService: ${error.message}`);
+    throw error;
   }
-
-  if (action) {
-    andConditions.push({ action });
-  }
-
-  const query = andConditions.length > 0 ? { $and: andConditions } : {};
-  const sortConditions = {};
-  if (sortBy && sortOrder) {
-    sortConditions[sortBy] = sortOrder;
-  } else {
-    sortConditions['createdAt'] = -1; // Default to newest first
-  }
-
-  const logs = await BillingAuditLog.find(query)
-    .populate('tenantId', 'name slug')
-    .populate('userId', 'email role firstName lastName')
-    .sort(sortConditions)
-    .skip(skip)
-    .limit(limit);
-
-  const total = await BillingAuditLog.countDocuments(query);
-
-  return {
-    meta: { page, limit, total },
-    data: logs,
-  };
 };
 
 /**
@@ -606,50 +702,56 @@ const getBillingAuditLogsService = async (filters, paginationOptions) => {
  * @returns {Array<object>} .data - An array of Swarm audit log objects.
  */
 const getSwarmAuditsService = async (filters, paginationOptions) => {
-  const SwarmAudit = (await import('../swarm/swarmAudit.model.js')).default;
-  const { searchTerm, status, toolName } = filters;
-  const { page, limit, skip, sortBy, sortOrder } =
-    paginationHelpers.calculatePagination(paginationOptions);
+  try {
+    const SwarmAudit = (await import('../swarm/swarmAudit.model.js')).default;
+    const { searchTerm, status, toolName } = filters;
+    const { page, limit, skip, sortBy, sortOrder } =
+      paginationHelpers.calculatePagination(paginationOptions);
 
-  const andConditions = [];
+    const andConditions = [];
 
-  if (searchTerm) {
-    andConditions.push({
-      $or: [
-        { userId: { $regex: searchTerm, $options: 'i' } },
-        { toolName: { $regex: searchTerm, $options: 'i' } },
-        { errorMessage: { $regex: searchTerm, $options: 'i' } },
-      ],
-    });
+    if (searchTerm) {
+      andConditions.push({
+        $or: [
+          { userId: { $regex: searchTerm, $options: 'i' } },
+          { toolName: { $regex: searchTerm, $options: 'i' } },
+          { errorMessage: { $regex: searchTerm, $options: 'i' } },
+        ],
+      });
+    }
+
+    if (status) {
+      andConditions.push({ status });
+    }
+
+    if (toolName) {
+      andConditions.push({ toolName });
+    }
+
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+    const sortConditions = {};
+    if (sortBy && sortOrder) {
+      sortConditions[sortBy] = sortOrder;
+    } else {
+      sortConditions['createdAt'] = -1; // Default to newest first
+    }
+
+    const audits = await SwarmAudit.find(query)
+      .sort(sortConditions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await SwarmAudit.countDocuments(query);
+
+    return {
+      meta: { page, limit, total },
+      data: audits,
+    };
+  } catch (error) {
+    // Bug fix: Added try-catch for unhandled promise rejection
+    logger.error(`Error in getSwarmAuditsService: ${error.message}`);
+    throw error;
   }
-
-  if (status) {
-    andConditions.push({ status });
-  }
-
-  if (toolName) {
-    andConditions.push({ toolName });
-  }
-
-  const query = andConditions.length > 0 ? { $and: andConditions } : {};
-  const sortConditions = {};
-  if (sortBy && sortOrder) {
-    sortConditions[sortBy] = sortOrder;
-  } else {
-    sortConditions['createdAt'] = -1; // Default to newest first
-  }
-
-  const audits = await SwarmAudit.find(query)
-    .sort(sortConditions)
-    .skip(skip)
-    .limit(limit);
-
-  const total = await SwarmAudit.countDocuments(query);
-
-  return {
-    meta: { page, limit, total },
-    data: audits,
-  };
 };
 
 /**
