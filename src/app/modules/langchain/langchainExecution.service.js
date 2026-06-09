@@ -228,7 +228,10 @@ const executeSteps = async (steps, inputs, userId) => {
  */
 const executeChain = async (chainId, inputs, userId) => {
   const tStart = Date.now();
-  const chain = await LangchainChain.findById(chainId);
+  // Optimization: Use .lean() for read-only queries to improve performance
+  // by returning plain JavaScript objects instead of Mongoose documents,
+  // avoiding the overhead of Mongoose change tracking.
+  const chain = await LangchainChain.findById(chainId).lean();
   if (!chain) {
     throw new Error(`LangChain chain not found: ${chainId}`);
   }
