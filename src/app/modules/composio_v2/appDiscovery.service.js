@@ -14,24 +14,30 @@ const getRecommendations = async (userId) => {
     const connectedAppNames = new Set(
       connections.map((c) => {
         // Use toolkit.slug as primary identifier, fallback to authConfigId without prefix
+        // Ensure consistency with how appKey is derived from Tool model for accurate matching.
         const name = c.toolkit?.slug || c.authConfigId?.replace(/^ac_/, '') || '';
         return name.toLowerCase();
       }).filter(Boolean)
     );
 
     // 2. Load all available apps from the Tool model
-    const allTools = await Tool.find({}, { slug: 1, name: 1, description: 1, appName: 1 }).lean();
-    
+    // Added 'category' to projection to allow tools to define their own categories.
+    const allTools = await Tool.find({}, { slug: 1, name: 1, description: 1, appName: 1, category: 1 }).lean();
+
     // Build a unique set of apps with metadata
     const appMetadataMap = {};
     for (const tool of allTools) {
-      const appKey = (tool.appName || tool.slug?.split('_')[0] || '').toLowerCase();
+      // Prioritize slug's base part for appKey to ensure consistency with connectedAppNames.
+      // Example: 'gmail_sendEmail' -> 'gmail'. Fallback to appName if slug is not suitable.
+      const appKey = (tool.slug?.split('_')[0] || tool.appName || '').toLowerCase();
       if (!appKey) continue;
-      
+
       if (!appMetadataMap[appKey]) {
         appMetadataMap[appKey] = {
+          // Use appName or name for display, fallback to derived appKey
           displayName: tool.appName || tool.name || appKey,
-          category: 'Integration',
+          // Use tool's category if available, otherwise default
+          category: tool.category || 'Integration',
           description: tool.description || `Automate workflows with ${tool.appName || appKey}`,
           setupDifficulty: 'Easy',
           actions: [],
@@ -46,11 +52,21 @@ const getRecommendations = async (userId) => {
     let auditAnalytics = null;
     try {
       auditAnalytics = await actionAuditService.getUserAnalytics(userId);
-    } catch {
-      // Non-fatal if no audit history is present yet
+    } catch (error) {
+      // Non-fatal if no audit history is present yet, log the error for debugging purposes.
+      logger.warn(`AppDiscoveryService: No audit history found or error fetching for user ${userId}: ${error.message}`);
     }
 
     const recommendations = [];
+
+    // Pre-calculate categories of connected apps for performance optimization.
+    // This avoids O(N^2) complexity when checking for same-category synergy.
+    const connectedAppCategories = new Set();
+    for (const appName of connectedAppNames) {
+      if (appMetadataMap[appName]) { // Ensure the connected app has metadata
+        connectedAppCategories.add(appMetadataMap[appName].category);
+      }
+    }
 
     // 4. Match rules & calculate recommendation scores
     for (const [appName, meta] of Object.entries(appMetadataMap)) {
@@ -71,13 +87,10 @@ const getRecommendations = async (userId) => {
       }
 
       // Connected-app synergy boost: if apps in the same category are already connected
-      const sameCategory = Object.entries(appMetadataMap)
-        .filter(([key, m]) => m.category === meta.category && connectedAppNames.has(key))
-        .map(([key]) => key);
-      
-      if (sameCategory.length > 0) {
+      // Optimized to use pre-calculated connectedAppCategories set for O(1) lookup.
+      if (connectedAppCategories.has(meta.category)) {
         score += 15;
-        reasons.push(`Complements your connected ${sameCategory[0]} integration`);
+        reasons.push(`Complements other connected integrations in the same category`);
       }
 
       // High-value app boost
@@ -113,6 +126,7 @@ const getRecommendations = async (userId) => {
     };
   } catch (err) {
     logger.error('AppDiscoveryService error:', err);
+    // Re-throw a more user-friendly error message, while logging the full error internally.
     throw new Error(`Failed to generate integration recommendations: ${err.message}`);
   }
 };
