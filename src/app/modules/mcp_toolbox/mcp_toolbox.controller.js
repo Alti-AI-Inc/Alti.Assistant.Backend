@@ -54,7 +54,8 @@ const disconnectController = async (req, res) => {
 const statusController = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id || 'default_user';
-    const result = mcpToolboxService.getStatus(userId);
+    // BUG FIX: mcpToolboxService.getStatus is likely an async operation and should be awaited.
+    const result = await mcpToolboxService.getStatus(userId);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -106,7 +107,8 @@ const listToolsController = async (req, res) => {
       return res.status(400).json({ success: false, error: 'serverId parameter is required.' });
     }
 
-    const userServers = mcpOrchestratorService.getUserServers(userId);
+    // BUG FIX: mcpOrchestratorService.getUserServers is likely an async operation and should be awaited.
+    const userServers = await mcpOrchestratorService.getUserServers(userId);
     const active = userServers.get(serverId);
 
     if (!active) {
@@ -141,7 +143,8 @@ const callToolController = async (req, res) => {
 const dashboardStatusController = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id || 'default_user';
-    const status = mcpOrchestratorService.getDashboardStatus(userId);
+    // BUG FIX: mcpOrchestratorService.getDashboardStatus is likely an async operation and should be awaited.
+    const status = await mcpOrchestratorService.getDashboardStatus(userId);
     res.status(200).json({ success: true, servers: status });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -152,7 +155,7 @@ const dashboardStatusController = async (req, res) => {
  * Server-Sent Events (SSE) dynamic connection bridge
  * Exposes full compatibility with SSE-based web transports
  */
-const sseConnectionHandler = (req, res) => {
+const sseConnectionHandler = async (req, res) => { // BUG FIX: Made function async to properly await service calls.
   const userId = req.user?.userId || req.user?.id || 'default_user';
   const serverId = req.query.serverId;
 
@@ -160,35 +163,59 @@ const sseConnectionHandler = (req, res) => {
     return res.status(400).json({ success: false, error: 'serverId parameter is required for SSE transport.' });
   }
 
-  // Set SSE Headers
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive'
-  });
+  try {
+    // BUG FIX: mcpOrchestratorService.getUserServers is likely an async operation and should be awaited.
+    const userServers = await mcpOrchestratorService.getUserServers(userId);
+    const server = userServers.get(serverId);
 
-  const userServers = mcpOrchestratorService.getUserServers(userId);
-  const server = userServers.get(serverId);
-
-  if (!server || !server.process) {
-    res.write(`event: error\ndata: ${JSON.stringify({ message: 'Server is not running.' })}\n\n`);
-    return res.end();
-  }
-
-  res.write(`event: endpoint\ndata: ${JSON.stringify({ message: 'SSE Connection Established.' })}\n\n`);
-
-  // Handle standard stdout redirects straight into the open EventStream channel
-  const onData = (data) => {
-    res.write(`event: message\ndata: ${data.toString()}\n\n`);
-  };
-
-  server.process.stdout.on('data', onData);
-
-  req.on('close', () => {
-    if (server.process) {
-      server.process.stdout.off('data', onData);
+    if (!server || !server.process) {
+      // BUG FIX: If server is not running, send a standard HTTP error before setting SSE headers.
+      return res.status(404).json({ success: false, error: 'Server is not running or process not found.' });
     }
-  });
+
+    // Set SSE Headers only if everything is ready to establish the connection.
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    res.write(`event: endpoint\ndata: ${JSON.stringify({ message: 'SSE Connection Established.' })}\n\n`);
+
+    // Handle standard stdout redirects straight into the open EventStream channel
+    const onData = (data) => {
+      // BUG FIX: Check if the response stream is still writable before writing.
+      if (res.writableEnded) {
+        server.process.stdout.off('data', onData); // Clean up listener if stream ended
+        return;
+      }
+      res.write(`event: message\ndata: ${data.toString()}\n\n`);
+    };
+
+    server.process.stdout.on('data', onData);
+
+    req.on('close', () => {
+      if (server.process) {
+        server.process.stdout.off('data', onData);
+      }
+      // BUG FIX: Explicitly end the response if not already ended on client disconnect.
+      if (!res.writableEnded) {
+        res.end();
+      }
+    });
+  } catch (error) {
+    // BUG FIX: Handle errors that occur during setup before headers are sent.
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: error.message });
+    } else {
+      // If headers were already sent, log the error and try to send an SSE error event.
+      console.error('Error in SSE handler after headers sent:', error);
+      if (!res.writableEnded) {
+        res.write(`event: error\ndata: ${JSON.stringify({ message: 'Internal server error.' })}\n\n`);
+        res.end();
+      }
+    }
+  }
 };
 
 /**
@@ -203,7 +230,8 @@ const mcpMessageHandler = async (req, res) => {
       return res.status(400).json({ success: false, error: 'serverId and message payload are required.' });
     }
 
-    const userServers = mcpOrchestratorService.getUserServers(userId);
+    // BUG FIX: mcpOrchestratorService.getUserServers is likely an async operation and should be awaited.
+    const userServers = await mcpOrchestratorService.getUserServers(userId);
     const server = userServers.get(serverId);
 
     if (!server || !server.initialized) {
