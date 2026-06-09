@@ -102,8 +102,13 @@ export const uploadReportFiles = (req, res, next) => {
         if (file.size > sizeLimit) {
           // Clean up uploaded files
           req.files.forEach((f) => {
-            if (fs.existsSync(f.path)) {
-              fs.unlinkSync(f.path);
+            // Ensure synchronous file deletion is robust against errors
+            try {
+              if (fs.existsSync(f.path)) {
+                fs.unlinkSync(f.path);
+              }
+            } catch (cleanupError) {
+              logger.error(`Error cleaning up file ${f.path} after size validation failure:`, cleanupError);
             }
           });
 
