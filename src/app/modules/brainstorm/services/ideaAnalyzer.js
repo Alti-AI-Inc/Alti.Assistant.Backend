@@ -13,7 +13,64 @@ import {
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Analyze user intent from message
+ * @typedef {object} IntentConstraints
+ * @property {string|null} [budget] - Mentioned budget constraint.
+ * @property {string|null} [timeline] - Mentioned timeline constraint.
+ * @property {string[]} [technology] - Array of specific technologies mentioned.
+ * @property {string|null} [targetAudience] - Mentioned target audience.
+ */
+
+/**
+ * @typedef {object} IntentParameters
+ * @property {string|null} brainstormType - The type of brainstorming identified (e.g., 'product_idea').
+ * @property {string|null} idea - The extracted core idea or topic from the user message.
+ * @property {string|null} technique - The brainstorming technique identified (e.g., 'free_association').
+ * @property {string[]} perspectives - An array of perspectives to consider (e.g., ['business', 'user_centric']).
+ * @property {string|null} depth - The desired depth level for brainstorming (e.g., 'standard').
+ * @property {string[]} focusAreas - An array of specific focus areas (e.g., ['innovation', 'feasibility']).
+ * @property {IntentConstraints} constraints - Specific constraints mentioned by the user.
+ * @property {string|null} additionalInstructions - Any other specific instructions from the user.
+ */
+
+/**
+ * @typedef {object} IntentAnalysisResult
+ * @property {string} intent - The primary intent identified (e.g., 'generate_ideas').
+ * @property {number} confidence - A confidence score for the identified intent (0.0-1.0).
+ * @property {IntentParameters} parameters - An object containing extracted parameters for the intent.
+ * @property {boolean} needsMoreInfo - True if more information is required from the user.
+ * @property {string[]} missingInfo - An array of information still needed if `needsMoreInfo` is true.
+ * @property {string} reasoning - A brief explanation for the analysis.
+ */
+
+/**
+ * @typedef {object} IdeaAnalysisResult
+ * @property {string} brainstormType - The categorized type of brainstorming for the idea (e.g., 'product_idea').
+ * @property {string} complexity - The estimated complexity level of the idea (e.g., 'moderate').
+ * @property {string[]} domains - An array of relevant domains or industries for the idea.
+ * @property {string[]} keyThemes - An array of central themes or concepts within the idea.
+ * @property {string[]} implicitRequirements - Any unstated but implied requirements for the idea.
+ * @property {string[]} suggestedTechniques - Recommended brainstorming techniques for this idea.
+ * @property {string[]} recommendedPerspectives - Recommended perspectives to analyze the idea from.
+ * @property {string} recommendedDepth - The recommended depth level for exploring this idea.
+ * @property {number} estimatedIdeaCount - An estimated number of ideas that might be generated for this topic.
+ * @property {string} reasoning - A brief explanation for the analysis.
+ */
+
+/**
+ * Analyzes a user's message to determine their primary intent, brainstorming type,
+ * and extract relevant parameters for a brainstorming session. It leverages a
+ * generative AI model to interpret natural language, considering conversation history
+ * and already collected parameters.
+ *
+ * The function aims to be smart about defaults and only ask for more information
+ * if the core idea is unclear or critical parameters are missing.
+ *
+ * @param {string} userMessage - The current message from the user.
+ * @param {Array<{role: string, content: string}>} [conversationHistory=[]] - An array of previous messages in the conversation,
+ *   each with a 'role' (e.g., 'user', 'model') and 'content'. Used to provide context.
+ * @param {object} [existingParams={}] - An object of parameters already collected or inferred from previous interactions.
+ *   This helps the AI build upon existing context.
+ * @returns {Promise<IntentAnalysisResult>} A promise that resolves to an object containing the analysis result.
  */
 const analyzeIntent = async (
   userMessage,
@@ -141,7 +198,13 @@ Respond in JSON format only:
 };
 
 /**
- * Analyze and categorize an idea
+ * Analyzes a given idea text to categorize it, assess its complexity,
+ * and suggest relevant brainstorming parameters like techniques, perspectives,
+ * and depth levels. It uses a generative AI model to provide a structured
+ * breakdown of the idea.
+ *
+ * @param {string} ideaText - The core idea or topic to be analyzed.
+ * @returns {Promise<IdeaAnalysisResult>} A promise that resolves to an object containing the detailed analysis of the idea.
  */
 const analyzeIdea = async (ideaText) => {
   try {
@@ -205,7 +268,12 @@ Provide analysis in JSON format:
 };
 
 /**
- * Extract idea from natural language message
+ * Extracts the core idea statement from a natural language user message.
+ * This function aims to isolate the central topic or concept the user wants to brainstorm about.
+ *
+ * @param {string} userMessage - The user's input message from which to extract the idea.
+ * @returns {Promise<string>} A promise that resolves to the extracted core idea as a string.
+ *   If extraction fails, it may return the original message or a default.
  */
 const extractIdea = async (userMessage) => {
   try {
@@ -236,7 +304,14 @@ Core idea:`;
 };
 
 /**
- * Determine if message contains sufficient idea information
+ * Determines if a given message or existing parameters contain a sufficiently
+ * clear and substantial idea to proceed with brainstorming. It checks for
+ * minimum length and the presence of common idea-related keywords.
+ *
+ * @param {string} message - The current user message to evaluate for an idea.
+ * @param {object} [existingParams={}] - An object of parameters already collected, potentially containing an 'idea' field.
+ * @param {string} [existingParams.idea] - An existing idea string from previous interactions.
+ * @returns {boolean} True if a valid idea is detected, false otherwise.
  */
 const hasValidIdea = (message, existingParams = {}) => {
   if (existingParams.idea && existingParams.idea.length >= 10) {
@@ -270,6 +345,13 @@ const hasValidIdea = (message, existingParams = {}) => {
   return hasKeyword && hasLength;
 };
 
+/**
+ * @module ideaAnalyzer
+ * @description Provides a set of utility functions for analyzing user input and ideas
+ *   using generative AI models, specifically for a brainstorming assistant.
+ *   It includes functionalities for intent recognition, detailed idea analysis,
+ *   idea extraction, and basic idea validation.
+ */
 export const ideaAnalyzer = {
   analyzeIntent,
   analyzeIdea,
