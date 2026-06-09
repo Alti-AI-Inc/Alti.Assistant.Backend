@@ -110,7 +110,7 @@ const generateGeminiSuggestion = async (sequence, occurrenceCount, successRate, 
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    const prompt = `You are an expert workflow automation consultant. 
+    const prompt = `You are an expert workflow automation consultant.
 A user has repeatedly performed the following sequence of actions ${occurrenceCount} times:
 
 Tool Sequence: ${sequence.join(' → ')}
@@ -196,6 +196,9 @@ const analyzeWorkflowPatterns = async (userId) => {
     return {
       success: true,
       message: 'Insufficient action history for pattern analysis. Execute more tool actions to build a behavioral profile.',
+      analysisWindow: `${ANALYSIS_WINDOW_DAYS} days`,
+      totalLogsAnalyzed: logs.length,
+      totalSessionsAnalyzed: 0, // No sessions if not enough logs
       patternsDetected: 0,
       patterns: [],
     };
@@ -209,45 +212,57 @@ const analyzeWorkflowPatterns = async (userId) => {
     return {
       success: true,
       message: 'No multi-step sessions detected. All actions were isolated without temporal grouping.',
+      analysisWindow: `${ANALYSIS_WINDOW_DAYS} days`,
+      totalLogsAnalyzed: logs.length,
+      totalSessionsAnalyzed: 0,
       patternsDetected: 0,
       patterns: [],
     };
   }
 
-  // Count all sub-sequences
-  const sequenceCounts = new Map();
-  const sequenceSuccessData = new Map();
+  // Count all sub-sequences and track their durations
+  // FIX: The original code incorrectly calculated avgSequenceLatencyMs by summing individual action durations.
+  // It should be the elapsed time from the first action's start to the last action's start in the sequence.
+  const sequenceData = new Map(); // Stores { count: N, totalDurationMs: M }
 
   for (const session of sessions) {
-    const subSeqs = extractSubSequences(session);
-    for (const seq of subSeqs) {
-      const key = seq.join('|');
-      sequenceCounts.set(key, (sequenceCounts.get(key) || 0) + 1);
+    const slugs = session.map(log => log.toolSlug || `${log.app}_${log.action}`);
 
-      // Track duration for the sequence
-      if (!sequenceSuccessData.has(key)) {
-        sequenceSuccessData.set(key, { totalMs: 0, count: 0 });
+    // Length-2 and length-3 sequences
+    for (let len = 2; len <= 3; len++) {
+      for (let i = 0; i <= slugs.length - len; i++) {
+        const currentSeqSlugs = slugs.slice(i, i + len);
+        const key = currentSeqSlugs.join('|');
+
+        // Get the actual log objects for this specific sequence occurrence within the session
+        const firstLog = session[i];
+        const lastLog = session[i + len - 1];
+
+        // Calculate the duration of this specific sequence occurrence
+        // The duration of a sequence is the time elapsed from the createdAt of its first action
+        // to the createdAt of its last action.
+        const sequenceDuration = new Date(lastLog.createdAt).getTime() - new Date(firstLog.createdAt).getTime();
+
+        if (!sequenceData.has(key)) {
+          sequenceData.set(key, { count: 0, totalDurationMs: 0 });
+        }
+        const data = sequenceData.get(key);
+        data.count++;
+        data.totalDurationMs += sequenceDuration;
       }
-      const data = sequenceSuccessData.get(key);
-      // Estimate sequence duration from session action durations
-      const relevantLogs = session.filter(log => seq.includes(log.toolSlug || `${log.app}_${log.action}`));
-      const totalMs = relevantLogs.reduce((sum, log) => sum + (log.durationMs || 0), 0);
-      data.totalMs += totalMs;
-      data.count++;
     }
   }
 
   // Filter to patterns meeting the minimum occurrence threshold
   const significantPatterns = [];
-  for (const [key, count] of sequenceCounts.entries()) {
-    if (count >= MIN_OCCURRENCES) {
+  for (const [key, data] of sequenceData.entries()) {
+    if (data.count >= MIN_OCCURRENCES) {
       const seq = key.split('|');
-      const perfData = sequenceSuccessData.get(key) || { totalMs: 0, count: 1 };
-      const avgLatencyMs = perfData.count > 0 ? perfData.totalMs / perfData.count : 0;
+      const avgLatencyMs = data.count > 0 ? data.totalDurationMs / data.count : 0;
 
       significantPatterns.push({
         sequence: seq,
-        occurrenceCount: count,
+        occurrenceCount: data.count,
         successRate: 100, // All drawn from success logs
         avgSequenceLatencyMs: Math.round(avgLatencyMs),
         estimatedTimeSavingsMs: Math.round(avgLatencyMs * 0.7), // Automation saves ~70% of manual time
