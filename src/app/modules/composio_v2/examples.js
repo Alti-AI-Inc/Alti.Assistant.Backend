@@ -8,6 +8,19 @@ import { classifyUserIntent } from './services/aiClassificationService.js';
 
 /**
  * Example 1: Simple classification
+ * Demonstrates how to use the `classifyUserIntent` function to identify the
+ * intended application, action, and parameters from a given user input.
+ *
+ * @returns {Promise<object|undefined>} A promise that resolves to the classification result object
+ *   containing `app`, `action`, `confidence`, and `parameters`, or `undefined` if an error occurs.
+ * @example
+ * const classification = await example1_Classification();
+ * // Expected output in console:
+ * // Classification Result:
+ * // - App: gmail
+ * // - Action: send_email
+ * // - Confidence: 0.95 (or similar)
+ * // - Parameters: { ... }
  */
 export const example1_Classification = async () => {
   const userInput =
@@ -30,6 +43,20 @@ export const example1_Classification = async () => {
 
 /**
  * Example 2: Full processing with execution
+ * Demonstrates the end-to-end processing of user input, including classification
+ * and potential execution of the identified action using `aiClassificationService.processUserInputService`.
+ *
+ * @returns {Promise<object|undefined>} A promise that resolves to the processing result object
+ *   containing `success`, `data` (with `identifiedApp`, `identifiedAction`, `executionResult`, `response`),
+ *   or `error`, or `undefined` if an unhandled error occurs.
+ * @example
+ * const result = await example2_FullProcessing();
+ * // Expected output in console:
+ * // Processing Result:
+ * // - App: github
+ * // - Action: create_issue
+ * // - Execution Result: { ... } (if successful)
+ * // - User Response: "I've created a GitHub issue..."
  */
 export const example2_FullProcessing = async () => {
   const userInput =
@@ -63,6 +90,21 @@ export const example2_FullProcessing = async () => {
 
 /**
  * Example 3: Check user connections before processing
+ * Illustrates how to retrieve a user's connected accounts using
+ * `aiClassificationService.getUserConnectedAccountsService` and then
+ * conditionally process user input based on available connections.
+ *
+ * @returns {Promise<object|undefined>} A promise that resolves to the connections result object
+ *   containing `success` and `data` (an object mapping app names to connection details),
+ *   or `undefined` if an error occurs.
+ * @example
+ * const connections = await example3_CheckConnections();
+ * // Expected output in console:
+ * // User Connected Apps: [ 'gmail', 'github' ] (or similar)
+ * // Has Gmail: true
+ * // Has GitHub: true
+ * // Email processing: ✅
+ * // GitHub processing: ✅
  */
 export const example3_CheckConnections = async () => {
   const userId = 'user-123';
@@ -113,6 +155,23 @@ export const example3_CheckConnections = async () => {
 
 /**
  * Example 4: Conversation context
+ * Demonstrates how to maintain and pass conversation history to the
+ * `aiClassificationService.processUserInputService` to enable context-aware
+ * processing across multiple user messages.
+ *
+ * @returns {Promise<void>} A promise that resolves when the conversation simulation is complete.
+ * @example
+ * await example4_ConversationContext();
+ * // Expected output in console:
+ * // User: I need to email the team
+ * // Bot: Who should I send it to?
+ * // User: Send it to marketing@company.com
+ * // Bot: What should the subject be?
+ * // User: The subject should be 'Weekly Update'
+ * // Bot: What should the email content be?
+ * // User: Add a summary of this week's progress
+ * // Bot: I've drafted an email to marketing@company.com with the subject 'Weekly Update' and a summary of this week's progress. Would you like me to send it?
+ * // ✅ Action completed!
  */
 export const example4_ConversationContext = async () => {
   const userId = 'user-123';
@@ -166,6 +225,30 @@ export const example4_ConversationContext = async () => {
 
 /**
  * Example 5: Batch processing
+ * Demonstrates how to process multiple user inputs concurrently using
+ * `Promise.allSettled` and `aiClassificationService.processUserInputService`,
+ * useful for handling a queue of requests.
+ *
+ * @returns {Promise<PromiseSettledResult<object>[]>} A promise that resolves to an array of
+ *   `PromiseSettledResult` objects, each containing the outcome of a batch request.
+ * @example
+ * const results = await example5_BatchProcessing();
+ * // Expected output in console:
+ * // Processing batch requests...
+ * //
+ * // Batch Results:
+ * // 1. Create a calendar event for tomorrow 2pm team meeting
+ * //    User: user-1
+ * //    Status: ✅
+ * //    App/Action: calendar/create_event
+ * //    Response: I've created a calendar event...
+ * //
+ * // 2. Post a tweet about our product launch
+ * //    User: user-2
+ * //    Status: ✅
+ * //    App/Action: twitter/post_tweet
+ * //    Response: I've posted a tweet...
+ * // ...and so on for other requests.
  */
 export const example5_BatchProcessing = async () => {
   const requests = [
@@ -243,6 +326,16 @@ export const example5_BatchProcessing = async () => {
 // await examples.example4_ConversationContext();
 // await examples.example5_BatchProcessing();
 
+/**
+ * Runs all available AI Classification Module examples sequentially.
+ * This function orchestrates the execution of each example to demonstrate
+ * various functionalities of the module.
+ *
+ * @returns {Promise<void>} A promise that resolves when all examples have been run.
+ * @example
+ * await runAllExamples();
+ * // This will print the output of all five examples to the console.
+ */
 export const runAllExamples = async () => {
   console.log('=== AI Classification Module Examples ===\n');
 

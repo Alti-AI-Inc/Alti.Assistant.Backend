@@ -317,10 +317,11 @@ export const prepareConversationContext = async (
       conversationContext += `## Recent Conversation:\n`;
       managementResult.managedHistory.forEach((msg) => {
         const role = msg.role === 'user' ? 'User' : 'Assistant';
-        const content =
-          msg.content.length > 500
-            ? msg.content.substring(0, 500) + '...'
-            : msg.content;
+        // BUG FIX: Removed arbitrary truncation of recent messages.
+        // The `manageConversationHistoryIntelligent` function is responsible
+        // for determining which messages to keep in full. Truncating them
+        // here would lead to loss of context for the LLM.
+        const content = msg.content;
         conversationContext += `**${role}**: ${content}\n\n`;
       });
     }
