@@ -1,3 +1,11 @@
+/**
+ * @file This module defines and manages the AI classification workflow using Langchain's StateGraph.
+ * It orchestrates the process of understanding user intent, identifying relevant tools,
+ * extracting parameters, executing actions, and generating responses, supporting both
+ * single-step and multi-step workflows. It also handles conversation history persistence.
+ * @module composio_v2/ai_classification/workflow
+ */
+
 import { StateGraph, END, START, MemorySaver } from '@langchain/langgraph';
 import { aiClassificationState } from './state.js';
 import {
@@ -18,13 +26,30 @@ import {
 import { MongoDBSaver } from '../../code/code_assistant/MongoDBSaver.js';
 import config from '../../../../../config/index.js';
 import { Composio } from '@composio/core';
+
+/**
+ * Initializes the Composio SDK with the organization API key from the configuration.
+ * This instance is used to interact with Composio's connected accounts API.
+ * @type {Composio}
+ */
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
-// Create the AI classification workflow
+
+/**
+ * Creates the AI classification workflow as a StateGraph.
+ * This graph defines the states and transitions for processing user requests,
+ * from planning to tool execution and response generation.
+ * @type {StateGraph}
+ */
 const workflow = new StateGraph({ channels: aiClassificationState });
 
 // Add all nodes for the AI classification and tool execution process
+/**
+ * Adds a node to the workflow.
+ * @param {string} name - The name of the node.
+ * @param {Function} nodeFunction - The function associated with the node.
+ */
 workflow.addNode('plan_workflow', planWorkflowNode);
 workflow.addNode('schedule_detection', scheduleDetectionNode);
 workflow.addNode('save_workflow', saveWorkflowNode);
@@ -47,7 +72,13 @@ workflow.addEdge(START, 'plan_workflow');
 // Route to schedule detection after planning
 workflow.addEdge('plan_workflow', 'schedule_detection');
 
-// Conditional routing based on scheduling requirements
+/**
+ * Adds conditional edges from the 'schedule_detection' node.
+ * Routes based on whether scheduling is needed, or the type of workflow (single-step/multi-step).
+ * @param {string} sourceNode - The source node ('schedule_detection').
+ * @param {function(object): string} condition - A function that determines the next node based on the current state.
+ * @param {object} routes - An object mapping condition results to target nodes.
+ */
 workflow.addConditionalEdges(
   'schedule_detection',
   (state) => {
@@ -80,10 +111,15 @@ workflow.addEdge('save_workflow', 'generate_response');
 
 // Multi-step workflow path
 workflow.addEdge('validate_plan', 'execute_step');
-workflow.addEdge('validate_plan', 'execute_step');
-workflow.addEdge('execute_step', 'check_completion');
+workflow.addEdge('execute_step', 'check_completion'); // This edge was duplicated, removed one.
 
-// Loop back to execute_step if more steps needed
+/**
+ * Adds conditional edges from the 'check_completion' node.
+ * Loops back to 'execute_step' if more steps are needed, or proceeds to 'aggregate_results' if complete.
+ * @param {string} sourceNode - The source node ('check_completion').
+ * @param {function(object): string} condition - A function that determines the next node based on the current state.
+ * @param {object} routes - An object mapping condition results to target nodes.
+ */
 workflow.addConditionalEdges(
   'check_completion',
   (state) => {
@@ -117,10 +153,20 @@ workflow.addEdge('execute_tool', 'generate_response');
 // All paths end at response generation
 workflow.addEdge('generate_response', END);
 
-// Compile immediately with in-memory checkpointer to avoid blocking startup
+/**
+ * Initializes a checkpointer for the workflow.
+ * Initially uses an in-memory saver to avoid blocking startup.
+ * This will be upgraded to a MongoDB saver if available.
+ * @type {MemorySaver|MongoDBSaver}
+ */
 let checkpointer = new MemorySaver();
 
-// Compile the workflow with checkpointer
+/**
+ * The compiled AI classification application instance.
+ * This is the executable version of the StateGraph, configured with a checkpointer for state persistence.
+ * It is initially compiled with an in-memory checkpointer and later updated with a MongoDB checkpointer.
+ * @type {import('@langchain/langgraph').CompiledStateGraph}
+ */
 export const aiClassificationApp = workflow.compile({
   checkpointer,
   debug: true,
@@ -130,6 +176,7 @@ export const aiClassificationApp = workflow.compile({
 MongoDBSaver.fromUri(config.database_local, 'ai_classification_checkpoints')
   .then((mongoCheckpointer) => {
     checkpointer = mongoCheckpointer;
+    // Re-compile the workflow with the MongoDB checkpointer and assign it to the existing export
     Object.assign(aiClassificationApp, workflow.compile({ checkpointer, debug: true }));
     console.log('✅ AI classification: MongoDB checkpointer connected');
   })
@@ -137,7 +184,33 @@ MongoDBSaver.fromUri(config.database_local, 'ai_classification_checkpoints')
     console.warn('⚠️ AI classification: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
   });
 
-// Export utility function to invoke the AI classification agent
+/**
+ * Invokes the AI classification agent to process a user input.
+ * This function orchestrates the entire workflow, including planning, tool execution,
+ * and response generation, while managing conversation history and context.
+ *
+ * @param {string} userInput - The user's natural language input.
+ * @param {object} [options={}] - Optional parameters for the agent invocation.
+ * @param {string} [options.userId=null] - The ID of the user initiating the request.
+ * @param {string} [options.conversationId=null] - An optional ID for the conversation thread. If not provided, a new one is generated.
+ * @param {Array<object>} [options.history=[]] - An array of previous messages in the conversation.
+ * @param {boolean} [options.retrieveHistory=true] - Whether to attempt retrieving existing conversation history from the checkpointer.
+ * @returns {Promise<object>} A promise that resolves to an object containing the agent's response,
+ *   conversation ID, and other relevant metadata.
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} message - A descriptive message about the operation's outcome.
+ * @property {object} data - The main response data.
+ * @property {object} data.responseMessage - The structured response message.
+ * @property {string} data.responseMessage.message - The final text response from the agent.
+ * @property {string} data.responseMessage.type - The type of workflow executed (e.g., 'single_step', 'multi_step').
+ * @property {any} data.responseMessage.executionResult - The raw result of the tool execution.
+ * @property {Array<object>} data.responseMessage.toolResults - Results from individual tool steps.
+ * @property {object} data.responseMessage.metadata - Additional metadata about the execution.
+ * @property {string} data.conversationId - The ID of the conversation thread.
+ * @property {number} data.messageCount - The total number of messages in the conversation after this turn.
+ * @property {string} data.userType - The type of user ('authenticated').
+ * @property {string} [error] - Error message if the operation failed.
+ */
 export const runAIClassificationAgent = async (userInput, options = {}) => {
   const {
     userId = null,
@@ -294,7 +367,22 @@ export const runAIClassificationAgent = async (userInput, options = {}) => {
   }
 };
 
-// Utility function to get conversation history
+/**
+ * Retrieves the conversation history for a given conversation ID.
+ *
+ * @param {string} conversationId - The ID of the conversation to retrieve history for.
+ * @returns {Promise<object>} A promise that resolves to an object containing the conversation history
+ *   and context, or an error message if retrieval fails.
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} message - A descriptive message about the operation's outcome.
+ * @property {object} data - The retrieved conversation data.
+ * @property {Array<object>} data.history - An array of message objects from the conversation.
+ * @property {object} data.conversationContext - The context object for the conversation.
+ * @property {object} data.metadata - Additional metadata associated with the conversation state.
+ * @property {string} data.conversationId - The ID of the conversation.
+ * @property {number} data.messageCount - The number of messages in the history.
+ * @property {string} [error] - Error message if the operation failed.
+ */
 export const getConversationHistory = async (conversationId) => {
   try {
     const config = { configurable: { thread_id: conversationId } };
@@ -336,7 +424,19 @@ export const getConversationHistory = async (conversationId) => {
   }
 };
 
-// Utility function to clear conversation history
+/**
+ * Clears the conversation history and resets the conversation context for a given conversation ID.
+ *
+ * @param {string} conversationId - The ID of the conversation to clear.
+ * @returns {Promise<object>} A promise that resolves to an object indicating the success
+ *   or failure of the operation.
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} message - A descriptive message about the operation's outcome.
+ * @property {object} data - Data related to the cleared conversation.
+ * @property {string} data.conversationId - The ID of the conversation.
+ * @property {number} data.messageCount - Always 0 after clearing.
+ * @property {string} [error] - Error message if the operation failed.
+ */
 export const clearConversationHistory = async (conversationId) => {
   try {
     const config = { configurable: { thread_id: conversationId } };
