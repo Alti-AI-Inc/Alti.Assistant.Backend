@@ -1,10 +1,27 @@
+/**
+ * @file Utility functions for evaluating and enhancing image generation prompts using Google Generative AI.
+ * @module promptEvaluator
+ */
+
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { z } from 'zod';
 import config from '../../../../../config/index.js';
 
-// Define the prompt quality schema
+/**
+ * @typedef {object} PromptQualityAssessment
+ * @property {boolean} isComplete - Whether the prompt has enough detail to generate a good image.
+ * @property {string[]} missingElements - List of missing or unclear elements that should be clarified.
+ * @property {string[]} suggestions - Specific questions to ask the user to improve the prompt.
+ * @property {number} score - Prompt quality score (0-100).
+ */
+
+/**
+ * Zod schema defining the structure for prompt quality assessment.
+ * This schema is used to validate and parse the output from the LLM.
+ * @type {z.ZodObject<any, any, any, PromptQualityAssessment, any>}
+ */
 const promptQualitySchema = z.object({
   isComplete: z
     .boolean()
@@ -18,9 +35,19 @@ const promptQualitySchema = z.object({
   score: z.number().min(0).max(100).describe('Prompt quality score (0-100)'),
 });
 
+/**
+ * Structured output parser for the prompt quality assessment.
+ * It uses the `promptQualitySchema` to parse and validate the LLM's JSON output.
+ * @type {StructuredOutputParser<typeof promptQualitySchema>}
+ */
 const qualityParser = StructuredOutputParser.fromZodSchema(promptQualitySchema);
 
-// Prompt template for quality assessment
+/**
+ * Prompt template for assessing the quality of an image generation prompt.
+ * It instructs the LLM to act as an expert prompt engineer and provide
+ * a quality score and actionable suggestions.
+ * @type {PromptTemplate}
+ */
 const qualityPromptTemplate = PromptTemplate.fromTemplate(
   `You are an expert prompt engineer for image generation. Analyze the following prompt and determine if it has enough detail to generate a high-quality image.
 
@@ -44,16 +71,21 @@ Analyze the prompt quality and provide specific, actionable suggestions if it's 
 );
 
 /**
- * Evaluates prompt quality and suggests improvements
- * @param {string} prompt - The user's image generation prompt
- * @param {string} history - Conversation history
- * @param {Object} options - Configuration options
- * @returns {Promise<Object>} Prompt quality assessment
+ * Evaluates the quality of a user's image generation prompt and provides suggestions for improvement.
+ * It uses a Google Generative AI model to assess completeness, identify missing elements,
+ * and suggest specific questions to enhance the prompt.
+ *
+ * @param {string} prompt - The user's image generation prompt to be evaluated.
+ * @param {string} [history='No previous conversation.'] - Optional conversation history relevant to the prompt.
+ * @param {object} [options={}] - Configuration options for the AI model.
+ * @param {string} [options.modelName='gemini-3.5-flash'] - The name of the Google Generative AI model to use (e.g., 'gemini-pro', 'gemini-3.5-flash').
+ * @returns {Promise<PromptQualityAssessment>} A promise that resolves to an object containing the prompt quality assessment.
+ * @throws {Error} If there's a critical error during LLM invocation or parsing that cannot be gracefully handled.
  */
 export async function evaluatePromptQuality(
   prompt,
   history = 'No previous conversation.',
-  { apiKey, modelName = 'gemini-3.5-flash' } = {}
+  { modelName = 'gemini-3.5-flash' } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
     apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
@@ -118,14 +150,35 @@ export async function evaluatePromptQuality(
 }
 
 /**
- * Builds an improved prompt from conversation history
- * @param {Array} conversationHistory - Array of user inputs
- * @param {Object} options - Configuration options
- * @returns {Promise<string>} Enhanced prompt
+ * Prompt template for building an enhanced image generation prompt.
+ * It instructs the LLM to consolidate conversation history into a single,
+ * comprehensive prompt.
+ * @type {PromptTemplate}
+ */
+const enhancePromptTemplate = PromptTemplate.fromTemplate(
+  `You are an expert prompt engineer. Based on the conversation below, create a single, comprehensive image generation prompt that incorporates all the details the user has provided.
+
+The prompt should be clear, detailed, and optimized for image generation.
+
+Conversation:
+{conversation}
+
+Generate a complete, well-structured image generation prompt:`
+);
+
+/**
+ * Builds a single, comprehensive image generation prompt by consolidating
+ * details from a conversation history. It uses a Google Generative AI model
+ * to act as an expert prompt engineer.
+ *
+ * @param {string[]} conversationHistory - An array of strings, where each string is a user input from the conversation.
+ * @param {object} [options={}] - Configuration options for the AI model.
+ * @param {string} [options.modelName='gemini-3.5-flash'] - The name of the Google Generative AI model to use (e.g., 'gemini-pro', 'gemini-3.5-flash').
+ * @returns {Promise<string>} A promise that resolves to the enhanced, consolidated image generation prompt.
  */
 export async function buildEnhancedPrompt(
   conversationHistory,
-  { apiKey, modelName = 'gemini-3.5-flash' } = {}
+  { modelName = 'gemini-3.5-flash' } = {}
 ) {
   const model = new ChatGoogleGenerativeAI({
     apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
@@ -134,17 +187,6 @@ export async function buildEnhancedPrompt(
     location: config.google.vertex_ai_region || 'us-central1',
     temperature: 0.3,
   });
-
-  const enhancePromptTemplate = PromptTemplate.fromTemplate(
-    `You are an expert prompt engineer. Based on the conversation below, create a single, comprehensive image generation prompt that incorporates all the details the user has provided.
-
-The prompt should be clear, detailed, and optimized for image generation.
-
-Conversation:
-{conversation}
-
-Generate a complete, well-structured image generation prompt:`
-  );
 
   const chain = enhancePromptTemplate.pipe(model);
 
