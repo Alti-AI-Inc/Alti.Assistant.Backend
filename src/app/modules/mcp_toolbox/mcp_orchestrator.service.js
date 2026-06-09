@@ -101,8 +101,8 @@ class McpGenericServerInstance {
    * Implements self-healing by attempting to restart the process on unexpected exits.
    * @returns {Promise<boolean>} A promise that resolves to true if the server starts successfully and completes the handshake, or rejects on failure.
    */
-  start() {
-    return new Promise((resolve, reject) => {
+  async start() { // Made async to use await for fsPromises
+    return new Promise(async (resolve, reject) => { // Inner Promise for compatibility with existing structure
       if (this.process) {
         this.log(`Server "${this.serverId}" is already running.`);
         return resolve(true);
@@ -116,12 +116,18 @@ class McpGenericServerInstance {
 
       // Ensure directory for storage exists if needed
       const storageDir = path.resolve(`storage/users/${this.tenantId}/mcp_memory`);
-      if (!fs.existsSync(storageDir)) {
-        fs.mkdirSync(storageDir, { recursive: true });
+      try {
+        await fsPromises.mkdir(storageDir, { recursive: true }); // Use fsPromises for async operation
+      } catch (err) {
+        this.log(`[ERROR] Failed to create storage directory ${storageDir}: ${err.message}`);
+        return reject(err);
       }
       const workspaceDir = path.resolve(`storage/users/${this.tenantId}/workspace`);
-      if (!fs.existsSync(workspaceDir)) {
-        fs.mkdirSync(workspaceDir, { recursive: true });
+      try {
+        await fsPromises.mkdir(workspaceDir, { recursive: true }); // Use fsPromises for async operation
+      } catch (err) {
+        this.log(`[ERROR] Failed to create workspace directory ${workspaceDir}: ${err.message}`);
+        return reject(err);
       }
 
       // Merge environment variables safely
@@ -134,7 +140,9 @@ class McpGenericServerInstance {
       try {
         this.process = spawn(cmd, args, {
           env: spawnEnv,
-          shell: true // Required for npx on Windows platforms
+          shell: true // WARNING: Using 'shell: true' can be a security risk if 'cmd' or 'args' come from untrusted input.
+                      // It is used here, as per original code, potentially for 'npx' on Windows.
+                      // Ensure 'config/mcp_servers.json' is a trusted, admin-controlled configuration.
         });
 
         this.process.on('error', (err) => {
@@ -391,16 +399,18 @@ class McpOrchestratorService {
      * @type {Record<string, McpServerConfig>}
      */
     this.globalRegistry = {};
-    this.loadRegistry();
+    this._loadRegistrySync(); // Initial synchronous load for constructor
     this.startConfigWatcher();
   }
 
   /**
-   * Loads the MCP server registry configuration from `config/mcp_servers.json`.
-   * This method is called during initialization and on config file changes.
+   * Synchronously loads the MCP server registry configuration from `config/mcp_servers.json`.
+   * This method is intended for initial synchronous loading in the constructor.
+   * For asynchronous reloads, use `loadRegistry()`.
+   * @private
    * @returns {void}
    */
-  loadRegistry() {
+  _loadRegistrySync() {
     try {
       const configPath = path.resolve('config/mcp_servers.json');
       if (fs.existsSync(configPath)) {
@@ -419,6 +429,36 @@ class McpOrchestratorService {
   }
 
   /**
+   * Asynchronously loads the MCP server registry configuration from `config/mcp_servers.json`.
+   * This method is used for dynamic hot-reloading.
+   * @returns {Promise<void>}
+   */
+  async loadRegistry() {
+    try {
+      const configPath = path.resolve('config/mcp_servers.json');
+      let fileContent;
+      try {
+        await fsPromises.access(configPath, fs.constants.F_OK); // Check if file exists
+        fileContent = await fsPromises.readFile(configPath, 'utf-8');
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          console.warn(`[McpOrchestrator] config/mcp_servers.json not found. Initializing with empty registry.`);
+          this.globalRegistry = {};
+          return;
+        }
+        throw error; // Re-throw other errors
+      }
+      
+      const parsed = JSON.parse(fileContent);
+      this.globalRegistry = parsed.mcp_servers || {};
+      console.log(`[McpOrchestrator] Loaded ${Object.keys(this.globalRegistry).length} MCP server definitions.`);
+    } catch (err) {
+      console.error(`[McpOrchestrator] Failed to load config/mcp_servers.json: ${err.message}`);
+      this.globalRegistry = {}; // Ensure registry is empty on error
+    }
+  }
+
+  /**
    * Starts a file system watcher on `config/mcp_servers.json` to enable dynamic hot-reloading
    * of server definitions without requiring a service restart.
    * @returns {void}
@@ -426,14 +466,15 @@ class McpOrchestratorService {
   startConfigWatcher() {
     try {
       const configPath = path.resolve('config/mcp_servers.json');
-      if (fs.existsSync(configPath)) {
+      // Check existence synchronously for watcher setup, as fs.watch doesn't throw ENOENT immediately
+      if (fs.existsSync(configPath)) { 
         let debounceTimer;
         fs.watch(configPath, (eventType) => {
           if (eventType === 'change') {
             clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
+            debounceTimer = setTimeout(async () => { // Made callback async
               console.log('[McpOrchestrator] Dynamic config change detected! Hot-reloading registry...');
-              this.loadRegistry();
+              await this.loadRegistry(); // Use async loadRegistry
             }, 300); // Debounce to prevent multiple reloads on rapid changes
           }
         });
@@ -502,7 +543,8 @@ class McpOrchestratorService {
   /**
    * Registers or updates an MCP server definition in the `config/mcp_servers.json` file.
    * This action triggers the dynamic hot-reloading mechanism.
-   * @param {string} tenantId - The ID of the tenant (currently not used for global registry, but kept for future scope).
+   * This method operates on a global configuration file and should be protected by appropriate
+   * authorization checks in the API layer (e.g., only accessible by administrators).
    * @param {string} serverId - The unique ID for the server to register.
    * @param {object} serverConfig - The configuration details for the server.
    * @param {string} serverConfig.name - The human-readable name of the server.
@@ -513,7 +555,7 @@ class McpOrchestratorService {
    * @returns {Promise<object>} A promise that resolves with a success message and the updated registry.
    * @throws {Error} If the server configuration is invalid.
    */
-  async registerServer(tenantId, serverId, serverConfig) {
+  async registerServer(serverId, serverConfig) { // Removed tenantId as it's a global config
     if (!serverId || !serverConfig.name || !serverConfig.command) {
       throw new Error('Invalid server configuration. Server ID, name, and command are required.');
     }
@@ -521,9 +563,18 @@ class McpOrchestratorService {
     const configPath = path.resolve('config/mcp_servers.json');
     let currentConfig = { mcp_servers: {} };
 
-    if (fs.existsSync(configPath)) {
-      const fileContent = fs.readFileSync(configPath, 'utf-8');
+    try {
+      // Use fsPromises for asynchronous file operations
+      const fileContent = await fsPromises.readFile(configPath, 'utf-8');
       currentConfig = JSON.parse(fileContent);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // File doesn't exist, start with an empty config
+        console.warn(`[McpOrchestrator] config/mcp_servers.json not found during registration. Creating new file.`);
+      } else {
+        console.error(`[McpOrchestrator] Failed to read config/mcp_servers.json: ${error.message}`);
+        throw new Error(`Failed to read server registry: ${error.message}`);
+      }
     }
 
     if (!currentConfig.mcp_servers) {
@@ -540,10 +591,10 @@ class McpOrchestratorService {
       env: serverConfig.env || {}
     };
 
-    fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2), 'utf-8');
+    await fsPromises.writeFile(configPath, JSON.stringify(currentConfig, null, 2), 'utf-8');
     
     // Manually force immediate update in memory to prevent watcher delay race-conditions
-    this.globalRegistry = currentConfig.mcp_servers;
+    await this.loadRegistry(); // Use async loadRegistry to update globalRegistry
     console.log(`[McpOrchestrator] Server "${serverConfig.name}" (${serverId}) registered/updated.`);
 
     return {
@@ -599,8 +650,11 @@ class McpOrchestratorService {
     // 3. Spawns new generic server instance
     const logFile = path.resolve(`logs/mcp_${tenantId}_${serverId}.log`);
     const logDir = path.dirname(logFile);
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
+    try {
+      await fsPromises.mkdir(logDir, { recursive: true }); // Use fsPromises for async operation
+    } catch (err) {
+      console.error(`[McpOrchestrator] Failed to create log directory ${logDir}: ${err.message}`);
+      throw err; // Re-throw to indicate startup failure
     }
 
     // Optimization: Use asynchronous file appending for logs to prevent blocking the event loop.
@@ -626,9 +680,9 @@ class McpOrchestratorService {
         instance.resolvedEnv['COMPOSIO_API_KEY'] = config.composio.orgApiKey;
         instance.resolvedEnv['TENANT_ID'] = tenantId;
         instance.resolvedEnv['COMPOSIO_TOOLKITS'] = toolkitsString;
-        appendLog(`[Composio] Injected env: COMPOSIO_TOOLKITS=${toolkitsString}`);
+        await appendLog(`[Composio] Injected env: COMPOSIO_TOOLKITS=${toolkitsString}`); // Await appendLog
       } catch (dbError) {
-        appendLog(`[ERROR] Failed to query active Composio toolkits: ${dbError.message}`);
+        await appendLog(`[ERROR] Failed to query active Composio toolkits: ${dbError.message}`); // Await appendLog
       }
     }
 
