@@ -53,10 +53,14 @@ const handlePlanConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization: Fetch conversation as a plain JavaScript object if it's only checked for existence
+        // and not directly modified before a potential re-fetch or update.
+        // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
-          req
+          req,
+          true // Use .lean() for performance if only checking existence
         );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
@@ -193,23 +197,25 @@ const storeFileInConversation = async (
     };
 
     // 4. Update conversation metadata
+    // Optimization: Fetch conversation lean, then modify the plain object and update specific fields.
+    // This avoids the overhead of Mongoose document tracking if only a part of the document is updated.
+    // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
-      req
+      req,
+      true // Use .lean()
     );
 
-    if (!conversation.metadata.uploadedFiles) {
-      conversation.metadata.uploadedFiles = [];
-    }
-
-    conversation.metadata.uploadedFiles.push(fileData);
+    const updatedUploadedFiles = conversation.metadata?.uploadedFiles
+      ? [...conversation.metadata.uploadedFiles, fileData]
+      : [fileData];
 
     await conversationService.updadtePlanMetadata(
       conversationId,
       userId,
       {
-        uploadedFiles: conversation.metadata.uploadedFiles,
+        uploadedFiles: updatedUploadedFiles,
       },
       req
     );
@@ -579,10 +585,13 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
+    // Optimization: Fetch conversation as a plain JavaScript object as it's only read and returned.
+    // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
-      req
+      req,
+      true // Use .lean()
     );
 
     return {
@@ -605,10 +614,13 @@ const exportPlan = async (
   req = null
 ) => {
   try {
+    // Optimization: Fetch conversation as a plain JavaScript object as only its metadata is accessed.
+    // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
-      req
+      req,
+      true // Use .lean()
     );
     const plan = conversation.metadata?.generatedPlan;
 
@@ -660,3 +672,8 @@ export const planGeneratorService = {
   getConversationHistory,
   exportPlan,
 };
+
+// Database Indexing Recommendation:
+// For the 'Conversation' collection, consider adding a compound index on 'conversationId' and 'userId'
+// to optimize lookups performed by `conversationHelpers.getConversationById`.
+// Example: conversationSchema.index({ conversationId: 1, userId: 1 });

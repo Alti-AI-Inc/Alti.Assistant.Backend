@@ -17,12 +17,21 @@ const getNestedValue = (obj, pathString) => {
  */
 const registerTrigger = async (userId, appName, eventName, dispatchType, targetId, paramMapping) => {
   try {
+    // Security Note: Ensure 'userId' is derived from an authenticated session and not directly from client input
+    // to prevent IDOR (Insecure Direct Object Reference) vulnerabilities where a user could register triggers for another user.
+
+    // Normalize appName and eventName to lowercase for consistent storage and lookup.
+    // This fixes a bug where `receiveWebhookEvent` queries using .toLowerCase() but `registerTrigger`
+    // might store them with inconsistent casing, leading to triggers not being found.
+    const normalizedAppName = appName.toLowerCase();
+    const normalizedEventName = eventName.toLowerCase();
+
     const trigger = await EventTrigger.findOneAndUpdate(
-      { userId, appName, eventName },
-      { dispatchType, targetId, paramMapping, isActive: true },
+      { userId, appName: normalizedAppName, eventName: normalizedEventName },
+      { dispatchType, targetId, paramMapping, isActive: true, appName: normalizedAppName, eventName: normalizedEventName },
       { new: true, upsert: true }
     );
-    logger.info(`EventTrigger: registered trigger for user ${userId} on event ${appName}:${eventName}`);
+    logger.info(`EventTrigger: registered trigger for user ${userId} on event ${normalizedAppName}:${normalizedEventName}`);
     return { success: true, trigger };
   } catch (err) {
     logger.error('EventTrigger: registration failed:', err);
@@ -38,6 +47,7 @@ const receiveWebhookEvent = async (appName, eventName, payload) => {
     logger.info(`EventTrigger: processing incoming webhook for "${appName}:${eventName}"`);
 
     // Find all active triggers matching this app and event
+    // appName and eventName are converted to lowercase to match the normalized storage from registerTrigger.
     const activeTriggers = await EventTrigger.find({
       appName: appName.toLowerCase(),
       eventName: eventName.toLowerCase(),
@@ -49,9 +59,11 @@ const receiveWebhookEvent = async (appName, eventName, payload) => {
       return { success: true, executedCount: 0 };
     }
 
-    let executedCount = 0;
+    let dispatchedCount = 0;
     for (const trigger of activeTriggers) {
-      // Asynchronously resolve parameters and execute to ensure webhooks return immediately
+      // Asynchronously resolve parameters and execute to ensure webhooks return immediately.
+      // The .catch(() => {}) on the IIFE prevents unhandled promise rejections from crashing the process,
+      // while the internal try/catch logs specific execution errors.
       (async () => {
         try {
           const resolvedInputs = {};
@@ -73,17 +85,23 @@ const receiveWebhookEvent = async (appName, eventName, payload) => {
             });
           }
         } catch (execErr) {
+          // Log errors for individual asynchronous dispatches
           logger.error(`EventTrigger: failed to execute dispatched target ${trigger.targetId}:`, execErr);
         }
-      })().catch(() => {});
+      })().catch(() => {
+        // This outer catch prevents unhandled promise rejections from the IIFE itself,
+        // but individual execution errors are already logged by the inner catch.
+      });
 
-      executedCount++;
+      dispatchedCount++;
     }
 
+    // Bug Fix: Adjusted the message to accurately reflect that automations are *initiated* asynchronously,
+    // not necessarily completed successfully, as the webhook returns immediately.
     return {
       success: true,
-      message: `Successfully accepted webhook and dispatched ${executedCount} automation(s) asynchronously.`,
-      dispatchedCount: executedCount,
+      message: `Webhook received. Initiated ${dispatchedCount} automation dispatch(es) asynchronously.`,
+      dispatchedCount: dispatchedCount,
     };
   } catch (err) {
     logger.error(`EventTrigger: receiveWebhookEvent failed:`, err);
