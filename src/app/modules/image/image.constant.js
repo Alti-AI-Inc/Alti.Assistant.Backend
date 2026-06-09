@@ -128,7 +128,10 @@ export const IMAGE_ASSISTANT_CONSTANTS = {
     ANALYSIS: {
       name: 'image-analyzer',
       version: '1.0',
-      maxImageSize: '20MB',
+      // BUG: Inconsistent data type for maxImageSize.
+      // Changed from string '20MB' to numerical bytes for consistency with FILE.MAX_FILE_SIZE
+      // and easier programmatic use in validation or comparisons.
+      maxImageSize: 20 * 1024 * 1024, // 20MB in bytes
       supportedFormats: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'],
     },
   },
