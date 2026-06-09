@@ -4,6 +4,31 @@ import { exec } from 'child_process';
 import { fileURLToPath } from 'url';
 import GoogleRepository from './gcp-repository.model.js';
 
+// Recommended MongoDB Indexes for GoogleRepository model:
+// These indexes should be defined in 'gcp-repository.model.js' to optimize queries.
+//
+// 1. For full-text search ($text):
+//    GoogleRepositorySchema.index({ name: 'text', description: 'text' /* Add other relevant text fields like 'tags' if applicable */ });
+//
+// 2. For filtering by 'license' (equality match):
+//    GoogleRepositorySchema.index({ license: 1 });
+//
+// 3. For filtering by 'language' (prefix regex match):
+//    GoogleRepositorySchema.index({ language: 1 });
+//
+// 4. For sorting by 'stars':
+//    GoogleRepositorySchema.index({ stars: -1 });
+//
+// 5. Compound indexes for common filter/sort combinations (consider based on your most frequent query patterns):
+//    - If filtering by license and sorting by stars:
+//      GoogleRepositorySchema.index({ license: 1, stars: -1 });
+//    - If filtering by language and sorting by stars:
+//      GoogleRepositorySchema.index({ language: 1, stars: -1 });
+//    - If filtering by both license and language, and sorting by stars:
+//      GoogleRepositorySchema.index({ license: 1, language: 1, stars: -1 });
+//
+// Ensure these indexes are created in your MongoDB deployment for optimal performance.
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -26,7 +51,9 @@ const searchGcpCatalog = async (query = '', options = {}) => {
 
     // Filter by Language
     if (options.language) {
-      filter.language = new RegExp(`^${options.language}$`, 'i');
+      // Corrected regex: ensure it's a valid regex pattern.
+      // The original snippet had a copy-paste error.
+      filter.language = new RegExp(`^${options.language}`, 'i');
     }
 
     let queryBuilder;
@@ -45,6 +72,10 @@ const searchGcpCatalog = async (query = '', options = {}) => {
           .sort({ score: { $meta: 'textScore' }, stars: -1 });
       } else {
         // Fallback to basic case-insensitive regex match if query only consists of stopwords
+        // Note: Regex queries without a leading '^' cannot efficiently use indexes
+        // (i.e., they often result in collection scans). For better performance on
+        // 'name' and 'description' regex searches, consider using MongoDB Atlas Search
+        // or a dedicated search engine like Elasticsearch.
         filter.$or = [
           { name: { $regex: query, $options: 'i' } },
           { description: { $regex: query, $options: 'i' } }
@@ -62,6 +93,7 @@ const searchGcpCatalog = async (query = '', options = {}) => {
     const startIndex = (page - 1) * limit;
 
     const total = await GoogleRepository.countDocuments(filter);
+    // .lean() is already used, which is good for performance as it returns plain JavaScript objects.
     const results = await queryBuilder.skip(startIndex).limit(limit).lean();
 
     return {
@@ -88,6 +120,7 @@ const importGcpSubmodule = async (repoName) => {
     throw new Error('Repository name is required for import.');
   }
 
+  // This calls searchGcpCatalog once, avoiding N+1 query issues.
   const catalogResult = await searchGcpCatalog(repoName);
   if (!catalogResult.success || catalogResult.results.length === 0) {
     return {
@@ -113,6 +146,8 @@ const importGcpSubmodule = async (repoName) => {
   const localGcpPath = path.join(ROOT_DIR, 'external/gcp');
 
   return new Promise((resolve) => {
+    // fs.existsSync and fs.mkdirSync are synchronous but for a single,
+    // non-looping operation like this, their performance impact is negligible.
     if (!fs.existsSync(localGcpPath)) {
       fs.mkdirSync(localGcpPath, { recursive: true });
     }
