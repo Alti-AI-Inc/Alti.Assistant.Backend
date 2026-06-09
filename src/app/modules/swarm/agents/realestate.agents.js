@@ -4,7 +4,52 @@
  * Defines 3 specialized real estate AI micro-agents.
  */
 
+/**
+ * @typedef {object} RealEstateAgent
+ * @property {string} id - A unique identifier for the real estate agent.
+ * @property {string} name - The human-readable name of the real estate agent.
+ * @property {string} description - A brief summary of the agent's specialization.
+ * @property {string} systemInstruction - The detailed system instruction prompt that defines the agent's role, rules, and output format.
+ * @property {string} model - The AI model used by this agent (e.g., 'gemini-2.0-flash').
+ * @property {Array<string>} tools - An array of tools or functions this agent can utilize. (Currently empty).
+ * @property {Array<string>} keywords - A list of keywords associated with this agent, used for routing and intent matching.
+ */
+
 // ─── 1. Property Quant ────────────────────────────────────────────────────────
+/**
+ * @constant
+ * @type {RealEstateAgent}
+ * @description
+ * The Real Estate Property Quant agent acts as an institutional property quant desk specialist.
+ * It is designed to perform comprehensive financial analysis of real estate properties,
+ * evaluating AVM accuracy, cash flows, Net Operating Income (NOI), Capitalization Rates (Cap Rates),
+ * and Cash-on-Cash (CoC) yields using commercial underwriting standards.
+ *
+ * Key analytical capabilities include:
+ * - AVM and Monthly Rent estimations.
+ * - Tax Assessment Deviation Index (TADI) for tax shielding/appeal.
+ * - Advanced institutional metrics: NOI, Cap Rate, GRM, 30-Year Mortgage Cash Flow models.
+ * - Dynamic handling of custom financing parameters, PMI triggers, and LTV.
+ * - Debt Service Coverage Ratio (DSCR) underwriting tiers.
+ * - Hazard insurance, replacement cost modeling, and multi-hazard/FEMA flood insurance.
+ * - Seller transaction ledgers and multi-scenario exit projections.
+ * - Interest rate sensitivity analysis and conforming loan limits audit.
+ * - Investor buy-box matching and investment sensitivity stress-testing.
+ * - Break-Even Monthly Rent calculation.
+ * - Holding-period equity and debt amortization schedules.
+ * - Commercial Debt Yield underwriting.
+ * - Capital gains and net walkaway audits for sellers.
+ * - BRRRR (Buy, Rehab, Rent, Refinance, Repeat) refinance underwriting.
+ * - Mortgage Risk-Based Pricing (LLPA) ledger and HELOC vs. Cash-Out Refinance arbitrage.
+ * - Wildfire FAIR Plan, roof age deductible overrides, and Section 1031 Exchange auditing.
+ * - Cross-collateralization portfolio optimization.
+ * - Propensity to Sell lead scoring and contact reliability assessment.
+ * - Advanced tax depreciation and cost segregation simulation.
+ * - FEMA climate change insurance premium adjustments.
+ * - Mortgage interest rate buy-down auditing.
+ * - Includes RealEstateAPI.com source citation and a valuation disclaimer.
+ * - Subject to Swarm Multi-Agent Consensus Auditing.
+ */
 export const realestatePropertyQuant = {
   id: 'realestate_property_quant',
   name: 'Real Estate Property Quant',
@@ -66,6 +111,34 @@ FORMAT:
 };
 
 // ─── 2. Market Analyst ────────────────────────────────────────────────────────
+/**
+ * @constant
+ * @type {RealEstateAgent}
+ * @description
+ * The Real Estate Market Analyst agent functions as a senior brokerage researcher and MLS data analyst.
+ * It specializes in assessing market velocity, price-per-square-foot consensus, and linking
+ * neighborhood comparable sales (comps) directly to investment yields.
+ *
+ * Key analytical capabilities include:
+ * - Detailed subject property overview.
+ * - Comprehensive comparable sales matrix with proximity tiers (Close, Medium, Outlier).
+ * - Identification of layout matches for high-fidelity benchmarks.
+ * - Distance-weighted average comps price per square foot consensus model.
+ * - MLS active listing velocity analysis and multi-market comparisons.
+ * - Contextualization of comps within commercial viability, implied exit cap rates, and GRMs.
+ * - Integration of hazard risk ratings, FEMA flood surcharges, replacement cost models,
+ *   seismic/windstorm deductibles, seller net sheets, capital gains, BRRRR underwriting,
+ *   and multi-scenario exits.
+ * - Incorporation of institutional risk-based pricing (LLPA), HELOC vs. Cash-Out Refi arbitrage,
+ *   wildfire FAIR Plan modifiers, roof age deductibles, and Section 1031 Exchange logic.
+ * - Cross-collateralization portfolio optimization.
+ * - Propensity to Sell lead scoring and contact reliability assessment.
+ * - Advanced tax depreciation and cost segregation simulation.
+ * - FEMA climate change insurance premium adjustments.
+ * - Mortgage interest rate buy-down auditing.
+ * - Includes RealEstateAPI.com source citation and a market variance disclaimer.
+ * - Subject to Swarm Multi-Agent Consensus Auditing.
+ */
 export const realestateMarketAnalyst = {
   id: 'realestate_market_analyst',
   name: 'Real Estate Market Analyst',
@@ -105,12 +178,34 @@ FORMAT:
   keywords: [
     'comps', 'comparable sales', 'sold homes near', 'recent sales', 'neighborhood sales', 
     'comparables', 'sold near', 'mls', 'listings', 'for sale', 'active listings', 'active properties', 
-    'homes for sale', 'real estate listings', 'days on market', 'dom', 'distance-weighted', 'comps consensus',
+    'homes for sale', 'days on market', 'dom', 'distance-weighted', 'comps consensus',
     'layout match', 'heloc', 'arbitrage', '1031', 'exchange', 'like-kind', 'like kind', 'roof age'
   ]
 };
 
 // ─── 3. Skip Tracer ───────────────────────────────────────────────────────────
+/**
+ * @constant
+ * @type {RealEstateAgent}
+ * @description
+ * The Real Estate Skip Tracer agent specializes in corporate ownership auditing and asset skip tracing.
+ * It is designed to parse ownership records, trace contact points (phone lines, email addresses),
+ * map mailing structures, and outline demographic portfolio profiles to facilitate off-market acquisition underwriting.
+ *
+ * Key analytical capabilities include:
+ * - Display of verified owner name and primary mailing address.
+ * - Listing of active phone lines and registered email addresses.
+ * - Detailed demographic portfolio including estimated net worth brackets and credit bureau ranges.
+ * - Assessment of owner profile's alignment with institutional underwriting for acquisition.
+ * - Privacy audit warning regarding TCPA and data protection compliance.
+ * - Propensity to Sell lead scoring and contact reliability assessment.
+ * - Cross-collateralization portfolio optimization.
+ * - Advanced tax depreciation and cost segregation simulation.
+ * - FEMA climate change insurance premium adjustments.
+ * - Mortgage interest rate buy-down auditing.
+ * - Includes RealEstateAPI.com source citation and a skip trace data disclaimer.
+ * - Subject to Swarm Multi-Agent Consensus Auditing.
+ */
 export const realestateSkipTracer = {
   id: 'realestate_skip_tracer',
   name: 'Real Estate Skip Tracer',
