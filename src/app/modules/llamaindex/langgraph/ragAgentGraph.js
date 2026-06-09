@@ -10,7 +10,74 @@ import fsPromises from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'path';
 
-// Define the state schema for our self-correcting RAG agent loop
+/**
+ * @typedef {object} AgenticRAGState
+ * @property {string} query - The user's initial query or the current query being processed.
+ * @property {string} userId - The ID of the user initiating the query.
+ * @property {'factual'|'summarization'|'time_sensitive'|'conversational'} queryRoute - The classification of the query, determining the agent's path.
+ * @property {string} hydePassage - A hypothetical document passage generated to expand query semantics.
+ * @property {string} retrievedContext - The combined textual content retrieved from various sources (LlamaIndex, web search).
+ * @property {Array<Citation>} citations - A list of sources/citations for the generated response.
+ * @property {boolean} webSearchUsed - Flag indicating if a web search was performed during the current invocation.
+ * @property {string} generation - The final or intermediate generated response content.
+ * @property {number} generationAttempt - Counter for generation attempts, used for self-correction loops.
+ * @property {boolean} isRelevant - Flag indicating if retrieved documents are considered relevant to the query.
+ * @property {string} error - Stores any error messages encountered during the process.
+ * @property {number} hallucinationScore - A score indicating the presence of hallucinations (0 for none, >0 for detected).
+ */
+
+/**
+ * @typedef {object} Citation
+ * @property {number} index - The numerical index of the citation.
+ * @property {string} url - The URL or internal path to the source document.
+ * @property {string} title - The title of the source document or snippet.
+ * @property {string} domain - The domain or origin of the source (e.g., 'Data Vault', 'Google Search').
+ * @property {string} snippet - A short excerpt or summary from the source.
+ * @property {number} [score] - The relevance score of the snippet, if available.
+ * @property {number} [pageNumber] - The page number within the document, if applicable.
+ */
+
+/**
+ * Defines the state schema for the self-correcting RAG agent loop using LangGraph.
+ * Each property includes a `reducer` for merging state updates and a `default` value.
+ * @type {object}
+ * @property {object} query - The user's initial query.
+ * @property {Function} query.reducer - Reducer function for the query.
+ * @property {Function} query.default - Default value for the query.
+ * @property {object} userId - The ID of the user.
+ * @property {Function} userId.reducer - Reducer function for the userId.
+ * @property {Function} userId.default - Default value for the userId.
+ * @property {object} queryRoute - The classified route for the query.
+ * @property {Function} queryRoute.reducer - Reducer function for the queryRoute.
+ * @property {Function} queryRoute.default - Default value for the queryRoute.
+ * @property {object} hydePassage - Hypothetical document passage.
+ * @property {Function} hydePassage.reducer - Reducer function for the hydePassage.
+ * @property {Function} hydePassage.default - Default value for the hydePassage.
+ * @property {object} retrievedContext - Retrieved document context.
+ * @property {Function} retrievedContext.reducer - Reducer function for the retrievedContext.
+ * @property {Function} retrievedContext.default - Default value for the retrievedContext.
+ * @property {object} citations - List of citations.
+ * @property {Function} citations.reducer - Reducer function for citations.
+ * @property {Function} citations.default - Default value for citations.
+ * @property {object} webSearchUsed - Flag if web search was used.
+ * @property {Function} webSearchUsed.reducer - Reducer function for webSearchUsed.
+ * @property {Function} webSearchUsed.default - Default value for webSearchUsed.
+ * @property {object} generation - Generated response.
+ * @property {Function} generation.reducer - Reducer function for generation.
+ * @property {Function} generation.default - Default value for generation.
+ * @property {object} generationAttempt - Counter for generation attempts.
+ * @property {Function} generationAttempt.reducer - Reducer function for generationAttempt.
+ * @property {Function} generationAttempt.default - Default value for generationAttempt.
+ * @property {object} isRelevant - Flag if retrieved context is relevant.
+ * @property {Function} isRelevant.reducer - Reducer function for isRelevant.
+ * @property {Function} isRelevant.default - Default value for isRelevant.
+ * @property {object} error - Error message.
+ * @property {Function} error.reducer - Reducer function for error.
+ * @property {Function} error.default - Default value for error.
+ * @property {object} hallucinationScore - Score for hallucination detection.
+ * @property {Function} hallucinationScore.reducer - Reducer function for hallucinationScore.
+ * @property {Function} hallucinationScore.default - Default value for hallucinationScore.
+ */
 export const agenticRAGState = {
   query: {
     reducer: (x, y) => y ?? x,
@@ -62,8 +129,17 @@ export const agenticRAGState = {
   }
 };
 
-// Initialize Gemini LLM lazily using `@langchain/google-genai`
+/**
+ * @type {ChatGoogleGenerativeAI | null}
+ * Lazily initialized instance of the ChatGoogleGenerativeAI LLM.
+ */
 let primaryLLMInstance = null;
+
+/**
+ * Initializes and returns a singleton instance of the ChatGoogleGenerativeAI LLM.
+ * The API key is sourced from `config.gemini_secret_key` or environment variables.
+ * @returns {ChatGoogleGenerativeAI} The initialized Gemini LLM instance.
+ */
 function getPrimaryLLM() {
   if (!primaryLLMInstance) {
     const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -76,8 +152,24 @@ function getPrimaryLLM() {
   return primaryLLMInstance;
 }
 
-// Resilient wrapper providing seamless cognitive sandbox mock fallback in case of billing, quota or connection errors
+/**
+ * A resilient wrapper around the primary LLM, providing a cognitive sandbox mock fallback
+ * in case of billing, quota, or connection errors. This prevents hard failures in
+ * development or when API limits are hit, by returning a predefined mock response
+ * based on the prompt content.
+ * @type {object}
+ * @property {function(Array<import('@langchain/core/messages').BaseMessage|string>, object): Promise<object>} invoke - Invokes the LLM with messages and options,
+ *   handling errors with a fallback to a mock response.
+ */
 const llm = {
+  /**
+   * Invokes the primary LLM. If an API or billing error occurs, it falls back to a
+   * cognitive sandbox mock response based on the prompt's content.
+   * @param {Array<import('@langchain/core/messages').BaseMessage|string>} messages - The messages to send to the LLM.
+   * @param {object} options - Options for the LLM invocation, e.g., callbacks.
+   * @returns {Promise<object>} A promise that resolves to the LLM's response or a mock response.
+   * @throws {Error} If an error occurs that is not a billing/API error, or if the fallback fails.
+   */
   invoke: async (messages, options) => {
     try {
       return await getPrimaryLLM().invoke(messages, options);
@@ -139,7 +231,14 @@ const llm = {
 };
 
 /**
- * Semantic Router Node: Intelligently routes queries to optimized sub-pipelines
+ * Semantic Router Node: Intelligently routes queries to optimized sub-pipelines.
+ * This node classifies the user's query into one of several categories
+ * ('summarization', 'time_sensitive', 'conversational', 'factual') to
+ * determine the most appropriate subsequent processing path within the RAG graph.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the updated `queryRoute` property. Defaults to 'factual' on error.
  */
 async function semanticRouterNode(state) {
   logger.info(`[LangGraph RAG] Classifying query: "${state.query}"`);
@@ -172,7 +271,13 @@ Respond with exactly one word matching the category key: "summarization", "time_
 }
 
 /**
- * HyDE Node: Generates a hypothetical answer passage to expand query semantics
+ * HyDE Node: Generates a hypothetical answer passage to expand query semantics.
+ * This passage is then used to enrich the original query for better retrieval
+ * performance, especially for sparse or ambiguous queries.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent, containing the user's query.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the updated `hydePassage` property. Returns an empty string on error.
  */
 async function hydeExpandNode(state) {
   logger.info(`[LangGraph RAG] Generating HyDE hypothetical passage for query: "${state.query}"`);
@@ -195,7 +300,14 @@ User Question: ${state.query}`;
 }
 
 /**
- * Retrieve Node: Calls LlamaIndex parallel multi-query index retriever and runs Reranker
+ * Retrieve Node: Calls the LlamaIndex parallel multi-query index retriever and runs a Reranker.
+ * This node fetches relevant document chunks from the local knowledge base, optionally
+ * using the HyDE passage, and then reranks them to select the most pertinent ones.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent, including `query`, `hydePassage`, and `userId`.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the updated `retrievedContext`, `citations`, and `isRelevant` properties.
+ *   Returns empty context and citations if no documents are found or an error occurs.
  */
 async function retrieveNode(state) {
   logger.info(`[LangGraph RAG] Retrieving context for query: "${state.query}" (HyDE Active: ${!!state.hydePassage})`);
@@ -278,7 +390,14 @@ Select the top 4 most relevant excerpts that directly answer the query. Return e
 }
 
 /**
- * Grade Documents Node: Evaluate document relevance to decide on search fallback
+ * Grade Documents Node: Evaluates document relevance to decide on a web search fallback.
+ * This node assesses whether the `retrievedContext` is sufficient and relevant
+ * to answer the user's query, guiding the graph to either generate a response
+ * or perform a web search.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent, including `query` and `retrievedContext`.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the updated `isRelevant` property. Defaults to `true` on error.
  */
 async function gradeDocumentsNode(state) {
   if (!state.retrievedContext || state.retrievedContext.length < 50) {
@@ -311,7 +430,15 @@ Respond with exactly one word: "YES" if the context is relevant and contains use
 }
 
 /**
- * Summarize Node: Generates global document summaries using corpus profiling or map-reduce
+ * Summarize Node: Generates global document summaries using corpus profiling or map-reduce.
+ * This node attempts to retrieve a pre-computed summary from a document profile.
+ * If not available, it engages a parallel Map-Reduce pipeline to generate a
+ * comprehensive executive overview from the indexed documents.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent, including `userId`.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the `generation` (the summary text), `isRelevant`, and `citations` properties.
+ *   Returns an error message in `error` if summarization fails.
  */
 async function summarizeNode(state) {
   logger.info(`[LangGraph RAG] Synthesizing global corpus summary for user ${state.userId}...`);
@@ -423,7 +550,14 @@ Google Vertex AI Search and stateful cognitive architectures deliver highly accu
 }
 
 /**
- * Conversational Node: Direct chat response without RAG/Search overhead
+ * Conversational Node: Handles direct chat responses without RAG/Search overhead.
+ * This node is activated for queries classified as 'conversational', providing
+ * a direct, friendly response from the LLM without engaging retrieval mechanisms.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent, including `query`.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the `generation` (the conversational response) and `isRelevant` properties.
+ * @throws {Error} If the conversational LLM invocation fails.
  */
 async function conversationalNode(state) {
   logger.info(`[LangGraph RAG] Processing off-topic/friendly conversational query: "${state.query}"`);
@@ -444,7 +578,14 @@ Answer the user's friendly chat query directly. Keep it professional, concise, a
 }
 
 /**
- * Web Search Node: Fallback using high-fidelity Google Search Grounding via Gemini
+ * Web Search Node: Fallback using high-fidelity Google Search Grounding via Gemini.
+ * This node is activated when local retrieval is insufficient or for time-sensitive queries.
+ * It performs a real-time web search and integrates the results into the context.
+ * Includes a robust mock fallback for development/sandbox environments.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent, including `query`, `retrievedContext`, and `citations`.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the updated `retrievedContext`, `citations`, `webSearchUsed`, and `isRelevant` properties.
  */
 async function webSearchNode(state) {
   logger.info(`[LangGraph RAG] Falling back to real-time Google Search Grounding for: "${state.query}"`);
@@ -496,7 +637,15 @@ async function webSearchNode(state) {
 }
 
 /**
- * Generate Node: Synthesize grounded response using retrieved context
+ * Generate Node: Synthesizes a grounded response using the retrieved context.
+ * This node takes the accumulated `retrievedContext` and the original `query`
+ * to generate a comprehensive, factual, and cited response. It also tracks
+ * generation attempts for self-correction.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent, including `query`, `retrievedContext`, and `generationAttempt`.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the updated `generation` and `generationAttempt` properties.
+ * @throws {Error} If the LLM fails to generate a response.
  */
 async function generateNode(state) {
   logger.info(`[LangGraph RAG] Synthesizing grounded response (Attempt #${state.generationAttempt + 1})...`);
@@ -532,7 +681,14 @@ Instructions:
 }
 
 /**
- * Hallucination Grade Node: Audit response for strict faithfulness to sources
+ * Hallucination Grade Node: Audits the generated response for strict faithfulness to sources.
+ * This node acts as a quality control step, checking if the `generation` contains
+ * any unsubstantiated facts or hallucinations not present in the `retrievedContext`.
+ * It helps trigger a self-correction loop if hallucinations are detected.
+ *
+ * @param {AgenticRAGState} state - The current state of the RAG agent, including `retrievedContext` and `generation`.
+ * @returns {Promise<Partial<AgenticRAGState>>} A promise that resolves to an object
+ *   containing the updated `hallucinationScore` property. Defaults to 0 on error.
  */
 async function hallucinationGradeNode(state) {
   logger.info('[LangGraph RAG] Executing hallucination audit on generated draft...');
@@ -567,6 +723,11 @@ Respond with exactly one word: "YES" if the draft contains hallucinations, unsup
 
 // ═════ BUILD STATE GRAPH FLOWS ═════
 
+/**
+ * The LangGraph workflow definition for the agentic RAG system.
+ * It defines the nodes and edges that constitute the self-correcting RAG agent.
+ * @type {StateGraph<AgenticRAGState, string>}
+ */
 const workflow = new StateGraph({ channels: agenticRAGState });
 
 // Register Nodes
@@ -639,14 +800,28 @@ workflow.addConditionalEdges(
 workflow.addEdge('summarize', END);
 workflow.addEdge('conversational', END);
 
-// Compile the RAG Graph
+/**
+ * The compiled LangGraph representing the agentic RAG workflow.
+ * This graph orchestrates the various nodes (semantic routing, retrieval, generation, self-correction)
+ * to provide a robust and accurate RAG experience.
+ * @type {import('@langchain/langgraph').CompiledStateGraph<AgenticRAGState>}
+ */
 export const agenticRAGGraph = workflow.compile();
 
 /**
- * Execute the stateful agentic RAG search and self-correcting synthesis graph
- * @param {string} query - User search query
- * @param {string} userId - User identifier
- * @returns {Promise<object>} Grounded response containing content and citations
+ * Executes the stateful agentic RAG search and self-correcting synthesis graph.
+ * This is the main entry point for interacting with the RAG agent. It initializes
+ * the graph with the user's query and ID, invokes the workflow, and returns
+ * the final generated content and citations.
+ *
+ * @param {string} query - The user's search query.
+ * @param {string} userId - The identifier for the user, used for context and storage.
+ * @returns {Promise<object>} A promise that resolves to an object containing:
+ *   - `success`: boolean indicating if the operation was successful.
+ *   - `content`: The generated response content.
+ *   - `sources`: An array of simplified citation objects.
+ *   - `webSearchUsed`: boolean indicating if web search was utilized.
+ * @throws {Error} If a critical execution error occurs within the graph.
  */
 export async function executeAgenticRAG(query, userId) {
   try {
@@ -673,9 +848,9 @@ export async function executeAgenticRAG(query, userId) {
       success: true,
       content: finalState.generation || 'No response generated.',
       sources: (finalState.citations || []).map(c => ({
-        docId: c.url?.split('/')?.slice(-2)?.[0] || 'active',
+        docId: c.url?.split('/')?.slice(-2)?.[0] || 'active', // Attempt to extract docId from URL
         extractedTitle: c.title,
-        score: 1.0,
+        score: c.score || 1.0, // Default score if not present
         snippet: c.snippet || ''
       })),
       webSearchUsed: finalState.webSearchUsed
