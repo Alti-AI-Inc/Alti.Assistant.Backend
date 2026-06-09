@@ -384,7 +384,11 @@ const processConversationalRequest = async (
       // directly in the database using a method like `findOneAndUpdate` with `$push`
       // in `conversationService` instead of fetching the whole document, modifying,
       // and then saving. This avoids unnecessary data transfer and Mongoose document overhead.
-      if (conversation.metadata && conversation.metadata.uploadedFiles) {
+      if (conversation.metadata) {
+        // Ensure uploadedFiles array exists before pushing to it
+        if (!conversation.metadata.uploadedFiles) {
+          conversation.metadata.uploadedFiles = [];
+        }
         conversation.metadata.uploadedFiles.push({
           fileName: fileInfo.originalName,
           uploadedAt: new Date(),
