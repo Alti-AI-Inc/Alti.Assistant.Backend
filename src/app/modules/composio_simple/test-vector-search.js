@@ -8,13 +8,27 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import mongoose from 'mongoose';
 import Tool from '../composio_v2/tools.model.js';
+/**
+ * Configuration object loaded from the application's config file.
+ * Contains sensitive keys like `gemini_secret_key` and `database_url`.
+ * @type {object}
+ * @property {string} gemini_secret_key - The API key for Google Generative AI.
+ * @property {string} database_url - The MongoDB connection URL.
+ */
 import config from '../../../../config/index.js';
 
-// Initialize Gemini
+/**
+ * Initializes the Google Generative AI client with the provided API key.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Generate embedding for text
+ * Generates a vector embedding for a given text query using the Google Generative AI embedding model.
+ *
+ * @param {string} text - The text query for which to generate an embedding.
+ * @returns {Promise<number[]>} A promise that resolves to an array of numbers representing the embedding vector.
+ * @throws {Error} If an error occurs during the embedding generation process.
  */
 async function embedQuery(text) {
   try {
@@ -28,7 +42,14 @@ async function embedQuery(text) {
 }
 
 /**
- * Test vector search with sample queries
+ * Connects to MongoDB, performs a series of vector searches with predefined queries,
+ * and logs the results. It demonstrates how to use `embedQuery` and MongoDB's
+ * `$vectorSearch` aggregation stage.
+ *
+ * This function handles database connection and disconnection, and includes
+ * error handling for both embedding generation and vector search operations.
+ *
+ * @returns {Promise<void>} A promise that resolves when all test searches are completed, or rejects if a critical error occurs.
  */
 async function testVectorSearch() {
   try {
