@@ -217,7 +217,8 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
 
       if (useLocalFallback) {
         const localDir = path.join(process.cwd(), 'storage', 'datasets', datasetId.replace(/\//g, '_'), configName, splitName);
-        fs.mkdirSync(localDir, { recursive: true });
+        // Optimization: Use fs.promises.mkdir for async directory creation to prevent blocking the event loop
+        await fs.promises.mkdir(localDir, { recursive: true });
         localFilePath = path.join(localDir, fileName);
         writeStream = fs.createWriteStream(localFilePath);
       } else {
@@ -305,6 +306,7 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
  */
 const archiveDatasetToGCS = async (datasetId) => {
   // 1. Fetch info and prepare database catalog record
+  // Recommendation: Ensure an index exists on `datasetId` in the Dataset model for efficient lookups.
   const info = await getHFDatasetInfo(datasetId);
   
   let dataset = await Dataset.findOne({ datasetId });
@@ -379,7 +381,8 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
       if (gcsPath.startsWith('local://')) {
         const localPath = gcsPath.slice('local://'.length);
         console.log(`Reading Parquet file from local storage for indexing: ${localPath}`);
-        buffer = fs.readFileSync(localPath);
+        // Optimization: Use fs.promises.readFile for async file reading to prevent blocking the event loop
+        buffer = await fs.promises.readFile(localPath);
         
         // Parse metadata/config/split from the local file path or directory structure
         // localPath: .../storage/datasets/[datasetId]/[configName]/[splitName]/[fileName].parquet
@@ -521,6 +524,7 @@ const indexDatasetForRAG = async (datasetId) => {
     };
   }
 
+  // Recommendation: Ensure an index exists on `datasetId` in the Dataset model for efficient lookups.
   const dataset = await Dataset.findOne({ datasetId });
   if (!dataset) {
     throw new Error('Dataset not found in local catalog.');
@@ -554,7 +558,11 @@ const indexDatasetForRAG = async (datasetId) => {
  */
 const getLocalCatalog = async (filter = {}) => {
   try {
-    const list = await Dataset.find(filter).sort({ updatedAt: -1 });
+    // Optimization: Use .lean() for read-only queries to return plain JavaScript objects
+    // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
+    // Recommendation: Ensure an index exists on `updatedAt` for efficient sorting.
+    // If `filter` commonly includes specific fields, consider adding indexes for those fields as well.
+    const list = await Dataset.find(filter).sort({ updatedAt: -1 }).lean();
     return list;
   } catch (err) {
     throw new Error(`Failed to retrieve local datasets catalog: ${err.message}`);
