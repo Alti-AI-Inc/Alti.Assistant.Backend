@@ -7,12 +7,17 @@ import LangchainChainVersion from './langchain-version.model.js';
  */
 const createSnapshot = async (chainId, userId, changeSummary = 'Configuration snapshotted.') => {
   try {
+    // Optimization Recommendation: Add an index on `userId` in the LangchainChain model for faster lookups.
+    // Example: LangchainChainSchema.index({ userId: 1 });
     const chain = await LangchainChain.findOne({ _id: chainId, userId });
     if (!chain) {
       throw new Error(`LangChain chain not found: ${chainId}`);
     }
 
     // Find highest version number
+    // Optimization Recommendation: Add a compound index on `{ chainId: 1, versionNumber: -1 }`
+    // in the LangchainChainVersion model for efficient retrieval of the latest version.
+    // Example: LangchainChainVersionSchema.index({ chainId: 1, versionNumber: -1 });
     const latestVersion = await LangchainChainVersion.findOne({ chainId })
       .sort({ versionNumber: -1 })
       .lean();
@@ -48,12 +53,18 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
  */
 const rollbackToVersion = async (chainId, versionNumber, userId) => {
   try {
+    // Optimization Recommendation: Add an index on `userId` in the LangchainChain model for faster lookups.
+    // Example: LangchainChainSchema.index({ userId: 1 });
     const chain = await LangchainChain.findOne({ _id: chainId, userId });
     if (!chain) {
       throw new Error(`LangChain chain not found: ${chainId}`);
     }
 
-    const versionRecord = await LangchainChainVersion.findOne({ chainId, versionNumber });
+    // Optimization: Apply .lean() as this document is only read and not modified, reducing Mongoose overhead.
+    // Optimization Recommendation: Add a compound index on `{ chainId: 1, versionNumber: 1 }`
+    // in the LangchainChainVersion model for efficient lookup of specific versions.
+    // Example: LangchainChainVersionSchema.index({ chainId: 1, versionNumber: 1 });
+    const versionRecord = await LangchainChainVersion.findOne({ chainId, versionNumber }).lean();
     if (!versionRecord) {
       throw new Error(`Version snapshot v${versionNumber} not found for chain ${chainId}`);
     }
@@ -84,6 +95,9 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
  */
 const getVersionHistory = async (chainId, userId) => {
   try {
+    // Optimization Recommendation: Add a compound index on `{ chainId: 1, userId: 1, versionNumber: -1 }`
+    // in the LangchainChainVersion model for efficient history retrieval and sorting.
+    // Example: LangchainChainVersionSchema.index({ chainId: 1, userId: 1, versionNumber: -1 });
     const history = await LangchainChainVersion.find({ chainId, userId })
       .sort({ versionNumber: -1 })
       .select('versionNumber changeSummary createdAt')
