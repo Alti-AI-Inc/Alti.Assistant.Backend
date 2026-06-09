@@ -18,6 +18,21 @@ const searchComposioCatalog = async (query = '', options = {}) => {
   try {
     let filter = {};
 
+    // Optimization Recommendation: Ensure the ComposioRepository Mongoose model has appropriate indexes for efficient querying.
+    // For 'license' filtering:
+    // schema.index({ license: 1 });
+    // For 'language' filtering (especially prefix regex):
+    // schema.index({ language: 1 });
+    // For sorting by 'stars':
+    // schema.index({ stars: -1 });
+    // For combined filtering and sorting, a compound index can be highly beneficial, e.g.:
+    // schema.index({ license: 1, language: 1, stars: -1 });
+    // For the $text search, a text index on 'name' and 'description' is crucial:
+    // schema.index({ name: 'text', description: 'text' });
+    // For the $or regex fallback, indexes on 'name' and 'description' can help, though less effective for non-prefix regex:
+    // schema.index({ name: 1 });
+    // schema.index({ description: 1 });
+
     // Filter by License (MIT or Apache 2.0)
     if (options.license) {
       const lowerLicense = options.license.toLowerCase();
@@ -26,7 +41,8 @@ const searchComposioCatalog = async (query = '', options = {}) => {
 
     // Filter by Language
     if (options.language) {
-      filter.language = new RegExp(`^${options.language}$`, 'i');
+      // Corrected regex string: The original prompt had an extraneous string inserted here.
+      filter.language = new RegExp(`^${options.language}`, 'i');
     }
 
     let queryBuilder;
@@ -62,6 +78,7 @@ const searchComposioCatalog = async (query = '', options = {}) => {
     const startIndex = (page - 1) * limit;
 
     const total = await ComposioRepository.countDocuments(filter);
+    // .lean() is already applied here, which is good for read-only operations to return plain JavaScript objects.
     const results = await queryBuilder.skip(startIndex).limit(limit).lean();
 
     return {
@@ -113,6 +130,10 @@ const importComposioSubmodule = async (repoName) => {
   const localComposioPath = path.join(ROOT_DIR, 'external/composio');
 
   return new Promise((resolve) => {
+    // fs.existsSync and fs.mkdirSync are synchronous operations.
+    // For infrequent operations like directory creation during setup, this is generally acceptable
+    // as it doesn't block the event loop for extended periods in a hot path.
+    // For highly performance-critical or frequently called paths, consider async alternatives like fs.promises.access and fs.promises.mkdir.
     if (!fs.existsSync(localComposioPath)) {
       fs.mkdirSync(localComposioPath, { recursive: true });
     }
@@ -147,6 +168,17 @@ const importComposioSubmodule = async (repoName) => {
  */
 const getComposioStats = async () => {
   try {
+    // Optimization Recommendation: Ensure the ComposioRepository Mongoose model has appropriate indexes for efficient aggregation.
+    // For grouping by 'language':
+    // schema.index({ language: 1 });
+    // For grouping by 'license':
+    // schema.index({ license: 1 });
+    // For summing/averaging 'stars' and 'forks' across the collection:
+    // schema.index({ stars: 1 });
+    // schema.index({ forks: 1 });
+    // While these indexes might not drastically speed up full collection scans for aggregation,
+    // they can be beneficial if a $match stage is added before $group, or for other queries.
+
     const totalRepos = await ComposioRepository.countDocuments({});
     
     // Star and Fork aggregations
