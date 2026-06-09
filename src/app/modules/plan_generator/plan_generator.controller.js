@@ -3,8 +3,8 @@ import catchAsync from '../../../shared/catchAsync.js';
 import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { planGeneratorService } from './plan_generator.service.js';
-import SubscriptionModel from '../subscription/subscription.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
+import SubscriptionModel from '../subscription/subscription.model.js'; // SubscriptionModel is imported but not used in this file.
+import { conversationHelpers } from '../conversations/conversation.helpers.js'; // conversationHelpers is imported but not used in this file.
 import { taskManager } from './plan_generator.taskmanager.js';
 
 /**
@@ -13,12 +13,19 @@ import { taskManager } from './plan_generator.taskmanager.js';
  */
 export const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
+  // Determine userId based on authentication status.
+  // For authenticated users, use their ID from req.user.
+  // For guest users, generate a new guest ID.
+  // The userId should never be taken from req.body to prevent IDOR (Insecure Direct Object Reference).
   let userId = isGuest
     ? planGeneratorService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
 
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId;
+  // Removed: userId = req.body.userId || userId;
+  // This line allowed clients to override the userId, which is a security vulnerability (IDOR).
+  // The userId must be derived from the authenticated session (req.user) or securely generated for guests,
+  // not provided by the client in the request body.
 
   // Handle file upload if present
   const fileInfo = req.file
@@ -66,12 +73,19 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
  */
 export const conversationalAssistantAsync = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
+  // Determine userId based on authentication status.
+  // For authenticated users, use their ID from req.user.
+  // For guest users, generate a new guest ID.
+  // The userId should never be taken from req.body to prevent IDOR.
   let userId = isGuest
     ? planGeneratorService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
 
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId;
+  // Removed: userId = req.body.userId || userId;
+  // This line allowed clients to override the userId, which is a security vulnerability (IDOR).
+  // The userId must be derived from the authenticated session (req.user) or securely generated for guests,
+  // not provided by the client in the request body.
 
   // Handle file upload if present
   const fileInfo = req.file
@@ -115,7 +129,7 @@ export const conversationalAssistantAsync = catchAsync(async (req, res) => {
     taskId: task.taskId,
     status: task.status,
     message: 'Plan generation started. Use /task/:taskId to check progress.',
-    userId: isGuest ? userId : undefined,
+    userId: isGuest ? userId : undefined, // Include userId for guest users in the response
   };
 
   sendResponse(res, {
@@ -200,13 +214,17 @@ export const generatePlan = catchAsync(async (req, res) => {
  */
 export const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
+  // For authenticated users, userId comes from req.user.
+  // For guest users, the userId should be derived from a secure guest session mechanism
+  // or implicitly handled by the service based on conversationId.
+  // It should not be taken from req.body to prevent IDOR.
   const userId = req.user?.userId || req.user?._id;
 
   logger.info(`Fetching conversation history: ${conversationId}`);
 
   const result = await planGeneratorService.getConversationHistory(
     conversationId,
-    userId,
+    userId, // userId will be undefined for guests if not set in req.user, service must handle this.
     req
   );
 
@@ -222,8 +240,14 @@ export const getConversationHistory = catchAsync(async (req, res) => {
  * Export plan in various formats
  */
 export const exportPlan = catchAsync(async (req, res) => {
-  const isGuest = req.isGuest || !req.user;
-  const userId = isGuest ? req.body.userId : req.user?.userId || req.user?._id;
+  // Determine userId based on authentication status.
+  // For authenticated users, use their ID from req.user.
+  // For guest users, the userId should NOT be taken from req.body to prevent IDOR.
+  // If req.user is null (guest), userId will be undefined. The service layer
+  // (planGeneratorService.exportPlan) must then handle guest authorization
+  // by either inferring the guest's userId from a secure session (e.g., cookie)
+  // or by validating ownership of the conversationId without a direct userId.
+  const userId = req.user?.userId || req.user?._id;
 
   const { conversationId, format = 'markdown' } = req.body;
 
@@ -231,7 +255,7 @@ export const exportPlan = catchAsync(async (req, res) => {
 
   const result = await planGeneratorService.exportPlan(
     conversationId,
-    userId,
+    userId, // userId will be undefined for guests if not set in req.user, service must handle this.
     format,
     req
   );
@@ -258,7 +282,7 @@ export const brainstormIdea = catchAsync(async (req, res) => {
     `Brainstorm request from ${isGuest ? 'guest' : 'authenticated'} user`
   );
 
-  // Import services
+  // Import services dynamically for performance
   const { ideaAnalyzer } = await import('./services/ideaAnalyzer.js');
   const { brainstormEngine } = await import('./services/brainstormEngine.js');
 
