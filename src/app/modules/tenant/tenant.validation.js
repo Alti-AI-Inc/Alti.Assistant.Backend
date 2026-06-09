@@ -1,7 +1,16 @@
 import { z } from 'zod';
 
 /**
- * Validation schema for creating a tenant
+ * @typedef {object} CreateTenantBody
+ * @property {string} name - The name of the tenant. Must be between 2 and 100 characters.
+ * @property {string} slug - A unique, URL-friendly identifier for the tenant. Must be between 2 and 50 characters, containing only lowercase letters, numbers, and hyphens.
+ * @property {string} subdomain - The subdomain for the tenant's application. Must be between 2 and 50 characters, containing only lowercase letters, numbers, and hyphens.
+ * @property {'free'|'explore'|'analyze'|'execute'|'command'|'enterprise'} [plan] - The subscription plan for the tenant. Defaults to 'free' if not provided.
+ */
+/**
+ * Validation schema for creating a new tenant.
+ * This schema expects a `body` object containing the tenant's details.
+ * @type {z.ZodObject<{ body: z.ZodObject<CreateTenantBody> }>}
  */
 export const createTenantSchema = z.object({
   body: z.object({
@@ -32,7 +41,28 @@ export const createTenantSchema = z.object({
 });
 
 /**
- * Validation schema for updating tenant
+ * @typedef {object} CustomBrandingSettings
+ * @property {string} [logo] - URL to the custom logo for the tenant's branding. Must be a valid URL.
+ * @property {string} [primaryColor] - The primary color for the tenant's branding in hexadecimal format (e.g., #RRGGBB).
+ */
+/**
+ * @typedef {object} TenantSettings
+ * @property {boolean} [allowMemberInvites] - Whether members are allowed to invite other members.
+ * @property {boolean} [requireApproval] - Whether new member invitations require admin approval.
+ * @property {number} [maxMembers] - The maximum number of members allowed in the tenant. Must be at least 1.
+ * @property {CustomBrandingSettings} [customBranding] - Custom branding settings for the tenant.
+ */
+/**
+ * @typedef {object} UpdateTenantBody
+ * @property {string} [name] - The new name of the tenant. Must be between 2 and 100 characters.
+ * @property {TenantSettings} [settings] - Various settings for the tenant.
+ * @property {Record<string, any>} [metadata] - Arbitrary metadata associated with the tenant.
+ */
+/**
+ * Validation schema for updating an existing tenant.
+ * This schema expects a `body` object containing the fields to be updated.
+ * All fields are optional, allowing partial updates.
+ * @type {z.ZodObject<{ body: z.ZodObject<UpdateTenantBody> }>}
  */
 export const updateTenantSchema = z.object({
   body: z.object({
@@ -58,7 +88,14 @@ export const updateTenantSchema = z.object({
 });
 
 /**
- * Validation schema for inviting a member
+ * @typedef {object} InviteMemberBody
+ * @property {string} email - The email address of the member to invite. Must be a valid email format.
+ * @property {'admin'|'manager'|'user'} role - The role to assign to the invited member. Must be 'admin', 'manager', or 'user'.
+ */
+/**
+ * Validation schema for inviting a new member to a tenant.
+ * This schema expects a `body` object containing the invitee's email and desired role.
+ * @type {z.ZodObject<{ body: z.ZodObject<InviteMemberBody> }>}
  */
 export const inviteMemberSchema = z.object({
   body: z.object({
@@ -70,7 +107,17 @@ export const inviteMemberSchema = z.object({
 });
 
 /**
- * Validation schema for updating member role
+ * @typedef {object} UpdateMemberRoleParams
+ * @property {string} userId - The ID of the user whose role is to be updated. Must be a valid MongoDB ObjectId (24 hex characters).
+ */
+/**
+ * @typedef {object} UpdateMemberRoleBody
+ * @property {'admin'|'manager'|'user'} role - The new role to assign to the member. Must be 'admin', 'manager', or 'user'.
+ */
+/**
+ * Validation schema for updating a member's role within a tenant.
+ * This schema expects a `params` object for the user ID and a `body` object for the new role.
+ * @type {z.ZodObject<{ params: z.ZodObject<UpdateMemberRoleParams>, body: z.ZodObject<UpdateMemberRoleBody> }>}
  */
 export const updateMemberRoleSchema = z.object({
   params: z.object({
@@ -84,7 +131,13 @@ export const updateMemberRoleSchema = z.object({
 });
 
 /**
- * Validation schema for removing a member
+ * @typedef {object} RemoveMemberParams
+ * @property {string} userId - The ID of the user to be removed from the tenant. Must be a valid MongoDB ObjectId (24 hex characters).
+ */
+/**
+ * Validation schema for removing a member from a tenant.
+ * This schema expects a `params` object containing the ID of the user to remove.
+ * @type {z.ZodObject<{ params: z.ZodObject<RemoveMemberParams> }>}
  */
 export const removeMemberSchema = z.object({
   params: z.object({
@@ -93,7 +146,13 @@ export const removeMemberSchema = z.object({
 });
 
 /**
- * Validation schema for verifying invitation token
+ * @typedef {object} VerifyInvitationTokenParams
+ * @property {string} token - The invitation token to verify. Must be at least 32 characters long.
+ */
+/**
+ * Validation schema for verifying an invitation token.
+ * This schema expects a `params` object containing the invitation token.
+ * @type {z.ZodObject<{ params: z.ZodObject<VerifyInvitationTokenParams> }>}
  */
 export const verifyInvitationTokenSchema = z.object({
   params: z.object({
@@ -102,7 +161,13 @@ export const verifyInvitationTokenSchema = z.object({
 });
 
 /**
- * Validation schema for accepting invitation
+ * @typedef {object} AcceptInvitationParams
+ * @property {string} inviteId - The ID of the invitation to accept. Must be a valid MongoDB ObjectId (24 hex characters).
+ */
+/**
+ * Validation schema for accepting an invitation to a tenant.
+ * This schema expects a `params` object containing the invitation ID.
+ * @type {z.ZodObject<{ params: z.ZodObject<AcceptInvitationParams> }>}
  */
 export const acceptInvitationSchema = z.object({
   params: z.object({
@@ -111,7 +176,13 @@ export const acceptInvitationSchema = z.object({
 });
 
 /**
- * Validation schema for canceling invitation
+ * @typedef {object} CancelInvitationParams
+ * @property {string} inviteId - The ID of the invitation to cancel. Must be a valid MongoDB ObjectId (24 hex characters).
+ */
+/**
+ * Validation schema for canceling an invitation to a tenant.
+ * This schema expects a `params` object containing the invitation ID.
+ * @type {z.ZodObject<{ params: z.ZodObject<CancelInvitationParams> }>}
  */
 export const cancelInvitationSchema = z.object({
   params: z.object({
@@ -120,7 +191,13 @@ export const cancelInvitationSchema = z.object({
 });
 
 /**
- * Validation schema for tenant ID param
+ * @typedef {object} TenantIdParams
+ * @property {string} tenantId - The ID of the tenant. Must be a valid MongoDB ObjectId (24 hex characters).
+ */
+/**
+ * Validation schema for a tenant ID parameter in a route.
+ * This schema expects a `params` object containing the tenant ID.
+ * @type {z.ZodObject<{ params: z.ZodObject<TenantIdParams> }>}
  */
 export const tenantIdParamSchema = z.object({
   params: z.object({
@@ -129,7 +206,13 @@ export const tenantIdParamSchema = z.object({
 });
 
 /**
- * Validation schema for checking subdomain availability
+ * @typedef {object} CheckSubdomainQuery
+ * @property {string} subdomain - The subdomain to check for availability. Must be between 2 and 50 characters, containing only lowercase letters, numbers, and hyphens.
+ */
+/**
+ * Validation schema for checking subdomain availability.
+ * This schema expects a `query` object containing the subdomain to check.
+ * @type {z.ZodObject<{ query: z.ZodObject<CheckSubdomainQuery> }>}
  */
 export const checkSubdomainSchema = z.object({
   query: z.object({
