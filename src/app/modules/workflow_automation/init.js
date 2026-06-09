@@ -2,7 +2,17 @@ import { workflowExecutionService } from './services/workflowExecution.service.j
 import { logger } from '../../../shared/logger.js';
 
 /**
- * Initialize the workflow automation module
+ * Initializes the workflow automation module by setting up scheduled workflows
+ * and dynamic Google Cloud Platform (GCP) event triggers.
+ * This function should be called once during application startup to ensure all
+ * automation components are active and ready.
+ *
+ * @async
+ * @function initializeWorkflowAutomation
+ * @returns {Promise<void>} A promise that resolves when the module is successfully initialized.
+ * @throws {Error} If an error occurs during the initialization process, such as issues
+ *   with scheduling workflows or setting up GCP Pub/Sub triggers. The error is re-thrown
+ *   to propagate startup failures.
  */
 export const initializeWorkflowAutomation = async () => {
   try {
@@ -23,7 +33,13 @@ export const initializeWorkflowAutomation = async () => {
 };
 
 /**
- * Cleanup function for graceful shutdown
+ * Performs cleanup operations for the workflow automation module during application shutdown.
+ * This includes stopping all active scheduled jobs managed by `workflowExecutionService`
+ * and releasing dynamic GCP Pub/Sub subscription listeners managed by `gcpEventsService`.
+ * This function aims for a graceful shutdown, preventing resource leaks.
+ *
+ * @function cleanupWorkflowAutomation
+ * @returns {void}
  */
 export const cleanupWorkflowAutomation = () => {
   try {
