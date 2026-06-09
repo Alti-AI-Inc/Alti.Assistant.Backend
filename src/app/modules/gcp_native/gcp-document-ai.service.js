@@ -143,19 +143,31 @@ const processDocument = async (fileBuffer, mimeType, processorId, location = 'us
 
 /**
  * Helper to retrieve text from a document layout segment text anchor.
+ * Optimized to use an array and join for potentially better performance with many text segments,
+ * avoiding repeated string concatenations.
  */
 function getTextFromLayout(layout, text) {
   if (!layout || !layout.textAnchor || !layout.textAnchor.textSegments) {
     return '';
   }
   
-  let result = '';
-  for (const segment of layout.textAnchor.textSegments) {
-    const startIndex = segment.startIndex ? parseInt(segment.startIndex) : 0;
-    const endIndex = segment.endIndex ? parseInt(segment.endIndex) : 0;
-    result += text.substring(startIndex, endIndex);
+  const segments = layout.textAnchor.textSegments;
+  if (segments.length === 0) {
+    return '';
   }
-  return result;
+
+  const parts = [];
+  for (const segment of segments) {
+    // Ensure startIndex and endIndex are numbers, using parseInt with radix for robustness.
+    const startIndex = parseInt(segment.startIndex || '0', 10);
+    const endIndex = parseInt(segment.endIndex || '0', 10);
+    
+    // Basic validation to ensure indices are within bounds and make sense (startIndex < endIndex).
+    if (startIndex >= 0 && endIndex <= text.length && startIndex < endIndex) {
+      parts.push(text.substring(startIndex, endIndex));
+    }
+  }
+  return parts.join('');
 }
 
 export const GcpDocumentAiService = {
