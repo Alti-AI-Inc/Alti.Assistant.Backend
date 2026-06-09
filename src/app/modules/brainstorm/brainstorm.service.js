@@ -19,21 +19,39 @@ import {
 } from './brainstorm.constant.js';
 
 /**
- * Generate unique guest user ID
+ * Generates a unique guest user ID using Mongoose's ObjectId.
+ * This ID can be used for anonymous users to track their conversations.
+ *
+ * @returns {string} A unique string representation of a Mongoose ObjectId.
  */
 const generateGuestUserId = () => {
   return new mongoose.Types.ObjectId().toString();
 };
 
 /**
- * Generate unique conversation ID
+ * Generates a unique conversation ID for brainstorm sessions.
+ * The ID is prefixed with 'brainstorm_' and includes a timestamp and a random string.
+ *
+ * @returns {string} A unique string identifier for a brainstorm conversation.
  */
 const generateConversationId = () => {
   return `brainstorm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Handle brainstorm conversation (create or retrieve)
+ * Handles the creation or retrieval of a brainstorm conversation.
+ * If a `conversationId` is provided, it attempts to fetch the existing conversation.
+ * If no `conversationId` is provided or the existing one is not found, a new conversation is created.
+ *
+ * @async
+ * @param {string} userId - The ID of the user initiating or continuing the conversation.
+ * @param {string | null} conversationId - The ID of an existing conversation, or `null` to create a new one.
+ * @param {string} userMessage - The initial message from the user, used for the conversation title if a new one is created.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} The conversation object (either retrieved or newly created).
+ * @throws {ApiError} If there's an error retrieving an existing conversation (e.g., forbidden access)
+ *                     or a general internal server error during conversation handling.
  */
 const handleBrainstormConversation = async (
   userId,
@@ -120,7 +138,17 @@ const handleBrainstormConversation = async (
 };
 
 /**
- * Add message to conversation
+ * Adds a new message to an existing conversation.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to which the message will be added.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {'user' | 'assistant'} role - The role of the sender ('user' or 'assistant').
+ * @param {string} content - The text content of the message.
+ * @param {object} [metadata={}] - Optional metadata to associate with the message.
+ * @param {object} [req=null] - The Express request object, potentially containing user information or context.
+ * @returns {Promise<object>} The updated conversation object or the newly added message object.
+ * @throws {ApiError} If there's an internal server error while adding the message.
  */
 const addMessage = async (
   conversationId,
@@ -154,7 +182,18 @@ const addMessage = async (
 };
 
 /**
- * Process conversational brainstorm request
+ * Processes a conversational brainstorm request, managing the conversation flow,
+ * analyzing user intent, generating brainstorm ideas, and providing responses.
+ * It handles new conversations, existing ones, clarification requests, and various brainstorm intents.
+ *
+ * @async
+ * @param {string} userId - The ID of the user.
+ * @param {string} message - The user's current message.
+ * @param {string | null} [conversationId=null] - The ID of the current conversation, if any.
+ * @param {object} [req=null] - The Express request object.
+ * @returns {Promise<object>} An object containing the success status, conversation ID, assistant's response,
+ *                            brainstorm data (if generated), metadata summary, and a flag indicating if more info is needed.
+ * @throws {ApiError} If there's an internal server error during processing or if required information is missing.
  */
 const processConversationalBrainstorm = async (
   userId,
@@ -305,6 +344,17 @@ const processConversationalBrainstorm = async (
       };
     }
 
+    /**
+     * @typedef {object} BrainstormParams
+     * @property {string} idea - The core idea or topic for brainstorming.
+     * @property {string} brainstormType - The type of brainstorm (e.g., 'ideaGeneration', 'analysis').
+     * @property {string} technique - The brainstorming technique to use (e.g., 'SCAMPER', 'SWOT').
+     * @property {string[]} perspectives - Different viewpoints or angles for brainstorming.
+     * @property {string} depth - The desired depth of the brainstorm (e.g., 'quick', 'standard', 'deep').
+     * @property {string[]} focusAreas - Specific areas to focus on during brainstorming.
+     * @property {object} constraints - Any limitations or requirements (e.g., budget, timeline).
+     * @property {string} additionalInstructions - Any extra instructions for the brainstorm.
+     */
     // Merge all collected parameters, prioritizing new intent parameters, then existing, then defaults
     const brainstormParams = {
       idea,
@@ -439,7 +489,25 @@ const processConversationalBrainstorm = async (
 };
 
 /**
- * Generate structured brainstorm with explicit parameters
+ * Generates a structured brainstorm session based on explicit parameters provided by the user.
+ * This function handles the analysis of the idea, merging parameters, generating brainstorm data,
+ * and creating a new conversation to store the session.
+ *
+ * @async
+ * @param {string} userId - The ID of the user.
+ * @param {object} params - An object containing explicit brainstorm parameters.
+ * @param {string} params.idea - The core idea or topic for brainstorming.
+ * @param {string} [params.brainstormType] - The type of brainstorm (e.g., 'ideaGeneration', 'analysis').
+ * @param {string} [params.technique] - The brainstorming technique to use (e.g., 'SCAMPER', 'SWOT').
+ * @param {string[]} [params.perspective] - Different viewpoints or angles for brainstorming.
+ * @param {string} [params.depth] - The desired depth of the brainstorm (e.g., 'quick', 'standard', 'deep').
+ * @param {string[]} [params.focusAreas] - Specific areas to focus on during brainstorming.
+ * @param {object} [params.constraints] - Any limitations or requirements (e.g., budget, timeline).
+ * @param {string} [params.additionalInstructions] - Any extra instructions for the brainstorm.
+ * @param {object} [req=null] - The Express request object.
+ * @returns {Promise<object>} An object containing the success status, new conversation ID,
+ *                            formatted brainstorm response, raw brainstorm data, idea analysis, and metadata summary.
+ * @throws {ApiError} If there's an internal server error during brainstorm generation.
  */
 const generateStructuredBrainstorm = async (userId, params, req = null) => {
   try {
@@ -548,7 +616,15 @@ const generateStructuredBrainstorm = async (userId, params, req = null) => {
 };
 
 /**
- * Get conversation history
+ * Retrieves the complete conversation history for a given brainstorm session.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to retrieve.
+ * @param {string} userId - The ID of the user who owns the conversation.
+ * @param {object} [req=null] - The Express request object.
+ * @returns {Promise<object>} An object containing the success status and the conversation details,
+ *                            including its ID, title, messages, metadata, and timestamps.
+ * @throws {ApiError} If the conversation is not found (404) or an internal server error occurs.
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
@@ -596,7 +672,17 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
 };
 
 /**
- * Export brainstorm session
+ * Exports a brainstorm session's content in a specified format (markdown or JSON).
+ * It retrieves the conversation and its associated brainstorm data, then formats it for export.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to export.
+ * @param {string} userId - The ID of the user who owns the conversation.
+ * @param {'markdown' | 'json'} [format='markdown'] - The desired output format ('markdown' or 'json').
+ * @param {boolean} [includeHistory=true] - Whether to include the full message history in the export (only relevant for 'json' format).
+ * @param {object} [req=null] - The Express request object.
+ * @returns {Promise<object>} An object containing the success status, format, exported content, and a suggested filename.
+ * @throws {ApiError} If the conversation is not found (404) or an internal server error occurs during export.
  */
 const exportBrainstormSession = async (
   conversationId,
@@ -681,7 +767,20 @@ const exportBrainstormSession = async (
 };
 
 /**
- * Refine existing brainstorm
+ * Refines an existing brainstorm session based on a new user message and optional focus areas.
+ * It retrieves the conversation, extracts the original idea, generates refinement data,
+ * and updates the conversation with the new assistant response.
+ *
+ * @async
+ * @param {string} conversationId - The ID of the conversation to refine.
+ * @param {string} userId - The ID of the user who owns the conversation.
+ * @param {string} message - The user's message describing the refinement request.
+ * @param {string[]} [focusOn=[]] - Optional array of specific aspects to focus on during refinement.
+ * @param {object} [req=null] - The Express request object.
+ * @returns {Promise<object>} An object containing the success status, conversation ID,
+ *                            formatted refinement response, and raw refinement data.
+ * @throws {ApiError} If the conversation is not found (404), no original idea is found (400),
+ *                     or an internal server error occurs during refinement.
  */
 const refineBrainstorm = async (
   conversationId,
@@ -763,6 +862,12 @@ const refineBrainstorm = async (
   }
 };
 
+/**
+ * @namespace brainstormService
+ * @description Provides core functionalities for managing brainstorm sessions,
+ *              including conversational and structured brainstorm generation,
+ *              conversation history retrieval, session export, and refinement.
+ */
 export const brainstormService = {
   generateGuestUserId,
   processConversationalBrainstorm,
