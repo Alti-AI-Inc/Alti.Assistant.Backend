@@ -104,7 +104,11 @@ const getDatasetStatus = async (req, res) => {
     // Replace URL encoded slash if present (e.g. glue%2Fcola -> glue/cola)
     const datasetId = decodeURIComponent(id);
 
-    const dataset = await Dataset.findOne({ datasetId });
+    // Optimization: Add .lean() for read-only operations to get plain JavaScript objects
+    // instead of Mongoose documents, improving performance.
+    // Indexing Recommendation: Consider adding an index to the 'datasetId' field in your Dataset model
+    // for faster lookups: `DatasetSchema.index({ datasetId: 1 });`
+    const dataset = await Dataset.findOne({ datasetId }).lean();
     if (!dataset) {
       return res.status(404).json({ success: false, message: `Dataset "${datasetId}" is not registered in our local catalog.` });
     }
