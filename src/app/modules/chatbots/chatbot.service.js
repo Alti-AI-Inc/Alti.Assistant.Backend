@@ -12,6 +12,16 @@ import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.j
 // 3. For `getChatbotById`, `updateChatbot`, `deleteChatbot` (if _id is not the only filter):
 //    ChatbotSchema.index({ _id: 1, userId: 1, isActive: 1 }); // _id is already indexed by default, but this covers the compound query.
 
+/**
+ * Creates a new chatbot for a specific user.
+ * Incorporates tenant context if a request object is provided.
+ *
+ * @param {object} chatbotData - The data for the new chatbot.
+ * @param {string} userId - The ID of the user creating the chatbot.
+ * @param {import('express').Request | null} [req=null] - The Express request object, used for tenant context.
+ * @returns {Promise<object>} A promise that resolves to the created chatbot object.
+ * @throws {ApiError} If there is an internal server error during chatbot creation.
+ */
 const createChatbot = async (chatbotData, userId, req = null) => {
   try {
     const payload = { ...chatbotData, userId };
@@ -25,6 +35,15 @@ const createChatbot = async (chatbotData, userId, req = null) => {
   }
 };
 
+/**
+ * Retrieves a list of chatbots for a given user.
+ * If a tenant ID is present in the request, it also includes shared chatbots for that tenant.
+ *
+ * @param {string} userId - The ID of the user whose chatbots are to be retrieved.
+ * @param {import('express').Request | null} [req=null] - The Express request object, used for tenant context.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of chatbot objects.
+ * @throws {ApiError} If there is an internal server error during chatbot retrieval.
+ */
 const getChatbots = async (userId, req = null) => {
   try {
     let query;
@@ -50,6 +69,16 @@ const getChatbots = async (userId, req = null) => {
   }
 };
 
+/**
+ * Retrieves a single chatbot by its ID for a specific user.
+ * Applies tenant filtering if a request object is provided.
+ *
+ * @param {string} chatbotId - The ID of the chatbot to retrieve.
+ * @param {string} userId - The ID of the user who owns the chatbot.
+ * @param {import('express').Request | null} [req=null] - The Express request object, used for tenant context.
+ * @returns {Promise<object>} A promise that resolves to the chatbot object.
+ * @throws {ApiError} If the chatbot is not found (NOT_FOUND) or an internal server error occurs.
+ */
 const getChatbotById = async (chatbotId, userId, req = null) => {
   try {
     const query = { _id: chatbotId, userId, isActive: true };
@@ -65,6 +94,17 @@ const getChatbotById = async (chatbotId, userId, req = null) => {
   }
 };
 
+/**
+ * Updates an existing chatbot by its ID for a specific user.
+ * Applies tenant filtering if a request object is provided.
+ *
+ * @param {string} chatbotId - The ID of the chatbot to update.
+ * @param {string} userId - The ID of the user who owns the chatbot.
+ * @param {object} updateData - The data to update the chatbot with.
+ * @param {import('express').Request | null} [req=null] - The Express request object, used for tenant context.
+ * @returns {Promise<object>} A promise that resolves to the updated chatbot object.
+ * @throws {ApiError} If the chatbot is not found (NOT_FOUND) or an internal server error occurs.
+ */
 const updateChatbot = async (chatbotId, userId, updateData, req = null) => {
   try {
     const query = { _id: chatbotId, userId, isActive: true };
@@ -84,6 +124,16 @@ const updateChatbot = async (chatbotId, userId, updateData, req = null) => {
   }
 };
 
+/**
+ * Soft deletes a chatbot by setting its `isActive` status to `false`.
+ * Applies tenant filtering if a request object is provided.
+ *
+ * @param {string} chatbotId - The ID of the chatbot to delete.
+ * @param {string} userId - The ID of the user who owns the chatbot.
+ * @param {import('express').Request | null} [req=null] - The Express request object, used for tenant context.
+ * @returns {Promise<object>} A promise that resolves to an object with a success message.
+ * @throws {ApiError} If the chatbot is not found (NOT_FOUND) or an internal server error occurs.
+ */
 const deleteChatbot = async (chatbotId, userId, req = null) => {
   try {
     const query = { _id: chatbotId, userId };
@@ -103,6 +153,19 @@ const deleteChatbot = async (chatbotId, userId, req = null) => {
   }
 };
 
+/**
+ * @typedef {object} ChatbotService
+ * @property {function(object, string, import('express').Request | null): Promise<object>} createChatbot - Creates a new chatbot.
+ * @property {function(string, import('express').Request | null): Promise<Array<object>>} getChatbots - Retrieves a list of chatbots.
+ * @property {function(string, string, import('express').Request | null): Promise<object>} getChatbotById - Retrieves a single chatbot by ID.
+ * @property {function(string, string, object, import('express').Request | null): Promise<object>} updateChatbot - Updates an existing chatbot.
+ * @property {function(string, string, import('express').Request | null): Promise<object>} deleteChatbot - Soft deletes a chatbot.
+ */
+
+/**
+ * Exports an object containing all chatbot-related service functions.
+ * @type {ChatbotService}
+ */
 export const chatbotService = {
   createChatbot,
   getChatbots,
