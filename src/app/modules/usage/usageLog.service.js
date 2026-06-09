@@ -1,5 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
-import UsageLog from './usageLog.model.js';
+import UsageLog from './usageLog.model.js'; // Consider adding indexes to UsageLog model for performance.
+// Recommended indexes for UsageLog model (in usageLog.model.js):
+// 1. { timestamp: 1 } for time-based range queries.
+// 2. { tenantId: 1, timestamp: 1 } for tenant-specific time-based queries.
+// 3. { userId: 1, timestamp: 1 } for user-specific time-based queries.
+// 4. { module: 1, timestamp: 1 } for module-specific time-based queries.
+// 5. For read operations in getTenantUsageSummary/getUserUsageSummary, ensure .lean() is used if they return Mongoose documents
+//    to avoid the overhead of Mongoose document instantiation.
 import { logger } from '../../../shared/logger.js';
 import crypto from 'crypto';
 
@@ -323,6 +330,8 @@ const logRequest = (data) => {
  */
 const getTenantUsage = async (tenantId, startDate, endDate) => {
   try {
+    // Ensure UsageLog.getTenantUsageSummary uses .lean() if it returns Mongoose documents
+    // to avoid overhead of Mongoose document instantiation.
     return await UsageLog.getTenantUsageSummary(tenantId, startDate, endDate);
   } catch (error) {
     logger.error('Error getting tenant usage summary:', error);
@@ -342,6 +351,8 @@ const getTenantUsage = async (tenantId, startDate, endDate) => {
  */
 const getUserUsage = async (userId, startDate, endDate) => {
   try {
+    // Ensure UsageLog.getUserUsageSummary uses .lean() if it returns Mongoose documents
+    // to avoid overhead of Mongoose document instantiation.
     return await UsageLog.getUserUsageSummary(userId, startDate, endDate);
   } catch (error) {
     logger.error('Error getting user usage summary:', error);
