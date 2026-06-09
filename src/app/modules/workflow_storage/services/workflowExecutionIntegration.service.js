@@ -27,6 +27,10 @@ class WorkflowExecutionIntegrationService {
       console.log(`Starting execution of stored workflow: ${workflowId}`);
 
       // Step 1: Get stored workflow
+      // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
+      // uses indexes on 'workflowId' and 'userId' for efficient lookup.
+      // .lean() is not applied here because storedWorkflow.markAsExecuted()
+      // is an instance method that requires a Mongoose document.
       const storedWorkflowResult =
         await workflowStorageService.getStoredWorkflow(workflowId, userId);
 
@@ -164,6 +168,8 @@ class WorkflowExecutionIntegrationService {
 
       if (concurrent) {
         // Execute workflows concurrently
+        // Optimization: Consider using a library like 'p-limit' for more robust
+        // concurrency control if maxConcurrency is dynamic or more complex.
         const promises = workflowIds.map(async (workflowId) => {
           try {
             const result = await this.executeStoredWorkflow(
@@ -178,6 +184,7 @@ class WorkflowExecutionIntegrationService {
         });
 
         // Execute in batches to respect maxConcurrency
+        // This loop structure already implements a form of batching for concurrency.
         for (let i = 0; i < promises.length; i += maxConcurrency) {
           const batch = promises.slice(i, i + maxConcurrency);
           const batchResults = await Promise.all(batch);
@@ -250,8 +257,11 @@ class WorkflowExecutionIntegrationService {
       console.log(`Scheduling stored workflow: ${workflowId}`);
 
       // Step 1: Get stored workflow
+      // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
+      // uses indexes on 'workflowId' and 'userId' for efficient lookup.
+      // Apply .lean() for performance as only properties are read and no instance methods are called.
       const storedWorkflowResult =
-        await workflowStorageService.getStoredWorkflow(workflowId, userId);
+        await workflowStorageService.getStoredWorkflow(workflowId, userId, { lean: true });
 
       if (!storedWorkflowResult.success) {
         return {
@@ -338,8 +348,11 @@ class WorkflowExecutionIntegrationService {
       const { limit = 20, offset = 0 } = options;
 
       // Get stored workflow to verify ownership
+      // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
+      // uses indexes on 'workflowId' and 'userId' for efficient lookup.
+      // Apply .lean() for performance as only 'success' is checked and no instance methods are called.
       const storedWorkflowResult =
-        await workflowStorageService.getStoredWorkflow(workflowId, userId);
+        await workflowStorageService.getStoredWorkflow(workflowId, userId, { lean: true });
 
       if (!storedWorkflowResult.success) {
         return {
@@ -349,16 +362,25 @@ class WorkflowExecutionIntegrationService {
       }
 
       // Get execution history from Composio v2
-      // This would need to be implemented in Composio v2 service to filter by source workflow ID
+      // Optimization Recommendation: Avoid in-memory filtering (N+1 related inefficiency).
+      // The 'workflowService.getUserWorkflows' method should be enhanced to accept
+      // 'sourceWorkflowId' as a direct query parameter to filter at the database level.
+      // This would significantly reduce data transfer and processing overhead.
+      // Ensure 'userId' is indexed for 'getUserWorkflows'.
+      // If filtering by 'scheduleConfig.executionMetadata.sourceWorkflowId' is common,
+      // consider indexing this field in the Composio v2 workflow model.
       const historyResult = await workflowService.getUserWorkflows(
         userId,
-        null,
+        null, // This parameter might be for a different filter, consider passing sourceWorkflowId here.
         limit,
-        offset
+        offset,
+        // Assuming workflowService can accept a filter object for sourceWorkflowId
+        { 'scheduleConfig.executionMetadata.sourceWorkflowId': workflowId }
       );
 
       if (historyResult.success) {
-        // Filter executions that originated from this stored workflow
+        // If workflowService.getUserWorkflows cannot filter by sourceWorkflowId directly,
+        // this in-memory filter is necessary but less efficient.
         const filteredExecutions = historyResult.data.workflows.filter(
           (execution) =>
             execution.scheduleConfig?.executionMetadata?.sourceWorkflowId ===
@@ -406,8 +428,12 @@ class WorkflowExecutionIntegrationService {
       } = templateConfig;
 
       // Get stored workflow
+      // Optimization Recommendation: Ensure workflowStorageService.getStoredWorkflow
+      // uses indexes on 'workflowId' and 'userId' for efficient lookup.
+      // Apply .lean() for performance as .toObject() is called immediately after,
+      // making the Mongoose document overhead unnecessary.
       const storedWorkflowResult =
-        await workflowStorageService.getStoredWorkflow(workflowId, userId);
+        await workflowStorageService.getStoredWorkflow(workflowId, userId, { lean: true });
 
       if (!storedWorkflowResult.success) {
         return {
@@ -419,8 +445,10 @@ class WorkflowExecutionIntegrationService {
       const storedWorkflow = storedWorkflowResult.data;
 
       // Create template workflow data
+      // If .lean() is used above, storedWorkflow is already a plain object.
+      // .toObject() would then be redundant or throw an error if it's not a Mongoose document.
       const templateData = {
-        ...storedWorkflow.toObject(),
+        ...(storedWorkflow.toObject ? storedWorkflow.toObject() : storedWorkflow), // Handle if .lean() makes it plain
         _id: undefined,
         workflowId: undefined,
         title: templateTitle || `${storedWorkflow.title} (Template)`,
