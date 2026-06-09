@@ -58,20 +58,34 @@ export const createTask = (userId, conversationId) => {
 };
 
 /**
- * Get task by ID
+ * Get task by ID, with optional user ID for authorization.
+ * If expectedUserId is provided, it verifies task ownership.
  */
-export const getTask = (taskId) => {
-  return tasks.get(taskId);
+export const getTask = (taskId, expectedUserId = null) => {
+  const task = tasks.get(taskId);
+  // If an expectedUserId is provided, ensure the task belongs to that user.
+  if (task && expectedUserId && task.userId !== expectedUserId) {
+    logger.warn('Unauthorized access attempt to task:', { taskId, expectedUserId, actualUserId: task.userId });
+    return null; // Return null for unauthorized access, consistent with "not found"
+  }
+  return task;
 };
 
 /**
- * Update task progress
+ * Update task progress, with optional user ID for authorization.
+ * If expectedUserId is provided, it verifies task ownership before updating.
  */
-export const updateTaskProgress = (taskId, updates) => {
-  const task = tasks.get(taskId);
+export const updateTaskProgress = (taskId, updates, expectedUserId = null) => {
+  const task = tasks.get(taskId); // Retrieve task first
   if (!task) {
     logger.warn('Task not found for update:', taskId);
     return null;
+  }
+
+  // Check for authorization if expectedUserId is provided
+  if (expectedUserId && task.userId !== expectedUserId) {
+    logger.warn('Unauthorized update attempt to task:', { taskId, expectedUserId, actualUserId: task.userId });
+    return null; // Return null for unauthorized update
   }
 
   Object.assign(task, updates, { updatedAt: new Date() });
@@ -92,19 +106,24 @@ export const updateTaskProgress = (taskId, updates) => {
  */
 export const processTask = async (
   taskId,
-  userId,
+  userId, // This userId is the owner of the task initiating the process
   message,
   conversationId,
   isGuest,
   fileInfo
 ) => {
-  const task = tasks.get(taskId);
+  // Authorize task access at the entry point of processing to prevent IDOR
+  const task = getTask(taskId, userId);
   if (!task) {
-    logger.error('Task not found:', taskId);
-    return;
+    logger.error('Task not found or unauthorized for processing:', { taskId, userId });
+    return; // Stop processing if task is not found or not owned by the user
   }
 
   try {
+    // All subsequent updateTaskProgress calls within this function are internal system updates
+    // for *this* task, which has already been authorized by the initial getTask(taskId, userId) call.
+    // Therefore, no need to pass userId to updateTaskProgress for these internal updates.
+
     // Mark as processing
     updateTaskProgress(taskId, {
       status: TASK_STATUS.PROCESSING,
