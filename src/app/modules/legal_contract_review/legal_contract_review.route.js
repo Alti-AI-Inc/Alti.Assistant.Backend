@@ -18,6 +18,22 @@ import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageL
 const router = express.Router();
 
 /**
+ * Middleware to ensure that if a conversationId is provided in the request body,
+ * the user must be authenticated. This prevents unauthenticated users from
+ * attempting to access or continue arbitrary conversations, mitigating IDOR.
+ */
+const requireAuthForConversationId = (req, res, next) => {
+  // conversationId is expected in req.body (from formData)
+  if (req.body.conversationId && !req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required to continue an existing conversation.'
+    });
+  }
+  next();
+};
+
+/**
  * @swagger
  * /api/v1/legal-contract-review/assistant:
  *   post:
@@ -110,6 +126,7 @@ router.post(
   uploadLegalContractReview.single('file'),
   checkRAGFeature,
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
+  requireAuthForConversationId, // Ensure authentication if continuing an existing conversation
   validateRequest(LegalContractReviewValidation.conversationalRequestSchema),
   legalContractReviewController.conversationalAssistant
 );
