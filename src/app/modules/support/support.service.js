@@ -20,13 +20,17 @@ const reqForSupportService = async (userId, data) => {
 };
 
 const getAllSupportService = async () => {
-  const result = await Support.find({}).limit(200);
+  // Optimization: Added .lean() for read operations where Mongoose documents are not modified or saved back.
+  // This returns plain JavaScript objects, improving performance by skipping Mongoose's hydration overhead.
+  const result = await Support.find({}).limit(200).lean();
   // logger.info(result, 'resulttttttt');
   return result;
 };
 
 const getSupportServiceById = async (id) => {
-  const result = await Support.findOne({ _id: id });
+  // Optimization: Added .lean() for read operations where Mongoose documents are not modified or saved back.
+  // This returns plain JavaScript objects, improving performance by skipping Mongoose's hydration overhead.
+  const result = await Support.findOne({ _id: id }).lean();
   return result;
 };
 
