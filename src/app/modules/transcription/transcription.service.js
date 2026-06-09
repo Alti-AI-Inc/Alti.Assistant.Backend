@@ -62,18 +62,23 @@ const handleTranscriptionConversation = async (
           logger.warn(
             `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
           );
+          // Deny access and force creation of a new guest conversation
           conversation = null;
         }
       } catch (error) {
+        // If conversation not found or an error occurred during retrieval,
+        // treat it as if no conversation was provided, and create a new one.
         logger.warn(
-          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+          `Conversation ${conversationId} not found or inaccessible for user ${userId}, creating new one`
         );
+        conversation = null;
       }
     }
 
     if (!conversation) {
-      const newConversationId =
-        conversationId || generateTranscriptionConversationId();
+      // If no valid conversation was found or provided, always generate a new ID for the new conversation.
+      // Reusing a potentially invalid or inaccessible conversationId for a new conversation is not ideal.
+      const newConversationId = generateTranscriptionConversationId();
 
       conversation = await conversationService.createConversation(
         {
