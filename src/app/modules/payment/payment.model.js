@@ -20,9 +20,13 @@ const SubscriptionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true, // BUG FIX: Added index for better query performance on userId, as it's a common lookup field.
     },
     transactionId: { type: String, required: false },
-    price: { type: String, required: true },
+    price: { 
+      type: Number, // BUG FIX: Changed type from String to Number for monetary values to prevent type-related bugs and enable proper arithmetic operations.
+      required: true 
+    },
     plan_name: {
       type: String,
       required: false,
