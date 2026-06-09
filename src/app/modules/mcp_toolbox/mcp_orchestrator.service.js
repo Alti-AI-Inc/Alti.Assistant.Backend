@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import readline from 'readline';
 import config from '../../../../config/index.js';
 import ComposioAuth from '../composio_v2/composio.model.js';
+import { promises as fsPromises } from 'fs'; // Import fs.promises for asynchronous file operations
 
 /**
  * Robust JSON-RPC 2.0 Bridge over Standard I/O (stdio) for MCP Servers
@@ -40,7 +41,10 @@ class McpGenericServerInstance {
     const logLine = `[${this.serverId.toUpperCase()}] ${message}`;
     this.terminalLogs.push(logLine);
     if (this.terminalLogs.length > 500) this.terminalLogs.shift();
-    this.onLog(logLine);
+    // Call the onLog handler, which might be asynchronous.
+    // We don't await it here to avoid blocking the main log flow,
+    // as log writing can happen in the background.
+    this.onLog(logLine); 
   }
 
   /**
@@ -463,8 +467,13 @@ class McpOrchestratorService {
       fs.mkdirSync(logDir, { recursive: true });
     }
 
-    const appendLog = (line) => {
-      fs.appendFileSync(logFile, `${new Date().toISOString()} ${line}\n`, 'utf-8');
+    // Optimization: Use asynchronous file appending for logs to prevent blocking the event loop.
+    const appendLog = async (line) => {
+      try {
+        await fsPromises.appendFile(logFile, `${new Date().toISOString()} ${line}\n`, 'utf-8');
+      } catch (err) {
+        console.error(`[McpOrchestrator] Failed to write to log file ${logFile}: ${err.message}`);
+      }
     };
 
     const instance = new McpGenericServerInstance(serverId, definition, tenantId, appendLog);
@@ -472,6 +481,8 @@ class McpOrchestratorService {
     // Inject active connected toolkits and API keys dynamically for Composio
     if (serverId === 'composio') {
       try {
+        // Optimization: Consider adding a compound index on { userId: 1, status: 1 } to the ComposioAuth model
+        // for faster lookups, especially if there are many documents or frequent queries.
         const activeAuths = await ComposioAuth.find({ userId: tenantId, status: 'ACTIVE' }).lean();
         const toolkits = activeAuths.map(auth => auth.toolkit?.slug).filter(Boolean);
         const toolkitsString = toolkits.join(',');
