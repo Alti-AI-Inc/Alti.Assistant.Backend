@@ -4,16 +4,47 @@ import { cronManager } from './cronManager.service.js';
 import workflowExecutor from './workflowExecutor.service.js';
 
 /**
- * Scheduler Initialization Service - Handles app startup and shutdown for workflows
+ * @class SchedulerInitializer
+ * @description Manages the lifecycle of scheduled workflows, including initialization,
+ * loading active workflows, graceful shutdown, and manual/emergency execution.
+ * It acts as the central orchestrator for the application's scheduling capabilities.
  */
 class SchedulerInitializer {
+  /**
+   * @private
+   * @type {boolean}
+   * @description Indicates whether the scheduler has been successfully initialized.
+   */
+  initialized = false;
+
+  /**
+   * @private
+   * @type {Array<Function>}
+   * @description A list of functions to be executed during graceful shutdown.
+   */
+  gracefulShutdownHandlers = [];
+
+  /**
+   * @constructor
+   * @description Creates an instance of SchedulerInitializer.
+   */
   constructor() {
     this.initialized = false;
     this.gracefulShutdownHandlers = [];
   }
 
   /**
-   * Initialize scheduler on app startup
+   * @async
+   * @method initialize
+   * @description Initializes the workflow scheduler on application startup.
+   * This involves initializing the cron manager, loading and scheduling all active workflows
+   * from the database, and setting up graceful shutdown handlers.
+   * @returns {Promise<object>} A promise that resolves to an object indicating the success
+   * or failure of the initialization, along with a message and the count of scheduled workflows.
+   * @returns {boolean} returns.success - True if initialization was successful, false otherwise.
+   * @returns {string} returns.message - A descriptive message about the initialization status.
+   * @returns {number} [returns.scheduledWorkflows] - The number of workflows successfully scheduled.
+   * @returns {string} [returns.error] - Error message if initialization failed.
    */
   async initialize() {
     try {
@@ -46,7 +77,17 @@ class SchedulerInitializer {
   }
 
   /**
-   * Load active workflows from database and schedule them
+   * @async
+   * @method loadActiveWorkflows
+   * @description Retrieves all active scheduled workflows from the database and schedules them
+   * using the cron manager. It handles both recurring (cron) and one-time scheduled runs.
+   * Workflows with a `nextRun` date in the past are ignored.
+   * @returns {Promise<object>} A promise that resolves to an object containing statistics
+   * about the loaded and scheduled workflows.
+   * @returns {number} returns.total - The total number of active workflows found in the database.
+   * @returns {number} returns.scheduled - The number of workflows successfully scheduled.
+   * @returns {number} returns.errors - The number of workflows that failed to schedule.
+   * @throws {Error} If there is an error fetching workflows from the database.
    */
   async loadActiveWorkflows() {
     try {
@@ -135,7 +176,11 @@ class SchedulerInitializer {
   }
 
   /**
-   * Setup graceful shutdown handling
+   * @method setupGracefulShutdown
+   * @description Configures event listeners for various process signals (SIGTERM, SIGINT, SIGQUIT)
+   * and uncaught exceptions/unhandled rejections to ensure a graceful shutdown of the scheduler.
+   * During shutdown, it stops new scheduling, executes registered shutdown handlers,
+   * and performs a graceful shutdown of the cron manager.
    */
   setupGracefulShutdown() {
     const gracefulShutdown = async (signal) => {
@@ -183,7 +228,11 @@ class SchedulerInitializer {
   }
 
   /**
-   * Add shutdown handler
+   * @method addShutdownHandler
+   * @description Registers a function to be called during the graceful shutdown process.
+   * These handlers are executed before the cron manager's final shutdown.
+   * @param {Function} handler - The asynchronous function to execute during shutdown.
+   *   It should not take any arguments and should return a Promise.
    */
   addShutdownHandler(handler) {
     if (typeof handler === 'function') {
@@ -192,7 +241,17 @@ class SchedulerInitializer {
   }
 
   /**
-   * Reload workflows (useful for runtime updates)
+   * @async
+   * @method reloadWorkflows
+   * @description Stops all currently scheduled jobs and reloads all active workflows
+   * from the database, effectively rescheduling them. This is useful for applying
+   * runtime updates to workflow configurations without restarting the entire application.
+   * @returns {Promise<object>} A promise that resolves to an object indicating the success
+   * or failure of the reload operation, along with data about the reloaded workflows.
+   * @returns {boolean} returns.success - True if workflows were reloaded successfully, false otherwise.
+   * @returns {object} [returns.data] - Statistics about the reloaded workflows (total, scheduled, errors).
+   * @returns {string} returns.message - A descriptive message about the reload status.
+   * @returns {string} [returns.error] - Error message if reloading failed.
    */
   async reloadWorkflows() {
     try {
@@ -220,7 +279,17 @@ class SchedulerInitializer {
   }
 
   /**
-   * Get scheduler status
+   * @method getStatus
+   * @description Provides the current operational status of the scheduler,
+   * including its initialization state, cron manager status, active job count,
+   * process uptime, memory usage, and the number of registered shutdown handlers.
+   * @returns {object} An object containing various status metrics.
+   * @returns {boolean} returns.initialized - True if the scheduler is initialized.
+   * @returns {object} returns.cronManagerStatus - The status object from the cron manager.
+   * @returns {number} returns.activeJobs - The number of currently active jobs in the cron manager.
+   * @returns {number} returns.uptime - The process uptime in seconds.
+   * @returns {object} returns.memoryUsage - The current memory usage of the process.
+   * @returns {number} returns.shutdownHandlers - The number of registered graceful shutdown handlers.
    */
   getStatus() {
     return {
@@ -234,7 +303,17 @@ class SchedulerInitializer {
   }
 
   /**
-   * Health check for scheduler
+   * @async
+   * @method healthCheck
+   * @description Performs a health check on the scheduler and its underlying cron manager.
+   * It indicates whether the scheduler is initialized and if the cron manager is healthy.
+   * @returns {Promise<object>} A promise that resolves to an object indicating the health status.
+   * @returns {boolean} returns.healthy - True if both the scheduler and cron manager are healthy.
+   * @returns {object} returns.status - Detailed status of the scheduler and cron manager.
+   * @returns {object} returns.status.scheduler - The status object from `getStatus()`.
+   * @returns {object} returns.status.cronManager - The health check result from the cron manager.
+   * @returns {string} returns.timestamp - ISO string of when the health check was performed.
+   * @returns {string} [returns.error] - Error message if the health check failed.
    */
   async healthCheck() {
     try {
@@ -260,7 +339,16 @@ class SchedulerInitializer {
   }
 
   /**
-   * Force cleanup (for emergency situations)
+   * @async
+   * @method forceCleanup
+   * @description Initiates a forceful cleanup of the scheduler. This stops all active jobs
+   * immediately and resets the scheduler's initialization state. This method should be
+   * used with caution, primarily in emergency situations where a graceful shutdown is not possible.
+   * @returns {Promise<object>} A promise that resolves to an object indicating the success
+   * or failure of the cleanup operation.
+   * @returns {boolean} returns.success - True if force cleanup was successful, false otherwise.
+   * @returns {string} returns.message - A descriptive message about the cleanup status.
+   * @returns {string} [returns.error] - Error message if cleanup failed.
    */
   async forceCleanup() {
     try {
@@ -286,7 +374,19 @@ class SchedulerInitializer {
   }
 
   /**
-   * Manual workflow execution trigger
+   * @async
+   * @method executeWorkflowManually
+   * @description Triggers the immediate execution of a specific workflow identified by its ID and user.
+   * It first verifies the workflow's existence and active status before initiating execution.
+   * @param {string} workflowId - The unique identifier of the workflow to execute.
+   * @param {string} userId - The ID of the user who owns the workflow.
+   * @param {string} [reason='Manual trigger'] - An optional reason for the manual execution.
+   * @returns {Promise<object>} A promise that resolves to an object indicating the success
+   * or failure of the manual execution, along with any data returned by the workflow executor.
+   * @returns {boolean} returns.success - True if manual execution was initiated successfully, false otherwise.
+   * @returns {object} [returns.data] - Data returned by the `workflowExecutor.executeWorkflow` method.
+   * @returns {string} returns.message - A descriptive message about the execution status.
+   * @returns {string} [returns.error] - Error message if execution failed or workflow not found/active.
    */
   async executeWorkflowManually(workflowId, userId, reason = 'Manual trigger') {
     try {
@@ -331,7 +431,20 @@ class SchedulerInitializer {
   }
 
   /**
-   * Emergency workflow execution (bypasses normal scheduling)
+   * @async
+   * @method emergencyExecute
+   * @description Executes a workflow immediately, potentially bypassing active status checks
+   * if `overrideChecks` is set to true. This method is intended for critical situations
+   * where a workflow must run regardless of its normal scheduling state.
+   * @param {string} workflowId - The unique identifier of the workflow to execute.
+   * @param {string} userId - The ID of the user who owns the workflow.
+   * @param {boolean} [overrideChecks=false] - If true, the workflow will be executed even if it's not active.
+   * @returns {Promise<object>} A promise that resolves to an object indicating the success
+   * or failure of the emergency execution, along with any data returned by the workflow executor.
+   * @returns {boolean} returns.success - True if emergency execution was completed successfully, false otherwise.
+   * @returns {object} [returns.data] - Data returned by the `workflowExecutor.executeWorkflow` method.
+   * @returns {string} returns.message - A descriptive message about the execution status.
+   * @returns {string} [returns.error] - Error message if execution failed or workflow not found/active (without override).
    */
   async emergencyExecute(workflowId, userId, overrideChecks = false) {
     try {
@@ -376,6 +489,10 @@ class SchedulerInitializer {
   }
 }
 
-// Export singleton instance
+/**
+ * @constant {SchedulerInitializer} schedulerInitializer
+ * @description A singleton instance of the SchedulerInitializer class,
+ * providing a centralized point of control for workflow scheduling throughout the application.
+ */
 export const schedulerInitializer = new SchedulerInitializer();
 export default schedulerInitializer;
