@@ -7,6 +7,12 @@
 
 import fs from 'fs/promises'; // Use fs.promises for asynchronous file operations
 import path from 'path';
+import { fileURLToPath } from 'url'; // Required for __dirname equivalent in ES Modules
+import { dirname } from 'path';     // Required for __dirname equivalent in ES Modules
+
+// Get __dirname equivalent for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Represents a service for managing and querying a collection of wisdom texts
@@ -68,7 +74,15 @@ class WisdomService {
         this.loadingPromise = (async () => {
             try {
                 const data = await fs.readFile(this.dbPath, 'utf8');
-                this.db = JSON.parse(data);
+                const rawDb = JSON.parse(data);
+                // Optimization: Pre-process data to add lowercase versions of frequently accessed string fields.
+                // This avoids repeated toLowerCase() calls during lookups and searches,
+                // reducing CPU load in synchronous loops (filter, map) later.
+                this.db = rawDb.map(v => ({
+                    ...v,
+                    bookLower: v.book.toLowerCase(),
+                    textLower: v.text.toLowerCase()
+                }));
                 return this.db;
             } catch (err) {
                 console.error("Error loading Wisdom database:", err);
@@ -110,8 +124,10 @@ class WisdomService {
         }
 
         const db = await this.loadDatabase(); // Await the asynchronous database load
+        const bookLowerQuery = book.toLowerCase(); // Call toLowerCase once for the query book
         return db.filter(v =>
-            v.book.toLowerCase().includes(book.toLowerCase()) &&
+            // Optimization: Use pre-computed `bookLower` field to avoid repeated toLowerCase() calls in the loop.
+            v.bookLower.includes(bookLowerQuery) &&
             v.chapter === parsedChapter &&
             v.verse >= parsedStartVerse &&
             v.verse <= parsedEndVerse
@@ -138,14 +154,16 @@ class WisdomService {
 
         let filteredDb = db;
         if (bookFilter) {
-            filteredDb = db.filter(v => v.book.toLowerCase().includes(bookFilter.toLowerCase()));
+            const bookFilterLower = bookFilter.toLowerCase(); // Call toLowerCase once for the book filter
+            // Optimization: Use pre-computed `bookLower` field to avoid repeated toLowerCase() calls in the loop.
+            filteredDb = db.filter(v => v.bookLower.includes(bookFilterLower));
         }
 
         const scoredVerses = filteredDb.map(v => {
             let score = 0;
-            const textLower = v.text.toLowerCase();
+            // Optimization: Use pre-computed `textLower` field to avoid repeated toLowerCase() calls for each verse.
             for (const term of searchTerms) {
-                if (textLower.includes(term)) score += 1;
+                if (v.textLower.includes(term)) score += 1;
             }
             return { ...v, score };
         }).filter(v => v.score > 0);
