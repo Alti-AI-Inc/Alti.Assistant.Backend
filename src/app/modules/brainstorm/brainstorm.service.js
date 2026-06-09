@@ -47,6 +47,15 @@ const handleBrainstormConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization Recommendation: For read-only operations like this,
+        // consider adding .lean() to the Mongoose query inside getConversationById
+        // to return a plain JavaScript object instead of a Mongoose document.
+        // This can improve performance by skipping Mongoose's hydration process.
+        // Example: ConversationModel.findOne({ conversationId, userId }).lean();
+        //
+        // Indexing Recommendation: Ensure a compound index exists on
+        // `conversations` collection for `{ conversationId: 1, userId: 1 }`
+        // to optimize lookups by both fields.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -543,7 +552,15 @@ const generateStructuredBrainstorm = async (userId, params, req = null) => {
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    // Retrieve conversation, ensuring user authorization (IDOR check assumed in getConversationById)
+    // Optimization Recommendation: For read-only operations like this,
+    // consider adding .lean() to the Mongoose query inside getConversationById
+    // to return a plain JavaScript object instead of a Mongoose document.
+    // This can improve performance by skipping Mongoose's hydration process.
+    // Example: ConversationModel.findOne({ conversationId, userId }).lean();
+    //
+    // Indexing Recommendation: Ensure a compound index exists on
+    // `conversations` collection for `{ conversationId: 1, userId: 1 }`
+    // to optimize lookups by both fields.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -589,7 +606,15 @@ const exportBrainstormSession = async (
   req = null
 ) => {
   try {
-    // Retrieve conversation, ensuring user authorization (IDOR check assumed in getConversationById)
+    // Optimization Recommendation: For read-only operations like this,
+    // consider adding .lean() to the Mongoose query inside getConversationById
+    // to return a plain JavaScript object instead of a Mongoose document.
+    // This can improve performance by skipping Mongoose's hydration process.
+    // Example: ConversationModel.findOne({ conversationId, userId }).lean();
+    //
+    // Indexing Recommendation: Ensure a compound index exists on
+    // `conversations` collection for `{ conversationId: 1, userId: 1 }`
+    // to optimize lookups by both fields.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -666,7 +691,15 @@ const refineBrainstorm = async (
   req = null
 ) => {
   try {
-    // Retrieve conversation, ensuring user authorization (IDOR check assumed in getConversationById)
+    // Optimization Recommendation: For read-only operations like this,
+    // consider adding .lean() to the Mongoose query inside getConversationById
+    // to return a plain JavaScript object instead of a Mongoose document.
+    // This can improve performance by skipping Mongoose's hydration process.
+    // Example: ConversationModel.findOne({ conversationId, userId }).lean();
+    //
+    // Indexing Recommendation: Ensure a compound index exists on
+    // `conversations` collection for `{ conversationId: 1, userId: 1 }`
+    // to optimize lookups by both fields.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
