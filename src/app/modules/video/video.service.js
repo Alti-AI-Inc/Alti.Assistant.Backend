@@ -11,7 +11,7 @@ import { logger } from '../../../shared/logger.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import mongoose from 'mongoose';
-import { getOperationStatus } from './videoService.js';
+// Removed: import { getOperationStatus } from './videoService.js'; // This import was circular and the function was not defined here.
 
 /**
  * Generates a unique ID for a guest user.
@@ -54,20 +54,39 @@ const handleVideoConversation = async (
 
     if (conversationId) {
       try {
+        // Always pass the actual userId for authorization.
+        // The conversationHelpers.getConversationById function is expected to handle
+        // authorization based on this userId.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
-          isGuest ? null : userId
+          userId
         );
-        if (isGuest && conversation.metadata?.userType !== 'guest') {
-          logger.warn(
-            `Guest user ${userId} tried to access non-guest conversation ${conversationId}`
-          );
-          conversation = null; // Treat as not found for guest access violation
+
+        // Explicitly enforce ownership and user type access rules
+        if (conversation) {
+          if (isGuest) {
+            // A guest user can only access guest conversations they own
+            if (conversation.metadata?.userType !== 'guest' || conversation.userId !== userId) {
+              logger.warn(
+                `Guest user ${userId} tried to access non-guest or unauthorized conversation ${conversationId}`
+              );
+              conversation = null; // Treat as not found for guest access violation
+            }
+          } else { // Authenticated user
+            // An authenticated user can only access conversations they own
+            if (conversation.userId !== userId) {
+              logger.warn(
+                `Authenticated user ${userId} tried to access unauthorized conversation ${conversationId}`
+              );
+              conversation = null; // Treat as not found for authenticated access violation
+            }
+          }
         }
       } catch (e) {
         logger.warn(
-          `Conversation ${conversationId} not found; creating new one`
+          `Conversation ${conversationId} not found or access denied for user ${userId}; creating new one`
         );
+        conversation = null; // Ensure conversation is null if an error occurred during retrieval
       }
     }
 
@@ -263,8 +282,10 @@ const getGuestConversations = async (guestUserId, req = null) => {
         limit: 100, // Limit to 100 guest video conversations
       }
     );
+    // Ensure that the conversations returned are indeed guest conversations and belong to the guestUserId.
+    // getUserConversations should ideally filter by userId, but this adds an extra layer of safety.
     return conversations.conversations.filter(
-      (c) => c.metadata?.userType === 'guest'
+      (c) => c.metadata?.userType === 'guest' && c.userId === guestUserId
     );
   } catch (error) {
     logger.error('Error getting guest video conversations:', error);
@@ -277,25 +298,39 @@ const getGuestConversations = async (guestUserId, req = null) => {
 
 /**
  * Retrieves a single guest video conversation by its ID.
- * It ensures that the retrieved conversation is indeed marked as a 'guest' conversation.
+ * It ensures that the retrieved conversation is indeed marked as a 'guest' conversation
+ * and belongs to the specified guest user.
  *
  * @param {string} conversationId - The ID of the guest conversation to retrieve.
+ * @param {string} guestUserId - The ID of the guest user requesting the conversation.
  * @param {object} [req=null] - The Express request object.
  * @returns {Promise<object>} A promise that resolves to the guest conversation object.
- * @throws {ApiError} If the conversation is not found or is not a guest conversation, or if an internal server error occurs.
+ * @throws {ApiError} If the conversation is not found, is not a guest conversation,
+ * or does not belong to the guest user, or if an internal server error occurs.
  */
-const getGuestConversation = async (conversationId, req = null) => {
+const getGuestConversation = async (conversationId, guestUserId, req = null) => {
   try {
+    // conversationHelpers.getConversationById expects userId as the second parameter for authorization.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
-      req
+      guestUserId // Pass the guestUserId to ensure ownership check at the helper level
     );
-    if (conversation && conversation.metadata?.userType === 'guest')
+
+    // Explicitly check if the conversation is a guest conversation and owned by the requesting guestUserId.
+    if (conversation && conversation.metadata?.userType === 'guest' && conversation.userId === guestUserId) {
       return conversation;
-    throw new ApiError(httpStatus.NOT_FOUND, 'Guest conversation not found');
+    }
+
+    // If any of the conditions fail, treat it as not found or unauthorized.
+    throw new ApiError(httpStatus.NOT_FOUND, 'Guest conversation not found or unauthorized');
   } catch (error) {
-    logger.error('Error fetching guest video conversation:', error);
-    throw error; // Re-throw specific ApiError or wrap other errors
+    logger.error(`Error fetching guest video conversation ${conversationId} for guest ${guestUserId}:`, error);
+    // Re-throw specific ApiError (e.g., NOT_FOUND from getConversationById)
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    // Wrap other unexpected errors in a generic internal server error.
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve guest conversation');
   }
 };
 
@@ -338,6 +373,7 @@ const getVideoStats = async (userId, req = null) => {
         videoConversations.totalCount > 0
           ? (totalMessages / videoConversations.totalCount).toFixed(2)
           : 0,
+      // Assuming videoConversations.conversations is sorted by lastActivity descending
       lastActivity: videoConversations.conversations[0]?.lastActivity || null,
     };
   } catch (error) {
@@ -358,7 +394,7 @@ const getVideoStats = async (userId, req = null) => {
  */
 export const videoService = {
   generateGuestUserId,
-  getOperationStatus, // Assuming this is imported from './videoService.js' and is part of the public API
+  // Removed: getOperationStatus, // This function was imported circularly and not defined in this file.
   generateVideoConversationId,
   handleVideoConversation,
   addVideoQueryMessage,
