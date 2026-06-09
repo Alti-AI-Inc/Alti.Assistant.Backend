@@ -4,13 +4,13 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { searchService } from './search.service.js';
 import { researchAgentApp } from './search_assistant/workflow.js';
-import SubscriptionModel from '../subscription/subscription.model.js';
-import { conversationHelpers } from '../conversations/conversation.helpers.js';
+// import SubscriptionModel from '../subscription/subscription.model.js'; // Not used in this file.
+// import { conversationHelpers } from '../conversations/conversation.helpers.js'; // Not used in this file.
 import {
   executeGroundedSearch,
   executeGroundedSearchStream,
 } from './services/geminiGroundingService.js';
-import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
+// import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js'; // Not used in this file.
 import { detectFinancialIntent } from '../../helpers/massiveTickerDB.js';
 
 export const performSearch = catchAsync(async (req, res) => {
@@ -45,6 +45,13 @@ export const performSearch = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization Recommendation: Ensure that the underlying database query in `searchService.handleSearchConversation`
+    // uses `.lean()` if only plain JavaScript objects are needed, to avoid Mongoose document hydration overhead.
+    // If `conversation.messages` can be very large, consider optimizing `handleSearchConversation`
+    // to fetch only the last N messages or use projection to limit the array size directly in the database query,
+    // instead of fetching the entire array and then slicing it in memory.
+    // Database Indexing Recommendation: Ensure 'userId' and 'conversationId' fields are indexed in the Conversation/Search model
+    // used by searchService for efficient lookups.
     const conversation = await searchService.handleSearchConversation(
       userId,
       conversationId,
@@ -65,6 +72,8 @@ export const performSearch = catchAsync(async (req, res) => {
     }
 
     // Add user message to conversation
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchQueryMessage(
       actualConversationId,
       userId,
@@ -114,6 +123,8 @@ export const performSearch = catchAsync(async (req, res) => {
       searchMethod: tickerInfo ? 'massive_realtime' : 'intelligent_search',
     };
 
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchResultMessage(
       actualConversationId,
       userId,
@@ -153,6 +164,8 @@ export const performSearch = catchAsync(async (req, res) => {
       conversationId || searchService.generateSearchConversationId();
     try {
       if (errorConversationId && userId) {
+        // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+        // used by searchService for efficient inserts/updates.
         await searchService.addErrorMessage(
           errorConversationId,
           userId,
@@ -215,6 +228,10 @@ const getSearchStats = catchAsync(async (req, res) => {
     });
   }
 
+  // Optimization Recommendation: Ensure that the underlying database query in `searchService.getSearchStats`
+  // uses `.lean()` if only plain JavaScript objects are needed, to avoid Mongoose document hydration overhead.
+  // Database Indexing Recommendation: Ensure 'userId' field is indexed in the relevant model(s)
+  // used by searchService for efficient aggregation/retrieval of statistics.
   const stats = await searchService.getSearchStats(userId, req);
 
   sendResponse(res, {
@@ -259,6 +276,13 @@ const generateCode = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization Recommendation: Ensure that the underlying database query in `searchService.handleSearchConversation`
+    // uses `.lean()` if only plain JavaScript objects are needed, to avoid Mongoose document hydration overhead.
+    // If `conversation.messages` can be very large, consider optimizing `handleSearchConversation`
+    // to fetch only the last N messages or use projection to limit the array size directly in the database query,
+    // instead of fetching the entire array and then slicing it in memory.
+    // Database Indexing Recommendation: Ensure 'userId' and 'conversationId' fields are indexed in the Conversation/Search model
+    // used by searchService for efficient lookups.
     const conversation = await searchService.handleSearchConversation(
       userId,
       conversationId,
@@ -278,6 +302,8 @@ const generateCode = catchAsync(async (req, res) => {
     }
 
     // Add user message to conversation
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchQueryMessage(
       actualConversationId,
       userId,
@@ -319,6 +345,8 @@ const generateCode = catchAsync(async (req, res) => {
       type: 'code_generation',
     };
 
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchResultMessage(
       actualConversationId,
       userId,
@@ -357,6 +385,8 @@ const generateCode = catchAsync(async (req, res) => {
       conversationId || searchService.generateSearchConversationId();
     try {
       if (errorConversationId && userId) {
+        // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+        // used by searchService for efficient inserts/updates.
         await searchService.addErrorMessage(
           errorConversationId,
           userId,
@@ -416,6 +446,13 @@ const generateWriting = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization Recommendation: Ensure that the underlying database query in `searchService.handleSearchConversation`
+    // uses `.lean()` if only plain JavaScript objects are needed, to avoid Mongoose document hydration overhead.
+    // If `conversation.messages` can be very large, consider optimizing `handleSearchConversation`
+    // to fetch only the last N messages or use projection to limit the array size directly in the database query,
+    // instead of fetching the entire array and then slicing it in memory.
+    // Database Indexing Recommendation: Ensure 'userId' and 'conversationId' fields are indexed in the Conversation/Search model
+    // used by searchService for efficient lookups.
     const conversation = await searchService.handleSearchConversation(
       userId,
       conversationId,
@@ -435,6 +472,8 @@ const generateWriting = catchAsync(async (req, res) => {
     }
 
     // Add user message to conversation
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchQueryMessage(
       actualConversationId,
       userId,
@@ -476,6 +515,8 @@ const generateWriting = catchAsync(async (req, res) => {
       type: 'writing',
     };
 
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchResultMessage(
       actualConversationId,
       userId,
@@ -514,6 +555,8 @@ const generateWriting = catchAsync(async (req, res) => {
       conversationId || searchService.generateSearchConversationId();
     try {
       if (errorConversationId && userId) {
+        // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+        // used by searchService for efficient inserts/updates.
         await searchService.addErrorMessage(
           errorConversationId,
           userId,
@@ -574,6 +617,13 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization Recommendation: Ensure that the underlying database query in `searchService.handleSearchConversation`
+    // uses `.lean()` if only plain JavaScript objects are needed, to avoid Mongoose document hydration overhead.
+    // If `conversation.messages` can be very large, consider optimizing `handleSearchConversation`
+    // to fetch only the last N messages or use projection to limit the array size directly in the database query,
+    // instead of fetching the entire array and then slicing it in memory.
+    // Database Indexing Recommendation: Ensure 'userId' and 'conversationId' fields are indexed in the Conversation/Search model
+    // used by searchService for efficient lookups.
     const conversation = await searchService.handleSearchConversation(
       userId,
       conversationId,
@@ -593,6 +643,8 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
     }
 
     // Add user message to conversation
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchQueryMessage(
       actualConversationId,
       userId,
@@ -639,6 +691,8 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
       ...(result.registryMetadata || {}),
     };
 
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchResultMessage(
       actualConversationId,
       userId,
@@ -678,6 +732,8 @@ const performNativeGroundingSearch = catchAsync(async (req, res) => {
       conversationId || searchService.generateSearchConversationId();
     try {
       if (errorConversationId && userId) {
+        // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+        // used by searchService for efficient inserts/updates.
         await searchService.addErrorMessage(
           errorConversationId,
           userId,
@@ -764,6 +820,13 @@ const performStreamingSearch = catchAsync(async (req, res) => {
     res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering in nginx
 
     // Handle conversation creation/retrieval
+    // Optimization Recommendation: Ensure that the underlying database query in `searchService.handleSearchConversation`
+    // uses `.lean()` if only plain JavaScript objects are needed, to avoid Mongoose document hydration overhead.
+    // If `conversation.messages` can be very large, consider optimizing `handleSearchConversation`
+    // to fetch only the last N messages or use projection to limit the array size directly in the database query,
+    // instead of fetching the entire array and then slicing it in memory.
+    // Database Indexing Recommendation: Ensure 'userId' and 'conversationId' fields are indexed in the Conversation/Search model
+    // used by searchService for efficient lookups.
     const conversation = await searchService.handleSearchConversation(
       userId,
       conversationId,
@@ -783,6 +846,8 @@ const performStreamingSearch = catchAsync(async (req, res) => {
     }
 
     // Add user message to conversation
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchQueryMessage(
       actualConversationId,
       userId,
@@ -852,6 +917,8 @@ const performStreamingSearch = catchAsync(async (req, res) => {
       ...(metadata?.registryMetadata || {}),
     };
 
+    // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+    // used by searchService for efficient inserts/updates.
     await searchService.addSearchResultMessage(
       actualConversationId,
       userId,
@@ -881,6 +948,8 @@ const performStreamingSearch = catchAsync(async (req, res) => {
 
     try {
       if (errorConversationId && userId) {
+        // Database Indexing Recommendation: Ensure 'conversationId' and 'userId' fields are indexed in the Message/Search model
+        // used by searchService for efficient inserts/updates.
         await searchService.addErrorMessage(
           errorConversationId,
           userId,
