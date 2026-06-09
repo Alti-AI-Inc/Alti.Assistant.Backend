@@ -117,6 +117,13 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
         break;
       }
 
+      // Optimization: Batch fetch existing queue items for the current page of datasets
+      // This avoids N+1 queries inside the loop for DatasetQueue.findOne
+      const datasetIdsOnPage = datasets.map(item => item.id);
+      // Recommended index: { datasetId: 1 } on DatasetQueue model for efficient lookups.
+      const existingQueueItems = await DatasetQueue.find({ datasetId: { $in: datasetIdsOnPage } }).lean();
+      const existingQueueMap = new Map(existingQueueItems.map(item => [item.datasetId, item]));
+
       for (const item of datasets) {
         if (scannedCount >= maxDatasetsToScan) break;
         scannedCount++;
@@ -130,13 +137,24 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
         // Extract license
         const rawLicense = extractLicense(item);
         
-        // 1. Check existing record
-        const existingQueueItem = await DatasetQueue.findOne({ datasetId });
-        if (existingQueueItem) {
+        // Optimization: Use findOneAndUpdate with upsert: true to handle both existing and new items efficiently.
+        // This replaces the findOne + save/create logic.
+        const updatePayload = {
+          downloads,
+          likes,
+          license: rawLicense,
+          lastAttemptedAt: new Date(), // Update timestamp on scan
+        };
+
+        if (existingQueueMap.has(datasetId)) {
           // If already cataloged, just update likes/downloads and continue
-          existingQueueItem.downloads = downloads;
-          existingQueueItem.likes = likes;
-          await existingQueueItem.save();
+          // No need to re-evaluate filters if it's already in the queue, just update stats.
+          // We use findOneAndUpdate here to ensure atomicity and avoid race conditions if multiple scanners run.
+          await DatasetQueue.findOneAndUpdate(
+            { datasetId },
+            { $set: { downloads, likes, lastAttemptedAt: new Date() } },
+            { new: true }
+          );
           continue;
         }
 
@@ -145,14 +163,11 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
         // 2. Gatekeeper Filter: Gated or Private
         if (isGated || isPrivate) {
           stats.skippedGated++;
-          await DatasetQueue.create({
-            datasetId,
-            downloads,
-            likes,
-            license: rawLicense,
-            status: 'skipped',
-            skipReason: 'Gated or Private dataset'
-          });
+          await DatasetQueue.findOneAndUpdate(
+            { datasetId },
+            { $set: { ...updatePayload, status: 'skipped', skipReason: 'Gated or Private dataset' } },
+            { upsert: true, new: true }
+          );
           continue;
         }
 
@@ -195,14 +210,11 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
 
         if (isMedia) {
           stats.skippedLicense++; // Count as skipped/license skip metric
-          await DatasetQueue.create({
-            datasetId,
-            downloads,
-            likes,
-            license: rawLicense,
-            status: 'skipped',
-            skipReason: `Media/Non-Text Dataset: matched ${matchedMediaTag}`
-          });
+          await DatasetQueue.findOneAndUpdate(
+            { datasetId },
+            { $set: { ...updatePayload, status: 'skipped', skipReason: `Media/Non-Text Dataset: matched ${matchedMediaTag}` } },
+            { upsert: true, new: true }
+          );
           continue;
         }
 
@@ -211,14 +223,11 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
         const isApache = rawLicense === 'apache-2.0' || rawLicense === 'apache-2.0-only';
         if (!isMIT && !isApache) {
           stats.skippedLicense++;
-          await DatasetQueue.create({
-            datasetId,
-            downloads,
-            likes,
-            license: rawLicense,
-            status: 'skipped',
-            skipReason: `Unsupported License: "${rawLicense}" (Only pure mit and apache-2.0 allowed)`
-          });
+          await DatasetQueue.findOneAndUpdate(
+            { datasetId },
+            { $set: { ...updatePayload, status: 'skipped', skipReason: `Unsupported License: "${rawLicense}" (Only pure mit and apache-2.0 allowed)` } },
+            { upsert: true, new: true }
+          );
           continue;
         }
 
@@ -232,28 +241,21 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
 
         if (sizeBytes > maxSizeBytes) {
           stats.skippedSize++;
-          await DatasetQueue.create({
-            datasetId,
-            downloads,
-            likes,
-            license: rawLicense,
-            status: 'skipped',
-            sizeBytes,
-            skipReason: `Exceeded Max Size Limit (${(sizeBytes / (1024 * 1024)).toFixed(2)} MB)`
-          });
+          await DatasetQueue.findOneAndUpdate(
+            { datasetId },
+            { $set: { ...updatePayload, status: 'skipped', sizeBytes, skipReason: `Exceeded Max Size Limit (${(sizeBytes / (1024 * 1024)).toFixed(2)} MB)` } },
+            { upsert: true, new: true }
+          );
           continue;
         }
 
         // Passes all initial filters! Queue it for serial archival.
         stats.queued++;
-        await DatasetQueue.create({
-          datasetId,
-          downloads,
-          likes,
-          license: rawLicense,
-          status: 'pending',
-          sizeBytes
-        });
+        await DatasetQueue.findOneAndUpdate(
+          { datasetId },
+          { $set: { ...updatePayload, status: 'pending', sizeBytes } },
+          { upsert: true, new: true }
+        );
       }
 
       // Extract next page URL from 'Link' header (Hugging Face pagination format)
@@ -293,6 +295,7 @@ const runWorkerLoop = async () => {
     try {
       // 1. GCS Capacity Guardrail
       const capacityLimit = getGcsCapacityBytes();
+      // Recommended index: { sizeBytes: 1 } on Dataset model for efficient aggregation.
       const currentStorageUsed = await Dataset.aggregate([
         { $group: { _id: null, total: { $sum: '$sizeBytes' } } }
       ]);
@@ -312,6 +315,7 @@ const runWorkerLoop = async () => {
       }
 
       // 3. Poll next high-priority pending queue item
+      // Recommended index: { status: 1, downloads: -1 } on DatasetQueue model for efficient polling.
       const queueItem = await DatasetQueue.findOne({ status: 'pending' }).sort({ downloads: -1 });
       if (!queueItem) {
         console.log('[HF Worker] Queue empty. Sleeping for 10 seconds...');
@@ -331,21 +335,26 @@ const runWorkerLoop = async () => {
         // Prepare local dataset metadata catalog record
         const info = await DatasetsService.getHFDatasetInfo(datasetId);
         
-        let dataset = await Dataset.findOne({ datasetId });
-        if (!dataset) {
-          dataset = new Dataset({
-            datasetId: info.datasetId,
-            name: info.name,
-            author: info.author,
-            description: info.description,
-            downloads: info.downloads,
-            likes: info.likes,
-            tags: info.tags,
-            configs: info.configs,
-            splits: info.splits,
-            status: 'pending'
-          });
-        }
+        // Optimization: Use findOneAndUpdate with upsert: true to create or update the Dataset record.
+        // Recommended index: { datasetId: 1 } on Dataset model for efficient lookups.
+        let dataset = await Dataset.findOneAndUpdate(
+          { datasetId },
+          {
+            $set: {
+              datasetId: info.datasetId,
+              name: info.name,
+              author: info.author,
+              description: info.description,
+              downloads: info.downloads,
+              likes: info.likes,
+              tags: info.tags,
+              configs: info.configs,
+              splits: info.splits,
+              status: 'pending' // Status will be updated after archiving
+            }
+          },
+          { upsert: true, new: true } // Create if not exists, return the updated/new document
+        );
         
         // Execute awaited pipeline piping directly to GCS
         await DatasetsService.archiveDatasetToGCSCore(datasetId, dataset);
@@ -376,7 +385,7 @@ const runWorkerLoop = async () => {
           queueItem.error = `Rate Limit: ${err.message}`;
         } else {
           // Normal failure
-          queueItem.retryCount += 1;
+          queueItem.retryCount = (queueItem.retryCount || 0) + 1; // Ensure retryCount exists
           queueItem.error = err.message;
           if (queueItem.retryCount >= 3) {
             queueItem.status = 'failed';
@@ -420,6 +429,7 @@ const runTemporalWorkerLoop = async () => {
     try {
       // 1. GCS Capacity Guardrail
       const capacityLimit = getGcsCapacityBytes();
+      // Recommended index: { sizeBytes: 1 } on Dataset model for efficient aggregation.
       const currentStorageUsed = await Dataset.aggregate([
         { $group: { _id: null, total: { $sum: '$sizeBytes' } } }
       ]);
@@ -432,6 +442,7 @@ const runTemporalWorkerLoop = async () => {
       }
 
       // 2. Poll next high-priority pending queue item
+      // Recommended index: { status: 1, downloads: -1 } on DatasetQueue model for efficient polling.
       const queueItem = await DatasetQueue.findOne({ status: 'pending' }).sort({ downloads: -1 });
       if (!queueItem) {
         console.log('[HF Worker] Queue empty. Sleeping for 10 seconds...');
@@ -539,6 +550,7 @@ const stopWorker = () => {
  */
 const getCrawlerStats = async () => {
   try {
+    // Recommended indexes: { status: 1 } and { sizeBytes: 1 } on DatasetQueue model for efficient aggregation.
     const counts = await DatasetQueue.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 }, totalBytes: { $sum: '$sizeBytes' } } }
     ]);
@@ -580,11 +592,16 @@ const getCrawlerStats = async () => {
  */
 const getQueueList = async (filter = {}, limit = 50, skip = 0) => {
   try {
+    // Optimization: Add .lean() for read-only queries to improve performance.
+    // Recommended index: { downloads: -1 } on DatasetQueue model for sorting.
+    // If 'filter' is frequently used with specific fields, consider compound indexes like { 'filterField': 1, downloads: -1 }.
     const list = await DatasetQueue.find(filter)
       .sort({ downloads: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean(); // Added .lean()
     
+    // Recommended index: Indexes on fields used in 'filter' for efficient countDocuments.
     const total = await DatasetQueue.countDocuments(filter);
     
     return { total, limit, skip, data: list };
