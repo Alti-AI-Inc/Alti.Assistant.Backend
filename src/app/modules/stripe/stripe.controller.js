@@ -52,27 +52,33 @@ const getStripeCustomerId = async (req, createIfMissing = true) => {
 
   if (tenantId) {
     context = 'organization';
-    const tenant = await Tenant.findById(tenantId);
+    // Optimization: Use .lean() as the tenant document is only read, not modified.
+    const tenant = await Tenant.findById(tenantId).lean();
     if (!tenant) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
     }
 
     // Check if the tenant already has a subscription with customer ID
-    const subscription = await Subscription.findOne({ tenantId });
+    // Optimization: Use .lean() as the subscription document is only read for stripeCustomerId.
+    // Recommendation: Add an index to `tenantId` in the Subscription model for faster lookups.
+    const subscription = await Subscription.findOne({ tenantId }).lean();
     if (subscription && subscription.stripeCustomerId) {
       customerId = subscription.stripeCustomerId;
     }
 
     // Fall back to tenant owner's stripeAccountId
     if (!customerId) {
-      const owner = await UserModel.findById(tenant.ownerId);
+      // Optimization: Use .lean() as the owner document is only read for stripeAccountId.
+      const owner = await UserModel.findById(tenant.ownerId).lean();
       if (owner && owner.stripeAccountId) {
         customerId = owner.stripeAccountId;
       }
     }
 
     if (!customerId && createIfMissing) {
-      const owner = (await UserModel.findById(tenant.ownerId)) || req.user;
+      // Optimization: Use .lean() as the owner document is only read for email and name for Stripe customer creation.
+      // The subsequent update is handled by `findByIdAndUpdate` or `req.user.save()`.
+      const owner = (await UserModel.findById(tenant.ownerId).lean()) || req.user;
       const customer = await stripe.customers.create({
         email: owner.email,
         name: tenant.name,
@@ -85,9 +91,11 @@ const getStripeCustomerId = async (req, createIfMissing = true) => {
 
       // If owner is the current user, save it
       if (owner._id.toString() === req.user._id.toString()) {
-        owner.stripeAccountId = customerId;
-        await owner.save();
+        // req.user is assumed to be a full Mongoose document from middleware, so saving is fine.
+        req.user.stripeAccountId = customerId;
+        await req.user.save();
       } else {
+        // This is already optimized using findByIdAndUpdate
         await UserModel.findByIdAndUpdate(tenant.ownerId, {
           stripeAccountId: customerId,
         });
@@ -95,6 +103,7 @@ const getStripeCustomerId = async (req, createIfMissing = true) => {
     }
   } else {
     // Personal mode
+    // Note: This user document is modified and saved later, so .lean() cannot be used here.
     const user = await UserModel.findById(userId);
     if (!user) {
       throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
@@ -213,6 +222,7 @@ const addPaymentMethodController = catchAsync(async (req, res, next) => {
 
   // Automatically promote user to admin when they enter billing details
   if (req.user && req.user._id) {
+    // This is already optimized using findByIdAndUpdate
     await UserModel.findByIdAndUpdate(req.user._id, { role: 'admin' });
   }
 
@@ -296,11 +306,17 @@ const createSubscriptionController = catchAsync(async (req, res, next) => {
 
   // Automatically promote user to admin when they start a subscription
   if (req.user && req.user._id) {
+    // This is already optimized using findByIdAndUpdate
     await UserModel.findByIdAndUpdate(req.user._id, { role: 'admin' });
   }
 
-  const product = await Product.findOne({ stripePriceId: priceId });
+  // Optimization: Use .lean() as the product document is only read for its properties.
+  // Recommendation: Add an index to `stripePriceId` in the Product model for faster lookups.
+  const product = await Product.findOne({ stripePriceId: priceId }).lean();
   const query = { stripeSubscriptionId: subscription.id };
+  // Note: existingSubscription is modified and saved later, so .lean() cannot be used here.
+  // Recommendation: Add an index to `stripeSubscriptionId` and `tenantId` (or a compound index `tenantId, stripeSubscriptionId`)
+  // in the Subscription model for faster lookups.
   const existingSubscription = await Subscription.findOne(
     req ? withTenantFilter(req, query) : query
   );
