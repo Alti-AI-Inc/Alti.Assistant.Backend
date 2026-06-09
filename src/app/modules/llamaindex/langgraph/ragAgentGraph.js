@@ -62,18 +62,25 @@ export const agenticRAGState = {
   }
 };
 
-// Initialize Gemini LLM using `@langchain/google-genai`
-const primaryLLM = new ChatGoogleGenerativeAI({
-  model: 'gemini-2.5-flash',
-  temperature: 0,
-  apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY,
-});
+// Initialize Gemini LLM lazily using `@langchain/google-genai`
+let primaryLLMInstance = null;
+function getPrimaryLLM() {
+  if (!primaryLLMInstance) {
+    const apiKey = config.gemini_secret_key || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    primaryLLMInstance = new ChatGoogleGenerativeAI({
+      model: 'gemini-2.5-flash',
+      temperature: 0,
+      apiKey: apiKey,
+    });
+  }
+  return primaryLLMInstance;
+}
 
 // Resilient wrapper providing seamless cognitive sandbox mock fallback in case of billing, quota or connection errors
 const llm = {
   invoke: async (messages, options) => {
     try {
-      return await primaryLLM.invoke(messages, options);
+      return await getPrimaryLLM().invoke(messages, options);
     } catch (err) {
       const isBillingOrApiError = err.message.includes('dunning') || 
                                   err.message.includes('403') || 
