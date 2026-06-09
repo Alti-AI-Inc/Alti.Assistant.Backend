@@ -3,6 +3,23 @@ import { logger } from '../../../shared/logger.js';
 
 /**
  * Connection Diagnostics & Rate Limit Prediction Service
+ *
+ * Database Indexing Recommendations for ActionAuditLog model:
+ * To significantly optimize database query performance in this service,
+ * consider adding the following indexes to your ActionAuditLog Mongoose schema:
+ *
+ * 1. For general user-specific time-series queries (e.g., in getConnectionDiagnostics):
+ *    schema.index({ userId: 1, createdAt: 1 });
+ *    This index will accelerate queries filtering by `userId` and `createdAt` range.
+ *
+ * 2. For specific app diagnostics (e.g., in getSingleConnectionDiagnostics),
+ *    which filters by `userId`, `app`, and sorts by `createdAt` descending:
+ *    schema.index({ userId: 1, app: 1, createdAt: -1 });
+ *    This compound index will efficiently cover the filtering and sorting for this specific query.
+ *
+ * 3. To further optimize error statistics queries that also filter by `status`:
+ *    schema.index({ userId: 1, createdAt: 1, status: 1 });
+ *    This index will improve performance for aggregations involving `userId`, `createdAt`, and `status`.
  */
 class ConnectionDiagnosticsService {
   /**
@@ -96,11 +113,11 @@ class ConnectionDiagnosticsService {
 
       // Calculate trend and acceleration
       const buckets = Array(6).fill(0);
+      // The aggregation's _id for intervalStats will be 0, 10, 20, 30, 40, 50.
+      // Math.floor(bucket._id / 10) correctly maps these to indices 0-5.
       intervalStats.forEach(bucket => {
         const index = Math.floor(bucket._id / 10);
-        if (index >= 0 && index < 6) {
-          buckets[index] = bucket.count;
-        }
+        buckets[index] = bucket.count;
       });
 
       // Let's check if rate is increasing
