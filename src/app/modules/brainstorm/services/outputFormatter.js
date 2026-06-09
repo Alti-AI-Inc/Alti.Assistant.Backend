@@ -3,7 +3,7 @@ import { logger } from '../../../../shared/logger.js';
 /**
  * Format brainstorm data for user-friendly display
  */
-const formatBrainstormResponse = (brainstormData, metadata = {}) => {
+const formatBrainstormResponse = (brainstormData = {}, metadata = {}) => { // Added default empty object for brainstormData to prevent TypeError on destructuring if input is null/undefined
   try {
     const {
       mainIdeas = [],
@@ -93,7 +93,7 @@ const formatBrainstormResponse = (brainstormData, metadata = {}) => {
 /**
  * Format SWOT analysis results
  */
-const formatSWOT = (swotData) => {
+const formatSWOT = (swotData = {}) => { // Added default empty object for swotData to prevent TypeError on destructuring if input is null/undefined
   try {
     const {
       strengths = [],
@@ -146,7 +146,7 @@ const formatSWOT = (swotData) => {
 /**
  * Format SCAMPER results
  */
-const formatSCAMPER = (scamperData) => {
+const formatSCAMPER = (scamperData = {}) => { // Added default empty object for scamperData to prevent TypeError if input is null/undefined
   try {
     let response = '## SCAMPER Analysis\n\n';
 
@@ -185,6 +185,7 @@ const formatSCAMPER = (scamperData) => {
     ];
 
     sections.forEach((section) => {
+      // Check if the section key exists and has a non-empty array
       if (scamperData[section.key] && scamperData[section.key].length > 0) {
         response += `### ${section.title}\n`;
         response += `*${section.description}*\n\n`;
@@ -205,7 +206,7 @@ const formatSCAMPER = (scamperData) => {
 /**
  * Format perspective analysis
  */
-const formatPerspectives = (perspectiveData) => {
+const formatPerspectives = (perspectiveData = {}) => { // Added default empty object for perspectiveData to prevent TypeError if input is null/undefined
   try {
     let response = '## Multi-Perspective Analysis\n\n';
 
@@ -220,31 +221,35 @@ const formatPerspectives = (perspectiveData) => {
       competitive: '🏆',
     };
 
+    // Ensure perspectiveData is an object before iterating its entries
     Object.entries(perspectiveData).forEach(([perspective, data]) => {
       const icon = perspectiveIcons[perspective] || '📊';
       response += `### ${icon} ${perspective.charAt(0).toUpperCase() + perspective.slice(1)} Perspective\n\n`;
 
-      if (data.considerations && data.considerations.length > 0) {
+      // Ensure data for each perspective is an object before accessing its properties
+      const currentData = data || {};
+
+      if (currentData.considerations && currentData.considerations.length > 0) {
         response += '**Key Considerations:**\n';
-        data.considerations.forEach((item) => (response += `- ${item}\n`));
+        currentData.considerations.forEach((item) => (response += `- ${item}\n`));
         response += '\n';
       }
 
-      if (data.opportunities && data.opportunities.length > 0) {
+      if (currentData.opportunities && currentData.opportunities.length > 0) {
         response += '**Opportunities:**\n';
-        data.opportunities.forEach((item) => (response += `- ${item}\n`));
+        currentData.opportunities.forEach((item) => (response += `- ${item}\n`));
         response += '\n';
       }
 
-      if (data.challenges && data.challenges.length > 0) {
+      if (currentData.challenges && currentData.challenges.length > 0) {
         response += '**Challenges:**\n';
-        data.challenges.forEach((item) => (response += `- ${item}\n`));
+        currentData.challenges.forEach((item) => (response += `- ${item}\n`));
         response += '\n';
       }
 
-      if (data.recommendations && data.recommendations.length > 0) {
+      if (currentData.recommendations && currentData.recommendations.length > 0) {
         response += '**Recommendations:**\n';
-        data.recommendations.forEach((item) => (response += `- ${item}\n`));
+        currentData.recommendations.forEach((item) => (response += `- ${item}\n`));
         response += '\n';
       }
     });
@@ -259,7 +264,7 @@ const formatPerspectives = (perspectiveData) => {
 /**
  * Format refinement suggestions
  */
-const formatRefinements = (refinementData) => {
+const formatRefinements = (refinementData = {}) => { // Added default empty object for refinementData to prevent TypeError on destructuring if input is null/undefined
   try {
     const {
       refinedIdeas = [],
@@ -325,6 +330,8 @@ const formatRefinements = (refinementData) => {
  */
 const createMetadataSummary = (brainstormData, params = {}) => {
   try {
+    // Optional chaining handles cases where brainstormData itself is null or undefined,
+    // so no default empty object is strictly needed for brainstormData here.
     const totalIdeas =
       (brainstormData.mainIdeas?.length || 0) +
       (brainstormData.subIdeas?.length || 0);
@@ -350,7 +357,7 @@ const createMetadataSummary = (brainstormData, params = {}) => {
 /**
  * Export brainstorm session to markdown format
  */
-const exportToMarkdown = (conversationData, brainstormData) => {
+const exportToMarkdown = (conversationData = {}, brainstormData = {}) => { // Added default empty objects for parameters to prevent TypeError if inputs are null/undefined
   try {
     let markdown = `# Brainstorm Session Export\n\n`;
     markdown += `**Date:** ${new Date().toLocaleString()}\n`;
@@ -361,6 +368,7 @@ const exportToMarkdown = (conversationData, brainstormData) => {
     }
 
     markdown += `---\n\n`;
+    // formatBrainstormResponse will now safely handle an empty brainstormData object
     markdown += formatBrainstormResponse(brainstormData);
 
     return markdown;
