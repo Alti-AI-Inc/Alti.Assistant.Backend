@@ -14,7 +14,12 @@ const strategy = new AppleStrategy(
   async (accessToken, refreshToken, idToken, profile, done) => {
     try {
       const result = await findOrCreateUserModel(profile, 'apple');
-      return done(null, result); // Pass the {user, status, message} object.
+      // Passport's 'done' function expects the user object as the second argument.
+      // The original comment "Pass the {user, status, message} object." implies
+      // that 'result' is an object containing a 'user' property.
+      // To correctly populate 'req.user' with the actual user model,
+      // we should pass 'result.user' instead of the entire 'result' object.
+      return done(null, result.user);
     } catch (err) {
       return done(err, null);
     }
