@@ -5,7 +5,17 @@ import auth from '../../middlewares/auth/auth.js';
 import { GcpNativeController } from './gcp-native.controller.js';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+// Configure Multer to store files in memory.
+// A file size limit is added to prevent potential Denial-of-Service (DoS) attacks
+// due to excessive memory consumption when handling large uploads.
+// For very large files (e.g., videos, large documents), consider using `multer.diskStorage()`
+// or streaming directly to cloud storage to avoid memory issues and improve performance.
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { 
+    fileSize: 10 * 1024 * 1024 // Limit file size to 10MB (10 * 1024 * 1024 bytes)
+  } 
+});
 
 // ── Catalog & Admin Submodules ─────────────────────────────────────────────
 router.get(
