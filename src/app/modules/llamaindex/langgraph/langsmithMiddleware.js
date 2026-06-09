@@ -1,5 +1,8 @@
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
+// Assuming LangChainTracer is available from @langchain/core for LangSmith integration.
+// This import path might need adjustment based on the actual project setup and LangChain version.
+import { LangChainTracer } from '@langchain/core/tracers/langchain';
 
 class LangsmithMiddleware {
   constructor() {
@@ -42,8 +45,12 @@ class LangsmithMiddleware {
     if (!this.tracingActive || !this.apiKey) {
       return [];
     }
-    // Return standard tracing configurations
-    return [];
+    // Return standard tracing configurations.
+    // The LangChainTracer automatically picks up environment variables like LANGCHAIN_PROJECT,
+    // LANGCHAIN_API_KEY, LANGCHAIN_ENDPOINT, and LANGCHAIN_TRACING_V2.
+    // The `runName` parameter is typically used when invoking a runnable, not directly in the tracer's constructor
+    // for the overall trace setup.
+    return [new LangChainTracer()];
   }
 }
 
