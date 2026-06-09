@@ -475,12 +475,15 @@ const getSGPOddsService = async (
  * @param {string} league       - optional league filter
  * @param {string} bookIds      - optional comma-separated book ID filter
  * @param {boolean} includeAlts - include alternate lines
- * @returns {string} - fully formed SSE URL with auth embedded
+ * @returns {string} - fully formed SSE URL
  */
 const buildStreamUrl = (league = '', bookIds = '', includeAlts = false) => {
-  const apiKey = getApiKey();
+  // Security Fix: API key should be passed via headers, not in the URL,
+  // to prevent exposure in logs, browser history, etc.
+  // The consumer of this URL (e.g., a server-side fetch) should add the X-API-KEY header.
+  // If this URL is intended for client-side EventSource, a server-side proxy
+  // is recommended to add the header and protect the API key.
   const url = new URL(`${STREAM_URL}/v1/markets`);
-  url.searchParams.set('X-API-KEY', apiKey);
   if (league)      url.searchParams.set('league', league);
   if (bookIds)     url.searchParams.set('book_ids', bookIds);
   if (includeAlts) url.searchParams.set('include_alts', 'true');
