@@ -335,6 +335,10 @@ const moduleRoutes = [
     route: mcpToolboxRoutes,
   },
   {
+    path: '/mcp_toolbox',
+    route: mcpToolboxRoutes,
+  },
+  {
     path: '/chatbots',
     route: chatbotRoutes,
   },
