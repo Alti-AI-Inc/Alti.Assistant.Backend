@@ -1,10 +1,27 @@
+/**
+ * @file This service manages user-specific long-term memory, including fact extraction, storage, and retrieval.
+ * It leverages a Generative AI model to process conversation turns and update a user's persistent profile.
+ * @module modules/conversations/userMemory.service
+ */
+
 import UserMemory from './userMemory.model.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
+/**
+ * Initializes the Google Generative AI client with the API key from the configuration.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
+/**
+ * The system instruction prompt used for the Generative AI model to extract, update,
+ * refine, or delete long-term personal facts, attributes, or preferences from a conversation turn.
+ * It defines strict rules for context-aware aggregation, redundancy prevention, conflict resolution,
+ * redaction, and stable context capture, along with a specific JSON output schema.
+ * @constant {string} FACT_EXTRACTION_PROMPT
+ */
 const FACT_EXTRACTION_PROMPT = `You are a cognitive memory manager for a state-of-the-art AI Assistant.
 Your job is to analyze the conversation turn in the context of the user's EXISTING USER PROFILE & MEMORIES, and extract, update, refine, or delete long-term personal facts, attributes, or preferences.
 
@@ -27,9 +44,13 @@ If no updates, new facts, or deletions are required, respond with exactly an emp
 Do NOT wrap the JSON in markdown blocks. Return pure raw JSON string.`;
 
 /**
- * Retrieves all persistent memories for a user and compiles them into a structured text block for the LLM.
- * @param {string} userId - User identifier
- * @returns {Promise<string>} Formatted markdown block or empty string
+ * Retrieves all persistent memories for a given user and compiles them into a structured
+ * markdown block suitable for grounding an LLM's responses.
+ *
+ * @param {string} userId - The unique identifier of the user whose memories are to be retrieved.
+ * @returns {Promise<string>} A promise that resolves to a formatted markdown string containing
+ *   the user's profile and persistent memories, or an empty string if no memories are found
+ *   or an error occurs.
  */
 const getProfileBlock = async (userId) => {
   if (!userId) return '';
@@ -61,12 +82,23 @@ const getProfileBlock = async (userId) => {
 };
 
 /**
- * Asynchronously extracts new facts and preferences from a conversation turn, resolves conflicts with existing memories,
- * and consolidates them inside MongoDB (upserting or deleting keys).
- * Fired in the background (non-blocking).
- * @param {string} userId - User identifier
- * @param {string} prompt - User's prompt
- * @param {string} reply - Assistant's reply
+ * Asynchronously extracts new facts and preferences from a conversation turn (user prompt and assistant reply),
+ * resolves conflicts with existing memories, and consolidates them in the database.
+ * This function is designed to run in the background to avoid blocking the main execution thread.
+ *
+ * It performs the following steps:
+ * 1. Fetches existing user memories to provide context for the AI model.
+ * 2. Constructs a detailed prompt for the Generative AI model, including existing memories and the new conversation turn.
+ * 3. Calls the Generative AI model (Gemini) to extract structured facts/directives (upsert or delete).
+ * 4. Parses the AI's JSON response.
+ * 5. Iterates through the extracted directives and performs corresponding database operations (upsert or delete)
+ *    for each memory fact.
+ *
+ * @param {string} userId - The unique identifier of the user.
+ * @param {string} prompt - The user's input prompt in the conversation turn.
+ * @param {string} reply - The AI assistant's reply in the conversation turn.
+ * @returns {void} This function does not return a value directly, as it operates asynchronously
+ *   and handles its own errors internally.
  */
 const asyncExtractFacts = async (userId, prompt, reply) => {
   if (!userId || !prompt || !reply) return;
@@ -166,6 +198,16 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
   }, 0);
 };
 
+/**
+ * @typedef {object} UserMemoryService
+ * @property {function(string): Promise<string>} getProfileBlock - Retrieves and formats a user's persistent memories.
+ * @property {function(string, string, string): void} asyncExtractFacts - Asynchronously extracts and consolidates facts from a conversation turn.
+ */
+
+/**
+ * Exports the user memory service functions.
+ * @type {UserMemoryService}
+ */
 export const userMemoryService = {
   getProfileBlock,
   asyncExtractFacts,
