@@ -1,3 +1,10 @@
+/**
+ * @module knowledgeQueryService
+ * @description Provides services for querying knowledge, handling conversational AI, and performing semantic searches
+ * using a RAG (Retrieval Augmented Generation) system with Google Gemini models.
+ * It integrates with a PostgreSQL vector database for document retrieval and manages conversation history.
+ */
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import httpStatus from 'http-status';
 import { RAGSystem } from 'rag-system-pgvector';
@@ -18,28 +25,44 @@ import { conversationService } from '../../conversations/conversation.service.js
 import { conversationHelpers } from '../../conversations/conversation.helpers.js';
 import KnowledgeFile from '../knowledge.model.js';
 
-// Initialize Gemini
+/**
+ * @constant {GoogleGenerativeAI} genAI - Initializes the Google Generative AI client with the API key.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
-// Initialize embeddings and LLM for RAG
+/**
+ * @constant {SafeGoogleGenerativeAIEmbeddings} embeddings - Initializes the embeddings model for RAG.
+ * Uses Google Generative AI embeddings with a target dimension of 768.
+ */
 const embeddings = new SafeGoogleGenerativeAIEmbeddings({
   apiKey: config.gemini_secret_key,
   targetDimension: 768,
 });
 
+/**
+ * @constant {ChatGoogleGenerativeAI} geminiLLM - Initializes the default Gemini LLM for RAG.
+ * Uses the model specified in KNOWLEDGE_CONFIG with a defined temperature.
+ */
 const geminiLLM = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
   model: KNOWLEDGE_CONFIG.MODEL,
   temperature: KNOWLEDGE_CONFIG.TEMPERATURE,
 });
 
+/**
+ * @constant {ChatGoogleGenerativeAI} claudeLLM - Initializes a more complex Gemini LLM for RAG.
+ * Uses the complex model specified in KNOWLEDGE_CONFIG, typically for more demanding queries.
+ */
 const claudeLLM = new ChatGoogleGenerativeAI({
   apiKey: config.gemini_secret_key,
   model: KNOWLEDGE_CONFIG.COMPLEX_MODEL,
   temperature: KNOWLEDGE_CONFIG.TEMPERATURE,
 });
 
-// Initialize RAG System with Gemini (default)
+/**
+ * @constant {object} ragConfig - Configuration object for the RAGSystem.
+ * Specifies database connection details, embeddings model, and the default LLM.
+ */
 const ragConfig = {
   database: {
     host: RAG_DATABASE_CONFIG.HOST,
@@ -53,11 +76,23 @@ const ragConfig = {
   embeddingDimensions: 768,
 };
 
+/**
+ * @constant {RAGSystem} rag - Initializes the RAGSystem with the defined configuration.
+ * This system is responsible for retrieving relevant documents and generating answers.
+ */
 const rag = new RAGSystem(ragConfig);
 enableHybridSearch(rag);
 
 /**
- * Detect query complexity based on keywords and context
+ * Detects the complexity of a user query based on keywords and conversation history.
+ * A higher complexity score suggests the need for a more capable LLM.
+ *
+ * @param {string} message - The user's current message.
+ * @param {string} [conversationHistory=''] - The formatted history of the conversation, used for additional context.
+ * @returns {{isComplex: boolean, score: number, indicators: string[]}} An object indicating:
+ *   - `isComplex`: A boolean indicating if the query is considered complex.
+ *   - `score`: The calculated complexity score.
+ *   - `indicators`: An array of keywords or factors that contributed to the complexity.
  */
 const detectQueryComplexity = (message, conversationHistory = '') => {
   const fullText = `${conversationHistory} ${message}`.toLowerCase();
@@ -109,14 +144,25 @@ const detectQueryComplexity = (message, conversationHistory = '') => {
 };
 
 /**
- * Generate unique conversation ID
+ * Generates a unique conversation ID.
+ *
+ * @returns {string} A unique string identifier for a new conversation.
  */
 const generateConversationId = () => {
   return `knowledge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Handle knowledge conversation
+ * Handles the lifecycle of a knowledge conversation, either fetching an existing one
+ * or creating a new one if `conversationId` is not provided or not found.
+ *
+ * @param {string} userId - The ID of the user initiating or participating in the conversation.
+ * @param {OWNER_TYPES} ownerType - The type of owner associated with the knowledge base (e.g., 'user', 'organization').
+ * @param {string} ownerId - The ID of the specific owner.
+ * @param {string} [conversationId] - An optional existing conversation ID. If provided and valid, the conversation is fetched.
+ * @param {string} userMessage - The initial message from the user, used for generating a title if a new conversation is created.
+ * @returns {Promise<object>} The conversation object, either newly created or fetched.
+ * @throws {ApiError} If there's an internal server error while handling the conversation.
  */
 const handleKnowledgeConversation = async (
   userId,
@@ -174,7 +220,15 @@ const handleKnowledgeConversation = async (
 };
 
 /**
- * Add message to conversation
+ * Adds a new message to an existing conversation.
+ *
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {'user' | 'assistant'} role - The role of the sender ('user' or 'assistant').
+ * @param {string} content - The textual content of the message.
+ * @param {object} [metadata={}] - Optional metadata to store with the message (e.g., sources, model used).
+ * @returns {Promise<object>} The updated conversation object after adding the message.
+ * @throws {ApiError} If there's an internal server error while adding the message.
  */
 const addMessage = async (
   conversationId,
@@ -206,7 +260,11 @@ const addMessage = async (
 };
 
 /**
- * Format conversation history
+ * Formats an array of message objects into a single string, suitable for use as conversation history context.
+ * Each message is prefixed with its role (e.g., "USER: ", "ASSISTANT: ").
+ *
+ * @param {Array<object>} messages - An array of message objects, each expected to have `role` and `content` properties.
+ * @returns {string} A newline-separated string of formatted messages, or an empty string if no messages are provided.
  */
 const formatConversationHistory = (messages) => {
   return messages.length > 0
@@ -217,7 +275,22 @@ const formatConversationHistory = (messages) => {
 };
 
 /**
- * Query knowledge using RAG
+ * Queries the knowledge base using the RAG system to find an answer to a given query.
+ * It retrieves relevant documents based on the `ownerType` and `ownerId` and then generates an answer.
+ *
+ * @param {string} query - The user's query string.
+ * @param {OWNER_TYPES} ownerType - The type of owner (e.g., 'user', 'organization') to filter knowledge files.
+ * @param {string} ownerId - The ID of the specific owner to filter knowledge files.
+ * @param {object} [options={}] - Optional query parameters.
+ * @param {number} [options.topK=5] - The number of top relevant documents to retrieve from the RAG system.
+ * @returns {Promise<{success: boolean, message?: string, answer: string, sources: Array<object>, relevantFiles: number, query: string}>} An object containing:
+ *   - `success`: Boolean indicating if the query was successful.
+ *   - `message`: An optional message, e.g., if no files are processed.
+ *   - `answer`: The generated answer from the RAG system.
+ *   - `sources`: An array of source documents used to generate the answer.
+ *   - `relevantFiles`: The total number of processed files found for the owner.
+ *   - `query`: The original query.
+ * @throws {Error} If an error occurs during the knowledge query process.
  */
 export const queryKnowledge = async (
   query,
@@ -250,8 +323,8 @@ export const queryKnowledge = async (
     // Initialize RAG system
     await rag.initialize();
 
-    // Get file IDs to filter by
-    const documentIds = processedFiles.map((f) => f.documentId).filter(Boolean);
+    // Get file IDs to filter by (though filter is applied directly in rag.query)
+    // const documentIds = processedFiles.map((f) => f.documentId).filter(Boolean);
 
     // Query the RAG system
     const ragResponse = await rag.query(query, {
@@ -280,7 +353,26 @@ export const queryKnowledge = async (
 };
 
 /**
- * Conversational query with context
+ * Handles a conversational query, maintaining context and dynamically selecting an LLM
+ * based on query complexity. It integrates with the RAG system for knowledge retrieval.
+ *
+ * @param {string} userId - The ID of the user making the query.
+ * @param {OWNER_TYPES} ownerType - The type of owner (e.g., 'user', 'organization') for the knowledge base.
+ * @param {string} ownerId - The ID of the specific owner.
+ * @param {string} message - The user's current message in the conversation.
+ * @param {string} [conversationId] - The ID of the ongoing conversation. If not provided, a new one is created.
+ * @param {object} [options={}] - Optional query parameters.
+ * @param {number} [options.topK=5] - The number of top relevant documents to retrieve for RAG.
+ * @returns {Promise<{success: boolean, conversationId: string, answer: string, sources: Array<object>, relevantFiles: number, hasProcessedFiles: boolean, modelUsed: string, complexity: {isComplex: boolean, score: number, indicators: string[]}}>} An object containing:
+ *   - `success`: Boolean indicating if the query was successful.
+ *   - `conversationId`: The ID of the conversation.
+ *   - `answer`: The generated answer from the LLM.
+ *   - `sources`: An array of source documents used for the answer.
+ *   - `relevantFiles`: The total number of processed files found for the owner.
+ *   - `hasProcessedFiles`: Boolean indicating if any processed files exist.
+ *   - `modelUsed`: The name of the LLM model used for the query.
+ *   - `complexity`: An object detailing the complexity analysis (`isComplex`, `score`, `indicators`).
+ * @throws {Error} If an error occurs during the conversational query process.
  */
 export const conversationalQuery = async (
   userId,
@@ -414,7 +506,21 @@ export const conversationalQuery = async (
 };
 
 /**
- * Search files semantically
+ * Performs a semantic search on the knowledge base to find documents relevant to a given query.
+ * It uses the RAG system's search capabilities to retrieve chunks of text.
+ *
+ * @param {string} query - The search query string.
+ * @param {OWNER_TYPES} ownerType - The type of owner (e.g., 'user', 'organization') to filter knowledge files.
+ * @param {string} ownerId - The ID of the specific owner to filter knowledge files.
+ * @param {object} [options={}] - Optional search parameters.
+ * @param {number} [options.limit=10] - The maximum number of search results to return.
+ * @returns {Promise<{success: boolean, message?: string, results: Array<object>, totalResults: number, query: string}>} An object containing:
+ *   - `success`: Boolean indicating if the search was successful.
+ *   - `message`: An optional message, e.g., if no files are processed.
+ *   - `results`: An array of search results, each including document content, score, and associated file metadata.
+ *   - `totalResults`: The total number of results found.
+ *   - `query`: The original search query.
+ * @throws {Error} If an error occurs during the semantic search process.
  */
 export const semanticSearch = async (
   query,
@@ -478,7 +584,14 @@ export const semanticSearch = async (
 };
 
 /**
- * Get conversation history
+ * Retrieves the full conversation history for a given conversation ID and user.
+ *
+ * @param {string} conversationId - The ID of the conversation to retrieve.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @returns {Promise<{conversation: object, messages: Array<object>}>} An object containing:
+ *   - `conversation`: The conversation metadata object.
+ *   - `messages`: An array of message objects within the conversation.
+ * @throws {Error} If an error occurs while fetching the conversation history.
  */
 export const getConversationHistory = async (conversationId, userId) => {
   try {
@@ -501,6 +614,17 @@ export const getConversationHistory = async (conversationId, userId) => {
   }
 };
 
+/**
+ * @typedef {object} KnowledgeQueryService
+ * @property {function(string, OWNER_TYPES, string, object): Promise<object>} queryKnowledge - Function to query knowledge using RAG.
+ * @property {function(string, OWNER_TYPES, string, string, string, object): Promise<object>} conversationalQuery - Function to handle conversational queries with context.
+ * @property {function(string, OWNER_TYPES, string, object): Promise<object>} semanticSearch - Function to perform semantic search on knowledge base.
+ * @property {function(string, string): Promise<object>} getConversationHistory - Function to retrieve a conversation's history.
+ */
+
+/**
+ * @constant {KnowledgeQueryService} knowledgeQueryService - An object bundling all knowledge query related services.
+ */
 export const knowledgeQueryService = {
   queryKnowledge,
   conversationalQuery,
