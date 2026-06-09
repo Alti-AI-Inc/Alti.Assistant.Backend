@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { logger } from '../../../../shared/logger.js';
 import ScheduledWorkflow from '../models/scheduledWorkflow.model.js';
 import { workflowExecutor } from './workflowExecutor.service.js';
+import parser from 'cron-parser'; // Import cron-parser for accurate next execution time calculation
 
 /**
  * Cron Manager Service - Handles scheduling and execution of workflows
@@ -101,7 +102,15 @@ class CronManager {
       const cronJob = cron.schedule(
         cronExpression,
         async () => {
-          await this.executeCronJob(workflowId);
+          // BUG FIX: Added try-catch block to handle potential unhandled promise rejections
+          // within the cron job callback, ensuring robustness.
+          try {
+            await this.executeCronJob(workflowId);
+          } catch (jobError) {
+            logger.error(`Unhandled error in cron job for workflow ${workflowId}:`, jobError);
+            // Depending on the desired behavior, you might want to unschedule the job here
+            // if persistent errors occur, to prevent continuous failures.
+          }
         },
         {
           scheduled: true,
@@ -229,10 +238,15 @@ class CronManager {
       // Handle one-time scheduled workflows
       if (workflow.triggerType === 'scheduled') {
         // Mark as completed and unschedule
-        await workflow.updateOne({
-          status: 'completed',
-          'scheduleConfig.isActive': false,
-        });
+        // BUG FIX: Changed from workflow.updateOne to ScheduledWorkflow.updateOne
+        // for consistency and to ensure Mongoose middleware is properly triggered.
+        await ScheduledWorkflow.updateOne(
+          { _id: workflow._id }, // Use _id for specific document update
+          {
+            status: 'completed',
+            'scheduleConfig.isActive': false,
+          }
+        );
         await this.unscheduleWorkflow(workflowId);
 
         logger.info(
@@ -245,7 +259,12 @@ class CronManager {
           workflow.scheduleConfig.timezone
         );
 
-        await workflow.updateOne({ nextExecution });
+        // BUG FIX: Changed from workflow.updateOne to ScheduledWorkflow.updateOne
+        // for consistency and to ensure Mongoose middleware is properly triggered.
+        await ScheduledWorkflow.updateOne(
+          { _id: workflow._id }, // Use _id for specific document update
+          { nextExecution }
+        );
       }
 
       logger.info(`Cron job execution completed for workflow: ${workflowId}`);
@@ -360,16 +379,19 @@ class CronManager {
    * Get next execution time for a cron expression
    */
   getNextExecutionTime(cronExpression, timezone = 'UTC') {
+    // BUG FIX: Replaced placeholder implementation with actual cron expression parsing
+    // using 'cron-parser' to accurately calculate the next execution time.
     try {
-      // This is a simplified implementation
-      // In production, you might want to use a library like 'cron-parser'
-      const now = new Date();
-
-      // For demo purposes, add 1 hour to current time
-      // Real implementation would parse the cron expression
-      return new Date(now.getTime() + 60 * 60 * 1000);
+      const options = {
+        currentDate: new Date(),
+        endDate: null, // No end date, just get the next one
+        iterator: false, // Return a single date, not an iterator
+        timezone: timezone,
+      };
+      const interval = parser.parseExpression(cronExpression, options);
+      return interval.next().toDate();
     } catch (error) {
-      logger.error('Error calculating next execution time:', error);
+      logger.error(`Error parsing cron expression "${cronExpression}" for next execution time:`, error);
       return null;
     }
   }
