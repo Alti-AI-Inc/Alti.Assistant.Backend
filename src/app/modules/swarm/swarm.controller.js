@@ -67,6 +67,24 @@ import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
  *                 error:
  *                   type: string
  *                   description: Error message (for 'error' events).
+ *                 reference:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       title: { type: string }
+ *                       url: { type: string }
+ *                   description: Array of references (for 'metadata' events).
+ *                 citations:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       index: { type: number }
+ *                       start: { type: number }
+ *                       end: { type: number }
+ *                       text: { type: string }
+ *                   description: Array of citations (for 'metadata' events).
  *       400:
  *         description: Bad Request - A search query is required.
  *         content:
@@ -166,7 +184,8 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
     const requireSearch = req.body.requireSearch !== undefined ? req.body.requireSearch : true;
     let fullText = '';
-    let finalReferences = [];
+    let finalReferences = []; // To store references for the final message metadata and SSE
+    let finalCitations = [];  // To store citations for the final message metadata and SSE
 
     // Stream the dynamic Swarm response
     for await (const chunk of SwarmService.executeSwarmStream(
@@ -187,12 +206,16 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
           })}\n\n`
         );
       } else if (chunk.type === 'metadata') {
-        finalReferences = [];
+        // BUG FIX: Capture references and citations from the chunk if provided by SwarmService.
+        // Previously, these were discarded, leading to loss of valuable metadata for the client and database.
+        finalReferences = chunk.reference || [];
+        finalCitations = chunk.citations || [];
+
         res.write(
           `data: ${JSON.stringify({
             type: 'metadata',
-            reference: [],
-            citations: [],
+            reference: finalReferences, // Use actual references from chunk
+            citations: finalCitations,   // Use actual citations from chunk
             timestamp: chunk.timestamp,
           })}\n\n`
         );
@@ -201,8 +224,9 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
 
     // Save the complete response and citations to conversation database
     const messageMetadata = {
-      reference: [],
-      citationMetadata: null,
+      reference: finalReferences, // Use the captured finalReferences
+      // Assuming citationMetadata structure is an object with a 'citations' array
+      citationMetadata: finalCitations.length > 0 ? { citations: finalCitations } : null,
       searchQuery: message,
       searchTimestamp: new Date().toISOString(),
       streamingMode: true,
@@ -228,7 +252,9 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
       `data: ${JSON.stringify({
         type: 'done',
         conversationId: actualConversationId,
-        messageCount: conversation.messageCount + 2,
+        // messageCount assumes 2 messages (user query + agent response) were added.
+        // This might be brittle; consider retrieving actual count from conversation object if available.
+        messageCount: conversation.messageCount + 2, 
         userType: isGuest ? 'guest' : 'authenticated',
         timestamp: Date.now(),
       })}\n\n`
@@ -335,6 +361,8 @@ const prewarmUserSandbox = catchAsync(async (req, res) => {
     if (providedUserId && isGuestPattern) {
       userId = providedUserId;
     }
+    // If a guest userId is not provided or does not conform to the pattern,
+    // userId remains undefined, and prewarming will not be attempted due to the 'if (userId)' check.
   }
 
   if (userId) {
