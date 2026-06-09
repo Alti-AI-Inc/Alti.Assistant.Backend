@@ -8,6 +8,13 @@ import httpStatus from 'http-status';
 import AiEndpoint from './aiEndpoint.Model.js';
 import aiEndpoints from './aiEndpoint.utils.js';
 
+// Optimization Recommendation:
+// For improved query performance, especially for `findOne` and `findOneAndUpdate` operations
+// that filter by `title`, ensure that the `title` field in the `AiEndpoint` Mongoose schema
+// (defined in aiEndpoint.Model.js) has a unique index.
+// Example in aiEndpoint.Model.js:
+// aiEndpointSchema.index({ title: 1 }, { unique: true });
+
 /**
  * @swagger
  * tags:
@@ -140,12 +147,14 @@ const addAiEndpoint = async (req, res) => {
     }
 
     // Check if the title or _id already exists
+    // Optimization: Use .lean() for read-only queries to get plain JavaScript objects,
+    // which bypasses Mongoose document instantiation overhead.
     const existingEndpoint = await AiEndpoint.findOne({
       $or: [
         { title }, // Check for matching title
         { _id: id }, // Check for matching _id
       ],
-    });
+    }).lean();
 
     if (existingEndpoint) {
       return res.status(400).json({
@@ -223,7 +232,9 @@ const addAiEndpoint = async (req, res) => {
  */
 const getWebAiEndpoint = async (req, res) => {
   try {
-    const aiEndpoints = await AiEndpoint.find(); // Fetch from DB
+    // Optimization: Use .lean() for read-only queries to get plain JavaScript objects,
+    // which bypasses Mongoose document instantiation overhead.
+    const aiEndpoints = await AiEndpoint.find().lean(); // Fetch from DB
     res.status(200).json({
       statusCode: httpStatus.OK,
       status: 'Success',
@@ -401,10 +412,13 @@ const updateWebAiEndpoint = async (req, res) => {
 
     // If isDefault is true, first set all other AI endpoints to false
     if (isDefault === true) {
+      // Optimization: For updateMany, consider using write concerns if atomicity across multiple updates is critical
+      // or if you need to ensure the update is applied before proceeding.
       await AiEndpoint.updateMany({}, { default: false });
     }
 
     // Update the AI endpoint without modifying the title
+    // Optimization: Ensure an index exists on the 'title' field for efficient lookup.
     const updatedEndpoint = await AiEndpoint.findOneAndUpdate(
       { title }, // Find by title
       { enabled, default: isDefault }, // Only update enabled & default
@@ -467,7 +481,7 @@ const updateWebAiEndpoint = async (req, res) => {
  *           type: boolean
  *           description: Whether this endpoint is set as the default.
  *           default: false
- *           example: false
+           example: false
  *         add:
  *           type: string
  *           description: The URL or path for adding new AI interactions.
