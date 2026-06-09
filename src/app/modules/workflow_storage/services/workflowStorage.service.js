@@ -36,6 +36,7 @@ class WorkflowStorageService {
       console.log('User ID:', userId);
 
       // Get user's connected accounts
+      // Optimization: `getUserConnectedAccounts` has been updated to use `.lean()` for read-only data.
       const connectedAccounts = await this.getUserConnectedAccounts(userId);
 
       // Prepare state for planning
@@ -158,40 +159,41 @@ class WorkflowStorageService {
         sortOrder = -1,
       } = options;
 
-      const workflows = await StoredWorkflow.findByUserId(userId, {
-        status,
-        workflowType,
-        category,
-        limit,
-        offset,
-        sortBy,
-        sortOrder,
-      });
-
-      // Filter by tags if provided
-      let filteredWorkflows = workflows;
+      // Optimization: Build query dynamically and push tag filtering to the database.
+      // Also, use .lean() for read-only operations to improve performance.
+      const query = { userId };
+      if (status) query.status = status;
+      if (workflowType) query.workflowType = workflowType;
+      if (category) query.category = category;
       if (tags && tags.length > 0) {
+        // Ensure tags is an array for $in operator
         const searchTags = Array.isArray(tags) ? tags : [tags];
-        filteredWorkflows = workflows.filter((workflow) =>
-          searchTags.some((tag) => (workflow.tags || []).includes(tag))
-        );
+        query.tags = { $in: searchTags };
       }
 
-      const totalCount = await StoredWorkflow.countDocuments({
-        userId,
-        ...(status && { status }),
-        ...(workflowType && { workflowType }),
-        ...(category && { category }),
-      });
+      const sortOptions = {};
+      sortOptions[sortBy] = sortOrder;
+
+      const workflows = await StoredWorkflow.find(query)
+        .sort(sortOptions)
+        .skip(offset)
+        .limit(limit)
+        .lean(); // Optimization: Use .lean() for read-only queries
+
+      // Optimization: The in-memory filtering by tags is removed as it's now part of the Mongoose query.
+      // This avoids fetching potentially large datasets only to filter them in application memory (N+1-like problem).
+
+      // Optimization: Ensure countDocuments uses the same query for consistency and accuracy.
+      const totalCount = await StoredWorkflow.countDocuments(query);
 
       return {
         success: true,
         data: {
-          workflows: filteredWorkflows,
+          workflows: workflows, // Use the directly fetched workflows
           totalCount,
           offset,
           limit,
-          hasMore: offset + filteredWorkflows.length < totalCount,
+          hasMore: offset + workflows.length < totalCount,
         },
       };
     } catch (error) {
@@ -211,7 +213,8 @@ class WorkflowStorageService {
    */
   async getStoredWorkflow(workflowId, userId) {
     try {
-      const workflow = await StoredWorkflow.findOne({ workflowId, userId });
+      // Optimization: Use .lean() for read-only queries to improve performance
+      const workflow = await StoredWorkflow.findOne({ workflowId, userId }).lean();
 
       if (!workflow) {
         return {
@@ -242,6 +245,7 @@ class WorkflowStorageService {
    */
   async updateStoredWorkflow(workflowId, userId, updates) {
     try {
+      // No .lean() here as we intend to modify and save the document
       const workflow = await StoredWorkflow.findOne({ workflowId, userId });
 
       if (!workflow) {
@@ -321,6 +325,9 @@ class WorkflowStorageService {
    */
   async searchStoredWorkflows(userId, searchTerm, options = {}) {
     try {
+      // Optimization: Ensure `StoredWorkflow.searchWorkflows` (a custom static method)
+      // uses `.lean()` internally for read-only operations and leverages text indexes
+      // if applicable for the `searchTerm`.
       const workflows = await StoredWorkflow.searchWorkflows(
         userId,
         searchTerm,
@@ -351,6 +358,8 @@ class WorkflowStorageService {
    */
   async getExecutableWorkflows(userId) {
     try {
+      // Optimization: Ensure `StoredWorkflow.findExecutableWorkflows` (a custom static method)
+      // uses `.lean()` internally for read-only operations.
       const workflows = await StoredWorkflow.findExecutableWorkflows(userId);
 
       return {
@@ -377,6 +386,7 @@ class WorkflowStorageService {
    */
   async refreshWorkflowConnections(workflowId, userId) {
     try {
+      // No .lean() here as we intend to modify and save the document
       const workflow = await StoredWorkflow.findOne({ workflowId, userId });
 
       if (!workflow) {
@@ -387,6 +397,7 @@ class WorkflowStorageService {
       }
 
       // Get latest connected accounts
+      // Optimization: `getUserConnectedAccounts` has been updated to use `.lean()` for read-only data.
       const connectedAccounts = await this.getUserConnectedAccounts(userId);
 
       // Update workflow with latest connections
@@ -419,7 +430,8 @@ class WorkflowStorageService {
    */
   async prepareWorkflowForExecution(workflowId, userId) {
     try {
-      const workflow = await StoredWorkflow.findOne({ workflowId, userId });
+      // Optimization: Use .lean() for read-only queries to improve performance
+      const workflow = await StoredWorkflow.findOne({ workflowId, userId }).lean();
 
       if (!workflow) {
         return {
@@ -501,10 +513,11 @@ class WorkflowStorageService {
    */
   async getUserConnectedAccounts(userId) {
     try {
+      // Optimization: Use .lean() for read-only queries to improve performance
       const connectedAccounts = await ComposioAuth.find({
         userId,
         status: 'ACTIVE',
-      });
+      }).lean();
 
       return connectedAccounts || [];
     } catch (error) {
@@ -547,6 +560,7 @@ class WorkflowStorageService {
                 $cond: [{ $eq: ['$workflowType', 'multi_step'] }, 1, 0],
               },
             },
+            // Assuming 'executionCount' field exists and is a number
             totalExecutions: { $sum: '$executionCount' },
             averageSteps: { $avg: '$totalSteps' },
           },
@@ -583,3 +597,32 @@ class WorkflowStorageService {
 // Export singleton instance
 export const workflowStorageService = new WorkflowStorageService();
 export default workflowStorageService;
+
+/*
+ * Optimization Recommendations for Mongoose Models (add these to your model definitions):
+ *
+ * For StoredWorkflow Model:
+ * 1. Index for efficient lookups by user and workflow ID:
+ *    `StoredWorkflowSchema.index({ userId: 1 });`
+ *    `StoredWorkflowSchema.index({ workflowId: 1, userId: 1 }, { unique: true });`
+ * 2. Indexes for filtering and sorting in getUserStoredWorkflows:
+ *    `StoredWorkflowSchema.index({ userId: 1, status: 1 });`
+ *    `StoredWorkflowSchema.index({ userId: 1, workflowType: 1 });`
+ *    `StoredWorkflowSchema.index({ userId: 1, category: 1 });`
+ *    `StoredWorkflowSchema.index({ userId: 1, tags: 1 });` // For array fields, creates a multikey index
+ *    `StoredWorkflowSchema.index({ userId: 1, createdAt: -1 });` // For sorting
+ *    A compound index covering multiple fields for `getUserStoredWorkflows` could be highly beneficial
+ *    if these filters are frequently used together:
+ *    `StoredWorkflowSchema.index({ userId: 1, status: 1, workflowType: 1, category: 1, tags: 1, createdAt: -1 });`
+ *    (Note: MongoDB can only use one compound index per query, so choose the most frequently used combination
+ *    or multiple single-field/smaller compound indexes if query patterns vary widely.)
+ * 3. Text index for searchStoredWorkflows (if it uses text search functionality):
+ *    `StoredWorkflowSchema.index({ title: 'text', description: 'text', originalUserInput: 'text' });`
+ *    (Ensure the `searchWorkflows` method uses the `$text` operator for this index to be effective.)
+ * 4. If `withTenantPipeline` adds a `tenantId` field to the match stage in `getWorkflowStatistics`,
+ *    consider a compound index: `StoredWorkflowSchema.index({ tenantId: 1, userId: 1 });`
+ *
+ * For ComposioAuth Model:
+ * 1. Index for efficient lookups by user and status:
+ *    `ComposioAuthSchema.index({ userId: 1, status: 1 });`
+ */
