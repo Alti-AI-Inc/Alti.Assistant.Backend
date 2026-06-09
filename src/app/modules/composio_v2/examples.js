@@ -4,7 +4,12 @@
  */
 
 import { aiClassificationService } from './aiClassification.service.js';
-import { classifyUserIntent } from './services/aiClassificationService.js';
+// Assuming classifyUserIntent is a method of aiClassificationService,
+// the direct import from './services/aiClassificationService.js' is redundant
+// and potentially confusing if aiClassificationService is meant to be the
+// primary interface for all classification functionalities.
+// The example will be updated to use aiClassificationService.classifyUserIntent.
+// import { classifyUserIntent } from './services/aiClassificationService.js'; // Removed
 
 /**
  * Example 1: Simple classification
@@ -27,7 +32,9 @@ export const example1_Classification = async () => {
     'Send an email to the marketing team about the campaign results';
 
   try {
-    const classification = await classifyUserIntent(userInput);
+    // Using aiClassificationService.classifyUserIntent for consistency
+    // with the overall aiClassificationService module.
+    const classification = await aiClassificationService.classifyUserIntent(userInput);
 
     console.log('Classification Result:');
     console.log('- App:', classification.app); // "gmail"

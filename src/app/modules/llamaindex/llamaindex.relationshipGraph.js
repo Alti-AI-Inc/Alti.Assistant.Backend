@@ -4,10 +4,24 @@ import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
 import DocumentRelationship from './llamaindex.relationship.model.js';
 
+/**
+ * Initializes the Google Generative AI client with the API key from the configuration.
+ * This instance is used for deep semantic analysis and relationship extraction.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Calculates Jaccard intersection coefficient between two arrays.
+ * Calculates the Jaccard similarity coefficient between two arrays of strings.
+ * The comparison is case-insensitive.
+ *
+ * The Jaccard coefficient is a statistic used for gauging the similarity and diversity of sample sets.
+ * It is defined as the size of the intersection divided by the size of the union of the sample sets.
+ *
+ * @param {string[]} arr1 - The first array of strings (e.g., topics, entities).
+ * @param {string[]} arr2 - The second array of strings (e.g., topics, entities).
+ * @returns {number} The Jaccard similarity coefficient, a value between 0 and 1.
+ *                    Returns 0 if the union of the sets is empty.
  */
 const calculateJaccard = (arr1, arr2) => {
   const s1 = new Set(arr1.map(v => v.toLowerCase()));
@@ -22,6 +36,20 @@ const calculateJaccard = (arr1, arr2) => {
 
 /**
  * Re-builds the relational semantic map between all user documents.
+ * This process involves two main steps:
+ * 1.  **Intersection Analysis Matrix**: Calculates Jaccard similarity for topics and entities
+ *     between all document pairs. If a significant overlap (coefficient > 0.1) is found,
+ *     a `topic_similarity` relationship edge is created or updated bidirectionally.
+ * 2.  **Google Gemini Deep Semantic Cross-reference Modeling**: For a subset of top comparison
+ *     candidates, it leverages the Google Gemini AI model to detect more complex logical
+ *     dependencies, prerequisite links, or hierarchical cross-references.
+ *
+ * Relationship edges are stored in the `DocumentRelationship` collection.
+ *
+ * @param {string} userId - The ID of the user for whom to build the relationship graph.
+ * @returns {Promise<object>} An object indicating the success status, a descriptive message,
+ *                            and the total number of relationship edges added or updated.
+ * @throws {Error} If the relationship graph compilation fails due to a database error or other issues.
  */
 const buildRelationshipGraph = async (userId) => {
   try {
@@ -88,7 +116,7 @@ const buildRelationshipGraph = async (userId) => {
 
     // Step 2: Google Gemini Deep Semantic cross-reference modeling
     // Process top comparison candidates to discover logical prerequisites or hierarchies
-    const topCandidates = comparisons.slice(0, 10);
+    const topCandidates = comparisons.slice(0, 10); // Limit to top 10 for AI processing
     if (topCandidates.length > 0) {
       const summaryPayload = topCandidates.map(c => ({
         pair: `${c.docA.docId} <-> ${c.docB.docId}`,
@@ -162,7 +190,19 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
 };
 
 /**
- * Traverses the relationship graph from a set of starting document IDs.
+ * Traverses the relationship graph from a set of starting document IDs up to a specified depth.
+ * This function performs a Breadth-First Search (BFS) like traversal to discover connected documents
+ * and their relationships.
+ *
+ * @param {string} userId - The ID of the user whose graph is to be traversed.
+ * @param {string[]} startDocIds - An array of document IDs from which to start the traversal.
+ * @param {number} [depth=1] - The maximum depth of traversal. A depth of 1 means only direct connections.
+ * @returns {Promise<object>} An object containing:
+ *   - `success`: A boolean indicating if the traversal was successful.
+ *   - `startingNodes`: The array of document IDs from which the traversal began.
+ *   - `traversedNodes`: An array of all unique document IDs visited during the traversal.
+ *   - `edges`: An array of all `DocumentRelationship` objects (edges) discovered during the traversal.
+ * @throws {Error} If the graph traversal fails.
  */
 const traverseGraph = async (userId, startDocIds, depth = 1) => {
   try {
@@ -196,7 +236,23 @@ const traverseGraph = async (userId, startDocIds, depth = 1) => {
   }
 };
 
+/**
+ * @namespace relationshipGraphService
+ * @description Provides services for managing and querying the semantic relationship graph
+ *              between user documents. This includes building the graph based on document
+ *              metadata and deep semantic analysis, and traversing it to find related documents.
+ */
 export const relationshipGraphService = {
+  /**
+   * @function buildRelationshipGraph
+   * @memberof relationshipGraphService
+   * @see {@link buildRelationshipGraph}
+   */
   buildRelationshipGraph,
+  /**
+   * @function traverseGraph
+   * @memberof relationshipGraphService
+   * @see {@link traverseGraph}
+   */
   traverseGraph,
 };
