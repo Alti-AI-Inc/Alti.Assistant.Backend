@@ -21,26 +21,48 @@ import {
   RESPONSE_MESSAGES,
 } from './article_writer.constant.js';
 
-// Initialize Gemini client
+/**
+ * Initializes the Google Generative AI client using the API key from configuration.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+/**
+ * Initializes the Google AI File Manager client using the API key from configuration.
+ * Used for uploading and managing files with Google Gemini.
+ * @type {GoogleAIFileManager}
+ */
 const fileManager = new GoogleAIFileManager(config.gemini_secret_key);
 
 /**
- * Generate unique guest user ID
+ * Generates a unique guest user ID using Mongoose's ObjectId.
+ * This is used for users who are not authenticated.
+ * @returns {string} A unique string representing a guest user ID.
  */
 const generateGuestUserId = () => {
   return new mongoose.Types.ObjectId().toString();
 };
 
 /**
- * Generate unique conversation ID
+ * Generates a unique conversation ID for article writing sessions.
+ * The ID is a combination of a timestamp and a random string.
+ * @returns {string} A unique string representing a conversation ID.
  */
 const generateConversationId = () => {
   return `article_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Handle article writer conversation (create or retrieve)
+ * Handles the creation or retrieval of an article writer conversation.
+ * If a `conversationId` is provided, it attempts to fetch the existing conversation.
+ * If no `conversationId` is provided or the existing one is not found, a new conversation is created.
+ *
+ * @param {string} userId - The ID of the user (authenticated or guest).
+ * @param {string | null} conversationId - The ID of an existing conversation, or null to create a new one.
+ * @param {string} userMessage - The initial message from the user, used for the conversation title if new.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - The Express request object, potentially containing transaction information.
+ * @returns {Promise<object>} The conversation object (either existing or newly created).
+ * @throws {ApiError} If there's an internal server error during conversation handling.
  */
 const handleArticleWriterConversation = async (
   userId,
@@ -103,7 +125,16 @@ const handleArticleWriterConversation = async (
 };
 
 /**
- * Add message to conversation
+ * Adds a new message to an existing conversation.
+ *
+ * @param {string} conversationId - The ID of the conversation to add the message to.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {'user' | 'assistant'} role - The role of the sender ('user' or 'assistant').
+ * @param {string} content - The text content of the message.
+ * @param {object} [metadata={}] - Optional metadata to store with the message.
+ * @param {object} [req=null] - The Express request object, potentially containing transaction information.
+ * @returns {Promise<object>} The updated conversation object after adding the message.
+ * @throws {ApiError} If there's an internal server error during message addition.
  */
 const addMessage = async (
   conversationId,
@@ -137,7 +168,16 @@ const addMessage = async (
 };
 
 /**
- * Process uploaded file and extract text content
+ * Processes an uploaded file by uploading it to Google Gemini's file manager.
+ * This makes the file accessible to Gemini models for content generation.
+ *
+ * @param {object} fileInfo - Information about the uploaded file.
+ * @param {string} fileInfo.path - The local path to the uploaded file.
+ * @param {string} fileInfo.location - Alternative local path to the uploaded file (used if `path` is not present).
+ * @param {string} fileInfo.mimetype - The MIME type of the file.
+ * @param {string} fileInfo.originalName - The original name of the file.
+ * @returns {Promise<{fileUri: string, mimeType: string, displayName: string} | null>} An object containing the Gemini file URI, MIME type, and display name, or null if no fileInfo is provided.
+ * @throws {ApiError} If there's an internal server error during file processing or upload.
  */
 const processUploadedFile = async (fileInfo) => {
   try {
@@ -171,7 +211,15 @@ const processUploadedFile = async (fileInfo) => {
 };
 
 /**
- * Build article generation prompt based on parameters
+ * Builds a comprehensive prompt for the Gemini AI model to generate an article.
+ * The prompt incorporates user message, desired article type, tone, length, and file content if available.
+ *
+ * @param {string} message - The user's core request or topic for the article.
+ * @param {string | null} articleType - The type of article (e.g., 'blog_post', 'news_article'), or null for general.
+ * @param {string | null} tone - The desired writing tone (e.g., 'professional', 'casual').
+ * @param {string | null} length - The desired length of the article (e.g., 'short', 'medium', 'long', 'comprehensive').
+ * @param {object | null} [fileContent=null] - Optional object indicating if file content is provided, used to adjust the prompt.
+ * @returns {string} The fully constructed prompt string for the AI model.
  */
 const buildArticlePrompt = (
   message,
@@ -219,7 +267,13 @@ const buildArticlePrompt = (
 };
 
 /**
- * Generate article using Gemini AI
+ * Generates an article using the Google Gemini AI model based on a given prompt.
+ * It can optionally include file data as context for generation.
+ *
+ * @param {string} prompt - The text prompt to guide the AI in generating the article.
+ * @param {object | null} [fileData=null] - Optional file data object containing `mimeType` and `fileUri` for context.
+ * @returns {Promise<string>} The generated article text.
+ * @throws {ApiError} If there's an internal server error during article generation.
  */
 const generateArticle = async (prompt, fileData = null) => {
   try {
@@ -267,7 +321,21 @@ const generateArticle = async (prompt, fileData = null) => {
 };
 
 /**
- * Process conversational article writing request
+ * Orchestrates the entire process of handling a conversational article writing request.
+ * This includes managing the conversation, processing uploaded files, building the AI prompt,
+ * generating the article, and updating the conversation history.
+ *
+ * @param {string} userId - The ID of the user making the request.
+ * @param {string} message - The user's input message for the article.
+ * @param {string | null} conversationId - The ID of the current conversation, or null for a new one.
+ * @param {object | null} [fileInfo=null] - Optional object containing details of an uploaded file.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {string | null} [articleType=null] - The desired type of article (e.g., 'blog_post').
+ * @param {string | null} [tone=null] - The desired writing tone.
+ * @param {string | null} [length=null] - The desired length of the article.
+ * @param {object} [req=null] - The Express request object, potentially containing transaction information.
+ * @returns {Promise<{conversationId: string, userId: string, article: string, metadata: object}>} An object containing the conversation ID, user ID, generated article text, and metadata about the generation.
+ * @throws {ApiError} If any step in the process fails.
  */
 const processConversationalRequest = async (
   userId,
@@ -281,7 +349,7 @@ const processConversationalRequest = async (
   req = null
 ) => {
   try {
-    // Handle conversation
+    // Handle conversation (create or retrieve)
     const conversation = await handleArticleWriterConversation(
       userId,
       conversationId,
@@ -377,7 +445,12 @@ const processConversationalRequest = async (
 };
 
 /**
- * Get conversation history
+ * Retrieves the complete conversation history for a given conversation ID and user.
+ *
+ * @param {string} conversationId - The ID of the conversation to retrieve.
+ * @param {string} userId - The ID of the user who owns the conversation.
+ * @returns {Promise<object>} The conversation object, including its messages.
+ * @throws {ApiError} If the conversation is not found or an internal server error occurs.
  */
 const getConversationHistory = async (conversationId, userId) => {
   try {
@@ -397,6 +470,12 @@ const getConversationHistory = async (conversationId, userId) => {
   }
 };
 
+/**
+ * Service object for article writer functionalities.
+ * Provides methods for generating user/conversation IDs, processing article requests,
+ * and retrieving conversation history.
+ * @namespace articleWriterService
+ */
 export const articleWriterService = {
   generateGuestUserId,
   generateConversationId,
