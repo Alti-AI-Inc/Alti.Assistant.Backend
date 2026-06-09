@@ -43,7 +43,8 @@ const getSecretValue = async (secretId) => {
     };
   } catch (err) {
     logger.error(`Secret Manager Retrieval Error for ${secretId}:`, err);
-    throw new Error(`Secret Manager Retrieval failed: ${err.message}`);
+    // Re-throw a generic error message to avoid exposing internal API details to the caller.
+    throw new Error(`Failed to retrieve secret "${secretId}". Please check logs for details.`);
   }
 };
 
@@ -81,8 +82,15 @@ const createSecretValue = async (secretId, secretValue) => {
       });
       logger.info(`Secret Manager: Successfully created container "${secretId}".`);
     } catch (existErr) {
-      // Ignore if container already exists
-      logger.warn(`Secret Manager: Container "${secretId}" already exists or could not be created directly: ${existErr.message}`);
+      // Check if the error is due to the secret already existing (HTTP 409 Conflict).
+      // If so, log a warning and proceed. Otherwise, re-throw the error as it's a genuine failure.
+      if (existErr.response && existErr.response.status === 409) {
+        logger.warn(`Secret Manager: Container "${secretId}" already exists. Proceeding to add version.`);
+      } else {
+        logger.error(`Secret Manager: Failed to create container "${secretId}":`, existErr);
+        // Re-throw the specific error as creation failed for a reason other than existence.
+        throw new Error(`Failed to create secret container "${secretId}": ${existErr.message}`);
+      }
     }
 
     // 2. Add Payload Version
@@ -107,7 +115,8 @@ const createSecretValue = async (secretId, secretValue) => {
     };
   } catch (err) {
     logger.error(`Secret Manager Version Addition Error for ${secretId}:`, err);
-    throw new Error(`Secret Manager creation failed: ${err.message}`);
+    // Re-throw a generic error message to avoid exposing internal API details to the caller.
+    throw new Error(`Failed to create or update secret "${secretId}". Please check logs for details.`);
   }
 };
 
