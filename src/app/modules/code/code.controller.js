@@ -18,10 +18,18 @@ export const performCodeTask = catchAsync(async (req, res) => {
 
   // Skip subscription check for guest users
   if (!isGuest) {
-    const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
-      createdAt: -1,
-    });
+    // Optimize: Add .lean() for read-only query to return a plain JavaScript object, reducing Mongoose overhead.
+    // Indexing Recommendation: For SubscriptionModel, consider creating an index on `userId`
+    // and a compound index on `{ userId: 1, createdAt: -1 }` to optimize this query and sort.
+    const userSubscription = await SubscriptionModel.findOne({ userId })
+      .sort({
+        createdAt: -1,
+      })
+      .lean(); // Added .lean()
     const promptUsage = userSubscription ? userSubscription.usage : 0;
+
+    // Optimization Note: If conversationHelpers.getConversationById performs a read-only DB query,
+    // consider adding .lean() within that function for similar performance benefits.
     const totalConversationWithConvId = conversationId
       ? await conversationHelpers.getConversationById(
           conversationId,
@@ -60,6 +68,8 @@ export const performCodeTask = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization Note: If codeService.handleCodeConversation performs read-only DB queries,
+    // consider adding .lean() within that function.
     const conversation = await codeService.handleCodeConversation(
       userId,
       conversationId,
@@ -70,6 +80,8 @@ export const performCodeTask = catchAsync(async (req, res) => {
     const actualConversationId = conversation.conversationId || thread_id;
 
     // Add user message to conversation
+    // Optimization Note: If codeService.addCodeQueryMessage performs read-only DB queries,
+    // consider adding .lean() within that function.
     await codeService.addCodeQueryMessage(
       actualConversationId,
       userId,
@@ -83,6 +95,9 @@ export const performCodeTask = catchAsync(async (req, res) => {
       history: [{ role: 'user', content: message }], // Add current message to history
     };
 
+    // This is an external AI model invocation, which is expected to be compute-intensive.
+    // Optimizations for this part would be within the 'codeAssistantApp' implementation itself
+    // or by scaling the underlying AI service.
     const result = await codeAssistantApp.invoke(inputs, {
       configurable: { thread_id: actualConversationId },
     });
@@ -93,6 +108,8 @@ export const performCodeTask = catchAsync(async (req, res) => {
     const fullResponse = result.response;
 
     // Add assistant response to conversation
+    // Optimization Note: If codeService.addCodeResultMessage performs read-only DB queries,
+    // consider adding .lean() within that function.
     await codeService.addCodeResultMessage(
       actualConversationId,
       userId,
@@ -124,6 +141,8 @@ export const performCodeTask = catchAsync(async (req, res) => {
       conversationId || codeService.generateCodeConversationId();
     try {
       if (errorConversationId && userId) {
+        // Optimization Note: If codeService.addErrorMessage performs read-only DB queries,
+        // consider adding .lean() within that function.
         await codeService.addErrorMessage(
           errorConversationId,
           userId,
@@ -172,6 +191,8 @@ const getCodeStats = catchAsync(async (req, res) => {
     });
   }
 
+  // Optimization Note: If codeService.getCodeStats performs read-only DB queries,
+  // consider adding .lean() within that function.
   const stats = await codeService.getCodeStats(userId, req);
 
   sendResponse(res, {
