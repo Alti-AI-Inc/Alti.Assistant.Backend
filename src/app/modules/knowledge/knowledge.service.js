@@ -23,6 +23,7 @@ import {
   QUERY_MODES,
   STORAGE_CONFIG,
 } from './knowledge.constant.js';
+import path from 'path'; // Added for path.join in processFile fallback
 
 // Initialize Google Cloud Storage
 const storage = new Storage({
@@ -65,6 +66,22 @@ enableHybridSearch(rag);
  * Handles both user files (Knowledge Bank) and bot files (Knowledge Base)
  */
 class KnowledgeService {
+  // --- Indexing Recommendations ---
+  // For KnowledgeFile model:
+  // - Ensure indexes on:
+  //   - { ownerType: 1, ownerId: 1 } for efficient owner-based lookups.
+  //   - { folderId: 1, isActive: 1 } for file existence checks within folders.
+  //   - { ownerType: 1, ownerId: 1, folderId: 1, isActive: 1, createdAt: -1 } for getFolderContents and getFiles.
+  //   - { ownerType: 1, ownerId: 1, isActive: 1, isProcessed: 1 } for storage stats.
+  //   - { ownerType: 1, ownerId: 1, isActive: 1, processingStatus: 1 } for storage stats.
+  //   - { documentId: 1 } if rag.deleteDocument relies on this field for direct lookup.
+  //
+  // For KnowledgeFolder model:
+  // - Ensure indexes on:
+  //   - { userId: 1, isActive: 1 } for user-specific folder lookups.
+  //   - { userId: 1, parentFolderId: 1, name: 1 } for uniqueness checks and hierarchical queries.
+  //   - { parentFolderId: 1, isActive: 1 } for subfolder existence checks.
+
   /**
    * Upload file to knowledge system
    * @param {Object} file - Uploaded file object
@@ -94,6 +111,7 @@ class KnowledgeService {
 
       // Validate folder for user files
       if (ownerType === OWNER_TYPES.USER && options.folderId) {
+        // Optimization: Use .lean() for read-only validation query
         const folderQuery = {
           _id: options.folderId,
           userId: ownerId,
@@ -101,7 +119,7 @@ class KnowledgeService {
         };
         const folder = await KnowledgeFolder.findOne(
           req ? withTenantFilter(req, folderQuery) : folderQuery
-        );
+        ).lean();
         if (!folder) {
           throw new ApiError(
             httpStatus.NOT_FOUND,
@@ -162,6 +180,8 @@ class KnowledgeService {
 
       // Update folder stats for user files
       if (ownerType === OWNER_TYPES.USER && options.folderId) {
+        // Assuming updateStats is a Mongoose instance method, so .lean() cannot be used here.
+        // If updateStats only updates fields, consider using findByIdAndUpdate for efficiency.
         const folder = await KnowledgeFolder.findById(options.folderId);
         if (folder) {
           await folder.updateStats(1, file.size);
@@ -196,6 +216,7 @@ class KnowledgeService {
       logger.info(`[Knowledge] Processing file: ${fileId}`);
 
       // Get file record
+      // No .lean() here as we need to modify and save the document
       const fileRecord = await KnowledgeFile.findById(fileId);
       if (!fileRecord) {
         throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
@@ -219,6 +240,7 @@ class KnowledgeService {
         
         let filePath = fileRecord.gcsPath;
         if (!filePath) {
+          // Fallback path if gcsPath is not available
           filePath = path.join(process.cwd(), 'uploads', fileRecord.fileName);
         }
 
@@ -310,6 +332,7 @@ class KnowledgeService {
 
       // Mark as failed
       try {
+        // No .lean() here as we need to modify and save the document
         const fileRecord = await KnowledgeFile.findById(fileId);
         if (fileRecord) {
           await fileRecord.markProcessingFailed(error);
@@ -333,6 +356,8 @@ class KnowledgeService {
     try {
       logger.info(`[Knowledge] Retrieving files for ${ownerType}: ${ownerId}`);
 
+      // Optimization: Ensure KnowledgeFile.findByOwner uses .lean() internally
+      // for read-only operations to return plain JavaScript objects.
       const files = await KnowledgeFile.findByOwner(ownerType, ownerId, {
         fileType: filters.fileType,
         processingStatus: filters.processingStatus,
@@ -387,9 +412,10 @@ class KnowledgeService {
         isActive: true,
       };
 
+      // Optimization: Use .lean() for read-only query
       const file = await KnowledgeFile.findOne(
         req ? withTenantFilter(req, query) : query
-      );
+      ).lean();
 
       if (!file) {
         return null;
@@ -442,6 +468,7 @@ class KnowledgeService {
         isActive: true,
       };
 
+      // No .lean() here as we need the full document to call softDelete()
       const file = await KnowledgeFile.findOne(
         req ? withTenantFilter(req, query) : query
       );
@@ -455,6 +482,8 @@ class KnowledgeService {
 
       // Update folder stats if applicable
       if (file.ownerType === OWNER_TYPES.USER && file.folderId) {
+        // Assuming updateStats is a Mongoose instance method, so .lean() cannot be used here.
+        // If updateStats only updates fields, consider using findByIdAndUpdate for efficiency.
         const folder = await KnowledgeFolder.findById(file.folderId);
         if (folder) {
           await folder.updateStats(-1, -file.fileSize);
@@ -494,6 +523,8 @@ class KnowledgeService {
         `[Knowledge] Getting storage stats for ${ownerType}: ${ownerId}`
       );
 
+      // Optimization: Ensure KnowledgeFile.countByOwner and KnowledgeFile.getTotalStorageByOwner
+      // are implemented efficiently, e.g., using countDocuments or aggregation pipelines.
       const totalFiles = await KnowledgeFile.countByOwner(
         ownerType,
         ownerId,
@@ -576,6 +607,7 @@ class KnowledgeService {
 
       // Validate parent folder
       if (folderData.parentFolderId) {
+        // Optimization: Use .lean() for read-only validation query
         const parentQuery = {
           _id: folderData.parentFolderId,
           userId: userId,
@@ -583,13 +615,15 @@ class KnowledgeService {
         };
         const parentFolder = await KnowledgeFolder.findOne(
           req ? withTenantFilter(req, parentQuery) : parentQuery
-        );
+        ).lean();
         if (!parentFolder) {
           throw new ApiError(httpStatus.NOT_FOUND, 'Parent folder not found');
         }
       }
 
       // Check name uniqueness
+      // Optimization: Ensure KnowledgeFolder.nameExistsInParent uses .lean() internally
+      // for read-only operations.
       const nameExists = await KnowledgeFolder.nameExistsInParent(
         userId,
         folderData.name,
@@ -658,6 +692,8 @@ class KnowledgeService {
 
       let folders;
 
+      // Optimization: Ensure KnowledgeFolder.findRootFolders, findSubfolders,
+      // and findByUserId use .lean() internally for read-only operations.
       if (
         options.parentFolderId === null ||
         options.parentFolderId === 'root'
@@ -703,6 +739,8 @@ class KnowledgeService {
    */
   async getFolderById(folderId, userId, req = null) {
     try {
+      // Optimization: Ensure KnowledgeFolder.getFolderWithAncestors uses .lean() internally
+      // for read-only operations.
       const result = await KnowledgeFolder.getFolderWithAncestors(
         folderId,
         userId
@@ -755,6 +793,7 @@ class KnowledgeService {
         userId: userId,
         isActive: true,
       };
+      // No .lean() here as we need to modify and save the document
       const folder = await KnowledgeFolder.findOne(
         req ? withTenantFilter(req, folderQuery) : folderQuery
       );
@@ -765,6 +804,8 @@ class KnowledgeService {
 
       // Check name uniqueness if name changed
       if (updateData.name && updateData.name !== folder.name) {
+        // Optimization: Ensure KnowledgeFolder.nameExistsInParent uses .lean() internally
+        // for read-only operations.
         const nameExists = await KnowledgeFolder.nameExistsInParent(
           userId,
           updateData.name,
@@ -826,6 +867,7 @@ class KnowledgeService {
         userId: userId,
         isActive: true,
       };
+      // No .lean() here as we need the full document to call softDelete()
       const folder = await KnowledgeFolder.findOne(
         req ? withTenantFilter(req, folderQuery) : folderQuery
       );
@@ -835,11 +877,13 @@ class KnowledgeService {
       }
 
       // Check if folder has contents
+      // Optimization: .exists() is efficient, but ensure underlying query uses indexes.
       const hasFiles = await KnowledgeFile.exists({
         folderId: folderId,
         isActive: true,
       });
 
+      // Optimization: .exists() is efficient, but ensure underlying query uses indexes.
       const hasSubfolders = await KnowledgeFolder.exists({
         parentFolderId: folderId,
         isActive: true,
@@ -853,21 +897,20 @@ class KnowledgeService {
       }
 
       if (recursive) {
-        // Delete all files
-        const files = await KnowledgeFile.find({
-          folderId: folderId,
-          isActive: true,
-        });
+        // Optimization: Avoid N+1 query problem. Use updateMany for bulk soft deletion.
+        // This replaces fetching each file and calling file.softDelete() individually.
+        await KnowledgeFile.updateMany(
+          { folderId: folderId, isActive: true },
+          { $set: { isActive: false, deletedAt: new Date() } }
+        );
+        logger.info(`[Knowledge] Soft-deleted all files in folder: ${folderId}`);
 
-        for (const file of files) {
-          await file.softDelete();
-        }
-
-        // Delete all subfolders
+        // Recursively delete subfolders
+        // Optimization: Use .lean() to fetch only _id for recursive calls.
         const subfolders = await KnowledgeFolder.find({
           parentFolderId: folderId,
           isActive: true,
-        });
+        }).lean();
 
         for (const subfolder of subfolders) {
           await this.deleteFolder(subfolder._id.toString(), userId, true);
@@ -897,6 +940,8 @@ class KnowledgeService {
 
       // Get subfolders
       let subfolders;
+      // Optimization: Ensure KnowledgeFolder.findSubfolders and findRootFolders
+      // use .lean() internally for read-only operations.
       if (folderId) {
         subfolders = await KnowledgeFolder.findSubfolders(folderId, userId);
       } else {
@@ -904,16 +949,18 @@ class KnowledgeService {
       }
 
       // Get files
+      // Optimization: Use .lean() for read-only query
       const files = await KnowledgeFile.find({
         ownerType: OWNER_TYPES.USER,
         ownerId: userId,
         folderId: folderId || null,
         isActive: true,
-      }).sort({ createdAt: -1 });
+      }).sort({ createdAt: -1 }).lean();
 
       // Get folder details if not root
       let folderDetails = null;
       if (folderId) {
+        // This calls getFolderById, which has its own optimizations.
         folderDetails = await this.getFolderById(folderId, userId);
       }
 
