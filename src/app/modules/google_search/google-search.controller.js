@@ -24,7 +24,8 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
     });
   }
 
-  const user = await UserModel.findById(userId);
+  // Optimization: Added .lean() as we only need to check for user existence and don't modify the user object.
+  const user = await UserModel.findById(userId).lean();
   if (!user) {
     return sendResponse(res, {
       statusCode: httpStatus.NOT_FOUND,
@@ -71,6 +72,9 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
       total_time: result.usageMetadata?.totalTokenCount || 0,
     };
 
+    // Optimization: For the ChatHistory.findOne query, consider adding a compound index
+    // on { user: 1, sessionId: 1 } in the ChatHistory schema for better performance.
+    // Example: ChatHistorySchema.index({ user: 1, sessionId: 1 });
     let session = await ChatHistory.findOne({
       user: userId,
       sessionId: currentSessionId,
