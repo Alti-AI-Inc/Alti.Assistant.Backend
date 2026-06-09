@@ -10,7 +10,9 @@ const strategy = new GithubStrategy(
     proxy: true,
   },
   async (accessToken, refreshToken, profile, done) => {
-    console.log('profile: github: ', profile);
+    // In a production environment, avoid logging sensitive profile data directly to the console
+    // as it can pose a security risk if logs are not properly secured.
+    // console.log('profile: github: ', profile);
     try {
       const user = await findOrCreateUserModel(profile, 'github');
       return done(null, user);
