@@ -205,10 +205,15 @@ export const performDeepResearch = catchAsync(async (req, res) => {
 
   // Skip subscription check for guest users
   if (!isGuest) {
+    // Optimization: Use .lean() for read-only queries to improve performance by returning plain JavaScript objects instead of Mongoose documents.
+    // Recommendation: Ensure an index exists on `userId` and `createdAt` fields in the SubscriptionModel for efficient lookups and sorting.
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean(); // Added .lean()
     const promptUsage = userSubscription ? userSubscription.usage : 0;
+
+    // Optimization: If `conversationHelpers.getConversationById` performs a Mongoose query for read-only data,
+    // consider adding `.lean()` within that helper function for performance.
     const totalConversationWithConvId = conversationId
       ? await conversationHelpers.getConversationById(
           conversationId,
@@ -248,6 +253,8 @@ export const performDeepResearch = catchAsync(async (req, res) => {
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization: If `deepResearchService.handleDeepResearchConversation` performs a Mongoose query for read-only data,
+    // consider adding `.lean()` within that service function for performance.
     const conversation =
       await deepResearchService.handleDeepResearchConversation(
         userId,
@@ -280,6 +287,8 @@ export const performDeepResearch = catchAsync(async (req, res) => {
     console.log(`Starting deep research for query: "${message}"`);
 
     // Run the deep research agent
+    // Note: `runDeepResearchAgent` is an external AI workflow, its internal performance
+    // is outside the scope of this file's direct database/CPU optimizations.
     const result = await runDeepResearchAgent(message, {
       generatePdf,
       conversationId: actualConversationId,
@@ -471,6 +480,8 @@ const getDeepResearchStats = catchAsync(async (req, res) => {
     });
   }
 
+  // Optimization: If `deepResearchService.getDeepResearchStats` performs Mongoose queries for read-only data,
+  // consider adding `.lean()` within that service function for performance.
   const stats = await deepResearchService.getDeepResearchStats(userId, req);
 
   sendResponse(res, {
@@ -528,6 +539,10 @@ const downloadPDF = catchAsync(async (req, res) => {
   logger.info(`Deep research PDF download requested for savedId: ${savedId}`);
 
   try {
+    // Optimization: If `getResearchResultById` performs a Mongoose query for read-only data,
+    // consider adding `.lean()` within that service function for performance.
+    // Recommendation: Ensure an index exists on the field used for `savedId` lookup (e.g., `_id` or a custom `savedId` field)
+    // in the underlying research result model for efficient retrieval.
     const researchResult = await getResearchResultById(savedId);
 
     if (!researchResult) {
@@ -539,6 +554,9 @@ const downloadPDF = catchAsync(async (req, res) => {
     }
 
     // Compile PDF on the fly using stateless pdfService.js
+    // Note: PDF generation is a CPU-intensive task, but it's handled asynchronously
+    // by an external service. Optimizations here would involve the `generatePDFReport`
+    // implementation itself, which is outside the scope of this file.
     const pdfReport = await generatePDFReport({
       title: researchResult.title || 'AI Research Report',
       query: researchResult.query,
@@ -612,6 +630,10 @@ const downloadPPTX = catchAsync(async (req, res) => {
   logger.info(`Deep research PPTX download requested for savedId: ${savedId}`);
 
   try {
+    // Optimization: If `getResearchResultById` performs a Mongoose query for read-only data,
+    // consider adding `.lean()` within that service function for performance.
+    // Recommendation: Ensure an index exists on the field used for `savedId` lookup (e.g., `_id` or a custom `savedId` field)
+    // in the underlying research result model for efficient retrieval.
     const researchResult = await getResearchResultById(savedId);
 
     if (!researchResult) {
@@ -623,6 +645,9 @@ const downloadPPTX = catchAsync(async (req, res) => {
     }
 
     // Compile PPTX on the fly using stateless pptxService.js
+    // Note: PPTX generation is a CPU-intensive task, but it's handled asynchronously
+    // by an external service. Optimizations here would involve the `generatePPTXReport`
+    // implementation itself, which is outside the scope of this file.
     const pptxDeck = await generatePPTXReport({
       title: researchResult.title || 'AI Research Briefing',
       query: researchResult.query,
