@@ -34,10 +34,36 @@ import subscriptionService from '../subscription/subscription.service.js';
 // Recommendation: Add unique index to Tenant.subdomain for faster lookups and to enforce uniqueness.
 // Example: Tenant.schema.index({ subdomain: 1 }, { unique: true });
 
+/**
+ * Deletes a user account from the database.
+ *
+ * @param {string} userId - The ID of the user to delete.
+ * @returns {Promise<object>} A promise that resolves to the result of the delete operation.
+ */
 const deleteUserAccountService = async (userId) => {
   const result = await UserModel.deleteOne({ _id: userId });
   return result;
 };
+
+/**
+ * Handles user registration, including email verification, tenant invitation acceptance,
+ * and initial subscription creation.
+ *
+ * If an `invitationToken` is provided and valid, the user is automatically added to the tenant,
+ * marked as verified, and logged in directly. Otherwise, an email verification OTP is sent.
+ * A free subscription is created for new users if they don't have one.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.body - The request body containing user registration details.
+ * @param {string} req.body.email - The user's email address.
+ * @param {string} req.body.password - The user's password.
+ * @param {string} [req.body.tenantId] - Optional ID of the tenant if registering via an invitation link.
+ * @param {string} [req.body.invitationToken] - Optional invitation token for auto-accepting tenant invitations.
+ * @returns {Promise<object>} A promise that resolves to an object containing a message, status code,
+ *   and optionally user data, access token, and refresh token if auto-logged in.
+ * @throws {ApiError} If the email already exists (CONFLICT), password is not provided (BAD_REQUEST),
+ *   seat limit is reached (FORBIDDEN), or an unexpected error occurs (INTERNAL_SERVER_ERROR).
+ */
 const registerService = async (req) => {
   const session = await mongoose.startSession();
 
@@ -323,6 +349,13 @@ const registerService = async (req) => {
   }
 };
 
+/**
+ * Resends the email verification OTP to a user.
+ *
+ * @param {string} email - The email address of the user.
+ * @returns {Promise<object>} A promise that resolves to an object with a success message.
+ * @throws {ApiError} If the user is not found (NOT_FOUND) or the email is already verified (BAD_REQUEST).
+ */
 const resendEmailConfirmationService = async (email) => {
   // Optimization: Use .lean() as we only read user properties and don't modify the document.
   const user = await UserModel.findOne({ email }).lean();
@@ -348,6 +381,14 @@ const resendEmailConfirmationService = async (email) => {
   return { message: 'Verification email resent successfully' };
 };
 
+/**
+ * Confirms a user's email address using a verification code.
+ * Upon successful confirmation, the user's role is updated, and a free subscription is created if they don't have one.
+ *
+ * @param {string} confirmationCode - The 6-digit OTP received by the user.
+ * @returns {Promise<object>} A promise that resolves to an object indicating success.
+ * @throws {ApiError} If the token is invalid or expired (NOT_FOUND, UNAUTHORIZED), or user is not found (NOT_FOUND).
+ */
 const confirmEmailService = async (confirmationCode) => {
   // Optimization: Use .lean() as we only read token properties and delete it later.
   const token = await Token.findOne({
@@ -409,6 +450,20 @@ const confirmEmailService = async (confirmationCode) => {
   return { success: true };
 };
 
+/**
+ * Handles user login, including password verification, tenant resolution (via subdomain or invitation),
+ * auto-tenant creation for new users, and token generation.
+ *
+ * @param {string} email - The user's email address.
+ * @param {string} password - The user's password.
+ * @param {string} [tenantId=null] - Optional ID of the tenant to log into.
+ * @param {string} [invitationToken=null] - Optional invitation token for auto-accepting tenant invitations during login.
+ * @param {string} [subdomain=null] - Optional subdomain to identify the tenant.
+ * @returns {Promise<object>} A promise that resolves to an object containing user ID, access token,
+ *   refresh token, and a list of tenant memberships.
+ * @throws {ApiError} If email or password are not provided (BAD_REQUEST), user not found (NOT_FOUND),
+ *   email not verified (UNAUTHORIZED), invalid credentials (UNAUTHORIZED), or seat limit reached (FORBIDDEN).
+ */
 const loginService = async (
   email,
   password,
@@ -703,6 +758,15 @@ const loginService = async (
   };
 };
 
+/**
+ * Generates a new access token and a new refresh token using an existing valid refresh token.
+ * This process is often referred to as token rotation.
+ *
+ * @param {string} token - The existing refresh token.
+ * @returns {Promise<object>} A promise that resolves to an object containing the new access token,
+ *   the new refresh token, and the user's tenant memberships.
+ * @throws {ApiError} If the refresh token is invalid (FORBIDDEN) or the user does not exist (NOT_FOUND).
+ */
 const refreshToken = async (token) => {
   let verifiedToken;
   try {
@@ -763,6 +827,15 @@ const refreshToken = async (token) => {
   };
 };
 
+/**
+ * Updates a user's profile information.
+ * Prevents direct updates to email and password through this service.
+ *
+ * @param {string} userId - The ID of the user to update.
+ * @param {object} data - An object containing the fields to update.
+ * @returns {Promise<object>} A promise that resolves to the result of the update operation.
+ * @throws {ApiError} If the user is not found (NOT_FOUND) or no valid fields are provided for update (BAD_REQUEST).
+ */
 const updateUserService = async (userId, data) => {
   // Optimization: Use .lean() as we only check for existence and don't modify the document.
   const user = await UserModel.findOne({ _id: userId }).lean();
@@ -783,6 +856,13 @@ const updateUserService = async (userId, data) => {
   return result;
 };
 
+/**
+ * Retrieves a user's profile by their ID.
+ *
+ * @param {string} userId - The ID of the user to retrieve.
+ * @returns {Promise<object>} A promise that resolves to the user document.
+ * @throws {ApiError} If the user is not found (NOT_FOUND).
+ */
 const getUserService = async (userId) => {
   // Optimization: Use .lean() as the user document is likely just returned as JSON.
   const user = await UserModel.findOne({ _id: userId }).lean();
@@ -792,6 +872,22 @@ const getUserService = async (userId) => {
   return user;
 };
 
+/**
+ * @typedef {object} AuthService
+ * @property {function(string): Promise<object>} deleteUserAccountService - Deletes a user account.
+ * @property {function(object): Promise<object>} registerService - Handles user registration.
+ * @property {function(string): Promise<object>} confirmEmailService - Confirms a user's email.
+ * @property {function(string): Promise<object>} resendEmailConfirmationService - Resends email verification.
+ * @property {function(string, string, string?, string?, string?): Promise<object>} loginService - Handles user login.
+ * @property {function(string): Promise<object>} refreshToken - Generates new access and refresh tokens.
+ * @property {function(string, object): Promise<object>} updateUserService - Updates a user's profile.
+ * @property {function(string): Promise<object>} getUserService - Retrieves a user's profile.
+ */
+
+/**
+ * Exported object containing all authentication-related service functions.
+ * @type {AuthService}
+ */
 export const authService = {
   deleteUserAccountService,
   registerService,
