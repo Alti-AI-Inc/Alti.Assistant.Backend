@@ -4,75 +4,85 @@ import auth from '../../../middlewares/auth/auth.js';
 
 const router = express.Router();
 
+// Utility to wrap async controller functions for error handling.
+// This ensures that any errors (rejected promises) from async controllers
+// are caught and passed to Express's error handling middleware, preventing
+// unhandled promise rejections from crashing the application.
+const catchAsync = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 // Connection health monitoring routes
 router.get(
   '/connections/health',
   auth(),
-  executionController.getConnectionHealthController
+  catchAsync(executionController.getConnectionHealthController)
 );
 router.post(
   '/connections/refresh',
   auth(),
-  executionController.refreshConnectionController
+  catchAsync(executionController.refreshConnectionController)
 );
 
 // Workflow execution routes
 router.post(
   '/:workflowId/execute',
   auth(),
-  executionController.executeWorkflowController
+  catchAsync(executionController.executeWorkflowController)
 );
 router.get(
   '/:workflowId/executions',
   auth(),
-  executionController.getExecutionHistoryController
+  catchAsync(executionController.getExecutionHistoryController)
 );
 router.get(
   '/executions/:executionId',
   auth(),
-  executionController.getExecutionDetailsController
+  catchAsync(executionController.getExecutionDetailsController)
 );
 router.post(
   '/executions/:executionId/cancel',
   auth(),
-  executionController.cancelExecutionController
+  catchAsync(executionController.cancelExecutionController)
 );
 router.post(
   '/executions/:executionId/replay',
   auth(),
-  executionController.replayExecutionController
+  catchAsync(executionController.replayExecutionController)
 );
 
 // Human-in-the-loop approvals routes
 router.get(
   '/approvals/pending',
   auth(),
-  executionController.getPendingApprovalsController
+  catchAsync(executionController.getPendingApprovalsController)
 );
 router.post(
   '/approvals/:approvalId/resolve',
   auth(),
-  executionController.resolveApprovalController
+  catchAsync(executionController.resolveApprovalController)
 );
 
 // Workflow scheduling routes
 router.post(
   '/:workflowId/schedule',
   auth(),
-  executionController.scheduleWorkflowController
+  catchAsync(executionController.scheduleWorkflowController)
 );
 router.post(
   '/:workflowId/unschedule',
   auth(),
-  executionController.unscheduleWorkflowController
+  catchAsync(executionController.unscheduleWorkflowController)
 );
 
 // Public dynamic webhook trigger route
+// This route is intentionally public and does not require authentication.
+// The controller `handleWebhookTriggerController` should implement its own
+// security measures (e.g., secret validation, signature verification)
+// to prevent unauthorized triggers.
 router.post(
   '/webhooks/:webhookId',
-  executionController.handleWebhookTriggerController
+  catchAsync(executionController.handleWebhookTriggerController)
 );
 
 export const executionRoutes = router;
-
-
