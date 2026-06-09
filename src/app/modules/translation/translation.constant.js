@@ -1,11 +1,30 @@
-// Translation API configuration
+/**
+ * @fileoverview Configuration constants for the translation module.
+ * This file defines various settings, supported languages, file formats,
+ * and messages used throughout the translation service.
+ */
+
+/**
+ * @typedef {object} TranslationConfig
+ * @property {string} PROJECT_ID - The Google Cloud Project ID used for translation services.
+ *                                 Defaults to an empty string if not set in environment variables.
+ * @property {boolean} USE_GOOGLE_TRANSLATE - Flag indicating whether to use Google Cloud Translation API.
+ */
+
+/**
+ * Translation API configuration settings.
+ * @type {TranslationConfig}
+ */
 export const TRANSLATION_CONFIG = {
   // Using Google Cloud Translation API
   PROJECT_ID: process.env.GOOGLE_CLOUD_PROJECT_ID || '',
   USE_GOOGLE_TRANSLATE: true,
 };
 
-// Supported languages (ISO 639-1 codes)
+/**
+ * Supported languages for translation, represented by ISO 639-1 codes.
+ * @type {object.<string, string>}
+ */
 export const SUPPORTED_LANGUAGES = {
   ENGLISH: 'en',
   SPANISH: 'es',
@@ -44,7 +63,10 @@ export const SUPPORTED_LANGUAGES = {
   SWAHILI: 'sw',
 };
 
-// Language names for display
+/**
+ * Human-readable names for supported languages, mapped by their ISO 639-1 codes.
+ * @type {object.<string, string>}
+ */
 export const LANGUAGE_NAMES = {
   en: 'English',
   es: 'Spanish',
@@ -83,7 +105,10 @@ export const LANGUAGE_NAMES = {
   sw: 'Swahili',
 };
 
-// Supported document formats
+/**
+ * List of supported document file extensions for translation.
+ * @type {string[]}
+ */
 export const SUPPORTED_DOCUMENT_FORMATS = [
   '.txt',
   '.docx',
@@ -95,7 +120,10 @@ export const SUPPORTED_DOCUMENT_FORMATS = [
   '.xlsx',
 ];
 
-// MIME types for document validation
+/**
+ * List of allowed MIME types for document uploads, corresponding to supported formats.
+ * @type {string[]}
+ */
 export const ALLOWED_MIME_TYPES = [
   'text/plain',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -107,13 +135,26 @@ export const ALLOWED_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
-// File size limits
+/**
+ * @typedef {object} FileSizeLimits
+ * @property {number} MAX_FILE_SIZE - Maximum allowed file size for document uploads in bytes (10MB).
+ * @property {number} MAX_TEXT_LENGTH - Maximum allowed character length for direct text input (100,000 characters).
+ */
+
+/**
+ * Defines file and text size limits for translation requests.
+ * @type {FileSizeLimits}
+ */
 export const FILE_SIZE_LIMITS = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   MAX_TEXT_LENGTH: 100000, // 100K characters for direct text input
 };
 
-// Intent types for conversation handling
+/**
+ * Defines different intent types for translation-related conversation handling.
+ * These intents categorize user requests.
+ * @type {object.<string, string>}
+ */
 export const TRANSLATION_INTENTS = {
   TRANSLATE_TEXT: 'translate_text',
   TRANSLATE_FILE: 'translate_file',
@@ -122,7 +163,10 @@ export const TRANSLATION_INTENTS = {
   GENERAL_QUESTION: 'general_question',
 };
 
-// Required parameters for each intent
+/**
+ * Maps each translation intent to an array of parameters required for that intent.
+ * @type {object.<string, string[]>}
+ */
 export const REQUIRED_PARAMS = {
   [TRANSLATION_INTENTS.TRANSLATE_TEXT]: ['text', 'targetLanguage'],
   [TRANSLATION_INTENTS.TRANSLATE_FILE]: ['targetLanguage'],
@@ -130,18 +174,35 @@ export const REQUIRED_PARAMS = {
   [TRANSLATION_INTENTS.GET_SUPPORTED_LANGUAGES]: [],
 };
 
-// Optional parameters with defaults
+/**
+ * Defines default values for optional translation parameters.
+ * @type {object}
+ * @property {string} sourceLanguage - Default source language ('auto' for auto-detection).
+ * @property {boolean} preserveFormatting - Whether to preserve formatting in translated text.
+ * @property {?string} glossary - Optional glossary ID to use for translation.
+ */
 export const DEFAULT_PARAMS = {
   sourceLanguage: 'auto', // Auto-detect
   preserveFormatting: true,
   glossary: null,
 };
 
-// Conversation context metadata
+/**
+ * Category identifier for translation-related conversations.
+ * @type {string}
+ */
 export const CONVERSATION_CATEGORY = 'translation';
+
+/**
+ * Model identifier for the translation assistant.
+ * @type {string}
+ */
 export const CONVERSATION_MODEL = 'translation-assistant';
 
-// Task status
+/**
+ * Defines possible statuses for a translation task.
+ * @type {object.<string, string>}
+ */
 export const TASK_STATUS = {
   PENDING: 'pending',
   PROCESSING: 'processing',
@@ -149,7 +210,10 @@ export const TASK_STATUS = {
   FAILED: 'failed',
 };
 
-// Error messages
+/**
+ * Collection of user-facing error messages for various translation scenarios.
+ * @type {object.<string, string>}
+ */
 export const ERROR_MESSAGES = {
   NO_TEXT_OR_FILE: 'Please provide text to translate or upload a document',
   INVALID_LANGUAGE:
@@ -163,13 +227,28 @@ export const ERROR_MESSAGES = {
   MISSING_TARGET_LANGUAGE: 'Please specify the target language for translation',
 };
 
-// Success messages
+/**
+ * Collection of user-facing success messages for translation operations.
+ * @type {object.<string, string>}
+ */
 export const SUCCESS_MESSAGES = {
   TRANSLATION_COMPLETED: 'Translation completed successfully',
   LANGUAGE_DETECTED: 'Language detected successfully',
 };
 
-// File storage configuration
+/**
+ * @typedef {object} StorageConfig
+ * @property {string} UPLOAD_FOLDER - The base folder name for storing uploaded files.
+ * @property {string} TEMP_FOLDER - The temporary folder path for file uploads before processing.
+ * @property {string} GCS_BUCKET - The Google Cloud Storage bucket name for persistent storage.
+ *                                 Defaults to an empty string if not set in environment variables.
+ * @property {number} MAX_CACHED_TEXT_SIZE - Maximum size of text content (in bytes) to cache directly in metadata.
+ */
+
+/**
+ * Configuration settings for file storage related to translation documents.
+ * @type {StorageConfig}
+ */
 export const STORAGE_CONFIG = {
   UPLOAD_FOLDER: 'translations',
   TEMP_FOLDER: 'uploads/translations',

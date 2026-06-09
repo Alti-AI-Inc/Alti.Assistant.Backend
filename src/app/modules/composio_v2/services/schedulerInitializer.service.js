@@ -94,10 +94,12 @@ class SchedulerInitializer {
       logger.info('Loading active scheduled workflows...');
 
       // Get all active scheduled workflows
+      // Optimization: Added .lean() for performance as these documents are read-only.
+      // Indexing Recommendation: Consider a compound index on { isActive: 1, nextRun: 1 } for this query.
       const activeWorkflows = await ScheduledWorkflow.find({
         isActive: true,
         nextRun: { $gt: new Date() }, // Only workflows with future runs
-      });
+      }).lean();
 
       let scheduledCount = 0;
       let errorCount = 0;
@@ -393,7 +395,9 @@ class SchedulerInitializer {
       logger.info(`Manual execution requested for workflow: ${workflowId}`);
 
       // Get workflow
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
+      // Optimization: Added .lean() for performance as this document is read-only.
+      // Indexing Recommendation: Consider a compound index on { workflowId: 1, userId: 1 } for this query.
+      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
 
       if (!workflow) {
         return {
@@ -450,7 +454,9 @@ class SchedulerInitializer {
     try {
       logger.warn(`Emergency execution for workflow: ${workflowId}`);
 
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
+      // Optimization: Added .lean() for performance as this document is read-only.
+      // Indexing Recommendation: Consider a compound index on { workflowId: 1, userId: 1 } for this query.
+      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
 
       if (!workflow) {
         return {
