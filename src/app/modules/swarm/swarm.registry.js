@@ -15,6 +15,12 @@ export const registerAgent = (agentProfile) => {
   if (!agentProfile.id) {
     throw new Error('Agent profile must contain a unique id');
   }
+  // Bug fix: Prevent silent overwriting of existing agents.
+  // A registry should enforce unique identifiers or explicitly handle duplicates.
+  if (SWARM_REGISTRY[agentProfile.id]) {
+    throw new Error(`Agent with ID "${agentProfile.id}" already exists in the registry. Cannot register duplicate.`);
+  }
+
   SWARM_REGISTRY[agentProfile.id] = {
     ...agentProfile,
     tools: agentProfile.tools || [],
