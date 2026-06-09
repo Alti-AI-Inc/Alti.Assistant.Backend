@@ -9,6 +9,8 @@ import config from '../../../../config/index.js';
  * @returns {Promise<string>} A promise that resolves to the generated 6-digit OTP.
  */
 export const generateOTP = async () => {
+  // otpGenerator.generate is a synchronous function, but awaiting it doesn't cause harm
+  // and might be kept for future-proofing if the library ever changes to return a Promise.
   const otp = await otpGenerator.generate(6, {
     lowerCaseAlphabets: false,
     upperCaseAlphabets: false,
@@ -21,15 +23,14 @@ export const generateOTP = async () => {
  * Creates an HTML email template for user registration verification.
  * This template includes a verification code (OTP) and a direct verification link.
  *
- * @async
  * @param {string} email - The email address of the user to whom the email will be sent.
  * @param {string} token - The 6-digit verification token (OTP) to be included in the email.
- * @returns {Promise<object>} A promise that resolves to an object containing the email data:
+ * @returns {object} An object containing the email data:
  *   - `userEmail`: The recipient's email address.
  *   - `sub`: The subject of the email.
  *   - `message`: The HTML content of the email.
  */
-export const registrationOtpTemplate = async (email, token) => {
+export const registrationOtpTemplate = (email, token) => { // Removed 'async' as no await operations are performed
   const frontendUrl = config.client_url || 'https://altiassistant.com';
   const verificationLink = `${frontendUrl}/register?code=${token}`;
 
@@ -63,16 +64,15 @@ export const registrationOtpTemplate = async (email, token) => {
  * Creates an HTML email template for forgotten password OTP verification.
  * This template provides the user with a One-Time Password to reset their password.
  *
- * @async
  * @param {string} email - The email address of the user to whom the email will be sent.
  * @param {object} user - The user object, expected to contain at least a `username` property.
  * @param {string} OTP - The One-Time Password to be included in the email for password reset.
- * @returns {Promise<object>} A promise that resolves to an object containing the email data:
+ * @returns {object} An object containing the email data:
  *   - `userEmail`: The recipient's email address.
  *   - `sub`: The subject of the email.
  *   - `message`: The HTML content of the email.
  */
-export const forgetPassOtpTemplate = async (email, user, OTP) => {
+export const forgetPassOtpTemplate = (email, user, OTP) => { // Removed 'async' as no await operations are performed
   const mailData = {
     userEmail: email,
     sub: 'Verify Your One-Time Password (OTP)', // Clear and informative subject
@@ -105,15 +105,14 @@ export const forgetPassOtpTemplate = async (email, user, OTP) => {
  * Creates an HTML email template for account deletion OTP verification.
  * This template provides the user with a One-Time Password to confirm their account deletion request.
  *
- * @async
  * @param {object} user - The user object, expected to contain `email` and `username` properties.
  * @param {string} OTP - The One-Time Password to be included in the email for account deletion confirmation.
- * @returns {Promise<object>} A promise that resolves to an object containing the email data:
+ * @returns {object} An object containing the email data:
  *   - `userEmail`: The recipient's email address.
  *   - `sub`: The subject of the email.
  *   - `message`: The HTML content of the email.
  */
-export const deleteUserOtpTemplate = async (user, OTP) => {
+export const deleteUserOtpTemplate = (user, OTP) => { // Removed 'async' as no await operations are performed
   const mailData = {
     userEmail: user?.email,
     sub: 'Delete Account OTP',
