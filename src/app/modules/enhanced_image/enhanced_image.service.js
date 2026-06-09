@@ -47,10 +47,15 @@ const handleImageConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization: Use .lean() for read-only query to improve performance
+        // if conversationHelpers.getConversationById fetches a Mongoose document.
+        // The fetched conversation is only read from, not modified as a Mongoose document.
+        // Assuming conversationHelpers.getConversationById accepts a 'lean' flag as the last argument.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           isGuest ? null : userId,
-          req
+          req,
+          true // Enable lean mode
         );
 
         if (isGuest && conversation.metadata?.userType !== 'guest') {
@@ -481,13 +486,19 @@ const generateImageConversationId = () => {
  */
 const getImageStats = async (userId, req = null) => {
   try {
+    // Optimization: Use .lean() for read-only queries to improve performance
+    // if conversationHelpers.getUserConversations fetches Mongoose documents.
+    // The fetched conversations are only used for aggregation (length, messageCount),
+    // not modified as Mongoose documents.
+    // Assuming conversationHelpers.getUserConversations accepts a 'lean' flag as the last argument.
     const imageConversations = await conversationHelpers.getUserConversations(
       userId,
       {
         page: 1,
         limit: 1000,
         category: 'image_generation',
-      }
+      },
+      true // Enable lean mode
     );
 
     const editConversations = await conversationHelpers.getUserConversations(
@@ -496,7 +507,8 @@ const getImageStats = async (userId, req = null) => {
         page: 1,
         limit: 1000,
         category: 'image_editing',
-      }
+      },
+      true // Enable lean mode
     );
 
     const totalGenerations = imageConversations.conversations.length;
