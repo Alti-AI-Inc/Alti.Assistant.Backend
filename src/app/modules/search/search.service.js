@@ -42,12 +42,17 @@ const handleSearchConversation = async (
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
+        // FIX: Potential IDOR vulnerability. The `userId` parameter for `getConversationById`
+        // should always be provided to ensure ownership verification, even for guest users.
+        // `userId` for guest users is their generated unique ID, not `null`.
+        // The `getConversationById` function is expected to verify that the `conversationId`
+        // belongs to the provided `userId`.
         // Optimization Note: If conversationHelpers.getConversationById only reads data
         // and doesn't modify the Mongoose document in this context, consider adding .lean()
         // to the query within getConversationById for better performance by returning a plain JS object.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
-          isGuest ? null : userId,
+          userId, // Always pass userId for ownership verification
           req
         );
 
@@ -374,7 +379,11 @@ const updateConversationTitle = async (
  * @returns {string}
  */
 const generateSearchConversationId = () => {
-  return `search-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // FIX: Inconsistent conversation ID generation. If conversation IDs are expected
+  // to be MongoDB ObjectIds (as implied by `generateGuestUserId`), this function
+  // should also generate a valid ObjectId to prevent Mongoose validation/cast errors
+  // when creating new conversations.
+  return new mongoose.Types.ObjectId().toString();
 };
 
 /**
