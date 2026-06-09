@@ -1,6 +1,19 @@
 import ActionAuditLog from './models/actionAuditLog.model.js';
 import { logger } from '../../../shared/logger.js';
 
+// In your ActionAuditLog model definition (e.g., actionAuditLog.model.js),
+// consider adding the following indexes for optimal query and aggregation performance:
+
+// 1. For `getUserAuditLog` (filtering by userId, optional app/status, sorting by createdAt):
+//    db.actionauditlogs.createIndex({ userId: 1, createdAt: -1 });
+//    If 'app' is frequently filtered alongside userId:
+//    db.actionauditlogs.createIndex({ userId: 1, app: 1, createdAt: -1 });
+//    If 'status' is frequently filtered alongside userId:
+//    db.actionauditlogs.createIndex({ userId: 1, status: 1, createdAt: -1 });
+
+// 2. For `getUserAnalytics` (all aggregations start with userId and createdAt range):
+//    db.actionauditlogs.createIndex({ userId: 1, createdAt: 1 });
+
 /**
  * Action Audit Service
  * 
