@@ -13,7 +13,13 @@ import {
 import { MongoDBSaver } from './mongodbSaver.js';
 import { logger } from '../../../../shared/logger.js';
 
-// Create the workflow automation graph
+/**
+ * Represents the core workflow automation graph using LangGraph's StateGraph.
+ * This graph defines the sequence of operations for processing a user's request,
+ * from intent analysis to workflow execution and response generation.
+ *
+ * @type {StateGraph<import('./state.js').WorkflowAutomationState>}
+ */
 const workflow = new StateGraph({ channels: workflowAutomationState });
 
 // Add nodes to the workflow
@@ -29,7 +35,11 @@ workflow.addNode('generate_response', generateResponseNode);
 // Define the workflow edges
 workflow.addEdge(START, 'analyze_intent');
 
-// Route from intent analysis
+/**
+ * Routes the workflow from 'analyze_intent'.
+ * If an error occurred during intent analysis, it transitions to 'generate_response'.
+ * Otherwise, it proceeds to 'plan_workflow'.
+ */
 workflow.addConditionalEdges(
   'analyze_intent',
   (state) => {
@@ -42,7 +52,11 @@ workflow.addConditionalEdges(
   }
 );
 
-// Route from workflow planning
+/**
+ * Routes the workflow from 'plan_workflow'.
+ * If an error occurred during workflow planning, it transitions to 'generate_response'.
+ * Otherwise, it proceeds to 'schedule_detection'.
+ */
 workflow.addConditionalEdges(
   'plan_workflow',
   (state) => {
@@ -55,7 +69,11 @@ workflow.addConditionalEdges(
   }
 );
 
-// Route from schedule detection
+/**
+ * Routes the workflow from 'schedule_detection'.
+ * If an error occurred during schedule detection, it transitions to 'generate_response'.
+ * Otherwise, it proceeds to 'extract_parameters'.
+ */
 workflow.addConditionalEdges(
   'schedule_detection',
   (state) => {
@@ -68,7 +86,11 @@ workflow.addConditionalEdges(
   }
 );
 
-// Route from parameter extraction
+/**
+ * Routes the workflow from 'extract_parameters'.
+ * If an error occurred during parameter extraction, it transitions to 'generate_response'.
+ * Otherwise, it proceeds to 'validate_workflow'.
+ */
 workflow.addConditionalEdges(
   'extract_parameters',
   (state) => {
@@ -81,7 +103,13 @@ workflow.addConditionalEdges(
   }
 );
 
-// Route from validation: execute if valid & all apps connected, auto-heal if invalid, else confirm
+/**
+ * Routes the workflow from 'validate_workflow'.
+ * - If an error occurred, it transitions to 'generate_response'.
+ * - If the workflow plan is valid and all necessary connections are present, it proceeds to 'execute_workflow'.
+ * - If the plan is invalid and has not been healed yet, it transitions to 'auto_heal'.
+ * - Otherwise (e.g., valid plan but missing connections requiring user confirmation), it transitions to 'generate_response'.
+ */
 workflow.addConditionalEdges(
   'validate_workflow',
   (state) => {
@@ -109,21 +137,56 @@ workflow.addConditionalEdges(
   }
 );
 
-// Route from auto-healing back to validation for checking the repaired plan
+/**
+ * Defines an edge from 'auto_heal' back to 'validate_workflow'.
+ * After an attempt to auto-heal the workflow, it re-validates the repaired plan.
+ */
 workflow.addEdge('auto_heal', 'validate_workflow');
 
-// Route from execution to response generation
+/**
+ * Defines an edge from 'execute_workflow' to 'generate_response'.
+ * After successful execution of the workflow, it proceeds to generate a final response.
+ */
 workflow.addEdge('execute_workflow', 'generate_response');
 
-// End the workflow
+/**
+ * Defines the final edge from 'generate_response' to END.
+ * This marks the completion of the workflow automation process.
+ */
 workflow.addEdge('generate_response', END);
 
-// Compile the workflow with MongoDB persistence
+/**
+ * An instance of MongoDBSaver used as a checkpointer for persisting workflow states.
+ * This allows for resuming conversations and tracking workflow progress.
+ * @type {MongoDBSaver}
+ */
 const checkpointer = new MongoDBSaver();
+
+/**
+ * The compiled workflow automation graph.
+ * This is the executable instance of the workflow, configured with a MongoDB checkpointer
+ * for state persistence across invocations.
+ *
+ * @type {import('@langchain/langgraph').CompiledStateGraph<import('./state.js').WorkflowAutomationState>}
+ */
 export const workflowAutomationGraph = workflow.compile({ checkpointer });
 
 /**
- * Process a user prompt through the workflow automation pipeline
+ * Processes a user prompt through the workflow automation pipeline.
+ * This function initiates a new workflow thread or links to an existing one,
+ * guiding the request through intent analysis, planning, validation, and execution.
+ *
+ * @param {string} userPrompt - The initial prompt or request from the user.
+ * @param {string} userId - The ID of the user initiating the request.
+ * @param {string} [conversationId=null] - Optional. An existing conversation ID to link this request to.
+ *                                         If null, a new unique conversation ID will be generated.
+ * @returns {Promise<{
+ *   success: boolean,
+ *   result?: object,
+ *   conversationId: string,
+ *   error?: string
+ * }>} An object containing the success status, the final workflow result,
+ *     the conversation ID, and an error message if applicable.
  */
 export const processWorkflowRequest = async (
   userPrompt,
@@ -170,7 +233,20 @@ export const processWorkflowRequest = async (
 };
 
 /**
- * Continue a conversation in an existing workflow thread
+ * Continues an existing conversation within a workflow thread.
+ * This function retrieves the current state of a specified conversation and
+ * updates it with new user input, then re-invokes the workflow.
+ *
+ * @param {string} userInput - The new input from the user to continue the conversation.
+ * @param {string} conversationId - The ID of the existing conversation thread to continue.
+ * @param {string} userId - The ID of the user continuing the conversation.
+ * @returns {Promise<{
+ *   success: boolean,
+ *   result?: object,
+ *   conversationId: string,
+ *   error?: string
+ * }>} An object containing the success status, the final workflow result,
+ *     the conversation ID, and an error message if applicable.
  */
 export const continueWorkflowConversation = async (
   userInput,
@@ -226,7 +302,16 @@ export const continueWorkflowConversation = async (
 };
 
 /**
- * Get the current state of a workflow conversation
+ * Retrieves the current state of a specific workflow conversation.
+ * This allows for inspecting the progress and data within an ongoing workflow.
+ *
+ * @param {string} conversationId - The ID of the conversation thread whose state is to be retrieved.
+ * @returns {Promise<{
+ *   success: boolean,
+ *   state: object | null,
+ *   error?: string
+ * }>} An object containing the success status and the current state values of the conversation,
+ *     or null if the conversation is not found or an error occurs.
  */
 export const getWorkflowConversationState = async (conversationId) => {
   try {
