@@ -9,8 +9,12 @@ import config from '../../../../../config/index.js';
  */
 class VertexAiService {
   constructor() {
+    // Ensure API key is present for GoogleGenAI initialization
+    if (!config.gemini_secret_key) {
+      throw new Error('GEMINI_SECRET_KEY is not configured. Please ensure config/index.js or environment variables are set correctly.');
+    }
     this.ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
-    this.initialized = true;
+    // this.initialized flag was redundant and has been removed.
   }
 
   /**
@@ -21,6 +25,12 @@ class VertexAiService {
    */
   async searchVertexStore(query, datastoreId = null) {
     console.log(`🔍 Executing Vertex AI Search Datastore Grounding: "${query}"`);
+    // SECURITY NOTE: The 'datastoreId' parameter is directly used to specify the Vertex AI datastore.
+    // Ensure that 'datastoreId' is either derived from a trusted source (e.g., internal configuration)
+    // or thoroughly validated against the requesting user's authorized datastores by the calling
+    // service/API endpoint to prevent Insecure Direct Object Reference (IDOR) vulnerabilities.
+    // The underlying Google Cloud permissions will enforce access, but application-level validation
+    // provides a stronger defense-in-depth.
     const datastore = datastoreId || process.env.VERTEX_AI_DATASTORE_ID || `projects/${config.google.gcp_project_id || 'alti-gcp-project'}/locations/global/collections/default_collection/dataStores/alti-knowledge-base`;
     console.log(`📍 Scoping search to Datastore: ${datastore}`);
 
