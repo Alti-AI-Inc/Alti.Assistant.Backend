@@ -158,10 +158,15 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
+    // Optimization: Use .lean() for read-only queries to improve performance
+    // Recommendation: Add an index on { userId: 1, createdAt: -1 } to the SubscriptionModel for faster lookups and sorting.
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean(); // Added .lean()
     const promptUsage = userSubscription ? userSubscription.usage : 0;
+
+    // Recommendation: Ensure conversationHelpers.getConversationById also uses .lean() if it fetches a Mongoose document
+    // and consider adding appropriate indexes (e.g., on conversationId, userId) to the underlying conversation model.
     const totalConversationWithConvId = conversationId
       ? await conversationHelpers.getConversationById(
           conversationId,
@@ -197,6 +202,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   }
 
   try {
+    // Recommendation: Ensure articleWriterService.processConversationalRequest
+    // optimizes its internal database queries with .lean() and appropriate indexing.
     const result = await articleWriterService.processConversationalRequest(
       userId,
       message,
@@ -310,6 +317,8 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
+    // Recommendation: Ensure articleWriterService.getConversationHistory uses .lean() for read-only queries
+    // and has appropriate indexes (e.g., on conversationId, userId) on the underlying conversation message model.
     const conversation = await articleWriterService.getConversationHistory(
       conversationId,
       userId
