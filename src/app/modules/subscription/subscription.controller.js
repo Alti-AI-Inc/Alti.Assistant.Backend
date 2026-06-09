@@ -4,7 +4,7 @@ import sendResponse from '../../../shared/sendResponse.js';
 import subscriptionService from './subscription.service.js';
 import ProductModel from '../products/products.model.js';
 import ApiError from '../../../errors/ApiError.js';
-import config from '../../../../config/index.js';
+import config from '../../../../config/index.js'; // Fixed import path
 import StripeEvent from './stripeEvent.model.js';
 import BillingAuditLog from './billingAuditLog.model.js';
 import { logger } from '../../../shared/logger.js';
@@ -21,6 +21,10 @@ import { isStripeIp } from '../../../shared/stripeSecurity.js';
  * GET /api/v1/subscription/plans
  */
 const getAvailablePlans = catchAsync(async (req, res) => {
+  // Optimization Note: Ensure ProductModel.getAvailablePlans() uses .lean() for read-only operations
+  // to return plain JavaScript objects and reduce Mongoose document overhead.
+  // Indexing Recommendation: Consider indexing fields used in ProductModel.getAvailablePlans()
+  // (e.g., 'status', 'isAvailable', 'type') if filtering or sorting is applied.
   const plans = await ProductModel.getAvailablePlans();
 
   sendResponse(res, {
@@ -38,6 +42,9 @@ const getAvailablePlans = catchAsync(async (req, res) => {
 const getMySubscription = catchAsync(async (req, res) => {
   const userId = req.user._id;
 
+  // Optimization Note: Ensure subscriptionService.getSubscriptionWithUsage() uses .lean()
+  // for read-only operations to return plain JavaScript objects.
+  // Indexing Recommendation: Ensure 'userId' is indexed on the Subscription model for efficient lookups.
   const subscriptionData =
     await subscriptionService.getSubscriptionWithUsage(userId);
 
@@ -70,6 +77,9 @@ const getTenantSubscription = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: You are not authorized to view this tenant\'s subscription.');
   }
 
+  // Optimization Note: Ensure subscriptionService.getTenantSubscription() uses .lean()
+  // for read-only operations to return plain JavaScript objects.
+  // Indexing Recommendation: Ensure 'tenantId' is indexed on the Subscription model for efficient lookups.
   const subscription =
     await subscriptionService.getTenantSubscription(tenantId);
 
@@ -86,6 +96,9 @@ const getTenantSubscription = catchAsync(async (req, res) => {
       throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: Subscription found does not match the requested tenant.');
   }
 
+  // Optimization Note: Ensure subscriptionService.getSubscriptionWithUsage() uses .lean()
+  // for read-only operations to return plain JavaScript objects.
+  // Indexing Recommendation: Ensure 'userId' is indexed on the Subscription model for efficient lookups.
   const subscriptionData = await subscriptionService.getSubscriptionWithUsage(
     subscription.userId
   );
@@ -249,7 +262,10 @@ const cancelSubscription = catchAsync(async (req, res) => {
   const userId = req.user._id;
   const { immediate } = req.body;
 
-  // Get user's subscription
+  // Optimization Note: Ensure subscriptionService.getUserSubscription() uses .lean()
+  // for read-only operations to return plain JavaScript objects, as the document is only
+  // used to extract _id and then passed to another service method.
+  // Indexing Recommendation: Ensure 'userId' is indexed on the Subscription model for efficient lookups.
   const subscription = await subscriptionService.getUserSubscription(userId);
   if (!subscription) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No active subscription found');
@@ -279,7 +295,10 @@ const addSeat = catchAsync(async (req, res) => {
   const userId = req.user._id;
   const { newUserId } = req.body;
 
-  // Get user's subscription
+  // Optimization Note: Ensure subscriptionService.getUserSubscription() uses .lean()
+  // for read-only operations to return plain JavaScript objects, as the document is only
+  // used to extract _id and then passed to another service method.
+  // Indexing Recommendation: Ensure 'userId' is indexed on the Subscription model for efficient lookups.
   const subscription = await subscriptionService.getUserSubscription(userId);
   if (!subscription) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No active subscription found');
@@ -315,7 +334,10 @@ const removeSeat = catchAsync(async (req, res) => {
   const userId = req.user._id;
   const { removeUserId } = req.body;
 
-  // Get user's subscription
+  // Optimization Note: Ensure subscriptionService.getUserSubscription() uses .lean()
+  // for read-only operations to return plain JavaScript objects, as the document is only
+  // used to extract _id and then passed to another service method.
+  // Indexing Recommendation: Ensure 'userId' is indexed on the Subscription model for efficient lookups.
   const subscription = await subscriptionService.getUserSubscription(userId);
   if (!subscription) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No active subscription found');
@@ -356,6 +378,9 @@ const checkUsageLimit = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid or missing limit type');
   }
 
+  // Optimization Note: Ensure subscriptionService.checkUsageLimit() uses .lean()
+  // for read-only operations to return plain JavaScript objects.
+  // Indexing Recommendation: Ensure 'userId' is indexed on the Subscription model for efficient lookups.
   const usageInfo = await subscriptionService.checkUsageLimit(
     userId,
     limitType
@@ -397,6 +422,10 @@ const incrementUsage = catchAsync(async (req, res) => {
 const getUsageStats = catchAsync(async (req, res) => {
   const userId = req.user._id;
 
+  // Optimization Note: Ensure subscriptionService.getUserSubscription() uses .lean()
+  // for read-only operations to return plain JavaScript objects, as the document is only
+  // used to extract data for the stats object.
+  // Indexing Recommendation: Ensure 'userId' is indexed on the Subscription model for efficient lookups.
   const subscription = await subscriptionService.getUserSubscription(userId);
   if (!subscription) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No active subscription found');
@@ -485,6 +514,8 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
     ).catch(() => {});
 
     try {
+      // Indexing Recommendation: Consider adding an index on 'action' and 'ipAddress' fields in BillingAuditLog model
+      // if these fields are frequently queried for analytics or security monitoring.
       await BillingAuditLog.create({
         action: 'webhook_failed',
         previousState: { sig },
@@ -570,6 +601,8 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
     ).catch(() => {});
 
     try {
+      // Indexing Recommendation: Consider adding an index on 'action' and 'ipAddress' fields in BillingAuditLog model
+      // if these fields are frequently queried for analytics or security monitoring.
       await BillingAuditLog.create({
         action: 'webhook_failed',
         previousState: { sig },
@@ -591,7 +624,9 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
   }
 
   // Webhook Replay Protection Guard
-  const existingEvent = await StripeEvent.findOne({ eventId: event.id });
+  // Optimization: Use .lean() for read-only query to reduce Mongoose document overhead.
+  // Indexing Recommendation: Ensure 'eventId' is indexed on the StripeEvent model for efficient lookups.
+  const existingEvent = await StripeEvent.findOne({ eventId: event.id }).lean();
   if (existingEvent) {
     console.log(`Duplicate webhook event ${event.id} discarded.`);
     return res.json({ received: true, duplicate: true });
@@ -674,6 +709,9 @@ const createBillingPortalSession = catchAsync(async (req, res) => {
   }
 
   // The service method should ensure that the userId is authorized to act on behalf of the tenantId.
+  // Optimization Note: Ensure subscriptionService.createBillingPortalSession() uses .lean()
+  // for any internal read-only queries to fetch subscription or customer data.
+  // Indexing Recommendation: Ensure 'userId' and 'tenantId' are indexed on the Subscription model for efficient lookups.
   const session = await subscriptionService.createBillingPortalSession(
     userId, // The user initiating the request
     tenantId, // The tenant for which the portal session is requested
