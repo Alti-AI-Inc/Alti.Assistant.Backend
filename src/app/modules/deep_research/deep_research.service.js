@@ -6,8 +6,11 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import mongoose from 'mongoose';
 
 /**
- * Generate unique guest user ID
- * @returns {string}
+ * Generates a unique guest user ID using MongoDB's ObjectId format.
+ * This ensures that guest user IDs are distinct and follow a common ID structure
+ * even if they are not stored in a full user collection.
+ *
+ * @returns {string} A unique string representing a guest user ID.
  */
 const generateGuestUserId = () => {
   // Generate a proper MongoDB ObjectId for guest users
@@ -15,20 +18,32 @@ const generateGuestUserId = () => {
 };
 
 /**
- * Generate unique conversation ID for deep research
- * @returns {string}
+ * Generates a unique conversation ID specifically for deep research conversations.
+ * The ID is prefixed with 'dr_' for easy identification and includes a timestamp
+ * and a random string to ensure uniqueness.
+ *
+ * @returns {string} A unique string representing a deep research conversation ID.
  */
 const generateDeepResearchConversationId = () => {
   return `dr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 /**
- * Create or get deep research conversation (supports both authenticated and guest users)
- * @param {string} userId
- * @param {string} conversationId
- * @param {string} researchQuery
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Handles the creation or retrieval of a deep research conversation.
+ * This function supports both authenticated and guest users, ensuring that
+ * conversations are properly associated with their respective owners and types.
+ * If a `conversationId` is provided, it attempts to retrieve an existing conversation
+ * and performs ownership and type verification. If no valid conversation is found
+ * or accessible, a new deep research conversation is created.
+ *
+ * @param {string} userId - The ID of the user (or guest user) initiating the deep research.
+ * @param {string | null} conversationId - Optional. The ID of an existing conversation to retrieve.
+ *                                        If null or invalid, a new conversation will be created.
+ * @param {string} researchQuery - The initial research query, used for titling new conversations.
+ * @param {boolean} [isGuest=false] - Indicates whether the user is a guest. Defaults to `false`.
+ * @param {object} [req=null] - The Express request object, potentially used for context or logging in downstream services.
+ * @returns {Promise<object>} A promise that resolves to the conversation object (either existing or newly created).
+ * @throws {ApiError} If an unexpected error occurs during conversation handling.
  */
 const handleDeepResearchConversation = async (
   userId,
@@ -143,12 +158,17 @@ const handleDeepResearchConversation = async (
 };
 
 /**
- * Add deep research query message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} researchQuery
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds a user's deep research query message to a specified conversation.
+ * This function supports both authenticated and guest users, ensuring the message
+ * is correctly attributed and stored within the conversation history.
+ *
+ * @param {string} conversationId - The ID of the conversation to which the message will be added.
+ * @param {string} userId - The ID of the user (or guest user) sending the query.
+ * @param {string} researchQuery - The content of the deep research query message.
+ * @param {boolean} [isGuest=false] - Indicates whether the user is a guest. Defaults to `false`.
+ * @param {object} [req=null] - The Express request object, potentially used for context or logging in downstream services.
+ * @returns {Promise<object>} A promise that resolves to the updated conversation object or the newly added message object.
+ * @throws {ApiError} If an error occurs while adding the message to the conversation.
  */
 const addDeepResearchQueryMessage = async (
   conversationId,
@@ -188,13 +208,18 @@ const addDeepResearchQueryMessage = async (
 };
 
 /**
- * Add deep research result message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} researchResult
- * @param {Object} metadata
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds a deep research result message (from the assistant) to a specified conversation.
+ * This function supports both authenticated and guest users, ensuring the result
+ * is correctly attributed and stored within the conversation history.
+ *
+ * @param {string} conversationId - The ID of the conversation to which the result message will be added.
+ * @param {string} userId - The ID of the user (or guest user) associated with the conversation.
+ * @param {string} researchResult - The content of the deep research result message.
+ * @param {object} [metadata={}] - Additional metadata to be stored with the message.
+ * @param {boolean} [isGuest=false] - Indicates whether the user is a guest. Defaults to `false`.
+ * @param {object} [req=null] - The Express request object, potentially used for context or logging in downstream services.
+ * @returns {Promise<object>} A promise that resolves to the updated conversation object or the newly added message object.
+ * @throws {ApiError} If an error occurs while adding the result message to the conversation.
  */
 const addDeepResearchResultMessage = async (
   conversationId,
@@ -237,13 +262,19 @@ const addDeepResearchResultMessage = async (
 };
 
 /**
- * Add error message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} errorMessage
- * @param {Error} originalError
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds an error message (from the assistant) to a specified conversation.
+ * This function is used to log operational errors within the conversation flow,
+ * making them visible to the user. It supports both authenticated and guest users.
+ * Errors during this process are logged but not re-thrown to prevent cascading failures.
+ *
+ * @param {string} conversationId - The ID of the conversation to which the error message will be added.
+ * @param {string} userId - The ID of the user (or guest user) associated with the conversation.
+ * @param {string} errorMessage - The user-friendly error message content.
+ * @param {Error} originalError - The original error object, used for logging internal details.
+ * @param {boolean} [isGuest=false] - Indicates whether the user is a guest. Defaults to `false`.
+ * @param {object} [req=null] - The Express request object, potentially used for context or logging in downstream services.
+ * @returns {Promise<object | void>} A promise that resolves to the updated conversation object or the newly added message object,
+ *                                   or `void` if an error occurs during the addition of the error message itself.
  */
 const addErrorMessage = async (
   conversationId,
@@ -282,11 +313,16 @@ const addErrorMessage = async (
 };
 
 /**
- * Process deep research history for context
- * @param {string} conversationId
- * @param {string} userId
- * @param {number} limit
- * @returns {Promise<Array>}
+ * Retrieves a limited history of messages for a specific deep research conversation.
+ * This function fetches messages from the conversation and formats them for use
+ * as context in subsequent deep research operations. It performs ownership verification.
+ *
+ * @param {string} conversationId - The ID of the conversation from which to retrieve history.
+ * @param {string} userId - The ID of the user (or guest user) who owns the conversation.
+ * @param {number} [limit=5] - The maximum number of recent messages to retrieve. Defaults to 5.
+ * @param {object} [req=null] - The Express request object, potentially used for context or logging in downstream services.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of formatted message objects,
+ *                                   or an empty array if the conversation is not found or an error occurs.
  */
 const getDeepResearchHistory = async (
   conversationId,
@@ -320,12 +356,18 @@ const getDeepResearchHistory = async (
 };
 
 /**
- * Update conversation title based on research query
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} researchQuery
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Updates the title of a deep research conversation based on a new research query.
+ * For authenticated users, this updates the conversation title in the database.
+ * For guest users, it only logs the intended title update as guest conversations
+ * might have different persistence or update mechanisms.
+ *
+ * @param {string} conversationId - The ID of the conversation to update.
+ * @param {string} userId - The ID of the user (or guest user) who owns the conversation.
+ * @param {string} researchQuery - The new research query, used to generate the updated title.
+ * @param {boolean} [isGuest=false] - Indicates whether the user is a guest. Defaults to `false`.
+ * @param {object} [req=null] - The Express request object, potentially used for context or logging in downstream services.
+ * @returns {Promise<object>} A promise that resolves to an object indicating success and any relevant information,
+ *                            or an object with an error message if the update fails for authenticated users.
  */
 const updateConversationTitle = async (
   conversationId,
@@ -360,9 +402,17 @@ const updateConversationTitle = async (
 };
 
 /**
- * Get deep research statistics for the user
- * @param {string} userId
- * @returns {Promise<Object>}
+ * Retrieves deep research statistics for a given user.
+ * This includes the total number of deep research conversations,
+ * total messages across these conversations, and the average messages per conversation.
+ *
+ * @param {string} userId - The ID of the user for whom to retrieve statistics.
+ * @param {object} [req=null] - The Express request object, potentially used for context or logging in downstream services.
+ * @returns {Promise<object>} A promise that resolves to an object containing deep research statistics.
+ *                            Returns default zero values if an error occurs.
+ * @property {number} totalDeepResearchConversations - The total count of deep research conversations.
+ * @property {number} totalDeepResearchMessages - The total count of messages across all deep research conversations.
+ * @property {number} averageMessagesPerConversation - The average number of messages per deep research conversation, rounded to the nearest integer.
  */
 const getDeepResearchStats = async (userId, req = null) => {
   try {
@@ -407,6 +457,12 @@ const getDeepResearchStats = async (userId, req = null) => {
   }
 };
 
+/**
+ * @namespace deepResearchService
+ * @description Provides a collection of service functions for managing deep research conversations,
+ *              including creation, message handling, history retrieval, title updates, and statistics.
+ *              It supports both authenticated and guest users with appropriate ownership and type verification.
+ */
 export const deepResearchService = {
   handleDeepResearchConversation,
   addDeepResearchQueryMessage,
