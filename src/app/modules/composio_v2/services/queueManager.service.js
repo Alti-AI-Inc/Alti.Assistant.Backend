@@ -97,6 +97,9 @@ class QueueManager {
 
   /**
    * Insert item into queue based on priority
+   * For very large queues (thousands+ items), consider a more efficient data structure
+   * like a min-heap for O(logN) insertion/extraction, instead of O(N) for array splice.
+   * For typical queue sizes in this context, array operations are usually acceptable.
    */
   insertByPriority(queueItem) {
     const priorityOrder = { high: 0, normal: 1, low: 2 };
@@ -428,24 +431,52 @@ class QueueManager {
 
   /**
    * Clean up stale executions on startup
+   *
+   * Optimization:
+   * 1. Added `.lean()` to the initial find query to fetch only necessary data (IDs)
+   *    without hydrating full Mongoose documents, improving read performance.
+   * 2. Addressed N+1 query problem by replacing individual `completeExecution` calls
+   *    with a single `updateMany` operation, significantly reducing database load
+   *    for bulk updates.
+   * 3. Recommended indexing for the `WorkflowExecution` model to speed up the query.
    */
   async cleanupStaleExecutions() {
     try {
-      // Find executions that were running but app was restarted
-      const staleExecutions = await WorkflowExecution.find({
-        status: 'running',
-        updatedAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) }, // 5 minutes old
-      });
+      // Recommendation: Ensure an index exists on WorkflowExecution model for { status: 1, updatedAt: 1 }
+      // Example: workflowExecutionSchema.index({ status: 1, updatedAt: 1 });
+      // This will significantly speed up the following query.
 
-      for (const execution of staleExecutions) {
-        await execution.completeExecution(false, {
-          error: 'Execution interrupted by system restart',
-          cleanupReason: 'stale_execution_cleanup',
-        });
-      }
+      // Find IDs of executions that were running but the app was restarted (stale)
+      const staleExecutionIds = await WorkflowExecution.find(
+        {
+          status: 'running',
+          updatedAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) }, // 5 minutes old
+        },
+        { _id: 1 } // Project only the _id field to minimize data transfer
+      ).lean(); // Use .lean() as we only need the IDs, not full Mongoose documents
 
-      if (staleExecutions.length > 0) {
-        logger.info(`Cleaned up ${staleExecutions.length} stale executions`);
+      if (staleExecutionIds.length > 0) {
+        const idsToUpdate = staleExecutionIds.map((exec) => exec._id);
+
+        // Perform a single updateMany operation to mark all stale executions as failed
+        // This avoids the N+1 query problem of fetching N documents and then updating each individually.
+        const updateResult = await WorkflowExecution.updateMany(
+          { _id: { $in: idsToUpdate } },
+          {
+            $set: {
+              status: 'failed',
+              completedAt: new Date(),
+              details: {
+                error: 'Execution interrupted by system restart',
+                cleanupReason: 'stale_execution_cleanup',
+              },
+            },
+          }
+        );
+
+        logger.info(
+          `Cleaned up ${updateResult.modifiedCount} stale executions`
+        );
       }
     } catch (error) {
       logger.error('Error cleaning up stale executions:', error);
