@@ -12,10 +12,32 @@ import { DEEPSEEK_RESPONSE_SERVICE_POST } from './deepseek.constatn.js';
 import { RedisClient } from '../../../shared/redis.js';
 import config from '../../../../config/index.js';
 
+/**
+ * Initializes the Google Generative AI client with the API key from configuration or environment variables.
+ * @type {GoogleGenerativeAI}
+ */
 const client = new GoogleGenerativeAI(config.gemini_secret_key || process.env.GEMINI_API_KEY);
 
+/**
+ * A store for managing chat session memories.
+ * Each key represents a sessionId, and its value is a BufferMemory instance.
+ * @type {Object.<string, BufferMemory>}
+ */
 const sessionMemoryStore = {};
 
+/**
+ * Processes a user prompt using the Google Generative AI (Gemini-2.5-flash model),
+ * manages chat history, updates user prompt usage, and stores the conversation.
+ * It also publishes the response to a Redis channel.
+ *
+ * @param {string} prompt - The user's input prompt.
+ * @param {string} userId - The ID of the user making the request.
+ * @param {string} sessionId - The unique identifier for the current chat session.
+ * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} A promise that resolves to an object
+ *   containing the original prompt, session ID, and the AI's reply.
+ * @throws {ApiError} If there's an error during AI service interaction,
+ *   prompt usage increment, or database operations.
+ */
 const deepseekResponseService = async (prompt, userId, sessionId) => {
   let memory = sessionMemoryStore[sessionId];
   if (!memory) {
@@ -96,6 +118,10 @@ const deepseekResponseService = async (prompt, userId, sessionId) => {
   }
 };
 
+/**
+ * Exports an object containing all Deepseek-related service functions.
+ * @type {{deepseekResponseService: Function}}
+ */
 export const deepseekServices = {
   deepseekResponseService,
 };
