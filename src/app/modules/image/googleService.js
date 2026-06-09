@@ -43,61 +43,75 @@ export const generateImage = async (prompt) => {
 };
 
 export const generateImageUsingVertexAI = async (prompt) => {
-  const imageEndpoint = config.google.vertex_ai_endpoint;
-  const location = config.google.vertex_ai_region;
-  const modelId = config.google.model_id;
-  const projectId = config.google.gcp_project_id;
+  // Ensure all operations are wrapped in a try-catch for robust error handling
+  try {
+    const imageEndpoint = config.google.vertex_ai_endpoint;
+    const location = config.google.vertex_ai_region;
+    const modelId = config.google.model_id; // Use this model ID consistently
+    const projectId = config.google.gcp_project_id;
 
-  const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/${modelId}`;
+    // Construct the full endpoint URL for the prediction API
+    // Bug fix: Use the modelId from config instead of a hardcoded value
+    const predictUrl = `https://${imageEndpoint}/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
 
-  const auth = new GoogleAuth({
-    scopes: 'https://www.googleapis.com/auth/cloud-platform',
-  });
-  const client = await auth.getClient();
-  const accessToken = (await client.getAccessToken()).token;
-  console.log(`Using access token for endpoint: ${accessToken}`);
+    const auth = new GoogleAuth({
+      scopes: 'https://www.googleapis.com/auth/cloud-platform',
+    });
+    const client = await auth.getClient();
+    const accessToken = (await client.getAccessToken()).token;
+    // Security fix: Do not log sensitive access tokens
+    // console.log(`Using access token for endpoint: ${accessToken}`);
 
-  const data = {
-    instances: [
-      {
-        prompt: prompt,
+    const data = {
+      instances: [
+        {
+          prompt: prompt,
+        },
+      ],
+      parameters: {
+        aspectRatio: '1:1',
+        sampleCount: 1,
       },
-    ],
-    parameters: {
-      aspectRatio: '1:1',
-      sampleCount: 1,
-    },
-  };
-  console.log(
-    'Endpoint:',
-    `https://${imageEndpoint}/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-4.0-generate-preview-06-06:predict`
-  );
+    };
 
-  const response = await fetch(
-    `https://${imageEndpoint}/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-4.0-generate-preview-06-06:predict`,
-    {
+    // Bug fix: Log the dynamically constructed predictUrl
+    console.log('Sending request to Vertex AI at:', predictUrl);
+
+    const response = await fetch(predictUrl, { // Bug fix: Use the dynamically constructed predictUrl
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(data),
-    }
-  );
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${JSON.stringify(response)}`);
-  }
+    });
 
-  const imageData = await response.json();
-  if (
-    !imageData ||
-    !imageData.predictions ||
-    imageData.predictions.length === 0
-  ) {
-    throw new Error('No predictions returned from Vertex AI.');
+    if (!response.ok) {
+      // Bug fix: Log the full error response for better debugging and return null
+      const errorBody = await response.text(); // Get text to avoid JSON parsing errors on non-JSON responses
+      console.error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+      return null; // Return null on failure, consistent with generateImage
+    }
+
+    const imageData = await response.json();
+    // Bug fix: Log the actual response data, not the request data
+    console.log('Received response from Vertex AI:', imageData);
+
+    if (
+      !imageData ||
+      !imageData.predictions ||
+      imageData.predictions.length === 0
+    ) {
+      console.error('No predictions returned from Vertex AI.');
+      return null; // Return null on failure
+    }
+
+    return imageData.predictions[0].bytesBase64Encoded
+      ? `data:image/png;base64,${imageData.predictions[0].bytesBase64Encoded}`
+      : null;
+  } catch (error) {
+    // Bug fix: Catch any errors during the process and return null
+    console.error('Error generating image with Vertex AI HTTP API:', error);
+    return null;
   }
-  console.log('Received response from Vertex AI:', data);
-  return imageData.predictions[0].bytesBase64Encoded
-    ? `data:image/png;base64,${imageData.predictions[0].bytesBase64Encoded}`
-    : null;
 };
