@@ -11,13 +11,16 @@ import { logger } from '../../../shared/logger.js';
  * and query type distributions across sessions.
  * 
  * Architecture:
- *   - In-memory ring buffer (10k entries) for hot queries
+ *   - In-memory ring buffer (10k entries) for hot queries (used for `getAnalytics`)
+ *   - Separate buffer for entries awaiting flush to disk (to avoid re-writing)
  *   - Periodic flush to disk at storage/ragsystem/telemetry/
  *   - Future: MongoDB migration path via Mongoose model
  */
 
 const MAX_RING_BUFFER_SIZE = 10000;
 const FLUSH_INTERVAL_MS = 60_000; // Flush every 60 seconds
+const ACTIVE_TRACE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Clean up active traces every 5 minutes
+const ACTIVE_TRACE_TIMEOUT_MS = 10 * 60 * 1000; // Consider a trace abandoned if active for more than 10 minutes
 const TELEMETRY_DIR = path.resolve('storage/ragsystem/telemetry');
 
 class TelemetryCollector {
@@ -25,14 +28,20 @@ class TelemetryCollector {
     /** @type {Map<string, Object>} Active traces keyed by traceId */
     this.activeTraces = new Map();
 
-    /** @type {Array<Object>} Completed telemetry entries (ring buffer) */
+    /** @type {Array<Object>} Completed telemetry entries (ring buffer for analytics) */
     this.entries = [];
+
+    /** @type {Array<Object>} Entries awaiting flush to disk */
+    this.pendingFlushEntries = [];
 
     /** @type {number} Total entries ever recorded (monotonic counter) */
     this.totalRecorded = 0;
 
     /** @type {NodeJS.Timeout|null} Periodic flush timer */
     this._flushTimer = null;
+
+    /** @type {NodeJS.Timeout|null} Periodic active trace cleanup timer */
+    this._cleanupTimer = null;
 
     /** @type {boolean} Whether the collector has been initialized */
     this._initialized = false;
@@ -50,7 +59,7 @@ class TelemetryCollector {
         mkdirSync(TELEMETRY_DIR, { recursive: true });
       }
 
-      // Load existing entries from today's log file
+      // Load existing entries from today's log file into the ring buffer
       this._loadFromDisk().catch((err) => {
         logger.warn('TelemetryCollector: could not load existing entries:', err.message);
       });
@@ -62,9 +71,17 @@ class TelemetryCollector {
         });
       }, FLUSH_INTERVAL_MS);
 
-      // Ensure flush timer doesn't prevent process exit
+      // Start periodic active trace cleanup
+      this._cleanupTimer = setInterval(() => {
+        this._cleanupActiveTraces();
+      }, ACTIVE_TRACE_CLEANUP_INTERVAL_MS);
+
+      // Ensure timers don't prevent process exit
       if (this._flushTimer.unref) {
         this._flushTimer.unref();
+      }
+      if (this._cleanupTimer.unref) {
+        this._cleanupTimer.unref();
       }
 
       this._initialized = true;
@@ -83,15 +100,18 @@ class TelemetryCollector {
    * @returns {string} traceId - Use this to close the trace via endTrace()
    */
   startTrace(queryType, userId, metadata = {}) {
-    this.initialize();
+    // Ensure collector is initialized. This call is idempotent after the first successful initialization.
+    this.initialize(); 
 
     const traceId = `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const startTime = Date.now();
 
     this.activeTraces.set(traceId, {
       traceId,
       queryType,
       userId,
-      startTime: Date.now(),
+      startTime: startTime,
+      expiresAt: startTime + ACTIVE_TRACE_TIMEOUT_MS, // Add expiration timestamp
       metadata,
     });
 
@@ -113,7 +133,7 @@ class TelemetryCollector {
   endTrace(traceId, results = {}) {
     const trace = this.activeTraces.get(traceId);
     if (!trace) {
-      logger.warn(`TelemetryCollector: unknown traceId ${traceId}`);
+      logger.warn(`TelemetryCollector: unknown or expired traceId ${traceId}`);
       return;
     }
 
@@ -138,11 +158,14 @@ class TelemetryCollector {
       metadata: trace.metadata,
     };
 
-    // Add to ring buffer
+    // Add to ring buffer for analytics
     this.entries.push(entry);
+    // Add to pending flush buffer for disk persistence
+    this.pendingFlushEntries.push(entry);
+
     this.totalRecorded++;
 
-    // Evict oldest entries if buffer is full
+    // Evict oldest entries if ring buffer is full
     if (this.entries.length > MAX_RING_BUFFER_SIZE) {
       this.entries = this.entries.slice(-MAX_RING_BUFFER_SIZE);
     }
@@ -159,6 +182,7 @@ class TelemetryCollector {
     const now = Date.now();
     const windowMs = this._parseWindow(window);
 
+    // Analytics are based on the in-memory ring buffer
     let filtered = this.entries.filter((e) => {
       const entryTime = new Date(e.startTime).getTime();
       return (now - entryTime) <= windowMs;
@@ -253,26 +277,33 @@ class TelemetryCollector {
   }
 
   /**
-   * Flush current entries to disk as JSONL (JSON Lines).
+   * Flush pending entries to disk as JSONL (JSON Lines).
    * @private
    */
   async _flushToDisk() {
-    if (this.entries.length === 0) return;
+    if (this.pendingFlushEntries.length === 0) return;
+
+    // Take a snapshot of entries to flush and clear the buffer immediately
+    // to allow new entries to be added without blocking.
+    const entriesToFlush = this.pendingFlushEntries;
+    this.pendingFlushEntries = []; 
 
     try {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const filePath = path.join(TELEMETRY_DIR, `telemetry_${today}.jsonl`);
 
       // Append new entries as JSONL
-      const lines = this.entries
+      const lines = entriesToFlush
         .map((entry) => JSON.stringify(entry))
         .join('\n') + '\n';
 
       await fs.appendFile(filePath, lines, 'utf-8');
 
-      logger.info(`TelemetryCollector: flushed ${this.entries.length} entries to ${filePath}`);
+      logger.info(`TelemetryCollector: flushed ${entriesToFlush.length} entries to ${filePath}`);
     } catch (err) {
       logger.error('TelemetryCollector: disk flush error:', err);
+      // If flush fails, re-add entries to the front of pendingFlushEntries to retry later.
+      this.pendingFlushEntries.unshift(...entriesToFlush);
     }
   }
 
@@ -312,14 +343,57 @@ class TelemetryCollector {
   }
 
   /**
-   * Graceful shutdown — flush remaining entries.
+   * Periodically clean up active traces that have timed out.
+   * @private
+   */
+  _cleanupActiveTraces() {
+    const now = Date.now();
+    let cleanedCount = 0;
+    for (const [traceId, trace] of this.activeTraces.entries()) {
+      if (trace.expiresAt < now) {
+        this.activeTraces.delete(traceId);
+        cleanedCount++;
+        logger.warn(`TelemetryCollector: cleaned up abandoned traceId ${traceId} (queryType: ${trace.queryType}, userId: ${trace.userId})`);
+        
+        // Record an "abandoned" entry to both the ring buffer and pending flush
+        const abandonedEntry = {
+          traceId: trace.traceId,
+          queryType: trace.queryType,
+          userId: trace.userId,
+          startTime: new Date(trace.startTime).toISOString(),
+          endTime: new Date(trace.expiresAt).toISOString(), // Use expiration time as end time
+          durationMs: trace.expiresAt - trace.startTime,
+          success: false,
+          error: 'Trace abandoned/timed out',
+          metadata: trace.metadata,
+        };
+        this.entries.push(abandonedEntry);
+        this.pendingFlushEntries.push(abandonedEntry);
+        this.totalRecorded++;
+        if (this.entries.length > MAX_RING_BUFFER_SIZE) {
+          this.entries = this.entries.slice(-MAX_RING_BUFFER_SIZE);
+        }
+      }
+    }
+    if (cleanedCount > 0) {
+      logger.info(`TelemetryCollector: cleaned up ${cleanedCount} abandoned active traces.`);
+    }
+  }
+
+  /**
+   * Graceful shutdown — flush remaining entries and clear timers.
    */
   async shutdown() {
     if (this._flushTimer) {
       clearInterval(this._flushTimer);
       this._flushTimer = null;
     }
-    await this._flushToDisk();
+    if (this._cleanupTimer) {
+      clearInterval(this._cleanupTimer);
+      this._cleanupTimer = null;
+    }
+    // Ensure all pending entries are flushed before shutdown
+    await this._flushToDisk(); 
     logger.info('TelemetryCollector: shut down');
   }
 }
