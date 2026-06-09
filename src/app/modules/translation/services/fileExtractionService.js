@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
+import PDFParse from 'pdf-parse'; // Corrected import: pdf-parse is typically a default export function.
 import { logger } from '../../../../shared/logger.js';
 import {
   SUPPORTED_DOCUMENT_FORMATS,
@@ -120,11 +120,10 @@ class FileExtractionService {
   async _extractFromPdf(filePath) {
     try {
       const buffer = await readFile(filePath);
-      const data = new PDFParse({
-        data: buffer,
-      });
-      const pdfContent = await data.getText();
-      return pdfContent.text;
+      // Corrected usage for pdf-parse: it's a function that takes the buffer directly,
+      // and returns an object with a 'text' property.
+      const data = await PDFParse(buffer);
+      return data.text;
     } catch (error) {
       logger.error('PDF extraction error:', error);
       throw new Error('Failed to extract text from PDF file');
@@ -136,14 +135,14 @@ class FileExtractionService {
    */
   async _extractFromXlsx(filePath) {
     try {
-      // For XLSX, we'll need to install xlsx package
-      // For now, return a placeholder
+      // Dynamically import xlsx package. This assumes 'xlsx' is a dependency.
       const XLSX = await import('xlsx');
       const workbook = XLSX.readFile(filePath);
       let text = '';
 
       workbook.SheetNames.forEach((sheetName) => {
         const worksheet = workbook.Sheets[sheetName];
+        // Using sheet_to_csv to extract text, which is a reasonable approach for general text extraction from spreadsheets.
         text += XLSX.utils.sheet_to_csv(worksheet) + '\n\n';
       });
 
@@ -161,6 +160,9 @@ class FileExtractionService {
    */
   async cleanupFile(filePath) {
     try {
+      // Using fs.existsSync is synchronous but acceptable for a cleanup utility
+      // where race conditions are less critical and simplicity is preferred.
+      // For critical paths, an async check or direct unlink with error handling for ENOENT is better.
       if (fs.existsSync(filePath)) {
         await fs.promises.unlink(filePath);
         logger.info('Temporary file cleaned up', { filePath });
