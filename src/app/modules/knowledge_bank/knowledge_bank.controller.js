@@ -83,6 +83,7 @@ const uploadFile = catchAsync(async (req, res) => {
 
     // Track storage usage
     const tenantId = req.currentTenantId ?? null;
+    // Optimization: Ensure UserUsageModel has indexes on `userId` and `tenantId` for efficient updates.
     await UserUsageModel.updateStorage(
       userId,
       tenantId,
@@ -154,8 +155,11 @@ const getUserFiles = catchAsync(async (req, res) => {
       skip: parseInt(req.query.skip) || 0,
     };
 
-    // Assuming knowledgeBankService.getUserFiles now returns an object with { data: files, total: totalCount }
-    // This provides accurate total count for pagination, rather than just the current page's length.
+    // Optimization: For read operations that return data directly, the service method
+    // `knowledgeBankService.getUserFiles` should use `.lean()` to return plain JavaScript objects
+    // instead of Mongoose documents, reducing overhead.
+    // Optimization: Ensure the underlying KnowledgeBank file model has indexes on `userId`,
+    // `folderId`, `fileType`, `processingStatus`, and `isProcessed` for efficient filtering and sorting.
     const { data: files, total: totalCount } = await knowledgeBankService.getUserFiles(userId, filters, req);
 
     sendResponse(res, {
@@ -207,6 +211,10 @@ const getFileById = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization: For read operations that return data directly, the service method
+    // `knowledgeBankService.getFileById` should use `.lean()` to return a plain JavaScript object.
+    // Optimization: Ensure the underlying KnowledgeBank file model has a compound index on `{ fileId: 1, userId: 1 }`
+    // or separate indexes on `fileId` and `userId` for fast lookups.
     const file = await knowledgeBankService.getFileById(fileId, userId, req);
 
     if (!file) {
@@ -258,6 +266,8 @@ const deleteFile = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization: Ensure the underlying KnowledgeBank file model has a compound index on `{ fileId: 1, userId: 1 }`
+    // or separate indexes on `fileId` and `userId` for efficient deletion.
     const result = await knowledgeBankService.deleteFile(fileId, userId, req);
 
     if (!result) {
@@ -270,6 +280,7 @@ const deleteFile = catchAsync(async (req, res) => {
 
     // Decrement storage usage
     const tenantId = req.currentTenantId ?? null;
+    // Optimization: Ensure UserUsageModel has indexes on `userId` and `tenantId` for efficient updates.
     await UserUsageModel.updateStorage(
       userId,
       tenantId,
@@ -319,6 +330,10 @@ const processFile = catchAsync(async (req, res) => {
 
   try {
     // Verify file belongs to user
+    // Optimization: For read operations that return data for checks, the service method
+    // `knowledgeBankService.getFileById` should use `.lean()` to return a plain JavaScript object.
+    // Optimization: Ensure the underlying KnowledgeBank file model has a compound index on `{ fileId: 1, userId: 1 }`
+    // or separate indexes on `fileId` and `userId` for fast lookups.
     const file = await knowledgeBankService.getFileById(fileId, userId, req);
     if (!file) {
       return sendResponse(res, {
@@ -376,6 +391,9 @@ const getUserStorageStats = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization: For read operations that return data directly, the service method
+    // `knowledgeBankService.getUserStorageStats` should use `.lean()` to return a plain JavaScript object.
+    // Optimization: Ensure the underlying model used for storage stats has an index on `userId`.
     const stats = await knowledgeBankService.getUserStorageStats(userId, req);
 
     sendResponse(res, {
@@ -429,6 +447,8 @@ const createFolder = catchAsync(async (req, res) => {
       tags,
     };
 
+    // Optimization: Ensure the underlying Folder model has indexes on `userId` and `parentFolderId`
+    // for efficient creation and lookup, especially if uniqueness constraints or hierarchical queries are involved.
     const folder = await knowledgeBankService.createFolder(
       userId,
       folderData,
@@ -472,8 +492,10 @@ const getUserFolders = catchAsync(async (req, res) => {
         req.query.parentFolderId === 'root' ? null : req.query.parentFolderId,
     };
 
-    // Assuming knowledgeBankService.getUserFolders now returns an object with { data: folders, total: totalCount }
-    // This provides accurate total count for pagination, rather than just the current page's length.
+    // Optimization: For read operations that return data directly, the service method
+    // `knowledgeBankService.getUserFolders` should use `.lean()` to return plain JavaScript objects.
+    // Optimization: Ensure the underlying Folder model has a compound index on `{ userId: 1, parentFolderId: 1 }`
+    // for efficient filtering and retrieval of folders.
     const { data: folders, total: totalCount } = await knowledgeBankService.getUserFolders(
       userId,
       options,
@@ -524,6 +546,10 @@ const getFolderById = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization: For read operations that return data directly, the service method
+    // `knowledgeBankService.getFolderById` should use `.lean()` to return a plain JavaScript object.
+    // Optimization: Ensure the underlying Folder model has a compound index on `{ folderId: 1, userId: 1 }`
+    // or separate indexes on `folderId` and `userId` for fast lookups.
     const folder = await knowledgeBankService.getFolderById(
       folderId,
       userId,
@@ -587,6 +613,8 @@ const updateFolder = catchAsync(async (req, res) => {
       tags: req.body.tags,
     };
 
+    // Optimization: Ensure the underlying Folder model has a compound index on `{ folderId: 1, userId: 1 }`
+    // or separate indexes on `folderId` and `userId` for efficient updates.
     const folder = await knowledgeBankService.updateFolder(
       folderId,
       userId,
@@ -636,6 +664,8 @@ const deleteFolder = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization: Ensure the underlying Folder model has a compound index on `{ folderId: 1, userId: 1 }`
+    // or separate indexes on `folderId` and `userId` for efficient deletion.
     const result = await knowledgeBankService.deleteFolder(
       folderId,
       userId,
@@ -684,6 +714,10 @@ const getFolderContents = catchAsync(async (req, res) => {
 
   try {
     const folderIdValue = folderId === 'root' ? null : folderId;
+    // Optimization: For read operations that return data directly, the service method
+    // `knowledgeBankService.getFolderContents` should use `.lean()` to return plain JavaScript objects.
+    // Optimization: Ensure the underlying Folder and File models have compound indexes on
+    // `{ parentFolderId: 1, userId: 1 }` and `{ folderId: 1, userId: 1 }` respectively, for efficient retrieval of contents.
     const contents = await knowledgeBankService.getFolderContents(
       folderIdValue,
       userId,
