@@ -33,6 +33,9 @@ const attemptAutoRecovery = async (connectionId, userId) => {
   logger.info(`ConnectionRecovery: starting auto-recovery cycle for connection ${connectionId}`);
 
   // Fetch connection details
+  // Optimization Note: No .lean() here as the document is modified and saved later.
+  // For optimal performance, ensure an index exists on `userId` if it's frequently queried
+  // in other contexts without `_id`. For this specific query, the `_id` index is primary.
   const connection = await ComposioAuth.findOne({ _id: connectionId, userId });
   if (!connection) {
     throw new Error(`ComposioAuth connection not found: ${connectionId}`);
@@ -149,10 +152,14 @@ const attemptAutoRecovery = async (connectionId, userId) => {
  */
 const runHeartbeatRecovery = async (userId) => {
   try {
+    // Optimization: Use .lean() for read-only queries to return plain JavaScript objects,
+    // which are lighter and faster than Mongoose documents.
+    // Indexing Recommendation: For optimal performance, ensure a compound index exists on
+    // `{ userId: 1, status: 1 }` in your ComposioAuth model.
     const warningConnections = await ComposioAuth.find({
       userId,
       status: { $in: ['EXPIRED', 'FAILED', 'PENDING'] },
-    });
+    }).lean();
 
     if (warningConnections.length === 0) {
       return { success: true, message: 'All connected integrations are healthy.', recoveredCount: 0 };
@@ -161,6 +168,7 @@ const runHeartbeatRecovery = async (userId) => {
     let recoveredCount = 0;
     for (const conn of warningConnections) {
       // Fire-and-forget background recovery execution
+      // This pattern correctly avoids blocking the event loop with a synchronous loop.
       attemptAutoRecovery(conn._id, userId).catch(() => {});
       recoveredCount++;
     }
