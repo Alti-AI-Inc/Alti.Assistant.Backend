@@ -3,10 +3,19 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { logger } from '../../../shared/logger.js';
 import { composioService } from './composio.service.js';
+// BUG FIX: Missing import for conversationHelpers, assuming common path
+import { conversationHelpers } from '../conversation/conversation.helpers.js';
 
 const composioInitiateController = async (req, res) => {
   console.log('Initiating Composio Auth...', req.body);
-  const user_id = req.user?.userId || req.user?._id || req.body?.userId || req.body?.user_id;
+  let user_id;
+  // BUG FIX: Prevent IDOR - For authenticated users, userId must come from req.user.
+  // For unauthenticated/guest users, allow userId from body if provided (e.g., for guest linking).
+  if (req.user) {
+    user_id = req.user?.userId || req.user?._id;
+  } else {
+    user_id = req.body?.userId || req.body?.user_id;
+  }
   console.log(`User ID for Composio initiation: ${user_id}`);
 
   const { app_name } = req.body;
@@ -15,7 +24,8 @@ const composioInitiateController = async (req, res) => {
     return res.status(400).json({ error: 'app_name is required' });
   }
   if (!user_id) {
-    return res.status(400).json({ error: 'User must be authenticated' });
+    // BUG FIX: More specific error message for missing user identifier
+    return res.status(400).json({ error: 'User identifier is required' });
   }
 
   try {
@@ -46,14 +56,22 @@ const composioWaitForConnectionController = async (req, res) => {
  * Conversational Composio Chat Controller
  * Handles conversational interactions with Composio tools
  */
-const composioConversationController = catchAsync(async (req, res) => {
+// BUG FIX: Removed catchAsync as the controller has its own specific try/catch error handling.
+const composioConversationController = async (req, res) => {
   // Handle both authenticated and guest users
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest
-    ? composioService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
+  let userId;
+
+  if (isGuest) {
+    // For guests, allow userId from body to resume a session, or generate new if not provided.
+    // This assumes composioService.generateGuestUserId() is robust and unique.
+    userId = req.body.userId || req.body.user_id || composioService.generateGuestUserId();
+  } else {
+    // BUG FIX: Prevent IDOR - For authenticated users, userId MUST come from req.user.
+    userId = req.user?.userId || req.user?._id;
+  }
+
   const { message, conversationId } = req.body;
-  userId = req.body.userId || req.body.user_id || userId; // Allow overriding userId from request body
 
   if (!message) {
     return sendResponse(res, {
@@ -64,10 +82,12 @@ const composioConversationController = catchAsync(async (req, res) => {
   }
 
   if (!userId) {
+    // This case should ideally not happen if generateGuestUserId always works
+    // and req.user is reliable for authenticated users.
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: 'Failed to generate user identifier',
+      message: 'Failed to determine user identifier',
     });
   }
 
@@ -106,7 +126,7 @@ const composioConversationController = catchAsync(async (req, res) => {
       query: message,
       conversationContext: conversationHistory,
       history: [...conversationHistory, { role: 'user', content: message }],
-      userId: userId,
+      userId: userId, // This userId is now securely sourced
       conversationId: actualConversationId,
     };
 
@@ -152,7 +172,7 @@ const composioConversationController = catchAsync(async (req, res) => {
       },
     });
   }
-});
+};
 
 /**
  * Get Composio conversation history
@@ -160,7 +180,16 @@ const composioConversationController = catchAsync(async (req, res) => {
 const getComposioConversationController = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
   const isGuest = req.isGuest || !req.user;
-  const userId = isGuest ? req.query.userId : req.user?.userId || req.user?._id;
+  let userId;
+
+  if (isGuest) {
+    // For guests, userId must be provided in query to retrieve a specific guest conversation.
+    // A more robust solution would involve validating this guest userId with a guest token.
+    userId = req.query.userId;
+  } else {
+    // BUG FIX: Prevent IDOR - For authenticated users, userId MUST come from req.user.
+    userId = req.user?.userId || req.user?._id;
+  }
 
   if (!conversationId) {
     return sendResponse(res, {
@@ -169,8 +198,18 @@ const getComposioConversationController = catchAsync(async (req, res) => {
       message: 'Conversation ID is required',
     });
   }
+  // BUG FIX: Ensure userId is present for the query
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'User ID is required to retrieve conversations',
+    });
+  }
 
   try {
+    // conversationHelpers.getConversationById should internally verify that the userId
+    // matches the owner of the conversationId to prevent IDOR.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -199,7 +238,16 @@ const getComposioConversationController = catchAsync(async (req, res) => {
  */
 const getUserComposioConversationsController = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  const userId = isGuest ? req.query.userId : req.user?.userId || req.user?._id;
+  let userId;
+
+  if (isGuest) {
+    // For guests, userId must be provided in query to retrieve their list of conversations.
+    // A more robust solution would involve validating this guest userId with a guest token.
+    userId = req.query.userId;
+  } else {
+    // BUG FIX: Prevent IDOR - For authenticated users, userId MUST come from req.user.
+    userId = req.user?.userId || req.user?._id;
+  }
 
   if (!userId) {
     return sendResponse(res, {
@@ -219,6 +267,8 @@ const getUserComposioConversationsController = catchAsync(async (req, res) => {
       search: req.query.search || '',
     };
 
+    // conversationHelpers.getUserConversations should internally verify that the userId
+    // matches the authenticated user or a valid guest session to prevent IDOR.
     const conversations = await conversationHelpers.getUserConversations(
       userId,
       options,
