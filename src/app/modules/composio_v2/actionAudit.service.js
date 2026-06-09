@@ -66,6 +66,7 @@ class ActionAuditService {
    * Log the completion of an action execution.
    * 
    * @param {string} auditLogId - The ID returned by logStart
+   * @param {string} userId - The ID of the user who initiated the action. Required for ownership verification.
    * @param {Object} outcome
    * @param {boolean} outcome.success
    * @param {Object} [outcome.result]
@@ -74,8 +75,13 @@ class ActionAuditService {
    * @param {number} [outcome.attempts]
    * @param {boolean} [outcome.retried]
    */
-  async logComplete(auditLogId, outcome) {
-    if (!auditLogId) return;
+  async logComplete(auditLogId, userId, outcome) { // Added userId parameter for ownership verification
+    // Ensure both auditLogId and userId are provided to prevent IDOR (Insecure Direct Object Reference)
+    // by ensuring the update operation is scoped to the correct user.
+    if (!auditLogId || !userId) {
+      logger.warn('ActionAuditService.logComplete called with missing auditLogId or userId. Skipping update.');
+      return;
+    }
 
     try {
       const update = {
@@ -100,7 +106,8 @@ class ActionAuditService {
         }
       }
 
-      await ActionAuditLog.updateOne({ _id: auditLogId }, { $set: update });
+      // Include userId in the query to ensure only the owner of the log entry can update it.
+      await ActionAuditLog.updateOne({ _id: auditLogId, userId: userId }, { $set: update });
     } catch (error) {
       logger.error('ActionAuditService.logComplete failed:', error.message);
     }
@@ -108,12 +115,21 @@ class ActionAuditService {
 
   /**
    * Log a rollback event.
+   * 
+   * @param {string} auditLogId - The ID returned by logStart
+   * @param {string} userId - The ID of the user who initiated the action. Required for ownership verification.
    */
-  async logRollback(auditLogId) {
-    if (!auditLogId) return;
+  async logRollback(auditLogId, userId) { // Added userId parameter for ownership verification
+    // Ensure both auditLogId and userId are provided to prevent IDOR (Insecure Direct Object Reference)
+    // by ensuring the update operation is scoped to the correct user.
+    if (!auditLogId || !userId) {
+      logger.warn('ActionAuditService.logRollback called with missing auditLogId or userId. Skipping update.');
+      return;
+    }
     try {
+      // Include userId in the query to ensure only the owner of the log entry can update it.
       await ActionAuditLog.updateOne(
-        { _id: auditLogId },
+        { _id: auditLogId, userId: userId },
         { $set: { status: 'rolled_back' } }
       );
     } catch (error) {
@@ -140,6 +156,8 @@ class ActionAuditService {
       if (filters.app) query.app = filters.app;
       if (filters.status) query.status = filters.status;
       if (filters.since) {
+        // Attempt to parse the date. If invalid, it will result in an "Invalid Date" object,
+        // which MongoDB typically handles by not matching any documents, preventing errors.
         query.createdAt = { $gte: new Date(filters.since) };
       }
 
@@ -219,6 +237,7 @@ class ActionAuditService {
               totalActions: { $sum: 1 },
               totalRetries: { $sum: { $cond: ['$retried', 1, 0] } },
               avgDurationMs: { $avg: '$durationMs' },
+              // $percentile operator requires MongoDB 5.0 or later.
               p95DurationMs: { $percentile: { input: '$durationMs', p: [0.95], method: 'approximate' } },
               successRate: {
                 $avg: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
@@ -329,11 +348,11 @@ class ActionAuditService {
   _windowToDate(window) {
     const now = new Date();
     const match = window.match(/^(\d+)([hdwm])$/);
-    if (!match) return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    if (!match) return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Default to 7 days if format is invalid
 
     const [, amount, unit] = match;
-    const multipliers = { h: 3600000, d: 86400000, w: 604800000, m: 2592000000 };
-    return new Date(now.getTime() - parseInt(amount) * (multipliers[unit] || 86400000));
+    const multipliers = { h: 3600000, d: 86400000, w: 604800000, m: 2592000000 }; // Milliseconds in hour, day, week, 30-day month
+    return new Date(now.getTime() - parseInt(amount) * (multipliers[unit] || 86400000)); // Fallback to 1 day multiplier if unit is unknown
   }
 }
 
