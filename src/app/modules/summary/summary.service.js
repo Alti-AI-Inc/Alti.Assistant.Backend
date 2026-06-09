@@ -43,6 +43,7 @@ const handleSummaryConversation = async (
         );
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
+        // If it's not a guest conversation, treat it as not found for this guest user.
         if (isGuest && conversation.metadata?.userType !== 'guest') {
           logger.warn(
             `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
@@ -51,22 +52,26 @@ const handleSummaryConversation = async (
         }
       } catch (error) {
         logger.warn(
-          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+          `Conversation ${conversationId} not found or inaccessible for user ${userId}, creating new one`
         );
+        // Ensure conversation is null if an error occurred during retrieval
+        conversation = null;
       }
     }
 
-    // Create conversation if it doesn't exist
+    // Create conversation if it doesn't exist or was not accessible
     if (!conversation) {
-      const newConversationId =
-        conversationId || generateSummaryConversationId();
+      // BUG FIX: If an existing conversationId was provided but not found or accessible,
+      // a new conversation should always be created with a newly generated ID,
+      // not reusing the potentially invalid or unauthorized client-provided ID.
+      const newConversationId = generateSummaryConversationId();
 
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
         conversation = await conversationService.createConversation(
           {
             userId,
-            title: `Summary: ${summaryQuery.substring(0, 50)}...`,
+            title: `Summary: ${summaryQuery.substring(0, 50)}${summaryQuery.length > 50 ? '...' : ''}`, // Ensure title is truncated gracefully
             metadata: {
               category: 'summary',
               model: 'summary-agent',
@@ -83,7 +88,7 @@ const handleSummaryConversation = async (
         conversation = await conversationService.createConversation(
           {
             userId,
-            title: `Summary: ${summaryQuery.substring(0, 50)}...`,
+            title: `Summary: ${summaryQuery.substring(0, 50)}${summaryQuery.length > 50 ? '...' : ''}`, // Ensure title is truncated gracefully
             metadata: {
               category: 'summary',
               model: 'summary-agent',
@@ -306,6 +311,8 @@ const getSummaryHistory = async (
   req = null
 ) => {
   try {
+    // Note: This function assumes conversationHelpers.getConversationById correctly
+    // handles authorization for both authenticated and guest user IDs.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -360,6 +367,9 @@ const updateConversationTitle = async (
  * @returns {string}
  */
 const generateSummaryConversationId = () => {
+  // Using a custom string for summary conversation IDs.
+  // Consider using mongoose.Types.ObjectId().toString() for consistency
+  // with MongoDB's native ID format if conversationId is stored as _id.
   return `summary-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
@@ -370,6 +380,9 @@ const generateSummaryConversationId = () => {
  */
 const getSummaryStats = async (userId, req = null) => {
   try {
+    // Fetching up to 1000 conversations for stats.
+    // For users with extremely large numbers of conversations,
+    // consider using database aggregation for better performance.
     const summaryConversations = await conversationHelpers.getUserConversations(
       userId,
       {
