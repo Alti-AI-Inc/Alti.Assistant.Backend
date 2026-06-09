@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer'; // Import multer to handle Multer-specific errors
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
@@ -13,6 +14,34 @@ import { uploadTranslation } from './middlewares/uploadTranslation.js';
 const router = express.Router();
 
 /**
+ * Custom middleware to handle Multer errors specifically for the optional file upload.
+ * This ensures that file upload-related errors (e.g., file size limits, invalid file types)
+ * return appropriate 400 Bad Request responses instead of potentially falling through
+ * to a generic 500 error handler or crashing the server.
+ */
+const handleMulterError = (req, res, next) => {
+  uploadTranslation.single('file')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      // A Multer error occurred during file upload
+      return res.status(400).json({
+        success: false,
+        message: err.message,
+        errorMessages: [{ path: 'file', message: err.message }],
+      });
+    } else if (err) {
+      // An unknown error occurred during file upload
+      return res.status(500).json({
+        success: false,
+        message: 'An unknown error occurred during file upload.',
+        errorMessages: [{ path: 'file', message: err.message || 'Unknown file upload error' }],
+      });
+    }
+    // No error, proceed to the next middleware
+    next();
+  });
+};
+
+/**
  * Conversational assistant endpoint - Main entry point
  * Supports both authenticated and guest users
  * Handles natural language requests with optional file upload
@@ -23,7 +52,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  uploadTranslation.single('file'), // Optional file upload
+  handleMulterError, // Use the custom error handler for optional file upload
   // createRateLimiter(30, 15), // 30 requests per 15 minutes
   validateRequest(TranslationValidation.conversationalRequestSchema),
   translationController.conversationalAssistant
