@@ -16,32 +16,55 @@ import {
   QWEN_RESPONSE_SERVICE_POST,
 } from './qwen.constant.js';
 
-const sessionMemoryStore = {}; // Stores session memory for each user session
+// Removed global sessionMemoryStore and QwenQWQSessionMemoryStore.
+// These global stores led to memory leaks, scalability issues in multi-instance deployments,
+// and potential security/privacy concerns if session IDs were reused or predictable.
+// Conversation history will now be loaded from and saved to the database (ChatHistory model)
+// for each request, ensuring persistence, scalability, and proper session isolation.
 
-const QwenQWQSessionMemoryStore = {}; // Stores session memory for each user session
+/**
+ * Handles the core logic for getting an AI response, managing conversation history,
+ * updating payment usage, and persisting data.
+ * @param {string} prompt - The user's input prompt.
+ * @param {string} userId - The ID of the user.
+ * @param {string} sessionId - The ID of the current chat session.
+ * @param {string} redisChannel - The Redis channel to publish the response to.
+ * @returns {object} The payload containing sessionId, prompt, and reply.
+ */
+const _getAiResponseService = async (prompt, userId, sessionId, redisChannel) => {
+  try {
+    // Load existing chat history from the database for the current session
+    const existingChatSession = await ChatHistory.findOne({ user: userId, sessionId });
+    const chatHistory = new InMemoryChatMessageHistory();
 
-const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
-  let memory = sessionMemoryStore[sessionId];
-  if (!memory) {
-    memory = new BufferMemory({
+    if (existingChatSession && existingChatSession.responses) {
+      existingChatSession.responses.forEach(entry => {
+        if (entry.prompt) {
+          chatHistory.addMessage(new HumanMessage(entry.prompt));
+        }
+        if (entry.reply) {
+          chatHistory.addMessage(new AIMessage(entry.reply));
+        }
+      });
+    }
+
+    // Initialize BufferMemory with the loaded chat history
+    const memory = new BufferMemory({
       returnMessages: true,
       memoryKey: 'history',
-      chatHistory: new InMemoryChatMessageHistory(),
+      chatHistory: chatHistory,
     });
-    sessionMemoryStore[sessionId] = memory;
-  }
 
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.5-flash',
-    temperature: 0.7,
-    apiKey: config.gemini_secret_key,
-  });
+    const model = new ChatGoogleGenerativeAI({
+      model: 'gemini-2.5-flash',
+      temperature: 0.7,
+      apiKey: config.gemini_secret_key,
+    });
 
-  const chain = new ConversationChain({ llm: model, memory });
-  logger.info('Memory Initialized:', memory);
+    const chain = new ConversationChain({ llm: model, memory });
+    logger.info('Memory Initialized with history:', memory.chatHistory.messages.length, 'messages');
 
-  try {
-    // Store user message in chat history
+    // Store user message in chat history (Langchain memory)
     await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
     // Invoke model
@@ -50,115 +73,9 @@ const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
 
     const reply = res1?.response || 'No reply generated';
 
+    // Handle payment increment
     try {
-      const paymentResult =
-        await paymentController.incrementPromptsUsed(userId);
-
-      if (!paymentResult.success) {
-        // return res
-        //   .status(400)
-        //   .json({ success: false, message: paymentResult.message });
-        throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
-      }
-    } catch (error) {
-      console.error('Error in incrementPromptsUsed:', error);
-
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        error.message || 'An error occurred while updating prompt usage.'
-      );
-    }
-    // Store AI response in chat history
-    await memory.chatHistory.addMessage(new AIMessage(reply));
-
-    // Save response in the database
-    const responseData = {
-      prompt,
-      model: 'gemini-2.5-flash-thinking',
-      reply,
-      total_time: res1?.usage?.total_time || 0,
-    };
-
-    let llamaSession;
-    // Optimization: Use findOneAndUpdate with $push for existing sessions.
-    // This is more efficient than fetching the entire document, modifying it in memory,
-    // and then saving it back, especially for documents with large arrays.
-    const updatedSession = await ChatHistory.findOneAndUpdate(
-      { user: userId, sessionId },
-      { $push: { responses: responseData } },
-      { new: true } // Return the updated document
-    );
-
-    if (updatedSession) {
-      logger.info('Existing Session Updated:', updatedSession);
-      llamaSession = updatedSession;
-    } else {
-      logger.info('Creating New Session...');
-      llamaSession = await ChatHistory.create({
-        user: userId,
-        sessionId,
-        responses: [responseData],
-      });
-      logger.info('New Session Created:', llamaSession);
-      // Only update UserModel if a new session was created
-      await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: llamaSession._id },
-      });
-    }
-    const payload = {
-      sessionId,
-      prompt,
-      reply,
-    };
-
-    if (payload) {
-      await RedisClient.publish(
-        QWEN_RESPONSE_SERVICE_POST,
-        JSON.stringify(payload)
-      );
-    }
-
-    return payload;
-  } catch (error) {
-    logger.error('Error in QwenAiGetResponseService:', error);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'AI service failed.');
-  }
-};
-
-const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
-  // Initialize session memory for conversation history
-  let memory = QwenQWQSessionMemoryStore[sessionId];
-  if (!memory) {
-    memory = new BufferMemory({
-      returnMessages: true,
-      memoryKey: 'history',
-      chatHistory: new InMemoryChatMessageHistory(),
-    });
-    QwenQWQSessionMemoryStore[sessionId] = memory;
-  }
-
-  const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-2.5-flash',
-    temperature: 0.7,
-    apiKey: config.gemini_secret_key,
-  });
-
-  const chain = new ConversationChain({ llm: model, memory });
-  logger.info('Memory Initialized:', memory);
-
-  try {
-    // Store user message in chat history
-    await memory.chatHistory.addMessage(new HumanMessage(prompt));
-
-    // Invoke model
-    const res1 = await chain.invoke({ input: prompt });
-    logger.info('Model Response:', res1);
-
-    const reply = res1?.response || 'No reply generated';
-
-    try {
-      const paymentResult =
-        await paymentController.incrementPromptsUsed(userId);
+      const paymentResult = await paymentController.incrementPromptsUsed(userId);
 
       if (!paymentResult.success) {
         throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
@@ -171,42 +88,43 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
       );
     }
 
-    // Store AI response in chat history
+    // Store AI response in chat history (Langchain memory)
     await memory.chatHistory.addMessage(new AIMessage(reply));
 
-    // Save response in the database
+    // Prepare response data for database persistence
     const responseData = {
       prompt,
-      model: 'gemini-2.5-flash-thinking',
+      model: 'gemini-2.5-flash-thinking', // Note: 'gemini-2.5-flash-thinking' is used here, while the model is 'gemini-2.5-flash'. Assuming '-thinking' is an intentional suffix for tracking.
       reply,
       total_time: res1?.usage?.total_time || 0,
     };
 
-    let llamaSession;
+    let currentChatSession;
     // Optimization: Use findOneAndUpdate with $push for existing sessions.
     // This is more efficient than fetching the entire document, modifying it in memory,
     // and then saving it back, especially for documents with large arrays.
+    // Using upsert: true to create the document if it doesn't exist.
     const updatedSession = await ChatHistory.findOneAndUpdate(
       { user: userId, sessionId },
       { $push: { responses: responseData } },
-      { new: true } // Return the updated document
+      { new: true, upsert: true } // Return the updated document, create if not found
     );
 
     if (updatedSession) {
-      logger.info('Existing Session Updated:', updatedSession);
-      llamaSession = updatedSession;
+      logger.info('Chat Session Updated or Created:', updatedSession._id);
+      currentChatSession = updatedSession;
+
+      // If a new session was created by upsert (i.e., no existingChatSession was found),
+      // ensure UserModel is updated to link this new session.
+      if (!existingChatSession) {
+        await UserModel.findByIdAndUpdate(userId, {
+          $addToSet: { llamaAiSessions: currentChatSession._id }, // Use $addToSet to prevent duplicate session IDs in the array
+        });
+      }
     } else {
-      logger.info('Creating New Session...');
-      llamaSession = await ChatHistory.create({
-        user: userId,
-        sessionId,
-        responses: [responseData],
-      });
-      logger.info('New Session Created:', llamaSession);
-      // Only update UserModel if a new session was created
-      await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: llamaSession._id },
-      });
+      // This block should ideally not be reached with upsert: true, but as a fallback for unexpected issues.
+      logger.error('Failed to update or create chat session.');
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to save chat history.');
     }
 
     const payload = {
@@ -215,18 +133,29 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
       reply,
     };
 
-    if (payload) {
-      await RedisClient.publish(
-        QWEN_QWQ_RESPONSE_SERVICE_POST,
-        JSON.stringify(payload)
-      );
-    }
+    // Removed redundant `if (payload)` check as payload is always a truthy object.
+    await RedisClient.publish(redisChannel, JSON.stringify(payload));
+
     return payload;
   } catch (error) {
-    logger.error('Error in QwenQWQAiGetResponseService:', error);
+    logger.error('Error in _getAiResponseService:', error);
+    // Re-throw ApiError directly, or wrap generic errors
+    if (error instanceof ApiError) {
+      throw error;
+    }
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'AI service failed.');
   }
 };
+
+// Public service functions, now acting as wrappers for the consolidated logic
+const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
+  return _getAiResponseService(prompt, userId, sessionId, QWEN_RESPONSE_SERVICE_POST);
+};
+
+const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
+  return _getAiResponseService(prompt, userId, sessionId, QWEN_QWQ_RESPONSE_SERVICE_POST);
+};
+
 export const QwenAiServices = {
   QwenAiGetResponseService,
   QwenQWQAiGetResponseService,
