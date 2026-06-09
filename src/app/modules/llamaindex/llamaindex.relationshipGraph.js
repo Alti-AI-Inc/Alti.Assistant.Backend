@@ -66,6 +66,7 @@ const buildRelationshipGraph = async (userId) => {
 
     let edgesAdded = 0;
     const comparisons = [];
+    const relationshipUpdatePromises = []; // Collect promises for parallel execution
 
     // Step 1: Intersection analysis matrix
     for (let i = 0; i < metadataList.length; i++) {
@@ -85,26 +86,31 @@ const buildRelationshipGraph = async (userId) => {
           ])];
 
           // Create standard bidirectional overlap edges
-          await DocumentRelationship.findOneAndUpdate(
-            { userId, sourceDocId: docA.docId, targetDocId: docB.docId },
-            {
-              relationType: 'topic_similarity',
-              confidence: Math.round(overlapCoefficient * 100) / 100,
-              sharedConcepts: shared,
-              description: `Shared topics and key entity alignments: ${shared.slice(0, 4).join(', ')}`,
-            },
-            { new: true, upsert: true }
+          // Collect promises to execute updates in parallel for performance
+          relationshipUpdatePromises.push(
+            DocumentRelationship.findOneAndUpdate(
+              { userId, sourceDocId: docA.docId, targetDocId: docB.docId },
+              {
+                relationType: 'topic_similarity',
+                confidence: Math.round(overlapCoefficient * 100) / 100,
+                sharedConcepts: shared,
+                description: `Shared topics and key entity alignments: ${shared.slice(0, 4).join(', ')}`,
+              },
+              { new: true, upsert: true }
+            )
           );
 
-          await DocumentRelationship.findOneAndUpdate(
-            { userId, sourceDocId: docB.docId, targetDocId: docA.docId },
-            {
-              relationType: 'topic_similarity',
-              confidence: Math.round(overlapCoefficient * 100) / 100,
-              sharedConcepts: shared,
-              description: `Shared topics and key entity alignments: ${shared.slice(0, 4).join(', ')}`,
-            },
-            { new: true, upsert: true }
+          relationshipUpdatePromises.push(
+            DocumentRelationship.findOneAndUpdate(
+              { userId, sourceDocId: docB.docId, targetDocId: docA.docId },
+              {
+                relationType: 'topic_similarity',
+                confidence: Math.round(overlapCoefficient * 100) / 100,
+                sharedConcepts: shared,
+                description: `Shared topics and key entity alignments: ${shared.slice(0, 4).join(', ')}`,
+              },
+              { new: true, upsert: true }
+            )
           );
 
           edgesAdded += 2;
@@ -113,6 +119,9 @@ const buildRelationshipGraph = async (userId) => {
         comparisons.push({ docA, docB });
       }
     }
+
+    // Await all collected promises for topic_similarity relationships
+    await Promise.all(relationshipUpdatePromises);
 
     // Step 2: Google Gemini Deep Semantic cross-reference modeling
     // Process top comparison candidates to discover logical prerequisites or hierarchies
@@ -156,23 +165,28 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
         }
 
         const linkages = JSON.parse(cleanText);
+        const geminiUpdatePromises = []; // Collect promises for parallel execution of Gemini-derived updates
         for (const link of linkages) {
           const ids = link.pair.split(' <-> ');
           if (ids.length === 2) {
             const [src, dst] = ids;
 
-            await DocumentRelationship.findOneAndUpdate(
-              { userId, sourceDocId: src, targetDocId: dst },
-              {
-                relationType: link.relationType === 'dependency' ? 'dependency' : 'cross_reference',
-                confidence: link.confidence || 0.7,
-                description: link.description || 'Deep semantic reference mapped by cognitive agent.',
-              },
-              { new: true, upsert: true }
+            geminiUpdatePromises.push(
+              DocumentRelationship.findOneAndUpdate(
+                { userId, sourceDocId: src, targetDocId: dst },
+                {
+                  relationType: link.relationType === 'dependency' ? 'dependency' : 'cross_reference',
+                  confidence: link.confidence || 0.7,
+                  description: link.description || 'Deep semantic reference mapped by cognitive agent.',
+                },
+                { new: true, upsert: true }
+              )
             );
             edgesAdded++;
           }
         }
+        // Await all collected promises for Gemini-derived relationships
+        await Promise.all(geminiUpdatePromises);
       } catch (geminiErr) {
         logger.warn('RelationshipGraph: Gemini linkage extraction bypassed:', geminiErr.message);
       }
