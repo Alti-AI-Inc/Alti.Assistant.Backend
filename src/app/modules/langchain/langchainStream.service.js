@@ -5,6 +5,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
 
+/**
+ * Initializes the Google Generative AI client with the API key from configuration.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
 
 // ── Helpers shared from langchainExecution.service.js ────────────────────────
@@ -12,7 +16,11 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
 /**
  * Optimizes prompt formatting by using a single regex replacement with a callback,
  * avoiding repeated regex compilation and improving performance for templates with many variables.
+ *
  * @private
+ * @param {string} template - The prompt template string containing placeholders like `{variableName}`.
+ * @param {Object.<string, any>} scope - An object containing key-value pairs to substitute into the template.
+ * @returns {string} The formatted prompt string with all placeholders replaced by their corresponding values from the scope.
  */
 const formatPrompt = (template, scope) => {
   return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, varName) => {
@@ -29,8 +37,17 @@ const formatPrompt = (template, scope) => {
 // };
 
 /**
- * Executes a single chain step and returns its result.
+ * Executes a single chain step based on its type and configuration, updating the shared scope.
+ *
  * @private
+ * @param {Object} step - The configuration object for the current step.
+ * @param {string} step.name - The unique name of the step.
+ * @param {string} step.type - The type of the step (e.g., 'prompt', 'llm', 'parser', 'retriever', 'tool', 'branch').
+ * @param {Object} step.config - The specific configuration for the step type.
+ * @param {Object.<string, any>} scope - The shared execution scope containing variables and outputs from previous steps.
+ * @param {string} userId - The ID of the user performing the execution, used for services like RAG.
+ * @returns {Promise<Object>} An object containing the step's execution details, including input, output, duration, and token usage.
+ * @throws {Error} If an unsupported chain step type is encountered.
  */
 const executeSingleStep = async (step, scope, userId) => {
   const stepStart = Date.now();
@@ -167,12 +184,17 @@ const executeSingleStep = async (step, scope, userId) => {
 };
 
 /**
- * Execute a chain step-by-step, emitting an SSE event after each step completes.
+ * Executes a Langchain chain step-by-step, emitting Server-Sent Events (SSE) after each step completes.
+ * This function handles fetching the chain, initializing an execution record,
+ * iterating through steps, executing them, and persisting the final execution state.
  *
- * @param {string} chainId - The chain to execute
- * @param {Object} inputs - Input variables
- * @param {string} userId - User performing the execution
- * @param {Function} emit - Callback `(data: Object) => void` called after each step
+ * @param {string} chainId - The ID of the Langchain chain to execute.
+ * @param {Object.<string, any>} inputs - Initial input variables for the chain execution.
+ * @param {string} userId - The ID of the user performing the execution.
+ * @param {Function} emit - A callback function `(data: Object) => void` used to send SSE events.
+ *   It expects an object with an `event` property (e.g., 'start', 'step_start', 'step_complete', 'step_error', 'done')
+ *   and additional data relevant to the event.
+ * @returns {Promise<void>} A promise that resolves when the chain execution is complete or an error occurs.
  */
 const streamChainExecution = async (chainId, inputs, userId, emit) => {
   const tStart = Date.now();
@@ -249,7 +271,7 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
         stepNumber,
         totalSteps,
         stepName: result.stepName,
-        stepType: result.type, // Corrected from result.stepType to result.type for consistency with original
+        stepType: result.stepType, // Corrected from result.type to result.stepType for consistency with original
         durationMs: result.durationMs,
         tokenUsage: result.tokenUsage,
         // Truncate output to avoid huge SSE payloads
@@ -312,6 +334,12 @@ const streamChainExecution = async (chainId, inputs, userId, emit) => {
   });
 };
 
+/**
+ * Service object for streaming Langchain chain executions.
+ * Provides methods to execute chains step-by-step and emit progress via Server-Sent Events.
+ * @type {Object}
+ * @property {function(string, Object.<string, any>, string, Function): Promise<void>} streamChainExecution - Initiates and streams the execution of a Langchain chain.
+ */
 export const langchainStreamService = {
   streamChainExecution,
 };
