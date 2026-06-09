@@ -9,7 +9,17 @@ import { compressors } from 'hyparquet-compressors';
 import { rag } from '../knowledge/knowledge.service.js';
 
 
-// Initialize GCS client
+/**
+ * Initializes and returns a Google Cloud Storage client and bucket.
+ * It attempts to use credentials from `config.google.google_application_credentials`
+ * or a local `alti_gcp.json` file.
+ * If GCS initialization fails, it logs an error and returns nulls for storage and bucket.
+ *
+ * @returns {object} An object containing:
+ * @returns {Storage|null} storage - The Google Cloud Storage client instance, or null if initialization failed.
+ * @returns {import('@google-cloud/storage').Bucket|null} bucket - The GCS bucket object, or null if initialization failed.
+ * @returns {string|null} bucketName - The name of the GCS bucket, or null if initialization failed.
+ */
 const getGcsBucket = () => {
   try {
     const keyPath = config.google.google_application_credentials || path.join(process.cwd(), 'alti_gcp.json');
@@ -24,7 +34,14 @@ const getGcsBucket = () => {
 };
 
 /**
- * Search datasets on Hugging Face Hub
+ * Searches for datasets on the Hugging Face Hub based on a query.
+ * Results are sorted by downloads in descending order.
+ *
+ * @param {string} [query=''] - The search query string.
+ * @param {number} [limit=10] - The maximum number of results to return.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of dataset objects,
+ *   each containing `datasetId`, `name`, `author`, `downloads`, `likes`, `tags`, and `description`.
+ * @throws {Error} If the API call to Hugging Face Hub fails.
  */
 const searchHFDatasets = async (query = '', limit = 10) => {
   try {
@@ -55,7 +72,15 @@ const searchHFDatasets = async (query = '', limit = 10) => {
 };
 
 /**
- * Fetch detailed info of a dataset from Hugging Face
+ * Fetches detailed information of a dataset from Hugging Face.
+ * This includes metadata from the main Hub API and splits/configurations from the datasets-server.
+ *
+ * @param {string} datasetId - The full ID of the dataset (e.g., 'openai/webgpt_comparisons').
+ * @returns {Promise<object>} A promise that resolves to a detailed dataset information object,
+ *   including `datasetId`, `name`, `author`, `description`, `downloads`, `likes`, `tags`,
+ *   `configs` (array of config names), `splits` (object mapping config names to arrays of split info),
+ *   and `createdAt`.
+ * @throws {Error} If fetching dataset details from Hugging Face fails.
  */
 const getHFDatasetInfo = async (datasetId) => {
   try {
@@ -108,7 +133,17 @@ const getHFDatasetInfo = async (datasetId) => {
 };
 
 /**
- * Preview rows of a dataset configuration/split
+ * Previews rows of a specific dataset configuration and split from the Hugging Face Dataset Server.
+ * It attempts to resolve a canonical dataset ID if a short ID is provided.
+ *
+ * @param {string} datasetId - The ID of the dataset (e.g., 'squad' or 'rajpurkar/squad').
+ * @param {string} [configName='default'] - The name of the dataset configuration.
+ * @param {string} [splitName='train'] - The name of the dataset split (e.g., 'train', 'validation', 'test').
+ * @param {number} [offset=0] - The starting offset for fetching rows.
+ * @param {number} [limit=100] - The maximum number of rows to retrieve.
+ * @returns {Promise<object>} A promise that resolves to an object containing `features` (column definitions)
+ *   and `rows` (an array of data rows).
+ * @throws {Error} If fetching dataset rows from Hugging Face server fails.
  */
 const getHFDatasetRows = async (datasetId, configName = 'default', splitName = 'train', offset = 0, limit = 100) => {
   try {
@@ -145,7 +180,15 @@ const getHFDatasetRows = async (datasetId, configName = 'default', splitName = '
 };
 
 /**
- * Download Parquet files for a dataset from Hugging Face and pipe them directly into Google Cloud Storage (Awaited Core)
+ * Core blocking implementation for downloading Parquet files for a dataset from Hugging Face
+ * and piping them directly into Google Cloud Storage or a local fallback directory.
+ * This function updates the provided dataset model with status, GCS paths, size, and row count.
+ *
+ * @param {string} datasetId - The ID of the dataset to archive.
+ * @param {import('mongoose').Document} dataset - The Mongoose Dataset document to update with archival status and details.
+ * @returns {Promise<void>} A promise that resolves when the archival process is complete, or rejects on error.
+ * @throws {Error} If no Parquet files are found, dataset size exceeds limits, GCS connection fails,
+ *   or streaming/uploading files encounters an error.
  */
 const archiveDatasetToGCSCore = async (datasetId, dataset) => {
   try {
@@ -302,7 +345,15 @@ const archiveDatasetToGCSCore = async (datasetId, dataset) => {
 };
 
 /**
- * Download Parquet files for a dataset from Hugging Face and pipe them directly into Google Cloud Storage
+ * Initiates an asynchronous job to download Parquet files for a dataset from Hugging Face
+ * and pipe them directly into Google Cloud Storage or a local fallback.
+ * This function first creates or updates a dataset record in the local catalog with a 'pending' status,
+ * then triggers the core archival process in the background.
+ *
+ * @param {string} datasetId - The ID of the dataset to archive.
+ * @returns {Promise<object>} A promise that resolves to an object indicating the job initiation status
+ *   and the initial dataset record.
+ * @throws {Error} If fetching dataset info fails or the initial database save fails.
  */
 const archiveDatasetToGCS = async (datasetId) => {
   // 1. Fetch info and prepare database catalog record
@@ -347,7 +398,15 @@ const archiveDatasetToGCS = async (datasetId) => {
 
 /**
  * Core blocking implementation for chunking, embedding, and indexing archived data
- * to build the ultimate high-fidelity data base for our Perplexity-killer
+ * to build the ultimate high-fidelity data base for our Perplexity-killer.
+ * This function reads Parquet files from GCS or local storage, parses them,
+ * converts rows into text, and feeds them into the RAG system for vector indexing.
+ *
+ * @param {string} datasetId - The ID of the dataset to index.
+ * @param {import('mongoose').Document} dataset - The Mongoose Dataset document to update with indexing status and details.
+ * @returns {Promise<void>} A promise that resolves when indexing is complete, or rejects on error.
+ * @throws {Error} If RAG initialization fails, GCS bucket is not configured, file download/read fails,
+ *   Parquet parsing fails, or the RAG system encounters an error during document addition.
  */
 const indexDatasetForRAGCore = async (datasetId, dataset) => {
   if (config.shelfHfRagIndexing) {
@@ -513,8 +572,15 @@ const indexDatasetForRAGCore = async (datasetId, dataset) => {
 };
 
 /**
- * Async wrapper for chunking, embedding, and indexing archived data
- * to build the ultimate high-fidelity data base for our Perplexity-killer
+ * Initiates an asynchronous job to chunk, embed, and index archived dataset data
+ * into the RAG system. This function first validates the dataset's status,
+ * then triggers the core indexing process in the background.
+ *
+ * @param {string} datasetId - The ID of the dataset to index.
+ * @returns {Promise<object>} A promise that resolves to an object indicating the job initiation status
+ *   and the updated dataset record.
+ * @throws {Error} If RAG indexing is shelved by configuration, the dataset is not found,
+ *   or the dataset is not in an 'archived' status.
  */
 const indexDatasetForRAG = async (datasetId) => {
   if (config.shelfHfRagIndexing) {
@@ -554,7 +620,12 @@ const indexDatasetForRAG = async (datasetId) => {
 };
 
 /**
- * Fetch catalog of local datasets cached in MongoDB
+ * Fetches a catalog of locally cached datasets from MongoDB.
+ *
+ * @param {object} [filter={}] - An optional MongoDB query filter to apply to the dataset search.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of plain JavaScript objects
+ *   representing the datasets, sorted by `updatedAt` in descending order.
+ * @throws {Error} If the database query fails.
  */
 const getLocalCatalog = async (filter = {}) => {
   try {
@@ -569,6 +640,23 @@ const getLocalCatalog = async (filter = {}) => {
   }
 };
 
+/**
+ * @typedef {object} DatasetsService
+ * @property {function(string, number): Promise<Array<object>>} searchHFDatasets - Searches for datasets on Hugging Face Hub.
+ * @property {function(string): Promise<object>} getHFDatasetInfo - Fetches detailed info of a dataset from Hugging Face.
+ * @property {function(string, string, string, number, number): Promise<object>} getHFDatasetRows - Previews rows of a dataset configuration/split.
+ * @property {function(string): Promise<object>} archiveDatasetToGCS - Initiates an asynchronous job to download Parquet files to GCS.
+ * @property {function(string, import('mongoose').Document): Promise<void>} archiveDatasetToGCSCore - Core blocking implementation for archiving datasets to GCS.
+ * @property {function(string): Promise<object>} indexDatasetForRAG - Initiates an asynchronous job to chunk, embed, and index archived data for RAG.
+ * @property {function(string, import('mongoose').Document): Promise<void>} indexDatasetForRAGCore - Core blocking implementation for RAG indexing.
+ * @property {function(object): Promise<Array<object>>} getLocalCatalog - Fetches catalog of local datasets cached in MongoDB.
+ */
+
+/**
+ * An object containing various service functions for managing datasets,
+ * including searching Hugging Face, archiving to GCS, and indexing for RAG.
+ * @type {DatasetsService}
+ */
 export const DatasetsService = {
   searchHFDatasets,
   getHFDatasetInfo,

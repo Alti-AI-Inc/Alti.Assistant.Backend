@@ -22,9 +22,9 @@ export const connectToMongoDB = async (
   try {
     console.log('Connecting to MongoDB for research agent...');
 
+    // Mongoose 6+ defaults to useNewUrlParser and useUnifiedTopology,
+    // so these options are no longer necessary and can be removed.
     const connection = await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       family: 4,
     });
 
