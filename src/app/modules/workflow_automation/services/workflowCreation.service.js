@@ -198,7 +198,9 @@ class WorkflowCreationService {
       }
 
       // Get conversation history to understand the workflow context
-      const chatHistory = await WorkflowChatHistory.findOne({ conversationId });
+      // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
+      // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster lookups.
+      const chatHistory = await WorkflowChatHistory.findOne({ conversationId }).lean();
       if (!chatHistory) {
         throw new Error('Conversation not found');
       }
@@ -232,10 +234,10 @@ class WorkflowCreationService {
           finalPlan.detectedApps?.map((app) => ({ app, connected: false })) ||
           [],
         metadata: {
-          conversationId,
-          complexity: finalPlan.complexity,
-          createdViaChat: true,
-        },
+            conversationId,
+            complexity: finalPlan.complexity,
+            createdViaChat: true,
+          },
       });
 
       // Update chat history
@@ -253,6 +255,7 @@ class WorkflowCreationService {
       );
 
       // Update conversation with workflow ID
+      // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster lookups.
       await WorkflowChatHistory.updateOne(
         { conversationId },
         {
@@ -386,6 +389,7 @@ class WorkflowCreationService {
         metadata,
       };
 
+      // Index Recommendation: Consider adding an index on `conversationId` in WorkflowChatHistory model for faster upserts.
       await WorkflowChatHistory.updateOne(
         { conversationId },
         {
@@ -420,11 +424,14 @@ class WorkflowCreationService {
    */
   async getUserConversations(userId, limit = 50, offset = 0) {
     try {
+      // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
+      // Index Recommendation: Consider adding a compound index on `{ userId: 1, lastActivity: -1 }` in WorkflowChatHistory model for faster queries and sorting.
       const conversations = await WorkflowChatHistory.find({ userId })
         .sort({ lastActivity: -1 })
         .limit(limit)
         .skip(offset)
         .populate('workflowIds', 'name status')
+        .lean() // Apply .lean() here
         .exec();
 
       return conversations;
@@ -446,11 +453,14 @@ class WorkflowCreationService {
    */
   async getConversation(conversationId, userId) {
     try {
+      // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
+      // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups.
       const conversation = await WorkflowChatHistory.findOne({
         conversationId,
         userId,
       })
         .populate('workflowIds')
+        .lean() // Apply .lean() here
         .exec();
 
       return conversation;
