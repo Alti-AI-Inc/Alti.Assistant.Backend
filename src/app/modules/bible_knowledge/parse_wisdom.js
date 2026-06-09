@@ -1,4 +1,5 @@
-import fs from 'fs';
+import { promises as fsPromises } from 'fs'; // For async file operations
+import fs from 'fs'; // For synchronous mkdirSync
 import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -24,20 +25,55 @@ const SOURCES = [
 
 async function fetchText(url) {
     return new Promise((resolve, reject) => {
-        let rawData = '';
+        // Use an array to collect chunks for better performance with potentially large files
+        const chunks = [];
         https.get(url, (res) => {
-            if (res.statusCode === 301 || res.statusCode === 302) {
-                return fetchText(res.headers.location).then(resolve).catch(reject);
+            // Handle redirects (301, 302, etc.)
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                // Destroy the current response stream to prevent resource leaks
+                res.destroy();
+                const redirectUrl = res.headers.location;
+                // Recursively fetch from the new location
+                return fetchText(redirectUrl).then(resolve).catch(reject);
             }
-            res.on('data', chunk => rawData += chunk);
-            res.on('end', () => resolve(rawData));
-        }).on('error', reject);
+
+            // Handle non-2xx status codes as errors
+            if (res.statusCode < 200 || res.statusCode >= 300) {
+                res.destroy(); // Destroy stream on error
+                return reject(new Error(`Failed to fetch ${url}, status code: ${res.statusCode}`));
+            }
+
+            res.on('data', chunk => chunks.push(chunk));
+            res.on('end', () => {
+                // Concatenate chunks and convert to string using utf8 encoding
+                resolve(Buffer.concat(chunks).toString('utf8'));
+            });
+        }).on('error', reject); // Handle network errors
     });
+}
+
+// Helper function to determine if a paragraph is a chapter/book heading
+function isChapterHeading(paragraph) {
+    // More robust heuristic for chapter/book headings in Gutenberg texts.
+    // 1. Check for common patterns like "CHAPTER I", "BOOK II", "PART THREE"
+    if (/\b(CHAPTER|BOOK|PART)\s+([IVXLCDM]+\b|\d+\b|ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN)\b/i.test(paragraph)) {
+        return true;
+    }
+    // 2. Check for all-caps paragraphs that are not excessively long,
+    // which often indicate section titles. Exclude very short phrases that might be emphasized words.
+    if (paragraph.toUpperCase() === paragraph && paragraph.length > 5 && paragraph.length < 100) {
+        return true;
+    }
+    return false;
 }
 
 async function buildDatabase() {
     console.log('Building Wisdom Library...');
     const database = [];
+
+    // Ensure the data directory exists before attempting to write files.
+    // { recursive: true } ensures parent directories are also created if they don't exist.
+    fs.mkdirSync(DATA_DIR, { recursive: true });
 
     for (const source of SOURCES) {
         console.log(`Downloading ${source.name}...`);
@@ -67,8 +103,8 @@ async function buildDatabase() {
             let verse = 1;
 
             for (const p of paragraphs) {
-                if (p.toUpperCase() === p && p.length < 100) {
-                    // Looks like a title or chapter heading
+                // Use the improved heading detection to correctly identify and skip chapter headings
+                if (isChapterHeading(p)) {
                     chapter++;
                     verse = 1;
                     continue;
@@ -82,7 +118,8 @@ async function buildDatabase() {
                 });
             }
             
-            console.log(`Parsed ${verse} entries for ${source.name}`);
+            // Log the correct number of entries parsed for the source
+            console.log(`Parsed ${verse - 1} entries for ${source.name}`);
         } catch (err) {
             console.error(`Error processing ${source.name}:`, err);
         }
@@ -120,7 +157,8 @@ async function buildDatabase() {
     database.push({ book: 'The Rule of St. Benedict', chapter: 1, verse: 1, text: 'Listen carefully, my son, to the master\'s instructions, and attend to them with the ear of your heart. This is advice from a father who loves you; welcome it, and faithfully put it into practice. The labor of obedience will bring you back to him from whom you had drifted through the sloth of disobedience.'});
     database.push({ book: 'Revelations of Divine Love', chapter: 1, verse: 1, text: 'And in this he showed me a little thing, the quantity of a hazelnut, lying in the palm of my hand, as it seemed, and it was as round as a ball. I looked upon it with the eye of my understanding, and thought: What may this be? And it was answered generally thus: It is all that is made. I marvelled how it might last, for I thought it might suddenly have fallen to nothing for littleness. And I was answered in my understanding: It lasts and ever shall, for God loves it. And so all things have their beginning by the love of God. And He said: "All shall be well, and all shall be well, and all manner of thing shall be well."'});
 
-    fs.writeFileSync(OUT_FILE, JSON.stringify(database, null, 2), 'utf8');
+    // Use async file writing for better performance and non-blocking I/O
+    await fsPromises.writeFile(OUT_FILE, JSON.stringify(database, null, 2), 'utf8');
     console.log(`Successfully built ${OUT_FILE} with ${database.length} total entries.`);
 }
 
