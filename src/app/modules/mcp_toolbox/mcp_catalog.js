@@ -134,10 +134,10 @@ export const mcpCatalog = {
       "imagen3-mcp"
     ],
     "requiredEnv": [
-      "GOOGLE_MAPS_API_KEY"
+      "IMAGEN_API_KEY" // Corrected API key name for Imagen integration
     ],
     "env": {
-      "GOOGLE_MAPS_API_KEY": ""
+      "IMAGEN_API_KEY": "" // Corrected API key name for Imagen integration
     }
   },
   "spotify-bulk": {
@@ -324,10 +324,10 @@ export const mcpCatalog = {
       "@modelcontextprotocol/server-google-drive"
     ],
     "requiredEnv": [
-      "GOOGLE_CALENDAR_CREDENTIALS"
+      "GOOGLE_DRIVE_CREDENTIALS" // Corrected credentials name for Google Drive integration
     ],
     "env": {
-      "GOOGLE_CALENDAR_CREDENTIALS": ""
+      "GOOGLE_DRIVE_CREDENTIALS": "" // Corrected credentials name for Google Drive integration
     }
   },
   "postgresql": {
