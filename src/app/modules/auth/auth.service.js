@@ -245,10 +245,24 @@ const registerService = async (req) => {
           type: 'emailVerification',
         });
 
-        await newToken.save({ newToken });
+        await newToken.save({ session });
 
-        const mailData = await registrationOtpTemplate(email, token);
-        await sendMailWithNodeMailer(mailData);
+        logger.info(`[Verification OTP] Verification code for ${email}: ${token}`);
+
+        try {
+          const mailData = await registrationOtpTemplate(email, token);
+          await sendMailWithNodeMailer(mailData);
+          logger.info(`Verification email sent successfully to ${email}`);
+        } catch (mailError) {
+          logger.error(`Failed to send verification email to ${email}:`, mailError);
+          // Auto-verify if bypass flag is set, or if we are not in production
+          if (process.env.BYPASS_EMAIL_VERIFICATION === 'true' || process.env.NODE_ENV !== 'production') {
+            logger.info(`Bypassing email verification for ${email} due to mail error - auto-verifying user.`);
+            user[0].role = 'user';
+            await user[0].save({ session });
+            invitationAccepted = true;
+          }
+        }
       }
 
       // Create free subscription for new users without tenant
