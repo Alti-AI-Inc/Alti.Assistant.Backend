@@ -17,9 +17,13 @@ const forumUserActivitiesValidationSchema = z.object({
       }),
       author: z
         .string()
-        .uuid({ message: 'Invalid author ID' })
-        .refine((value) => value.trim() !== '', {
-          message: 'Author ID is required',
+        // Bug Fix: Assuming 'author' refers to a MongoDB ObjectId, not a UUID.
+        // The 'mongoose' import strongly suggests this is the case for a Node.js/Express backend.
+        // The previous UUID validation would incorrectly reject valid MongoDB ObjectIds.
+        // The .refine((value) => value.trim() !== '') check is redundant as ObjectId.isValid()
+        // already handles empty or whitespace-only strings by returning false.
+        .refine((value) => mongoose.Types.ObjectId.isValid(value), {
+          message: 'Invalid author ID',
         }),
       authorEmail: z.string().email('Please provide a valid email'),
       description: z.array(
