@@ -43,13 +43,12 @@ const GoogleRepositorySchema = new mongoose.Schema(
       type: String,
       default: 'Unknown',
       index: true
-    },
-    updated_at: {
-      type: Date
     }
+    // The 'updated_at' field is redundant because 'timestamps: true'
+    // automatically adds 'createdAt' and 'updatedAt' fields.
   },
   {
-    timestamps: true
+    timestamps: true // This option automatically adds 'createdAt' and 'updatedAt' fields.
   }
 );
 
