@@ -415,10 +415,13 @@ const getExecutionController = catchAsync(async (req, res) => {
       await import('../models/workflowExecution.model.js')
     ).default;
 
+    // Optimization: Add .lean() for read-only operations to improve performance
+    // Recommendation: Consider adding a compound index on { executionId: 1, userId: 1 }
+    // or { userId: 1, executionId: 1 } to the WorkflowExecution model for faster lookups.
     const execution = await WorkflowExecution.findOne({
       executionId,
       userId,
-    });
+    }).lean();
 
     if (!execution) {
       return sendResponse(res, {
