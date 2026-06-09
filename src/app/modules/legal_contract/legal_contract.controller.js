@@ -151,6 +151,10 @@ const getConversationHistory = catchAsync(async (req, res) => {
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
+    // Optimization suggestion: If legalContractService.getConversationHistory uses Mongoose,
+    // consider adding .lean() for read-only operations and .select() to fetch only necessary fields
+    // (e.g., 'metadata.generatedContract', 'metadata.outputFormat', 'metadata.isGuest')
+    // to improve query performance.
     const result = await legalContractService.getConversationHistory(
       conversationId,
       userId,
@@ -186,6 +190,9 @@ const downloadContract = catchAsync(async (req, res) => {
   );
 
   try {
+    // Optimization suggestion: If legalContractService.getConversationHistory uses Mongoose,
+    // consider adding .lean() for read-only operations and .select() to fetch only necessary fields
+    // (e.g., 'metadata.generatedContract') to improve query performance.
     const conversation = await legalContractService.getConversationHistory(
       conversationId,
       userId,
@@ -355,7 +362,10 @@ const modifyContract = catchAsync(async (req, res) => {
   logger.info(`Modify contract request: ${conversationId}`);
 
   try {
-    // Get existing conversation
+    // Optimization suggestion: If legalContractService.getConversationHistory uses Mongoose,
+    // consider adding .lean() for read-only operations and .select() to fetch only necessary fields
+    // (e.g., 'metadata.generatedContract', 'metadata.outputFormat', 'metadata.isGuest')
+    // to improve query performance.
     const conversation = await legalContractService.getConversationHistory(
       conversationId,
       userId,
