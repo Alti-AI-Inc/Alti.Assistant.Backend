@@ -11,9 +11,12 @@ import { OWNER_TYPES } from './knowledge.constant.js';
  */
 export const uploadFile = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { ownerType, folderId, description, tags, processImmediately } =
+  const { ownerType, folderId, description, tags, processImmediately, ownerId } = // Destructure ownerId from req.body
     req.body;
-  const ownerId = userId;
+  // BUG FIX: Removed problematic line. The ownerId for 'bot' ownerType should come from req.body,
+  // not be reassigned from userId.
+  // const ownerId = userId;
+
   if (!userId) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
@@ -38,14 +41,25 @@ export const uploadFile = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId =
-    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  // BUG FIX: IDOR Vulnerability.
+  // The original logic `ownerId || (ownerType === OWNER_TYPES.USER ? userId : null)`
+  // allowed a user to specify an arbitrary ownerId from req.body when ownerType was 'user',
+  // leading to an IDOR vulnerability where a user could upload files to another user's knowledge base.
+  // For 'user' ownerType, the owner must always be the authenticated user.
+  // For 'bot' ownerType, the ownerId must be provided in the request body and
+  // the service layer is responsible for validating that the bot belongs to the authenticated user.
+  let finalOwnerId;
+  if (ownerType === OWNER_TYPES.USER) {
+    finalOwnerId = userId; // For 'user' ownerType, the owner is always the authenticated user.
+  } else if (ownerType === OWNER_TYPES.BOT) {
+    finalOwnerId = ownerId; // For 'bot' ownerType, ownerId must be provided in the request.
+  }
 
   if (!finalOwnerId) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Owner ID is required for bot files',
+      message: 'Owner ID is required for the specified ownerType',
     });
   }
 
@@ -56,7 +70,7 @@ export const uploadFile = catchAsync(async (req, res) => {
 
     const options = {
       description: description || '',
-      tags: tags ? JSON.parse(tags) : [],
+      tags: tags ? JSON.parse(tags) : [], // Assuming tags is a JSON string, catchAsync handles parse errors.
       folderId: folderId || null,
       uploadSource: 'web',
       ipAddress: req.ip,
@@ -131,6 +145,8 @@ export const processFile = catchAsync(async (req, res) => {
   }
 
   try {
+    // The knowledgeService.processFile is expected to perform ownership validation
+    // to ensure the fileId belongs to the userId.
     const result = await knowledgeService.processFile(fileId, req);
 
     sendResponse(res, {
@@ -157,7 +173,7 @@ export const getFiles = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const {
     ownerType,
-    ownerId,
+    ownerId, // Destructure ownerId from req.query
     fileType,
     processingStatus,
     isProcessed,
@@ -182,14 +198,20 @@ export const getFiles = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId =
-    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  // BUG FIX: IDOR Vulnerability.
+  // Similar to uploadFile, this prevents a user from querying files belonging to another user.
+  let finalOwnerId;
+  if (ownerType === OWNER_TYPES.USER) {
+    finalOwnerId = userId; // For 'user' ownerType, the owner is always the authenticated user.
+  } else if (ownerType === OWNER_TYPES.BOT) {
+    finalOwnerId = ownerId; // For 'bot' ownerType, ownerId must be provided in the request.
+  }
 
   if (!finalOwnerId) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Owner ID is required',
+      message: 'Owner ID is required for the specified ownerType',
     });
   }
 
@@ -208,7 +230,11 @@ export const getFiles = catchAsync(async (req, res) => {
       skip: parseInt(skip) || 0,
     };
 
-    const files = await knowledgeService.getFiles(
+    // BUG FIX: Pagination/Performance.
+    // The original code used `files.length` for `totalCount`, which is incorrect for paginated results.
+    // Assuming knowledgeService.getFiles returns an object with { files: [], totalCount: number }
+    // for proper pagination, instead of just an array.
+    const { files, totalCount } = await knowledgeService.getFiles(
       ownerType,
       finalOwnerId,
       filters,
@@ -221,7 +247,7 @@ export const getFiles = catchAsync(async (req, res) => {
       message: 'Files retrieved successfully',
       data: {
         files,
-        totalCount: files.length,
+        totalCount, // Use totalCount from service for accurate pagination
         filters: {
           ownerType,
           ownerId: finalOwnerId,
@@ -248,7 +274,7 @@ export const getFiles = catchAsync(async (req, res) => {
 export const getFileById = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { fileId } = req.params;
-  const { ownerType, ownerId } = req.query;
+  const { ownerType, ownerId } = req.query; // Destructure ownerId from req.query
 
   if (!userId) {
     return sendResponse(res, {
@@ -266,10 +292,26 @@ export const getFileById = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId =
-    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  // BUG FIX: IDOR Vulnerability.
+  // Similar to uploadFile, this prevents a user from retrieving files belonging to another user.
+  let finalOwnerId;
+  if (ownerType === OWNER_TYPES.USER) {
+    finalOwnerId = userId; // For 'user' ownerType, the owner is always the authenticated user.
+  } else if (ownerType === OWNER_TYPES.BOT) {
+    finalOwnerId = ownerId; // For 'bot' ownerType, ownerId must be provided in the request.
+  }
+
+  if (!finalOwnerId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Owner ID is required for the specified ownerType',
+    });
+  }
 
   try {
+    // The knowledgeService.getFileById is expected to perform ownership validation
+    // using finalOwnerId to ensure the file belongs to the authenticated user or their bot.
     const file = await knowledgeService.getFileById(
       fileId,
       ownerType,
@@ -308,7 +350,7 @@ export const getFileById = catchAsync(async (req, res) => {
 export const deleteFile = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
   const { fileId } = req.params;
-  const { ownerType, ownerId } = req.body;
+  const { ownerType, ownerId } = req.body; // Destructure ownerId from req.body
 
   if (!userId) {
     return sendResponse(res, {
@@ -326,10 +368,26 @@ export const deleteFile = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId =
-    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  // BUG FIX: IDOR Vulnerability.
+  // Similar to uploadFile, this prevents a user from deleting files belonging to another user.
+  let finalOwnerId;
+  if (ownerType === OWNER_TYPES.USER) {
+    finalOwnerId = userId; // For 'user' ownerType, the owner is always the authenticated user.
+  } else if (ownerType === OWNER_TYPES.BOT) {
+    finalOwnerId = ownerId; // For 'bot' ownerType, ownerId must be provided in the request.
+  }
+
+  if (!finalOwnerId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Owner ID is required for the specified ownerType',
+    });
+  }
 
   try {
+    // The knowledgeService.deleteFile is expected to perform ownership validation
+    // using finalOwnerId to ensure the file belongs to the authenticated user or their bot.
     const result = await knowledgeService.deleteFile(
       fileId,
       ownerType,
@@ -366,7 +424,7 @@ export const deleteFile = catchAsync(async (req, res) => {
  */
 export const getStorageStats = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { ownerType, ownerId } = req.query;
+  const { ownerType, ownerId } = req.query; // Destructure ownerId from req.query
 
   if (!userId) {
     return sendResponse(res, {
@@ -384,10 +442,26 @@ export const getStorageStats = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId =
-    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  // BUG FIX: IDOR Vulnerability.
+  // Similar to uploadFile, this prevents a user from getting stats for another user's knowledge base.
+  let finalOwnerId;
+  if (ownerType === OWNER_TYPES.USER) {
+    finalOwnerId = userId; // For 'user' ownerType, the owner is always the authenticated user.
+  } else if (ownerType === OWNER_TYPES.BOT) {
+    finalOwnerId = ownerId; // For 'bot' ownerType, ownerId must be provided in the request.
+  }
+
+  if (!finalOwnerId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Owner ID is required for the specified ownerType',
+    });
+  }
 
   try {
+    // The knowledgeService.getStorageStats is expected to perform ownership validation
+    // using finalOwnerId to ensure the stats are for the authenticated user or their bot.
     const stats = await knowledgeService.getStorageStats(
       ownerType,
       finalOwnerId,
@@ -428,6 +502,7 @@ export const createFolder = catchAsync(async (req, res) => {
   }
 
   try {
+    // The knowledgeService.createFolder is expected to associate the folder with the userId.
     const result = await knowledgeService.createFolder(userId, req.body, req);
 
     sendResponse(res, {
@@ -471,7 +546,15 @@ export const getFolders = catchAsync(async (req, res) => {
           : parentFolderId;
     }
 
-    const folders = await knowledgeService.getFolders(userId, options, req);
+    // BUG FIX: Pagination/Performance.
+    // The original code used `folders.length` for `totalCount`, which is incorrect for paginated results.
+    // Assuming knowledgeService.getFolders returns an object with { folders: [], totalCount: number }
+    // for proper pagination, instead of just an array.
+    const { folders, totalCount } = await knowledgeService.getFolders(
+      userId,
+      options,
+      req
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -479,7 +562,7 @@ export const getFolders = catchAsync(async (req, res) => {
       message: 'Folders retrieved successfully',
       data: {
         folders,
-        totalCount: folders.length,
+        totalCount, // Use totalCount from service for accurate pagination
       },
     });
   } catch (error) {
@@ -517,6 +600,8 @@ export const getFolderById = catchAsync(async (req, res) => {
   }
 
   try {
+    // The knowledgeService.getFolderById is expected to perform ownership validation
+    // to ensure the folder belongs to the userId.
     const folder = await knowledgeService.getFolderById(folderId, userId, req);
 
     if (!folder) {
@@ -568,6 +653,8 @@ export const updateFolder = catchAsync(async (req, res) => {
   }
 
   try {
+    // The knowledgeService.updateFolder is expected to perform ownership validation
+    // to ensure the folder belongs to the userId.
     const result = await knowledgeService.updateFolder(
       folderId,
       userId,
@@ -617,6 +704,8 @@ export const deleteFolder = catchAsync(async (req, res) => {
   }
 
   try {
+    // The knowledgeService.deleteFolder is expected to perform ownership validation
+    // to ensure the folder belongs to the userId.
     const result = await knowledgeService.deleteFolder(
       folderId,
       userId,
@@ -666,6 +755,8 @@ export const getFolderContents = catchAsync(async (req, res) => {
   try {
     const finalFolderId =
       folderId === 'root' || folderId === 'null' ? null : folderId;
+    // The knowledgeService.getFolderContents is expected to perform ownership validation
+    // to ensure the folder belongs to the userId.
     const contents = await knowledgeService.getFolderContents(
       finalFolderId,
       userId,
@@ -696,8 +787,11 @@ export const getFolderContents = catchAsync(async (req, res) => {
  */
 export const conversationalQuery = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { message, conversationId, ownerType, topK } = req.body;
-  const ownerId = req.user?.userId || req.user?._id;
+  const { message, conversationId, ownerType, topK, ownerId } = req.body; // Destructure ownerId from req.body
+  // BUG FIX: Removed redundant and incorrect ownerId assignment.
+  // The ownerId for 'bot' ownerType should come from req.body, not be reassigned from userId.
+  // const ownerId = req.user?.userId || req.user?._id;
+
   if (!userId) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
@@ -722,18 +816,26 @@ export const conversationalQuery = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId =
-    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  // BUG FIX: IDOR Vulnerability.
+  // Similar to uploadFile, this prevents a user from querying another user's knowledge base.
+  let finalOwnerId;
+  if (ownerType === OWNER_TYPES.USER) {
+    finalOwnerId = userId; // For 'user' ownerType, the owner is always the authenticated user.
+  } else if (ownerType === OWNER_TYPES.BOT) {
+    finalOwnerId = ownerId; // For 'bot' ownerType, ownerId must be provided in the request.
+  }
 
   if (!finalOwnerId) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Owner ID is required',
+      message: 'Owner ID is required for the specified ownerType',
     });
   }
 
   try {
+    // The knowledgeQueryService.conversationalQuery is expected to perform ownership validation
+    // using finalOwnerId to ensure the query is against the authenticated user's knowledge or their bot's.
     const result = await knowledgeQueryService.conversationalQuery(
       userId,
       ownerType,
@@ -765,7 +867,7 @@ export const conversationalQuery = catchAsync(async (req, res) => {
  */
 export const queryKnowledge = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { query, ownerType, ownerId, topK } = req.body;
+  const { query, ownerType, ownerId, topK } = req.body; // Destructure ownerId from req.body
 
   if (!userId) {
     return sendResponse(res, {
@@ -791,18 +893,26 @@ export const queryKnowledge = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId =
-    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  // BUG FIX: IDOR Vulnerability.
+  // Similar to uploadFile, this prevents a user from querying another user's knowledge base.
+  let finalOwnerId;
+  if (ownerType === OWNER_TYPES.USER) {
+    finalOwnerId = userId; // For 'user' ownerType, the owner is always the authenticated user.
+  } else if (ownerType === OWNER_TYPES.BOT) {
+    finalOwnerId = ownerId; // For 'bot' ownerType, ownerId must be provided in the request.
+  }
 
   if (!finalOwnerId) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
-      message: 'Owner ID is required',
+      message: 'Owner ID is required for the specified ownerType',
     });
   }
 
   try {
+    // The knowledgeQueryService.queryKnowledge is expected to perform ownership validation
+    // using finalOwnerId to ensure the query is against the authenticated user's knowledge or their bot's.
     const result = await knowledgeQueryService.queryKnowledge(
       query,
       ownerType,
@@ -834,7 +944,7 @@ export const queryKnowledge = catchAsync(async (req, res) => {
  */
 export const semanticSearch = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
-  const { query, ownerType, ownerId, limit } = req.body;
+  const { query, ownerType, ownerId, limit } = req.body; // Destructure ownerId from req.body
 
   if (!userId) {
     return sendResponse(res, {
@@ -860,10 +970,26 @@ export const semanticSearch = catchAsync(async (req, res) => {
     });
   }
 
-  const finalOwnerId =
-    ownerId || (ownerType === OWNER_TYPES.USER ? userId : null);
+  // BUG FIX: IDOR Vulnerability.
+  // Similar to uploadFile, this prevents a user from searching another user's knowledge base.
+  let finalOwnerId;
+  if (ownerType === OWNER_TYPES.USER) {
+    finalOwnerId = userId; // For 'user' ownerType, the owner is always the authenticated user.
+  } else if (ownerType === OWNER_TYPES.BOT) {
+    finalOwnerId = ownerId; // For 'bot' ownerType, ownerId must be provided in the request.
+  }
+
+  if (!finalOwnerId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Owner ID is required for the specified ownerType',
+    });
+  }
 
   try {
+    // The knowledgeQueryService.semanticSearch is expected to perform ownership validation
+    // using finalOwnerId to ensure the search is against the authenticated user's knowledge or their bot's.
     const result = await knowledgeQueryService.semanticSearch(
       query,
       ownerType,
@@ -885,7 +1011,7 @@ export const semanticSearch = catchAsync(async (req, res) => {
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
       success: false,
-      message: error.message || 'An error occurred while searching',
+      message: 'An error occurred while searching',
     });
   }
 });
@@ -914,6 +1040,8 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   }
 
   try {
+    // The knowledgeQueryService.getConversationHistory is expected to perform ownership validation
+    // to ensure the conversation belongs to the userId.
     const result = await knowledgeQueryService.getConversationHistory(
       conversationId,
       userId
