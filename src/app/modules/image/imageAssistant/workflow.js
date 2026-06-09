@@ -59,16 +59,24 @@ workflow.addEdge('generate_image', END);
 
 // Compile immediately with in-memory checkpointer to avoid blocking startup
 let checkpointer = new MemorySaver();
-export const app = workflow.compile({ checkpointer });
+// The 'app' variable needs to be mutable ('let') to allow reassignment when the MongoDB checkpointer is ready.
+// Using 'const' here would prevent the 'app' object from being replaced with the MongoDB-configured version.
+export let app = workflow.compile({ checkpointer });
 
 // Deferred MongoDB checkpointer upgrade (non-blocking)
 MongoDBSaver.fromUri(config.database_local, 'image_checkpoints')
   .then((mongoCheckpointer) => {
     checkpointer = mongoCheckpointer;
-    Object.assign(app, workflow.compile({ checkpointer }));
+    // Recompile the workflow with the new MongoDB checkpointer and reassign it to 'app'.
+    // This ensures that subsequent calls to 'app' will use the MongoDB checkpointer.
+    // Note: Due to ES module import caching, modules that have already imported 'app'
+    // before this reassignment might still hold a reference to the initial 'MemorySaver' version.
+    // For a truly dynamic update across all consumers, a getter function or a promise
+    // resolving with the final 'app' instance would be a more robust pattern.
+    app = workflow.compile({ checkpointer });
     console.log('✅ Image assistant: MongoDB checkpointer connected');
   })
   .catch((err) => {
     console.warn('⚠️ Image assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
+    // If MongoDB connection fails, 'app' remains the MemorySaver version, which is the desired fallback.
   });
-
