@@ -11,6 +11,22 @@ import {
   PROCESSING_TYPES,
 } from './transcription.constant.js';
 import fs from 'fs';
+import fsp from 'fs/promises'; // New import for async file operations
+import { conversationHelpers } from '../../utils/conversationHelpers.js'; // Assuming this path for conversationHelpers
+
+/**
+ * Helper to safely delete a file asynchronously, ignoring 'file not found' errors.
+ * @param {string} path - The path to the file to delete.
+ */
+async function safeUnlink(path) {
+  try {
+    await fsp.unlink(path);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      logger.error(`Failed to unlink file ${path}:`, error);
+    }
+  }
+}
 
 /**
  * Smart transcription assistant - unified endpoint for all transcription actions
@@ -66,16 +82,13 @@ export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
   } catch (error) {
     logger.error('Smart assistant error:', error);
 
-    // Clean up uploaded files on error
-    if (audioFile?.path && fs.existsSync(audioFile.path)) {
-      fs.unlinkSync(audioFile.path);
+    // Clean up uploaded files on error asynchronously
+    if (audioFile?.path) {
+      await safeUnlink(audioFile.path);
     }
     if (audioFiles) {
-      audioFiles.forEach((file) => {
-        if (file.path && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      });
+      // Use Promise.all to concurrently unlink files
+      await Promise.all(audioFiles.map(file => safeUnlink(file.path)));
     }
 
     return sendResponse(res, {
@@ -112,7 +125,8 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
 
   // Validate audio file
   if (!geminiAudioService.isValidAudioFormat(audioFile.mimetype)) {
-    if (fs.existsSync(audioFile.path)) fs.unlinkSync(audioFile.path);
+    // Clean up local file asynchronously
+    await safeUnlink(audioFile.path);
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
@@ -121,7 +135,8 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
   }
 
   if (audioFile.size > AUDIO_PROCESSING.MAX_INLINE_SIZE) {
-    if (fs.existsSync(audioFile.path)) fs.unlinkSync(audioFile.path);
+    // Clean up local file asynchronously
+    await safeUnlink(audioFile.path);
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
@@ -144,6 +159,9 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
     // Get conversation history for context
     let conversationHistory = [];
     if (conversationId && conversation.messages) {
+      // Optimization Note: If conversation.messages can be very large, consider
+      // optimizing the database query to fetch only the last N messages directly
+      // using aggregation or a specific Mongoose query with $slice.
       conversationHistory = conversation.messages.slice(-10).map((msg) => ({
         role: msg.role,
         content: msg.content,
@@ -229,10 +247,8 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
       isGuest
     );
 
-    // Clean up local file
-    if (fs.existsSync(audioFile.path)) {
-      fs.unlinkSync(audioFile.path);
-    }
+    // Clean up local file asynchronously
+    await safeUnlink(audioFile.path);
 
     logger.info(
       `Audio processed successfully for conversation: ${actualConversationId}`
@@ -257,7 +273,8 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
       },
     });
   } catch (error) {
-    if (fs.existsSync(audioFile.path)) fs.unlinkSync(audioFile.path);
+    // Clean up local file asynchronously on error
+    await safeUnlink(audioFile.path);
     throw error;
   }
 }
@@ -289,6 +306,10 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
 
     const results = [];
 
+    // Optimization Note: If external services (uploadAudioToBucket, uploadAudioFile, processAudioWithGemini)
+    // can handle concurrent requests, consider using Promise.all for batch processing
+    // to speed up the overall execution time for multiple files.
+    // Example: Promise.all(audioFiles.map(async (file) => { ... process file ... }))
     for (let i = 0; i < audioFiles.length; i++) {
       const file = audioFiles[i];
 
@@ -324,10 +345,8 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
           success: true,
         });
 
-        // Clean up
-        if (fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
+        // Clean up asynchronously
+        await safeUnlink(file.path);
       } catch (error) {
         logger.error(`Error processing file ${file.originalname}:`, error);
         results.push({
@@ -336,9 +355,8 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
           success: false,
         });
 
-        if (fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
+        // Clean up asynchronously on error
+        await safeUnlink(file.path);
       }
     }
 
@@ -367,12 +385,8 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
       },
     });
   } catch (error) {
-    // Clean up files on error
-    audioFiles.forEach((file) => {
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
-    });
+    // Clean up files on error asynchronously
+    await Promise.all(audioFiles.map(file => safeUnlink(file.path)));
     throw error;
   }
 }
@@ -406,10 +420,15 @@ async function handleChatMessage(
 
   try {
     // Get conversation with history
+    // Optimization: Use .lean() for read-only operations to improve performance
+    // by returning plain JavaScript objects instead of Mongoose documents.
+    // Indexing Recommendation: Ensure an index exists on `conversationId`
+    // and potentially a compound index on `{ conversationId: 1, userId: 1 }`
+    // if `userId` is consistently used in queries for non-guest users.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       isGuest ? null : userId
-    );
+    ).lean(); // Added .lean()
 
     if (!conversation) {
       return sendResponse(res, {
@@ -424,6 +443,9 @@ async function handleChatMessage(
     let lastAudioFileUri = null;
 
     if (conversation.messages) {
+      // Optimization Note: If conversation.messages can be very large, consider
+      // optimizing the database query to fetch only the last N messages directly
+      // using aggregation or a specific Mongoose query with $slice.
       conversationHistory = conversation.messages
         .slice(-20) // Get last 20 messages for context
         .map((msg) => {
@@ -516,6 +538,11 @@ export const getTranscriptionStats = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
 
   try {
+    // Optimization Note: Ensure that transcriptionService.getTranscriptionStats
+    // uses .lean() for any read-only Mongoose queries it performs to return
+    // plain JavaScript objects, improving performance.
+    // Indexing Recommendation: Ensure appropriate indexes exist on fields
+    // used for filtering/sorting statistics (e.g., userId, createdAt).
     const stats = await transcriptionService.getTranscriptionStats(userId, req);
 
     return sendResponse(res, {
