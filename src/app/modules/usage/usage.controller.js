@@ -14,7 +14,10 @@ const getUsageStats = catchAsync(async (req, res) => {
 
   // Find subscription (context-aware: personal or organization)
   const filter = tenantId ? { tenantId } : { userId, tenantId: null };
-  const subscription = await SubscriptionModel.findOne(filter);
+  // Optimization: Add .lean() for read-only queries to reduce Mongoose document overhead.
+  // Indexing Recommendation: For SubscriptionModel, consider creating indexes on `tenantId` and `userId`
+  // to improve query performance for `findOne(filter)`. A compound index `userId, tenantId` might also be beneficial.
+  const subscription = await SubscriptionModel.findOne(filter).lean();
 
   // Fallback limits if no active paid subscription exists (Free plan limits)
   const planName = subscription?.plan_name || 'free';
@@ -27,6 +30,9 @@ const getUsageStats = catchAsync(async (req, res) => {
   };
 
   // Get daily usage details from UserUsage model
+  // Indexing Recommendation: For UserUsageModel, consider creating indexes on `userId`, `tenantId`,
+  // and any timestamp/date field used for filtering (e.g., `createdAt`) to optimize `getTodayRequests`
+  // and `getTotalStorage` methods.
   const todayCount = await UserUsageModel.getTodayRequests(userId, tenantId);
   const storageUsedBytes = await UserUsageModel.getTotalStorage(userId, tenantId);
 
