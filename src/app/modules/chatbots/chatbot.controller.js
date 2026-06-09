@@ -4,7 +4,11 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { chatbotService } from './chatbot.service.js';
 
 const createChatbot = catchAsync(async (req, res) => {
-  const result = await chatbotService.createChatbot(req.body, req.user.userId, req);
+  // It's generally a bad practice to pass the entire 'req' object to the service layer.
+  // Services should only receive the specific data they need to perform their logic,
+  // promoting better separation of concerns, testability, and reusability.
+  // For creation, typically only the request body and user context are needed.
+  const result = await chatbotService.createChatbot(req.body, req.user.userId);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
@@ -14,7 +18,9 @@ const createChatbot = catchAsync(async (req, res) => {
 });
 
 const getChatbots = catchAsync(async (req, res) => {
-  const result = await chatbotService.getChatbots(req.user.userId, req);
+  // For retrieving lists of resources, 'req.query' is often used for filtering,
+  // pagination, and sorting. Passing 'req.query' explicitly is better than the entire 'req' object.
+  const result = await chatbotService.getChatbots(req.user.userId, req.query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -24,7 +30,8 @@ const getChatbots = catchAsync(async (req, res) => {
 });
 
 const getChatbotById = catchAsync(async (req, res) => {
-  const result = await chatbotService.getChatbotById(req.params.id, req.user.userId, req);
+  // Only the ID from params and user context are needed to retrieve a specific chatbot.
+  const result = await chatbotService.getChatbotById(req.params.id, req.user.userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -34,7 +41,8 @@ const getChatbotById = catchAsync(async (req, res) => {
 });
 
 const updateChatbot = catchAsync(async (req, res) => {
-  const result = await chatbotService.updateChatbot(req.params.id, req.user.userId, req.body, req);
+  // Only the ID from params, user context, and update body are needed for updating.
+  const result = await chatbotService.updateChatbot(req.params.id, req.user.userId, req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -44,7 +52,8 @@ const updateChatbot = catchAsync(async (req, res) => {
 });
 
 const deleteChatbot = catchAsync(async (req, res) => {
-  const result = await chatbotService.deleteChatbot(req.params.id, req.user.userId, req);
+  // Only the ID from params and user context are needed for deletion.
+  const result = await chatbotService.deleteChatbot(req.params.id, req.user.userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
