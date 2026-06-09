@@ -130,6 +130,9 @@ export const rewriteContent = catchAsync(async (req, res) => {
 
   if (fileInfo) {
     try {
+      // Dynamic import for fileProcessor, which might be CPU-intensive but is awaited.
+      // Ensure fileProcessor.extractTextFromFile is optimized internally for large files
+      // to avoid blocking the event loop for extended periods.
       const { fileProcessor } = await import(
         '../document_review/services/fileProcessor.js'
       );
@@ -220,6 +223,18 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization Recommendation:
+    // If `conversationHelpers.getConversationById` uses Mongoose to fetch a document,
+    // consider adding `.lean()` to the Mongoose query to return a plain JavaScript object.
+    // This can improve performance by skipping Mongoose's hydration overhead,
+    // especially since the returned `conversation` object is immediately destructured
+    // and its properties are used to construct the response data.
+    // Example: `ConversationModel.findOne({ conversationId, userId }).lean()`
+    //
+    // Indexing Recommendation:
+    // Ensure that the 'Conversation' collection has an index on `{ conversationId: 1, userId: 1 }`
+    // or at least on `{ conversationId: 1 }` if `userId` is not always part of the query,
+    // to speed up lookups by these fields.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
