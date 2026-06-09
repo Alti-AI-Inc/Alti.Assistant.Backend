@@ -6,27 +6,60 @@ import { temporalClientCoordinator } from '../workflow_automation/services/tempo
 import { runDatasetIngestionWorkflow } from './temporal/ingestionWorkflow.js';
 
 
-// Strict legal purity license filter
+/**
+ * @constant {string[]} ALLOWED_LICENSES - Strict legal purity license filter.
+ *   Only datasets with these licenses (case-insensitive) will be considered for ingestion.
+ */
 const ALLOWED_LICENSES = ['mit', 'apache-2.0'];
 
-// Configuration controls from Env with default sensible fallbacks
+/**
+ * @function getMaxSizeBytes
+ * @description Retrieves the maximum allowed dataset size in bytes for crawling from environment variables.
+ *   Defaults to 2 GB if `HF_CRAWLER_MAX_SIZE_GB` is not set.
+ * @returns {number} The maximum dataset size in bytes.
+ */
 const getMaxSizeBytes = () => {
   const gb = parseFloat(process.env.HF_CRAWLER_MAX_SIZE_GB || '2');
   return gb * 1024 * 1024 * 1024;
 };
 
+/**
+ * @function getGcsCapacityBytes
+ * @description Retrieves the total GCS storage capacity limit in bytes for archived datasets from environment variables.
+ *   Defaults to 5 TB if `HF_CRAWLER_GCS_CAP_TB` is not set.
+ * @returns {number} The GCS storage capacity limit in bytes.
+ */
 const getGcsCapacityBytes = () => {
   const tb = parseFloat(process.env.HF_CRAWLER_GCS_CAP_TB || '5');
   return tb * 1024 * 1024 * 1024 * 1024;
 };
 
-// Global worker runtime state
+/**
+ * @global
+ * @var {boolean} isWorkerRunning - Flag indicating if the main crawler worker loop should be active.
+ */
 let isWorkerRunning = false;
+/**
+ * @global
+ * @var {boolean} workerLoopActive - Flag indicating if the worker loop is currently executing.
+ */
 let workerLoopActive = false;
+/**
+ * @global
+ * @var {number} rateLimitBackoffMs - Dynamic backoff tracking in milliseconds for rate-limiting.
+ */
 let rateLimitBackoffMs = 0; // Dynamic backoff tracking
 
 /**
- * Normalizes and extracts license string from HF API dataset item
+ * @function extractLicense
+ * @description Normalizes and extracts the license string from a Hugging Face API dataset item.
+ *   It attempts to find the license in `item.cardData.license` (string, array, or object with 'type')
+ *   or falls back to searching `item.tags` for a 'license:' prefixed tag.
+ * @param {object} item - The dataset item object from the Hugging Face API.
+ * @param {object} [item.cardData] - Card data containing metadata.
+ * @param {(string|string[]|object)} [item.cardData.license] - License information, can be a string, array of strings, or an object with a 'type' property.
+ * @param {string[]} [item.tags] - Array of tags associated with the dataset.
+ * @returns {string} The normalized, lowercase license string, or 'unspecified' if not found.
  */
 const extractLicense = (item) => {
   if (item.cardData && item.cardData.license) {
@@ -56,7 +89,13 @@ const extractLicense = (item) => {
 };
 
 /**
- * Discovers and indexes Hugging Face datasets into the local crawling Queue
+ * @function scanHuggingFaceHub
+ * @description Discovers and indexes Hugging Face datasets into the local crawling queue (`DatasetQueue`).
+ *   It fetches datasets from the Hugging Face Hub API, applies various filters (gated, private, media, license, size),
+ *   and queues eligible datasets for ingestion. Existing datasets in the queue are updated.
+ * @param {number} [maxDatasetsToScan=500] - The maximum number of datasets to scan from the Hugging Face Hub.
+ * @returns {Promise<object>} An object containing `success` status and `stats` about the scan process.
+ * @throws {Error} If the HF Discovery Scanner encounters a critical error during the scan.
  */
 const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
   try {
@@ -237,7 +276,12 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
 };
 
 /**
- * Sequential background worker queue runner
+ * @function runWorkerLoop
+ * @description The main sequential background worker loop for processing the dataset queue.
+ *   It continuously polls for 'pending' datasets, archives them to GCS, and then triggers RAG indexing.
+ *   Includes GCS capacity guardrails, dynamic rate-limiting backoff, and retry logic.
+ *   This is the legacy fallback worker used when Temporal is not available or in mock mode.
+ * @returns {Promise<void>} A promise that resolves when the worker loop is halted.
  */
 const runWorkerLoop = async () => {
   if (workerLoopActive) return;
@@ -359,7 +403,12 @@ const runWorkerLoop = async () => {
 };
 
 /**
- * Resilient Temporal Ingestion Coordinator worker loop
+ * @function runTemporalWorkerLoop
+ * @description The resilient Temporal Ingestion Coordinator worker loop.
+ *   It continuously polls for 'pending' datasets in the queue and dispatches them as
+ *   Temporal Workflows for durable and fault-tolerant ingestion.
+ *   Includes GCS capacity guardrails.
+ * @returns {Promise<void>} A promise that resolves when the worker loop is halted.
  */
 const runTemporalWorkerLoop = async () => {
   if (workerLoopActive) return;
@@ -434,7 +483,11 @@ const runTemporalWorkerLoop = async () => {
 };
 
 /**
- * Starts sequential background queue processor worker
+ * @function startWorker
+ * @description Starts the continuous background queue processor worker.
+ *   It attempts to connect to Temporal and launches either the Temporal-based coordinator
+ *   or falls back to the legacy sequential worker loop if Temporal is unavailable or in mock mode.
+ * @returns {object} An object indicating success and a message about the worker's status.
  */
 const startWorker = () => {
   if (isWorkerRunning) {
@@ -464,7 +517,10 @@ const startWorker = () => {
 
 
 /**
- * Stops sequential background queue processor worker
+ * @function stopWorker
+ * @description Stops the continuous background queue processor worker.
+ *   It sets a flag that signals the worker loop to gracefully shut down after completing its current task.
+ * @returns {object} An object indicating success and a message about the worker's status.
  */
 const stopWorker = () => {
   if (!isWorkerRunning) {
@@ -475,7 +531,11 @@ const stopWorker = () => {
 };
 
 /**
- * Compiles real-time metrics and logs for operational visibility
+ * @function getCrawlerStats
+ * @description Compiles real-time metrics and logs for operational visibility of the crawler.
+ *   Aggregates counts and total sizes of datasets by their status in the queue.
+ * @returns {Promise<object>} An object containing various statistics about the crawler's state and queue.
+ * @throws {Error} If there's a failure in compiling the crawler statistics.
  */
 const getCrawlerStats = async () => {
   try {
@@ -510,7 +570,13 @@ const getCrawlerStats = async () => {
 };
 
 /**
- * Query queue listings
+ * @function getQueueList
+ * @description Queries the dataset queue listings with optional filtering, pagination, and sorting.
+ * @param {object} [filter={}] - MongoDB query filter object to apply to the DatasetQueue.
+ * @param {number} [limit=50] - The maximum number of queue items to return.
+ * @param {number} [skip=0] - The number of queue items to skip for pagination.
+ * @returns {Promise<object>} An object containing the total count, pagination details, and the list of queue items.
+ * @throws {Error} If there's a failure in retrieving the queue list.
  */
 const getQueueList = async (filter = {}, limit = 50, skip = 0) => {
   try {
@@ -527,6 +593,12 @@ const getQueueList = async (filter = {}, limit = 50, skip = 0) => {
   }
 };
 
+/**
+ * @namespace DatasetsCrawlerService
+ * @description Provides services for crawling, queuing, and managing Hugging Face datasets.
+ *   Includes functionality for discovering datasets, running background ingestion workers,
+ *   and retrieving operational statistics.
+ */
 export const DatasetsCrawlerService = {
   scanHuggingFaceHub,
   startWorker,
