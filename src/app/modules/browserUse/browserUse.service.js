@@ -7,6 +7,25 @@ import BrowserSession from './browserUse.model.js';
 import User from '../auth/auth.model.js';
 import { withTenantFilter } from '../../helpers/tenantQuery.js';
 
+// Optimization Recommendation:
+// For the BrowserSession model (in browserUse.model.js), consider adding the following indexes for improved query performance:
+// 1. For filtering by 'user' and 'tenantId' (used in most queries):
+//    BrowserSessionSchema.index({ user: 1 });
+//    BrowserSessionSchema.index({ tenantId: 1 });
+// 2. For efficient sorting in getSessionsForUserService:
+//    BrowserSessionSchema.index({ updatedAt: -1 });
+// 3. For querying subdocuments within the 'responses' array (e.g., by 'taskId' in updateTaskStatusService):
+//    BrowserSessionSchema.index({ 'responses.taskId': 1 });
+// 4. Compound index for getSessionsForUserService for optimal performance (covering user, tenantId, and sort by updatedAt):
+//    BrowserSessionSchema.index({ user: 1, tenantId: 1, updatedAt: -1 });
+// 5. Compound index for findOne operations involving user and tenantId (e.g., initiateTaskInSessionService, getSessionByIdService):
+//    BrowserSessionSchema.index({ user: 1, tenantId: 1 });
+
+// Optimization Recommendation:
+// For the User model (in auth.model.js), consider adding an index for the 'browserSessions' array
+// if it grows very large and is frequently queried or modified:
+// UserSchema.index({ browserSessions: 1 });
+
 const initiateTaskInSessionService = async (
   userId,
   sessionId,
@@ -59,6 +78,7 @@ const initiateTaskInSessionService = async (
   // 2. Check if we are adding to an existing session or creating a new one
   if (sessionId) {
     // Find the existing session and push a new response, ensuring it belongs to the active tenant/user
+    // .lean() is not used here because we are modifying and saving the Mongoose document.
     const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
     const session = await BrowserSession.findOne(query);
     if (!session)
@@ -76,6 +96,7 @@ const initiateTaskInSessionService = async (
     });
 
     // Add the new session's ID to the user's document
+    // .lean() is not applicable here as we are modifying the document.
     await User.findByIdAndUpdate(userId, {
       $push: { browserSessions: newSession._id },
     });
@@ -106,6 +127,7 @@ const updateTaskStatusService = async (sessionId, taskId, req = null) => {
     ? withTenantFilter(req, { _id: sessionId, 'responses.taskId': taskId })
     : { _id: sessionId, 'responses.taskId': taskId };
 
+  // .lean() is not used here as { new: true } returns a Mongoose document, which is then returned by the service.
   const updatedSession = await BrowserSession.findOneAndUpdate(
     query,
     { $set: updateFields },
@@ -124,6 +146,8 @@ const updateTaskStatusService = async (sessionId, taskId, req = null) => {
 
 const getSessionsForUserService = async (userId, req = null) => {
   const query = req ? withTenantFilter(req, { user: userId }) : { user: userId };
+  // Optimization: Added .lean() for read-only operations to improve performance
+  // by returning plain JavaScript objects instead of Mongoose documents.
   const sessions = await BrowserSession.find(query)
     .select({
       'responses.prompt': { $slice: 1 }, // Only get the first element of the responses array
@@ -137,7 +161,8 @@ const getSessionsForUserService = async (userId, req = null) => {
       'responses.createdAt': 0,
       'responses.updatedAt': 0,
     })
-    .sort({ updatedAt: -1 }); // Sort by most recently updated
+    .sort({ updatedAt: -1 }) // Sort by most recently updated
+    .lean(); // Optimization: Use .lean() for read-only query
 
   return sessions;
 };
@@ -147,7 +172,9 @@ const getSessionsForUserService = async (userId, req = null) => {
  */
 const getSessionByIdService = async (sessionId, userId, req = null) => {
   const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
-  const session = await BrowserSession.findOne(query);
+  // Optimization: Added .lean() for read-only operations to improve performance
+  // by returning plain JavaScript objects instead of Mongoose documents.
+  const session = await BrowserSession.findOne(query).lean(); // Optimization: Use .lean() for read-only query
   if (!session) {
     throw new ApiError(
       httpStatus.NOT_FOUND,
