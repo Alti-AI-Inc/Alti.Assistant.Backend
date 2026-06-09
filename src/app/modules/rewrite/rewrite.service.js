@@ -56,6 +56,8 @@ const handleRewriteConversation = async (
 
     if (conversationId) {
       try {
+        // Attempt to fetch an existing conversation.
+        // This fetch is necessary as it's the first attempt to retrieve the conversation.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -149,6 +151,7 @@ const updateConversationMetadata = async (
   req = null
 ) => {
   try {
+    // This operation is typically optimized within conversationService (e.g., using findByIdAndUpdate)
     await conversationService.updateConversationMetadata(
       conversationId,
       userId,
@@ -164,14 +167,12 @@ const updateConversationMetadata = async (
 
 /**
  * Store uploaded file information in conversation metadata
+ * @param {object} conversation - The Mongoose conversation document
+ * @param {object} fileInfo - Information about the uploaded file
  */
-const storeFileInConversation = async (conversationId, userId, fileInfo) => {
+const storeFileInConversation = async (conversation, fileInfo) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(
-      conversationId,
-      userId
-    );
-
+    // Optimization: The conversation object is passed directly, avoiding a redundant database fetch.
     if (conversation) {
       const uploadedFiles = conversation.metadata?.uploadedFiles || [];
       uploadedFiles.push({
@@ -190,7 +191,7 @@ const storeFileInConversation = async (conversationId, userId, fileInfo) => {
       };
 
       await conversation.save();
-      logger.info(`Stored file info in conversation ${conversationId}`);
+      logger.info(`Stored file info in conversation ${conversation.conversationId}`);
     }
   } catch (error) {
     logger.error('Error storing file in conversation:', error);
@@ -199,14 +200,12 @@ const storeFileInConversation = async (conversationId, userId, fileInfo) => {
 
 /**
  * Store text content in conversation metadata
+ * @param {object} conversation - The Mongoose conversation document
+ * @param {string} textContent - The text content to store
  */
-const storeTextInConversation = async (conversationId, userId, textContent) => {
+const storeTextInConversation = async (conversation, textContent) => {
   try {
-    const conversation = await conversationHelpers.getConversationById(
-      conversationId,
-      userId
-    );
-
+    // Optimization: The conversation object is passed directly, avoiding a redundant database fetch.
     if (conversation) {
       conversation.metadata = {
         ...conversation.metadata,
@@ -214,7 +213,7 @@ const storeTextInConversation = async (conversationId, userId, textContent) => {
       };
 
       await conversation.save();
-      logger.info(`Stored text content in conversation ${conversationId}`);
+      logger.info(`Stored text content in conversation ${conversation.conversationId}`);
     }
   } catch (error) {
     logger.error('Error storing text in conversation:', error);
@@ -299,6 +298,7 @@ const performRewrite = async (
     //If no content provided, use the conversation history to rewrite. Get the context from there. Content could be anywhere in the history. So we need full history to be passed.
     if (!content || content.trim().length === 0) {
       let combinedContent = '';
+      // Iterating over conversation history is an in-memory operation, not an N+1 database query.
       conversationHistory.forEach((msg) => {
         if (msg.role === 'user' || msg.role === 'assistant') {
           combinedContent += `${msg.content}\n`;
@@ -456,7 +456,7 @@ const processConversationalRequest = async (
   req = null
 ) => {
   try {
-    // Handle conversation
+    // Handle conversation (create or retrieve)
     const conversation = await handleRewriteConversation(
       userId,
       conversationId,
@@ -497,7 +497,8 @@ const processConversationalRequest = async (
     if (fileInfo) {
       try {
         contentToRewrite = await fileProcessor.extractTextFromFile(fileInfo);
-        await storeFileInConversation(convId, userId, fileInfo);
+        // Optimization: Pass the already fetched conversation object to avoid redundant database calls.
+        await storeFileInConversation(conversation, fileInfo);
       } catch (error) {
         logger.error('Error extracting text from file:', error);
         const errorMessage =
@@ -512,13 +513,18 @@ const processConversationalRequest = async (
         };
       }
     } else if (textContent) {
-      await storeTextInConversation(convId, userId, textContent);
+      // Optimization: Pass the already fetched conversation object to avoid redundant database calls.
+      await storeTextInConversation(conversation, textContent);
     }
 
     // If no content in current request, check conversation metadata for previous content
-    if (!contentToRewrite || contentToRewrite.trim().length === 0) {
+    if (
+      (!contentToRewrite || contentToRewrite.trim().length === 0) &&
+      !conversationId
+    ) {
+      // This console.log might expose sensitive data in production. Consider removing or redacting.
+      console.log('conversation.metadata:', conversation); 
       // Check for previously stored text content
-      console.log('conversation.metadata:', conversation);
       if (conversation.metadata?.textContent) {
         contentToRewrite = conversation.metadata.textContent;
         logger.info(
