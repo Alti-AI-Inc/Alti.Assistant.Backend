@@ -27,9 +27,11 @@ export const generateClarifyingQuestions = async (initialPrompt) => {
       prompt: initialPrompt,
       format_instructions: parser.getFormatInstructions(),
     });
+    // Ensure result.questions is an array, even if LLM returns null/undefined for it
     return result.questions || [];
   } catch (error) {
     console.error('Error generating clarifying questions:', error);
+    // Return a default set of questions on error to maintain functionality
     return [
       'Can you describe the main subject of the image?',
       'What art style are you imagining (e.g., photorealistic, anime, abstract)?',
@@ -57,10 +59,16 @@ export const isUserFinished = async (userResponse) => {
         Your answer (must be YES or NO):`
   );
   const chain = prompt.pipe(llm);
-  const result = await chain.invoke({ response: userResponse });
-  console.log('User finished analysis result:', result);
-
-  return result.content.toUpperCase().includes('YES');
+  try {
+    const result = await chain.invoke({ response: userResponse });
+    console.log('User finished analysis result:', result);
+    // Ensure result.content exists before calling toUpperCase
+    return result?.content?.toUpperCase().includes('YES') || false;
+  } catch (error) {
+    console.error('Error determining if user is finished:', error);
+    // On error, assume user is not finished to allow for retry or further interaction
+    return false;
+  }
 };
 
 /**
@@ -100,12 +108,19 @@ export const updateRefinedPrompt = async (
     Return ONLY the new, updated prompt paragraph. Do not add any conversational text around it.`
   );
   const chain = prompt.pipe(llm);
-  const result = await chain.invoke({
-    current_prompt: currentPrompt,
-    user_response: userResponse,
-    history: historyString,
-  });
-  return result.content;
+  try {
+    const result = await chain.invoke({
+      current_prompt: currentPrompt,
+      user_response: userResponse,
+      history: historyString,
+    });
+    // Ensure result.content exists, otherwise return the current prompt
+    return result?.content || currentPrompt;
+  } catch (error) {
+    console.error('Error updating refined prompt:', error);
+    // On error, return the current prompt to avoid losing information
+    return currentPrompt;
+  }
 };
 
 /**
@@ -119,7 +134,13 @@ export const compileFinalPrompt = async (finalRefinedPrompt) => {
   return finalRefinedPrompt;
 };
 
+/**
+ * Extracts a URL from user input using AI and checks if it's a YouTube URL.
+ * @param {string} userInput - The user's input string.
+ * @returns {Promise<{url: string|null, isYoutubeUrl: boolean}>} - An object containing the extracted URL and a flag indicating if it's a YouTube URL.
+ */
 export const getUrlFromUserInputUsingAi = async (userInput) => {
+  const parser = new JsonOutputParser(); // Add JsonOutputParser to parse the LLM's JSON string output
   const prompt = PromptTemplate.fromTemplate(
     `You are an AI assistant helping a user find a URL to summarize.
     The user has provided the following input:
@@ -131,9 +152,24 @@ export const getUrlFromUserInputUsingAi = async (userInput) => {
     If the input does not contain a valid URL, only return:
     {{"url": null, "isYoutubeUrl": false}}
     If the input is a YouTube URL, set "isYoutubeUrl" to true.
+    
+    {format_instructions} // Include format instructions for the parser
     `
   );
-  const chain = prompt.pipe(llm);
-  const result = await chain.invoke({ user_input: userInput });
-  return result.content;
+  const chain = prompt.pipe(llm).pipe(parser); // Pipe the LLM output through the JSON parser
+  try {
+    const result = await chain.invoke({
+      user_input: userInput,
+      format_instructions: parser.getFormatInstructions(), // Pass format instructions to the LLM
+    });
+    // Ensure the result structure is as expected, even if LLM deviates slightly
+    return {
+      url: result?.url || null,
+      isYoutubeUrl: result?.isYoutubeUrl || false,
+    };
+  } catch (error) {
+    console.error('Error extracting URL from user input:', error);
+    // Return a default error object on failure to ensure consistent return type
+    return { url: null, isYoutubeUrl: false };
+  }
 };
