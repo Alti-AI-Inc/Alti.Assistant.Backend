@@ -52,11 +52,22 @@ const handleBrainstormConversation = async (
           userId,
           req
         );
-        logger.info(`Fetched conversation with ID: ${conversationId}`);
+        logger.info(`Fetched conversation with ID: ${conversationId} for user ${userId}`);
       } catch (error) {
-        logger.warn(
-          `Conversation ${conversationId} not found, creating new one`
-        );
+        // If the conversation is not found, we proceed to create a new one.
+        // If it's a forbidden error (e.g., IDOR attempt), we should re-throw it.
+        if (error instanceof ApiError && error.statusCode === httpStatus.NOT_FOUND) {
+          logger.warn(`Conversation ${conversationId} not found for user ${userId}, creating new one.`);
+          // conversation remains null, so a new one will be created below.
+        } else if (error instanceof ApiError && error.statusCode === httpStatus.FORBIDDEN) {
+          // This indicates an unauthorized access attempt (IDOR). Re-throw the error.
+          logger.error(`User ${userId} attempted to access forbidden conversation ${conversationId}.`);
+          throw error;
+        } else {
+          // For any other unexpected errors during retrieval, re-throw as an internal server error.
+          logger.error(`Error retrieving conversation ${conversationId} for user ${userId}:`, error);
+          throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve conversation');
+        }
       }
     }
 
@@ -87,6 +98,10 @@ const handleBrainstormConversation = async (
 
     return conversation;
   } catch (error) {
+    // Re-throw ApiError instances directly, otherwise wrap in a generic error.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Error handling brainstorm conversation:', error);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
@@ -139,9 +154,10 @@ const processConversationalBrainstorm = async (
   req = null
 ) => {
   try {
+    // Determine if the user is a guest based on userId format.
     const isGuest = !userId || userId.startsWith('guest_');
 
-    // Handle conversation
+    // Handle conversation (create new or retrieve existing)
     const conversation = await handleBrainstormConversation(
       userId,
       conversationId,
@@ -150,7 +166,7 @@ const processConversationalBrainstorm = async (
       req
     );
 
-    // Add user message
+    // Add user message to the conversation history
     await addMessage(
       conversation.conversationId,
       userId,
@@ -160,11 +176,11 @@ const processConversationalBrainstorm = async (
       req
     );
 
-    // Get conversation history
+    // Get conversation history and existing parameters for context
     const conversationHistory = conversation.messages || [];
     const existingParams = conversation.metadata?.collectedParams || {};
 
-    // Analyze user intent
+    // Analyze user intent from the current message and history
     const intentAnalysis = await ideaAnalyzer.analyzeIntent(
       message,
       conversationHistory,
@@ -176,12 +192,12 @@ const processConversationalBrainstorm = async (
       confidence: intentAnalysis.confidence,
     });
 
-    // If needs more information, ask clarifying questions with helpful suggestions
+    // If more information is needed, ask clarifying questions
     if (intentAnalysis.needsMoreInfo) {
       let clarificationMessage = `${RESPONSE_MESSAGES.NEED_MORE_INFO}\n\n`;
       clarificationMessage += `**Don't worry!** I can start brainstorming now with smart defaults, or you can provide more details for better results.\n\n`;
 
-      // Add specific suggestions based on what's missing
+      // Identify missing types to provide specific suggestions
       const missingTypes = {
         technique: false,
         depth: false,
@@ -216,8 +232,8 @@ const processConversationalBrainstorm = async (
         }
       });
 
+      // Provide generic suggestions if no specific ones were found
       if (!hasSuggestions) {
-        // Generic suggestions
         clarificationMessage += `### Here's what you can specify (all optional):\n`;
         clarificationMessage += `- **Technique**: SCAMPER, SWOT, Mind Map, etc.\n`;
         clarificationMessage += `- **Depth**: Quick, Standard, Deep, or Comprehensive\n`;
@@ -228,6 +244,7 @@ const processConversationalBrainstorm = async (
       clarificationMessage += `---\n\n`;
       clarificationMessage += `💬 **Just reply with details, or say "continue" and I'll start with smart defaults!**`;
 
+      // Add assistant's clarification message to conversation
       await addMessage(
         conversation.conversationId,
         userId,
@@ -250,12 +267,13 @@ const processConversationalBrainstorm = async (
       };
     }
 
-    // Extract or use existing idea
+    // Extract or use existing idea from parameters or message
     let idea = intentAnalysis.parameters.idea || existingParams.idea;
     if (!idea && ideaAnalyzer.hasValidIdea(message, existingParams)) {
       idea = await ideaAnalyzer.extractIdea(message);
     }
 
+    // If no idea is found, prompt the user for one
     if (!idea) {
       const needIdeaMessage = RESPONSE_MESSAGES.NEED_IDEA;
       await addMessage(
@@ -278,7 +296,7 @@ const processConversationalBrainstorm = async (
       };
     }
 
-    // Merge parameters
+    // Merge all collected parameters, prioritizing new intent parameters, then existing, then defaults
     const brainstormParams = {
       idea,
       brainstormType:
@@ -307,7 +325,7 @@ const processConversationalBrainstorm = async (
         intentAnalysis.parameters.additionalInstructions || '',
     };
 
-    // Update conversation metadata with collected params
+    // Update conversation metadata with the latest collected parameters
     await conversationService.updateConversationMetadata(
       conversation.conversationId,
       userId,
@@ -320,7 +338,7 @@ const processConversationalBrainstorm = async (
     let brainstormData;
     let formattedResponse;
 
-    // Process based on intent
+    // Process the brainstorm request based on the identified intent
     switch (intentAnalysis.intent) {
       case BRAINSTORM_INTENTS.GENERATE_IDEAS:
       case BRAINSTORM_INTENTS.EXPAND_IDEA:
@@ -356,6 +374,7 @@ const processConversationalBrainstorm = async (
       }
 
       default:
+        // Default to generating ideas if intent is not explicitly matched
         brainstormData = await brainstormEngine.generateIdeas(brainstormParams);
         formattedResponse = outputFormatter.formatBrainstormResponse(
           brainstormData,
@@ -363,7 +382,7 @@ const processConversationalBrainstorm = async (
         );
     }
 
-    // Store brainstorm data in conversation metadata
+    // Store the generated brainstorm data in conversation metadata
     await conversationService.updateConversationMetadata(
       conversation.conversationId,
       userId,
@@ -373,7 +392,7 @@ const processConversationalBrainstorm = async (
       req
     );
 
-    // Add assistant response
+    // Add the assistant's response to the conversation
     await addMessage(
       conversation.conversationId,
       userId,
@@ -398,6 +417,10 @@ const processConversationalBrainstorm = async (
       needsMoreInfo: false,
     };
   } catch (error) {
+    // Re-throw ApiError instances directly, otherwise wrap in a generic error.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Error processing conversational brainstorm:', error);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
@@ -413,7 +436,7 @@ const generateStructuredBrainstorm = async (userId, params, req = null) => {
   try {
     const isGuest = !userId || userId.startsWith('guest_');
 
-    // Analyze the idea first
+    // Analyze the idea first to get initial suggestions
     const ideaAnalysis = await ideaAnalyzer.analyzeIdea(params.idea);
 
     // Merge with provided params (user params take priority)
@@ -440,17 +463,17 @@ const generateStructuredBrainstorm = async (userId, params, req = null) => {
       technique: brainstormParams.technique,
     });
 
-    // Generate brainstorm
+    // Generate brainstorm ideas using the engine
     const brainstormData =
       await brainstormEngine.generateIdeas(brainstormParams);
 
-    // Format response
+    // Format the brainstorm response
     const formattedResponse = outputFormatter.formatBrainstormResponse(
       brainstormData,
       brainstormParams
     );
 
-    // Create conversation to store this brainstorm
+    // Create a new conversation to store this structured brainstorm session
     const conversationId = generateConversationId();
     const conversation = await conversationService.createConversation(
       {
@@ -470,7 +493,7 @@ const generateStructuredBrainstorm = async (userId, params, req = null) => {
       req
     );
 
-    // Add messages
+    // Add user's initial request message
     await addMessage(
       conversationId,
       userId,
@@ -479,6 +502,7 @@ const generateStructuredBrainstorm = async (userId, params, req = null) => {
       {},
       req
     );
+    // Add assistant's generated brainstorm response
     await addMessage(
       conversationId,
       userId,
@@ -502,6 +526,10 @@ const generateStructuredBrainstorm = async (userId, params, req = null) => {
       ),
     };
   } catch (error) {
+    // Re-throw ApiError instances directly, otherwise wrap in a generic error.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Error generating structured brainstorm:', error);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
@@ -515,6 +543,7 @@ const generateStructuredBrainstorm = async (userId, params, req = null) => {
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
+    // Retrieve conversation, ensuring user authorization (IDOR check assumed in getConversationById)
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -537,8 +566,15 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
       },
     };
   } catch (error) {
+    // Re-throw ApiError instances directly, otherwise log and wrap in a generic error.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Error getting conversation history:', error);
-    throw error;
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve conversation history'
+    );
   }
 };
 
@@ -553,6 +589,7 @@ const exportBrainstormSession = async (
   req = null
 ) => {
   try {
+    // Retrieve conversation, ensuring user authorization (IDOR check assumed in getConversationById)
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -567,6 +604,7 @@ const exportBrainstormSession = async (
 
     let exportedContent;
 
+    // Format the content based on the requested format
     switch (format) {
       case 'markdown':
         exportedContent = outputFormatter.exportToMarkdown(
@@ -591,6 +629,7 @@ const exportBrainstormSession = async (
         break;
 
       default:
+        // Default to markdown if format is unknown
         exportedContent = outputFormatter.exportToMarkdown(
           conversation,
           brainstormData
@@ -604,8 +643,15 @@ const exportBrainstormSession = async (
       filename: `brainstorm_${conversationId}_${Date.now()}.${format === 'json' ? 'json' : 'md'}`,
     };
   } catch (error) {
+    // Re-throw ApiError instances directly, otherwise log and wrap in a generic error.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Error exporting brainstorm session:', error);
-    throw error;
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to export brainstorm session'
+    );
   }
 };
 
@@ -620,6 +666,7 @@ const refineBrainstorm = async (
   req = null
 ) => {
   try {
+    // Retrieve conversation, ensuring user authorization (IDOR check assumed in getConversationById)
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -640,10 +687,10 @@ const refineBrainstorm = async (
       );
     }
 
-    // Add user refinement message
+    // Add user refinement message to conversation
     await addMessage(conversationId, userId, 'user', message, {}, req);
 
-    // Generate refinement
+    // Generate refinement using the brainstorm engine
     const refinementData = await brainstormEngine.refineIdea(
       originalIdea,
       message,
@@ -651,7 +698,7 @@ const refineBrainstorm = async (
     );
     const formattedResponse = outputFormatter.formatRefinements(refinementData);
 
-    // Add assistant response
+    // Add assistant's refinement response to conversation
     await addMessage(
       conversationId,
       userId,
@@ -671,8 +718,15 @@ const refineBrainstorm = async (
       refinementData,
     };
   } catch (error) {
+    // Re-throw ApiError instances directly, otherwise log and wrap in a generic error.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Error refining brainstorm:', error);
-    throw error;
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to refine brainstorm'
+    );
   }
 };
 
