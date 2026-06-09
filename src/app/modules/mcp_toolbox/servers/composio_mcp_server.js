@@ -5,8 +5,20 @@ import { Composio } from '@composio/core';
 // 1. Initializing and Dynamic Environment Fetching
 // ==========================================
 
+/**
+ * @constant {string} apiKey - The API key for authenticating with the Composio API.
+ * This environment variable (COMPOSIO_API_KEY) is required for the server to function.
+ */
 const apiKey = process.env.COMPOSIO_API_KEY;
+/**
+ * @constant {string} tenantId - The identifier for the tenant or user on whose behalf actions are executed.
+ * Defaults to 'default_user' if not provided via the TENANT_ID environment variable.
+ */
 const tenantId = process.env.TENANT_ID || 'default_user';
+/**
+ * @constant {string} toolkitsString - A comma-separated string of Composio toolkit slugs
+ * to be loaded and exposed by this server. Fetched from the COMPOSIO_TOOLKITS environment variable.
+ */
 const toolkitsString = process.env.COMPOSIO_TOOLKITS || '';
 
 if (!apiKey) {
@@ -14,22 +26,63 @@ if (!apiKey) {
   process.exit(1);
 }
 
-// Convert comma-separated string to list of toolkit slugs
+/**
+ * @constant {string[]} toolkits - An array of cleaned and lowercased toolkit slugs,
+ * parsed from the `toolkitsString`. Used to specify which toolkits to load from Composio.
+ */
 const toolkits = toolkitsString
   .split(',')
   .map(slug => slug.trim().toLowerCase())
   .filter(Boolean);
 
-// Initialize Composio core client
+/**
+ * @constant {Composio} composio - An instance of the Composio core client,
+ * initialized with the provided API key. Used to interact with the Composio API.
+ */
 const composio = new Composio({ apiKey });
 
-// Cache of parsed dynamic tools mapped to MCP tool schema
+/**
+ * @typedef {object} McpToolInputProperty
+ * @property {string} type - The data type of the property (e.g., 'string', 'number', 'boolean', 'object', 'array').
+ * @property {string} description - A human-readable description of the property.
+ */
+
+/**
+ * @typedef {object} McpToolInputSchema
+ * @property {string} type - The overall type of the input (typically 'object').
+ * @property {Record<string, McpToolInputProperty>} properties - An object where keys are parameter names and values are their schemas.
+ * @property {string[]} [required] - An optional array of property names that are required.
+ */
+
+/**
+ * @typedef {object} McpTool
+ * @property {string} name - The unique name of the tool.
+ * @property {string} description - A brief description of what the tool does.
+ * @property {McpToolInputSchema} inputSchema - The JSON schema defining the input parameters for the tool.
+ */
+
+/**
+ * @type {McpTool[]} cachedMcpTools - A cache of parsed dynamic tools,
+ * mapped into the Model Context Protocol (MCP) tool schema format.
+ * This array is populated by the `loadAndMapTools` function.
+ */
 let cachedMcpTools = [];
 
 // ==========================================
 // 2. Dynamic Tool Mapping Engine
 // ==========================================
 
+/**
+ * Asynchronously loads toolkits from the Composio API, maps them to the
+ * Model Context Protocol (MCP) tool schema, and caches the results in `cachedMcpTools`.
+ *
+ * Handles a special 'test_mock_key' for offline testing, exposing static mock tools.
+ * If no toolkits are specified, an empty list of tools is exposed.
+ *
+ * @async
+ * @returns {Promise<void>} A promise that resolves when tools are loaded and mapped, or rejects on error.
+ * The function updates `cachedMcpTools` directly.
+ */
 async function loadAndMapTools() {
   try {
     // Mock branch for offline tests
@@ -106,12 +159,34 @@ async function loadAndMapTools() {
 // 3. Stdio JSON-RPC 2.0 Framing Stream
 // ==========================================
 
+/**
+ * @constant {readline.Interface} rl - A readline interface instance configured to read from
+ * `process.stdin` and write to `process.stdout`. It operates in non-terminal mode.
+ * This interface is used to receive and send JSON-RPC 2.0 messages.
+ */
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
   terminal: false
 });
 
+/**
+ * Event listener for incoming lines from stdin.
+ * This function parses each line as a JSON-RPC 2.0 request and dispatches it
+ * to the appropriate handler based on the `method` field.
+ *
+ * Supported methods:
+ * - `initialize`: Performs a handshake, loads tools, and returns server capabilities.
+ * - `tools/list`: Returns the list of dynamically mapped Composio tools.
+ * - `tools/call`: Executes a specified Composio tool with provided arguments.
+ *
+ * Errors during parsing or execution are reported to `process.stderr` and
+ * sent back as JSON-RPC error responses.
+ *
+ * @async
+ * @param {string} line - The raw string line read from `process.stdin`.
+ * @returns {Promise<void>} A promise that resolves after processing the line and sending a response.
+ */
 rl.on('line', async (line) => {
   const trimmed = line.trim();
   if (!trimmed) return;
