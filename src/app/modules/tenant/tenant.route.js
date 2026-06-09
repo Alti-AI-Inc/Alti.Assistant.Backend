@@ -117,6 +117,17 @@ router.get(
 );
 
 /**
+ * @route   GET /api/v1/tenant/members/:tenantId
+ * @desc    Get all members of a specific tenant
+ * @access  Private (Tenant members)
+ */
+router.get(
+  '/members/:tenantId',
+  auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+  tenantController.getTenantMembers
+);
+
+/**
  * @route   POST /api/v1/tenant/members/invite
  * @desc    Invite a user to join the tenant
  * @access  Private (Tenant owner/admin)

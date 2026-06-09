@@ -160,8 +160,25 @@ const switchTenant = catchAsync(async (req, res) => {
  * Get tenant members
  */
 const getTenantMembers = catchAsync(async (req, res) => {
-  const tenantId = req.user?.currentTenantId || req.user?.tenantId;
+  const tenantId = req.params.tenantId || req.user?.currentTenantId || req.user?.tenantId;
   const { page = 1, limit = 20 } = req.query;
+
+  // Verify membership if not a global admin
+  if (req.user?.role !== 'admin') {
+    const userId = req.user?.id || req.user?._id;
+    const isMember = await TenantMember.findOne({
+      userId,
+      tenantId,
+      status: 'active',
+    });
+    if (!isMember) {
+      return sendResponse(res, {
+        statusCode: httpStatus.FORBIDDEN,
+        success: false,
+        message: 'Forbidden: You are not a member of this tenant',
+      });
+    }
+  }
 
   const result = await tenantService.getTenantMembers(tenantId, {
     page,
