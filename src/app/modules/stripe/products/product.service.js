@@ -1,11 +1,29 @@
+/**
+ * @file This file provides service functions for managing Stripe products and prices.
+ * It interacts with the Stripe API to create, retrieve, update, and delete products,
+ * and also stores product information in a local database.
+ */
+
 import Stripe from 'stripe';
 import config from '../../../../../config/index.js';
 import Product from './products.model.js';
 
+/**
+ * Stripe API client instance initialized with the secret key and API version.
+ * @type {Stripe}
+ */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
 });
 
+/**
+ * Creates predefined Stripe products and their associated prices, then stores them in the local database.
+ * This function hardcodes a set of subscription plans (Base, Professional, Enterprise) with monthly and yearly prices.
+ *
+ * @param {object} productData - This parameter is currently not used as product data is hardcoded within the function.
+ * @returns {Promise<boolean>} A promise that resolves to `true` if products and prices are successfully created and stored.
+ * @throws {Error} If there is an error during Stripe API calls or database operations.
+ */
 const createProductService = async (productData) => {
   console.log('Starting product and price creation in Stripe...');
 
@@ -165,6 +183,14 @@ const createProductService = async (productData) => {
   }
 };
 
+/**
+ * Retrieves a list of prices associated with a specific product from Stripe.
+ *
+ * @param {object} params - An object containing parameters for the price retrieval.
+ * @param {string} params.productId - The ID of the Stripe product for which to retrieve prices.
+ * @returns {Promise<Stripe.ApiList<Stripe.Price>>} A promise that resolves to a list of Stripe Price objects.
+ * @throws {Error} If the Stripe API call fails.
+ */
 const retrieveAllPricesService = async (params) => {
   const prices = await stripe.prices.list({
     product: params.productId,
@@ -172,16 +198,38 @@ const retrieveAllPricesService = async (params) => {
   return prices;
 };
 
+/**
+ * Retrieves a single product from Stripe by its ID.
+ *
+ * @param {string} productId - The ID of the Stripe product to retrieve.
+ * @returns {Promise<Stripe.Product>} A promise that resolves to a Stripe Product object.
+ * @throws {Error} If the Stripe API call fails (e.g., product not found).
+ */
 const retrieveProductService = async (productId) => {
   const product = await stripe.products.retrieve(productId);
   return product;
 };
 
+/**
+ * Updates an existing product in Stripe.
+ *
+ * @param {string} productId - The ID of the Stripe product to update.
+ * @param {Stripe.ProductUpdateParams} updateData - An object containing the fields to update for the product.
+ * @returns {Promise<Stripe.Product>} A promise that resolves to the updated Stripe Product object.
+ * @throws {Error} If the Stripe API call fails.
+ */
 const updateProductService = async (productId, updateData) => {
   const product = await stripe.products.update(productId, updateData);
   return product;
 };
 
+/**
+ * Deletes a product from Stripe.
+ *
+ * @param {string} productId - The ID of the Stripe product to delete.
+ * @returns {Promise<Stripe.Product>} A promise that resolves to the deleted Stripe Product object (with `deleted: true`).
+ * @throws {Error} If the Stripe API call fails.
+ */
 const deleteProductService = async (productId) => {
   const confirmation = await stripe.products.del(productId);
   return confirmation;
