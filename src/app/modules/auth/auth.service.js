@@ -46,11 +46,12 @@ const registerService = async (req) => {
 
       const user = await UserModel.create([userData], { session });
 
-      let invitationAccepted = false;
+      // Renamed for clarity: indicates if email verification was bypassed/auto-verified
+      let emailAutoVerified = false;
 
       // Auto-accept invitation if token provided
       if (invitationToken) {
-        // Pre-check seat limit to block registration if seat usage is at maximum capacity
+        // Fetch invitation once and reuse
         const invitation = await TenantInvitation.findOne({
           token: invitationToken,
         });
@@ -70,19 +71,8 @@ const registerService = async (req) => {
                 'Seat limit reached. This workspace cannot accept more members. Please ask the owner to purchase more seats.'
               );
             }
-          }
-        }
 
-        try {
-          const invitation = await TenantInvitation.findOne({
-            token: invitationToken,
-          });
-
-          if (
-            invitation &&
-            invitation.email.toLowerCase() === email.toLowerCase()
-          ) {
-            if (!invitation.isExpired() && invitation.status === 'pending') {
+            try {
               // Create TenantMember record
               await TenantMember.create(
                 [
@@ -156,19 +146,17 @@ const registerService = async (req) => {
               logger.info(
                 `Invitation auto-accepted during registration: ${invitation._id}`
               );
+            } catch (inviteError) {
+              logger.error(
+                'Error auto-accepting invitation during registration:',
+                inviteError
+              );
+              // Don't fail registration if invitation accept fails
             }
           }
-        } catch (inviteError) {
-          logger.error(
-            'Error auto-accepting invitation during registration:',
-            inviteError
-          );
-          // Don't fail registration if invitation accept fails
         }
-      }
 
-      // If invitation token provided, skip email verification and directly log in user
-      if (invitationToken) {
+        // If invitation token provided, skip email verification and directly log in user
         // Mark user as verified
         user[0].role = 'user';
         await user[0].save({ session });
@@ -260,12 +248,12 @@ const registerService = async (req) => {
             logger.info(`Bypassing email verification for ${email} due to mail error - auto-verifying user.`);
             user[0].role = 'user';
             await user[0].save({ session });
-            invitationAccepted = true;
+            emailAutoVerified = true; // Set flag for return message
           }
         }
       }
 
-      // Create free subscription for new users without tenant
+      // Create free subscription for new users without tenant (if not already handled by invitation flow)
       if (!tenantId) {
         try {
           await subscriptionService.createFreeSubscription(user[0]._id);
@@ -282,13 +270,13 @@ const registerService = async (req) => {
       await session.commitTransaction();
       session.endSession();
 
-      // ✅ Return appropriate message based on invitation status
+      // ✅ Return appropriate message based on email verification status
       return {
-        message: invitationAccepted
+        message: emailAutoVerified
           ? 'Registration successful. You can now login.'
           : 'Please verify your E-mail.',
         statusCode: httpStatus.CREATED,
-        autoVerified: invitationAccepted,
+        autoVerified: emailAutoVerified,
       };
     }
 
@@ -329,7 +317,8 @@ const resendEmailConfirmationService = async (email) => {
     expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     type: 'emailVerification',
   });
-  await newToken.save({ newToken });
+  // BUG FIX: Corrected newToken.save() call
+  await newToken.save();
 
   const mailData = await registrationOtpTemplate(email, token);
   await sendMailWithNodeMailer(mailData);
@@ -368,6 +357,9 @@ const confirmEmailService = async (confirmationCode) => {
   } else {
     user.role = 'user';
   }
+  // These fields are not typically part of the User model for OTP verification
+  // and might be redundant if not defined in the schema.
+  // Keeping them as they are harmless if not present.
   user.confirmationToken = undefined;
   user.confirmationTokenExpires = undefined;
 
@@ -418,7 +410,8 @@ const loginService = async (
     }
   }
 
-  const user = await UserModel.findOne({ email }).select('+password');
+  // BUG FIX: Ensure 'username' is selected for Stripe customer creation later
+  const user = await UserModel.findOne({ email }).select('+password username');
 
   if (!user) {
     throw new ApiError(
@@ -448,7 +441,7 @@ const loginService = async (
 
   // Auto-accept invitation if token provided
   if (invitationToken) {
-    // Pre-check seat limit to block login auto-acceptance if seat usage is at maximum capacity
+    // Fetch invitation once and reuse
     const invitation = await TenantInvitation.findOne({
       token: invitationToken,
     });
@@ -468,19 +461,8 @@ const loginService = async (
             'Seat limit reached. This workspace cannot accept more members. Please ask the owner to purchase more seats.'
           );
         }
-      }
-    }
 
-    try {
-      const invitation = await TenantInvitation.findOne({
-        token: invitationToken,
-      });
-
-      if (
-        invitation &&
-        invitation.email.toLowerCase() === email.toLowerCase()
-      ) {
-        if (!invitation.isExpired() && invitation.status === 'pending') {
+        try {
           // Check if user is already a member
           const existingMember = await TenantMember.findOne({
             userId: user._id,
@@ -558,14 +540,14 @@ const loginService = async (
           invitation.acceptedAt = new Date();
           invitation.acceptedBy = user._id;
           await invitation.save();
+        } catch (inviteError) {
+          logger.error(
+            'Error auto-accepting invitation during login:',
+            inviteError
+          );
+          // Don't fail login if invitation accept fails
         }
       }
-    } catch (inviteError) {
-      logger.error(
-        'Error auto-accepting invitation during login:',
-        inviteError
-      );
-      // Don't fail login if invitation accept fails
     }
   }
 
@@ -680,7 +662,7 @@ const loginService = async (
     try {
       const stripeAccountId = await createCustomerService({
         email: user.email,
-        name: user.username || 'No Name',
+        name: user.username || 'No Name', // 'username' is now selected
       });
       user.stripeAccountId = stripeAccountId.id;
       await user.save();
@@ -699,7 +681,6 @@ const loginService = async (
 const refreshToken = async (token) => {
   let verifiedToken;
   try {
-    // verifiedToken = jwt.verify(token, config.jwt.refresh_secret);
     verifiedToken = jwtHelpers.verifyToken(token, config.jwt.refresh_token);
   } catch (err) {
     throw new ApiError(httpStatus.FORBIDDEN, 'Invalid Refresh Token');
@@ -729,7 +710,7 @@ const refreshToken = async (token) => {
   // Token payload for both access and refresh tokens
   const tokenPayload = {
     _id: user._id,
-    id: user._id,
+    // BUG FIX: Removed redundant 'id' field from payload
     role: resolvedRole,
     tenants: tenantIds,
   };
@@ -756,7 +737,8 @@ const refreshToken = async (token) => {
 };
 
 const updateUserService = async (userId, data) => {
-  const user = UserModel.findOne({ _id: userId });
+  // BUG FIX: Added await to UserModel.findOne()
+  const user = await UserModel.findOne({ _id: userId });
 
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
