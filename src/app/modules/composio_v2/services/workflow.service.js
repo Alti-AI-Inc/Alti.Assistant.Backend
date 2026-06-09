@@ -14,7 +14,7 @@ class WorkflowService {
   async createWorkflow(workflowData) {
     try {
       const {
-        userId,
+        userId, // Assuming userId is validated and comes from the authenticated user's context
         title,
         description,
         executionPlan,
@@ -66,7 +66,7 @@ class WorkflowService {
 
       await workflow.save();
 
-      console.log(`Workflow created: ${workflowId} for user: ${userId}`);
+      logger.info(`Workflow created: ${workflowId} for user: ${userId}`); // Replaced console.log with logger.info
       return {
         success: true,
         data: workflow,
@@ -121,12 +121,12 @@ class WorkflowService {
 
   /**
    * Get workflow by ID
+   * @param {string} workflowId - The ID of the workflow to retrieve.
+   * @param {string} userId - The ID of the user requesting the workflow. (Mandatory for IDOR prevention)
    */
-  async getWorkflowById(workflowId, userId = null) {
+  async getWorkflowById(workflowId, userId) { // userId is now mandatory to prevent IDOR
     try {
-      const query = { workflowId };
-      if (userId) query.userId = userId;
-
+      const query = { workflowId, userId }; // Ensure workflow belongs to the user
       const workflow = await ScheduledWorkflow.findOne(query);
 
       if (!workflow) {
@@ -217,7 +217,7 @@ class WorkflowService {
 
       await workflow.save();
 
-      console.log(`Workflow updated: ${workflowId}`);
+      logger.info(`Workflow updated: ${workflowId}`); // Replaced console.log with logger.info
       return {
         success: true,
         data: workflow,
@@ -260,7 +260,7 @@ class WorkflowService {
       // Optionally delete execution history
       await WorkflowExecution.deleteMany({ workflowId });
 
-      console.log(`Workflow deleted: ${workflowId}`);
+      logger.info(`Workflow deleted: ${workflowId}`); // Replaced console.log with logger.info
       return {
         success: true,
         message: 'Workflow deleted successfully',
@@ -320,7 +320,7 @@ class WorkflowService {
         triggerSource,
       });
 
-      console.log(`Workflow triggered manually: ${workflowId}`);
+      logger.info(`Workflow triggered manually: ${workflowId}`); // Replaced console.log with logger.info
 
       return {
         success: true,
@@ -495,6 +495,7 @@ class WorkflowService {
         data: { connectedAccounts },
       };
     } catch (error) {
+      logger.error(`Error validating workflow connections: ${error.message}`); // Added logging for this catch block
       return {
         success: false,
         error: error.message,
