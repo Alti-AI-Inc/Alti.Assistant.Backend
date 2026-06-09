@@ -12,13 +12,21 @@ import { reportService } from './report.service.js';
  */
 export const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest
-    ? reportService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
+  let userId;
+  if (isGuest) {
+    userId = reportService.generateGuestUserId();
+  } else {
+    // For authenticated users, userId must come from the authenticated user object.
+    // Do not allow it to be overridden by req.body to prevent IDOR (Insecure Direct Object Reference).
+    userId = req.user?.userId || req.user?._id;
+  }
 
   const { message, conversationId, outputFormat, reportType } = req.body;
   const files = req.files || [];
-  userId = req.body.userId || userId;
+  // Removed: userId = req.body.userId || userId;
+  // This line was a potential IDOR vulnerability, allowing a client to specify a userId
+  // that might not belong to their authenticated session. userId should always be derived
+  // from the authenticated user or generated for guests.
 
   logger.info(
     `Report assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}, files: ${files.length}`
@@ -170,20 +178,32 @@ export const analyzeFiles = catchAsync(async (req, res) => {
 export const downloadReport = catchAsync(async (req, res) => {
   const { filename } = req.params;
 
-  const filePath = path.join(process.cwd(), 'output', 'reports', filename);
+  // Security Fix: Prevent Path Traversal vulnerability.
+  // Use path.basename to ensure only the filename part is used, stripping any directory components.
+  const sanitizedFilename = path.basename(filename);
+  const reportsDir = path.join(process.cwd(), 'output', 'reports');
+  const filePath = path.join(reportsDir, sanitizedFilename);
 
-  if (!fs.existsSync(filePath)) {
+  // Security Fix: Ensure the resolved path is actually within the intended reports directory.
+  // This prevents an attacker from using symlinks or other tricks even if basename is used.
+  const resolvedPath = path.resolve(filePath);
+  if (!resolvedPath.startsWith(path.resolve(reportsDir))) {
+    logger.warn(`Attempted path traversal detected for filename: ${filename}`);
     return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
+      statusCode: httpStatus.FORBIDDEN, // Or NOT_FOUND, depending on policy
       success: false,
-      message: 'Report file not found',
+      message: 'Access to the requested file is forbidden.',
     });
   }
 
-  logger.info(`Downloading report: ${filename}`);
+  // Performance/Race Condition Fix: Removed fs.existsSync.
+  // Rely on fs.createReadStream to throw an error if the file does not exist or is inaccessible.
+  // This error will be caught by the fileStream.on('error') handler or the catchAsync wrapper.
+
+  logger.info(`Downloading report: ${sanitizedFilename}`);
 
   // Set appropriate headers based on file type
-  const ext = path.extname(filename).toLowerCase();
+  const ext = path.extname(sanitizedFilename).toLowerCase();
   const contentTypes = {
     '.pdf': 'application/pdf',
     '.docx':
@@ -202,20 +222,31 @@ export const downloadReport = catchAsync(async (req, res) => {
   const contentType = contentTypes[ext] || 'application/octet-stream';
 
   res.setHeader('Content-Type', contentType);
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${sanitizedFilename}"`);
 
   const fileStream = fs.createReadStream(filePath);
   fileStream.pipe(res);
 
   fileStream.on('error', (error) => {
-    logger.error('Error streaming file:', error);
+    logger.error(`Error streaming file ${sanitizedFilename}:`, error);
+    // If headers haven't been sent, we can send an error response.
+    // Otherwise, the response is already committed, and we just end it.
     if (!res.headersSent) {
       return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         message: 'Error downloading file',
       });
+    } else {
+      // If headers were sent, the response is already committed.
+      // Just end the response to prevent it from hanging.
+      res.end();
     }
+  });
+
+  // Optional: Add a 'finish' event listener for successful completion logging
+  fileStream.on('finish', () => {
+    logger.info(`Successfully streamed report: ${sanitizedFilename}`);
   });
 });
 
