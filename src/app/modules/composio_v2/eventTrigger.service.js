@@ -26,6 +26,8 @@ const registerTrigger = async (userId, appName, eventName, dispatchType, targetI
     const normalizedAppName = appName.toLowerCase();
     const normalizedEventName = eventName.toLowerCase();
 
+    // Optimization: Consider adding a compound index on { userId: 1, appName: 1, eventName: 1 }
+    // to the EventTrigger model for faster upsert operations.
     const trigger = await EventTrigger.findOneAndUpdate(
       { userId, appName: normalizedAppName, eventName: normalizedEventName },
       { dispatchType, targetId, paramMapping, isActive: true, appName: normalizedAppName, eventName: normalizedEventName },
@@ -48,11 +50,14 @@ const receiveWebhookEvent = async (appName, eventName, payload) => {
 
     // Find all active triggers matching this app and event
     // appName and eventName are converted to lowercase to match the normalized storage from registerTrigger.
+    // Optimization: Add .lean() for read-only queries to return plain JavaScript objects, reducing Mongoose overhead.
+    // Optimization: Consider adding a compound index on { appName: 1, eventName: 1, isActive: 1 }
+    // to the EventTrigger model for faster query performance.
     const activeTriggers = await EventTrigger.find({
       appName: appName.toLowerCase(),
       eventName: eventName.toLowerCase(),
       isActive: true,
-    });
+    }).lean();
 
     if (activeTriggers.length === 0) {
       logger.info(`EventTrigger: no active triggers matched "${appName}:${eventName}"`);
