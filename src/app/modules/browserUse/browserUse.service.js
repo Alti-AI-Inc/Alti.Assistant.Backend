@@ -7,6 +7,12 @@ import BrowserSession from './browserUse.model.js';
 import User from '../auth/auth.model.js';
 import { withTenantFilter } from '../../helpers/tenantQuery.js';
 
+/**
+ * @typedef {import('./browserUse.model').IBrowserSession} IBrowserSession
+ * @typedef {import('../auth/auth.model').IUser} IUser
+ * @typedef {import('express').Request} Request
+ */
+
 // Optimization Recommendation:
 // For the BrowserSession model (in browserUse.model.js), consider adding the following indexes for improved query performance:
 // 1. For filtering by 'user' and 'tenantId' (used in most queries):
@@ -26,6 +32,18 @@ import { withTenantFilter } from '../../helpers/tenantQuery.js';
 // if it grows very large and is frequently queried or modified:
 // UserSchema.index({ browserSessions: 1 });
 
+/**
+ * Initiates a browser automation task via an external API and records it in a user's session.
+ * If a sessionId is provided, the task is added to an existing session. Otherwise, a new session is created.
+ *
+ * @param {string} userId - The ID of the user initiating the task.
+ * @param {string | null} sessionId - The ID of an existing browser session to add the task to, or null to create a new session.
+ * @param {string} prompt - The natural language prompt/task for the browser automation.
+ * @param {object | null} structuredOutputSchema - An optional JSON schema for the desired structured output from the browser task.
+ * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
+ * @returns {Promise<IBrowserSession>} A promise that resolves to the updated or newly created browser session document.
+ * @throws {ApiError} If the external API does not return a task ID, or if the specified session is not found.
+ */
 const initiateTaskInSessionService = async (
   userId,
   sessionId,
@@ -105,6 +123,16 @@ const initiateTaskInSessionService = async (
   }
 };
 
+/**
+ * Fetches the latest status of a browser automation task from the external API and updates the corresponding entry
+ * within a specific browser session in the database.
+ *
+ * @param {string} sessionId - The ID of the browser session containing the task.
+ * @param {string} taskId - The ID of the specific task to update.
+ * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
+ * @returns {Promise<IBrowserSession>} A promise that resolves to the updated browser session document.
+ * @throws {ApiError} If the task or session is not found in the database.
+ */
 const updateTaskStatusService = async (sessionId, taskId, req = null) => {
   const apiResponse = await axios.get(
     `https://api.browser-use.com/api/v1/task/${taskId}`,
@@ -144,6 +172,15 @@ const updateTaskStatusService = async (sessionId, taskId, req = null) => {
   return updatedSession;
 };
 
+/**
+ * Retrieves a list of browser sessions for a specific user.
+ * It selects only the first prompt from the responses array and excludes other detailed fields
+ * for a lighter overview, sorted by the most recently updated session.
+ *
+ * @param {string} userId - The ID of the user whose sessions are to be retrieved.
+ * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
+ * @returns {Promise<Array<IBrowserSession>>} A promise that resolves to an array of browser session documents (lean objects).
+ */
 const getSessionsForUserService = async (userId, req = null) => {
   const query = req ? withTenantFilter(req, { user: userId }) : { user: userId };
   // Optimization: Added .lean() for read-only operations to improve performance
@@ -168,7 +205,13 @@ const getSessionsForUserService = async (userId, req = null) => {
 };
 
 /**
- * Fetches a single, complete session by its ID, ensuring it belongs to the user.
+ * Fetches a single, complete session by its ID, ensuring it belongs to the user and the active tenant.
+ *
+ * @param {string} sessionId - The ID of the session to retrieve.
+ * @param {string} userId - The ID of the user who owns the session.
+ * @param {Request | null} [req=null] - The Express request object, used for tenant filtering.
+ * @returns {Promise<IBrowserSession>} A promise that resolves to the complete browser session document (lean object).
+ * @throws {ApiError} If the session is not found or if the user does not have access to it.
  */
 const getSessionByIdService = async (sessionId, userId, req = null) => {
   const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
@@ -184,6 +227,18 @@ const getSessionByIdService = async (sessionId, userId, req = null) => {
   return session;
 };
 
+/**
+ * @typedef {object} BrowserUseServices
+ * @property {function(string, string | null, string, object | null, Request | null): Promise<IBrowserSession>} initiateTaskInSessionService - Initiates a new browser automation task.
+ * @property {function(string, string, Request | null): Promise<IBrowserSession>} updateTaskStatusService - Updates the status of an existing browser automation task.
+ * @property {function(string, Request | null): Promise<Array<IBrowserSession>>} getSessionsForUserService - Retrieves a list of browser sessions for a user.
+ * @property {function(string, string, Request | null): Promise<IBrowserSession>} getSessionByIdService - Retrieves a single browser session by ID.
+ */
+
+/**
+ * An object grouping all browser use related service functions.
+ * @type {BrowserUseServices}
+ */
 export const BrowserUseServices = {
   initiateTaskInSessionService,
   updateTaskStatusService,
