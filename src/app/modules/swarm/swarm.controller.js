@@ -7,6 +7,79 @@ import { SwarmService } from './swarm.service.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
 
+/**
+ * @swagger
+ * /api/v1/swarm/stream-search:
+ *   post:
+ *     summary: Perform a streaming search using the Swarm agent.
+ *     description: Initiates a conversational search process using the Swarm agent, streaming responses back to the client via Server-Sent Events (SSE).
+ *                  This endpoint handles both authenticated and guest users, managing conversation state and user-specific data.
+ *                  It supports dynamic agent routing and provides real-time updates on the search progress.
+ *     tags:
+ *       - Swarm
+ *       - Search
+ *       - Streaming
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The user's search query or message.
+ *                 example: "What is the capital of France?"
+ *               conversationId:
+ *                 type: string
+ *                 description: Optional. The ID of an existing conversation to continue. If not provided, a new conversation will be started.
+ *                 example: "conv_12345"
+ *               userId:
+ *                 type: string
+ *                 description: Optional. For guest users, a guest-prefixed user ID (e.g., 'guest_abc123'). Authenticated user IDs are derived from the token.
+ *                 example: "guest_xyz789"
+ *               requireSearch:
+ *                 type: boolean
+ *                 description: Optional. If set to false, the Swarm agent might skip direct search and rely more on its internal knowledge or conversation history. Defaults to true.
+ *                 example: false
+ *     responses:
+ *       200:
+ *         description: Server-Sent Events stream of the Swarm agent's response.
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 type:
+ *                   type: string
+ *                   description: Type of event (e.g., 'connected', 'text', 'metadata', 'done', 'error').
+ *                 content:
+ *                   type: string
+ *                   description: Text content of the response chunk (for 'text' events).
+ *                 conversationId:
+ *                   type: string
+ *                   description: The ID of the current conversation.
+ *                 timestamp:
+ *                   type: number
+ *                   description: Unix timestamp of the event.
+ *                 error:
+ *                   type: string
+ *                   description: Error message (for 'error' events).
+ *       400:
+ *         description: Bad Request - A search query is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error - Failed to generate user identifier or an unhandled error occurred during streaming.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 const performSwarmStreamingSearch = catchAsync(async (req, res) => {
   const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
   
@@ -202,6 +275,53 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/swarm/prewarm-sandbox:
+ *   post:
+ *     summary: Asynchronously pre-warm a user's Docker sandbox environment.
+ *     description: Triggers the pre-warming of a user's dedicated Docker workspace in the background.
+ *                  This helps reduce latency for subsequent operations that require a sandbox environment.
+ *                  The response is immediate, indicating that the pre-warming process has been initiated.
+ *     tags:
+ *       - Swarm
+ *       - Docker
+ *       - Sandbox
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: Optional. For guest users, a guest-prefixed user ID (e.g., 'guest_abc123'). Authenticated user IDs are derived from the token.
+ *                 example: "guest_xyz789"
+ *     responses:
+ *       200:
+ *         description: Sandbox container pre-warming initiated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Sandbox container pre-warming initiated successfully"
+ *       500:
+ *         description: Internal Server Error - An unexpected error occurred during the initiation of pre-warming.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 const prewarmUserSandbox = catchAsync(async (req, res) => {
   const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
   
@@ -232,6 +352,16 @@ const prewarmUserSandbox = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @typedef {object} SwarmController
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} performSwarmStreamingSearch - Handles streaming search requests using the Swarm agent.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} prewarmUserSandbox - Initiates the pre-warming of a user's Docker sandbox environment.
+ */
+/**
+ * SwarmController provides a collection of controller functions for managing Swarm agent interactions,
+ * including streaming search capabilities and Docker sandbox pre-warming.
+ * These functions are designed to integrate with an Express.js application.
+ */
 export const SwarmController = {
   performSwarmStreamingSearch,
   prewarmUserSandbox,
