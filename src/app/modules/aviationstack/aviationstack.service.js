@@ -31,15 +31,34 @@ dotenv.config();
 
 // Configuration
 // BASE_URL is not used as getApiUrl constructs the full URL dynamically.
+/**
+ * Retrieves the AviationStack API key from environment variables.
+ * Removes any Byte Order Mark (BOM) and trims whitespace.
+ *
+ * @returns {string} The AviationStack API key.
+ */
 const getApiKey = () => (process.env.AVIATIONSTACK_API_KEY || '').replace(/^\uFEFF+/, '').trim();
 
-// Local In-Memory Cache for fast fallbacks and static lookups
+/**
+ * Local In-Memory Cache for fast fallbacks and static lookups.
+ * Stores data as `{ data: any, expiresAt: number }`.
+ * @type {Map<string, {data: any, expiresAt: number}>}
+ */
 const memoryCache = new Map();
 
-// Periodically clean up expired items from memoryCache to prevent memory leaks.
-// Items are only removed from memoryCache upon access after expiry, or via this cleanup.
+/**
+ * The interval in milliseconds for cleaning up expired items from the `memoryCache`.
+ * Items are only removed from `memoryCache` upon access after expiry, or via this cleanup.
+ * @type {number}
+ */
 const MEMORY_CACHE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Every 5 minutes
 
+/**
+ * Sets up a periodic cleanup for the `memoryCache`.
+ * This interval function iterates through the cache and removes entries
+ * whose `expiresAt` timestamp is in the past.
+ * The `.unref()` call allows the Node.js process to exit if this is the only active timer.
+ */
 setInterval(() => {
   const now = Date.now();
   let cleanedCount = 0;
@@ -54,14 +73,24 @@ setInterval(() => {
   }
 }, MEMORY_CACHE_CLEANUP_INTERVAL_MS).unref(); // .unref() allows the Node.js process to exit if this is the only active timer.
 
-// Helper to determine if key is premium (https allowed)
+/**
+ * Constructs the full AviationStack API URL for a given endpoint.
+ * Determines the protocol (HTTP/HTTPS) based on the `AVIATIONSTACK_IS_PREMIUM` environment variable.
+ *
+ * @param {string} endpoint - The API endpoint (e.g., 'flights', 'airports').
+ * @returns {string} The complete URL for the API request.
+ */
 const getApiUrl = (endpoint) => {
   const key = getApiKey();
   const protocol = process.env.AVIATIONSTACK_IS_PREMIUM === 'true' ? 'https' : 'http';
   return `${protocol}://api.aviationstack.com/v1/${endpoint}`;
 };
 
-// Caching TTLs
+/**
+ * Time-To-Live (TTL) values in seconds for different AviationStack API endpoints.
+ * These values determine how long data for each endpoint is cached.
+ * @type {Object.<string, number>}
+ */
 const TTL = {
   flights: 60,       // Live flights — 1 min
   routes: 86400,     // Schedules — 24 hours
@@ -71,7 +100,12 @@ const TTL = {
 };
 
 /**
- * Double-layer cache retriever
+ * Retrieves data from a double-layer cache (in-memory and Redis).
+ * It first checks the local memory cache, then Redis if enabled.
+ * If data is found in Redis, it's also synced back to the memory cache for faster subsequent access.
+ *
+ * @param {string} cacheKey - The unique key for the cached data.
+ * @returns {Promise<any|null>} The cached data if found and not expired, otherwise `null`.
  */
 async function getCachedData(cacheKey) {
   try {
@@ -103,7 +137,13 @@ async function getCachedData(cacheKey) {
 }
 
 /**
- * Double-layer cache writer
+ * Writes data to a double-layer cache (in-memory and Redis).
+ * Data is stored with an expiration time (TTL).
+ *
+ * @param {string} cacheKey - The unique key for the data to be cached.
+ * @param {any} data - The data to cache.
+ * @param {number} ttl - The Time-To-Live for the cache entry in seconds.
+ * @returns {Promise<void>}
  */
 async function setCachedData(cacheKey, data, ttl) {
   try {
@@ -123,7 +163,14 @@ async function setCachedData(cacheKey, data, ttl) {
 }
 
 /**
- * Universal Request Helper
+ * Universal helper function to make requests to the AviationStack API.
+ * It implements a double-layer caching mechanism (in-memory and Redis) and
+ * falls back to high-fidelity mock data if the API key is missing or the API call fails.
+ *
+ * @param {string} endpoint - The API endpoint (e.g., 'flights', 'airports').
+ * @param {Object} [params={}] - Query parameters for the API request.
+ * @returns {Promise<any>} The data from the API or mock data on failure/missing key.
+ * @throws {Error} If the API returns an error and mock data cannot be generated.
  */
 async function makeRequest(endpoint, params = {}) {
   const apiKey = getApiKey();
@@ -183,22 +230,80 @@ async function makeRequest(endpoint, params = {}) {
 // EXPOSED API SERVICES
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Fetches real-time flight data from AviationStack.
+ * Supports various query parameters to filter flights.
+ * Falls back to mock data if API key is missing or request fails.
+ *
+ * @param {Object} [params={}] - Query parameters for the flights endpoint.
+ *   @param {string} [params.flight_iata] - Filter by IATA flight code (e.g., 'UA123').
+ *   @param {string} [params.flight_icao] - Filter by ICAO flight code (e.g., 'UAL123').
+ *   @param {string} [params.dep_iata] - Filter by departure airport IATA code.
+ *   @param {string} [params.arr_iata] - Filter by arrival airport IATA code.
+ *   @param {string} [params.airline_iata] - Filter by airline IATA code.
+ *   @param {string} [params.flight_status] - Filter by flight status (e.g., 'active', 'landed', 'scheduled').
+ * @returns {Promise<Array<Object>>} An array of flight objects.
+ */
 export const getFlightsService = async (params = {}) => {
   return makeRequest('flights', params);
 };
 
+/**
+ * Fetches flight routes data from AviationStack.
+ * Supports filtering by departure/arrival airports, airline, etc.
+ * Falls back to mock data if API key is missing or request fails.
+ *
+ * @param {Object} [params={}] - Query parameters for the routes endpoint.
+ *   @param {string} [params.dep_iata] - Filter by departure airport IATA code.
+ *   @param {string} [params.arr_iata] - Filter by arrival airport IATA code.
+ *   @param {string} [params.airline_iata] - Filter by airline IATA code.
+ * @returns {Promise<Array<Object>>} An array of route objects.
+ */
 export const getRoutesService = async (params = {}) => {
   return makeRequest('routes', params);
 };
 
+/**
+ * Fetches airport data from AviationStack.
+ * Supports filtering by IATA/ICAO codes, city, country, etc.
+ * Falls back to mock data if API key is missing or request fails.
+ *
+ * @param {Object} [params={}] - Query parameters for the airports endpoint.
+ *   @param {string} [params.iata_code] - Filter by airport IATA code.
+ *   @param {string} [params.icao_code] - Filter by airport ICAO code.
+ *   @param {string} [params.city_name] - Filter by city name.
+ *   @param {string} [params.country_name] - Filter by country name.
+ * @returns {Promise<Array<Object>>} An array of airport objects.
+ */
 export const getAirportsService = async (params = {}) => {
   return makeRequest('airports', params);
 };
 
+/**
+ * Fetches airline data from AviationStack.
+ * Supports filtering by IATA/ICAO codes, airline name, etc.
+ * Falls back to mock data if API key is missing or request fails.
+ *
+ * @param {Object} [params={}] - Query parameters for the airlines endpoint.
+ *   @param {string} [params.iata_code] - Filter by airline IATA code.
+ *   @param {string} [params.icao_code] - Filter by airline ICAO code.
+ *   @param {string} [params.airline_name] - Filter by airline name.
+ * @returns {Promise<Array<Object>>} An array of airline objects.
+ */
 export const getAirlinesService = async (params = {}) => {
   return makeRequest('airlines', params);
 };
 
+/**
+ * Fetches airplane data from AviationStack.
+ * Supports filtering by registration number, IATA/ICAO type, etc.
+ * Falls back to mock data if API key is missing or request fails.
+ *
+ * @param {Object} [params={}] - Query parameters for the airplanes endpoint.
+ *   @param {string} [params.registration_number] - Filter by aircraft registration number.
+ *   @param {string} [params.iata_type] - Filter by IATA aircraft type code.
+ * @returns {Promise<Array<Object>>} An array of airplane objects.
+ */
 export const getAirplanesService = async (params = {}) => {
   return makeRequest('airplanes', params);
 };
@@ -224,6 +329,10 @@ export {
 // HIGH-FIDELITY REALISTIC MOCK DATA ENGINE
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * A static in-memory database of common airports for mock data generation.
+ * @type {Object.<string, Object>}
+ */
 const AIRPORT_DB = {
   JFK: { name: 'John F Kennedy International', city: 'New York', country: 'United States', iata: 'JFK', icao: 'KJFK', timezone: 'America/New_York' },
   LHR: { name: 'Heathrow', city: 'London', country: 'United Kingdom', iata: 'LHR', icao: 'EGLL', timezone: 'Europe/London' },
@@ -249,6 +358,10 @@ const AIRPORT_DB = {
   SEA: { name: 'Seattle-Tacoma International', city: 'Seattle', country: 'United States', iata: 'SEA', icao: 'KSEA', timezone: 'America/Los_Angeles' },
 };
 
+/**
+ * A static in-memory database of common airlines for mock data generation.
+ * @type {Object.<string, Object>}
+ */
 const AIRLINE_DB = {
   UA: { name: 'United Airlines', iata: 'UA', icao: 'UAL', country: 'United States', fleet_size: 890, active: 850 },
   AA: { name: 'American Airlines', iata: 'AA', icao: 'AAL', country: 'United States', fleet_size: 960, active: 920 },
@@ -278,6 +391,15 @@ const AIRLINE_DB = {
   TK: { name: 'Turkish Airlines', iata: 'TK', icao: 'THY', country: 'Turkey', fleet_size: 400, active: 380 },
 };
 
+/**
+ * Generates high-fidelity, realistic mock data for various AviationStack API endpoints.
+ * This function is used as a fallback when the actual API key is missing or the API request fails.
+ * It attempts to simulate API responses based on the provided parameters.
+ *
+ * @param {string} endpoint - The API endpoint for which to generate mock data (e.g., 'flights', 'airports').
+ * @param {Object} params - Query parameters that would have been sent to the actual API.
+ * @returns {Array<Object>} An array of mock data objects matching the expected API response structure.
+ */
 function getMockData(endpoint, params) {
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -433,7 +555,7 @@ function getMockData(endpoint, params) {
       const found = Object.values(AIRPORT_DB).find(a => a.icao === icao);
       if (found) matches.push(found);
     } else if (cityName || countryName) {
-      matches = Object.values(AIRPORT_DB).filter(a => 
+      matches = Object.values(AIRPORT_DB).filter(a =>
         (cityName && a.city.toLowerCase().includes(cityName)) ||
         (countryName && a.country.toLowerCase().includes(countryName))
       );
@@ -484,7 +606,7 @@ function getMockData(endpoint, params) {
       const found = Object.values(AIRLINE_DB).find(al => al.icao === icao);
       if (found) matches.push(found);
     } else if (airlineName) {
-      matches = Object.values(AIRLINE_DB).filter(al => 
+      matches = Object.values(AIRLINE_DB).filter(al =>
         al.name.toLowerCase().includes(airlineName)
       );
     }
