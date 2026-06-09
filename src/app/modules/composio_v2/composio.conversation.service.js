@@ -78,13 +78,18 @@ const handleComposioConversation = async (
         logger.warn(
           `Conversation ${conversationId} not found for user ${userId}, creating new one`
         );
+        // If an error occurs during lookup (e.g., conversation not found),
+        // we should proceed to create a new conversation.
+        // The 'conversation' variable remains null, triggering the creation block below.
       }
     }
 
     // Create conversation if it doesn't exist
     if (!conversation) {
-      const newConversationId =
-        conversationId || generateComposioConversationId();
+      // If an existing conversation was not found or authorized,
+      // we always generate a new ID for the new conversation to ensure uniqueness
+      // and avoid reusing potentially invalid or unauthorized IDs.
+      const newConversationId = generateComposioConversationId();
 
       // Generate a meaningful title from the user input
       const title = `Automation task: ${userInput.substring(0, 50)}${userInput.length > 50 ? '...' : ''}`;
