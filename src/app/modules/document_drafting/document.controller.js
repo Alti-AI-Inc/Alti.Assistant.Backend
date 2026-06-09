@@ -25,9 +25,12 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
+    // Optimization: Add .lean() for read-only query to reduce Mongoose document overhead.
+    // Optimization: Consider adding an index to SubscriptionModel on { userId: 1, createdAt: -1 }
+    //               to speed up this query and sorting.
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean(); // Added .lean()
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
       ? await conversationHelpers.getConversationById(
@@ -119,9 +122,12 @@ export const generateDocument = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
+    // Optimization: Add .lean() for read-only query to reduce Mongoose document overhead.
+    // Optimization: Consider adding an index to SubscriptionModel on { userId: 1, createdAt: -1 }
+    //               to speed up this query and sorting.
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean(); // Added .lean()
 
     if (!userSubscription || userSubscription.usage <= 0) {
       return sendResponse(res, {
