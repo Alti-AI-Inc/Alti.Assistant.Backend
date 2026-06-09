@@ -102,7 +102,9 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
   }
 
   // Webhook Replay Protection Guard
-  const existingEvent = await StripeEvent.findOne({ eventId: event.id });
+  // Optimization: Add .lean() for faster query as the document is not modified.
+  // Optimization: Ensure 'eventId' in StripeEvent model has a unique index for efficient lookups and replay protection.
+  const existingEvent = await StripeEvent.findOne({ eventId: event.id }).lean();
   if (existingEvent) {
     logger.info(`Duplicate webhook event ${event.id} discarded in Legacy Webhook Controller.`);
     return res.json({ received: true, duplicate: true });
