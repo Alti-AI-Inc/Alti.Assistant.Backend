@@ -38,12 +38,40 @@ const uploadFile = catchAsync(async (req, res) => {
     // Extract optional metadata from request body
     const options = {
       description: req.body.description,
-      tags: req.body.tags ? JSON.parse(req.body.tags) : [],
+      tags: [], // Initialize as empty array
       folderId: req.body.folderId || null,
       uploadSource: req.body.uploadSource || 'web',
       ipAddress: req.ip,
-      metadata: req.body.metadata ? JSON.parse(req.body.metadata) : {},
+      metadata: {}, // Initialize as empty object
     };
+
+    // Safely parse tags if provided. Malformed JSON should result in a BAD_REQUEST.
+    if (req.body.tags) {
+      try {
+        options.tags = JSON.parse(req.body.tags);
+      } catch (e) {
+        logger.error(`[KnowledgeBank] Invalid JSON for tags in uploadFile: ${e.message}`);
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Invalid JSON format for tags',
+        });
+      }
+    }
+
+    // Safely parse metadata if provided. Malformed JSON should result in a BAD_REQUEST.
+    if (req.body.metadata) {
+      try {
+        options.metadata = JSON.parse(req.body.metadata);
+      } catch (e) {
+        logger.error(`[KnowledgeBank] Invalid JSON for metadata in uploadFile: ${e.message}`);
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Invalid JSON format for metadata',
+        });
+      }
+    }
 
     // Upload file
     const result = await knowledgeBankService.uploadFile(
@@ -126,7 +154,9 @@ const getUserFiles = catchAsync(async (req, res) => {
       skip: parseInt(req.query.skip) || 0,
     };
 
-    const files = await knowledgeBankService.getUserFiles(userId, filters, req);
+    // Assuming knowledgeBankService.getUserFiles now returns an object with { data: files, total: totalCount }
+    // This provides accurate total count for pagination, rather than just the current page's length.
+    const { data: files, total: totalCount } = await knowledgeBankService.getUserFiles(userId, filters, req);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -134,7 +164,7 @@ const getUserFiles = catchAsync(async (req, res) => {
       message: 'Files retrieved successfully',
       data: {
         files,
-        totalCount: files.length,
+        totalCount: totalCount, // Use totalCount from service for proper pagination
         filters: {
           fileType: filters.fileType,
           processingStatus: filters.processingStatus,
@@ -442,7 +472,9 @@ const getUserFolders = catchAsync(async (req, res) => {
         req.query.parentFolderId === 'root' ? null : req.query.parentFolderId,
     };
 
-    const folders = await knowledgeBankService.getUserFolders(
+    // Assuming knowledgeBankService.getUserFolders now returns an object with { data: folders, total: totalCount }
+    // This provides accurate total count for pagination, rather than just the current page's length.
+    const { data: folders, total: totalCount } = await knowledgeBankService.getUserFolders(
       userId,
       options,
       req
@@ -454,7 +486,7 @@ const getUserFolders = catchAsync(async (req, res) => {
       message: 'Folders retrieved successfully',
       data: {
         folders,
-        totalCount: folders.length,
+        totalCount: totalCount, // Use totalCount from service for proper pagination
       },
     });
   } catch (error) {
