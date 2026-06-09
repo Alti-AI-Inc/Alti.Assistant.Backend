@@ -1,24 +1,147 @@
 /**
- * aviationstack.route.js — AviationStack REST API Router
+ * @module aviationstack.route
+ * @fileoverview AviationStack REST API Router
  *
  * Exposes API routes for real-time tracking, flight routes schedules,
  * airport information, airline profiles, and airplane registrations.
+ * This module defines the API endpoints for interacting with the AviationStack service.
  */
 
 import express from 'express';
 import {
+  /**
+   * @function getFlightsService
+   * @description Fetches live flight tracking data from the AviationStack API.
+   * @param {object} queryParams - Query parameters for filtering flights.
+   * @returns {Promise<object>} A promise that resolves to the flight data.
+   */
   getFlightsService,
+  /**
+   * @function getRoutesService
+   * @description Fetches flight schedules and routes data from the AviationStack API.
+   * @param {object} queryParams - Query parameters for filtering routes.
+   * @returns {Promise<object>} A promise that resolves to the route data.
+   */
   getRoutesService,
+  /**
+   * @function getAirportsService
+   * @description Fetches airport directory data from the AviationStack API.
+   * @param {object} queryParams - Query parameters for filtering airports.
+   * @returns {Promise<object>} A promise that resolves to the airport data.
+   */
   getAirportsService,
+  /**
+   * @function getAirlinesService
+   * @description Fetches airline directory data from the AviationStack API.
+   * @param {object} queryParams - Query parameters for filtering airlines.
+   * @returns {Promise<object>} A promise that resolves to the airline data.
+   */
   getAirlinesService,
+  /**
+   * @function getAirplanesService
+   * @description Fetches airplane directory data from the AviationStack API.
+   * @param {object} queryParams - Query parameters for filtering airplanes.
+   * @returns {Promise<object>} A promise that resolves to the airplane data.
+   */
   getAirplanesService,
 } from './aviationstack.service.js';
 
+/**
+ * @constant {express.Router} router
+ * @description Express router for AviationStack API endpoints.
+ */
 const router = express.Router();
 
 /**
- * GET /flights — Live flight tracking
- * Query params: flight_iata, flight_icao, dep_iata, arr_iata, flight_status, airline_name, limit
+ * @swagger
+ * /flights:
+ *   get:
+ *     summary: Live flight tracking
+ *     description: Retrieves real-time flight information based on various criteria such as flight IATA/ICAO codes, departure/arrival airports, flight status, or airline name.
+ *     tags:
+ *       - AviationStack
+ *       - Flights
+ *     parameters:
+ *       - in: query
+ *         name: flight_iata
+ *         schema:
+ *           type: string
+ *         description: Filter by flight IATA code (e.g., BA2490).
+ *         required: false
+ *       - in: query
+ *         name: flight_icao
+ *         schema:
+ *           type: string
+ *         description: Filter by flight ICAO code (e.g., BAW2490).
+ *         required: false
+ *       - in: query
+ *         name: dep_iata
+ *         schema:
+ *           type: string
+ *         description: Filter by departure airport IATA code (e.g., LHR).
+ *         required: false
+ *       - in: query
+ *         name: arr_iata
+ *         schema:
+ *           type: string
+ *         description: Filter by arrival airport IATA code (e.g., JFK).
+ *         required: false
+ *       - in: query
+ *         name: flight_status
+ *         schema:
+ *           type: string
+ *           enum: [scheduled, active, landed, cancelled, incident, diverted]
+ *         description: Filter by flight status.
+ *         required: false
+ *       - in: query
+ *         name: airline_name
+ *         schema:
+ *           type: string
+ *         description: Filter by airline name (e.g., British Airways).
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Limit the number of results returned. Default is 100.
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of flight data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       flight_date: { type: string, example: "2023-10-27" }
+ *                       flight_status: { type: string, example: "active" }
+ *                       departure: { type: object, description: "Departure airport details" }
+ *                       arrival: { type: object, description: "Arrival airport details" }
+ *                       airline: { type: object, description: "Airline details" }
+ *                       flight: { type: object, description: "Flight details" }
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to fetch flight data from external API."
  */
 router.get('/flights', async (req, res) => {
   try {
@@ -30,8 +153,74 @@ router.get('/flights', async (req, res) => {
 });
 
 /**
- * GET /routes — Flight schedules / routes
- * Query params: dep_iata, arr_iata, airline_iata, limit
+ * @swagger
+ * /routes:
+ *   get:
+ *     summary: Flight schedules / routes
+ *     description: Fetches flight schedules and routes between airports or for specific airlines.
+ *     tags:
+ *       - AviationStack
+ *       - Routes
+ *     parameters:
+ *       - in: query
+ *         name: dep_iata
+ *         schema:
+ *           type: string
+ *         description: Filter by departure airport IATA code (e.g., LHR).
+ *         required: false
+ *       - in: query
+ *         name: arr_iata
+ *         schema:
+ *           type: string
+ *         description: Filter by arrival airport IATA code (e.g., JFK).
+ *         required: false
+ *       - in: query
+ *         name: airline_iata
+ *         schema:
+ *           type: string
+ *         description: Filter by airline IATA code (e.g., BA).
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Limit the number of results returned. Default is 100.
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of flight route data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       airline_iata: { type: string, example: "BA" }
+ *                       departure_iata: { type: string, example: "LHR" }
+ *                       arrival_iata: { type: string, example: "JFK" }
+ *                       flight_number: { type: string, example: "BA177" }
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to fetch route data from external API."
  */
 router.get('/routes', async (req, res) => {
   try {
@@ -43,8 +232,81 @@ router.get('/routes', async (req, res) => {
 });
 
 /**
- * GET /airports — Airports directory
- * Query params: iata_code, icao_code, city_name, country_name, limit
+ * @swagger
+ * /airports:
+ *   get:
+ *     summary: Airports directory
+ *     description: Provides information about airports worldwide, searchable by IATA/ICAO code, city, or country.
+ *     tags:
+ *       - AviationStack
+ *       - Airports
+ *     parameters:
+ *       - in: query
+ *         name: iata_code
+ *         schema:
+ *           type: string
+ *         description: Filter by airport IATA code (e.g., LHR).
+ *         required: false
+ *       - in: query
+ *         name: icao_code
+ *         schema:
+ *           type: string
+ *         description: Filter by airport ICAO code (e.g., EGLL).
+ *         required: false
+ *       - in: query
+ *         name: city_name
+ *         schema:
+ *           type: string
+ *         description: Filter by city name (e.g., London).
+ *         required: false
+ *       - in: query
+ *         name: country_name
+ *         schema:
+ *           type: string
+ *         description: Filter by country name (e.g., United Kingdom).
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Limit the number of results returned. Default is 100.
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of airport data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       airport_name: { type: string, example: "Heathrow Airport" }
+ *                       iata_code: { type: string, example: "LHR" }
+ *                       icao_code: { type: string, example: "EGLL" }
+ *                       city_iata_code: { type: string, example: "LON" }
+ *                       country_name: { type: string, example: "United Kingdom" }
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to fetch airport data from external API."
  */
 router.get('/airports', async (req, res) => {
   try {
@@ -56,8 +318,74 @@ router.get('/airports', async (req, res) => {
 });
 
 /**
- * GET /airlines — Airlines directory
- * Query params: iata_code, icao_code, airline_name, limit
+ * @swagger
+ * /airlines:
+ *   get:
+ *     summary: Airlines directory
+ *     description: Retrieves profiles and information for various airlines, searchable by IATA/ICAO code or airline name.
+ *     tags:
+ *       - AviationStack
+ *       - Airlines
+ *     parameters:
+ *       - in: query
+ *         name: iata_code
+ *         schema:
+ *           type: string
+ *         description: Filter by airline IATA code (e.g., BA).
+ *         required: false
+ *       - in: query
+ *         name: icao_code
+ *         schema:
+ *           type: string
+ *         description: Filter by airline ICAO code (e.g., BAW).
+ *         required: false
+ *       - in: query
+ *         name: airline_name
+ *         schema:
+ *           type: string
+ *         description: Filter by airline name (e.g., British Airways).
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Limit the number of results returned. Default is 100.
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of airline data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       airline_name: { type: string, example: "British Airways" }
+ *                       iata_code: { type: string, example: "BA" }
+ *                       icao_code: { type: string, example: "BAW" }
+ *                       country_name: { type: string, example: "United Kingdom" }
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to fetch airline data from external API."
  */
 router.get('/airlines', async (req, res) => {
   try {
@@ -69,8 +397,68 @@ router.get('/airlines', async (req, res) => {
 });
 
 /**
- * GET /airplanes — Airplanes directory
- * Query params: registration_number, model_code, limit
+ * @swagger
+ * /airplanes:
+ *   get:
+ *     summary: Airplanes directory
+ *     description: Provides details about airplane registrations and models, searchable by registration number or model code.
+ *     tags:
+ *       - AviationStack
+ *       - Airplanes
+ *     parameters:
+ *       - in: query
+ *         name: registration_number
+ *         schema:
+ *           type: string
+ *         description: Filter by airplane registration number (e.g., G-EUPJ).
+ *         required: false
+ *       - in: query
+ *         name: model_code
+ *         schema:
+ *           type: string
+ *         description: Filter by airplane model code (e.g., B744).
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Limit the number of results returned. Default is 100.
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: Successful retrieval of airplane data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       registration_number: { type: string, example: "G-EUPJ" }
+ *                       plane_model: { type: string, example: "Boeing 747-400" }
+ *                       plane_icao_code: { type: string, example: "B744" }
+ *                       manufacturer: { type: string, example: "Boeing" }
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to fetch airplane data from external API."
  */
 router.get('/airplanes', async (req, res) => {
   try {
@@ -81,4 +469,9 @@ router.get('/airplanes', async (req, res) => {
   }
 });
 
+/**
+ * @exports aviationStackRoutes
+ * @description The Express router instance containing all AviationStack API routes.
+ * @type {express.Router}
+ */
 export const aviationStackRoutes = router;
