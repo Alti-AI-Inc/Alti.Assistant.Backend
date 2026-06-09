@@ -14,7 +14,29 @@ import {
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Generate brainstorm ideas using specified technique
+ * Generates creative brainstorm ideas based on a given concept and various parameters.
+ * It leverages the Google Generative AI model to produce structured brainstorm output.
+ *
+ * @async
+ * @function generateIdeas
+ * @param {object} params - The parameters for generating ideas.
+ * @param {string} params.idea - The core idea or concept to brainstorm around.
+ * @param {string} params.brainstormType - The type of brainstorm (e.g., "product feature", "marketing campaign").
+ * @param {string} [params.technique=TECHNIQUES.FREE_ASSOCIATION] - The brainstorming technique to use (e.g., 'SCAMPER', 'Mind Mapping').
+ * @param {string[]} [params.perspectives=[PERSPECTIVES.BUSINESS, PERSPECTIVES.USER_CENTRIC]] - An array of perspectives to analyze the idea from (e.g., 'Business', 'User-Centric', 'Technical').
+ * @param {string} [params.depth=DEPTH_LEVELS.STANDARD] - The desired depth of the brainstorm, influencing the number of ideas generated ('Shallow', 'Standard', 'Deep').
+ * @param {string[]} [params.focusAreas=[]] - Specific areas or themes to prioritize during brainstorming.
+ * @param {object} [params.constraints={}] - An object defining various constraints for the ideas.
+ * @param {string} [params.constraints.budget] - Budget constraints (e.g., "$10,000").
+ * @param {string} [params.constraints.timeline] - Timeline constraints (e.g., "3 months").
+ * @param {string[]} [params.constraints.technology] - Specific technologies to consider or avoid.
+ * @param {string} [params.constraints.targetAudience] - The target audience for the ideas.
+ * @param {string} [params.constraints.industry] - The industry context for the ideas.
+ * @param {string[]} [params.constraints.competitors] - Competitors to consider.
+ * @param {string} [params.additionalInstructions=''] - Any additional instructions or context for the AI.
+ * @returns {Promise<object>} A promise that resolves to a JSON object containing structured brainstorm data,
+ *   including main ideas, sub-ideas, opportunities, risks, next steps, and a summary.
+ * @throws {Error} If there is an error during AI content generation or if the AI response format is invalid.
  */
 const generateIdeas = async (params) => {
   try {
@@ -146,7 +168,25 @@ Be creative, specific, and actionable. Generate at least ${ideaCount} ideas acro
 };
 
 /**
- * Apply SCAMPER technique
+ * Applies the SCAMPER technique to a given idea to generate new variations and improvements.
+ * SCAMPER is a mnemonic that stands for Substitute, Combine, Adapt, Modify, Put to other uses, Eliminate, and Reverse/Rearrange.
+ *
+ * @async
+ * @function applySCAMPER
+ * @param {string} idea - The original idea to apply the SCAMPER technique to.
+ * @returns {Promise<object>} A promise that resolves to a JSON object with arrays of ideas for each SCAMPER element.
+ *   Returns an empty object if an error occurs or the AI response is malformed.
+ * @example
+ * // Example return:
+ * {
+ *   "substitute": ["idea1", "idea2"],
+ *   "combine": ["idea1", "idea2"],
+ *   "adapt": ["idea1", "idea2"],
+ *   "modify": ["idea1", "idea2"],
+ *   "putToOtherUses": ["idea1", "idea2"],
+ *   "eliminate": ["idea1", "idea2"],
+ *   "reverse": ["idea1", "idea2"]
+ * }
  */
 const applySCAMPER = async (idea) => {
   try {
@@ -195,7 +235,22 @@ Generate ideas for each SCAMPER element. Return JSON:
 };
 
 /**
- * Perform SWOT analysis
+ * Performs a SWOT (Strengths, Weaknesses, Opportunities, Threats) analysis for a given idea.
+ * This helps in understanding the internal and external factors affecting the idea.
+ *
+ * @async
+ * @function performSWOT
+ * @param {string} idea - The idea for which to perform the SWOT analysis.
+ * @returns {Promise<object>} A promise that resolves to a JSON object containing the SWOT analysis.
+ *   Returns an empty object if an error occurs or the AI response is malformed.
+ * @example
+ * // Example return:
+ * {
+ *   "strengths": [{"title": "...", "description": "...", "impact": "high|medium|low"}],
+ *   "weaknesses": [{"title": "...", "description": "...", "severity": "high|medium|low"}],
+ *   "opportunities": [{"title": "...", "description": "...", "potential": "high|medium|low"}],
+ *   "threats": [{"title": "...", "description": "...", "risk": "high|medium|low"}]
+ * }
  */
 const performSWOT = async (idea) => {
   try {
@@ -238,7 +293,43 @@ Return JSON:
 };
 
 /**
- * Refine existing idea
+ * Refines an existing idea based on provided feedback and specific focus areas.
+ * It generates improved versions, enhancements, and alternative approaches.
+ *
+ * @async
+ * @function refineIdea
+ * @param {string} originalIdea - The original idea to be refined.
+ * @param {string} feedback - Feedback or context for refining the idea.
+ * @param {string[]} [focusOn=[]] - Specific aspects or areas to focus on during refinement.
+ * @returns {Promise<object>} A promise that resolves to a JSON object containing refined ideas,
+ *   enhancements, and alternative approaches. Returns an empty object if an error occurs or the AI response is malformed.
+ * @example
+ * // Example return:
+ * {
+ *   "refinedIdeas": [
+ *     {
+ *       "title": "refined version title",
+ *       "description": "improved description",
+ *       "improvements": ["what was improved"],
+ *       "reasoning": "why this refinement is better"
+ *     }
+ *   ],
+ *   "enhancements": [
+ *     {
+ *       "aspect": "what aspect to enhance",
+ *       "suggestion": "specific enhancement",
+ *       "impact": "expected impact"
+ *     }
+ *   ],
+ *   "alternativeApproaches": [
+ *     {
+ *       "approach": "alternative approach",
+ *       "description": "description",
+ *       "pros": ["pro1"],
+ *       "cons": ["con1"]
+ *     }
+ *   ]
+ * }
  */
 const refineIdea = async (originalIdea, feedback, focusOn = []) => {
   try {
@@ -301,7 +392,32 @@ Provide refined ideas and improvements in JSON format:
 };
 
 /**
- * Analyze idea from multiple perspectives
+ * Analyzes a given idea from multiple specified perspectives.
+ * For each perspective, it provides key considerations, opportunities, challenges, and recommendations.
+ *
+ * @async
+ * @function analyzeFromPerspectives
+ * @param {string} idea - The idea to be analyzed.
+ * @param {string[]} perspectives - An array of perspectives to analyze the idea from (e.g., 'business', 'technical', 'user').
+ * @returns {Promise<object>} A promise that resolves to a JSON object where keys are perspectives
+ *   and values are objects containing considerations, opportunities, challenges, and recommendations for that perspective.
+ *   Returns an empty object if an error occurs or the AI response is malformed.
+ * @example
+ * // Example return:
+ * {
+ *   "business": {
+ *     "considerations": ["..."],
+ *     "opportunities": ["..."],
+ *     "challenges": ["..."],
+ *     "recommendations": ["..."]
+ *   },
+ *   "technical": {
+ *     "considerations": ["..."],
+ *     "opportunities": ["..."],
+ *     "challenges": ["..."],
+ *     "recommendations": ["..."]
+ *   }
+ * }
  */
 const analyzeFromPerspectives = async (idea, perspectives) => {
   try {
@@ -349,6 +465,21 @@ Return JSON with perspective as keys:
   }
 };
 
+/**
+ * @typedef {object} BrainstormEngine
+ * @property {function(object): Promise<object>} generateIdeas - Function to generate brainstorm ideas.
+ * @property {function(string): Promise<object>} applySCAMPER - Function to apply the SCAMPER technique.
+ * @property {function(string): Promise<object>} performSWOT - Function to perform a SWOT analysis.
+ * @property {function(string, string, string[]): Promise<object>} refineIdea - Function to refine an existing idea.
+ * @property {function(string, string[]): Promise<object>} analyzeFromPerspectives - Function to analyze an idea from multiple perspectives.
+ */
+
+/**
+ * Exports a collection of functions related to brainstorming and idea generation.
+ * These functions leverage Google Generative AI to assist with various stages of the brainstorming process.
+ *
+ * @type {BrainstormEngine}
+ */
 export const brainstormEngine = {
   generateIdeas,
   applySCAMPER,
