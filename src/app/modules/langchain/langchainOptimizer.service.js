@@ -14,11 +14,14 @@ const optimizeChain = async (chainId, userId) => {
     logger.info(`LangchainOptimizer: running diagnostics on chain ${chainId}`);
 
     // Fetch the chain and its last 15 executions
-    const chain = await LangchainChain.findById(chainId);
+    // Added .lean() for performance as the document is read-only.
+    const chain = await LangchainChain.findById(chainId).lean();
     if (!chain) {
       throw new Error(`LangChain chain not found: ${chainId}`);
     }
 
+    // For optimal performance with this query, consider adding a compound index to the LangchainExecution model:
+    // { chainId: 1, userId: 1, createdAt: -1 }
     const executions = await LangchainExecution.find({ chainId, userId })
       .sort({ createdAt: -1 })
       .limit(15)
