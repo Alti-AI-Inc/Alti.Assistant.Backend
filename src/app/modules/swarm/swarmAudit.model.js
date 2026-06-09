@@ -16,6 +16,7 @@ const SwarmAuditSchema = new mongoose.Schema(
       type: String,
       enum: ['dynamic-skill', 'standard-tool', 'reflection-self-healing'],
       default: 'dynamic-skill',
+      index: true, // Added index for performance, as 'type' is likely used in queries.
     },
     attempts: [
       {
@@ -32,6 +33,7 @@ const SwarmAuditSchema = new mongoose.Schema(
       type: String,
       enum: ['success', 'failed', 'security-blocked', 'resource-aborted'],
       required: true,
+      index: true, // Added index for performance, as 'status' is likely used in queries.
     },
     finalResult: {
       type: String,
