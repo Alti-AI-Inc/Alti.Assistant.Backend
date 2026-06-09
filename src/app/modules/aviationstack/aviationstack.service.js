@@ -30,11 +30,29 @@ import {
 dotenv.config();
 
 // Configuration
-const BASE_URL = 'http://api.aviationstack.com/v1';
+// BASE_URL is not used as getApiUrl constructs the full URL dynamically.
 const getApiKey = () => (process.env.AVIATIONSTACK_API_KEY || '').replace(/^\uFEFF+/, '').trim();
 
 // Local In-Memory Cache for fast fallbacks and static lookups
 const memoryCache = new Map();
+
+// Periodically clean up expired items from memoryCache to prevent memory leaks.
+// Items are only removed from memoryCache upon access after expiry, or via this cleanup.
+const MEMORY_CACHE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Every 5 minutes
+
+setInterval(() => {
+  const now = Date.now();
+  let cleanedCount = 0;
+  for (const [key, value] of memoryCache.entries()) {
+    if (value.expiresAt < now) {
+      memoryCache.delete(key);
+      cleanedCount++;
+    }
+  }
+  if (cleanedCount > 0) {
+    logger.info(`[AviationStack Memory Cache] Cleaned up ${cleanedCount} expired entries.`);
+  }
+}, MEMORY_CACHE_CLEANUP_INTERVAL_MS).unref(); // .unref() allows the Node.js process to exit if this is the only active timer.
 
 // Helper to determine if key is premium (https allowed)
 const getApiUrl = (endpoint) => {
@@ -71,7 +89,9 @@ async function getCachedData(cacheKey) {
       const val = await RedisClient.get(`aviation:${cacheKey}`);
       if (val) {
         const parsed = JSON.parse(val);
-        // Sync back to memory cache
+        // Sync back to memory cache with a default short TTL (1 minute)
+        // This ensures that if Redis is available, memory cache is refreshed,
+        // but the primary TTL for the data is still managed by Redis.
         memoryCache.set(cacheKey, { data: parsed, expiresAt: Date.now() + 60000 });
         return parsed;
       }
