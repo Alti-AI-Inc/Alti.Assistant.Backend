@@ -59,6 +59,16 @@ const getMySubscription = catchAsync(async (req, res) => {
  */
 const getTenantSubscription = catchAsync(async (req, res) => {
   const { tenantId } = req.params;
+  // Assuming req.user is populated by authentication middleware and contains _id, tenantId, and role.
+  const requestingUserTenantId = req.user.tenantId;
+  const requestingUserRole = req.user.role;
+
+  // Authorization check:
+  // Only users with 'admin' role can view subscriptions for arbitrary tenants.
+  // Regular users can only view subscriptions for their own tenant.
+  if (requestingUserRole !== 'admin' && tenantId !== requestingUserTenantId.toString()) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: You are not authorized to view this tenant\'s subscription.');
+  }
 
   const subscription =
     await subscriptionService.getTenantSubscription(tenantId);
@@ -68,6 +78,12 @@ const getTenantSubscription = catchAsync(async (req, res) => {
       httpStatus.NOT_FOUND,
       'No subscription found for this tenant'
     );
+  }
+
+  // Defensive check: Ensure the found subscription actually belongs to the requested tenant.
+  // This guards against potential issues if `getTenantSubscription` returns an unexpected subscription.
+  if (subscription.tenantId.toString() !== tenantId.toString()) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: Subscription found does not match the requested tenant.');
   }
 
   const subscriptionData = await subscriptionService.getSubscriptionWithUsage(
@@ -183,6 +199,8 @@ const confirmPayment = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Subscription ID is required');
   }
 
+  // It is assumed that subscriptionService.confirmSubscriptionPayment
+  // performs authorization checks to ensure the subscriptionId belongs to the userId/tenantId.
   const subscription = await subscriptionService.confirmSubscriptionPayment(
     subscriptionId,
     userId,
@@ -203,13 +221,17 @@ const confirmPayment = catchAsync(async (req, res) => {
  */
 const processCheckout = catchAsync(async (req, res) => {
   const { sessionId } = req.body;
+  const userId = req.user._id; // Get userId from the authenticated user
 
   if (!sessionId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Session ID is required');
   }
 
+  // Pass userId to the service layer for authorization and linking.
+  // The service method should verify that the sessionId corresponds to a checkout
+  // initiated by or associated with this userId to prevent IDOR.
   const subscription =
-    await subscriptionService.processStripeCheckout(sessionId);
+    await subscriptionService.processStripeCheckout(sessionId, userId);
 
   sendResponse(res, {
     success: true,
@@ -263,6 +285,8 @@ const addSeat = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'No active subscription found');
   }
 
+  // It is assumed that subscriptionService.addSeatToSubscription
+  // performs authorization checks to ensure newUserId is valid and belongs to the same tenant/organization.
   const updatedSubscription = await subscriptionService.addSeatToSubscription(
     subscription._id,
     newUserId,
@@ -297,6 +321,8 @@ const removeSeat = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'No active subscription found');
   }
 
+  // It is assumed that subscriptionService.removeSeatFromSubscription
+  // performs authorization checks to ensure removeUserId is valid and belongs to the same tenant/organization.
   const updatedSubscription =
     await subscriptionService.removeSeatFromSubscription(
       subscription._id,
@@ -576,6 +602,9 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object;
+      // For webhook events, the service method `processStripeCheckout` is expected
+      // to derive user/tenant context from the Stripe session object itself (e.g., customer ID, metadata)
+      // and perform necessary internal authorization/linking.
       await subscriptionService.processStripeCheckout(session.id);
       break;
     }
@@ -626,12 +655,28 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
  */
 const createBillingPortalSession = catchAsync(async (req, res) => {
   const userId = req.user._id;
-  const tenantId = req.body.tenantId || req.query.tenantId || null;
+  let tenantId = req.body.tenantId || req.query.tenantId || null;
+  // Assuming req.user is populated by authentication middleware and contains _id, tenantId, and role.
+  const requestingUserTenantId = req.user.tenantId;
+  const requestingUserRole = req.user.role;
   const ipAddress = req.ip || 'unknown';
 
+  // If no tenantId is explicitly provided in the request, default to the requesting user's tenantId.
+  if (!tenantId) {
+    tenantId = requestingUserTenantId;
+  }
+
+  // Authorization check:
+  // Only users with 'admin' role can create billing portal sessions for arbitrary tenants.
+  // Regular users can only create sessions for their own tenant.
+  if (requestingUserRole !== 'admin' && tenantId.toString() !== requestingUserTenantId.toString()) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden: You are not authorized to create a billing portal session for this tenant.');
+  }
+
+  // The service method should ensure that the userId is authorized to act on behalf of the tenantId.
   const session = await subscriptionService.createBillingPortalSession(
-    userId,
-    tenantId,
+    userId, // The user initiating the request
+    tenantId, // The tenant for which the portal session is requested
     { ipAddress }
   );
 
