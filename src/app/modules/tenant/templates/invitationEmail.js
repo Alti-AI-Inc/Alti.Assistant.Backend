@@ -10,7 +10,7 @@
  * @param {string} data.tenantName - Name of the tenant/workspace
  * @param {string} data.invitationLink - Full URL with invitation token
  * @param {string} data.role - Role being offered (admin/member)
- * @param {number} data.expiryDays - Days until invitation expires
+ * @param {number} [data.expiryDays=7] - Days until invitation expires. Defaults to 7.
  * @returns {string} HTML email template
  */
 export const generateInvitationEmailHTML = (data) => {
@@ -194,6 +194,11 @@ export const generateInvitationEmailHTML = (data) => {
 /**
  * Generate plain text email template for tenant invitation
  * @param {Object} data - Email template data
+ * @param {string} data.inviterName - Name of person sending the invitation
+ * @param {string} data.tenantName - Name of the tenant/workspace
+ * @param {string} data.invitationLink - Full URL with invitation token
+ * @param {string} data.role - Role being offered (admin/member)
+ * @param {number} [data.expiryDays=7] - Days until invitation expires. Defaults to 7.
  * @returns {string} Plain text email template
  */
 export const generateInvitationEmailText = (data) => {
