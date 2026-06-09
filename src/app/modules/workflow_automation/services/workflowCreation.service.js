@@ -10,11 +10,39 @@ import { v4 as uuidv4 } from 'uuid';
 import { composioIntegrationService } from './composioIntegration.service.js';
 
 /**
- * Service for handling workflow creation from natural language prompts
+ * @class WorkflowCreationService
+ * @description Service for handling workflow creation from natural language prompts and managing related chat conversations.
+ * It orchestrates the interaction with LangGraph for AI processing, saves chat history, and persists workflows to the database.
  */
 class WorkflowCreationService {
   /**
-   * Create a new workflow from user prompt
+   * @async
+   * @method createWorkflowFromPrompt
+   * @description Processes a user's natural language prompt to either plan a new workflow or request confirmation.
+   * It uses LangGraph to interpret the prompt, generates a workflow plan, and saves the interaction to chat history.
+   * If the workflow requires confirmation, it returns a plan; otherwise, it attempts to create the workflow directly.
+   *
+   * @param {string} userId - The ID of the user initiating the workflow creation.
+   * @param {string} userPrompt - The natural language prompt provided by the user.
+   * @param {string} [conversationId=null] - An optional ID for an existing conversation to continue. If null, a new one is generated.
+   * @returns {Promise<object>} An object containing the result of the processing.
+   * @returns {boolean} returns.success - Indicates if the operation was successful.
+   * @returns {boolean} [returns.needsConfirmation] - True if the workflow plan requires user confirmation before creation.
+   * @returns {string} returns.message - A message describing the outcome or the assistant's response.
+   * @returns {string} returns.conversationId - The ID of the ongoing conversation.
+   * @returns {string} [returns.workflowId] - The ID of the newly created workflow, if applicable.
+   * @returns {object} [returns.workflow] - The full workflow object if created, if applicable.
+   * @returns {object} [returns.workflowPlan] - The detailed plan of the workflow if confirmation is needed.
+   * @returns {string} returns.workflowPlan.userIntent - The detected user's intent.
+   * @returns {string} returns.workflowPlan.taskType - The type of task identified.
+   * @returns {string} returns.workflowPlan.complexity - The estimated complexity of the workflow.
+   * @returns {string[]} returns.workflowPlan.detectedApps - A list of applications detected as relevant.
+   * @returns {object[]} returns.workflowPlan.workflowSteps - An array of planned workflow steps.
+   * @returns {boolean} returns.workflowPlan.scheduleRequired - Indicates if scheduling is required.
+   * @returns {object} returns.workflowPlan.scheduleConfig - Configuration for scheduling, if applicable.
+   * @returns {string} returns.workflowPlan.triggerType - The type of trigger for the workflow (e.g., 'manual', 'scheduled').
+   * @returns {object} returns.workflowPlan.extractedParameters - Any parameters extracted from the prompt.
+   * @throws {Error} If there's an issue processing the workflow request or saving data.
    */
   async createWorkflowFromPrompt(userId, userPrompt, conversationId = null) {
     try {
@@ -119,7 +147,23 @@ class WorkflowCreationService {
   }
 
   /**
-   * Confirm and create workflow after user approval
+   * @async
+   * @method confirmWorkflowCreation
+   * @description Confirms the creation of a workflow based on a previously generated plan stored in a conversation.
+   * If approved, it creates the workflow in the database. If not approved, it cancels the creation.
+   * Allows for optional modifications to the workflow plan before creation.
+   *
+   * @param {string} userId - The ID of the user confirming the workflow.
+   * @param {string} conversationId - The ID of the conversation where the workflow plan was generated.
+   * @param {boolean} [approved=true] - Whether the user approved the workflow creation. Defaults to true.
+   * @param {object} [modifications=null] - Optional modifications to the workflow plan (e.g., updated steps, name).
+   * @returns {Promise<object>} An object indicating the outcome of the confirmation.
+   * @returns {boolean} returns.success - Indicates if the operation was successful.
+   * @returns {string} returns.message - A message describing the outcome.
+   * @returns {string} returns.conversationId - The ID of the conversation.
+   * @returns {string} [returns.workflowId] - The ID of the newly created workflow, if applicable.
+   * @returns {object} [returns.workflow] - The full workflow object if created, if applicable.
+   * @throws {Error} If the conversation or workflow plan is not found, or if there's an issue creating the workflow.
    */
   async confirmWorkflowCreation(
     userId,
@@ -231,7 +275,21 @@ class WorkflowCreationService {
   }
 
   /**
-   * Continue an existing conversation
+   * @async
+   * @method continueConversation
+   * @description Continues an existing chat conversation with the LangGraph agent.
+   * It processes the user's input, gets a response from the AI, and saves both messages to the chat history.
+   *
+   * @param {string} userId - The ID of the user participating in the conversation.
+   * @param {string} conversationId - The ID of the conversation to continue.
+   * @param {string} userInput - The user's new message.
+   * @returns {Promise<object>} An object containing the conversation's updated state.
+   * @returns {boolean} returns.success - Indicates if the operation was successful.
+   * @returns {string} returns.message - The assistant's response.
+   * @returns {string} returns.responseType - The type of response from the assistant (e.g., 'confirmation', 'success', 'info').
+   * @returns {string} returns.conversationId - The ID of the ongoing conversation.
+   * @returns {object} returns.state - The full state object returned by the LangGraph conversation.
+   * @throws {Error} If there's an issue continuing the conversation or saving messages.
    */
   async continueConversation(userId, conversationId, userInput) {
     try {
@@ -273,7 +331,24 @@ class WorkflowCreationService {
   }
 
   /**
-   * Create workflow in database
+   * @async
+   * @method createWorkflow
+   * @description Saves a new workflow document to the database.
+   *
+   * @param {object} workflowData - The data for the new workflow.
+   * @param {string} workflowData.userId - The ID of the user who owns the workflow.
+   * @param {string} workflowData.name - The name of the workflow.
+   * @param {string} workflowData.description - A description of the workflow.
+   * @param {string} workflowData.originalPrompt - The original prompt used to create the workflow.
+   * @param {Array<object>} workflowData.steps - An array of workflow steps.
+   * @param {object} workflowData.trigger - The trigger configuration for the workflow.
+   * @param {string} workflowData.trigger.triggerType - The type of trigger (e.g., 'manual', 'scheduled').
+   * @param {object} [workflowData.trigger.scheduleConfig] - Configuration for scheduled triggers.
+   * @param {string} workflowData.category - The category of the workflow.
+   * @param {Array<object>} workflowData.requiredApps - An array of required applications for the workflow.
+   * @param {object} workflowData.metadata - Additional metadata for the workflow.
+   * @returns {Promise<Workflow>} The newly created workflow document.
+   * @throws {Error} If there's an issue saving the workflow to the database.
    */
   async createWorkflow(workflowData) {
     try {
@@ -289,7 +364,18 @@ class WorkflowCreationService {
   }
 
   /**
-   * Save chat message to history
+   * @async
+   * @method saveChatMessage
+   * @description Saves a single chat message to the specified conversation's history in the database.
+   * If the conversation does not exist, it creates a new one.
+   *
+   * @param {string} conversationId - The ID of the conversation to which the message belongs.
+   * @param {string} userId - The ID of the user associated with the conversation.
+   * @param {'user'|'assistant'} role - The role of the sender ('user' or 'assistant').
+   * @param {string} content - The content of the chat message.
+   * @param {object} [metadata={}] - Optional metadata for the message.
+   * @returns {Promise<void>}
+   * @throws {Error} If there's an issue saving the chat message.
    */
   async saveChatMessage(conversationId, userId, role, content, metadata = {}) {
     try {
@@ -322,7 +408,15 @@ class WorkflowCreationService {
   }
 
   /**
-   * Get user's chat conversations
+   * @async
+   * @method getUserConversations
+   * @description Retrieves a list of chat conversations for a specific user, sorted by last activity.
+   *
+   * @param {string} userId - The ID of the user whose conversations are to be retrieved.
+   * @param {number} [limit=50] - The maximum number of conversations to return.
+   * @param {number} [offset=0] - The number of conversations to skip for pagination.
+   * @returns {Promise<Array<WorkflowChatHistory>>} An array of WorkflowChatHistory documents, populated with associated workflow names and statuses.
+   * @throws {Error} If there's an issue retrieving the conversations.
    */
   async getUserConversations(userId, limit = 50, offset = 0) {
     try {
@@ -341,7 +435,14 @@ class WorkflowCreationService {
   }
 
   /**
-   * Get specific conversation
+   * @async
+   * @method getConversation
+   * @description Retrieves a specific chat conversation by its ID for a given user.
+   *
+   * @param {string} conversationId - The ID of the conversation to retrieve.
+   * @param {string} userId - The ID of the user who owns the conversation.
+   * @returns {Promise<WorkflowChatHistory|null>} The WorkflowChatHistory document, populated with associated workflows, or null if not found.
+   * @throws {Error} If there's an issue retrieving the conversation.
    */
   async getConversation(conversationId, userId) {
     try {
@@ -360,7 +461,11 @@ class WorkflowCreationService {
   }
 
   /**
-   * Map task type to workflow category
+   * @method mapTaskTypeToCategory
+   * @description Maps a given task type (identified by the AI) to a predefined workflow category.
+   *
+   * @param {string} taskType - The task type string (e.g., 'email', 'social', 'productivity').
+   * @returns {string} The corresponding workflow category (e.g., 'email', 'social', 'productivity', 'other').
    */
   mapTaskTypeToCategory(taskType) {
     const mapping = {
@@ -378,11 +483,18 @@ class WorkflowCreationService {
   }
 
   /**
-   * Generate unique conversation ID
+   * @method generateConversationId
+   * @description Generates a unique ID for a new conversation using UUID v4.
+   *
+   * @returns {string} A unique conversation ID prefixed with 'conv_'.
    */
   generateConversationId() {
     return `conv_${uuidv4()}`;
   }
 }
 
+/**
+ * @constant {WorkflowCreationService} workflowCreationService
+ * @description An instance of the WorkflowCreationService, providing methods for workflow creation and chat management.
+ */
 export const workflowCreationService = new WorkflowCreationService();
