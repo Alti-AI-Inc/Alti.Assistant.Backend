@@ -1,11 +1,46 @@
-// Creative Writing Configuration
+/**
+ * @fileoverview This file contains constants related to creative writing configurations,
+ * including model parameters, writing types, styles, tones, intents, system prompts,
+ * and response messages for the Alti.Assistant creative writing module.
+ * These constants are used to standardize and manage various aspects of the creative
+ * writing generation process.
+ */
+
+/**
+ * @constant {object} CREATIVE_WRITING_CONFIG - Configuration parameters for the creative writing AI model.
+ * @property {string} MODEL - The identifier for the AI model to be used for creative writing tasks.
+ * @property {number} TEMPERATURE - Controls the randomness of the output. Higher values (e.g., 0.9)
+ *   make the output more creative and varied, while lower values make it more deterministic.
+ * @property {number} MAX_OUTPUT_TOKENS - The maximum number of tokens (words/characters) the AI model
+ *   is allowed to generate in a single response.
+ */
 export const CREATIVE_WRITING_CONFIG = {
   MODEL: 'gemini-2.5-flash',
   TEMPERATURE: 0.9, // Higher temperature for creativity
   MAX_OUTPUT_TOKENS: 8192,
 };
 
-// Writing types
+/**
+ * @constant {object} WRITING_TYPES - Enumeration of supported creative writing types.
+ * Each property represents a distinct genre or form of writing.
+ * @property {string} POEM - Represents a poetic composition.
+ * @property {string} SHORT_STORY - Represents a brief fictional narrative.
+ * @property {string} NOVEL_CHAPTER - Represents a section of a longer fictional work.
+ * @property {string} ESSAY - Represents a short piece of writing on a particular subject.
+ * @property {string} SCRIPT - Represents a written work for film, television, or theatre.
+ * @property {string} SONG_LYRICS - Represents the words of a song.
+ * @property {string} DIALOGUE - Represents a conversation between two or more characters.
+ * @property {string} FLASH_FICTION - Represents extremely brief fictional stories.
+ * @property {string} HAIKU - Represents a Japanese poem of seventeen syllables, in three lines of five, seven, and five.
+ * @property {string} SONNET - Represents a poem of fourteen lines using any of a number of formal rhyme schemes.
+ * @property {string} FREE_VERSE - Represents poetry that does not rhyme or have a regular meter.
+ * @property {string} NARRATIVE - Represents a story or account of events, experiences, or the like.
+ * @property {string} DESCRIPTIVE - Represents writing focused on vivid descriptions.
+ * @property {string} CREATIVE_NONFICTION - Represents factual writing that uses literary styles and techniques.
+ * @property {string} MONOLOGUE - Represents a long speech by one actor in a play or movie.
+ * @property {string} LETTER - Represents a written message addressed to a person or organization.
+ * @property {string} GENERAL - A general or unspecified writing type, used as a fallback.
+ */
 export const WRITING_TYPES = {
   POEM: 'poem',
   SHORT_STORY: 'short_story',
@@ -17,7 +52,7 @@ export const WRITING_TYPES = {
   FLASH_FICTION: 'flash_fiction',
   HAIKU: 'haiku',
   SONNET: 'sonnet',
-  FREE_VERSE: 'free_verse',
+  FREE_VERSE: 'free_VERSE',
   NARRATIVE: 'narrative',
   DESCRIPTIVE: 'descriptive',
   CREATIVE_NONFICTION: 'creative_nonfiction',
@@ -26,7 +61,27 @@ export const WRITING_TYPES = {
   GENERAL: 'general',
 };
 
-// Writing styles
+/**
+ * @constant {object} WRITING_STYLES - Enumeration of supported creative writing styles.
+ * Each property represents a distinct stylistic approach to writing.
+ * @property {string} DRAMATIC - Characterized by strong emotions, conflict, and theatricality.
+ * @property {string} ROMANTIC - Emphasizes emotion, individualism, and the glorification of all the past and nature.
+ * @property {string} COMEDIC - Intended to amuse or entertain, often using humor and wit.
+ * @property {string} TRAGIC - Deals with serious subjects, often involving suffering, sorrow, or disaster.
+ * @property {string} SUSPENSEFUL - Creates a feeling of excited or anxious uncertainty about what may happen.
+ * @property {string} MYSTERIOUS - Full of mystery, difficult or impossible to understand, explain, or identify.
+ * @property {string} INSPIRATIONAL - Providing or showing inspiration.
+ * @property {string} DARK - Characterized by gloom, pessimism, or a disturbing quality.
+ * @property {string} WHIMSICAL - Playfully quaint or fanciful, especially in an appealing and amusing way.
+ * @property {string} REALISTIC - Representing things in a way that is accurate and true to life.
+ * @property {string} SURREAL - Marked by the intense irrational reality of a dream.
+ * @property {string} MINIMALIST - Characterized by a deliberate lack of ornamentation or detail.
+ * @property {string} DESCRIPTIVE - Focused on providing vivid and detailed accounts.
+ * @property {string} POETIC - Having an imaginative or sensitively emotional style.
+ * @property {string} CONVERSATIONAL - Informal, friendly, and easy to understand.
+ * @property {string} FORMAL - Adhering to conventional rules of propriety.
+ * @property {string} STREAM_OF_CONSCIOUSNESS - A narrative method that attempts to depict the multitudinous thoughts and feelings which pass through the mind.
+ */
 export const WRITING_STYLES = {
   DRAMATIC: 'dramatic',
   ROMANTIC: 'romantic',
@@ -47,7 +102,25 @@ export const WRITING_STYLES = {
   STREAM_OF_CONSCIOUSNESS: 'stream_of_consciousness',
 };
 
-// Writing tones
+/**
+ * @constant {object} WRITING_TONES - Enumeration of supported creative writing tones.
+ * Each property represents a distinct emotional or attitudinal quality in writing.
+ * @property {string} JOYFUL - Full of joy; very happy.
+ * @property {string} MELANCHOLIC - Characterized by a feeling of pensive sadness, typically with no obvious cause.
+ * @property {string} HOPEFUL - Feeling or inspiring optimism about a future event.
+ * @property {string} NOSTALGIC - Characterized by or exhibiting nostalgia, a sentimental longing or wistful affection for the past.
+ * @property {string} ADVENTUROUS - Willing to take risks or to try out new methods, ideas, or experiences.
+ * @property {string} CONTEMPLATIVE - Expressing or involving prolonged thought.
+ * @property {string} PASSIONATE - Showing or inspired by strong emotion.
+ * @property {string} HUMOROUS - Causing laughter and amusement; funny.
+ * @property {string} SERIOUS - Demanding or characterized by careful consideration or application.
+ * @property {string} PLAYFUL - Fond of games and amusement; lighthearted.
+ * @property {string} SOMBER - Dark or dull in color or tone; gloomy.
+ * @property {string} UPLIFTING - Inspiring hope or happiness.
+ * @property {string} INTENSE - Of extreme force, degree, or strength.
+ * @property {string} GENTLE - Having or showing a mild, kind, or tender temperament or character.
+ * @property {string} SARCASTIC - Marked by irony in order to mock or convey contempt.
+ */
 export const WRITING_TONES = {
   JOYFUL: 'joyful',
   MELANCHOLIC: 'melancholic',
@@ -66,7 +139,21 @@ export const WRITING_TONES = {
   SARCASTIC: 'sarcastic',
 };
 
-// Writing intents
+/**
+ * @constant {object} WRITING_INTENTS - Enumeration of user intents for creative writing tasks.
+ * These represent the user's goal or desired action with the AI.
+ * @property {string} CREATE_NEW - User wants to generate a completely new piece of writing.
+ * @property {string} CONTINUE_STORY - User wants to extend an existing piece of writing.
+ * @property {string} REVISE - User wants to make general improvements or changes to existing text.
+ * @property {string} EXPAND - User wants to add more detail or length to existing text.
+ * @property {string} CHANGE_STYLE - User wants to rewrite text in a different style.
+ * @property {string} ADD_DETAILS - User wants to enhance descriptions or add specific elements.
+ * @property {string} SHORTEN - User wants to reduce the length of existing text.
+ * @property {string} GET_IDEAS - User is looking for suggestions or inspiration.
+ * @property {string} BRAINSTORM - User wants to generate multiple ideas or concepts.
+ * @property {string} CLARIFICATION - User is asking for more information or explanation.
+ * @property {string} UNKNOWN - The user's intent could not be clearly determined.
+ */
 export const WRITING_INTENTS = {
   CREATE_NEW: 'create_new',
   CONTINUE_STORY: 'continue_story',
@@ -81,11 +168,27 @@ export const WRITING_INTENTS = {
   UNKNOWN: 'unknown',
 };
 
-// Conversation configuration
+/**
+ * @constant {string} CONVERSATION_CATEGORY - Defines the category for the current conversation context.
+ * This helps in routing and contextualizing AI interactions.
+ */
 export const CONVERSATION_CATEGORY = 'creative_writing';
+
+/**
+ * @constant {string} CONVERSATION_MODEL - Specifies the AI model to be used for general conversation
+ * within the creative writing module.
+ */
 export const CONVERSATION_MODEL = 'gemini-2.5-flash';
 
-// Default parameters
+/**
+ * @constant {object} DEFAULT_PARAMS - Default parameters for creative writing requests.
+ * These values are used when specific parameters are not provided by the user.
+ * @property {string} writingType - The default type of writing, falling back to general.
+ * @property {string | null} writingStyle - The default writing style, initially null.
+ * @property {string | null} tone - The default writing tone, initially null.
+ * @property {number | null} wordCount - The default target word count, initially null.
+ * @property {number} temperature - The default temperature for AI model generation, influencing creativity.
+ */
 export const DEFAULT_PARAMS = {
   writingType: WRITING_TYPES.GENERAL,
   writingStyle: null,
@@ -94,7 +197,11 @@ export const DEFAULT_PARAMS = {
   temperature: 0.9,
 };
 
-// System prompts for different writing types
+/**
+ * @constant {object.<string, string>} SYSTEM_PROMPTS - A collection of system prompts tailored for different writing types.
+ * These prompts guide the AI's persona and capabilities for specific creative tasks.
+ * Each key corresponds to a value from {@link WRITING_TYPES}.
+ */
 export const SYSTEM_PROMPTS = {
   [WRITING_TYPES.POEM]: `You are a talented poet with a gift for crafting beautiful, evocative poetry. You understand various poetic forms, devices, and techniques. Create poems that resonate emotionally with readers through vivid imagery, metaphor, and rhythm.`,
 
@@ -131,7 +238,18 @@ export const SYSTEM_PROMPTS = {
   [WRITING_TYPES.GENERAL]: `You are a versatile creative writer with expertise across many forms and styles. You adapt your writing to match the user's needs, creating engaging, original content that captures their vision.`,
 };
 
-// Response templates
+/**
+ * @constant {object.<string, string>} RESPONSE_MESSAGES - Standardized response messages for the creative writing assistant.
+ * These messages provide consistent feedback and guidance to the user.
+ * @property {string} GREETING - Initial welcome message to the user.
+ * @property {string} CLARIFICATION_NEEDED - Message prompting the user for more details.
+ * @property {string} WRITING_COMPLETE - Message indicating that the writing task is finished.
+ * @property {string} READY_TO_CREATE - Message confirming readiness to start a writing task.
+ * @property {string} CONTINUE_PROMPT - Prompt asking the user for further action after a writing piece.
+ * @property {string} IDEAS_PROVIDED - Message indicating that ideas have been generated.
+ * @property {string} REVISION_COMPLETE - Message confirming that a revision has been applied.
+ * @property {string} ERROR - Generic error message for writing tasks.
+ */
 export const RESPONSE_MESSAGES = {
   GREETING:
     "Hello! I'm your creative writing assistant. What would you like to write today? I can help you with poems, stories, scripts, song lyrics, and much more!",
@@ -148,7 +266,11 @@ export const RESPONSE_MESSAGES = {
     'I encountered an error while creating your writing. Please try again.',
 };
 
-// Intent detection keywords
+/**
+ * @constant {object.<string, string[]>} INTENT_KEYWORDS - Keywords used for detecting user intent.
+ * Each key corresponds to a value from {@link WRITING_INTENTS}, and its value is an array of
+ * strings that suggest that particular intent.
+ */
 export const INTENT_KEYWORDS = {
   [WRITING_INTENTS.CREATE_NEW]: [
     'write',
@@ -253,7 +375,11 @@ export const INTENT_KEYWORDS = {
   ],
 };
 
-// Type detection keywords
+/**
+ * @constant {object.<string, string[]>} TYPE_KEYWORDS - Keywords used for detecting the desired writing type.
+ * Each key corresponds to a value from {@link WRITING_TYPES}, and its value is an array of
+ * strings that suggest that particular writing type.
+ */
 export const TYPE_KEYWORDS = {
   [WRITING_TYPES.POEM]: ['poem', 'poetry', 'verse', 'rhyme', 'stanza'],
   [WRITING_TYPES.SHORT_STORY]: ['story', 'short story', 'tale', 'narrative'],
