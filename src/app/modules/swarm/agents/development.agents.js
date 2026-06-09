@@ -2,7 +2,23 @@
  * Software Engineering, Debugging, and Systems Programming Specialists
  */
 
-// Existing: Software Engineer
+/**
+ * @typedef {object} AgentDefinition
+ * @property {string} id - A unique identifier for the agent.
+ * @property {string} name - The display name of the agent.
+ * @property {string} description - A brief description of the agent's expertise.
+ * @property {string} systemInstruction - The detailed system instruction or prompt for the agent, defining its persona and core responsibilities.
+ * @property {string} model - The AI model used by this agent (e.g., 'gemini-2.5-flash').
+ * @property {Array<string>} tools - A list of tools available to the agent (currently empty in this file, but can be extended).
+ * @property {Array<string>} keywords - A list of keywords associated with the agent's domain, useful for search and categorization.
+ */
+
+/**
+ * Defines the 'Software Engineer' agent, specializing in code generation, refactoring, optimization, and debugging.
+ * This agent focuses on writing clean, modular, and optimized code across various languages,
+ * adhering to standard software design patterns and including helpful comments and unit tests.
+ * @type {AgentDefinition}
+ */
 export const coder = {
   id: 'coder',
   name: 'Software Engineer',
@@ -15,7 +31,11 @@ Add helpful comments and include quick unit tests or execution steps.`,
   keywords: ['code', 'write code', 'refactor', 'optimize', 'debug', 'javascript', 'python', 'typescript', 'program']
 };
 
-// Existing: Debugging & Remediation Specialist
+/**
+ * Defines the 'Debugging & Remediation Specialist' agent, focused on identifying and resolving software issues.
+ * This agent excels at analyzing stack traces, memory leaks, and security vulnerabilities to deliver robust code patches.
+ * @type {AgentDefinition}
+ */
 export const codeDebugger = {
   id: 'code_debugger',
   name: 'Debugging & Remediation Specialist',
@@ -28,7 +48,12 @@ Pinpoint the exact root cause and deliver clean, robust, and highly secure code 
   keywords: ['fix bug', 'debug error', 'stack trace', 'type error', 'memory leak', 'error logs', 'resolve crash', 'patch code']
 };
 
-// Existing: API Systems Architect
+/**
+ * Defines the 'API Systems Architect' agent, specializing in designing various API types.
+ * This agent focuses on creating beautiful REST, GraphQL, gRPC, and OpenAPI schemas,
+ * ensuring clean syntax, standard status codes, and robust security.
+ * @type {AgentDefinition}
+ */
 export const apiDesigner = {
   id: 'api_designer',
   name: 'API Systems Architect',
@@ -41,7 +66,12 @@ Ensure clean JSON syntax, standard status codes, semantic path parameters, and r
   keywords: ['openapi', 'swagger', 'graphql', 'grpc', 'proto', 'api design', 'rest api', 'endpoints', 'json schema']
 };
 
-// Existing: Observability & SRE Lead
+/**
+ * Defines the 'Observability & SRE Lead' agent, expert in building robust monitoring and alerting frameworks.
+ * This agent configures OpenTelemetry, Prometheus, Grafana, and Cloud Logging,
+ * and designs metric alert criteria and SLO/SLA tracking dashboards.
+ * @type {AgentDefinition}
+ */
 export const observabilityEngineer = {
   id: 'observability_engineer',
   name: 'Observability & SRE Lead',
@@ -54,7 +84,12 @@ Design metric alert criteria and SLO/SLA tracking dashboards.`,
   keywords: ['opentelemetry', 'prometheus', 'grafana', 'logging', 'monitoring', 'alerting', 'dashboard', 'sre', 'slo', 'apm']
 };
 
-// Existing: CI/CD Pipeline Architect
+/**
+ * Defines the 'CI/CD Pipeline Architect' agent, specializing in automation and deployment workflows.
+ * This agent configures GitHub Actions, Cloud Build, GitLab CI, and ArgoCD pipelines,
+ * focusing on optimization, security scanning, and zero-downtime deployments.
+ * @type {AgentDefinition}
+ */
 export const cicdArchitect = {
   id: 'cicd_architect',
   name: 'CI/CD Pipeline Architect',
@@ -67,7 +102,11 @@ Focus on build caching, lint automation, vulnerability scanning, safe semantic r
   keywords: ['github actions', 'cloud build', 'gitlab ci', 'pipeline', 'cicd', 'argocd', 'workflow yaml', 'build script', 'deployment automation']
 };
 
-// Existing: Rust Systems Architect
+/**
+ * Defines the 'Rust Systems Architect' agent, expert in secure, high-performance Rust and WebAssembly development.
+ * This agent generates concurrent Rust code, utilizing standard crates and adhering to strict ownership rules and lifetime safety.
+ * @type {AgentDefinition}
+ */
 export const rustDeveloper = {
   id: 'rust_developer',
   name: 'Rust Systems Architect',
@@ -81,7 +120,12 @@ Provide Cargo.toml configurations where appropriate.`,
   keywords: ['rust', 'cargo', 'tokio', 'wa', 'webassembly', 'rustlang', 'ownership', 'borrowing', 'traits', 'impl', 'crate']
 };
 
-// Existing: Go Microservice Engineer
+/**
+ * Defines the 'Go Microservice Engineer' agent, specializing in highly concurrent Go microservices.
+ * This agent designs idiomatic Go code with clean goroutines, robust channel communications,
+ * context propagation, and explicit error handling.
+ * @type {AgentDefinition}
+ */
 export const goDeveloper = {
   id: 'go_developer',
   name: 'Go Microservice Engineer',
@@ -94,7 +138,12 @@ Follow Golang standard layout guidelines.`,
   keywords: ['go', 'golang', 'goroutine', 'channel', 'go microservice', 'context', 'go test', 'struct', 'interface']
 };
 
-// Existing: Python Data Scientist
+/**
+ * Defines the 'Python Data Scientist' agent, expert in data analysis, machine learning, and visualization.
+ * This agent builds Pandas/NumPy pipelines, Scikit-learn algorithms, PyTorch training routines,
+ * and provides concise mathematical logic explanations.
+ * @type {AgentDefinition}
+ */
 export const pythonDataScientist = {
   id: 'python_data_scientist',
   name: 'Python Data Scientist',
@@ -107,7 +156,12 @@ Provide concise mathematical logic explanations.`,
   keywords: ['pandas', 'numpy', 'pytorch', 'scikit-learn', 'data science', 'dataframe', 'xgboost', 'model training', 'etl', 'python data']
 };
 
-// Existing: Container Hardening Engineer
+/**
+ * Defines the 'Container Hardening Engineer' agent, specializing in securing Dockerfiles and container environments.
+ * This agent optimizes Dockerfiles, designs multi-stage builds, configures non-root execution profiles,
+ * and establishes secure resource limitations to avoid compliance vulnerabilities.
+ * @type {AgentDefinition}
+ */
 export const containerSecurityExpert = {
   id: 'container_security_expert',
   name: 'Container Hardening Engineer',
@@ -120,7 +174,12 @@ Avoid all common container compliance vulnerabilities.`,
   keywords: ['dockerfile', 'multi-stage', 'distroless', 'non-root', 'container hardening', 'docker security', 'securityContext', 'podman']
 };
 
-// Existing: Linux Kernel & Systems Auditor
+/**
+ * Defines the 'Linux Kernel & Systems Auditor' agent, expert in Linux system administration and security.
+ * This agent writes resilient Bash/Shell scripts, defines Systemd services, analyzes cron layouts,
+ * and audits socket/network interfaces, implementing strict POSIX-compliant principles.
+ * @type {AgentDefinition}
+ */
 export const linuxSystemsExpert = {
   id: 'linux_systems_expert',
   name: 'Linux Kernel & Systems Auditor',
@@ -133,7 +192,12 @@ Implement strict POSIX-compliant scripting principles and security checks.`,
   keywords: ['bash', 'shell script', 'systemd', 'cron', 'linux automation', 'posix', 'awk', 'sed', 'permissions', 'chmod', 'chown']
 };
 
-// Existing: Chrome Extension Developer
+/**
+ * Defines the 'Chrome Extension Developer' agent, specializing in secure and performant Manifest V3 extensions.
+ * This agent designs and implements compliant Chrome extensions, including background workers and content scripts,
+ * ensuring state preservation, zero performance bloat, and strict security permissions.
+ * @type {AgentDefinition}
+ */
 export const googleChromeExtensionDeveloper = {
   id: 'google_chrome_extension_developer',
   name: 'Chrome Extension Developer',
@@ -146,7 +210,12 @@ Ensure state preservation, zero performance bloat, strict security permissions, 
   keywords: ['chrome extension', 'manifest v3', 'background worker', 'popup script', 'content script', 'browser extension', 'manifest.json']
 };
 
-// Existing: Google Apps Script Automation Lead
+/**
+ * Defines the 'Google Apps Script Automation Lead' agent, expert in Google Workspace automation.
+ * This agent builds robust and zero-maintenance Google Apps Script code to automate operations
+ * across Sheets, Docs, Slides, Gmail, and Forms, utilizing triggers and API lookups.
+ * @type {AgentDefinition}
+ */
 export const googleAppsScriptDeveloper = {
   id: 'google_apps_script_developer',
   name: 'Google Apps Script Automation Lead',
@@ -159,7 +228,12 @@ Utilize trigger configurations, email alerts setups, and API lookup scripts.`,
   keywords: ['apps script', 'google apps script', 'automate sheets', 'google sheet script', 'doc script', 'google forms api']
 };
 
-// Existing: Flutter & Dart Cross-Platform Expert
+/**
+ * Defines the 'Flutter & Dart Cross-Platform Expert' agent, specializing in mobile, web, and desktop development.
+ * This agent designs beautiful, responsive, and performance-tuned Dart & Flutter components,
+ * focusing on clean architectural separations and layout constraints.
+ * @type {AgentDefinition}
+ */
 export const googleFlutterDeveloper = {
   id: 'google_flutter_developer',
   name: 'Flutter & Dart Cross-Platform Expert',
@@ -172,7 +246,12 @@ Focus on clean architectural separations, platform checks, and layout responsive
   keywords: ['flutter', 'dart', 'flutter widget', 'riverpod', 'cross-platform app', 'flutter mobile', 'flutter web']
 };
 
-// Existing: Git Workflow & Rebase Master
+/**
+ * Defines the 'Git Workflow & Rebase Master' agent, expert in advanced Git operations.
+ * This agent resolves complex merge conflicts, devises interactive rebase workflows,
+ * details cherry-picking sequences, and designs Git Husky hooks configurations.
+ * @type {AgentDefinition}
+ */
 export const gitGitExpert = {
   id: 'git_git_expert',
   name: 'Git Workflow & Rebase Master',
@@ -185,7 +264,12 @@ Provide exact command lists.`,
   keywords: ['git rebase', 'merge conflict', 'cherry pick', 'husky', 'git hooks', 'version control', 'stash', 'commit history', 'branching model']
 };
 
-// OpenClaw Autonomous Framework Architect
+/**
+ * Defines the 'OpenClaw Framework Architect' agent, specializing in the OpenClaw autonomous AI agent platform.
+ * This agent provides architectural guidance, gateway setups, brain runtime loops, and skill structures
+ * using OpenClaw's "gateway-brain-skill" modular design and local-first principles.
+ * @type {AgentDefinition}
+ */
 export const openclawArchitect = {
   id: 'openclaw_architect',
   name: 'OpenClaw Framework Architect',
@@ -199,7 +283,13 @@ Always ground your answers in clean, extensible, local-first code patterns.`,
   keywords: ['openclaw', 'openclaw framework', 'clawdbot', 'moltbot', 'gateway-brain-skill', 'skills markdown', 'clawhub', 'agent control plane', 'gateway ws']
 };
 
-// Nous Hermes Persistent Agent Engineer
+/**
+ * Defines the 'Nous Hermes Agent Engineer' agent, specializing in the Nous Research Hermes Agent platform.
+ * This agent provides technical details and code implementations for the AIAgent core loop,
+ * SQLite long-term memory, tool registry schemas, and autonomous closed learning/self-evolution scripts,
+ * focusing on model-agnostic executions and DSPy prompt evolution.
+ * @type {AgentDefinition}
+ */
 export const hermesEngineer = {
   id: 'hermes_engineer',
   name: 'Nous Hermes Agent Engineer',
