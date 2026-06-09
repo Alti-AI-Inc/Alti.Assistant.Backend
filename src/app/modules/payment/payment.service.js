@@ -66,16 +66,19 @@ const createCheckoutSessionService = async (user, plan, req = null) => {
   }
 
   // Get user's tenant
-  const tenant = await Tenant.findById(user.tenantId);
+  // OPTIMIZATION: Added .lean() as the tenant document is only read and not modified in this function.
+  const tenant = await Tenant.findById(user.tenantId).lean();
   if (!tenant) {
     throw new Error('User must belong to a tenant to subscribe');
   }
 
   // Get existing subscription for tenant to check for stripeCustomerId
+  // OPTIMIZATION: Added .lean() as the subscription document is only read and not modified in this function.
+  // RECOMMENDATION: Consider adding a compound index to SubscriptionModel on `{ tenantId: 1, status: 1 }` for faster lookups.
   const existingSubscription = await SubscriptionModel.findOne({
     tenantId: tenant._id,
     status: 'active',
-  });
+  }).lean();
   let stripeCustomerId = existingSubscription?.stripeCustomerId;
 
   if (!stripeCustomerId) {
@@ -212,7 +215,9 @@ const handleWebhookService = async (req, res) => {
   }
 
   // Webhook Replay Protection Guard
-  const existingEvent = await StripeEvent.findOne({ eventId: event.id });
+  // OPTIMIZATION: Added .lean() as the event document is only checked for existence.
+  // RECOMMENDATION: Consider adding an index to StripeEventModel on `{ eventId: 1 }` for faster lookups.
+  const existingEvent = await StripeEvent.findOne({ eventId: event.id }).lean();
   if (existingEvent) {
     logger.info(`Duplicate webhook event ${event.id} discarded in Legacy Payment Service.`);
     return res.status(200).send('Webhook processed successfully (Duplicate)');
@@ -242,6 +247,7 @@ const handleWebhookService = async (req, res) => {
       }
 
       // Find tenant
+      // No .lean() here as the tenant document is modified later in the transaction.
       const tenant = await Tenant.findById(
         stripeSession.metadata.tenantId
       ).session(session);
@@ -253,6 +259,7 @@ const handleWebhookService = async (req, res) => {
       }
 
       // Find user
+      // No .lean() here as the user document is modified later in the transaction.
       const user = await UserModel.findById(
         stripeSession.metadata.userId
       ).session(session);
@@ -262,10 +269,12 @@ const handleWebhookService = async (req, res) => {
       }
 
       // Check for existing subscription to prevent duplicates
+      // OPTIMIZATION: Added .lean() as the subscription document is only checked for existence.
+      // RECOMMENDATION: Consider adding an index to SubscriptionModel on `{ transactionId: 1 }` for faster lookups.
       const existingSubQuery = { transactionId: stripeSession.id };
       const existingSubscription = await SubscriptionModel.findOne(
         req ? withTenantFilter(req, existingSubQuery) : existingSubQuery
-      ).session(session);
+      ).session(session).lean();
       if (existingSubscription) {
         logger.warn('Subscription already exists', {
           transactionId: stripeSession.id,
@@ -380,6 +389,7 @@ const handleWebhookService = async (req, res) => {
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object;
 
+      // No .lean() here as the existingSubscription document is modified later in the transaction.
       const existingSubQuery = { transactionId: subscription.id };
       const existingSubscription = await SubscriptionModel.findOne(
         req ? withTenantFilter(req, existingSubQuery) : existingSubQuery
@@ -391,6 +401,7 @@ const handleWebhookService = async (req, res) => {
         await existingSubscription.save({ session });
 
         // Update tenant status and revert to free plan
+        // No .lean() here as the tenant document is modified later in the transaction.
         const tenant = await Tenant.findById(
           existingSubscription.tenantId
         ).session(session);
@@ -414,6 +425,7 @@ const handleWebhookService = async (req, res) => {
         }
 
         // Update user subscription status (backward compatibility)
+        // No .lean() here as the user document is modified later in the transaction.
         const user = await UserModel.findById(
           existingSubscription.userId
         ).session(session);
