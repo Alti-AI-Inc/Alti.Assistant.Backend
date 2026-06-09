@@ -71,6 +71,14 @@ const handleAnalysisConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization Recommendation:
+        // For read-heavy operations where the Mongoose document is not directly modified and saved
+        // within this function, consider adding .lean() to the query in conversationHelpers.getConversationById.
+        // This converts the Mongoose document to a plain JavaScript object, improving performance
+        // by skipping Mongoose's hydration overhead.
+        // Example: `Conversation.findById(id).lean()` in conversationHelpers.getConversationById.
+        // This is suitable here because any updates to the conversation are handled by
+        // conversationService.updateConversationMetadata, which likely performs its own database operation.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -199,6 +207,8 @@ const analyzeContent = async (
     );
 
     // Get conversation history for context
+    // If 'conversation' was returned as a lean object from handleAnalysisConversation,
+    // 'conversation.messages' will be a plain array, which is efficient.
     const conversationHistory = conversation.messages || [];
 
     // Perform analysis
@@ -261,7 +271,13 @@ const analyzeContent = async (
 
     // Update conversation metadata with file info if applicable
     if (fileInfo) {
-      const uploadedFiles = conversation.metadata?.uploadedFiles || [];
+      // Ensure metadata is treated as a plain object for updates.
+      // If 'conversation' was a lean object, 'conversation.metadata' is already a plain object.
+      // If 'conversation' was a Mongoose document (e.g., if newly created),
+      // 'conversation.metadata' is a subdocument. Spreading it ensures we pass a plain object.
+      const currentMetadata = conversation.metadata ? { ...conversation.metadata } : {};
+      // Create a new plain array for uploadedFiles to avoid modifying a Mongoose array directly
+      const uploadedFiles = currentMetadata.uploadedFiles ? [...currentMetadata.uploadedFiles] : [];
       uploadedFiles.push({
         filename: fileInfo.filename,
         originalName: fileInfo.originalname,
@@ -272,7 +288,7 @@ const analyzeContent = async (
         conversation.conversationId,
         userId,
         {
-          ...conversation.metadata,
+          ...currentMetadata, // Spread the (now plain) current metadata
           uploadedFiles,
         },
         req
@@ -313,6 +329,12 @@ const analyzeContent = async (
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
+    // Optimization Recommendation:
+    // For read-only operations like fetching conversation history, adding .lean()
+    // to the Mongoose query in conversationHelpers.getConversationById is highly recommended.
+    // This reduces memory footprint and improves query speed by returning a plain JavaScript object
+    // instead of a full Mongoose document.
+    // Example: `Conversation.findById(conversationId).lean()` in conversationHelpers.getConversationById.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -323,6 +345,9 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
       throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
     }
 
+    // If conversation was a lean object, these properties are already plain JS values.
+    // If it was a Mongoose document, accessing them here triggers getters, which is less efficient
+    // than having a lean object from the start.
     return {
       conversationId: conversation.conversationId,
       title: conversation.title,
