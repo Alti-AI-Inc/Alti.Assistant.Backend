@@ -17,7 +17,9 @@ const createCheckoutSession = catchAsync(async (req, res, next) => {
     return res.status(400).json({ error: 'Invalid User ID' });
   }
 
-  const user = await UserModel.findById(userId);
+  // Optimization: Added .lean() as the user object is likely read-only for creating a checkout session.
+  // This reduces Mongoose document overhead.
+  const user = await UserModel.findById(userId).lean();
   if (!user) return res.status(404).json({ error: 'User not found' });
 
   const sessionUrl = await PaymentService.createCheckoutSessionService(
@@ -38,9 +40,13 @@ const handleWebhook = catchAsync(async (req, res, next) => {
 });
 
 const getAllSubscriptions = catchAsync(async (req, res, next) => {
+  // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
+  // improving performance by skipping Mongoose document instantiation.
+  // Indexing Recommendation: For better performance on sorting, consider adding an index to `createdAt` field:
+  // db.subscriptions.createIndex({ createdAt: -1 })
   const subscriptions = await SubscriptionModel.find({}).sort({
     createdAt: -1,
-  }).limit(500);
+  }).limit(500).lean();
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -53,9 +59,15 @@ const getSubscriptionsByUserId = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   if (!userId) return res.status(400).json({ error: 'User ID is required' });
 
+  // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
+  // improving performance by skipping Mongoose document instantiation.
+  // Indexing Recommendation: For efficient querying and sorting, consider adding a compound index:
+  // db.subscriptions.createIndex({ userId: 1, createdAt: -1 })
+  // Also ensure `userId` in `UserModel` has an index if `populate` is frequently used.
   const subscriptions = await SubscriptionModel.find({ userId })
     .populate('userId', 'email')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
   if (!subscriptions.length) {
     return sendResponse(res, {
@@ -81,10 +93,13 @@ const incrementPromptsUsed = async (userId) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    // const user = await checkFreePlanLimits(userId, 'prompt').session(session);
+    // The `checkFreePlanLimits` function is expected to return a Mongoose document
+    // because `user.save()` is called later if the user is not subscribed.
     const user = await checkFreePlanLimits(userId, 'prompt', session);
 
     if (user.isSubscribed) {
+      // The `checkUsageLimits` function is external. If it performs a read-only lookup
+      // for the subscription, it should internally use `.lean()` for performance.
       const subscription = await checkUsageLimits(userId);
       console.log('Subscription check result:', subscription);
 
@@ -125,10 +140,14 @@ const incrementImagesUsed = async (userId) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    // const user = await checkFreePlanLimits(userId, 'image').session(session);
-    const user = await checkFreePlanLimits(userId, 'prompt', session);
+    // Bug Fix: Changed 'prompt' to 'image' in checkFreePlanLimits for image usage increment.
+    // The `checkFreePlanLimits` function is expected to return a Mongoose document
+    // because `user.save()` is called later if the user is not subscribed.
+    const user = await checkFreePlanLimits(userId, 'image', session);
 
     if (user.isSubscribed) {
+      // The `checkUsageLimits` function is external. If it performs a read-only lookup
+      // for the subscription, it should internally use `.lean()` for performance.
       const subscription = await checkUsageLimits(userId);
       // console.log("Subscription check result:", subscription);
 
