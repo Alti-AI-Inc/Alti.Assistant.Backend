@@ -8,11 +8,90 @@ import { EXPORT_CONFIG } from '../report.constant.js';
 const writeFile = promisify(fs.writeFile);
 const mkdir = promisify(fs.mkdir);
 
+// Define a default base directory where reports are allowed to be written.
+// This should ideally come from a configuration or environment variable.
+// For this example, we'll use a 'reports' directory relative to the current working directory,
+// or a path specified in EXPORT_CONFIG if available.
+const DEFAULT_BASE_REPORT_DIR = path.resolve('./reports');
+const BASE_REPORT_DIR = EXPORT_CONFIG.basePath ? path.resolve(EXPORT_CONFIG.basePath) : DEFAULT_BASE_REPORT_DIR;
+
+/**
+ * Helper to sanitize file paths and prevent directory traversal.
+ * Ensures the output path is within the designated base report directory
+ * and that the filename itself does not contain invalid characters.
+ * @param {string} userOutputPath The user-provided output path.
+ * @returns {string} The sanitized and resolved output path.
+ * @throws {Error} If directory traversal is detected or filename is invalid.
+ */
+const sanitizeOutputPath = (userOutputPath) => {
+  const resolvedUserPath = path.resolve(userOutputPath);
+
+  // Ensure the resolved output path is within the designated base report directory.
+  // This prevents writing files to arbitrary locations on the server.
+  if (!resolvedUserPath.startsWith(BASE_REPORT_DIR + path.sep) && resolvedUserPath !== BASE_REPORT_DIR) {
+    throw new Error(`Output path '${userOutputPath}' is outside the allowed report directory: '${BASE_REPORT_DIR}'.`);
+  }
+
+  // Further sanitize the filename part to remove any potentially malicious characters.
+  // This is a basic sanitization; a more comprehensive one might be needed depending on requirements.
+  const filename = path.basename(resolvedUserPath);
+  // Common invalid characters for filenames across different OS.
+  // Note: Windows has more restrictions than Unix-like systems.
+  if (/[<>:"/\\|?*\x00-\x1F]/.test(filename)) {
+    throw new Error(`Invalid characters in filename: '${filename}'.`);
+  }
+
+  return resolvedUserPath;
+};
+
+/**
+ * Helper to escape HTML entities to prevent Cross-Site Scripting (XSS).
+ * @param {string} str The string to escape.
+ * @returns {string} The HTML-escaped string.
+ */
+const escapeHTML = (str) => {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[&<>"']/g, (match) => {
+    switch (match) {
+      case '&': return '&amp;';
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '"': return '&quot;';
+      case "'": return '&#039;';
+      default: return match;
+    }
+  });
+};
+
+/**
+ * Helper to escape CSV values to prevent CSV injection attacks.
+ * Prepends a single quote to values starting with formula-triggering characters.
+ * Also handles standard CSV escaping for commas, quotes, newlines.
+ * @param {string} value The string value to escape.
+ * @returns {string} The CSV-escaped string.
+ */
+const escapeCSV = (value) => {
+  if (typeof value !== 'string') return value;
+  // Prepend with a single quote to neutralize formulas if the value starts with
+  // '=', '+', '-', or '@'. This prevents CSV injection attacks.
+  if (value.startsWith('=') || value.startsWith('+') || value.startsWith('-') || value.startsWith('@')) {
+    value = `'${value}`;
+  }
+  // Escape values with commas, quotes, or newlines for standard CSV formatting.
+  // Double quotes inside the value are escaped by doubling them.
+  // The entire value is then enclosed in double quotes.
+  if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+};
+
 /**
  * Ensure output directory exists
  */
 const ensureOutputDir = async (dirPath) => {
   try {
+    // The dirPath should already be sanitized by the caller of this utility.
     await mkdir(dirPath, { recursive: true });
   } catch (error) {
     if (error.code !== 'EEXIST') {
@@ -25,8 +104,11 @@ const ensureOutputDir = async (dirPath) => {
  * Generate PDF report
  */
 export const generatePDFReport = async (reportData, outputPath) => {
+  // Sanitize the output path to prevent directory traversal
+  const sanitizedOutputPath = sanitizeOutputPath(outputPath);
+
   try {
-    await ensureOutputDir(path.dirname(outputPath));
+    await ensureOutputDir(path.dirname(sanitizedOutputPath));
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
@@ -34,7 +116,7 @@ export const generatePDFReport = async (reportData, outputPath) => {
         size: 'A4',
       });
 
-      const stream = fs.createWriteStream(outputPath);
+      const stream = fs.createWriteStream(sanitizedOutputPath);
       doc.pipe(stream);
 
       // Title Page
@@ -42,7 +124,7 @@ export const generatePDFReport = async (reportData, outputPath) => {
         doc
           .fontSize(24)
           .font('Helvetica-Bold')
-          .text(reportData.title, { align: 'center' });
+          .text(reportData.title, { align: 'center' }); // PDFKit handles text rendering, less prone to injection here
         doc.moveDown(2);
 
         if (reportData.subtitle) {
@@ -107,8 +189,8 @@ export const generatePDFReport = async (reportData, outputPath) => {
       doc.end();
 
       stream.on('finish', () => {
-        logger.info(`PDF report generated: ${outputPath}`);
-        resolve(outputPath);
+        logger.info(`PDF report generated: ${sanitizedOutputPath}`);
+        resolve(sanitizedOutputPath);
       });
 
       stream.on('error', (error) => {
@@ -127,8 +209,11 @@ export const generatePDFReport = async (reportData, outputPath) => {
  * Note: Requires docx package for full implementation
  */
 export const generateDOCXReport = async (reportData, outputPath) => {
+  // Sanitize the output path to prevent directory traversal
+  const sanitizedOutputPath = sanitizeOutputPath(outputPath);
+
   try {
-    await ensureOutputDir(path.dirname(outputPath));
+    await ensureOutputDir(path.dirname(sanitizedOutputPath));
 
     // Placeholder implementation
     // For full implementation, install docx package:
@@ -152,9 +237,9 @@ export const generateDOCXReport = async (reportData, outputPath) => {
       content += reportData.content;
     }
 
-    await writeFile(outputPath, content, 'utf-8');
-    logger.info(`DOCX report generated (text format): ${outputPath}`);
-    return outputPath;
+    await writeFile(sanitizedOutputPath, content, 'utf-8');
+    logger.info(`DOCX report generated (text format): ${sanitizedOutputPath}`);
+    return sanitizedOutputPath;
   } catch (error) {
     logger.error('Error in generateDOCXReport:', error);
     throw new Error(`Failed to generate DOCX: ${error.message}`);
@@ -165,8 +250,11 @@ export const generateDOCXReport = async (reportData, outputPath) => {
  * Generate CSV report
  */
 export const generateCSVReport = async (reportData, outputPath) => {
+  // Sanitize the output path to prevent directory traversal
+  const sanitizedOutputPath = sanitizeOutputPath(outputPath);
+
   try {
-    await ensureOutputDir(path.dirname(outputPath));
+    await ensureOutputDir(path.dirname(sanitizedOutputPath));
 
     let csvContent = '';
 
@@ -174,28 +262,30 @@ export const generateCSVReport = async (reportData, outputPath) => {
       // If data is provided as array of objects
       if (reportData.data.length > 0) {
         const headers = Object.keys(reportData.data[0]);
-        csvContent += headers.join(',') + '\n';
+        csvContent += headers.map(escapeCSV).join(',') + '\n'; // Escape headers too
 
         reportData.data.forEach((row) => {
           const values = headers.map((header) => {
-            const value = row[header] || '';
-            // Escape values with commas or quotes
-            return typeof value === 'string' &&
-              (value.includes(',') || value.includes('"'))
-              ? `"${value.replace(/"/g, '""')}"`
-              : value;
+            const value = row[header];
+            // Ensure value is converted to string before escaping, handling null/undefined
+            return escapeCSV(String(value === null || value === undefined ? '' : value));
           });
           csvContent += values.join(',') + '\n';
         });
       }
     } else if (reportData.content) {
       // Convert content to CSV format
+      // If reportData.content is a single string, assume it's already CSV or plain text
+      // and apply basic escaping to the whole block if it contains sensitive chars.
+      // For simplicity, if it's a single content block, we'll just write it.
+      // A more robust solution might parse and escape lines/cells if content is structured.
+      // For now, we'll treat it as raw content, but the path is sanitized.
       csvContent = reportData.content;
     }
 
-    await writeFile(outputPath, csvContent, 'utf-8');
-    logger.info(`CSV report generated: ${outputPath}`);
-    return outputPath;
+    await writeFile(sanitizedOutputPath, csvContent, 'utf-8');
+    logger.info(`CSV report generated: ${sanitizedOutputPath}`);
+    return sanitizedOutputPath;
   } catch (error) {
     logger.error('Error in generateCSVReport:', error);
     throw new Error(`Failed to generate CSV: ${error.message}`);
@@ -207,8 +297,11 @@ export const generateCSVReport = async (reportData, outputPath) => {
  * Note: Requires xlsx package for full implementation
  */
 export const generateXLSXReport = async (reportData, outputPath) => {
+  // Sanitize the output path to prevent directory traversal
+  const sanitizedOutputPath = sanitizeOutputPath(outputPath);
+
   try {
-    await ensureOutputDir(path.dirname(outputPath));
+    await ensureOutputDir(path.dirname(sanitizedOutputPath));
 
     // Placeholder - requires xlsx package
     // const XLSX = require('xlsx');
@@ -216,8 +309,12 @@ export const generateXLSXReport = async (reportData, outputPath) => {
     logger.warn('XLSX generation requires xlsx package for full functionality');
 
     // Fallback to CSV for now
-    const csvPath = outputPath.replace('.xlsx', '.csv');
-    return await generateCSVReport(reportData, csvPath);
+    // Ensure the fallback CSV path is also sanitized and within the allowed directory
+    const csvPath = sanitizedOutputPath.replace(/\.xlsx$/i, '.csv');
+    // Re-sanitize the derived csvPath to be absolutely sure, though it should be fine if sanitizedOutputPath is.
+    const sanitizedCsvPath = sanitizeOutputPath(csvPath);
+
+    return await generateCSVReport(reportData, sanitizedCsvPath);
   } catch (error) {
     logger.error('Error in generateXLSXReport:', error);
     throw new Error(`Failed to generate XLSX: ${error.message}`);
@@ -228,8 +325,11 @@ export const generateXLSXReport = async (reportData, outputPath) => {
  * Generate TXT report
  */
 export const generateTXTReport = async (reportData, outputPath) => {
+  // Sanitize the output path to prevent directory traversal
+  const sanitizedOutputPath = sanitizeOutputPath(outputPath);
+
   try {
-    await ensureOutputDir(path.dirname(outputPath));
+    await ensureOutputDir(path.dirname(sanitizedOutputPath));
 
     let content = '';
 
@@ -246,9 +346,9 @@ export const generateTXTReport = async (reportData, outputPath) => {
       content += reportData.content;
     }
 
-    await writeFile(outputPath, content, 'utf-8');
-    logger.info(`TXT report generated: ${outputPath}`);
-    return outputPath;
+    await writeFile(sanitizedOutputPath, content, 'utf-8');
+    logger.info(`TXT report generated: ${sanitizedOutputPath}`);
+    return sanitizedOutputPath;
   } catch (error) {
     logger.error('Error in generateTXTReport:', error);
     throw new Error(`Failed to generate TXT: ${error.message}`);
@@ -259,8 +359,11 @@ export const generateTXTReport = async (reportData, outputPath) => {
  * Generate Markdown report
  */
 export const generateMDReport = async (reportData, outputPath) => {
+  // Sanitize the output path to prevent directory traversal
+  const sanitizedOutputPath = sanitizeOutputPath(outputPath);
+
   try {
-    await ensureOutputDir(path.dirname(outputPath));
+    await ensureOutputDir(path.dirname(sanitizedOutputPath));
 
     let content = '';
 
@@ -281,9 +384,9 @@ export const generateMDReport = async (reportData, outputPath) => {
       content += reportData.content;
     }
 
-    await writeFile(outputPath, content, 'utf-8');
-    logger.info(`Markdown report generated: ${outputPath}`);
-    return outputPath;
+    await writeFile(sanitizedOutputPath, content, 'utf-8');
+    logger.info(`Markdown report generated: ${sanitizedOutputPath}`);
+    return sanitizedOutputPath;
   } catch (error) {
     logger.error('Error in generateMDReport:', error);
     throw new Error(`Failed to generate Markdown: ${error.message}`);
@@ -294,8 +397,11 @@ export const generateMDReport = async (reportData, outputPath) => {
  * Generate HTML report
  */
 export const generateHTMLReport = async (reportData, outputPath) => {
+  // Sanitize the output path to prevent directory traversal
+  const sanitizedOutputPath = sanitizeOutputPath(outputPath);
+
   try {
-    await ensureOutputDir(path.dirname(outputPath));
+    await ensureOutputDir(path.dirname(sanitizedOutputPath));
 
     let html = `
 <!DOCTYPE html>
@@ -303,7 +409,7 @@ export const generateHTMLReport = async (reportData, outputPath) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${reportData.title || 'Report'}</title>
+  <title>${escapeHTML(reportData.title || 'Report')}</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -323,11 +429,11 @@ export const generateHTMLReport = async (reportData, outputPath) => {
 `;
 
     if (reportData.title) {
-      html += `  <h1>${reportData.title}</h1>\n`;
+      html += `  <h1>${escapeHTML(reportData.title)}</h1>\n`;
     }
 
     if (reportData.subtitle) {
-      html += `  <p class="subtitle"><strong>${reportData.subtitle}</strong></p>\n`;
+      html += `  <p class="subtitle"><strong>${escapeHTML(reportData.subtitle)}</strong></p>\n`;
     }
 
     html += `  <p class="date">${new Date().toLocaleDateString()}</p>\n\n`;
@@ -335,13 +441,13 @@ export const generateHTMLReport = async (reportData, outputPath) => {
     if (reportData.sections) {
       reportData.sections.forEach((section) => {
         html += `  <div class="section">\n`;
-        html += `    <h2>${section.title}</h2>\n`;
-        html += `    <p>${section.content.replace(/\n/g, '<br>')}</p>\n`;
+        html += `    <h2>${escapeHTML(section.title)}</h2>\n`;
+        html += `    <p>${escapeHTML(section.content || '').replace(/\n/g, '<br>')}</p>\n`; // Escape content, then replace newlines
         html += `  </div>\n`;
       });
     } else if (reportData.content) {
       html += `  <div class="section">\n`;
-      html += `    <p>${reportData.content.replace(/\n/g, '<br>')}</p>\n`;
+      html += `    <p>${escapeHTML(reportData.content || '').replace(/\n/g, '<br>')}</p>\n`; // Escape content, then replace newlines
       html += `  </div>\n`;
     }
 
@@ -350,9 +456,9 @@ export const generateHTMLReport = async (reportData, outputPath) => {
 </html>
 `;
 
-    await writeFile(outputPath, html, 'utf-8');
-    logger.info(`HTML report generated: ${outputPath}`);
-    return outputPath;
+    await writeFile(sanitizedOutputPath, html, 'utf-8');
+    logger.info(`HTML report generated: ${sanitizedOutputPath}`);
+    return sanitizedOutputPath;
   } catch (error) {
     logger.error('Error in generateHTMLReport:', error);
     throw new Error(`Failed to generate HTML: ${error.message}`);
@@ -363,13 +469,17 @@ export const generateHTMLReport = async (reportData, outputPath) => {
  * Generate JSON report
  */
 export const generateJSONReport = async (reportData, outputPath) => {
-  try {
-    await ensureOutputDir(path.dirname(outputPath));
+  // Sanitize the output path to prevent directory traversal
+  const sanitizedOutputPath = sanitizeOutputPath(outputPath);
 
+  try {
+    await ensureOutputDir(path.dirname(sanitizedOutputPath));
+
+    // JSON.stringify inherently handles escaping for JSON format, so no additional escaping needed for content.
     const jsonContent = JSON.stringify(reportData, null, 2);
-    await writeFile(outputPath, jsonContent, 'utf-8');
-    logger.info(`JSON report generated: ${outputPath}`);
-    return outputPath;
+    await writeFile(sanitizedOutputPath, jsonContent, 'utf-8');
+    logger.info(`JSON report generated: ${sanitizedOutputPath}`);
+    return sanitizedOutputPath;
   } catch (error) {
     logger.error('Error in generateJSONReport:', error);
     throw new Error(`Failed to generate JSON: ${error.message}`);
@@ -383,10 +493,10 @@ export const exportReport = async (reportData, format, outputPath) => {
   const generators = {
     pdf: generatePDFReport,
     docx: generateDOCXReport,
-    doc: generateDOCXReport,
+    doc: generateDOCXReport, // Alias for docx
     csv: generateCSVReport,
     xlsx: generateXLSXReport,
-    xls: generateXLSXReport,
+    xls: generateXLSXReport, // Alias for xlsx
     txt: generateTXTReport,
     md: generateMDReport,
     html: generateHTMLReport,
