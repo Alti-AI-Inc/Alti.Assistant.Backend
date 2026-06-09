@@ -2,11 +2,20 @@ import axios from 'axios';
 import { logger } from '../../../shared/logger.js';
 
 /**
+ * @typedef {object} SuggestionResult
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {string} query - The original query string used for the suggestion.
+ * @property {string[]} suggestions - An array of search suggestion strings.
+ * @property {string} [error] - Error message if the operation failed.
+ */
+
+/**
  * Programmatically queries Google's autocomplete/suggestion engine.
- * 
- * @param {string} query - Target search query prefix
- * @param {string} [language='en'] - Preferred language code (hl)
- * @returns {Promise<object>} List of search suggestions
+ *
+ * @param {string} query - Target search query prefix.
+ * @param {string} [language='en'] - Preferred language code (hl) for the suggestions. Defaults to 'en'.
+ * @returns {Promise<SuggestionResult>} A promise that resolves to an object containing the query,
+ *   a list of search suggestions, and a success/error status.
  */
 const getSearchSuggestions = async (query, language = 'en') => {
   try {
@@ -52,6 +61,11 @@ const getSearchSuggestions = async (query, language = 'en') => {
   }
 };
 
+/**
+ * Service for interacting with Google's autocomplete/suggestion engine.
+ * Provides methods to retrieve search suggestions based on a query.
+ * @namespace GcpSuggestService
+ */
 export const GcpSuggestService = {
   getSearchSuggestions
 };

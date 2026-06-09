@@ -13,6 +13,20 @@ import {
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
+ * Helper function to escape double quotes in user input for prompt embedding.
+ * This prevents prompt injection by ensuring user input doesn't prematurely close
+ * string literals within the AI prompt.
+ * @param {string} text - The input string to escape.
+ * @returns {string} The escaped string.
+ */
+const escapeQuotes = (text) => {
+  if (typeof text !== 'string') {
+    return text; // Return as is if not a string (e.g., null, undefined)
+  }
+  return text.replace(/"/g, '\\"');
+};
+
+/**
  * @typedef {object} IntentConstraints
  * @property {string|null} [budget] - Mentioned budget constraint.
  * @property {string|null} [timeline] - Mentioned timeline constraint.
@@ -89,13 +103,16 @@ const analyzeIntent = async (
     let historyContext = '';
     if (conversationHistory.length > 0) {
       const recentMessages = conversationHistory.slice(-4);
+      // Escape content from conversation history to prevent prompt injection
       historyContext =
         '\n\nRecent conversation:\n' +
-        recentMessages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
+        recentMessages.map((msg) => `${msg.role}: ${escapeQuotes(msg.content)}`).join('\n');
     }
 
     let paramsContext = '';
     if (Object.keys(existingParams).length > 0) {
+      // Stringify existingParams, assuming it's controlled by the backend or already sanitized.
+      // If existingParams could contain user-controlled, unescaped strings, further sanitization would be needed.
       paramsContext = `\n\nAlready collected parameters: ${JSON.stringify(existingParams)}`;
     }
 
@@ -136,7 +153,7 @@ Focus areas:
 
 ${historyContext}${paramsContext}
 
-User message: "${userMessage}"
+User message: "${escapeQuotes(userMessage)}"
 
 **Guidelines:**
 - If user mentions an idea/topic (e.g., "app for pet owners", "fitness platform"), extract it and set needsMoreInfo=false
@@ -173,12 +190,28 @@ Respond in JSON format only:
     const response = await result.response;
     const text = response.text();
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid response format from AI');
+    let jsonString = text;
+    // Attempt to strip common markdown code block wrappers (e.g., ```json ... ```)
+    const markdownMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (markdownMatch && markdownMatch[1]) {
+      jsonString = markdownMatch[1];
+    } else {
+      // Fallback: try to find the first and last curly braces if no markdown block is found
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonString = jsonMatch[0];
+      }
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonString);
+    } catch (parseError) {
+      logger.error('Failed to parse AI response as JSON, attempting fallback or throwing:', parseError);
+      // If parsing fails even after stripping markdown/regex, it's a critical issue.
+      throw new Error('Invalid or unparseable JSON response from AI');
+    }
+
     logger.info('Intent analysis completed', { intent: analysis.intent });
 
     return analysis;
@@ -216,9 +249,10 @@ const analyzeIdea = async (ideaText) => {
       },
     });
 
+    // Escape ideaText to prevent prompt injection
     const prompt = `Analyze the following idea and categorize it:
 
-Idea: "${ideaText}"
+Idea: "${escapeQuotes(ideaText)}"
 
 Provide analysis in JSON format:
 {
@@ -238,12 +272,27 @@ Provide analysis in JSON format:
     const response = await result.response;
     const text = response.text();
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid response format from AI');
+    let jsonString = text;
+    // Attempt to strip common markdown code block wrappers (e.g., ```json ... ```)
+    const markdownMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (markdownMatch && markdownMatch[1]) {
+      jsonString = markdownMatch[1];
+    } else {
+      // Fallback: try to find the first and last curly braces if no markdown block is found
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonString = jsonMatch[0];
+      }
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonString);
+    } catch (parseError) {
+      logger.error('Failed to parse AI response as JSON, attempting fallback or throwing:', parseError);
+      throw new Error('Invalid or unparseable JSON response from AI');
+    }
+
     logger.info('Idea analysis completed', { type: analysis.brainstormType });
 
     return analysis;
@@ -285,9 +334,10 @@ const extractIdea = async (userMessage) => {
       },
     });
 
+    // Escape userMessage to prevent prompt injection
     const prompt = `Extract the core idea from this message. Return ONLY the idea statement, nothing else.
 
-Message: "${userMessage}"
+Message: "${escapeQuotes(userMessage)}"
 
 Core idea:`;
 
