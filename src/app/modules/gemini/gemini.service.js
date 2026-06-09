@@ -69,19 +69,28 @@ const geminiService = async (sessionId, prompt, userId) => {
       total_time: result?.usage?.total_time || 0,
     };
 
-    let geminiSession = await ChatHistory.findOne({ user: userId, sessionId });
+    // Optimization: Use updateOne to push to responses array directly,
+    // then check if a new document needs to be created.
+    // This avoids fetching the full document, modifying it in memory, and then saving it.
+    // Recommended Index: For ChatHistory model, create a compound index on `{ user: 1, sessionId: 1 }`
+    // to optimize the lookup for both update and create operations.
+    const updateResult = await ChatHistory.updateOne(
+      { user: userId, sessionId },
+      { $push: { responses: responseData } }
+    );
 
-    if (geminiSession) {
-      geminiSession.responses.push(responseData);
-      await geminiSession.save();
-    } else {
-      geminiSession = await ChatHistory.create({
+    if (updateResult.modifiedCount === 0) {
+      // If no document was modified, it means the session didn't exist, so create a new one
+      const newGeminiSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],
       });
+      // Only update UserModel if a new session was created
+      // Recommended Index: For UserModel, `_id` is indexed by default.
+      // If `llamaAiSessions` is frequently queried, consider an index on it.
       await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: geminiSession._id },
+        $push: { llamaAiSessions: newGeminiSession._id },
       });
     }
 
@@ -157,19 +166,28 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
       total_time: result?.usage?.total_time || 0,
     };
 
-    let geminiSession = await ChatHistory.findOne({ user: userId, sessionId });
+    // Optimization: Use updateOne to push to responses array directly,
+    // then check if a new document needs to be created.
+    // This avoids fetching the full document, modifying it in memory, and then saving it.
+    // Recommended Index: For ChatHistory model, create a compound index on `{ user: 1, sessionId: 1 }`
+    // to optimize the lookup for both update and create operations.
+    const updateResult = await ChatHistory.updateOne(
+      { user: userId, sessionId },
+      { $push: { responses: responseData } }
+    );
 
-    if (geminiSession) {
-      geminiSession.responses.push(responseData);
-      await geminiSession.save();
-    } else {
-      geminiSession = await ChatHistory.create({
+    if (updateResult.modifiedCount === 0) {
+      // If no document was modified, it means the session didn't exist, so create a new one
+      const newGeminiSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],
       });
+      // Only update UserModel if a new session was created
+      // Recommended Index: For UserModel, `_id` is indexed by default.
+      // If `llamaAiSessions` is frequently queried, consider an index on it.
       await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: geminiSession._id },
+        $push: { llamaAiSessions: newGeminiSession._id },
       });
     }
 
