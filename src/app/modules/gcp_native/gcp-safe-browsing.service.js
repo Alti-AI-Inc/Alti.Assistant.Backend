@@ -63,11 +63,12 @@ const lookupUrlSafety = async (url) => {
     };
   } catch (err) {
     logger.error('GCP Safe Browsing Lookup Error:', err);
-    // Fallback to claiming it's secure rather than breaking the application but log the exception
+    // If an error occurs during the safe browsing check, it's safer to assume the URL's status
+    // could not be verified, or to treat it as potentially unsafe, rather than claiming it's secure.
     return {
       success: false,
       url: url,
-      isSecure: true,
+      isSecure: false, // Changed from true to false to avoid misrepresenting an unchecked URL as secure.
       error: err.message,
       threatCount: 0,
       threats: []
