@@ -1,4 +1,5 @@
 import otpGenerator from 'otp-generator';
+import config from '../../../../config/index.js';
 
 export const generateOTP = async () => {
   const otp = await otpGenerator.generate(6, {
@@ -10,18 +11,27 @@ export const generateOTP = async () => {
 };
 
 export const registrationOtpTemplate = async (email, token) => {
+  const frontendUrl = config.client_url || 'https://altiassistant.com';
+  const verificationLink = `${frontendUrl}/register?code=${token}`;
+
   const mailData = {
     userEmail: email,
     sub: 'Verify Your Account',
     message: `<div style=" font-family: 'Arial', sans-serif; padding: 20px; background-color: #f4f4f4;  margin: auto; width: 60%;">
                 <div style="max-width: 1050px;  background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); margin: auto; width: 90%;">
-                  <h2 style="color: #333333;">Email Verification</h2>
+                  <h2 style="color: #333333; text-align: center;">Email Verification</h2>
                   <p style="color: #666666; font-size: 18px;">Dear user,</p>
-                  <p style="color: #666666; font-size: 18px;">Thank you for signing up on Alti AI! To complete your registration, please click the link below to verify your email address:</p>
-                    <a href="${token}" 
-                     style="display: inline-block; margin-bottom: 20px; background-color: #242C36; color: #FFFFFF; border: none; border-radius: 8px; padding: 10px 20px; text-decoration: none; font-size: 18px;">
+                  <p style="color: #666666; font-size: 18px;">Thank you for signing up on Alti AI! To complete your registration, please enter the following 6-digit verification code on the registration page:</p>
+                  <div style="font-size: 32px; font-weight: bold; color: #242C36; text-align: center; letter-spacing: 5px; margin: 20px 0; background-color: #F5F5F7; padding: 15px; border-radius: 8px; border: 1px solid #E5E5E7;">
                     ${token}
-                  </a>
+                  </div>
+                  <p style="color: #666666; font-size: 18px;">Or click the button below to verify your email automatically:</p>
+                  <div style="text-align: center; margin: 20px 0;">
+                    <a href="${verificationLink}" 
+                       style="display: inline-block; background-color: #242C36; color: #FFFFFF; border: none; border-radius: 8px; padding: 12px 24px; text-decoration: none; font-size: 18px; font-weight: bold;">
+                      Verify Account
+                    </a>
+                  </div>
                   <p style="color: #666666; font-size: 18px;">If you didn't sign up for our service, you can ignore this email.</p>
                 </div>
                 <p style="color: #999999; margin-top: 20px;">This email was sent by Alti AI.</p>
