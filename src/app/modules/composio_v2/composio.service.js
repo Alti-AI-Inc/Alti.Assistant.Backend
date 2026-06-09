@@ -10,6 +10,27 @@ import {
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
 
+// Optimization Recommendation:
+// For AuthConfig model, consider adding an index on the 'app' field for faster lookups:
+// AuthConfigSchema.index({ app: 1 });
+
+// Optimization Recommendation:
+// For ComposionAuth model, consider adding indexes for improved query performance:
+// - Index on 'userId' and 'status' for common filtering.
+// - Index on 'authConfigId' for direct lookups.
+// - Index on 'toolkit.slug' for toolkit-based searches.
+// - Index on 'connectedAccountId' for updates.
+// Example:
+// ComposionAuthSchema.index({ userId: 1, status: 1 });
+// ComposionAuthSchema.index({ authConfigId: 1 });
+// ComposionAuthSchema.index({ 'toolkit.slug': 1 });
+// ComposionAuthSchema.index({ connectedAccountId: 1 });
+
+// Optimization Recommendation:
+// For Conversation model, consider adding a compound index on 'conversationId' and 'userId'
+// for the findByConversationId method:
+// ConversationSchema.index({ conversationId: 1, userId: 1 });
+
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
@@ -18,6 +39,7 @@ const initiateComposioAuth = async (body, req = null) => {
   const { app_name, user_id } = body;
 
   try {
+    // AuthConfig is potentially modified and saved later, so .lean() is not suitable here.
     let auth_config = await AuthConfig.findOne({ app: app_name });
     if (!auth_config) {
       console.log(`AuthConfig for app ${app_name} not found in DB. Proactively creating default...`);
@@ -42,9 +64,10 @@ const initiateComposioAuth = async (body, req = null) => {
         { authConfigId: normalizedAppName },
       ],
     };
+    // Optimization: Using .lean() as existingComposioAuth is only read and not modified.
     const existingComposioAuth = await ComposionAuth.findOne(
       req ? withTenantFilter(req, existingAuthQuery) : existingAuthQuery
-    );
+    ).lean();
     console.log(
       `Existing Composio Auth for user ${user_id} and app ${app_name}:`,
       existingComposioAuth
@@ -178,6 +201,7 @@ const handleComposioConversation = async (
 
     if (conversationId) {
       // Try to find existing conversation
+      // The conversation object is modified and saved later, so .lean() is not suitable here.
       conversation = await Conversation.findByConversationId(
         conversationId,
         userId
@@ -227,6 +251,7 @@ const addComposioQueryMessage = async (
   isGuest = false
 ) => {
   try {
+    // The conversation object is modified and saved later, so .lean() is not suitable here.
     const conversation = await Conversation.findByConversationId(
       conversationId,
       userId
@@ -270,6 +295,7 @@ const addComposioResponseMessage = async (
   isGuest = false
 ) => {
   try {
+    // The conversation object is modified and saved later, so .lean() is not suitable here.
     const conversation = await Conversation.findByConversationId(
       conversationId,
       userId
