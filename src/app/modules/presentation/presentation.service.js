@@ -46,23 +46,27 @@ const handlePresentationConversation = async (
 
     if (conversationId) {
       try {
+        // Ensure conversation belongs to the user for security (IDOR prevention)
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
           req
         );
-        console.log(
-          'Fetched conversation with ID:',
-          conversationId,
-          conversation
-        );
+        // console.log('Fetched conversation with ID:', conversationId, conversation); // Removed console.log for production readiness
       } catch (error) {
-        logger.warn(
-          `Conversation ${conversationId} not found, creating new one`
-        );
+        // Log a warning if conversation is not found (e.g., 404), but allow creation of a new one.
+        // Re-throw other types of errors (e.g., database issues, invalid ID format)
+        if (error instanceof ApiError && error.statusCode === httpStatus.NOT_FOUND) {
+          logger.warn(
+            `Conversation ${conversationId} not found for user ${userId}, creating new one`
+          );
+        } else {
+          logger.error(`Error fetching conversation ${conversationId} for user ${userId}:`, error);
+          throw error; // Re-throw unexpected errors
+        }
       }
     }
-    console.log('Final conversation object:', conversation);
+    // console.log('Final conversation object:', conversation); // Removed console.log
     if (!conversation) {
       const newConversationId = conversationId || generateConversationId();
 
@@ -117,7 +121,7 @@ const addMessage = async (
       metadata,
     };
 
-    // Use conversationService for both guest and authenticated users
+    // Use conversationService for both guest and authenticated users, ensuring userId is passed for authorization
     return await conversationService.addMessageToConversation(
       conversationId,
       userId,
@@ -143,6 +147,7 @@ const updateConversationMetadata = async (
   req = null
 ) => {
   try {
+    // Ensure userId is passed for authorization
     await conversationService.updateConversationMetadata(
       conversationId,
       userId,
@@ -166,6 +171,7 @@ const saveConversationSummary = async (
   req = null
 ) => {
   try {
+    // Ensure conversation belongs to the user for security (IDOR prevention)
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -202,9 +208,9 @@ const processConversationalRequest = async (
   req = null
 ) => {
   try {
-    console.log('Processing conversational request for user:', userId);
-    console.log('User message:', userMessage);
-    console.log('Conversation ID:', conversationId);
+    // console.log('Processing conversational request for user:', userId); // Removed console.log for production readiness
+    // console.log('User message:', userMessage); // Removed console.log
+    // console.log('Conversation ID:', conversationId); // Removed console.log
     // Handle or create conversation
     const conversation = await handlePresentationConversation(
       userId,
@@ -221,13 +227,12 @@ const processConversationalRequest = async (
       role: msg.role,
       content: msg.content,
     }));
-    console.log(
-      `Conversation history has ${conversation?.presentation_metadata} messages`
-    );
+    // console.log(`Conversation history has ${conversation?.presentation_metadata} messages`); // Removed console.log
     // Get existing parameters from metadata
+    // BUG FIX: Access presentation_metadata correctly from conversation.metadata
     const existingParams =
       {
-        ...conversation?.presentation_metadata,
+        ...conversation.metadata?.presentation_metadata, // Corrected access path
         ...conversation.metadata?.collectedParams,
       } || {};
     let conversationSummary =
@@ -305,7 +310,7 @@ const processConversationalRequest = async (
 
     // Merge parameters
     const updatedParams = { ...existingParams, ...analysis.parameters };
-    console.log('Updated parameters after analysis:', updatedParams);
+    // console.log('Updated parameters after analysis:', updatedParams); // Removed console.log
     // Update metadata with collected parameters
     await updateConversationMetadata(
       actualConversationId,
@@ -316,27 +321,31 @@ const processConversationalRequest = async (
 
     // Handle different intents
     let response;
-    console.log('Handling intent :', analysis.intent);
+    // console.log('Handling intent :', analysis.intent); // Removed console.log
     switch (analysis.intent) {
       case PRESENTATION_INTENTS.GENERATE:
-        console.log('Handling GENERATE intent');
+        // console.log('Handling GENERATE intent'); // Removed console.log
+        // BUG FIX: Pass isAsync flag based on intent
         response = await handleGenerateIntent(
           analysis,
           updatedParams,
           actualConversationId,
           userId,
           isGuest,
-          req
+          req,
+          false // Not async for GENERATE
         );
         break;
       case PRESENTATION_INTENTS.GENERATE_ASYNC:
+        // BUG FIX: Pass isAsync flag based on intent
         response = await handleGenerateIntent(
           analysis,
           updatedParams,
           actualConversationId,
           userId,
           isGuest,
-          req
+          req,
+          true // Async for GENERATE_ASYNC
         );
         break;
 
@@ -363,7 +372,8 @@ const processConversationalRequest = async (
         break;
 
       case PRESENTATION_INTENTS.DERIVE:
-        response = await handleGenerateIntent(
+        // BUG FIX: Correctly call handleDeriveIntent instead of handleGenerateIntent
+        response = await handleDeriveIntent(
           analysis,
           updatedParams,
           actualConversationId,
@@ -417,7 +427,8 @@ const handleGenerateIntent = async (
   conversationId,
   userId,
   isGuest,
-  req = null
+  req = null,
+  isAsync = false // BUG FIX: Accept isAsync flag, default to false for synchronous generation
 ) => {
   const requiredParams = REQUIRED_PARAMS[PRESENTATION_INTENTS.GENERATE];
   const missingParams = requiredParams.filter((param) => !params[param]);
@@ -462,16 +473,12 @@ const handleGenerateIntent = async (
 
   try {
     let result;
-    const isAsync = true;
-    console.log(
-      'Generating presentation with params:',
-      analysis.intent,
-      'Async:',
-      isAsync
-    );
+    // BUG FIX: Use the passed isAsync flag instead of hardcoding
+    // console.log('Generating presentation with params:', analysis.intent, 'Async:', isAsync); // Removed console.log
     if (isAsync) {
+      // SECURITY FIX: Pass userId to presentonAPIClient for authorization (IDOR prevention)
       result =
-        await presentonAPIClient.generatePresentationAsync(generationParams);
+        await presentonAPIClient.generatePresentationAsync(generationParams, userId);
       const responseMessage = `Great! I've started generating your presentation. Your task ID is: ${result.id}\n\nStatus: ${result.status}\nCreated at: ${result.created_at}\n\nI'll keep track of this for you. You can ask me to check the status anytime!`;
 
       await addMessage(
@@ -485,11 +492,12 @@ const handleGenerateIntent = async (
       );
 
       // Save taskId in conversation metadata for later retrieval
+      // Ensure userId is passed for authorization
       await conversationService.updateConversationMetadata(
         conversationId,
         userId,
         {
-          presentation_metadata: {
+          presentation_metadata: { // Stored under metadata.presentation_metadata
             taskId: result.id,
             status: result.status,
             created_at: result.created_at,
@@ -507,8 +515,9 @@ const handleGenerateIntent = async (
         async: true,
       };
     } else {
-      result = await presentonAPIClient.generatePresentation(generationParams);
-      console.log('Presentation generated:', result);
+      // SECURITY FIX: Pass userId to presentonAPIClient for authorization (IDOR prevention)
+      result = await presentonAPIClient.generatePresentation(generationParams, userId);
+      // console.log('Presentation generated:', result); // Removed console.log
       // Upload presentation to GCS
       let publicUrl = null;
       let uploadResult = null;
@@ -529,6 +538,7 @@ const handleGenerateIntent = async (
         publicUrl = uploadResult.publicUrl;
 
         // Update conversation metadata with the public URL
+        // Ensure userId is passed for authorization
         await updateConversationMetadata(
           conversationId,
           userId,
@@ -637,7 +647,8 @@ const handleCheckStatusIntent = async (
   }
 
   try {
-    const result = await presentonAPIClient.checkTaskStatus(params.taskId);
+    // SECURITY FIX: Pass userId to presentonAPIClient for authorization (IDOR prevention)
+    const result = await presentonAPIClient.checkTaskStatus(params.taskId, userId);
 
     let responseMessage = `Task Status: ${result.status}\n\n`;
 
@@ -726,7 +737,8 @@ const handleEditIntent = async (
   }
 
   try {
-    const result = await presentonAPIClient.editPresentation(params);
+    // SECURITY FIX: Pass userId to presentonAPIClient for authorization (IDOR prevention)
+    const result = await presentonAPIClient.editPresentation(params, userId);
 
     // Upload edited presentation to GCS
     let publicUrl = null;
@@ -735,7 +747,7 @@ const handleEditIntent = async (
       const fileName =
         path.basename(result.path) ||
         `presentation_${result.presentation_id}_edited.pptx`;
-      console.log('Uploading edited presentation with fileName:', fileName);
+      // console.log('Uploading edited presentation with fileName:', fileName); // Removed console.log
       uploadResult = await uploadPresentationToGCS(
         result.path,
         fileName,
@@ -745,6 +757,7 @@ const handleEditIntent = async (
 
       publicUrl = uploadResult.publicUrl;
 
+      // Ensure userId is passed for authorization
       await updateConversationMetadata(conversationId, userId, {
         editedPresentationUrl: publicUrl,
         editedGcsPath: uploadResult.gcsPath,
@@ -820,9 +833,9 @@ const handleDeriveIntent = async (
     delete params.n_slides;
   }
   const missingParams = requiredParams.filter((param) => !params[param]);
-  console.log('Derive intent missing parameters:', missingParams);
-  console.log('Derive intent analysis:', analysis);
-  console.log('Derive intent params:', params);
+  // console.log('Derive intent missing parameters:', missingParams); // Removed console.log
+  // console.log('Derive intent analysis:', analysis); // Removed console.log
+  // console.log('Derive intent params:', params); // Removed console.log
   if (missingParams.length > 0) {
     const followUpQuestion =
       analysis.followUpQuestion ||
@@ -845,7 +858,8 @@ const handleDeriveIntent = async (
   }
 
   try {
-    const result = await presentonAPIClient.derivePresentation(params);
+    // SECURITY FIX: Pass userId to presentonAPIClient for authorization (IDOR prevention)
+    const result = await presentonAPIClient.derivePresentation(params, userId);
 
     // Upload derived presentation to GCS
     let publicUrl = null;
@@ -864,6 +878,7 @@ const handleDeriveIntent = async (
 
       publicUrl = uploadResult.publicUrl;
 
+      // Ensure userId is passed for authorization
       await updateConversationMetadata(conversationId, userId, {
         derivedPresentationUrl: publicUrl,
         derivedGcsPath: uploadResult.gcsPath,
@@ -954,8 +969,10 @@ const handleGetInfoIntent = async (
   }
 
   try {
+    // SECURITY FIX: Pass userId to presentonAPIClient for authorization (IDOR prevention)
     const result = await presentonAPIClient.getPresentation(
-      params.presentationId
+      params.presentationId,
+      userId
     );
     const responseMessage =
       `📊 Presentation Information:\n\n` + JSON.stringify(result, null, 2);
@@ -1017,6 +1034,8 @@ const handleGeneralQuestion = async (
       isGeneralQuestion: true,
     };
   } catch (error) {
+    // BUG FIX: Log the actual error and return success: false to indicate failure
+    logger.error('Error answering general question:', error);
     const errorMessage =
       "I'm here to help you create presentations! What would you like to know?";
     await addMessage(
@@ -1029,7 +1048,7 @@ const handleGeneralQuestion = async (
     );
 
     return {
-      success: true,
+      success: false, // Indicate that the operation failed
       message: errorMessage,
       isGeneralQuestion: true,
     };
