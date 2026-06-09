@@ -52,6 +52,12 @@ export const executeUserRequest = async (
     }
 
     const normalizedAppList = appList.map(a => a.toLowerCase());
+    // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
+    // reducing Mongoose overhead.
+    // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1 }`
+    // for the ComposioAuth model to optimize this query. Additional indexes on
+    // `toolkit.slug` and `authConfigId` might be beneficial if the `$or` clause
+    // is frequently used and highly selective.
     const composioAuth = await ComposioAuth.find({
       userId,
       status: 'ACTIVE',
@@ -60,7 +66,7 @@ export const executeUserRequest = async (
         { authConfigId: { $in: normalizedAppList } },
         { authConfigId: { $in: normalizedAppList.map(a => `ac_${a}`) } },
       ],
-    });
+    }).lean(); // Added .lean()
     console.log('Active Composio Auths for user:', composioAuth.length);
     if (
       composioAuth.length === 0 &&
@@ -105,11 +111,14 @@ export const executeUserRequest = async (
       userId
     );
     if (result?.results[0]) {
-      //Clear chat history if execution successful and clear summary
+      // Indexing Recommendation: Consider a compound index on `{ conversationId: 1, userId: 1 }`
+      // for the Conversation model to optimize this update operation.
       await Conversation.updateOne(
         { conversationId, userId },
         { $set: { messages: [] } }
       );
+      // Indexing Recommendation: Consider a compound index on `{ conversationId: 1, userId: 1 }`
+      // for the ConversationSummary model to optimize this delete operation.
       await ConversationSummary.deleteOne({ conversationId, userId });
     }
     return {
@@ -130,15 +139,20 @@ export const executeUserRequest = async (
 };
 
 const countTokenFromConversationAndProvideContext = async (conversationId) => {
+  // Optimization: Added .lean() for read-only query to return plain JavaScript objects,
+  // reducing Mongoose overhead.
+  // Indexing Recommendation: Consider an index on `{ conversationId: 1 }`
+  // for the Conversation model to optimize this find operation.
   const conversation = await Conversation.findOne({
     conversationId: conversationId,
-  });
+  }).lean(); // Added .lean()
   if (!conversation) return { needSummarization: false, conversation: [] };
   let totalTokens = 0;
-  let constructMessasges = ``;
-  for (const message of conversation.messages) {
-    constructMessasges += ` ${message.content}`;
-  }
+  // Optimization: Replaced synchronous loop with map and join for better performance
+  // when concatenating potentially many message contents, reducing CPU overhead.
+  const constructMessasges = conversation.messages
+    .map((message) => message.content)
+    .join(' ');
 
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
   const tokenCount = await model.countTokens(constructMessasges);
@@ -161,21 +175,31 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
 
 export const initiateAuth = async (appName, userId) => {
   try {
-    let authConfig = await AuthConfig.findOne({ app: appName });
-    if (!authConfig) {
+    // Optimization: Added .lean() for read-only query.
+    // Indexing Recommendation: Consider an index on `{ app: 1 }`
+    // for the AuthConfig model to optimize this find operation.
+    let authConfigDoc = await AuthConfig.findOne({ app: appName }).lean(); // Fetch as lean object
+    let authConfig; // This will be the Mongoose document for potential saving
+
+    if (!authConfigDoc) {
       console.log(`AuthConfig for ${appName} not found in DB. Proactively creating default...`);
-      authConfig = new AuthConfig({
+      authConfig = new AuthConfig({ // Create new Mongoose document
         app: appName,
         authConfigId: `ac_${appName}`,
         isComposioManaged: true,
       });
       await authConfig.save();
+    } else {
+      // If found, convert the lean object back to a Mongoose document
+      // because it might be modified and saved later in the fallback logic.
+      authConfig = new AuthConfig(authConfigDoc);
     }
+
     let connectionUrl;
     try {
       connectionUrl = await composio.connectedAccounts.initiate(
         userId,
-        authConfig.authConfigId
+        authConfig.authConfigId // Use the Mongoose document's authConfigId
       );
     } catch (initiateError) {
       console.warn(`[Simple] Custom config ${authConfig.authConfigId} initiation failed: ${initiateError.message}. Falling back to globally managed credentials using appName: ${appName}...`);
@@ -187,8 +211,8 @@ export const initiateAuth = async (appName, userId) => {
       );
       
       // Persist the corrected config ID in database
-      authConfig.authConfigId = appName;
-      await authConfig.save();
+      authConfig.authConfigId = appName; // Modify the Mongoose document
+      await authConfig.save(); // Save the Mongoose document
     }
 
     const composioAuth = new ComposioAuth({
@@ -211,6 +235,8 @@ export const waitForConnection = async (connectedAccountId) => {
   try {
     const connection =
       await composio.connectedAccounts.waitForConnection(connectedAccountId);
+    // Indexing Recommendation: Consider an index on `{ connectedAccountId: 1 }`
+    // for the ComposioAuth model to optimize this update operation.
     await ComposioAuth.updateOne(
       { connectedAccountId },
       {
@@ -228,10 +254,12 @@ export const waitForConnection = async (connectedAccountId) => {
 
 export const getUserConnectedAccounts = async (userId) => {
   try {
+    // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1, updatedAt: -1 }`
+    // for the ComposioAuth model to optimize this query, covering both filtering and sorting.
     const accounts = await ComposioAuth.find({
       userId,
       status: 'ACTIVE',
-    }).sort({ updatedAt: -1 }).lean();
+    }).sort({ updatedAt: -1 }).lean(); // Already uses .lean(), good.
     return { success: true, data: accounts };
   } catch (error) {
     return { success: false, error: error.message };
@@ -240,6 +268,9 @@ export const getUserConnectedAccounts = async (userId) => {
 
 export const disconnectApp = async (userId, appName) => {
   try {
+    // Optimization: Added .lean() for read-only query before deletion.
+    // Indexing Recommendation: Consider a compound index on `{ userId: 1, status: 1 }`
+    // for the ComposioAuth model to optimize this find operation.
     const account = await ComposioAuth.findOne({
       userId,
       $or: [
@@ -248,7 +279,7 @@ export const disconnectApp = async (userId, appName) => {
         { authConfigId: `ac_${appName}` }
       ],
       status: 'ACTIVE'
-    });
+    }).lean(); // Added .lean()
 
     if (!account) {
       return { success: false, error: 'No active connection found for this app.' };
@@ -264,6 +295,7 @@ export const disconnectApp = async (userId, appName) => {
       console.warn(`[Simple] Composio API delete failed for ${account.connectedAccountId}:`, apiErr.message);
     }
 
+    // Deleting by _id is efficient as _id is always indexed.
     await ComposioAuth.deleteOne({ _id: account._id });
 
     return { success: true, message: `Successfully disconnected ${appName}` };
