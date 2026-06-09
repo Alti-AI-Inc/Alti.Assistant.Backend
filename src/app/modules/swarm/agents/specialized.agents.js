@@ -2,7 +2,22 @@
  * Domain-Specific and Niche Professional Specialists
  */
 
-// Existing: Nutritionist & Meal Planner
+/**
+ * @typedef {object} AgentDefinition
+ * @property {string} id - Unique identifier for the agent.
+ * @property {string} name - Human-readable name of the agent.
+ * @property {string} description - A brief description of the agent's capabilities.
+ * @property {string} systemInstruction - The core system prompt that defines the agent's persona and rules.
+ * @property {string} model - The AI model to be used by this agent (e.g., 'gemini-2.5-flash').
+ * @property {string[]} tools - An array of tools (e.g., API names) this agent can utilize.
+ * @property {string[]} keywords - An array of keywords associated with the agent's domain.
+ */
+
+/**
+ * Represents the 'Nutritionist & Meal Planner' specialized agent.
+ * This agent is designed to draft scientific, personalized diet plans, calculate macros, and provide healthy recipes tailored to specific goals.
+ * @type {AgentDefinition}
+ */
 export const dietNutritionExpert = {
   id: 'diet_nutrition_expert',
   name: 'Nutritionist & Meal Planner',
@@ -15,7 +30,11 @@ Prioritize clean layouts and precise weight metrics.`,
   keywords: ['diet plan', 'meal prep', 'nutrition guide', 'healthy recipe', 'calorie counter', 'lose weight', 'macros calculator', 'meal planner']
 };
 
-// Existing: Elite Workout & Fitness Coach
+/**
+ * Represents the 'Elite Workout & Fitness Coach' specialized agent.
+ * This agent focuses on designing customized exercise splits, progressive overload routines, and home fitness plans.
+ * @type {AgentDefinition}
+ */
 export const workoutFitnessCoach = {
   id: 'workout_fitness_coach',
   name: 'Elite Workout & Fitness Coach',
@@ -28,7 +47,11 @@ Stay highly motivating, structured, and focused on safety.`,
   keywords: ['workout plan', 'exercise split', 'gym routine', 'fitness split', 'weightlifting', 'cardio plan', 'training schedule']
 };
 
-// Existing: Global Travel & Logistics Planner
+/**
+ * Represents the 'Global Travel & Logistics Planner' specialized agent.
+ * This agent is skilled in designing detailed travel itineraries, transport routing plans, packing checklists, and local guides.
+ * @type {AgentDefinition}
+ */
 export const travelItineraryArchitect = {
   id: 'travel_itinerary_architect',
   name: 'Global Travel & Logistics Planner',
@@ -41,7 +64,11 @@ Structure details neatly into clear tables or timelines.`,
   keywords: ['travel plan', 'itinerary', 'trip planner', 'packing list', 'sightseeing', 'travel guide', 'flight schedule', 'destination guide']
 };
 
-// Existing: Sovereign Budget & Finance Advisor
+/**
+ * Represents the 'Sovereign Budget & Finance Advisor' specialized agent.
+ * This agent assists with calculating corporate cash flows, home budgets, savings goals, and debt snowball payments.
+ * @type {AgentDefinition}
+ */
 export const financialBudgetPlanner = {
   id: 'financial_budget_planner',
   name: 'Sovereign Budget & Finance Advisor',
@@ -54,7 +81,11 @@ Always output beautiful, clean breakdown charts or tables.`,
   keywords: ['budget planner', 'personal finance', 'debt snowball', 'saving money', 'cash flow sheet', 'mortgage calculation', 'expense tracker']
 };
 
-// Existing: IP & Cease-and-Desist Draftsman
+/**
+ * Represents the 'IP & Cease-and-Desist Draftsman' specialized agent.
+ * This agent drafts highly formal cease-and-desist letters, non-disclosure agreements (NDAs), and intellectual property notices.
+ * @type {AgentDefinition}
+ */
 export const legalCeaseDesistDrafter = {
   id: 'legal_cease_desist_drafter',
   name: 'IP & Cease-and-Desist Draftsman',
@@ -67,7 +98,11 @@ Maintain an assertive, highly formal, and precise legal tone.`,
   keywords: ['cease and desist', 'nda template', 'legal draft letter', 'copyright letter', 'trademark warning', 'non disclosure agreement']
 };
 
-// Existing: Wall Street Analyst
+/**
+ * Represents the 'Wall Street Analyst' specialized agent.
+ * This agent grounds financial inquiries in real-time tickers and market analytics.
+ * @type {AgentDefinition}
+ */
 export const financialAnalyst = {
   id: 'financial_analyst',
   name: 'Wall Street Analyst',
@@ -80,7 +115,11 @@ Synthesize findings into clean, concise tabular breakdowns and actionable summar
   keywords: ['stock', 'ticker', 'price', 'quote', 'market', 'financial', 'shares', 'googl', 'aapl']
 };
 
-// Existing: Industry SWIFT Auditor (Market Researcher)
+/**
+ * Represents the 'Industry SWIFT Auditor (Market Researcher)' specialized agent.
+ * This agent performs high-fidelity competitive audits, SWOT analysis, and TAM/SAM assessments.
+ * @type {AgentDefinition}
+ */
 export const marketResearcher = {
   id: 'market_researcher',
   name: 'Industry SWIFT Auditor',
@@ -93,7 +132,11 @@ Structure reports into clear, highly executive sections with verified industry m
   keywords: ['market research', 'swot analysis', 'competitor analysis', 'industry trends', 'business audit', 'tam sam som', 'financial assessment']
 };
 
-// NEW: Patent Innovation & Prior Art Analyst
+/**
+ * Represents the 'Patent Innovation & Prior Art Analyst' specialized agent.
+ * This agent investigates international patent databases, parses claims structures, utility descriptions, and conducts deep prior art searches to evaluate technical innovation boundaries.
+ * @type {AgentDefinition}
+ */
 export const patentIntelResearcher = {
   id: 'patent_intel_researcher',
   name: 'Patent Innovation & Prior Art Analyst',
@@ -119,7 +162,11 @@ CRITICAL PATENT EXAMINATION LAWS:
   ]
 };
 
-// NEW: Corporate SEC Disclosure & Earnings Researcher
+/**
+ * Represents the 'Corporate SEC Disclosure & Earnings Researcher' specialized agent.
+ * This agent searches and decodes corporate SEC filings (10-K, 10-Q, 8-K), earnings call transcripts, financial statements, and administrative disclosures in real-time.
+ * @type {AgentDefinition}
+ */
 export const financialSecAuditor = {
   id: 'financial_sec_auditor',
   name: 'Corporate SEC Disclosure & Earnings Researcher',
@@ -145,7 +192,11 @@ CRITICAL SEC AUDITING LAWS:
   ]
 };
 
-// NEW: Legal Dockets & Regulatory Compliance Analyst
+/**
+ * Represents the 'Legal Dockets & Regulatory Compliance Analyst' specialized agent.
+ * This agent scours legal dockets, statutory codes, case law, administrative regulations, and compliance updates across state and federal registries.
+ * @type {AgentDefinition}
+ */
 export const legalRegulatoryResearcher = {
   id: 'legal_regulatory_researcher',
   name: 'Legal Dockets & Regulatory Compliance Analyst',
