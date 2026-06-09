@@ -4,21 +4,45 @@ import { logger } from '../../../shared/logger.js';
 import ActionAuditLog from './models/actionAuditLog.model.js';
 import WorkflowPattern from './models/workflowPattern.model.js';
 
+/**
+ * Initializes the Google Generative AI client with the API key from configuration.
+ * If `config.gemini_secret_key` is not available, it defaults to 'mock-key'.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
 
-// Maximum gap in milliseconds between actions in a session (5 minutes)
+/**
+ * Maximum allowed time gap in milliseconds between two consecutive actions
+ * for them to be considered part of the same user session.
+ * Currently set to 5 minutes (5 * 60 * 1000 ms).
+ * @type {number}
+ */
 const SESSION_GAP_MS = 5 * 60 * 1000;
 
-// Minimum number of times a sequence must appear to be considered a pattern
+/**
+ * Minimum number of times a specific sequence of actions must appear
+ * within the analysis window to be considered a significant workflow pattern.
+ * @type {number}
+ */
 const MIN_OCCURRENCES = 2;
 
-// Analysis window: last 30 days
+/**
+ * The duration in days for which past action audit logs are analyzed
+ * to detect recurring workflow patterns.
+ * Currently set to 30 days.
+ * @type {number}
+ */
 const ANALYSIS_WINDOW_DAYS = 30;
 
 /**
- * Groups a flat list of audit log entries into sessions.
- * A "session" is a sequence of actions where no two consecutive actions
- * are more than SESSION_GAP_MS apart.
+ * Groups a flat list of chronologically sorted audit log entries into distinct user sessions.
+ * A session is defined as a sequence of actions where no two consecutive actions
+ * are separated by more than `SESSION_GAP_MS`. Sessions with fewer than 2 actions are discarded.
+ *
+ * @param {Array<Object>} logs - An array of action audit log objects, expected to be sorted by `createdAt` in ascending order.
+ * @param {Date} logs[].createdAt - The timestamp when the action was created.
+ * @returns {Array<Array<Object>>} An array of arrays, where each inner array represents a session
+ *                                  and contains the audit log entries belonging to that session.
  */
 const groupIntoSessions = (logs) => {
   if (logs.length === 0) return [];
@@ -48,7 +72,14 @@ const groupIntoSessions = (logs) => {
 };
 
 /**
- * Generate sliding window sub-sequences of length 2 and 3 from a session.
+ * Generates all possible sliding window sub-sequences of length 2 and 3
+ * from a given session's sequence of tool/action slugs.
+ *
+ * @param {Array<Object>} session - An array of action audit log objects representing a single user session.
+ * @param {string} session[].toolSlug - The unique slug for the tool used (e.g., 'google_calendar_create_event').
+ * @param {string} session[].app - The application name if `toolSlug` is not available.
+ * @param {string} session[].action - The action name if `toolSlug` is not available.
+ * @returns {Array<Array<string>>} An array of arrays, where each inner array is a sub-sequence of tool/action slugs.
  */
 const extractSubSequences = (session) => {
   const sequences = [];
@@ -65,7 +96,15 @@ const extractSubSequences = (session) => {
 };
 
 /**
- * Use Gemini to generate a human-readable suggestion for a workflow pattern.
+ * Uses the Gemini AI model to generate a human-readable title and a compelling suggestion
+ * for automating a detected workflow pattern.
+ *
+ * @param {Array<string>} sequence - The array of tool/action slugs representing the workflow pattern.
+ * @param {number} occurrenceCount - The number of times this sequence has been observed.
+ * @param {number} successRate - The success rate of this sequence (expected to be 100 for this analysis).
+ * @param {number} avgLatencyMs - The average duration in milliseconds for a single run of this sequence.
+ * @returns {Promise<{title: string, suggestion: string}>} An object containing a short title and a detailed suggestion for automation.
+ * @throws {Error} If the Gemini API call fails or returns an unparseable response.
  */
 const generateGeminiSuggestion = async (sequence, occurrenceCount, successRate, avgLatencyMs) => {
   try {
@@ -113,11 +152,31 @@ Return ONLY a JSON object with this exact structure (no markdown):
 };
 
 /**
- * Mine the last 30 days of ActionAuditLog for recurring tool-call sequences.
- * Detects patterns appearing MIN_OCCURRENCES+ times and generates Gemini suggestions.
+ * Mines the last `ANALYSIS_WINDOW_DAYS` of successful `ActionAuditLog` entries for a given user
+ * to detect recurring tool-call sequences (workflow patterns).
  *
- * @param {string|ObjectId} userId
- * @returns {Object} Mining result with detected patterns
+ * It groups actions into sessions, extracts sub-sequences of length 2 and 3,
+ * counts their occurrences, and filters for patterns appearing at least `MIN_OCCURRENCES` times.
+ * For the top 10 significant patterns, it generates human-readable suggestions using Gemini AI
+ * and persists these patterns in the `WorkflowPattern` model.
+ *
+ * @param {string} userId - The ID of the user for whom to analyze workflow patterns.
+ * @returns {Promise<Object>} An object containing the analysis result, including detected patterns.
+ * @returns {boolean} returns.success - Indicates if the analysis was successful.
+ * @returns {string} returns.message - A descriptive message about the analysis outcome.
+ * @returns {string} returns.analysisWindow - The duration of the analysis window (e.g., "30 days").
+ * @returns {number} returns.totalLogsAnalyzed - The total number of audit logs considered.
+ * @returns {number} returns.totalSessionsAnalyzed - The total number of sessions identified.
+ * @returns {number} returns.patternsDetected - The number of significant patterns found and saved.
+ * @returns {Array<Object>} returns.patterns - An array of detected workflow pattern objects.
+ * @returns {string} returns.patterns[].id - The unique ID of the saved workflow pattern.
+ * @returns {string} returns.patterns[].patternTitle - A human-readable title for the pattern.
+ * @returns {Array<string>} returns.patterns[].sequence - The sequence of tool/action slugs.
+ * @returns {number} returns.patterns[].occurrenceCount - How many times the pattern was observed.
+ * @returns {number} returns.patterns[].successRate - The success rate of the pattern (always 100 for this analysis).
+ * @returns {number} returns.patterns[].avgSequenceLatencyMs - Average duration of the pattern in milliseconds.
+ * @returns {number} returns.patterns[].estimatedTimeSavingsMs - Estimated time savings from automating this pattern.
+ * @returns {string} returns.patterns[].geminiSuggestion - The AI-generated suggestion for automation.
  */
 const analyzeWorkflowPatterns = async (userId) => {
   logger.info(`WorkflowIntelligence: starting pattern analysis for user ${userId}`);
@@ -255,7 +314,23 @@ const analyzeWorkflowPatterns = async (userId) => {
 };
 
 /**
- * Get previously detected patterns for a user.
+ * Retrieves all non-dismissed workflow patterns previously detected and saved for a specific user.
+ * Patterns are sorted by `occurrenceCount` in descending order.
+ *
+ * @param {string} userId - The ID of the user whose workflow patterns are to be retrieved.
+ * @returns {Promise<Object>} An object containing the retrieved patterns.
+ * @returns {boolean} returns.success - Indicates if the retrieval was successful.
+ * @returns {number} returns.count - The number of patterns retrieved.
+ * @returns {Array<Object>} returns.patterns - An array of workflow pattern objects.
+ * @returns {string} returns.patterns[].id - The unique ID of the workflow pattern.
+ * @returns {string} returns.patterns[].patternTitle - A human-readable title for the pattern.
+ * @returns {Array<string>} returns.patterns[].sequence - The sequence of tool/action slugs.
+ * @returns {number} returns.patterns[].occurrenceCount - How many times the pattern was observed.
+ * @returns {number} returns.patterns[].successRate - The success rate of the pattern.
+ * @returns {number} returns.patterns[].avgSequenceLatencyMs - Average duration of the pattern in milliseconds.
+ * @returns {number} returns.patterns[].estimatedTimeSavingsMs - Estimated time savings from automating this pattern.
+ * @returns {string} returns.patterns[].geminiSuggestion - The AI-generated suggestion for automation.
+ * @returns {Date} returns.patterns[].lastObservedAt - The last time this pattern was observed or updated.
  */
 const getWorkflowPatterns = async (userId) => {
   const patterns = await WorkflowPattern.find({ userId, dismissed: false })
@@ -280,7 +355,14 @@ const getWorkflowPatterns = async (userId) => {
 };
 
 /**
- * Dismiss a workflow pattern suggestion.
+ * Marks a specific workflow pattern suggestion as dismissed for a user.
+ * Dismissed patterns will no longer be returned by `getWorkflowPatterns`.
+ *
+ * @param {string} patternId - The unique ID of the workflow pattern to dismiss.
+ * @param {string} userId - The ID of the user who owns the pattern.
+ * @returns {Promise<Object>} An object indicating the success of the dismissal operation.
+ * @returns {boolean} returns.success - True if the pattern was successfully dismissed.
+ * @returns {string} returns.message - A confirmation message.
  */
 const dismissPattern = async (patternId, userId) => {
   await WorkflowPattern.findOneAndUpdate(
@@ -290,8 +372,31 @@ const dismissPattern = async (patternId, userId) => {
   return { success: true, message: 'Pattern suggestion dismissed.' };
 };
 
+/**
+ * Service module for workflow intelligence, providing functions to analyze user actions,
+ * detect recurring patterns, generate automation suggestions, and manage these patterns.
+ * @namespace workflowIntelligenceService
+ */
 export const workflowIntelligenceService = {
+  /**
+   * Initiates the analysis of user action logs to detect and suggest workflow automation patterns.
+   * @function analyzeWorkflowPatterns
+   * @memberof workflowIntelligenceService
+   * @see {@link analyzeWorkflowPatterns}
+   */
   analyzeWorkflowPatterns,
+  /**
+   * Retrieves all active (non-dismissed) workflow patterns for a given user.
+   * @function getWorkflowPatterns
+   * @memberof workflowIntelligenceService
+   * @see {@link getWorkflowPatterns}
+   */
   getWorkflowPatterns,
+  /**
+   * Marks a specific workflow pattern as dismissed for a user.
+   * @function dismissPattern
+   * @memberof workflowIntelligenceService
+   * @see {@link dismissPattern}
+   */
   dismissPattern,
 };
