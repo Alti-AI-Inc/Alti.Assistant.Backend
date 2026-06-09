@@ -4,6 +4,14 @@ import { logger } from '../../../shared/logger.js';
 import Chatbot from './chatbot.model.js';
 import { withTenantContext, withTenantFilter } from '../../helpers/tenantQuery.js';
 
+// Recommended indexes for chatbot.model.js to improve query performance:
+// 1. For `getChatbots` by userId and isActive, with sorting:
+//    ChatbotSchema.index({ userId: 1, isActive: 1, createdAt: -1 });
+// 2. For `getChatbots` by shared tenant projects, with sorting:
+//    ChatbotSchema.index({ isShared: 1, tenantId: 1, isActive: 1, createdAt: -1 });
+// 3. For `getChatbotById`, `updateChatbot`, `deleteChatbot` (if _id is not the only filter):
+//    ChatbotSchema.index({ _id: 1, userId: 1, isActive: 1 }); // _id is already indexed by default, but this covers the compound query.
+
 const createChatbot = async (chatbotData, userId, req = null) => {
   try {
     const payload = { ...chatbotData, userId };
@@ -33,7 +41,8 @@ const getChatbots = async (userId, req = null) => {
     }
     
     // We don't use withTenantFilter here because we need a custom $or that spans across the user's bots and shared tenant bots
-    const chatbots = await Chatbot.find(query).sort({ createdAt: -1 });
+    // Added .lean() for performance as we are only reading data and don't need Mongoose document methods.
+    const chatbots = await Chatbot.find(query).sort({ createdAt: -1 }).lean();
     return chatbots;
   } catch (error) {
     logger.error('Error fetching chatbots:', error);
@@ -44,7 +53,8 @@ const getChatbots = async (userId, req = null) => {
 const getChatbotById = async (chatbotId, userId, req = null) => {
   try {
     const query = { _id: chatbotId, userId, isActive: true };
-    const chatbot = await Chatbot.findOne(req ? withTenantFilter(req, query) : query);
+    // Added .lean() for performance as we are only reading data and don't need Mongoose document methods.
+    const chatbot = await Chatbot.findOne(req ? withTenantFilter(req, query) : query).lean();
     if (!chatbot) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Chatbot not found');
     }

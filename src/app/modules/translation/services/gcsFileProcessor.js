@@ -48,16 +48,21 @@ const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
   try {
     if (!storage || !bucket) {
       logger.warn('GCS not configured. Returning local file path.');
+      // Sanitize filename even for local fallback for consistency
+      const sanitizedFilename = path.basename(filename);
       return {
         success: true,
         localPath: localFilePath,
-        fileName: filename,
+        fileName: sanitizedFilename,
         storageType: 'local',
       };
     }
 
     const bucketName = process.env.GCS_BUCKET_NAME;
-    const destination = `${STORAGE_CONFIG.UPLOAD_FOLDER}/${documentMetadata.userId || 'anonymous'}/${Date.now()}_${filename}`;
+    // Sanitize filename to prevent path traversal issues in object keys
+    // and ensure clean object names in GCS.
+    const sanitizedFilename = path.basename(filename);
+    const destination = `${STORAGE_CONFIG.UPLOAD_FOLDER}/${documentMetadata.userId || 'anonymous'}/${Date.now()}_${sanitizedFilename}`;
 
     logger.info(`Uploading translation file to GCS: ${destination}`);
 
@@ -65,12 +70,12 @@ const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
     await bucket.upload(localFilePath, {
       destination,
       metadata: {
-        contentType: getMimeType(filename),
+        contentType: getMimeType(sanitizedFilename), // Use sanitized filename for MIME type
         metadata: {
           documentType: documentMetadata.documentType || 'translation',
           uploadedAt: new Date().toISOString(),
           userId: documentMetadata.userId || 'anonymous',
-          originalName: documentMetadata.originalName || filename,
+          originalName: documentMetadata.originalName || sanitizedFilename, // Use sanitized filename for original name if not provided
           targetLanguage: documentMetadata.targetLanguage,
           sourceLanguage: documentMetadata.sourceLanguage,
         },
@@ -93,18 +98,20 @@ const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
       success: true,
       gcsPath: `gs://${bucketName}/${destination}`,
       publicUrl: signedUrl,
-      fileName: filename,
+      fileName: sanitizedFilename, // Return the sanitized filename
       destination,
       storageType: 'gcs',
     };
   } catch (error) {
     logger.error('Error uploading translation file to GCS:', error);
 
+    // Sanitize filename for fallback consistency
+    const sanitizedFilename = path.basename(filename);
     // Return local path as fallback
     return {
       success: true,
       localPath: localFilePath,
-      fileName: filename,
+      fileName: sanitizedFilename, // Return the sanitized filename
       storageType: 'local',
       error: error.message,
     };

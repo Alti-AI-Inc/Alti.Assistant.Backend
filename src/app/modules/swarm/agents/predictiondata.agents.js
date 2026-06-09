@@ -16,7 +16,24 @@
  *   8. sportsFuturesSpeculator   — Futures: championships, awards, win totals, trend tracing
  */
 
+/**
+ * @typedef {object} SportsAgent
+ * @property {string} id - A unique identifier for the sports agent.
+ * @property {string} name - The human-readable name of the sports agent.
+ * @property {string} description - A brief description of the agent's primary function.
+ * @property {string} systemInstruction - The detailed system prompt/instruction that guides the AI model's behavior and output format.
+ * @property {string} model - The specific AI model used by this agent (e.g., 'gemini-2.0-flash').
+ * @property {Array<string>} tools - An array of tools (if any) that this agent can utilize. Currently empty for these agents.
+ * @property {Array<string>} keywords - A list of keywords associated with this agent, useful for routing or discovery.
+ */
+
 // ─── 1. Arbitrage Scanner ─────────────────────────────────────────────────────
+/**
+ * Configuration for the Sports Arbitrage Scanner agent.
+ * This agent specializes in identifying risk-free betting opportunities by analyzing live multi-book sports lines,
+ * calculating optimal stake allocations, and comparing book odds.
+ * @type {SportsAgent}
+ */
 export const sportsArbitrageScanner = {
   id: 'sports_arbitrage_scanner',
   name: 'Sports Arbitrage Scanner',
@@ -50,6 +67,12 @@ FORMAT:
 };
 
 // ─── 2. Parlay Architect ──────────────────────────────────────────────────────
+/**
+ * Configuration for the Sports Parlay Architect agent.
+ * This agent acts as a professional parlay desk analyst, pricing multi-game/multi-sport parlays,
+ * calculating combined odds, payout scales, and suggesting hedging strategies.
+ * @type {SportsAgent}
+ */
 export const sportsParlayArchitect = {
   id: 'sports_parlay_architect',
   name: 'Sports Parlay Architect',
@@ -83,6 +106,12 @@ FORMAT:
 };
 
 // ─── 3. Sharp Money Analyst ───────────────────────────────────────────────────
+/**
+ * Configuration for the Sports Sharp Money Analyst agent.
+ * This agent acts as a microstructure strategist, tracing professional "smart money" flows,
+ * steam moves, and divergences between sharp books (like Pinnacle) and public book averages.
+ * @type {SportsAgent}
+ */
 export const sportsSharpMoneyAnalyst = {
   id: 'sports_sharp_money_analyst',
   name: 'Sports Sharp Money Analyst',
@@ -115,6 +144,12 @@ FORMAT:
 };
 
 // ─── 4. Player Props Predictor ────────────────────────────────────────────────
+/**
+ * Configuration for the Sports Player Props Predictor agent.
+ * This agent evaluates player props, automatically routing player names to leagues,
+ * and comparing over/under projections across all major sportsbooks to find value.
+ * @type {SportsAgent}
+ */
 export const sportsPlayerPropsPredictor = {
   id: 'sports_player_props_predictor',
   name: 'Sports Player Props Predictor',
@@ -147,6 +182,12 @@ FORMAT:
 };
 
 // ─── 5. Value Betting Quant ───────────────────────────────────────────────────
+/**
+ * Configuration for the Sports Value Betting Quant agent.
+ * This agent acts as a quantitative expected value (+EV) analyst, comparing book odds
+ * against vig-free fair probabilities to isolate positive expectation trades and suggest Kelly Criterion bet sizing.
+ * @type {SportsAgent}
+ */
 export const sportsValueBettingQuant = {
   id: 'sports_value_betting_quant',
   name: 'Sports Value Betting Quant',
@@ -178,6 +219,12 @@ FORMAT:
 };
 
 // ─── 6. DFS Expert ────────────────────────────────────────────────────────────
+/**
+ * Configuration for the Sports DFS Expert agent.
+ * This agent acts as a Daily Fantasy Sports (DFS) optimizer, comparing lines on platforms
+ * like PrizePicks, Underdog Fantasy, and Sleeper against sportsbook consensus to identify high-margin gaps.
+ * @type {SportsAgent}
+ */
 export const sportsDFSExpert = {
   id: 'sports_dfs_expert',
   name: 'Sports DFS Expert',
@@ -211,6 +258,12 @@ FORMAT:
 };
 
 // ─── 7. Live Odds Orchestrator ────────────────────────────────────────────────
+/**
+ * Configuration for the Sports Live Odds Orchestrator agent.
+ * This agent acts as an in-play live trading desk expert, synthesizing live scores,
+ * remaining game clock, and dynamic in-game odds to suggest live value entries or hedge scenarios.
+ * @type {SportsAgent}
+ */
 export const sportsLiveOddsOrchestrator = {
   id: 'sports_live_odds_orchestrator',
   name: 'Sports Live Odds Orchestrator',
@@ -242,6 +295,12 @@ FORMAT:
 };
 
 // ─── 8. Futures Speculator ────────────────────────────────────────────────────
+/**
+ * Configuration for the Sports Futures Speculator agent.
+ * This agent acts as a long-term futures strategist, tracking MVPs, championships,
+ * win totals, and outright awards trends across multiple books to identify value sleepers and portfolio strategies.
+ * @type {SportsAgent}
+ */
 export const sportsFuturesSpeculator = {
   id: 'sports_futures_speculator',
   name: 'Sports Futures Speculator',
