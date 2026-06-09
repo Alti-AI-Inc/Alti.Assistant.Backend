@@ -13,10 +13,10 @@ import {
  */
 const conversationalRequestSchema = z.object({
   body: z.object({
+    // Message is optional if a file is uploaded instead, so 'required_error' is contradictory.
+    // Removed 'required_error' as the field is marked 'optional()'.
     message: z
-      .string({
-        required_error: 'Message is required',
-      })
+      .string()
       .min(1, 'Message cannot be empty')
       .max(10000, 'Message too long')
       .optional(),
@@ -124,8 +124,11 @@ const modifyReportSchema = z.object({
  */
 const listReportsSchema = z.object({
   query: z.object({
-    page: z.string().optional(),
-    limit: z.string().optional(),
+    // Pagination parameters 'page' and 'limit' are typically numbers.
+    // Using z.coerce.number() to automatically convert string inputs (from query params) to numbers,
+    // and ensuring they are integers and at least 1.
+    page: z.coerce.number().int().min(1, 'Page must be at least 1').optional(),
+    limit: z.coerce.number().int().min(1, 'Limit must be at least 1').optional(),
     reportType: z.enum(REPORT_TYPES).optional(),
     sortBy: z.enum(['createdAt', 'title', 'reportType']).optional(),
     sortOrder: z.enum(['asc', 'desc']).optional(),
