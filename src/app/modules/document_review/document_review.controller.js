@@ -42,9 +42,12 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
+    // Optimization: Added .lean() for performance as the document is only read.
+    // Indexing Recommendation: Consider adding an index on `userId` and `createdAt` in SubscriptionModel for faster lookups and sorting.
+    // A compound index { userId: 1, createdAt: -1 } would be ideal for this specific query.
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean(); // Added .lean()
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
       ? await conversationHelpers.getConversationById(
@@ -136,9 +139,12 @@ export const reviewDocument = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
+    // Optimization: Added .lean() for performance as the document is only read.
+    // Indexing Recommendation: Consider adding an index on `userId` and `createdAt` in SubscriptionModel for faster lookups and sorting.
+    // A compound index { userId: 1, createdAt: -1 } would be ideal for this specific query.
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean(); // Added .lean()
     const promptUsage = userSubscription ? userSubscription.usage : 0;
 
     if (promptUsage <= 0) {
@@ -235,6 +241,11 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization Note: The `conversationHelpers.getConversationById` function
+    // should ideally use `.lean()` internally if the returned conversation document
+    // is not modified before being sent in the response.
+    // Indexing Recommendation: Ensure the Conversation model has indexes on `conversationId` and `userId`
+    // for efficient lookups within `getConversationById`.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
