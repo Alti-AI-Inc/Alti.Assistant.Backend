@@ -4,7 +4,71 @@ import sendResponse from '../../../shared/sendResponse.js';
 import { tenantInvitationService } from './tenantInvitation.service.js';
 
 /**
- * Get tenant invitations
+ * @swagger
+ * /api/v1/tenant-invitations:
+ *   get:
+ *     summary: Get tenant invitations
+ *     description: Retrieve a list of tenant invitations for the current tenant.
+ *     tags:
+ *       - Tenant Invitations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of items per page.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, accepted, cancelled, expired]
+ *         description: Filter invitations by their status.
+ *     responses:
+ *       200:
+ *         description: Invitations retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitations retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/TenantInvitation'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 const getTenantInvitations = catchAsync(async (req, res) => {
   const tenantId = req.user?.currentTenantId || req.user?.tenantId;
@@ -25,7 +89,53 @@ const getTenantInvitations = catchAsync(async (req, res) => {
 });
 
 /**
- * Verify invitation token
+ * @swagger
+ * /api/v1/tenant-invitations/verify/{token}:
+ *   get:
+ *     summary: Verify invitation token
+ *     description: Verifies the validity of a tenant invitation token.
+ *     tags:
+ *       - Tenant Invitations
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The invitation token to verify.
+ *     responses:
+ *       200:
+ *         description: Invitation verified successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitation verified successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/TenantInvitation'
+ *       400:
+ *         description: Invalid token or token already used/expired.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Invitation not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 const verifyInvitationToken = catchAsync(async (req, res) => {
   const { token } = req.params;
@@ -41,7 +151,58 @@ const verifyInvitationToken = catchAsync(async (req, res) => {
 });
 
 /**
- * Accept invitation
+ * @swagger
+ * /api/v1/tenant-invitations/{inviteId}/accept:
+ *   patch:
+ *     summary: Accept invitation
+ *     description: Accepts a specific tenant invitation by its ID. The user accepting must be authenticated.
+ *     tags:
+ *       - Tenant Invitations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inviteId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the invitation to accept.
+ *     responses:
+ *       200:
+ *         description: Invitation accepted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitation accepted successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/TenantInvitation'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: Invitation not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       400:
+ *         description: Invitation already accepted, expired, or invalid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 const acceptInvitation = catchAsync(async (req, res) => {
   const { inviteId } = req.params;
@@ -74,7 +235,62 @@ const acceptInvitation = catchAsync(async (req, res) => {
 });
 
 /**
- * Cancel invitation
+ * @swagger
+ * /api/v1/tenant-invitations/{inviteId}/cancel:
+ *   patch:
+ *     summary: Cancel invitation
+ *     description: Cancels a specific tenant invitation by its ID. Only the sender or an admin can cancel.
+ *     tags:
+ *       - Tenant Invitations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inviteId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the invitation to cancel.
+ *     responses:
+ *       200:
+ *         description: Invitation cancelled successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitation cancelled successfully
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         description: Forbidden - User does not have permission to cancel this invitation.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Invitation not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       400:
+ *         description: Invitation cannot be cancelled (e.g., already accepted).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 const cancelInvitation = catchAsync(async (req, res) => {
   const { inviteId } = req.params;
@@ -89,7 +305,62 @@ const cancelInvitation = catchAsync(async (req, res) => {
 });
 
 /**
- * Resend invitation
+ * @swagger
+ * /api/v1/tenant-invitations/{inviteId}/resend:
+ *   patch:
+ *     summary: Resend invitation
+ *     description: Resends a specific tenant invitation by its ID. This will generate a new token and send a new email.
+ *     tags:
+ *       - Tenant Invitations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inviteId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: mongoId
+ *         description: The ID of the invitation to resend.
+ *     responses:
+ *       200:
+ *         description: Invitation resent successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitation resent successfully
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         description: Forbidden - User does not have permission to resend this invitation.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Invitation not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       400:
+ *         description: Invitation cannot be resent (e.g., already accepted).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 const resendInvitation = catchAsync(async (req, res) => {
   const { inviteId } = req.params;
@@ -103,6 +374,19 @@ const resendInvitation = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @typedef {object} TenantInvitationController
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getTenantInvitations - Controller for retrieving tenant invitations.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} verifyInvitationToken - Controller for verifying an invitation token.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} acceptInvitation - Controller for accepting a tenant invitation.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} cancelInvitation - Controller for cancelling a tenant invitation.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} resendInvitation - Controller for resending a tenant invitation.
+ */
+
+/**
+ * Exports the tenant invitation controller functions.
+ * @type {TenantInvitationController}
+ */
 export const tenantInvitationController = {
   getTenantInvitations,
   verifyInvitationToken,

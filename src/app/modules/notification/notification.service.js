@@ -14,6 +14,7 @@ const sendNotificationService = async (data, req = null) => {
   );
 
   // 2. Push this notification to every user in the same tenant
+  // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
   const userFilter = req ? withTenantFilter(req, {}) : {};
   await UserModel.updateMany(
     userFilter, // filter users by tenant
@@ -25,9 +26,11 @@ const sendNotificationService = async (data, req = null) => {
 
 const getNotificationService = async (userId, req = null) => {
   const query = {};
+  // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
+  // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
   const result = await Notification.find(
     req ? withTenantFilter(req, query) : query
-  );
+  ).lean(); // Added .lean()
   return result;
 };
 
@@ -36,6 +39,7 @@ const sendNotificationByIdService = async (userId, data, req = null) => {
     req ? withTenantContext(req, data) : data
   );
   // 2. Push this notification to specific user
+  // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
   const userQuery = { _id: userId };
   await UserModel.updateOne(
     req ? withTenantFilter(req, userQuery) : userQuery,
@@ -46,11 +50,14 @@ const sendNotificationByIdService = async (userId, data, req = null) => {
 
 const getNotificationByIdService = async (userId, req = null) => {
   const query = { _id: userId };
+  // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
+  // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
   const result = await UserModel.findOne(
     req ? withTenantFilter(req, query) : query
   )
     .populate('notifications')
-    .select('notifications');
+    .select('notifications')
+    .lean(); // Added .lean()
   return result;
 };
 
@@ -60,6 +67,7 @@ const updateNotificationByIdService = async (
   req = null
 ) => {
   const query = { _id: notificationId };
+  // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
   const result = await Notification.updateOne(
     req ? withTenantFilter(req, query) : query, // filter condition
     { $set: data }, // update operation
@@ -74,6 +82,7 @@ const updateNotificationByIdService = async (
 
 const deleteNotificationByIdService = async (notificationId, req = null) => {
   const query = { _id: notificationId };
+  // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
   const result = await Notification.deleteOne(
     req ? withTenantFilter(req, query) : query
   );
@@ -87,10 +96,12 @@ const deleteAllNotificationService = async (req = null) => {
     session.startTransaction();
 
     // Step 1: Delete all notifications from the Notification collection (tenant-filtered)
+    // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
     const notificationQuery = req ? withTenantFilter(req, {}) : {};
     await Notification.deleteMany(notificationQuery, { session });
 
     // Step 2: Remove all references to notifications from the User collection (tenant-filtered)
+    // Optimization Recommendation: Ensure 'tenantId' is indexed on UserModel if 'withTenantFilter' uses it.
     const userQuery = req ? withTenantFilter(req, {}) : {};
     await UserModel.updateMany(
       userQuery,
@@ -122,14 +133,19 @@ const getUserInboxService = async (userId, category, isArchived, req = null) => 
     query.isArchived = isArchived;
   }
   // Fetch from newest to oldest
+  // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
+  // Optimization Recommendation: For optimal performance, consider adding a compound index on Notification model:
+  // { tenantId: 1, userId: 1, category: 1, isArchived: 1, createdAt: -1 }
+  // or at least { tenantId: 1, userId: 1, createdAt: -1 } if tenantId and userId are primary filters.
   const result = await Notification.find(
     req ? withTenantFilter(req, query) : query
-  ).sort({ createdAt: -1 });
+  ).sort({ createdAt: -1 }).lean(); // Added .lean()
   return result;
 };
 
 const archiveNotificationService = async (notificationId, isArchived = true, req = null) => {
   const query = { _id: notificationId };
+  // Optimization Recommendation: Ensure 'tenantId' is indexed on Notification model if 'withTenantFilter' uses it.
   const result = await Notification.findOneAndUpdate(
     req ? withTenantFilter(req, query) : query,
     { $set: { isArchived } },
