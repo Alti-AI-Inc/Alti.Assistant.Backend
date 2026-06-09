@@ -216,7 +216,11 @@ export const getUserConnectedAccountsService = async (
       userId: userId,
       status: status || 'ACTIVE',
     };
-    const accounts = await ComposioAuth.find(query).sort({ updatedAt: -1 });
+    // Optimization: Add .lean() for read-only queries to return plain JavaScript objects
+    // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
+    // Indexing Recommendation: Consider adding a compound index on `{ userId: 1, status: 1, updatedAt: -1 }`
+    // to optimize queries filtering by userId and status, and sorting by updatedAt.
+    const accounts = await ComposioAuth.find(query).sort({ updatedAt: -1 }).lean();
 
     console.log(`User connected accounts for ${userId}: ${accounts.length} found (status: ${status || 'ACTIVE'})`);
 
@@ -244,6 +248,10 @@ export const checkUserConnectionsService = async (
   try {
     const normalizedAppName = appName.toLowerCase();
 
+    // Optimization: Add .lean() for read-only queries to return plain JavaScript objects
+    // instead of Mongoose documents, improving performance by skipping Mongoose overhead.
+    // Indexing Recommendation: Consider adding indexes on `{ userId: 1, status: 1 }`,
+    // `{ 'toolkit.slug': 1 }`, and `{ authConfigId: 1 }` to optimize this query.
     const connectedAccounts = await ComposioAuth.find({
       userId: userId,
       status: 'ACTIVE',
@@ -252,7 +260,7 @@ export const checkUserConnectionsService = async (
         { authConfigId: normalizedAppName },
         { authConfigId: `ac_${normalizedAppName}` },
       ],
-    });
+    }).lean();
 
     const hasConnection = connectedAccounts.length > 0;
 
@@ -286,6 +294,8 @@ export const getComposioConversationHistoryService = async (
 
     if (conversationId) {
       // Get specific conversation history
+      // Note: The actual database query is within composioConversationService.getComposioHistory.
+      // Ensure that method uses .lean() if it's a read-only operation to avoid Mongoose document overhead.
       const history = await composioConversationService.getComposioHistory(
         conversationId,
         userId,
@@ -302,6 +312,8 @@ export const getComposioConversationHistoryService = async (
       };
     } else {
       // Get conversation stats
+      // Note: The actual database query is within composioConversationService.getComposioStats.
+      // Ensure that method uses .lean() if it's a read-only operation to avoid Mongoose document overhead.
       const stats = await composioConversationService.getComposioStats(
         userId,
         req
