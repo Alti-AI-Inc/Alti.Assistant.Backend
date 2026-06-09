@@ -121,10 +121,13 @@ const switchTenant = catchAsync(async (req, res) => {
   const result = await tenantService.switchTenant(userId, tenantId);
 
   // Fetch all user's tenants for the token payload
+  // Optimization: Added .lean() for performance as the result is read-only and not modified.
+  // Indexing Recommendation: Consider adding a compound index on `TenantMember` model for `{ userId: 1, status: 1 }`
+  // to optimize this query.
   const tenantMemberships = await TenantMember.find({
     userId,
     status: 'active',
-  }).select('tenantId role');
+  }).select('tenantId role').lean();
 
   const tenants = tenantMemberships.map((membership) => ({
     tenantId: membership.tenantId,
@@ -167,11 +170,14 @@ const getTenantMembers = catchAsync(async (req, res) => {
   // Verify membership if not a global admin
   if (req.user?.role !== 'admin') {
     const userId = req.user?.id || req.user?._id;
+    // Optimization: Added .lean() for performance as the result is read-only and only checked for existence.
+    // Indexing Recommendation: Consider adding a compound index on `TenantMember` model for `{ userId: 1, tenantId: 1, status: 1 }`
+    // to optimize this query.
     const isMember = await TenantMember.findOne({
       userId,
       tenantId,
       status: 'active',
-    });
+    }).lean();
     if (!isMember) {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
