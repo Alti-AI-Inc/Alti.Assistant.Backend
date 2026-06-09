@@ -295,6 +295,8 @@ const getUserKnowledgeBases = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization: If knowledgebaseService.getUserKnowledgeBases fetches documents for read-only,
+    // consider adding .lean() inside the service method for better performance.
     const knowledgeBases = await knowledgebaseService.getUserKnowledgeBases(
       userId,
       req
@@ -376,6 +378,8 @@ const chatWithKnowledgeBase = catchAsync(async (req, res) => {
 
   try {
     // Verify knowledge base exists and belongs to user
+    // Optimization: If knowledgebaseService.getKnowledgeBaseById fetches documents for read-only,
+    // consider adding .lean() inside the service method for better performance.
     const knowledgeBase = await knowledgebaseService.getKnowledgeBaseById(
       knowledgebaseId,
       userId
@@ -394,6 +398,7 @@ const chatWithKnowledgeBase = catchAsync(async (req, res) => {
 
     if (conversationId) {
       // Find existing conversation
+      // .lean() is not used here because the conversation document is modified and saved later.
       conversation = await Conversation.findByConversationId(
         conversationId,
         userId
@@ -507,6 +512,8 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
 
   try {
     // Verify knowledge base exists and belongs to user
+    // Optimization: If knowledgebaseService.getKnowledgeBaseById fetches documents for read-only,
+    // consider adding .lean() inside the service method for better performance.
     const knowledgeBase = await knowledgebaseService.getKnowledgeBaseById(
       knowledgebaseId,
       userId
@@ -520,6 +527,9 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
     }
 
     // Get conversations for this knowledge base
+    // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
+    // Indexing Recommendation: For optimal performance, consider adding a compound index on the Conversation model:
+    // { userId: 1, knowledgebaseId: 1, status: 1, lastActivity: -1 }
     const conversations = await Conversation.find({
       userId: userId,
       knowledgebaseId: knowledgebaseId,
@@ -529,7 +539,8 @@ const getKnowledgeBaseConversations = catchAsync(async (req, res) => {
         'conversationId title lastActivity messageCount createdAt updatedAt metadata'
       )
       .sort({ lastActivity: -1 })
-      .limit(50);
+      .limit(50)
+      .lean(); // Added .lean()
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -653,10 +664,13 @@ const getConversationMessages = catchAsync(async (req, res) => {
 
   try {
     // Find conversation
+    // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
+    // Indexing Recommendation: For optimal performance, consider adding a compound index on the Conversation model:
+    // { conversationId: 1, userId: 1 }
     const conversation = await Conversation.findByConversationId(
       conversationId,
       userId
-    ).populate('knowledgebaseId', 'name description');
+    ).populate('knowledgebaseId', 'name description').lean(); // Added .lean()
 
     if (!conversation) {
       return sendResponse(res, {
