@@ -95,7 +95,8 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
   logger.info(`Benchmarking chain ${chainId} (v${versionA} vs v${versionB}) for user ${userId}`);
   
   // Resolve chain
-  const chain = await LangchainChain.findById(chainId);
+  // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead
+  const chain = await LangchainChain.findById(chainId).lean();
   if (!chain) {
     throw new Error(`Chain not found: ${chainId}`);
   }
@@ -107,7 +108,9 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
     stepsA = chain.steps;
     labelA = `Current (v${chain.version || 1})`;
   } else {
-    const snapA = await LangchainChainVersion.findOne({ chainId, versionNumber: Number(versionA) });
+    // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead
+    // Indexing Recommendation: Consider adding an index on { chainId: 1, versionNumber: 1 } to LangchainChainVersion model for faster lookups.
+    const snapA = await LangchainChainVersion.findOne({ chainId, versionNumber: Number(versionA) }).lean();
     if (!snapA) {
       throw new Error(`Version snapshot v${versionA} not found for chain ${chainId}`);
     }
@@ -121,7 +124,9 @@ const benchmarkVersions = async (chainId, versionA, versionB, testSuite, userId)
     stepsB = chain.steps;
     labelB = `Current (v${chain.version || 1})`;
   } else {
-    const snapB = await LangchainChainVersion.findOne({ chainId, versionNumber: Number(versionB) });
+    // Optimization: Use .lean() to get a plain JavaScript object, reducing Mongoose overhead
+    // Indexing Recommendation: Consider adding an index on { chainId: 1, versionNumber: 1 } to LangchainChainVersion model for faster lookups.
+    const snapB = await LangchainChainVersion.findOne({ chainId, versionNumber: Number(versionB) }).lean();
     if (!snapB) {
       throw new Error(`Version snapshot v${versionB} not found for chain ${chainId}`);
     }
