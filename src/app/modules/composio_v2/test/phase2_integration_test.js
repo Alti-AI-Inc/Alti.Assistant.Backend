@@ -1,12 +1,55 @@
 import { logger } from '../../../shared/logger.js';
 
 /**
- * Phase 2 Integration Test Suite - Workflow Scheduling System
- * This test validates the complete scheduled workflow functionality
+ * @fileoverview Phase 2 Integration Test Suite - Workflow Scheduling System
+ * This test suite validates the complete scheduled workflow functionality,
+ * covering service initialization, scheduling, execution, queue management,
+ * and AI-driven schedule detection.
  */
 
-// Mock user and workflow data for testing
+/**
+ * @typedef {object} WorkflowExecutionPlanStep
+ * @property {number} step - The step number in the execution plan.
+ * @property {string} app - The name of the application to use for this step (e.g., 'github', 'gmail').
+ * @property {string} action - The action to perform within the specified app (e.g., 'get_issues', 'send_email').
+ * @property {object} parameters - Key-value pairs of parameters required for the action.
+ * @property {string[]} dependencies - An array of step numbers that must complete before this step can run.
+ */
+
+/**
+ * @typedef {object} WorkflowPlanningMetadata
+ * @property {string} complexity - The estimated complexity of the workflow (e.g., 'medium').
+ * @property {number} estimatedDuration - The estimated duration of the workflow in milliseconds.
+ */
+
+/**
+ * @typedef {object} TestWorkflowData
+ * @property {string} name - The name of the workflow.
+ * @property {string} description - A description of what the workflow does.
+ * @property {string} userId - The ID of the user who owns this workflow.
+ * @property {string} workflowType - The type of workflow (e.g., 'multi_step', 'single_step').
+ * @property {WorkflowExecutionPlanStep[]} executionPlan - An array defining the steps of the workflow.
+ * @property {string[]} requiredApps - An array of application names required by the workflow.
+ * @property {object} crossStepParameters - Parameters that are passed between different steps.
+ * @property {string} crossStepParameters.issues_summary - Example of a cross-step parameter.
+ * @property {number} totalSteps - The total number of steps in the workflow.
+ * @property {string} scheduleType - The type of scheduling (e.g., 'recurring', 'one_time').
+ * @property {string} cronExpression - The cron expression for recurring schedules.
+ * @property {string} timezone - The timezone for the schedule (e.g., 'UTC').
+ * @property {WorkflowPlanningMetadata} planningMetadata - Metadata related to workflow planning.
+ */
+
+/**
+ * Mock user ID for testing purposes.
+ * @type {string}
+ */
 const testUserId = 'test_user_phase2_scheduling';
+
+/**
+ * Mock workflow data used across various tests.
+ * This data represents a scheduled workflow to send a weekly GitHub issues summary.
+ * @type {TestWorkflowData}
+ */
 const testWorkflowData = {
   name: 'Test Scheduled Workflow - Phase 2',
   description:
@@ -52,7 +95,31 @@ const testWorkflowData = {
 };
 
 /**
- * Test 1: Validate Phase 2 Services Initialization
+ * @typedef {object} ServiceInitializationResult
+ * @property {boolean} imported - True if the service module was successfully imported.
+ * @property {boolean} hasRequiredMethods - True if the imported service object contains expected methods.
+ */
+
+/**
+ * @typedef {object} Phase2ServicesInitializationTestResult
+ * @property {boolean} success - Overall success status of the test.
+ * @property {string} testName - The name of the test.
+ * @property {object} results - Detailed results for each service.
+ * @property {ServiceInitializationResult} results.cronManager - Results for cronManager service.
+ * @property {ServiceInitializationResult} results.workflowExecutor - Results for workflowExecutor service.
+ * @property {ServiceInitializationResult} results.schedulerInitializer - Results for schedulerInitializer service.
+ * @property {ServiceInitializationResult} results.queueManager - Results for queueManager service.
+ * @property {string} [error] - Error message if the test failed.
+ */
+
+/**
+ * Test 1: Validate Phase 2 Services Initialization.
+ * This test dynamically imports core services (cronManager, workflowExecutor,
+ * schedulerInitializer, queueManager) and verifies that they are imported
+ * successfully and expose their expected public methods.
+ *
+ * @returns {Promise<Phase2ServicesInitializationTestResult>} A promise that resolves to an object
+ *   containing the test's success status, name, and detailed results for each service.
  */
 export const testPhase2ServicesInitialization = async () => {
   try {
@@ -123,7 +190,31 @@ export const testPhase2ServicesInitialization = async () => {
 };
 
 /**
- * Test 2: Workflow Scheduling and Management
+ * @typedef {object} WorkflowSchedulingTestResults
+ * @property {boolean} initialization - Success status of cron manager initialization.
+ * @property {boolean} scheduling - Success status of scheduling a workflow.
+ * @property {boolean} jobStatus - True if job status could be retrieved.
+ * @property {boolean} unscheduling - Success status of unscheduling a workflow.
+ */
+
+/**
+ * @typedef {object} WorkflowSchedulingTestOutput
+ * @property {boolean} success - Overall success status of the test.
+ * @property {string} testName - The name of the test.
+ * @property {WorkflowSchedulingTestResults} results - Detailed results for each scheduling operation.
+ * @property {object} [scheduleResult] - The raw result object from the scheduleWorkflow call.
+ * @property {object} [jobStatus] - The raw job status object.
+ * @property {object} [unscheduleResult] - The raw result object from the unscheduleWorkflow call.
+ * @property {string} [error] - Error message if the test failed.
+ */
+
+/**
+ * Test 2: Workflow Scheduling and Management.
+ * This test validates the `cronManager`'s ability to initialize, schedule a workflow,
+ * retrieve its status, and unschedule it.
+ *
+ * @returns {Promise<WorkflowSchedulingTestOutput>} A promise that resolves to an object
+ *   containing the test's success status, name, and detailed results for scheduling operations.
  */
 export const testWorkflowScheduling = async () => {
   try {
@@ -189,7 +280,30 @@ export const testWorkflowScheduling = async () => {
 };
 
 /**
- * Test 3: Workflow Execution Simulation
+ * @typedef {object} WorkflowExecutionTestResults
+ * @property {boolean} singleStepExecution - Success status of single-step workflow execution.
+ * @property {boolean} multiStepExecution - Success status of multi-step workflow execution.
+ * @property {boolean} connectionValidation - True if connection validation returned a result.
+ */
+
+/**
+ * @typedef {object} WorkflowExecutionTestOutput
+ * @property {boolean} success - Overall success status of the test.
+ * @property {string} testName - The name of the test.
+ * @property {WorkflowExecutionTestResults} results - Detailed results for execution and validation.
+ * @property {object} [singleStepResult] - The raw result object from single-step execution.
+ * @property {object} [multiStepResult] - The raw result object from multi-step execution.
+ * @property {object} [connectionValidation] - The raw result object from connection validation.
+ * @property {string} [error] - Error message if the test failed.
+ */
+
+/**
+ * Test 3: Workflow Execution Simulation.
+ * This test simulates the execution of both single-step and multi-step workflows
+ * using the `workflowExecutor` and validates connection requirements.
+ *
+ * @returns {Promise<WorkflowExecutionTestOutput>} A promise that resolves to an object
+ *   containing the test's success status, name, and detailed results for execution simulations.
  */
 export const testWorkflowExecution = async () => {
   try {
@@ -264,7 +378,30 @@ export const testWorkflowExecution = async () => {
 };
 
 /**
- * Test 4: Queue Management
+ * @typedef {object} QueueManagementTestResults
+ * @property {boolean} initialization - Success status of queue manager initialization.
+ * @property {boolean} queueHighPriority - Success status of queuing a high priority workflow.
+ * @property {boolean} queueNormalPriority - Success status of queuing a normal priority workflow.
+ * @property {boolean} queueStatusCheck - True if queue status could be retrieved.
+ * @property {boolean} cancellation - Success status of canceling a queued workflow.
+ */
+
+/**
+ * @typedef {object} QueueManagementTestOutput
+ * @property {boolean} success - Overall success status of the test.
+ * @property {string} testName - The name of the test.
+ * @property {QueueManagementTestResults} results - Detailed results for queue operations.
+ * @property {object} [queueStatus] - The raw queue status object.
+ * @property {string} [error] - Error message if the test failed.
+ */
+
+/**
+ * Test 4: Queue Management.
+ * This test verifies the `queueManager`'s functionality, including initialization,
+ * queuing workflows with different priorities, checking queue status, and canceling queued items.
+ *
+ * @returns {Promise<QueueManagementTestOutput>} A promise that resolves to an object
+ *   containing the test's success status, name, and detailed results for queue management.
  */
 export const testQueueManagement = async () => {
   try {
@@ -339,7 +476,48 @@ export const testQueueManagement = async () => {
 };
 
 /**
- * Test 5: Schedule Detection Integration
+ * @typedef {object} ScheduleDetectionResultItem
+ * @property {string} input - The user input string tested.
+ * @property {boolean} needsScheduling - True if scheduling was detected.
+ * @property {string} [scheduleType] - The detected schedule type (e.g., 'recurring').
+ * @property {number} [confidence] - Confidence score of the detection.
+ * @property {string} [error] - Error message if detection failed for this input.
+ */
+
+/**
+ * @typedef {object} WorkflowSaveResult
+ * @property {boolean} workflowSaved - True if the workflow was successfully saved.
+ * @property {string} [savedWorkflowId] - The ID of the saved workflow.
+ * @property {string} [error] - Error message if saving failed.
+ */
+
+/**
+ * @typedef {object} ScheduleDetectionIntegrationTestResults
+ * @property {number} scheduleDetectionCount - Total number of schedule detection tests run.
+ * @property {number} schedulingDetected - Number of inputs for which scheduling was detected.
+ * @property {boolean} workflowSaved - Success status of the workflow saving operation.
+ * @property {boolean} noErrorsInDetection - True if no errors occurred during schedule detection tests.
+ * @property {boolean} noErrorsInSaving - True if no errors occurred during workflow saving.
+ */
+
+/**
+ * @typedef {object} ScheduleDetectionIntegrationTestOutput
+ * @property {boolean} success - Overall success status of the test.
+ * @property {string} testName - The name of the test.
+ * @property {ScheduleDetectionIntegrationTestResults} results - Detailed results for detection and saving.
+ * @property {ScheduleDetectionResultItem[]} detectionResults - Array of results for each schedule detection input.
+ * @property {WorkflowSaveResult} saveResult - Result of the workflow saving operation.
+ * @property {string} [error] - Error message if the test failed.
+ */
+
+/**
+ * Test 5: Schedule Detection Integration.
+ * This test evaluates the integration of AI-based schedule detection and workflow saving nodes.
+ * It checks if scheduling is correctly identified from various user inputs and if a workflow
+ * can be successfully saved with detected schedule parameters.
+ *
+ * @returns {Promise<ScheduleDetectionIntegrationTestOutput>} A promise that resolves to an object
+ *   containing the test's success status, name, and detailed results for schedule detection and saving.
  */
 export const testScheduleDetectionIntegration = async () => {
   try {
@@ -435,7 +613,28 @@ export const testScheduleDetectionIntegration = async () => {
 };
 
 /**
- * Run All Phase 2 Tests
+ * @typedef {object} TestSummary
+ * @property {number} totalTests - The total number of tests run.
+ * @property {number} passedTests - The number of tests that passed.
+ * @property {number} failedTests - The number of tests that failed.
+ * @property {string} passRate - The pass rate as a percentage string.
+ */
+
+/**
+ * @typedef {object} RunPhase2IntegrationTestsOutput
+ * @property {boolean} success - Overall success status of the entire test suite.
+ * @property {TestSummary} [summary] - A summary of the test results if successful.
+ * @property {Array<Phase2ServicesInitializationTestResult|WorkflowSchedulingTestOutput|WorkflowExecutionTestOutput|QueueManagementTestOutput|ScheduleDetectionIntegrationTestOutput>} [testResults] - An array of detailed results for each individual test.
+ * @property {string} [error] - Error message if the test suite failed catastrophically.
+ */
+
+/**
+ * Run All Phase 2 Integration Tests.
+ * This function orchestrates and executes all defined Phase 2 integration tests
+ * sequentially, aggregates their results, and provides an overall summary.
+ *
+ * @returns {Promise<RunPhase2IntegrationTestsOutput>} A promise that resolves to an object
+ *   containing the overall success status, a summary of results, and detailed results for each test.
  */
 export const runPhase2IntegrationTests = async () => {
   try {
