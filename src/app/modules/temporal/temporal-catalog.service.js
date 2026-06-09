@@ -19,16 +19,42 @@ import TemporalRepository from './temporal-repository.model.js';
 //    TemporalRepositorySchema.index({ name: 'text', description: 'text' });
 
 
+/**
+ * The filename of the current module.
+ * @type {string}
+ */
 const __filename = fileURLToPath(import.meta.url);
+/**
+ * The directory name of the current module.
+ * @type {string}
+ */
 const __dirname = path.dirname(__filename);
 
-// Root path points to workspace root: c:/Users/hyper/workspace/Alti.Assistant
+/**
+ * The root directory of the workspace.
+ * Points to: c:/Users/hyper/workspace/Alti.Assistant
+ * @type {string}
+ */
 const ROOT_DIR = path.join(__dirname, '../../../../..');
+/**
+ * The full path to the scan results JSON file.
+ * This file contains information about approved repositories.
+ * @type {string}
+ */
 const SCAN_RESULTS_PATH = path.join(ROOT_DIR, 'scan_results.json');
 
 /**
- * Synchronizes the scanned approved repositories from scan_results.json into MongoDB.
- * Ensures the actual folders exist under external/temporal.
+ * Synchronizes the scanned approved repositories from `scan_results.json` into the MongoDB database.
+ * It ensures that only repositories with existing local folders under `external/temporal` are synced.
+ * This function is typically run as a startup or background task.
+ *
+ * @async
+ * @returns {Promise<{ success: boolean, message?: string, count?: number, error?: string }>} A promise that resolves to an object
+ *   indicating the success of the synchronization, the number of upserted repositories, or an error message.
+ *   - `success`: `true` if synchronization was successful, `false` otherwise.
+ *   - `message`: An informational message if `success` is `false` (e.g., file not found).
+ *   - `count`: The number of repositories successfully upserted if `success` is `true`.
+ *   - `error`: The error message if an exception occurred during synchronization.
  */
 const syncCatalog = async () => {
   try {
@@ -99,6 +125,23 @@ const syncCatalog = async () => {
 /**
  * Queries the MongoDB TemporalRepository collection with strict filters, input sanitation,
  * whitelisted sorting fields, and bounded pagination limits to guarantee absolute security.
+ *
+ * @async
+ * @param {string} [query=''] - The search query string. It is sanitized to prevent injection attacks.
+ * @param {object} [options={}] - An object containing search options.
+ * @param {string} [options.license] - Filters repositories by license key (e.g., 'mit', 'apache-2.0').
+ * @param {string} [options.status] - Filters repositories by status ('Active', 'Archived').
+ * @param {string} [options.sortBy='stars'] - Field to sort the results by. Whitelisted fields are 'stars', 'name', 'createdAt'.
+ * @param {number} [options.page=1] - The current page number for pagination. Must be a positive integer.
+ * @param {number} [options.limit=20] - The maximum number of results per page. Bounded between 1 and 100.
+ * @returns {Promise<{ success: boolean, total: number, page: number, limit: number, results: Array<Object> }>} A promise that resolves to an object
+ *   containing the search results and pagination information.
+ *   - `success`: `true` if the query was successful.
+ *   - `total`: The total number of documents matching the filter.
+ *   - `page`: The current page number.
+ *   - `limit`: The maximum number of results per page.
+ *   - `results`: An array of repository objects.
+ * @throws {Error} If the query fails due to a database error.
  */
 const searchCatalog = async (query = '', options = {}) => {
   try {
@@ -183,6 +226,20 @@ const searchCatalog = async (query = '', options = {}) => {
 
 /**
  * Calculates aggregated statistics about the installed Temporal catalog.
+ * This includes total repositories, active/archived counts, star counts, and license distribution.
+ *
+ * @async
+ * @returns {Promise<{ success: boolean, stats: { totalRepositories: number, activeRepositories: number, archivedRepositories: number, totalStars: number, averageStars: number, licenses: Array<{ name: string, count: number }> } }>} A promise that resolves to an object
+ *   containing the success status and the calculated statistics.
+ *   - `success`: `true` if statistics were retrieved successfully.
+ *   - `stats`: An object containing various statistics:
+ *     - `totalRepositories`: Total number of repositories.
+ *     - `activeRepositories`: Number of repositories with 'Active' status.
+ *     - `archivedRepositories`: Number of repositories with 'Archived' status.
+ *     - `totalStars`: Sum of stars across all repositories.
+ *     - `averageStars`: Average stars per repository, rounded to the nearest integer.
+ *     - `licenses`: An array of objects, each with `name` (license key) and `count` (number of repositories with that license).
+ * @throws {Error} If the statistics retrieval fails due to a database error.
  */
 const getStats = async () => {
   try {
@@ -235,6 +292,18 @@ setTimeout(() => {
   syncCatalog().catch(err => console.error(`[Temporal Auto Sync] Initial sync failed: ${err.message}`));
 }, 5000);
 
+/**
+ * @typedef {object} TemporalCatalogService
+ * @property {function(): Promise<{ success: boolean, message?: string, count?: number, error?: string }>} syncCatalog - Synchronizes the temporal catalog with the database.
+ * @property {function(string, object): Promise<{ success: boolean, total: number, page: number, limit: number, results: Array<Object> }>} searchCatalog - Searches the temporal catalog with various filters and pagination.
+ * @property {function(): Promise<{ success: boolean, stats: { totalRepositories: number, activeRepositories: number, archivedRepositories: number, totalStars: number, averageStars: number, licenses: Array<{ name: string, count: number }> } }>} getStats - Retrieves aggregated statistics about the temporal catalog.
+ */
+
+/**
+ * Provides a service layer for managing and querying the Temporal repository catalog.
+ * This includes synchronization from local scan results, searching, and retrieving aggregated statistics.
+ * @type {TemporalCatalogService}
+ */
 export const TemporalCatalogService = {
   syncCatalog,
   searchCatalog,
