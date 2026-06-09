@@ -2,17 +2,61 @@ import { GoogleAuth } from 'google-auth-library';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
+/**
+ * GoogleAuth client instance configured with 'https://www.googleapis.com/auth/cloud-platform' scope.
+ * This client is used to authenticate requests to Google Cloud APIs.
+ * @type {GoogleAuth}
+ */
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
 
 /**
- * Queries a Vertex AI Search & Conversation (Discovery Engine) semantic data store.
- * 
- * @param {string} dataStoreId - Discovery Engine Data Store ID
- * @param {string} query - Search query string
- * @param {object} [options] - Additional search arguments (pageSize, filter, location)
- * @returns {Promise<object>} Discovery Engine structured search results
+ * Queries a Vertex AI Search & Conversation (Discovery Engine) semantic data store
+ * to retrieve relevant documents based on a natural language query.
+ *
+ * This function handles authentication, constructs the request, and processes the
+ * Discovery Engine API response into a more consumable format.
+ *
+ * @param {string} dataStoreId - The unique identifier of the Discovery Engine Data Store to query.
+ *                                This typically follows the format `projects/PROJECT_NUMBER/locations/LOCATION/dataStores/DATA_STORE_ID`.
+ * @param {string} query - The natural language search query string.
+ * @param {object} [options] - Optional configuration for the search request.
+ * @param {string} [options.location] - The GCP region where the data store is located (e.g., 'global', 'us-central1').
+ *                                      Defaults to `config.google.gcp_location` or 'global'.
+ * @param {number} [options.pageSize=10] - The maximum number of search results to return. Max 100.
+ * @param {string} [options.filter] - An optional filter expression to refine search results.
+ *                                    See Discovery Engine documentation for filter syntax.
+ * @returns {Promise<{
+ *   success: boolean,
+ *   originalQuery: string,
+ *   dataStoreId?: string,
+ *   totalCount?: number,
+ *   results: Array<{
+ *     id: string,
+ *     name: string,
+ *     title: string,
+ *     snippet: string,
+ *     link: string,
+ *     relevanceScore: number,
+ *     index: number
+ *   }>,
+ *   error?: string
+ * }>} A promise that resolves to an object containing the search results or an error.
+ *   - `success`: `true` if the query was successful, `false` otherwise.
+ *   - `originalQuery`: The query string that was used.
+ *   - `dataStoreId`: The ID of the data store that was queried (present on success).
+ *   - `totalCount`: The number of results found (present on success).
+ *   - `results`: An array of structured search result objects. Each object contains:
+ *     - `id`: The unique ID of the document.
+ *     - `name`: The full resource name of the document.
+ *     - `title`: The title of the document.
+ *     - `snippet`: A short textual snippet from the document relevant to the query.
+ *     - `link`: A URL link to the original document, if available.
+ *     - `relevanceScore`: A score indicating the relevance of the document to the query.
+ *     - `index`: The 1-based index of the result in the returned list.
+ *   - `error`: An error message if the query failed (present on failure).
+ * @throws {Error} If `GCP_PROJECT_ID` or `dataStoreId` is not configured or provided.
  */
 const searchDataStore = async (dataStoreId, query, options = {}) => {
   try {
@@ -95,6 +139,16 @@ const searchDataStore = async (dataStoreId, query, options = {}) => {
   }
 };
 
+/**
+ * Provides a service interface for interacting with Google Cloud Vertex AI Search (Discovery Engine).
+ * @namespace GcpVertexSearchService
+ */
 export const GcpVertexSearchService = {
+  /**
+   * @function searchDataStore
+   * @memberof GcpVertexSearchService
+   * @description Queries a Vertex AI Search & Conversation (Discovery Engine) semantic data store.
+   * @see {@link searchDataStore} for detailed documentation.
+   */
   searchDataStore
 };
