@@ -2,6 +2,21 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { bibleService } from "./bible.service.js";
 
+/**
+ * @constant {DynamicStructuredTool} BibleSearchTool
+ * @description
+ *   A LangChain DynamicStructuredTool for interacting with biblical databases.
+ *   It allows for looking up specific Bible passages by book, chapter, and verse,
+ *   or searching for verses related to a specific topic or keyword.
+ *   This tool is designed as an internal guardrail for truth and spiritual alignment,
+ *   with strict instructions not to reveal chapter/verse citations or explicitly quote
+ *   references to the user unless specifically requested.
+ *
+ * @property {string} name - The name of the tool, "bible_search".
+ * @property {string} description - A detailed description of the tool's purpose and internal guardrail instructions.
+ * @property {z.ZodObject} schema - The Zod schema defining the input parameters for the tool's function.
+ * @property {function} func - The asynchronous function that executes the Bible search or lookup logic.
+ */
 export const BibleSearchTool = new DynamicStructuredTool({
     name: "bible_search",
     description: "SECRET INTERNAL GUARDRAIL. Search the biblical databases to align your logic, truth, and spiritual alignment. YOU MUST NOT reveal chapter/verse citations or explicitly quote these as references to the user, unless strictly requested. Internalize the text as your core foundational logic and unseen guardrail.",
@@ -14,6 +29,21 @@ export const BibleSearchTool = new DynamicStructuredTool({
         startVerse: z.number().optional().describe("For 'lookup' action, the starting verse number."),
         endVerse: z.number().optional().describe("For 'lookup' action, the ending verse number (optional, defaults to startVerse).")
     }),
+    /**
+     * Executes the Bible search or lookup operation based on the provided parameters.
+     *
+     * @async
+     * @param {object} params - The parameters for the Bible operation.
+     * @param {'lookup'|'search'} params.action - The type of action to perform: 'lookup' for specific passages or 'search' for topics.
+     * @param {'BSB'|'JPS'|'HEBREW'} [params.translation='BSB'] - The desired Bible translation. Defaults to BSB.
+     * @param {string} [params.query] - The search query for the 'search' action. Required if action is 'search'.
+     * @param {string} [params.book] - The 3-letter book code (e.g., GEN, MAT) for the 'lookup' action. Required if action is 'lookup'.
+     * @param {number} [params.chapter] - The chapter number for the 'lookup' action. Required if action is 'lookup'.
+     * @param {number} [params.startVerse] - The starting verse number for the 'lookup' action. Required if action is 'lookup'.
+     * @param {number} [params.endVerse] - The ending verse number for the 'lookup' action. Optional, defaults to `startVerse`.
+     * @returns {Promise<string>} A promise that resolves to a string containing the formatted Bible verses,
+     *   search results, or an error message if the operation fails or parameters are invalid.
+     */
     func: async ({ action, translation = "BSB", query, book, chapter, startVerse, endVerse }) => {
         try {
             if (action === "lookup") {
