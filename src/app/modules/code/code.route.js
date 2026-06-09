@@ -89,8 +89,11 @@ router.post(
   '/assistant',
   optionalAuth(),
   extractTenantContext,
-  checkDailyRequestLimit,
+  // Moved createRateLimiter before checkDailyRequestLimit.
+  // IP-based rate limiting is typically a cheaper check than user/tenant-based daily limits,
+  // allowing for faster rejection of requests from already throttled IPs.
   createRateLimiter(30, 15), // 30 code requests per 15 minutes (applies to all users)
+  checkDailyRequestLimit,
   validateRequest(CodeValidation.codeQuerySchema),
   codeController.performCodeTask
 );
