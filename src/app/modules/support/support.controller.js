@@ -3,6 +3,7 @@ import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { supportService } from './support.service.js';
 import { logger } from '../../../shared/logger.js';
+import mongoose from 'mongoose'; // Optimization: Imported mongoose for ObjectId validation in bulkDeleteSupportReq.
 
 /**
  * @typedef {object} SupportRequestPayload
@@ -98,7 +99,12 @@ import { logger } from '../../../shared/logger.js';
 const reqForSupport = catchAsync(async (req, res) => {
   // logger.info(req.body, "blog dataaaa");
   const data = req.body;
-  const userId = req.body.id;
+  const userId = req.body.id; // This `id` is the user's ID, not the support request's `_id`.
+
+  // Optimization Recommendation:
+  // If `userId` is frequently used to query support requests (e.g., "get all support requests for a user"),
+  // ensure there is an index on the `userId` field in the SupportRequest Mongoose model.
+  // Example: `supportRequestSchema.index({ userId: 1 });`
   const result = await supportService.reqForSupportService(userId, data);
 
   sendResponse(res, {
@@ -152,6 +158,11 @@ const reqForSupport = catchAsync(async (req, res) => {
  * @throws {Error} If an error occurs during the retrieval of support requests.
  */
 const getAllSupportReq = catchAsync(async (req, res) => {
+  // Optimization Recommendation:
+  // For read operations like this, consider adding `.lean()` to the Mongoose query
+  // in `supportService.getAllSupportService()` if the returned documents are
+  // only used for sending as JSON and no Mongoose document methods are needed.
+  // This can improve performance by returning plain JavaScript objects instead of Mongoose documents.
   const result = await supportService.getAllSupportService();
 
   sendResponse(res, {
@@ -215,6 +226,11 @@ const getAllSupportReq = catchAsync(async (req, res) => {
 const getSupportById = catchAsync(async (req, res) => {
   const id = req.params?.id;
   logger.info(id, 'idddddddd');
+  // Optimization Recommendation:
+  // For read operations like this, consider adding `.lean()` to the Mongoose query
+  // in `supportService.getSupportServiceById(id)` if the returned document is
+  // only used for sending as JSON and no Mongoose document methods are needed.
+  // This can improve performance by returning a plain JavaScript object instead of a Mongoose document.
   const result = await supportService.getSupportServiceById(id);
 
   sendResponse(res, {
@@ -440,10 +456,9 @@ const bulkDeleteSupportReq = catchAsync(async (req, res) => {
   const ids = req.body?.ids || [];
   logger.info(ids, 'controller idddddddddddd');
 
-  // Validate IDs (assuming mongoose is available in the environment for isValid)
-  // Note: The `mongoose` import is not present in this file, but the logic implies its usage.
-  // This validation will throw an error if `mongoose` is not defined or `isValid` is not a function.
-  if (typeof mongoose !== 'undefined' && mongoose.Types && typeof mongoose.Types.ObjectId.isValid === 'function') {
+  // Validate IDs using Mongoose's ObjectId validator.
+  // Optimization: `mongoose` is now imported at the top of the file to ensure `mongoose.Types.ObjectId.isValid` is available.
+  if (mongoose.Types && typeof mongoose.Types.ObjectId.isValid === 'function') {
     if (!ids.every((id) => mongoose.Types.ObjectId.isValid(id))) {
       throw { message: 'Invalid IDs provided' };
     }
