@@ -3,9 +3,15 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { llm } from './llm.js';
 
 /**
- * Analyzes the user's initial prompt and generates clarifying questions for video generation.
- * @param {string} initialPrompt - The user's first input.
- * @returns {Promise<string[]>} - An array of questions.
+ * Analyzes an initial user prompt to generate a set of clarifying questions,
+ * guiding the user to provide more detailed specifications for video generation.
+ * These questions help in building a comprehensive video prompt by covering
+ * various aspects like visual style, duration, movement, mood, and camera angles.
+ *
+ * @param {string} initialPrompt - The user's initial input or idea for the video.
+ * @returns {Promise<string[]>} A promise that resolves to an array of strings,
+ *   where each string is a clarifying question. Returns an empty array or a default
+ *   set of questions if an error occurs during generation.
  */
 export const generateVideoClarifyingQuestions = async (initialPrompt) => {
   const parser = new JsonOutputParser();
@@ -31,6 +37,7 @@ export const generateVideoClarifyingQuestions = async (initialPrompt) => {
     return result.questions || [];
   } catch (error) {
     console.error('Error generating video clarifying questions:', error);
+    // Fallback questions in case of an error
     return [
       'What is the main subject or scene in your video?',
       'What visual style do you prefer (realistic, animated, cinematic, artistic)?',
@@ -43,9 +50,13 @@ export const generateVideoClarifyingQuestions = async (initialPrompt) => {
 };
 
 /**
- * Analyzes the user's response to see if they are finished providing video details.
- * @param {string} userResponse - The latest message from the user.
- * @returns {Promise<boolean>} - True if the user is finished, false otherwise.
+ * Analyzes the user's latest response to determine if they have finished
+ * providing details for the video generation and are ready to proceed.
+ * It looks for specific keywords and phrases indicating completion.
+ *
+ * @param {string} userResponse - The latest message or input from the user.
+ * @returns {Promise<boolean>} A promise that resolves to `true` if the user
+ *   is deemed finished based on their response, `false` otherwise.
  */
 export const isUserFinishedVideo = async (userResponse) => {
   if (!userResponse) return false;
@@ -76,17 +87,22 @@ export const isUserFinishedVideo = async (userResponse) => {
     return cleanResult === 'true';
   } catch (error) {
     console.error('Error checking if user is finished with video:', error);
-    // If there's an error, assume they're not finished
+    // If there's an error, assume they're not finished to allow more input
     return false;
   }
 };
 
 /**
- * Updates the refined video prompt by incorporating the user's response.
- * @param {string} currentPrompt - The current refined prompt.
- * @param {string} userResponse - The user's latest response.
- * @param {Array} conversationHistory - The full conversation history.
- * @returns {Promise<string>} - The updated refined prompt.
+ * Updates an existing refined video prompt by seamlessly incorporating
+ * new information provided in the user's latest response.
+ * This function aims to build a more detailed and cohesive prompt for video generation.
+ *
+ * @param {string} currentPrompt - The current refined prompt that needs updating.
+ * @param {string} userResponse - The user's latest response containing new details.
+ * @param {Array<Object>} conversationHistory - The full conversation history,
+ *   used to provide context for the LLM. It's typically an array of message objects.
+ * @returns {Promise<string>} A promise that resolves to the updated and refined prompt string.
+ *   In case of an error, it returns a simple concatenation of the current prompt and user response.
  */
 export const updateVideoRefinedPrompt = async (
   currentPrompt,
@@ -123,15 +139,20 @@ export const updateVideoRefinedPrompt = async (
     return result.content || result;
   } catch (error) {
     console.error('Error updating video refined prompt:', error);
-    // Fallback: simple concatenation
+    // Fallback: simple concatenation if LLM fails
     return `${currentPrompt}. ${userResponse}`;
   }
 };
 
 /**
- * Compiles the final, optimized prompt for video generation.
- * @param {string} refinedPrompt - The refined prompt with all user feedback.
- * @returns {Promise<string>} - The final, optimized prompt.
+ * Compiles the final, optimized prompt for video generation based on
+ * all the refined details gathered from the user. This prompt is designed
+ * to be highly specific and effective for AI video generation models.
+ *
+ * @param {string} refinedPrompt - The refined prompt that includes all user feedback
+ *   and details collected throughout the conversation.
+ * @returns {Promise<string>} A promise that resolves to the final, optimized prompt string
+ *   ready for video generation. In case of an error, it returns the refined prompt as-is.
  */
 export const compileVideoFinalPrompt = async (refinedPrompt) => {
   const prompt = PromptTemplate.fromTemplate(
@@ -161,7 +182,7 @@ export const compileVideoFinalPrompt = async (refinedPrompt) => {
     return result.content || result;
   } catch (error) {
     console.error('Error compiling final video prompt:', error);
-    // Fallback: return the refined prompt as-is
+    // Fallback: return the refined prompt as-is if LLM fails
     return refinedPrompt;
   }
 };
