@@ -85,14 +85,37 @@ async function cacheGet(key) {
   try {
     const val = await RedisClient.get(`realestate:${key}`);
     return val ? JSON.parse(val) : null;
-  } catch { return null; }
+  } catch (error) {
+    // Log the error but don't prevent the main logic from proceeding without cache
+    logger.error(`[RealEstateService] Error getting from cache for key ${key}: ${error.message}`);
+    return null;
+  }
 }
 
 async function cacheSet(key, val, ttlSeconds) {
   try {
     await RedisClient.setEx(`realestate:${key}`, ttlSeconds, JSON.stringify(val));
-  } catch {}
+  } catch (error) {
+    // Log the error but don't prevent the main logic from proceeding without cache
+    logger.error(`[RealEstateService] Error setting to cache for key ${key}: ${error.message}`);
+  }
 }
+
+/**
+ * Helper for consistent cache keys for objects by sorting keys before stringifying.
+ * This prevents cache misses due to inconsistent key order in JSON.stringify.
+ */
+const getStableCacheKey = (obj) => {
+  if (typeof obj !== 'object' || obj === null) {
+    return String(obj);
+  }
+  const sortedKeys = Object.keys(obj).sort();
+  const sortedObj = {};
+  for (const key of sortedKeys) {
+    sortedObj[key] = obj[key];
+  }
+  return JSON.stringify(sortedObj);
+};
 
 // ─── High-Fidelity Mock Data ──────────────────────────────────────────────────
 const MOCK_PROPERTIES = [
@@ -237,11 +260,12 @@ export const searchPropertyService = async (criteria) => {
     // Locate match in mock array based on simple queries
     const addr = (criteria.address || '').toLowerCase();
     const city = (criteria.city || '').toLowerCase();
-    const matches = MOCK_PROPERTIES.filter(p => 
-      (addr && p.address.toLowerCase().includes(addr)) || 
+    const matches = MOCK_PROPERTIES.filter(p =>
+      (addr && p.address.toLowerCase().includes(addr)) ||
       (city && p.city.toLowerCase().includes(city))
     );
-    const data = matches.length > 0 ? matches : [MOCK_PROPERTIES[0]];
+    // Bug fix: Return empty array if no matches, instead of an arbitrary first mock property.
+    const data = matches;
     registerDiagnostic('searchPropertyService', Date.now() - start, 'MISS');
     return data;
   }
@@ -268,8 +292,11 @@ export const getPropertyDetailService = async (idParams) => {
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    const prop = MOCK_PROPERTIES.find(p => p.id === propId || p.address.toLowerCase().includes(String(propId).toLowerCase())) || MOCK_PROPERTIES[0];
-    await cacheSet(cacheKey, prop, TTL.detail);
+    // Bug fix: Return null if no mock property matches, instead of an arbitrary first mock property.
+    const prop = MOCK_PROPERTIES.find(p => p.id === propId || p.address.toLowerCase().includes(String(propId).toLowerCase())) || null;
+    if (prop) {
+      await cacheSet(cacheKey, prop, TTL.detail);
+    }
     registerDiagnostic('getPropertyDetailService', Date.now() - start, 'MISS');
     return prop;
   }
@@ -298,8 +325,11 @@ export const getPropertyAvmService = async (idParams) => {
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    const avm = MOCK_AVM[propId] || MOCK_AVM.prop_90210_1;
-    await cacheSet(cacheKey, avm, TTL.avm);
+    // Bug fix: Return null if no mock AVM matches, instead of an arbitrary first mock AVM.
+    const avm = MOCK_AVM[propId] || null;
+    if (avm) {
+      await cacheSet(cacheKey, avm, TTL.avm);
+    }
     registerDiagnostic('getPropertyAvmService', Date.now() - start, 'MISS');
     return avm;
   }
@@ -330,14 +360,17 @@ export const getPropertyCompsService = async (idParams) => {
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    let comps = MOCK_COMPS[propId] || MOCK_COMPS.prop_90210_1;
+    // Bug fix: Return empty array if no mock comps match, instead of an arbitrary first mock comps.
+    let comps = MOCK_COMPS[propId] || [];
     if (radiusMiles) {
       comps = comps.filter(c => c.distanceMiles <= radiusMiles);
     }
     if (compsLimit) {
       comps = comps.slice(0, compsLimit);
     }
-    await cacheSet(cacheKey, comps, TTL.comps);
+    if (comps.length > 0) {
+      await cacheSet(cacheKey, comps, TTL.comps);
+    }
     registerDiagnostic('getPropertyCompsService', Date.now() - start, 'MISS');
     return comps;
   }
@@ -357,7 +390,8 @@ export const searchMlsService = async (criteria) => {
   const start = Date.now();
   logger.info(`[RealEstateService] MLS Search: ${JSON.stringify(criteria)}`);
 
-  const cacheKey = `mls:${JSON.stringify(criteria)}`;
+  // Bug fix: Use a stable cache key for criteria objects to prevent cache misses due to key order.
+  const cacheKey = `mls:${getStableCacheKey(criteria)}`;
   const cached = await cacheGet(cacheKey);
   if (cached) {
     registerDiagnostic('searchMlsService', Date.now() - start, 'HIT');
@@ -400,12 +434,12 @@ export const searchMlsService = async (criteria) => {
       filtered = filtered.filter(p => p.propertyType === criteria.propertyType);
     }
 
-    // Default mock fallback if no results match
-    if (filtered.length === 0) {
-      filtered = MOCK_MLS.filter(p => p.city.toLowerCase() === 'atlanta');
+    // Bug fix: If no results match, return an empty array instead of an arbitrary default.
+    // The previous logic `if (filtered.length === 0) { filtered = MOCK_MLS.filter(p => p.city.toLowerCase() === 'atlanta'); }`
+    // was removed to ensure accurate mock behavior.
+    if (filtered.length > 0) {
+      await cacheSet(cacheKey, filtered, TTL.mls);
     }
-
-    await cacheSet(cacheKey, filtered, TTL.mls);
     registerDiagnostic('searchMlsService', Date.now() - start, 'MISS');
     return filtered;
   }
@@ -434,8 +468,11 @@ export const getSkipTraceService = async (idParams) => {
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    const trace = MOCK_SKIP[propId] || MOCK_SKIP.prop_90210_1;
-    await cacheSet(cacheKey, trace, TTL.skip);
+    // Bug fix: Return null if no mock skip trace matches, instead of an arbitrary first mock trace.
+    const trace = MOCK_SKIP[propId] || null;
+    if (trace) {
+      await cacheSet(cacheKey, trace, TTL.skip);
+    }
     registerDiagnostic('getSkipTraceService', Date.now() - start, 'MISS');
     return trace;
   }
