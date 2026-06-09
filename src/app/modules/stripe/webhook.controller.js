@@ -53,13 +53,41 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
     );
   }
 
+  // CRITICAL SECURITY/FUNCTIONAL FIX: Ensure req.body is the raw buffer for Stripe signature verification.
+  // If Express's `express.json()` middleware is applied globally before this route, `req.body` will be parsed
+  // into an object, causing signature verification to fail.
+  // The webhook route MUST use `express.raw({ type: 'application/json' })` middleware to provide the raw body.
+  const rawBody = req.body;
+  if (!Buffer.isBuffer(rawBody) && typeof rawBody !== 'string') {
+    logger.error(
+      `[STRIPE_WEBHOOK_ERROR] Webhook payload is not raw buffer/string. Type: ${typeof rawBody}. ` +
+      `Ensure 'express.raw({ type: "application/json" })' middleware is used for this route, ` +
+      `and placed BEFORE any 'express.json()' middleware.`
+    );
+    sendSecurityAlert(
+      'Stripe Webhook Misconfiguration (Legacy Controller)',
+      `Stripe webhook received a parsed payload (object) instead of the raw body. ` +
+      `Signature verification will fail. Check Express middleware configuration.`,
+      {
+        senderIp: clientIp,
+        payloadType: typeof rawBody,
+        userAgent: req.headers['user-agent'] || 'none',
+        signaturePresent: !!sig
+      }
+    ).catch(() => {});
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Webhook payload format error: raw body required for signature verification.'
+    );
+  }
+
   let event;
   let verificationError = null;
 
   try {
     // Try primary secret first
     try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
     } catch (primaryErr) {
       verificationError = primaryErr;
 
@@ -67,7 +95,7 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
       if (fallbackSecret) {
         logger.info('[Stripe Security] Primary webhook secret verification failed. Trying fallback secret...');
         try {
-          event = stripe.webhooks.constructEvent(req.body, sig, fallbackSecret);
+          event = stripe.webhooks.constructEvent(rawBody, sig, fallbackSecret);
           verificationError = null; // Verified! Clear error
           logger.info('[Stripe Security] Webhook signature verified successfully using fallback secret.');
         } catch (fallbackErr) {
@@ -103,7 +131,8 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
 
   // Webhook Replay Protection Guard
   // Optimization: Add .lean() for faster query as the document is not modified.
-  // Optimization: Ensure 'eventId' in StripeEvent model has a unique index for efficient lookups and replay protection.
+  // IMPORTANT: Ensure 'eventId' in StripeEvent model has a unique index for efficient lookups and robust replay protection.
+  // Without a unique index, a race condition could lead to duplicate event processing.
   const existingEvent = await StripeEvent.findOne({ eventId: event.id }).lean();
   if (existingEvent) {
     logger.info(`Duplicate webhook event ${event.id} discarded in Legacy Webhook Controller.`);
@@ -128,7 +157,7 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
         const subscription = event.data.object;
         logger.info(`Subscription created: ${subscription.id}`);
 
-        // This is handled by processStripeCheckout
+        // This is typically handled by processStripeCheckout to avoid double processing.
         break;
       }
 
@@ -173,7 +202,7 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
         const invoice = event.data.object;
         logger.warn(`Payment action required for invoice: ${invoice.id}`);
 
-        // Send email to user to complete payment
+        // TODO: Implement logic to notify user to complete payment (e.g., send email).
         break;
       }
 
@@ -182,7 +211,7 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
         const subscription = event.data.object;
         logger.info(`Trial ending soon for subscription: ${subscription.id}`);
 
-        // Send reminder email
+        // TODO: Implement logic to send trial ending reminder email.
         break;
       }
 

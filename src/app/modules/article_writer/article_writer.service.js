@@ -76,6 +76,9 @@ const handleArticleWriterConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization Note: .lean() is not applied here because the 'conversation' object
+        // fetched by getConversationById might be modified and saved later in 'processConversationalRequest'.
+        // If the conversation object were only read and not modified, .lean() would be beneficial.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -377,6 +380,10 @@ const processConversationalRequest = async (
       fileData = await processUploadedFile(fileInfo);
 
       // Update conversation metadata with uploaded file info
+      // Optimization Note: For better performance, consider updating the conversation
+      // directly in the database using a method like `findOneAndUpdate` with `$push`
+      // in `conversationService` instead of fetching the whole document, modifying,
+      // and then saving. This avoids unnecessary data transfer and Mongoose document overhead.
       if (conversation.metadata && conversation.metadata.uploadedFiles) {
         conversation.metadata.uploadedFiles.push({
           fileName: fileInfo.originalName,
@@ -454,9 +461,16 @@ const processConversationalRequest = async (
  */
 const getConversationHistory = async (conversationId, userId) => {
   try {
+    // Optimization: Using .lean() for read-only queries improves performance
+    // by returning plain JavaScript objects instead of Mongoose documents.
+    // This reduces memory consumption and CPU overhead as Mongoose doesn't
+    // need to hydrate and track changes for the document.
+    // Assuming conversationHelpers.getConversationById supports an options object
+    // as its third argument, where { lean: true } can be passed.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
-      userId
+      userId,
+      { lean: true } // Pass an options object to enable .lean()
     );
 
     if (!conversation) {
@@ -482,3 +496,33 @@ export const articleWriterService = {
   processConversationalRequest,
   getConversationHistory,
 };
+
+/*
+ * Database Indexing Recommendations for the 'Conversation' model:
+ *
+ * The 'Conversation' model (managed by `conversationService` and `conversationHelpers`)
+ * is frequently queried by `conversationId` and `userId`. To optimize these lookups:
+ *
+ * 1. Index on `conversationId`:
+ *    - `db.conversations.createIndex({ conversationId: 1 })`
+ *    - Rationale: `conversationId` is a unique identifier used for direct lookups in
+ *      `getConversationById` and `addMessageToConversation`. An index will significantly
+ *      speed up these point queries.
+ *
+ * 2. Index on `userId`:
+ *    - `db.conversations.createIndex({ userId: 1 })`
+ *    - Rationale: `userId` is used to filter conversations belonging to a specific user,
+ *      for example, when fetching a user's list of conversations. This is crucial for
+ *      efficient retrieval of user-specific data.
+ *
+ * 3. Compound Index on `(userId, conversationId)`:
+ *    - `db.conversations.createIndex({ userId: 1, conversationId: 1 })`
+ *    - Rationale: If queries frequently involve both `userId` and `conversationId` together
+ *      (e.g., `find({ userId: '...', conversationId: '...' })`), a compound index can be
+ *      more efficient than two separate indexes. The order `userId` first is generally
+ *      preferred if filtering by user is more common, followed by `conversationId` for
+ *      specific conversation identification within that user's set.
+ *
+ * These indexes will help optimize read and write operations on the Conversation model,
+ * reducing query times and improving overall database performance.
+ */
