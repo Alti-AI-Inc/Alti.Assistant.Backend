@@ -161,7 +161,8 @@ const validateWithSchemas = (data, schemaName) => {
 
 // Phase 12: Semantic Query Cache
 const querySemanticallyCached = async (query, userId) => {
-  return await llama.querySemanticallycached(query, userId);
+  // Bug fix: Corrected typo in function call from 'querySemanticallycached' to 'querySemanticallyCached'
+  return await llama.querySemanticallyCached(query, userId);
 };
 
 // Phase 12: Adaptive Chunking Strategy
