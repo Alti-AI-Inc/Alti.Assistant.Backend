@@ -73,9 +73,10 @@ const getCurrentTenant = catchAsync(async (req, res) => {
  */
 const updateTenantSettings = catchAsync(async (req, res) => {
   const tenantId = req.user?.currentTenantId || req.user?.tenantId;
+  const updaterId = req.user?.id || req.user?._id;
   const updates = req.body;
 
-  const result = await tenantService.updateTenant(tenantId, updates);
+  const result = await tenantService.updateTenant(tenantId, updates, updaterId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -223,8 +224,9 @@ const updateMemberRole = catchAsync(async (req, res) => {
   const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const { userId } = req.params;
   const { role } = req.body;
+  const updaterId = req.user?.id || req.user?._id;
 
-  const result = await tenantService.updateMemberRole(tenantId, userId, role);
+  const result = await tenantService.updateMemberRole(tenantId, userId, role, updaterId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

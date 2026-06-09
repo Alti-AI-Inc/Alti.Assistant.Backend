@@ -91,10 +91,10 @@ const getSellerServiceById = async (id) => {
   return result;
 };
 
-const makeAdminService = async (userId) => {
+const updateUserRoleService = async (userId, targetRole) => {
   const filter = { _id: userId };
   const updateDoc = {
-    $set: { role: 'admin' },
+    $set: { role: targetRole },
   };
   const result = await UserModel.updateOne(filter, updateDoc, {
     runValidators: true,
@@ -102,7 +102,7 @@ const makeAdminService = async (userId) => {
   return result;
 };
 
-const deleteUserService = async (objectId) => {
+const deleteUserService = async (objectId, requesterRole = 'admin') => {
   if (!mongoose.Types.ObjectId.isValid(objectId)) {
     throw new Error('Invalid user ID format');
   }
@@ -116,8 +116,12 @@ const deleteUserService = async (objectId) => {
     throw new Error('User not found');
   }
 
-  if (user.role === 'admin') {
-    throw new Error('Cannot delete an admin user');
+  if (user.role === 'super_admin') {
+    throw new Error('Cannot delete a super_admin user');
+  }
+
+  if (user.role === 'admin' && requesterRole !== 'super_admin') {
+    throw new Error('Only a super_admin can delete an admin user');
   }
 
   const result = await UserModel.deleteOne({ _id: mongoId });
@@ -484,7 +488,7 @@ export const AdminService = {
   getAllUsersService,
   getAllBuyerServices,
   getSellerServiceById,
-  makeAdminService,
+  updateUserRoleService,
   deleteUserService,
   getAdminServices,
   getUserStatisticsByMonthService,

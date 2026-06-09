@@ -202,6 +202,9 @@ const handleStripeWebhook = catchAsync(async (req, res) => {
  * Simulates webhook events without Stripe CLI
  */
 const testWebhook = catchAsync(async (req, res) => {
+  if (config.env === 'production') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Test webhook is disabled in production environment');
+  }
   const { eventType, data } = req.body;
 
   logger.info(`Test webhook: ${eventType}`);

@@ -49,14 +49,25 @@ class DockerWorkspaceService {
         logger.info(`[SUCCESS] Custom Sandbox Image "${this.imageName}" successfully built.`);
       }
 
-      // 3. Ensure secure internal bridge network exists
+      // 3. Ensure secure internal bridge network exists with ICC disabled
+      let networkNeedsRecreation = false;
       try {
-        execSync('docker network inspect alti_sandbox_net', { stdio: 'ignore' });
+        const netInspect = execSync('docker network inspect alti_sandbox_net --format "{{json .Options}}"', { encoding: 'utf8' });
+        const options = JSON.parse(netInspect);
+        if (options['com.docker.network.bridge.enable_icc'] !== 'false') {
+          networkNeedsRecreation = true;
+          logger.info('[DOCKER] Existing sandbox network has ICC enabled. Recreating for secure isolation...');
+          execSync('docker network rm alti_sandbox_net', { stdio: 'ignore' });
+        }
       } catch {
+        networkNeedsRecreation = true;
+      }
+
+      if (networkNeedsRecreation) {
         const isInternal = process.env.DOCKER_NETWORK_INTERNAL === 'true';
-        logger.info(`[DOCKER] Creating secure sandbox network "alti_sandbox_net" (internal/offline: ${isInternal})...`);
+        logger.info(`[DOCKER] Creating secure sandbox network "alti_sandbox_net" (internal/offline: ${isInternal}, ICC: false)...`);
         const internalFlag = isInternal ? '--internal' : '';
-        execSync(`docker network create ${internalFlag} alti_sandbox_net`, { stdio: 'ignore' });
+        execSync(`docker network create -o com.docker.network.bridge.enable_icc=false ${internalFlag} alti_sandbox_net`, { stdio: 'ignore' });
       }
 
       this.initialized = true;

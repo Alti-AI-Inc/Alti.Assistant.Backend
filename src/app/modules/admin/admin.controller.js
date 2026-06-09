@@ -20,7 +20,8 @@ const getAllBuyer = catchAsync(async (req, res) => {
 
 const deleteUser = catchAsync(async (req, res) => {
   const objectId = req.params?.objectId;
-  const result = await AdminService.deleteUserService(objectId);
+  const requesterRole = req.user?.role || 'admin';
+  const result = await AdminService.deleteUserService(objectId, requesterRole);
 
   if (!result.deletedCount) {
     return res.status(400).json({
@@ -62,8 +63,16 @@ const getAllUsers = catchAsync(async (req, res) => {
 
 const updateUserRole = catchAsync(async (req, res) => {
   const { id } = req.params;
+  const { role } = req.body;
 
-  const result = await AdminService.makeAdminService(id);
+  if (!role) {
+    return res.status(400).json({
+      success: false,
+      error: 'role is required in the request body',
+    });
+  }
+
+  const result = await AdminService.updateUserRoleService(id, role);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

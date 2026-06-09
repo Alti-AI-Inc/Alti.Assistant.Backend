@@ -2,6 +2,7 @@ import WorkflowExecution from '../models/workflowExecution.model.js';
 import ComposioAuth from '../composio.model.js';
 import ScheduledWorkflow from '../models/scheduledWorkflow.model.js';
 import { logger } from '../../../../shared/logger.js';
+import queueManager from './queueManager.service.js';
 
 /**
  * Workflow Service - Core business logic for scheduled workflows
@@ -312,14 +313,20 @@ class WorkflowService {
         return executionResult;
       }
 
-      // TODO: Add to execution queue here
-      // For now, just return success
+      // Add to execution queue
+      const queueResult = await queueManager.queueWorkflow(workflow, 'high', {
+        executionId: executionResult.data.executionId,
+        executionType: 'manual',
+        triggerSource,
+      });
+
       console.log(`Workflow triggered manually: ${workflowId}`);
 
       return {
         success: true,
         data: {
           executionId: executionResult.data.executionId,
+          queueId: queueResult.queueId || null,
           status: 'queued',
         },
         message: 'Workflow execution started',

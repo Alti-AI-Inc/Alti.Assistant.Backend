@@ -164,11 +164,22 @@ const getTenantById = async (tenantId) => {
 /**
  * Update tenant
  */
-const updateTenant = async (tenantId, updates) => {
+const updateTenant = async (tenantId, updates, updaterId) => {
   const tenant = await Tenant.findById(tenantId);
 
   if (!tenant) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+
+  // Verify updater permissions
+  if (updaterId) {
+    const updater = await TenantMember.findOne({ userId: updaterId, tenantId });
+    if (!updater || !['admin', 'manager'].includes(updater.role)) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Insufficient permissions to update tenant settings'
+      );
+    }
   }
 
   // Only allow certain fields to be updated
@@ -381,6 +392,24 @@ const inviteMember = async (invitationData) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
 
+  // Verify inviter permissions
+  if (invitedBy) {
+    const inviter = await TenantMember.findOne({ userId: invitedBy, tenantId });
+    if (!inviter || !['admin', 'manager'].includes(inviter.role)) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Insufficient permissions to invite members'
+      );
+    }
+    // Prevent managers from inviting admins
+    if (inviter.role === 'manager' && role === 'admin') {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Managers cannot invite users as admin'
+      );
+    }
+  }
+
   // Check tenant's subscription to see if they can invite team members
   const subscription =
     await subscriptionService.getTenantSubscription(tenantId);
@@ -459,7 +488,25 @@ const inviteMember = async (invitationData) => {
 /**
  * Update member role
  */
-const updateMemberRole = async (tenantId, userId, role) => {
+const updateMemberRole = async (tenantId, userId, role, updaterId) => {
+  // Verify updater permissions
+  if (updaterId) {
+    const updater = await TenantMember.findOne({ userId: updaterId, tenantId });
+    if (!updater || !['admin', 'manager'].includes(updater.role)) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Insufficient permissions to update roles'
+      );
+    }
+    // Prevent managers from granting admin roles
+    if (updater.role === 'manager' && role === 'admin') {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Managers cannot promote users to admin'
+      );
+    }
+  }
+
   // 1. Search for active membership first as it's the source of truth
   const tenantMember = await TenantMember.findOne({ userId, tenantId });
 
@@ -473,6 +520,12 @@ const updateMemberRole = async (tenantId, userId, role) => {
       return invitation;
     }
     throw new ApiError(httpStatus.NOT_FOUND, 'Member or invitation not found');
+  }
+
+  // Prevent downgrading or modifying existing admins directly via this endpoint
+  // unless we have specific rules for admin management
+  if (tenantMember.role === 'admin' && role !== 'admin') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Cannot change the role of an existing admin');
   }
 
   // 3. Update the role in the TenantMember record

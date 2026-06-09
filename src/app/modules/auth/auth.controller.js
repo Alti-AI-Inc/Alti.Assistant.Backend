@@ -213,6 +213,12 @@ const deleteUserAccountOTP = async (req, res, next) => {
   try {
     const userId = req.params?.id;
 
+    if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user?._id?.toString() !== userId) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(httpStatus.FORBIDDEN).send({ error: 'You are not authorized to perform this action' });
+    }
+
     if (!userId) {
       await session.abortTransaction();
       session.endSession();
@@ -264,6 +270,12 @@ const deleteUserAccount = async (req, res, next) => {
   try {
     const userId = req.params?.id;
     const { otp } = req.body;
+
+    if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user?._id?.toString() !== userId) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(httpStatus.FORBIDDEN).send({ error: 'You are not authorized to perform this action' });
+    }
 
     if (!userId) {
       await session.abortTransaction();
@@ -399,6 +411,11 @@ const getUser = catchAsync(async (req, res) => {
 const updateUser = catchAsync(async (req, res) => {
   const userId = req.params?.userId;
   const data = req.body;
+
+  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin' && req.user?._id?.toString() !== userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to update this user');
+  }
+
   const result = await authService.updateUserService(userId, data);
   if (result.modifiedCount == !1) {
     throw new ApiError(

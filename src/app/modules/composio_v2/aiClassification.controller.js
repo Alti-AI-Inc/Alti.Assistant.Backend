@@ -8,11 +8,21 @@ import catchAsync from '../../../shared/catchAsync.js';
  * Controller for AI-powered user input classification and tool execution
  */
 const classifyAndExecuteController = catchAsync(async (req, res) => {
-  // Handle both authenticated and guest users
+  // Determine if the user is a guest. `req.isGuest` would typically be set by a middleware.
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? null : req.user?.userId || req.user?._id;
+  let userId;
+
+  // For authenticated users, userId must come from the authenticated session (req.user).
+  // For guest users, userId can be null or potentially provided in the request body for anonymous tracking.
+  // This prevents IDOR (Insecure Direct Object Reference) where an authenticated user could
+  // override their userId with one from the request body to impersonate another user.
+  if (!isGuest) {
+    userId = req.user?.userId || req.user?._id;
+  } else {
+    userId = req.body?.userId || null; // Guest can provide userId in body, otherwise null
+  }
+
   const { message, conversationId } = req.body;
-  userId = req.body?.userId || userId; // Allow overriding userId from request body
 
   if (!message) {
     return sendResponse(res, {
@@ -23,8 +33,6 @@ const classifyAndExecuteController = catchAsync(async (req, res) => {
   }
 
   try {
-    // For authenticated users, check if they have any connected accounts
-
     const result = await aiClassificationService.processUserInputService(
       message,
       {
@@ -108,12 +116,15 @@ const getSupportedAppsController = catchAsync(async (req, res) => {
     });
   } catch (error) {
     console.error('Error loading supported apps from DB:', error.message);
-    // Minimal fallback
+    // Bug Fix: Changed status code from OK to INTERNAL_SERVER_ERROR and success to false
+    // to accurately reflect that an error occurred during loading.
     sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Supported apps loaded from fallback',
-      data: {},
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: 'Failed to load supported apps',
+      data: {
+        error: error.message,
+      },
     });
   }
 });
@@ -218,9 +229,19 @@ const getUserConnectionsController = catchAsync(async (req, res) => {
  */
 const getConversationHistoryController = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest ? null : req.user?.userId || req.user?._id;
+  let userId;
+
+  // For authenticated users, userId must come from the authenticated session (req.user).
+  // For guest users, userId can be null or potentially provided in the query for anonymous tracking.
+  // This prevents IDOR (Insecure Direct Object Reference) where an authenticated user could
+  // override their userId with one from the query parameters to view another user's history.
+  if (!isGuest) {
+    userId = req.user?.userId || req.user?._id;
+  } else {
+    userId = req.query?.userId || null; // Guest can provide userId in query, otherwise null
+  }
+
   const { conversationId, limit } = req.query;
-  userId = req.query?.userId || userId;
 
   if (!userId) {
     return sendResponse(res, {
