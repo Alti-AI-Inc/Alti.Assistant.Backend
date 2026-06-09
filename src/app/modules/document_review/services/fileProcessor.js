@@ -1,3 +1,11 @@
+/**
+ * @file This file provides a set of utility functions for processing files,
+ * including text extraction from various document types (PDF, DOCX, TXT)
+ * and integration with Google Cloud Storage for file uploads and deletions.
+ * It handles initialization of GCS based on environment variables and
+ * provides fallback mechanisms for local storage if GCS is not configured.
+ */
+
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -9,10 +17,22 @@ import ApiError from '../../../../errors/ApiError.js';
 import httpStatus from 'http-status';
 import { STORAGE_CONFIG } from '../document_review.constant.js';
 
-// Initialize Google Cloud Storage
+/**
+ * Google Cloud Storage client instance.
+ * @type {Storage | undefined}
+ */
 let storage;
+/**
+ * Google Cloud Storage bucket instance.
+ * @type {import('@google-cloud/storage').Bucket | undefined}
+ */
 let bucket;
 
+/**
+ * Initializes the Google Cloud Storage client and bucket based on environment variables.
+ * If GCS credentials are not found, a warning is logged, and document uploads will
+ * default to local storage.
+ */
 try {
   const keyFile = process.env.GCS_KEY_FILE;
   const projectId = process.env.GCP_PROJECT_ID;
@@ -41,7 +61,11 @@ try {
 }
 
 /**
- * Extract text from PDF file
+ * Extracts text content from a PDF file.
+ * @async
+ * @param {string} filePath - The absolute path to the PDF file.
+ * @returns {Promise<string>} A promise that resolves with the extracted text content of the PDF.
+ * @throws {ApiError} If there's an error reading the file or extracting text, with status BAD_REQUEST.
  */
 const extractTextFromPDF = async (filePath) => {
   try {
@@ -61,7 +85,11 @@ const extractTextFromPDF = async (filePath) => {
 };
 
 /**
- * Extract text from DOCX file
+ * Extracts text content from a DOCX file.
+ * @async
+ * @param {string} filePath - The absolute path to the DOCX file.
+ * @returns {Promise<string>} A promise that resolves with the extracted text content of the DOCX file.
+ * @throws {ApiError} If there's an error reading the file or extracting text, with status BAD_REQUEST.
  */
 const extractTextFromDOCX = async (filePath) => {
   try {
@@ -77,7 +105,11 @@ const extractTextFromDOCX = async (filePath) => {
 };
 
 /**
- * Extract text from plain text file
+ * Extracts text content from a plain text file.
+ * @async
+ * @param {string} filePath - The absolute path to the TXT file.
+ * @returns {Promise<string>} A promise that resolves with the extracted text content of the TXT file.
+ * @throws {ApiError} If there's an error reading the file, with status BAD_REQUEST.
  */
 const extractTextFromTXT = async (filePath) => {
   try {
@@ -90,7 +122,14 @@ const extractTextFromTXT = async (filePath) => {
 };
 
 /**
- * Main function to extract text from any supported file type
+ * Main function to extract text from any supported file type (PDF, DOCX, TXT).
+ * It determines the file type based on the original file name's extension.
+ * @async
+ * @param {object} fileInfo - An object containing information about the file.
+ * @param {string} fileInfo.path - The absolute path to the temporary file.
+ * @param {string} fileInfo.originalName - The original name of the file, used to determine the file type.
+ * @returns {Promise<string>} A promise that resolves with the extracted text content.
+ * @throws {ApiError} If the file type is unsupported or if any extraction fails, with status BAD_REQUEST.
  */
 const extractTextFromFile = async (fileInfo) => {
   try {
@@ -134,7 +173,11 @@ const extractTextFromFile = async (fileInfo) => {
 };
 
 /**
- * Clean up temporary file
+ * Cleans up a temporary file by deleting it from the file system.
+ * Logs a warning if the file deletion fails.
+ * @async
+ * @param {string} filePath - The absolute path to the file to be deleted.
+ * @returns {Promise<void>} A promise that resolves when the file has been deleted or if deletion fails (logs a warning).
  */
 const cleanupFile = async (filePath) => {
   try {
@@ -146,7 +189,25 @@ const cleanupFile = async (filePath) => {
 };
 
 /**
- * Upload file to Google Cloud Storage and return signed URL
+ * Uploads a file to Google Cloud Storage and returns a signed URL for access.
+ * If GCS is not configured or the upload fails, it falls back to returning
+ * the local file path and details, indicating local storage.
+ * @async
+ * @param {string} localFilePath - The absolute path to the local file to upload.
+ * @param {string} filename - The desired filename for the uploaded file in GCS.
+ * @param {object} [documentMetadata={}] - Optional metadata to associate with the document in GCS.
+ * @param {string} [documentMetadata.userId='anonymous'] - The ID of the user uploading the document.
+ * @param {string} [documentMetadata.documentType='review'] - The type of document (e.g., 'review', 'template').
+ * @param {string} [documentMetadata.originalName] - The original name of the file before any renaming.
+ * @returns {Promise<object>} A promise that resolves with an object containing upload details.
+ * @property {boolean} success - Indicates if the upload operation was successful (true even for local fallback).
+ * @property {string} [gcsPath] - The Google Cloud Storage path (gs://...) if uploaded to GCS.
+ * @property {string} [publicUrl] - A signed URL for public access if uploaded to GCS.
+ * @property {string} [localPath] - The local file path if GCS is not configured or upload fails.
+ * @property {string} fileName - The name of the file.
+ * @property {string} [destination] - The full destination path within the GCS bucket if uploaded to GCS.
+ * @property {string} storageType - 'gcs' if uploaded to GCS, 'local' otherwise.
+ * @property {string} [error] - Error message if GCS upload failed and fallback to local path occurred.
  */
 const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
   try {
@@ -212,7 +273,12 @@ const uploadToGCS = async (localFilePath, filename, documentMetadata = {}) => {
 };
 
 /**
- * Delete document from Google Cloud Storage
+ * Deletes a document from Google Cloud Storage.
+ * @async
+ * @param {string} gcsPath - The Google Cloud Storage path (e.g., gs://your-bucket/path/to/file) of the document to delete.
+ * @returns {Promise<object>} A promise that resolves with an object indicating success or failure.
+ * @property {boolean} success - True if deletion was successful, false otherwise.
+ * @property {string} message - A message describing the outcome of the operation.
  */
 const deleteDocumentFromGCS = async (gcsPath) => {
   try {
@@ -237,7 +303,9 @@ const deleteDocumentFromGCS = async (gcsPath) => {
 };
 
 /**
- * Get MIME type from filename
+ * Determines the MIME type of a file based on its extension.
+ * @param {string} filename - The name of the file, including its extension.
+ * @returns {string} The MIME type corresponding to the file extension, or 'application/octet-stream' if unknown.
  */
 const getMimeType = (filename) => {
   const ext = path.extname(filename).toLowerCase();
@@ -257,6 +325,22 @@ const getMimeType = (filename) => {
   return mimeTypes[ext] || 'application/octet-stream';
 };
 
+/**
+ * @typedef {object} FileProcessorService
+ * @property {function(object): Promise<string>} extractTextFromFile - Extracts text from various file types (PDF, DOCX, TXT).
+ * @property {function(string): Promise<string>} extractTextFromPDF - Extracts text from a PDF file.
+ * @property {function(string): Promise<string>} extractTextFromDOCX - Extracts text from a DOCX file.
+ * @property {function(string): Promise<string>} extractTextFromTXT - Extracts text from a TXT file.
+ * @property {function(string): Promise<void>} cleanupFile - Deletes a temporary file from the file system.
+ * @property {function(string, string, object): Promise<object>} uploadToGCS - Uploads a file to Google Cloud Storage or returns local path as fallback.
+ * @property {function(string): Promise<object>} deleteDocumentFromGCS - Deletes a document from Google Cloud Storage.
+ * @property {function(string): string} getMimeType - Determines the MIME type of a file based on its extension.
+ */
+
+/**
+ * An object containing all file processing utility functions.
+ * @type {FileProcessorService}
+ */
 export const fileProcessor = {
   extractTextFromFile,
   extractTextFromPDF,

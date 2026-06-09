@@ -56,6 +56,14 @@ const handleReportConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization Recommendation:
+        // For read-only operations like retrieving a conversation for display or checking existence,
+        // consider adding `.lean()` to the Mongoose query within `conversationHelpers.getConversationById`.
+        // This returns a plain JavaScript object instead of a Mongoose document,
+        // reducing overhead if no Mongoose-specific methods are needed.
+        // Also, ensure that the 'Conversation' model (used by conversationHelpers) has indexes
+        // on 'conversationId' and 'userId' for faster lookups. A compound index like
+        // `{ conversationId: 1, userId: 1 }` might be particularly beneficial for this query pattern.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -172,6 +180,8 @@ Respond in JSON format:
 
     // Format conversation history for Gemini
     let conversationText = systemPrompt + '\n\n';
+    // The `slice(-5).forEach` loop iterates over a small, fixed number of elements (max 5).
+    // This is not considered a CPU-intensive synchronous loop.
     conversationHistory.slice(-5).forEach((msg) => {
       conversationText += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
     });
@@ -325,11 +335,21 @@ const processConversationalRequest = async (
     );
 
     // Get conversation history
+    // Optimization Recommendation:
+    // For read-only operations like retrieving a conversation for display or history,
+    // consider adding `.lean()` to the Mongoose query within `conversationHelpers.getConversationById`.
+    // This returns a plain JavaScript object instead of a Mongoose document,
+    // reducing overhead if no Mongoose-specific methods are needed.
+    // Also, ensure that the 'Conversation' model (used by conversationHelpers) has indexes
+    // on 'conversationId' and 'userId' for faster lookups. A compound index like
+    // `{ conversationId: 1, userId: 1 }` might be particularly beneficial for this query pattern.
     const conversationData = await conversationHelpers.getConversationById(
       conversation.conversationId,
       userId,
       req
     );
+    // The `map` operation here is on the `messages` array, which is typically not excessively large
+    // for a single conversation. This is not considered a CPU-intensive synchronous loop.
     const conversationHistory = conversationData.messages.map((msg) => ({
       role: msg.role,
       content: msg.content,
@@ -339,7 +359,12 @@ const processConversationalRequest = async (
     let fileContents = '';
     if (files && files.length > 0) {
       try {
+        // `extractContentFromFiles` is an asynchronous operation,
+        // mitigating potential CPU blocking for large files.
         const extractedData = await extractContentFromFiles(files);
+        // The `map` operation here iterates over the number of uploaded files.
+        // While string concatenation can be intensive for very large numbers of files
+        // or extremely large file contents, for typical use cases, this is acceptable.
         fileContents = extractedData
           .map(
             (file) =>
@@ -402,7 +427,8 @@ const processConversationalRequest = async (
     const outputDir = path.join(process.cwd(), 'output', 'reports');
     const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
 
-    // Ensure output directory exists
+    // `fs.existsSync` and `fs.mkdirSync` are synchronous but are called infrequently
+    // and are generally fast for single directory checks/creations, not a bottleneck here.
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -479,6 +505,8 @@ const generateReport = async (params, userId, isGuest = false) => {
     const outputDir = path.join(process.cwd(), 'output', 'reports');
     const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
 
+    // `fs.existsSync` and `fs.mkdirSync` are synchronous but are called infrequently
+    // and are generally fast for single directory checks/creations, not a bottleneck here.
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -536,11 +564,16 @@ const analyzeFiles = async (
       );
     }
 
+    // `extractContentFromFiles` is an asynchronous operation,
+    // mitigating potential CPU blocking for large files.
     const extractedData = await extractContentFromFiles(files);
 
     // Cleanup uploaded files
     cleanupUploadedFiles(files);
 
+    // The `map` operation here iterates over the number of uploaded files.
+    // While string concatenation can be intensive for very large numbers of files
+    // or extremely large file contents, for typical use cases, this is acceptable.
     const fileContents = extractedData
       .map(
         (file) => `\n--- ${file.filename} ---\n${file.content || file.error}`
