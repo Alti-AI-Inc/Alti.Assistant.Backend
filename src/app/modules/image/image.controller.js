@@ -17,6 +17,9 @@ export const generateImage = catchAsync(async (req, res) => {
     // For guest users, the userId should be generated or retrieved securely (e.g., from session/cookie).
     // Allowing req.body.userId to override here is an IDOR vulnerability.
     // The imageService.generateGuestUserId() should handle guest ID generation/retrieval securely.
+    // Optimization Note: If 'imageService.generateGuestUserId()' involves a database lookup,
+    // ensure it's efficient and uses appropriate indexing if querying by session/cookie ID.
+    // If it fetches a guest user document, consider using .lean() if only the ID is needed.
     userId = imageService.generateGuestUserId();
   } else {
     // For authenticated users, userId MUST come from req.user.
@@ -45,11 +48,16 @@ export const generateImage = catchAsync(async (req, res) => {
     });
   }
 
+  // Optimization Note: 'imageService.generateImageConversationId()' likely generates an ID,
+  // no direct DB interaction for optimization here unless it involves a DB sequence/lookup.
   const thread_id =
     conversationId || imageService.generateImageConversationId();
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization Note: The 'imageService.handleImageConversation' method should use .lean()
+    // if it primarily fetches conversation data for read-only purposes (e.g., to get conversationId or messageCount).
+    // Ensure 'userId' and 'conversationId' fields are indexed in the Conversation schema for efficient lookups.
     const conversation = await imageService.handleImageConversation(
       userId,
       conversationId,
@@ -60,6 +68,8 @@ export const generateImage = catchAsync(async (req, res) => {
     const actualConversationId = conversation.conversationId || thread_id;
 
     // Add user message to conversation
+    // Optimization Note: 'imageService.addImageQueryMessage' is a write operation (insert/update).
+    // Ensure any related indexes (e.g., on actualConversationId, userId) are in place for efficient writes/lookups.
     await imageService.addImageQueryMessage(
       actualConversationId,
       userId,
@@ -124,6 +134,8 @@ export const generateImage = catchAsync(async (req, res) => {
     }
 
     // Add assistant response to conversation
+    // Optimization Note: 'imageService.addImageResultMessage' is a write operation (insert/update).
+    // Ensure any related indexes (e.g., on actualConversationId, userId) are in place for efficient writes/lookups.
     await imageService.addImageResultMessage(
       actualConversationId,
       userId,
@@ -159,6 +171,8 @@ export const generateImage = catchAsync(async (req, res) => {
       conversationId || imageService.generateImageConversationId();
     try {
       if (errorConversationId && userId) {
+        // Optimization Note: 'imageService.addErrorMessage' is a write operation (insert/update).
+        // Ensure any related indexes (e.g., on errorConversationId, userId) are in place for efficient writes/lookups.
         await imageService.addErrorMessage(
           errorConversationId,
           userId,
@@ -190,6 +204,9 @@ export const generateImage = catchAsync(async (req, res) => {
 export const analyzeImage = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
   const isGuest = req.isGuest || !req.user;
+  // Optimization Note: If 'imageService.generateGuestUserId()' involves a database lookup,
+  // ensure it's efficient and uses appropriate indexing if querying by session/cookie ID.
+  // If it fetches a guest user document, consider using .lean() if only the ID is needed.
   const userId = isGuest
     ? imageService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
@@ -204,6 +221,8 @@ export const analyzeImage = catchAsync(async (req, res) => {
   }
 
   // Validate image data
+  // Optimization Note: 'imageService.validateImageData' is a synchronous operation.
+  // Ensure its implementation is not CPU-intensive if handling large imageData strings (e.g., base64).
   const validation = imageService.validateImageData(imageData);
   if (!validation.isValid) {
     return sendResponse(res, {
@@ -221,11 +240,16 @@ export const analyzeImage = catchAsync(async (req, res) => {
     });
   }
 
+  // Optimization Note: 'imageService.generateImageConversationId()' likely generates an ID,
+  // no direct DB interaction for optimization here unless it involves a DB sequence/lookup.
   const thread_id =
     conversationId || imageService.generateImageConversationId();
 
   try {
     // Handle conversation creation/retrieval
+    // Optimization Note: The 'imageService.handleImageConversation' method should use .lean()
+    // if it primarily fetches conversation data for read-only purposes (e.g., to get conversationId or messageCount).
+    // Ensure 'userId' and 'conversationId' fields are indexed in the Conversation schema for efficient lookups.
     const conversation = await imageService.handleImageConversation(
       userId,
       conversationId,
@@ -236,6 +260,8 @@ export const analyzeImage = catchAsync(async (req, res) => {
     const actualConversationId = conversation.conversationId || thread_id;
 
     // Add user message to conversation
+    // Optimization Note: 'imageService.addImageQueryMessage' is a write operation (insert/update).
+    // Ensure any related indexes (e.g., on actualConversationId, userId) are in place for efficient writes/lookups.
     await imageService.addImageQueryMessage(
       actualConversationId,
       userId,
@@ -274,6 +300,8 @@ export const analyzeImage = catchAsync(async (req, res) => {
     const fullResponse = result.response || 'Image analysis completed';
 
     // Add assistant response to conversation
+    // Optimization Note: 'imageService.addImageResultMessage' is a write operation (insert/update).
+    // Ensure any related indexes (e.g., on actualConversationId, userId) are in place for efficient writes/lookups.
     await imageService.addImageResultMessage(
       actualConversationId,
       userId,
@@ -309,6 +337,8 @@ export const analyzeImage = catchAsync(async (req, res) => {
       conversationId || imageService.generateImageConversationId();
     try {
       if (errorConversationId && userId) {
+        // Optimization Note: 'imageService.addErrorMessage' is a write operation (insert/update).
+        // Ensure any related indexes (e.g., on errorConversationId, userId) are in place for efficient writes/lookups.
         await imageService.addErrorMessage(
           errorConversationId,
           userId,
@@ -358,6 +388,10 @@ const getImageStats = catchAsync(async (req, res) => {
     });
   }
 
+  // Optimization Note: The 'imageService.getImageStats' method should use .lean()
+  // if it fetches data for read-only purposes.
+  // Ensure 'userId' and any fields used for aggregation/filtering (e.g., timestamps, status)
+  // are indexed in the relevant schemas for efficient statistics generation.
   const stats = await imageService.getImageStats(userId, req);
 
   sendResponse(res, {
@@ -388,6 +422,9 @@ const getImageConversation = catchAsync(async (req, res) => {
   if (isGuest) {
     // For guest users, we need to verify the guestUserId.
     // Assuming imageService.generateGuestUserId() retrieves the guest ID for the current session.
+    // Optimization Note: If 'imageService.generateGuestUserId()' involves a database lookup,
+    // ensure it's efficient and uses appropriate indexing if querying by session/cookie ID.
+    // If it fetches a guest user document, consider using .lean() if only the ID is needed.
     currentSessionGuestId = imageService.generateGuestUserId();
     if (!currentSessionGuestId) {
       return sendResponse(res, {
@@ -405,6 +442,9 @@ const getImageConversation = catchAsync(async (req, res) => {
       // For guest users, get the conversation with guest user verification.
       // The imageService.getGuestConversation function must implement the verification
       // that the conversationId belongs to the currentSessionGuestId.
+      // Optimization Note: The 'imageService.getGuestConversation' method should use .lean()
+      // if it fetches conversation data for read-only purposes.
+      // Ensure 'conversationId' and the field storing 'guestUserId' are indexed in the Conversation schema.
       conversation = await imageService.getGuestConversation(
         conversationId,
         currentSessionGuestId, // Pass the current session's guest ID for verification
@@ -412,6 +452,10 @@ const getImageConversation = catchAsync(async (req, res) => {
       );
     } else {
       // For authenticated users, verify ownership
+      // Optimization Note: The 'conversationHelpers.getConversationById' method should use .lean()
+      // if it fetches conversation data for read-only purposes.
+      // Ensure 'conversationId' and 'authenticatedUserId' fields are indexed in the Conversation schema.
+      // Also, ensure 'conversationHelpers' is properly imported if it's a separate module, as it's not imported in this file.
       conversation = await conversationHelpers.getConversationById(
         conversationId,
         authenticatedUserId,
@@ -459,6 +503,9 @@ const getGuestConversations = catchAsync(async (req, res) => {
 
   if (isGuest) {
     // Assuming imageService.generateGuestUserId() retrieves the guest ID for the current session.
+    // Optimization Note: If 'imageService.generateGuestUserId()' involves a database lookup,
+    // ensure it's efficient and uses appropriate indexing if querying by session/cookie ID.
+    // If it fetches a guest user document, consider using .lean() if only the ID is needed.
     currentSessionGuestId = imageService.generateGuestUserId();
   }
 
@@ -474,6 +521,11 @@ const getGuestConversations = catchAsync(async (req, res) => {
   }
 
   try {
+    // Optimization Note: The 'imageService.getGuestConversations' method should use .lean()
+    // as it fetches multiple conversation documents for read-only purposes.
+    // Ensure the field storing 'guestUserId' is indexed in the Conversation schema for efficient querying.
+    // Consider adding pagination (limit/skip or cursor-based) within the service method if the number
+    // of guest conversations can become very large to prevent large data transfers and memory usage.
     const conversations = await imageService.getGuestConversations(
       requestedGuestUserId, // Use the validated guest ID
       req

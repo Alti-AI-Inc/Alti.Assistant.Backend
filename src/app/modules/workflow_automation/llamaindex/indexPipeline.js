@@ -1,3 +1,12 @@
+/**
+ * @file This module defines an event-driven ingestion workflow for processing documents
+ * and building LlamaIndex-based vector, summary, and keyword indexes.
+ * It orchestrates a multi-step process from file loading and parsing to
+ * metadata enrichment, manifest management, and final index creation,
+ * including cache invalidation.
+ * @module workflow_automation/llamaindex/indexPipeline
+ */
+
 import { createWorkflow } from '@llamaindex/workflow-core';
 import {
   IngestionStartEvent,
@@ -29,13 +38,29 @@ import crypto from 'node:crypto';
 import fsPromises from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
-// Construct the custom event-driven ingestion workflow
+/**
+ * The core event-driven ingestion workflow instance.
+ * This workflow orchestrates the entire document processing and indexing pipeline
+ * by reacting to specific events and emitting new ones to trigger subsequent steps.
+ * @type {Workflow}
+ */
 const ingestionWorkflow = createWorkflow();
 
 /**
- * Step 1: File Loading & Document Parsing
- * Triggers on: IngestionStartEvent
- * Emits: DocumentLoadedEvent
+ * Step 1: File Loading & Document Parsing.
+ * This handler initiates the document ingestion process by parsing the raw file
+ * content into a structured document format. It ensures the user's local
+ * storage directory is synchronized and generates a unique document ID.
+ *
+ * @event IngestionStartEvent - Triggered when a new ingestion process begins.
+ * @fires DocumentLoadedEvent - Emitted upon successful parsing of the document.
+ *
+ * @param {WorkflowContext} context - The workflow context for sending events.
+ * @param {Object} event - The event object containing data for this step.
+ * @param {Object} event.data - The data payload of the IngestionStartEvent.
+ * @param {string} event.data.filePath - The local path to the file to be ingested.
+ * @param {string} event.data.originalName - The original name of the file.
+ * @param {string} event.data.userId - The ID of the user initiating the ingestion.
  */
 ingestionWorkflow.handle([IngestionStartEvent], async (context, event) => {
   const { filePath, originalName, userId } = event.data;
@@ -60,9 +85,22 @@ ingestionWorkflow.handle([IngestionStartEvent], async (context, event) => {
 });
 
 /**
- * Step 2: Content Profiling & Metadata Enrichment
- * Triggers on: DocumentLoadedEvent
- * Emits: NodesGeneratedEvent
+ * Step 2: Content Profiling & Metadata Enrichment.
+ * This handler takes the parsed documents and generates a semantic profile
+ * using an LLM, enriching the document metadata. It also ensures the
+ * persistence directory for the user exists.
+ *
+ * @event DocumentLoadedEvent - Triggered after documents have been successfully loaded and parsed.
+ * @fires NodesGeneratedEvent - Emitted after document profiling and metadata enrichment are complete.
+ *
+ * @param {WorkflowContext} context - The workflow context for sending events.
+ * @param {Object} event - The event object containing data for this step.
+ * @param {Object} event.data - The data payload of the DocumentLoadedEvent.
+ * @param {string} event.data.filePath - The local path to the ingested file.
+ * @param {string} event.data.originalName - The original name of the ingested file.
+ * @param {string} event.data.userId - The ID of the user.
+ * @param {string} event.data.docId - The unique identifier for the document.
+ * @param {Document[]} event.data.documents - An array of LlamaIndex Document objects.
  */
 ingestionWorkflow.handle([DocumentLoadedEvent], async (context, event) => {
   const { filePath, originalName, userId, docId, documents } = event.data;
@@ -117,9 +155,26 @@ ingestionWorkflow.handle([DocumentLoadedEvent], async (context, event) => {
 });
 
 /**
- * Step 3: Manifest Management & Legacy Syncing
- * Triggers on: NodesGeneratedEvent
- * Emits: IndexBuiltEvent
+ * Step 3: Manifest Management & Legacy Syncing.
+ * This handler updates the user's document manifest with the newly ingested
+ * document's details and generates a composite corpus profile if multiple
+ * documents exist. It also handles legacy profile saving.
+ *
+ * @event NodesGeneratedEvent - Triggered after document profiling and metadata enrichment.
+ * @fires IndexBuiltEvent - Emitted after manifest updates and corpus profiling are complete.
+ *
+ * @param {WorkflowContext} context - The workflow context for sending events.
+ * @param {Object} event - The event object containing data for this step.
+ * @param {Object} event.data - The data payload of the NodesGeneratedEvent.
+ * @param {string} event.data.filePath - The local path to the ingested file.
+ * @param {string} event.data.originalName - The original name of the ingested file.
+ * @param {string} event.data.userId - The ID of the user.
+ * @param {string} event.data.docId - The unique identifier for the document.
+ * @param {Document[]} event.data.documents - An array of LlamaIndex Document objects.
+ * @param {Object} event.data.manifest - The current document manifest.
+ * @param {Object} event.data.profile - The generated profile for the current document.
+ * @param {string} event.data.persistDir - The directory where data is persisted for the user.
+ * @param {string} event.data.fullText - The full concatenated text of the document.
  */
 ingestionWorkflow.handle([NodesGeneratedEvent], async (context, event) => {
   const { filePath, originalName, userId, docId, documents, manifest, profile, persistDir, fullText } = event.data;
@@ -166,9 +221,24 @@ ingestionWorkflow.handle([NodesGeneratedEvent], async (context, event) => {
 });
 
 /**
- * Step 4: Triple Index Creation & Cache Invalidation
- * Triggers on: IndexBuiltEvent
- * Emits: IngestionCompleteEvent (returns as final stop payload)
+ * Step 4: Triple Index Creation & Cache Invalidation.
+ * This final handler runs the LlamaIndex ingestion pipeline to transform documents
+ * into nodes, creates or updates the vector store index, and compiles secondary
+ * memory-based indexes (Summary and Keyword). It also invalidates the user's
+ * semantic response cache to reflect the corpus modifications.
+ *
+ * @event IndexBuiltEvent - Triggered after manifest updates and corpus profiling.
+ * @fires IngestionCompleteEvent - Emitted as the final stop event, signaling the completion of the ingestion workflow.
+ *
+ * @param {WorkflowContext} context - The workflow context for sending events.
+ * @param {Object} event - The event object containing data for this step.
+ * @param {Object} event.data - The data payload of the IndexBuiltEvent.
+ * @param {string} event.data.userId - The ID of the user.
+ * @param {string} event.data.docId - The unique identifier for the document.
+ * @param {Document[]} event.data.documents - An array of LlamaIndex Document objects.
+ * @param {string} event.data.persistDir - The directory where data is persisted for the user.
+ * @param {Object} event.data.manifest - The current document manifest.
+ * @returns {IngestionCompleteEvent} The final completion report event.
  */
 ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
   const { userId, docId, documents, persistDir, manifest } = event.data;
@@ -232,11 +302,16 @@ ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
 });
 
 /**
- * Execute the Ingestion Workflow asynchronously
- * @param {string} filePath - Local or relative file path to ingest
- * @param {string} originalName - Original filename
- * @param {string} userId - User identifier
- * @returns {Promise<object>} The final completion report
+ * Executes the document ingestion workflow asynchronously.
+ * This function initiates the workflow by sending an `IngestionStartEvent`
+ * and waits for the `IngestionCompleteEvent` to signal the end of the process.
+ *
+ * @param {string} filePath - The local or relative file path to the document to ingest.
+ * @param {string} originalName - The original filename of the document.
+ * @param {string} userId - The identifier of the user for whom the document is being ingested.
+ * @returns {Promise<object>} A promise that resolves to the final completion report
+ *   containing details like `success`, `docId`, `documentCount`, `userId`, and `persistDir`.
+ * @throws {Error} If a critical error occurs during workflow execution.
  */
 export async function runIngestionWorkflow(filePath, originalName, userId) {
   try {
