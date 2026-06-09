@@ -178,7 +178,29 @@ import { Strategy as TwitterStrategy } from 'passport-twitter-oauth2';
 import { findOrCreateUserModel } from '../../social-login.utils.js';
 
 // NOTE: This uses passport-twitter-oauth2 for Twitter API v2
+/**
+ * Configuration for the Twitter OAuth2 Passport strategy.
+ * This strategy is used to authenticate users via Twitter's OAuth 2.0 API (v2).
+ * It handles the redirection to Twitter for authorization and the subsequent
+ * callback to exchange the authorization code for an access token and user profile.
+ *
+ * @constant {TwitterStrategy} strategy
+ */
 const strategy = new TwitterStrategy(
+  /**
+   * Options for the Twitter OAuth2 strategy.
+   * @type {object}
+   * @property {string} clientID - The Client ID provided by Twitter for your application.
+   * @property {string} clientSecret - The Client Secret provided by Twitter for your application.
+   * @property {string} callbackURL - The URL to which Twitter will redirect the user after authorization.
+   *                                  Defaults to '/api/v1/auth-social/twitter/callback' if not set in environment.
+   * @property {string} clientType - Specifies the type of client. 'confidential' is typically used for web applications.
+   * @property {string[]} scope - An array of permissions (scopes) requested from the user on Twitter.
+   *                              E.g., 'tweet.read', 'users.read', 'offline.access'.
+   * @property {boolean} passReqToCallback - If true, the `req` object will be passed as the first argument to the verify callback.
+   *                                         Set to false here as the `req` object is not needed for user lookup.
+   * @property {boolean} proxy - If true, the strategy will trust the proxy header `X-Forwarded-Proto`.
+   */
   {
     clientID: process.env.TWITTER_CLIENT_ID,
     clientSecret: process.env.TWITTER_CLIENT_SECRET,
@@ -188,10 +210,34 @@ const strategy = new TwitterStrategy(
     passReqToCallback: false, // Set to false, we don't need the req object here
     proxy: true,
   },
+  /**
+   * Verify callback function for the Twitter OAuth2 strategy.
+   * This function is called after Twitter has successfully authenticated the user
+   * and provided access tokens and profile information. It is responsible for
+   * finding or creating a user in the application's database and returning the user.
+   *
+   * @async
+   * @param {string} accessToken - The access token provided by Twitter.
+   * @param {string} refreshToken - The refresh token provided by Twitter (if `offline.access` scope is requested).
+   * @param {object} profile - The user's profile information retrieved from Twitter.
+   * @param {function(Error | null, object | null)} done - Callback function to signify the completion of the verification process.
+   *                                                        It takes an error object (if any) and the authenticated user object.
+   * @returns {Promise<void>}
+   */
   async (accessToken, refreshToken, profile, done) => {
     console.log('profile: twitter: ', profile);
 
     try {
+      /**
+       * Adapts the Twitter profile object to a standardized format for the application.
+       * @type {object}
+       * @property {string} id - The unique ID of the user on Twitter.
+       * @property {string} displayName - The user's display name on Twitter.
+       * @property {string} username - The user's username (screen name) on Twitter.
+       * @property {Array<object>} photos - An array of photo objects, typically containing the profile image URL.
+       * @property {Array<object>} emails - An array of email objects, if the email scope was granted and available.
+       * @property {string} provider - The social login provider, 'twitter'.
+       */
       const adaptedProfile = {
         id: profile.id,
         displayName: profile.displayName,
@@ -201,9 +247,20 @@ const strategy = new TwitterStrategy(
         provider: 'twitter',
       };
 
+      // Find or create a user in the database based on the adapted profile.
       const { user } = await findOrCreateUserModel(adaptedProfile, 'twitter');
+      /**
+       * Calls the `done` callback with the authenticated user.
+       * @param {null} error - No error.
+       * @param {object} userObject - An object containing the authenticated user.
+       */
       return done(null, { user });
     } catch (err) {
+      /**
+       * Calls the `done` callback with an error if user creation/lookup fails.
+       * @param {Error} error - The error that occurred.
+       * @param {null} userObject - No user object due to error.
+       */
       return done(err, null);
     }
   }

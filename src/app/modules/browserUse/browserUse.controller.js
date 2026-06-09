@@ -341,6 +341,15 @@ const getUserSessionsController = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
   
+  // Optimization Recommendation:
+  // For read-only queries like retrieving sessions, consider adding `.lean()`
+  // to the Mongoose query in `BrowserUseServices.getSessionsForUserService`.
+  // This will return plain JavaScript objects instead of Mongoose documents,
+  // reducing overhead if the documents are not modified or saved back.
+  //
+  // Indexing Recommendation:
+  // Ensure that the 'userId' field in the 'BrowserUseSession' model has an index.
+  // This is crucial for efficient querying when fetching all sessions for a specific user.
   const result = await BrowserUseServices.getSessionsForUserService(userId, req);
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -449,6 +458,16 @@ const getSessionByIdController = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
+  // Optimization Recommendation:
+  // For read-only queries like retrieving a single session, consider adding `.lean()`
+  // to the Mongoose query in `BrowserUseServices.getSessionByIdService`.
+  // This will return a plain JavaScript object instead of a Mongoose document,
+  // reducing overhead if the document is not modified or saved back.
+  //
+  // Indexing Recommendation:
+  // Ensure that the 'userId' field in the 'BrowserUseSession' model has an index.
+  // This is important for efficient authorization checks when querying by both
+  // '_id' and 'userId'.
   const result = await BrowserUseServices.getSessionByIdService(
     sessionId,
     userId, // Pass userId to the service for authorization
