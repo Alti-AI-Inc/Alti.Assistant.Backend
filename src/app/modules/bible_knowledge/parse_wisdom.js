@@ -1,15 +1,47 @@
+/**
+ * @file This script is responsible for fetching spiritual wisdom texts from various online sources (primarily Project Gutenberg),
+ * cleaning them, parsing them into a structured format (book, chapter, verse, text), and saving them as a JSON database.
+ * It also includes a set of hardcoded wisdom texts from various spiritual and mystical traditions to enrich the dataset.
+ * The output is a flat JSON file containing an array of wisdom entries.
+ */
+
 import { promises as fsPromises } from 'fs'; // For async file operations
 import fs from 'fs'; // For synchronous mkdirSync
 import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+/**
+ * The current file's path, derived from `import.meta.url`.
+ * @type {string}
+ */
 const __filename = fileURLToPath(import.meta.url);
+/**
+ * The directory name of the current module.
+ * @type {string}
+ */
 const __dirname = path.dirname(__filename);
 
+/**
+ * The directory where processed data files will be stored.
+ * It's located in a 'data' subdirectory relative to the script's location.
+ * @type {string}
+ */
 const DATA_DIR = path.join(__dirname, 'data');
+/**
+ * The full path to the output JSON file where the flattened wisdom database will be saved.
+ * @type {string}
+ */
 const OUT_FILE = path.join(DATA_DIR, 'flat_wisdom.json');
 
+/**
+ * An array of source objects, each defining a text to be fetched and processed.
+ * Each source includes a name, URL, and type (e.g., 'gutenberg').
+ * @type {Array<Object>}
+ * @property {string} name - The name of the source (e.g., 'Imitation of Christ').
+ * @property {string} url - The URL from which to fetch the text.
+ * @property {string} type - The type of source (e.g., 'gutenberg'), used for specific parsing logic.
+ */
 const SOURCES = [
     {
         name: 'Imitation of Christ',
@@ -23,6 +55,14 @@ const SOURCES = [
     }
 ];
 
+/**
+ * Fetches text content from a given URL using HTTPS.
+ * Handles redirects and basic error checking for HTTP status codes.
+ *
+ * @param {string} url - The URL of the text file to fetch.
+ * @returns {Promise<string>} A promise that resolves with the fetched text content as a string,
+ *                            or rejects with an error if the fetch fails.
+ */
 async function fetchText(url) {
     return new Promise((resolve, reject) => {
         // Use an array to collect chunks for better performance with potentially large files
@@ -52,7 +92,13 @@ async function fetchText(url) {
     });
 }
 
-// Helper function to determine if a paragraph is a chapter/book heading
+/**
+ * Determines if a given paragraph string is likely a chapter or book heading.
+ * Uses heuristics based on common patterns in Project Gutenberg texts.
+ *
+ * @param {string} paragraph - The paragraph string to check.
+ * @returns {boolean} True if the paragraph is identified as a chapter/book heading, false otherwise.
+ */
 function isChapterHeading(paragraph) {
     // More robust heuristic for chapter/book headings in Gutenberg texts.
     // 1. Check for common patterns like "CHAPTER I", "BOOK II", "PART THREE"
@@ -67,8 +113,22 @@ function isChapterHeading(paragraph) {
     return false;
 }
 
+/**
+ * Builds a database of wisdom texts by fetching, cleaning, and parsing content from predefined sources.
+ * It processes each source, extracts paragraphs, and structures them into a flat array of objects,
+ * each representing a "verse" with its book, chapter, verse number, and text.
+ * It also includes a set of hardcoded spiritual texts.
+ * The final database is saved as a JSON file.
+ *
+ * @returns {Promise<void>} A promise that resolves when the database is successfully built and saved,
+ *                            or rejects if an error occurs during the process.
+ */
 async function buildDatabase() {
     console.log('Building Wisdom Library...');
+    /**
+     * The array to store all parsed wisdom entries.
+     * @type {Array<Object>}
+     */
     const database = [];
 
     // Ensure the data directory exists before attempting to write files.
@@ -162,4 +222,7 @@ async function buildDatabase() {
     console.log(`Successfully built ${OUT_FILE} with ${database.length} total entries.`);
 }
 
+/**
+ * Executes the buildDatabase function and catches any unhandled errors, logging them to the console.
+ */
 buildDatabase().catch(console.error);
