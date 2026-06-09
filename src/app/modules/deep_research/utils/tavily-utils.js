@@ -39,10 +39,12 @@ const callGeminiWithResilience = async (params, fallbackGenerator) => {
   try {
     return await ai.models.generateContent(params);
   } catch (err) {
+    // The 'fetch' error message indicates a network issue, not a billing or API key problem.
+    // Removing it from the billing/API error check to prevent incorrect fallback activation
+    // for transient network failures.
     const isBillingOrApiError = err.message.includes('dunning') || 
                                 err.message.includes('403') || 
                                 err.message.includes('API key') || 
-                                err.message.includes('fetch') ||
                                 err.message.includes('invalid_grant') ||
                                 err.message.includes('PERMISSION_DENIED');
     if (isBillingOrApiError) {
