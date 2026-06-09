@@ -12,46 +12,68 @@ import subscriptionService from '../subscription/subscription.service.js';
 import SubscriptionModel from '../subscription/subscription.model.js';
 import { createCustomerService } from '../stripe/customer/stripe.service.js';
 
+// Helper function for ObjectId validation
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
 /**
  * Create a new tenant
  */
 const createTenant = async (tenantData) => {
+  // Use a Mongoose session for atomicity
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { name, slug, subdomain, ownerId, plan = 'free' } = tenantData;
 
+    // Validate ownerId
+    if (!isValidObjectId(ownerId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid owner ID');
+    }
+
     // Check if slug is already taken
-    const existingTenant = await Tenant.findOne({ slug });
-    if (existingTenant) {
+    const existingTenantBySlug = await Tenant.findOne({ slug }).session(session);
+    if (existingTenantBySlug) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant slug already exists');
     }
 
     // Check if subdomain is already taken
-    const existingSubdomain = await Tenant.findOne({ subdomain });
-    if (existingSubdomain) {
+    const existingTenantBySubdomain = await Tenant.findOne({ subdomain }).session(session);
+    if (existingTenantBySubdomain) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Subdomain is already taken');
     }
 
     // Create tenant
-    const tenant = await Tenant.create({
-      name,
-      slug,
-      subdomain,
-      ownerId,
-      plan,
-      status: plan === 'free' ? 'trial' : 'active',
-    });
+    const [tenant] = await Tenant.create(
+      [
+        {
+          name,
+          slug,
+          subdomain,
+          ownerId,
+          plan,
+          status: plan === 'free' ? 'trial' : 'active',
+        },
+      ],
+      { session }
+    );
 
     // Create TenantMember record for owner
-    await TenantMember.create({
-      userId: ownerId,
-      tenantId: tenant._id,
-      role: 'admin',
-      permissions: ['*'], // Full permissions for owner
-      status: 'active',
-      joinedAt: new Date(),
-    });
+    await TenantMember.create(
+      [
+        {
+          userId: ownerId,
+          tenantId: tenant._id,
+          role: 'admin',
+          permissions: ['*'], // Full permissions for owner
+          status: 'active',
+          joinedAt: new Date(),
+        },
+      ],
+      { session }
+    );
 
-    // Update user with tenant info (keep for backward compatibility)
+    // Update user with tenant info
     const owner = await UserModel.findByIdAndUpdate(
       ownerId,
       {
@@ -60,8 +82,12 @@ const createTenant = async (tenantData) => {
         tenantPermissions: ['*'],
         activeTenantId: tenant._id, // Set as active tenant
       },
-      { new: true }
+      { new: true, session }
     );
+
+    if (!owner) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Owner user not found');
+    }
 
     // Create Stripe customer for the tenant
     try {
@@ -76,22 +102,24 @@ const createTenant = async (tenantData) => {
       });
 
       // Update tenant with Stripe customer ID
-      tenant.subscription = {
-        ...tenant.subscription,
-        stripeCustomerId: stripeCustomer.id,
-      };
-      await tenant.save();
-
+      // Defensive assignment for tenant.subscription
+      tenant.subscription = tenant.subscription || {};
+      tenant.subscription.stripeCustomerId = stripeCustomer.id;
+      await tenant.save({ session }); // Save within the transaction
       logger.info(
         `Stripe customer created for tenant: ${tenant._id}, customerId: ${stripeCustomer.id}`
       );
     } catch (error) {
       logger.error('Error creating Stripe customer for tenant:', error);
-      // Don't fail tenant creation if Stripe customer creation fails
+      // Don't fail tenant creation if Stripe customer creation fails, but log it.
+      // The transaction will still commit if other parts succeed.
     }
 
     // Create free subscription for the tenant
     try {
+      // Note: createFreeSubscription might start its own session/transaction if not designed to work with an external one.
+      // For simplicity, assuming it's independent or handles sessions internally.
+      // If it needs to be part of this transaction, it would need a session parameter.
       const subscription = await subscriptionService.createFreeSubscription(
         ownerId,
         tenant._id
@@ -108,6 +136,9 @@ const createTenant = async (tenantData) => {
       });
     }
 
+    await session.commitTransaction();
+    session.endSession();
+
     logger.info(`Tenant created: ${tenant._id} by user: ${ownerId}`);
 
     return {
@@ -119,6 +150,8 @@ const createTenant = async (tenantData) => {
       plan: tenant.plan,
     };
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     logger.error('Error creating tenant:', error);
     throw error;
   }
@@ -126,34 +159,54 @@ const createTenant = async (tenantData) => {
 
 /**
  * Get tenant by ID
+ * @param {string} tenantId - The ID of the tenant
+ * @param {string} requestingUserId - The ID of the user making the request (for authorization)
  */
-const getTenantById = async (tenantId) => {
-  if (!mongoose.Types.ObjectId.isValid(tenantId)) {
+const getTenantById = async (tenantId, requestingUserId) => {
+  if (!isValidObjectId(tenantId)) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(requestingUserId)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid requesting user ID');
+  }
+
+  // Check if requesting user is a member of this tenant
+  const isMember = await TenantMember.exists({
+    userId: requestingUserId,
+    tenantId,
+    status: 'active',
+  });
+  if (!isMember) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'User is not authorized to view this tenant'
+    );
   }
 
   const tenant = await Tenant.findById(tenantId)
     .populate('ownerId', 'name email')
     .lean();
 
+  // Remove debug log
+  // console.log('Subscription aggregation result:', subscription);
+  if (!tenant) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+
   const subscription = await SubscriptionModel.aggregate([
     { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
     {
       $lookup: {
-        from: 'products',
-        localField: 'price',
+        from: 'products', // Assuming 'products' is the collection name for products
+        localField: 'price', // Assuming 'price' field in SubscriptionModel stores stripePriceId
         foreignField: 'stripePriceId',
         as: 'price',
       },
     },
-    { $unwind: '$price' },
+    { $unwind: { path: '$price', preserveNullAndEmptyArrays: true } }, // Use preserveNullAndEmptyArrays to keep subscriptions without a matching product
     { $sort: { createdAt: -1 } },
     { $limit: 1 },
   ]);
-  console.log('Subscription aggregation result:', subscription);
-  if (!tenant) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
-  }
 
   return {
     ...tenant,
@@ -163,8 +216,18 @@ const getTenantById = async (tenantId) => {
 
 /**
  * Update tenant
+ * @param {string} tenantId - The ID of the tenant to update
+ * @param {object} updates - The updates to apply
+ * @param {string} updaterId - The ID of the user performing the update (for authorization)
  */
 const updateTenant = async (tenantId, updates, updaterId) => {
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(updaterId)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid updater user ID');
+  }
+
   const tenant = await Tenant.findById(tenantId);
 
   if (!tenant) {
@@ -172,14 +235,12 @@ const updateTenant = async (tenantId, updates, updaterId) => {
   }
 
   // Verify updater permissions
-  if (updaterId) {
-    const updater = await TenantMember.findOne({ userId: updaterId, tenantId });
-    if (!updater || !['admin', 'manager'].includes(updater.role)) {
-      throw new ApiError(
-        httpStatus.FORBIDDEN,
-        'Insufficient permissions to update tenant settings'
-      );
-    }
+  const updater = await TenantMember.findOne({ userId: updaterId, tenantId });
+  if (!updater || !['admin', 'manager'].includes(updater.role)) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Insufficient permissions to update tenant settings'
+    );
   }
 
   // Only allow certain fields to be updated
@@ -195,30 +256,64 @@ const updateTenant = async (tenantId, updates, updaterId) => {
   Object.assign(tenant, updates);
   await tenant.save();
 
-  logger.info(`Tenant updated: ${tenantId}`);
+  logger.info(`Tenant updated: ${tenantId} by user: ${updaterId}`);
 
   return tenant;
 };
 
 /**
  * Delete tenant (soft delete)
+ * @param {string} tenantId - The ID of the tenant to delete
+ * @param {string} deleterId - The ID of the user performing the deletion (for authorization)
  */
-const deleteTenant = async (tenantId) => {
+const deleteTenant = async (tenantId, deleterId) => {
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(deleterId)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid deleter user ID');
+  }
+
   const tenant = await Tenant.findById(tenantId);
 
   if (!tenant) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
 
+  // Verify permissions - only owner or admin can delete tenants
+  const deleter = await TenantMember.findOne({ userId: deleterId, tenantId });
+  if (
+    !deleter ||
+    !['admin'].includes(deleter.role) // Only admins can delete
+  ) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Insufficient permissions to delete tenant'
+    );
+  }
+
+  // Ensure the deleter is the actual owner of the tenant
+  if (tenant.ownerId.toString() !== deleterId.toString()) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Only the tenant owner can delete the tenant'
+    );
+  }
+
   await tenant.softDelete();
 
-  logger.info(`Tenant deleted: ${tenantId}`);
+  logger.info(`Tenant deleted: ${tenantId} by user: ${deleterId}`);
 };
 
 /** * Get all tenants/organizations for a user
+ * @param {string} userId - The ID of the user
  */
 const getUserTenants = async (userId) => {
   try {
+    if (!isValidObjectId(userId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid user ID');
+    }
+
     // Find all active memberships for the user
     let tenantMemberships = await TenantMember.find({
       userId,
@@ -245,7 +340,7 @@ const getUserTenants = async (userId) => {
       logger.info(`Auto-creating tenant for user ${userId} in getUserTenants: slug=${uniqueSlug}, subdomain=${uniqueSubdomain}`);
 
       try {
-        await createTenant({
+        const newTenantInfo = await createTenant({
           name: workspaceName,
           slug: uniqueSlug,
           subdomain: uniqueSubdomain,
@@ -253,13 +348,22 @@ const getUserTenants = async (userId) => {
           plan: 'free',
         });
 
-        // Refetch memberships
-        tenantMemberships = await TenantMember.find({
-          userId,
-          status: 'active',
-        })
-          .populate('tenantId', 'name slug subdomain status plan')
-          .sort({ joinedAt: -1 });
+        // Construct the membership directly from the created tenant info
+        tenantMemberships = [
+          {
+            tenantId: {
+              _id: newTenantInfo.id,
+              name: newTenantInfo.name,
+              slug: newTenantInfo.slug,
+              subdomain: newTenantInfo.subdomain,
+              status: newTenantInfo.status,
+              plan: newTenantInfo.plan,
+            },
+            role: 'admin', // Owner is always admin
+            permissions: ['*'],
+            joinedAt: new Date(),
+          },
+        ];
       } catch (createError) {
         logger.error('Failed to auto-create tenant in getUserTenants:', createError);
         return {
@@ -301,9 +405,18 @@ const getUserTenants = async (userId) => {
 
 /**
  * Switch user to a different tenant
+ * @param {string} userId - The ID of the user
+ * @param {string | null} tenantId - The ID of the tenant to switch to, or null for personal mode
  */
 const switchTenant = async (userId, tenantId) => {
   try {
+    if (!isValidObjectId(userId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid user ID');
+    }
+    if (tenantId && !isValidObjectId(tenantId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid tenant ID');
+    }
+
     // Handle personal mode (no organization)
     if (!tenantId || tenantId === null) {
       logger.info(`User ${userId} switched to personal mode`);
@@ -353,8 +466,31 @@ const switchTenant = async (userId, tenantId) => {
 
 /**
  * Get tenant members
+ * @param {string} tenantId - The ID of the tenant
+ * @param {string} requestingUserId - The ID of the user making the request (for authorization)
+ * @param {object} options - Pagination options
  */
-const getTenantMembers = async (tenantId, options = {}) => {
+const getTenantMembers = async (tenantId, requestingUserId, options = {}) => {
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(requestingUserId)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid requesting user ID');
+  }
+
+  // Check if requesting user is a member of this tenant
+  const isMember = await TenantMember.exists({
+    userId: requestingUserId,
+    tenantId,
+    status: 'active',
+  });
+  if (!isMember) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'User is not authorized to view tenant members'
+    );
+  }
+
   const { page = 1, limit = 20 } = options;
   const skip = (page - 1) * limit;
 
@@ -382,9 +518,30 @@ const getTenantMembers = async (tenantId, options = {}) => {
 
 /**
  * Invite member to tenant
+ * @param {object} invitationData - Data for the invitation
+ * @param {string} invitationData.tenantId - The ID of the tenant
+ * @param {string} invitationData.email - The email of the user to invite
+ * @param {string} invitationData.role - The role to assign (e.g., 'member', 'manager', 'admin')
+ * @param {string} invitationData.invitedBy - The ID of the user sending the invitation (for authorization)
  */
 const inviteMember = async (invitationData) => {
   const { tenantId, email, role, invitedBy } = invitationData;
+
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(invitedBy)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid inviter user ID');
+  }
+  // Basic email validation (more robust validation might be needed at controller/schema level)
+  if (!email || !/\S+@\S+\.\S+/.test(email)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid email address');
+  }
+  // Validate role
+  const allowedRoles = ['member', 'manager', 'admin'];
+  if (!allowedRoles.includes(role)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Invalid role: ${role}. Allowed roles are: ${allowedRoles.join(', ')}`);
+  }
 
   // Check if tenant exists
   const tenant = await Tenant.findById(tenantId);
@@ -393,21 +550,19 @@ const inviteMember = async (invitationData) => {
   }
 
   // Verify inviter permissions
-  if (invitedBy) {
-    const inviter = await TenantMember.findOne({ userId: invitedBy, tenantId });
-    if (!inviter || !['admin', 'manager'].includes(inviter.role)) {
-      throw new ApiError(
-        httpStatus.FORBIDDEN,
-        'Insufficient permissions to invite members'
-      );
-    }
-    // Prevent managers from inviting admins
-    if (inviter.role === 'manager' && role === 'admin') {
-      throw new ApiError(
-        httpStatus.FORBIDDEN,
-        'Managers cannot invite users as admin'
-      );
-    }
+  const inviter = await TenantMember.findOne({ userId: invitedBy, tenantId });
+  if (!inviter || !['admin', 'manager'].includes(inviter.role)) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Insufficient permissions to invite members'
+    );
+  }
+  // Prevent managers from inviting admins
+  if (inviter.role === 'manager' && role === 'admin') {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Managers cannot invite users as admin'
+    );
   }
 
   // Check tenant's subscription to see if they can invite team members
@@ -435,28 +590,30 @@ const inviteMember = async (invitationData) => {
     );
   }
 
-  // Check if tenant can add more members
-  if (!tenant.canAddMembers()) {
+  // Check if tenant can add more members (assuming this method exists and checks against limits)
+  // This check might be redundant if subscription limits are already checked above,
+  // but keeping it if tenant model has its own specific logic.
+  if (typeof tenant.canAddMembers === 'function' && !tenant.canAddMembers()) {
     throw new ApiError(
       httpStatus.FORBIDDEN,
       'Tenant has reached maximum member limit'
     );
   }
 
-  // Check if user is already a member
-  const existingMember = await TenantMember.findOne({
-    tenantId,
-    status: 'active',
-  }).populate({
-    path: 'userId',
-    match: { email: email.toLowerCase() },
-  });
-
-  if (existingMember && existingMember.userId) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      'User is already a member of this tenant'
-    );
+  // Corrected check: Find user by email first, then check for existing membership
+  const userToInvite = await UserModel.findOne({ email: email.toLowerCase() });
+  if (userToInvite) {
+    const existingMember = await TenantMember.findOne({
+      tenantId,
+      userId: userToInvite._id,
+      status: 'active',
+    });
+    if (existingMember) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'User is already a member of this tenant'
+      );
+    }
   }
 
   // Check for pending invitation
@@ -480,77 +637,116 @@ const inviteMember = async (invitationData) => {
     invitedBy,
   });
 
-  logger.info(`Invitation sent to ${email} for tenant ${tenantId}`);
+  logger.info(`Invitation sent to ${email} for tenant ${tenantId} by ${invitedBy}`);
 
   return invitation;
 };
 
 /**
  * Update member role
+ * @param {string} tenantId - The ID of the tenant
+ * @param {string} userId - The ID of the user (member) whose role is to be updated
+ * @param {string} role - The new role for the member
+ * @param {string} updaterId - The ID of the user performing the update (for authorization)
  */
 const updateMemberRole = async (tenantId, userId, role, updaterId) => {
-  // Verify updater permissions
-  if (updaterId) {
-    const updater = await TenantMember.findOne({ userId: updaterId, tenantId });
-    if (!updater || !['admin', 'manager'].includes(updater.role)) {
-      throw new ApiError(
-        httpStatus.FORBIDDEN,
-        'Insufficient permissions to update roles'
-      );
-    }
-    // Prevent managers from granting admin roles
-    if (updater.role === 'manager' && role === 'admin') {
-      throw new ApiError(
-        httpStatus.FORBIDDEN,
-        'Managers cannot promote users to admin'
-      );
-    }
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid user ID');
+  }
+  if (!isValidObjectId(updaterId)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid updater user ID');
+  }
+  // Validate role
+  const allowedRoles = ['member', 'manager', 'admin'];
+  if (!allowedRoles.includes(role)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Invalid role: ${role}. Allowed roles are: ${allowedRoles.join(', ')}`);
   }
 
-  // 1. Search for active membership first as it's the source of truth
-  const tenantMember = await TenantMember.findOne({ userId, tenantId });
+  // Verify updater permissions
+  const updater = await TenantMember.findOne({ userId: updaterId, tenantId });
+  if (!updater || !['admin', 'manager'].includes(updater.role)) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Insufficient permissions to update roles'
+    );
+  }
+  // Prevent managers from granting admin roles
+  if (updater.role === 'manager' && role === 'admin') {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Managers cannot promote users to admin'
+    );
+  }
+
+  // Find the active membership
+  const tenantMember = await TenantMember.findOne({ userId, tenantId, status: 'active' });
 
   if (!tenantMember) {
-    // 2. It might be a pending invitation being updated
-    const invitation = await TenantInvitation.findOne({ _id: userId, tenantId });
-    if (invitation) {
-      invitation.role = role;
-      await invitation.save();
-      logger.info(`Invitation role updated: ${userId} to ${role}`);
-      return invitation;
-    }
-    throw new ApiError(httpStatus.NOT_FOUND, 'Member or invitation not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Member not found in tenant');
   }
 
-  // Prevent downgrading or modifying existing admins directly via this endpoint
-  // unless we have specific rules for admin management
-  if (tenantMember.role === 'admin' && role !== 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Cannot change the role of an existing admin');
+  // Prevent changing the role of the tenant owner
+  const tenant = await Tenant.findById(tenantId);
+  if (!tenant) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found'); // Should not happen if tenantMember exists
+  }
+  if (tenant.ownerId.toString() === userId.toString() && role !== 'admin') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Cannot change the role of the tenant owner');
+  }
+  // Prevent demoting an admin by a non-admin (or if the admin is the owner)
+  if (tenantMember.role === 'admin' && role !== 'admin' && updater.role !== 'admin') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only an admin can demote another admin.');
+  }
+  // If the target member is an admin and the updater is not the owner, prevent demotion
+  if (tenantMember.role === 'admin' && role !== 'admin' && tenant.ownerId.toString() !== updaterId.toString()) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only the tenant owner can demote an admin.');
   }
 
-  // 3. Update the role in the TenantMember record
+
+  // Update the role in the TenantMember record
   tenantMember.role = role;
   await tenantMember.save();
 
-  // 4. Update UserModel representation if user exists
+  // Update UserModel representation if user exists and this is their active/primary tenant
   const user = await UserModel.findById(userId);
   if (user) {
-    // If this is currently their active or primary tenant in their profile, sync it
     if (user.tenantId?.toString() === tenantId.toString() || user.activeTenantId?.toString() === tenantId.toString()) {
       user.tenantRole = role;
       await user.save();
     }
   }
 
-  logger.info(`Member role updated: ${userId} to ${role}`);
+  logger.info(`Member role updated: ${userId} to ${role} in tenant ${tenantId} by ${updaterId}`);
 
-  return user || tenantMember;
+  return tenantMember; // Return the updated tenant member, not the user model
 };
 
 /**
  * Remove member from tenant
+ * @param {string} tenantId - The ID of the tenant
+ * @param {string} userId - The ID of the user (member) to remove
+ * @param {string} removedBy - The ID of the user performing the removal (for authorization)
  */
 const removeMember = async (tenantId, userId, removedBy) => {
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(userId)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid user ID');
+  }
+  if (!isValidObjectId(removedBy)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid remover user ID');
+  }
+
+  // Find the tenant to check ownerId
+  const tenant = await Tenant.findById(tenantId);
+  if (!tenant) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+
   // Find the member in TenantMember collection
   const tenantMember = await TenantMember.findOne({ userId, tenantId });
 
@@ -558,16 +754,24 @@ const removeMember = async (tenantId, userId, removedBy) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Member not found in tenant');
   }
 
-  if (tenantMember.role === 'admin') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Cannot remove tenant owner');
+  // Corrected logic: Cannot remove the tenant owner
+  if (tenant.ownerId.toString() === userId.toString()) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Cannot remove the tenant owner');
   }
 
-  // Verify permissions - only owner or admin can remove members
+  // Verify permissions - only admin or manager can remove members
   const remover = await TenantMember.findOne({ userId: removedBy, tenantId });
   if (!remover || !['admin', 'manager'].includes(remover.role)) {
     throw new ApiError(
       httpStatus.FORBIDDEN,
       'Insufficient permissions to remove members'
+    );
+  }
+  // Managers cannot remove admins
+  if (remover.role === 'manager' && tenantMember.role === 'admin') {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Managers cannot remove admin members'
     );
   }
 
@@ -578,11 +782,18 @@ const removeMember = async (tenantId, userId, removedBy) => {
   const user = await UserModel.findById(userId);
   if (user && user.activeTenantId?.toString() === tenantId.toString()) {
     user.activeTenantId = null;
+    // Also clear tenant-specific roles/permissions if this was their primary tenant
+    if (user.tenantId?.toString() === tenantId.toString()) {
+      user.tenantId = null;
+      user.tenantRole = null;
+      user.tenantPermissions = [];
+    }
     await user.save();
   }
 
   // Update tenant user count
-  const tenant = await Tenant.findById(tenantId);
+  // The usage.usersCount should ideally be updated by a hook or a dedicated service
+  // that counts active members, but for now, decrementing here.
   if (tenant) {
     tenant.usage.usersCount = Math.max(0, tenant.usage.usersCount - 1);
     await tenant.save();
@@ -623,8 +834,30 @@ const removeMember = async (tenantId, userId, removedBy) => {
 
 /**
  * Get tenant usage statistics
+ * @param {string} tenantId - The ID of the tenant
+ * @param {string} requestingUserId - The ID of the user making the request (for authorization)
  */
-const getTenantUsage = async (tenantId) => {
+const getTenantUsage = async (tenantId, requestingUserId) => {
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(requestingUserId)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid requesting user ID');
+  }
+
+  // Check if requesting user is a member of this tenant
+  const isMember = await TenantMember.exists({
+    userId: requestingUserId,
+    tenantId,
+    status: 'active',
+  });
+  if (!isMember) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'User is not authorized to view tenant usage'
+    );
+  }
+
   const tenant = await Tenant.findById(tenantId);
 
   if (!tenant) {
@@ -636,8 +869,30 @@ const getTenantUsage = async (tenantId) => {
 
 /**
  * Get tenant limits
+ * @param {string} tenantId - The ID of the tenant
+ * @param {string} requestingUserId - The ID of the user making the request (for authorization)
  */
-const getTenantLimits = async (tenantId) => {
+const getTenantLimits = async (tenantId, requestingUserId) => {
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(requestingUserId)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid requesting user ID');
+  }
+
+  // Check if requesting user is a member of this tenant
+  const isMember = await TenantMember.exists({
+    userId: requestingUserId,
+    tenantId,
+    status: 'active',
+  });
+  if (!isMember) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'User is not authorized to view tenant limits'
+    );
+  }
+
   const tenant = await Tenant.findById(tenantId);
 
   if (!tenant) {
@@ -648,17 +903,26 @@ const getTenantLimits = async (tenantId) => {
     limits: tenant.limits,
     usage: tenant.usage,
     percentageUsed: {
-      apiCalls: (tenant.usage.apiCallsUsed / tenant.limits.maxApiCalls) * 100,
-      storage: (tenant.usage.storageUsed / tenant.limits.maxStorage) * 100,
-      users: (tenant.usage.usersCount / tenant.limits.maxUsers) * 100,
+      apiCalls: (tenant.limits.maxApiCalls > 0) ? (tenant.usage.apiCallsUsed / tenant.limits.maxApiCalls) * 100 : 0,
+      storage: (tenant.limits.maxStorage > 0) ? (tenant.usage.storageUsed / tenant.limits.maxStorage) * 100 : 0,
+      users: (tenant.limits.maxUsers > 0) ? (tenant.usage.usersCount / tenant.limits.maxUsers) * 100 : 0,
     },
   };
 };
 
 /**
  * Check if subdomain is available
+ * @param {string} subdomain - The subdomain to check
  */
 const checkSubdomainAvailability = async (subdomain) => {
+  if (!subdomain || typeof subdomain !== 'string' || subdomain.trim().length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Subdomain cannot be empty');
+  }
+  // Add more robust subdomain validation (e.g., length, allowed characters)
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(subdomain)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid subdomain format. Must be lowercase alphanumeric, can use hyphens but not start/end with them.');
+  }
+
   const existingTenant = await Tenant.findOne({
     subdomain: subdomain.toLowerCase(),
   });
@@ -674,8 +938,30 @@ const checkSubdomainAvailability = async (subdomain) => {
 
 /**
  * Get tenant active user/member count
+ * @param {string} tenantId - The ID of the tenant
+ * @param {string} requestingUserId - The ID of the user making the request (for authorization)
  */
-const getTenantUserCount = async (tenantId) => {
+const getTenantUserCount = async (tenantId, requestingUserId) => {
+  if (!isValidObjectId(tenantId)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  if (!isValidObjectId(requestingUserId)) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Invalid requesting user ID');
+  }
+
+  // Check if requesting user is a member of this tenant
+  const isMember = await TenantMember.exists({
+    userId: requestingUserId,
+    tenantId,
+    status: 'active',
+  });
+  if (!isMember) {
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'User is not authorized to view tenant user count'
+    );
+  }
+
   const count = await TenantMember.countDocuments({
     tenantId,
     status: 'active',
