@@ -4,6 +4,11 @@ import { logger } from '../../../shared/logger.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { documentAnalysisService } from './document_analysis.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
+// Optimization: For better query performance on SubscriptionModel, consider adding indexes.
+// For queries like `SubscriptionModel.findOne({ userId }).sort({ createdAt: -1 })`,
+// recommended indexes are:
+// 1. { userId: 1 }
+// 2. { userId: 1, createdAt: -1 } (a compound index for the find and sort combination)
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { RESPONSE_MESSAGES } from './document_analysis.constant.js';
 
@@ -44,9 +49,11 @@ export const analyzeDocument = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
+    // Optimization: Added .lean() for performance as this is a read-only query and
+    // we don't need Mongoose document methods or virtuals.
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean();
     const promptUsage = userSubscription ? userSubscription.usage : 0;
     const totalConversationWithConvId = conversationId
       ? await conversationHelpers.getConversationById(
