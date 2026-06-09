@@ -49,17 +49,19 @@ workflow.addEdge('general_conversation', END);
 // Compile immediately with in-memory checkpointer to avoid blocking startup.
 // MongoDB checkpointer is initialized lazily on first request.
 let checkpointer = new MemorySaver();
-export const codeAssistantApp = workflow.compile({ checkpointer });
+// Use 'let' for codeAssistantApp so it can be re-assigned with the MongoDB checkpointer later.
+export let codeAssistantApp = workflow.compile({ checkpointer });
 
 // Deferred MongoDB checkpointer upgrade (non-blocking)
 MongoDBSaver.fromUri(config.database_local)
   .then((mongoCheckpointer) => {
     checkpointer = mongoCheckpointer;
-    // Re-compile with persistent checkpointer
-    Object.assign(codeAssistantApp, workflow.compile({ checkpointer }));
+    // Re-compile with persistent checkpointer and re-assign the exported variable.
+    // This ensures the entire graph instance is updated with the new checkpointer,
+    // as directly modifying a compiled graph's checkpointer via Object.assign is not supported.
+    codeAssistantApp = workflow.compile({ checkpointer });
     console.log('✅ Code assistant: MongoDB checkpointer connected');
   })
   .catch((err) => {
     console.warn('⚠️ Code assistant: MongoDB checkpointer unavailable, using in-memory fallback:', err.message);
   });
-

@@ -2,7 +2,22 @@
  * Business Copywriting, Text Translation, and Productivity Specialists
  */
 
-// Existing: Executive Summarizer
+/**
+ * @typedef {object} AgentDefinition
+ * @property {string} id - Unique identifier for the agent.
+ * @property {string} name - Human-readable name of the agent.
+ * @property {string} description - A brief description of what the agent does.
+ * @property {string} systemInstruction - The core system prompt/instruction for the agent, defining its persona and task.
+ * @property {string} model - The AI model used by the agent (e.g., 'gemini-2.5-flash').
+ * @property {Array<string>} tools - A list of tools the agent can use (e.g., 'web_search', 'code_interpreter').
+ * @property {Array<string>} keywords - A list of keywords associated with the agent for search and discovery.
+ */
+
+/**
+ * The Executive Summarizer agent.
+ * Specializes in condensing long texts, transcripts, reports, or documentation into high-density insights.
+ * @type {AgentDefinition}
+ */
 export const summarizer = {
   id: 'summarizer',
   name: 'Executive Summarizer',
@@ -16,7 +31,12 @@ Never lose crucial data points, statistics, or licenses.`,
   keywords: ['summarize', 'summary', 'tldr', 'executive summary', 'brief', 'shorten', 'outline']
 };
 
-// Existing: Multilingual Polyglot
+/**
+ * The Multilingual Polyglot agent.
+ * Specializes in translating technical code, documentation, and chat responses into any language,
+ * preserving formatting and technical accuracy.
+ * @type {AgentDefinition}
+ */
 export const translator = {
   id: 'translator',
   name: 'Multilingual Polyglot',
@@ -29,7 +49,11 @@ Ensure the translation matches localized technical terminology exactly.`,
   keywords: ['translate', 'translation', 'spanish', 'french', 'german', 'chinese', 'japanese', 'language', 'polyglot']
 };
 
-// Existing: Audio/Video Synthesizer (Transcriber)
+/**
+ * The Audio/Video Synthesizer (Transcriber) agent.
+ * Specializes in transcribing audio/video streams, organizing timestamps, and structuring speech logs.
+ * @type {AgentDefinition}
+ */
 export const transcriber = {
   id: 'transcriber',
   name: 'Audio/Video Synthesizer',
@@ -42,7 +66,11 @@ Stay 100% accurate to the verbatim transcripts.`,
   keywords: ['transcribe', 'transcription', 'audio', 'video', 'speech to text', 'timestamp', 'meeting minutes']
 };
 
-// Existing: Technical Documenter
+/**
+ * The Technical Documenter agent.
+ * Specializes in creating premium Readmes, Wikis, API references, and architecture guides.
+ * @type {AgentDefinition}
+ */
 export const documenter = {
   id: 'documenter',
   name: 'Technical Documenter',
@@ -55,7 +83,11 @@ Implement clean heading structures, clear code examples, and structured setup ch
   keywords: ['document', 'readme', 'wiki', 'documentation', 'api doc', 'technical writing', 'guide']
 };
 
-// Existing: Product Innovator (Brainstormer)
+/**
+ * The Product Innovator (Brainstormer) agent.
+ * Specializes in generating creative suggestions, feature ideas, and strategic expansion options.
+ * @type {AgentDefinition}
+ */
 export const brainstormer = {
   id: 'brainstormer',
   name: 'Product Innovator',
@@ -68,7 +100,11 @@ Provide ideas grouped by feasibility, impact, and immediate actionability.`,
   keywords: ['brainstorm', 'idea', 'creative', 'suggest', 'innovate', 'strategies', 'features']
 };
 
-// Existing: Creative Content Director
+/**
+ * The Creative Content Director agent.
+ * Specializes in generating premium copywriting, technical newsletters, landing pages, and outreach plans.
+ * @type {AgentDefinition}
+ */
 export const creativeCopywriter = {
   id: 'creative_copywriter',
   name: 'Creative Content Director',
@@ -81,7 +117,11 @@ Maintain an engaging, professional, and impact-driven tone tailored to modern te
   keywords: ['copywriting', 'newsletter', 'landing page copy', 'marketing', 'outreach', 'email copy', 'blog post', 'technical writing']
 };
 
-// Existing: UX/UI Engineering Strategist
+/**
+ * The UX/UI Engineering Strategist agent.
+ * Specializes in designing beautiful Tailwind layouts, layout patterns, and accessible (ARIA) structures.
+ * @type {AgentDefinition}
+ */
 export const uxStrategist = {
   id: 'ux_strategist',
   name: 'UX/UI Engineering Strategist',
@@ -94,7 +134,11 @@ Ensure layouts feel premium, dynamic, and visually harmonious.`,
   keywords: ['tailwind classes', 'ux design', 'ui design', 'layout structure', 'aria accessibility', 'css styling', 'responsive component', 'wireframe']
 };
 
-// Existing: SEO & Structured Content Lead
+/**
+ * The SEO & Structured Content Lead agent.
+ * Specializes in optimizing meta descriptions, header structures, and JSON-LD schema markups for search engines.
+ * @type {AgentDefinition}
+ */
 export const seoContentSpecialist = {
   id: 'seo_content_specialist',
   name: 'SEO & Structured Content Lead',
@@ -107,7 +151,11 @@ Focus on maximizing organic click-through rates.`,
   keywords: ['seo', 'meta tag', 'json-ld', 'schema markup', 'meta description', 'keyword', 'sitemap', 'organic search', 'ranking']
 };
 
-// Existing: Universal Correspondence Draftsman
+/**
+ * The Universal Correspondence Draftsman agent.
+ * Specializes in drafting world-class emails, formal letters, cold outreach campaigns, and professional memos.
+ * @type {AgentDefinition}
+ */
 export const emailCorrespondenceExpert = {
   id: 'email_correspondence_expert',
   name: 'Universal Correspondence Draftsman',
@@ -120,7 +168,11 @@ Adapt your tone perfectly to the requested context: warm/friendly, ultra-formal,
   keywords: ['write me a letter', 'draft this email', 'send an email', 'write letter', 'email draft', 'memo', 'outreach email', 'cold mail', 'newsletter email']
 };
 
-// Existing: YouTube & Video Transcript Synthesizer
+/**
+ * The YouTube & Video Transcript Synthesizer agent.
+ * Specializes in parsing and structuring long audio transcripts or video notes, highlighting timestamped chapters.
+ * @type {AgentDefinition}
+ */
 export const youtubeTranscriptSummarizer = {
   id: 'youtube_transcript_summarizer',
   name: 'YouTube & Video Transcript Synthesizer',
@@ -133,7 +185,11 @@ Highlight key takeaways, action items, and provide estimated timestamp markers/m
   keywords: ['youtube transcript', 'video summary', 'summarize video', 'youtube notes', 'transcribe video', 'watch video summary']
 };
 
-// Existing: Career & Resume Architect (Resume & CV Coach)
+/**
+ * The Career & Resume Architect (Resume & CV Coach) agent.
+ * Specializes in crafting high-impact resumes, cover letters, CV profiles, and LinkedIn optimization tips.
+ * @type {AgentDefinition}
+ */
 export const resumeCvCoach = {
   id: 'resume_cv_coach',
   name: 'Career & Resume Architect',
@@ -146,7 +202,11 @@ Highlight quantitative achievements, dynamic action verbs, and core competencies
   keywords: ['resume', 'cv', 'cover letter', 'job application', 'linkedin bio', 'career profile', 'interview prep']
 };
 
-// Existing: Viral Content Strategist (Social Media Writer)
+/**
+ * The Viral Content Strategist (Social Media Writer) agent.
+ * Specializes in drafting high-engagement social threads, blog outlines, LinkedIn updates, and script ideas.
+ * @type {AgentDefinition}
+ */
 export const socialMediaWriter = {
   id: 'social_media_writer',
   name: 'Viral Content Strategist',
@@ -159,7 +219,11 @@ Use dynamic hooks, concise paragraphs, and clear formatting to capture absolute 
   keywords: ['blog post', 'twitter thread', 'linkedin post', 'instagram caption', 'video script', 'write a post', 'viral copy']
 };
 
-// Existing: Brand Public Relations Director (Press Release Writer)
+/**
+ * The Brand Public Relations Director (Press Release Writer) agent.
+ * Specializes in writing highly professional, hook-heavy corporate press releases and brand announcement statements.
+ * @type {AgentDefinition}
+ */
 export const pressReleaseWriter = {
   id: 'press_release_writer',
   name: 'Brand Public Relations Director',
@@ -172,7 +236,11 @@ Implement standard AP Style guidelines, including clear headers, datelines, and 
   keywords: ['press release', 'pr announcement', 'news release', 'corporate launch letter', 'brand update', 'media statement']
 };
 
-// Existing: Grant Proposal & Funding Architect
+/**
+ * The Grant Proposal & Funding Architect agent.
+ * Specializes in drafting high-fidelity academic, non-profit, and startup grant proposals for funding organizations.
+ * @type {AgentDefinition}
+ */
 export const grantProposalWriter = {
   id: 'grant_proposal_writer',
   name: 'Grant Proposal & Funding Architect',
