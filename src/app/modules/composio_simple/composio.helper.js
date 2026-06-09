@@ -7,25 +7,40 @@ import { Composio } from '@composio/core';
 import { GoogleProvider } from '@composio/google';
 
 const gemini = new GoogleGenAI({ apiKey: config.gemini_secret_key });
-import fs from 'fs';
+import fs from 'fs/promises'; // Use fs.promises for asynchronous file operations
 
 export async function findAppropriateApp(
   query,
   chatHistory = [],
   summarizedContext = ''
 ) {
-  // Load available apps from JSON file
-  const appsData = fs.readFileSync(
-    './src/app/modules/composio_simple/available_apps.json',
-    'utf-8'
-  );
-  const apps = JSON.parse(appsData);
+  let appsData, apps, toolKitsData, toolKits;
 
-  const toolKitsData = fs.readFileSync(
-    './src/app/modules/composio_simple/toolkits.json',
-    'utf-8'
-  );
-  const toolKits = JSON.parse(toolKitsData);
+  // Load available apps from JSON file asynchronously with error handling
+  try {
+    appsData = await fs.readFile(
+      './src/app/modules/composio_simple/available_apps.json',
+      'utf-8'
+    );
+    apps = JSON.parse(appsData);
+  } catch (error) {
+    console.error('Error loading or parsing available_apps.json:', error);
+    // Return empty lists to prevent application crash and allow graceful degradation
+    return { toolKitVersions: {}, appList: [] };
+  }
+
+  // Load toolkits from JSON file asynchronously with error handling
+  try {
+    toolKitsData = await fs.readFile(
+      './src/app/modules/composio_simple/toolkits.json',
+      'utf-8'
+    );
+    toolKits = JSON.parse(toolKitsData);
+  } catch (error) {
+    console.error('Error loading or parsing toolkits.json:', error);
+    // Return empty lists to prevent application crash and allow graceful degradation
+    return { toolKitVersions: {}, appList: [] };
+  }
 
   let prompt = `Given the following list of apps: ${apps.join(', ')}, identify the list of most appropriate app for the following user query: "${query}". 
   Respond with only the app name. If none are appropriate, respond with "none".
@@ -48,10 +63,32 @@ export async function findAppropriateApp(
   ]);
 
   // Before parsing remove any extra text around the JSON array
-  const jsonArrayText = response.candidates[0].content.parts[0].text
-    .trim()
-    .match(/\[.*\]/s)[0];
-  const appList = JSON.parse(jsonArrayText);
+  // Add defensive checks for LLM response structure and regex match
+  const responseText = response?.candidates?.[0]?.content?.parts?.[0]?.text;
+  let appList = [];
+
+  if (responseText) {
+    const matchResult = responseText.trim().match(/\[.*\]/s);
+    if (matchResult && matchResult[0]) {
+      try {
+        const jsonArrayText = matchResult[0];
+        appList = JSON.parse(jsonArrayText);
+      } catch (parseError) {
+        console.error('Error parsing app list from LLM response:', parseError);
+        // Fallback to empty list if parsing fails
+        appList = [];
+      }
+    } else {
+      console.warn('No JSON array found in LLM response for app list identification.');
+      // Fallback to empty list if no match
+      appList = [];
+    }
+  } else {
+    console.warn('LLM response text was empty or malformed for app list identification.');
+    // Fallback to empty list if response text is missing
+    appList = [];
+  }
+
   console.log('Identified apps:', appList);
 
   const toolKitVersions = {};
@@ -131,23 +168,31 @@ export async function generateAndExecuteTools(
     },
   });
 
-  const contentParts = response.candidates[0].content.parts;
-  console.log('Content parts:', JSON.stringify(contentParts, null, 2));
+  // Add defensive checks for LLM response structure
+  const contentParts = response?.candidates?.[0]?.content?.parts;
+  console.log('Content parts:', JSON.stringify(contentParts || [], null, 2));
   console.log(
     '--- Used Tool Calls ---',
-    JSON.stringify(response.functionCalls, null, 2)
+    JSON.stringify(response?.functionCalls || [], null, 2)
   );
 
-  if (response.functionCalls && response.functionCalls.length > 0) {
-    const results = await executeMultipleTools(
-      entityId,
-      response.functionCalls,
-      toolkitVersions
-    );
-    return { response, results };
+  if (response?.functionCalls && response.functionCalls.length > 0) {
+    try {
+      const results = await executeMultipleTools(
+        entityId,
+        response.functionCalls,
+        toolkitVersions
+      );
+      return { response, results };
+    } catch (error) {
+      console.error('Error executing multiple tools:', error);
+      // Return original response and empty results array on error,
+      // allowing the system to continue without crashing.
+      return { response, results: [], error: error.message };
+    }
   } else {
     console.log('No function calls in the response');
-    console.log(response.text);
+    console.log(response?.text || 'No text in response'); // Defensive access
     return { response, results: [] };
   }
 }
@@ -190,10 +235,17 @@ Output only the final comprehensive user request, nothing else:`;
     const response = await generateContent('gemini-2.5-flash', [
       { role: 'user', parts: [{ text: prompt }] },
     ]);
-    const generatedMessage =
-      response.candidates[0].content.parts[0].text.trim();
-    console.log('Generated user message response:', generatedMessage);
-    return generatedMessage;
+    
+    // Add defensive checks for LLM response structure
+    const generatedMessage = response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    
+    if (generatedMessage) {
+      console.log('Generated user message response:', generatedMessage);
+      return generatedMessage;
+    } else {
+      console.warn('LLM response text was empty or malformed for user message generation. Returning original message.');
+      return userMessage; // Fallback to original message
+    }
   } catch (error) {
     console.error('Error generating user message from context:', error);
     return userMessage;
@@ -214,17 +266,24 @@ export async function executeMultipleTools(
 
   console.log('Entity before tool execution:', entityId);
   for (const funcCall of functionCalls) {
-    console.log(`Calling tool ${funcCall.name}`);
+    console.log(`Attempting to call tool ${funcCall.name}`);
     const functionCall = {
       name: funcCall.name || '',
       args: funcCall.args || {},
     };
-    const result = await composio.provider.executeToolCall(
-      entityId,
-      functionCall
-    );
-    console.log(`Result:`, JSON.stringify(result, null, 2));
-    results.push(result);
+    try {
+      const result = await composio.provider.executeToolCall(
+        entityId,
+        functionCall
+      );
+      console.log(`Result for ${funcCall.name}:`, JSON.stringify(result, null, 2));
+      results.push({ tool: funcCall.name, status: 'success', result });
+    } catch (error) {
+      console.error(`Error executing tool ${funcCall.name}:`, error);
+      // Push error information to results array to indicate failure for this specific tool,
+      // but do not rethrow to allow other tools to attempt execution.
+      results.push({ tool: funcCall.name, status: 'error', error: error.message });
+    }
   }
 
   return results;
