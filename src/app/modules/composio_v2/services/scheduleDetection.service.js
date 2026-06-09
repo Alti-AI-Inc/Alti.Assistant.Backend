@@ -60,13 +60,12 @@ Respond with a JSON object:
       cleanedResult = result.replace(regex, '').trim();
     }
 
+    // Robustly remove markdown code block wrappers
     if (cleanedResult.startsWith('```json')) {
       cleanedResult = cleanedResult
         .replace(/```json\s*/, '')
         .replace(/\s*```$/, '');
-    }
-
-    if (cleanedResult.startsWith('```')) {
+    } else if (cleanedResult.startsWith('```')) { // Handle generic code block if not specifically JSON
       cleanedResult = cleanedResult
         .replace(/```\s*/, '')
         .replace(/\s*```$/, '');
@@ -141,9 +140,14 @@ Respond with a JSON object:
       cleanedResult = result.replace(regex, '').trim();
     }
 
+    // Robustly remove markdown code block wrappers
     if (cleanedResult.startsWith('```json')) {
       cleanedResult = cleanedResult
         .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    } else if (cleanedResult.startsWith('```')) { // Handle generic code block if not specifically JSON
+      cleanedResult = cleanedResult
+        .replace(/```\s*/, '')
         .replace(/\s*```$/, '');
     }
 
@@ -217,9 +221,14 @@ Respond with a JSON object:
       cleanedResult = result.replace(regex, '').trim();
     }
 
+    // Robustly remove markdown code block wrappers
     if (cleanedResult.startsWith('```json')) {
       cleanedResult = cleanedResult
         .replace(/```json\s*/, '')
+        .replace(/\s*```$/, '');
+    } else if (cleanedResult.startsWith('```')) { // Handle generic code block if not specifically JSON
+      cleanedResult = cleanedResult
+        .replace(/```\s*/, '')
         .replace(/\s*```$/, '');
     }
 
