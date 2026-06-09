@@ -57,6 +57,14 @@ const handleVideoConversation = async (
         // Always pass the actual userId for authorization.
         // The conversationHelpers.getConversationById function is expected to handle
         // authorization based on this userId.
+        // Optimization Recommendation:
+        // For read-only operations like this, the 'conversationHelpers.getConversationById'
+        // function should internally use '.lean()' to return plain JavaScript objects
+        // instead of Mongoose documents, reducing overhead.
+        // Indexing Recommendation:
+        // Ensure an index exists on the Conversation model for `{ _id: 1, userId: 1 }`
+        // or `{ conversationId: 1, userId: 1 }` if 'conversationId' is a separate field
+        // and not mapped to '_id'. This will speed up lookups.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId
@@ -275,6 +283,13 @@ const addErrorMessage = async (
  */
 const getGuestConversations = async (guestUserId, req = null) => {
   try {
+    // Optimization Recommendation:
+    // For read-only operations like this, the 'conversationHelpers.getUserConversations'
+    // function should internally use '.lean()' to return plain JavaScript objects
+    // instead of Mongoose documents, reducing overhead.
+    // Indexing Recommendation:
+    // Ensure an index exists on the Conversation model for `{ userId: 1, 'metadata.category': 1, 'metadata.userType': 1 }`.
+    // This will speed up filtering by user, category, and userType.
     const conversations = await conversationHelpers.getUserConversations(
       guestUserId,
       {
@@ -311,6 +326,14 @@ const getGuestConversations = async (guestUserId, req = null) => {
 const getGuestConversation = async (conversationId, guestUserId, req = null) => {
   try {
     // conversationHelpers.getConversationById expects userId as the second parameter for authorization.
+    // Optimization Recommendation:
+    // For read-only operations like this, the 'conversationHelpers.getConversationById'
+    // function should internally use '.lean()' to return plain JavaScript objects
+    // instead of Mongoose documents, reducing overhead.
+    // Indexing Recommendation:
+    // Ensure an index exists on the Conversation model for `{ _id: 1, userId: 1 }`
+    // or `{ conversationId: 1, userId: 1 }` if 'conversationId' is a separate field
+    // and not mapped to '_id'. This will speed up lookups.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       guestUserId // Pass the guestUserId to ensure ownership check at the helper level
@@ -351,6 +374,13 @@ const getGuestConversation = async (conversationId, guestUserId, req = null) => 
  */
 const getVideoStats = async (userId, req = null) => {
   try {
+    // Optimization Recommendation:
+    // For read-only operations like this, the 'conversationHelpers.getUserConversations'
+    // function should internally use '.lean()' to return plain JavaScript objects
+    // instead of Mongoose documents, reducing overhead.
+    // Indexing Recommendation:
+    // Ensure an index exists on the Conversation model for `{ userId: 1, 'metadata.category': 1 }`.
+    // This will speed up filtering by user and category.
     const videoConversations = await conversationHelpers.getUserConversations(
       userId,
       {
