@@ -3,7 +3,11 @@ import { ComposioCatalogService } from './composio-catalog.service.js';
 
 const getRepositories = async (req, res, next) => {
   try {
-    const { query, license, language, limit, page, sortBy } = req.query;
+    const { query, license, language, sortBy } = req.query;
+    // Parse limit and page to integers, providing default values if not present or invalid.
+    const limit = parseInt(req.query.limit, 10) || 10; // Default limit to 10 items per page
+    const page = parseInt(req.query.page, 10) || 1;     // Default page to 1
+
     // Optimization Recommendation:
     // For read-only operations like this, ensure the 'searchComposioCatalog'
     // method in ComposioCatalogService uses .lean() on its Mongoose queries
@@ -50,6 +54,15 @@ const getStats = async (req, res, next) => {
 const importSubmodule = async (req, res, next) => {
   try {
     const { repoName } = req.body;
+
+    // Validate repoName: ensure it's present, a string, and not empty.
+    if (!repoName || typeof repoName !== 'string' || repoName.trim().length === 0) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        success: false,
+        message: 'Repository name is required and must be a non-empty string.'
+      });
+    }
+
     // Indexing Recommendation:
     // If 'importComposioSubmodule' uses 'repoName' to find an existing document
     // before creating or updating, ensure the underlying Mongoose schema for
