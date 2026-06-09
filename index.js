@@ -78,6 +78,8 @@ app.use('/api/v1/subscriptions/webhook', express.raw({ type: 'application/json' 
 const allowedOrigins = [
   'https://altihq.com',
   'https://www.altihq.com',
+  'https://altiassistant.com',
+  'https://www.altiassistant.com',
 ];
 
 // Only allow localhost origins in non-production environments
