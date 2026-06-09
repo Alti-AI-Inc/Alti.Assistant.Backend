@@ -10,7 +10,11 @@ const conversationalRequestSchema = z.object({
       .min(1, 'Message cannot be empty')
       .max(5000, 'Message too long'),
     conversationId: z.string().optional(),
-    userId: z.string().optional(), // For guest users
+    // userId should not be provided by the client for security reasons.
+    // The server should derive the user's identity from authentication context
+    // (e.g., JWT, session) or generate a guest ID internally.
+    // Allowing client-provided userId can lead to impersonation or IDOR if not handled carefully server-side.
+    // userId: z.string().optional(), // Removed due to security vulnerability
     textContent: z.string().optional(), // Direct text to rewrite
   }),
 });
@@ -60,7 +64,11 @@ const rewriteContentSchema = z.object({
     targetAudience: z.string().max(200).optional(),
     additionalInstructions: z.string().max(1000).optional(),
     outputFormat: z.enum(['text', 'file', 'both']).optional(),
-    userId: z.string().optional(), // For guest users
+    // userId should not be provided by the client for security reasons.
+    // The server should derive the user's identity from authentication context
+    // (e.g., JWT, session) or generate a guest ID internally.
+    // Allowing client-provided userId can lead to impersonation or IDOR if not handled carefully server-side.
+    // userId: z.string().optional(), // Removed due to security vulnerability
   }),
 });
 
