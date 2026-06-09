@@ -41,6 +41,10 @@ const handleSummaryConversation = async (
           isGuest ? null : userId,
           req
         );
+        // OPTIMIZATION RECOMMENDATION: If `conversationHelpers.getConversationById` only reads data
+        // and the returned `conversation` object is not modified or used with Mongoose document methods
+        // (e.g., .save(), virtuals), consider adding `.lean()` to the Mongoose query within
+        // `conversationHelpers.getConversationById` for better read performance.
 
         // For guest users, verify the conversation belongs to them or is a guest conversation
         // If it's not a guest conversation, treat it as not found for this guest user.
@@ -318,6 +322,9 @@ const getSummaryHistory = async (
       userId,
       req
     );
+    // OPTIMIZATION RECOMMENDATION: Since the `conversation` object is only read from and its `messages`
+    // are transformed into plain objects, consider adding `.lean()` to the Mongoose query within
+    // `conversationHelpers.getConversationById` for better read performance.
 
     if (!conversation || !conversation.messages) {
       return [];
@@ -391,6 +398,20 @@ const getSummaryStats = async (userId, req = null) => {
         category: 'summary',
       }
     );
+    // OPTIMIZATION RECOMMENDATION: For `conversationHelpers.getUserConversations`, if the returned
+    // conversation objects are only used for reading properties (like `messageCount`) and not
+    // modified or used with Mongoose document methods, consider adding `.lean()` to the Mongoose
+    // query for better read performance.
+
+    // OPTIMIZATION RECOMMENDATION: For users with extremely large numbers of conversations,
+    // fetching up to 1000 documents and then reducing them in memory can be inefficient.
+    // A more performant approach would be to use MongoDB aggregation directly in the database
+    // to calculate `totalSummaryConversations` and `totalSummaryMessages`.
+    // Example aggregation (to be implemented in `conversationService` or `conversationHelpers`):
+    // await Conversation.aggregate([
+    //   { $match: { userId: new mongoose.Types.ObjectId(userId), 'metadata.category': 'summary' } },
+    //   { $group: { _id: null, totalSummaryConversations: { $sum: 1 }, totalSummaryMessages: { $sum: '$messageCount' } } }
+    // ]);
 
     const totalSummaries = summaryConversations.conversations.length;
     const totalMessages = summaryConversations.conversations.reduce(
