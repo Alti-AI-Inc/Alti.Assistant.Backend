@@ -7,8 +7,12 @@ import { llm } from '../services/geminiService.js';
  */
 
 /**
- * Estimates token count for conversation history
- * Uses character-to-token ratio for fast estimation
+ * Estimates the token count for a given conversation history.
+ * This utility uses a character-to-token ratio for a fast, approximate estimation,
+ * adding a small overhead per message for role and formatting.
+ *
+ * @param {Array<Object>} history - An array of message objects, where each object has a `content` property (e.g., `{ role: 'user', content: 'Hello' }`).
+ * @returns {number} The estimated token count for the given conversation history. Returns 0 if history is empty or invalid.
  */
 export const estimateTokenCount = (history) => {
   if (!Array.isArray(history) || history.length === 0) return 0;
@@ -35,7 +39,12 @@ export const estimateTokenCount = (history) => {
 };
 
 /**
- * Checks if conversation history needs management
+ * Checks if the conversation history needs management (e.g., summarization or trimming)
+ * based on its estimated token count relative to a configured threshold.
+ *
+ * @param {Array<Object>} history - An array of message objects representing the current conversation history.
+ * @param {string|null} [existingSummary=null] - An optional existing summary string. While not directly used in token estimation for this function, it's part of the overall context and included for consistency.
+ * @returns {boolean} True if the history's estimated token count exceeds the configured threshold, indicating a need for management; otherwise, false.
  */
 export const needsHistoryManagement = (history, existingSummary = null) => {
   if (!Array.isArray(history) || history.length === 0) return false;
@@ -54,8 +63,15 @@ export const needsHistoryManagement = (history, existingSummary = null) => {
 };
 
 /**
- * Creates an intelligent conversation summary using Gemini
- * Targets specific token count for optimal context retention
+ * Creates an intelligent conversation summary using the configured LLM (Gemini).
+ * The summary aims to capture key context, user intent, factual data, and recent focus
+ * within a target token count for optimal context retention in subsequent interactions.
+ *
+ * @async
+ * @param {Array<Object>} messagesToSummarize - An array of message objects (e.g., `{ role: 'user', content: '...' }`) to be summarized.
+ * @param {number} [targetTokens=HISTORY_CONFIG.SUMMARY_TARGET_TOKENS] - The desired approximate token count for the generated summary.
+ * @returns {Promise<string>} A promise that resolves to the intelligently generated conversation summary string.
+ *   Returns an empty string if no messages are provided, or a fallback summary in case of an error.
  */
 export const createIntelligentSummary = async (
   messagesToSummarize,
@@ -145,8 +161,24 @@ Create a conversation summary:`;
 };
 
 /**
- * Intelligently manages conversation history with smart summarization and trimming
- * Automatically triggers when token limits are approached
+ * Intelligently manages conversation history by summarizing older messages and trimming
+ * the history to keep only the most recent and relevant parts. This process is
+ * automatically triggered when token limits are approached or can be forced.
+ *
+ * @async
+ * @param {Array<Object>} history - The full array of conversation message objects.
+ * @param {string|null} [existingSummary=null] - An optional existing summary string from previous management cycles.
+ * @param {boolean} [forceManagement=false] - If true, history management will be performed regardless of whether token limits are exceeded.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the managed history, new summary, and management details.
+ * @property {Array<Object>} managedHistory - The trimmed array of recent conversation messages.
+ * @property {string|null} conversationSummary - The updated or newly created conversation summary.
+ * @property {boolean} historyManaged - True if history management (summarization/trimming) was performed.
+ * @property {number} tokenCount - The estimated token count of the `managedHistory` plus the `conversationSummary`.
+ * @property {number} [tokenReduction] - The number of tokens reduced from the initial history.
+ * @property {number} [reductionPercentage] - The percentage of tokens reduced.
+ * @property {number} [summarizedMessages] - The number of messages that were summarized.
+ * @property {number} [keptMessages] - The number of recent messages kept.
+ * @property {string} [error] - An error message if history management failed, indicating a fallback was used.
  */
 export const manageConversationHistoryIntelligent = async (
   history,
@@ -282,8 +314,23 @@ export const manageConversationHistoryIntelligent = async (
 };
 
 /**
- * Prepares conversation context with intelligent history management
- * This is the main function to call before processing any query
+ * Prepares the conversation context for an LLM by intelligently managing history.
+ * This function orchestrates the summarization and trimming of past messages,
+ * then formats the summary and recent messages into a single string suitable for LLM input.
+ *
+ * @async
+ * @param {Array<Object>} history - The full array of conversation message objects.
+ * @param {string|null} [existingSummary=null] - An optional existing summary string.
+ * @param {string} [currentQuery=''] - The current user query for which the context is being prepared. Used for logging/contextual awareness.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the formatted conversation context and management details.
+ * @property {Array<Object>} managedHistory - The trimmed array of recent conversation messages after management.
+ * @property {string|null} conversationSummary - The updated or newly created conversation summary.
+ * @property {string} formattedContext - The combined, formatted string of the summary and recent messages, ready for LLM input.
+ * @property {boolean} historyManaged - True if history management (summarization/trimming) was performed.
+ * @property {number} tokenCount - The estimated token count of the `managedHistory` plus the `conversationSummary`.
+ * @property {number} contextTokens - The estimated token count of the `formattedContext` string.
+ * @property {boolean} isOptimized - Alias for `historyManaged`, indicating if the context was optimized.
+ * @property {string} [error] - An error message if context preparation failed.
  */
 export const prepareConversationContext = async (
   history,
