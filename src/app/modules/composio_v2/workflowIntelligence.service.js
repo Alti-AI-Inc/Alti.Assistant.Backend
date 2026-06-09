@@ -51,8 +51,10 @@ const groupIntoSessions = (logs) => {
   let currentSession = [logs[0]];
 
   for (let i = 1; i < logs.length; i++) {
-    const prevTime = new Date(logs[i - 1].createdAt).getTime();
-    const currTime = new Date(logs[i].createdAt).getTime();
+    // Optimization: createdAt is already a Date object from Mongoose's .lean(),
+    // so direct .getTime() is slightly more efficient than new Date().getTime().
+    const prevTime = logs[i - 1].createdAt.getTime();
+    const currTime = logs[i].createdAt.getTime();
 
     if (currTime - prevTime <= SESSION_GAP_MS) {
       currentSession.push(logs[i]);
@@ -184,6 +186,8 @@ const analyzeWorkflowPatterns = async (userId) => {
   const since = new Date(Date.now() - ANALYSIS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   // Fetch successful logs in chronological order
+  // Optimization: Add a compound index on ActionAuditLog for { userId: 1, status: 1, createdAt: 1 }
+  // This index will efficiently support the query's filtering (userId, status, createdAt) and sorting (createdAt).
   const logs = await ActionAuditLog.find({
     userId,
     status: 'success',
@@ -241,7 +245,9 @@ const analyzeWorkflowPatterns = async (userId) => {
         // Calculate the duration of this specific sequence occurrence
         // The duration of a sequence is the time elapsed from the createdAt of its first action
         // to the createdAt of its last action.
-        const sequenceDuration = new Date(lastLog.createdAt).getTime() - new Date(firstLog.createdAt).getTime();
+        // Optimization: createdAt is already a Date object from Mongoose's .lean(),
+        // so direct .getTime() is slightly more efficient than new Date().getTime().
+        const sequenceDuration = lastLog.createdAt.getTime() - firstLog.createdAt.getTime();
 
         if (!sequenceData.has(key)) {
           sequenceData.set(key, { count: 0, totalDurationMs: 0 });
@@ -289,6 +295,8 @@ const analyzeWorkflowPatterns = async (userId) => {
     );
 
     // Upsert the pattern
+    // Optimization: Add a compound index on WorkflowPattern for { userId: 1, sequence: 1 }
+    // This index will efficiently support the upsert query's filtering by userId and sequence.
     const saved = await WorkflowPattern.findOneAndUpdate(
       { userId, sequence: pattern.sequence },
       {
@@ -348,6 +356,8 @@ const analyzeWorkflowPatterns = async (userId) => {
  * @returns {Date} returns.patterns[].lastObservedAt - The last time this pattern was observed or updated.
  */
 const getWorkflowPatterns = async (userId) => {
+  // Optimization: Add a compound index on WorkflowPattern for { userId: 1, dismissed: 1, occurrenceCount: -1 }
+  // This index will efficiently support the query's filtering (userId, dismissed) and sorting (occurrenceCount).
   const patterns = await WorkflowPattern.find({ userId, dismissed: false })
     .sort({ occurrenceCount: -1 })
     .lean();
@@ -380,6 +390,8 @@ const getWorkflowPatterns = async (userId) => {
  * @returns {string} returns.message - A confirmation message.
  */
 const dismissPattern = async (patternId, userId) => {
+  // _id is already indexed by default. userId is used for ownership check.
+  // No additional index is strictly necessary here for performance, as _id is unique.
   await WorkflowPattern.findOneAndUpdate(
     { _id: patternId, userId },
     { dismissed: true }
