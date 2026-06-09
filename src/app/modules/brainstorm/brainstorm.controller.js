@@ -114,9 +114,12 @@ const conversationalAssistant = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
+    // Optimization: Use .lean() for read-only queries to improve performance by returning plain JavaScript objects.
+    // Recommendation: Create a compound index on `userId` and `createdAt` for `SubscriptionModel`
+    // to optimize this query: `db.subscriptions.createIndex({ userId: 1, createdAt: -1 })`
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean();
 
     // BUG: The original logic `promptUsage <= totalConversationWithConvId` was flawed.
     // `userSubscription.usage` is assumed to be the remaining prompts, consistent with `generateBrainstorm`.
@@ -239,9 +242,12 @@ const generateBrainstorm = catchAsync(async (req, res) => {
 
   // Check subscription limits for authenticated users
   if (!isGuest) {
+    // Optimization: Use .lean() for read-only queries to improve performance by returning plain JavaScript objects.
+    // Recommendation: Create a compound index on `userId` and `createdAt` for `SubscriptionModel`
+    // to optimize this query: `db.subscriptions.createIndex({ userId: 1, createdAt: -1 })`
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
-    });
+    }).lean();
 
     // BUG: The original logic `if (userSubscription && userSubscription.usage <= 0)`
     // would allow users without any subscription to bypass the limit check.
