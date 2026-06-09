@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import * as fs from 'node:fs';
+import * as fs from 'node:fs/promises'; // Use the promise-based fs API for asynchronous operations
 import * as path from 'node:path';
 import dotenv from 'dotenv';
 import { GCPStorageService } from '../services/gcpStorageService.js';
@@ -29,16 +29,20 @@ export async function imagen3(prompt, referenceImages, filename = 'image.png') {
   const content = [{ text: message }];
 
   if (referenceImages && referenceImages.length > 0) {
-    for (const imgPath of referenceImages) {
-      const imgBytes = fs.readFileSync(imgPath);
+    // Optimization: Read all reference images concurrently using fs.promises.readFile
+    // This avoids blocking the event loop with synchronous fs.readFileSync calls in a loop.
+    const imagePromises = referenceImages.map(async (imgPath) => {
+      const imgBytes = await fs.readFile(imgPath); // Asynchronously read file content
       const base64Image = imgBytes.toString('base64');
-      content.push({
+      return {
         inlineData: {
-          mimeType: 'image/png',
+          mimeType: 'image/png', // Assuming all reference images are PNGs, adjust if dynamic mime types are needed
           data: base64Image,
         },
-      });
-    }
+      };
+    });
+    const imageContents = await Promise.all(imagePromises); // Wait for all images to be read
+    content.push(...imageContents);
   }
 
   let response = await ai.models.generateContent({
