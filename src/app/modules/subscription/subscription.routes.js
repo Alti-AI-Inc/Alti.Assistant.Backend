@@ -26,7 +26,19 @@ router.use(auth());
 router.get('/my-subscription', subscriptionController.getMySubscription);
 
 // Get tenant subscription
-router.get('/tenant/:tenantId', subscriptionController.getTenantSubscription);
+// BUG/VULNERABILITY: Potential IDOR (Insecure Direct Object Reference).
+// An authenticated user could potentially view any tenant's subscription if the controller
+// does not perform proper authorization checks.
+// FIX: Add `extractTenantContext` and `requireTenantAdmin` middleware to ensure
+// the authenticated user has administrative rights over the specified tenant.
+// This assumes `extractTenantContext` is designed to extract the tenant ID from `req.params.tenantId`
+// and `requireTenantAdmin` verifies the user's role against that extracted tenant.
+router.get(
+  '/tenant/:tenantId',
+  extractTenantContext,
+  requireTenantAdmin,
+  subscriptionController.getTenantSubscription
+);
 
 // Create free subscription
 router.post('/create-free', subscriptionController.createFreeSubscription);
