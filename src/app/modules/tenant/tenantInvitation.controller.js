@@ -2,6 +2,9 @@ import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import { tenantInvitationService } from './tenantInvitation.service.js';
+// Optimization: Import TenantInvitation model at the top for better performance and consistency
+// if it's used in multiple places or frequently, avoiding repeated dynamic imports.
+import TenantInvitation from './tenantInvitation.model.js';
 
 /**
  * @swagger
@@ -74,6 +77,13 @@ const getTenantInvitations = catchAsync(async (req, res) => {
   const tenantId = req.user?.currentTenantId || req.user?.tenantId;
   const { page = 1, limit = 20, status } = req.query;
 
+  // Optimization Recommendation:
+  // If the service layer queries TenantInvitation documents by `tenantId` and `status`,
+  // consider adding indexes to the TenantInvitation schema for these fields:
+  // { tenantId: 1 }
+  // { status: 1 }
+  // For queries filtering by both, a compound index might be beneficial:
+  // { tenantId: 1, status: 1 }
   const result = await tenantInvitationService.getTenantInvitations(tenantId, {
     page,
     limit,
@@ -140,6 +150,10 @@ const getTenantInvitations = catchAsync(async (req, res) => {
 const verifyInvitationToken = catchAsync(async (req, res) => {
   const { token } = req.params;
 
+  // Optimization Recommendation:
+  // If the service layer queries TenantInvitation documents by `token`,
+  // consider adding an index to the TenantInvitation schema for this field:
+  // { token: 1 }
   const result = await tenantInvitationService.verifyInvitationToken(token);
 
   sendResponse(res, {
@@ -208,10 +222,11 @@ const acceptInvitation = catchAsync(async (req, res) => {
   const { inviteId } = req.params;
   const userId = req.user?.id || req.user?._id;
 
-  // Get invitation to get the token
-  const TenantInvitation = (await import('./tenantInvitation.model.js'))
-    .default;
-  const invitation = await TenantInvitation.findById(inviteId);
+  // Optimization: Use .lean() for read operations where Mongoose document methods are not needed.
+  // This returns a plain JavaScript object, reducing Mongoose overhead.
+  // Also, project only the 'token' field as that's all that's used from the invitation object,
+  // minimizing data transfer from the database.
+  const invitation = await TenantInvitation.findById(inviteId, { token: 1 }).lean();
 
   if (!invitation) {
     return sendResponse(res, {
