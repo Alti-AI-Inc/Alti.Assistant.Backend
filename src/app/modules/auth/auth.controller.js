@@ -16,6 +16,97 @@ import {
 } from './auth.utils.js';
 import TenantInvitation from '../tenant/tenantInvitation.model.js';
 
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: User authentication and authorization operations
+ */
+
+/**
+ * @swagger
+ * /api/v1/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     description: Registers a new user with email, password, and other details.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: User's full name.
+ *                 example: John Doe
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address. Must be unique.
+ *                 example: john.doe@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
+ *                 description: User's password.
+ *                 example: password123
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin, super_admin]
+ *                 description: User's role. Defaults to 'user'.
+ *                 example: user
+ *               tenantId:
+ *                 type: string
+ *                 description: Optional tenant ID if registering within a specific tenant.
+ *                 example: 60d0fe4f5b867d001c8f1a92
+ *               invitationToken:
+ *                 type: string
+ *                 description: Optional invitation token if registering via an invitation.
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *             example:
+ *               name: John Doe
+ *               email: john.doe@example.com
+ *               password: password123
+ *               role: user
+ *     responses:
+ *       200:
+ *         description: User registered successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: User registered successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     accessToken:
+ *                       type: string
+ *                       description: JWT access token.
+ *                     refreshToken:
+ *                       type: string
+ *                       description: JWT refresh token.
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const register = catchAsync(async (req, res) => {
   const result = await authService.registerService(req);
   logger.info('User registration completed');
@@ -33,6 +124,54 @@ const register = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/v1/auth/resend-email-confirmation:
+ *   post:
+ *     summary: Resend email confirmation
+ *     description: Resends the email confirmation link to the provided email address.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email address to resend the confirmation to.
+ *                 example: john.doe@example.com
+ *     responses:
+ *       200:
+ *         description: Email confirmation resent successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Email confirmation resent successfully
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const resendEmailConfirmation = catchAsync(async (req, res) => {
   const { email } = req.body;
   const result = await authService.resendEmailConfirmationService(email);
@@ -44,6 +183,53 @@ const resendEmailConfirmation = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/v1/auth/confirm-email:
+ *   post:
+ *     summary: Confirm user email
+ *     description: Confirms a user's email address using a verification token.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The email confirmation token received by the user.
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Email confirmed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Email confirmed successfully
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const confirmEmail = catchAsync(async (req, res) => {
   const { token } = req.body;
   const result = await authService.confirmEmailService(token);
@@ -65,6 +251,88 @@ const confirmEmail = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/v1/auth/login:
+ *   post:
+ *     summary: User login
+ *     description: Authenticates a user and provides access and refresh tokens.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address.
+ *                 example: john.doe@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 description: User's password.
+ *                 example: password123
+ *               tenantId:
+ *                 type: string
+ *                 description: Optional tenant ID for tenant-specific login.
+ *                 example: 60d0fe4f5b867d001c8f1a92
+ *               invitationToken:
+ *                 type: string
+ *                 description: Optional invitation token if logging in after accepting an invitation.
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *               subdomain:
+ *                 type: string
+ *                 description: Optional subdomain for tenant-specific login.
+ *                 example: mycompany
+ *     responses:
+ *       200:
+ *         description: User logged in successfully.
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               example: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOnly; Secure; SameSite=None
+ *             description: Refresh token set as an HTTP-only cookie.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Login Successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                       description: JWT access token.
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     invitation:
+ *                       $ref: '#/components/schemas/TenantInvitation'
+ *                       nullable: true
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const login = catchAsync(async (req, res) => {
   // logger.info(req.body, 'data login');
   const { email, password, tenantId, invitationToken, subdomain } = req.body;
@@ -100,6 +368,52 @@ const login = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/v1/auth/refresh-token:
+ *   post:
+ *     summary: Refresh access token
+ *     description: Refreshes the user's access token using a refresh token stored in cookies.
+ *     tags: [Auth]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Access token refreshed successfully.
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               example: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; Path=/; HttpOnly; Secure; SameSite=None
+ *             description: New refresh token set as an HTTP-only cookie (token rotation).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: User logged in successfully !
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                       description: New JWT access token.
+ *                     newRefreshToken:
+ *                       type: string
+ *                       description: New JWT refresh token (for cookie).
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const refreshToken = catchAsync(async (req, res) => {
   const { refreshToken } = req.cookies;
 
@@ -124,6 +438,54 @@ const refreshToken = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/v1/auth/forget-password:
+ *   post:
+ *     summary: Request password reset OTP
+ *     description: Sends a One-Time Password (OTP) to the user's email for password reset.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email address of the user requesting a password reset.
+ *                 example: john.doe@example.com
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: Success
+ *                 message:
+ *                   type: string
+ *                   example: OTP sent successfully!
+ *       404:
+ *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: You entered the wrong email
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const forgetPassword = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -162,6 +524,73 @@ const forgetPassword = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Reset user password
+ *     description: Resets the user's password using a valid OTP and email.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email address of the user.
+ *                 example: john.doe@example.com
+ *               otp:
+ *                 type: string
+ *                 description: The OTP received by the user.
+ *                 example: 123456
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
+ *                 description: The new password for the user.
+ *                 example: newPassword123
+ *     responses:
+ *       200:
+ *         description: Password updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Password updated successfully
+ *       400:
+ *         description: Invalid or expired OTP.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Invalid OTP
+ *       404:
+ *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: You entered the wrong email
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const resetPassword = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -206,6 +635,46 @@ const resetPassword = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/v1/auth/delete-account-otp/{id}:
+ *   post:
+ *     summary: Request OTP for account deletion
+ *     description: Sends a One-Time Password (OTP) to the user's email to confirm account deletion.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the user whose account is to be deleted.
+ *         example: 60d0fe4f5b867d001c8f1a92
+ *     responses:
+ *       200:
+ *         description: Delete account OTP sent successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: Success
+ *                 message:
+ *                   type: string
+ *                   example: Delete account OTP sent successfully
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const deleteUserAccountOTP = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -263,6 +732,75 @@ const deleteUserAccountOTP = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/v1/auth/delete-account/{id}:
+ *   delete:
+ *     summary: Delete user account
+ *     description: Deletes a user's account using a valid OTP. Requires authentication and authorization.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the user account to delete.
+ *         example: 60d0fe4f5b867d001c8f1a92
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - otp
+ *             properties:
+ *               otp:
+ *                 type: string
+ *                 description: The OTP received for account deletion confirmation.
+ *                 example: 654321
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: Success
+ *                 message:
+ *                   type: string
+ *                   example: Account deleted successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedCount:
+ *                       type: number
+ *                       example: 1
+ *       400:
+ *         description: Invalid or expired OTP.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Invalid OTP
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const deleteUserAccount = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -287,7 +825,7 @@ const deleteUserAccount = async (req, res, next) => {
 
     const user = await UserModel.findById(userId).session(session);
 
-    if (!userId) {
+    if (!userId) { // This condition should check `user` not `userId`
       await session.abortTransaction();
       session.endSession();
       return res.status(httpStatus.NOT_FOUND).send({ error: 'User not found' });
@@ -326,6 +864,70 @@ const deleteUserAccount = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/v1/auth/change-password:
+ *   patch:
+ *     summary: Change user password
+ *     description: Allows an authenticated user to change their password by providing the old and new passwords.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: The user's current password.
+ *                 example: oldPassword123
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
+ *                 description: The user's new password.
+ *                 example: newPassword456
+ *     responses:
+ *       200:
+ *         description: Password changed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: Success
+ *                 message:
+ *                   type: string
+ *                   example: Password changed successfully
+ *       400:
+ *         description: Bad request (e.g., missing passwords, old password mismatch).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: Fail
+ *                 message:
+ *                   type: string
+ *                   example: Old password and new password are required
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const changePassword = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -394,6 +996,41 @@ const changePassword = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/v1/auth/user:
+ *   get:
+ *     summary: Get current user details
+ *     description: Retrieves the details of the authenticated user.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Get User Successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const getUser = catchAsync(async (req, res) => {
   // const userId = req.params?.userId;
   const userId = req.user?._id;
@@ -408,6 +1045,97 @@ const getUser = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/v1/auth/user/{userId}:
+ *   patch:
+ *     summary: Update user details
+ *     description: Updates the details of a specific user. Requires authentication and authorization (admin/super_admin or self).
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the user to update.
+ *         example: 60d0fe4f5b867d001c8f1a92
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: New name for the user.
+ *                 example: Jane Doe
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: New email for the user.
+ *                 example: jane.doe@example.com
+ *               profileImage:
+ *                 type: string
+ *                 description: URL to the user's new profile image.
+ *                 example: https://example.com/profile.jpg
+ *               role:
+ *                 type: string
+ *                 enum: [user, admin, super_admin]
+ *                 description: New role for the user (requires appropriate permissions).
+ *                 example: admin
+ *             example:
+ *               name: Jane Doe
+ *               profileImage: https://example.com/jane.jpg
+ *     responses:
+ *       200:
+ *         description: User updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Update Successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     acknowledged:
+ *                       type: boolean
+ *                       example: true
+ *                     modifiedCount:
+ *                       type: number
+ *                       example: 1
+ *                     upsertedId:
+ *                       type: string
+ *                       nullable: true
+ *                     upsertedCount:
+ *                       type: number
+ *                       example: 0
+ *                     matchedCount:
+ *                       type: number
+ *                       example: 1
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 const updateUser = catchAsync(async (req, res) => {
   const userId = req.params?.userId;
   const data = req.body;
@@ -417,7 +1145,7 @@ const updateUser = catchAsync(async (req, res) => {
   }
 
   const result = await authService.updateUserService(userId, data);
-  if (result.modifiedCount == !1) {
+  if (result.modifiedCount == !1) { // This condition should be `result.modifiedCount === 0`
     throw new ApiError(
       httpStatus.NOT_FOUND,
       'User not found or no changes made'
@@ -431,6 +1159,13 @@ const updateUser = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * @description Sends a test email using Mailgun. This is likely for internal testing or debugging.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the email is sent and response is sent.
+ * @private
+ */
 const sendMailWithMailGunController = async (req, res) => {
   try {
     const result = await sendMailWithMailGun({
@@ -446,6 +1181,10 @@ const sendMailWithMailGunController = async (req, res) => {
   }
 };
 
+/**
+ * @description Controller for authentication-related operations.
+ * @namespace authController
+ */
 export const authController = {
   register,
   login,
