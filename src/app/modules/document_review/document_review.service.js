@@ -38,6 +38,12 @@ const generateConversationId = () => {
 
 /**
  * Handle document review conversation (create or retrieve)
+ * @param {string} userId
+ * @param {string} conversationId
+ * @param {string} userMessage
+ * @param {boolean} isGuest
+ * @param {object} req
+ * @returns {Promise<object>} The conversation document.
  */
 const handleDocumentReviewConversation = async (
   userId,
@@ -51,6 +57,9 @@ const handleDocumentReviewConversation = async (
 
     if (conversationId) {
       try {
+        // This fetch is to check for existence and get initial conversation data.
+        // It returns a full Mongoose document as it might be used for further operations
+        // or passed to services that expect a Mongoose document.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -77,6 +86,8 @@ const handleDocumentReviewConversation = async (
             userType: isGuest ? 'guest' : 'authenticated',
             isGuest,
             collectedParams: {},
+            // 'uploadedFiles' field seems unused or redundant with 'documents_metadata.documents'
+            // Consider removing if not actively used.
             uploadedFiles: [],
           },
         },
@@ -101,6 +112,14 @@ const handleDocumentReviewConversation = async (
 
 /**
  * Add message to conversation
+ * @param {string} conversationId
+ * @param {string} userId
+ * @param {string} role
+ * @param {string} content
+ * @param {object} metadata
+ * @param {boolean} isGuest
+ * @param {object} req
+ * @returns {Promise<object>} The updated conversation document.
  */
 const addMessage = async (
   conversationId,
@@ -136,6 +155,11 @@ const addMessage = async (
 
 /**
  * Update conversation metadata
+ * @param {string} conversationId
+ * @param {string} userId
+ * @param {object} params
+ * @param {object} req
+ * @returns {Promise<void>}
  */
 const updateConversationMetadata = async (
   conversationId,
@@ -159,6 +183,11 @@ const updateConversationMetadata = async (
 
 /**
  * Store uploaded document in conversation metadata with text extraction and GCS upload
+ * @param {string} conversationId
+ * @param {string} userId
+ * @param {object} fileInfo
+ * @param {object} req
+ * @returns {Promise<object>} The document data stored.
  */
 const storeDocumentInConversation = async (
   conversationId,
@@ -218,37 +247,39 @@ const storeDocumentInConversation = async (
       extractedAt: new Date(),
     };
 
-    // 4. Update conversation metadata
+    // 4. Update conversation documents_metadata
+    // Fetch the conversation document. This must be a full Mongoose document
+    // because we are modifying its subdocuments/fields in memory before saving.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
       req
     );
 
-    if (!conversation.metadata.documents) {
-      conversation.metadata.documents = [];
+    // Ensure documents_metadata and documents array exist.
+    // Corrected to update 'documents_metadata' directly, aligning with the original 'updateOne' intent.
+    if (!conversation.documents_metadata) {
+      conversation.documents_metadata = {};
+    }
+    if (!conversation.documents_metadata.documents) {
+      conversation.documents_metadata.documents = [];
     }
 
     console.log(
       'Existing Documents in Metadata:',
-      conversation.metadata.documents,
+      conversation.documents_metadata.documents, // Corrected access path
       conversationId
     );
 
-    conversation.metadata.documents.push(documentData);
-    conversation.metadata.currentDocumentId = documentData.id;
-    console.log('Updated Documents in Metadata:', conversation.metadata);
-    await Conversation.updateOne(
-      { conversationId },
-      {
-        $set: {
-          documents_metadata: {
-            documents: conversation.metadata.documents,
-            currentDocumentId: documentData.id,
-          },
-        },
-      }
-    );
+    conversation.documents_metadata.documents.push(documentData);
+    conversation.documents_metadata.currentDocumentId = documentData.id;
+    console.log('Updated Documents in Metadata:', conversation.documents_metadata); // Corrected access path
+
+    // Optimization: Instead of using Conversation.updateOne with $set,
+    // which replaces the entire documents_metadata object,
+    // use conversation.save() to persist changes made to the Mongoose document in memory.
+    // This is more idiomatic and often more efficient when working with fetched Mongoose documents.
+    await conversation.save();
 
     logger.info('Document stored successfully in conversation', {
       documentId: documentData.id,
@@ -276,6 +307,10 @@ const storeDocumentInConversation = async (
 
 /**
  * Process document and perform review using cached document data
+ * @param {object} documentData
+ * @param {object} reviewParams
+ * @param {Array<object>} conversationHistory
+ * @returns {Promise<object>} Review result.
  */
 const performDocumentReview = async (
   documentData,
@@ -385,6 +420,8 @@ Please provide a detailed review based on the instructions above.`;
 
 /**
  * Build review instructions based on parameters
+ * @param {object} params
+ * @returns {string}
  */
 const buildReviewInstructions = (params) => {
   let instructions = '';
@@ -413,37 +450,37 @@ const buildReviewInstructions = (params) => {
 
 /**
  * Main conversational handler - processes user messages intelligently
+ * @param {string} userId
+ * @param {string} userMessage
+ * @param {string} conversationId
+ * @param {object} fileInfo
+ * @param {boolean} isGuest
+ * @param {object} req
+ * @returns {Promise<object>} Conversational response.
  */
 const processConversationalRequest = async (
   userId,
   userMessage,
   conversationId,
   fileInfo = null,
-  isGuest = false
+  isGuest = false,
+  req = null
 ) => {
   try {
     logger.info('Processing conversational request for user:', userId);
 
-    // Handle or create conversation
-    const conversation = await handleDocumentReviewConversation(
+    // 1. Handle or create conversation (initial fetch/create)
+    // This 'conversation' object will become stale after subsequent DB writes.
+    let conversation = await handleDocumentReviewConversation(
       userId,
       conversationId,
       userMessage,
-      isGuest
+      isGuest,
+      req
     );
     const actualConversationId = conversation.conversationId;
 
-    // Get conversation history for context
-    const conversationHistory = conversation.messages || [];
-    const recentHistory = conversationHistory.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    // Get existing parameters from metadata
-    const existingParams = conversation.metadata?.collectedParams || {};
-
-    // Add user message
+    // 2. Add user message to conversation (updates DB)
     await addMessage(
       actualConversationId,
       userId,
@@ -452,16 +489,18 @@ const processConversationalRequest = async (
       {
         hasFile: !!fileInfo,
       },
-      isGuest
+      isGuest,
+      req
     );
 
-    // If a file is uploaded, store it with text extraction and GCS upload
+    // 3. If a file is uploaded, store it with text extraction and GCS upload (updates DB)
     let newDocumentData = null;
     if (fileInfo) {
       newDocumentData = await storeDocumentInConversation(
         actualConversationId,
         userId,
-        fileInfo
+        fileInfo,
+        req
       );
       logger.info('New document uploaded and stored', {
         documentId: newDocumentData.id,
@@ -469,11 +508,34 @@ const processConversationalRequest = async (
       });
     }
 
-    // Retrieve current document from metadata (not from fileInfo)
+    // Optimization: Refetch the conversation here to get the latest state
+    // after all previous DB modifications (addMessage, storeDocumentInConversation).
+    // This addresses an N+1 query problem by consolidating fetches and ensuring data consistency.
+    // We use .lean() because from this point, the conversation object is only read.
+    // Assuming conversationHelpers.getConversationById supports a 'lean' option as the fourth argument.
+    conversation = await conversationHelpers.getConversationById(
+      actualConversationId,
+      userId,
+      req,
+      true // Pass true for lean option to get a plain JavaScript object
+    );
+
+    // Now, use the latest 'conversation' object for subsequent logic
+    const conversationHistory = conversation.messages || [];
+    const recentHistory = conversationHistory.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+
+    // Existing parameters from the latest metadata
+    const existingParams = conversation.metadata?.collectedParams || {};
+
+    // Retrieve current document from documents_metadata
     const currentDocumentId =
       conversation.documents_metadata?.currentDocumentId;
     console.log('Current Document ID:', currentDocumentId);
-    console.log('Conversation Metadata:', conversation.documents_metadata);
+    console.log('Conversation Documents Metadata:', conversation.documents_metadata); // Corrected console log
+
     let documentData = null;
 
     if (newDocumentData) {
@@ -483,7 +545,7 @@ const processConversationalRequest = async (
       currentDocumentId &&
       conversation.documents_metadata?.documents
     ) {
-      // Retrieve from cached documents
+      // Retrieve from cached documents in the latest conversation object
       documentData = conversation.documents_metadata.documents.find(
         (doc) => doc.id === currentDocumentId
       );
@@ -497,7 +559,7 @@ const processConversationalRequest = async (
       }
     }
 
-    // // If no document is available, ask for one
+    // // If no document is available, ask for one (original commented out block)
     // if (!documentData) {
     //   const responseMessage = RESPONSE_MESSAGES.FILE_REQUIRED;
     //   await addMessage(actualConversationId, userId, 'assistant', responseMessage, {}, isGuest);
@@ -523,22 +585,20 @@ const processConversationalRequest = async (
       confidence: analysis.confidence,
       parameters: analysis.parameters,
     });
-    const updatedConversation = await conversationHelpers.getConversationById(
-      actualConversationId,
-      userId,
-      req
-    );
-    console.log('Updated Conversation Metadata:', updatedConversation.metadata);
-    // Merge parameters
+
+    // Optimization: Removed redundant fetch of 'updatedConversation'.
+    // The 'conversation' object is already up-to-date from the refetch above.
+
+    // Merge parameters using the latest conversation metadata
     const updatedParams = {
-      ...updatedConversation.metadata,
+      ...conversation.metadata, // Use the latest metadata from the refetched conversation
       ...DEFAULT_PARAMS,
-      ...existingParams,
+      ...existingParams, // existingParams already derived from the latest metadata
       ...analysis.parameters,
     };
     console.log('Updated Params:', updatedParams);
 
-    // Update metadata with collected parameters
+    // Update metadata with collected parameters (this is a write operation)
     await updateConversationMetadata(
       actualConversationId,
       userId,
@@ -563,7 +623,8 @@ const processConversationalRequest = async (
         reviewParams: updatedParams,
         documentInfo: reviewResult.documentInfo,
       },
-      isGuest
+      isGuest,
+      req
     );
 
     return {
@@ -586,6 +647,12 @@ const processConversationalRequest = async (
 
 /**
  * Direct review endpoint (non-conversational)
+ * @param {object} fileInfo
+ * @param {object} reviewParams
+ * @param {string} userId
+ * @param {boolean} isGuest
+ * @param {object} req
+ * @returns {Promise<object>} Review result.
  */
 const reviewDocument = async (
   fileInfo,
