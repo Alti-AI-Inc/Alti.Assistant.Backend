@@ -7,36 +7,85 @@ import ComposioAuth from '../composio_v2/composio.model.js';
 import { promises as fsPromises } from 'fs'; // Import fs.promises for asynchronous file operations
 
 /**
- * Robust JSON-RPC 2.0 Bridge over Standard I/O (stdio) for MCP Servers
+ * @typedef {object} McpServerConfig
+ * @property {string} id - The unique identifier for the MCP server.
+ * @property {string} name - A human-readable name for the server.
+ * @property {string} description - A brief description of the server's purpose.
+ * @property {string} command - The command to execute to start the MCP server process.
+ * @property {string[]} [args] - An array of command-line arguments to pass to the server process.
+ * @property {object} [env] - An object of environment variables to set for the server process.
+ */
+
+/**
+ * @typedef {object} McpTool
+ * @property {string} name - The name of the tool.
+ * @property {string} description - A description of what the tool does.
+ * @property {object} parameters - OpenAPI schema for the tool's input parameters.
+ * @property {string} [serverId] - Custom metadata: The ID of the server that owns this tool.
+ */
+
+/**
+ * Robust JSON-RPC 2.0 Bridge over Standard I/O (stdio) for MCP Servers.
+ * This class manages the lifecycle of a single MCP (Model Context Protocol) server subprocess,
+ * handling its startup, communication, logging, and self-healing in case of crashes.
  */
 class McpGenericServerInstance {
+  /**
+   * Creates an instance of McpGenericServerInstance.
+   * @param {string} serverId - The unique identifier for this server instance.
+   * @param {McpServerConfig} config - The configuration object for spawning the server process.
+   * @param {string} tenantId - The ID of the tenant (user) associated with this server instance.
+   * @param {function(string): void} onLog - A callback function to handle log messages from this instance.
+   */
   constructor(serverId, config, tenantId, onLog) {
+    /** @type {string} */
     this.serverId = serverId;
+    /** @type {McpServerConfig} */
     this.config = config;
+    /** @type {string} */
     this.tenantId = tenantId;
+    /** @type {function(string): void} */
     this.onLog = onLog;
+    /** @type {import('child_process').ChildProcess | null} */
     this.process = null;
+    /** @type {readline.Interface | null} */
     this.rl = null;
+    /** @type {number} */
     this.requestId = 1;
+    /** @type {Map<number, {resolve: Function, reject: Function}>} */
     this.pendingRequests = new Map(); // id -> { resolve, reject }
+    /** @type {boolean} */
     this.initialized = false;
+    /** @type {McpTool[]} */
     this.tools = [];
+    /** @type {string[]} */
     this.terminalLogs = [];
+    /** @type {object} */
     this.customEnv = config.env || {};
+    /** @type {number} */
     this.restartAttempts = 0;
+    /** @type {number} */
     this.maxRestartAttempts = 3;
+    /** @type {boolean} */
     this.isStopping = false;
 
     // Resolve placeholders (e.g. {{tenantId}}) in args and env values
+    /** @type {string[]} */
     this.resolvedArgs = (config.args || []).map(arg => 
       arg.replace(/\{\{tenantId\}\}/g, tenantId)
     );
+    /** @type {object} */
     this.resolvedEnv = {};
     Object.keys(this.customEnv).forEach(key => {
       this.resolvedEnv[key] = this.customEnv[key].replace(/\{\{tenantId\}\}/g, tenantId);
     });
   }
 
+  /**
+   * Logs a message, adds it to the terminal logs buffer, and calls the external log handler.
+   * @param {string} message - The message to log.
+   * @returns {void}
+   */
   log(message) {
     const logLine = `[${this.serverId.toUpperCase()}] ${message}`;
     this.terminalLogs.push(logLine);
@@ -48,11 +97,14 @@ class McpGenericServerInstance {
   }
 
   /**
-   * Spawns the MCP subprocess securely over stdio and executes standard handshake
+   * Spawns the MCP subprocess securely over stdio and executes the standard handshake protocol.
+   * Implements self-healing by attempting to restart the process on unexpected exits.
+   * @returns {Promise<boolean>} A promise that resolves to true if the server starts successfully and completes the handshake, or rejects on failure.
    */
   start() {
     return new Promise((resolve, reject) => {
       if (this.process) {
+        this.log(`Server "${this.serverId}" is already running.`);
         return resolve(true);
       }
 
@@ -196,7 +248,9 @@ class McpGenericServerInstance {
   }
 
   /**
-   * Self-Healing recovery daemon
+   * Implements a self-healing recovery daemon. If the process crashes, it attempts to restart
+   * the server up to `maxRestartAttempts` times with increasing delays.
+   * @returns {void}
    */
   handleCrashAndHealing() {
     if (this.restartAttempts >= this.maxRestartAttempts) {
@@ -218,7 +272,9 @@ class McpGenericServerInstance {
   }
 
   /**
-   * Refreshes the local tools registration cache by sending tools/list
+   * Refreshes the local tools registration cache by sending a 'tools/list' request to the MCP server.
+   * Updates the `this.tools` array with the latest available tools.
+   * @returns {Promise<void>} A promise that resolves when the tools list has been refreshed.
    */
   async refreshToolsList() {
     try {
@@ -234,7 +290,10 @@ class McpGenericServerInstance {
   }
 
   /**
-   * Sends a JSON-RPC 2.0 request frame over process stdin
+   * Sends a JSON-RPC 2.0 request frame over the subprocess's stdin and waits for a response.
+   * @param {string} method - The JSON-RPC method name.
+   * @param {object} [params={}] - The parameters for the JSON-RPC method.
+   * @returns {Promise<any>} A promise that resolves with the result of the JSON-RPC call or rejects on error.
    */
   sendRequest(method, params = {}) {
     return new Promise((resolve, reject) => {
@@ -256,7 +315,11 @@ class McpGenericServerInstance {
   }
 
   /**
-   * Sends a JSON-RPC 2.0 notification frame over process stdin
+   * Sends a JSON-RPC 2.0 notification frame over the subprocess's stdin.
+   * Notifications do not expect a response.
+   * @param {string} method - The JSON-RPC method name.
+   * @param {object} [params={}] - The parameters for the JSON-RPC method.
+   * @returns {void}
    */
   sendNotification(method, params = {}) {
     if (!this.process || this.process.killed) return;
@@ -270,23 +333,34 @@ class McpGenericServerInstance {
     this.process.stdin.write(JSON.stringify(notification) + '\n');
   }
 
+  /**
+   * Cleans up resources associated with the subprocess, such as pending requests and readline interface.
+   * This is called when the process exits or is stopped.
+   * @param {Error} error - The error that caused the cleanup, used to reject pending requests.
+   * @returns {void}
+   */
   cleanup(error) {
-    this.rl = null;
+    if (this.rl) {
+      this.rl.close();
+      this.rl = null;
+    }
     this.pendingRequests.forEach(({ reject }) => reject(error));
     this.pendingRequests.clear();
     this.initialized = false;
   }
 
   /**
-   * Graceful process termination
+   * Gracefully terminates the MCP server subprocess.
+   * Sets `isStopping` to true to prevent self-healing restarts.
+   * @returns {void}
    */
   stop() {
     this.isStopping = true;
     this.log('Terminating server process gracefully...');
     
     if (this.process) {
-      this.process.removeAllListeners('exit');
-      this.process.kill('SIGTERM');
+      this.process.removeAllListeners('exit'); // Prevent self-healing on intentional stop
+      this.process.kill('SIGTERM'); // Send SIGTERM for graceful shutdown
       this.process = null;
     }
     this.cleanup(new Error('Process stopped.'));
@@ -294,18 +368,37 @@ class McpGenericServerInstance {
 }
 
 /**
- * Universal Multi-Server MCP Orchestrator Service
+ * Universal Multi-Server MCP Orchestrator Service.
+ * Manages multiple `McpGenericServerInstance` instances for different tenants,
+ * providing a unified interface for starting, stopping, and interacting with MCP servers and their tools.
+ * It also handles dynamic configuration loading and hot-reloading.
  */
 class McpOrchestratorService {
+  /**
+   * Creates an instance of McpOrchestratorService.
+   * Initializes the active user servers map, loads the global registry, and starts the config watcher.
+   */
   constructor() {
-    this.activeUserServers = new Map(); // Record<tenantId, Map<serverId, McpGenericServerInstance>>
+    /**
+     * Stores active MCP server instances per tenant.
+     * @type {Map<string, Map<string, McpGenericServerInstance>>}
+     * @example
+     * // Structure: Map<tenantId, Map<serverId, McpGenericServerInstance>>
+     */
+    this.activeUserServers = new Map();
+    /**
+     * Global registry of all available MCP server definitions loaded from `config/mcp_servers.json`.
+     * @type {Record<string, McpServerConfig>}
+     */
     this.globalRegistry = {};
     this.loadRegistry();
     this.startConfigWatcher();
   }
 
   /**
-   * Loads registry config file securely
+   * Loads the MCP server registry configuration from `config/mcp_servers.json`.
+   * This method is called during initialization and on config file changes.
+   * @returns {void}
    */
   loadRegistry() {
     try {
@@ -314,14 +407,21 @@ class McpOrchestratorService {
         const fileContent = fs.readFileSync(configPath, 'utf-8');
         const parsed = JSON.parse(fileContent);
         this.globalRegistry = parsed.mcp_servers || {};
+        console.log(`[McpOrchestrator] Loaded ${Object.keys(this.globalRegistry).length} MCP server definitions.`);
+      } else {
+        console.warn(`[McpOrchestrator] config/mcp_servers.json not found. Initializing with empty registry.`);
+        this.globalRegistry = {};
       }
     } catch (err) {
       console.error(`[McpOrchestrator] Failed to load config/mcp_servers.json: ${err.message}`);
+      this.globalRegistry = {}; // Ensure registry is empty on error
     }
   }
 
   /**
-   * Dynamic registry config file watcher daemon (Dynamic Hot-Reloading)
+   * Starts a file system watcher on `config/mcp_servers.json` to enable dynamic hot-reloading
+   * of server definitions without requiring a service restart.
+   * @returns {void}
    */
   startConfigWatcher() {
     try {
@@ -334,9 +434,12 @@ class McpOrchestratorService {
             debounceTimer = setTimeout(() => {
               console.log('[McpOrchestrator] Dynamic config change detected! Hot-reloading registry...');
               this.loadRegistry();
-            }, 300);
+            }, 300); // Debounce to prevent multiple reloads on rapid changes
           }
         });
+        console.log(`[McpOrchestrator] Started watcher for ${configPath}`);
+      } else {
+        console.warn(`[McpOrchestrator] Cannot start config watcher: ${configPath} does not exist.`);
       }
     } catch (err) {
       console.error(`[McpOrchestrator] Failed to start config watcher: ${err.message}`);
@@ -344,7 +447,11 @@ class McpOrchestratorService {
   }
 
   /**
-   * Virtual tool aggregator - compiles all dynamic tools from all active servers
+   * Aggregates and returns a unified list of all dynamic tools available from all
+   * active and initialized MCP servers for a given tenant.
+   * Each tool will have an additional `serverId` property indicating its origin.
+   * @param {string} tenantId - The ID of the tenant.
+   * @returns {Promise<McpTool[]>} A promise that resolves to an array of unified tool definitions.
    */
   async getUnifiedTools(tenantId) {
     const userServers = this.getUserServers(tenantId);
@@ -365,31 +472,50 @@ class McpOrchestratorService {
   }
 
   /**
-   * Virtual tool caller routing gateway - identifies tool ownership and routes executions dynamically
+   * Routes a tool call to the appropriate active MCP server based on the tool's registration.
+   * This acts as a gateway for calling tools without needing to know their specific server.
+   * @param {string} tenantId - The ID of the tenant.
+   * @param {string} toolName - The name of the tool to call.
+   * @param {object} [args={}] - The arguments to pass to the tool.
+   * @returns {Promise<object>} A promise that resolves with the result of the tool call.
+   * @throws {Error} If the tool is not found on any active server.
    */
   async callUnifiedTool(tenantId, toolName, args = {}) {
     const userServers = this.getUserServers(tenantId);
     let targetServerId = null;
 
-    userServers.forEach((instance, serverId) => {
+    // Find which server owns the tool
+    for (const [serverId, instance] of userServers.entries()) {
       if (instance.initialized && instance.tools.some(t => t.name === toolName)) {
         targetServerId = serverId;
+        break;
       }
-    });
+    }
 
     if (!targetServerId) {
-      throw new Error(`Tool "${toolName}" is not registered on any active MCP Server.`);
+      throw new Error(`Tool "${toolName}" is not registered on any active MCP Server for tenant "${tenantId}".`);
     }
 
     return this.callTool(tenantId, targetServerId, toolName, args);
   }
 
   /**
-   * On-the-fly server registration API - updates config file which triggers the dynamic hot-watcher
+   * Registers or updates an MCP server definition in the `config/mcp_servers.json` file.
+   * This action triggers the dynamic hot-reloading mechanism.
+   * @param {string} tenantId - The ID of the tenant (currently not used for global registry, but kept for future scope).
+   * @param {string} serverId - The unique ID for the server to register.
+   * @param {object} serverConfig - The configuration details for the server.
+   * @param {string} serverConfig.name - The human-readable name of the server.
+   * @param {string} serverConfig.command - The command to execute to start the server.
+   * @param {string} [serverConfig.description] - A description of the server.
+   * @param {string[]} [serverConfig.args] - Command-line arguments.
+   * @param {object} [serverConfig.env] - Environment variables.
+   * @returns {Promise<object>} A promise that resolves with a success message and the updated registry.
+   * @throws {Error} If the server configuration is invalid.
    */
   async registerServer(tenantId, serverId, serverConfig) {
     if (!serverId || !serverConfig.name || !serverConfig.command) {
-      throw new Error('Invalid server configuration. Name and command are required.');
+      throw new Error('Invalid server configuration. Server ID, name, and command are required.');
     }
 
     const configPath = path.resolve('config/mcp_servers.json');
@@ -418,6 +544,7 @@ class McpOrchestratorService {
     
     // Manually force immediate update in memory to prevent watcher delay race-conditions
     this.globalRegistry = currentConfig.mcp_servers;
+    console.log(`[McpOrchestrator] Server "${serverConfig.name}" (${serverId}) registered/updated.`);
 
     return {
       success: true,
@@ -427,7 +554,10 @@ class McpOrchestratorService {
   }
 
   /**
-   * Fetches the nested server map for a user workspace
+   * Retrieves the map of active MCP server instances for a specific tenant.
+   * If no servers are active for the tenant, an empty map is created and returned.
+   * @param {string} tenantId - The ID of the tenant.
+   * @returns {Map<string, McpGenericServerInstance>} A map where keys are server IDs and values are `McpGenericServerInstance` objects.
    */
   getUserServers(tenantId) {
     if (!this.activeUserServers.has(tenantId)) {
@@ -437,7 +567,13 @@ class McpOrchestratorService {
   }
 
   /**
-   * Boots up a specific MCP server for a tenant workspace
+   * Boots up a specific MCP server for a given tenant's workspace.
+   * If the server is already running, it returns its current status.
+   * It also injects dynamic environment variables for specific servers (e.g., Composio).
+   * @param {string} tenantId - The ID of the tenant.
+   * @param {string} serverId - The ID of the server to start.
+   * @returns {Promise<object>} A promise that resolves with the server's status and a success message.
+   * @throws {Error} If the server ID is not registered or if the server fails to start.
    */
   async startServer(tenantId, serverId) {
     const userServers = this.getUserServers(tenantId);
@@ -490,6 +626,7 @@ class McpOrchestratorService {
         instance.resolvedEnv['COMPOSIO_API_KEY'] = config.composio.orgApiKey;
         instance.resolvedEnv['TENANT_ID'] = tenantId;
         instance.resolvedEnv['COMPOSIO_TOOLKITS'] = toolkitsString;
+        appendLog(`[Composio] Injected env: COMPOSIO_TOOLKITS=${toolkitsString}`);
       } catch (dbError) {
         appendLog(`[ERROR] Failed to query active Composio toolkits: ${dbError.message}`);
       }
@@ -507,7 +644,10 @@ class McpOrchestratorService {
   }
 
   /**
-   * Halts a specific active MCP server instance
+   * Halts a specific active MCP server instance for a tenant.
+   * @param {string} tenantId - The ID of the tenant.
+   * @param {string} serverId - The ID of the server to stop.
+   * @returns {Promise<object>} A promise that resolves with a success or failure message.
    */
   async stopServer(tenantId, serverId) {
     const userServers = this.getUserServers(tenantId);
@@ -515,32 +655,42 @@ class McpOrchestratorService {
       const active = userServers.get(serverId);
       active.stop();
       userServers.delete(serverId);
+      console.log(`[McpOrchestrator] Server "${serverId}" for tenant "${tenantId}" stopped.`);
       return { success: true, message: `MCP Server "${serverId}" stopped successfully.` };
     }
-    return { success: false, message: `No active server instance found for ID "${serverId}".` };
+    return { success: false, message: `No active server instance found for ID "${serverId}" for tenant "${tenantId}".` };
   }
 
   /**
-   * Halts all active MCP servers for a tenant workspace
+   * Halts all active MCP servers for a given tenant workspace.
+   * @param {string} tenantId - The ID of the tenant.
+   * @returns {Promise<object>} A promise that resolves with a success message.
    */
   async stopAllUserServers(tenantId) {
     const userServers = this.getUserServers(tenantId);
     userServers.forEach((instance, serverId) => {
       instance.stop();
+      console.log(`[McpOrchestrator] Server "${serverId}" for tenant "${tenantId}" stopped.`);
     });
     userServers.clear();
     return { success: true, message: 'All active MCP servers stopped successfully.' };
   }
 
   /**
-   * Executes a safe dynamic tool call on a specific running server instance
+   * Executes a dynamic tool call on a specific running MCP server instance.
+   * @param {string} tenantId - The ID of the tenant.
+   * @param {string} serverId - The ID of the server where the tool is registered.
+   * @param {string} toolName - The name of the tool to call.
+   * @param {object} [args={}] - The arguments to pass to the tool.
+   * @returns {Promise<object>} A promise that resolves with the result of the tool call.
+   * @throws {Error} If the server is not running/initialized or the tool is not registered on that server.
    */
   async callTool(tenantId, serverId, toolName, args = {}) {
     const userServers = this.getUserServers(tenantId);
     const instance = userServers.get(serverId);
 
     if (!instance || !instance.initialized) {
-      throw new Error(`MCP Server "${serverId}" is not running or initialized.`);
+      throw new Error(`MCP Server "${serverId}" is not running or initialized for tenant "${tenantId}".`);
     }
 
     // Verify tool is registered on this server instance
@@ -566,7 +716,10 @@ class McpOrchestratorService {
   }
 
   /**
-   * Helper that extracts client DTO status details
+   * Helper function that extracts client-friendly DTO (Data Transfer Object) status details
+   * from an `McpGenericServerInstance` object.
+   * @param {McpGenericServerInstance} instance - The server instance to get status from.
+   * @returns {object} An object containing the server's ID, name, description, connection status, tool count, tools, and recent logs.
    */
   getServerStatusDTO(instance) {
     return {
@@ -581,7 +734,10 @@ class McpOrchestratorService {
   }
 
   /**
-   * Returns complete overview of all global and active user servers
+   * Returns a complete overview of all globally registered servers and their active status
+   * for a specific tenant, suitable for a dashboard display.
+   * @param {string} tenantId - The ID of the tenant.
+   * @returns {object[]} An array of server status objects, including both registered and active servers.
    */
   getDashboardStatus(tenantId) {
     const userServers = this.getUserServers(tenantId);
@@ -607,4 +763,9 @@ class McpOrchestratorService {
   }
 }
 
+/**
+ * Singleton instance of the McpOrchestratorService.
+ * This instance manages all MCP server operations across the application.
+ * @type {McpOrchestratorService}
+ */
 export const mcpOrchestratorService = new McpOrchestratorService();
