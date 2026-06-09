@@ -7,7 +7,7 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { translationAPIClient } from './services/translationAPIClient.js';
 import { conversationAnalyzer } from './services/conversationAnalyzer.js';
 import { fileProcessor } from './services/fileProcessor.js';
-import Conversation from '../conversations/conversation.model.js';
+import Conversation from '../conversations/conversation.model.js'; // Assuming this is the Mongoose model
 import {
   TRANSLATION_INTENTS,
   REQUIRED_PARAMS,
@@ -18,6 +18,17 @@ import {
   SUCCESS_MESSAGES,
   STORAGE_CONFIG,
 } from './translation.constant.js';
+
+// Optimization Recommendation:
+// For the Conversation Mongoose model (defined in '../conversations/conversation.model.js'),
+// consider adding indexes for improved query performance:
+// 1. For lookups by conversationId:
+//    ConversationSchema.index({ conversationId: 1 }, { unique: true });
+// 2. For lookups by userId:
+//    ConversationSchema.index({ userId: 1 });
+// 3. If conversationId and userId are frequently queried together:
+//    ConversationSchema.index({ conversationId: 1, userId: 1 });
+
 
 /**
  * Generate unique guest user ID
@@ -48,6 +59,10 @@ const handleTranslationConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization: Ensure conversationHelpers.getConversationById uses .lean()
+        // if the returned conversation object is only read from and not modified
+        // and saved back to the database. This improves performance by returning
+        // a plain JavaScript object instead of a Mongoose document.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId
@@ -181,6 +196,9 @@ const storeDocumentInConversation = async (
     };
 
     // Update conversation documents_metadata
+    // Optimization: Ensure conversationHelpers.getConversationById uses .lean()
+    // if the returned conversation object is only read from and not modified
+    // and saved back to the database.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -188,6 +206,9 @@ const storeDocumentInConversation = async (
     );
     const existingDocuments = conversation.documents_metadata?.documents || [];
 
+    // Optimization: The updateOne query uses 'conversationId'.
+    // Ensure an index exists on 'conversationId' in the Conversation model
+    // for efficient lookups. (e.g., ConversationSchema.index({ conversationId: 1 }, { unique: true }))
     await Conversation.updateOne(
       { conversationId },
       {
@@ -235,6 +256,9 @@ const fetchDocumentFromGCS = async (
   req = null
 ) => {
   try {
+    // Optimization: Ensure conversationHelpers.getConversationById uses .lean()
+    // if the returned conversation object is only read from and not modified
+    // and saved back to the database.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -326,6 +350,12 @@ const processConversationalRequest = async (
 
     // Check if we need to summarize conversation
     let conversationSummary = null;
+    // Optimization: The synchronous loop below calculates total tokens.
+    // For extremely long conversation histories, this could be CPU-intensive.
+    // However, for typical conversational AI use cases, this is usually acceptable.
+    // If performance issues arise with very long histories, consider offloading
+    // this calculation or implementing a more efficient token counting mechanism
+    // that avoids iterating over the full content string repeatedly.
     const totalTokens = conversationHistory.reduce((sum, msg) => {
       return sum + Math.ceil(msg.content.length / 4);
     }, 0);
@@ -472,7 +502,6 @@ const handleTranslateText = async (
         message:
           analysis.followUpQuestion ||
           'Please provide the text and target language.',
-        missingParams,
         collectedParams: params,
       };
     }
@@ -529,6 +558,9 @@ const handleTranslateFile = async (
         'No new file uploaded, checking conversation for existing files'
       );
 
+      // Optimization: Ensure conversationHelpers.getConversationById uses .lean()
+      // if the returned conversation object is only read from and not modified
+      // and saved back to the database.
       const conversation = await conversationHelpers.getConversationById(
         conversationId,
         userId,
@@ -592,6 +624,11 @@ const handleTranslateFile = async (
           fileExtension: selectedDocument.originalName.split('.').pop(),
           fileSize: selectedDocument.size,
           characterCount: selectedDocument.textLength,
+          // Optimization: The synchronous operation below calculates word count.
+          // For very large texts, this could be CPU-intensive. However,
+          // extractedText is often truncated or from reasonably sized documents.
+          // If performance issues arise, consider offloading or optimizing
+          // this calculation, or storing word count during initial extraction.
           wordCount: extractedText.split(/\s+/).filter(Boolean).length,
         };
         logger.info('Using cached extracted text from document metadata');
