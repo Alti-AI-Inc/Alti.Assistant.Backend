@@ -9,6 +9,17 @@ import express from 'express';
 import { GoogleSearchController } from './google-search.controller.js';
 
 /**
+ * Utility function to wrap async controller functions, ensuring any errors
+ * are caught and passed to the Express error handling middleware.
+ * This prevents unhandled promise rejections in async route handlers.
+ * @param {Function} fn - The async controller function to wrap.
+ * @returns {Function} An Express middleware function.
+ */
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+/**
  * Express router to handle Google Search related API requests.
  * @type {express.Router}
  */
@@ -93,7 +104,7 @@ router
    *                   type: string
    *                   example: "Failed to retrieve Google Search results due to an internal error."
    */
-  .post(GoogleSearchController.GoogleSearchGetResponse);
+  .post(asyncHandler(GoogleSearchController.GoogleSearchGetResponse)); // Wrap the async controller to handle errors
 
 /**
  * Exports the Google Search API routes.
