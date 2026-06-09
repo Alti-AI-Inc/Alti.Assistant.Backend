@@ -179,6 +179,8 @@ class CronManager {
         cronExpression,
         scheduleConfig.timezone
       );
+      // Optimization: Recommend indexing 'workflowId' for faster lookups.
+      // Example: db.scheduledworkflows.createIndex({ workflowId: 1 })
       await ScheduledWorkflow.updateOne({ workflowId }, { nextExecution });
 
       logger.info(`Workflow ${workflowId} scheduled: ${description}`);
@@ -225,6 +227,8 @@ class CronManager {
       }
 
       // Clear next execution time in database
+      // Optimization: Recommend indexing 'workflowId' for faster lookups.
+      // Example: db.scheduledworkflows.createIndex({ workflowId: 1 })
       await ScheduledWorkflow.updateOne(
         { workflowId },
         { nextExecution: null }
@@ -281,7 +285,10 @@ class CronManager {
       logger.info(`Executing cron job for workflow: ${workflowId}`);
 
       // Get workflow from database
-      const workflow = await ScheduledWorkflow.findOne({ workflowId });
+      // Optimization: Add .lean() for performance as this is a read-only operation.
+      // Optimization: Recommend indexing 'workflowId' for faster lookups.
+      // Example: db.scheduledworkflows.createIndex({ workflowId: 1 })
+      const workflow = await ScheduledWorkflow.findOne({ workflowId }).lean();
 
       if (!workflow) {
         logger.error(`Workflow not found: ${workflowId}`);
@@ -352,11 +359,14 @@ class CronManager {
    */
   async loadActiveWorkflows() {
     try {
+      // Optimization: Add .lean() for performance as this is a read-only operation.
+      // Optimization: Recommend a compound index on { status: 1, 'scheduleConfig.isActive': 1, triggerType: 1 }
+      // for this query. Example: db.scheduledworkflows.createIndex({ status: 1, 'scheduleConfig.isActive': 1, triggerType: 1 })
       const activeWorkflows = await ScheduledWorkflow.find({
         status: 'active',
         'scheduleConfig.isActive': true,
         triggerType: { $in: ['scheduled', 'recurring'] },
-      });
+      }).lean();
 
       logger.info(`Loading ${activeWorkflows.length} active workflows`);
 
@@ -388,11 +398,14 @@ class CronManager {
           // Find completed one-time workflows older than 24 hours
           const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+          // Optimization: Add .lean() for performance as this is a read-only operation.
+          // Optimization: Recommend a compound index on { triggerType: 1, status: 1, updatedAt: 1 }
+          // for this query. Example: db.scheduledworkflows.createIndex({ triggerType: 1, status: 1, updatedAt: 1 })
           const completedWorkflows = await ScheduledWorkflow.find({
             triggerType: 'scheduled',
             status: 'completed',
             updatedAt: { $lt: cutoffDate },
-          });
+          }).lean();
 
           for (const workflow of completedWorkflows) {
             // Ensure cron job is removed
@@ -547,7 +560,10 @@ class CronManager {
    */
   async triggerScheduledWorkflow(workflowId) {
     try {
-      const workflow = await ScheduledWorkflow.findOne({ workflowId });
+      // Optimization: Add .lean() for performance as this is a read-only operation.
+      // Optimization: Recommend indexing 'workflowId' for faster lookups.
+      // Example: db.scheduledworkflows.createIndex({ workflowId: 1 })
+      const workflow = await ScheduledWorkflow.findOne({ workflowId }).lean();
 
       if (!workflow) {
         return {

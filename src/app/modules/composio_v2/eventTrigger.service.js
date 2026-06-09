@@ -4,8 +4,20 @@ import { workflowExecutionService } from '../workflow_automation/services/workfl
 import { logger } from '../../../shared/logger.js';
 
 /**
- * Helper to safely extract nested values from an object using a dot-notation path.
- * e.g., getNestedValue({ body: { issue: { title: "Bug" } } }, "body.issue.title") => "Bug"
+ * Safely extracts a nested value from an object using a dot-notation path string.
+ * This helper prevents errors when accessing properties that might not exist at intermediate levels.
+ *
+ * @example
+ * // Returns "Bug"
+ * getNestedValue({ body: { issue: { title: "Bug" } } }, "body.issue.title");
+ *
+ * @example
+ * // Returns undefined (path does not exist)
+ * getNestedValue({ data: { user: { id: 123 } } }, "data.user.profile.name");
+ *
+ * @param {object} obj - The object from which to extract the value.
+ * @param {string} pathString - The dot-notation path string (e.g., "body.issue.title").
+ * @returns {any | undefined} The value at the specified path, or `undefined` if the path does not exist or `obj` is null/undefined.
  */
 const getNestedValue = (obj, pathString) => {
   if (!pathString || !obj) return undefined;
@@ -13,7 +25,19 @@ const getNestedValue = (obj, pathString) => {
 };
 
 /**
- * Registers or updates a webhook event trigger.
+ * Registers a new webhook event trigger or updates an existing one.
+ * This function ensures that event triggers are consistently stored with normalized (lowercase)
+ * application and event names for reliable lookup.
+ *
+ * @param {string} userId - The ID of the user registering the trigger.
+ * @param {string} appName - The name of the application (e.g., "github", "slack"). Will be normalized to lowercase.
+ * @param {string} eventName - The name of the event (e.g., "issue_opened", "message_posted"). Will be normalized to lowercase.
+ * @param {'chain' | 'workflow'} dispatchType - The type of execution to dispatch ('chain' for Langchain, 'workflow' for Workflow Automation).
+ * @param {string} targetId - The ID of the target to execute (e.g., Langchain chain ID or Workflow ID).
+ * @param {Object.<string, string>} paramMapping - An object mapping internal input keys to dot-notation paths within the incoming webhook payload.
+ *   For example: `{ "issueTitle": "body.issue.title", "repositoryName": "body.repository.name" }`.
+ * @returns {Promise<{ success: boolean, trigger?: import('./models/eventTrigger.model.js').EventTriggerDocument }>} A promise that resolves to an object indicating success and the registered trigger document.
+ * @throws {Error} If the trigger registration fails due to a database error or other issues.
  */
 const registerTrigger = async (userId, appName, eventName, dispatchType, targetId, paramMapping) => {
   try {
@@ -42,7 +66,16 @@ const registerTrigger = async (userId, appName, eventName, dispatchType, targetI
 };
 
 /**
- * Receives an incoming Composio webhook payload, resolves its parameters, and dispatches active executions.
+ * Processes an incoming Composio webhook payload, resolves parameters based on registered triggers,
+ * and dispatches corresponding Langchain chains or workflows asynchronously.
+ *
+ * This function is designed to return quickly, initiating automation executions in the background.
+ *
+ * @param {string} appName - The name of the application from which the webhook originated (e.g., "github"). Will be normalized to lowercase for lookup.
+ * @param {string} eventName - The specific event that occurred (e.g., "issue_opened"). Will be normalized to lowercase for lookup.
+ * @param {object} payload - The full JSON payload received from the webhook.
+ * @returns {Promise<{ success: boolean, message: string, dispatchedCount: number }>} A promise that resolves to an object indicating success, a message, and the number of automations initiated.
+ * @throws {Error} If there's a critical error during the initial processing of the webhook (e.g., database query failure).
  */
 const receiveWebhookEvent = async (appName, eventName, payload) => {
   try {
@@ -114,6 +147,18 @@ const receiveWebhookEvent = async (appName, eventName, payload) => {
   }
 };
 
+/**
+ * @typedef {object} EventTriggerService
+ * @property {function(string, string, string, 'chain' | 'workflow', string, Object.<string, string>): Promise<{ success: boolean, trigger?: import('./models/eventTrigger.model.js').EventTriggerDocument }>} registerTrigger - Registers or updates a webhook event trigger.
+ * @property {function(string, string, object): Promise<{ success: boolean, message: string, dispatchedCount: number }>} receiveWebhookEvent - Receives and processes an incoming webhook event.
+ */
+
+/**
+ * Provides services for managing and processing webhook event triggers.
+ * This includes registering new triggers and handling incoming webhook payloads
+ * to dispatch associated automations (Langchain chains or workflows).
+ * @type {EventTriggerService}
+ */
 export const eventTriggerService = {
   registerTrigger,
   receiveWebhookEvent,
