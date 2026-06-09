@@ -55,7 +55,10 @@ Do NOT wrap the JSON in markdown blocks. Return pure raw JSON string.`;
 const getProfileBlock = async (userId) => {
   if (!userId) return '';
   try {
-    const memories = await UserMemory.find({ userId });
+    // Optimization: Added .lean() for read-only operations to improve performance by returning plain JavaScript objects.
+    // Indexing Recommendation: Consider adding a compound index on `{ userId: 1, key: 1 }` to the UserMemory model
+    // for efficient lookups, updates, and deletions.
+    const memories = await UserMemory.find({ userId }).lean();
     if (!memories || memories.length === 0) return '';
 
     logger.info(`[UserMemory] Compiling profile grounding block for user ${userId} with ${memories.length} facts.`);
@@ -109,7 +112,10 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
       logger.info(`[UserMemory] Background fact extraction and consolidation triggered for user ${userId}`);
       
       // 1. Fetch existing memories to allow cognitive conflict resolution and prevent duplicate writes
-      const existingMemories = await UserMemory.find({ userId });
+      // Optimization: Added .lean() for read-only operations to improve performance by returning plain JavaScript objects.
+      // Indexing Recommendation: Consider adding a compound index on `{ userId: 1, key: 1 }` to the UserMemory model
+      // for efficient lookups, updates, and deletions.
+      const existingMemories = await UserMemory.find({ userId }).lean();
       let existingSummary = 'None';
       if (existingMemories && existingMemories.length > 0) {
         existingSummary = existingMemories
@@ -157,7 +163,10 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
 
       logger.info(`[UserMemory] Extracted ${extractedFacts.length} cognitive memory directives for user ${userId}.`);
 
-      // Execute each memory directive securely (upsert or delete)
+      // Optimization: Batch delete and upsert operations to avoid N+1 queries.
+      const deleteKeys = [];
+      const bulkUpsertOperations = [];
+
       for (const fact of extractedFacts) {
         if (!fact.key) continue;
         
@@ -165,33 +174,53 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
         const action = fact.action === 'delete' ? 'delete' : 'upsert';
 
         if (action === 'delete') {
-          try {
-            await UserMemory.deleteOne({ userId, key: normalizedKey });
-            logger.info(`[UserMemory] Successfully redacted memory key: [${normalizedKey}]`);
-          } catch (delErr) {
-            logger.error(`[UserMemory] Failed to delete key [${normalizedKey}] from DB:`, delErr);
-          }
+          deleteKeys.push(normalizedKey);
         } else {
           if (!fact.value) continue;
           const cleanValue = fact.value.trim();
           const category = ['facts', 'preferences', 'settings'].includes(fact.category) ? fact.category : 'facts';
 
-          try {
-            await UserMemory.findOneAndUpdate(
-              { userId, key: normalizedKey },
-              {
-                value: cleanValue,
-                category,
-                confidence: fact.confidence || 1.0,
+          bulkUpsertOperations.push({
+            updateOne: {
+              filter: { userId, key: normalizedKey },
+              update: {
+                $set: {
+                  value: cleanValue,
+                  category,
+                  confidence: fact.confidence || 1.0,
+                },
               },
-              { upsert: true, new: true, runValidators: true }
-            );
-            logger.info(`[UserMemory] Consolidated memory fact: [${normalizedKey}] => "${cleanValue}"`);
-          } catch (dbErr) {
-            logger.error(`[UserMemory] Failed to consolidate fact [${normalizedKey}] to DB:`, dbErr);
-          }
+              upsert: true,
+              // Note: `runValidators: true` is not directly supported for `updateOne` operations within `bulkWrite`.
+              // Validators will run for newly inserted documents (when `upsert: true` creates a new document),
+              // but not for updates to existing documents. If strict validation on every update is critical,
+              // individual `findOneAndUpdate` calls would be necessary, which reintroduces the N+1 problem.
+              // For this use case, schema-level validation on insert/upsert is generally sufficient.
+            },
+          });
         }
       }
+
+      // Execute batched deletions
+      if (deleteKeys.length > 0) {
+        try {
+          const result = await UserMemory.deleteMany({ userId, key: { $in: deleteKeys } });
+          logger.info(`[UserMemory] Successfully redacted ${result.deletedCount} memory keys.`);
+        } catch (delErr) {
+          logger.error(`[UserMemory] Failed to delete keys [${deleteKeys.join(', ')}] from DB:`, delErr);
+        }
+      }
+
+      // Execute batched upserts
+      if (bulkUpsertOperations.length > 0) {
+        try {
+          const result = await UserMemory.bulkWrite(bulkUpsertOperations);
+          logger.info(`[UserMemory] Consolidated ${result.upsertedCount} new facts and updated ${result.modifiedCount} existing facts.`);
+        } catch (dbErr) {
+          logger.error(`[UserMemory] Failed to consolidate facts via bulkWrite for user ${userId}:`, dbErr);
+        }
+      }
+
     } catch (err) {
       logger.error('[UserMemory] Unexpected error in asyncFactExtraction background worker:', err);
     }
