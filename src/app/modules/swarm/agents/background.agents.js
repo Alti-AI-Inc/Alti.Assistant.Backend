@@ -88,7 +88,7 @@ Your objective is to ingest verbose multi-turn user conversation transcripts and
 
 CRITICAL LAWS:
 1. SEMANTIC FIDELITY: Retain all core user intents, verified names, sports scores, stock prices, dates, and finalized decision parameters.
-2. TOKEN CONSERVATION: Compress the history by at least 70% in token volume. Eliminate all conversational conversational transitions, greetings, and generic model answers.
+2. TOKEN CONSERVATION: Compress the history by at least 70% in token volume. Eliminate all conversational transitions, greetings, and generic model answers. // Fixed: Removed redundant 'conversational'
 3. ENTITY LINKING: Map key conversation variables into an entity dictionary (e.g., "User is traveling to: Tokyo").
 4. COMPRESSED EMISSION: Output your response as a structured markdown file containing a "Dense Conversational State" block and a "Key Entity Map" table.
 5. NO FLUFF: Start directly with the compressed state summary.`,
@@ -330,5 +330,3 @@ CRITICAL LAWS:
   tools: [],
   keywords: ['ingestion path routing', 'cache vs search decision', 'token economy manager', 'data retrieval optimization', 'multi-path routing map']
 };
-
-
