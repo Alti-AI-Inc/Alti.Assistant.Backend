@@ -1,6 +1,6 @@
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
-import { geminiClient, llm } from './llm.js';
+import { geminiClient } from './llm.js'; // Removed 'llm' as it was unused.
 
 export const getUrlFromUserInputUsingAi = async (userInput) => {
   const prompt = PromptTemplate.fromTemplate(
@@ -16,7 +16,22 @@ export const getUrlFromUserInputUsingAi = async (userInput) => {
     If the input is a YouTube URL, set "isYoutubeUrl" to true.
     `
   );
-  const chain = prompt.pipe(geminiClient);
-  const result = await chain.invoke({ user_input: userInput });
-  return result.content;
+
+  // BUG FIX: The prompt instructs the AI to return JSON, but the output was not parsed.
+  // We need to pipe the output through JsonOutputParser to ensure the result is a JavaScript object.
+  // Also, added error handling for robustness against AI processing failures.
+  const chain = prompt.pipe(geminiClient).pipe(new JsonOutputParser());
+
+  try {
+    const result = await chain.invoke({ user_input: userInput });
+    // With JsonOutputParser, 'result' is already the parsed JSON object.
+    return result;
+  } catch (error) {
+    // Log the error for debugging.
+    console.error('Error processing AI request to extract URL:', error);
+    // In case of an AI processing error, return the specified "no URL found" structure.
+    // Depending on the application's error handling strategy, rethrowing the error
+    // or returning a more specific error object might be preferred.
+    return { url: null, isYoutubeUrl: false };
+  }
 };
