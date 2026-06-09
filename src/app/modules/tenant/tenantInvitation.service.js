@@ -10,6 +10,16 @@ import { jwtHelpers } from '../../helpers/jwtHelpers.js';
 import { sendInvitationEmail } from './tenantInvitation.email.js';
 import subscriptionService from '../subscription/subscription.service.js';
 
+// Recommended indexes for TenantInvitation model (add these to your TenantInvitationSchema definition):
+// TenantInvitationSchema.index({ token: 1 });
+// TenantInvitationSchema.index({ tenantId: 1, status: 1 });
+
+// Recommended index for UserModel (add this to your UserSchema definition):
+// UserSchema.index({ email: 1 });
+
+// Recommended index for TenantMember model (add this to your TenantMemberSchema definition):
+// TenantMemberSchema.index({ userId: 1, tenantId: 1 });
+
 /**
  * Create a new invitation
  */
@@ -21,8 +31,10 @@ const createInvitation = async (invitationData) => {
     const token = TenantInvitation.generateToken();
 
     // Get tenant and inviter info
-    const tenant = await Tenant.findById(tenantId);
-    const inviter = await UserModel.findById(invitedBy);
+    // OPTIMIZATION: Added .lean() for read-only queries to improve performance
+    const tenant = await Tenant.findById(tenantId).lean();
+    // OPTIMIZATION: Added .lean() for read-only queries to improve performance
+    const inviter = await UserModel.findById(invitedBy).lean();
 
     if (!tenant || !inviter) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Tenant or inviter not found');
@@ -89,6 +101,7 @@ const createInvitation = async (invitationData) => {
  * Verify invitation token
  */
 const verifyInvitationToken = async (token) => {
+  // No .lean() here as invitation object might be modified and saved later (e.g., status update)
   const invitation = await TenantInvitation.findByToken(token);
 
   if (!invitation) {
@@ -101,6 +114,7 @@ const verifyInvitationToken = async (token) => {
     throw new ApiError(httpStatus.GONE, 'Invitation has expired');
   }
 
+  // UserModel.exists is already optimized for existence checks
   const isUserExistWithEmail = await UserModel.exists({
     email: invitation.email,
   });
@@ -119,6 +133,7 @@ const verifyInvitationToken = async (token) => {
  * Accept invitation
  */
 const acceptInvitation = async (token, userId) => {
+  // No .lean() here as invitation object will be modified and saved later
   const invitation = await TenantInvitation.findByToken(token);
 
   if (!invitation) {
@@ -132,6 +147,7 @@ const acceptInvitation = async (token, userId) => {
   }
 
   // Get user
+  // No .lean() here as user object will be modified and saved later
   const user = await UserModel.findById(userId);
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
@@ -147,6 +163,7 @@ const acceptInvitation = async (token, userId) => {
   }
 
   // Check if seat limit is reached (available seats = total - used)
+  // Assuming subscriptionService.getTenantSubscription returns a lean object or plain JS object
   const subscription = await subscriptionService.getTenantSubscription(
     invitation.tenantId
   );
@@ -169,10 +186,11 @@ const acceptInvitation = async (token, userId) => {
   await user.save();
 
   // Create TenantMember record if not already present
+  // OPTIMIZATION: Added .lean() as existingMember is only checked for existence and not modified
   const existingMember = await TenantMember.findOne({
     userId,
     tenantId: invitation.tenantId,
-  });
+  }).lean();
 
   if (!existingMember) {
     await TenantMember.create({
@@ -190,6 +208,7 @@ const acceptInvitation = async (token, userId) => {
   }
 
   // Update tenant user count
+  // No .lean() here as tenant object will be modified and saved later
   const tenant = await Tenant.findById(invitation.tenantId);
   if (tenant) {
     tenant.usage.usersCount += 1;
@@ -198,6 +217,7 @@ const acceptInvitation = async (token, userId) => {
 
   // Add seat to subscription if paid plan
   try {
+    // Assuming subscriptionService.getTenantSubscription returns a lean object or plain JS object
     const subscription = await subscriptionService.getTenantSubscription(
       invitation.tenantId
     );
@@ -232,6 +252,7 @@ const acceptInvitation = async (token, userId) => {
  * Cancel invitation
  */
 const cancelInvitation = async (invitationId) => {
+  // No .lean() here as invitation object will be modified and saved later
   const invitation = await TenantInvitation.findById(invitationId);
 
   if (!invitation) {
@@ -254,6 +275,7 @@ const cancelInvitation = async (invitationId) => {
  * Resend invitation
  */
 const resendInvitation = async (invitationId) => {
+  // No .lean() here as invitation object might be modified and saved later
   const invitation = await TenantInvitation.findById(invitationId);
 
   if (!invitation) {
@@ -319,12 +341,15 @@ const getTenantInvitations = async (tenantId, options = {}) => {
     query.status = status;
   }
 
+  // OPTIMIZATION: Added .lean() for read-only queries to improve performance
   const invitations = await TenantInvitation.find(query)
     .populate('invitedBy', 'name email')
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean(); // .lean() should be applied after populate
 
+  // TenantInvitation.countDocuments is already optimized
   const total = await TenantInvitation.countDocuments(query);
 
   return {
