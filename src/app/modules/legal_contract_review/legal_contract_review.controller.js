@@ -167,6 +167,16 @@ export const getConversationHistory = catchAsync(async (req, res) => {
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
+    // Optimization Recommendation:
+    // If 'conversationHelpers.getConversationById' performs a Mongoose query,
+    // consider adding '.lean()' to the query to return a plain JavaScript object.
+    // This reduces Mongoose document overhead for read-only operations, improving performance.
+    // Example: Conversation.findOne({ conversationId, userId }).lean();
+    //
+    // Indexing Recommendation:
+    // For efficient lookup by conversationId and userId, ensure an index exists on your Conversation model.
+    // A compound index like `{ conversationId: 1, userId: 1 }` or `{ userId: 1, conversationId: 1 }`
+    // would be highly beneficial for this query pattern.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
