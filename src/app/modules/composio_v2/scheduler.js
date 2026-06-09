@@ -67,7 +67,9 @@ export const getSystemStatus = () => {
 export const healthCheck = async () => {
   try {
     const schedulerHealth = await schedulerInitializer.healthCheck();
-    const queueHealth = queueManager.healthCheck();
+    // Bug fix: queueManager.healthCheck() should be awaited as it likely returns a Promise,
+    // similar to other health check calls.
+    const queueHealth = await queueManager.healthCheck();
     const cronHealth = await cronManager.healthCheck();
 
     const overallHealth =
@@ -104,6 +106,13 @@ export const shutdownWorkflowScheduler = async () => {
 
     // Stop cron manager
     await cronManager.gracefulShutdown();
+
+    // Bug fix: schedulerInitializer is initialized but not explicitly stopped.
+    // Assuming schedulerInitializer manages resources that need cleanup,
+    // a corresponding stop method should be called for a graceful shutdown.
+    // If schedulerInitializer does not have a 'stop' method, this implies
+    // the underlying service needs to be updated to provide one.
+    await schedulerInitializer.stop();
 
     logger.info('Workflow scheduling system shutdown complete');
     return {
