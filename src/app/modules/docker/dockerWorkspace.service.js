@@ -8,12 +8,22 @@ class DockerWorkspaceService {
     this.imageName = 'alti-sandbox:latest';
     this.dockerfileDir = path.resolve('src/app/modules/docker');
     this.userWorkspacesDir = path.resolve('storage/users');
-    this.activeSessions = new Map(); // sessionId -> { lastActivity: Date }
+    this.activeSessions = new Map(); // uniqueSessionId (e.g., userId_isolationId) -> { lastActivity: Date }
     this.initialized = false;
     this.maxContainers = parseInt(process.env.DOCKER_MAX_CONTAINERS || '20', 10);
     this.concurrencyQueue = [];
     this.activeOperationsCount = 0;
     this.maxConcurrentOperations = parseInt(process.env.DOCKER_MAX_CONCURRENT_OPS || '3', 10);
+  }
+
+  /**
+   * Sanitizes an identifier (userId, isolationId, projectId) to prevent command injection and path traversal.
+   * Allows alphanumeric characters, hyphens, and underscores.
+   * @param {string} input The identifier to sanitize.
+   * @returns {string} The sanitized identifier.
+   */
+  _sanitizeIdentifier(input) {
+    return String(input).replace(/[^a-zA-Z0-9_-]/g, '');
   }
 
   /**
@@ -79,9 +89,12 @@ class DockerWorkspaceService {
 
   /**
    * Ensures a user's persistent workspace directory exists on the host.
+   * Sanitizes userId and isolationId to prevent path traversal vulnerabilities.
    */
   _ensureHostUserDir(userId, isolationId) {
-    const userDir = path.join(this.userWorkspacesDir, userId, 'workspaces', isolationId);
+    const sanitizedUserId = this._sanitizeIdentifier(userId);
+    const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
+    const userDir = path.join(this.userWorkspacesDir, sanitizedUserId, 'workspaces', sanitizedIsolationId);
     if (!fs.existsSync(userDir)) {
       fs.mkdirSync(userDir, { recursive: true });
     }
@@ -90,8 +103,9 @@ class DockerWorkspaceService {
 
   /**
    * Performs LRU sandbox eviction if the total number of user containers exceeds the maximum limit.
+   * @param {string} excludeUniqueSessionId Optional uniqueSessionId to exclude from eviction.
    */
-  async _reclaimContainerSlot(excludeSessionId = null) {
+  async _reclaimContainerSlot(excludeUniqueSessionId = null) {
     try {
       const containers = execSync(
         `docker ps -a --filter "name=alti_workspace_" --format "{{.Names}}"`,
@@ -108,8 +122,8 @@ class DockerWorkspaceService {
       for (const name of containers) {
         const match = name.match(/^alti_workspace_(.+)$/);
         if (match) {
-          const sId = match[1];
-          if (sId === excludeSessionId) continue;
+          const sId = match[1]; // sId is the uniqueSessionId
+          if (sId === excludeUniqueSessionId) continue;
           if (!this.activeSessions.has(sId)) {
             logger.info(`[DOCKER EVICT] Evicting unregistered/leaked container: ${name}`);
             try { execSync(`docker rm -f ${name}`); } catch(e){}
@@ -122,8 +136,8 @@ class DockerWorkspaceService {
       let oldestSessionId = null;
       let oldestTime = Infinity;
 
-      for (const [sId, session] of this.activeSessions.entries()) {
-        if (sId === excludeSessionId) continue;
+      for (const [sId, session] of this.activeSessions.entries()) { // sId is uniqueSessionId
+        if (sId === excludeUniqueSessionId) continue;
         const lastAct = session.lastActivity.getTime();
         if (lastAct < oldestTime) {
           oldestTime = lastAct;
@@ -140,8 +154,8 @@ class DockerWorkspaceService {
         for (const name of containers) {
           const match = name.match(/^alti_workspace_(.+)$/);
           if (match) {
-            const sId = match[1];
-            if (sId !== excludeSessionId) {
+            const sId = match[1]; // sId is uniqueSessionId
+            if (sId !== excludeUniqueSessionId) {
               logger.info(`[DOCKER EVICT] Fallback evicting container: ${name}`);
               try { execSync(`docker rm -f ${name}`); } catch(e){}
               return;
@@ -186,10 +200,16 @@ class DockerWorkspaceService {
 
   /**
    * Retrieves or dynamically spins up the user's isolated container workspace.
+   * Sanitizes userId, isolationId, and projectId to prevent command injection.
    */
   async getOrCreateWorkspace(userId, isolationId = 'default', projectId = null) {
     await this.initialize();
-    const uniqueSessionId = `${userId}_${isolationId}`;
+
+    const sanitizedUserId = this._sanitizeIdentifier(userId);
+    const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
+    const sanitizedProjectId = projectId ? this._sanitizeIdentifier(projectId) : null;
+
+    const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
     this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() });
 
     if (!this.initialized) {
@@ -197,20 +217,21 @@ class DockerWorkspaceService {
     }
 
     const containerName = `alti_workspace_${uniqueSessionId}`;
-    const hostVolumePath = this._ensureHostUserDir(userId, isolationId);
+    const hostVolumePath = this._ensureHostUserDir(sanitizedUserId, sanitizedIsolationId);
     
     // Ensure project data directory exists if projectId is provided
     let projectDataMount = '';
-    if (projectId) {
-      const projectDataDir = path.join(path.resolve('storage/projects'), projectId, 'data');
+    if (sanitizedProjectId) {
+      const projectDataDir = path.join(path.resolve('storage/projects'), sanitizedProjectId, 'data');
       if (!fs.existsSync(projectDataDir)) {
         fs.mkdirSync(projectDataDir, { recursive: true });
       }
+      // The projectDataDir path is constructed using sanitizedProjectId, making it safe for shell.
       projectDataMount = `-v "${projectDataDir}:/mnt/project_data:ro"`;
     }
 
     return this._enqueueDockerOperation(async () => {
-      // Reclaim slot if at or above container limit
+      // Reclaim slot if at or above container limit, excluding the current session.
       await this._reclaimContainerSlot(uniqueSessionId);
 
       try {
@@ -229,6 +250,8 @@ class DockerWorkspaceService {
           // Spawn container in background with resource constraints (CPU shares, Memory ceiling)
           // Mounting workspace to /workspace, skills to /skills (ro), and mcp-toolbox to /mcp-toolbox (ro)
           // Connecting to secure internal network and setting up loopback database gateway support
+          // All variables interpolated into createCmd (containerName, hostVolumePath, projectDataMount)
+          // are derived from sanitized inputs or internal constants, preventing command injection.
           const createCmd = `docker run -d \
             --name ${containerName} \
             --network alti_sandbox_net \
@@ -258,7 +281,7 @@ class DockerWorkspaceService {
 
         return { success: true, mode: 'docker-isolated', containerId: containerName };
       } catch (err) {
-        logger.error(`[DOCKER] Failed to manage workspace for user ${userId}: ${err.message}`);
+        logger.error(`[DOCKER] Failed to manage workspace for user ${sanitizedUserId}: ${err.message}`);
         return { success: false, mode: 'local-fallback', containerId: null };
       }
     });
@@ -266,19 +289,24 @@ class DockerWorkspaceService {
 
   /**
    * Executes a command securely inside the user's isolated workspace container.
+   * Sanitizes userId, isolationId, and projectId to prevent command injection.
    */
   async executeCommand(userId, isolationId = 'default', commandArgs, options = {}) {
-    const projectId = options.projectId || null;
-    const workspace = await this.getOrCreateWorkspace(userId, isolationId, projectId);
-    const uniqueSessionId = `${userId}_${isolationId}`;
-    this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() });
+    const sanitizedUserId = this._sanitizeIdentifier(userId);
+    const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
+    const sanitizedProjectId = options.projectId ? this._sanitizeIdentifier(options.projectId) : null;
+
+    const workspace = await this.getOrCreateWorkspace(sanitizedUserId, sanitizedIsolationId, sanitizedProjectId);
+    const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
+    this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() }); // Update activity for the correct uniqueSessionId
 
     const timeoutMs = options.timeoutMs || 20000;
 
     // A. Local process fallback if Docker layer is unavailable
     if (workspace.mode === 'local-fallback') {
-      logger.warn(`[DOCKER FALLBACK] Running locally for user ${userId}: ${commandArgs.join(' ')}`);
+      logger.warn(`[DOCKER FALLBACK] Running locally for user ${sanitizedUserId}: ${commandArgs.join(' ')}`);
       return new Promise((resolve) => {
+        // `spawn` handles commandArgs as separate arguments, preventing shell injection at this level.
         const cmd = commandArgs[0];
         const args = commandArgs.slice(1);
         const child = spawn(cmd, args, { cwd: options.cwd || process.cwd(), env: process.env });
@@ -301,11 +329,14 @@ class DockerWorkspaceService {
     }
 
     // B. Strict isolated Docker Exec container execution
-    const containerName = workspace.containerId;
+    const containerName = workspace.containerId; // This is already `alti_workspace_${uniqueSessionId}`
     logger.info(`[DOCKER EXEC] Running inside ${containerName}: ${commandArgs.join(' ')}`);
 
     return new Promise((resolve) => {
       // Execute command under non-root sandbox user inside /workspace folder
+      // `commandArgs` are passed as separate arguments to `docker exec`, preventing shell injection
+      // into the `docker` command itself. The commands executed *inside* the container are user-controlled,
+      // but the container's security profile mitigates risks.
       const execArgs = [
         'exec',
         '-u', 'sandbox',
@@ -328,6 +359,7 @@ class DockerWorkspaceService {
         child.kill('SIGTERM');
         // Force kill target container subprocess if unresponsive
         try {
+          // containerName is sanitized, so this execSync is safe.
           execSync(`docker exec ${containerName} pkill -u sandbox`);
         } catch (err) {
           logger.debug(`[DOCKER] Force-kill sandbox processes did not succeed or container is already stopped: ${err.message}`);
@@ -338,7 +370,8 @@ class DockerWorkspaceService {
       monitorInterval = setInterval(async () => {
         if (aborted) return;
         try {
-          const metrics = await this.getWorkspaceMetrics(userId, isolationId);
+          // Call getWorkspaceMetrics with sanitized IDs
+          const metrics = await this.getWorkspaceMetrics(sanitizedUserId, sanitizedIsolationId);
           if (metrics.connected && !aborted) {
             const cpu = parseFloat(String(metrics.cpuPercent || '0').replace('%', ''));
             const mem = parseFloat(String(metrics.memoryPercent || '0').replace('%', ''));
@@ -351,6 +384,7 @@ class DockerWorkspaceService {
               
               child.kill('SIGKILL');
               try {
+                // containerName is sanitized, so this execSync is safe.
                 execSync(`docker exec ${containerName} pkill -u sandbox`);
               } catch (err) {
                 logger.debug(`[DOCKER] Failed to force-kill processes during resource cap abort: ${err.message}`);
@@ -389,10 +423,13 @@ class DockerWorkspaceService {
 
   /**
    * Pauses an active workspace container.
+   * Sanitizes userId and isolationId to prevent command injection.
    */
   async pauseWorkspace(userId, isolationId = 'default') {
-    const uniqueSessionId = `${userId}_${isolationId}`;
-    const containerName = `alti_workspace_${uniqueSessionId}`;
+    const sanitizedUserId = this._sanitizeIdentifier(userId);
+    const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
+    const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
+    const containerName = `alti_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
     try {
       execSync(`docker pause ${containerName}`);
       logger.info(`[DOCKER] Successfully paused workspace container: ${containerName}`);
@@ -404,14 +441,17 @@ class DockerWorkspaceService {
 
   /**
    * Stops and cleans up a workspace container.
+   * Sanitizes userId and isolationId to prevent command injection.
    */
   async stopWorkspace(userId, isolationId = 'default') {
-    const uniqueSessionId = `${userId}_${isolationId}`;
-    const containerName = `alti_workspace_${uniqueSessionId}`;
+    const sanitizedUserId = this._sanitizeIdentifier(userId);
+    const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
+    const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
+    const containerName = `alti_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
     try {
       execSync(`docker rm -f ${containerName}`);
       logger.info(`[DOCKER] Safely destroyed workspace container: ${containerName}`);
-      this.activeSessions.delete(uniqueSessionId);
+      this.activeSessions.delete(uniqueSessionId); // Delete the correct uniqueSessionId from the map
       return true;
     } catch {
       return false;
@@ -420,19 +460,24 @@ class DockerWorkspaceService {
 
   /**
    * Performs an audit cleanup cycle on inactive containers.
+   * Awaits async calls to stopWorkspace and pauseWorkspace.
    */
   async auditActiveWorkspaces() {
     logger.info('[DOCKER CRON] Auditing active user container workspaces...');
     const now = new Date();
     
-    for (const [userId, session] of this.activeSessions.entries()) {
+    // Iterate over uniqueSessionId keys in activeSessions map
+    for (const [uniqueSessionId, session] of this.activeSessions.entries()) {
       const idleTimeSec = (now.getTime() - session.lastActivity.getTime()) / 1000;
-      const containerName = `alti_workspace_${userId}`;
+      const containerName = `alti_workspace_${uniqueSessionId}`; // Use the consistent container naming
+
+      // Parse userId and isolationId from uniqueSessionId to pass to stop/pause methods
+      const [userId, isolationId = 'default'] = uniqueSessionId.split('_');
 
       try {
         if (idleTimeSec > 1200) { // 20 minutes inactive -> Destroy container
-          logger.info(`[DOCKER CRON] User ${userId} is inactive for ${Math.round(idleTimeSec / 60)}m. Destroying container.`);
-          this.stopWorkspace(userId);
+          logger.info(`[DOCKER CRON] User ${userId} (session: ${uniqueSessionId}) is inactive for ${Math.round(idleTimeSec / 60)}m. Destroying container.`);
+          await this.stopWorkspace(userId, isolationId); // Await the async call
         } else if (idleTimeSec > 300) { // 5 minutes inactive -> Pause container to free host CPU
           const status = execSync(
             `docker inspect -f "{{.State.Status}}" ${containerName} 2>/dev/null || echo "none"`,
@@ -440,12 +485,12 @@ class DockerWorkspaceService {
           ).trim();
 
           if (status === 'running') {
-            logger.info(`[DOCKER CRON] User ${userId} is inactive for ${Math.round(idleTimeSec / 60)}m. Pausing container CPU.`);
-            this.pauseWorkspace(userId);
+            logger.info(`[DOCKER CRON] User ${userId} (session: ${uniqueSessionId}) is inactive for ${Math.round(idleTimeSec / 60)}m. Pausing container CPU.`);
+            await this.pauseWorkspace(userId, isolationId); // Await the async call
           }
         }
       } catch (err) {
-        logger.error(`[DOCKER CRON] Audit failed for user workspace ${userId}: ${err.message}`);
+        logger.error(`[DOCKER CRON] Audit failed for user workspace ${uniqueSessionId}: ${err.message}`);
       }
     }
   }
@@ -453,15 +498,21 @@ class DockerWorkspaceService {
   /**
    * Pre-warms the workspace for a user by creating it and placing it in a paused state.
    * This completely eliminates cold start latency during execution requests.
+   * Ensures consistent naming and session management with other methods.
+   * Sanitizes userId and isolationId to prevent command injection.
    */
-  async prewarmWorkspace(userId) {
+  async prewarmWorkspace(userId, isolationId = 'default') {
     if (!this.initialized) await this.initialize();
     if (!this.initialized) return;
 
-    const containerName = `alti_workspace_${userId}`;
+    const sanitizedUserId = this._sanitizeIdentifier(userId);
+    const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
+    const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`; // Consistent uniqueSessionId
+    const containerName = `alti_workspace_${uniqueSessionId}`; // Consistent container naming
+
     return this._enqueueDockerOperation(async () => {
-      // Reclaim slot if at or above container limit
-      await this._reclaimContainerSlot(userId);
+      // Reclaim slot if at or above container limit, excluding the current session.
+      await this._reclaimContainerSlot(uniqueSessionId);
 
       try {
         const containerStatus = execSync(
@@ -470,11 +521,13 @@ class DockerWorkspaceService {
         ).trim();
 
         if (containerStatus === 'none') {
-          logger.info(`[DOCKER PREWARM] Pre-warming new container for user: ${userId}`);
-          const hostVolumePath = this._ensureHostUserDir(userId);
+          logger.info(`[DOCKER PREWARM] Pre-warming new container for user: ${uniqueSessionId}`);
+          const hostVolumePath = this._ensureHostUserDir(sanitizedUserId, sanitizedIsolationId); // Pass sanitized IDs
           const skillsBaseDir = 'C:\\Users\\hyper\\.gemini\\config\\plugins\\science\\skills';
           const mcpToolboxDir = path.resolve('mcp-toolbox');
 
+          // All variables interpolated into createCmd (containerName, hostVolumePath)
+          // are derived from sanitized inputs or internal constants, preventing command injection.
           const createCmd = `docker run -d \
             --name ${containerName} \
             --network alti_sandbox_net \
@@ -498,7 +551,7 @@ class DockerWorkspaceService {
           logger.info(`[DOCKER PREWARM] Suspending active container ${containerName} to free host resources.`);
           execSync(`docker pause ${containerName}`);
         }
-        this.activeSessions.set(userId, { lastActivity: new Date() });
+        this.activeSessions.set(uniqueSessionId, { lastActivity: new Date() }); // Consistent key
       } catch (err) {
         logger.error(`[DOCKER PREWARM ERROR] Failed to pre-warm workspace: ${err.message}`);
       }
@@ -507,10 +560,14 @@ class DockerWorkspaceService {
 
   /**
    * Scrapes real-time CPU, Memory, and I/O metrics for a user's isolated workspace container.
+   * Sanitizes userId and isolationId to prevent command injection.
    */
-  async getWorkspaceMetrics(userId) {
+  async getWorkspaceMetrics(userId, isolationId = 'default') {
     if (!this.initialized) return { connected: false, userId };
-    const containerName = `alti_workspace_${userId}`;
+    const sanitizedUserId = this._sanitizeIdentifier(userId);
+    const sanitizedIsolationId = this._sanitizeIdentifier(isolationId);
+    const uniqueSessionId = `${sanitizedUserId}_${sanitizedIsolationId}`;
+    const containerName = `alti_workspace_${uniqueSessionId}`; // containerName is safe due to sanitized uniqueSessionId
 
     try {
       const statsJson = execSync(
@@ -519,13 +576,13 @@ class DockerWorkspaceService {
       ).trim();
 
       if (!statsJson) {
-        return { connected: false, userId };
+        return { connected: false, uniqueSessionId }; // Return uniqueSessionId for clarity
       }
 
       const parsed = JSON.parse(statsJson);
       return {
         connected: true,
-        userId,
+        uniqueSessionId, // Return uniqueSessionId
         containerId: containerName,
         cpuPercent: parsed.CPUPerc,
         memoryUsage: parsed.MemUsage,
@@ -535,20 +592,21 @@ class DockerWorkspaceService {
         pids: parsed.PIDs
       };
     } catch (err) {
-      return { connected: false, error: err.message, userId };
+      return { connected: false, error: err.message, uniqueSessionId }; // Return uniqueSessionId
     }
   }
 
   /**
-   * Scrapes metrics for all active workspaces.
+   * Scrapes metrics for all active workspaces concurrently.
    */
   async getAllActiveMetrics() {
-    const list = [];
-    for (const userId of this.activeSessions.keys()) {
-      const metrics = await this.getWorkspaceMetrics(userId);
-      list.push(metrics);
-    }
-    return list;
+    // Collect all promises for metrics concurrently using Promise.all
+    const metricPromises = Array.from(this.activeSessions.keys()).map(async (uniqueSessionId) => {
+      // Parse userId and isolationId from uniqueSessionId to pass to getWorkspaceMetrics
+      const [userId, isolationId = 'default'] = uniqueSessionId.split('_');
+      return this.getWorkspaceMetrics(userId, isolationId);
+    });
+    return Promise.all(metricPromises); // Execute all metric scraping in parallel
   }
 }
 
