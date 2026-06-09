@@ -40,9 +40,10 @@ const wishperSessionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   /**
    * An optional unique identifier for the session.
+   * Enforced as unique when present, allowing null/undefined values.
    * @type {string}
    */
-  sessionId: String,
+  sessionId: { type: String, unique: true, sparse: true }, // Bug fix: Added unique: true and sparse: true to enforce the documented uniqueness for optional sessionId.
   /**
    * An array of objects, each representing a prompt-response pair within the session.
    * @type {WishperResponse[]}
@@ -110,6 +111,7 @@ const wishperSessionSchema = new mongoose.Schema({
  *
  * @type {mongoose.Model<WishperSession>}
  */
-const WishperAiSession = mongoose.model('Wishper', wishperSessionSchema);
+// Bug fix: Changed model name from 'Wishper' to 'WishperAiSession' for consistency with the variable name and clearer collection naming (will be 'wishperaisessions').
+const WishperAiSession = mongoose.model('WishperAiSession', wishperSessionSchema);
 
 module.exports = WishperAiSession;
