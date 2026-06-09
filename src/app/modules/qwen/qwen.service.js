@@ -9,7 +9,7 @@ import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { RedisClient } from '../../../shared/redis.js';
 import UserModel from '../auth/auth.model.js';
-import ChatHistory from '../conversations/chatHistory.model.js';
+import ChatHistory from '../conversations/chatHistory.model.js'; // Optimization: Consider adding a compound index on { user: 1, sessionId: 1 } in chatHistory.model.js for better query performance.
 import { paymentController } from '../payment/payment.controller.js';
 import {
   QWEN_QWQ_RESPONSE_SERVICE_POST,
@@ -79,13 +79,19 @@ const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
       total_time: res1?.usage?.total_time || 0,
     };
 
-    let llamaSession = await ChatHistory.findOne({ user: userId, sessionId });
+    let llamaSession;
+    // Optimization: Use findOneAndUpdate with $push for existing sessions.
+    // This is more efficient than fetching the entire document, modifying it in memory,
+    // and then saving it back, especially for documents with large arrays.
+    const updatedSession = await ChatHistory.findOneAndUpdate(
+      { user: userId, sessionId },
+      { $push: { responses: responseData } },
+      { new: true } // Return the updated document
+    );
 
-    if (llamaSession) {
-      logger.info('Existing Session Found:', llamaSession);
-      llamaSession?.responses?.push(responseData);
-      await llamaSession.save();
-      logger.info('Updated Session:', llamaSession);
+    if (updatedSession) {
+      logger.info('Existing Session Updated:', updatedSession);
+      llamaSession = updatedSession;
     } else {
       logger.info('Creating New Session...');
       llamaSession = await ChatHistory.create({
@@ -94,6 +100,7 @@ const QwenAiGetResponseService = async (prompt, userId, sessionId) => {
         responses: [responseData],
       });
       logger.info('New Session Created:', llamaSession);
+      // Only update UserModel if a new session was created
       await UserModel.findByIdAndUpdate(userId, {
         $push: { llamaAiSessions: llamaSession._id },
       });
@@ -175,13 +182,19 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
       total_time: res1?.usage?.total_time || 0,
     };
 
-    let llamaSession = await ChatHistory.findOne({ user: userId, sessionId });
+    let llamaSession;
+    // Optimization: Use findOneAndUpdate with $push for existing sessions.
+    // This is more efficient than fetching the entire document, modifying it in memory,
+    // and then saving it back, especially for documents with large arrays.
+    const updatedSession = await ChatHistory.findOneAndUpdate(
+      { user: userId, sessionId },
+      { $push: { responses: responseData } },
+      { new: true } // Return the updated document
+    );
 
-    if (llamaSession) {
-      logger.info('Existing Session Found:', llamaSession);
-      llamaSession?.responses?.push(responseData);
-      await llamaSession.save();
-      logger.info('Updated Session:', llamaSession);
+    if (updatedSession) {
+      logger.info('Existing Session Updated:', updatedSession);
+      llamaSession = updatedSession;
     } else {
       logger.info('Creating New Session...');
       llamaSession = await ChatHistory.create({
@@ -190,6 +203,7 @@ const QwenQWQAiGetResponseService = async (prompt, userId, sessionId) => {
         responses: [responseData],
       });
       logger.info('New Session Created:', llamaSession);
+      // Only update UserModel if a new session was created
       await UserModel.findByIdAndUpdate(userId, {
         $push: { llamaAiSessions: llamaSession._id },
       });
