@@ -44,15 +44,26 @@ const createBucket = async (bucketName, location = 'us-central1') => {
  */
 const generateSignedUrl = async (bucketName, fileName, action = 'read', expiresMinutes = 15) => {
   try {
+    // Validate 'action' parameter to ensure it's one of the allowed values.
+    if (!['read', 'write'].includes(action)) {
+      throw new Error('Invalid action specified. Must be "read" or "write".');
+    }
+    // Validate 'expiresMinutes' to ensure it's a positive number.
+    if (typeof expiresMinutes !== 'number' || expiresMinutes <= 0) {
+      throw new Error('Expires minutes must be a positive number.');
+    }
+
     logger.info(`GCS API: Generating signed URL for file "${fileName}" inside bucket "${bucketName}" (action: ${action})...`);
 
     const bucket = storage.bucket(bucketName);
     const file = bucket.file(fileName);
 
+    const expiresTimestamp = Date.now() + expiresMinutes * 60 * 1000;
+
     const [url] = await file.getSignedUrl({
       version: 'v4',
       action,
-      expires: Date.now() + expiresMinutes * 60 * 1000
+      expires: expiresTimestamp
     });
 
     return {
@@ -61,10 +72,14 @@ const generateSignedUrl = async (bucketName, fileName, action = 'read', expiresM
       fileName,
       action,
       url,
-      expiresAt: new Date(Date.now() + expiresMinutes * 60 * 1000)
+      expiresAt: new Date(expiresTimestamp)
     };
   } catch (err) {
     logger.error('GCS Pre-Signed URL Error:', err);
+    // Re-throw specific validation errors directly for clearer upstream handling.
+    if (err.message.includes('Invalid action') || err.message.includes('Expires minutes')) {
+      throw err;
+    }
     throw new Error(`GCS Signed URL generation failed: ${err.message}`);
   }
 };
