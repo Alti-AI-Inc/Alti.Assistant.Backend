@@ -1,3 +1,10 @@
+/**
+ * @file This file provides services for interacting with the Google Gemini AI model,
+ * managing chat history, tracking prompt usage, and persisting conversation data.
+ * It integrates with various internal modules for enhanced functionality like
+ * prompt routing and payment processing.
+ */
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
@@ -13,14 +20,39 @@ import { GEMINI_RESPONSE_SERVICE_POST } from './gemini.constant.js';
 import { RedisClient } from '../../../shared/redis.js';
 import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 
+/**
+ * Initializes the Google Generative AI client with the configured API key.
+ * @type {GoogleGenerativeAI}
+ */
 const client = new GoogleGenerativeAI(config.gemini_secret_key);
+
+/**
+ * Configures the primary Gemini AI model for content generation.
+ * Uses 'gemini-2.5-flash' with a low temperature for more deterministic responses.
+ * @type {import('@google/generative-ai').GenerativeModel}
+ */
 const model = client.getGenerativeModel({
   model: 'gemini-2.5-flash',
   generationConfig: { temperature: 0.1 },
 });
 
+/**
+ * An in-memory store for chat session histories, keyed by sessionId.
+ * Each entry holds a BufferMemory instance for maintaining conversation context.
+ * @type {Object.<string, BufferMemory>}
+ */
 const sessionMemoryStore = {};
 
+/**
+ * Handles interaction with the Gemini AI model, manages chat history, tracks prompt usage,
+ * and persists conversation data for a given session and user.
+ *
+ * @param {string} sessionId - The unique identifier for the current chat session.
+ * @param {string} prompt - The user's input prompt to the Gemini AI.
+ * @param {string} userId - The ID of the user initiating the conversation.
+ * @returns {Promise<object>} An object containing the original prompt, sessionId, and the AI's reply.
+ * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
+ */
 const geminiService = async (sessionId, prompt, userId) => {
   let memory = sessionMemoryStore[sessionId];
   if (!memory) {
@@ -111,13 +143,36 @@ const geminiService = async (sessionId, prompt, userId) => {
   }
 };
 
+/**
+ * Configures an additional Gemini AI model instance, identical to the primary `model`.
+ * This might be used for specific scenarios or A/B testing, though currently it's a duplicate.
+ * Uses 'gemini-2.5-flash' with a low temperature.
+ * @type {import('@google/generative-ai').GenerativeModel}
+ */
 const model1 = client.getGenerativeModel({
   model: 'gemini-2.5-flash',
   generationConfig: { temperature: 0.1 },
 });
 
+/**
+ * An in-memory store for chat session histories specifically for the gemini25PreviewService,
+ * keyed by sessionId. Each entry holds a BufferMemory instance.
+ * @type {Object.<string, BufferMemory>}
+ */
 const sessionMemoryStore25Preview = {};
 
+/**
+ * Handles interaction with a Gemini AI model instance (currently identical to the primary model),
+ * manages chat history, tracks prompt usage, and persists conversation data for a given session and user.
+ * This service is functionally very similar to `geminiService` but uses a separate memory store
+ * and does not publish to Redis. It might be intended for a preview or alternative model version.
+ *
+ * @param {string} sessionId - The unique identifier for the current chat session.
+ * @param {string} prompt - The user's input prompt to the Gemini AI.
+ * @param {string} userId - The ID of the user initiating the conversation.
+ * @returns {Promise<object>} An object containing the original prompt, sessionId, and the AI's reply.
+ * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
+ */
 const gemini25PreviewService = async (sessionId, prompt, userId) => {
   let memory = sessionMemoryStore25Preview[sessionId];
   if (!memory) {
@@ -202,7 +257,31 @@ const gemini25PreviewService = async (sessionId, prompt, userId) => {
   }
 };
 
+/**
+ * Exports an object containing various Gemini AI service functions.
+ * @namespace GeminiAiService
+ */
 export const GeminiAiService = {
+  /**
+   * The primary service function for interacting with the Gemini AI model.
+   * @function
+   * @memberof GeminiAiService
+   * @param {string} sessionId - The unique identifier for the current chat session.
+   * @param {string} prompt - The user's input prompt.
+   * @param {string} userId - The ID of the user.
+   * @returns {Promise<object>} An object containing the prompt, sessionId, and the AI's reply.
+   * @throws {ApiError}
+   */
   geminiService,
+  /**
+   * A service function for interacting with a preview or alternative Gemini AI model instance.
+   * @function
+   * @memberof GeminiAiService
+   * @param {string} sessionId - The unique identifier for the current chat session.
+   * @param {string} prompt - The user's input prompt.
+   * @param {string} userId - The ID of the user.
+   * @returns {Promise<object>} An object containing the prompt, sessionId, and the AI's reply.
+   * @throws {ApiError}
+   */
   gemini25PreviewService,
 };
