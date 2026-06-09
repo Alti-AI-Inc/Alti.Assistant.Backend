@@ -11,7 +11,15 @@ import {
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Refine a specific section of the plan
+ * Refines a specific section of a given plan based on a refinement request using a generative AI model.
+ * The AI attempts to update the specified section while maintaining its original JSON structure.
+ *
+ * @param {object} plan - The overall plan object containing various sections.
+ * @param {string} section - The name of the section to refine (e.g., 'phases', 'resources', 'introduction').
+ * @param {string} refinementRequest - The specific request or instruction for refinement (e.g., "Make this section more detailed", "Adjust the timeline in this phase").
+ * @param {object} [context={}] - Optional additional context for the refinement. Currently not directly used in the prompt but can be extended.
+ * @returns {Promise<object>} A promise that resolves to the refined section object.
+ * @throws {Error} If the specified section is not found in the plan, if the AI response does not contain valid JSON, or if the AI generation fails.
  */
 export const refineSection = async (
   plan,
@@ -79,7 +87,13 @@ Please refine this section based on the request. Return the updated section in t
 };
 
 /**
- * Adjust plan based on new constraints
+ * Adjusts the entire plan to accommodate new constraints using a generative AI model.
+ * The AI will consider various aspects like timeline, budget, resources, and priorities to integrate the new constraints.
+ *
+ * @param {object} plan - The current plan object to be adjusted.
+ * @param {object} newConstraints - An object detailing the new constraints (e.g., `{ budget: "$5000", timeline: "2 months" }`).
+ * @returns {Promise<object>} A promise that resolves to the adjusted plan object.
+ * @throws {Error} If the AI response does not contain valid JSON or if the AI generation fails.
  */
 export const adjustForConstraints = async (plan, newConstraints) => {
   try {
@@ -135,7 +149,14 @@ Return the complete updated plan in the same JSON structure. Only return valid J
 };
 
 /**
- * Add alternative approaches to existing plan
+ * Generates 2-3 alternative approaches or variations for a given idea within the context of an existing plan.
+ * Each alternative includes a description, pros, cons, estimated timeline, and estimated budget.
+ *
+ * @param {object} plan - The current plan object, used as context for generating relevant alternatives.
+ * @param {string} ideaText - The specific idea or concept for which alternatives are to be generated.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of alternative approach objects.
+ *   Each object typically has properties like `approach`, `pros`, `cons`, `estimated_timeline`, and `estimated_budget`.
+ *   Returns an empty array if an error occurs or if no valid JSON alternatives can be extracted.
  */
 export const addAlternatives = async (plan, ideaText) => {
   try {
@@ -181,7 +202,13 @@ Generate 2-3 alternative approaches or variations. Return only JSON:
 };
 
 /**
- * Optimize timeline
+ * Optimizes the timeline (phases) of a plan to meet a specified target duration.
+ * The AI considers factors like parallel tasks, critical path, resource allocation, and scope adjustments.
+ *
+ * @param {object} plan - The current plan object, expected to have a `phases` property.
+ * @param {string} targetDuration - The desired target duration for the plan (e.g., "3 months", "6 weeks", "end of Q4").
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of optimized phase objects.
+ *   Returns the original `plan.phases` array if an error occurs or if no valid JSON can be extracted.
  */
 export const optimizeTimeline = async (plan, targetDuration) => {
   try {
@@ -221,7 +248,13 @@ Return optimized phases in same JSON format.`;
 };
 
 /**
- * Optimize budget
+ * Optimizes the resource allocation of a plan to meet a specified target budget.
+ * The AI will suggest adjustments to resources to align with the financial constraint.
+ *
+ * @param {object} plan - The current plan object, expected to have a `resources` property.
+ * @param {string} targetBudget - The desired target budget for the plan (e.g., "$10,000", "5000 USD", "within 15k").
+ * @returns {Promise<object>} A promise that resolves to an object representing the optimized resources.
+ *   Returns the original `plan.resources` object if an error occurs or if no valid JSON can be extracted.
  */
 export const optimizeBudget = async (plan, targetBudget) => {
   try {
@@ -255,7 +288,13 @@ Optimize resource allocation to meet this budget. Return optimized resources in 
 };
 
 /**
- * Expand specific section with more details
+ * Expands a specific section of the plan with more detailed information using a generative AI model.
+ * The AI will provide a more comprehensive version of the specified section, maintaining its JSON structure.
+ *
+ * @param {object} plan - The overall plan object.
+ * @param {string} section - The name of the section to expand (e.g., 'introduction', 'phases', 'risks').
+ * @returns {Promise<object|Array>} A promise that resolves to the expanded section content (can be an object or an array depending on the section).
+ *   Returns the original `plan[section]` content if an error occurs or if no valid JSON can be extracted.
  */
 export const expandSection = async (plan, section) => {
   try {
@@ -293,7 +332,12 @@ Provide a more detailed, comprehensive version. Return in same JSON format.`;
 };
 
 /**
- * Simplify plan for easier understanding
+ * Simplifies the entire plan to make it more concise and easier to understand.
+ * The AI will rephrase and condense the plan while retaining all essential information and its original JSON structure.
+ *
+ * @param {object} plan - The current plan object to be simplified.
+ * @returns {Promise<object>} A promise that resolves to the simplified plan object.
+ *   Returns the original plan object if an error occurs or if no valid JSON can be extracted.
  */
 export const simplifyPlan = async (plan) => {
   try {
@@ -326,7 +370,14 @@ Keep all essential information but make it more accessible. Return in same JSON 
 };
 
 /**
- * Apply iterative improvements based on feedback
+ * Applies user feedback to an existing plan, iteratively improving it using a generative AI model.
+ * The AI considers the current plan, the specific feedback, and optionally previous conversation history to make appropriate changes.
+ *
+ * @param {object} plan - The current plan object.
+ * @param {string} feedback - The user's feedback or instructions for improvement (e.g., "Make the budget more realistic", "Add a contingency plan").
+ * @param {Array<object>} [conversationHistory=[]] - Optional array of previous conversation turns, where each turn is an object with `role` and `parts` (e.g., `[{ role: 'user', parts: [{ text: '...' }] }, { role: 'model', parts: [{ text: '...' }] }]`).
+ * @returns {Promise<object>} A promise that resolves to the improved plan object.
+ * @throws {Error} If the AI response does not contain valid JSON or if the AI generation fails.
  */
 export const applyFeedback = async (
   plan,
@@ -381,6 +432,24 @@ Apply this feedback to improve the plan. Consider what the user is asking for an
   }
 };
 
+/**
+ * @typedef {object} PlanRefinerService
+ * @property {function(object, string, string, object=): Promise<object>} refineSection - Refines a specific section of a plan.
+ * @property {function(object, object): Promise<object>} adjustForConstraints - Adjusts the entire plan based on new constraints.
+ * @property {function(object, string): Promise<Array<object>>} addAlternatives - Generates alternative approaches for an idea within a plan.
+ * @property {function(object, string): Promise<Array<object>>} optimizeTimeline - Optimizes the plan's timeline to meet a target duration.
+ * @property {function(object, string): Promise<object>} optimizeBudget - Optimizes the plan's budget to meet a target.
+ * @property {function(object, string): Promise<object|Array>} expandSection - Expands a specific section of the plan with more details.
+ * @property {function(object): Promise<object>} simplifyPlan - Simplifies the entire plan for easier understanding.
+ * @property {function(object, string, Array<object>=): Promise<object>} applyFeedback - Applies user feedback to iteratively improve the plan.
+ */
+
+/**
+ * An object consolidating all plan refinement and adjustment functions.
+ * This service provides various utilities for modifying, optimizing, and enhancing project plans
+ * using generative AI capabilities.
+ * @type {PlanRefinerService}
+ */
 export const planRefiner = {
   refineSection,
   adjustForConstraints,
