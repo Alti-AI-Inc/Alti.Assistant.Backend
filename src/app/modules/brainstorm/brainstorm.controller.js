@@ -12,12 +12,18 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  */
 const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
+  // Determine userId based on authentication status.
+  // For authenticated users, userId must come from req.user to prevent IDOR.
+  // For guests, a unique ID is generated.
   let userId = isGuest
     ? brainstormService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
 
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId;
+  // BUG/SECURITY VULNERABILITY: Allowing userId to be overridden from req.body is an IDOR vulnerability.
+  // An attacker could pass another user's ID to perform actions on their behalf.
+  // The userId should be strictly derived from the authenticated session or generated for guests.
+  // userId = req.body.userId || userId; // REMOVED
 
   logger.info(
     `Brainstorm assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`,
@@ -29,16 +35,14 @@ const conversationalAssistant = catchAsync(async (req, res) => {
     const userSubscription = await SubscriptionModel.findOne({ userId }).sort({
       createdAt: -1,
     });
-    const promptUsage = userSubscription ? userSubscription.usage : 0;
-    const totalConversationWithConvId = conversationId
-      ? await conversationHelpers.getConversationById(
-          conversationId,
-          userId,
-          req
-        )
-      : 0;
 
-    if (promptUsage <= totalConversationWithConvId) {
+    // BUG: The original logic `promptUsage <= totalConversationWithConvId` was flawed.
+    // `userSubscription.usage` is assumed to be the remaining prompts, consistent with `generateBrainstorm`.
+    // `totalConversationWithConvId` was incorrectly derived from `getConversationById` (a single conversation object)
+    // and used in a comparison that didn't make sense for a monthly limit.
+    // The correct check for a monthly limit based on remaining usage is to ensure `userSubscription` exists
+    // and `userSubscription.usage` is greater than 0.
+    if (!userSubscription || userSubscription.usage <= 0) {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
@@ -56,6 +60,8 @@ const conversationalAssistant = catchAsync(async (req, res) => {
     });
   }
 
+  // This check is still valid, as userId might be null if req.user was malformed
+  // and generateGuestUserId somehow failed (though unlikely).
   if (!userId) {
     return sendResponse(res, {
       statusCode: httpStatus.INTERNAL_SERVER_ERROR,
@@ -94,11 +100,17 @@ const conversationalAssistant = catchAsync(async (req, res) => {
  */
 const generateBrainstorm = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
+  // Determine userId based on authentication status.
+  // For authenticated users, userId must come from req.user to prevent IDOR.
+  // For guests, a unique ID is generated.
   let userId = isGuest
     ? brainstormService.generateGuestUserId()
     : req.user?.userId || req.user?._id;
 
-  userId = req.body.userId || userId;
+  // BUG/SECURITY VULNERABILITY: Allowing userId to be overridden from req.body is an IDOR vulnerability.
+  // An attacker could pass another user's ID to perform actions on their behalf.
+  // The userId should be strictly derived from the authenticated session or generated for guests.
+  // userId = req.body.userId || userId; // REMOVED
 
   logger.info(
     `Structured brainstorm request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
@@ -110,7 +122,11 @@ const generateBrainstorm = catchAsync(async (req, res) => {
       createdAt: -1,
     });
 
-    if (userSubscription && userSubscription.usage <= 0) {
+    // BUG: The original logic `if (userSubscription && userSubscription.usage <= 0)`
+    // would allow users without any subscription to bypass the limit check.
+    // The correct check is to ensure `userSubscription` exists AND `userSubscription.usage` is greater than 0.
+    // This aligns with the fix in `conversationalAssistant`.
+    if (!userSubscription || userSubscription.usage <= 0) {
       return sendResponse(res, {
         statusCode: httpStatus.FORBIDDEN,
         success: false,
@@ -156,14 +172,14 @@ const generateBrainstorm = catchAsync(async (req, res) => {
  */
 const getConversationHistory = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
-  const userId = req.user?.userId || req.user?._id;
+  const userId = req.user?.userId || req.user?._id; // Correctly derived from req.user
 
   logger.info(`Fetching conversation history for ${conversationId}`);
 
   try {
     const result = await brainstormService.getConversationHistory(
       conversationId,
-      userId,
+      userId, // userId passed for authorization check in service layer
       req
     );
 
@@ -192,14 +208,14 @@ const exportBrainstorm = catchAsync(async (req, res) => {
     format = 'markdown',
     includeHistory = true,
   } = req.body;
-  const userId = req.user?.userId || req.user?._id;
+  const userId = req.user?.userId || req.user?._id; // Correctly derived from req.user
 
   logger.info(`Exporting brainstorm session ${conversationId} as ${format}`);
 
   try {
     const result = await brainstormService.exportBrainstormSession(
       conversationId,
-      userId,
+      userId, // userId passed for authorization check in service layer
       format,
       includeHistory,
       req
@@ -226,14 +242,14 @@ const exportBrainstorm = catchAsync(async (req, res) => {
  */
 const refineBrainstorm = catchAsync(async (req, res) => {
   const { conversationId, message, focusOn = [] } = req.body;
-  const userId = req.user?.userId || req.user?._id;
+  const userId = req.user?.userId || req.user?._id; // Correctly derived from req.user
 
   logger.info(`Refining brainstorm in conversation ${conversationId}`);
 
   try {
     const result = await brainstormService.refineBrainstorm(
       conversationId,
-      userId,
+      userId, // userId passed for authorization check in service layer
       message,
       focusOn,
       req
