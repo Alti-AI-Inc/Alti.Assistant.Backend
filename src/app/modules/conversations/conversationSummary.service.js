@@ -3,18 +3,64 @@ import Conversation from './conversation.model.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 
-// Initialize Gemini
+/**
+ * @module conversationSummaryService
+ * @description Provides services for managing and generating summaries of conversations using Google Gemini.
+ */
+
+/**
+ * @typedef {Object} Message
+ * @property {string} role - The role of the sender (e.g., 'user', 'assistant').
+ * @property {string} content - The text content of the message.
+ * @property {Date} [timestamp] - The timestamp when the message was created.
+ */
+
+/**
+ * @typedef {Object} ConversationSummaryMetadata
+ * @property {Array<string>} keyTopics - Main topics discussed in the conversation.
+ * @property {Array<string>} entities - Important names, apps, or services mentioned.
+ * @property {Array<string>} detectedApps - Apps or services that were used or discussed.
+ * @property {string} summaryVersion - Version of the summary generation logic.
+ */
+
+/**
+ * @typedef {Object} ConversationSummaryDocument
+ * @property {string} conversationId - The ID of the conversation this summary belongs to.
+ * @property {string} userId - The ID of the user who owns the conversation.
+ * @property {string} summary - A brief overview of the conversation.
+ * @property {string} context - Key information needed to continue the conversation.
+ * @property {Object} messageRange - Details about the messages covered by this summary.
+ * @property {number} messageRange.startIndex - The starting index of messages included in the summary.
+ * @property {number} messageRange.endIndex - The ending index of messages included in the summary.
+ * @property {number} messageRange.totalMessages - The total number of messages in the conversation at the time of summary.
+ * @property {number} tokenCount - The estimated total token count of the summarized messages.
+ * @property {ConversationSummaryMetadata} metadata - Additional structured information about the summary.
+ * @property {'active'|'superseded'|'pending'} status - The current status of the summary.
+ * @property {Date} createdAt - The timestamp when the summary was created.
+ * @property {Date} updatedAt - The timestamp when the summary was last updated.
+ */
+
+/**
+ * Initializes the Google Generative AI client with the API key from the configuration.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Estimate token count for text (rough approximation: 1 token ≈ 4 characters)
+ * Estimates the token count for a given text string.
+ * This is a rough approximation, typically used for large language models where 1 token is approximately 4 characters.
+ * @param {string} text - The input text string to estimate tokens for.
+ * @returns {number} The estimated number of tokens.
  */
 const estimateTokenCount = (text) => {
   return Math.ceil(text.length / 4);
 };
 
 /**
- * Calculate total token count for conversation messages
+ * Calculates the total estimated token count for an array of conversation messages.
+ * It iterates through each message and sums up the estimated tokens of its content.
+ * @param {Array<Message>} messages - An array of message objects, each expected to have a 'content' property.
+ * @returns {number} The total estimated token count for all messages.
  */
 const calculateConversationTokens = (messages) => {
   let totalTokens = 0;
@@ -27,7 +73,17 @@ const calculateConversationTokens = (messages) => {
 };
 
 /**
- * Generate summary using Gemini
+ * Generates a structured summary, context, key topics, entities, and detected apps for a conversation
+ * using the Google Gemini API. It constructs a detailed prompt and parses the API's structured response.
+ * In case of an error, it provides a simple fallback summary.
+ * @param {Array<Message>} messages - An array of message objects representing the conversation.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the summary details.
+ * @property {string} summary - A brief overview of the conversation (2-3 sentences).
+ * @property {string} context - Key information needed to continue the conversation.
+ * @property {Array<string>} keyTopics - Main topics discussed, as an array of strings.
+ * @property {Array<string>} entities - Important names, apps, or services mentioned, as an array of strings.
+ * @property {Array<string>} detectedApps - Apps/services used or discussed, as an array of strings.
+ * @throws {Error} If there's an error communicating with the Gemini API or parsing its response.
  */
 const generateSummaryWithGemini = async (messages) => {
   try {
@@ -106,7 +162,13 @@ APPS: [app1, app2, app3]`;
 };
 
 /**
- * Check if conversation needs summarization (>4000 tokens)
+ * Checks if a conversation exceeds a predefined token limit (currently 12000 tokens)
+ * and, if so, generates and saves a new summary using Gemini.
+ * If an existing active summary is found and is up-to-date, it returns that summary.
+ * If a new summary is generated, any old active summaries for the conversation are marked as 'superseded'.
+ * @param {string} conversationId - The ID of the conversation to check and summarize.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @returns {Promise<ConversationSummaryDocument|null>} A promise that resolves to the newly created or existing active ConversationSummary document if a summary was generated or found, otherwise `null`.
  */
 export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
   try {
@@ -127,12 +189,12 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
 
     console.log(`Conversation ${conversationId} has ${totalTokens} tokens`);
 
-    // Check if summarization is needed
+    // Check if summarization is needed (e.g., if tokens exceed a threshold)
     if (totalTokens <= 12000) {
       return null; // No summarization needed
     }
 
-    // Check if we already have an active summary
+    // Check if we already have an active summary that covers all current messages
     const existingSummary = await ConversationSummary.findActiveForConversation(
       conversationId,
       userId
@@ -191,7 +253,20 @@ export const checkAndSummarizeIfNeeded = async (conversationId, userId) => {
 };
 
 /**
- * Get conversation context (summary + recent messages)
+ * Retrieves the active conversation summary and a specified number of recent messages for a given conversation.
+ * This provides a comprehensive context for further processing or display.
+ * @param {string} conversationId - The ID of the conversation.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {number} [recentMessageLimit=5] - The maximum number of recent messages to retrieve. Defaults to 5.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the summary details and recent messages.
+ * @property {boolean} hasSummary - True if an active summary exists, false otherwise.
+ * @property {string|null} summary - The main summary text, or null if no summary.
+ * @property {string|null} context - The context text from the summary, or null.
+ * @property {Array<string>} keyTopics - An array of key topics from the summary.
+ * @property {Array<string>} entities - An array of entities from the summary.
+ * @property {Array<string>} detectedApps - An array of detected apps from the summary.
+ * @property {Array<Object>} recentMessages - An array of recent message objects, each with role, content, and timestamp.
+ * @property {number} totalTokens - The total token count of the conversation as per the summary, or 0 if no summary.
  */
 export const getConversationContext = async (
   conversationId,
@@ -243,7 +318,11 @@ export const getConversationContext = async (
 };
 
 /**
- * Get formatted context for LLM prompts
+ * Retrieves the conversation context and formats it into a string suitable for inclusion in LLM prompts.
+ * This formatted string includes the summary, context, topics, and detected apps, if available.
+ * @param {string} conversationId - The ID of the conversation.
+ * @param {string} userId - The ID of the user associated with the conversation.
+ * @returns {Promise<string>} A promise that resolves to a formatted string of the conversation summary and context, or an empty string if no summary exists.
  */
 export const getFormattedContextForLLM = async (conversationId, userId) => {
   const context = await getConversationContext(conversationId, userId);
@@ -272,6 +351,16 @@ export const getFormattedContextForLLM = async (conversationId, userId) => {
   return formatted;
 };
 
+/**
+ * An object containing all exported functions related to conversation summarization and context retrieval.
+ * This serves as the public interface for the conversation summary service.
+ * @type {Object}
+ * @property {function(string, string): Promise<ConversationSummaryDocument|null>} checkAndSummarizeIfNeeded - Function to check and summarize a conversation if needed.
+ * @property {function(string, string, number): Promise<Object>} getConversationContext - Function to retrieve conversation summary and recent messages.
+ * @property {function(string, string): Promise<string>} getFormattedContextForLLM - Function to get formatted context for LLM prompts.
+ * @property {function(string): number} estimateTokenCount - Utility function to estimate token count for a string.
+ * @property {function(Array<Message>): number} calculateConversationTokens - Utility function to calculate total tokens for an array of messages.
+ */
 export const conversationSummaryService = {
   checkAndSummarizeIfNeeded,
   getConversationContext,
