@@ -4,7 +4,14 @@ import { logger } from '../../../shared/logger.js';
 import crypto from 'crypto';
 
 /**
- * Map endpoint to module and action
+ * Maps an API endpoint and HTTP method to a specific module and action for usage logging.
+ * This function categorizes requests based on their path and method to provide granular usage insights.
+ *
+ * @param {string} endpoint - The API endpoint path (e.g., '/api/v1/auth/login').
+ * @param {string} method - The HTTP method of the request (e.g., 'POST', 'GET', 'PUT').
+ * @returns {{module: string, action: string}} An object containing the identified module and action.
+ *   - `module`: A string representing the functional module (e.g., 'auth', 'tenant', 'legal-contract-review').
+ *   - `action`: A string representing the specific action performed within the module (e.g., 'authenticate', 'create', 'read').
  */
 const mapEndpointToModule = (endpoint, method) => {
   const path = endpoint.toLowerCase();
@@ -91,7 +98,12 @@ const mapEndpointToModule = (endpoint, method) => {
 };
 
 /**
- * Extract action from path and method
+ * Extracts a specific action from a given URL path and HTTP method.
+ * This function looks for keywords in the path or falls back to method-based actions.
+ *
+ * @param {string} path - The lowercase API endpoint path.
+ * @param {string} method - The HTTP method of the request (e.g., 'POST', 'GET').
+ * @returns {string} A string representing the identified action (e.g., 'generate', 'create', 'read', 'unknown').
  */
 const extractAction = (path, method) => {
   if (path.includes('/generate')) return 'generate';
@@ -120,7 +132,11 @@ const extractAction = (path, method) => {
 };
 
 /**
- * Anonymize IP address (hash it)
+ * Anonymizes an IP address by hashing it using SHA256 and truncating the result.
+ * This helps in protecting user privacy while still allowing for some level of IP-based analytics.
+ *
+ * @param {string | null | undefined} ip - The IP address string to anonymize.
+ * @returns {string | null} The first 16 characters of the SHA256 hash of the IP address, or `null` if the input is falsy.
  */
 const anonymizeIP = (ip) => {
   if (!ip) return null;
@@ -128,7 +144,13 @@ const anonymizeIP = (ip) => {
 };
 
 /**
- * Map HTTP status code to status
+ * Maps an HTTP status code to a general status category.
+ *
+ * @param {number} statusCode - The HTTP status code (e.g., 200, 404, 500).
+ * @returns {'success' | 'error' | 'partial'} The categorized status:
+ *   - 'success' for 2xx codes.
+ *   - 'error' for 4xx or 5xx codes.
+ *   - 'partial' for other codes (e.g., 3xx redirects).
  */
 const getStatusFromCode = (statusCode) => {
   if (statusCode >= 200 && statusCode < 300) return 'success';
@@ -137,7 +159,12 @@ const getStatusFromCode = (statusCode) => {
 };
 
 /**
- * Map status code to error type
+ * Maps an HTTP status code to a specific error type.
+ * This provides more detailed categorization for error logging and analysis.
+ *
+ * @param {number} statusCode - The HTTP status code (e.g., 400, 401, 500).
+ * @returns {'validation' | 'authentication' | 'authorization' | 'not-found' | 'rate-limit' | 'timeout' | 'server' | null}
+ *   The specific error type, or `null` if no specific error type is matched.
  */
 const getErrorType = (statusCode) => {
   if (statusCode === 400) return 'validation';
@@ -151,7 +178,34 @@ const getErrorType = (statusCode) => {
 };
 
 /**
- * Create usage log asynchronously (non-blocking)
+ * Asynchronously creates a usage log entry in the database.
+ * This operation is deferred using `setImmediate` to ensure it does not block the main event loop
+ * and allows the API response to be sent quickly. Errors during log creation are caught and logged.
+ *
+ * @param {object} logData - The data object for the usage log entry.
+ * @param {Date} logData.timestamp - The timestamp of the request.
+ * @param {string} logData.userId - The ID of the user who made the request.
+ * @param {string | null} logData.tenantId - The ID of the tenant, or `null`.
+ * @param {string} logData.module - The identified module of the request.
+ * @param {string} logData.action - The identified action of the request.
+ * @param {string} logData.endpoint - The original API endpoint.
+ * @param {string} logData.method - The HTTP method.
+ * @param {Date} logData.startTime - The start time of the request.
+ * @param {Date} logData.endTime - The end time of the request.
+ * @param {number} logData.duration - The duration of the request in milliseconds.
+ * @param {'success' | 'error' | 'partial'} logData.status - The general status of the request.
+ * @param {number} logData.statusCode - The HTTP status code of the response.
+ * @param {string | null} logData.errorType - The specific error type, or `null`.
+ * @param {string | null} logData.errorMessage - The error message, truncated to 500 characters, or `null`.
+ * @param {number} logData.tokensUsed - The number of tokens used (e.g., for AI models).
+ * @param {string | null} logData.modelUsed - The AI model used, if any.
+ * @param {number} logData.inputSize - The size of the input payload in bytes.
+ * @param {number} logData.outputSize - The size of the output payload in bytes.
+ * @param {string} logData.requestId - A unique ID for the request.
+ * @param {string | null} logData.ipAddress - The anonymized IP address of the client.
+ * @param {string | null} logData.userAgent - The user agent string, truncated to 200 characters, or `null`.
+ * @param {object} logData.metadata - Additional metadata related to the request.
+ * @returns {void}
  */
 const createLogAsync = (logData) => {
   // Use setImmediate to defer execution and not block response
@@ -175,7 +229,28 @@ const createLogAsync = (logData) => {
 };
 
 /**
- * Log API request usage
+ * Logs details of an API request for usage tracking and analytics.
+ * This function processes raw request data, categorizes it, and then asynchronously
+ * persists it to the database. It calculates duration, maps endpoints to modules/actions,
+ * determines status and error types, and anonymizes sensitive information like IP addresses.
+ *
+ * @param {object} data - The raw request data to be logged.
+ * @param {string} data.userId - The ID of the user making the request.
+ * @param {string | null} data.tenantId - The ID of the tenant associated with the request, or `null`.
+ * @param {string} data.endpoint - The full API endpoint path.
+ * @param {string} data.method - The HTTP method of the request.
+ * @param {number} data.startTime - The timestamp (in milliseconds) when the request started.
+ * @param {number} data.endTime - The timestamp (in milliseconds) when the request ended.
+ * @param {number} data.statusCode - The HTTP status code returned by the response.
+ * @param {string | null} [data.errorMessage=null] - An optional error message if the request failed.
+ * @param {number} [data.tokensUsed=0] - The number of tokens consumed by the request (e.g., for AI services).
+ * @param {string | null} [data.modelUsed=null] - The specific AI model used, if applicable.
+ * @param {number} [data.inputSize=0] - The size of the request input payload in bytes.
+ * @param {number} [data.outputSize=0] - The size of the response output payload in bytes.
+ * @param {object} [data.metadata={}] - Additional arbitrary metadata to store with the log.
+ * @param {string | null} [data.ipAddress=null] - The client's IP address.
+ * @param {string | null} [data.userAgent=null] - The client's User-Agent header.
+ * @returns {void}
  */
 const logRequest = (data) => {
   const {
@@ -237,7 +312,14 @@ const logRequest = (data) => {
 };
 
 /**
- * Get tenant usage summary
+ * Retrieves a summary of usage for a specific tenant within a given date range.
+ * This function delegates to the `UsageLog` model to fetch aggregated usage data.
+ *
+ * @param {string} tenantId - The ID of the tenant for whom to retrieve usage.
+ * @param {Date} startDate - The start date for the usage period.
+ * @param {Date} endDate - The end date for the usage period.
+ * @returns {Promise<object[]>} A promise that resolves to an array of usage summary objects.
+ * @throws {Error} If an error occurs during the database query.
  */
 const getTenantUsage = async (tenantId, startDate, endDate) => {
   try {
@@ -249,7 +331,14 @@ const getTenantUsage = async (tenantId, startDate, endDate) => {
 };
 
 /**
- * Get user usage summary
+ * Retrieves a summary of usage for a specific user within a given date range.
+ * This function delegates to the `UsageLog` model to fetch aggregated usage data.
+ *
+ * @param {string} userId - The ID of the user for whom to retrieve usage.
+ * @param {Date} startDate - The start date for the usage period.
+ * @param {Date} endDate - The end date for the usage period.
+ * @returns {Promise<object[]>} A promise that resolves to an array of usage summary objects.
+ * @throws {Error} If an error occurs during the database query.
  */
 const getUserUsage = async (userId, startDate, endDate) => {
   try {
@@ -261,7 +350,30 @@ const getUserUsage = async (userId, startDate, endDate) => {
 };
 
 /**
- * Get usage statistics for a time period
+ * Retrieves aggregated usage statistics based on various filters and a time period.
+ * This function performs an aggregation pipeline on the `UsageLog` collection
+ * to calculate total requests, success/error counts, average/max/min durations,
+ * and total/average tokens used.
+ *
+ * @param {object} [filters={}] - An object containing optional filters for the usage statistics.
+ * @param {string} [filters.tenantId] - Optional: Filter by a specific tenant ID.
+ * @param {string} [filters.userId] - Optional: Filter by a specific user ID.
+ * @param {string} [filters.module] - Optional: Filter by a specific module.
+ * @param {Date} [filters.startDate=30 days ago] - Optional: The start date for the statistics period. Defaults to 30 days ago.
+ * @param {Date} [filters.endDate=now] - Optional: The end date for the statistics period. Defaults to the current date.
+ * @returns {Promise<object | null>} A promise that resolves to an object containing the aggregated usage statistics,
+ *   or `null` if no data is found for the given filters.
+ *   The returned object includes:
+ *   - `totalRequests`: Total number of requests.
+ *   - `successCount`: Number of successful requests.
+ *   - `errorCount`: Number of erroneous requests.
+ *   - `successRate`: Percentage of successful requests.
+ *   - `avgDuration`: Average request duration in milliseconds.
+ *   - `maxDuration`: Maximum request duration in milliseconds.
+ *   - `minDuration`: Minimum request duration in milliseconds.
+ *   - `totalTokens`: Total tokens used across all requests.
+ *   - `avgTokens`: Average tokens used per request.
+ * @throws {Error} If an error occurs during the aggregation query.
  */
 const getUsageStats = async (filters = {}) => {
   try {
@@ -325,6 +437,21 @@ const getUsageStats = async (filters = {}) => {
   }
 };
 
+/**
+ * @typedef {object} UsageLogService
+ * @property {function(object): void} logRequest - Logs details of an API request for usage tracking.
+ * @property {function(string, Date, Date): Promise<object[]>} getTenantUsage - Retrieves a summary of usage for a specific tenant.
+ * @property {function(string, Date, Date): Promise<object[]>} getUserUsage - Retrieves a summary of usage for a specific user.
+ * @property {function(object): Promise<object | null>} getUsageStats - Retrieves aggregated usage statistics based on filters.
+ */
+
+/**
+ * Provides a collection of services for logging and retrieving API usage data.
+ * This service encapsulates the business logic for tracking user and tenant interactions
+ * with the application's various modules and endpoints.
+ *
+ * @type {UsageLogService}
+ */
 export const usageLogService = {
   logRequest,
   getTenantUsage,

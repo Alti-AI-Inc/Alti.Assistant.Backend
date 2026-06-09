@@ -29,11 +29,23 @@ export const detectIntentNode = async (state) => {
         Return only the single intent string (e.g., "generate_code").
     `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.5-flash',
-    contents: intentDetectionPrompt,
-  });
-  const intent = response.text.trim();
+  let intent = 'general_conversation'; // Default intent in case of failure or unexpected response
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: intentDetectionPrompt,
+    });
+    // Ensure response.text exists and is a string before trimming
+    if (response && typeof response.text === 'string') {
+      intent = response.text.trim();
+    } else {
+      console.warn('LLM response.text was not a string or was empty. Defaulting to general_conversation.');
+    }
+  } catch (error) {
+    console.error('Error detecting intent:', error);
+    // Fallback to general conversation if intent detection fails due to API error, network issue, etc.
+    intent = 'general_conversation';
+  }
   console.log('Detected Intent:', intent);
   return { intent };
 };
@@ -55,7 +67,8 @@ export const routeOnIntent = (state) => {
   if (validIntents.includes(intent)) {
     return intent;
   }
-  // If the intent is not specific or is a follow-up, use the general assistant.
+  // If the intent is not specific, not recognized, or intent detection failed,
+  // use the general assistant as a fallback.
   return 'general_conversation';
 };
 
@@ -66,7 +79,15 @@ export const routeOnIntent = (state) => {
 const executeTaskNode = (serviceFunction) => async (state) => {
   console.log(`--- Node: Executing task for intent: ${state.intent} ---`);
   const { history } = state;
-  const response = await serviceFunction(history);
+  let response = null;
+  try {
+    response = await serviceFunction(history);
+  } catch (error) {
+    console.error(`Error executing task for intent ${state.intent}:`, error);
+    // Return an error message in the response to be handled by subsequent nodes or the workflow.
+    // This prevents unhandled promise rejections and allows the workflow to gracefully fail.
+    response = { error: `Failed to process your request: ${error.message || 'Unknown error'}` };
+  }
   return { response };
 };
 
