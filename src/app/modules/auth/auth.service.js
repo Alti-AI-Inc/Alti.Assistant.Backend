@@ -16,6 +16,24 @@ import TenantMember from '../tenant/tenantMember.model.js';
 import Tenant from '../tenant/tenant.model.js';
 import subscriptionService from '../subscription/subscription.service.js';
 
+// Recommendation: Add unique index to UserModel.email for faster lookups and to enforce uniqueness.
+// Example: UserModel.schema.index({ email: 1 }, { unique: true });
+
+// Recommendation: Add index to Token.token and Token.userId for faster lookups.
+// Recommendation: Add compound index to Token.token and Token.type for confirmEmailService.
+// Example: Token.schema.index({ token: 1, type: 1 });
+
+// Recommendation: Add unique index to TenantInvitation.token for faster lookups.
+// Example: TenantInvitation.schema.index({ token: 1 }, { unique: true });
+
+// Recommendation: Add compound index to TenantMember.userId and TenantMember.tenantId for faster lookups.
+// Recommendation: Add compound index to TenantMember.userId and TenantMember.status for faster lookups.
+// Example: TenantMember.schema.index({ userId: 1, tenantId: 1 });
+// Example: TenantMember.schema.index({ userId: 1, status: 1 });
+
+// Recommendation: Add unique index to Tenant.subdomain for faster lookups and to enforce uniqueness.
+// Example: Tenant.schema.index({ subdomain: 1 }, { unique: true });
+
 const deleteUserAccountService = async (userId) => {
   const result = await UserModel.deleteOne({ _id: userId });
   return result;
@@ -28,7 +46,8 @@ const registerService = async (req) => {
 
     const { password, email, tenantId, invitationToken } = req.body;
 
-    const existingEmail = await UserModel.findOne({ email }).session(session);
+    // Optimization: Use .lean() as we only check for existence and don't modify the document.
+    const existingEmail = await UserModel.findOne({ email }).session(session).lean();
     if (existingEmail) {
       await session.abortTransaction();
       throw new ApiError(httpStatus.CONFLICT, 'Email already exists!');
@@ -45,6 +64,7 @@ const registerService = async (req) => {
       }
 
       const user = await UserModel.create([userData], { session });
+      const newUser = user[0]; // Get the created user document
 
       // Renamed for clarity: indicates if email verification was bypassed/auto-verified
       let emailAutoVerified = false;
@@ -58,13 +78,14 @@ const registerService = async (req) => {
 
         if (invitation && invitation.email.toLowerCase() === email.toLowerCase()) {
           if (!invitation.isExpired() && invitation.status === 'pending') {
-            const subscription = await subscriptionService.getTenantSubscription(
+            // Optimization: Fetch subscription once and reuse
+            const tenantSubscription = await subscriptionService.getTenantSubscription(
               invitation.tenantId
             );
             if (
-              subscription &&
-              !subscription.limits.unlimitedSeats &&
-              subscription.seats.used >= subscription.seats.total
+              tenantSubscription &&
+              !tenantSubscription.limits.unlimitedSeats &&
+              tenantSubscription.seats.used >= tenantSubscription.seats.total
             ) {
               throw new ApiError(
                 httpStatus.FORBIDDEN,
@@ -77,7 +98,7 @@ const registerService = async (req) => {
               await TenantMember.create(
                 [
                   {
-                    userId: user[0]._id,
+                    userId: newUser._id,
                     tenantId: invitation.tenantId,
                     role: invitation.role,
                     permissions:
@@ -93,15 +114,14 @@ const registerService = async (req) => {
               );
 
               // Update user with tenant info and auto-verify
-              user[0].tenantId = invitation.tenantId;
-              user[0].tenantRole = invitation.role;
-              user[0].activeTenantId = invitation.tenantId;
-              user[0].tenantPermissions =
+              newUser.tenantId = invitation.tenantId;
+              newUser.tenantRole = invitation.role;
+              newUser.activeTenantId = invitation.tenantId;
+              newUser.tenantPermissions =
                 invitation.role === 'admin' || invitation.role === 'manager'
                   ? ['manage_members', 'manage_content']
                   : ['view_content'];
-              user[0].role = 'user'; // Auto-verify user with invitation
-              await user[0].save({ session });
+              newUser.role = 'user'; // Auto-verify user with invitation
 
               // Update tenant user count
               await Tenant.findByIdAndUpdate(
@@ -113,26 +133,22 @@ const registerService = async (req) => {
               // Mark invitation as accepted
               invitation.status = 'accepted';
               invitation.acceptedAt = new Date();
-              invitation.acceptedBy = user[0]._id;
+              invitation.acceptedBy = newUser._id;
               await invitation.save({ session });
 
               // Add seat to subscription if paid plan
               try {
-                const subscription =
-                  await subscriptionService.getTenantSubscription(
-                    invitation.tenantId
-                  );
                 if (
-                  subscription &&
-                  subscription.plan !== 'free' &&
-                  subscription.status === 'active'
+                  tenantSubscription && // Use the already fetched subscription
+                  tenantSubscription.plan !== 'free' &&
+                  tenantSubscription.status === 'active'
                 ) {
                   await subscriptionService.addSeatToSubscription(
-                    subscription._id,
-                    user[0]._id
+                    tenantSubscription._id,
+                    newUser._id
                   );
                   logger.info(
-                    `Added seat to subscription ${subscription._id} for new user ${user[0]._id}`
+                    `Added seat to subscription ${tenantSubscription._id} for new user ${newUser._id}`
                   );
                 }
               } catch (seatError) {
@@ -157,16 +173,20 @@ const registerService = async (req) => {
         }
 
         // If invitation token provided, skip email verification and directly log in user
-        // Mark user as verified
-        user[0].role = 'user';
-        await user[0].save({ session });
+        // Mark user as verified (this was already set in the block above if invitation was valid,
+        // but ensure it's set if invitation was invalid/expired but token was present)
+        newUser.role = 'user';
+        // Optimization: Consolidate user save. This save will include all updates from the invitation block.
+        await newUser.save({ session });
 
         // Create free subscription for new users without tenant
-        if (!tenantId) {
+        // Optimization: This block is duplicated. Consolidate it to happen once at the end if needed.
+        // For now, keep it here as it's part of the auto-login flow.
+        if (!tenantId && !newUser.subscriptionId) { // Check if subscriptionId is already set
           try {
-            await subscriptionService.createFreeSubscription(user[0]._id);
+            await subscriptionService.createFreeSubscription(newUser._id);
             logger.info(
-              `Free subscription created for new user: ${user[0]._id}`
+              `Free subscription created for new user: ${newUser._id}`
             );
           } catch (subError) {
             logger.error(
@@ -182,11 +202,11 @@ const registerService = async (req) => {
         // Generate tokens and return login response
         const accessToken = jwtHelpers.createToken(
           {
-            _id: user[0]._id,
-            email: user[0].email,
-            role: user[0].role,
-            tenantId: user[0].tenantId,
-            activeTenantId: user[0].activeTenantId,
+            _id: newUser._id,
+            email: newUser.email,
+            role: newUser.role,
+            tenantId: newUser.tenantId,
+            activeTenantId: newUser.activeTenantId,
           },
           config.jwt.access_token,
           config.jwt.access_expires_in
@@ -194,28 +214,28 @@ const registerService = async (req) => {
 
         const refreshToken = jwtHelpers.createToken(
           {
-            _id: user[0]._id,
-            email: user[0].email,
-            role: user[0].role,
-            tenantId: user[0].tenantId,
-            activeTenantId: user[0].activeTenantId,
+            _id: newUser._id,
+            email: newUser.email,
+            role: newUser.role,
+            tenantId: newUser.tenantId,
+            activeTenantId: newUser.activeTenantId,
           },
           config.jwt.refresh_token,
           config.jwt.refresh_expires_in
         );
 
         logger.info(
-          `User registered and auto-logged in with invitation: ${user[0]._id}`
+          `User registered and auto-logged in with invitation: ${newUser._id}`
         );
 
         return {
           user: {
-            _id: user[0]._id,
-            email: user[0].email,
-            role: user[0].role,
-            tenantId: user[0].tenantId,
-            activeTenantId: user[0].activeTenantId,
-            tenantRole: user[0].tenantRole,
+            _id: newUser._id,
+            email: newUser.email,
+            role: newUser.role,
+            tenantId: newUser.tenantId,
+            activeTenantId: newUser.activeTenantId,
+            tenantRole: newUser.tenantRole,
           },
           accessToken,
           refreshToken,
@@ -227,7 +247,7 @@ const registerService = async (req) => {
         const token = crypto.randomInt(100000, 999999).toString();
 
         const newToken = new Token({
-          userId: user[0]._id,
+          userId: newUser._id,
           token: token,
           expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
           type: 'emailVerification',
@@ -246,18 +266,20 @@ const registerService = async (req) => {
           // Auto-verify if bypass flag is set, or if we are not in production
           if (process.env.BYPASS_EMAIL_VERIFICATION === 'true' || process.env.NODE_ENV !== 'production') {
             logger.info(`Bypassing email verification for ${email} due to mail error - auto-verifying user.`);
-            user[0].role = 'user';
-            await user[0].save({ session });
+            newUser.role = 'user';
+            await newUser.save({ session });
             emailAutoVerified = true; // Set flag for return message
           }
         }
       }
 
       // Create free subscription for new users without tenant (if not already handled by invitation flow)
-      if (!tenantId) {
+      // Optimization: Consolidate this logic to avoid duplication.
+      // This block will only run if invitationToken was NOT provided.
+      if (!tenantId && !newUser.subscriptionId) { // Check if subscriptionId is already set
         try {
-          await subscriptionService.createFreeSubscription(user[0]._id);
-          logger.info(`Free subscription created for new user: ${user[0]._id}`);
+          await subscriptionService.createFreeSubscription(newUser._id);
+          logger.info(`Free subscription created for new user: ${newUser._id}`);
         } catch (subError) {
           logger.error(
             'Error creating free subscription during registration:',
@@ -302,7 +324,8 @@ const registerService = async (req) => {
 };
 
 const resendEmailConfirmationService = async (email) => {
-  const user = await UserModel.findOne({ email });
+  // Optimization: Use .lean() as we only read user properties and don't modify the document.
+  const user = await UserModel.findOne({ email }).lean();
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
@@ -326,10 +349,11 @@ const resendEmailConfirmationService = async (email) => {
 };
 
 const confirmEmailService = async (confirmationCode) => {
+  // Optimization: Use .lean() as we only read token properties and delete it later.
   const token = await Token.findOne({
     token: confirmationCode,
     type: 'emailVerification',
-  });
+  }).lean();
   if (!token) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Invalid or expired token');
   }
@@ -401,7 +425,8 @@ const loginService = async (
 
   // If subdomain is provided, check if tenant exists
   if (subdomain) {
-    const tenant = await Tenant.findOne({ subdomain: subdomain.toLowerCase() });
+    // Optimization: Use .lean() as we only read tenant properties and don't modify the document.
+    const tenant = await Tenant.findOne({ subdomain: subdomain.toLowerCase() }).lean();
     if (tenant) {
       tenantId = tenant._id.toString();
       logger.info(`Tenant found for subdomain ${subdomain}: ${tenantId}`);
@@ -448,13 +473,14 @@ const loginService = async (
 
     if (invitation && invitation.email.toLowerCase() === email.toLowerCase()) {
       if (!invitation.isExpired() && invitation.status === 'pending') {
-        const subscription = await subscriptionService.getTenantSubscription(
+        // Optimization: Fetch subscription once and reuse
+        const tenantSubscription = await subscriptionService.getTenantSubscription(
           invitation.tenantId
         );
         if (
-          subscription &&
-          !subscription.limits.unlimitedSeats &&
-          subscription.seats.used >= subscription.seats.total
+          tenantSubscription &&
+          !tenantSubscription.limits.unlimitedSeats &&
+          tenantSubscription.seats.used >= tenantSubscription.seats.total
         ) {
           throw new ApiError(
             httpStatus.FORBIDDEN,
@@ -464,10 +490,11 @@ const loginService = async (
 
         try {
           // Check if user is already a member
+          // Optimization: Use .lean() as we only check for existence.
           const existingMember = await TenantMember.findOne({
             userId: user._id,
             tenantId: invitation.tenantId,
-          });
+          }).lean();
 
           if (!existingMember) {
             // Create TenantMember record
@@ -501,21 +528,17 @@ const loginService = async (
 
             // Add seat to subscription if paid plan
             try {
-              const subscription =
-                await subscriptionService.getTenantSubscription(
-                  invitation.tenantId
-                );
               if (
-                subscription &&
-                subscription.plan !== 'free' &&
-                subscription.status === 'active'
+                tenantSubscription && // Use the already fetched subscription
+                tenantSubscription.plan !== 'free' &&
+                tenantSubscription.status === 'active'
               ) {
                 await subscriptionService.addSeatToSubscription(
-                  subscription._id,
+                  tenantSubscription._id,
                   user._id
                 );
                 logger.info(
-                  `Added seat to subscription ${subscription._id} for user ${user._id}`
+                  `Added seat to subscription ${tenantSubscription._id} for user ${user._id}`
                 );
               }
             } catch (seatError) {
@@ -552,10 +575,11 @@ const loginService = async (
   }
 
   // Fetch all tenantIds for the user from TenantMember collection
+  // Optimization: Use .lean() as we only map properties and don't modify the documents.
   let tenantMemberships = await TenantMember.find({
     userId: user._id,
     status: 'active',
-  }).select('tenantId role');
+  }).select('tenantId role').lean();
 
   if (tenantMemberships.length === 0) {
     const emailPrefix = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') || 'workspace';
@@ -622,10 +646,11 @@ const loginService = async (
       }
 
       // Refetch memberships
+      // Optimization: Use .lean() as we only map properties and don't modify the documents.
       tenantMemberships = await TenantMember.find({
         userId: user._id,
         status: 'active',
-      }).select('tenantId role');
+      }).select('tenantId role').lean();
     } catch (createError) {
       logger.error('Failed to auto-create tenant on login:', createError);
     }
@@ -687,16 +712,18 @@ const refreshToken = async (token) => {
   }
 
   const { _id, role } = verifiedToken;
-  const user = await UserModel.findById(_id);
+  // Optimization: Use .lean() as we only read user properties and don't modify the document.
+  const user = await UserModel.findById(_id).lean();
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User does not exist');
   }
 
   // Fetch all tenantIds for the user from TenantMember collection
+  // Optimization: Use .lean() as we only map properties and don't modify the documents.
   const tenantMemberships = await TenantMember.find({
     userId: user._id,
     status: 'active',
-  }).select('tenantId role');
+  }).select('tenantId role').lean();
 
   const tenantIds = tenantMemberships.map((membership) => ({
     tenantId: membership.tenantId,
@@ -737,8 +764,8 @@ const refreshToken = async (token) => {
 };
 
 const updateUserService = async (userId, data) => {
-  // BUG FIX: Added await to UserModel.findOne()
-  const user = await UserModel.findOne({ _id: userId });
+  // Optimization: Use .lean() as we only check for existence and don't modify the document.
+  const user = await UserModel.findOne({ _id: userId }).lean();
 
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
@@ -757,7 +784,8 @@ const updateUserService = async (userId, data) => {
 };
 
 const getUserService = async (userId) => {
-  const user = await UserModel.findOne({ _id: userId });
+  // Optimization: Use .lean() as the user document is likely just returned as JSON.
+  const user = await UserModel.findOne({ _id: userId }).lean();
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
   }
