@@ -12,6 +12,17 @@ const auth = new GoogleAuth({
 });
 
 /**
+ * @constant {Array<string>} VALID_VIDEO_FEATURES
+ * @description A whitelist of valid features supported by the Google Cloud Video Intelligence API.
+ */
+const VALID_VIDEO_FEATURES = [
+  'LABEL_DETECTION',
+  'SHOT_CHANGE_DETECTION',
+  'EXPLICIT_CONTENT_DETECTION',
+  'TEXT_DETECTION'
+];
+
+/**
  * Initiates a video annotation operation using Google Cloud Video Intelligence.
  * Supports various analysis features like label detection, text detection (OCR),
  * shot change detection, and content moderation.
@@ -36,6 +47,12 @@ const startVideoAnalysis = async (inputUri = null, inputContent = null, features
   try {
     if (!inputUri && !inputContent) {
       throw new Error('Either inputUri (GCS link) or inputContent (base64) must be provided.');
+    }
+
+    // Bug Fix: Validate provided features against a whitelist to prevent invalid API requests.
+    const invalidFeatures = features.filter(f => !VALID_VIDEO_FEATURES.includes(f));
+    if (invalidFeatures.length > 0) {
+      throw new Error(`Invalid video analysis features provided: ${invalidFeatures.join(', ')}. Valid features are: ${VALID_VIDEO_FEATURES.join(', ')}.`);
     }
 
     logger.info(`Video Intel API: Starting annotation with features: ${features.join(', ')}`);
