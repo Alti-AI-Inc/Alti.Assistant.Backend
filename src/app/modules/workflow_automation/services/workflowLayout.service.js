@@ -3,7 +3,7 @@ import { logger } from '../../../../shared/logger.js';
 /**
  * Validates the schema of React Flow nodes and edges.
  * Checks for cycles, deadlocks, and disconnected nodes.
- * 
+ *
  * @param {Array} nodes - React Flow node objects
  * @param {Array} edges - React Flow edge objects
  * @returns {object} Validation report containing validity, errors, and warnings.
@@ -21,8 +21,11 @@ function validateLayoutSchema(nodes, edges = []) {
     return { valid: false, errors, warnings };
   }
 
-  // 1. Validate basic node properties & unique IDs
+  // Use a Map for O(1) node lookup by ID and a Set for O(1) duplicate ID check
+  const nodeMap = new Map();
   const nodeIds = new Set();
+
+  // 1. Validate basic node properties & unique IDs
   nodes.forEach((node, index) => {
     if (!node || typeof node !== 'object') {
       errors.push(`Node at index ${index} is invalid.`);
@@ -36,6 +39,7 @@ function validateLayoutSchema(nodes, edges = []) {
       errors.push(`Duplicate node ID detected: '${node.id}'.`);
     }
     nodeIds.add(node.id);
+    nodeMap.set(node.id, node); // Store node in map for quick lookup
 
     // Validate parameters structure if present
     if (node.data && node.data.parameters && typeof node.data.parameters !== 'object') {
@@ -70,31 +74,38 @@ function validateLayoutSchema(nodes, edges = []) {
   }
 
   // 3. Cycle and Deadlock Detection (using in-degree / Kahn's algorithm)
-  const adjList = new Map();
-  const inDegree = new Map();
+  // Also build adjacency list and incoming/outgoing degree maps for later use
+  const adjList = new Map(); // nodeId -> [targetNodeId, ...]
+  const inDegree = new Map(); // nodeId -> count of incoming edges
+  const outDegree = new Map(); // nodeId -> count of outgoing edges
 
-  // Initialize
+  // Initialize maps for all nodes
   nodes.forEach(node => {
     adjList.set(node.id, []);
     inDegree.set(node.id, 0);
+    outDegree.set(node.id, 0);
   });
 
-  // Build adjacency list (source -> targets) and calculate in-degree
+  // Build adjacency list (source -> targets) and calculate in-degree and out-degree
   edges.forEach(edge => {
     // Only add if source and target are not the same (self-loop prevention)
     if (edge.source === edge.target) {
       errors.push(`Self-loop detected on node '${edge.source}'.`);
       return;
     }
-    adjList.get(edge.source).push(edge.target);
-    inDegree.set(edge.target, inDegree.get(edge.target) + 1);
+    // Ensure source and target nodes exist before adding to adjList/inDegree
+    if (adjList.has(edge.source) && adjList.has(edge.target)) {
+      adjList.get(edge.source).push(edge.target);
+      inDegree.set(edge.target, inDegree.get(edge.target) + 1);
+      outDegree.set(edge.source, outDegree.get(edge.source) + 1);
+    }
   });
 
   if (errors.length > 0) {
     return { valid: false, errors, warnings };
   }
 
-  // Kahn's algorithm
+  // Kahn's algorithm for cycle detection
   const queue = [];
   inDegree.forEach((deg, nodeId) => {
     if (deg === 0) {
@@ -103,9 +114,11 @@ function validateLayoutSchema(nodes, edges = []) {
   });
 
   const sortedList = [];
+  let processedNodesCount = 0; // Track nodes processed by Kahn's
   while (queue.length > 0) {
     const node = queue.shift();
     sortedList.push(node);
+    processedNodesCount++;
 
     const neighbors = adjList.get(node) || [];
     neighbors.forEach(neighbor => {
@@ -116,8 +129,8 @@ function validateLayoutSchema(nodes, edges = []) {
     });
   }
 
-  // If sorted list length is less than nodes length, there's a cycle!
-  if (sortedList.length < nodes.length) {
+  // If processedNodesCount is less than nodes length, there's a cycle!
+  if (processedNodesCount < nodes.length) {
     errors.push('Cyclic dependency detected: the workflow contains a closed feedback loop.');
   }
 
@@ -125,18 +138,19 @@ function validateLayoutSchema(nodes, edges = []) {
   if (nodes.length > 1) {
     // A node is completely disconnected if it has no incoming and no outgoing edges
     nodes.forEach(node => {
-      const incomingCount = edges.filter(e => e.target === node.id).length;
-      const outgoingCount = edges.filter(e => e.source === node.id).length;
+      // Use pre-computed inDegree and outDegree for O(1) lookup instead of O(M) filter
+      const incomingCount = inDegree.get(node.id) || 0;
+      const outgoingCount = outDegree.get(node.id) || 0;
       const isTrigger = node.type === 'trigger' || (node.data && node.data.stepType === 'trigger') || incomingCount === 0;
-      
+
       if (incomingCount === 0 && outgoingCount === 0 && !isTrigger) {
         warnings.push(`Node '${node.id}' is completely disconnected from the rest of the workflow.`);
       }
     });
 
     // Graph reachability traversal starting at all trigger nodes
-    const triggerNodes = nodes.filter(node => 
-      node.type === 'trigger' || 
+    const triggerNodes = nodes.filter(node =>
+      node.type === 'trigger' ||
       (node.data && node.data.stepType === 'trigger')
     );
 
@@ -144,7 +158,8 @@ function validateLayoutSchema(nodes, edges = []) {
     const dfs = (nodeId) => {
       if (reachable.has(nodeId)) return;
       reachable.add(nodeId);
-      const targets = edges.filter(e => e.source === nodeId).map(e => e.target);
+      // Use adjList for O(1) lookup of neighbors instead of O(M) filter
+      const targets = adjList.get(nodeId) || [];
       targets.forEach(t => dfs(t));
     };
 
@@ -167,7 +182,7 @@ function validateLayoutSchema(nodes, edges = []) {
 /**
  * Compiles visual React Flow nodes and edges into executable steps for the backend database.
  * Also performs validation prior to compiling.
- * 
+ *
  * @param {Array} nodes - React Flow node objects
  * @param {Array} edges - React Flow edge objects
  * @returns {Array} Compiled execution steps array.
@@ -179,6 +194,9 @@ function compileLayoutToSteps(nodes, edges = []) {
     throw new Error(`Cannot compile invalid visual layout: ${validationReport.errors.join('; ')}`);
   }
 
+  // Create a map for O(1) node lookup by ID, improving node.find(n => n.id === nodeId) from O(N) to O(1)
+  const nodeMap = new Map(nodes.map(node => [node.id, node]));
+
   // Topological sorting using Kahn's algorithm
   const adjList = new Map();
   const inDegree = new Map();
@@ -187,8 +205,11 @@ function compileLayoutToSteps(nodes, edges = []) {
     inDegree.set(node.id, 0);
   });
   edges.forEach(edge => {
-    adjList.get(edge.source).push(edge.target);
-    inDegree.set(edge.target, inDegree.get(edge.target) + 1);
+    // Ensure source and target nodes exist before adding to adjList/inDegree
+    if (adjList.has(edge.source) && adjList.has(edge.target)) {
+      adjList.get(edge.source).push(edge.target);
+      inDegree.set(edge.target, inDegree.get(edge.target) + 1);
+    }
   });
 
   const queue = [];
@@ -221,9 +242,10 @@ function compileLayoutToSteps(nodes, edges = []) {
 
   // Build steps in topologically sorted order
   const steps = sortedNodeIds.map((nodeId, index) => {
-    const node = nodes.find(n => n.id === nodeId);
+    // Use nodeMap for O(1) lookup
+    const node = nodeMap.get(nodeId);
     const incomingEdges = incomingEdgesMap.get(nodeId) || [];
-    
+
     // Map incoming edges to dependsOn dependencies
     const dependsOn = incomingEdges.map(edge => {
       if (edge.sourceHandle && edge.sourceHandle.trim() !== '') {
