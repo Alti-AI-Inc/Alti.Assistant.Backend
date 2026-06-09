@@ -71,40 +71,42 @@ const handleImageConversation = async (
 ) => {
   try {
     let conversation;
+    let newConversationIdToCreate = null; // Initialize to null for new conversation creation
 
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
-        // Prepare query options, assuming `req` can be extended with Mongoose query options
-        const queryOptions = { ...req, lean: true }; // Use .lean() for read-only operations
+        // FIX: Mongoose query options should not include the entire 'req' object.
+        // Only pass specific Mongoose options like 'lean', 'populate', etc.
+        const queryOptions = { lean: true };
         if (isGuest) {
           // For guest users, explicitly filter for guest conversations in the DB
           queryOptions['metadata.userType'] = 'guest';
         }
 
         // Always pass the actual userId for ownership verification.
-        // The `isGuest ? null : userId` logic was potentially problematic for guest users
-        // who still have a userId. The `metadata.userType` filter handles guest-specific access.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId, // Pass the actual userId (guest or authenticated)
-          queryOptions
+          queryOptions // Pass only Mongoose-specific query options
         );
         console.log(
           `Found existing conversation ${conversationId} for user ${userId}`
         );
-
-        // The previous client-side check `if (isGuest && conversation.metadata?.userType !== 'guest')`
-        // is now handled by the database query itself if `isGuest` is true and `metadata.userType` filter is applied.
-        // If the conversation is found, it already matches the userType criteria.
       } catch (error) {
         logger.warn(
-          `Conversation ${conversationId} not found or not matching criteria for user ${userId}, creating new one`
+          `Conversation ${conversationId} not found or not matching criteria for user ${userId}, creating new one. Error: ${error.message}`
         );
-        // If the error is due to the conversation not matching the guest type,
-        // it will be caught here, leading to a new conversation. This is acceptable.
+        // FIX: If an existing conversationId was provided but not found,
+        // we should generate a new ID for the new conversation to avoid ID collisions
+        // or reusing an invalid ID.
+        newConversationIdToCreate = generateImageConversationId();
       }
+    } else {
+      // No conversationId provided, so generate a new one for creation
+      newConversationIdToCreate = generateImageConversationId();
     }
+
     console.log('Parameters for conversation:', {
       userId,
       conversationId,
@@ -114,7 +116,9 @@ const handleImageConversation = async (
 
     // Create conversation if it doesn't exist
     if (!conversation) {
-      const newConversationId = conversationId || generateImageConversationId();
+      // Use the newly generated ID. This will be set if no conversationId was provided
+      // or if a provided conversationId failed to yield an existing conversation.
+      const finalConversationId = newConversationIdToCreate;
 
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
@@ -131,7 +135,7 @@ const handleImageConversation = async (
             },
             is_image_assistant: true,
           },
-          newConversationId,
+          finalConversationId, // Use the determined ID for creation
           req
         );
       } else {
@@ -148,13 +152,13 @@ const handleImageConversation = async (
             },
             is_image_assistant: true,
           },
-          newConversationId,
+          finalConversationId, // Use the determined ID for creation
           req
         );
       }
 
       console.log(
-        `Created new conversation ${newConversationId} for user ${userId} (guest: ${isGuest})`
+        `Created new conversation ${finalConversationId} for user ${userId} (guest: ${isGuest})`
       );
     }
 
@@ -327,6 +331,10 @@ const addErrorMessage = async (
  */
 const getGuestConversations = async (guestUserId, req = null) => {
   try {
+    // FIX: Mongoose query options should not include the entire 'req' object.
+    // Only pass specific Mongoose options like 'lean', 'populate', etc.
+    const queryOptions = { lean: true };
+
     // Push the 'metadata.userType' filter to the database query
     // and use .lean() for performance as documents are read-only.
     const conversations = await conversationHelpers.getUserConversations(
@@ -336,7 +344,7 @@ const getGuestConversations = async (guestUserId, req = null) => {
         'metadata.userType': 'guest', // Filter by userType directly in the DB query
         limit: 100, // Limit guest conversations
       },
-      { ...req, lean: true } // Pass req and add lean option
+      queryOptions // Pass only Mongoose-specific query options
     );
 
     // No need for client-side filtering as it's handled by the DB query
@@ -368,12 +376,16 @@ const getGuestConversation = async (
   req = null
 ) => {
   try {
+    // FIX: Mongoose query options should not include the entire 'req' object.
+    // Only pass specific Mongoose options like 'lean', 'populate', etc.
+    const queryOptions = { 'metadata.userType': 'guest', lean: true };
+
     // Push the 'metadata.userType' filter to the database query
     // and use .lean() for performance as the document is read-only.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       guestUserId,
-      { ...req, 'metadata.userType': 'guest', lean: true } // Add filter and lean option
+      queryOptions // Pass only Mongoose-specific query options
     );
 
     // If conversation is found, it already matches the guest userType criteria due to the DB filter.
@@ -397,6 +409,10 @@ const getGuestConversation = async (
  */
 const getImageStats = async (userId, req = null) => {
   try {
+    // FIX: Mongoose query options should not include the entire 'req' object.
+    // Only pass specific Mongoose options like 'lean', 'populate', etc.
+    const queryOptions = { lean: true };
+
     // Get conversation count for image category
     // Use .lean() for performance as documents are read-only.
     const imageConversations = await conversationHelpers.getUserConversations(
@@ -405,7 +421,7 @@ const getImageStats = async (userId, req = null) => {
         category: 'image',
         limit: 1000, // Get all for counting
       },
-      { ...req, lean: true } // Pass req and add lean option
+      queryOptions // Pass only Mongoose-specific query options
     );
 
     // Calculate total messages across all image conversations
