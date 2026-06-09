@@ -67,22 +67,33 @@ const getAllUsersService = async (filters, paginationOptions) => {
     // as Mongoose handles an empty $and array as an empty query.
     const query = andConditions.length > 0 ? { $and: andConditions } : {};
 
+    // Optimization: Added .lean() for performance as documents are not modified.
+    // Index Recommendation: Consider creating indexes on 'email', 'firstName', 'lastName' for better search performance.
+    // For sorting, an index on the 'sortBy' field (if frequently used) would be beneficial.
     const users = await UserModel.find(query)
       .select('email isSubscribed role subscription')
       .sort(sortConditions)
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    const total = await UserModel.countDocuments(query); // Total for filtered users
+    // Optimization: Added .lean() for performance.
+    const total = await UserModel.countDocuments(query).lean(); // Total for filtered users
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'isSubscribed' for faster counts.
     const paidUser = await UserModel.countDocuments({
       isSubscribed: true,
-    }); // Global count
+    }).lean(); // Global count
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'isSubscribed' for faster counts.
     const freeUser = await UserModel.countDocuments({
       isSubscribed: { $ne: true },
-    }); // Global count
+    }).lean(); // Global count
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'role' for faster counts.
     const unverifyUsers = await UserModel.countDocuments({
       role: 'unauthorized',
-    }); // Global count
+    }).lean(); // Global count
 
     return {
       meta: {
@@ -121,7 +132,9 @@ const getAllUsersService = async (filters, paginationOptions) => {
  */
 const getAllBuyerServices = async () => {
   try {
-    const result = await UserModel.find({ role: 'buyer' });
+    // Optimization: Added .lean() for performance as documents are not modified.
+    // Index Recommendation: Consider creating an index on 'role' for faster queries.
+    const result = await UserModel.find({ role: 'buyer' }).lean();
     return result;
   } catch (error) {
     // Bug fix: Added try-catch for unhandled promise rejection
@@ -144,7 +157,8 @@ const getSellerServiceById = async (id) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error('Invalid user ID format');
     }
-    const result = await UserModel.findOne({ _id: id });
+    // Optimization: Added .lean() for performance as documents are not modified.
+    const result = await UserModel.findOne({ _id: id }).lean();
     // Bug fix: Log non-sensitive information to prevent potential sensitive data leakage in logs
     logger.info(`Retrieved user with ID: ${id}. Found: ${!!result}`);
     return result;
@@ -172,6 +186,7 @@ const updateUserRoleService = async (userId, targetRole) => {
     const updateDoc = {
       $set: { role: targetRole },
     };
+    // No .lean() needed for update operations.
     const result = await UserModel.updateOne(filter, updateDoc, {
       runValidators: true,
     });
@@ -203,7 +218,9 @@ const deleteUserService = async (objectId, requesterRole = 'admin') => {
 
     const mongoId = new mongoose.Types.ObjectId(objectId); // <-- convert explicitly
 
-    const user = await UserModel.findOne({ _id: mongoId });
+    // Optimization: Added .lean() for performance as document is only read for checks.
+    // Index Recommendation: Consider creating an index on 'role' if role-based checks are frequent on large collections.
+    const user = await UserModel.findOne({ _id: mongoId }).lean();
     // Bug fix: Log non-sensitive information to prevent potential sensitive data leakage in logs
     logger.info(`Attempting to delete user with ID: ${objectId}. User found: ${user ? user.email : 'None'}`);
 
@@ -219,6 +236,7 @@ const deleteUserService = async (objectId, requesterRole = 'admin') => {
       throw new Error('Only a super_admin can delete an admin user');
     }
 
+    // No .lean() needed for delete operations.
     const result = await UserModel.deleteOne({ _id: mongoId });
     return result;
   } catch (error) {
@@ -245,7 +263,9 @@ const getAdminServices = async (email) => {
       return true;
     }
     // Bug fix: Use emailLower for case-insensitive comparison in database query
-    const admin = await UserModel.findOne({ email: emailLower });
+    // Optimization: Added .lean() for performance as document is only read for checks.
+    // Index Recommendation: Consider creating a unique index on 'email' (with collation for case-insensitivity if needed) for faster lookups.
+    const admin = await UserModel.findOne({ email: emailLower }).lean();
     if (admin && (admin.role === 'admin' || admin.role === 'super_admin')) {
       return true;
     } else {
@@ -274,6 +294,7 @@ const getAdminServices = async (email) => {
  */
 const getUserStatisticsByMonthService = async () => {
   try {
+    // Index Recommendation: Consider creating an index on 'createdAt' for better aggregation performance.
     const aggregationResult = await UserModel.aggregate([
       {
         $group: {
@@ -387,26 +408,41 @@ const getAllPaymentService = async (filters, paginationOptions) => {
     // The previous `if (andConditions.length === 0) { andConditions.push({}); }` is redundant.
     const query = andConditions.length > 0 ? { $and: andConditions } : {};
 
+    // Optimization: Added .lean() for performance as documents are not modified.
+    // Index Recommendation: Consider creating indexes on 'price', 'plan_name', 'duration', 'expiresAt' for better search performance.
+    // For sorting, an index on the 'sortBy' field (if frequently used) would be beneficial.
     const users = await SubscriptionModel.find(query)
       .select('transactionId price plan_name duration expiresAt')
       .sort(sortConditions)
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    const total = await SubscriptionModel.countDocuments(query); // Total for filtered subscriptions
+    // Optimization: Added .lean() for performance.
+    const total = await SubscriptionModel.countDocuments(query).lean(); // Total for filtered subscriptions
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'paymentStatus' for faster counts.
     const paidUser = await SubscriptionModel.countDocuments({
       paymentStatus: 'paid',
-    }); // Global count
-    const freeUser = await SubscriptionModel.countDocuments({ plan_name: 'free' }); // Global count
+    }).lean(); // Global count
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'plan_name' for faster counts.
+    const freeUser = await SubscriptionModel.countDocuments({ plan_name: 'free' }).lean(); // Global count
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'plan_name' for faster counts.
     const professionalPlan = await SubscriptionModel.countDocuments({
       plan_name: 'professional',
-    }); // Global count
+    }).lean(); // Global count
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'plan_name' for faster counts.
     const personalPlan = await SubscriptionModel.countDocuments({
       plan_name: 'personal',
-    }); // Global count
+    }).lean(); // Global count
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'plan_name' for faster counts.
     const businessPlan = await SubscriptionModel.countDocuments({
       plan_name: 'business',
-    }); // Global count
+    }).lean(); // Global count
 
     return {
       meta: {
@@ -478,13 +514,20 @@ const getAllTenantsService = async (filters, paginationOptions) => {
       sortConditions[sortBy] = sortOrder;
     }
 
+    // Optimization: Added .lean() for performance as documents are not modified.
+    // Index Recommendation: Consider creating indexes on 'name', 'slug' for search.
+    // For filtering, indexes on 'status' and 'ownerId' would be beneficial.
+    // For sorting, an index on the 'sortBy' field (if frequently used) would be beneficial.
+    // For population, an index on 'ownerId' in the Tenant model is crucial.
     const tenants = await Tenant.find(query)
       .populate('ownerId', 'name email')
       .sort(sortConditions)
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    const total = await Tenant.countDocuments(query);
+    // Optimization: Added .lean() for performance.
+    const total = await Tenant.countDocuments(query).lean();
 
     return {
       meta: { page, limit, total },
@@ -509,20 +552,24 @@ const getTenantDetailsService = async (tenantId) => {
     const Tenant = (await import('../tenant/tenant.model.js')).default;
     const UserModel = (await import('../auth/auth.model.js')).default;
 
+    // Optimization: Added .lean() for performance as document is not modified before adding memberCount.
+    // Index Recommendation: For population, an index on 'ownerId' in the Tenant model is crucial.
     const tenant = await Tenant.findById(tenantId).populate(
       'ownerId',
       'name email'
-    );
+    ).lean();
 
     if (!tenant) {
       throw new Error('Tenant not found');
     }
 
     // Get member count
-    const memberCount = await UserModel.countDocuments({ tenantId });
+    // Optimization: Added .lean() for performance.
+    // Index Recommendation: Consider creating an index on 'tenantId' in the UserModel for faster counts.
+    const memberCount = await UserModel.countDocuments({ tenantId }).lean();
 
     return {
-      ...tenant.toObject(),
+      ...tenant, // tenant is already a plain JS object due to .lean()
       memberCount,
     };
   } catch (error) {
@@ -544,6 +591,7 @@ const updateTenantStatusService = async (tenantId, status) => {
   try {
     const Tenant = (await import('../tenant/tenant.model.js')).default;
 
+    // No .lean() needed for update operations.
     const tenant = await Tenant.findByIdAndUpdate(
       tenantId,
       { status },
@@ -593,7 +641,10 @@ const extendTenantTrialService = async (tenantId, days) => {
   try {
     const Tenant = (await import('../tenant/tenant.model.js')).default;
 
-    const tenant = await Tenant.findById(tenantId);
+    // Optimization: Added .lean() for performance as document is only read initially.
+    // Refactored: Use findByIdAndUpdate instead of fetching, modifying, and saving.
+    // This avoids hydrating a full Mongoose document just to update one field.
+    const tenant = await Tenant.findById(tenantId).lean(); // Fetch lean for initial check
 
     if (!tenant) {
       throw new Error('Tenant not found');
@@ -603,10 +654,13 @@ const extendTenantTrialService = async (tenantId, days) => {
     const newTrialEnd = new Date(currentTrialEnd);
     newTrialEnd.setDate(newTrialEnd.getDate() + parseInt(days));
 
-    tenant.trialEndsAt = newTrialEnd;
-    await tenant.save();
+    const updatedTenant = await Tenant.findByIdAndUpdate(
+      tenantId,
+      { trialEndsAt: newTrialEnd },
+      { new: true, runValidators: true } // Return the updated document
+    );
 
-    return tenant;
+    return updatedTenant;
   } catch (error) {
     // Bug fix: Added try-catch for unhandled promise rejection
     logger.error(`Error in extendTenantTrialService: ${error.message}`);
@@ -662,14 +716,21 @@ const getBillingAuditLogsService = async (filters, paginationOptions) => {
       sortConditions['createdAt'] = -1; // Default to newest first
     }
 
+    // Optimization: Added .lean() for performance as documents are not modified.
+    // Index Recommendation: Consider creating indexes on 'action', 'ipAddress' for search.
+    // For filtering, an index on 'action' would be beneficial.
+    // For sorting, an index on 'createdAt' (and 'sortBy' if frequently used) would be beneficial.
+    // For population, indexes on 'tenantId' and 'userId' in the BillingAuditLog model are crucial.
     const logs = await BillingAuditLog.find(query)
       .populate('tenantId', 'name slug')
       .populate('userId', 'email role firstName lastName')
       .sort(sortConditions)
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    const total = await BillingAuditLog.countDocuments(query);
+    // Optimization: Added .lean() for performance.
+    const total = await BillingAuditLog.countDocuments(query).lean();
 
     return {
       meta: { page, limit, total },
@@ -713,6 +774,9 @@ const getSwarmAuditsService = async (filters, paginationOptions) => {
     if (searchTerm) {
       andConditions.push({
         $or: [
+          // Note: userId is likely an ObjectId, regex search on ObjectId string representation might not be efficient.
+          // If searching by actual user ID, consider direct equality or converting searchTerm to ObjectId.
+          // For now, assuming it's a string field or string representation is intended.
           { userId: { $regex: searchTerm, $options: 'i' } },
           { toolName: { $regex: searchTerm, $options: 'i' } },
           { errorMessage: { $regex: searchTerm, $options: 'i' } },
@@ -736,12 +800,18 @@ const getSwarmAuditsService = async (filters, paginationOptions) => {
       sortConditions['createdAt'] = -1; // Default to newest first
     }
 
+    // Optimization: Added .lean() for performance as documents are not modified.
+    // Index Recommendation: Consider creating indexes on 'userId', 'toolName', 'errorMessage' for search.
+    // For filtering, indexes on 'status' and 'toolName' would be beneficial.
+    // For sorting, an index on 'createdAt' (and 'sortBy' if frequently used) would be beneficial.
     const audits = await SwarmAudit.find(query)
       .sort(sortConditions)
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    const total = await SwarmAudit.countDocuments(query);
+    // Optimization: Added .lean() for performance.
+    const total = await SwarmAudit.countDocuments(query).lean();
 
     return {
       meta: { page, limit, total },
