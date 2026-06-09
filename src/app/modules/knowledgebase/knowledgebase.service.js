@@ -367,6 +367,7 @@ User: Please summarize the following conversation history, keeping it under 2500
         );
 
         await fileRecord.save();
+        // Recommendation: Ensure indexes exist on KnowledgebaseFile for fields: userId, knowledgebotId, isActive
         logger.info(`File record saved to database: ${fileRecord._id}`);
 
         return {
@@ -425,7 +426,9 @@ User: Please summarize the following conversation history, keeping it under 2500
 
       const files = await KnowledgebaseFile.find(
         req ? withTenantFilter(req, query) : query
-      );
+      ).lean(); // Added .lean() for performance optimization
+
+      // Recommendation: Ensure indexes exist on KnowledgebaseFile for fields: userId, isActive, knowledgebotId
 
       return files.map((file) => ({
         id: file._id,
@@ -463,7 +466,9 @@ User: Please summarize the following conversation history, keeping it under 2500
       };
       const files = await KnowledgebaseFile.find(
         req ? withTenantFilter(req, query) : query
-      );
+      ).lean(); // Added .lean() for performance optimization
+
+      // Recommendation: Ensure indexes exist on KnowledgebaseFile for fields: knowledgebotId, isActive
 
       return files.map((file) => ({
         id: file._id,
@@ -502,7 +507,9 @@ User: Please summarize the following conversation history, keeping it under 2500
       };
       const knowledgeBases = await KnowledgeBase.find(
         req ? withTenantFilter(req, query) : query
-      );
+      ).lean(); // Added .lean() for performance optimization
+
+      // Recommendation: Ensure indexes exist on KnowledgeBase for fields: userId, isActive
 
       return knowledgeBases.map((kb) => ({
         id: kb._id,
@@ -538,7 +545,8 @@ User: Please summarize the following conversation history, keeping it under 2500
       const query = { userId, name, isActive: true };
       const existingKB = await KnowledgeBase.findOne(
         req ? withTenantFilter(req, query) : query
-      );
+      ).lean(); // Added .lean() for performance optimization
+      // Recommendation: Ensure a compound index exists on KnowledgeBase for fields: { userId: 1, name: 1, isActive: 1 } for efficient uniqueness check
       if (existingKB) {
         throw new Error('Knowledge base with this name already exists');
       }
@@ -558,6 +566,7 @@ User: Please summarize the following conversation history, keeping it under 2500
       );
 
       const savedKB = await knowledgeBase.save();
+      // Recommendation: Ensure indexes exist on KnowledgeBase for fields: userId, name, isActive
 
       logger.info(`Knowledge base created successfully: ${savedKB._id}`);
 
@@ -599,7 +608,9 @@ User: Please summarize the following conversation history, keeping it under 2500
       };
       const knowledgeBase = await KnowledgeBase.findOne(
         req ? withTenantFilter(req, query) : query
-      );
+      ).lean(); // Added .lean() for performance optimization
+
+      // Recommendation: Ensure indexes exist on KnowledgeBase for fields: userId, isActive
 
       if (!knowledgeBase) {
         return null;
@@ -689,6 +700,7 @@ User: Please summarize the following conversation history, keeping it under 2500
       const knowledgeBase = await KnowledgeBase.findOne(
         req ? withTenantFilter(req, query) : query
       );
+      // Recommendation: Ensure indexes exist on KnowledgeBase for fields: userId
       if (!knowledgeBase) {
         throw new Error('Knowledge base not found');
       }
@@ -717,6 +729,7 @@ User: Please summarize the following conversation history, keeping it under 2500
       const file = await KnowledgebaseFile.findOne(
         req ? withTenantFilter(req, query) : query
       );
+      // Recommendation: Ensure indexes exist on KnowledgebaseFile for fields: _id (default), userId
 
       if (!file) {
         return false;
