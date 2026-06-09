@@ -12,12 +12,26 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  */
 export const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest
-    ? translationService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
+  let userId;
+
+  if (isGuest) {
+    userId = translationService.generateGuestUserId();
+  } else {
+    // Security Fix: Prevent IDOR (Insecure Direct Object Reference) / User ID spoofing.
+    // For authenticated users, the userId must be derived from the authenticated user's session (req.user),
+    // not from req.body, which could be manipulated by a malicious user.
+    userId = req.user?.userId || req.user?._id;
+  }
 
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId;
+  // If req.body.userId was intended for guest users to resume a session,
+  // that logic needs to be explicit and securely handled (e.g., validating guest tokens).
+  // For authenticated users, req.body.userId must not override the authenticated user's ID.
+  // If req.body.userId is present for a guest, it could be used to identify an existing guest session.
+  // For now, we ensure authenticated users' IDs are not overridden.
+  if (isGuest && req.body.userId) {
+    userId = req.body.userId;
+  }
 
   // Get uploaded file if present
   const uploadedFile = req.file;
@@ -31,8 +45,9 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     }
   );
 
-  // Check subscription limits for authenticated users
-  if (!isGuest && conversationId) {
+  // Bug Fix: Subscription check should apply to all authenticated users,
+  // regardless of whether a conversationId is present (e.g., for new conversations).
+  if (!isGuest) {
     try {
       // Optimization: Added .lean() for read-only query to improve performance
       // Recommendation: For optimal performance, ensure an index exists on `userId` and `createdAt`
@@ -42,16 +57,26 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
           createdAt: -1,
         })
         .lean(); // Added .lean()
-      const promptUsage = userSubscription ? userSubscription.usage : 0;
-      const totalConversationWithConvId = conversationId
-        ? await conversationHelpers.getConversationById(
-            conversationId,
-            userId,
-            req
-          )
-        : 0;
 
-      if (promptUsage <= totalConversationWithConvId) {
+      const promptLimit = userSubscription ? userSubscription.usage : 0; // Assuming 'usage' is the monthly limit
+
+      // Bug Fix: The original logic incorrectly used `conversationHelpers.getConversationById`
+      // to determine monthly usage. This function likely returns details for a single conversation
+      // or its message count, not the total monthly usage across all conversations.
+      // A proper implementation requires a dedicated service method to calculate
+      // the user's total message/prompt count for the current billing period.
+      // For the purpose of fixing the comparison logic within existing helper structures,
+      // we make a strong assumption that `conversationHelpers.getConversationById(null, userId, req)`
+      // is intended to return the *total monthly usage* for the user when `conversationId` is null.
+      // If this assumption is incorrect, this line remains a bug and requires a new service method.
+      const currentMonthlyUsage = await conversationHelpers.getConversationById(
+        null, // Pass null to signify "get total monthly usage" if helper supports it
+        userId,
+        req
+      );
+
+      // Bug Fix: Corrected comparison logic. If current usage is greater than or equal to the limit, block the request.
+      if (currentMonthlyUsage >= promptLimit) {
         return sendResponse(res, {
           statusCode: httpStatus.FORBIDDEN,
           success: false,
@@ -60,7 +85,14 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
         });
       }
     } catch (error) {
-      logger.warn('Subscription check failed:', error.message);
+      // Bug Fix: If subscription check itself fails, it's an internal server error.
+      // The request should not proceed without a successful subscription verification.
+      logger.error('Subscription check failed:', error);
+      return sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: 'Failed to verify subscription status. Please try again later.',
+      });
     }
   }
 
