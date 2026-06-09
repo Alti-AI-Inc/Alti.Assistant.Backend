@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const forumController = require('./forum.controller');
-const commentController = require('./forum.controller');
+const commentController = require('./forum.controller'); // Assuming forum.controller handles comment logic, otherwise this should be a separate comment.controller
 const {
   validateRequest,
 } = require('../../middlewares/validateRequest/validateRequest');
@@ -31,7 +31,9 @@ router
 router
   .route('/')
   .get(extractTenantContext, forumController.getForum)
-  .get(extractTenantContext, forumController.getForumSuggestion)
+  // BUG FIX: Removed duplicate .get() for forumController.getForumSuggestion.
+  // Express processes routes in order, so the second .get() for the same path would never be reached.
+  // getForumSuggestion already has its own dedicated route '/blog-suggestion/:suggestion'.
   .post(extractTenantContext, forumController.addForum);
 
 router
