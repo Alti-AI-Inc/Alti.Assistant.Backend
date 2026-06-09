@@ -94,7 +94,12 @@ const createProductService = async (productData) => {
     },
   ];
 
-  await Product.deleteMany({}); // Clear existing products in DB
+  // BUG FIX: Removed unconditional deletion of all products.
+  // Deleting all products from the database every time this service is called
+  // is a critical data loss risk and should not be part of a general 'create' function.
+  // If a full re-seeding or reset is intended, it should be a separate, explicitly named
+  // function or part of a controlled migration script.
+  // await Product.deleteMany({}); // Clear existing products in DB
 
   const productsForDb = [];
 
@@ -130,7 +135,7 @@ const createProductService = async (productData) => {
         });
 
         console.log(
-          `  Created price: ${price.nickname} - $${(unitAmountInt / 100).toFixed(2)} / ${price.recurring.interval}`
+          `  Created price: ${price.nickname} - ${(unitAmountInt / 100).toFixed(2)} / ${price.recurring.interval}`
         );
 
         createdPrices.push({
@@ -150,6 +155,8 @@ const createProductService = async (productData) => {
       });
     }
 
+    // Consider adding logic here to check if products already exist before inserting,
+    // or implement an upsert strategy if this function is meant for syncing.
     await Product.insertMany(productsForDb);
     return true;
   } catch (error) {
