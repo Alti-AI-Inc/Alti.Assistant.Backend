@@ -38,7 +38,8 @@ const getNotification = catchAsync(async (req, res) => {
 const sendNotificationById = catchAsync(async (req, res) => {
   const { userId } = req.params;
   const data = req.body;
-  const user = await UserModel.findOne({ _id: userId });
+  // Optimize: Use .lean() for read-only queries to get plain JavaScript objects instead of Mongoose documents.
+  const user = await UserModel.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error('User not found');
   }
@@ -59,7 +60,8 @@ const sendNotificationById = catchAsync(async (req, res) => {
 const getNotificationById = catchAsync(async (req, res) => {
   const { userId } = req.params;
 
-  const user = await UserModel.findOne({ _id: userId });
+  // Optimize: Use .lean() for read-only queries to get plain JavaScript objects instead of Mongoose documents.
+  const user = await UserModel.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error('User not found');
   }
@@ -139,7 +141,8 @@ const getUserInbox = catchAsync(async (req, res) => {
   // By default, only show active (unarchived) inbox items unless archived=true is passed
   const isArchived = archived === 'true' ? true : archived === 'false' ? false : false;
 
-  const user = await UserModel.findOne({ _id: userId });
+  // Optimize: Use .lean() for read-only queries to get plain JavaScript objects instead of Mongoose documents.
+  const user = await UserModel.findOne({ _id: userId }).lean();
   if (!user) {
     throw new Error('User not found');
   }
