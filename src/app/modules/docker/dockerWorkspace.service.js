@@ -3,16 +3,58 @@ import path from 'path';
 import fs from 'fs';
 import { logger } from '../../../shared/logger.js';
 
+/**
+ * @class DockerWorkspaceService
+ * @description Manages the lifecycle of isolated Docker container workspaces for users.
+ * This service handles building the custom sandbox image, creating/managing a secure network,
+ * spinning up/down user containers, executing commands within them, and monitoring resource usage.
+ * It implements concurrency limits and an LRU eviction strategy to manage host resources.
+ */
 class DockerWorkspaceService {
+  /**
+   * @constructor
+   * @description Initializes the DockerWorkspaceService with configuration for image names,
+   * directory paths, and operational limits.
+   */
   constructor() {
+    /**
+     * @property {string} imageName - The name of the custom Docker image used for sandbox environments.
+     */
     this.imageName = 'alti-sandbox:latest';
+    /**
+     * @property {string} dockerfileDir - The absolute path to the directory containing the Dockerfile for the sandbox image.
+     */
     this.dockerfileDir = path.resolve('src/app/modules/docker');
+    /**
+     * @property {string} userWorkspacesDir - The absolute path to the base directory where user-specific workspace volumes are stored on the host.
+     */
     this.userWorkspacesDir = path.resolve('storage/users');
+    /**
+     * @property {Map<string, { lastActivity: Date }>} activeSessions - A map to track active user sessions.
+     * Keys are uniqueSessionIds (e.g., `userId_isolationId`), values are objects containing `lastActivity` timestamp.
+     */
     this.activeSessions = new Map(); // uniqueSessionId (e.g., userId_isolationId) -> { lastActivity: Date }
+    /**
+     * @property {boolean} initialized - Flag indicating whether the Docker service has completed its initialization process.
+     */
     this.initialized = false;
+    /**
+     * @property {number} maxContainers - The maximum number of Docker containers allowed to run concurrently.
+     * Configurable via `DOCKER_MAX_CONTAINERS` environment variable.
+     */
     this.maxContainers = parseInt(process.env.DOCKER_MAX_CONTAINERS || '20', 10);
+    /**
+     * @property {Array<Function>} concurrencyQueue - A queue for Docker operations that exceed the `maxConcurrentOperations` limit.
+     */
     this.concurrencyQueue = [];
+    /**
+     * @property {number} activeOperationsCount - The current number of Docker operations actively being processed.
+     */
     this.activeOperationsCount = 0;
+    /**
+     * @property {number} maxConcurrentOperations - The maximum number of Docker operations that can run in parallel.
+     * Configurable via `DOCKER_MAX_CONCURRENT_OPS` environment variable.
+     */
     this.maxConcurrentOperations = parseInt(process.env.DOCKER_MAX_CONCURRENT_OPS || '3', 10);
   }
 
@@ -27,7 +69,10 @@ class DockerWorkspaceService {
   }
 
   /**
-   * Initializes the Docker isolation layer, ensuring the custom Sandbox image is built.
+   * Initializes the Docker isolation layer, ensuring the custom Sandbox image is built
+   * and a secure internal bridge network is configured. This method is idempotent.
+   * @async
+   * @returns {Promise<void>} A promise that resolves when initialization is complete, or rejects on failure.
    */
   async initialize() {
     if (this.initialized) return;
@@ -88,8 +133,12 @@ class DockerWorkspaceService {
   }
 
   /**
-   * Ensures a user's persistent workspace directory exists on the host.
+   * Ensures a user's persistent workspace directory exists on the host filesystem.
+   * This directory will be mounted into the Docker container.
    * Sanitizes userId and isolationId to prevent path traversal vulnerabilities.
+   * @param {string} userId - The ID of the user.
+   * @param {string} isolationId - A unique identifier for the specific workspace instance (e.g., project ID, session ID).
+   * @returns {string} The absolute path to the user's host workspace directory.
    */
   _ensureHostUserDir(userId, isolationId) {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
@@ -102,8 +151,12 @@ class DockerWorkspaceService {
   }
 
   /**
-   * Performs LRU sandbox eviction if the total number of user containers exceeds the maximum limit.
-   * @param {string} excludeUniqueSessionId Optional uniqueSessionId to exclude from eviction.
+   * Performs LRU (Least Recently Used) sandbox eviction if the total number of user containers
+   * exceeds the maximum limit (`maxContainers`). It prioritizes unregistered/leaked containers
+   * and then evicts the oldest active session.
+   * @async
+   * @param {string | null} [excludeUniqueSessionId=null] - An optional uniqueSessionId to exclude from eviction.
+   * @returns {Promise<void>} A promise that resolves when a slot has been reclaimed or if no eviction was needed.
    */
   async _reclaimContainerSlot(excludeUniqueSessionId = null) {
     try {
@@ -170,6 +223,11 @@ class DockerWorkspaceService {
 
   /**
    * Enqueues high-resource Docker operations to limit parallel concurrency and prevent host resource exhaustion.
+   * Operations are executed sequentially if the active operation count reaches `maxConcurrentOperations`.
+   * @async
+   * @template T
+   * @param {function(): Promise<T>} operationFn - An asynchronous function representing the Docker operation to enqueue.
+   * @returns {Promise<T>} A promise that resolves with the result of `operationFn` when it's executed.
    */
   async _enqueueDockerOperation(operationFn) {
     return new Promise((resolve, reject) => {
@@ -200,7 +258,14 @@ class DockerWorkspaceService {
 
   /**
    * Retrieves or dynamically spins up the user's isolated container workspace.
+   * If the container doesn't exist, it's created. If it's paused or stopped, it's started.
    * Sanitizes userId, isolationId, and projectId to prevent command injection.
+   * @async
+   * @param {string} userId - The ID of the user.
+   * @param {string} [isolationId='default'] - A unique identifier for the specific workspace instance (e.g., project ID, session ID).
+   * @param {string | null} [projectId=null] - Optional project ID to mount read-only project data.
+   * @returns {Promise<{ success: boolean; mode: 'docker-isolated' | 'local-fallback'; containerId: string | null; }>}
+   *   An object indicating success, the execution mode, and the container ID if successful.
    */
   async getOrCreateWorkspace(userId, isolationId = 'default', projectId = null) {
     await this.initialize();
@@ -289,7 +354,19 @@ class DockerWorkspaceService {
 
   /**
    * Executes a command securely inside the user's isolated workspace container.
+   * Provides a local fallback if the Docker environment is not initialized.
+   * Includes resource monitoring to prevent memory exhaustion within the container.
    * Sanitizes userId, isolationId, and projectId to prevent command injection.
+   * @async
+   * @param {string} userId - The ID of the user.
+   * @param {string} [isolationId='default'] - A unique identifier for the specific workspace instance.
+   * @param {string[]} commandArgs - An array of strings representing the command and its arguments to execute.
+   * @param {object} [options={}] - Additional options for command execution.
+   * @param {number} [options.timeoutMs=20000] - The maximum time in milliseconds to wait for the command to complete.
+   * @param {string} [options.cwd] - The current working directory for local fallback execution.
+   * @param {string | null} [options.projectId=null] - Optional project ID to ensure correct workspace context.
+   * @returns {Promise<{ code: number; stdout: string; stderr: string; mode: 'docker-isolated' | 'local-fallback'; }>}
+   *   An object containing the exit code, standard output, standard error, and execution mode.
    */
   async executeCommand(userId, isolationId = 'default', commandArgs, options = {}) {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
@@ -422,8 +499,12 @@ class DockerWorkspaceService {
   }
 
   /**
-   * Pauses an active workspace container.
+   * Pauses an active workspace container, freeing up CPU resources.
    * Sanitizes userId and isolationId to prevent command injection.
+   * @async
+   * @param {string} userId - The ID of the user.
+   * @param {string} [isolationId='default'] - A unique identifier for the specific workspace instance.
+   * @returns {Promise<boolean>} True if the container was successfully paused, false otherwise.
    */
   async pauseWorkspace(userId, isolationId = 'default') {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
@@ -440,8 +521,12 @@ class DockerWorkspaceService {
   }
 
   /**
-   * Stops and cleans up a workspace container.
+   * Stops and removes a workspace container, cleaning up its resources.
    * Sanitizes userId and isolationId to prevent command injection.
+   * @async
+   * @param {string} userId - The ID of the user.
+   * @param {string} [isolationId='default'] - A unique identifier for the specific workspace instance.
+   * @returns {Promise<boolean>} True if the container was successfully stopped and removed, false otherwise.
    */
   async stopWorkspace(userId, isolationId = 'default') {
     const sanitizedUserId = this._sanitizeIdentifier(userId);
@@ -460,7 +545,10 @@ class DockerWorkspaceService {
 
   /**
    * Performs an audit cleanup cycle on inactive containers.
-   * Awaits async calls to stopWorkspace and pauseWorkspace.
+   * Containers inactive for more than 5 minutes are paused.
+   * Containers inactive for more than 20 minutes are destroyed.
+   * @async
+   * @returns {Promise<void>} A promise that resolves when the audit cycle is complete.
    */
   async auditActiveWorkspaces() {
     logger.info('[DOCKER CRON] Auditing active user container workspaces...');
@@ -500,6 +588,10 @@ class DockerWorkspaceService {
    * This completely eliminates cold start latency during execution requests.
    * Ensures consistent naming and session management with other methods.
    * Sanitizes userId and isolationId to prevent command injection.
+   * @async
+   * @param {string} userId - The ID of the user.
+   * @param {string} [isolationId='default'] - A unique identifier for the specific workspace instance.
+   * @returns {Promise<void>} A promise that resolves when the workspace is pre-warmed and paused.
    */
   async prewarmWorkspace(userId, isolationId = 'default') {
     if (!this.initialized) await this.initialize();
@@ -561,6 +653,11 @@ class DockerWorkspaceService {
   /**
    * Scrapes real-time CPU, Memory, and I/O metrics for a user's isolated workspace container.
    * Sanitizes userId and isolationId to prevent command injection.
+   * @async
+   * @param {string} userId - The ID of the user.
+   * @param {string} [isolationId='default'] - A unique identifier for the specific workspace instance.
+   * @returns {Promise<{ connected: boolean; uniqueSessionId: string; containerId?: string; cpuPercent?: string; memoryUsage?: string; memoryPercent?: string; netIO?: string; blockIO?: string; pids?: string; error?: string; }>}
+   *   An object containing connection status, unique session ID, and various container metrics if connected.
    */
   async getWorkspaceMetrics(userId, isolationId = 'default') {
     if (!this.initialized) return { connected: false, userId };
@@ -597,7 +694,10 @@ class DockerWorkspaceService {
   }
 
   /**
-   * Scrapes metrics for all active workspaces concurrently.
+   * Scrapes metrics for all currently active workspace containers concurrently.
+   * @async
+   * @returns {Promise<Array<ReturnType<DockerWorkspaceService['getWorkspaceMetrics']>>>}
+   *   A promise that resolves to an array of metric objects for each active workspace.
    */
   async getAllActiveMetrics() {
     // Collect all promises for metrics concurrently using Promise.all
@@ -610,4 +710,8 @@ class DockerWorkspaceService {
   }
 }
 
+/**
+ * @constant {DockerWorkspaceService} dockerWorkspaceService
+ * @description Singleton instance of the DockerWorkspaceService for managing Docker container workspaces.
+ */
 export const dockerWorkspaceService = new DockerWorkspaceService();
