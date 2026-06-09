@@ -2,12 +2,24 @@ import { logger } from '../../../shared/logger.js';
 import { IMAGE_ASSISTANT_CONSTANTS } from './image.constant.js';
 
 /**
- * Format image generation response for client
- * @param {string} response
- * @param {Array|Object} imageData
- * @param {string} conversationId
- * @param {number} messageCount
- * @returns {Object}
+ * @typedef {Object} ImageResponse
+ * @property {Object} responseMessage - The message object containing the response text and images.
+ * @property {string} responseMessage.text - The main text response to the user.
+ * @property {Array<Object>} responseMessage.images - An array of image data objects, or an empty array if none.
+ * @property {string} responseMessage.type - The type of response, e.g., 'generation'.
+ * @property {string} conversationId - The ID of the current conversation.
+ * @property {number} messageCount - The total number of messages in the conversation.
+ */
+
+/**
+ * Formats the image generation response into a structured object suitable for client consumption.
+ * This includes the generated text, image data, conversation ID, and message count.
+ *
+ * @param {string} response - The primary text response from the image generation service.
+ * @param {Array<Object>|Object} imageData - An array of image data objects (e.g., URLs, metadata) or a single object.
+ * @param {string} conversationId - The unique identifier for the current conversation.
+ * @param {number} messageCount - The sequential count of messages within the conversation.
+ * @returns {ImageResponse} A formatted object containing the response message, conversation ID, and message count.
  */
 export const formatImageResponse = (
   response,
@@ -27,6 +39,7 @@ export const formatImageResponse = (
     };
   } catch (error) {
     logger.warn('Failed to format image response:', error);
+    // Fallback in case of formatting error, ensuring a consistent structure
     return {
       responseMessage: {
         text: response,
@@ -40,11 +53,22 @@ export const formatImageResponse = (
 };
 
 /**
- * Format image analysis response for client
- * @param {string} response
- * @param {string} conversationId
- * @param {number} messageCount
- * @returns {Object}
+ * @typedef {Object} AnalysisResponse
+ * @property {Object} responseMessage - The message object containing the response text.
+ * @property {string} responseMessage.text - The main text response from the image analysis service.
+ * @property {string} responseMessage.type - The type of response, e.g., 'analysis'.
+ * @property {string} conversationId - The ID of the current conversation.
+ * @property {number} messageCount - The total number of messages in the conversation.
+ */
+
+/**
+ * Formats the image analysis response into a structured object suitable for client consumption.
+ * This includes the analysis text, conversation ID, and message count.
+ *
+ * @param {string} response - The primary text response from the image analysis service.
+ * @param {string} conversationId - The unique identifier for the current conversation.
+ * @param {number} messageCount - The sequential count of messages within the conversation.
+ * @returns {AnalysisResponse} A formatted object containing the response message, conversation ID, and message count.
  */
 export const formatAnalysisResponse = (
   response,
@@ -62,6 +86,7 @@ export const formatAnalysisResponse = (
     };
   } catch (error) {
     logger.warn('Failed to format analysis response:', error);
+    // Fallback in case of formatting error, ensuring a consistent structure
     return {
       responseMessage: {
         text: response,
@@ -74,9 +99,17 @@ export const formatAnalysisResponse = (
 };
 
 /**
- * Validate image query length and content
- * @param {string} message
- * @returns {Object}
+ * @typedef {Object} ValidationResult
+ * @property {boolean} isValid - True if the message passes all validation checks, false otherwise.
+ * @property {string} [error] - An error message if validation fails, otherwise undefined.
+ */
+
+/**
+ * Validates the length and type of an image generation or analysis query message.
+ * Ensures the message is a non-empty string and falls within predefined min/max length limits.
+ *
+ * @param {string} message - The user's query string for image generation or analysis.
+ * @returns {ValidationResult} An object indicating whether the query is valid and an error message if not.
  */
 export const validateImageQuery = (message) => {
   if (!message || typeof message !== 'string') {
@@ -106,10 +139,12 @@ export const validateImageQuery = (message) => {
 };
 
 /**
- * Format error message for user consumption
- * @param {Error} error
- * @param {string} originalQuery
- * @returns {string}
+ * Formats an error message into a user-friendly string, abstracting internal error details.
+ * It provides specific messages for common issues like rate limits, invalid formats, or network problems.
+ *
+ * @param {Error} error - The error object encountered during image processing.
+ * @param {string} originalQuery - The original query string that led to the error (currently unused but kept for context).
+ * @returns {string} A user-friendly error message.
  */
 export const formatErrorMessage = (error, originalQuery) => {
   const baseMessage =
@@ -138,16 +173,26 @@ export const formatErrorMessage = (error, originalQuery) => {
 };
 
 /**
- * Extract image specifications from user query
- * @param {string} query
- * @returns {Object}
+ * @typedef {Object} ImageSpecs
+ * @property {('small'|'standard'|'large')} size - The desired size of the image (e.g., 'standard', 'large'). Defaults to 'standard'.
+ * @property {('realistic'|'cartoon'|'abstract'|'photorealistic')} style - The artistic style of the image (e.g., 'realistic', 'cartoon'). Defaults to 'realistic'.
+ * @property {('1:1'|'3:4'|'4:3'|'16:9')} aspectRatio - The aspect ratio of the image (e.g., '1:1', '4:3'). Defaults to '1:1'.
+ * @property {('standard'|'high')} quality - The desired quality of the image (e.g., 'standard', 'high'). Defaults to 'standard'.
+ */
+
+/**
+ * Extracts image generation specifications (size, style, aspect ratio, quality) from a user's query string.
+ * It parses keywords in the query to determine user preferences, applying default values if no preference is found.
+ *
+ * @param {string} query - The user's natural language query for image generation.
+ * @returns {ImageSpecs} An object containing the extracted or default image specifications.
  */
 export const extractImageSpecs = (query) => {
   const specs = {
-    size: 'standard',
-    style: 'realistic',
-    aspectRatio: '1:1',
-    quality: 'standard',
+    size: 'standard', // Default size
+    style: 'realistic', // Default style
+    aspectRatio: '1:1', // Default aspect ratio
+    quality: 'standard', // Default quality
   };
 
   const lowerQuery = query.toLowerCase();
@@ -210,10 +255,12 @@ export const extractImageSpecs = (query) => {
 };
 
 /**
- * Generate conversation title from image query
- * @param {string} query
- * @param {string} type - 'generation' or 'analysis'
- * @returns {string}
+ * Generates a concise conversation title based on the user's image query and the type of operation.
+ * The title is truncated if it exceeds a maximum length to ensure readability.
+ *
+ * @param {string} query - The user's original query string.
+ * @param {'generation'|'analysis'} [type='generation'] - The type of operation, either 'generation' or 'analysis'.
+ * @returns {string} A formatted conversation title.
  */
 export const generateConversationTitle = (query, type = 'generation') => {
   const prefix = type === 'generation' ? 'Generate' : 'Analyze';
@@ -227,9 +274,23 @@ export const generateConversationTitle = (query, type = 'generation') => {
 };
 
 /**
- * Validate image preferences
- * @param {Object} preferences
- * @returns {Object}
+ * @typedef {Object} ValidatedImagePreferences
+ * @property {('small'|'standard'|'large')} size - The validated image size.
+ * @property {('realistic'|'cartoon'|'abstract'|'photorealistic')} style - The validated image style.
+ * @property {('1:1'|'3:4'|'4:3'|'16:9')} aspectRatio - The validated image aspect ratio.
+ * @property {('standard'|'high')} quality - The validated image quality.
+ */
+
+/**
+ * Validates and normalizes image preferences against a set of allowed values.
+ * If a preference is invalid or missing, it defaults to a standard value.
+ *
+ * @param {Object} [preferences={}] - An object containing user-specified image preferences.
+ * @param {string} [preferences.size] - Desired image size ('small', 'standard', 'large').
+ * @param {string} [preferences.style] - Desired image style ('realistic', 'cartoon', 'abstract', 'photorealistic').
+ * @param {string} [preferences.aspectRatio] - Desired image aspect ratio ('1:1', '3:4', '4:3', '16:9').
+ * @param {string} [preferences.quality] - Desired image quality ('standard', 'high').
+ * @returns {ValidatedImagePreferences} An object with validated and normalized image preferences.
  */
 export const validateImagePreferences = (preferences = {}) => {
   const validSizes = ['small', 'standard', 'large'];
@@ -253,9 +314,11 @@ export const validateImagePreferences = (preferences = {}) => {
 };
 
 /**
- * Get suggested prompts based on user input
- * @param {string} userInput
- * @returns {Array<string>}
+ * Provides a list of suggested prompts based on keywords found in the user's input.
+ * This helps guide users in generating more specific or creative images.
+ *
+ * @param {string} userInput - The current input string from the user.
+ * @returns {Array<string>} An array of up to 3 suggested prompt strings.
  */
 export const getSuggestedPrompts = (userInput) => {
   const suggestions = [];
@@ -280,7 +343,7 @@ export const getSuggestedPrompts = (userInput) => {
       'Design an artistic self-portrait style'
     );
   } else {
-    // Generic suggestions
+    // Generic suggestions if no specific keywords are found
     suggestions.push(
       'Make the image more detailed',
       'Change the color scheme to blue tones',
@@ -292,6 +355,20 @@ export const getSuggestedPrompts = (userInput) => {
   return suggestions.slice(0, 3); // Return max 3 suggestions
 };
 
+/**
+ * A collection of helper functions for image processing and response formatting.
+ * These utilities assist in validating queries, formatting responses, extracting specifications,
+ * and generating conversation titles within the image module.
+ * @namespace imageHelpers
+ * @property {function(string, Array|Object, string, number): ImageResponse} formatImageResponse - Formats image generation responses.
+ * @property {function(string, string, number): AnalysisResponse} formatAnalysisResponse - Formats image analysis responses.
+ * @property {function(string): ValidationResult} validateImageQuery - Validates the length and content of an image query.
+ * @property {function(Error, string): string} formatErrorMessage - Formats an error into a user-friendly message.
+ * @property {function(string): ImageSpecs} extractImageSpecs - Extracts image specifications from a user query.
+ * @property {function(string, 'generation'|'analysis'): string} generateConversationTitle - Generates a conversation title from a query.
+ * @property {function(Object): ValidatedImagePreferences} validateImagePreferences - Validates and normalizes image preferences.
+ * @property {function(string): Array<string>} getSuggestedPrompts - Provides suggested prompts based on user input.
+ */
 export const imageHelpers = {
   formatImageResponse,
   formatAnalysisResponse,
