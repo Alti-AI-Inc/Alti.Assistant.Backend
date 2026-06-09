@@ -76,6 +76,7 @@ class WorkflowService {
       const workflowId = ScheduledWorkflow.generateWorkflowId();
 
       // Get user's connected accounts for required apps
+      // Optimization: getUserConnectedAccounts internally uses .lean()
       const connectedAccounts = await this.getUserConnectedAccounts(
         userId,
         requiredApps
@@ -142,12 +143,16 @@ class WorkflowService {
       const query = { userId };
       if (status) query.status = status;
 
+      // Optimization: Already uses .lean() for read-only query.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
+      // `{ userId: 1, status: 1, createdAt: -1 }`
       const workflows = await ScheduledWorkflow.find(query)
         .sort({ createdAt: -1 })
         .limit(limit)
         .skip(offset)
         .lean();
 
+      // Indexing Recommendation: The same compound index `{ userId: 1, status: 1 }` would benefit countDocuments.
       const total = await ScheduledWorkflow.countDocuments(query);
 
       return {
@@ -183,7 +188,10 @@ class WorkflowService {
   async getWorkflowById(workflowId, userId) { // userId is now mandatory to prevent IDOR
     try {
       const query = { workflowId, userId }; // Ensure workflow belongs to the user
-      const workflow = await ScheduledWorkflow.findOne(query);
+      // Optimization: Added .lean() for read-only query to improve performance.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
+      // `{ workflowId: 1, userId: 1 }`
+      const workflow = await ScheduledWorkflow.findOne(query).lean();
 
       if (!workflow) {
         return {
@@ -194,6 +202,9 @@ class WorkflowService {
       }
 
       // Get recent executions
+      // Optimization: Recommend adding .lean() inside WorkflowExecution.findByWorkflow if it performs a find operation.
+      // Indexing Recommendation: For better performance, consider adding an index on `WorkflowExecution` model:
+      // `{ workflowId: 1 }`
       const recentExecutions = await WorkflowExecution.findByWorkflow(
         workflowId,
         10
@@ -234,6 +245,9 @@ class WorkflowService {
    */
   async updateWorkflow(workflowId, userId, updates) {
     try {
+      // Optimization: .lean() is not used here because the document is modified and saved later.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
+      // `{ workflowId: 1, userId: 1 }`
       const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
 
       if (!workflow) {
@@ -307,7 +321,10 @@ class WorkflowService {
    */
   async deleteWorkflow(workflowId, userId) {
     try {
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
+      // Optimization: Added .lean() for read-only query to improve performance, as only status is checked.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
+      // `{ workflowId: 1, userId: 1 }`
+      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
 
       if (!workflow) {
         return {
@@ -325,9 +342,12 @@ class WorkflowService {
         };
       }
 
+      // Indexing Recommendation: The same compound index `{ workflowId: 1, userId: 1 }` would benefit deleteOne.
       await ScheduledWorkflow.deleteOne({ workflowId, userId });
 
       // Optionally delete execution history
+      // Indexing Recommendation: For better performance, consider adding an index on `WorkflowExecution` model:
+      // `{ workflowId: 1 }`
       await WorkflowExecution.deleteMany({ workflowId });
 
       logger.info(`Workflow deleted: ${workflowId}`); // Replaced console.log with logger.info
@@ -356,7 +376,10 @@ class WorkflowService {
    */
   async triggerWorkflow(workflowId, userId, triggerSource = 'user_click') {
     try {
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
+      // Optimization: Added .lean() for read-only query to improve performance.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
+      // `{ workflowId: 1, userId: 1 }`
+      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
 
       if (!workflow) {
         return {
@@ -427,6 +450,9 @@ class WorkflowService {
    */
   async pauseWorkflow(workflowId, userId) {
     try {
+      // Optimization: .lean() is not used here because workflow.pause() is likely an instance method that modifies the document.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
+      // `{ workflowId: 1, userId: 1 }`
       const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
 
       if (!workflow) {
@@ -462,6 +488,9 @@ class WorkflowService {
    */
   async resumeWorkflow(workflowId, userId) {
     try {
+      // Optimization: .lean() is not used here because workflow.resume() is likely an instance method that modifies the document.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
+      // `{ workflowId: 1, userId: 1 }`
       const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
 
       if (!workflow) {
@@ -499,7 +528,10 @@ class WorkflowService {
   async getWorkflowExecutions(workflowId, userId, limit = 50) {
     try {
       // Verify workflow ownership
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId });
+      // Optimization: Added .lean() for read-only query to improve performance.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
+      // `{ workflowId: 1, userId: 1 }`
+      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
       if (!workflow) {
         return {
           success: false,
@@ -507,6 +539,9 @@ class WorkflowService {
         };
       }
 
+      // Optimization: Recommend adding .lean() inside WorkflowExecution.findByWorkflow if it performs a find operation.
+      // Indexing Recommendation: For better performance, consider adding an index on `WorkflowExecution` model:
+      // `{ workflowId: 1 }`
       const executions = await WorkflowExecution.findByWorkflow(
         workflowId,
         limit
@@ -573,6 +608,7 @@ class WorkflowService {
    */
   async validateWorkflowConnections(workflow) {
     try {
+      // Optimization: getUserConnectedAccounts internally uses .lean()
       const connectedAccounts = await this.getUserConnectedAccounts(
         workflow.userId,
         workflow.requiredApps
@@ -617,10 +653,13 @@ class WorkflowService {
    */
   async getUserConnectedAccounts(userId, requiredApps) {
     try {
+      // Optimization: Added .lean() for read-only query to improve performance.
+      // Indexing Recommendation: For better performance, consider adding a compound index on `ComposioAuth` model:
+      // `{ userId: 1, status: 1 }`
       const accounts = await ComposioAuth.find({
         userId: userId,
         status: 'active',
-      });
+      }).lean();
 
       return accounts
         .filter((account) =>
@@ -646,6 +685,9 @@ class WorkflowService {
    */
   async getDueWorkflows() {
     try {
+      // Optimization: Recommend adding .lean() inside ScheduledWorkflow.findDueForExecution if it performs a find operation.
+      // Indexing Recommendation: For better performance, consider adding an index on `ScheduledWorkflow` model
+      // that covers the query criteria used in `findDueForExecution` (e.g., `{ nextExecution: 1, status: 1, 'scheduleConfig.isActive': 1 }`).
       const dueWorkflows = await ScheduledWorkflow.findDueForExecution();
       return {
         success: true,
