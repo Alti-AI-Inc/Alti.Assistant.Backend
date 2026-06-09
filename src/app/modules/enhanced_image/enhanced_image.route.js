@@ -17,7 +17,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  // createRateLimiter(20, 15), // 20 image generation requests per 15 minutes
+  createRateLimiter(20, 15), // 20 image generation requests per 15 minutes - Re-enabled rate limiting
   validateRequest(EnhancedImageValidation.generateImageSchema),
   enhancedImageController.generateImageDirect
 );
@@ -28,7 +28,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  // createRateLimiter(20, 15), // 20 image editing requests per 15 minutes
+  createRateLimiter(20, 15), // 20 image editing requests per 15 minutes - Re-enabled rate limiting
   validateRequest(EnhancedImageValidation.editImageSchema),
   enhancedImageController.editImage
 );
@@ -46,7 +46,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  // validateRequest(EnhancedImageValidation.analyzeImageIntentSchema),
+  validateRequest(EnhancedImageValidation.analyzeImageIntentSchema), // Re-enabled validation
   enhancedImageController.analyzeImageIntent
 );
 
@@ -54,7 +54,8 @@ router.post(
 router.post(
   '/evaluate-prompt',
   optionalAuth(),
-  extractTenantContext, // validateRequest(EnhancedImageValidation.evaluatePromptSchema),
+  extractTenantContext,
+  validateRequest(EnhancedImageValidation.evaluatePromptSchema), // Re-enabled validation
   enhancedImageController.evaluatePrompt
 );
 
@@ -93,7 +94,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
-  // createRateLimiter(20, 15),
+  createRateLimiter(20, 15), // Re-enabled rate limiting
   validateRequest(EnhancedImageValidation.generateFromConversationSchema),
   enhancedImageController.generateFromConversation
 );
