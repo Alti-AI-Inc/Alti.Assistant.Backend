@@ -1,4 +1,24 @@
-// Brainstorm Configuration
+/**
+ * @fileoverview This file contains various constants used throughout the brainstorm module,
+ * including configuration settings, predefined types, techniques, perspectives,
+ * system prompts, and response messages.
+ * These constants help standardize and manage the behavior and content generation
+ * for the AI brainstorming assistant.
+ */
+
+/**
+ * @typedef {object} BrainstormConfig
+ * @property {string} MODEL - The AI model to use for brainstorming.
+ * @property {number} TEMPERATURE - Controls the randomness of the output. Higher values mean more random.
+ * @property {number} MAX_OUTPUT_TOKENS - The maximum number of tokens to generate in the output.
+ * @property {number} MAX_IDEA_LENGTH - The maximum length allowed for a single generated idea.
+ * @property {number} MIN_IDEA_LENGTH - The minimum length required for a single generated idea.
+ */
+
+/**
+ * Brainstorm Configuration settings for the AI model.
+ * @type {BrainstormConfig}
+ */
 export const BRAINSTORM_CONFIG = {
   MODEL: 'gemini-2.5-flash',
   TEMPERATURE: 0.8,
@@ -7,7 +27,22 @@ export const BRAINSTORM_CONFIG = {
   MIN_IDEA_LENGTH: 10,
 };
 
-// Brainstorm Types
+/**
+ * @typedef {object} BrainstormTypes
+ * @property {string} PRODUCT_IDEA - Brainstorming for new product concepts.
+ * @property {string} BUSINESS_STRATEGY - Brainstorming for business strategies.
+ * @property {string} MARKETING_CAMPAIGN - Brainstorming for marketing campaign ideas.
+ * @property {string} TECHNICAL_SOLUTION - Brainstorming for technical solutions to problems.
+ * @property {string} CREATIVE_CONTENT - Brainstorming for creative content ideas (e.g., stories, art).
+ * @property {string} PROBLEM_SOLVING - Brainstorming for solutions to general problems.
+ * @property {string} PROCESS_IMPROVEMENT - Brainstorming for ways to improve existing processes.
+ * @property {string} GENERAL - General brainstorming without a specific type.
+ */
+
+/**
+ * Defines various types of brainstorming sessions.
+ * @type {BrainstormTypes}
+ */
 export const BRAINSTORM_TYPES = {
   PRODUCT_IDEA: 'product_idea',
   BUSINESS_STRATEGY: 'business_strategy',
@@ -19,7 +54,24 @@ export const BRAINSTORM_TYPES = {
   GENERAL: 'general',
 };
 
-// Brainstorming Techniques
+/**
+ * @typedef {object} BrainstormingTechniques
+ * @property {string} SCAMPER - Substitute, Combine, Adapt, Modify, Put to other uses, Eliminate, Reverse.
+ * @property {string} MIND_MAP - Hierarchical exploration of related concepts.
+ * @property {string} SIX_THINKING_HATS - Analyze from six different thinking modes.
+ * @property {string} SWOT_ANALYSIS - Strengths, Weaknesses, Opportunities, Threats.
+ * @property {string} FIVE_WHYS - Repeatedly asking "why" to find root causes.
+ * @property {string} REVERSE_BRAINSTORM - Think about how to cause the problem, then reverse it.
+ * @property {string} BRAINWRITING - Written idea generation with building on previous ideas.
+ * @property {string} FREE_ASSOCIATION - Generate ideas freely without constraints.
+ * @property {string} STARBURSTING - Ask who, what, where, when, why, and how questions.
+ * @property {string} ROLE_STORMING - Think from different personas or stakeholders' perspectives.
+ */
+
+/**
+ * Defines various brainstorming techniques that can be applied.
+ * @type {BrainstormingTechniques}
+ */
 export const TECHNIQUES = {
   SCAMPER: 'scamper',
   MIND_MAP: 'mind_map',
@@ -33,7 +85,22 @@ export const TECHNIQUES = {
   ROLE_STORMING: 'role_storming',
 };
 
-// Analysis Perspectives
+/**
+ * @typedef {object} AnalysisPerspectives
+ * @property {string} BUSINESS - Analyze from a business viability and strategy standpoint.
+ * @property {string} TECHNICAL - Analyze from a technical feasibility and implementation standpoint.
+ * @property {string} CREATIVE - Analyze from an innovation and originality standpoint.
+ * @property {string} USER_CENTRIC - Analyze from the perspective of the end-user's needs and experience.
+ * @property {string} STRATEGIC - Analyze from a long-term planning and competitive advantage standpoint.
+ * @property {string} OPERATIONAL - Analyze from an execution and process efficiency standpoint.
+ * @property {string} FINANCIAL - Analyze from a cost, revenue, and profitability standpoint.
+ * @property {string} COMPETITIVE - Analyze in relation to market competitors and differentiation.
+ */
+
+/**
+ * Defines different perspectives from which an idea can be analyzed.
+ * @type {AnalysisPerspectives}
+ */
 export const PERSPECTIVES = {
   BUSINESS: 'business',
   TECHNICAL: 'technical',
@@ -45,7 +112,18 @@ export const PERSPECTIVES = {
   COMPETITIVE: 'competitive',
 };
 
-// Brainstorm Depth Levels
+/**
+ * @typedef {object} BrainstormDepthLevels
+ * @property {string} QUICK - A quick, high-level brainstorm with fewer ideas.
+ * @property {string} STANDARD - A balanced brainstorm with a moderate number of ideas and detail.
+ * @property {string} DEEP - A detailed brainstorm with more ideas and in-depth analysis.
+ * @property {string} COMPREHENSIVE - An exhaustive brainstorm with a large number of ideas and extensive detail.
+ */
+
+/**
+ * Defines the depth levels for a brainstorming session, influencing the number and detail of ideas generated.
+ * @type {BrainstormDepthLevels}
+ */
 export const DEPTH_LEVELS = {
   QUICK: 'quick',
   STANDARD: 'standard',
@@ -53,7 +131,22 @@ export const DEPTH_LEVELS = {
   COMPREHENSIVE: 'comprehensive',
 };
 
-// Focus Areas
+/**
+ * @typedef {object} FocusAreas
+ * @property {string} INNOVATION - Focus on novel and creative aspects.
+ * @property {string} FEASIBILITY - Focus on practical implementation and viability.
+ * @property {string} MARKETABILITY - Focus on market appeal, demand, and potential.
+ * @property {string} SCALABILITY - Focus on the ability to grow and expand.
+ * @property {string} UNIQUENESS - Focus on differentiation and distinctiveness.
+ * @property {string} PROFITABILITY - Focus on financial returns and revenue generation.
+ * @property {string} USER_VALUE - Focus on benefits and value for the end-user.
+ * @property {string} SUSTAINABILITY - Focus on long-term viability and environmental/social impact.
+ */
+
+/**
+ * Defines specific areas to focus on during a brainstorming session.
+ * @type {FocusAreas}
+ */
 export const FOCUS_AREAS = {
   INNOVATION: 'innovation',
   FEASIBILITY: 'feasibility',
@@ -65,7 +158,24 @@ export const FOCUS_AREAS = {
   SUSTAINABILITY: 'sustainability',
 };
 
-// Brainstorm Intents
+/**
+ * @typedef {object} BrainstormIntents
+ * @property {string} GENERATE_IDEAS - User wants to generate new ideas.
+ * @property {string} EXPAND_IDEA - User wants to expand on an existing idea.
+ * @property {string} ANALYZE_IDEA - User wants to analyze an existing idea.
+ * @property {string} REFINE_IDEA - User wants to refine or improve an existing idea.
+ * @property {string} EVALUATE_IDEA - User wants to evaluate an idea's potential.
+ * @property {string} COMPARE_IDEAS - User wants to compare multiple ideas.
+ * @property {string} IDENTIFY_RISKS - User wants to identify potential risks.
+ * @property {string} FIND_OPPORTUNITIES - User wants to find new opportunities.
+ * @property {string} CLARIFICATION - User's intent requires more information.
+ * @property {string} UNKNOWN - User's intent could not be determined.
+ */
+
+/**
+ * Defines the possible intents a user might have when interacting with the brainstorming assistant.
+ * @type {BrainstormIntents}
+ */
 export const BRAINSTORM_INTENTS = {
   GENERATE_IDEAS: 'generate_ideas',
   EXPAND_IDEA: 'expand_idea',
@@ -79,11 +189,35 @@ export const BRAINSTORM_INTENTS = {
   UNKNOWN: 'unknown',
 };
 
-// Conversation configuration
+/**
+ * The category identifier for brainstorming conversations.
+ * @type {string}
+ */
 export const CONVERSATION_CATEGORY = 'brainstorm';
+
+/**
+ * The AI model to be used for general conversation within the brainstorming module.
+ * @type {string}
+ */
 export const CONVERSATION_MODEL = 'gemini-2.5-flash';
 
-// Default Parameters
+/**
+ * @typedef {object} DefaultParameters
+ * @property {string} brainstormType - The default type of brainstorming.
+ * @property {string} depth - The default depth level for brainstorming.
+ * @property {string} technique - The default brainstorming technique.
+ * @property {string[]} perspectives - The default perspectives for analysis.
+ * @property {object} ideaCount - A map defining the number of ideas to generate per depth level.
+ * @property {number} ideaCount.quick - Number of ideas for 'quick' depth.
+ * @property {number} ideaCount.standard - Number of ideas for 'standard' depth.
+ * @property {number} ideaCount.deep - Number of ideas for 'deep' depth.
+ * @property {number} ideaCount.comprehensive - Number of ideas for 'comprehensive' depth.
+ */
+
+/**
+ * Default parameters for a brainstorming session when not explicitly specified by the user.
+ * @type {DefaultParameters}
+ */
 export const DEFAULT_PARAMS = {
   brainstormType: BRAINSTORM_TYPES.GENERAL,
   depth: DEPTH_LEVELS.STANDARD,
@@ -97,7 +231,20 @@ export const DEFAULT_PARAMS = {
   },
 };
 
-// System Prompts
+/**
+ * @typedef {object} SystemPrompts
+ * @property {string} MAIN_ASSISTANT - The core system prompt defining the AI's role and capabilities as a brainstorming assistant.
+ * @property {string} INTENT_ANALYZER - System prompt for analyzing user intent in brainstorming requests.
+ * @property {function(string, string, string, string[]): string} IDEA_GENERATOR - A function that generates a system prompt for idea generation based on specified parameters.
+ * @property {string} IDEA_ANALYZER - System prompt for comprehensively analyzing a given idea.
+ * @property {string} IDEA_REFINER - System prompt for refining and improving an existing idea.
+ */
+
+/**
+ * Collection of system prompts used to guide the AI's behavior and response generation
+ * for different brainstorming tasks.
+ * @type {SystemPrompts}
+ */
 export const SYSTEM_PROMPTS = {
   MAIN_ASSISTANT: `You are an expert creative brainstorming assistant. Your role is to help users explore, develop, and refine ideas through structured and creative thinking.
 
@@ -125,6 +272,14 @@ Guidelines:
 
 Be conversational and helpful. If intent is unclear, ask clarifying questions.`,
 
+  /**
+   * Generates a system prompt for the AI to create brainstorm ideas.
+   * @param {string} type - The type of brainstorming (e.g., 'product_idea').
+   * @param {string} depth - The depth level of the brainstorm (e.g., 'standard').
+   * @param {string} technique - The brainstorming technique to use (e.g., 'free_association').
+   * @param {string[]} perspectives - An array of perspectives to analyze from (e.g., ['business', 'user_centric']).
+   * @returns {string} The formatted system prompt for idea generation.
+   */
   IDEA_GENERATOR: (
     type,
     depth,
@@ -166,7 +321,21 @@ Provide structured, detailed analysis.`,
 Provide specific, actionable refinement suggestions.`,
 };
 
-// Response Messages
+/**
+ * @typedef {object} ResponseMessages
+ * @property {string} WELCOME - Initial welcome message to the user.
+ * @property {string} NEED_IDEA - Message prompting the user to provide an idea.
+ * @property {string} NEED_MORE_INFO - Message indicating that more context is needed.
+ * @property {string} IDEA_RECEIVED - Confirmation message that an idea has been received.
+ * @property {string} REFINING - Message indicating that the AI is refining an idea.
+ * @property {string} ANALYZING - Message indicating that the AI is analyzing an idea.
+ * @property {string} ERROR_PROCESSING - Generic error message for processing failures.
+ */
+
+/**
+ * Standardized response messages used by the brainstorming assistant.
+ * @type {ResponseMessages}
+ */
 export const RESPONSE_MESSAGES = {
   WELCOME:
     "Hello! I'm your brainstorming assistant. Share your idea, and I'll help you explore it from multiple angles.",
@@ -181,7 +350,26 @@ export const RESPONSE_MESSAGES = {
     'I encountered an issue while processing your request. Please try again.',
 };
 
-// Clarification Suggestions
+/**
+ * @typedef {object} ClarificationSuggestion
+ * @property {string} question - The question to ask the user for clarification.
+ * @property {string[]} suggestions - An array of suggested options or examples.
+ * @property {string} example - An example of how the user can respond.
+ */
+
+/**
+ * @typedef {object} ClarificationSuggestions
+ * @property {ClarificationSuggestion} technique - Suggestions for choosing a brainstorming technique.
+ * @property {ClarificationSuggestion} depth - Suggestions for choosing a brainstorming depth level.
+ * @property {ClarificationSuggestion} focusAreas - Suggestions for choosing focus areas.
+ * @property {ClarificationSuggestion} constraints - Suggestions for providing constraints.
+ */
+
+/**
+ * Predefined suggestions and questions to guide the user when more information is needed
+ * for a brainstorming session.
+ * @type {ClarificationSuggestions}
+ */
 export const CLARIFICATION_SUGGESTIONS = {
   technique: {
     question: 'Which brainstorming technique would you prefer?',
@@ -228,7 +416,31 @@ export const CLARIFICATION_SUGGESTIONS = {
   },
 };
 
-// Technique Descriptions
+/**
+ * @typedef {object} TechniqueDetail
+ * @property {string} name - The full name of the technique.
+ * @property {string} description - A brief description of the technique.
+ * @property {string} useCase - When the technique is best applied.
+ */
+
+/**
+ * @typedef {object} TechniqueDescriptions
+ * @property {TechniqueDetail} SCAMPER - Details for the SCAMPER technique.
+ * @property {TechniqueDetail} MIND_MAP - Details for the Mind Mapping technique.
+ * @property {TechniqueDetail} SIX_THINKING_HATS - Details for the Six Thinking Hats technique.
+ * @property {TechniqueDetail} SWOT_ANALYSIS - Details for the SWOT Analysis technique.
+ * @property {TechniqueDetail} FIVE_WHYS - Details for the Five Whys technique.
+ * @property {TechniqueDetail} REVERSE_BRAINSTORM - Details for the Reverse Brainstorming technique.
+ * @property {TechniqueDetail} BRAINWRITING - Details for the Brainwriting technique.
+ * @property {TechniqueDetail} FREE_ASSOCIATION - Details for the Free Association technique.
+ * @property {TechniqueDetail} STARBURSTING - Details for the Starbursting technique.
+ * @property {TechniqueDetail} ROLE_STORMING - Details for the Role Storming technique.
+ */
+
+/**
+ * Provides detailed descriptions and use cases for each brainstorming technique.
+ * @type {TechniqueDescriptions}
+ */
 export const TECHNIQUE_DESCRIPTIONS = {
   [TECHNIQUES.SCAMPER]: {
     name: 'SCAMPER',
@@ -284,7 +496,18 @@ export const TECHNIQUE_DESCRIPTIONS = {
   },
 };
 
-// Idea Complexity Levels
+/**
+ * @typedef {object} ComplexityLevels
+ * @property {string} SIMPLE - An idea with low complexity, easy to implement.
+ * @property {string} MODERATE - An idea with moderate complexity, requiring some effort.
+ * @property {string} COMPLEX - An idea with high complexity, requiring significant resources.
+ * @property {string} VERY_COMPLEX - An idea with very high complexity, potentially requiring extensive resources and time.
+ */
+
+/**
+ * Defines different levels of complexity for ideas or solutions.
+ * @type {ComplexityLevels}
+ */
 export const COMPLEXITY_LEVELS = {
   SIMPLE: 'simple',
   MODERATE: 'moderate',
@@ -292,7 +515,18 @@ export const COMPLEXITY_LEVELS = {
   VERY_COMPLEX: 'very_complex',
 };
 
-// Output Formats
+/**
+ * @typedef {object} OutputFormats
+ * @property {string} JSON - Output in JSON format.
+ * @property {string} MARKDOWN - Output in Markdown format.
+ * @property {string} PDF - Output in PDF format.
+ * @property {string} HTML - Output in HTML format.
+ */
+
+/**
+ * Defines various output formats for generated brainstorming results.
+ * @type {OutputFormats}
+ */
 export const OUTPUT_FORMATS = {
   JSON: 'json',
   MARKDOWN: 'markdown',
