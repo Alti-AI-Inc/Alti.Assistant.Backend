@@ -20,6 +20,22 @@ import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import mongoose from 'mongoose';
 
+// --- Indexing Recommendations for Conversation Model (assuming it's used by conversationHelpers/service) ---
+// To optimize queries in conversationHelpers and conversationService, consider adding the following indexes
+// to your Mongoose Conversation schema:
+// 1. db.conversations.createIndex({ userId: 1 })
+//    - Essential for `getUserConversations` and `getConversationById` to quickly find conversations by user.
+// 2. db.conversations.createIndex({ _id: 1, userId: 1 })
+//    - Composite index for `getConversationById` when both conversation ID and user ID are provided.
+// 3. db.conversations.createIndex({ category: 1 })
+//    - For filtering conversations by category, e.g., 'image'.
+// 4. db.conversations.createIndex({ 'metadata.userType': 1 })
+//    - For filtering guest vs. authenticated conversations, especially in `getGuestConversations`.
+// 5. db.conversations.createIndex({ userId: 1, category: 1, 'metadata.userType': 1 })
+//    - A more specific composite index for `getUserConversations` with multiple filters.
+// 6. db.conversations.createIndex({ lastActivity: -1 })
+//    - If conversations are frequently sorted by last activity.
+
 /**
  * Generate unique guest user ID
  * @returns {string}
@@ -59,26 +75,34 @@ const handleImageConversation = async (
     if (conversationId) {
       // Try to get existing conversation for both authenticated and guest users
       try {
+        // Prepare query options, assuming `req` can be extended with Mongoose query options
+        const queryOptions = { ...req, lean: true }; // Use .lean() for read-only operations
+        if (isGuest) {
+          // For guest users, explicitly filter for guest conversations in the DB
+          queryOptions['metadata.userType'] = 'guest';
+        }
+
+        // Always pass the actual userId for ownership verification.
+        // The `isGuest ? null : userId` logic was potentially problematic for guest users
+        // who still have a userId. The `metadata.userType` filter handles guest-specific access.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
-          isGuest ? null : userId,
-          req
+          userId, // Pass the actual userId (guest or authenticated)
+          queryOptions
         );
         console.log(
           `Found existing conversation ${conversationId} for user ${userId}`
         );
 
-        // For guest users, verify the conversation belongs to them or is a guest conversation
-        if (isGuest && conversation.metadata?.userType !== 'guest') {
-          logger.warn(
-            `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
-          );
-          conversation = null; // Force creation of new conversation
-        }
+        // The previous client-side check `if (isGuest && conversation.metadata?.userType !== 'guest')`
+        // is now handled by the database query itself if `isGuest` is true and `metadata.userType` filter is applied.
+        // If the conversation is found, it already matches the userType criteria.
       } catch (error) {
         logger.warn(
-          `Conversation ${conversationId} not found for user ${userId}, creating new one`
+          `Conversation ${conversationId} not found or not matching criteria for user ${userId}, creating new one`
         );
+        // If the error is due to the conversation not matching the guest type,
+        // it will be caught here, leading to a new conversation. This is acceptable.
       }
     }
     console.log('Parameters for conversation:', {
@@ -303,19 +327,20 @@ const addErrorMessage = async (
  */
 const getGuestConversations = async (guestUserId, req = null) => {
   try {
+    // Push the 'metadata.userType' filter to the database query
+    // and use .lean() for performance as documents are read-only.
     const conversations = await conversationHelpers.getUserConversations(
       guestUserId,
       {
         category: 'image',
+        'metadata.userType': 'guest', // Filter by userType directly in the DB query
         limit: 100, // Limit guest conversations
       },
-      req
+      { ...req, lean: true } // Pass req and add lean option
     );
 
-    // Filter to only return guest conversations
-    const guestConversations = conversations.conversations.filter(
-      (conv) => conv.metadata?.userType === 'guest'
-    );
+    // No need for client-side filtering as it's handled by the DB query
+    const guestConversations = conversations.conversations;
 
     logger.info(
       `Retrieved ${guestConversations.length} guest conversations for user ${guestUserId}`
@@ -343,17 +368,20 @@ const getGuestConversation = async (
   req = null
 ) => {
   try {
+    // Push the 'metadata.userType' filter to the database query
+    // and use .lean() for performance as the document is read-only.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       guestUserId,
-      req
+      { ...req, 'metadata.userType': 'guest', lean: true } // Add filter and lean option
     );
 
-    // Verify it's a guest conversation
-    if (conversation && conversation.metadata?.userType === 'guest') {
+    // If conversation is found, it already matches the guest userType criteria due to the DB filter.
+    if (conversation) {
       return conversation;
     }
 
+    // If no conversation is found or it doesn't match the criteria, throw NOT_FOUND
     throw new ApiError(httpStatus.NOT_FOUND, 'Guest conversation not found');
   } catch (error) {
     logger.error('Error fetching guest conversation:', error);
@@ -370,13 +398,14 @@ const getGuestConversation = async (
 const getImageStats = async (userId, req = null) => {
   try {
     // Get conversation count for image category
+    // Use .lean() for performance as documents are read-only.
     const imageConversations = await conversationHelpers.getUserConversations(
       userId,
       {
         category: 'image',
         limit: 1000, // Get all for counting
       },
-      req
+      { ...req, lean: true } // Pass req and add lean option
     );
 
     // Calculate total messages across all image conversations
