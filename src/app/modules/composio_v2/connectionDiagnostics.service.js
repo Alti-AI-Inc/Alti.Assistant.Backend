@@ -84,20 +84,23 @@ class ConnectionDiagnosticsService {
         ]),
 
         // 10-minute intervals over the past hour for trend analysis
+        // Fix: Group by actual 10-minute timestamp intervals, not just the minute component,
+        // to correctly represent trends within the past hour.
         ActionAuditLog.aggregate([
           { $match: { userId, createdAt: { $gte: pastHour } } },
           {
             $group: {
               _id: {
+                // Convert createdAt to milliseconds, then truncate to the nearest 10-minute interval start
                 $subtract: [
-                  { $minute: '$createdAt' },
-                  { $mod: [{ $minute: '$createdAt' }, 10] }
+                  { $toLong: '$createdAt' },
+                  { $mod: [{ $toLong: '$createdAt' }, 10 * 60 * 1000] } // 10 minutes in milliseconds
                 ]
               },
               count: { $sum: 1 }
             }
           },
-          { $sort: { '_id': 1 } }
+          { $sort: { '_id': 1 } } // Sort by interval start timestamp
         ])
       ]);
 
@@ -112,17 +115,23 @@ class ConnectionDiagnosticsService {
       });
 
       // Calculate trend and acceleration
-      const buckets = Array(6).fill(0);
-      // The aggregation's _id for intervalStats will be 0, 10, 20, 30, 40, 50.
-      // Math.floor(bucket._id / 10) correctly maps these to indices 0-5.
+      const buckets = Array(6).fill(0); // Represents 6 x 10-minute intervals over the past hour
+      const intervalMs = 10 * 60 * 1000; // 10 minutes in milliseconds
+      const pastHourMs = pastHour.getTime(); // Start timestamp of the 1-hour window
+
+      // Map aggregation results to the correct bucket index based on their timestamp
       intervalStats.forEach(bucket => {
-        const index = Math.floor(bucket._id / 10);
-        buckets[index] = bucket.count;
+        // bucket._id is the start timestamp (milliseconds) of the 10-minute interval
+        const diffMs = bucket._id - pastHourMs;
+        const index = Math.floor(diffMs / intervalMs);
+        if (index >= 0 && index < 6) { // Ensure index is within the 0-5 range for the 6 buckets
+          buckets[index] = bucket.count;
+        }
       });
 
       // Let's check if rate is increasing
-      const firstHalf = buckets.slice(0, 3).reduce((a, b) => a + b, 0);
-      const secondHalf = buckets.slice(3, 6).reduce((a, b) => a + b, 0);
+      const firstHalf = buckets.slice(0, 3).reduce((a, b) => a + b, 0); // First 30 minutes
+      const secondHalf = buckets.slice(3, 6).reduce((a, b) => a + b, 0); // Last 30 minutes
       let accelerationFactor = 0;
       if (firstHalf > 0) {
         accelerationFactor = (secondHalf - firstHalf) / firstHalf;
