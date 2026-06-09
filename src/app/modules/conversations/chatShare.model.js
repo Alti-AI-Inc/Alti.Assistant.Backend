@@ -80,7 +80,8 @@ ChatShareSchema.methods.incrementViewCount = function () {
 // Instance method to check if share is accessible
 ChatShareSchema.methods.isAccessible = function () {
   if (!this.isActive) return false;
-  if (this.isExpired) return false;
+  // Access the virtual property 'isExpired'
+  if (this.isExpired) return false; 
   return true;
 };
 
@@ -104,6 +105,10 @@ ChatShareSchema.statics.findUserShares = function (userId, options = {}) {
     query.$or = [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }];
   } else if (status === 'expired') {
     query.expiresAt = { $lte: new Date() };
+    // For expired shares, we might also want to ensure they were once active
+    // or that isActive is not explicitly false due to revocation.
+    // Depending on business logic, isActive: true might be added here,
+    // but current logic implies 'expired' is a state independent of 'revoked'.
   } else if (status === 'revoked') {
     query.isActive = false;
   }
@@ -120,13 +125,11 @@ ChatShareSchema.statics.findUserShares = function (userId, options = {}) {
     .skip(skip);
 };
 
-// Pre-save middleware to set default shareId if not provided
-ChatShareSchema.pre('save', function (next) {
-  if (!this.shareId) {
-    this.shareId = uuidv4();
-  }
-  next();
-});
+// The pre-save middleware to set default shareId is redundant because
+// the 'shareId' field already has a 'default: () => uuidv4()' function,
+// which Mongoose automatically calls when a new document is created
+// and 'shareId' is not provided.
+// Removing this for cleaner and more efficient code.
 
 const ChatShare = mongoose.model('ChatShare', ChatShareSchema);
 
