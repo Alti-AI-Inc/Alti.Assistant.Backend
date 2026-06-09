@@ -70,6 +70,8 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
       total_time: res1?.usage?.total_time || 0,
     };
 
+    // Optimization Recommendation: For faster lookups on ChatHistory, ensure an index exists on the schema.
+    // Example: ChatHistorySchema.index({ user: 1, sessionId: 1 });
     let llamaSession = await ChatHistory.findOne({ user: userId, sessionId });
 
     if (llamaSession) {
