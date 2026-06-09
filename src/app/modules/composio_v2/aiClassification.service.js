@@ -2,7 +2,7 @@ import { runAIClassificationAgent } from './ai_classification/workflow.js';
 import { composioConversationService } from './composio.conversation.service.js';
 import { logger } from '../../../shared/logger.js';
 import ComposioAuth from './composio.model.js';
-import mongoose from 'mongoose';
+// Removed unused import: import mongoose from 'mongoose';
 
 /**
  * Main service for AI-powered user input classification and tool execution
@@ -13,15 +13,20 @@ import mongoose from 'mongoose';
  */
 export const processUserInputService = async (
   userInput,
-  options = {},
-  req = null
+  options = {}
+  // Removed unused 'req' parameter
 ) => {
   const {
     userId = null,
-    conversationId = null,
+    conversationId = null, // This is the conversationId from options
     history = [],
     isGuest = false,
   } = options;
+
+  // Declare conversation and actualConversationId outside try block
+  // so they are accessible in the catch block for robust error handling.
+  let conversation = null;
+  let actualConversationId = null;
 
   // Generate userId for guest users if not provided
   const effectiveUserId =
@@ -37,25 +42,38 @@ export const processUserInputService = async (
   }
 
   try {
-    console.log(
+    // Replaced console.log with logger.info for consistent logging
+    logger.info(
       `Processing user input: "${userInput}" for user: ${effectiveUserId} (guest: ${isGuest})`
     );
 
     // Handle conversation creation/retrieval
-    const conversation =
+    conversation = // Assign to the outer-scoped variable
       await composioConversationService.handleComposioConversation(
         effectiveUserId,
-        conversationId,
+        conversationId, // Pass the conversationId from options
         userInput,
         isGuest
       );
-    const actualConversationId =
-      conversation.conversationId ||
-      composioConversationService.generateComposioConversationId();
 
-    // Get conversation history for context-aware processing
+    // Bug Fix: Ensure conversation object and its ID are valid.
+    // If handleComposioConversation fails to return a valid conversationId,
+    // it indicates a critical issue in conversation management.
+    // Throwing an error here prevents fragmented conversations or silent failures.
+    if (!conversation || !conversation.conversationId) {
+      logger.error(
+        `handleComposioConversation failed to return a valid conversation object or conversationId for user: ${effectiveUserId}, input conversationId: ${conversationId}`
+      );
+      throw new Error('Failed to establish or retrieve conversation.');
+    }
+
+    actualConversationId = conversation.conversationId; // Assign to the outer-scoped variable
+
+    // Bug Fix: Populate conversation history based on the 'conversation' object's messages,
+    // regardless of whether an initial conversationId was provided in options.
+    // This ensures new conversations also get their initial messages considered for history.
     let conversationHistory = [];
-    if (conversationId && conversation.messages) {
+    if (conversation.messages && conversation.messages.length > 0) {
       // Get last 10 messages for context (excluding the current message)
       conversationHistory = conversation.messages.slice(-10).map((msg) => ({
         role: msg.role,
@@ -79,7 +97,8 @@ export const processUserInputService = async (
     });
 
     if (result.success) {
-      console.log(
+      // Replaced console.log with logger.info
+      logger.info(
         `Successfully processed input. Workflow: ${result.data?.responseMessage?.metadata?.workflowType}`
       );
 
@@ -124,13 +143,15 @@ export const processUserInputService = async (
         data: {
           ...result.data,
           conversationId: actualConversationId,
-          messageCount: conversation.messageCount + 2, // User message + assistant response
+          // Assuming conversation.messageCount is the count before current interaction
+          messageCount: (conversation?.messageCount || 0) + 2, // User message + assistant response
           userType: isGuest ? 'guest' : 'authenticated',
           userId: isGuest ? effectiveUserId : undefined, // Include userId for guest users for frontend tracking
         },
       };
     } else {
-      console.error(`Failed to process input: ${result.error}`);
+      // Replaced console.error with logger.error
+      logger.error(`Failed to process input: ${result.error}`);
 
       // Add error message to conversation
       const errorMessage =
@@ -149,32 +170,48 @@ export const processUserInputService = async (
         data: {
           ...result.data,
           conversationId: actualConversationId,
-          messageCount: conversation.messageCount + 2,
+          // Assuming conversation.messageCount is the count before current interaction
+          messageCount: (conversation?.messageCount || 0) + 2, // User message + assistant response
           userType: isGuest ? 'guest' : 'authenticated',
           userId: isGuest ? effectiveUserId : undefined,
         },
       };
     }
   } catch (error) {
-    console.error('Error in processUserInputService:', error);
+    // Replaced console.error with logger.error
+    logger.error('Error in processUserInputService:', error);
+
+    // Bug Fix: Robust error handling for conversation ID in catch block.
+    // Prioritize actualConversationId if it was successfully determined.
+    // Fallback to options.conversationId if actualConversationId was not set.
+    // If still no ID, attempt to create a new conversation to log the error.
+    let conversationIdForError = actualConversationId;
+    if (!conversationIdForError && conversationId) {
+      conversationIdForError = conversationId;
+    }
+
+    // If no conversationId is available, try to establish one to log the error
+    if (!conversationIdForError && effectiveUserId) {
+      try {
+        const newConversationForError =
+          await composioConversationService.handleComposioConversation(
+            effectiveUserId,
+            null, // Pass null to create a new conversation for error logging
+            userInput,
+            isGuest
+          );
+        conversationIdForError = newConversationForError.conversationId;
+      } catch (convError) {
+        logger.error('Failed to establish new conversation for error logging:', convError);
+        // If we can't even establish a conversation for error logging, proceed without it.
+      }
+    }
 
     // Try to add error to conversation if we have the details
-    let finalConversationId = conversationId;
-    if (effectiveUserId) {
+    if (conversationIdForError && effectiveUserId) {
       try {
-        if (!finalConversationId) {
-          const conversation =
-            await composioConversationService.handleComposioConversation(
-              effectiveUserId,
-              null,
-              userInput,
-              isGuest
-            );
-          finalConversationId = conversation.conversationId;
-        }
-
         await composioConversationService.addComposioErrorMessage(
-          finalConversationId,
+          conversationIdForError,
           effectiveUserId,
           `Sorry, I encountered an unexpected error: ${error.message}`,
           error,
@@ -194,8 +231,11 @@ export const processUserInputService = async (
           text: `Sorry, I encountered an unexpected error while processing your request: ${error.message}`,
           type: 'error',
         },
-        conversationId: finalConversationId,
-        messageCount: 1,
+        conversationId: conversationIdForError,
+        // Bug Fix: Safely access conversation.messageCount.
+        // If conversation was successfully retrieved/created, use its messageCount + 1 (for error message).
+        // Otherwise, default to 1 (representing just the error message itself).
+        messageCount: (conversation && conversation.messageCount !== undefined) ? conversation.messageCount + 1 : 1,
         userType: isGuest ? 'guest' : 'authenticated',
         userId: isGuest ? effectiveUserId : undefined,
       },
@@ -208,8 +248,8 @@ export const processUserInputService = async (
  */
 export const getUserConnectedAccountsService = async (
   userId,
-  status,
-  req = null
+  status
+  // Removed unused 'req' parameter
 ) => {
   try {
     const query = {
@@ -222,14 +262,16 @@ export const getUserConnectedAccountsService = async (
     // to optimize queries filtering by userId and status, and sorting by updatedAt.
     const accounts = await ComposioAuth.find(query).sort({ updatedAt: -1 }).lean();
 
-    console.log(`User connected accounts for ${userId}: ${accounts.length} found (status: ${status || 'ACTIVE'})`);
+    // Replaced console.log with logger.info
+    logger.info(`User connected accounts for ${userId}: ${accounts.length} found (status: ${status || 'ACTIVE'})`);
 
     return {
       success: true,
       data: accounts,
     };
   } catch (error) {
-    console.error('Error in getUserConnectedAccountsService:', error);
+    // Replaced console.error with logger.error
+    logger.error('Error in getUserConnectedAccountsService:', error);
     return {
       success: false,
       error: error.message,
@@ -242,8 +284,8 @@ export const getUserConnectedAccountsService = async (
  */
 export const checkUserConnectionsService = async (
   userId,
-  appName,
-  req = null
+  appName
+  // Removed unused 'req' parameter
 ) => {
   try {
     const normalizedAppName = appName.toLowerCase();
@@ -273,7 +315,8 @@ export const checkUserConnectionsService = async (
       },
     };
   } catch (error) {
-    console.error('Error in checkUserConnectionsService:', error);
+    // Replaced console.error with logger.error
+    logger.error('Error in checkUserConnectionsService:', error);
     return {
       success: false,
       error: error.message,
@@ -287,7 +330,7 @@ export const checkUserConnectionsService = async (
 export const getComposioConversationHistoryService = async (
   userId,
   options = {},
-  req = null
+  req = null // 'req' is used when calling composioConversationService methods
 ) => {
   try {
     const { limit = 20, conversationId = null } = options;
@@ -324,7 +367,8 @@ export const getComposioConversationHistoryService = async (
       };
     }
   } catch (error) {
-    console.error('Error in getComposioConversationHistoryService:', error);
+    // Replaced console.error with logger.error
+    logger.error('Error in getComposioConversationHistoryService:', error);
     return {
       success: false,
       error: error.message,
