@@ -17,6 +17,7 @@ import { conversationHelpers } from '../../utils/conversationHelpers.js'; // Ass
 /**
  * Helper to safely delete a file asynchronously, ignoring 'file not found' errors.
  * @param {string} path - The path to the file to delete.
+ * @returns {Promise<void>} A promise that resolves when the file is deleted or if it didn't exist.
  */
 async function safeUnlink(path) {
   try {
@@ -29,78 +30,11 @@ async function safeUnlink(path) {
 }
 
 /**
- * Smart transcription assistant - unified endpoint for all transcription actions
- * Handles: audio uploads, batch processing, chat messages, and inline audio
- */
-export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
-  const isGuest = req.isGuest || !req.user;
-  let userId = isGuest
-    ? transcriptionService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
-
-  const { message, conversationId } = req.body;
-  userId = req.body.userId || userId;
-
-  // Extract audio files from multer fields
-  const audioFile = req.files?.audio?.[0];
-  const audioFiles = req.files?.audios;
-
-  // Determine action type
-  const actionType = determineActionType(audioFile, audioFiles, message);
-  logger.info(
-    `Smart transcription action: ${actionType}, conversationId: ${conversationId || 'new'}`
-  );
-
-  console.log('Proceeding with action type:', actionType);
-
-  try {
-    switch (actionType) {
-      case 'AUDIO_UPLOAD':
-        return await handleAudioUpload(req, res, userId, isGuest, audioFile);
-
-      case 'BATCH_UPLOAD':
-        return await handleBatchUpload(req, res, userId, isGuest, audioFiles);
-
-      case 'CHAT_MESSAGE':
-        return await handleChatMessage(
-          req,
-          res,
-          userId,
-          isGuest,
-          message,
-          conversationId
-        );
-
-      default:
-        return sendResponse(res, {
-          statusCode: httpStatus.BAD_REQUEST,
-          success: false,
-          message:
-            'Invalid request. Please provide either an audio file or a message.',
-        });
-    }
-  } catch (error) {
-    logger.error('Smart assistant error:', error);
-
-    // Clean up uploaded files on error asynchronously
-    if (audioFile?.path) {
-      await safeUnlink(audioFile.path);
-    }
-    if (audioFiles) {
-      // Use Promise.all to concurrently unlink files
-      await Promise.all(audioFiles.map(file => safeUnlink(file.path)));
-    }
-
-    return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: error.message || 'Failed to process request',
-    });
-  }
-});
-
-/**
- * Determine action type based on request content
+ * Determines the action type based on the presence of audio files or a message.
+ * @param {object | undefined} audioFile - The single audio file object from Multer, if present.
+ * @param {Array<object> | undefined} audioFiles - An array of audio file objects from Multer, if present.
+ * @param {string | undefined} message - The chat message string, if present.
+ * @returns {'BATCH_UPLOAD' | 'AUDIO_UPLOAD' | 'CHAT_MESSAGE' | 'UNKNOWN'} The determined action type.
  */
 function determineActionType(audioFile, audioFiles, message) {
   if (audioFiles && audioFiles.length > 0) return 'BATCH_UPLOAD';
@@ -110,7 +44,21 @@ function determineActionType(audioFile, audioFiles, message) {
 }
 
 /**
- * Handle single audio file upload and processing
+ * Handles the upload and processing of a single audio file.
+ * This function orchestrates the upload to GCS, Gemini File API, audio processing,
+ * and conversation updates.
+ *
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {string} userId - The ID of the user or guest.
+ * @param {boolean} isGuest - True if the user is a guest, false otherwise.
+ * @param {object} audioFile - The audio file object from Multer.
+ * @param {string} audioFile.path - The temporary path of the uploaded file.
+ * @param {string} audioFile.originalname - The original name of the uploaded file.
+ * @param {string} audioFile.mimetype - The MIME type of the uploaded file.
+ * @param {number} audioFile.size - The size of the uploaded file in bytes.
+ * @returns {Promise<void>} A promise that resolves when the audio is processed and a response is sent.
+ * @throws {Error} If any step of the processing fails.
  */
 async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
   const {
@@ -280,7 +228,16 @@ async function handleAudioUpload(req, res, userId, isGuest, audioFile) {
 }
 
 /**
- * Handle batch audio file uploads
+ * Handles the upload and processing of multiple audio files in a batch.
+ * Each file is uploaded to GCS, Gemini File API, processed, and results are aggregated.
+ *
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {string} userId - The ID of the user or guest.
+ * @param {boolean} isGuest - True if the user is a guest, false otherwise.
+ * @param {Array<object>} audioFiles - An array of audio file objects from Multer.
+ * @returns {Promise<void>} A promise that resolves when all audio files are processed and a response is sent.
+ * @throws {Error} If any step of the batch processing fails.
  */
 async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
   const { conversationId, outputFormat = 'text' } = req.body;
@@ -392,7 +349,17 @@ async function handleBatchUpload(req, res, userId, isGuest, audioFiles) {
 }
 
 /**
- * Handle chat messages (questions about previous transcriptions)
+ * Handles chat messages, allowing users to ask questions about previous transcriptions
+ * within a specific conversation context.
+ *
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {string} userId - The ID of the user or guest.
+ * @param {boolean} isGuest - True if the user is a guest, false otherwise.
+ * @param {string} message - The user's chat message.
+ * @param {string} conversationId - The ID of the conversation to which the message belongs.
+ * @returns {Promise<void>} A promise that resolves when the chat message is processed and a response is sent.
+ * @throws {Error} If the conversation is not found or processing fails.
  */
 async function handleChatMessage(
   req,
@@ -512,7 +479,13 @@ async function handleChatMessage(
 }
 
 /**
- * Build context-aware chat prompt
+ * Builds a context-aware prompt for the AI model based on the user's message,
+ * conversation history, and the presence of an audio file URI.
+ *
+ * @param {string} message - The user's current message.
+ * @param {Array<object>} conversationHistory - An array of previous messages in the conversation.
+ * @param {string | null} audioFileUri - The URI of the last audio file uploaded in the conversation, if any.
+ * @returns {string} The constructed prompt string for the AI.
  */
 function buildChatPrompt(message, conversationHistory, audioFileUri) {
   let prompt = '';
@@ -532,7 +505,281 @@ function buildChatPrompt(message, conversationHistory, audioFileUri) {
 }
 
 /**
- * Get transcription statistics
+ * @swagger
+ * /api/v1/transcription/assistant:
+ *   post:
+ *     summary: Smart transcription assistant - unified endpoint for all transcription actions.
+ *     description: |
+ *       This endpoint handles various transcription-related actions based on the request payload:
+ *       - **Single Audio Upload**: Uploads a single audio file for transcription or other processing.
+ *       - **Batch Audio Upload**: Uploads multiple audio files for batch transcription.
+ *       - **Chat Message**: Sends a chat message to an existing conversation, potentially querying previous transcriptions.
+ *
+ *       The `actionType` is determined automatically based on the presence of `audio`, `audios`, or `message` in the request.
+ *     tags:
+ *       - Transcription
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             oneOf:
+ *               - title: Single Audio Upload
+ *                 description: For uploading a single audio file for transcription or other processing.
+ *                 properties:
+ *                   audio:
+ *                     type: string
+ *                     format: binary
+ *                     description: The audio file to upload (e.g., MP3, WAV, M4A). Max size 10MB.
+ *                   prompt:
+ *                     type: string
+ *                     description: An optional prompt or instruction for the AI model.
+ *                   processingType:
+ *                     type: string
+ *                     enum: [TRANSCRIBE, SUMMARIZE, TRANSLATE, ANALYZE]
+ *                     default: TRANSCRIBE
+ *                     description: The type of processing to perform on the audio.
+ *                   startTimestamp:
+ *                     type: number
+ *                     description: Start timestamp in seconds for partial audio processing.
+ *                   endTimestamp:
+ *                     type: number
+ *                     description: End timestamp in seconds for partial audio processing.
+ *                   conversationId:
+ *                     type: string
+ *                     description: Optional ID of an existing conversation to continue.
+ *                   outputFormat:
+ *                     type: string
+ *                     enum: [text, srt, vtt]
+ *                     default: text
+ *                     description: Desired output format for transcription.
+ *                   includeTimestamps:
+ *                     type: boolean
+ *                     default: false
+ *                     description: Whether to include timestamps in the transcription output.
+ *                   userId:
+ *                     type: string
+ *                     description: Optional user ID for guest users to explicitly set/override.
+ *                 required:
+ *                   - audio
+ *               - title: Batch Audio Upload
+ *                 description: For uploading multiple audio files for batch transcription.
+ *                 properties:
+ *                   audios:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       format: binary
+ *                     description: An array of audio files to upload.
+ *                   conversationId:
+ *                     type: string
+ *                     description: Optional ID of an existing conversation to continue.
+ *                   outputFormat:
+ *                     type: string
+ *                     enum: [text, srt, vtt]
+ *                     default: text
+ *                     description: Desired output format for transcription.
+ *                   userId:
+ *                     type: string
+ *                     description: Optional user ID for guest users to explicitly set/override.
+ *                 required:
+ *                   - audios
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             title: Chat Message
+ *             description: For sending a chat message within an existing conversation.
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The chat message from the user.
+ *               conversationId:
+ *                 type: string
+ *                 description: The ID of the conversation to send the message to.
+ *               userId:
+ *                 type: string
+ *                 description: Optional user ID for guest users to explicitly set/override.
+ *             required:
+ *               - message
+ *               - conversationId
+ *     responses:
+ *       200:
+ *         description: Request processed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Audio processed successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     conversationId:
+ *                       type: string
+ *                       example: "65e7a8b9c0d1e2f3a4b5c6d7"
+ *                     userId:
+ *                       type: string
+ *                       example: "user123"
+ *                     result:
+ *                       type: string
+ *                       example: "This is the transcribed text."
+ *                     processingType:
+ *                       type: string
+ *                       example: "TRANSCRIBE"
+ *                     metadata:
+ *                       type: object
+ *                       properties:
+ *                         fileName:
+ *                           type: string
+ *                           example: "audio.mp3"
+ *                         tokenCount:
+ *                           type: number
+ *                           example: 150
+ *                         estimatedDuration:
+ *                           type: number
+ *                           example: 60.5
+ *                     conversationHistory:
+ *                       type: number
+ *                       example: 5
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ * @param {import('express').Request} req - The Express request object, containing audio files (if any) and body parameters.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the request is processed and a response is sent.
+ */
+export const smartTranscriptionAssistant = catchAsync(async (req, res) => {
+  const isGuest = req.isGuest || !req.user;
+  let userId = isGuest
+    ? transcriptionService.generateGuestUserId()
+    : req.user?.userId || req.user?._id;
+
+  const { message, conversationId } = req.body;
+  userId = req.body.userId || userId; // Allow guest users to explicitly provide userId
+
+  // Extract audio files from multer fields
+  const audioFile = req.files?.audio?.[0];
+  const audioFiles = req.files?.audios;
+
+  // Determine action type
+  const actionType = determineActionType(audioFile, audioFiles, message);
+  logger.info(
+    `Smart transcription action: ${actionType}, conversationId: ${conversationId || 'new'}`
+  );
+
+  console.log('Proceeding with action type:', actionType);
+
+  try {
+    switch (actionType) {
+      case 'AUDIO_UPLOAD':
+        return await handleAudioUpload(req, res, userId, isGuest, audioFile);
+
+      case 'BATCH_UPLOAD':
+        return await handleBatchUpload(req, res, userId, isGuest, audioFiles);
+
+      case 'CHAT_MESSAGE':
+        return await handleChatMessage(
+          req,
+          res,
+          userId,
+          isGuest,
+          message,
+          conversationId
+        );
+
+      default:
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message:
+            'Invalid request. Please provide either an audio file or a message.',
+        });
+    }
+  } catch (error) {
+    logger.error('Smart assistant error:', error);
+
+    // Clean up uploaded files on error asynchronously
+    if (audioFile?.path) {
+      await safeUnlink(audioFile.path);
+    }
+    if (audioFiles) {
+      // Use Promise.all to concurrently unlink files
+      await Promise.all(audioFiles.map(file => safeUnlink(file.path)));
+    }
+
+    return sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Failed to process request',
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/transcription/stats:
+ *   get:
+ *     summary: Get transcription statistics for the authenticated user.
+ *     description: Retrieves various statistics related to the user's transcription activities, such as total transcriptions, total duration, etc.
+ *     tags:
+ *       - Transcription
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transcription statistics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Transcription statistics retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalTranscriptions:
+ *                       type: number
+ *                       example: 15
+ *                     totalAudioDurationSeconds:
+ *                       type: number
+ *                       example: 3600
+ *                     averageTranscriptionLength:
+ *                       type: number
+ *                       example: 240
+ *                     lastTranscriptionDate:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2023-10-27T10:00:00Z"
+ *                     # Add more relevant stats here
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the statistics are retrieved and a response is sent.
  */
 export const getTranscriptionStats = catchAsync(async (req, res) => {
   const userId = req.user?.userId || req.user?._id;
@@ -561,6 +808,16 @@ export const getTranscriptionStats = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @typedef {object} TranscriptionController
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} smartTranscriptionAssistant - Unified endpoint for all transcription actions.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getTranscriptionStats - Retrieves transcription statistics for the authenticated user.
+ */
+
+/**
+ * Exports the transcription controller functions.
+ * @type {TranscriptionController}
+ */
 export const transcriptionController = {
   smartTranscriptionAssistant,
   getTranscriptionStats,
