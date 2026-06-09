@@ -4,13 +4,29 @@ import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 import { Composio } from '@composio/core';
 
-// Initialize Composio SDK
+/**
+ * @constant {Composio} composio - An instance of the Composio SDK initialized with the organization's API key.
+ * This instance is used to interact with the Composio platform, specifically for managing connected accounts.
+ */
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
 
 /**
- * Attempts an asynchronous background recovery/refresh cycle for an OAuth connection.
+ * Attempts an asynchronous background recovery/refresh cycle for a specific OAuth connection.
+ * This function fetches the local connection record, logs an audit event, and then attempts
+ * to verify and potentially refresh the connection's status and tokens with the upstream
+ * Composio API. It updates the local connection record based on the upstream status.
+ *
+ * @param {string} connectionId - The unique identifier (MongoDB ObjectId) of the local ComposioAuth connection record.
+ * @param {string} userId - The unique identifier of the user who owns this connection.
+ * @returns {Promise<{ success: boolean, message?: string, error?: string, connection?: object }>} A promise that resolves to an object indicating the success or failure of the recovery attempt.
+ *   - `success`: `true` if the connection was successfully verified and recovered, `false` otherwise.
+ *   - `message`: A success message if `success` is `true`.
+ *   - `error`: An error message if `success` is `false`.
+ *   - `connection`: The updated ComposioAuth connection object if recovery was successful.
+ * @throws {Error} Throws an error if the local connection is not found, if there's no `connectedAccountId` for upstream verification,
+ *   or if the upstream Composio API indicates a non-active status (e.g., 'REVOKED', 'FAILED') requiring re-authentication.
  */
 const attemptAutoRecovery = async (connectionId, userId) => {
   const tStart = Date.now();
@@ -120,7 +136,16 @@ const attemptAutoRecovery = async (connectionId, userId) => {
 };
 
 /**
- * Scans all connected accounts and triggers background refreshes for failed/expired connections.
+ * Scans all connected accounts for a given user and triggers background recovery attempts
+ * for connections that are in a 'EXPIRED', 'FAILED', or 'PENDING' status.
+ * This function initiates `attemptAutoRecovery` for each problematic connection in a fire-and-forget manner.
+ *
+ * @param {string} userId - The unique identifier of the user whose connections are to be checked.
+ * @returns {Promise<{ success: boolean, message: string, recoveredCount: number }>} A promise that resolves to an object indicating the outcome of the heartbeat scan.
+ *   - `success`: `true` if the scan completed, `false` if an error occurred.
+ *   - `message`: A descriptive message about the heartbeat's activity.
+ *   - `recoveredCount`: The number of connections for which recovery cycles were triggered.
+ * @throws {Error} Throws an error if there's a problem querying the database for connections.
  */
 const runHeartbeatRecovery = async (userId) => {
   try {
@@ -151,7 +176,27 @@ const runHeartbeatRecovery = async (userId) => {
   }
 };
 
+/**
+ * @namespace connectionRecoveryService
+ * @description Provides services for managing and recovering Composio OAuth connections.
+ * This service includes functionalities to attempt individual connection recovery and to
+ * run a heartbeat scan across all user connections to identify and trigger recovery for
+ * problematic ones.
+ */
 export const connectionRecoveryService = {
+  /**
+   * @function attemptAutoRecovery
+   * @memberof connectionRecoveryService
+   * @description Attempts an asynchronous background recovery/refresh cycle for a specific OAuth connection.
+   * @see {@link attemptAutoRecovery} for detailed documentation.
+   */
   attemptAutoRecovery,
+  /**
+   * @function runHeartbeatRecovery
+   * @memberof connectionRecoveryService
+   * @description Scans all connected accounts for a given user and triggers background recovery attempts
+   * for connections that are in a 'EXPIRED', 'FAILED', or 'PENDING' status.
+   * @see {@link runHeartbeatRecovery} for detailed documentation.
+   */
   runHeartbeatRecovery,
 };
