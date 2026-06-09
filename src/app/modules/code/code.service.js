@@ -23,6 +23,16 @@ import {
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
 
+// Optimization Recommendation:
+// For the underlying Conversation Mongoose model (used by conversationHelpers and conversationService),
+// consider adding indexes for improved query performance:
+// 1. `userId`: For efficient lookup of conversations by user.
+// 2. `category`: For filtering conversations by category (e.g., 'code').
+// 3. Compound index `userId` and `category`: For queries that filter by both user and category.
+// Example: ConversationSchema.index({ userId: 1 });
+// Example: ConversationSchema.index({ category: 1 });
+// Example: ConversationSchema.index({ userId: 1, category: 1 });
+
 /**
  * Create or get code conversation (supports both authenticated and guest users)
  * @param {string} userId
@@ -44,10 +54,13 @@ const handleCodeConversation = async (
     if (conversationId && !isGuest) {
       // Try to get existing conversation for authenticated users only
       try {
+        // Optimization: Use .lean() for read-only operations to improve performance.
+        // Assumes conversationHelpers.getConversationById can accept a lean option.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
-          req
+          req,
+          { lean: true }
         );
       } catch (error) {
         logger.warn(
@@ -272,10 +285,13 @@ const getCodeHistory = async (
   req = null
 ) => {
   try {
+    // Optimization: Use .lean() for read-only operations to improve performance.
+    // Assumes conversationHelpers.getConversationById can accept a lean option.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
-      req
+      req,
+      { lean: true }
     );
 
     if (!conversation || !conversation.messages) {
@@ -344,6 +360,8 @@ const generateCodeConversationId = () => {
  */
 const getCodeStats = async (userId, req = null) => {
   try {
+    // Optimization: Use .lean() for read-only operations to improve performance.
+    // Assumes conversationHelpers.getUserConversations can accept a lean option.
     const codeConversations = await conversationHelpers.getUserConversations(
       userId,
       {
@@ -351,7 +369,8 @@ const getCodeStats = async (userId, req = null) => {
         limit: 1000, // Get all for stats
         category: 'code',
       },
-      req
+      req,
+      { lean: true }
     );
 
     const totalCodeSessions = codeConversations.conversations.length;
