@@ -8,10 +8,7 @@ const UserValidationSchema = z.object({
     .object({
       email: z
         .string()
-        .email()
-        .refine((value) => value !== undefined, {
-          message: 'Please provide a unique email',
-        }),
+        .email(), // z.string() already implies the value must be a string and not undefined.
       password: z
         .string()
         .min(8, 'Password must be at least 8 characters')
@@ -19,10 +16,7 @@ const UserValidationSchema = z.object({
         .regex(
           /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/,
           'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character'
-        )
-        .refine((value) => value !== undefined, {
-        message: 'Please provide a password',
-      }),
+        ), // z.string() already implies the value must be a string and not undefined.
       confirmPassword: z.string(),
       role: z.enum(userRoleValues).default('unauthorized'),
       profile: z.string().optional(),
