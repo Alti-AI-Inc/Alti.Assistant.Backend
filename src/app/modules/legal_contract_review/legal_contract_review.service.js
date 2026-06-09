@@ -52,6 +52,9 @@ const handleLegalContractReviewConversation = async (
 
     if (conversationId) {
       try {
+        // Optimization Recommendation: For read-only operations like this,
+        // `conversationHelpers.getConversationById` should ideally use `.lean()`
+        // to return a plain JavaScript object, reducing Mongoose overhead.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -79,6 +82,12 @@ const handleLegalContractReviewConversation = async (
             isGuest,
             collectedParams: {},
             uploadedContracts: [],
+          },
+          // Optimization Recommendation: Ensure 'contracts_metadata' is initialized here
+          // if it's intended to be a top-level field for contract storage.
+          contracts_metadata: {
+            contracts: [],
+            currentContractId: null,
           },
         },
         newConversationId,
@@ -221,29 +230,16 @@ const storeContractInConversation = async (
       extractedAt: new Date(),
     };
 
-    // 4. Update conversation metadata
-    const conversation = await conversationHelpers.getConversationById(
-      conversationId,
-      userId,
-      req
-    );
-
-    if (!conversation.metadata.contracts) {
-      conversation.metadata.contracts = [];
-    }
-
-    conversation.metadata.contracts.push(contractData);
-    conversation.metadata.currentContractId = contractData.id;
-
+    // 4. Update conversation metadata directly
+    // Optimization: Instead of fetching the entire conversation document,
+    // modifying it in memory, and then using $set for the whole array,
+    // we can directly use MongoDB's $push and $set operators.
+    // This avoids an unnecessary database read and reduces data transfer.
     await Conversation.updateOne(
       { conversationId },
       {
-        $set: {
-          contracts_metadata: {
-            contracts: conversation.metadata.contracts,
-            currentContractId: contractData.id,
-          },
-        },
+        $push: { 'contracts_metadata.contracts': contractData }, // Add the new contract to the array
+        $set: { 'contracts_metadata.currentContractId': contractData.id }, // Set the current contract ID
       }
     );
 
@@ -691,3 +687,11 @@ export const legalContractReviewService = {
   processConversationalRequest,
   reviewContract,
 };
+
+// Database Indexing Recommendation:
+// For the 'Conversation' model, consider adding a compound index on
+// `{ conversationId: 1, userId: 1 }` to optimize queries that frequently
+// filter by both conversationId and userId, such as `getConversationById`,
+// `addMessageToConversation`, and `updateConversationMetadata`.
+// This can significantly speed up lookup operations.
+// Example: ConversationSchema.index({ conversationId: 1, userId: 1 });
