@@ -3,14 +3,46 @@ import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+/**
+ * The current file's path.
+ * @type {string}
+ */
 const __filename = fileURLToPath(import.meta.url);
+/**
+ * The directory name of the current module.
+ * @type {string}
+ */
 const __dirname = path.dirname(__filename);
 
+/**
+ * The URL from which the Tanakh JSON data will be downloaded.
+ * This data contains biblical texts in both English (JPS) and Hebrew.
+ * @type {string}
+ */
 const URL = 'https://raw.githubusercontent.com/MarkBuffalo/gen-tanakh/main/tanakh.json';
+/**
+ * The directory where processed data files will be stored.
+ * This path is resolved relative to the current module's directory.
+ * @type {string}
+ */
 const DATA_DIR = path.join(__dirname, 'data');
+/**
+ * The output file path for the flattened English (JPS) biblical text.
+ * @type {string}
+ */
 const OUT_JPS = path.join(DATA_DIR, 'flat_jps.json');
+/**
+ * The output file path for the flattened Hebrew biblical text.
+ * @type {string}
+ */
 const OUT_HEB = path.join(DATA_DIR, 'flat_hebrew.json');
 
+/**
+ * A mapping from common book names (as found in the source JSON) to their
+ * standardized three-letter abbreviations (e.g., 'Genesis' -> 'GEN').
+ * This map is used to normalize book codes in the output data.
+ * @type {Object.<string, string>}
+ */
 const bookMap = {
     'Genesis': 'GEN',
     'Exodus': 'EXO',
@@ -53,6 +85,22 @@ const bookMap = {
     'Malachi': 'MAL'
 };
 
+/**
+ * Downloads the Tanakh JSON data from a remote URL, parses it, and then
+ * flattens the biblical text into two separate JSON files: one for English (JPS)
+ * and one for Hebrew. Each verse is stored as an object with book, chapter,
+ * verse number, and text.
+ *
+ * The output files `flat_jps.json` and `flat_hebrew.json` will contain arrays
+ * of objects, each structured as:
+ * `{ book: string, chapter: number, verse: number, text: string }`.
+ *
+ * @async
+ * @function downloadAndParse
+ * @returns {Promise<void>} A promise that resolves when the download, parsing,
+ *   and file writing operations are complete.
+ * @throws {Error} If there is an issue with downloading the data or parsing JSON.
+ */
 async function downloadAndParse() {
     console.log('Downloading Tanakh JSON...');
     
@@ -67,8 +115,21 @@ async function downloadAndParse() {
     console.log('Parsing Tanakh JSON...');
     const data = JSON.parse(rawData);
     
+    /**
+     * Array to store flattened English (JPS) verses.
+     * @type {Array<Object>}
+     */
     const flatJps = [];
+    /**
+     * Array to store flattened Hebrew verses.
+     * @type {Array<Object>}
+     */
     const flatHeb = [];
+
+    // Ensure the data directory exists
+    if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
 
     for (const [bookName, chapters] of Object.entries(data)) {
         let code = bookMap[bookName];
@@ -120,4 +181,5 @@ async function downloadAndParse() {
     console.log(`Successfully flattened ${flatHeb.length} Hebrew verses to ${OUT_HEB}`);
 }
 
+// Execute the download and parse function, catching any potential errors.
 downloadAndParse().catch(console.error);
