@@ -4,6 +4,14 @@ import ComposioAuth from '../../composio_v2/composio.model.js';
 import AuthConfig from '../../composio_v2/authConfig.model.js';
 import { logger } from '../../../../shared/logger.js';
 
+// Recommended indexes for ComposioAuth model:
+// db.composioauths.createIndex({ userId: 1 });
+// db.composioauths.createIndex({ userId: 1, authConfigId: 1 });
+
+// Recommended indexes for AuthConfig model:
+// db.authconfigs.createIndex({ authConfigId: 1 });
+// db.authconfigs.createIndex({ app: 1 }); // For exact matches or prefix searches. For regex, consider text index if full-text search is needed, but a simple index helps with prefix matches.
+
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
@@ -31,7 +39,8 @@ class ConnectionHealthService {
       logger.info(`ConnectionHealth: checking health for user ${userId}`);
 
       // Get all user connections
-      const connections = await ComposioAuth.find({ userId });
+      // Optimization: Added .lean() for performance as these documents are read-only.
+      const connections = await ComposioAuth.find({ userId }).lean();
 
       if (!connections || connections.length === 0) {
         return {
@@ -47,13 +56,22 @@ class ConnectionHealthService {
         };
       }
 
+      // Optimization: N+1 query problem resolution.
+      // Instead of querying AuthConfig for each connection inside the loop,
+      // pre-fetch all necessary AuthConfig documents in a single query.
+      const uniqueAuthConfigIds = [...new Set(connections.map(c => c.authConfigId).filter(Boolean))];
+      // Optimization: Added .lean() for performance as these documents are read-only.
+      const authConfigs = await AuthConfig.find({ authConfigId: { $in: uniqueAuthConfigIds } }).lean();
+      const authConfigMap = new Map(authConfigs.map(ac => [ac.authConfigId, ac]));
+
       const healthy = [];
       const stale = [];
       const expired = [];
       const errors = [];
 
       for (const connection of connections) {
-        const healthCheck = await this._checkSingleConnection(connection);
+        // Pass the pre-fetched map to avoid N+1 queries inside _checkSingleConnection
+        const healthCheck = await this._checkSingleConnection(connection, authConfigMap);
 
         switch (healthCheck.status) {
           case 'healthy':
@@ -106,8 +124,10 @@ class ConnectionHealthService {
   /**
    * Check the health of a single connection.
    * @private
+   * @param {Object} connection - The connection document (Mongoose lean object)
+   * @param {Map<string, Object>} authConfigMap - Pre-fetched map of AuthConfig documents
    */
-  async _checkSingleConnection(connection) {
+  async _checkSingleConnection(connection, authConfigMap) { // Added authConfigMap parameter
     const result = {
       connectedAccountId: connection.connectedAccountId,
       authConfigId: connection.authConfigId,
@@ -120,10 +140,9 @@ class ConnectionHealthService {
 
     try {
       // Resolve app name from AuthConfig if not in toolkit
-      if (result.app === 'unknown') {
-        const authConfig = await AuthConfig.findOne({
-          authConfigId: connection.authConfigId,
-        });
+      if (result.app === 'unknown' && connection.authConfigId) {
+        // Optimization: Use the pre-fetched authConfigMap instead of a new DB query (N+1 resolution).
+        const authConfig = authConfigMap.get(connection.authConfigId);
         if (authConfig) {
           result.app = authConfig.app;
         }
@@ -234,9 +253,10 @@ class ConnectionHealthService {
       logger.info(`ConnectionHealth: refreshing ${appName} for user ${userId}`);
 
       // Find the auth config for this app
+      // Optimization: Added .lean() for performance as this document is read-only.
       const authConfig = await AuthConfig.findOne({
         app: { $regex: new RegExp(appName, 'i') },
-      });
+      }).lean();
 
       if (!authConfig) {
         return {
@@ -246,10 +266,11 @@ class ConnectionHealthService {
       }
 
       // Find existing connection
+      // Optimization: Added .lean() for performance as this document is read-only before update.
       const existingConnection = await ComposioAuth.findOne({
         userId,
         authConfigId: authConfig.authConfigId,
-      });
+      }).lean();
 
       if (!existingConnection) {
         return {
