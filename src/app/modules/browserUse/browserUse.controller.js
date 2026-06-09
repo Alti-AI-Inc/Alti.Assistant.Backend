@@ -6,12 +6,20 @@ import { BrowserUseServices } from './browserUse.service.js';
 
 const runTaskController = catchAsync(async (req, res) => {
   const { prompt, sessionId, structured_output_json } = req.body;
-  const userId = req.user?._id || req.body.userId;
+  // Security Fix: userId must always come from the authenticated user (req.user?._id).
+  // Allowing it from req.body.userId creates an IDOR vulnerability where an attacker
+  // could potentially initiate tasks for other users if not properly authenticated.
+  const userId = req.user?._id;
 
-  if (!prompt || !userId) {
+  if (!userId) {
+    // Ensure the user is authenticated before proceeding.
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
+  }
+
+  if (!prompt) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      'Missing required fields: prompt, userId'
+      'Missing required field: prompt'
     );
   }
 
@@ -33,7 +41,18 @@ const runTaskController = catchAsync(async (req, res) => {
 
 const getTaskStatusController = catchAsync(async (req, res) => {
   const { sessionId, taskId } = req.params;
+  // Security Fix: userId must always come from the authenticated user (req.user?._id).
+  // This userId should be passed to the service layer to ensure the user is authorized
+  // to update the status of this specific task/session, preventing IDOR.
+  const userId = req.user?._id;
+
+  if (!userId) {
+    // Ensure the user is authenticated before proceeding.
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
+  }
+
   const result = await BrowserUseServices.updateTaskStatusService(
+    userId, // Pass userId to the service for authorization
     sessionId,
     taskId,
     req
@@ -48,7 +67,10 @@ const getTaskStatusController = catchAsync(async (req, res) => {
 });
 
 const getUserSessionsController = catchAsync(async (req, res) => {
-  const userId = req.user?._id || req.params.userId;
+  // Security Fix: userId must always come from the authenticated user (req.user?._id).
+  // Allowing it from req.params.userId creates an IDOR vulnerability where an attacker
+  // could potentially retrieve sessions for other users.
+  const userId = req.user?._id;
   if (!userId) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
@@ -64,14 +86,17 @@ const getUserSessionsController = catchAsync(async (req, res) => {
 
 const getSessionByIdController = catchAsync(async (req, res) => {
   const { sessionId } = req.params;
-  const userId = req.user?._id || req.params.userId;
+  // Security Fix: userId must always come from the authenticated user (req.user?._id).
+  // Allowing it from req.params.userId creates an IDOR vulnerability where an attacker
+  // could potentially retrieve sessions for other users.
+  const userId = req.user?._id;
   if (!userId) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated');
   }
 
   const result = await BrowserUseServices.getSessionByIdService(
     sessionId,
-    userId,
+    userId, // Pass userId to the service for authorization
     req
   );
   sendResponse(res, {
