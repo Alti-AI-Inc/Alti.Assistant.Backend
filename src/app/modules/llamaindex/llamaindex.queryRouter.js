@@ -1,16 +1,21 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url'; // Added for __dirname equivalent
 import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
 
+// Get __dirname equivalent for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 /**
  * LlamaIndex Smart Query Router
- * 
+ *
  * Uses historical telemetry data and document characteristics to
  * automatically route queries to the optimal engine. Instead of
  * relying solely on LLM-based classification, this router uses
  * empirical performance data to make routing decisions.
- * 
+ *
  * Engines ranked:
  *   - vector: Standard vector similarity (best for factual lookups)
  *   - hybrid: Vector + keyword fusion (best for mixed queries)
@@ -26,7 +31,12 @@ const ENGINES = [
   'cached', 'objectagent', 'chat',
 ];
 
-const TELEMETRY_DIR = path.resolve('storage/ragsystem/telemetry');
+// Bug Fix: Resolve TELEMETRY_DIR relative to the current file's location
+// This ensures the path is consistent regardless of the process's current working directory.
+// The path C:\Users\hyper\workspace\Alti.Assistant\Alti.Assistant.Backend\src\app\modules\llamaindex\llamaindex.queryRouter.js
+// requires going up 4 levels from 'src/app/modules/llamaindex' to reach 'Alti.Assistant.Backend',
+// then navigating into 'storage/ragsystem/telemetry'.
+const TELEMETRY_DIR = path.resolve(__dirname, '../../../../storage/ragsystem/telemetry');
 const ROUTER_STATE_FILE = path.join(TELEMETRY_DIR, 'router_state.json');
 
 const DOCUMENT_PROFILES = {
@@ -42,11 +52,12 @@ class QueryRouterService {
   constructor() {
     /** @type {Map<string, Object>} Engine performance scores per document profile */
     this.performanceScores = new Map();
-    /** @type {Map<string, number>} Cache hit counts per engine */
-    this.cacheHits = new Map();
+    // Bug Fix: Removed unused 'this.cacheHits' property. Cache hit counts are stored within performanceScores.
     /** @type {number} Total routed queries */
     this.totalRouted = 0;
 
+    // _loadState remains synchronous to ensure state is loaded before the first use
+    // as the constructor cannot be async and await it without changing the service's instantiation pattern.
     this._loadState();
   }
 
@@ -55,7 +66,7 @@ class QueryRouterService {
    * 1. Query profile classification (keyword matching)
    * 2. Semantic Document Metadata lookup (topics, complexity)
    * 3. Historical performance data (latency, quality)
-   * 
+   *
    * @param {string} query - The user's query text
    * @param {Object} [options]
    * @param {string} [options.userId] - User ID for personalized routing
@@ -117,7 +128,7 @@ class QueryRouterService {
 
   /**
    * Record the outcome of a routed query for learning.
-   * 
+   *
    * @param {string} engine - Engine that was used
    * @param {string} profile - Document profile classification
    * @param {Object} metrics - Performance metrics
@@ -146,13 +157,16 @@ class QueryRouterService {
 
     // Persist periodically (every 10 recordings)
     if (existing.count % 10 === 0) {
-      this._saveState();
+      // Performance Fix & Unhandled Promise Fix:
+      // Call _saveState asynchronously without awaiting, but attach a .catch() handler
+      // to prevent unhandled promise rejections and avoid blocking the event loop.
+      this._saveState().catch(err => logger.error('QueryRouter: Error during async state save:', err));
     }
   }
 
   /**
    * Get routing analytics.
-   * 
+   *
    * @returns {Object} Analytics summary
    */
   getAnalytics() {
@@ -287,7 +301,7 @@ class QueryRouterService {
   _buildReasoning(engine, profile, options, userMetadataList) {
     const parts = [];
     parts.push(`Query classified as "${profile.name}" profile`);
-    
+
     if (profile.preferredEngines[0] === engine) {
       parts.push(`"${engine}" is the top-ranked engine for ${profile.name} queries`);
     }
@@ -319,6 +333,8 @@ class QueryRouterService {
    */
   _loadState() {
     try {
+      // _loadState remains synchronous to ensure state is loaded before the first use
+      // as the constructor cannot be async and await it.
       if (fs.existsSync(ROUTER_STATE_FILE)) {
         const data = JSON.parse(fs.readFileSync(ROUTER_STATE_FILE, 'utf8'));
         if (data.performanceScores) {
@@ -336,11 +352,11 @@ class QueryRouterService {
    * Persist router state to disk.
    * @private
    */
-  _saveState() {
+  async _saveState() { // Performance Fix: Made async to prevent blocking the event loop
     try {
-      if (!fs.existsSync(TELEMETRY_DIR)) {
-        fs.mkdirSync(TELEMETRY_DIR, { recursive: true });
-      }
+      // Ensure directory exists. fs.promises.mkdir with recursive: true is idempotent
+      // and handles creation if the directory doesn't exist.
+      await fs.promises.mkdir(TELEMETRY_DIR, { recursive: true });
 
       const state = {
         performanceScores: Object.fromEntries(this.performanceScores),
@@ -348,7 +364,8 @@ class QueryRouterService {
         lastSaved: new Date().toISOString(),
       };
 
-      fs.writeFileSync(ROUTER_STATE_FILE, JSON.stringify(state, null, 2));
+      // Performance Fix: Use async writeFile to prevent blocking the event loop
+      await fs.promises.writeFile(ROUTER_STATE_FILE, JSON.stringify(state, null, 2));
       logger.info('QueryRouter: state persisted');
     } catch (error) {
       logger.warn('QueryRouter: failed to save state:', error.message);
