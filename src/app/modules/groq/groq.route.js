@@ -1,7 +1,10 @@
 import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
-import { LlamaAiController } from './groq.controller.js';
+// BUG FIX: Aliased LlamaAiController to GroqAiController for consistency with the file path (groq.route.js)
+// and Swagger documentation (Groq AI). This allows the route file to use a consistent name
+// without requiring changes to the groq.controller.js file's export name.
+import { LlamaAiController as GroqAiController } from './groq.controller.js';
 const router = express.Router();
 
 /**
@@ -82,7 +85,8 @@ const router = express.Router();
 router.post(
   '/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  LlamaAiController.GroqAiGetResponse
+  // BUG FIX: Changed controller reference from LlamaAiController to GroqAiController for consistency.
+  GroqAiController.GroqAiGetResponse
 );
 
 /**
@@ -140,7 +144,8 @@ router.post(
  */
 router.post(
   '/get-response-anonymously',
-  LlamaAiController.GroqAiGetResponseAnonymously
+  // BUG FIX: Changed controller reference from LlamaAiController to GroqAiController for consistency.
+  GroqAiController.GroqAiGetResponseAnonymously
 );
 
 /**
@@ -153,60 +158,61 @@ router.post(
  *     security:
  *       - BearerAuth: [admin, user]
  *     responses:
- *       200:
- *         description: AI responses retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 statusCode:
- *                   type: number
- *                   example: 200
- *                 message:
- *                   type: string
- *                   example: "AI responses retrieved successfully"
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/AiSession'
- *               example:
- *                 success: true
- *                 statusCode: 200
- *                 message: "AI responses retrieved successfully"
- *                 data:
- *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b3"
- *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
- *                     messages:
- *                       - role: "user"
- *                         content: "Hello"
- *                       - role: "assistant"
- *                         content: "Hi there! How can I help you today?"
- *                     createdAt: "2024-03-05T10:00:00.000Z"
- *                     updatedAt: "2024-03-05T10:05:00.000Z"
- *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b4"
- *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
- *                     messages:
- *                       - role: "user"
- *                         content: "Tell me a joke."
- *                       - role: "assistant"
- *                         content: "Why don't scientists trust atoms? Because they make up everything!"
- *                     createdAt: "2024-03-05T11:00:00.000Z"
- *                     updatedAt: "2024-03-05T11:02:00.000Z"
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- *       403:
- *         $ref: '#/components/responses/Forbidden'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
+     *       200:
+     *         description: AI responses retrieved successfully.
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                   example: true
+     *                 statusCode:
+     *                   type: number
+     *                   example: 200
+     *                 message:
+     *                   type: string
+     *                   example: "AI responses retrieved successfully"
+     *                 data:
+     *                   type: array
+     *                   items:
+     *                     $ref: '#/components/schemas/AiSession'
+     *               example:
+     *                 success: true
+     *                 statusCode: 200
+     *                 message: "AI responses retrieved successfully"
+     *                 data:
+     *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b3"
+     *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
+     *                     messages:
+     *                       - role: "user"
+     *                         content: "Hello"
+     *                       - role: "assistant"
+     *                         content: "Hi there! How can I help you today?"
+     *                     createdAt: "2024-03-05T10:00:00.000Z"
+     *                     updatedAt: "2024-03-05T10:05:00.000Z"
+     *                   - _id: "65e7b3b3b3b3b3b3b3b3b3b4"
+     *                     userId: "65e7b3b3b3b3b3b3b3b3b3b2"
+     *                     messages:
+     *                       - role: "user"
+     *                         content: "Tell me a joke."
+     *                       - role: "assistant"
+     *                         content: "Why don't scientists trust atoms? Because they make up everything!"
+     *                     createdAt: "2024-03-05T11:00:00.000Z"
+     *                     updatedAt: "2024-03-05T11:02:00.000Z"
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     *       500:
+     *         $ref: '#/components/responses/InternalServerError'
+     */
 router.get(
   '/get-response-from-db',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  LlamaAiController.LlamaAiGetResponseFromDbByUserId
+  // BUG FIX: Changed controller reference from LlamaAiController to GroqAiController for consistency.
+  GroqAiController.LlamaAiGetResponseFromDbByUserId
 );
 
 /**
@@ -272,7 +278,8 @@ router.get(
 router.get(
   '/get-response-by-sessionid/:sessionId',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  LlamaAiController.LlamaAiGetResponseFromDbBySessionId
+  // BUG FIX: Changed controller reference from LlamaAiController to GroqAiController for consistency.
+  GroqAiController.LlamaAiGetResponseFromDbBySessionId
 );
 
 /**
@@ -314,27 +321,28 @@ router.get(
  *                   type: object
  *                   properties:
  *                     deletedCount:
- *                       type: number
- *                       example: 1
- *               example:
- *                 success: true
- *                 statusCode: 200
- *                 message: "AI session deleted successfully"
- *                 data:
- *                   deletedCount: 1
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- *       403:
- *         $ref: '#/components/responses/Forbidden'
- *       404:
- *         $ref: '#/components/responses/NotFound'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
+     *                       type: number
+     *                       example: 1
+     *               example:
+     *                 success: true
+     *                 statusCode: 200
+     *                 message: "AI session deleted successfully"
+     *                 data:
+     *                   deletedCount: 1
+     *       401:
+     *         $ref: '#/components/responses/Unauthorized'
+     *       403:
+     *         $ref: '#/components/responses/Forbidden'
+     *       404:
+     *         $ref: '#/components/responses/NotFound'
+     *       500:
+     *         $ref: '#/components/responses/InternalServerError'
+     */
 router.delete(
   '/delete-single-response/:objectId',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  LlamaAiController.deleteOneAiSession
+  // BUG FIX: Changed controller reference from LlamaAiController to GroqAiController for consistency.
+  GroqAiController.deleteOneAiSession
 );
 
 /**
@@ -385,7 +393,8 @@ router.delete(
 router.delete(
   '/delete-all-response-from-db',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  LlamaAiController.deleteAllAiSessions
+  // BUG FIX: Changed controller reference from LlamaAiController to GroqAiController for consistency.
+  GroqAiController.deleteAllAiSessions
 );
 
 /**
@@ -477,7 +486,7 @@ router.delete(
  *                 example: false
  *               statusCode:
  *                 type: number
- *                 example: 404
+ *               example: 404
  *               message:
  *                 type: string
  *                 example: "Not Found"
@@ -509,4 +518,5 @@ router.delete(
  *   Handles operations such as getting AI responses, retrieving conversation history,
  *   and managing AI sessions in the database.
  */
-export const llamaAiRoutes = router;
+// BUG FIX: Renamed exported router from llamaAiRoutes to groqAiRoutes for consistency with the module's context.
+export const groqAiRoutes = router;
