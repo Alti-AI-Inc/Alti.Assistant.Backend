@@ -238,20 +238,24 @@ export const SUCCESS_MESSAGES = {
 
 /**
  * @typedef {object} StorageConfig
- * @property {string} UPLOAD_FOLDER - The base folder name for storing uploaded files.
- * @property {string} TEMP_FOLDER - The temporary folder path for file uploads before processing.
+ * @property {string} UPLOADS_GCS_FOLDER - The GCS folder for storing original uploaded files for translation.
+ * @property {string} OUTPUTS_GCS_FOLDER - The GCS folder for storing translated output files.
  * @property {string} GCS_BUCKET - The Google Cloud Storage bucket name for persistent storage.
  *                                 Defaults to an empty string if not set in environment variables.
  * @property {number} MAX_CACHED_TEXT_SIZE - Maximum size of text content (in bytes) to cache directly in metadata.
+ * @property {number} SIGNED_URL_EXPIRATION_SECONDS - The duration in seconds for which a generated signed URL is valid.
  */
 
 /**
- * Configuration settings for file storage related to translation documents.
+ * Configuration settings for Google Cloud Storage related to translation documents.
+ * All paths are relative to the GCS bucket root. This configuration ensures
+ * that no files are written to the local ephemeral filesystem.
  * @type {StorageConfig}
  */
 export const STORAGE_CONFIG = {
-  UPLOAD_FOLDER: 'translations',
-  TEMP_FOLDER: 'uploads/translations',
+  UPLOADS_GCS_FOLDER: 'translations/uploads',
+  OUTPUTS_GCS_FOLDER: 'translations/outputs',
   GCS_BUCKET: process.env.GCS_BUCKET_NAME || '',
   MAX_CACHED_TEXT_SIZE: 1 * 1024 * 1024, // 1MB text cache limit in documents_metadata
+  SIGNED_URL_EXPIRATION_SECONDS: 15 * 60, // 15 minutes for upload/download URLs
 };
