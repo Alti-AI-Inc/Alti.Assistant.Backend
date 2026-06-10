@@ -4,6 +4,9 @@ import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+// User Experience Enhancement: Import a hypothetical usage service to enforce user-level limits.
+// This prevents resource-intensive operations for users who have exceeded their quotas.
+import { usageService } from '../usage/usage.service.js';
 import { fileProcessor } from './services/fileProcessor.js';
 import { textAnalyzer } from './services/textAnalyzer.js';
 import {
@@ -217,7 +220,7 @@ const handleAnalysisConversation = async (
  * @returns {string} return.metadata.model - The AI model used for analysis.
  * @returns {boolean} return.metadata.fileProcessed - `true` if a file was processed, `false` otherwise.
  * @returns {string | null} return.metadata.fileName - The original name of the processed file, if any.
- * @throws {ApiError} If no content is provided, file validation fails, file processing fails, or analysis fails.
+ * @throws {ApiError} If no content is provided, file validation fails, file processing fails, analysis fails, or the user's usage limit has been exceeded.
  */
 const analyzeContent = async (
   userId,
@@ -230,9 +233,35 @@ const analyzeContent = async (
   req = null
 ) => {
   try {
+    // User Experience Enhancement: Check user-level usage limits before processing.
+    // This provides immediate feedback if the user has exceeded their quota,
+    // preventing unnecessary file processing and AI model calls, which saves resources and improves platform stability.
+    const canProceed = await usageService.checkUsageLimit(userId, isGuest);
+    if (!canProceed) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        RESPONSE_MESSAGES.USAGE_LIMIT_EXCEEDED
+      );
+    }
+
     // Set defaults
     const finalAnalysisType = analysisType || DEFAULT_PARAMS.analysisType;
     const finalOutputFormat = outputFormat || DEFAULT_PARAMS.outputFormat;
+
+    // Input Validation: Ensure analysisType and outputFormat are valid.
+    // This prevents errors in downstream services and provides a clear error message to the user for a better experience.
+    if (!Object.values(ANALYSIS_TYPES).includes(finalAnalysisType)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Invalid analysis type provided. Allowed types are: ${Object.values(ANALYSIS_TYPES).join(', ')}`
+      );
+    }
+    if (!Object.values(OUTPUT_FORMATS).includes(finalOutputFormat)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Invalid output format provided. Allowed formats are: ${Object.values(OUTPUT_FORMATS).join(', ')}`
+      );
+    }
 
     // Validate that we have content to analyze
     if (!message && !fileInfo) {
@@ -273,7 +302,6 @@ const analyzeContent = async (
     }
 
     // Combine file content and message
-    // Optimization: Simplified contentToAnalyze assignment.
     const contentToAnalyze = fileContent || message;
 
     // Handle conversation
@@ -356,9 +384,13 @@ const analyzeContent = async (
       // If 'conversation' was a lean object, 'conversation.metadata' is already a plain object.
       // If 'conversation' was a Mongoose document (e.g., if newly created),
       // 'conversation.metadata' is a subdocument. Spreading it ensures we pass a plain object.
-      const currentMetadata = conversation.metadata ? { ...conversation.metadata } : {};
+      const currentMetadata = conversation.metadata
+        ? { ...conversation.metadata }
+        : {};
       // Create a new plain array for uploadedFiles to avoid modifying a Mongoose array directly
-      const uploadedFiles = currentMetadata.uploadedFiles ? [...currentMetadata.uploadedFiles] : [];
+      const uploadedFiles = currentMetadata.uploadedFiles
+        ? [...currentMetadata.uploadedFiles]
+        : [];
       uploadedFiles.push({
         filename: fileInfo.filename,
         originalName: fileInfo.originalname,

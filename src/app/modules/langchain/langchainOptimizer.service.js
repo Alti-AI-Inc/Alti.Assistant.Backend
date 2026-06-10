@@ -1,16 +1,18 @@
 import mongoose from 'mongoose';
+import httpStatus from 'http-status';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import LangchainChain from './langchain-chain.model.js';
 import LangchainExecution from './langchain-execution.model.js';
+import ApiError from '../../../core/ApiError.js';
 
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
  * Automatically audits custom chain runs and queries Google Gemini to suggest prompt and structure improvements.
  * Supports multi-tenant isolation, role-based access control (RBAC), usage limit enforcement, and notification propagation.
- * 
+ *
  * @param {string} chainId - The ID of the chain to optimize.
  * @param {Object|string} userContext - The current user object or user ID.
  */
@@ -20,7 +22,7 @@ const optimizeChain = async (chainId, userContext) => {
     logger.info({
       severity: 'INFO',
       message: `LangchainOptimizer: running diagnostics on chain ${chainId}`,
-      chainId
+      chainId,
     });
 
     // Resolve user context and fetch full user details if only ID is provided
@@ -32,14 +34,16 @@ const optimizeChain = async (chainId, userContext) => {
     if (typeof userContext === 'string') {
       currentUser = await User.findById(userContext).lean();
       if (!currentUser) {
-        throw new Error(`User not found: ${userContext}`);
+        // Use ApiError for standardized HTTP responses
+        throw new ApiError(httpStatus.NOT_FOUND, `User not found: ${userContext}`);
       }
     } else if (userContext && typeof userContext === 'object') {
       currentUser = userContext;
     }
 
     if (!currentUser) {
-      throw new Error('Unauthorized: User context is required for optimization.');
+      // Use ApiError for standardized HTTP responses
+      throw new ApiError(httpStatus.UNAUTHORIZED, 'Unauthorized: User context is required for optimization.');
     }
 
     const userId = currentUser._id || currentUser.id;
@@ -49,7 +53,8 @@ const optimizeChain = async (chainId, userContext) => {
     // Fetch the chain
     const chain = await LangchainChain.findById(chainId).lean();
     if (!chain) {
-      throw new Error(`LangChain chain not found: ${chainId}`);
+      // Use ApiError for standardized HTTP responses
+      throw new ApiError(httpStatus.NOT_FOUND, `LangChain chain not found: ${chainId}`);
     }
 
     // 1. Tenant Boundary & RBAC Validation
@@ -63,23 +68,24 @@ const optimizeChain = async (chainId, userContext) => {
           userId,
           chainId,
           tenantId: tenantId ? tenantId.toString() : null,
-          chainTenantId: chain.tenantId ? chain.tenantId.toString() : null
+          chainTenantId: chain.tenantId ? chain.tenantId.toString() : null,
         });
-        throw new Error('Unauthorized: Access denied to this resource.');
+        // Use ApiError for standardized HTTP responses
+        throw new ApiError(httpStatus.FORBIDDEN, 'Unauthorized: Access denied to this resource.');
       }
 
       // Role-specific access control
       if (userRole === 'user') {
         // Regular users can only optimize their own chains
         if (chain.userId && chain.userId.toString() !== userId.toString()) {
-          throw new Error('Unauthorized: You can only optimize your own chains.');
+          throw new ApiError(httpStatus.FORBIDDEN, 'Unauthorized: You can only optimize your own chains.');
         }
       } else if (userRole === 'manager') {
         // Managers can optimize their own chains or chains belonging to users they manage
         if (chain.userId && chain.userId.toString() !== userId.toString()) {
           const chainOwner = await User.findById(chain.userId).select('managerId').lean();
           if (!chainOwner || !chainOwner.managerId || chainOwner.managerId.toString() !== userId.toString()) {
-            throw new Error('Unauthorized: Managers can only optimize chains of their direct reports.');
+            throw new ApiError(httpStatus.FORBIDDEN, 'Unauthorized: Managers can only optimize chains of their direct reports.');
           }
         }
       }
@@ -91,7 +97,8 @@ const optimizeChain = async (chainId, userContext) => {
       // OPTIMIZATION: Use .lean() for read-only operations to improve performance.
       const tenant = await Tenant.findById(tenantId).lean();
       if (!tenant) {
-        throw new Error('Tenant context not found.');
+        // This indicates a data integrity issue, which is an internal server error.
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Tenant context not found.');
       }
 
       // Check if tenant has reached AI optimization limits
@@ -110,14 +117,22 @@ const optimizeChain = async (chainId, userContext) => {
             message: `Tenant ${tenant.name || tenantId} has reached its AI optimization limit (${limit}).`,
             type: 'warning',
           }));
-          await Notification.insertMany(notifications);
+          // Fire-and-forget notification creation to not block the user response, but log any errors.
+          Notification.insertMany(notifications).catch(err => {
+            logger.error({
+              severity: 'ERROR',
+              message: `Failed to create 'limit exceeded' notifications for tenant ${tenantId}`,
+              error: err.stack || err.toString(),
+              tenantId,
+            });
+          });
         }
-        throw new Error('Usage limit exceeded: Your workspace has reached its AI optimization limit.');
+        throw new ApiError(httpStatus.FORBIDDEN, 'Usage limit exceeded: Your workspace has reached its AI optimization limit.');
       }
 
       // Increment usage count
       await Tenant.findByIdAndUpdate(tenantId, {
-        $inc: { 'aiUsage.optimizationCount': 1 }
+        $inc: { 'aiUsage.optimizationCount': 1 },
       });
     }
 
@@ -245,7 +260,7 @@ Return your output as a clean, structured JSON object following this exact schem
 
 Ensure your response is raw JSON only, with no markdown styling or wrapping backticks.`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: optimizationPrompt }] }],
       generationConfig: {
@@ -254,24 +269,44 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
       },
     });
 
-    const cleanText = result.response.text().trim();
-    const suggestions = JSON.parse(cleanText);
+    let suggestions;
+    try {
+      // Robustly parse the JSON response from the AI model
+      const cleanText = result.response.text().trim();
+      suggestions = JSON.parse(cleanText);
+    } catch (parseError) {
+      // Log the raw response for debugging if JSON parsing fails
+      logger.error({
+        severity: 'ERROR',
+        message: 'LangchainOptimizer: Failed to parse JSON response from Gemini.',
+        chainId,
+        rawResponse: result.response.text(),
+        error: parseError.stack || parseError.toString(),
+      });
+      // Inform the user that the AI response was malformed
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to parse optimization suggestions from the AI model. The model may have returned an invalid format.');
+    }
 
     // 3. Propagate Notifications to Managers and Admins
     if (userRole !== 'super_admin' && tenantId) {
+      const notificationPromises = [];
       // Notify manager if exists
       if (currentUser.managerId) {
-        await Notification.create({
-          recipientId: currentUser.managerId,
-          title: 'Chain Optimized by Team Member',
-          message: `User ${currentUser.name || userId} optimized chain "${chain.name}" with success rate ${successRate}%.`,
-          type: 'info',
-        });
+        notificationPromises.push(
+          Notification.create({
+            recipientId: currentUser.managerId,
+            title: 'Chain Optimized by Team Member',
+            message: `User ${currentUser.name || userId} optimized chain "${chain.name}" with success rate ${successRate}%.`,
+            type: 'info',
+          }),
+        );
       }
 
       // Notify tenant admins
       // OPTIMIZATION: The recommended compound index on { tenantId: 1, role: 1 } in the User model also benefits this query.
-      const admins = await User.find({ tenantId, role: 'admin', _id: { $ne: userId } }).select('_id').lean();
+      const admins = await User.find({ tenantId, role: 'admin', _id: { $ne: userId } })
+        .select('_id')
+        .lean();
       // OPTIMIZATION: Use insertMany to avoid N+1 query problem when creating multiple notifications.
       if (admins.length > 0) {
         const notifications = admins.map(admin => ({
@@ -280,8 +315,19 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
           message: `Optimization completed for chain "${chain.name}" in your workspace.`,
           type: 'info',
         }));
-        await Notification.insertMany(notifications);
+        notificationPromises.push(Notification.insertMany(notifications));
       }
+
+      // Execute all notification creations in parallel and log any failures without blocking the main response.
+      Promise.all(notificationPromises).catch(err => {
+        logger.error({
+          severity: 'ERROR',
+          message: `Failed to create optimization notifications for chain ${chainId}`,
+          error: err.stack || err.toString(),
+          chainId,
+          tenantId,
+        });
+      });
     }
 
     return {
@@ -298,11 +344,19 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
     // Structured log for GCP Cloud Logging compatibility
     logger.error({
       severity: 'ERROR',
-      message: `LangchainOptimizer error: ${err.message}`,
+      message: `LangchainOptimizer error on chain ${chainId}: ${err.message}`,
       error: err.stack || err.toString(),
-      chainId
+      chainId,
+      userId: userContext?._id || (typeof userContext === 'string' ? userContext : 'unknown'),
     });
-    throw new Error(`Failed to generate chain optimizations: ${err.message}`);
+
+    // Re-throw ApiError instances to be handled by the global error middleware
+    if (err instanceof ApiError) {
+      throw err;
+    }
+
+    // Wrap other unexpected errors in a generic internal server error
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An unexpected error occurred while optimizing the chain.');
   }
 };
 
