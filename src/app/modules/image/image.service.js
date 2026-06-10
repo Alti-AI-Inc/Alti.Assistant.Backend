@@ -90,9 +90,15 @@ const handleImageConversation = async (
           userId, // Pass the actual userId (guest or authenticated)
           queryOptions // Pass only Mongoose-specific query options
         );
-        console.log(
-          `Found existing conversation ${conversationId} for user ${userId}`
-        );
+
+        if (!conversation) {
+          // If conversation is null, generate a new ID to avoid ID collisions or reusing an invalid ID.
+          newConversationIdToCreate = generateImageConversationId();
+        } else {
+          console.log(
+            `Found existing conversation ${conversationId} for user ${userId}`
+          );
+        }
       } catch (error) {
         logger.warn(
           `Conversation ${conversationId} not found or not matching criteria for user ${userId}, creating new one. Error: ${error.message}`
@@ -118,14 +124,15 @@ const handleImageConversation = async (
     if (!conversation) {
       // Use the newly generated ID. This will be set if no conversationId was provided
       // or if a provided conversationId failed to yield an existing conversation.
-      const finalConversationId = newConversationIdToCreate;
+      const finalConversationId = newConversationIdToCreate || generateImageConversationId();
+      const safeTitle = imageQuery ? `${imageQuery.substring(0, 50)}...` : 'New Image Assistant Chat';
 
       if (isGuest) {
         // For guest users, create a conversation in the database but mark it as guest
         conversation = await conversationService.createConversation(
           {
             userId,
-            title: `Image: ${imageQuery.substring(0, 50)}...`,
+            title: `Image: ${safeTitle}`,
             metadata: {
               category: 'image',
               model: 'image-assistant',
@@ -143,7 +150,7 @@ const handleImageConversation = async (
         conversation = await conversationService.createConversation(
           {
             userId,
-            title: `Image: ${imageQuery.substring(0, 50)}...`,
+            title: `Image: ${safeTitle}`,
             metadata: {
               category: 'image',
               model: 'image-assistant',
@@ -303,9 +310,9 @@ const addErrorMessage = async (
           messageType: 'error',
           timestamp: new Date().toISOString(),
           error: {
-            message: error.message,
+            message: error?.message || 'Unknown error',
             stack:
-              process.env.NODE_ENV === 'development' ? error.stack : undefined,
+              process.env.NODE_ENV === 'development' ? error?.stack : undefined,
           },
         },
       },
@@ -351,7 +358,7 @@ const getGuestConversations = async (guestUserId, req = null) => {
     );
 
     // No need for client-side filtering as it's handled by the DB query
-    const guestConversations = conversations.conversations || [];
+    const guestConversations = conversations?.conversations || [];
 
     logger.info(
       `Retrieved ${guestConversations.length} guest conversations for user ${guestUserId}`
@@ -433,7 +440,7 @@ const getImageStats = async (userId, req = null) => {
     // Calculate total messages across all image conversations
     let totalMessages = 0;
     let totalImages = 0;
-    const conversations = imageConversations.conversations || [];
+    const conversations = imageConversations?.conversations || [];
 
     // OPTIMIZATION: Use a standard for-loop for maximum performance over large arrays
     for (let i = 0; i < conversations.length; i++) {
@@ -444,12 +451,12 @@ const getImageStats = async (userId, req = null) => {
     }
 
     const stats = {
-      totalConversations: imageConversations.totalCount || conversations.length,
+      totalConversations: imageConversations?.totalCount || conversations.length,
       totalMessages,
       totalImages,
       averageMessagesPerConversation:
-        imageConversations.totalCount > 0
-          ? (totalMessages / imageConversations.totalCount).toFixed(2)
+        (imageConversations?.totalCount || conversations.length) > 0
+          ? (totalMessages / (imageConversations?.totalCount || conversations.length)).toFixed(2)
           : 0,
       lastActivity: conversations[0]?.lastActivity || null,
     };
@@ -499,6 +506,15 @@ const validateImageData = (imageData) => {
     if (imageData.startsWith('data:image/')) {
       const base64Pattern = /^data:image\/(png|jpeg|jpg|gif|bmp|webp);base64,/;
       if (base64Pattern.test(imageData)) {
+        // OPTIMIZATION: Prevent high memory usage and potential crashes by enforcing a size limit on base64 payloads (e.g., 10MB)
+        const sizeInBytes = (imageData.length * 3) / 4;
+        const maxSizeBytes = 10 * 1024 * 1024; // 10MB limit
+        if (sizeInBytes > maxSizeBytes) {
+          return {
+            isValid: false,
+            error: 'Image size exceeds the maximum limit of 10MB',
+          };
+        }
         return {
           isValid: true,
           type: 'base64',

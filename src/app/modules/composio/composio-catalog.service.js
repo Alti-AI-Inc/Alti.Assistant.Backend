@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 import ComposioRepository from './composio-repository.model.js';
 
@@ -9,6 +9,13 @@ const __dirname = path.dirname(__filename);
 
 const CATALOG_PATH = path.join(__dirname, '../../../../output/composio-license-catalog.json');
 const ROOT_DIR = path.join(__dirname, '../../../../..');
+
+/**
+ * Helper to escape special characters in a string for use in a regular expression.
+ */
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 
 /**
  * Searches the MongoDB ComposioRepository collection.
@@ -35,21 +42,21 @@ const searchComposioCatalog = async (query = '', options = {}) => {
 
     // Filter by License (MIT or Apache 2.0)
     if (options.license) {
-      const lowerLicense = options.license.toLowerCase();
+      const lowerLicense = String(options.license).toLowerCase();
       filter.license = lowerLicense === 'mit' ? 'MIT' : 'Apache 2.0';
     }
 
     // Filter by Language
     if (options.language) {
-      // Corrected regex string: The original prompt had an extraneous string inserted here.
-      filter.language = new RegExp(`^${options.language}`, 'i');
+      const escapedLanguage = escapeRegExp(String(options.language));
+      filter.language = new RegExp(`^${escapedLanguage}`, 'i');
     }
 
     let queryBuilder;
 
     if (query) {
       const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'composio', 'a', 'of', 'in', 'for', 'with', 'on', 'how', 'to', 'find', 'get', 'list', 'search', 'what', 'is', 'are', 'any', 'some', 'about']);
-      const queryWords = query.toLowerCase()
+      const queryWords = String(query).toLowerCase()
         .replace(/[^\w\s-]/g, ' ')
         .split(/\s+/)
         .filter(word => word.length > 2 && !stopWords.has(word));
@@ -61,20 +68,26 @@ const searchComposioCatalog = async (query = '', options = {}) => {
           .sort({ score: { $meta: 'textScore' }, stars: -1 });
       } else {
         // Fallback to basic case-insensitive regex match if query only consists of stopwords
+        const escapedQuery = escapeRegExp(String(query));
         filter.$or = [
-          { name: { $regex: query, $options: 'i' } },
-          { description: { $regex: query, $options: 'i' } }
+          { name: { $regex: escapedQuery, $options: 'i' } },
+          { description: { $regex: escapedQuery, $options: 'i' } }
         ];
         queryBuilder = ComposioRepository.find(filter).sort({ stars: -1 });
       }
     } else {
-      const sortBy = options.sortBy || 'stars';
+      const allowedSortFields = ['stars', 'forks', 'name'];
+      const sortBy = allowedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
       queryBuilder = ComposioRepository.find(filter).sort({ [sortBy]: -1 });
     }
 
     // Pagination
-    const limit = options.limit ? parseInt(options.limit) : 20;
-    const page = options.page ? parseInt(options.page) : 1;
+    let limit = parseInt(options.limit, 10);
+    if (isNaN(limit) || limit <= 0) limit = 20;
+
+    let page = parseInt(options.page, 10);
+    if (isNaN(page) || page <= 0) page = 1;
+
     const startIndex = (page - 1) * limit;
 
     const total = await ComposioRepository.countDocuments(filter);
@@ -101,7 +114,7 @@ const searchComposioCatalog = async (query = '', options = {}) => {
  * Programmatically triggers the Git submodule import command to register a Composio repo.
  */
 const importComposioSubmodule = async (repoName) => {
-  if (!repoName) {
+  if (!repoName || typeof repoName !== 'string') {
     throw new Error('Repository name is required for import.');
   }
 
@@ -126,8 +139,34 @@ const importComposioSubmodule = async (repoName) => {
     };
   }
 
+  // Validate repository name to prevent directory traversal and command injection
+  if (!match.name || typeof match.name !== 'string' || !/^[a-zA-Z0-9_.-]+$/.test(match.name)) {
+    return {
+      success: false,
+      message: 'Invalid repository name format.'
+    };
+  }
+
+  // Validate clone URL to prevent command/argument injection
+  const gitUrlRegex = /^(https:\/\/|git@)([a-zA-Z0-9._-]+)(:\d+)?[\/:]([a-zA-Z0-9._-]+)\/([a-zA-Z0-9._-]+)(\.git)?$/;
+  if (!match.clone_url || typeof match.clone_url !== 'string' || !gitUrlRegex.test(match.clone_url)) {
+    return {
+      success: false,
+      message: 'Invalid repository clone URL format.'
+    };
+  }
+
   const submodulePath = `external/composio/${match.name}`;
   const localComposioPath = path.join(ROOT_DIR, 'external/composio');
+
+  // Verify resolved path is within the expected directory to prevent directory traversal
+  const resolvedSubmodulePath = path.resolve(ROOT_DIR, submodulePath);
+  if (!resolvedSubmodulePath.startsWith(path.resolve(localComposioPath))) {
+    return {
+      success: false,
+      message: 'Invalid repository path resolution.'
+    };
+  }
 
   return new Promise((resolve) => {
     // fs.existsSync and fs.mkdirSync are synchronous operations.
@@ -139,8 +178,11 @@ const importComposioSubmodule = async (repoName) => {
     }
 
     console.log(`Programmatic import: git submodule add ${match.clone_url} ${submodulePath}`);
-    exec(
-      `git submodule add ${match.clone_url} ${submodulePath}`,
+    
+    // Use execFile instead of exec to prevent shell command injection
+    execFile(
+      'git',
+      ['submodule', 'add', match.clone_url, submodulePath],
       { cwd: ROOT_DIR },
       (error, stdout, stderr) => {
         if (error) {
