@@ -32,77 +32,79 @@ import PlatformConfig from '../platform/platformConfig.model.js';
  *                     or if an internal server error occurs.
  */
 const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
-  // PLATFORM_OWNER_FEATURE: Fetch user details and global platform configuration concurrently for efficiency.
-  // This allows checking user status, role for overrides, and applying dynamic system-wide settings.
-  const [user, platformConfig] = await Promise.all([
-    UserModel.findById(userId).select('status role').lean(),
-    PlatformConfig.findOne({}).lean(), // Assuming a singleton document for platform settings.
-  ]);
-
-  // PLATFORM_OWNER_FEATURE: Enforce tenant/user suspension.
-  // A Platform Owner can suspend a user, and this check ensures they cannot use the service.
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
-  }
-  if (user.status === 'suspended') {
-    throw new ApiError(
-      httpStatus.FORBIDDEN,
-      'Your account is suspended. Please contact support.'
-    );
-  }
-
-  let chatHistoryInstance = new InMemoryChatMessageHistory();
-
-  // OPTIMIZATION: Added `.lean()` to avoid Mongoose document instantiation overhead.
-  // Ensure an index exists on the schema: ChatHistorySchema.index({ user: 1, sessionId: 1 });
-  let llamaSession = await ChatHistory.findOne({
-    user: userId,
-    sessionId,
-  }).lean();
-
-  if (
-    llamaSession &&
-    llamaSession.responses &&
-    llamaSession.responses.length > 0
-  ) {
-    // OPTIMIZATION: Batch add messages to memory instead of awaiting in a sequential loop.
-    const messages = [];
-    for (const response of llamaSession.responses) {
-      messages.push(new HumanMessage(response.prompt));
-      messages.push(new AIMessage(response.reply));
-    }
-    await chatHistoryInstance.addMessages(messages);
-    // PLATFORM_OWNER_LOGGING: Enhanced logging with user and session context for global oversight.
-    logger.info(
-      `Loaded existing chat history from DB for user: ${userId}, sessionId: ${sessionId}`
-    );
-  } else {
-    logger.info(
-      `No existing chat history found for user: ${userId}, sessionId: ${sessionId}. Starting new memory.`
-    );
-  }
-
-  const memory = new BufferMemory({
-    returnMessages: true,
-    memoryKey: 'history',
-    chatHistory: chatHistoryInstance,
-  });
-
-  // PLATFORM_OWNER_FEATURE: Use dynamically configured model settings from the database.
-  // This allows the Platform Owner to change the AI model or its parameters for all users without a code deployment.
-  // Fallback to environment config if no database config is found.
-  const modelName = platformConfig?.ai?.defaultModel || 'gemini-2.5-flash';
-  const modelTemperature = platformConfig?.ai?.temperature ?? 0.7;
-
-  const model = new ChatGoogleGenerativeAI({
-    model: modelName,
-    temperature: modelTemperature,
-    apiKey: config.gemini_secret_key,
-  });
-
-  const chain = new ConversationChain({ llm: model, memory });
-
+  // A single try...catch block wraps the entire service function to ensure all async operations
+  // and potential errors are caught, logged, and handled gracefully.
   try {
+    // PLATFORM_OWNER_FEATURE: Fetch user details and global platform configuration concurrently for efficiency.
+    // This allows checking user status, role for overrides, and applying dynamic system-wide settings.
+    const [user, platformConfig] = await Promise.all([
+      UserModel.findById(userId).select('status role').lean(),
+      PlatformConfig.findOne({}).lean(), // Assuming a singleton document for platform settings.
+    ]);
+
+    // PLATFORM_OWNER_FEATURE: Enforce tenant/user suspension.
+    // A Platform Owner can suspend a user, and this check ensures they cannot use the service.
+    if (!user) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
+    }
+    if (user.status === 'suspended') {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        'Your account is suspended. Please contact support.'
+      );
+    }
+
+    let chatHistoryInstance = new InMemoryChatMessageHistory();
+
+    // OPTIMIZATION: Added `.lean()` to avoid Mongoose document instantiation overhead.
+    // Ensure an index exists on the schema: ChatHistorySchema.index({ user: 1, sessionId: 1 });
+    let llamaSession = await ChatHistory.findOne({
+      user: userId,
+      sessionId,
+    }).lean();
+
+    if (
+      llamaSession &&
+      llamaSession.responses &&
+      llamaSession.responses.length > 0
+    ) {
+      // OPTIMIZATION: Batch add messages to memory instead of awaiting in a sequential loop.
+      const messages = [];
+      for (const response of llamaSession.responses) {
+        messages.push(new HumanMessage(response.prompt));
+        messages.push(new AIMessage(response.reply));
+      }
+      await chatHistoryInstance.addMessages(messages);
+      // PLATFORM_OWNER_LOGGING: Enhanced logging with user and session context for global oversight.
+      logger.info(
+        `Loaded existing chat history from DB for user: ${userId}, sessionId: ${sessionId}`
+      );
+    } else {
+      logger.info(
+        `No existing chat history found for user: ${userId}, sessionId: ${sessionId}. Starting new memory.`
+      );
+    }
+
+    const memory = new BufferMemory({
+      returnMessages: true,
+      memoryKey: 'history',
+      chatHistory: chatHistoryInstance,
+    });
+
+    // PLATFORM_OWNER_FEATURE: Use dynamically configured model settings from the database.
+    // This allows the Platform Owner to change the AI model or its parameters for all users without a code deployment.
+    // Fallback to environment config if no database config is found.
+    const modelName = platformConfig?.ai?.defaultModel || 'gemini-2.5-flash';
+    const modelTemperature = platformConfig?.ai?.temperature ?? 0.7;
+
+    const model = new ChatGoogleGenerativeAI({
+      model: modelName,
+      temperature: modelTemperature,
+      apiKey: config.gemini_secret_key,
+    });
+
+    const chain = new ConversationChain({ llm: model, memory });
+
     const res1 = await chain.invoke({ input: prompt });
     const reply = res1?.response || 'No reply generated';
 
@@ -182,8 +184,9 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
       error
     );
     if (error instanceof ApiError) {
-      throw error;
+      throw error; // Re-throw controlled, client-safe errors.
     }
+    // For unexpected errors, throw a generic internal server error to avoid leaking implementation details.
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'AI service failed.');
   }
 };

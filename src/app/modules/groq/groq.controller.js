@@ -1,3 +1,12 @@
+/**
+ * @file Groq AI Controller
+ * @module modules/groq/groq.controller
+ * @description This file contains the Express controller functions for handling all AI-related interactions
+ * with the Groq service (which internally uses Google Gemini). It includes endpoints for authenticated
+ * and anonymous chat, as well as session management (retrieval and deletion).
+ * All controller functions are wrapped with an async error handler (`catchAsync`).
+ */
+
 import { randomUUID } from 'crypto';
 import httpStatus from 'http-status';
 import catchAsync from '../../../shared/catchAsync.js';
@@ -83,6 +92,14 @@ import validatePromptRequest from '../../../shared/validatePromptRequest.js';
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Controller to handle AI prompt requests from authenticated users.
+ * It validates the incoming request, calls the underlying AI service with the user's prompt,
+ * user ID, and session ID, and then sends the AI-generated response back to the client.
+ * @param {import('express').Request} req - The Express request object, containing the prompt, userId, and sessionId in the body.
+ * @param {import('express').Response} res - The Express response object used to send the response.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
+ */
 const GroqAiGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId } = await validatePromptRequest(req);
   logger.info('✅ Request received at /groq:', req.body); // log incoming request
@@ -160,6 +177,14 @@ const GroqAiGetResponse = catchAsync(async (req, res) => {
  *         $ref: '#/components/responses/BadRequest'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Controller to handle AI prompt requests from anonymous users.
+ * It validates the prompt, generates a new session ID if one is not provided,
+ * calls the underlying AI service, and sends the response back to the client.
+ * @param {import('express').Request} req - The Express request object, containing the prompt and an optional sessionId in the body.
+ * @param {import('express').Response} res - The Express response object used to send the response.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
 const GroqAiGetResponseAnonymously = catchAsync(async (req, res) => {
   // Validate prompt input for robustness
@@ -244,6 +269,14 @@ const GroqAiGetResponseAnonymously = catchAsync(async (req, res) => {
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Controller to retrieve all AI chat sessions for the currently authenticated user.
+ * It extracts the user ID from the request object (populated by authentication middleware),
+ * fetches all associated sessions from the database via the service layer, and returns them.
+ * @param {import('express').Request} req - The Express request object. Expects `req.user._id` to be populated by auth middleware.
+ * @param {import('express').Response} res - The Express response object used to send the response.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
 const LlamaAiGetResponseFromDbByUserId = catchAsync(async (req, res) => {
   const userId = req.user?._id;
@@ -346,6 +379,14 @@ const LlamaAiGetResponseFromDbByUserId = catchAsync(async (req, res) => {
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Controller to retrieve all messages within a specific chat session.
+ * It requires both a session ID from the URL parameters and a user ID from the authenticated user's token.
+ * This ensures that a user can only access their own chat sessions.
+ * @param {import('express').Request} req - The Express request object, containing sessionId in params. Expects `req.user._id` to be populated by auth middleware.
+ * @param {import('express').Response} res - The Express response object used to send the response.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
+ */
 const LlamaAiGetResponseFromDbBySessionId = catchAsync(async (req, res) => {
   const sessionId = req.params?.sessionId;
   const userId = req.user?._id; // Get userId from authenticated user for ownership check
@@ -433,6 +474,13 @@ const LlamaAiGetResponseFromDbBySessionId = catchAsync(async (req, res) => {
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
+/**
+ * Controller to delete a single AI chat entry by its unique object ID.
+ * It performs an ownership check using the authenticated user's ID to ensure the user is authorized to delete the entry.
+ * @param {import('express').Request} req - The Express request object, containing the objectId in params. Expects `req.user._id` to be populated by auth middleware.
+ * @param {import('express').Response} res - The Express response object used to send the response.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
+ */
 const deleteOneAiSession = catchAsync(async (req, res) => {
   const objectId = req.params?.objectId; // Renamed 'id' to 'objectId' for clarity
   const userId = req.user?._id; // Get userId from authenticated user for ownership check
@@ -513,6 +561,13 @@ const deleteOneAiSession = catchAsync(async (req, res) => {
  *         $ref: '#/components/responses/Unauthorized'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
+ */
+/**
+ * Controller to delete all AI chat sessions associated with the authenticated user.
+ * This is a bulk delete operation scoped to the user ID from the authentication token.
+ * @param {import('express').Request} req - The Express request object. Expects `req.user._id` to be populated by auth middleware.
+ * @param {import('express').Response} res - The Express response object used to send the response.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
 const deleteAllAiSessions = catchAsync(async (req, res) => {
   const userId = req.user?._id;
