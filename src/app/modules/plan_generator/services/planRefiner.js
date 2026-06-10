@@ -1,3 +1,17 @@
+/**
+ * @fileoverview This service module provides functions for refining and modifying project plans using a generative AI model (Google Gemini).
+ * It includes capabilities for refining specific sections, adjusting for new constraints, generating alternatives, optimizing timelines and budgets,
+ * expanding sections, simplifying the overall plan, and applying iterative feedback.
+ * All AI-powered operations are rate-limited to prevent abuse and manage costs.
+ *
+ * @requires rate-limiter-flexible - For rate limiting API requests.
+ * @requires redis - For the rate limiter's distributed store.
+ * @requires @google/generative-ai - The official Google Gemini AI SDK.
+ * @requires ../../../../../config/index.js - Application configuration.
+ * @requires ../../../../shared/logger.js - The application's logger.
+ * @requires ../plan_generator.constant.js - Constants specific to the plan generator module.
+ */
+
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { createClient } from 'redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -11,7 +25,12 @@ import {
 
 // -- Rate Limiting & DDOS Protection Setup --
 
-// Initialize Redis client. Assumes `redis_url` is present in the config.
+/**
+ * Redis client instance for the rate limiter.
+ * Connects to the Redis server specified in the application configuration.
+ * It includes an error listener to log any connection or operational issues.
+ * @type {import('redis').RedisClientType}
+ */
 const redisClient = createClient({
   url: config.redis_url,
   enable_offline_queue: false,
@@ -24,8 +43,12 @@ redisClient.on('error', (err) => {
 // Asynchronously connect to Redis. The rate limiter library handles connection readiness.
 redisClient.connect().catch((err) => logger.error('Failed to connect to Redis:', err));
 
-// Rate limiter for expensive AI generation/refinement tasks.
-// Limits are applied per user ID or IP address to prevent abuse and cost overruns.
+/**
+ * Rate limiter for expensive AI generation and refinement tasks.
+ * This limiter is configured to prevent abuse and control API costs by restricting
+ * the number of requests per user ID or IP address within a specific time window.
+ * @type {RateLimiterRedis}
+ */
 const aiApiLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'rl_plan_refiner', // Unique prefix for this set of limiters
@@ -37,6 +60,8 @@ const aiApiLimiter = new RateLimiterRedis({
 /**
  * Middleware-like function to consume a point from the rate limiter for a given user/IP.
  * @param {object} context - The context object, expected to contain `userId` or `ip`.
+ * @param {string} [context.userId] - The ID of the user making the request.
+ * @param {string} [context.ip] - The IP address of the user making the request.
  * @throws {Error} Throws a 429 "Too Many Requests" error if the rate limit is exceeded.
  * @throws {Error} Throws a 500 error if no user/IP identifier is found in the context.
  */
@@ -63,7 +88,11 @@ const applyRateLimit = async (context) => {
 
 // -- End of Rate Limiting Setup --
 
-// Initialize Gemini client
+/**
+ * Google Generative AI client instance.
+ * Initialized with the secret key from the application configuration.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
