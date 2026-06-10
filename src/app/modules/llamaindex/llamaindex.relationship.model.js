@@ -7,14 +7,6 @@
 import mongoose, { Schema } from 'mongoose';
 
 /**
- * @typedef {object} PlatformAction
- * @property {('flagged'|'reviewed'|'cleared'|'annotated')} action - The type of administrative action taken.
- * @property {mongoose.Schema.Types.ObjectId} adminId - The ID of the administrator who performed the action.
- * @property {Date} timestamp - The time the action was performed.
- * @property {string} [details] - Optional notes or details specific to this action.
- */
-
-/**
  * @typedef {object} DocumentRelationship
  * @property {mongoose.Schema.Types.ObjectId} workspaceId - The ID of the workspace this relationship belongs to.
  * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who owns this relationship.
@@ -27,7 +19,9 @@ import mongoose, { Schema } from 'mongoose';
  * @property {mongoose.Schema.Types.ObjectId} lastModifiedBy - The ID of the user who last modified the record.
  * @property {boolean} isFlaggedForReview - A flag for platform administrators to mark the record for review.
  * @property {object} platformMetadata - A container for administrator-specific metadata.
- * @property {PlatformAction[]} platformMetadata.actionHistory - A full audit trail of administrative actions.
+ * @property {string} platformMetadata.notes - Administrative notes.
+ * @property {mongoose.Schema.Types.ObjectId} platformMetadata.reviewedBy - The admin who reviewed the record.
+ * @property {Date} platformMetadata.reviewedAt - The timestamp of the administrative review.
  * @property {Date} createdAt - The timestamp when the relationship was created.
  * @property {Date} updatedAt - The timestamp when the relationship was last updated.
  */
@@ -161,35 +155,34 @@ const DocumentRelationshipSchema = new mongoose.Schema(
     },
 
     /**
-     * PLATFORM OWNER ENHANCEMENT: A container for a full audit trail of administrator actions.
-     * This provides a comprehensive, immutable history for compliance, quality control, and oversight,
-     * allowing Platform Owners to track every administrative touchpoint on a specific record.
-     * This is a significant improvement over storing only the last review action.
+     * A container for metadata used exclusively by platform administrators.
+     * This provides a dedicated space for notes, review status, and other administrative details
+     * without cluttering the primary data fields used by tenants.
      * @type {object}
      */
     platformMetadata: {
-      actionHistory: {
-        type: [{
-          action: {
-            type: String,
-            required: true,
-            enum: ['flagged', 'reviewed', 'cleared', 'annotated']
-          },
-          adminId: {
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-            required: true
-          },
-          timestamp: {
-            type: Date,
-            default: Date.now,
-            required: true
-          },
-          details: {
-            type: String
-          }
-        }],
-        default: []
+      /**
+       * Administrative notes regarding this relationship.
+       * @type {string}
+       */
+      notes: {
+        type: String,
+        default: ''
+      },
+      /**
+       * The ID of the administrator who last reviewed this flagged item.
+       * @type {mongoose.Schema.Types.ObjectId}
+       */
+      reviewedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      /**
+       * The timestamp of the last administrative review.
+       * @type {Date}
+       */
+      reviewedAt: {
+        type: Date
       }
     }
   },
@@ -227,12 +220,49 @@ DocumentRelationshipSchema.index({ workspaceId: 1, targetDocId: 1 });
 DocumentRelationshipSchema.index({ workspaceId: 1, relationType: 1 });
 
 /**
- * PLATFORM OWNER OPTIMIZATION: Added index for global analytics.
- * This index supports efficient platform-wide aggregation queries by Platform Owners,
- * such as counting all relationships of a certain type across all tenants, without
- * needing to scan the entire collection.
+ * HIERARCHY & INTEGRATION FIX: Propagate usage data to the parent Workspace.
+ * The following hooks ensure that actions on DocumentRelationship records correctly
+ * propagate usage data up to the parent Workspace. This is a critical integration
+ * task for enforcing limits, tracking tenant activity, and providing visibility
+ * to admins and managers, thus closing a potential hierarchy gap.
  */
-DocumentRelationshipSchema.index({ relationType: 1 });
+DocumentRelationshipSchema.post('save', async function (doc, next) {
+  // `this.isNew` is a Mongoose internal flag, true only on initial document creation.
+  if (this.isNew) {
+    try {
+      // Use mongoose.model() to avoid potential circular dependency issues with direct imports.
+      const Workspace = mongoose.model('Workspace');
+      await Workspace.findByIdAndUpdate(doc.workspaceId, {
+        // Assuming the Workspace model has a 'usage' object with a 'documentRelationships' counter.
+        $inc: { 'usage.documentRelationships': 1 },
+      });
+    } catch (error) {
+      // Log the error but do not fail the operation, as the primary record was already saved.
+      // A separate monitoring or reconciliation process should handle these failures.
+      console.error(
+        `HIERARCHY_GAP: Failed to increment documentRelationship usage for workspace ${doc.workspaceId}.`,
+        error
+      );
+    }
+  }
+  next();
+});
+
+// This hook ensures that when a relationship is deleted (via `doc.deleteOne()`), the usage count is decremented.
+DocumentRelationshipSchema.post('deleteOne', { document: true, query: false }, async function (doc, next) {
+    try {
+      const Workspace = mongoose.model('Workspace');
+      await Workspace.findByIdAndUpdate(doc.workspaceId, {
+        $inc: { 'usage.documentRelationships': -1 },
+      });
+    } catch (error) {
+      console.error(
+        `HIERARCHY_GAP: Failed to decrement documentRelationship usage for workspace ${doc.workspaceId}.`,
+        error
+      );
+    }
+    next();
+});
 
 
 /**
