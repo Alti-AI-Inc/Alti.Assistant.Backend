@@ -8,9 +8,132 @@ import createRateLimiter from '../../middlewares/rateLimit/authLimiter.js';
 import { validateRequest } from '../../middlewares/validateRequest/validateRequest.js';
 import { documentReviewController } from './document_review.controller.js';
 import { DocumentReviewValidation } from './document_review.validation.js';
-import { uploadDocumentReview } from './middlewares/uploadDocumentReview.js';
+// import { uploadDocumentReview } from './middlewares/uploadDocumentReview.js'; // REPLACED: Multer middleware that writes to local disk is replaced with a direct GCS stream.
 import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
 import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
+
+// GCP Cloud Storage integration for direct, stateless file uploads.
+import { Storage } from '@google-cloud/storage';
+import Busboy from 'busboy';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+
+// --- GCS Setup ---
+// Instantiate a GCS client.
+// For authentication, ensure the environment is configured with Application Default Credentials.
+// See: https://cloud.google.com/docs/authentication/production
+const storage = new Storage();
+
+// The GCS bucket name must be provided via an environment variable.
+const bucketName = process.env.GCS_DOCUMENT_BUCKET;
+if (!bucketName) {
+  // Throw an error on startup if the bucket isn't configured, preventing runtime failures.
+  throw new Error(
+    'GCS_DOCUMENT_BUCKET environment variable is not set. This is required for file uploads.'
+  );
+}
+const bucket = storage.bucket(bucketName);
+
+/**
+ * @function streamUploadToGCS
+ * @description Middleware to stream a file upload from a multipart/form-data request directly to Google Cloud Storage.
+ * This avoids saving the file to the local ephemeral filesystem, which is crucial for stateless containerized environments.
+ * It uses 'busboy' to parse the stream and pipes the file content to a GCS write stream.
+ * Non-file fields are populated into `req.body`.
+ * The uploaded file's metadata (bucket, gcsObjectName, etc.) is attached to `req.file` to mimic multer's behavior for downstream controllers.
+ * @param {string} fieldName - The name of the form field expected to contain the file.
+ * @returns {function} Express middleware function.
+ */
+const streamUploadToGCS = fieldName => (req, res, next) => {
+  const busboy = Busboy({ headers: req.headers });
+
+  req.body = req.body || {};
+  const fields = {};
+  const uploads = {};
+
+  // Process non-file fields and add them to a temporary object.
+  busboy.on('field', (name, val) => {
+    fields[name] = val;
+  });
+
+  // Process the file stream.
+  busboy.on('file', (name, file, info) => {
+    // Skip if the field name doesn't match the one we're looking for.
+    if (name !== fieldName) {
+      return file.resume(); // Discard the stream.
+    }
+
+    const { filename, encoding, mimeType } = info;
+
+    // Create a unique, secure object name for GCS.
+    // Prefixing with tenant and user IDs helps organize files and enforce security policies.
+    const tenantId = req.tenant?.id || 'guest';
+    const userId = req.user?.id || 'anonymous';
+    const uniqueId = uuidv4();
+    const fileExtension = path.extname(filename);
+    const gcsObjectName = `${tenantId}/${userId}/${uniqueId}${fileExtension}`;
+
+    uploads[name] = {
+      gcsObjectName,
+      filename,
+      encoding,
+      mimeType,
+    };
+
+    const gcsFile = bucket.file(gcsObjectName);
+    const stream = gcsFile.createWriteStream({
+      metadata: {
+        contentType: mimeType,
+      },
+    });
+
+    // Pipe the incoming file stream from the request directly to GCS.
+    file.pipe(stream);
+
+    // It's crucial to handle errors on the GCS stream.
+    stream.on('error', err => {
+      req.unpipe(busboy); // Stop processing the request.
+      next(err);
+    });
+
+    // When the GCS stream finishes, the upload is complete.
+    stream.on('finish', () => {
+      // We don't call next() here because busboy might still be processing other fields.
+      // We wait for the 'finish' event on busboy itself.
+    });
+  });
+
+  // When busboy finishes parsing all fields and files.
+  busboy.on('finish', () => {
+    // Populate req.body with the parsed fields.
+    Object.assign(req.body, fields);
+
+    // If a file was uploaded, attach its metadata to req.file for the controller.
+    const uploadedFile = uploads[fieldName];
+    if (uploadedFile) {
+      req.file = {
+        fieldname: fieldName,
+        originalname: uploadedFile.filename,
+        encoding: uploadedFile.encoding,
+        mimetype: uploadedFile.mimeType,
+        bucket: bucket.name,
+        gcsObjectName: uploadedFile.gcsObjectName,
+        path: `gs://${bucket.name}/${uploadedFile.gcsObjectName}`,
+        // Note: File size is not easily available here without buffering.
+        // The controller should be adapted if it strictly depends on the size.
+      };
+    }
+    next();
+  });
+
+  // Handle busboy parsing errors.
+  busboy.on('error', err => {
+    next(err);
+  });
+
+  // Start the process by piping the request to busboy.
+  req.pipe(busboy);
+};
 
 /**
  * @constant {express.Router} router - Express router for document review routes.
@@ -105,7 +228,7 @@ router.post(
   extractTenantContext,
   checkDailyRequestLimit,
   checkStorageLimit,
-  uploadDocumentReview.single('file'),
+  streamUploadToGCS('file'), // NEW: Streams file directly to GCS without saving to the local filesystem.
   checkRAGFeature,
   createRateLimiter(30, 15),
   validateRequest(DocumentReviewValidation.conversationalRequestSchema),
@@ -198,7 +321,7 @@ router.post(
   extractTenantContext,
   checkDailyRequestLimit,
   checkStorageLimit,
-  uploadDocumentReview.single('file'),
+  streamUploadToGCS('file'), // NEW: Streams file directly to GCS without saving to the local filesystem.
   checkRAGFeature,
   createRateLimiter(20, 15),
   validateRequest(DocumentReviewValidation.reviewDocumentSchema),
@@ -222,7 +345,7 @@ router.post(
  *         name: conversationId
  *         schema:
  *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'
+ *           pattern: '^[0-9a-fA-F]{24}
  *         required: true
  *         description: The unique identifier of the conversation to retrieve history for.
  *         example: "654321098765432109876543"
