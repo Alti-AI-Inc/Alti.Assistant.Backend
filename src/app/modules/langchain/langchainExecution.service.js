@@ -9,10 +9,17 @@ import LangchainChain from './langchain-chain.model.js';
 import LangchainExecution from './langchain-execution.model.js';
 import { ragService } from '../llamaindex/llamaindex.service.js';
 
+/**
+ * Google Generative AI client instance initialized with the secret key.
+ * @private
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Parses variable names enclosed in curly braces {varName} and returns them.
+ * Parses variable names enclosed in curly braces {varName} from a template string.
+ * @private
+ * @param {string} template - The template string to parse.
+ * @returns {string[]} An array of extracted variable names, without the curly braces.
  */
 const extractVariables = (template) => {
   // This is a simple string operation, no error handling needed.
@@ -21,7 +28,11 @@ const extractVariables = (template) => {
 };
 
 /**
- * Replaces {varName} in template string with actual values from scope.
+ * Replaces {varName} placeholders in a template string with actual values from a scope object.
+ * @private
+ * @param {string} template - The template string with placeholders.
+ * @param {Object<string, any>} scope - An object containing key-value pairs for substitution.
+ * @returns {string} The formatted string with all placeholders replaced.
  */
 const formatPrompt = (template, scope) => {
   // This is a simple string operation, no error handling needed.
@@ -36,7 +47,25 @@ const formatPrompt = (template, scope) => {
 };
 
 /**
- * Executes a step-by-step pipeline configuration.
+ * Executes a step-by-step pipeline (chain) configuration. This is the core execution engine.
+ * It iterates through a series of defined steps, manages a shared state (`scope`),
+ * and records detailed telemetry for each step.
+ * @private
+ * @param {Array<Object>} steps - The array of step configuration objects from a `LangchainChain`.
+ * @param {Object<string, any>} inputs - The initial input values for the execution.
+ * @param {string} userId - The ID of the user executing the chain. This provides a multi-tenant context,
+ * particularly for steps like 'retriever' that access user-specific data.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the execution results.
+ * @property {boolean} success - Indicates if all steps completed successfully.
+ * @property {string|null} error - The error message if the execution failed.
+ * @property {Array<Object>} stepsExecution - An array of detailed records for each step's execution.
+ * @property {Object<string, any>} outputs - The final state of the `scope` object, containing all generated values.
+ * @property {Object} tokenUsage - An object detailing the token consumption.
+ * @property {number} tokenUsage.promptTokens - Total prompt tokens used.
+ * @property {number} tokenUsage.completionTokens - Total completion tokens used.
+ * @property {number} tokenUsage.totalTokens - Sum of prompt and completion tokens.
+ * @throws {ApiError} Throws an `ApiError` for unsupported step types.
+ * @throws {Error} Throws a generic `Error` for failures within a step (e.g., LLM API failure), which is then caught and processed.
  */
 const executeSteps = async (steps, inputs, userId) => {
   const scope = { ...inputs };
@@ -238,7 +267,15 @@ const executeSteps = async (steps, inputs, userId) => {
 };
 
 /**
- * Executes a custom chain pipeline step-by-step.
+ * Orchestrates the full execution of a Langchain chain. It finds the chain definition,
+ * creates and updates the execution record in the database, invokes the step executor,
+ * and manages top-level error handling and logging.
+ * @param {string} chainId - The MongoDB ObjectId of the `LangchainChain` to execute.
+ * @param {Object<string, any>} inputs - The initial input data for the chain.
+ * @param {string} userId - The ID of the user initiating the execution. This is crucial for
+ * multi-tenancy, as it scopes data access and records ownership of the execution.
+ * @returns {Promise<import('./langchain-execution.model.js').LangchainExecution>} A promise that resolves to the saved `LangchainExecution` Mongoose document.
+ * @throws {ApiError} Throws an `ApiError` if the chain is not found, or if an internal error occurs during execution.
  */
 const executeChain = async (chainId, inputs, userId) => {
   const tStart = Date.now();
@@ -335,6 +372,11 @@ const executeChain = async (chainId, inputs, userId) => {
   }
 };
 
+/**
+ * Service object containing methods for executing and managing Langchain chains.
+ * @namespace LangchainExecutionService
+ * @exports LangchainExecutionService
+ */
 export const LangchainExecutionService = {
   executeChain,
   executeSteps,

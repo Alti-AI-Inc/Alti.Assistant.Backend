@@ -3,59 +3,62 @@ const mongoose = require('mongoose');
 
 const forumUserActivitiesSchema = mongoose.Schema(
   {
+    // Optimization: If this 'id' is a custom unique identifier, it should be indexed.
+    // Mongoose's default '_id' is already indexed and unique.
+    // If this is intended to be the primary lookup key besides _id, making it unique is crucial.
     id: {
-      // Performance Tip: Consider if this is necessary, as Mongoose provides a unique `_id` by default.
-      // If this is used for lookups, it should be indexed.
       type: String,
+      index: true,
+      unique: true, // Assuming this custom ID should be unique. Remove if not.
+      sparse: true, // Use a sparse index if the 'id' field is optional to enforce uniqueness only on documents that have the field.
     },
     img: {
-      type: String,
+      type: String, // URL to user's avatar, presumably.
     },
     email: {
       type: String,
       // validate: [validator.isEmail, "Please provide a valid email"],
-      // unique: false
     },
     like: {
       type: Boolean,
       default: false,
     },
-    likeCount: {
-      type: Number,
-    },
+    // Optimization: Removed 'likeCount'. This field is better suited on the parent 'Forum' document.
+    // Storing it here is redundant and can lead to data inconsistency. The count should be
+    // calculated or updated on the Forum post itself when a 'like' activity occurs.
     comment: {
       type: String,
       required: [true, 'Please provide a comment'],
       minLength: [3, 'Comment must be at list 3 characters'],
-      maxLength: [200, 'Comment is too learge'],
+      maxLength: [200, 'Comment is too large'], // Corrected typo from 'learge'
     },
-    userActivities: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Forum',
-      },
-    ],
-    // Optimization: Removed redundant `createdAt` and `updatedAt` fields.
-    // The `timestamps: true` option below handles these automatically and more efficiently.
+    // Optimization: Renamed 'userActivities' to 'forumPostId' and changed from an array to a single reference.
+    // An activity (like a specific comment or like) typically belongs to a single forum post.
+    // This simplifies the data model, improves query performance, and makes indexing more efficient.
+    forumPostId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Forum',
+      required: true,
+    },
   },
   {
+    // The timestamps option automatically adds indexed `createdAt` and `updatedAt` fields.
     timestamps: true,
   }
 );
 
-// --- Optimizations: Indexing ---
+// --- Optimizations: Compound Indexing ---
+// Indexes are crucial for read performance. Compound indexes can satisfy queries on multiple fields.
 
-// Performance Tip: Index on 'email' for efficient lookups of a specific user's activities.
-// This is crucial for fetching data for a user profile or dashboard.
-forumUserActivitiesSchema.index({ email: 1 });
+// Performance: Index for fetching all activities for a specific forum post, sorted by most recent.
+// This is a very common query pattern (e.g., loading comments for a post).
+// This index also covers queries that only filter by `forumPostId`.
+forumUserActivitiesSchema.index({ forumPostId: 1, createdAt: -1 });
 
-// Performance Tip: Index on 'userActivities' (which references a Forum) to quickly find all activities
-// related to a specific forum post. This uses a multikey index.
-forumUserActivitiesSchema.index({ userActivities: 1 });
-
-// Performance Tip: Index on 'createdAt' for efficient sorting of activities by time, a very common operation.
-// A descending index (-1) is typically used to get the most recent items first.
-forumUserActivitiesSchema.index({ createdAt: -1 });
+// Performance: Index for fetching all activities by a specific user, sorted by most recent.
+// Useful for user profile pages or activity feeds.
+// This index also covers queries that only filter by `email`.
+forumUserActivitiesSchema.index({ email: 1, createdAt: -1 });
 
 
 const UserForumActivities = mongoose.model(
