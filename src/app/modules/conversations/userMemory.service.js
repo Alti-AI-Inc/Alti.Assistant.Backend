@@ -6,6 +6,7 @@
 
 import UserMemory from './userMemory.model.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import sanitizeHtml from 'sanitize-html'; // Security Patch: Import library to sanitize input and prevent Stored XSS.
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
@@ -53,6 +54,7 @@ Do NOT wrap the JSON in markdown blocks. Return pure raw JSON string.`;
  *   or an error occurs.
  */
 const getProfileBlock = async (userId) => {
+  // Security: The userId is passed to Mongoose, which provides protection against NoSQL injection.
   if (!userId) return '';
   try {
     // Optimization: Added .lean() for read-only operations to improve performance by returning plain JavaScript objects.
@@ -73,6 +75,7 @@ const getProfileBlock = async (userId) => {
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
       
+      // Note: The 'mem.value' is now sanitized on write, protecting against Stored XSS if this block were ever rendered as HTML.
       block += `- ${prettyKey}: ${mem.value}\n`;
     });
     
@@ -104,6 +107,7 @@ const getProfileBlock = async (userId) => {
  *   and handles its own errors internally.
  */
 const asyncExtractFacts = async (userId, prompt, reply) => {
+  // Security: The userId is passed to Mongoose, which provides protection against NoSQL injection.
   if (!userId || !prompt || !reply) return;
 
   // Run in background wrap with try-catch to protect the core execution thread
@@ -177,7 +181,14 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
           deleteKeys.push(normalizedKey);
         } else {
           if (!fact.value) continue;
-          const cleanValue = fact.value.trim();
+          // Security Patch: Sanitize the 'value' field extracted by the AI before storing it.
+          // This prevents Stored Cross-Site Scripting (XSS) by stripping all HTML tags.
+          // If this data were ever to be rendered on a client-side application, this measure
+          // ensures no malicious scripts can be executed.
+          const cleanValue = sanitizeHtml(fact.value, {
+            allowedTags: [],
+            allowedAttributes: {},
+          }).trim();
           const category = ['facts', 'preferences', 'settings'].includes(fact.category) ? fact.category : 'facts';
 
           bulkUpsertOperations.push({
@@ -204,6 +215,8 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
       // Execute batched deletions
       if (deleteKeys.length > 0) {
         try {
+          // Security: The 'userId' and 'deleteKeys' are used as values in the query,
+          // which is safe from NoSQL injection due to Mongoose/MongoDB driver behavior.
           const result = await UserMemory.deleteMany({ userId, key: { $in: deleteKeys } });
           logger.info(`[UserMemory] Successfully redacted ${result.deletedCount} memory keys.`);
         } catch (delErr) {
@@ -214,6 +227,8 @@ const asyncExtractFacts = async (userId, prompt, reply) => {
       // Execute batched upserts
       if (bulkUpsertOperations.length > 0) {
         try {
+          // Security: The filter and update objects passed to bulkWrite use user/AI-provided data
+          // as values, not as query operators, preventing NoSQL injection.
           const result = await UserMemory.bulkWrite(bulkUpsertOperations);
           logger.info(`[UserMemory] Consolidated ${result.upsertedCount} new facts and updated ${result.modifiedCount} existing facts.`);
         } catch (dbErr) {

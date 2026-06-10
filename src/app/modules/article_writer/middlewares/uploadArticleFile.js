@@ -8,6 +8,9 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+// OPTIMIZATION: Import the promises API from the 'fs' module to perform non-blocking file system operations.
+// This is crucial for avoiding event loop blockage in a Node.js environment.
+import { promises as fsPromises } from 'fs';
 import { fileURLToPath } from 'url';
 
 // Safely determine the current directory path, compatible with both ES Modules and CommonJS.
@@ -35,30 +38,43 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 /**
- * Synchronously calculates the total size of all files within a given directory.
- * This is a helper function used to enforce user-level storage quotas before an upload.
- * It iterates through directory contents and sums the size of each file,
- * silently ignoring any subdirectories or files that cannot be accessed.
+ * Asynchronously calculates the total size of all files within a given directory.
+ * OPTIMIZATION: This function is now asynchronous to prevent blocking the Node.js event loop.
+ * The original synchronous version could cause significant performance degradation by blocking
+ * the server from handling other requests while reading a directory with many files.
+ * This version uses `fs.promises` for non-blocking I/O.
  * @param {string} dirPath - The absolute path to the directory.
- * @returns {number} The total size of all files in the directory, in bytes. Returns 0 if the directory doesn't exist.
+ * @returns {Promise<number>} A promise that resolves to the total size of all files in the directory, in bytes. Returns 0 if the directory doesn't exist.
  */
-const getDirSize = (dirPath) => {
-  let size = 0;
-  if (fs.existsSync(dirPath)) {
-    const files = fs.readdirSync(dirPath);
-    for (const file of files) {
+const getDirSizeAsync = async (dirPath) => {
+  try {
+    const files = await fsPromises.readdir(dirPath);
+    // Process all file stats in parallel for maximum efficiency.
+    const statsPromises = files.map((file) => {
       const filePath = path.join(dirPath, file);
-      try {
-        const stats = fs.statSync(filePath);
-        if (stats.isFile()) {
-          size += stats.size;
-        }
-      } catch (err) {
-        // Ignore files that cannot be read (e.g., due to permissions).
+      // Gracefully handle cases where a file cannot be accessed (e.g., permissions).
+      return fsPromises.stat(filePath).catch(() => null);
+    });
+
+    const statsArray = await Promise.all(statsPromises);
+
+    // Sum the sizes of all valid files.
+    const totalSize = statsArray.reduce((acc, stats) => {
+      if (stats && stats.isFile()) {
+        return acc + stats.size;
       }
+      return acc;
+    }, 0);
+
+    return totalSize;
+  } catch (err) {
+    // If the directory doesn't exist, it's not an error; its size is 0.
+    if (err.code === 'ENOENT') {
+      return 0;
     }
+    // For other errors, propagate them up.
+    throw err;
   }
-  return size;
 };
 
 /**
@@ -83,26 +99,34 @@ const storage = multer.diskStorage({
     const safeUserId = String(rawUserId).replace(/[^a-zA-Z0-9-_]/g, '') || 'anonymous';
     const userUploadDir = path.join(uploadDir, safeUserId);
 
-    try {
-      if (!fs.existsSync(userUploadDir)) {
-        fs.mkdirSync(userUploadDir, { recursive: true });
+    // OPTIMIZATION: Use an async IIFE (Immediately Invoked Function Expression) to perform non-blocking I/O.
+    // The original implementation used synchronous fs calls (e.g., fs.mkdirSync, fs.readdirSync, fs.statSync)
+    // which block the Node.js event loop. This is especially problematic when calculating directory size for users
+    // with many files, as it can freeze the entire server. This updated version uses async/await with fs.promises.
+    (async () => {
+      try {
+        // Asynchronously ensure the user's upload directory exists.
+        await fsPromises.mkdir(userUploadDir, { recursive: true });
+
+        // Enforce user-level storage limit (default 100MB, or custom user limit if specified)
+        const userMaxStorage = req.user?.maxStorageLimit || 100 * 1024 * 1024; // 100MB
+
+        // Asynchronously calculate the current directory size without blocking the event loop.
+        const currentStorageSize = await getDirSizeAsync(userUploadDir);
+
+        // Note: `file.size` is not available in the `destination` function.
+        // This check prevents new uploads if the user is already at or over their limit.
+        if (currentStorageSize >= userMaxStorage) {
+          return cb(new Error('User storage limit exceeded. Please delete some files before uploading more.'));
+        }
+
+        // If all checks pass, signal success to multer with the destination path.
+        cb(null, userUploadDir);
+      } catch (err) {
+        // In case of an error, pass it to multer's callback.
+        cb(err);
       }
-
-      // Enforce user-level storage limit (default 100MB, or custom user limit if specified)
-      const userMaxStorage = req.user?.maxStorageLimit || 100 * 1024 * 1024; // 100MB
-      const currentStorageSize = getDirSize(userUploadDir);
-
-      // Note: `file.size` is not available in the `destination` function.
-      // This check prevents new uploads if the user is already at or over their limit.
-      // A more precise check (including the current file's size) would require a different approach.
-      if (currentStorageSize >= userMaxStorage) {
-        return cb(new Error('User storage limit exceeded. Please delete some files before uploading more.'));
-      }
-
-      cb(null, userUploadDir);
-    } catch (err) {
-      cb(err);
-    }
+    })();
   },
   /**
    * Defines the filename for uploaded files.
