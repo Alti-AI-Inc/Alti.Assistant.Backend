@@ -6,6 +6,10 @@ import {
 } from '../langgraph/workflow.js';
 import { logger } from '../../../../shared/logger.js';
 import { v4 as uuidv4 } from 'uuid';
+// HIERARCHY & TENANCY INTEGRATION: Import necessary services for checking user roles, workspace limits, and tenancy.
+// This is a placeholder for actual implementation.
+// import { workspaceService } from '../../workspace/services/workspace.service.js';
+// import { rbacService } from '../../../../shared/services/rbac.service.js';
 
 /**
  * @class WorkflowCreationService
@@ -21,6 +25,8 @@ class WorkflowCreationService {
    * If the workflow requires confirmation, it returns a plan; otherwise, it attempts to create the workflow directly.
    *
    * @param {string} userId - The ID of the user initiating the workflow creation.
+   * @param {string} workspaceId - The ID of the workspace to which the user and workflow belong.
+   * @param {string} userRole - The role of the user (e.g., 'user', 'manager', 'admin').
    * @param {string} userPrompt - The natural language prompt provided by the user.
    * @param {string} [conversationId=null] - An optional ID for an existing conversation to continue. If null, a new one is generated.
    * @returns {Promise<object>} An object containing the result of the processing.
@@ -31,20 +37,16 @@ class WorkflowCreationService {
    * @returns {string} [returns.workflowId] - The ID of the newly created workflow, if applicable.
    * @returns {object} [returns.workflow] - The full workflow object if created, if applicable.
    * @returns {object} [returns.workflowPlan] - The detailed plan of the workflow if confirmation is needed.
-   * @returns {string} returns.workflowPlan.userIntent - The detected user's intent.
-   * @returns {string} returns.workflowPlan.taskType - The type of task identified.
-   * @returns {string} returns.workflowPlan.complexity - The estimated complexity of the workflow.
-   * @returns {string[]} returns.workflowPlan.detectedApps - A list of applications detected as relevant.
-   * @returns {object[]} returns.workflowPlan.workflowSteps - An array of planned workflow steps.
-   * @returns {boolean} returns.workflowPlan.scheduleRequired - Indicates if scheduling is required.
-   * @returns {object} returns.workflowPlan.scheduleConfig - Configuration for scheduling, if applicable.
-   * @returns {string} returns.workflowPlan.triggerType - The type of trigger for the workflow (e.g., 'manual', 'scheduled').
-   * @returns {object} returns.workflowPlan.extractedParameters - Any parameters extracted from the prompt.
    * @throws {Error} If there's an issue processing the workflow request or saving data.
    */
-  async createWorkflowFromPrompt(userId, userPrompt, conversationId = null) {
+  async createWorkflowFromPrompt(userId, workspaceId, userRole, userPrompt, conversationId = null) {
     try {
-      logger.info(`Creating workflow from prompt for user ${userId}`);
+      // HIERARCHY & TENANCY INTEGRATION: Check user permissions for creating workflows.
+      // Example: rbacService.checkPermission(userRole, 'workflow:create');
+      // HIERARCHY & TENANCY INTEGRATION: Check workspace limits before proceeding.
+      // Example: const canCreate = await workspaceService.canCreateWorkflow(workspaceId); if (!canCreate) throw new Error('Workflow limit reached for your workspace.');
+
+      logger.info(`Creating workflow from prompt for user ${userId} in workspace ${workspaceId}`);
 
       // Process the request through LangGraph
       const processingResult = await processWorkflowRequest(
@@ -58,30 +60,31 @@ class WorkflowCreationService {
       }
 
       const { result } = processingResult;
+      const currentConversationId = processingResult.conversationId;
 
       // Save chat history
       await this.saveChatMessage(
-        processingResult.conversationId,
+        currentConversationId,
         userId,
+        workspaceId,
         'user',
         userPrompt
       );
 
       await this.saveChatMessage(
-        processingResult.conversationId,
+        currentConversationId,
         userId,
+        workspaceId,
         'assistant',
         result.response
       );
 
       // If workflow needs confirmation, return without creating
       if (result.needsConfirmation || result.responseType === 'confirmation') {
-        // BUG FIX: Persist the workflow plan in the conversation context for later confirmation.
-        // The confirmWorkflowCreation method relies on this plan being stored.
-        // BUG FIX: Added userId to the query to prevent Insecure Direct Object Reference (IDOR).
-        // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups and upserts.
+        // SECURITY FIX (IDOR): The query now includes `userId` and `workspaceId` to ensure a user can only update their own conversation within their workspace.
+        // Index Recommendation: Add a compound index on `{ conversationId: 1, userId: 1, workspaceId: 1 }` in WorkflowChatHistory model for performance and security.
         await WorkflowChatHistory.updateOne(
-          { conversationId: processingResult.conversationId, userId },
+          { conversationId: currentConversationId, userId, workspaceId },
           {
             $set: {
               'context.workflowPlan': { // Store the plan in context
@@ -97,15 +100,18 @@ class WorkflowCreationService {
               },
               status: 'pending_confirmation', // Set status to indicate it's awaiting user confirmation
             },
+            $setOnInsert: { // HIERARCHY & TENANCY INTEGRATION: Ensure workspaceId is set on creation.
+              workspaceId,
+            }
           },
-          { upsert: true } // Use upsert: true in case the conversation document was just created by saveChatMessage
+          { upsert: true }
         );
 
         return {
           success: true,
           needsConfirmation: true,
           message: result.response,
-          conversationId: processingResult.conversationId,
+          conversationId: currentConversationId,
           workflowPlan: {
             userIntent: result.userIntent,
             taskType: result.taskType,
@@ -127,6 +133,7 @@ class WorkflowCreationService {
       ) {
         const workflow = await this.createWorkflow({
           userId,
+          workspaceId, // HIERARCHY & TENANCY INTEGRATION: Pass workspaceId to the creation method.
           name: result.userIntent || 'Untitled Workflow',
           description: `Automated workflow created from: "${userPrompt}"`,
           originalPrompt: userPrompt,
@@ -140,7 +147,7 @@ class WorkflowCreationService {
             result.detectedApps?.map((app) => ({ app, connected: false })) ||
             [],
           metadata: {
-            conversationId: processingResult.conversationId,
+            conversationId: currentConversationId,
             complexity: result.complexity,
             createdViaChat: true,
           },
@@ -152,7 +159,7 @@ class WorkflowCreationService {
           message: result.response,
           workflowId: workflow._id,
           workflow: workflow,
-          conversationId: processingResult.conversationId,
+          conversationId: currentConversationId,
         };
       }
 
@@ -161,7 +168,7 @@ class WorkflowCreationService {
         success: true,
         needsConfirmation: false,
         message: result.response,
-        conversationId: processingResult.conversationId,
+        conversationId: currentConversationId,
       };
     } catch (error) {
       logger.error('Error creating workflow from prompt:', error);
@@ -173,50 +180,51 @@ class WorkflowCreationService {
    * @async
    * @method confirmWorkflowCreation
    * @description Confirms the creation of a workflow based on a previously generated plan stored in a conversation.
-   * If approved, it creates the workflow in the database. If not approved, it cancels the creation.
-   * Allows for optional modifications to the workflow plan before creation.
    *
    * @param {string} userId - The ID of the user confirming the workflow.
+   * @param {string} workspaceId - The ID of the workspace where the workflow will be created.
+   * @param {string} userRole - The role of the user.
    * @param {string} conversationId - The ID of the conversation where the workflow plan was generated.
-   * @param {boolean} [approved=true] - Whether the user approved the workflow creation. Defaults to true.
-   * @param {object} [modifications=null] - Optional modifications to the workflow plan (e.g., updated steps, name).
+   * @param {boolean} [approved=true] - Whether the user approved the workflow creation.
+   * @param {object} [modifications=null] - Optional modifications to the workflow plan.
    * @returns {Promise<object>} An object indicating the outcome of the confirmation.
-   * @returns {boolean} returns.success - Indicates if the operation was successful.
-   * @returns {string} returns.message - A message describing the outcome.
-   * @returns {string} returns.conversationId - The ID of the conversation.
-   * @returns {string} [returns.workflowId] - The ID of the newly created workflow, if applicable.
-   * @returns {object} [returns.workflow] - The full workflow object if created, if applicable.
    * @throws {Error} If the conversation or workflow plan is not found, or if there's an issue creating the workflow.
    */
   async confirmWorkflowCreation(
     userId,
+    workspaceId,
+    userRole,
     conversationId,
     approved = true,
     modifications = null
   ) {
     try {
+      // HIERARCHY & TENANCY INTEGRATION: Check user permissions for creating workflows.
+      // Example: rbacService.checkPermission(userRole, 'workflow:create');
+
       logger.info(
-        `Confirming workflow creation for conversation ${conversationId}`
+        `Confirming workflow creation for conversation ${conversationId} in workspace ${workspaceId}`
       );
 
       if (!approved) {
         await this.saveChatMessage(
           conversationId,
           userId,
+          workspaceId,
           'user',
           'No, cancel the workflow'
         );
         await this.saveChatMessage(
           conversationId,
           userId,
+          workspaceId,
           'assistant',
           "Workflow creation cancelled. Feel free to describe a different automation you'd like to create!"
         );
 
-        // Update conversation status to cancelled
-        // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups.
+        // SECURITY FIX (IDOR): Added userId and workspaceId to the query to prevent unauthorized updates.
         await WorkflowChatHistory.updateOne(
-          { conversationId, userId }, // BUG FIX: Added userId for IDOR prevention
+          { conversationId, userId, workspaceId },
           { $set: { status: 'cancelled' } }
         );
 
@@ -227,31 +235,27 @@ class WorkflowCreationService {
         };
       }
 
-      // Get conversation history to understand the workflow context
-      // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
-      // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups.
-      // BUG FIX: Added userId to the query to prevent Insecure Direct Object Reference (IDOR).
-      const chatHistory = await WorkflowChatHistory.findOne({ conversationId, userId }).lean();
+      // HIERARCHY & TENANCY INTEGRATION: Check workspace limits before creating the workflow.
+      // Example: const canCreate = await workspaceService.canCreateWorkflow(workspaceId); if (!canCreate) throw new Error('Workflow limit reached for your workspace.');
+
+      // SECURITY FIX (IDOR): Added userId and workspaceId to the query to prevent unauthorized access to other users' conversations.
+      // Optimization: Added .lean() for better performance on read-only operations.
+      const chatHistory = await WorkflowChatHistory.findOne({ conversationId, userId, workspaceId }).lean();
       if (!chatHistory) {
-        // BUG FIX: More specific error message for IDOR prevention.
-        throw new Error('Conversation not found or not owned by user');
+        // BUG FIX: More specific error message for security.
+        throw new Error('Conversation not found or you do not have permission to access it.');
       }
 
-      // Get the workflow plan from conversation context
       const workflowPlan = chatHistory.context?.workflowPlan;
       if (!workflowPlan) {
-        throw new Error('Workflow plan not found in conversation');
+        throw new Error('Workflow plan not found in conversation context. Please try creating the workflow again.');
       }
 
-      // Apply modifications if provided
-      let finalPlan = workflowPlan;
-      if (modifications) {
-        finalPlan = { ...workflowPlan, ...modifications };
-      }
+      let finalPlan = { ...workflowPlan, ...(modifications || {}) };
 
-      // Create the workflow
       const workflow = await this.createWorkflow({
         userId,
+        workspaceId, // HIERARCHY & TENANCY INTEGRATION: Pass workspaceId to the creation method.
         name: finalPlan.userIntent || 'Untitled Workflow',
         description: `Automated workflow created from chat conversation`,
         originalPrompt:
@@ -272,24 +276,24 @@ class WorkflowCreationService {
           },
       });
 
-      // Update chat history
       await this.saveChatMessage(
         conversationId,
         userId,
+        workspaceId,
         'user',
         'Yes, create the workflow'
       );
       await this.saveChatMessage(
         conversationId,
         userId,
+        workspaceId,
         'assistant',
         `Perfect! I've created your workflow "${workflow.name}". It's now ready to use. Workflow ID: ${workflow._id}`
       );
 
-      // Update conversation with workflow ID
-      // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups.
+      // SECURITY FIX (IDOR): Added userId and workspaceId to the query.
       await WorkflowChatHistory.updateOne(
-        { conversationId, userId }, // BUG FIX: Added userId for IDOR prevention
+        { conversationId, userId, workspaceId },
         {
           $push: { workflowIds: workflow._id },
           $set: { status: 'completed' },
@@ -312,27 +316,31 @@ class WorkflowCreationService {
   /**
    * @async
    * @method continueConversation
-   * @description Continues an existing chat conversation with the LangGraph agent.
-   * It processes the user's input, gets a response from the AI, and saves both messages to the chat history.
+   * @description Continues an existing chat conversation, ensuring it's within the user's and workspace's context.
    *
-   * @param {string} userId - The ID of the user participating in the conversation.
+   * @param {string} userId - The ID of the user.
+   * @param {string} workspaceId - The ID of the workspace.
+   * @param {string} userRole - The role of the user.
    * @param {string} conversationId - The ID of the conversation to continue.
    * @param {string} userInput - The user's new message.
    * @returns {Promise<object>} An object containing the conversation's updated state.
-   * @returns {boolean} returns.success - Indicates if the operation was successful.
-   * @returns {string} returns.message - The assistant's response.
-   * @returns {string} returns.responseType - The type of response from the assistant (e.g., 'confirmation', 'success', 'info').
-   * @returns {string} returns.conversationId - The ID of the ongoing conversation.
-   * @returns {object} returns.state - The full state object returned by the LangGraph conversation.
-   * @throws {Error} If there's an issue continuing the conversation or saving messages.
+   * @throws {Error} If there's an issue continuing the conversation.
    */
-  async continueConversation(userId, conversationId, userInput) {
+  async continueConversation(userId, workspaceId, userRole, conversationId, userInput) {
     try {
+      // HIERARCHY & TENANCY INTEGRATION: Check user permissions for interacting with workflows.
+      // Example: rbacService.checkPermission(userRole, 'workflow:interact');
+
       logger.info(
-        `Continuing conversation ${conversationId} for user ${userId}`
+        `Continuing conversation ${conversationId} for user ${userId} in workspace ${workspaceId}`
       );
 
-      // Continue the LangGraph conversation
+      // SECURITY & TENANCY CHECK: First, verify the conversation belongs to the user and workspace before proceeding.
+      const conversationExists = await WorkflowChatHistory.exists({ conversationId, userId, workspaceId });
+      if (!conversationExists) {
+          throw new Error('Conversation not found or you do not have permission to access it.');
+      }
+
       const result = await continueWorkflowConversation(
         userInput,
         conversationId,
@@ -343,11 +351,11 @@ class WorkflowCreationService {
         throw new Error(result.error);
       }
 
-      // Save chat messages
-      await this.saveChatMessage(conversationId, userId, 'user', userInput);
+      await this.saveChatMessage(conversationId, userId, workspaceId, 'user', userInput);
       await this.saveChatMessage(
         conversationId,
         userId,
+        workspaceId,
         'assistant',
         result.result.response
       );
@@ -368,33 +376,32 @@ class WorkflowCreationService {
   /**
    * @async
    * @method createWorkflow
-   * @description Saves a new workflow document to the database.
+   * @description Saves a new workflow document to the database, associated with a user and workspace.
    *
    * @param {object} workflowData - The data for the new workflow.
    * @param {string} workflowData.userId - The ID of the user who owns the workflow.
-   * @param {string} workflowData.name - The name of the workflow.
-   * @param {string} workflowData.description - A description of the workflow.
-   * @param {string} workflowData.originalPrompt - The original prompt used to create the workflow.
-   * @param {Array<object>} workflowData.steps - An array of workflow steps.
-   * @param {object} workflowData.trigger - The trigger configuration for the workflow.
-   * @param {string} workflowData.trigger.triggerType - The type of trigger (e.g., 'manual', 'scheduled').
-   * @param {object} [workflowData.trigger.scheduleConfig] - Configuration for scheduled triggers.
-   * @param {string} workflowData.category - The category of the workflow.
-   * @param {Array<object>} workflowData.requiredApps - An array of required applications for the workflow.
-   * @param {object} workflowData.metadata - Additional metadata for the workflow.
+   * @param {string} workflowData.workspaceId - The ID of the workspace for the workflow.
    * @returns {Promise<Workflow>} The newly created workflow document.
-   * @throws {Error} If there's an issue saving the workflow to the database.
+   * @throws {Error} If there's an issue saving the workflow.
    */
   async createWorkflow(workflowData) {
     try {
+      // HIERARCHY & TENANCY INTEGRATION: This is the final checkpoint before creation.
+      // A more robust implementation would re-verify limits here in a transaction.
+      // Example: await workspaceService.incrementWorkflowCount(workflowData.workspaceId);
+      // This action should also trigger notifications to managers/admins if usage thresholds are met.
+      // Example: notificationService.notifyAdminsOfNewWorkflow(workflowData.workspaceId, workflowData);
+
       const workflow = new Workflow(workflowData);
-      // Index Recommendation: Consider adding an index on `userId` in the Workflow model for efficient retrieval of workflows by user.
+      // Index Recommendation: Add a compound index on `{ workspaceId: 1, userId: 1 }` in the Workflow model for efficient retrieval.
       await workflow.save();
 
-      logger.info(`Workflow created: ${workflow._id}`);
+      logger.info(`Workflow created: ${workflow._id} in workspace ${workflowData.workspaceId}`);
       return workflow;
     } catch (error) {
       logger.error('Error creating workflow in database:', error);
+      // HIERARCHY & TENANCY INTEGRATION: If saving fails, the usage count should be decremented if it was pre-incremented.
+      // Example: await workspaceService.decrementWorkflowCount(workflowData.workspaceId);
       throw new Error(`Failed to save workflow: ${error.message}`);
     }
   }
@@ -402,18 +409,18 @@ class WorkflowCreationService {
   /**
    * @async
    * @method saveChatMessage
-   * @description Saves a single chat message to the specified conversation's history in the database.
-   * If the conversation does not exist, it creates a new one.
+   * @description Saves a chat message to a conversation, ensuring it's scoped to the correct user and workspace.
    *
-   * @param {string} conversationId - The ID of the conversation to which the message belongs.
-   * @param {string} userId - The ID of the user associated with the conversation.
-   * @param {'user'|'assistant'} role - The role of the sender ('user' or 'assistant').
-   * @param {string} content - The content of the chat message.
-   * @param {object} [metadata={}] - Optional metadata for the message.
+   * @param {string} conversationId - The ID of the conversation.
+   * @param {string} userId - The ID of the user.
+   * @param {string} workspaceId - The ID of the workspace.
+   * @param {'user'|'assistant'} role - The role of the sender.
+   * @param {string} content - The message content.
+   * @param {object} [metadata={}] - Optional metadata.
    * @returns {Promise<void>}
-   * @throws {Error} If there's an issue saving the chat message.
+   * @throws {Error} If saving fails.
    */
-  async saveChatMessage(conversationId, userId, role, content, metadata = {}) {
+  async saveChatMessage(conversationId, userId, workspaceId, role, content, metadata = {}) {
     try {
       const message = {
         role,
@@ -428,29 +435,23 @@ class WorkflowCreationService {
           userId,
           lastActivity: new Date(),
         },
+        $setOnInsert: {
+          workspaceId, // HIERARCHY & TENANCY INTEGRATION: Ensure workspaceId is set on creation.
+        }
       };
 
-      // BUG FIX: Handle conversation title more robustly.
-      // The previous logic could overwrite an existing title with 'undefined'.
-      // If metadata.title is provided, it explicitly overrides the title.
+      // BUG FIX: Robustly handle conversation title on creation without overwriting existing titles.
       if (metadata.title) {
         updateOperation.$set.title = metadata.title;
       } else if (role === 'user') {
-        // If it's a user message and no explicit title from metadata,
-        // set the title only if the document is being inserted (i.e., it's a new conversation).
-        // This prevents overwriting an existing title with a snippet from subsequent user messages.
-        updateOperation.$setOnInsert = {
-          title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-        };
+        // Only set the title from the first user message if the conversation is being newly created.
+        updateOperation.$setOnInsert.title = content.substring(0, 50) + (content.length > 50 ? '...' : '');
       }
-      // If role is 'assistant' and no metadata.title, we do not touch the title field,
-      // preserving any existing title.
 
-      // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster upserts and IDOR prevention.
-      // BUG FIX: Added userId to the query to prevent Insecure Direct Object Reference (IDOR).
-      // This ensures that a user can only update/create chat history for conversations they own.
+      // SECURITY FIX (IDOR): The query now includes `userId` and `workspaceId` to ensure a user can only update their own conversation within their workspace.
+      // This prevents users from writing to other users' or other workspaces' conversations.
       await WorkflowChatHistory.updateOne(
-        { conversationId, userId },
+        { conversationId, userId, workspaceId },
         updateOperation,
         { upsert: true }
       );
@@ -463,24 +464,25 @@ class WorkflowCreationService {
   /**
    * @async
    * @method getUserConversations
-   * @description Retrieves a list of chat conversations for a specific user, sorted by last activity.
+   * @description Retrieves a list of chat conversations for a specific user within their workspace.
    *
-   * @param {string} userId - The ID of the user whose conversations are to be retrieved.
+   * @param {string} userId - The ID of the user.
+   * @param {string} workspaceId - The ID of the workspace.
    * @param {number} [limit=50] - The maximum number of conversations to return.
-   * @param {number} [offset=0] - The number of conversations to skip for pagination.
-   * @returns {Promise<Array<WorkflowChatHistory>>} An array of WorkflowChatHistory documents, populated with associated workflow names and statuses.
-   * @throws {Error} If there's an issue retrieving the conversations.
+   * @param {number} [offset=0] - The number of conversations to skip.
+   * @returns {Promise<Array<WorkflowChatHistory>>} An array of conversation documents.
+   * @throws {Error} If retrieval fails.
    */
-  async getUserConversations(userId, limit = 50, offset = 0) {
+  async getUserConversations(userId, workspaceId, limit = 50, offset = 0) {
     try {
-      // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
-      // Index Recommendation: Consider adding a compound index on `{ userId: 1, lastActivity: -1 }` in WorkflowChatHistory model for faster queries and sorting.
-      const conversations = await WorkflowChatHistory.find({ userId })
+      // HIERARCHY & TENANCY INTEGRATION: Query is scoped by both userId and workspaceId.
+      // Index Recommendation: Add a compound index on `{ workspaceId: 1, userId: 1, lastActivity: -1 }` for efficient, secure queries.
+      const conversations = await WorkflowChatHistory.find({ userId, workspaceId })
         .sort({ lastActivity: -1 })
         .limit(limit)
         .skip(offset)
         .populate('workflowIds', 'name status')
-        .lean() // Apply .lean() here
+        .lean()
         .exec();
 
       return conversations;
@@ -493,23 +495,25 @@ class WorkflowCreationService {
   /**
    * @async
    * @method getConversation
-   * @description Retrieves a specific chat conversation by its ID for a given user.
+   * @description Retrieves a specific chat conversation, ensuring it belongs to the requesting user and workspace.
    *
-   * @param {string} conversationId - The ID of the conversation to retrieve.
-   * @param {string} userId - The ID of the user who owns the conversation.
-   * @returns {Promise<WorkflowChatHistory|null>} The WorkflowChatHistory document, populated with associated workflows, or null if not found.
-   * @throws {Error} If there's an issue retrieving the conversation.
+   * @param {string} conversationId - The ID of the conversation.
+   * @param {string} userId - The ID of the user.
+   * @param {string} workspaceId - The ID of the workspace.
+   * @returns {Promise<WorkflowChatHistory|null>} The conversation document or null if not found.
+   * @throws {Error} If retrieval fails.
    */
-  async getConversation(conversationId, userId) {
+  async getConversation(conversationId, userId, workspaceId) {
     try {
-      // Optimization: Added .lean() for read-only query to return plain JavaScript objects, improving performance.
-      // Index Recommendation: Consider adding a compound index on `{ conversationId: 1, userId: 1 }` in WorkflowChatHistory model for faster lookups.
+      // HIERARCHY & TENANCY INTEGRATION: Query is scoped by conversationId, userId, and workspaceId.
+      // Index Recommendation: Add a compound index on `{ conversationId: 1, userId: 1, workspaceId: 1 }`.
       const conversation = await WorkflowChatHistory.findOne({
         conversationId,
         userId,
+        workspaceId,
       })
         .populate('workflowIds')
-        .lean() // Apply .lean() here
+        .lean()
         .exec();
 
       return conversation;
@@ -521,10 +525,10 @@ class WorkflowCreationService {
 
   /**
    * @method mapTaskTypeToCategory
-   * @description Maps a given task type (identified by the AI) to a predefined workflow category.
+   * @description Maps a given task type to a predefined workflow category.
    *
-   * @param {string} taskType - The task type string (e.g., 'email', 'social', 'productivity').
-   * @returns {string} The corresponding workflow category (e.g., 'email', 'social', 'productivity', 'other').
+   * @param {string} taskType - The task type string.
+   * @returns {string} The corresponding workflow category.
    */
   mapTaskTypeToCategory(taskType) {
     const mapping = {
@@ -543,17 +547,13 @@ class WorkflowCreationService {
 
   /**
    * @method generateConversationId
-   * @description Generates a unique ID for a new conversation using UUID v4.
+   * @description Generates a unique ID for a new conversation.
    *
-   * @returns {string} A unique conversation ID prefixed with 'conv_'.
+   * @returns {string} A unique conversation ID.
    */
   generateConversationId() {
     return `conv_${uuidv4()}`;
   }
 }
 
-/**
- * @constant {WorkflowCreationService} workflowCreationService
- * @description An instance of the WorkflowCreationService, providing methods for workflow creation and chat management.
- */
 export const workflowCreationService = new WorkflowCreationService();

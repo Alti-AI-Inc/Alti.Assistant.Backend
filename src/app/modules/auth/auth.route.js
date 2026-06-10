@@ -12,64 +12,9 @@ import { AuthValidation } from './auth.validation.js';
  */
 const router = express.Router();
 
-/**
- * @swagger
- * /api/v1/auth/user/single-user:
- *   get:
- *     summary: Get current user's profile
- *     description: Retrieve the profile details of the authenticated user.
- *     tags:
- *       - Auth Management
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: User profile retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 statusCode:
- *                   type: number
- *                   example: 200
- *                 message:
- *                   type: string
- *                   example: User retrieved successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       example: "user-uuid-123"
- *                     email:
- *                       type: string
- *                       example: "user@example.com"
- *                     role:
- *                       type: string
- *                       example: "user"
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- *       500:
- *         $ref: '#/components/responses/InternalServerError'
- */
-router
-  .route('/user/single-user')
-  // FIX: Expanded roles to include all authenticated user types.
-  .get(
-    auth(
-      ENUM_USER_ROLE.SUPER_ADMIN,
-      ENUM_USER_ROLE.ADMIN,
-      ENUM_USER_ROLE.MANAGER,
-      ENUM_USER_ROLE.USER
-    ),
-    authController.getUser
-  );
+// =================================================================
+//                 Public Authentication Routes
+// =================================================================
 
 /**
  * @swagger
@@ -147,7 +92,7 @@ router.route('/register').post(
   validateRequest(AuthValidation.UserValidationSchema),
   // SECURITY: Removed 'role' from swagger schema to prevent privilege escalation.
   // The controller MUST ignore any 'role' field in the request body and assign a default role (e.g., 'user').
-  // Admin/Manager accounts should be created via a separate, secure endpoint.
+  // Admin/Manager accounts should be created via a separate, secure endpoint or invitation.
   authController.register
 );
 
@@ -560,6 +505,69 @@ router
   .route('/reset-password')
   .post(createRateLimiter(5, 1), authController.resetPassword);
 
+// =================================================================
+//                 Authenticated User Routes
+// =================================================================
+
+/**
+ * @swagger
+ * /api/v1/auth/user/single-user:
+ *   get:
+ *     summary: Get current user's profile
+ *     description: Retrieve the profile details of the authenticated user.
+ *     tags:
+ *       - User Management
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: User retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "user-uuid-123"
+ *                     email:
+ *                       type: string
+ *                       example: "user@example.com"
+ *                     role:
+ *                       type: string
+ *                       example: "user"
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router
+  .route('/user/single-user')
+  // FIX: Expanded roles to include all authenticated user types.
+  .get(
+    auth(
+      ENUM_USER_ROLE.SUPER_ADMIN,
+      ENUM_USER_ROLE.ADMIN,
+      ENUM_USER_ROLE.MANAGER,
+      ENUM_USER_ROLE.USER
+    ),
+    authController.getUser
+  );
+
 /**
  * @swagger
  * /api/v1/auth/change-password:
@@ -567,7 +575,7 @@ router
  *     summary: Change user password
  *     description: Allow an authenticated user to change their password.
  *     tags:
- *       - Auth Management
+ *       - User Management
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -648,7 +656,7 @@ router.route('/change-password').post(
  *     summary: Update user profile
  *     description: Update the profile information for a specific user. Accessible by the user themselves, their manager, or an admin.
  *     tags:
- *       - Auth Management
+ *       - User Management
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -752,7 +760,7 @@ router
  *     summary: Request OTP for account deletion
  *     description: Initiates the account deletion process by sending an OTP to the user's registered email.
  *     tags:
- *       - Auth Management
+ *       - User Management
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -823,7 +831,7 @@ router
  *     summary: Delete user account
  *     description: Permanently delete a user's account using a provided OTP.
  *     tags:
- *       - Auth Management
+ *       - User Management
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -913,6 +921,183 @@ router
     // INTEGRATION: Controller should ensure that deleting a user correctly de-allocates resources and updates usage/limits for the parent workspace/tenant.
     authController.deleteUserAccount
   );
+
+// =================================================================
+//                 Manager & Admin Routes
+// =================================================================
+
+/**
+ * @swagger
+ * /api/v1/auth/team/invite:
+ *   post:
+ *     summary: Invite a new member to the workspace
+ *     description: Allows Managers and Admins to invite a new user to their workspace by email.
+ *     tags:
+ *       - Manager Dashboard
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - role
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "new.teammate@example.com"
+ *               role:
+ *                 type: string
+ *                 enum: [user, manager]
+ *                 example: "user"
+ *     responses:
+ *       200:
+ *         description: Invitation sent successfully.
+ *       400:
+ *         description: Invalid request body or user already in workspace.
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden. User does not have permission or workspace plan limit reached.
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.post(
+  '/team/invite',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  validateRequest(AuthValidation.inviteUserValidationSchema),
+  // OPTIMIZATION: The controller must check the workspace's current user count against its plan limit before sending the invitation.
+  // SECURITY: The controller must ensure a Manager cannot invite another user with a role higher than their own (e.g., Admin).
+  authController.inviteUser
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/team/members:
+ *   get:
+ *     summary: Get all members of the workspace
+ *     description: Retrieves a list of all users belonging to the authenticated manager's or admin's workspace.
+ *     tags:
+ *       - Manager Dashboard
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of team members.
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/team/members',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  // INTEGRATION: The controller must be scoped to only return users from the requester's workspace/tenant.
+  authController.getTeamMembers
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/team/members/{userId}/role:
+ *   patch:
+ *     summary: Update a team member's role
+ *     description: Allows a Manager or Admin to change the role of another user within their workspace.
+ *     tags:
+ *       - Manager Dashboard
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The ID of the user whose role is to be updated.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [user, manager]
+ *                 example: "manager"
+ *     responses:
+ *       200:
+ *         description: User role updated successfully.
+ *       400:
+ *         $ref: '#/components/responses/BadRequestError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Forbidden. Cannot update own role, update owner's role, or assign a role higher than self.
+ *       404:
+ *         description: User not found in the workspace.
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.patch(
+  '/team/members/:userId/role',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  validateRequest(AuthValidation.updateRoleValidationSchema),
+  // SECURITY: The controller must verify the `userId` is within the manager's workspace.
+  // It must also prevent a manager from assigning a role with higher privileges than their own.
+  // It must prevent a user from changing their own role or the workspace owner's role via this endpoint.
+  authController.updateTeamMemberRole
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/workspace/metrics:
+ *   get:
+ *     summary: Get workspace metrics
+ *     description: Retrieves key metrics for the manager's workspace, such as user count, active projects, and resource usage.
+ *     tags:
+ *       - Manager Dashboard
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Workspace metrics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userCount:
+ *                   type: integer
+ *                 planUserLimit:
+ *                   type: integer
+ *                 activeProjects:
+ *                   type: integer
+ *                 usagePercentage:
+ *                   type: number
+ *                   format: float
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get(
+  '/workspace/metrics',
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.MANAGER),
+  // VERIFICATION: The controller must ensure this endpoint NEVER exposes sensitive billing information like subscription cost or payment methods.
+  // It should only return operational metrics relevant to a manager.
+  authController.getWorkspaceMetrics
+);
 
 /**
  * @exports {express.Router} authRoutes - The Express router containing authentication-related routes.
