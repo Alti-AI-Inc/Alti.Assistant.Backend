@@ -91,19 +91,17 @@ import { chatbotService } from './chatbot.service.js';
  */
 /**
  * Handles the creation of a new chatbot.
- * Extracts chatbot data from the request body and the user ID from the authenticated user.
+ * Extracts chatbot data from the request body and the user context from the authenticated user.
  * Calls the chatbot service to create the chatbot and sends a success response.
  *
- * @param {import('express').Request} req - The Express request object, containing the chatbot data in `req.body` and user ID in `req.user.userId`.
+ * @param {import('express').Request} req - The Express request object, containing the chatbot data in `req.body` and user context in `req.user`.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const createChatbot = catchAsync(async (req, res) => {
-  // It's generally a bad practice to pass the entire 'req' object to the service layer.
-  // Services should only receive the specific data they need to perform their logic,
-  // promoting better separation of concerns, testability, and reusability.
-  // For creation, typically only the request body and user context are needed.
-  const result = await chatbotService.createChatbot(req.body, req.user.userId);
+  // Pass the entire user context (req.user) to the service layer to allow proper validation of roles
+  // (super_admin, admin, manager, user), tenant context boundaries, and propagation of usage/limits.
+  const result = await chatbotService.createChatbot(req.body, req.user);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
@@ -206,9 +204,9 @@ const createChatbot = catchAsync(async (req, res) => {
  *                       createdAt:
  *                         type: string
  *                         format: date-time
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
  *       401:
  *         description: Unauthorized - No authentication token or invalid token.
  *         content:
@@ -224,17 +222,16 @@ const createChatbot = catchAsync(async (req, res) => {
  */
 /**
  * Handles the retrieval of all chatbots for the authenticated user.
- * Extracts the user ID from the authenticated user and query parameters for filtering/pagination.
+ * Extracts the user context from the authenticated user and query parameters for filtering/pagination.
  * Calls the chatbot service to get the chatbots and sends a success response.
  *
- * @param {import('express').Request} req - The Express request object, containing user ID in `req.user.userId` and query parameters in `req.query`.
+ * @param {import('express').Request} req - The Express request object, containing user context in `req.user` and query parameters in `req.query`.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const getChatbots = catchAsync(async (req, res) => {
-  // For retrieving lists of resources, 'req.query' is often used for filtering,
-  // pagination, and sorting. Passing 'req.query' explicitly is better than the entire 'req' object.
-  const result = await chatbotService.getChatbots(req.user.userId, req.query);
+  // Pass the entire user context (req.user) to enforce tenant boundaries and role-based visibility.
+  const result = await chatbotService.getChatbots(req.user, req.query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -327,16 +324,16 @@ const getChatbots = catchAsync(async (req, res) => {
  */
 /**
  * Handles the retrieval of a single chatbot by its ID.
- * Extracts the chatbot ID from `req.params` and the user ID from the authenticated user.
+ * Extracts the chatbot ID from `req.params` and the user context from the authenticated user.
  * Calls the chatbot service to get the specific chatbot and sends a success response.
  *
- * @param {import('express').Request} req - The Express request object, containing chatbot ID in `req.params.id` and user ID in `req.user.userId`.
+ * @param {import('express').Request} req - The Express request object, containing chatbot ID in `req.params.id` and user context in `req.user`.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const getChatbotById = catchAsync(async (req, res) => {
-  // Only the ID from params and user context are needed to retrieve a specific chatbot.
-  const result = await chatbotService.getChatbotById(req.params.id, req.user.userId);
+  // Pass the entire user context (req.user) to allow role-based access control and tenant checks.
+  const result = await chatbotService.getChatbotById(req.params.id, req.user);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -451,16 +448,16 @@ const getChatbotById = catchAsync(async (req, res) => {
  */
 /**
  * Handles the update of an existing chatbot.
- * Extracts the chatbot ID from `req.params`, the user ID from the authenticated user, and update data from `req.body`.
+ * Extracts the chatbot ID from `req.params`, the user context from the authenticated user, and update data from `req.body`.
  * Calls the chatbot service to update the chatbot and sends a success response.
  *
- * @param {import('express').Request} req - The Express request object, containing chatbot ID in `req.params.id`, user ID in `req.user.userId`, and update data in `req.body`.
+ * @param {import('express').Request} req - The Express request object, containing chatbot ID in `req.params.id`, user context in `req.user`, and update data in `req.body`.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const updateChatbot = catchAsync(async (req, res) => {
-  // Only the ID from params, user context, and update body are needed for updating.
-  const result = await chatbotService.updateChatbot(req.params.id, req.user.userId, req.body);
+  // Pass the entire user context (req.user) to allow role-based validation and tenant checks.
+  const result = await chatbotService.updateChatbot(req.params.id, req.user, req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -542,16 +539,16 @@ const updateChatbot = catchAsync(async (req, res) => {
  */
 /**
  * Handles the deletion of a chatbot.
- * Extracts the chatbot ID from `req.params` and the user ID from the authenticated user.
+ * Extracts the chatbot ID from `req.params` and the user context from the authenticated user.
  * Calls the chatbot service to delete the chatbot and sends a success response.
  *
- * @param {import('express').Request} req - The Express request object, containing chatbot ID in `req.params.id` and user ID in `req.user.userId`.
+ * @param {import('express').Request} req - The Express request object, containing chatbot ID in `req.params.id` and user context in `req.user`.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 const deleteChatbot = catchAsync(async (req, res) => {
-  // Only the ID from params and user context are needed for deletion.
-  const result = await chatbotService.deleteChatbot(req.params.id, req.user.userId);
+  // Pass the entire user context (req.user) to allow role-based validation and tenant checks.
+  const result = await chatbotService.deleteChatbot(req.params.id, req.user);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
