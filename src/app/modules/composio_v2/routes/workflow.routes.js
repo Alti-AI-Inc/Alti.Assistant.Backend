@@ -1,15 +1,18 @@
 /**
- * @file This file defines the API routes for managing and executing workflows within the Composio v2 module.
+ * @file This file defines the API routes for managing workflows and workspace features for managers.
  * @module routes/workflow.routes
  * @requires express
  * @requires ../controllers/workflow.controller
+ * @requires ../controllers/manager.controller
  */
 import express from 'express';
 import { workflowController } from '../controllers/workflow.controller.js';
+import { managerController } from '../controllers/manager.controller.js';
 import { authenticate } from '../../../../middlewares/auth.middleware.js';
 import { authorizeRoles } from '../../../../middlewares/role.middleware.js';
 import { validateTenant } from '../../../../middlewares/tenant.middleware.js';
 import { trackUsage } from '../../../../middlewares/usage.middleware.js';
+import { checkPlanLimits } from '../../../../middlewares/plan.middleware.js';
 
 /**
  * Express router to handle workflow-related API requests.
@@ -557,6 +560,189 @@ router.post(
   workflowController.resumeWorkflowController
 );
 
+// =================================================================
+// Manager Dashboard & Workspace Management Routes
+// =================================================================
+
+// NOTE: These routes provide managers with the necessary endpoints to manage their team and view workspace metrics.
+// In a larger application, these might exist in a separate `workspace.routes.js` file.
+
+/**
+ * @swagger
+ * /workspace/metrics:
+ *   get:
+ *     summary: Get workspace metrics for managers
+ *     description: Retrieves key metrics for the current workspace, such as total workflows, executions, and team member count. This endpoint is restricted to managers and admins and does not expose billing information.
+ *     tags:
+ *       - Workspace Management
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Workspace metrics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalWorkflows:
+ *                   type: integer
+ *                   example: 50
+ *                 totalExecutions:
+ *                   type: integer
+ *                   example: 1250
+ *                 activeMembers:
+ *                   type: integer
+ *                   example: 8
+ *                 planMemberLimit:
+ *                   type: integer
+ *                   example: 10
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a manager or admin.
+ */
+router.get(
+  '/workspace/metrics',
+  authorizeRoles('super_admin', 'admin', 'manager'),
+  managerController.getWorkspaceMetricsController
+);
+
+/**
+ * @swagger
+ * /workspace/members:
+ *   get:
+ *     summary: List all members in the workspace
+ *     description: Retrieves a list of all members within the manager's workspace, including their roles.
+ *     tags:
+ *       - Workspace Management
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of workspace members.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id: { type: string, example: "user-abc-123" }
+ *                   name: { type: string, example: "Jane Doe" }
+ *                   email: { type: string, example: "jane.doe@example.com" }
+ *                   role: { type: string, enum: ['admin', 'manager', 'user'], example: "user" }
+ *                   status: { type: string, enum: ['active', 'pending'], example: "active" }
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a manager or admin.
+ */
+router.get(
+  '/workspace/members',
+  authorizeRoles('super_admin', 'admin', 'manager'),
+  managerController.getTeamMembersController
+);
+
+/**
+ * @swagger
+ * /workspace/members/{memberId}/role:
+ *   put:
+ *     summary: Update a team member's role
+ *     description: Allows a manager or admin to update the role of another member in the workspace. Managers are restricted and cannot promote users to 'admin' or modify other 'admin' or 'manager' roles.
+ *     tags:
+ *       - Workspace Management
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the member to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [manager, user]
+ *                 description: The new role to assign. Managers can only assign 'user' or 'manager' (to a user).
+ *                 example: "user"
+ *     responses:
+ *       200:
+ *         description: Member role updated successfully.
+ *       400:
+ *         description: Invalid role or member ID provided.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. Insufficient permissions to perform this role change.
+ *       404:
+ *         description: Member not found.
+ */
+router.put(
+  '/workspace/members/:memberId/role',
+  authorizeRoles('super_admin', 'admin', 'manager'),
+  managerController.updateMemberRoleController
+);
+
+/**
+ * @swagger
+ * /workspace/invitations:
+ *   post:
+ *     summary: Invite a new member to the workspace
+ *     description: Sends an invitation to a new member to join the workspace. This action is checked against the current plan's member limit.
+ *     tags:
+ *       - Workspace Management
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - role
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: The email address of the user to invite.
+ *                 example: "new.user@example.com"
+ *               role:
+ *                 type: string
+ *                 enum: [manager, user]
+ *                 description: The role to assign to the new member. Managers can only invite 'users' or other 'managers'.
+ *                 example: "user"
+ *     responses:
+ *       201:
+ *         description: Invitation sent successfully.
+ *       400:
+ *         description: Invalid email or role provided.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden. User is not a manager or admin.
+ *       409:
+ *         description: User is already a member of the workspace.
+ *       422:
+ *         description: Unprocessable Entity. The workspace member limit has been reached.
+ */
+router.post(
+  '/workspace/invitations',
+  authorizeRoles('super_admin', 'admin', 'manager'),
+  checkPlanLimits('team_members'), // Middleware to verify plan limits before proceeding
+  managerController.inviteMemberController
+);
 
 /**
  * Exports the workflow routes for use by the Express application.
