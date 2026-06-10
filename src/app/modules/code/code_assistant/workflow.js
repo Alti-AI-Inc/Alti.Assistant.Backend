@@ -30,8 +30,8 @@ import config from '../../../../../config/index.js';
 /**
  * Performs critical pre-flight checks before executing the main workflow logic.
  * This node ensures that the request is properly authenticated, authorized,
- * and within the usage limits of the workspace. It enriches the state with
- * user and workspace context for downstream nodes.
+ * within the usage limits of the workspace, and that the user has the correct role.
+ * It enriches the state with user and workspace context for downstream nodes.
  *
  * CRITICAL: This node relies on `userId` and `workspaceId` being passed in the
  * `configurable` object on every invocation of the graph.
@@ -55,8 +55,27 @@ const validateContextAndPermissionsNode = async (state, config) => {
   // const user = await User.findOne({ _id: userId, workspaces: workspaceId }).populate('role');
   // const workspace = await Workspace.findById(workspaceId);
   const FAKE_DB = {
-      users: { 'user-1': { id: 'user-1', role: 'user', workspaceId: 'ws-1' } },
-      workspaces: { 'ws-1': { id: 'ws-1', owner: 'admin-1', features: { codeAssistant: { enabled: true } }, limits: { monthlyTokens: 1000000 } } }
+      users: {
+          'user-member-1': { id: 'user-member-1', role: 'member', workspaceId: 'ws-1' },
+          'user-admin-1': { id: 'user-admin-1', role: 'admin', workspaceId: 'ws-1' },
+          'user-viewer-1': { id: 'user-viewer-1', role: 'viewer', workspaceId: 'ws-1' },
+      },
+      workspaces: {
+          'ws-1': {
+              id: 'ws-1',
+              ownerId: 'user-admin-1',
+              features: {
+                  codeAssistant: {
+                      enabled: true,
+                      // OPTIMIZED: Added role-based access control for the feature.
+                      // This setting would be configured by a workspace admin in the UI,
+                      // allowing them to control which roles can use expensive AI features.
+                      allowedRoles: ['admin', 'member']
+                  }
+              },
+              limits: { monthlyTokens: 1000000 }
+          }
+      }
   };
   const user = FAKE_DB.users[userId];
   const workspace = FAKE_DB.workspaces[workspaceId];
@@ -66,16 +85,29 @@ const validateContextAndPermissionsNode = async (state, config) => {
     throw new Error("Authorization Error: User is not authorized for this workspace.");
   }
 
-  if (!workspace.features.codeAssistant.enabled) {
+  const codeAssistantFeature = workspace.features.codeAssistant;
+
+  if (!codeAssistantFeature || !codeAssistantFeature.enabled) {
+    // This check enforces the subscription status. If a workspace's subscription
+    // lapses, this flag should be set to false by the billing management system.
     throw new Error("Feature Not Enabled: Code Assistant is not enabled for this workspace.");
   }
 
-  // Example usage limit check. This would call a service to get current usage.
+  // OPTIMIZED: Added Role-Based Access Control (RBAC) check.
+  // Verifies if the user's role is in the list of roles allowed to use this feature.
+  // This provides granular, admin-configurable control over feature access.
+  const allowedRoles = codeAssistantFeature.allowedRoles || []; // Default to an empty list for safety (fail-closed).
+  if (!allowedRoles.includes(user.role)) {
+      throw new Error(`Access Denied: Your role ('${user.role}') does not have permission to use the Code Assistant.`);
+  }
+
+  // This check enforces the subscription limits. The usage service would track
+  // token consumption against the limit defined in the workspace's subscription plan.
   // const usage = await checkUsage(workspaceId, 'codeAssistant');
   const usage = { tokens: 500000 }; // Placeholder usage
   if (usage.tokens >= workspace.limits.monthlyTokens) {
     // Optionally, trigger a notification to the workspace owner/admin.
-    // await sendLimitNotification(workspace.owner, 'Code Assistant token limit reached.');
+    // await sendLimitNotification(workspace.ownerId, 'Code Assistant token limit reached.');
     throw new Error("Usage Limit Exceeded: Your workspace has reached its monthly token limit for the Code Assistant.");
   }
 
@@ -84,7 +116,7 @@ const validateContextAndPermissionsNode = async (state, config) => {
   // NOTE: The `codeAssistantState` in `./state.js` must be updated to include `user` and `workspace` channels.
   return {
     user: { id: user.id, role: user.role },
-    workspace: { id: workspace.id, ownerId: workspace.owner },
+    workspace: { id: workspace.id, ownerId: workspace.ownerId },
   };
 };
 
