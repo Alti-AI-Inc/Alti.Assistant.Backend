@@ -272,7 +272,8 @@ const TenantSchema = new mongoose.Schema(
        */
       lastResetAt: {
         type: Date,
-        default: Date.now,
+        // Bug fix: Date.now as a default needs to be a function to be evaluated at document creation time.
+        default: () => Date.now(),
       },
     },
     /**
@@ -402,7 +403,8 @@ TenantSchema.statics.findActive = function () {
  * @returns {mongoose.Query<TenantDocument | null, TenantDocument>} A Mongoose query for the tenant with populated subscription.
  */
 TenantSchema.statics.findWithSubscription = function (tenantId) {
-  return this.findById(tenantId).populate('subscriptionId');
+  // Bug fix: Populate the 'subscription' virtual field, not the 'subscriptionId' field itself.
+  return this.findById(tenantId).populate('subscription');
 };
 
 /**
