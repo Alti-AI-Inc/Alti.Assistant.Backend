@@ -1,9 +1,28 @@
 import httpStatus from 'http-status';
 import { randomUUID } from 'crypto';
+import winston from 'winston';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
+
+// Create a Winston logger that is compatible with Google Cloud Logging (Stackdriver)
+// It outputs structured JSON with a 'severity' property, which Cloud Logging automatically recognizes.
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    // This custom format adds the 'severity' property needed by Google Cloud Logging
+    winston.format(info => {
+      info.severity = info.level.toUpperCase();
+      return info;
+    })(),
+    winston.format.json(),
+  ),
+  transports: [
+    new winston.transports.Console(),
+  ],
+});
 
 // Initialize Vertex AI SDK
 const vertexAI = new VertexAI({
@@ -103,7 +122,7 @@ const safetySettings = [
 /**
  * Handles requests to get a response from the Gemini 1.5 Flash model.
  * Requires user authentication context extracted via `validatePromptRequest`.
- * 
+ *
  * @async
  * @function Gpt4oMiniGetResponse
  * @param {import('express').Request} req - Express request object.
@@ -112,27 +131,71 @@ const safetySettings = [
  */
 const Gpt4oMiniGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId } = await validatePromptRequest(req);
+  const modelName = 'gemini-1.5-flash';
+
+  logger.info(`Received request for ${modelName}`, {
+    userId,
+    sessionId,
+    model: modelName,
+    component: 'openAi.controller',
+  });
 
   // Mask PII before transmitting data to Vertex AI
   const sanitizedPrompt = maskPII(prompt);
 
-  const generativeModel = vertexAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    safetySettings,
-  });
+  try {
+    const generativeModel = vertexAI.getGenerativeModel({
+      model: modelName,
+      safetySettings,
+    });
 
-  const responseStream = await generativeModel.generateContent({
-    contents: [{ role: 'user', parts: [{ text: sanitizedPrompt }] }],
-  });
+    const responseStream = await generativeModel.generateContent({
+      contents: [{ role: 'user', parts: [{ text: sanitizedPrompt }] }],
+    });
 
-  const resultText = responseStream.response.candidates[0].content.parts[0].text;
+    if (!responseStream.response.candidates || responseStream.response.candidates.length === 0) {
+      logger.warn('Vertex AI response was blocked or empty', {
+        userId,
+        sessionId,
+        model: modelName,
+        finishReason: responseStream.response.promptFeedback?.blockReason,
+        safetyRatings: responseStream.response.promptFeedback?.safetyRatings,
+        component: 'openAi.controller',
+      });
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Your prompt was blocked due to safety concerns. Please rephrase your request.',
+        data: null,
+      });
+    }
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Response processed successfully.',
-    data: { text: resultText, sessionId, userId },
-  });
+    const resultText = responseStream.response.candidates[0].content.parts[0].text;
+
+    logger.info(`Successfully processed ${modelName} request`, {
+      userId,
+      sessionId,
+      model: modelName,
+      component: 'openAi.controller',
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Response processed successfully.',
+      data: { text: resultText, sessionId, userId },
+    });
+  } catch (error) {
+    logger.error(`Error calling Vertex AI for ${modelName}`, {
+      userId,
+      sessionId,
+      model: modelName,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      component: 'openAi.controller',
+    });
+    throw error;
+  }
 });
 
 /**
@@ -188,7 +251,7 @@ const Gpt4oMiniGetResponse = catchAsync(async (req, res) => {
 /**
  * Handles requests to get a response from the Gemini 1.5 Pro model.
  * Requires user authentication context extracted via `validatePromptRequest`.
- * 
+ *
  * @async
  * @function Gpt4NanoGetResponse
  * @param {import('express').Request} req - Express request object.
@@ -197,27 +260,71 @@ const Gpt4oMiniGetResponse = catchAsync(async (req, res) => {
  */
 const Gpt4NanoGetResponse = catchAsync(async (req, res) => {
   const { prompt, userId, sessionId } = await validatePromptRequest(req);
+  const modelName = 'gemini-1.5-pro';
+
+  logger.info(`Received request for ${modelName}`, {
+    userId,
+    sessionId,
+    model: modelName,
+    component: 'openAi.controller',
+  });
 
   // Mask PII before transmitting data to Vertex AI
   const sanitizedPrompt = maskPII(prompt);
 
-  const generativeModel = vertexAI.getGenerativeModel({
-    model: 'gemini-1.5-pro',
-    safetySettings,
-  });
+  try {
+    const generativeModel = vertexAI.getGenerativeModel({
+      model: modelName,
+      safetySettings,
+    });
 
-  const responseStream = await generativeModel.generateContent({
-    contents: [{ role: 'user', parts: [{ text: sanitizedPrompt }] }],
-  });
+    const responseStream = await generativeModel.generateContent({
+      contents: [{ role: 'user', parts: [{ text: sanitizedPrompt }] }],
+    });
 
-  const resultText = responseStream.response.candidates[0].content.parts[0].text;
+    if (!responseStream.response.candidates || responseStream.response.candidates.length === 0) {
+      logger.warn('Vertex AI response was blocked or empty', {
+        userId,
+        sessionId,
+        model: modelName,
+        finishReason: responseStream.response.promptFeedback?.blockReason,
+        safetyRatings: responseStream.response.promptFeedback?.safetyRatings,
+        component: 'openAi.controller',
+      });
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Your prompt was blocked due to safety concerns. Please rephrase your request.',
+        data: null,
+      });
+    }
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Response processed successfully.',
-    data: { text: resultText, sessionId, userId },
-  });
+    const resultText = responseStream.response.candidates[0].content.parts[0].text;
+
+    logger.info(`Successfully processed ${modelName} request`, {
+      userId,
+      sessionId,
+      model: modelName,
+      component: 'openAi.controller',
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Response processed successfully.',
+      data: { text: resultText, sessionId, userId },
+    });
+  } catch (error) {
+    logger.error(`Error calling Vertex AI for ${modelName}`, {
+      userId,
+      sessionId,
+      model: modelName,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      component: 'openAi.controller',
+    });
+    throw error;
+  }
 });
 
 /**
@@ -269,7 +376,7 @@ const Gpt4NanoGetResponse = catchAsync(async (req, res) => {
 /**
  * Handles anonymous requests to get a response from Vertex AI.
  * Does not require user authentication. Generates a random session ID if none is provided.
- * 
+ *
  * @async
  * @function OpenAiGetResponseAnonymously
  * @param {import('express').Request} req - Express request object.
@@ -279,6 +386,10 @@ const Gpt4NanoGetResponse = catchAsync(async (req, res) => {
 const OpenAiGetResponseAnonymously = catchAsync(async (req, res) => {
   const prompt = req.body?.prompt;
   if (!prompt) {
+    logger.warn('Anonymous request rejected: Prompt is required', {
+      component: 'openAi.controller',
+      endpoint: '/openai/anonymous',
+    });
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
       success: false,
@@ -288,27 +399,67 @@ const OpenAiGetResponseAnonymously = catchAsync(async (req, res) => {
   }
 
   const sessionId = req.body?.sessionId || randomUUID();
+  const modelName = 'gemini-1.5-flash';
+
+  logger.info(`Received anonymous request for ${modelName}`, {
+    sessionId,
+    model: modelName,
+    component: 'openAi.controller',
+  });
 
   // Mask PII before transmitting data to Vertex AI
   const sanitizedPrompt = maskPII(prompt);
 
-  const generativeModel = vertexAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    safetySettings,
-  });
+  try {
+    const generativeModel = vertexAI.getGenerativeModel({
+      model: modelName,
+      safetySettings,
+    });
 
-  const responseStream = await generativeModel.generateContent({
-    contents: [{ role: 'user', parts: [{ text: sanitizedPrompt }] }],
-  });
+    const responseStream = await generativeModel.generateContent({
+      contents: [{ role: 'user', parts: [{ text: sanitizedPrompt }] }],
+    });
 
-  const resultText = responseStream.response.candidates[0].content.parts[0].text;
+    if (!responseStream.response.candidates || responseStream.response.candidates.length === 0) {
+      logger.warn('Vertex AI response was blocked or empty for anonymous user', {
+        sessionId,
+        model: modelName,
+        finishReason: responseStream.response.promptFeedback?.blockReason,
+        safetyRatings: responseStream.response.promptFeedback?.safetyRatings,
+        component: 'openAi.controller',
+      });
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'Your prompt was blocked due to safety concerns. Please rephrase your request.',
+        data: null,
+      });
+    }
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Response processed successfully.',
-    data: { text: resultText, sessionId },
-  });
+    const resultText = responseStream.response.candidates[0].content.parts[0].text;
+
+    logger.info(`Successfully processed anonymous ${modelName} request`, {
+      sessionId,
+      model: modelName,
+      component: 'openAi.controller',
+    });
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Response processed successfully.',
+      data: { text: resultText, sessionId },
+    });
+  } catch (error) {
+    logger.error(`Error calling Vertex AI for anonymous ${modelName}`, {
+      sessionId,
+      model: modelName,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      component: 'openAi.controller',
+    });
+    throw error;
+  }
 });
 
 /**
