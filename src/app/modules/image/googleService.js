@@ -1,100 +1,167 @@
 import { GoogleAuth } from 'google-auth-library';
 import config from '../../../../config/index.js';
 import { predictionServiceClient } from './llm.js';
+// AI-FIX: Import services for usage tracking, workspace context, and custom errors.
+// These services are essential for enforcing business logic, security, and multi-tenancy.
+import { checkUsageLimits, recordUsage } from '../usage/usageService.js';
+import { getWorkspaceById } from '../workspace/workspaceService.js';
+import { QuotaExceededError, PermissionDeniedError } from '../../common/errors.js';
 
 /**
- * Generates an image using Google's Imagen 3 model via Vertex AI.
+ * Generates an image using Google's Imagen 3 model via Vertex AI using the Node.js client library.
  * @param {string} prompt - The final, detailed prompt for the image.
- * @returns {Promise<string|null>} - The URL of the generated image, or null on failure.
+ * @param {object} user - The authenticated user object performing the action.
+ * @param {string} user.id - The user's unique identifier.
+ * @param {string} user.workspaceId - The ID of the workspace the user belongs to.
+ * @param {string} user.role - The role of the user (e.g., 'user', 'manager', 'admin', 'super_admin').
+ * @returns {Promise<string|null>} - The base64-encoded data URL of the generated image, or null on failure.
+ * @throws {QuotaExceededError} If the workspace has exceeded its image generation limit.
+ * @throws {PermissionDeniedError} If the user's role is not authorized to generate images.
  */
-export const generateImage = async (prompt) => {
-  // Validate prompt to ensure robust execution and avoid unnecessary API calls
+export const generateImage = async (prompt, user) => {
+  // AI-FIX: Validate user context to ensure all actions are authorized and tracked within a tenant.
+  if (!user || !user.id || !user.workspaceId || !user.role) {
+    console.error('User context is missing or invalid for image generation.');
+    // AI-FIX: Throw a specific error for permission issues that can be handled by the controller.
+    throw new PermissionDeniedError('Invalid user context provided.');
+  }
+
+  // AI-FIX: Enforce role-based access control (RBAC).
+  // This ensures only authorized roles can consume expensive resources.
+  const allowedRoles = ['user', 'manager', 'admin', 'super_admin'];
+  if (!allowedRoles.includes(user.role)) {
+      throw new PermissionDeniedError(`User with role '${user.role}' is not authorized to generate images.`);
+  }
+
+  // AI-FIX: Check usage limits against the user's workspace before making the API call.
+  // This prevents overuse, enforces subscription plans, and provides a better user experience.
+  const { allowed } = await checkUsageLimits(user.workspaceId, 'imageGeneration');
+  if (!allowed) {
+    throw new QuotaExceededError('Image generation quota exceeded for this workspace.');
+  }
+
   if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
     console.error('Invalid prompt provided for image generation.');
     return null;
   }
 
-  // Prevent excessively long prompts from causing API errors
   const trimmedPrompt = prompt.trim().substring(0, 4000);
 
-  // Fallback configuration resolution to prevent runtime crashes
-  const projectId = config.gcpProjectId || (config.google && config.google.gcp_project_id);
-  const location = config.gcpLocation || (config.google && config.google.vertex_ai_region);
-
-  if (!projectId || !location) {
-    console.error('GCP Project ID or Location is not configured.');
-    return null;
-  }
-
-  // Ensure the prediction service client is initialized before calling predict
-  if (!predictionServiceClient || typeof predictionServiceClient.predict !== 'function') {
-    console.error('Prediction service client is not initialized or unavailable.');
-    return null;
-  }
-
-  const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-002`;
-
-  const instances = [{ prompt: trimmedPrompt }];
-  const parameters = {
-    sampleCount: 1,
-    aspectRatio: '1:1', // Or "16:9", "9:16", etc.
-    outputFormat: 'png',
-  };
-
-  const request = {
-    endpoint,
-    instances,
-    parameters,
-  };
-
   try {
-    console.log('Sending request to Vertex AI with prompt:', trimmedPrompt);
+    // AI-FIX: Retrieve tenant-specific configuration from the workspace to ensure data isolation.
+    // Fallback to global config if no workspace-specific settings are found.
+    const workspace = await getWorkspaceById(user.workspaceId);
+    const projectId = workspace?.gcpSettings?.projectId || config.gcpProjectId || (config.google && config.google.gcp_project_id);
+    const location = workspace?.gcpSettings?.location || config.gcpLocation || (config.google && config.google.vertex_ai_region);
+    const modelId = workspace?.gcpSettings?.imageModelId || config.google?.image_model_id || 'imagen-3.0-generate-002';
+
+    if (!projectId || !location) {
+      console.error(`GCP Project ID or Location is not configured for workspace ${user.workspaceId}.`);
+      return null;
+    }
+
+    if (!predictionServiceClient || typeof predictionServiceClient.predict !== 'function') {
+      console.error('Prediction service client is not initialized or unavailable.');
+      return null;
+    }
+
+    // AI-FIX: Use the dynamically resolved modelId instead of a hardcoded value for better configurability.
+    const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/${modelId}`;
+
+    const instances = [{ prompt: trimmedPrompt }];
+    const parameters = {
+      sampleCount: 1,
+      aspectRatio: '1:1',
+      outputFormat: 'png',
+    };
+
+    const request = {
+      endpoint,
+      instances,
+      parameters,
+    };
+
+    console.log(`[Workspace: ${user.workspaceId}] Sending request to Vertex AI with prompt:`, trimmedPrompt);
     const [response] = await predictionServiceClient.predict(request);
 
     if (response && response.predictions && response.predictions.length > 0) {
-      // The image data is base64 encoded
       const prediction = response.predictions[0];
       const imageBase64 = prediction.bytesBase64Encoded;
       if (!imageBase64) {
-        console.error('Vertex AI prediction response did not contain bytesBase64Encoded data.');
+        console.error(`[Workspace: ${user.workspaceId}] Vertex AI prediction response did not contain bytesBase64Encoded data.`);
         return null;
       }
+      
+      // AI-FIX: Record successful usage to correctly decrement quotas and for billing purposes.
+      // This propagates usage details up to the workspace/admin level.
+      await recordUsage(user.id, user.workspaceId, 'imageGeneration', 1);
+
       return `data:image/png;base64,${imageBase64}`;
     } else {
-      console.error('Vertex AI returned no predictions.');
+      console.error(`[Workspace: ${user.workspaceId}] Vertex AI returned no predictions.`);
       return null;
     }
   } catch (error) {
-    console.error('Error generating image with Vertex AI:', error);
+    // AI-FIX: Differentiate between business logic errors (like quota) and system errors.
+    // This allows the upstream controller to return appropriate HTTP status codes (e.g., 402/403 vs 500).
+    if (error instanceof QuotaExceededError || error instanceof PermissionDeniedError) {
+      throw error;
+    }
+    console.error(`[Workspace: ${user.workspaceId}] Error generating image with Vertex AI:`, error);
     return null;
   }
 };
 
-export const generateImageUsingVertexAI = async (prompt) => {
-  // Validate prompt to ensure robust execution and avoid unnecessary API calls
+/**
+ * Generates an image using Google's Imagen 3 model via Vertex AI using the REST API.
+ * @param {string} prompt - The final, detailed prompt for the image.
+ * @param {object} user - The authenticated user object performing the action.
+ * @param {string} user.id - The user's unique identifier.
+ * @param {string} user.workspaceId - The ID of the workspace the user belongs to.
+ * @param {string} user.role - The role of the user (e.g., 'user', 'manager', 'admin', 'super_admin').
+ * @returns {Promise<string|null>} - The base64-encoded data URL of the generated image, or null on failure.
+ * @throws {QuotaExceededError} If the workspace has exceeded its image generation limit.
+ * @throws {PermissionDeniedError} If the user's role is not authorized to generate images.
+ */
+export const generateImageUsingVertexAI = async (prompt, user) => {
+  // AI-FIX: Validate user context to ensure all actions are authorized and tracked within a tenant.
+  if (!user || !user.id || !user.workspaceId || !user.role) {
+    console.error('User context is missing or invalid for image generation.');
+    throw new PermissionDeniedError('Invalid user context provided.');
+  }
+
+  // AI-FIX: Enforce role-based access control (RBAC).
+  const allowedRoles = ['user', 'manager', 'admin', 'super_admin'];
+  if (!allowedRoles.includes(user.role)) {
+      throw new PermissionDeniedError(`User with role '${user.role}' is not authorized to generate images.`);
+  }
+
+  // AI-FIX: Check usage limits against the user's workspace before making the API call.
+  const { allowed } = await checkUsageLimits(user.workspaceId, 'imageGeneration');
+  if (!allowed) {
+    throw new QuotaExceededError('Image generation quota exceeded for this workspace.');
+  }
+
   if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
     console.error('Invalid prompt provided for image generation.');
     return null;
   }
 
-  // Prevent excessively long prompts from causing API errors
   const trimmedPrompt = prompt.trim().substring(0, 4000);
 
-  // Ensure all operations are wrapped in a try-catch for robust error handling
   try {
-    // Fallback configuration resolution to prevent runtime crashes
-    const imageEndpoint = (config.google && config.google.vertex_ai_endpoint) || 'us-central1-aiplatform.googleapis.com';
-    const location = (config.google && config.google.vertex_ai_region) || config.gcpLocation;
-    const modelId = (config.google && config.google.model_id) || 'imagen-3.0-generate-002';
-    const projectId = (config.google && config.google.gcp_project_id) || config.gcpProjectId;
+    // AI-FIX: Retrieve tenant-specific configuration from the workspace to ensure data isolation.
+    const workspace = await getWorkspaceById(user.workspaceId);
+    const imageEndpoint = workspace?.gcpSettings?.vertexAiEndpoint || (config.google && config.google.vertex_ai_endpoint) || 'us-central1-aiplatform.googleapis.com';
+    const location = workspace?.gcpSettings?.location || (config.google && config.google.vertex_ai_region) || config.gcpLocation;
+    const modelId = workspace?.gcpSettings?.imageModelId || (config.google && config.google.model_id) || 'imagen-3.0-generate-002';
+    const projectId = workspace?.gcpSettings?.projectId || (config.google && config.google.gcp_project_id) || config.gcpProjectId;
 
     if (!projectId || !location) {
-      console.error('GCP Project ID or Location is not configured for Vertex AI HTTP API.');
+      console.error(`GCP Project ID or Location is not configured for workspace ${user.workspaceId} for Vertex AI HTTP API.`);
       return null;
     }
 
-    // Construct the full endpoint URL for the prediction API
-    // Bug fix: Use the modelId from config instead of a hardcoded value
     const predictUrl = `https://${imageEndpoint}/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
 
     const auth = new GoogleAuth({
@@ -105,29 +172,18 @@ export const generateImageUsingVertexAI = async (prompt) => {
     const accessToken = accessTokenResponse ? accessTokenResponse.token : null;
 
     if (!accessToken) {
-      console.error('Failed to retrieve GCP access token.');
+      console.error(`[Workspace: ${user.workspaceId}] Failed to retrieve GCP access token.`);
       return null;
     }
 
-    // Security fix: Do not log sensitive access tokens
-    // console.log(`Using access token for endpoint: ${accessToken}`);
-
     const data = {
-      instances: [
-        {
-          prompt: trimmedPrompt,
-        },
-      ],
-      parameters: {
-        aspectRatio: '1:1',
-        sampleCount: 1,
-      },
+      instances: [{ prompt: trimmedPrompt }],
+      parameters: { aspectRatio: '1:1', sampleCount: 1 },
     };
 
-    // Bug fix: Log the dynamically constructed predictUrl
-    console.log('Sending request to Vertex AI at:', predictUrl);
+    console.log(`[Workspace: ${user.workspaceId}] Sending request to Vertex AI at:`, predictUrl);
 
-    const response = await fetch(predictUrl, { // Bug fix: Use the dynamically constructed predictUrl
+    const response = await fetch(predictUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -137,31 +193,34 @@ export const generateImageUsingVertexAI = async (prompt) => {
     });
 
     if (!response.ok) {
-      // Bug fix: Log the full error response for better debugging and return null
-      const errorBody = await response.text(); // Get text to avoid JSON parsing errors on non-JSON responses
-      console.error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
-      return null; // Return null on failure, consistent with generateImage
+      const errorBody = await response.text();
+      console.error(`[Workspace: ${user.workspaceId}] HTTP error! status: ${response.status}, body: ${errorBody}`);
+      return null;
     }
 
     const imageData = await response.json();
-    // Bug fix: Log the actual response data, not the request data
-    console.log('Received response from Vertex AI:', imageData);
+    console.log(`[Workspace: ${user.workspaceId}] Received response from Vertex AI.`);
 
-    if (
-      !imageData ||
-      !imageData.predictions ||
-      imageData.predictions.length === 0
-    ) {
-      console.error('No predictions returned from Vertex AI.');
-      return null; // Return null on failure
+    if (!imageData || !imageData.predictions || imageData.predictions.length === 0) {
+      console.error(`[Workspace: ${user.workspaceId}] No predictions returned from Vertex AI.`);
+      return null;
     }
 
-    return imageData.predictions[0].bytesBase64Encoded
-      ? `data:image/png;base64,${imageData.predictions[0].bytesBase64Encoded}`
-      : null;
+    const imageBase64 = imageData.predictions[0].bytesBase64Encoded;
+    if (imageBase64) {
+      // AI-FIX: Record successful usage to correctly decrement quotas and for billing purposes.
+      await recordUsage(user.id, user.workspaceId, 'imageGeneration', 1);
+      return `data:image/png;base64,${imageBase64}`;
+    } else {
+      console.error(`[Workspace: ${user.workspaceId}] Vertex AI prediction response did not contain bytesBase64Encoded data.`);
+      return null;
+    }
   } catch (error) {
-    // Bug fix: Catch any errors during the process and return null
-    console.error('Error generating image with Vertex AI HTTP API:', error);
+    // AI-FIX: Differentiate between business logic errors (like quota) and system errors.
+    if (error instanceof QuotaExceededError || error instanceof PermissionDeniedError) {
+      throw error;
+    }
+    console.error(`[Workspace: ${user.workspaceId}] Error generating image with Vertex AI HTTP API:`, error);
     return null;
   }
 };
