@@ -1,4 +1,7 @@
 import config from '../../../../../config/index.js';
+// Performance improvement: Statically import imagen3 service if it's always needed for editImage.
+// This avoids the overhead of dynamic import on every request.
+import { editImageWithImagen3 } from '../utils/imagen3.service.js';
 
 /**
  * @typedef {object} SessionManager
@@ -125,10 +128,10 @@ export const createImageController = (
           });
         }
 
-        // Import imagen3 service
-        const { editImageWithImagen3 } = await import(
-          '../utils/imagen3.service.js'
-        );
+        // The imagen3 service is now statically imported at the top of the file
+        // const { editImageWithImagen3 } = await import(
+        //   '../utils/imagen3.service.js'
+        // );
         const apiKey = config.gemini_secret_key;
 
         const timestamp = Date.now();
@@ -270,7 +273,10 @@ export const createImageController = (
         }
 
         const timestamp = Date.now();
-        const filename = `image-${sessionId}-${timestamp}.png`;
+        // Security fix: Sanitize sessionId to prevent path traversal or invalid filenames.
+        // This ensures that if sessionId contains characters like '../', it won't affect the file path.
+        const sanitizedSessionId = sessionId.replace(/[^a-zA-Z0-9-]/g, '_');
+        const filename = `image-${sanitizedSessionId}-${timestamp}.png`;
 
         // Generate image
         const imageResult = await imageService.generateImage(
@@ -279,6 +285,11 @@ export const createImageController = (
         );
 
         // Clean up session
+        // Security consideration: The sessionId is taken directly from req.body and used to delete a session.
+        // This could be an Insecure Direct Object Reference (IDOR) if sessionIds are guessable or enumerable,
+        // allowing an attacker to delete other users' sessions.
+        // A robust solution would involve associating sessions with an authenticated user and validating ownership,
+        // or ensuring sessionIds are cryptographically secure and unguessable.
         sessionManager.deleteSession(sessionId);
 
         res.json({
