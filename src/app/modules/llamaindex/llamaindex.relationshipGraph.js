@@ -48,6 +48,8 @@ const calculateJaccard = (arr1, arr2) => {
  *     dependencies, prerequisite links, or hierarchical cross-references.
  *
  * Relationship edges are stored in the `DocumentRelationship` collection.
+ * This is a workspace-level operation and should be triggered by a system process or a user with
+ * administrative privileges over the workspace (e.g., Workspace Admin).
  *
  * @param {string} workspaceId - The ID of the workspace for which to build the relationship graph. This ensures tenant data isolation.
  * @returns {Promise<object>} An object indicating the success status, a descriptive message,
@@ -238,6 +240,8 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
  * This function performs a Breadth-First Search (BFS) like traversal to discover connected documents
  * and their relationships within a specific workspace.
  *
+ * @permission This function is multi-tenant and requires a valid `workspaceId`. Any user belonging to the workspace
+ *             can perform a traversal, as it respects the data boundaries of the tenant.
  * @param {string} workspaceId - The ID of the workspace whose graph is to be traversed.
  * @param {string[]} startDocIds - An array of document IDs from which to start the traversal.
  * @param {number} [depth=1] - The maximum depth of traversal. A depth of 1 means only direct connections.
@@ -294,15 +298,18 @@ const traverseGraph = async (workspaceId, startDocIds, depth = 1) => {
  * @description Provides services for managing and querying the semantic relationship graph
  *              between documents within a workspace. This includes building the graph based on document
  *              metadata and deep semantic analysis, and traversing it to find related documents.
+ *              All operations are scoped to a specific workspace to ensure multi-tenancy.
  */
 export const relationshipGraphService = {
   /**
+   * Re-builds the relational semantic map between all documents within a workspace.
    * @function buildRelationshipGraph
    * @memberof relationshipGraphService
    * @see {@link buildRelationshipGraph}
    */
   buildRelationshipGraph,
   /**
+   * Traverses the relationship graph from a set of starting document IDs up to a specified depth.
    * @function traverseGraph
    * @memberof relationshipGraphService
    * @see {@link traverseGraph}
