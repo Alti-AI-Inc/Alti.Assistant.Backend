@@ -263,13 +263,31 @@ const summarizeContent = catchAsync(async (req, res) => {
           isFilePassed = true;
           break;
         case 'text/csv':
-          // Bug Fix: csv-parse expects a string or stream, not a raw Buffer.
-          // Convert the buffer to a UTF-8 string explicitly.
-          const records = parse(req.file.buffer.toString('utf-8'), {
-            columns: true,
-            skip_empty_lines: true,
+          // Optimization: For large CSV files, synchronous parsing and then JSON.stringify can be CPU and memory intensive.
+          // This approach uses csv-parse's event-based API for potentially better memory management and avoids JSON.stringify
+          // by formatting the data into a plain string, which is often more suitable for summarization models.
+          const records = await new Promise((resolve, reject) => {
+            const parsedRecords = [];
+            parse(req.file.buffer, { // csv-parse can directly accept a Buffer
+              columns: true,
+              skip_empty_lines: true,
+            })
+            .on('data', (record) => parsedRecords.push(record))
+            .on('end', () => resolve(parsedRecords))
+            .on('error', (err) => reject(err));
           });
-          contentToSummarize = JSON.stringify(records, null, 2);
+
+          if (records.length > 0) {
+            const headers = Object.keys(records[0]);
+            // Format into a readable string, e.g., "Header1, Header2\nValue1A, Value2A\nValue1B, Value2B"
+            let formattedContent = headers.join(', ') + '\n';
+            formattedContent += records.map(record =>
+              headers.map(header => record[header]).join(', ')
+            ).join('\n');
+            contentToSummarize = formattedContent;
+          } else {
+            contentToSummarize = '';
+          }
           console.log(
             `Extracted text from CSV: ${contentToSummarize.substring(0, 100)}...`
           );
