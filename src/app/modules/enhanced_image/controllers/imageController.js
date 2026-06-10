@@ -29,7 +29,8 @@ import { editImageWithImagen3 } from '../utils/imagen3.service.js';
 
 /**
  * @typedef {object} NotificationService
- * // This is a placeholder for a service that would handle sending notifications (e.g., email, in-app).
+ * @property {function(object, string): Promise<void>} notifyLimitExceeded - Notifies relevant parties that a user has hit a hard usage limit.
+ * // This service would also contain methods to be called by other services, e.g., for threshold notifications.
  */
 
 
@@ -67,9 +68,22 @@ export const createImageController = (
       return false;
     }
 
-    // INTEGRATION FIX: 2. Authorization Check (Role-based access).
-    // This is a placeholder for role-specific logic. For now, we allow all authenticated users.
-    // e.g., if (req.user.role === 'read_only') { res.status(403).json(...); return false; }
+    // CRITICAL INTEGRATION FIX: 2. Authorization Check (Role-based access).
+    // Ensures users can only perform actions permitted for their role.
+    const requiredRoles = {
+        image_edit: ['manager', 'admin', 'super_admin'],
+        image_generate: ['user', 'manager', 'admin', 'super_admin'],
+        image_generate_direct: ['user', 'manager', 'admin', 'super_admin'],
+    };
+
+    const userRole = req.user.role;
+    const allowedRoles = requiredRoles[actionType];
+
+    if (!userRole || !allowedRoles || !allowedRoles.includes(userRole)) {
+        res.status(403).json({ success: false, error: 'Forbidden: You do not have the required role to perform this action.' });
+        return false;
+    }
+
 
     // INTEGRATION FIX: 3. Usage Limit Check.
     // This respects tenant/workspace boundaries by checking limits for the user's hierarchy.
@@ -77,7 +91,10 @@ export const createImageController = (
     if (!canPerform) {
       res.status(429).json({ success: false, error: 'Usage limit reached. Please contact your administrator.' });
       // Proactively notify the administrator that a user hit their limit.
-      await notificationService.notifyLimitExceeded(req.user, actionType);
+      // This is a fire-and-forget operation to not delay the user response.
+      notificationService.notifyLimitExceeded(req.user, actionType).catch(err => {
+        console.error('Failed to send limit exceeded notification:', err);
+      });
       return false;
     }
 
@@ -92,6 +109,7 @@ export const createImageController = (
      *     summary: Edits an existing image based on a text prompt.
      *     description: Edits an image provided as a Base64 string using a text prompt and the Imagen3 service.
      *                  Requires both a prompt and the image data. This is a protected endpoint and requires authentication.
+     *                  Only accessible by roles: manager, admin, super_admin.
      *     tags:
      *       - Enhanced Image
      *     security:
@@ -138,6 +156,8 @@ export const createImageController = (
      *         description: Bad request, missing prompt or imageBase64.
      *       401:
      *         description: Unauthorized, authentication token is missing or invalid.
+     *       403:
+     *         description: Forbidden, user does not have the required role.
      *       429:
      *         description: Too Many Requests, usage limit for the user/workspace has been reached.
      *       500:
@@ -185,7 +205,10 @@ export const createImageController = (
         });
 
         // Check if usage is approaching the limit and notify managers/admins if necessary.
-        await usageService.notifyOnThreshold(req.user, 'image_edit', notificationService);
+        // This is a fire-and-forget operation to not delay the user response.
+        usageService.notifyOnThreshold(req.user, 'image_edit', notificationService).catch(err => {
+            console.error('Failed to send threshold notification:', err);
+        });
 
         res.json({
           success: true,
@@ -237,6 +260,8 @@ export const createImageController = (
      *         description: Bad request, missing sessionId.
      *       401:
      *         description: Unauthorized, authentication token is missing or invalid.
+     *       403:
+     *         description: Forbidden, user does not have the required role.
      *       404:
      *         description: Session not found for the provided sessionId and authenticated user.
      *       429:
@@ -298,7 +323,10 @@ export const createImageController = (
           promptLength: finalPrompt.length,
           source: customPrompt ? 'custom' : 'session',
         });
-        await usageService.notifyOnThreshold(req.user, 'image_generate', notificationService);
+        // This is a fire-and-forget operation to not delay the user response.
+        usageService.notifyOnThreshold(req.user, 'image_generate', notificationService).catch(err => {
+            console.error('Failed to send threshold notification:', err);
+        });
 
         res.json({
           success: true,
@@ -345,6 +373,8 @@ export const createImageController = (
      *         description: Bad request, missing prompt.
      *       401:
      *         description: Unauthorized, authentication token is missing or invalid.
+     *       403:
+     *         description: Forbidden, user does not have the required role.
      *       429:
      *         description: Too Many Requests, usage limit for the user/workspace has been reached.
      *       500:
@@ -375,7 +405,10 @@ export const createImageController = (
         await usageService.recordAction(req.user, 'image_generate_direct', {
           promptLength: prompt.length,
         });
-        await usageService.notifyOnThreshold(req.user, 'image_generate_direct', notificationService);
+        // This is a fire-and-forget operation to not delay the user response.
+        usageService.notifyOnThreshold(req.user, 'image_generate_direct', notificationService).catch(err => {
+            console.error('Failed to send threshold notification:', err);
+        });
 
         res.json({
           success: true,
