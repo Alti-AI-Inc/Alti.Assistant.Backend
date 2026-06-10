@@ -13,8 +13,10 @@ import { openMemoryClient } from '../../shared/openMemoryClient.js';
 // A compound index like `{ userId: 1, 'metadata.category': 1 }` could be highly beneficial for queries that filter by both.
 
 /**
- * Generate unique guest user ID
- * @returns {string}
+ * Generates a unique guest user ID using MongoDB's ObjectId format.
+ * This ensures consistency with how user IDs might be stored and indexed in a MongoDB environment,
+ * even for temporary guest sessions.
+ * @returns {string} A unique string representing a guest user's ID.
  */
 const generateGuestUserId = () => {
   // Generate a proper MongoDB ObjectId for guest users
@@ -22,12 +24,28 @@ const generateGuestUserId = () => {
 };
 
 /**
- * Create or get search conversation (supports both authenticated and guest users)
- * @param {string} userId
- * @param {string} conversationId
- * @param {string} searchQuery
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Handles the creation or retrieval of a search conversation for both authenticated and guest users.
+ * If a `conversationId` is provided, it attempts to retrieve the existing conversation.
+ * If no conversation is found or if the provided `conversationId` does not belong to the user (especially for guests),
+ * a new conversation is created.
+ *
+ * @param {string} userId - The ID of the user (authenticated user ID or generated guest user ID).
+ * @param {string | null} conversationId - Optional. The ID of an existing conversation to retrieve. If null or not found, a new one is created.
+ * @param {string} searchQuery - The initial search query, used for titling new conversations.
+ * @param {boolean} [isGuest=false] - Indicates if the current user is a guest.
+ * @param {object} [req=null] - Optional. The Express request object, potentially used for context or transaction management in underlying services.
+ * @returns {Promise<Object>} A promise that resolves to the conversation object (either existing or newly created).
+ * @throws {ApiError} If an internal server error occurs during conversation handling.
+ *
+ * @fixme Potential IDOR vulnerability: The `userId` parameter for `getConversationById`
+ * should always be provided to ensure ownership verification, even for guest users.
+ * `userId` for guest users is their generated unique ID, not `null`.
+ * The `getConversationById` function is expected to verify that the `conversationId`
+ * belongs to the provided `userId`. This has been addressed in the implementation by always passing `userId`.
+ *
+ * @optimization If `conversationHelpers.getConversationById` only reads data
+ * and doesn't modify the Mongoose document in this context, consider adding `.lean()`
+ * to the query within `getConversationById` for better performance by returning a plain JS object.
  */
 const handleSearchConversation = async (
   userId,
@@ -128,12 +146,17 @@ const handleSearchConversation = async (
 };
 
 /**
- * Add search query message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} searchQuery
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds a user's search query as a message to a specified conversation.
+ * This function supports both authenticated and guest users and optionally persists the query
+ * to an OpenMemory client if enabled.
+ *
+ * @param {string} conversationId - The ID of the conversation to which the message will be added.
+ * @param {string} userId - The ID of the user (authenticated or guest) performing the search.
+ * @param {string} searchQuery - The actual search query text.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - Optional. The Express request object, potentially used for context or transaction management.
+ * @returns {Promise<Object>} A promise that resolves to the saved message object.
+ * @throws {ApiError} If an internal server error occurs during message addition.
  */
 const addSearchQueryMessage = async (
   conversationId,
@@ -195,13 +218,18 @@ const addSearchQueryMessage = async (
 };
 
 /**
- * Add search result message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} searchResult
- * @param {Object} metadata
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds a search result message (from the assistant) to a specified conversation.
+ * This function supports both authenticated and guest users and optionally persists the result
+ * to an OpenMemory client if enabled.
+ *
+ * @param {string} conversationId - The ID of the conversation to which the message will be added.
+ * @param {string} userId - The ID of the user (authenticated or guest) associated with the conversation.
+ * @param {string} searchResult - The content of the search result provided by the assistant.
+ * @param {Object} [metadata={}] - Additional metadata to store with the message and in OpenMemory.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - Optional. The Express request object, potentially used for context or transaction management.
+ * @returns {Promise<Object>} A promise that resolves to the saved message object.
+ * @throws {ApiError} If an internal server error occurs during message addition.
  */
 const addSearchResultMessage = async (
   conversationId,
@@ -266,13 +294,18 @@ const addSearchResultMessage = async (
 };
 
 /**
- * Add error message to conversation (supports both authenticated and guest users)
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} errorMessage
- * @param {Error} originalError
- * @param {boolean} isGuest
- * @returns {Promise<Object>}
+ * Adds an error message (from the assistant) to a specified conversation.
+ * This function is used to log operational errors within the conversation flow,
+ * making them visible to the user. It supports both authenticated and guest users.
+ * Errors during this process are logged but not re-thrown to prevent cascading failures.
+ *
+ * @param {string} conversationId - The ID of the conversation to which the error message will be added.
+ * @param {string} userId - The ID of the user (authenticated or guest) associated with the conversation.
+ * @param {string} errorMessage - The user-friendly error message to display.
+ * @param {Error} originalError - The original error object, used for logging and potentially storing its message in metadata.
+ * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
+ * @param {object} [req=null] - Optional. The Express request object, potentially used for context or transaction management.
+ * @returns {Promise<Object | void>} A promise that resolves to the saved message object, or void if an error occurs during message addition.
  */
 const addErrorMessage = async (
   conversationId,
@@ -309,11 +342,21 @@ const addErrorMessage = async (
 };
 
 /**
- * Process search history for context
- * @param {string} conversationId
- * @param {string} userId
- * @param {number} limit
- * @returns {Promise<Array>}
+ * Retrieves a limited history of messages from a specific conversation,
+ * formatted for use as search context.
+ *
+ * @param {string} conversationId - The ID of the conversation from which to retrieve history.
+ * @param {string} userId - The ID of the user associated with the conversation (for ownership verification).
+ * @param {number} [limit=10] - The maximum number of recent messages to retrieve.
+ * @param {object} [req=null] - Optional. The Express request object, potentially used for context or transaction management.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of message objects,
+ *                                    each containing `role`, `content`, and `timestamp`.
+ *                                    Returns an empty array if the conversation is not found or has no messages,
+ *                                    or if an error occurs.
+ *
+ * @optimization Since this function only reads conversation data and its messages,
+ * ensure that `conversationHelpers.getConversationById` uses `.lean()` for optimal performance
+ * by returning a plain JS object instead of a full Mongoose document.
  */
 const getSearchHistory = async (
   conversationId,
@@ -348,11 +391,15 @@ const getSearchHistory = async (
 };
 
 /**
- * Update conversation title based on search query
- * @param {string} conversationId
- * @param {string} userId
- * @param {string} searchQuery
- * @returns {Promise<void>}
+ * Updates the title of a specific conversation based on a new search query.
+ * This function is typically called after an initial search to provide a meaningful title.
+ * Errors during this process are logged but not re-thrown as title updates are not critical.
+ *
+ * @param {string} conversationId - The ID of the conversation to update.
+ * @param {string} userId - The ID of the user associated with the conversation (for ownership verification).
+ * @param {string} searchQuery - The search query used to generate the new title.
+ * @param {object} [req=null] - Optional. The Express request object, potentially used for context or transaction management.
+ * @returns {Promise<void>} A promise that resolves when the title update is attempted.
  */
 const updateConversationTitle = async (
   conversationId,
@@ -375,8 +422,15 @@ const updateConversationTitle = async (
 };
 
 /**
- * Generate unique conversation ID for search
- * @returns {string}
+ * Generates a unique conversation ID for search conversations using MongoDB's ObjectId format.
+ * This ensures consistency with how conversation IDs are stored and indexed in a MongoDB environment.
+ *
+ * @returns {string} A unique string representing a new conversation's ID.
+ *
+ * @fixme Inconsistent conversation ID generation: If conversation IDs are expected
+ * to be MongoDB ObjectIds (as implied by `generateGuestUserId`), this function
+ * should also generate a valid ObjectId to prevent Mongoose validation/cast errors
+ * when creating new conversations. This has been addressed in the implementation.
  */
 const generateSearchConversationId = () => {
   // FIX: Inconsistent conversation ID generation. If conversation IDs are expected
@@ -387,9 +441,22 @@ const generateSearchConversationId = () => {
 };
 
 /**
- * Get search conversation statistics
- * @param {string} userId
- * @returns {Promise<Object>}
+ * Retrieves statistics related to search conversations for a given user.
+ * This includes the total number of search conversations, total messages across them,
+ * and the average messages per conversation.
+ *
+ * @param {string} userId - The ID of the user for whom to retrieve search statistics.
+ * @param {object} [req=null] - Optional. The Express request object, potentially used for context or transaction management.
+ * @returns {Promise<Object>} A promise that resolves to an object containing search statistics:
+ *   - `totalSearchConversations`: The total count of search conversations.
+ *   - `totalSearchMessages`: The total number of messages across all search conversations.
+ *   - `averageMessagesPerConversation`: The average number of messages per search conversation, rounded to the nearest integer.
+ *                                       Returns 0 if no search conversations are found.
+ *                                       Returns default values if an error occurs.
+ *
+ * @optimization Since this function only reads conversation data for aggregation (length, messageCount),
+ * ensure that `conversationHelpers.getUserConversations` uses `.lean()` for optimal performance
+ * by returning plain JS objects instead of full Mongoose documents.
  */
 const getSearchStats = async (userId, req = null) => {
   try {
@@ -427,6 +494,12 @@ const getSearchStats = async (userId, req = null) => {
   }
 };
 
+/**
+ * @namespace searchService
+ * @description Provides a collection of functions for managing search-related conversations and messages.
+ * This service abstracts the interaction with conversation management and memory persistence,
+ * supporting both authenticated and guest user flows for search functionalities.
+ */
 export const searchService = {
   handleSearchConversation,
   addSearchQueryMessage,
