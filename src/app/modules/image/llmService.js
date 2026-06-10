@@ -1,4 +1,4 @@
-import { JsonOutputParser } from '@langchain/core/output_parsers';
+import { JsonOutputParser, StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { llm } from './llm.js';
 
@@ -44,7 +44,7 @@ export const generateClarifyingQuestions = async (initialPrompt) => {
       format_instructions: parser.getFormatInstructions(),
     });
     // Ensure result.questions is an array, even if LLM returns null/undefined for it
-    return result.questions || [];
+    return result?.questions || [];
   } catch (error) {
     console.error('Error generating clarifying questions:', error);
     // Return a default set of questions on error to maintain functionality
@@ -77,12 +77,11 @@ export const isUserFinished = async (userResponse) => {
         
         Your answer (must be YES or NO):`
   );
-  const chain = prompt.pipe(llm);
+  const chain = prompt.pipe(llm).pipe(new StringOutputParser());
   try {
     const result = await chain.invoke({ response: userResponse });
     console.log('User finished analysis result:', result);
-    // Ensure result.content exists before calling toUpperCase
-    return result?.content?.toUpperCase().includes('YES') || false;
+    return result?.toUpperCase().includes('YES') || false;
   } catch (error) {
     console.error('Error determining if user is finished:', error);
     // On error, assume user is not finished to allow for retry or further interaction
@@ -106,7 +105,7 @@ export const updateRefinedPrompt = async (
   userResponse,
   history
 ) => {
-  const historyString = history
+  const historyString = (history || [])
     .map((h) => `${h.type}: ${h.message}`)
     .join('\n');
   const prompt = PromptTemplate.fromTemplate(
@@ -130,15 +129,14 @@ export const updateRefinedPrompt = async (
 
     Return ONLY the new, updated prompt paragraph. Do not add any conversational text around it.`
   );
-  const chain = prompt.pipe(llm);
+  const chain = prompt.pipe(llm).pipe(new StringOutputParser());
   try {
     const result = await chain.invoke({
       current_prompt: currentPrompt,
       user_response: userResponse,
       history: historyString,
     });
-    // Ensure result.content exists, otherwise return the current prompt
-    return result?.content || currentPrompt;
+    return result || currentPrompt;
   } catch (error) {
     console.error('Error updating refined prompt:', error);
     // On error, return the current prompt to avoid losing information
