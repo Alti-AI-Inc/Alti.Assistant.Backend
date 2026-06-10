@@ -374,7 +374,8 @@ class TelemetryCollector {
   /**
    * Flushes all pending telemetry entries to a daily log file on disk in JSONL (JSON Lines) format.
    * This method is called periodically by a timer.
-   * If the flush fails, entries are re-added to the pending buffer for a retry.
+   * It handles potential data serialization errors gracefully by dropping invalid entries.
+   * If the disk write fails, valid entries are re-added to the pending buffer for a retry.
    * @private
    * @returns {Promise<void>} A promise that resolves when the flush operation is complete.
    */
@@ -389,27 +390,52 @@ class TelemetryCollector {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const filePath = path.join(TELEMETRY_DIR, `telemetry_${today}.jsonl`);
 
-    try {
-      // Append new entries as JSONL
-      const lines = entriesToFlush
-        .map((entry) => JSON.stringify(entry))
-        .join('\n') + '\n';
+    // Partition entries into those that can be stringified and those that cannot.
+    // This prevents a single "poison pill" entry from blocking the entire flush process.
+    const goodEntries = [];
+    const stringifiedLines = [];
+    let droppedCount = 0;
 
-      await fs.appendFile(filePath, lines, 'utf-8');
+    for (const entry of entriesToFlush) {
+      try {
+        stringifiedLines.push(JSON.stringify(entry));
+        goodEntries.push(entry);
+      } catch (stringifyError) {
+        droppedCount++;
+        logger.error('TelemetryCollector: Failed to stringify telemetry entry; it will be dropped.', {
+          traceId: entry?.traceId,
+          error: stringifyError,
+        });
+      }
+    }
+
+    if (goodEntries.length === 0) {
+      if (droppedCount > 0) {
+        logger.warn('TelemetryCollector: All pending entries failed to stringify; nothing flushed to disk.', {
+          count: droppedCount,
+        });
+      }
+      return;
+    }
+
+    try {
+      const content = stringifiedLines.join('\n') + '\n';
+      await fs.appendFile(filePath, content, 'utf-8');
 
       // GCP Audit: Changed to structured log format.
       logger.info('TelemetryCollector: flushed entries to disk', {
-        count: entriesToFlush.length,
+        count: goodEntries.length,
+        dropped: droppedCount,
         path: filePath,
       });
     } catch (err) {
-      logger.error('TelemetryCollector: Failed to flush telemetry entries to disk. Entries will be retried.', {
+      logger.error('TelemetryCollector: Failed to flush telemetry entries to disk. Valid entries will be retried.', {
         filePath,
-        entryCount: entriesToFlush.length,
+        entryCount: goodEntries.length,
         error: err,
       });
-      // If flush fails, re-add entries to the front of pendingFlushEntries to retry later.
-      this.pendingFlushEntries.unshift(...entriesToFlush);
+      // If flush fails, re-add the entries that were successfully stringified to retry later.
+      this.pendingFlushEntries.unshift(...goodEntries);
       // Re-throw so the caller (setInterval's catch block) is aware of the failure.
       throw err;
     }
