@@ -29,11 +29,28 @@ const llm = new ChatGoogleGenerativeAI({
 const ragConfig = {
   // Database configuration (required)
   database: {
-    host: '34.135.175.69',
+    host: '34.135.175.69', // Production Recommendation: Use private IP or Cloud SQL Auth Proxy for security and lower latency.
     port: 5432,
     database: 'rag_database',
     username: 'postgres',
-    password: 'Em0nd4r0ck@2',
+    password: 'Em0nd4r0ck@2', // Production Recommendation: Use a secret manager instead of hardcoding credentials.
+
+    // --- GCP Database Resiliency & Pooling Configuration ---
+    // These settings are passed to the underlying 'pg' (node-postgres) connection pool
+    // to ensure stable, resilient, and performant database connections in a cloud environment.
+
+    // Connection Pooling: Optimizes connection reuse, reducing latency and database load.
+    max: 20, // Maximum number of clients in the pool. Adjust based on application load and database instance size.
+    min: 2, // Minimum number of clients to keep in the pool, ready for immediate use.
+    idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed (ms). Prevents holding onto unused resources.
+
+    // Connection & Socket Timeouts: Prevents the application from hanging on unresponsive database connections.
+    connectionTimeoutMillis: 5000, // Timeout for establishing a new connection (ms). Fails fast if the DB is unavailable.
+
+    // TCP Keep-Alive: Crucial for GCP networking (VPC Peering, Proxies) to prevent network intermediaries
+    // from silently dropping idle connections, which would otherwise lead to cryptic connection errors.
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 30000, // Time (ms) a connection must be idle before the first keep-alive probe is sent.
   },
 
   embeddings: embeddings,
@@ -195,7 +212,7 @@ User: Please summarize the following conversation history, keeping it under 2500
   async extractMediaContent(filePath, mimeType) {
     try {
       logger.info(`Extracting media content using Gemini 1.5 Pro File API for mimeType: ${mimeType}`);
-      const model = genAI.getGenerativeModel({ 
+      const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-pro',
         generationConfig: { responseMimeType: "application/json" }
       });
@@ -207,7 +224,7 @@ User: Please summarize the following conversation history, keeping it under 2500
         "tags": ["tag1", "tag2", "tag3"],
         "language": "en"
       }`;
-      
+
       // Upload using File API to handle up to 2GB files
       const uploadResult = await fileManager.uploadFile(filePath, {
         mimeType: mimeType,
@@ -226,15 +243,15 @@ User: Please summarize the following conversation history, keeping it under 2500
       }
 
       const result = await model.generateContent([
-        prompt, 
+        prompt,
         { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } }
       ]);
-      
+
       const textResult = result.response.text() || '{}';
 
       // Clean up from Google AI Studio
       await fileManager.deleteFile(uploadResult.file.name).catch(e => logger.warn(`Failed to delete AI file ${uploadResult.file.name}: ${e.message}`));
-      
+
       return textResult;
     } catch (error) {
       logger.error('Error extracting media content with Gemini:', error);
@@ -265,14 +282,14 @@ User: Please summarize the following conversation history, keeping it under 2500
         const filePath = typeof file === 'string' ? file : file.path;
         const fileName = typeof file === 'string' ? path.basename(file) : file.originalname;
         const fileExtension = path.extname(fileName).toLowerCase().substring(1);
-        
+
         logger.info(
           `Processing file from path for knowledgebot: ${knowledgebotId}, file: ${fileName}`
         );
 
         // Read buffer to upload to GCS
         const fileBuffer = await fsPromises.readFile(filePath);
-        
+
         // Upload to Google Cloud Storage
         const timestamp = Date.now();
         gcsFileName = `${knowledgebotId}/${timestamp}_${fileName}`;
@@ -287,7 +304,7 @@ User: Please summarize the following conversation history, keeping it under 2500
         const mediaExtensions = ['.png', '.jpg', '.jpeg', '.mp3', '.wav', '.m4a', '.mp4', '.mov'];
         if (mediaExtensions.includes('.' + fileExtension)) {
           logger.info(`Media file detected from disk (${fileExtension}), extracting content with Gemini File API...`);
-          
+
           const contentTypeMap = {
             'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
             'mp3': 'audio/mp3', 'wav': 'audio/wav', 'm4a': 'audio/m4a',
@@ -295,7 +312,7 @@ User: Please summarize the following conversation history, keeping it under 2500
           };
           const mimeType = contentTypeMap[fileExtension] || 'application/octet-stream';
           const jsonText = await this.extractMediaContent(filePath, mimeType);
-          
+
           try {
             const parsed = JSON.parse(jsonText);
             metadata = {
@@ -314,7 +331,7 @@ User: Please summarize the following conversation history, keeping it under 2500
                 originalFile: fileName
               }
             );
-          } catch(err) {
+          } catch (err) {
             logger.error('Failed to parse JSON from Gemini', err);
             const transcriptionBuffer = Buffer.from(jsonText, 'utf-8');
             result = await rag.addDocumentFromBuffer(

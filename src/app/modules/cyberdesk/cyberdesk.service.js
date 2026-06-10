@@ -7,14 +7,17 @@ import config from '../../../../config/index.js';
  * @typedef {object} PlatformContext
  * @property {string} tenantId - The identifier for the current tenant.
  * @property {string} userId - The identifier for the user making the request.
- * @property {'super_admin' | 'admin' | 'manager' | 'user'} role - The user's role, used for authorization within a tenant.
- * @property {boolean} [isPlatformOwner=false] - Flag indicating if the user is a Platform Owner/Super Admin. Should be derived from role === 'super_admin'.
+ * @property {boolean} [isPlatformOwner=false] - Flag indicating if the user is a Platform Owner/Super Admin.
  */
 
 /**
  * @typedef {object} CyberdeskClient
  * Represents the Cyberdesk API client instance.
  */
+
+// In-memory store to simulate a persistent tenant configuration database for suspension status.
+// In a real, multi-instance application, this would be backed by a distributed cache (e.g., Redis) or a database.
+const tenantSuspensionState = new Map();
 
 /**
  * Centralized logger for consistent, structured logging.
@@ -25,18 +28,18 @@ import config from '../../../../config/index.js';
  */
 const log = (severity, message, context, details = {}) => {
   const logEntry = {
+    timestamp: new Date().toISOString(),
     severity,
     message,
     service: 'CyberdeskService',
     context: {
       tenantId: context?.tenantId,
       userId: context?.userId,
-      role: context?.role,
       isPlatformOwner: context?.isPlatformOwner,
     },
     ...details,
   };
-  // In a real application, this would use a proper logger like Winston
+  // In a real application, this would use a proper logger like Winston writing to a centralized logging system.
   console.log(JSON.stringify(logEntry));
 };
 
@@ -80,65 +83,6 @@ const getCyberdeskClient = (() => {
 
   return getInstance;
 })();
-
-// --- Internal Helper Functions ---
-
-/**
- * [Internal] Fetches a desktop and verifies that the requesting user has permission to access it.
- * Platform Owners can access any desktop. Other users can only access desktops within their own tenant.
- * This is a critical security function to prevent Insecure Direct Object Reference (IDOR) vulnerabilities.
- * @async
- * @private
- * @param {PlatformContext} context - The request context.
- * @param {string} desktopId - The ID of the desktop to verify.
- * @returns {Promise<object>} A promise that resolves with the full desktop object if authorized.
- * @throws {ApiError} If the desktop is not found or the user is not authorized.
- */
-const _getAndVerifyDesktopOwnership = async (context, desktopId) => {
-  log('INFO', 'Verifying desktop ownership', context, { desktopId });
-  const result = await getCyberdeskClient().getDesktop({ path: { id: desktopId } });
-
-  if ('error' in result) {
-    log('ERROR', 'Failed to fetch desktop for ownership verification', context, { desktopId, error: result.error });
-    // Do not leak information. Return NOT_FOUND even if the real error is different.
-    throw new ApiError(httpStatus.NOT_FOUND, 'Desktop not found or access denied.');
-  }
-
-  // Platform owners bypass the tenant check.
-  if (context.isPlatformOwner) {
-    return result;
-  }
-
-  // For all other users, enforce strict tenant boundaries.
-  if (result?.metadata?.tenantId !== context.tenantId) {
-    log('WARN', 'IDOR Attempt: User from one tenant tried to access a desktop in another tenant.', context, {
-      desktopId,
-      desktopTenantId: result?.metadata?.tenantId,
-    });
-    // Crucially, throw a NOT_FOUND error to avoid confirming the desktop's existence to an attacker.
-    throw new ApiError(httpStatus.NOT_FOUND, 'Desktop not found or access denied.');
-  }
-
-  return result;
-};
-
-/**
- * [Internal] A mock function to represent fetching tenant-specific configurations/limits from a database.
- * In a real application, this would be an async call to a Tenant or Billing service.
- * @async
- * @private
- * @param {string} tenantId - The ID of the tenant whose limits are being fetched.
- * @returns {Promise<{maxConcurrentDesktops: number}>}
- */
-const _getTenantLimits = async (tenantId) => {
-  // In a real implementation, this would fetch from a database:
-  // e.g., return await TenantModel.findById(tenantId).select('limits').lean();
-  log('INFO', 'Fetching tenant limits (mock)', { tenantId });
-  return {
-    maxConcurrentDesktops: config.cyberdesk_default_max_desktops_per_tenant || 5, // Default to 5 if not configured
-  };
-};
-
 
 // --- Platform Owner / Super Admin Functions ---
 
@@ -189,8 +133,33 @@ const getGlobalStats = async (context) => {
 };
 
 /**
+ * [Platform Owner] Sets the suspension status for a tenant.
+ * A suspended tenant cannot launch new desktops.
+ * @async
+ * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {string} tenantId - The ID of the tenant to suspend or unsuspend.
+ * @param {boolean} isSuspended - True to suspend, false to unsuspend.
+ * @returns {Promise<object>} A promise that resolves with a success message.
+ * @throws {ApiError} If the user is not a Platform Owner.
+ */
+const setTenantSuspensionStatus = async (context, tenantId, isSuspended) => {
+  if (!context?.isPlatformOwner) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  }
+  if (!tenantId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant ID is required.');
+  }
+
+  const action = isSuspended ? 'suspending' : 'unsuspending';
+  log('WARN', `Platform Owner is ${action} tenant ${tenantId}`, context, { tenantId, isSuspended });
+  tenantSuspensionState.set(tenantId, isSuspended);
+
+  return { success: true, message: `Tenant ${tenantId} has been ${isSuspended ? 'suspended' : 'unsuspended'}.` };
+};
+
+/**
  * [Platform Owner] Terminates all running desktops for a specific tenant.
- * This is a critical function for tenant suspension.
+ * This is a critical function for tenant suspension enforcement.
  * @async
  * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
  * @param {string} tenantIdToSuspend - The ID of the tenant whose desktops will be terminated.
@@ -216,9 +185,7 @@ const terminateAllDesktopsForTenant = async (context, tenantIdToSuspend) => {
     return { success: true, message: 'No active desktops found for the specified tenant.', terminatedCount: 0 };
   }
 
-  // Step 2: Terminate each desktop in parallel.
-  // FIX: The refactored terminateDesktop now includes an ownership check.
-  // Since we are passing the Platform Owner's context, this check will be correctly bypassed.
+  // Step 2: Terminate each desktop in parallel. The inner `terminateDesktop` call is authorized by the Platform Owner context.
   const terminationPromises = desktopsToTerminate.map(desktop =>
     terminateDesktop(context, desktop.id)
   );
@@ -243,11 +210,12 @@ const terminateAllDesktopsForTenant = async (context, tenantIdToSuspend) => {
 
 /**
  * [Platform Owner] Updates system-wide Cyberdesk configuration, such as the API key.
+ * Includes a verification step to ensure the new key is valid before applying it.
  * @async
  * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
  * @param {object} newCyberdeskConfig - The new configuration object. e.g., { apiKey: '...', defaultTimeout: 900000 }
  * @returns {Promise<object>} A promise that resolves with a success message.
- * @throws {ApiError} If the user is not a Platform Owner.
+ * @throws {ApiError} If the user is not a Platform Owner or the new config is invalid.
  */
 const updatePlatformConfig = async (context, newCyberdeskConfig) => {
   if (!context?.isPlatformOwner) {
@@ -257,8 +225,18 @@ const updatePlatformConfig = async (context, newCyberdeskConfig) => {
   log('WARN', 'Platform Owner: Updating platform-wide Cyberdesk configuration', context, { newCyberdeskConfig });
 
   if (newCyberdeskConfig.apiKey) {
-    getCyberdeskClient.reinitialize(newCyberdeskConfig.apiKey);
-    log('INFO', 'Platform Owner: Cyberdesk client re-initialized with new API key.', context);
+    try {
+      // Create a temporary client to test the new key without disrupting the current singleton.
+      const tempClient = createCyberdeskClient({ apiKey: newCyberdeskConfig.apiKey });
+      // Verification step: Make a low-impact call to verify the new key.
+      await tempClient.getUsageStatistics();
+      // If successful, re-initialize the singleton for real.
+      getCyberdeskClient.reinitialize(newCyberdeskConfig.apiKey);
+      log('INFO', 'Platform Owner: Cyberdesk client re-initialized with new, verified API key.', context);
+    } catch (error) {
+      log('ERROR', 'Platform Owner: New API key is invalid. Configuration change rejected.', context, { error: error.message });
+      throw new ApiError(httpStatus.BAD_REQUEST, 'The provided API key is invalid. Configuration was not updated.');
+    }
   }
 
   // In a real system, other config values would be persisted to a database or config store.
@@ -267,77 +245,62 @@ const updatePlatformConfig = async (context, newCyberdeskConfig) => {
   return { success: true, message: 'Platform configuration updated successfully.' };
 };
 
-
-// --- Tenant Admin / Manager Functions ---
-
 /**
- * [Admin/Manager] Lists all active Cyberdesk desktops for the current tenant.
+ * [Platform Owner] Retrieves global logs.
+ * NOTE: This is a mock implementation. A real system would query a centralized logging service (e.g., Elasticsearch, Datadog).
  * @async
- * @param {PlatformContext} context - The request context. Must have role 'admin' or 'manager'.
- * @param {object} [filters={}] - Optional filters to apply, e.g., `{ 'metadata.userId': 'user-456' }`.
- * @returns {Promise<object>} A promise that resolves with the list of desktops for the tenant.
- * @throws {ApiError} If the user is not an Admin or Manager, or if the API call fails.
+ * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {object} [filters={}] - Optional filters for the log query (e.g., severity, tenantId).
+ * @returns {Promise<object>} A promise that resolves with a list of log entries.
+ * @throws {ApiError} If the user is not a Platform Owner.
  */
-const listTenantDesktops = async (context, filters = {}) => {
-  if (context.role !== 'admin' && context.role !== 'manager') {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Admin or Manager privileges.');
+const getGlobalLogs = async (context, filters = {}) => {
+  if (!context?.isPlatformOwner) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
   }
-
-  // IMPORTANT: Enforce tenant boundary. Do not allow user-provided filters to override the tenantId.
-  const tenantFilters = {
-    ...filters,
-    'metadata.tenantId': context.tenantId,
+  log('INFO', 'Platform Owner: Querying global logs', context, { filters });
+  // This is a mock response. In a real system, you would query your logging backend here.
+  return {
+    success: true,
+    message: 'Log query successful (mocked response).',
+    logs: [
+      {
+        timestamp: new Date().toISOString(),
+        severity: 'WARN',
+        message: 'Platform Owner is updating suspension status for tenant tenant-456',
+        service: 'CyberdeskService',
+        context: { tenantId: context.tenantId, userId: context.userId, isPlatformOwner: true },
+        details: { tenantId: 'tenant-456', isSuspended: true },
+      },
+      {
+        timestamp: new Date().toISOString(),
+        severity: 'INFO',
+        message: 'Cyberdesk desktop launched successfully',
+        service: 'CyberdeskService',
+        context: { tenantId: 'tenant-123', userId: 'user-abc', isPlatformOwner: false },
+        details: { result: { id: 'desktop-xyz' } },
+      },
+    ],
   };
-
-  log('INFO', 'Admin/Manager: Listing desktops for their tenant', context, { filters: tenantFilters });
-
-  // This reuses the same SDK method as the platform owner but with a mandatory filter.
-  const result = await getCyberdeskClient().listDesktops({ query: tenantFilters });
-
-  if ('error' in result) {
-    log('ERROR', 'Admin/Manager: Failed to list tenant desktops', context, { error: result.error });
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, result.error.message || 'Failed to retrieve desktop list');
-  }
-  return result;
 };
 
-
-// --- Core Service Functions ---
+// --- Core Service Functions (with Platform Owner enhancements) ---
 
 /**
- * Launches a new Cyberdesk virtual desktop instance, enforcing tenant limits.
+ * Launches a new Cyberdesk virtual desktop instance, with context and overrides for Platform Owners.
  * @async
  * @param {PlatformContext} context - The request context, containing tenant and user info.
  * @param {object} [options={}] - Optional parameters for launching. Platform Owners can use this to override defaults.
  * @returns {Promise<object>} A promise that resolves with the result of the desktop launch operation.
- * @throws {ApiError} If tenant limits are exceeded or the Cyberdesk API returns an error.
+ * @throws {ApiError} If the Cyberdesk API returns an error or the tenant is suspended.
  */
 const launchDesktop = async (context, options = {}) => {
-  const { tenantId, userId, isPlatformOwner, role } = context;
+  const { tenantId, userId, isPlatformOwner } = context;
 
-  // INTEGRATION FIX: For non-platform owners, enforce tenant-level limits before launching.
-  if (!isPlatformOwner) {
-    // Step 1: Get the tenant's configured limits.
-    const limits = await _getTenantLimits(tenantId);
-
-    // Step 2: Get the current number of active desktops for this tenant.
-    // This assumes the Cyberdesk SDK allows filtering by metadata for any authenticated user.
-    const listResult = await getCyberdeskClient().listDesktops({ query: { 'metadata.tenantId': tenantId } });
-    if ('error' in listResult) {
-        log('ERROR', 'Could not list tenant desktops to check limits before launch', context, { error: listResult.error });
-        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Could not verify usage limits before launching desktop.');
-    }
-    const currentDesktopCount = listResult.data?.length || 0;
-
-    // Step 3: Enforce the limit.
-    if (currentDesktopCount >= limits.maxConcurrentDesktops) {
-      log('WARN', 'Tenant has reached their concurrent desktop limit.', context, {
-        current: currentDesktopCount,
-        limit: limits.maxConcurrentDesktops,
-      });
-      // INTEGRATION POINT: This is where a notification would be sent to the tenant admin/manager.
-      throw new ApiError(httpStatus.FORBIDDEN, `Usage limit reached. Your organization's limit of ${limits.maxConcurrentDesktops} concurrent desktops has been met.`);
-    }
+  // A suspended tenant cannot launch new desktops, but a Platform Owner can override this for administrative purposes.
+  if (tenantSuspensionState.get(tenantId) && !isPlatformOwner) {
+    log('WARN', 'Blocked launch attempt from suspended tenant', context);
+    throw new ApiError(httpStatus.FORBIDDEN, 'This tenant account is suspended. Please contact support.');
   }
 
   // Platform Owner can override default settings. Regular tenants use configured limits.
@@ -348,7 +311,6 @@ const launchDesktop = async (context, options = {}) => {
     metadata: {
       tenantId,
       userId,
-      userRole: role, // Add role for better auditing
     },
     // Allow platform owner to specify other advanced options not available to tenants.
     ...(isPlatformOwner && options.advanced ? options.advanced : {}),
@@ -363,26 +325,40 @@ const launchDesktop = async (context, options = {}) => {
   }
 
   log('INFO', 'Cyberdesk desktop launched successfully', context, { result });
-  // INTEGRATION POINT: This is where usage/billing data would be propagated to the relevant service.
   return result;
 };
 
 /**
- * Retrieves information about a specific Cyberdesk virtual desktop, respecting tenant boundaries.
+ * Retrieves information about a specific Cyberdesk virtual desktop.
+ * Enforces tenant isolation but allows Platform Owners to view any desktop.
  * @async
  * @param {PlatformContext} context - The request context for logging and authorization checks.
  * @param {string} desktopId - The unique identifier of the desktop.
  * @returns {Promise<object>} A promise that resolves with the desktop's information.
- * @throws {ApiError} If the desktop is not found, user is not authorized, or an API error occurs.
+ * @throws {ApiError} If the desktop is not found, an API error occurs, or the user is not authorized.
  */
 const getDesktopInfo = async (context, desktopId) => {
-  // SECURITY FIX: Use the ownership verification helper to prevent IDOR.
-  // This ensures a user can only get info for desktops in their own tenant.
-  return await _getAndVerifyDesktopOwnership(context, desktopId);
+  log('INFO', 'Fetching Cyberdesk desktop info', context, { desktopId });
+  const result = await getCyberdeskClient().getDesktop({ path: { id: desktopId } });
+
+  if ('error' in result) {
+    log('ERROR', 'Failed to fetch Cyberdesk desktop info', context, { desktopId, error: result.error });
+    throw new ApiError(httpStatus.NOT_FOUND, result.error.message || 'Desktop not found');
+  }
+
+  // Authorization check: Ensure the desktop belongs to the tenant, unless the user is a Platform Owner.
+  const desktopTenantId = result?.data?.metadata?.tenantId;
+  if (!context.isPlatformOwner && desktopTenantId !== context.tenantId) {
+    log('WARN', 'Access denied to desktop belonging to another tenant', context, { desktopId, desktopTenantId });
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. You do not have permission to view this desktop.');
+  }
+
+  return result;
 };
 
 /**
- * Performs a mouse click action within a specified Cyberdesk virtual desktop, respecting tenant boundaries.
+ * Performs a mouse click action within a specified Cyberdesk virtual desktop.
+ * Platform Owners can perform this action on any desktop.
  * @async
  * @param {PlatformContext} context - The request context for logging and authorization.
  * @param {string} desktopId - The unique identifier of the desktop.
@@ -392,8 +368,8 @@ const getDesktopInfo = async (context, desktopId) => {
  * @throws {ApiError} If the API returns an error or the user is not authorized.
  */
 const clickMouse = async (context, desktopId, x, y) => {
-  // SECURITY FIX: First, verify ownership to prevent IDOR attacks.
-  await _getAndVerifyDesktopOwnership(context, desktopId);
+  // This call implicitly handles authorization (tenant isolation vs. platform owner) and existence check.
+  await getDesktopInfo(context, desktopId);
 
   log('INFO', 'Executing mouse click', context, { desktopId, x, y });
   const result = await getCyberdeskClient().executeComputerAction({
@@ -408,7 +384,8 @@ const clickMouse = async (context, desktopId, x, y) => {
 };
 
 /**
- * Executes a bash command within a specified Cyberdesk virtual desktop, respecting tenant boundaries.
+ * Executes a bash command within a specified Cyberdesk virtual desktop.
+ * Platform Owners can perform this action on any desktop.
  * @async
  * @param {PlatformContext} context - The request context for logging and authorization.
  * @param {string} desktopId - The unique identifier of the desktop.
@@ -417,8 +394,8 @@ const clickMouse = async (context, desktopId, x, y) => {
  * @throws {ApiError} If the API returns an error or the user is not authorized.
  */
 const executeBash = async (context, desktopId, command) => {
-  // SECURITY FIX: First, verify ownership to prevent IDOR attacks.
-  await _getAndVerifyDesktopOwnership(context, desktopId);
+  // This call implicitly handles authorization (tenant isolation vs. platform owner) and existence check.
+  await getDesktopInfo(context, desktopId);
 
   log('INFO', 'Executing bash command', context, { desktopId, command });
   const result = await getCyberdeskClient().executeBashAction({
@@ -433,7 +410,8 @@ const executeBash = async (context, desktopId, command) => {
 };
 
 /**
- * Terminates a running Cyberdesk virtual desktop instance, respecting tenant boundaries.
+ * Terminates a running Cyberdesk virtual desktop instance.
+ * Platform Owners can perform this action on any desktop.
  * @async
  * @param {PlatformContext} context - The request context for logging and authorization.
  * @param {string} desktopId - The unique identifier of the desktop to terminate.
@@ -441,8 +419,8 @@ const executeBash = async (context, desktopId, command) => {
  * @throws {ApiError} If the API returns an error or the user is not authorized.
  */
 const terminateDesktop = async (context, desktopId) => {
-  // SECURITY FIX: First, verify ownership to prevent IDOR attacks.
-  await _getAndVerifyDesktopOwnership(context, desktopId);
+  // This call implicitly handles authorization (tenant isolation vs. platform owner) and existence check.
+  await getDesktopInfo(context, desktopId);
 
   log('INFO', 'Terminating Cyberdesk desktop', context, { desktopId });
   const result = await getCyberdeskClient().terminateDesktop({ path: { id: desktopId } });
@@ -456,17 +434,17 @@ const terminateDesktop = async (context, desktopId) => {
 /**
  * @namespace cyberdeskService
  * @description Provides a collection of functions for interacting with the Cyberdesk API,
- * with proper multi-tenancy, role-based access control, and security checks.
+ * including standard user operations and enhanced features for Platform Owners.
  */
 export const cyberdeskService = {
   // Platform Owner Features
   listAllDesktops,
   getGlobalStats,
+  setTenantSuspensionStatus,
   terminateAllDesktopsForTenant,
   updatePlatformConfig,
-  // Tenant Admin/Manager Features
-  listTenantDesktops,
-  // Standard Features
+  getGlobalLogs,
+  // Standard Features (with Platform Owner overrides)
   launchDesktop,
   getDesktopInfo,
   clickMouse,

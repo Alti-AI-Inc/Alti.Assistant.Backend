@@ -103,17 +103,32 @@ export async function findAppropriateApp(
     appList = [];
   }
 
-  console.log('Identified apps:', appList);
+  // SECURITY PATCH: Validate the app list from the LLM against the known list of available apps.
+  // This prevents potential NoSQL injection if the LLM returns malicious query objects instead of strings,
+  // ensuring only valid app names are used in database queries.
+  const validApps = new Set(apps);
+  const validatedAppList = Array.isArray(appList)
+    ? appList.filter((app) => typeof app === 'string' && validApps.has(app))
+    : [];
+
+  if (validatedAppList.length !== (appList?.length || 0)) {
+    console.warn(
+      'LLM returned invalid or non-existent app names. They have been filtered out.',
+      { original: appList, filtered: validatedAppList }
+    );
+  }
+
+  console.log('Identified and validated apps:', validatedAppList);
 
   const toolKitVersions = {};
-  for (const app of appList) {
+  for (const app of validatedAppList) {
     toolKitVersions[app] = toolKits[app] || 'latest';
   }
   console.log('Toolkit versions to use:', toolKitVersions);
 
   return {
     toolKitVersions,
-    appList,
+    appList: validatedAppList, // Return the sanitized list
   };
 }
 
@@ -139,7 +154,7 @@ async function embedQuery(text) {
  *
  * @param {string} query - The search query.
  * @param {number} [topK=5] - The maximum number of search results to return.
- * @param {string[]} apps - An array of application names to filter the search.
+ * @param {string[]} apps - A validated array of application names to filter the search.
  * @returns {Promise<Array<Object>>} A promise that resolves to the list of matching tool documents from the database.
  */
 export const getVectorSearchResults = async (query, topK = 5, apps) => {
@@ -155,6 +170,7 @@ export const getVectorSearchResults = async (query, topK = 5, apps) => {
         queryVector: vector,
         numCandidates: 200,
         limit: topK,
+        // The 'apps' array is now validated in findAppropriateApp, mitigating NoSQL injection risks.
         filter: { appName: { $in: apps } },
       },
     },
@@ -221,7 +237,8 @@ export async function generateAndExecuteTools(
       const results = await executeMultipleTools(
         entityId,
         response.functionCalls,
-        toolkitVersions
+        toolkitVersions,
+        tools // SECURITY PATCH: Pass full tool definitions for argument validation.
       );
       return { response, results };
     } catch (error) {
@@ -303,19 +320,90 @@ Output only the final comprehensive user request, nothing else:`;
 }
 
 /**
+ * SECURITY HELPER: Basic validation for tool arguments against a schema.
+ * This prevents injection attacks by ensuring LLM-generated arguments conform to the expected structure.
+ * For production environments, using a robust schema validation library like Joi or Zod is highly recommended.
+ * @param {Object} args - The arguments object to validate.
+ * @param {Object} schema - The JSON schema for the tool's input_parameters.
+ * @returns {boolean} - True if validation passes, false otherwise.
+ */
+const validateToolArgs = (args, schema) => {
+  if (!schema || !schema.properties) {
+    // If no schema is defined, we cannot validate.
+    // Depending on security policy, you might want to allow or deny this.
+    // Here, we allow it but log a warning.
+    console.warn('No input schema found for tool. Skipping argument validation.');
+    return true;
+  }
+
+  const schemaProps = schema.properties;
+  const requiredParams = new Set(schema.required || []);
+
+  // Check for missing required arguments
+  for (const param of requiredParams) {
+    if (!(param in args)) {
+      console.error(`Validation Error: Missing required argument '${param}'.`);
+      return false;
+    }
+  }
+
+  for (const key in args) {
+    // Check for unexpected arguments
+    if (!schemaProps[key]) {
+      console.error(`Validation Error: Unexpected argument '${key}' provided.`);
+      return false;
+    }
+
+    const expectedType = schemaProps[key].type;
+    const actualType = typeof args[key];
+
+    // Basic type checking. Note: JSON schema types (e.g., 'integer', 'array') need more complex checks.
+    if (
+      (expectedType === 'string' && actualType !== 'string') ||
+      (expectedType === 'number' && actualType !== 'number') ||
+      (expectedType === 'integer' && !Number.isInteger(args[key])) ||
+      (expectedType === 'boolean' && actualType !== 'boolean')
+    ) {
+      console.error(
+        `Validation Error: Argument '${key}' has incorrect type. Expected ${expectedType}, got ${actualType}.`
+      );
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
  * Executes multiple tool calls sequentially for a specific entity using the Composio SDK.
  * This function operates within a multi-tenant context, executing actions on behalf of the provided entityId.
  *
  * @param {string} entityId - The unique identifier of the entity (user/tenant) in the multi-tenant context. This ensures actions are performed with the correct user's credentials and permissions.
  * @param {Array<{name: string, args: Object}>} functionCalls - The list of function calls to execute, as determined by the LLM.
  * @param {Object<string, string>} toolkitVersions - Map of application names to their toolkit versions.
+ * @param {Array<Object>} toolDefinitions - The full definitions of available tools, used for validating arguments.
  * @returns {Promise<Array<{tool: string, status: 'success' | 'error', result?: any, error?: string}>>} The execution results for each tool. Individual tool failures do not stop the execution of subsequent tools.
  */
 export async function executeMultipleTools(
   entityId,
   functionCalls,
-  toolkitVersions
+  toolkitVersions,
+  toolDefinitions
 ) {
+  // SECURITY PATCH: Validate entityId to prevent potential injection attacks on the downstream SDK.
+  // It should be a non-empty string matching a safe, expected format (e.g., alphanumeric, UUID).
+  if (typeof entityId !== 'string' || !/^[a-zA-Z0-9-_]+$/.test(entityId)) {
+    console.error(
+      `Invalid entityId format: ${entityId}. Aborting tool execution.`
+    );
+    return functionCalls.map((funcCall) => ({
+      tool: funcCall.name,
+      status: 'error',
+      error:
+        'Invalid entityId provided. Execution blocked for security reasons.',
+    }));
+  }
+
   const results = [];
   const composio = new Composio({
     apiKey: config.composio.orgApiKey,
@@ -330,18 +418,54 @@ export async function executeMultipleTools(
       name: funcCall.name || '',
       args: funcCall.args || {},
     };
+
+    // SECURITY PATCH: Validate LLM-generated arguments against the tool's schema
+    // before execution to prevent injection attacks or unexpected behavior.
+    const toolDef = toolDefinitions.find((t) => t.slug === functionCall.name);
+    if (!toolDef) {
+      console.error(
+        `Security Warning: Attempted to execute a non-existent or disallowed tool: '${functionCall.name}'. Skipping.`
+      );
+      results.push({
+        tool: functionCall.name,
+        status: 'error',
+        error: `Tool '${functionCall.name}' not found or is not allowed.`,
+      });
+      continue;
+    }
+
+    if (!validateToolArgs(functionCall.args, toolDef.input_parameters)) {
+      console.error(
+        `Security Warning: Invalid arguments for tool '${functionCall.name}'. Skipping execution.`,
+        { args: functionCall.args }
+      );
+      results.push({
+        tool: functionCall.name,
+        status: 'error',
+        error: `Invalid arguments provided for tool '${functionCall.name}'.`,
+      });
+      continue;
+    }
+
     try {
       const result = await composio.provider.executeToolCall(
         entityId,
         functionCall
       );
-      console.log(`Result for ${funcCall.name}:`, JSON.stringify(result, null, 2));
+      console.log(
+        `Result for ${funcCall.name}:`,
+        JSON.stringify(result, null, 2)
+      );
       results.push({ tool: funcCall.name, status: 'success', result });
     } catch (error) {
       console.error(`Error executing tool ${funcCall.name}:`, error);
       // Push error information to results array to indicate failure for this specific tool,
       // but do not rethrow to allow other tools to attempt execution.
-      results.push({ tool: funcCall.name, status: 'error', error: error.message });
+      results.push({
+        tool: funcCall.name,
+        status: 'error',
+        error: error.message,
+      });
     }
   }
 
