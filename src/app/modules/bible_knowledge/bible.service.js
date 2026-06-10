@@ -1,4 +1,4 @@
-import fs from 'fs/promises'; // Changed to fs/promises for async operations
+import fs from 'fs/promises';
 import path from 'path';
 
 /**
@@ -18,7 +18,7 @@ class BibleService {
      * @property {Object.<string, Object|null>} databases - An object caching loaded Bible databases.
      *                                                      Keys are translation codes (e.g., 'BSB'), values are
      *                                                      either `null` (not loaded) or an object containing
-     *                                                      `rawData`, `passageIndex`, and `searchData`.
+     *                                                      `rawData`, `passageIndex`, and `invertedIndex`.
      * @property {Object.<string, string>} files - A map linking translation codes to their respective data filenames.
      */
     constructor() {
@@ -48,8 +48,8 @@ class BibleService {
      *                            - `rawData`: {Array<Object>} The raw array of verse objects as parsed from the JSON file.
      *                            - `passageIndex`: {Object} An optimized index for O(1) passage lookup:
      *                                              `{ 'BOOK_CODE': { 'CHAPTER_NUM': { 'VERSE_NUM': verseObject } } }`.
-     *                            - `searchData`: {Array<Object>} An array of verse objects, each augmented with a
-     *                                            `textLower` property for efficient keyword searching.
+     *                            - `invertedIndex`: {Object} An optimized inverted index for fast keyword searching:
+     *                                               `{ 'word': [{ book: 'GEN', chapter: 1, verse: 1 }, ...] }`.
      * @throws {Error} If the specified translation is unsupported or if there's an error reading the file.
      */
     async loadDatabase(translation = 'BSB') {
@@ -68,7 +68,7 @@ class BibleService {
 
                 // --- Optimization: Build in-memory indexes for faster lookups and searches ---
                 const passageIndex = {}; // For O(1) passage lookup by book, chapter, verse
-                const searchData = [];    // For optimized search, pre-calculating lowercase text
+                const invertedIndex = {}; // For optimized full-text search
 
                 rawVerses.forEach(v => {
                     // Build passageIndex: { 'BOOK': { 'CHAPTER': { 'VERSE': verseObject } } }
@@ -81,17 +81,32 @@ class BibleService {
                     }
                     passageIndex[bookCode][v.chapter][v.verse] = v;
 
-                    // Prepare search data: store original verse object along with pre-calculated lowercase text
-                    searchData.push({
-                        ...v,
-                        textLower: v.text.toLowerCase() // Pre-calculate lowercase text to avoid repeated computation during search
-                    });
+                    // Build invertedIndex for fast keyword search
+                    const textLower = v.text.toLowerCase();
+                    // Simple tokenization: split by non-alphanumeric characters (excluding apostrophes for contractions)
+                    // and filter out empty strings.
+                    const words = textLower.split(/[^a-z0-9']+/).filter(word => word.length > 0);
+
+                    const verseRef = { book: v.book, chapter: v.chapter, verse: v.verse };
+
+                    // Use a temporary Set to track words already added for this verse,
+                    // preventing duplicate verse references for the same word within a single verse.
+                    const wordsInThisVerse = new Set(); 
+                    for (const word of words) {
+                        if (!wordsInThisVerse.has(word)) {
+                            if (!invertedIndex[word]) {
+                                invertedIndex[word] = [];
+                            }
+                            invertedIndex[word].push(verseRef);
+                            wordsInThisVerse.add(word);
+                        }
+                    }
                 });
 
                 this.databases[trans] = {
                     rawData: rawVerses, // Keep raw data if needed, though indexes are preferred for performance
                     passageIndex: passageIndex,
-                    searchData: searchData
+                    invertedIndex: invertedIndex // Optimized for search
                 };
             } catch (err) {
                 console.error(`Error loading Bible database (${trans}):`, err);
@@ -99,7 +114,7 @@ class BibleService {
                 this.databases[trans] = {
                     rawData: [],
                     passageIndex: {},
-                    searchData: []
+                    invertedIndex: {}
                 };
                 // Re-throw the error to indicate failure to the caller
                 throw err;
@@ -164,7 +179,7 @@ class BibleService {
      * Perform a simple keyword/semantic-light search across the text of all verses in a given translation.
      * The search is case-insensitive and matches individual terms within the query.
      * Results are scored based on the number of matching terms and sorted by score (descending).
-     * Uses pre-processed lowercase text for faster string comparisons.
+     * Uses a pre-built inverted index for significantly faster search performance compared to full-scan.
      *
      * @param {string} query - The search query string (e.g., "love joy peace").
      * @param {number|string} [limit=10] - The maximum number of results to return. Must be a positive integer.
@@ -181,22 +196,37 @@ class BibleService {
         }
 
         const dbInfo = await this.loadDatabase(translation);
-        const searchData = dbInfo.searchData; // Access the optimized search data with pre-calculated textLower
-        
-        const searchTerms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0); // Split and filter empty terms
+        const invertedIndex = dbInfo.invertedIndex; // Access the optimized inverted index
+        const passageIndex = dbInfo.passageIndex;   // Needed to retrieve full verse objects
+
+        // Tokenize the query, similar to how verse text is tokenized for the index
+        const searchTerms = query.toLowerCase().split(/[^a-z0-9']+/).filter(term => term.length > 0);
         
         if (searchTerms.length === 0) {
             return []; // No valid search terms
         }
 
-        const scoredVerses = searchData.map(v => { // Iterate over the searchData array
-            let score = 0;
-            // Use the pre-calculated `textLower` property, avoiding repeated `toLowerCase()` calls
-            for (const term of searchTerms) {
-                if (v.textLower.includes(term)) score += 1;
+        const verseScores = new Map(); // Map to store { "BOOK_CHAPTER_VERSE": score }
+
+        // Iterate through search terms and look up matching verses in the inverted index
+        for (const term of searchTerms) {
+            const matchingVerseRefs = invertedIndex[term] || [];
+            for (const ref of matchingVerseRefs) {
+                const verseId = `${ref.book}_${ref.chapter}_${ref.verse}`;
+                verseScores.set(verseId, (verseScores.get(verseId) || 0) + 1);
             }
-            return { ...v, score }; // Return the verse object with its score
-        }).filter(v => v.score > 0);
+        }
+
+        const scoredVerses = [];
+        // Retrieve full verse objects and add scores
+        for (const [verseId, score] of verseScores.entries()) {
+            const [book, chapter, verse] = verseId.split('_');
+            // Use passageIndex for O(1) retrieval of the full verse object
+            const fullVerse = passageIndex[book]?.[parseInt(chapter, 10)]?.[parseInt(verse, 10)];
+            if (fullVerse) {
+                scoredVerses.push({ ...fullVerse, score });
+            }
+        }
 
         scoredVerses.sort((a, b) => b.score - a.score);
         return scoredVerses.slice(0, parsedLimit);
