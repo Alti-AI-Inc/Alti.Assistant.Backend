@@ -122,7 +122,8 @@ const optimizeChain = async (chainId, userContext) => {
       } else if (userRole === 'manager') {
         // Managers can optimize their own chains or chains belonging to users they manage
         if (chain.userId && chain.userId.toString() !== userId.toString()) {
-          const chainOwner = await User.findById(chain.userId).select('managerId').lean();
+          // VULNERABILITY-FIX: Scope the user lookup to the current tenant to prevent cross-tenant information disclosure.
+          const chainOwner = await User.findOne({ _id: chain.userId, tenantId }).select('managerId').lean();
           if (!chainOwner || !chainOwner.managerId || chainOwner.managerId.toString() !== userId.toString()) {
             throw new ApiError(httpStatus.FORBIDDEN, 'Unauthorized: Managers can only optimize chains of their direct reports.');
           }
@@ -133,27 +134,33 @@ const optimizeChain = async (chainId, userContext) => {
 
     // 2. Usage Limits & Subscription Checks
     if (userRole !== 'super_admin' && tenantId) {
-      // OPTIMIZATION: Use .lean() for read-only operations to improve performance.
-      const tenant = await Tenant.findById(tenantId).lean();
-      if (!tenant) {
-        // This indicates a data integrity issue, which is an internal server error.
+      // First, get tenant details like name and limit for potential notifications.
+      const tenantInfo = await Tenant.findById(tenantId).select('name aiUsage.optimizationLimit').lean();
+      if (!tenantInfo) {
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Tenant context not found.');
       }
+      const limit = tenantInfo.aiUsage?.optimizationLimit || 100; // Default limit
 
-      // Check if tenant has reached AI optimization limits
-      const currentUsage = tenant.aiUsage?.optimizationCount || 0;
-      const limit = tenant.aiUsage?.optimizationLimit || 100; // Default limit
+      // BUG-FIX: Atomically check and increment usage count to prevent race conditions.
+      // This operation finds a tenant that is under its limit and increments its count in a single DB operation.
+      const updatedTenant = await Tenant.findOneAndUpdate(
+        {
+          _id: tenantId,
+          'aiUsage.optimizationCount': { $lt: limit },
+        },
+        { $inc: { 'aiUsage.optimizationCount': 1 } },
+        { new: false }, // We only need to know if the update succeeded, not the new document.
+      );
 
-      if (currentUsage >= limit) {
+      // If no document was found and updated, it means the limit was already reached or exceeded.
+      if (!updatedTenant) {
         // Notify administrators about limit exhaustion
-        // OPTIMIZATION: Recommend compound index on { tenantId: 1, role: 1 } in the User model for faster lookups.
         const admins = await User.find({ tenantId, role: 'admin' }).select('_id').lean();
-        // OPTIMIZATION: Use insertMany to avoid N+1 query problem when creating multiple notifications.
         if (admins.length > 0) {
           const notifications = admins.map(admin => ({
             recipientId: admin._id,
             title: 'AI Limit Exceeded',
-            message: `Tenant ${tenant.name || tenantId} has reached its AI optimization limit (${limit}).`,
+            message: `Tenant ${tenantInfo.name || tenantId} has reached its AI optimization limit (${limit}).`,
             type: 'warning',
           }));
           // Fire-and-forget notification creation to not block the user response, but log any errors.
@@ -168,11 +175,6 @@ const optimizeChain = async (chainId, userContext) => {
         }
         throw new ApiError(httpStatus.FORBIDDEN, 'Usage limit exceeded: Your workspace has reached its AI optimization limit.');
       }
-
-      // Increment usage count
-      await Tenant.findByIdAndUpdate(tenantId, {
-        $inc: { 'aiUsage.optimizationCount': 1 },
-      });
     }
 
     // Fetch last 15 executions for this chain
