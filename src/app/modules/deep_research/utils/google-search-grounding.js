@@ -5,10 +5,17 @@ import { GcpSearchAggregatorService } from '../../gcp_native/gcp-search-aggregat
 import { UnifiedSmartRouter } from '../../../helpers/UnifiedSmartRouter.js';
 import { logger } from '../../../../shared/logger.js';
 
+/**
+ * @type {GoogleGenAI}
+ * @description Instance of GoogleGenAI for interacting with Gemini models, initialized with an API key from config or environment variables.
+ */
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key || process.env.GEMINI_API_KEY });
 
 /**
- * Strips HTML tags (e.g. <b>...</b> from Custom Search results) and sanitizes title text.
+ * Strips HTML tags (e.g. `<b>...</b>` from Custom Search results) and sanitizes title text.
+ * It also removes square brackets to avoid collision with citation syntax.
+ * @param {string} title - The title string to sanitize.
+ * @returns {string} The sanitized title. Returns an empty string if the input is not a valid string.
  */
 const sanitizeTitle = (title) => {
   if (!title || typeof title !== 'string') return '';
@@ -20,6 +27,8 @@ const sanitizeTitle = (title) => {
 
 /**
  * Extracts a clean hostname domain from a URL string.
+ * @param {string} urlStr - The URL string.
+ * @returns {string} The cleaned domain name (e.g., 'example.com') or 'Web Source' if the URL is invalid or not a string.
  */
 const getDomainFromUrl = (urlStr) => {
   if (!urlStr || typeof urlStr !== 'string') return 'Web Source';
@@ -34,6 +43,13 @@ const getDomainFromUrl = (urlStr) => {
 /**
  * Executes a Gemini model call, automatically wrapping it in a resilient
  * billing/quota dunning error fallback for standard sandbox environments.
+ * This function specifically catches errors related to API key, billing, or permission denied issues
+ * and provides a fallback mechanism.
+ * @async
+ * @param {object} params - Parameters for the Gemini model's `generateContent` call.
+ * @param {Function} fallbackGenerator - A function that returns a mock response structure when a billing/quota error occurs.
+ * @returns {Promise<object>} The response from the Gemini model or the fallback generator's response if an error occurs.
+ * @throws {Error} If an error other than billing/quota/API key related issues occurs during the Gemini call.
  */
 const callGeminiWithResilience = async (params, fallbackGenerator) => {
   try {
@@ -53,15 +69,56 @@ const callGeminiWithResilience = async (params, fallbackGenerator) => {
   }
 };
 
+/**
+ * @class GoogleSearchGroundingTool
+ * @augments {StructuredTool}
+ * @description A Langchain StructuredTool for performing advanced web searches using Google Custom Search and native Gemini Search Grounding.
+ * This tool deconstructs complex queries, performs concurrent searches across multiple sources,
+ * deduplicates results, and synthesizes a concise, factual answer.
+ */
 export class GoogleSearchGroundingTool extends StructuredTool {
+  /**
+   * @property {string} name - The name of the tool, used for identification in tool-calling scenarios.
+   */
   name = 'google_search_grounding';
+
+  /**
+   * @property {string} description - A detailed description of what the tool does, aiding LLMs in understanding its utility.
+   */
   description = 'Search the web using Google Search Grounding and Custom Search APIs for real-time information';
 
+  /**
+   * @property {number} maxResults - The maximum number of search results (citations) to return.
+   */
+  maxResults;
+
+  /**
+   * Creates an instance of GoogleSearchGroundingTool.
+   * @param {object} [options] - Configuration options for the tool.
+   * @param {number} [options.maxResults=8] - The maximum number of search results to return. Defaults to 8.
+   */
   constructor(options = {}) {
     super();
     this.maxResults = options.maxResults || 8;
   }
 
+  /**
+   * Executes the advanced search grounding process. This involves:
+   * 1. Dynamically deconstructing the main query into multiple sub-queries using Gemini.
+   * 2. Performing concurrent parallel searches using Google Custom Search Engine (CSE) and native Gemini Search Grounding.
+   * 3. Deduplicating and sanitizing search results to create a list of unique, high-fidelity sources.
+   * 4. Reranking results based on relevance to the original query.
+   * 5. Synthesizing a concise, factual answer using Gemini, grounded strictly on the retrieved sources.
+   *
+   * @async
+   * @param {object} params - Parameters for the search invocation.
+   * @param {string} params.query - The main search query provided by the user.
+   * @param {'basic'|'advanced'} [params.searchDepth='basic'] - The depth of the search. While the implementation performs advanced multi-query, 'basic' is the current explicit option.
+   * @param {boolean} [params.includeAnswer=true] - Whether to synthesize a direct answer from the search results. Defaults to true.
+   * @param {Function} [params.onProgressUpdate] - Optional callback for streaming progress updates during the search process, useful for interactive UIs.
+   * @returns {Promise<object>} An object containing the original query, the synthesized answer, a list of final search results (citations), and search metadata.
+   * @throws {Error} If the search process encounters a critical failure that cannot be handled by fallbacks.
+   */
   async invoke(params) {
     const {
       query,
@@ -348,6 +405,13 @@ export class GoogleSearchGroundingTool extends StructuredTool {
     }
   }
 
+  /**
+   * Alias for the `invoke` method, adhering to Langchain's tool interface.
+   * @async
+   * @param {object} params - Parameters for the search invocation, same as `invoke`.
+   * @returns {Promise<object>} An object containing the query, synthesized answer, search results, and metadata.
+   * @throws {Error} If the search process fails.
+   */
   async call(params) {
     return this.invoke(params);
   }
