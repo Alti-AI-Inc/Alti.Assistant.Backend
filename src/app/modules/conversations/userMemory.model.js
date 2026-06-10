@@ -2,9 +2,37 @@ import { Schema, model } from 'mongoose';
 import crypto from 'crypto';
 
 // --- SECURITY FIX: Ensure encryption key is provided and valid ---
+
+/**
+ * @const {string} ENCRYPTION_KEY
+ * @description The secret key for encrypting and decrypting user memory data.
+ * It is critical that this is a 32-byte (256-bit) key and is kept secret.
+ * Loaded from the CHAT_ENCRYPTION_KEY environment variable.
+ * The application will exit if this key is not set or is invalid.
+ * @private
+ */
 const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY;
+
+/**
+ * @const {number} CBC_IV_LENGTH
+ * @description The length of the Initialization Vector (IV) for the legacy AES-256-CBC encryption algorithm (16 bytes).
+ * @private
+ */
 const CBC_IV_LENGTH = 16; // For legacy AES-256-CBC
+
+/**
+ * @const {number} GCM_IV_LENGTH
+ * @description The length of the Initialization Vector (IV) for the modern AES-256-GCM encryption algorithm (12 bytes).
+ * @private
+ */
 const GCM_IV_LENGTH = 12; // For modern AES-256-GCM
+
+/**
+ * @const {number} GCM_TAG_LENGTH
+ * @description The length of the Authentication Tag for the AES-256-GCM encryption algorithm (16 bytes).
+ * This tag ensures the integrity and authenticity of the encrypted data.
+ * @private
+ */
 const GCM_TAG_LENGTH = 16;
 
 if (!ENCRYPTION_KEY) {
@@ -12,7 +40,11 @@ if (!ENCRYPTION_KEY) {
   process.exit(1);
 }
 
-// Pre-buffer the key for performance and to ensure consistent type
+/**
+ * @const {Buffer} ENCRYPTION_KEY_BUFFER
+ * @description The encryption key pre-buffered for performance and to ensure a consistent type.
+ * @private
+ */
 const ENCRYPTION_KEY_BUFFER = Buffer.from(ENCRYPTION_KEY, 'utf-8');
 
 // AES-256 requires a 32-byte (256-bit) key.
@@ -21,8 +53,14 @@ if (ENCRYPTION_KEY_BUFFER.length !== 32) {
   process.exit(1);
 }
 
-// Cryptographically verify if a string is already encrypted to prevent double encryption
-// and eliminate the spoofable heuristic bypass vulnerability.
+/**
+ * Cryptographically verifies if a string is already encrypted to prevent double encryption
+ * and eliminate potential spoofing vulnerabilities. It checks for both modern GCM
+ * and legacy CBC formats.
+ * @param {string | any} text The string to check.
+ * @returns {boolean} True if the text is a valid encrypted string, false otherwise.
+ * @private
+ */
 function isEncrypted(text) {
   if (!text || typeof text !== 'string') return false;
   const parts = text.split(':');
@@ -64,6 +102,16 @@ function isEncrypted(text) {
   return false;
 }
 
+/**
+ * Encrypts a given text string using the AES-256-GCM authenticated encryption algorithm.
+ * This method is idempotent; it first checks if the text is already encrypted and,
+ * if so, returns it unmodified to prevent double encryption.
+ * The output format is 'iv:authTag:encryptedText' in hex encoding.
+ * @param {string | any} text The plaintext string to encrypt.
+ * @returns {string} The encrypted string, or the original input if it's not a string or is already encrypted.
+ * @throws {Error} If the encryption process fails.
+ * @private
+ */
 function encryptText(text) {
   if (!text || typeof text !== 'string') return text;
 
@@ -86,6 +134,16 @@ function encryptText(text) {
   }
 }
 
+/**
+ * Decrypts a given text string. It supports both the modern AES-256-GCM format
+ * ('iv:authTag:encryptedText') and a legacy AES-256-CBC format ('iv:encryptedText')
+ * for backward compatibility.
+ * If decryption fails for any reason (e.g., invalid format, incorrect key), it logs a warning
+ * and returns the original encrypted text to prevent data loss or application crashes.
+ * @param {string | any} text The encrypted string to decrypt.
+ * @returns {string} The decrypted plaintext string, or the original input if it's not a string or decryption fails.
+ * @private
+ */
 function decryptText(text) {
   if (!text || typeof text !== 'string') return text;
   try {
@@ -130,6 +188,21 @@ function decryptText(text) {
   }
 }
 
+/**
+ * Mongoose schema for storing user-specific memories or facts.
+ * Each document represents a single piece of information (a key-value pair)
+ * associated with a specific user, making it a multi-tenant collection partitioned by `userId`.
+ * The `value` field is automatically encrypted on save and decrypted on retrieval.
+ *
+ * @constructor UserMemory
+ * @property {string} userId - The identifier for the user this memory belongs to.
+ * @property {string} key - The key or name of the memory (e.g., 'occupation', 'favorite_color').
+ * @property {string} value - The value of the memory, which is encrypted in the database.
+ * @property {string} category - The category of the memory. Can be 'facts', 'preferences', or 'settings'.
+ * @property {number} confidence - A score from 0.0 to 1.0 indicating the confidence in the memory's accuracy.
+ * @property {Date} createdAt - Timestamp of when the document was created.
+ * @property {Date} updatedAt - Timestamp of when the document was last updated.
+ */
 const userMemorySchema = new Schema(
   {
     userId: {
@@ -171,6 +244,15 @@ const userMemorySchema = new Schema(
 // It also ensures a user can only have one unique record per key (e.g. unique occupation, tech stack).
 userMemorySchema.index({ userId: 1, key: 1 }, { unique: true });
 
+/**
+ * Mongoose model for interacting with the 'user_memories' collection.
+ * Provides an interface for creating, reading, updating, and deleting user memory documents.
+ * @type {import('mongoose').Model<UserMemory & import('mongoose').Document>}
+ */
 const UserMemory = model('UserMemory', userMemorySchema);
 
+/**
+ * @exports UserMemory
+ * @description The default export is the Mongoose model for User Memories.
+ */
 export default UserMemory;
