@@ -2,29 +2,32 @@
  * @fileoverview Configuration constants for the article writer module.
  * This file defines various settings, types, tones, lengths, and system prompts
  * used throughout the article generation process.
+ * It also includes base configurations for user-level limits and storage paths.
  */
 
 /**
  * @typedef {object} ArticleWriterConfig
- * @property {string} MODEL The AI model to use for article generation (e.g., 'gemini-2.5-flash').
- * @property {number} TEMPERATURE The creativity temperature for the AI model. Higher values (e.g., 0.8) lead to more creative and diverse outputs.
- * @property {number} MAX_OUTPUT_TOKENS The maximum number of tokens the AI model can generate in a single response.
- * @property {number} MAX_FILE_SIZE The maximum allowed size for uploaded files in bytes (e.g., 10MB).
- * @property {string[]} SUPPORTED_MIME_TYPES An array of MIME types for files that can be processed by the article writer.
- * @property {string[]} SUPPORTED_FILE_EXTENSIONS An array of file extensions for files that can be processed by the article writer.
+ * @property {string} MODEL The default AI model to use for article generation.
+ * @property {number} TEMPERATURE The creativity temperature for the AI model. Higher values (e.g., 0.8) lead to more creative outputs.
+ * @property {number} DEFAULT_MAX_OUTPUT_TOKENS The default maximum number of tokens the AI model can generate. This can be overridden by user tier limits.
+ * @property {number} DEFAULT_MAX_FILE_SIZE The default maximum allowed file size in bytes. This can be overridden by user tier limits.
+ * @property {number} DEFAULT_MAX_CONCURRENT_JOBS The default number of concurrent generation jobs allowed per user. This can be overridden by user tier limits.
+ * @property {string[]} SUPPORTED_MIME_TYPES An array of supported MIME types for file uploads.
+ * @property {string[]} SUPPORTED_FILE_EXTENSIONS An array of supported file extensions for file uploads.
  */
 
 /**
- * Article Writer Configuration.
- * Defines parameters and settings for the article generation process,
- * including AI model specifics, file handling, and supported formats.
+ * Base Article Writer Configuration.
+ * Defines default parameters and settings for the article generation process.
+ * NOTE: Limits like tokens, file size, and concurrent jobs should be overridden by user-specific tier settings in the application logic.
  * @type {ArticleWriterConfig}
  */
 export const ARTICLE_WRITER_CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-1.5-flash',
   TEMPERATURE: 0.8, // Higher temperature for more creative writing
-  MAX_OUTPUT_TOKENS: 16384,
-  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  DEFAULT_MAX_OUTPUT_TOKENS: 8192, // A safe default; Gemini 1.5 Flash supports much more, but this prevents runaway requests.
+  DEFAULT_MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB default
+  DEFAULT_MAX_CONCURRENT_JOBS: 1,
   SUPPORTED_MIME_TYPES: [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -34,6 +37,7 @@ export const ARTICLE_WRITER_CONFIG = {
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/vnd.ms-powerpoint',
+    'text/markdown',
   ],
   SUPPORTED_FILE_EXTENSIONS: [
     '.pdf',
@@ -44,7 +48,32 @@ export const ARTICLE_WRITER_CONFIG = {
     '.xls',
     '.pptx',
     '.ppt',
+    '.md',
   ],
+};
+
+/**
+ * @typedef {object} UserTierLimits
+ * @property {{maxFileSize: number, maxOutputTokens: number, maxConcurrentJobs: number}} free
+ * @property {{maxFileSize: number, maxOutputTokens: number, maxConcurrentJobs: number}} pro
+ */
+
+/**
+ * Defines example user-level limits based on subscription tiers.
+ * The application logic should use these to enforce limits per user, ensuring fair usage and respecting user entitlements.
+ * @type {UserTierLimits}
+ */
+export const USER_TIER_LIMITS = {
+  free: {
+    maxFileSize: 5 * 1024 * 1024, // 5MB
+    maxOutputTokens: 4096,
+    maxConcurrentJobs: 1,
+  },
+  pro: {
+    maxFileSize: 20 * 1024 * 1024, // 20MB
+    maxOutputTokens: 16384,
+    maxConcurrentJobs: 3,
+  },
 };
 
 /**
@@ -62,7 +91,6 @@ export const ARTICLE_WRITER_CONFIG = {
 
 /**
  * Defines the available types of articles that can be generated.
- * Each property represents a distinct article format or purpose.
  * @type {ArticleTypes}
  */
 export const ARTICLE_TYPES = {
@@ -91,7 +119,6 @@ export const ARTICLE_TYPES = {
 
 /**
  * Defines the available writing tones for article generation.
- * These tones influence the style and vocabulary used in the generated content.
  * @type {WritingTones}
  */
 export const WRITING_TONES = {
@@ -107,141 +134,156 @@ export const WRITING_TONES = {
 
 /**
  * @typedef {object} ArticleLengths
- * @property {string} SHORT Represents a short article length (e.g., 300-500 words).
- * @property {string} MEDIUM Represents a medium article length (e.g., 500-1000 words).
- * @property {string} LONG Represents a long article length (e.g., 1000-2000 words).
- * @property {string} COMPREHENSIVE Represents a comprehensive article length (e.g., 2000+ words).
+ * @property {string} SHORT Represents a short article length.
+ * @property {string} MEDIUM Represents a medium article length.
+ * @property {string} LONG Represents a long article length.
+ * @property {string} COMPREHENSIVE Represents a comprehensive article length.
  */
 
 /**
  * Defines the available lengths for generated articles.
- * These lengths provide a general guideline for the AI's output verbosity.
  * @type {ArticleLengths}
  */
 export const ARTICLE_LENGTHS = {
-  SHORT: 'short', // 300-500 words
-  MEDIUM: 'medium', // 500-1000 words
-  LONG: 'long', // 1000-2000 words
-  COMPREHENSIVE: 'comprehensive', // 2000+ words
+  SHORT: 'short',
+  MEDIUM: 'medium',
+  LONG: 'long',
+  COMPREHENSIVE: 'comprehensive',
+};
+
+/**
+ * Provides detailed descriptions for each article length to guide the AI.
+ * @type {Object<string, string>}
+ */
+export const ARTICLE_LENGTH_DETAILS = {
+  [ARTICLE_LENGTHS.SHORT]: 'approximately 300-500 words',
+  [ARTICLE_LENGTHS.MEDIUM]: 'approximately 500-1000 words',
+  [ARTICLE_LENGTHS.LONG]: 'approximately 1000-2000 words',
+  [ARTICLE_LENGTHS.COMPREHENSIVE]: 'over 2000 words, providing in-depth coverage',
 };
 
 /**
  * The category identifier for conversations related to the article writer module.
- * Used for organizing and retrieving conversation history.
  * @type {string}
  */
 export const CONVERSATION_CATEGORY = 'article_writer';
 
 /**
- * The AI model specifically used for managing the conversation flow within the article writer module.
- * This might be different from the model used for final article generation.
+ * The AI model used for managing the conversation flow. Can be a faster, cheaper model.
  * @type {string}
  */
-export const CONVERSATION_MODEL = 'gemini-2.5-flash';
+export const CONVERSATION_MODEL = 'gemini-1.5-flash';
 
 /**
  * @typedef {object} StorageConfig
- * @property {string} TEMP_FOLDER The path to the temporary folder where uploaded article files are stored.
+ * @property {string} BASE_UPLOAD_PATH The base path for temporary file uploads.
  */
 
 /**
- * Configuration for file storage within the article writer module.
- * Specifies paths for temporary file storage.
+ * Configuration for file storage.
  * @type {StorageConfig}
  */
 export const STORAGE_CONFIG = {
-  TEMP_FOLDER: 'uploads/article_files',
+  // SECURITY WARNING: This is a base path. To ensure user data isolation,
+  // the application logic MUST append a unique user-specific identifier (e.g., user ID)
+  // to this path before saving files. Example: `uploads/article_files/${userId}/`.
+  BASE_UPLOAD_PATH: 'uploads/article_files',
 };
 
 /**
  * @typedef {object} SystemPrompts
- * @property {string} CONVERSATIONAL The initial system prompt for the AI, setting its persona as an expert article writer assistant.
- * @property {string} blog_post System prompt specifically for generating blog posts.
- * @property {string} news_article System prompt specifically for generating news articles.
- * @property {string} technical_article System prompt specifically for generating technical articles.
- * @property {string} opinion_piece System prompt specifically for generating opinion pieces.
- * @property {string} how_to_guide System prompt specifically for generating how-to guides.
- * @property {string} listicle System prompt specifically for generating listicles.
- * @property {string} case_study System prompt specifically for generating case studies.
- * @property {string} research_article System prompt specifically for generating research articles.
- * @property {string} general System prompt for general article generation when no specific type is chosen.
+ * @property {string} CONVERSATIONAL The initial system prompt for the AI assistant's persona.
+ * @property {string} blog_post System prompt for generating blog posts.
+ * @property {string} news_article System prompt for generating news articles.
+ * @property {string} technical_article System prompt for generating technical articles.
+ * @property {string} opinion_piece System prompt for generating opinion pieces.
+ * @property {string} how_to_guide System prompt for generating how-to guides.
+ * @property {string} listicle System prompt for generating listicles.
+ * @property {string} case_study System prompt for generating case studies.
+ * @property {string} research_article System prompt for generating research articles.
+ * @property {string} general System prompt for general article generation.
  */
 
 /**
- * Collection of system prompts used to guide the AI model for different article types and overall interaction.
- * These prompts define the AI's role and specific instructions for generating various content formats.
+ * Collection of system prompts to guide the AI model for different article types.
  * @type {SystemPrompts}
  */
 export const SYSTEM_PROMPTS = {
-  CONVERSATIONAL: `You are an expert article writer AI assistant. You help users write high-quality, engaging articles based on their input. You can:
-1. Write articles from scratch based on user descriptions
-2. Expand on uploaded documents or text snippets into full articles
-3. Adapt the tone, style, and length based on user preferences
-4. Create different types of articles (blog posts, technical articles, guides, etc.)
+  CONVERSATIONAL: `You are an expert article writer AI assistant. Your goal is to help users create high-quality, engaging articles. You can write from scratch, expand on uploaded documents, and adapt the tone, style, and length based on user preferences. Always be helpful and clear in your communication.`,
 
-When writing articles:
-- Focus on clarity, engagement, and proper structure
-- Use appropriate headings, subheadings, and paragraphs
-- Ensure the content flows naturally and is well-organized
-- Match the requested tone and style
-- Include relevant examples and explanations when appropriate
-- Return the article in plain text format
-
-If a file is uploaded, extract its content and use it as the basis for the article.
-If the user provides text directly, use that as your source material.
-Always ask for clarification if the requirements are unclear.`,
-
-  [ARTICLE_TYPES.BLOG_POST]: `Write an engaging blog post that is conversational, relatable, and captures the reader's attention. Use a friendly tone, include personal anecdotes or examples where appropriate, and structure it with an introduction, body paragraphs, and conclusion.`,
-
-  [ARTICLE_TYPES.NEWS_ARTICLE]: `Write a news article that is factual, objective, and follows the inverted pyramid structure. Lead with the most important information, include relevant facts and quotes, and maintain a neutral, professional tone.`,
-
-  [ARTICLE_TYPES.TECHNICAL_ARTICLE]: `Write a technical article that is clear, accurate, and informative. Use precise terminology, include code examples or technical details where relevant, break down complex concepts into understandable parts, and structure it logically.`,
-
-  [ARTICLE_TYPES.OPINION_PIECE]: `Write an opinion piece that clearly presents a viewpoint with strong arguments and supporting evidence. Be persuasive but respectful, acknowledge counterarguments, and maintain a confident yet thoughtful tone.`,
-
-  [ARTICLE_TYPES.HOW_TO_GUIDE]: `Write a how-to guide that provides clear, step-by-step instructions. Use numbered lists for steps, include helpful tips and warnings, anticipate common questions or problems, and use an instructional yet friendly tone.`,
-
-  [ARTICLE_TYPES.LISTICLE]: `Write a listicle that presents information in an easy-to-scan, numbered or bulleted format. Make each point engaging and self-contained, use descriptive headings, and maintain a lively, accessible tone.`,
-
-  [ARTICLE_TYPES.CASE_STUDY]: `Write a case study that tells a compelling story of a real-world example. Include background, challenges, solutions, and results. Use data and specific details to support the narrative.`,
-
-  [ARTICLE_TYPES.RESEARCH_ARTICLE]: `Write a research article that is thorough, evidence-based, and academically rigorous. Include an abstract, methodology, findings, and conclusions. Cite sources appropriately and maintain a formal, objective tone.`,
-
+  [ARTICLE_TYPES.BLOG_POST]: `Write an engaging blog post that is conversational and relatable. Use a friendly tone, include personal anecdotes or examples where appropriate, and structure it with a clear introduction, body, and conclusion. Use headings and subheadings to improve readability.`,
+  [ARTICLE_TYPES.NEWS_ARTICLE]: `Write a news article that is factual, objective, and follows the inverted pyramid structure. Lead with the most important information (the "leadin"), include relevant facts and quotes, and maintain a neutral, professional tone.`,
+  [ARTICLE_TYPES.TECHNICAL_ARTICLE]: `Write a technical article that is clear, accurate, and informative. Use precise terminology, include formatted code examples or technical details where relevant, and break down complex concepts into understandable parts.`,
+  [ARTICLE_TYPES.OPINION_PIECE]: `Write an opinion piece that clearly presents a viewpoint with strong arguments and supporting evidence. Be persuasive but respectful, acknowledge potential counterarguments, and maintain a confident yet thoughtful tone.`,
+  [ARTICLE_TYPES.HOW_TO_GUIDE]: `Write a how-to guide with clear, step-by-step instructions. Use numbered lists for steps, include helpful tips and warnings, and use an instructional, encouraging tone.`,
+  [ARTICLE_TYPES.LISTICLE]: `Write a listicle that presents information in an easy-to-scan, numbered or bulleted format. Make each point engaging and self-contained, use descriptive headings for each item, and maintain a lively, accessible tone.`,
+  [ARTICLE_TYPES.CASE_STUDY]: `Write a case study that tells a compelling story of a real-world example. Structure it with: Background/Problem, Solution Implemented, and Results/Outcome. Use data and specific details to support the narrative.`,
+  [ARTICLE_TYPES.RESEARCH_ARTICLE]: `Write a research article that is thorough, evidence-based, and academically rigorous. Include sections for an Abstract, Introduction, Methodology, Findings, and Conclusion. Maintain a formal, objective tone.`,
   [ARTICLE_TYPES.GENERAL]: `Write a well-structured article that is clear, engaging, and appropriate for the subject matter. Adapt the tone and style to best suit the content and intended audience.`,
 };
 
 /**
+ * A template for constructing the final, detailed prompt for article generation.
+ * This should be populated by the application logic with user-selected options.
+ * @type {string}
+ */
+export const ARTICLE_GENERATION_PROMPT_TEMPLATE = `
+Generate an article based on the following specifications.
+
+**Primary Goal:** Create a high-quality, well-structured article ready for publication.
+**Output Format:** The final article MUST be in Markdown format. Use headings (#, ##), lists (* or 1.), bold (**text**), italics (*text*), and code blocks (\`\`\`language\ncode\n\`\`\`) where appropriate to enhance readability and structure.
+
+**Article Specifications:**
+- **Article Type:** {{articleType}}
+- **Instructions for this type:** {{articleTypeInstructions}}
+- **Writing Tone:** {{tone}}
+- **Target Length:** {{length}} ({{lengthDetails}})
+
+**Source Material:**
+Use the following content as the basis for the article. Extract key information, expand on the ideas, and structure it according to the specifications above.
+---
+{{sourceMaterial}}
+---
+
+Now, generate the complete article in Markdown format.
+`;
+
+/**
  * @typedef {object} ResponseMessages
- * @property {string} SUCCESS Message indicating successful article generation.
- * @property {string} FILE_REQUIRED Message indicating that either a file or message content is mandatory.
- * @property {string} PROCESSING_ERROR Message for a general error during article request processing.
- * @property {string} FILE_UPLOAD_ERROR Message for errors encountered during file upload or processing.
- * @property {string} CONVERSATION_ERROR Message for errors related to managing the conversation.
+ * @property {string} SUCCESS Message for successful article generation.
+ * @property {string} INPUT_REQUIRED Message when neither a file nor text is provided.
+ * @property {string} PROCESSING_ERROR Message for a general processing error.
+ * @property {string} FILE_UPLOAD_ERROR Message for file upload or processing errors.
+ * @property {string} CONVERSATION_ERROR Message for conversation management errors.
+ * @property {string} FILE_LIMIT_EXCEEDED Message when the uploaded file is too large.
+ * @property {string} INVALID_INPUT Message for invalid or missing request parameters.
+ * @property {string} RATE_LIMIT_EXCEEDED Message when the user exceeds their allowed usage rate.
  */
 
 /**
- * Standardized response messages used by the article writer module.
- * These messages provide consistent feedback for various outcomes of an article generation request.
+ * Standardized API response messages.
  * @type {ResponseMessages}
  */
 export const RESPONSE_MESSAGES = {
   SUCCESS: 'Article generated successfully',
-  FILE_REQUIRED: 'Either a file or message content is required',
-  PROCESSING_ERROR: 'Error processing article request',
-  FILE_UPLOAD_ERROR: 'Error uploading or processing file',
-  CONVERSATION_ERROR: 'Error managing conversation',
+  INPUT_REQUIRED: 'Either a file or message content is required to generate an article',
+  PROCESSING_ERROR: 'An unexpected error occurred while processing your request',
+  FILE_UPLOAD_ERROR: 'Error uploading or processing the provided file',
+  CONVERSATION_ERROR: 'Error managing conversation state',
+  FILE_LIMIT_EXCEEDED: 'File size exceeds the maximum allowed limit for your account',
+  INVALID_INPUT: 'Invalid parameters provided. Please check the article type, tone, and length.',
+  RATE_LIMIT_EXCEEDED: 'You have reached the maximum number of concurrent requests. Please wait for the current job to complete.',
 };
 
 /**
  * @typedef {object} DefaultParams
- * @property {string} articleType The default article type to use if not specified by the user.
- * @property {string} tone The default writing tone to use if not specified by the user.
- * @property {string} length The default article length to use if not specified by the user.
+ * @property {string} articleType The default article type.
+ * @property {string} tone The default writing tone.
+ * @property {string} length The default article length.
  */
 
 /**
- * Default parameters for article generation.
- * These values are used when the user does not explicitly specify preferences for article type, tone, or length.
+ * Default parameters for article generation, used when not specified by the user.
  * @type {DefaultParams}
  */
 export const DEFAULT_PARAMS = {

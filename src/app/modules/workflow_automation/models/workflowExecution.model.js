@@ -39,8 +39,7 @@ const WorkflowExecutionSchema = new mongoose.Schema(
     executionId: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
+      unique: true, // `unique: true` automatically creates an index
     },
     status: {
       type: String,
@@ -106,10 +105,14 @@ const WorkflowExecutionSchema = new mongoose.Schema(
 );
 
 // Indexes for efficient querying
+// Common query: Find latest executions for a specific workflow
 WorkflowExecutionSchema.index({ workflowId: 1, createdAt: -1 });
+// Common query: Find latest executions for a user, often filtered by status
 WorkflowExecutionSchema.index({ userId: 1, status: 1, createdAt: -1 });
+// Common query: Find latest executions by status globally (e.g., for admin dashboards or workers)
 WorkflowExecutionSchema.index({ status: 1, createdAt: -1 });
-WorkflowExecutionSchema.index({ executionId: 1 });
+// OPTIMIZATION: Removed redundant `WorkflowExecutionSchema.index({ executionId: 1 });`
+// The `unique: true` option on the `executionId` field already creates a unique index, making a separate index definition unnecessary.
 
 // Check if model is already compiled to prevent OverwriteModelError
 const WorkflowExecution =
