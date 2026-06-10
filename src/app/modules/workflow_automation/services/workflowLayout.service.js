@@ -1,12 +1,33 @@
 import { logger } from '../../../../shared/logger.js';
 
 /**
- * Validates the schema of React Flow nodes and edges.
- * Checks for cycles, deadlocks, and disconnected nodes.
+ * Validates the schema of React Flow nodes and edges for a workflow layout.
+ * This function performs several checks to ensure the structural integrity and executability
+ * of a workflow represented by React Flow components:
+ * - Basic structural validation of nodes and edges (e.g., array types, object types).
+ * - Uniqueness of node IDs.
+ * - Presence of required node properties (`id`) and edge properties (`source`, `target`).
+ * - Existence of referenced source/target nodes for all edges.
+ * - Validation of `parameters` property within node data (must be an object if present).
+ * - Detection of self-loops on nodes.
+ * - Detection of cyclic dependencies within the workflow graph using Kahn's algorithm.
+ * - Identification of completely disconnected nodes (nodes with no incoming or outgoing edges)
+ *   that are not explicitly marked as 'trigger' nodes.
+ * - Identification of unreachable nodes from any designated 'trigger' node, indicating
+ *   parts of the workflow that will never execute.
  *
- * @param {Array} nodes - React Flow node objects
- * @param {Array} edges - React Flow edge objects
- * @returns {object} Validation report containing validity, errors, and warnings.
+ * @param {Array<object>} nodes - An array of React Flow node objects. Each node is expected to have:
+ *                                 `id` (string, unique), `type` (string, e.g., 'trigger', 'action'),
+ *                                 `data` (object, optional, containing `stepType`, `parameters`, etc.).
+ * @param {Array<object>} [edges=[]] - An array of React Flow edge objects. Each edge is expected to have:
+ *                                   `source` (string, ID of the source node),
+ *                                   `target` (string, ID of the target node),
+ *                                   `sourceHandle` (string, optional, for specific output port).
+ * @returns {object} A validation report object detailing the outcome of the checks.
+ * @property {boolean} valid - `true` if the layout is valid and has no errors; `false` otherwise.
+ * @property {Array<string>} errors - An array of error messages found during validation. If this array is not empty, `valid` will be `false`.
+ * @property {Array<string>} warnings - An array of warning messages found during validation. Warnings indicate potential issues
+ *                                      but do not prevent `valid` from being `true`.
  */
 function validateLayoutSchema(nodes, edges = []) {
   const errors = [];
@@ -186,12 +207,53 @@ function validateLayoutSchema(nodes, edges = []) {
 }
 
 /**
- * Compiles visual React Flow nodes and edges into executable steps for the backend database.
- * Also performs validation prior to compiling.
+ * Compiles visual React Flow nodes and edges into a topologically sorted array of executable steps
+ * suitable for a backend workflow engine. This function first validates the layout schema
+ * using `validateLayoutSchema` and throws an error if the layout is invalid.
  *
- * @param {Array} nodes - React Flow node objects
- * @param {Array} edges - React Flow edge objects
- * @returns {Array} Compiled execution steps array.
+ * The compilation process involves:
+ * 1. Validating the input nodes and edges using `validateLayoutSchema`.
+ * 2. Performing a topological sort (using Kahn's algorithm) to determine the correct
+ *    execution order of steps, respecting dependencies.
+ * 3. Mapping React Flow node properties to a standardized step format required by the backend.
+ * 4. Resolving dependencies (`dependsOn` array) for each step based on incoming edges,
+ *    optionally including `sourceHandle` for specific output port dependencies.
+ *
+ * @param {Array<object>} nodes - An array of React Flow node objects representing the workflow steps.
+ *                                 Each node is expected to have:
+ *                                 `id` (string, unique identifier),
+ *                                 `type` (string, e.g., 'trigger', 'action'),
+ *                                 `data` (object, optional, containing `stepType`, `app`, `action`, `parameters`, `continueOnError`),
+ *                                 `position` (object, optional, e.g., `{ x: number, y: number }` for layout metadata).
+ * @param {Array<object>} [edges=[]] - An array of React Flow edge objects representing the connections between steps.
+ *                                   Each edge is expected to have:
+ *                                   `source` (string, ID of the source node),
+ *                                   `target` (string, ID of the target node),
+ *                                   `sourceHandle` (string, optional, identifier for the output port on the source node).
+ * @returns {Array<object>} An array of compiled workflow step objects, sorted in topological execution order.
+ * @throws {Error} If the input `nodes` and `edges` fail schema validation, an error is thrown
+ *                 with a message detailing the validation issues.
+ * @property {string} returns.stepId - The unique identifier for the compiled step, derived from the React Flow node's `id`.
+ * @property {string} returns.stepType - The type of the step (e.g., 'trigger', 'action', 'condition'),
+ *                                        derived from `node.data.stepType` or `node.type`. Defaults to 'action'.
+ * @property {string} returns.app - The application or service associated with this step,
+ *                                   derived from `node.data.app` or `node.data.application`. Defaults to `node.type`.
+ * @property {string} returns.action - The specific action or operation to be performed by this step,
+ *                                      derived from `node.data.action`.
+ * @property {object} returns.parameters - An object containing key-value pairs of parameters required for the step's execution,
+ *                                         derived from `node.data.parameters`. Defaults to an empty object.
+ * @property {boolean} returns.continueOnError - A flag indicating whether the workflow should continue execution
+ *                                               to subsequent steps even if this step encounters an error.
+ *                                               Derived from `node.data.continueOnError`. Defaults to `false`.
+ * @property {Array<string>} returns.dependsOn - An array of strings, where each string represents a dependency.
+ *                                                A dependency can be a `stepId` or `stepId.handle` if a specific
+ *                                                output handle is referenced. This array dictates the execution order
+ *                                                and data flow dependencies.
+ * @property {number} returns.order - The topological order of the step within the compiled workflow, starting from 1.
+ * @property {object} returns.metadata - Additional metadata about the step, not directly used for execution logic.
+ * @property {object} returns.metadata.layout - Layout-specific metadata.
+ * @property {object} returns.metadata.layout.position - The x, y coordinates of the node in the React Flow layout,
+ *                                                      useful for re-rendering or debugging the visual flow.
  */
 function compileLayoutToSteps(nodes, edges = []) {
   // First validate layout schema
@@ -280,6 +342,18 @@ function compileLayoutToSteps(nodes, edges = []) {
   return steps;
 }
 
+/**
+ * @typedef {object} WorkflowLayoutService
+ * @property {function(Array<object>, Array<object>): object} validateLayoutSchema - Validates the schema of React Flow nodes and edges for a workflow layout.
+ * @property {function(Array<object>, Array<object>): Array<object>} compileLayoutToSteps - Compiles visual React Flow nodes and edges into executable steps for the backend.
+ */
+
+/**
+ * Service module for managing and processing workflow layouts.
+ * Provides functionalities for validating the structural integrity of React Flow diagrams
+ * and compiling them into a backend-executable format.
+ * @type {WorkflowLayoutService}
+ */
 export const workflowLayoutService = {
   validateLayoutSchema,
   compileLayoutToSteps
