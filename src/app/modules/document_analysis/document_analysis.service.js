@@ -16,6 +16,16 @@ import {
   DEFAULT_PARAMS,
 } from './document_analysis.constant.js';
 
+// Database Optimization Recommendation:
+// For the 'Conversation' schema (used by conversationService and conversationHelpers),
+// consider adding indexes for frequently queried fields to improve performance.
+// - A compound index on `{ conversationId: 1, userId: 1 }` would be highly beneficial
+//   for lookups like `getConversationById` which often filter by both.
+// - An individual index on `{ userId: 1 }` could also be useful for queries
+//   that fetch all conversations for a specific user.
+// - An index on `{ 'metadata.category': 1 }` might be useful if filtering conversations
+//   by category is a common operation.
+
 /**
  * Generates a unique guest user ID using Mongoose's ObjectId.
  * This ID can be used for unauthenticated users to track their analysis sessions.
