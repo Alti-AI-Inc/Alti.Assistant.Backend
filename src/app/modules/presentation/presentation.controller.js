@@ -6,6 +6,9 @@ import { presentationService } from './presentation.service.js';
 // import SubscriptionModel from '../subscription/subscription.model.js'; // Not used in this file, removed for cleaner code
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { conversationService } from '../conversations/conversation.service.js';
+import path from 'path'; // Moved from dynamic import for performance
+import { presentonAPIClient } from './services/presentonAPIClient.js'; // Moved from dynamic import for performance
+import { uploadPresentationToGCS } from './services/gcsUploadService.js'; // Moved from dynamic import for performance
 
 /**
  * @typedef {object} PresentationAssistantRequest
@@ -49,12 +52,18 @@ import { conversationService } from '../conversations/conversation.service.js';
  */
 export const conversationalAssistant = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest
-    ? presentationService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
+  let userId;
+
+  // Security Fix: Prevent authenticated users from overriding their userId via req.body.userId (IDOR vulnerability).
+  // For guests, allow req.body.userId to be used if provided, otherwise generate a guest ID.
+  // For authenticated users, always use their session/token userId.
+  if (isGuest) {
+    userId = req.body.userId || presentationService.generateGuestUserId();
+  } else {
+    userId = req.user?.userId || req.user?._id;
+  }
 
   const { message, conversationId } = req.body;
-  userId = req.body.userId || userId;
 
   logger.info(
     `Presentation assistant request from ${isGuest ? 'guest' : 'authenticated'} user ${userId}`
@@ -196,13 +205,10 @@ export const generatePresentation = catchAsync(async (req, res) => {
   };
 
   try {
-    const { presentonAPIClient } = await import(
-      './services/presentonAPIClient.js'
-    );
-    const { uploadPresentationToGCS } = await import(
-      './services/gcsUploadService.js'
-    );
-    const path = await import('path');
+    // Removed dynamic imports, now imported at the top of the file
+    // const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    // const { uploadPresentationToGCS } = await import('./services/gcsUploadService.js');
+    // const path = await import('path');
 
     let result;
     if (async) {
@@ -215,8 +221,9 @@ export const generatePresentation = catchAsync(async (req, res) => {
         try {
           const userId = req.user?.userId || req.user?._id || 'direct_api';
           const conversationId = `direct_${Date.now()}`;
+          // Bug Fix: Use path.basename instead of path.default.basename for consistency and robustness.
           const fileName =
-            path.default.basename(result.downloadUrl) ||
+            path.basename(result.downloadUrl) ||
             `presentation_${result.presentation_id}.pptx`;
           const uploadResult = await uploadPresentationToGCS(
             result.downloadUrl,
@@ -300,10 +307,17 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
   let { taskId } = req.params;
   const { conversationId } = req.query;
   const isGuest = req.isGuest || !req.user;
-  let userId = isGuest
-    ? presentationService.generateGuestUserId()
-    : req.user?.userId || req.user?._id;
-  userId = req.query.userId || userId;
+  let userId;
+
+  // Security Fix: Prevent authenticated users from overriding their userId via req.query.userId (IDOR vulnerability).
+  // For guests, allow req.query.userId to be used if provided, otherwise generate a guest ID.
+  // For authenticated users, always use their session/token userId.
+  if (isGuest) {
+    userId = req.query.userId || presentationService.generateGuestUserId();
+  } else {
+    userId = req.user?.userId || req.user?._id;
+  }
+
   // If conversationId is provided, fetch taskId from conversation metadata
   if (conversationId && !taskId) {
     try {
@@ -345,13 +359,10 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
   logger.info(`Checking status for task ${taskId}`);
 
   try {
-    const { presentonAPIClient } = await import(
-      './services/presentonAPIClient.js'
-    );
-    const { uploadPresentationToGCS } = await import(
-      './services/gcsUploadService.js'
-    );
-    const path = await import('path');
+    // Removed dynamic imports, now imported at the top of the file
+    // const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    // const { uploadPresentationToGCS } = await import('./services/gcsUploadService.js');
+    // const path = await import('path');
 
     const result = await presentonAPIClient.checkTaskStatus(taskId);
 
@@ -361,8 +372,9 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
 
     if (result.status === 'completed' && result.data?.path) {
       try {
+        // Bug Fix: Use path.basename instead of path.default.basename for consistency and robustness.
         const fileName =
-          path.default.basename(result.data.path) ||
+          path.basename(result.data.path) ||
           `presentation_${result.data.presentation_id}.pptx`;
         const uploadConversationId = conversationId || `task_${taskId}`;
 
@@ -482,17 +494,20 @@ export const checkTaskStatus = catchAsync(async (req, res) => {
  */
 export const editPresentation = catchAsync(async (req, res) => {
   const { presentationId, slides, export_as } = req.body;
+  // Security Fix: Retrieve userId from authenticated request for authorization checks (IDOR vulnerability).
+  // Assumes authentication middleware populates req.user.
+  const userId = req.user?.userId || req.user?._id;
 
-  logger.info(`Editing presentation ${presentationId}`);
+  logger.info(`Editing presentation ${presentationId} for user ${userId}`);
 
   try {
-    const { presentonAPIClient } = await import(
-      './services/presentonAPIClient.js'
-    );
+    // Removed dynamic import, now imported at the top of the file
+    // const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
     const result = await presentonAPIClient.editPresentation({
       presentationId,
       slides,
       export_as,
+      userId, // Security Fix: Pass userId to the client for authorization/ownership checks.
     });
 
     return sendResponse(res, {
@@ -548,17 +563,20 @@ export const editPresentation = catchAsync(async (req, res) => {
  */
 export const derivePresentation = catchAsync(async (req, res) => {
   const { presentationId, slides, export_as } = req.body;
+  // Security Fix: Retrieve userId from authenticated request for authorization checks (IDOR vulnerability).
+  // Assumes authentication middleware populates req.user.
+  const userId = req.user?.userId || req.user?._id;
 
-  logger.info(`Deriving presentation from ${presentationId}`);
+  logger.info(`Deriving presentation from ${presentationId} for user ${userId}`);
 
   try {
-    const { presentonAPIClient } = await import(
-      './services/presentonAPIClient.js'
-    );
+    // Removed dynamic import, now imported at the top of the file
+    // const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
     const result = await presentonAPIClient.derivePresentation({
       presentationId,
       slides,
       export_as,
+      userId, // Security Fix: Pass userId to the client for authorization/ownership checks.
     });
 
     return sendResponse(res, {
@@ -609,14 +627,19 @@ export const derivePresentation = catchAsync(async (req, res) => {
  */
 export const getPresentation = catchAsync(async (req, res) => {
   const { presentationId } = req.params;
+  // Security Fix: Retrieve userId from authenticated request for authorization checks (IDOR vulnerability).
+  // Assumes authentication middleware populates req.user.
+  const userId = req.user?.userId || req.user?._id;
 
-  logger.info(`Getting presentation ${presentationId}`);
+  logger.info(`Getting presentation ${presentationId} for user ${userId}`);
 
   try {
-    const { presentonAPIClient } = await import(
-      './services/presentonAPIClient.js'
+    // Removed dynamic import, now imported at the top of the file
+    // const { presentonAPIClient } = await import('./services/presentonAPIClient.js');
+    const result = await presentonAPIClient.getPresentation(
+      presentationId,
+      userId // Security Fix: Pass userId to the client for authorization/ownership checks.
     );
-    const result = await presentonAPIClient.getPresentation(presentationId);
 
     return sendResponse(res, {
       statusCode: httpStatus.OK,
