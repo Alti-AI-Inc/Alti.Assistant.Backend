@@ -79,6 +79,10 @@ const handleArticleWriterConversation = async (
         // Optimization Note: .lean() is not applied here because the 'conversation' object
         // fetched by getConversationById might be modified and saved later in 'processConversationalRequest'.
         // If the conversation object were only read and not modified, .lean() would be beneficial.
+        // With the optimization in processConversationalRequest to use a direct database update
+        // for uploadedFiles, this conversation object is no longer directly saved after modification.
+        // However, to maintain consistency with `conversationService.createConversation` which
+        // likely returns a Mongoose document, we keep this fetch as non-lean.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
@@ -379,22 +383,24 @@ const processConversationalRequest = async (
     if (fileInfo) {
       fileData = await processUploadedFile(fileInfo);
 
-      // Update conversation metadata with uploaded file info
-      // Optimization Note: For better performance, consider updating the conversation
-      // directly in the database using a method like `findOneAndUpdate` with `$push`
-      // in `conversationService` instead of fetching the whole document, modifying,
-      // and then saving. This avoids unnecessary data transfer and Mongoose document overhead.
-      if (conversation.metadata) {
-        // Ensure uploadedFiles array exists before pushing to it
-        if (!conversation.metadata.uploadedFiles) {
-          conversation.metadata.uploadedFiles = [];
-        }
-        conversation.metadata.uploadedFiles.push({
-          fileName: fileInfo.originalName,
-          uploadedAt: new Date(),
-        });
-        await conversation.save();
-      }
+      // Optimization: For better performance, update the conversation directly in the database
+      // using a method like `findOneAndUpdate` with `$push` in `conversationService`
+      // instead of fetching the whole document, modifying it in memory, and then saving.
+      // This avoids unnecessary data transfer and Mongoose document overhead.
+      // Assuming conversationService.updateConversationById supports $push operations.
+      await conversationService.updateConversationById(
+        conversation.conversationId,
+        userId,
+        {
+          $push: {
+            'metadata.uploadedFiles': {
+              fileName: fileInfo.originalName,
+              uploadedAt: new Date(),
+            },
+          },
+        },
+        req
+      );
     }
 
     // Use provided parameters or defaults
