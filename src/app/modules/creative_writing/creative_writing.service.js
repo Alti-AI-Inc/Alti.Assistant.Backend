@@ -93,6 +93,7 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
   };
 
   for (const [style, keywords] of Object.entries(styleKeywords)) {
+    // Keywords are already lowercase in styleKeywords, so no need for .toLowerCase() here.
     if (keywords.some((keyword) => lowerMessage.includes(keyword))) {
       detectedStyle = style;
       break;
@@ -120,27 +121,33 @@ const handleCreativeWritingConversation = async (
 ) => {
   try {
     let conversation;
+    let currentConversationId = conversationId; // Use a mutable variable for the ID
 
-    if (conversationId) {
+    if (currentConversationId) {
       try {
         // Optimization: Consider adding .lean() to conversationHelpers.getConversationById
         // if the returned 'conversation' object is only read from and not directly saved
         // or modified via Mongoose document methods later in this flow.
         conversation = await conversationHelpers.getConversationById(
-          conversationId,
+          currentConversationId,
           userId,
           req
         );
-        logger.info(`Fetched conversation with ID: ${conversationId}`);
+        logger.info(`Fetched conversation with ID: ${currentConversationId}`);
       } catch (error) {
         logger.warn(
-          `Conversation ${conversationId} not found, creating new one`
+          `Conversation ${currentConversationId} not found or unauthorized, creating new one`
         );
+        // If the provided conversationId was not found or unauthorized,
+        // we should proceed to create a new conversation with a *newly generated* ID.
+        // Clear currentConversationId so a new one is generated below.
+        currentConversationId = null;
       }
     }
 
     if (!conversation) {
-      const newConversationId = conversationId || generateConversationId();
+      // If no conversation was found/fetched, or no ID was provided initially, generate a new one.
+      const newGeneratedConversationId = generateConversationId();
 
       conversation = await conversationService.createConversation(
         {
@@ -155,12 +162,12 @@ const handleCreativeWritingConversation = async (
             writingHistory: [],
           },
         },
-        newConversationId,
+        newGeneratedConversationId, // Always use a newly generated ID for new conversations
         req
       );
 
       logger.info(
-        `Created new creative writing conversation ${newConversationId} for user ${userId}`
+        `Created new creative writing conversation ${newGeneratedConversationId} for user ${userId}`
       );
     }
 
