@@ -7,6 +7,8 @@ import mongoose from 'mongoose';
 import { openMemoryClient } from '../../shared/openMemoryClient.js';
 // INTEGRATION: Import usage service to enforce limits and track usage across the hierarchy.
 import { usageService } from '../usage/usage.service.js';
+// OPTIMIZATION: Import Conversation model for efficient aggregation queries.
+import { Conversation } from '../conversations/conversation.model.js';
 
 /**
  * Generate unique guest user ID.
@@ -56,7 +58,7 @@ const handleSummaryConversation = async (
         );
 
         // For guest users, verify the conversation is indeed a guest conversation.
-        if (isGuest && conversation.metadata?.userType !== 'guest') {
+        if (isGuest && conversation?.metadata?.userType !== 'guest') {
           logger.warn(
             `Guest user ${userId} trying to access non-guest conversation ${conversationId}`
           );
@@ -383,7 +385,7 @@ const addErrorMessage = async (
  *
  * @param {string} conversationId - The ID of the conversation to retrieve history from.
  * @param {string} userId - The ID of the user (authenticated or guest) associated with the conversation.
- * @param {boolean} [isGuest=false] - BUG FIX: Added flag to handle guest vs authenticated user context correctly.
+ * @param {boolean} [isGuest=false] - Flag to handle guest vs authenticated user context correctly.
  * @param {number} [limit=10] - The maximum number of recent messages to retrieve.
  * @param {object} [req=null] - The Express request object.
  * @returns {Promise<Array<object>>} A promise that resolves to an array of formatted message objects.
@@ -405,7 +407,20 @@ const getSummaryHistory = async (
       req
     );
 
-    if (!conversation || !conversation.messages) {
+    if (!conversation) {
+      return [];
+    }
+
+    // SECURITY (DEFENSE-IN-DEPTH): Ensure a guest user cannot accidentally be served a non-guest conversation history.
+    // The primary authorization is in getConversationById, but this adds an extra layer of data isolation.
+    if (isGuest && conversation.metadata?.userType !== 'guest') {
+      logger.warn(
+        `Guest user ${userId} was blocked from accessing non-guest conversation history for ${conversationId}`
+      );
+      return [];
+    }
+
+    if (!conversation.messages) {
       return [];
     }
 
@@ -453,7 +468,7 @@ const updateConversationTitle = async (
 };
 
 /**
- * Retrieves statistics related to a user's summary conversations.
+ * Retrieves statistics related to a user's summary conversations using an efficient aggregation pipeline.
  *
  * @param {string} userId - The ID of the user for whom to retrieve statistics.
  * @param {object} req - The Express request object, required for authorization.
@@ -463,8 +478,6 @@ const updateConversationTitle = async (
 const getSummaryStats = async (userId, req = null) => {
   try {
     // CRITICAL: Enforce authorization. A regular user can only see their own stats.
-    // Higher roles (manager, admin) may have broader access, which should be handled by
-    // the underlying `getUserConversations` helper based on `req.user`.
     if (
       !req ||
       !req.user ||
@@ -476,37 +489,72 @@ const getSummaryStats = async (userId, req = null) => {
       );
     }
 
-    // PERFORMANCE-CRITICAL: The current implementation fetches up to 1000 conversation documents
-    // into memory. This is highly inefficient and will provide incorrect stats for users
-    // with more than 1000 conversations.
-    // This MUST be replaced with a MongoDB aggregation pipeline.
-    const summaryConversations = await conversationHelpers.getUserConversations(
-      userId,
-      {
-        page: 1,
-        limit: 1000, // WARNING: Inefficient and potentially inaccurate.
-        category: 'summary',
-      },
-      req
-    );
+    // OPTIMIZATION: Use a MongoDB aggregation pipeline to calculate stats efficiently
+    // in the database, avoiding fetching large amounts of data into the application memory.
+    // This is scalable, fast, and provides accurate results regardless of the number of conversations.
 
-    const totalSummaries = summaryConversations.conversations.length;
-    const totalMessages = summaryConversations.conversations.reduce(
-      (sum, conv) => sum + conv.messageCount,
-      0
-    );
+    // 1. Build the initial match stage for authorization and filtering.
+    const matchStage = {
+      'metadata.category': 'summary',
+      // Apply authorization based on user role to ensure data isolation.
+      // This logic should mirror the permissions in `getUserConversations`.
+      ...(req.user.role === 'user' && {
+        userId: new mongoose.Types.ObjectId(userId),
+      }),
+      ...(req.user.role === 'manager' && {
+        workspaceId: new mongoose.Types.ObjectId(req.user.workspaceId),
+      }),
+      ...(req.user.role === 'admin' && {
+        organizationId: new mongoose.Types.ObjectId(req.user.organizationId),
+      }),
+    };
+
+    // 2. Define the aggregation pipeline.
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $group: {
+          _id: null, // Group all matching documents into a single result.
+          totalSummaryConversations: { $sum: 1 }, // Count the number of conversations.
+          totalSummaryMessages: { $sum: '$messageCount' }, // Sum the messageCount from each conversation.
+        },
+      },
+      {
+        $project: {
+          _id: 0, // Exclude the _id field from the final output.
+          totalSummaryConversations: 1,
+          totalSummaryMessages: 1,
+          averageMessagesPerConversation: {
+            // Safely calculate the average, avoiding division by zero.
+            $cond: [
+              { $eq: ['$totalSummaryConversations', 0] },
+              0,
+              { $round: [{ $divide: ['$totalSummaryMessages', '$totalSummaryConversations'] }] },
+            ],
+          },
+        },
+      },
+    ];
+
+    // 3. Execute the aggregation query.
+    const statsResult = await Conversation.aggregate(pipeline);
+
+    // 4. Return the calculated stats or default zero values if no conversations were found.
+    if (statsResult.length > 0) {
+      return statsResult[0];
+    }
 
     return {
-      totalSummaryConversations: totalSummaries,
-      totalSummaryMessages: totalMessages,
-      averageMessagesPerConversation:
-        totalSummaries > 0 ? Math.round(totalMessages / totalSummaries) : 0,
+      totalSummaryConversations: 0,
+      totalSummaryMessages: 0,
+      averageMessagesPerConversation: 0,
     };
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
     logger.error('Error getting summary stats:', error);
+    // Return a default object on unexpected errors to prevent client-side crashes.
     return {
       totalSummaryConversations: 0,
       totalSummaryMessages: 0,

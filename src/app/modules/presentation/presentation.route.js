@@ -1,3 +1,18 @@
+/**
+ * @file Defines the routes for presentation-related operations.
+ * @module routes/presentation
+ * @requires express
+ * @requires ../../../shared/enum
+ * @requires ../../middlewares/auth/auth
+ * @requires ../../middlewares/auth/optionalAuth
+ * @requires ../../middlewares/checkDailyRequestLimit/checkDailyRequestLimit
+ * @requires ../../middlewares/rateLimit/authLimiter
+ * @requires ../../middlewares/validateRequest/validateRequest
+ * @requires ../../middlewares/tenant/tenantContext
+ * @requires ./presentation.controller
+ * @requires ./presentation.validation
+ */
+
 import express from 'express';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
@@ -17,7 +32,9 @@ import { PresentationValidation } from './presentation.validation.js';
  */
 
 /**
- * @constant {express.Router} router - Express router for presentation routes.
+ * Express router for presentation-related routes.
+ * @type {express.Router}
+ * @constant
  */
 const router = express.Router();
 
@@ -75,7 +92,10 @@ router.post(
  * /api/v1/presentation/generate:
  *   post:
  *     summary: Direct presentation generation
- *     description: Generates a presentation programmatically based on provided parameters, without conversational interaction.
+ *     description: >
+ *       Generates a presentation programmatically based on provided parameters, without conversational interaction.
+ *       This endpoint supports both authenticated and guest users. For authenticated users, presentations are
+ *       associated with their account; for guests, they are tied to their session.
  *     tags: [Presentation]
  *     requestBody:
  *       required: true
@@ -127,7 +147,9 @@ router.post(
  * /api/v1/presentation/status/{taskId}:
  *   get:
  *     summary: Check asynchronous task status
- *     description: Retrieves the current status of a previously initiated asynchronous task, such as presentation generation.
+ *     description: >
+ *       Retrieves the current status of a previously initiated asynchronous task, such as presentation generation.
+ *       Access to the task status is scoped to the user or guest session that created it, enforced via the tenant context.
  *     tags: [Presentation, Tasks]
  *     parameters:
  *       - in: path
@@ -185,7 +207,10 @@ router.get(
  * /api/v1/presentation/edit:
  *   post:
  *     summary: Edit existing presentation
- *     description: Modifies an existing presentation based on the provided editing parameters.
+ *     description: >
+ *       Modifies an existing presentation based on the provided editing parameters.
+ *       Authorization is enforced via the tenant context, ensuring that users (including guests with a session)
+ *       can only edit presentations they own.
  *     tags: [Presentation]
  *     requestBody:
  *       required: true
@@ -235,7 +260,10 @@ router.post(
  * /api/v1/presentation/derive:
  *   post:
  *     summary: Derive new presentation from existing one
- *     description: Creates a new presentation by using an existing presentation as a base, applying new modifications or parameters.
+ *     description: >
+ *       Creates a new presentation by using an existing presentation as a base, applying new modifications or parameters.
+ *       Authorization is enforced via the tenant context, ensuring that users (including guests with a session)
+ *       can only derive from presentations they own or have access to.
  *     tags: [Presentation]
  *     requestBody:
  *       required: true
@@ -285,7 +313,10 @@ router.post(
  * /api/v1/presentation/{presentationId}:
  *   get:
  *     summary: Get presentation details
- *     description: Retrieves the full details of a specific presentation by its unique ID.
+ *     description: >
+ *       Retrieves the full details of a specific presentation by its unique ID.
+ *       Access is authorized based on the tenant context, ensuring that users (including guests with a session)
+ *       can only retrieve presentations they own or have access to.
  *     tags: [Presentation]
  *     parameters:
  *       - in: path
