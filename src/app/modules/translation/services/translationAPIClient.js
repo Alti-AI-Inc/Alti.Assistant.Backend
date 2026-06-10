@@ -8,10 +8,70 @@ import {
 } from '../translation.constant.js';
 
 /**
- * Translation API Client using Gemini LLM
- * Provides context-aware, high-quality translations
+ * @typedef {Object} LanguageDetectionResult
+ * @property {boolean} success - Indicates if the detection was successful.
+ * @property {string} languageCode - The detected ISO 639-1 language code (e.g., 'en', 'es').
+ * @property {string} languageName - The full name of the detected language (e.g., 'English', 'Spanish').
+ * @property {number} confidence - A confidence score for the detection (0.0 to 1.0).
+ * @property {boolean} isSupported - True if the detected language is one of the {@link SUPPORTED_LANGUAGES}.
+ */
+
+/**
+ * @typedef {Object} TranslationResult
+ * @property {boolean} success - Indicates if the translation was successful.
+ * @property {string} originalText - The original text that was translated.
+ * @property {string} translatedText - The translated text.
+ * @property {string} sourceLanguage - The ISO 639-1 code of the source language.
+ * @property {string} sourceLanguageName - The full name of the source language.
+ * @property {string} targetLanguage - The ISO 639-1 code of the target language.
+ * @property {string} targetLanguageName - The full name of the target language.
+ * @property {number} characterCount - The character count of the original text.
+ * @property {'llm'|'llm-chunked'} method - The method used for translation (e.g., 'llm' for direct, 'llm-chunked' for large texts).
+ * @property {number} [chunks] - The number of chunks if `method` is 'llm-chunked'.
+ */
+
+/**
+ * @typedef {Object} BatchTranslationItem
+ * @property {string} originalText - The original text.
+ * @property {string} translatedText - The translated text.
+ */
+
+/**
+ * @typedef {Object} BatchTranslationResult
+ * @property {boolean} success - Indicates if the batch translation was successful.
+ * @property {BatchTranslationItem[]} translations - An array of original and translated text pairs.
+ * @property {string} targetLanguage - The ISO 639-1 code of the target language for all translations.
+ * @property {string} targetLanguageName - The full name of the target language.
+ * @property {number} count - The number of texts translated in the batch.
+ * @property {'llm'} method - The method used for translation.
+ */
+
+/**
+ * @typedef {Object} SupportedLanguage
+ * @property {string} code - The ISO 639-1 language code.
+ * @property {string} name - The full name of the language.
+ */
+
+/**
+ * @typedef {Object} SupportedLanguagesResult
+ * @property {boolean} success - Indicates if the operation was successful.
+ * @property {SupportedLanguage[]} languages - An array of supported language objects.
+ * @property {number} count - The number of supported languages.
+ */
+
+/**
+ * Translation API Client using Gemini LLM.
+ * Provides context-aware, high-quality translations and language detection capabilities.
+ * It leverages Google's Gemini model for robust natural language processing.
  */
 class TranslationAPIClient {
+  /**
+   * Initializes the TranslationAPIClient.
+   * Sets up two instances of `ChatGoogleGenerativeAI`:
+   * - `model`: For general translation tasks, configured for higher output tokens and moderate temperature.
+   * - `detectionModel`: For faster language detection, configured with lower output tokens and temperature.
+   * Logs initialization status or errors.
+   */
   constructor() {
     try {
       // Initialize Gemini model for translation
@@ -39,8 +99,11 @@ class TranslationAPIClient {
   }
 
   /**
-   * Validate language code
+   * Validates if a given language code is supported by the application.
+   * The check is case-insensitive.
    * @private
+   * @param {string} code - The ISO 639-1 language code to validate (e.g., 'en', 'es').
+   * @returns {boolean} - True if the language code is supported, false otherwise.
    */
   _isValidLanguageCode(code) {
     const supportedCodes = Object.values(SUPPORTED_LANGUAGES);
@@ -48,8 +111,13 @@ class TranslationAPIClient {
   }
 
   /**
-   * Split large text into chunks for translation
+   * Splits a large text into smaller chunks to accommodate LLM token limits.
+   * It attempts to split by paragraphs first, then by sentences if paragraphs are too large.
+   * This helps maintain context within chunks while respecting API constraints.
    * @private
+   * @param {string} text - The large text string to be chunked.
+   * @param {number} [maxChunkSize=20000] - The maximum desired character length for each chunk.
+   * @returns {string[]} - An array of text chunks.
    */
   _chunkText(text, maxChunkSize = 20000) {
     // If text is small enough, return as single chunk
@@ -102,9 +170,11 @@ class TranslationAPIClient {
   }
 
   /**
-   * Detect language of text using Gemini
-   * @param {string} text - Text to detect language for
-   * @returns {Promise<Object>} - Detection result with language code and confidence
+   * Detects the language of a given text using the Gemini LLM.
+   * It sends a prompt to the LLM to identify the language and returns a structured result.
+   * @param {string} text - The text to detect the language for.
+   * @returns {Promise<LanguageDetectionResult>} - A promise that resolves to a {@link LanguageDetectionResult} object.
+   * @throws {Error} If the Translation API is not initialized, text is empty, or LLM response is invalid.
    */
   async detectLanguage(text) {
     try {
@@ -162,11 +232,16 @@ JSON response:`;
   }
 
   /**
-   * Translate text using Gemini LLM
-   * @param {string} text - Text to translate
-   * @param {string} targetLanguage - Target language code (ISO 639-1)
-   * @param {string} sourceLanguage - Source language code (optional, auto-detect if not provided)
-   * @returns {Promise<Object>} - Translation result
+   * Translates a given text from a source language to a target language using the Gemini LLM.
+   * If the source language is not provided or set to 'auto', it will be auto-detected.
+   * For very large texts, it delegates to `_translateLargeText` for chunked processing.
+   * @param {string} text - The text to translate.
+   * @param {string} targetLanguage - The ISO 639-1 code of the target language (e.g., 'es' for Spanish).
+   * @param {string} [sourceLanguage=null] - The ISO 639-1 code of the source language (e.g., 'en' for English).
+   *                                         If 'auto' or null, the language will be detected.
+   * @returns {Promise<TranslationResult>} - A promise that resolves to a {@link TranslationResult} object.
+   * @throws {Error} If the Translation API is not initialized, text is empty, target language is missing or invalid,
+   *                 or source language is invalid.
    */
   async translateText(text, targetLanguage, sourceLanguage = null) {
     try {
@@ -289,8 +364,15 @@ Translated text:`;
   }
 
   /**
-   * Translate large text by chunking
+   * Handles the translation of very large texts by first chunking them into smaller, manageable pieces,
+   * then translating each chunk individually, and finally reassembling the translated chunks.
+   * This method is called internally by `translateText` when the input text exceeds a certain size.
    * @private
+   * @param {string} text - The large text string to be translated.
+   * @param {string} targetLanguage - The ISO 639-1 code of the target language.
+   * @param {string} [sourceLanguage=null] - The ISO 639-1 code of the source language. If 'auto' or null, it will be detected.
+   * @returns {Promise<TranslationResult>} - A promise that resolves to a {@link TranslationResult} object for the entire text.
+   * @throws {Error} If any part of the chunked translation process fails.
    */
   async _translateLargeText(text, targetLanguage, sourceLanguage = null) {
     try {
@@ -381,11 +463,14 @@ Translated text:`;
   }
 
   /**
-   * Translate multiple texts (batch translation) using Gemini
-   * @param {string[]} texts - Array of texts to translate
-   * @param {string} targetLanguage - Target language code
-   * @param {string} sourceLanguage - Source language code (optional)
-   * @returns {Promise<Object>} - Batch translation result
+   * Translates an array of texts (batch translation) using the Gemini LLM.
+   * Each text in the array is translated individually to ensure high quality,
+   * as direct LLM batch translation can sometimes be less reliable.
+   * @param {string[]} texts - An array of text strings to translate.
+   * @param {string} targetLanguage - The ISO 639-1 code of the target language for all texts.
+   * @param {string} [sourceLanguage=null] - The ISO 639-1 code of the source language. If 'auto' or null, it will be detected for each text.
+   * @returns {Promise<BatchTranslationResult>} - A promise that resolves to a {@link BatchTranslationResult} object.
+   * @throws {Error} If the Translation API is not initialized, texts array is empty, or target language is missing or invalid.
    */
   async translateBatch(texts, targetLanguage, sourceLanguage = null) {
     try {
@@ -445,8 +530,10 @@ Translated text:`;
   }
 
   /**
-   * Get supported languages
-   * @returns {Promise<Object>} - List of supported languages
+   * Retrieves a list of all languages supported by the translation service.
+   * This list is derived from the `LANGUAGE_NAMES` constant.
+   * @returns {Promise<SupportedLanguagesResult>} - A promise that resolves to a {@link SupportedLanguagesResult} object.
+   * @throws {Error} If there's an unexpected error during retrieval.
    */
   async getSupportedLanguages() {
     try {
@@ -471,4 +558,9 @@ Translated text:`;
   }
 }
 
+/**
+ * Singleton instance of the TranslationAPIClient.
+ * This instance is used throughout the application to perform translation and language detection tasks.
+ * @type {TranslationAPIClient}
+ */
 export const translationAPIClient = new TranslationAPIClient();
