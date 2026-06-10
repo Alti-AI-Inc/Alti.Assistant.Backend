@@ -1,7 +1,71 @@
 import { GoogleGenerativeAI } from '@google-generative-ai';
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { createClient } from 'redis';
 import config from '../../../../../config/index.js';
 import { logger } from '../../../../shared/logger.js';
 import { REVIEW_INTENTS } from '../document_review.constant.js';
+
+// --- Enterprise Rate Limiting & DDOS Guard Agent AI: BEGIN CHANGES ---
+
+// Custom error to be thrown when rate limit is exceeded.
+// This allows the controller layer to catch it specifically and return a 429 response.
+class RateLimitExceededError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'RateLimitExceededError';
+  }
+}
+
+// Setup Redis client for the rate limiter.
+// Connection details should be provided in the application config.
+const redisClient = createClient({
+  url: config.redis_url || 'redis://127.0.0.1:6379',
+  // It's recommended to set a password in production environments.
+  // password: config.redis_password,
+});
+
+redisClient.on('error', (err) =>
+  logger.error('Rate Limiter Redis Client Error', err)
+);
+
+// Asynchronously connect to Redis.
+// The rate limiter will not function until this connection is established.
+(async () => {
+  try {
+    await redisClient.connect();
+    logger.info('Connected to Redis for service-level rate limiting.');
+  } catch (err) {
+    logger.error('Failed to connect to Redis for rate limiting.', {
+      error: err,
+    });
+    // In a production scenario, you might want to exit the process
+    // if a Redis connection is critical for preventing abuse.
+    // process.exit(1);
+  }
+})();
+
+// Rate limiter for the 'analyzeIntent' function.
+// This is a costly AI operation, so we limit it per user/IP.
+// Allows for bursts but prevents sustained abuse.
+const intentAnalysisLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit:intent_analysis',
+  points: 30, // Max 30 requests
+  duration: 60, // per 60 seconds (1 minute)
+  blockDuration: 60 * 5, // Block for 5 minutes if limit is exceeded
+});
+
+// Rate limiter for the 'summarizeConversation' function.
+// This is also a costly AI operation.
+const conversationSummaryLimiter = new RateLimiterRedis({
+  storeClient: redisClient,
+  keyPrefix: 'rate_limit:conversation_summary',
+  points: 15, // Max 15 requests
+  duration: 60, // per 60 seconds (1 minute)
+  blockDuration: 60 * 5, // Block for 5 minutes if limit is exceeded
+});
+
+// --- Enterprise Rate Limiting & DDOS Guard Agent AI: END CHANGES ---
 
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
@@ -13,6 +77,7 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * The function aims to identify the type of review requested (e.g., grammar check, content analysis)
  * and any specific details like review depth, document type, or aspects to focus on.
  *
+ * @param {string} identifier - A unique identifier for the requesting entity (e.g., user ID for authenticated users, IP address for public access) used for rate limiting.
  * @param {string} userMessage - The current message from the user to be analyzed.
  * @param {Array<Object>} [conversationHistory=[]] - An array of previous messages in the conversation.
  *   Each object should have `role` (e.g., 'user', 'model') and `content` (the message text).
@@ -34,13 +99,18 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  *     - `additionalInstructions`: {string|null} Any other specific instructions or requests from the user.
  *   - `reasoning`: {string} A brief explanation from the AI about its intent determination.
  *     Defaults to an empty string or an error message on failure.
+ * @throws {RateLimitExceededError} Throws an error if the rate limit for this operation is exceeded.
  */
 const analyzeIntent = async (
+  identifier,
   userMessage,
   conversationHistory = [],
   existingParams = {}
 ) => {
   try {
+    // Consume a point for this identifier. If the limit is exceeded, this will throw.
+    await intentAnalysisLimiter.consume(identifier);
+
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-pro',
       generationConfig: {
@@ -152,14 +222,25 @@ Respond in JSON format only:
       reasoning: analysis.reasoning || '',
     };
   } catch (error) {
-    logger.error('Error analyzing intent:', error);
-    // Return default intent on error
-    return {
-      intent: REVIEW_INTENTS.GENERAL_REVIEW,
-      confidence: 0.5,
-      parameters: {},
-      reasoning: 'Error occurred, using default',
-    };
+    // Differentiate between a rate limit error and a general operational error.
+    if (error instanceof Error) {
+      // This is a standard error from the AI model, JSON parsing, etc.
+      logger.error('Error analyzing intent:', error);
+      return {
+        intent: REVIEW_INTENTS.GENERAL_REVIEW,
+        confidence: 0.5,
+        parameters: {},
+        reasoning: 'Error occurred, using default',
+      };
+    } else {
+      // This is a rejection from the rate limiter.
+      logger.warn(
+        `Rate limit exceeded for intent analysis by identifier: ${identifier}`
+      );
+      throw new RateLimitExceededError(
+        'Too many requests for intent analysis. Please try again in a few minutes.'
+      );
+    }
   }
 };
 
@@ -168,6 +249,7 @@ Respond in JSON format only:
  * This helps in reducing token usage for subsequent AI calls by providing a concise overview
  * of what has been discussed so far, including user requests and collected parameters.
  *
+ * @param {string} identifier - A unique identifier for the requesting entity (e.g., user ID or IP address) used for rate limiting.
  * @param {Array<Object>} conversationHistory - An array of previous messages in the conversation.
  *   Each object should have `role` (e.g., 'user', 'model') and `content` (the message text).
  *   Example: `[{ role: 'user', content: 'I uploaded a report.' }, { role: 'model', content: 'What kind of review?' }]`
@@ -177,9 +259,17 @@ Respond in JSON format only:
  *   Example: `{ reviewType: 'content_analysis', documentType: 'business' }`
  * @returns {Promise<string>} A promise that resolves to a concise summary of the conversation
  *   (maximum 200 words). Returns a generic fallback string on error.
+ * @throws {RateLimitExceededError} Throws an error if the rate limit for this operation is exceeded.
  */
-const summarizeConversation = async (conversationHistory, collectedParams) => {
+const summarizeConversation = async (
+  identifier,
+  conversationHistory,
+  collectedParams
+) => {
   try {
+    // Consume a point for this identifier. If the limit is exceeded, this will throw.
+    await conversationSummaryLimiter.consume(identifier);
+
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-pro',
       generationConfig: {
@@ -216,15 +306,27 @@ Provide a concise summary (max 200 words) that captures the essential context:`;
 
     return summary;
   } catch (error) {
-    logger.error('Error summarizing conversation:', error);
-    return 'Previous conversation about document review.';
+    // Differentiate between a rate limit error and a general operational error.
+    if (error instanceof Error) {
+      // This is a standard error from the AI model, etc.
+      logger.error('Error summarizing conversation:', error);
+      return 'Previous conversation about document review.';
+    } else {
+      // This is a rejection from the rate limiter.
+      logger.warn(
+        `Rate limit exceeded for conversation summary by identifier: ${identifier}`
+      );
+      throw new RateLimitExceededError(
+        'Too many requests for conversation summary. Please try again in a few minutes.'
+      );
+    }
   }
 };
 
 /**
  * @typedef {Object} ConversationAnalyzer
- * @property {function(string, Array<Object>, Object): Promise<Object>} analyzeIntent - Function to analyze user intent and extract parameters.
- * @property {function(Array<Object>, Object): Promise<string>} summarizeConversation - Function to summarize conversation history.
+ * @property {function(string, string, Array<Object>, Object): Promise<Object>} analyzeIntent - Function to analyze user intent and extract parameters.
+ * @property {function(string, Array<Object>, Object): Promise<string>} summarizeConversation - Function to summarize conversation history.
  */
 
 /**

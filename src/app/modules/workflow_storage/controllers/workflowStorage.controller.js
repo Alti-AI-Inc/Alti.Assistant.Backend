@@ -5,7 +5,78 @@ import { logger } from '../../../../shared/logger.js';
 import { workflowStorageService } from '../services/workflowStorage.service.js';
 
 /**
- * Analyze user input and store workflow
+ * @openapi
+ * /workflows/analyze:
+ *   post:
+ *     summary: Analyze user input and store a new workflow
+ *     description: Takes user input and other metadata, analyzes it to generate a workflow structure, and stores it in the database. This endpoint is user-specific and requires authentication.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userInput
+ *             properties:
+ *               userInput:
+ *                 type: string
+ *                 description: The natural language input from the user describing the workflow.
+ *                 example: "When I receive an email in Gmail with 'invoice' in the subject, save the attachment to my 'Invoices' folder in Google Drive."
+ *               title:
+ *                 type: string
+ *                 description: An optional title for the workflow.
+ *                 example: "Save Invoice Attachments"
+ *               description:
+ *                 type: string
+ *                 description: An optional description for the workflow.
+ *                 example: "Automatically saves invoice attachments from Gmail to a specific Google Drive folder."
+ *               conversationId:
+ *                 type: string
+ *                 description: An optional ID to link this workflow to a specific conversation.
+ *                 example: "conv_12345"
+ *               conversationContext:
+ *                 type: object
+ *                 description: Optional context from the conversation.
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Optional tags for categorizing the workflow.
+ *                 example: ["invoices", "automation", "gmail"]
+ *               category:
+ *                 type: string
+ *                 description: An optional category for the workflow.
+ *                 example: "Finance"
+ *     responses:
+ *       '201':
+ *         description: Workflow analyzed and created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '400':
+ *         description: Bad Request - User input is missing or analysis failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const analyzeAndStoreWorkflowController = catchAsync(async (req, res) => {
   const {
@@ -79,7 +150,81 @@ const analyzeAndStoreWorkflowController = catchAsync(async (req, res) => {
 });
 
 /**
- * Get user's stored workflows
+ * @openapi
+ * /workflows:
+ *   get:
+ *     summary: Get a list of stored workflows for the user
+ *     description: Retrieves a paginated and filterable list of workflows belonging to the authenticated user.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [DRAFT, ACTIVE, INACTIVE, ERROR]
+ *         description: Filter workflows by status.
+ *       - in: query
+ *         name: workflowType
+ *         schema:
+ *           type: string
+ *         description: Filter workflows by type.
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter workflows by category.
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of tags to filter by.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: The number of items to return.
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: The number of items to skip for pagination.
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: createdAt
+ *         description: The field to sort by.
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: integer
+ *           enum: [1, -1]
+ *           default: -1
+ *         description: The sort order (1 for ascending, -1 for descending).
+ *     responses:
+ *       '200':
+ *         description: A list of workflows retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const getUserStoredWorkflowsController = catchAsync(async (req, res) => {
   const userId = req.user?._id || req.userId;
@@ -152,7 +297,47 @@ const getUserStoredWorkflowsController = catchAsync(async (req, res) => {
 });
 
 /**
- * Get specific stored workflow
+ * @openapi
+ * /workflows/{workflowId}:
+ *   get:
+ *     summary: Get a specific stored workflow
+ *     description: Retrieves the details of a single workflow by its ID. The user must be the owner of the workflow.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workflowId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the workflow.
+ *     responses:
+ *       '200':
+ *         description: Workflow details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '404':
+ *         description: Not Found - The workflow with the specified ID was not found or does not belong to the user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const getStoredWorkflowController = catchAsync(async (req, res) => {
   const { workflowId } = req.params;
@@ -209,7 +394,76 @@ const getStoredWorkflowController = catchAsync(async (req, res) => {
 });
 
 /**
- * Update stored workflow
+ * @openapi
+ * /workflows/{workflowId}:
+ *   patch:
+ *     summary: Update a stored workflow
+ *     description: Updates one or more properties of an existing workflow. The user must be the owner of the workflow.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workflowId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the workflow.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               category:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [DRAFT, ACTIVE, INACTIVE, ERROR]
+ *               workflowDefinition:
+ *                 type: object
+ *                 description: The updated workflow definition object.
+ *     responses:
+ *       '200':
+ *         description: Workflow updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '400':
+ *         description: Bad Request - Invalid update data provided.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '404':
+ *         description: Not Found - The workflow with the specified ID was not found or does not belong to the user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const updateStoredWorkflowController = catchAsync(async (req, res) => {
   const { workflowId } = req.params;
@@ -269,7 +523,47 @@ const updateStoredWorkflowController = catchAsync(async (req, res) => {
 });
 
 /**
- * Delete stored workflow
+ * @openapi
+ * /workflows/{workflowId}:
+ *   delete:
+ *     summary: Delete a stored workflow
+ *     description: Permanently deletes a workflow by its ID. The user must be the owner of the workflow.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workflowId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the workflow.
+ *     responses:
+ *       '200':
+ *         description: Workflow deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '404':
+ *         description: Not Found - The workflow with the specified ID was not found or does not belong to the user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const deleteStoredWorkflowController = catchAsync(async (req, res) => {
   const { workflowId } = req.params;
@@ -324,7 +618,59 @@ const deleteStoredWorkflowController = catchAsync(async (req, res) => {
 });
 
 /**
- * Search stored workflows
+ * @openapi
+ * /workflows/search:
+ *   get:
+ *     summary: Search stored workflows
+ *     description: Searches through the title, description, and tags of the authenticated user's workflows.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: searchTerm
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The term to search for.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: The number of items to return.
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: The number of items to skip for pagination.
+ *     responses:
+ *       '200':
+ *         description: Search completed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '400':
+ *         description: Bad Request - Search term is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const searchStoredWorkflowsController = catchAsync(async (req, res) => {
   const { searchTerm } = req.query;
@@ -391,7 +737,34 @@ const searchStoredWorkflowsController = catchAsync(async (req, res) => {
 });
 
 /**
- * Get executable workflows
+ * @openapi
+ * /workflows/executable:
+ *   get:
+ *     summary: Get executable workflows
+ *     description: Retrieves a list of all workflows for the authenticated user that are in a state ready for execution (e.g., 'ACTIVE' status with valid connections).
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Executable workflows retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const getExecutableWorkflowsController = catchAsync(async (req, res) => {
   const userId = req.user?._id || req.userId;
@@ -437,7 +810,47 @@ const getExecutableWorkflowsController = catchAsync(async (req, res) => {
 });
 
 /**
- * Refresh workflow connections
+ * @openapi
+ * /workflows/{workflowId}/refresh-connections:
+ *   post:
+ *     summary: Refresh workflow connections
+ *     description: Triggers a process to refresh and validate the API connections and authentications used within a specific workflow. The user must be the owner of the workflow.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workflowId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the workflow.
+ *     responses:
+ *       '200':
+ *         description: Workflow connections refreshed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '404':
+ *         description: Not Found - The workflow with the specified ID was not found or does not belong to the user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const refreshWorkflowConnectionsController = catchAsync(async (req, res) => {
   const { workflowId } = req.params;
@@ -496,7 +909,53 @@ const refreshWorkflowConnectionsController = catchAsync(async (req, res) => {
 });
 
 /**
- * Prepare workflow for execution
+ * @openapi
+ * /workflows/{workflowId}/prepare-execution:
+ *   post:
+ *     summary: Prepare workflow for execution
+ *     description: Prepares a specific workflow for execution. This might involve compiling, validating, or generating an executable plan. The user must be the owner of the workflow.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: workflowId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique identifier of the workflow.
+ *     responses:
+ *       '200':
+ *         description: Workflow prepared for execution successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '400':
+ *         description: Bad Request - The workflow could not be prepared for execution.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '404':
+ *         description: Not Found - The workflow with the specified ID was not found or does not belong to the user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const prepareWorkflowForExecutionController = catchAsync(async (req, res) => {
   const { workflowId } = req.params;
@@ -555,7 +1014,34 @@ const prepareWorkflowForExecutionController = catchAsync(async (req, res) => {
 });
 
 /**
- * Get workflow statistics
+ * @openapi
+ * /workflows/statistics:
+ *   get:
+ *     summary: Get workflow statistics
+ *     description: Retrieves aggregate statistics for the authenticated user's workflows, such as counts by status, category, or type.
+ *     tags:
+ *       - Workflows
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Statistics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '401':
+ *         description: Unauthorized - User authentication is required.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       '500':
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 const getWorkflowStatisticsController = catchAsync(async (req, res) => {
   const userId = req.user?._id || req.userId;
