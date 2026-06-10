@@ -17,7 +17,7 @@ const auth = new GoogleAuth({
  */
 const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) => {
   try {
-    const projectId = config.google.gcp_project_id || process.env.GCP_PROJECT_ID;
+    const projectId = config?.google?.gcp_project_id || process.env.GCP_PROJECT_ID;
     if (!projectId) {
       throw new Error('GCP Project ID is not configured.');
     }
@@ -28,6 +28,24 @@ const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) =
     const endpoint = 'https://logging.googleapis.com/v2/entries:write';
 
     const formattedLogName = `projects/${projectId}/logs/${logName}`;
+
+    // GCP Logging API strictly requires all label values to be strings.
+    // We sanitize the labels to prevent 400 Bad Request errors when non-string values are passed.
+    const sanitizedLabels = {};
+    const rawLabels = {
+      environment: config?.env || 'development',
+      ...labels
+    };
+
+    for (const [key, value] of Object.entries(rawLabels)) {
+      if (value === null || value === undefined) {
+        sanitizedLabels[key] = '';
+      } else if (typeof value === 'object') {
+        sanitizedLabels[key] = JSON.stringify(value);
+      } else {
+        sanitizedLabels[key] = String(value);
+      }
+    }
 
     await client.request({
       url: endpoint,
@@ -41,10 +59,7 @@ const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) =
             },
             textPayload: message,
             severity,
-            labels: {
-              environment: config.env || 'development',
-              ...labels
-            },
+            labels: sanitizedLabels,
             timestamp: new Date().toISOString()
           }
         ]
@@ -56,7 +71,7 @@ const writeLogEntry = async (logName, message, severity = 'INFO', labels = {}) =
       logName: formattedLogName,
       severity,
       message,
-      labels
+      labels: sanitizedLabels
     };
   } catch (err) {
     logger.error('Stackdriver Logging Error:', err);
@@ -92,9 +107,10 @@ const logBillingEvent = async (workspaceId, adminUserId, action, details = {}) =
  * @param {string} plan - The subscription plan name
  * @param {string} status - The subscription status (e.g., 'active', 'canceled')
  * @param {string} stripeSubscriptionId - Stripe subscription ID
+ * @param {object} [details] - Additional metadata (e.g., price, billing cycle)
  * @returns {Promise<object>} Log write report
  */
-const logSubscriptionEvent = async (workspaceId, adminUserId, plan, status, stripeSubscriptionId) => {
+const logSubscriptionEvent = async (workspaceId, adminUserId, plan, status, stripeSubscriptionId, details = {}) => {
   const message = `Subscription updated to plan "${plan}" (Status: ${status}) for Workspace ${workspaceId}`;
   return writeLogEntry('alti-subscription-audit-log', message, 'NOTICE', {
     workspaceId,
@@ -102,7 +118,8 @@ const logSubscriptionEvent = async (workspaceId, adminUserId, plan, status, stri
     plan,
     status,
     stripeSubscriptionId,
-    eventType: 'subscription'
+    eventType: 'subscription',
+    ...details
   });
 };
 
@@ -113,9 +130,10 @@ const logSubscriptionEvent = async (workspaceId, adminUserId, plan, status, stri
  * @param {string} adminUserId - The ID of the admin performing the update
  * @param {object} [oldData] - Previous configuration
  * @param {object} [newData] - Updated configuration
+ * @param {object} [details] - Additional metadata
  * @returns {Promise<object>} Log write report
  */
-const logWorkspaceUpdateEvent = async (workspaceId, adminUserId, oldData = {}, newData = {}) => {
+const logWorkspaceUpdateEvent = async (workspaceId, adminUserId, oldData = {}, newData = {}, details = {}) => {
   const message = `Workspace ${workspaceId} configuration updated by Admin ${adminUserId}`;
   return writeLogEntry('alti-workspace-audit-log', message, 'INFO', {
     workspaceId,
@@ -124,7 +142,8 @@ const logWorkspaceUpdateEvent = async (workspaceId, adminUserId, oldData = {}, n
     newSlug: newData.slug || '',
     oldName: oldData.name || '',
     newName: newData.name || '',
-    eventType: 'workspace_update'
+    eventType: 'workspace_update',
+    ...details
   });
 };
 
@@ -135,16 +154,18 @@ const logWorkspaceUpdateEvent = async (workspaceId, adminUserId, oldData = {}, n
  * @param {string} limitType - The type of limit (e.g., 'member_limit', 'api_usage')
  * @param {number} currentUsage - Current usage value
  * @param {number} maxLimit - Maximum allowed limit
+ * @param {object} [details] - Additional metadata
  * @returns {Promise<object>} Log write report
  */
-const logLimitBreachEvent = async (workspaceId, limitType, currentUsage, maxLimit) => {
+const logLimitBreachEvent = async (workspaceId, limitType, currentUsage, maxLimit, details = {}) => {
   const message = `Workspace ${workspaceId} breached limit for ${limitType} (${currentUsage}/${maxLimit})`;
   return writeLogEntry('alti-limits-audit-log', message, 'WARNING', {
     workspaceId,
     limitType,
     currentUsage: String(currentUsage),
     maxLimit: String(maxLimit),
-    eventType: 'limit_breach'
+    eventType: 'limit_breach',
+    ...details
   });
 };
 
