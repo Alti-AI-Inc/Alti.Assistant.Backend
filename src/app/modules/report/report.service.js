@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs'; // Keep fs for fs.promises
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Storage } from '@google-cloud/storage';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import { conversationService } from '../conversations/conversation.service.js';
@@ -10,7 +11,6 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { extractContentFromFiles } from './utils/fileParser.js';
 import { exportReport } from './utils/reportExporter.js';
 import { cleanupUploadedFiles } from './middlewares/uploadReportFiles.js';
-import { uploadReportToGCS } from './services/gcsUploadService.js';
 import {
   REPORT_CONFIG,
   REPORT_INTENTS,
@@ -26,6 +26,30 @@ import config from '../../../../config/index.js';
 // Initialize Gemini client
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 const model = genAI.getGenerativeModel({ model: REPORT_CONFIG.MODEL });
+
+// Initialize Google Cloud Storage client
+const storage = new Storage({
+  projectId: config.gcp_project_id || config.gcp?.projectId,
+  credentials: config.gcp_credentials || config.gcp?.credentials,
+});
+const bucketName = config.gcs_bucket_name || config.gcs?.bucketName || 'alti-reports-bucket';
+const bucket = storage.bucket(bucketName);
+
+/**
+ * Helper to get content type based on file format
+ */
+const getContentType = (format) => {
+  const mimeTypes = {
+    pdf: 'application/pdf',
+    json: 'application/json',
+    csv: 'text/csv',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    html: 'text/html',
+    md: 'text/markdown',
+  };
+  return mimeTypes[format?.toLowerCase()] || 'application/octet-stream';
+};
 
 /**
  * Generate unique guest user ID
@@ -422,36 +446,39 @@ const processConversationalRequest = async (
       ...analysis.parameters,
     });
 
-    // Export to requested format
+    // Export directly to GCS stream
     const outputFormat =
       analysis.parameters.outputFormat || DEFAULT_PARAMS.outputFormat;
     const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const outputDir = path.join(process.cwd(), 'output', 'reports');
-    const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
+    const gcsFileName = `reports/${userId}/${reportId}.${outputFormat}`;
+    const gcsFile = bucket.file(gcsFileName);
 
-    // Optimization: Replaced synchronous fs.existsSync and fs.mkdirSync with asynchronous fs.promises.mkdir
-    // This prevents blocking the Node.js event loop for I/O operations.
-    await fs.promises.mkdir(outputDir, { recursive: true }).catch((err) => {
-      if (err.code !== 'EEXIST') {
-        throw err;
-      }
+    const writeStream = gcsFile.createWriteStream({
+      metadata: {
+        contentType: getContentType(outputFormat),
+        metadata: {
+          userId,
+          conversationId: conversation.conversationId,
+          reportId,
+        },
+      },
+      resumable: false,
     });
 
-    const filePath = await exportReport(reportData, outputFormat, outputPath);
+    // Stream the generated report directly to GCS
+    await exportReport(reportData, outputFormat, writeStream);
 
-    // Upload to GCS
-    const fileName = `${reportId}.${outputFormat}`;
-    const gcsUploadResult = await uploadReportToGCS(
-      filePath,
-      fileName,
-      userId,
-      conversation.conversationId
-    );
+    // Generate a signed URL for secure download access
+    const [signedDownloadUrl] = await gcsFile.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 6 * 24 * 60 * 60 * 1000, // 6 days
+    });
 
-    logger.info(`Report uploaded to GCS: ${gcsUploadResult.publicUrl}`);
+    const publicUrl = `https://storage.googleapis.com/${bucketName}/${gcsFileName}`;
+    const gcsPath = `gs://${bucketName}/${gcsFileName}`;
 
-    // Prepare download URL (adjust based on your server configuration)
-    const downloadUrl = `/api/v1/reports/download/${reportId}.${outputFormat}`;
+    logger.info(`Report generated and streamed directly to GCS: ${publicUrl}`);
 
     const assistantResponse = `I've generated your ${analysis.parameters.reportType || 'report'} in ${outputFormat.toUpperCase()} format. ${analysis.response}`;
 
@@ -464,11 +491,11 @@ const processConversationalRequest = async (
         reportGenerated: true,
         reportId,
         outputFormat,
-        filePath,
-        downloadUrl,
-        gcsPath: gcsUploadResult.gcsPath,
-        publicUrl: gcsUploadResult.publicUrl,
-        bucket: gcsUploadResult.bucket,
+        filePath: gcsFileName,
+        downloadUrl: signedDownloadUrl,
+        gcsPath,
+        publicUrl,
+        bucket: bucketName,
       },
       isGuest,
       req
@@ -484,10 +511,10 @@ const processConversationalRequest = async (
         reportId,
         title: reportData.title,
         outputFormat,
-        filePath,
-        downloadUrl,
-        publicUrl: gcsUploadResult.publicUrl,
-        gcsPath: gcsUploadResult.gcsPath,
+        filePath: gcsFileName,
+        downloadUrl: signedDownloadUrl,
+        publicUrl,
+        gcsPath,
         metadata: reportData.metadata,
       },
     };
@@ -506,30 +533,34 @@ const generateReport = async (params, userId, isGuest = false) => {
 
     const outputFormat = params.outputFormat || DEFAULT_PARAMS.outputFormat;
     const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const outputDir = path.join(process.cwd(), 'output', 'reports');
-    const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
+    const gcsFileName = `reports/${userId}/${reportId}.${outputFormat}`;
+    const gcsFile = bucket.file(gcsFileName);
 
-    // Optimization: Replaced synchronous fs.existsSync and fs.mkdirSync with asynchronous fs.promises.mkdir
-    // This prevents blocking the Node.js event loop for I/O operations.
-    await fs.promises.mkdir(outputDir, { recursive: true }).catch((err) => {
-      if (err.code !== 'EEXIST') {
-        throw err;
-      }
+    const writeStream = gcsFile.createWriteStream({
+      metadata: {
+        contentType: getContentType(outputFormat),
+        metadata: {
+          userId,
+          reportId,
+        },
+      },
+      resumable: false,
     });
 
-    const filePath = await exportReport(reportData, outputFormat, outputPath);
-    const downloadUrl = `/api/v1/reports/download/${reportId}.${outputFormat}`;
+    // Stream the generated report directly to GCS
+    await exportReport(reportData, outputFormat, writeStream);
 
-    // Upload to GCS
-    const fileName = `${reportId}.${outputFormat}`;
-    const gcsUploadResult = await uploadReportToGCS(
-      filePath,
-      fileName,
-      userId,
-      reportId // Use reportId as conversationId for direct generation
-    );
+    // Generate a signed URL for secure download access
+    const [signedDownloadUrl] = await gcsFile.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 6 * 24 * 60 * 60 * 1000, // 6 days
+    });
 
-    logger.info(`Report generated and uploaded to GCS: ${reportId}`);
+    const publicUrl = `https://storage.googleapis.com/${bucketName}/${gcsFileName}`;
+    const gcsPath = `gs://${bucketName}/${gcsFileName}`;
+
+    logger.info(`Report generated and streamed directly to GCS: ${reportId}`);
 
     return {
       success: true,
@@ -538,10 +569,10 @@ const generateReport = async (params, userId, isGuest = false) => {
         reportId,
         title: reportData.title,
         outputFormat,
-        filePath,
-        downloadUrl,
-        publicUrl: gcsUploadResult.publicUrl,
-        gcsPath: gcsUploadResult.gcsPath,
+        filePath: gcsFileName,
+        downloadUrl: signedDownloadUrl,
+        publicUrl,
+        gcsPath,
         sections: reportData.sections,
         metadata: reportData.metadata,
       },

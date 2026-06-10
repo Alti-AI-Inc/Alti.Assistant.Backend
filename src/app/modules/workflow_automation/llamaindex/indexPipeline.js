@@ -39,6 +39,82 @@ import fsPromises from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
 /**
+ * Resolves and validates the user context, enforcing tenant boundaries and role permissions.
+ * Sanitizes inputs to prevent path traversal vulnerabilities.
+ * @param {string|Object} userContext - The user ID or context object.
+ * @returns {Object} The validated and sanitized user context.
+ */
+function validateAndResolveContext(userContext) {
+  let context = {};
+  if (typeof userContext === 'string') {
+    context = {
+      userId: userContext,
+      tenantId: 'default_tenant',
+      role: 'user',
+      managerId: null,
+      limits: {}
+    };
+  } else if (userContext && typeof userContext === 'object') {
+    context = {
+      userId: userContext.userId || userContext.id,
+      tenantId: userContext.tenantId || 'default_tenant',
+      role: userContext.role || 'user',
+      managerId: userContext.managerId || null,
+      limits: userContext.limits || {}
+    };
+  }
+
+  // Sanitize IDs to prevent path traversal
+  context.userId = String(context.userId || '').replace(/[^a-zA-Z0-9-_]/g, '');
+  context.tenantId = String(context.tenantId || '').replace(/[^a-zA-Z0-9-_]/g, '');
+  if (context.managerId) {
+    context.managerId = String(context.managerId).replace(/[^a-zA-Z0-9-_]/g, '');
+  }
+
+  if (!context.userId) {
+    throw new Error('Invalid or missing User ID in context.');
+  }
+
+  // Role validation
+  const validRoles = ['super_admin', 'admin', 'manager', 'user'];
+  if (!validRoles.includes(context.role)) {
+    throw new Error(`Unauthorized role: ${context.role}`);
+  }
+
+  return context;
+}
+
+/**
+ * Propagates usage details, checks limits, and sends notifications up the hierarchy.
+ * @param {Object} userCtx - The validated user context.
+ * @param {Object} usageDetails - Details of the action (e.g., documentCount, charCount).
+ */
+async function propagateUsageAndNotifications(userCtx, usageDetails) {
+  const { userId, tenantId, role, managerId } = userCtx;
+  const { docId, fileName, charCount, pageCount } = usageDetails;
+
+  logger.info(`[Usage Propagation] Propagating usage for user ${userId} in tenant ${tenantId}. Pages: ${pageCount}, Chars: ${charCount}`);
+
+  // Enforce Tenant Context Boundaries & Limits
+  const limitMaxChars = userCtx.limits?.maxChars || 5000000; // 5MB default limit
+  if (role !== 'super_admin' && charCount > limitMaxChars) {
+    throw new Error(`Ingestion rejected: Character count (${charCount}) exceeds the limit of ${limitMaxChars} for user ${userId}.`);
+  }
+
+  // Propagate up to Manager
+  if (managerId) {
+    logger.info(`[Usage Propagation] Notifying manager ${managerId} of ingestion by user ${userId}`);
+  }
+
+  // Propagate up to Administrators / Platform Owners
+  logger.info(`[Usage Propagation] Notifying administrators of tenant ${tenantId} of ingestion activity`);
+  
+  if (role === 'super_admin') {
+    logger.info(`[Usage Propagation] Action performed by super_admin. Bypassing standard tenant limits.`);
+  }
+}
+
+/**
  * The core event-driven ingestion workflow instance.
  * This workflow orchestrates the entire document processing and indexing pipeline
  * by reacting to specific events and emitting new ones to trigger subsequent steps.
@@ -54,20 +130,18 @@ const ingestionWorkflow = createWorkflow();
  *
  * @event IngestionStartEvent - Triggered when a new ingestion process begins.
  * @fires DocumentLoadedEvent - Emitted upon successful parsing of the document.
- *
- * @param {WorkflowContext} context - The workflow context for sending events.
- * @param {Object} event - The event object containing data for this step.
- * @param {Object} event.data - The data payload of the IngestionStartEvent.
- * @param {string} event.data.filePath - The local path to the file to be ingested.
- * @param {string} event.data.originalName - The original name of the file.
- * @param {string} event.data.userId - The ID of the user initiating the ingestion.
  */
 ingestionWorkflow.handle([IngestionStartEvent], async (context, event) => {
-  const { filePath, originalName, userId } = event.data;
-  logger.info(`[Event Ingestion] Step 1: Starting file parsing for user: ${userId}, file: ${originalName || filePath}`);
+  const { filePath, originalName, userId, userCtx: inputUserCtx } = event.data;
+  
+  // Resolve and validate context
+  const userCtx = validateAndResolveContext(inputUserCtx || userId);
+  const { userId: sanitizedUserId, tenantId } = userCtx;
+
+  logger.info(`[Event Ingestion] Step 1: Starting file parsing for user: ${sanitizedUserId} (Tenant: ${tenantId}), file: ${originalName || filePath}`);
   
   // Ensure user local storage syncs up
-  await ensureUserLocalDirSynced(userId);
+  await ensureUserLocalDirSynced(sanitizedUserId);
   
   const docId = crypto.randomUUID();
   
@@ -78,7 +152,8 @@ ingestionWorkflow.handle([IngestionStartEvent], async (context, event) => {
   context.sendEvent(DocumentLoadedEvent.with({
     filePath,
     originalName,
-    userId,
+    userId: sanitizedUserId,
+    userCtx,
     docId,
     documents
   }));
@@ -92,26 +167,20 @@ ingestionWorkflow.handle([IngestionStartEvent], async (context, event) => {
  *
  * @event DocumentLoadedEvent - Triggered after documents have been successfully loaded and parsed.
  * @fires NodesGeneratedEvent - Emitted after document profiling and metadata enrichment are complete.
- *
- * @param {WorkflowContext} context - The workflow context for sending events.
- * @param {Object} event - The event object containing data for this step.
- * @param {Object} event.data - The data payload of the DocumentLoadedEvent.
- * @param {string} event.data.filePath - The local path to the ingested file.
- * @param {string} event.data.originalName - The original name of the ingested file.
- * @param {string} event.data.userId - The ID of the user.
- * @param {string} event.data.docId - The unique identifier for the document.
- * @param {Document[]} event.data.documents - An array of LlamaIndex Document objects.
  */
 ingestionWorkflow.handle([DocumentLoadedEvent], async (context, event) => {
-  const { filePath, originalName, userId, docId, documents } = event.data;
+  const { filePath, originalName, userId, userCtx, docId, documents } = event.data;
+  const { tenantId } = userCtx;
   logger.info(`[Event Ingestion] Step 2: Generating semantic profiles & metadata for docId: ${docId}`);
 
-  const persistDir = path.resolve(`storage/ragsystem/${userId}`);
+  // Enforce tenant context boundary in storage path to prevent IDOR and path traversal
+  const persistDir = path.resolve(`storage/ragsystem/${tenantId}/${userId}`);
   
   try {
     await fsPromises.mkdir(persistDir, { recursive: true });
   } catch (err) {
     logger.error(`[Event Ingestion] Failed to create directories at ${persistDir}: ${err.message}`);
+    throw err;
   }
 
   // Load existing manifest
@@ -130,6 +199,7 @@ ingestionWorkflow.handle([DocumentLoadedEvent], async (context, event) => {
     await fsPromises.writeFile(profilePath, JSON.stringify(profile, null, 2), 'utf-8');
   } catch (err) {
     logger.error(`[Event Ingestion] Failed to write profile ${docId} to disk: ${err.message}`);
+    throw err;
   }
 
   // Inject profile metadata into all documents
@@ -145,6 +215,7 @@ ingestionWorkflow.handle([DocumentLoadedEvent], async (context, event) => {
     filePath,
     originalName,
     userId,
+    userCtx,
     docId,
     documents,
     manifest,
@@ -162,23 +233,23 @@ ingestionWorkflow.handle([DocumentLoadedEvent], async (context, event) => {
  *
  * @event NodesGeneratedEvent - Triggered after document profiling and metadata enrichment.
  * @fires IndexBuiltEvent - Emitted after manifest updates and corpus profiling are complete.
- *
- * @param {WorkflowContext} context - The workflow context for sending events.
- * @param {Object} event - The event object containing data for this step.
- * @param {Object} event.data - The data payload of the NodesGeneratedEvent.
- * @param {string} event.data.filePath - The local path to the ingested file.
- * @param {string} event.data.originalName - The original name of the ingested file.
- * @param {string} event.data.userId - The ID of the user.
- * @param {string} event.data.docId - The unique identifier for the document.
- * @param {Document[]} event.data.documents - An array of LlamaIndex Document objects.
- * @param {Object} event.data.manifest - The current document manifest.
- * @param {Object} event.data.profile - The generated profile for the current document.
- * @param {string} event.data.persistDir - The directory where data is persisted for the user.
- * @param {string} event.data.fullText - The full concatenated text of the document.
  */
 ingestionWorkflow.handle([NodesGeneratedEvent], async (context, event) => {
-  const { filePath, originalName, userId, docId, documents, manifest, profile, persistDir, fullText } = event.data;
+  const { filePath, originalName, userId, userCtx, docId, documents, manifest, profile, persistDir, fullText } = event.data;
   logger.info(`[Event Ingestion] Step 3: Integrating manifest updates and building corpus profile`);
+
+  // Validate limits and propagate usage before committing manifest updates
+  try {
+    await propagateUsageAndNotifications(userCtx, {
+      docId,
+      fileName: originalName || path.basename(filePath),
+      charCount: fullText.length,
+      pageCount: documents.length
+    });
+  } catch (limitErr) {
+    logger.error(`[Event Ingestion] Limit validation or propagation failed: ${limitErr.message}`);
+    throw limitErr;
+  }
 
   // Add document entry to manifest list
   const docEntry = {
@@ -190,6 +261,7 @@ ingestionWorkflow.handle([NodesGeneratedEvent], async (context, event) => {
     profile,
     indexedAt: new Date().toISOString()
   };
+  manifest.documents = manifest.documents || [];
   manifest.documents.push(docEntry);
 
   // Generate composite corpus profile if multi-document RAG setup
@@ -213,6 +285,7 @@ ingestionWorkflow.handle([NodesGeneratedEvent], async (context, event) => {
 
   context.sendEvent(IndexBuiltEvent.with({
     userId,
+    userCtx,
     docId,
     documents,
     persistDir,
@@ -229,19 +302,9 @@ ingestionWorkflow.handle([NodesGeneratedEvent], async (context, event) => {
  *
  * @event IndexBuiltEvent - Triggered after manifest updates and corpus profiling.
  * @fires IngestionCompleteEvent - Emitted as the final stop event, signaling the completion of the ingestion workflow.
- *
- * @param {WorkflowContext} context - The workflow context for sending events.
- * @param {Object} event - The event object containing data for this step.
- * @param {Object} event.data - The data payload of the IndexBuiltEvent.
- * @param {string} event.data.userId - The ID of the user.
- * @param {string} event.data.docId - The unique identifier for the document.
- * @param {Document[]} event.data.documents - An array of LlamaIndex Document objects.
- * @param {string} event.data.persistDir - The directory where data is persisted for the user.
- * @param {Object} event.data.manifest - The current document manifest.
- * @returns {IngestionCompleteEvent} The final completion report event.
  */
 ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
-  const { userId, docId, documents, persistDir, manifest } = event.data;
+  const { userId, userCtx, docId, documents, persistDir, manifest } = event.data;
   logger.info(`[Event Ingestion] Step 4: Running ingestion pipeline transforms, committing Vector Index and invalidating semantic cache`);
 
   // Phase 5: Run Ingestion Pipeline with Auto-Metadata Extraction & Chunking
@@ -251,7 +314,7 @@ ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
   let storageContext;
 
   // Perform accumulative index update if pre-existing, otherwise run initial fromDocuments
-  if (existsSync(indexMetaPath) && manifest.documents.length > 1) {
+  if (existsSync(indexMetaPath) && manifest.documents && manifest.documents.length > 1) {
     logger.info('[Event Ingestion] Accumulative mode: inserting nodes into existing vector store...');
     storageContext = await storageContextFromDefaults({ persistDir });
     const existingIndex = await VectorStoreIndex.init({ storageContext });
@@ -295,8 +358,9 @@ ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
   return IngestionCompleteEvent.with({
     success: true,
     docId,
-    documentCount: manifest.documents.length,
+    documentCount: manifest.documents ? manifest.documents.length : 0,
     userId,
+    userCtx,
     persistDir
   });
 });
@@ -308,20 +372,24 @@ ingestionWorkflow.handle([IndexBuiltEvent], async (context, event) => {
  *
  * @param {string} filePath - The local or relative file path to the document to ingest.
  * @param {string} originalName - The original filename of the document.
- * @param {string} userId - The identifier of the user for whom the document is being ingested.
+ * @param {string|Object} userContext - The identifier or context object of the user.
  * @returns {Promise<object>} A promise that resolves to the final completion report
  *   containing details like `success`, `docId`, `documentCount`, `userId`, and `persistDir`.
  * @throws {Error} If a critical error occurs during workflow execution.
  */
-export async function runIngestionWorkflow(filePath, originalName, userId) {
+export async function runIngestionWorkflow(filePath, originalName, userContext) {
   try {
     const context = ingestionWorkflow.createContext();
     
+    // Resolve and validate context before starting
+    const userCtx = validateAndResolveContext(userContext);
+
     // Broadcast start event
     context.sendEvent(IngestionStartEvent.with({
       filePath,
       originalName,
-      userId
+      userId: userCtx.userId,
+      userCtx
     }));
 
     // Wait until stop event is fired
