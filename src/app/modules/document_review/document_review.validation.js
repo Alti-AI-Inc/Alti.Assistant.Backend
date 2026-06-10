@@ -1,5 +1,89 @@
 import * as zod from 'zod';
+import { rateLimit } from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import { createClient } from 'redis';
+
 const { z } = zod;
+
+// --- Enterprise Rate Limiting & DDOS Guard ---
+// In a production environment, the Redis client should be initialized
+// and managed as part of the application's core infrastructure (e.g., in a dedicated db.js or redis.js).
+// It's placed here to be self-contained as per the request.
+const redisClient = createClient({
+  // url: process.env.REDIS_URL || 'redis://localhost:6379'
+  // Add production-ready options like socket timeouts, password, etc.
+});
+
+// The client must be connected before the server starts listening.
+// It's recommended to handle the connection promise at the application's entry point.
+redisClient.connect().catch(console.error);
+
+// Create a Redis store for rate-limit-redis.
+const redisStore = new RedisStore({
+  // @ts-expect-error - Known issue with rate-limit-redis and ioredis/node-redis types.
+  sendCommand: (...args) => redisClient.sendCommand(args),
+});
+
+// Generic key generator to identify clients.
+// Prioritizes authenticated user ID, then a guest user ID from the body, and finally falls back to IP.
+// This ensures fair usage limits for both logged-in and guest users.
+const keyGenerator = (req) => {
+  if (req.user && req.user.id) {
+    return req.user.id;
+  }
+  if (req.body && req.body.userId) {
+    return `guest:${req.body.userId}`;
+  }
+  return req.ip;
+};
+
+// Rate limiter for conversational endpoints. These can be hit frequently.
+// Allows for a reasonable number of messages within a short time frame to feel responsive,
+// but prevents rapid-fire spam or abuse.
+const conversationalLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  limit: 75, // Limit each user/IP to 75 requests per 5 minutes.
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator,
+  message: {
+    status: 429,
+    message: 'Too many messages sent. Please wait a few minutes before trying again.',
+  },
+});
+
+// Stricter rate limiter for resource-intensive document review endpoints.
+// These actions are costly (e.g., LLM API calls, heavy computation), so we must limit them aggressively
+// to prevent cost overruns and ensure service availability.
+const documentReviewLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 15, // Limit each user/IP to 15 reviews per hour.
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator,
+  message: {
+    status: 429,
+    message: 'You have reached the maximum number of document reviews for this hour. Please try again later.',
+  },
+});
+
+// Standard rate limiter for general data-retrieval endpoints like fetching history.
+// This is a baseline protection against simple DDOS or scraping attempts.
+const historyLimiter = rateLimit({
+  store: redisStore,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 200, // Limit each user/IP to 200 requests per 15 minutes.
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator,
+  message: {
+    status: 429,
+    message: 'Too many requests. Please try again later.',
+  },
+});
+// --- End of Rate Limiting Definitions ---
 
 const conversationalRequestSchema = z.object({
   body: z.object({
@@ -71,7 +155,15 @@ const getConversationHistorySchema = z.object({
 });
 
 export const DocumentReviewValidation = {
+  // Zod validation schemas
   conversationalRequestSchema,
   reviewDocumentSchema,
   getConversationHistorySchema,
+
+  // Rate limiting middleware to be applied to the corresponding routes
+  limiters: {
+    conversational: conversationalLimiter,
+    documentReview: documentReviewLimiter,
+    history: historyLimiter,
+  },
 };

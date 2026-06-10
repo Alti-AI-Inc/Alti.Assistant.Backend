@@ -65,6 +65,9 @@ const buildRelationshipGraph = async (workspaceId) => {
 
     // BUGFIX: Fetched metadata is scoped by workspaceId, not userId. This ensures the graph
     // considers all relevant documents within the tenant's context, not just one user's.
+    // PERFORMANCE: Ensure an index exists on `workspaceId` in the `DocumentMetadata` collection
+    // to optimize this initial fetch of all documents for a tenant.
+    // Example: db.documentmetadatas.createIndex({ workspaceId: 1 })
     const metadataList = await DocumentMetadata.find({ workspaceId }).lean();
     if (metadataList.length < 2) {
       return {
@@ -79,6 +82,10 @@ const buildRelationshipGraph = async (workspaceId) => {
     const relationshipUpdatePromises = []; // Collect promises for parallel execution
 
     // Step 1: Intersection analysis matrix
+    // PERFORMANCE_NOTE: This O(N^2) loop can be CPU-intensive for workspaces with a large
+    // number of documents (N > 1000). For enterprise-scale tenants, consider moving this
+    // entire function into a separate worker thread or a background job queue (e.g., BullMQ, RabbitMQ)
+    // to avoid blocking the main Node.js event loop.
     for (let i = 0; i < metadataList.length; i++) {
       for (let j = i + 1; j < metadataList.length; j++) {
         const docA = metadataList[i];
@@ -97,6 +104,9 @@ const buildRelationshipGraph = async (workspaceId) => {
 
           // Create standard bidirectional overlap edges
           // Collect promises to execute updates in parallel for performance
+          // PERFORMANCE: Ensure a compound index exists on `{ workspaceId, sourceDocId, targetDocId }`
+          // in the `DocumentRelationship` collection to make these frequent upsert operations highly efficient.
+          // Example: db.documentrelationships.createIndex({ workspaceId: 1, sourceDocId: 1, targetDocId: 1 })
           relationshipUpdatePromises.push(
             DocumentRelationship.findOneAndUpdate(
               // BUGFIX: Query is scoped by workspaceId to ensure relationship edges are created
@@ -242,30 +252,36 @@ Ensure your response is raw JSON only, with no markdown block ticks.`;
 const traverseGraph = async (workspaceId, startDocIds, depth = 1) => {
   try {
     const visited = new Set(startDocIds);
-    const queue = startDocIds.map(id => ({ id, currentDepth: 0 }));
-    const resultEdges = [];
+    let currentFrontier = [...startDocIds]; // Nodes to explore at the current depth
+    const allEdges = [];
 
-    while (queue.length > 0) {
-      const { id, currentDepth } = queue.shift();
-      if (currentDepth >= depth) continue;
+    for (let i = 0; i < depth; i++) {
+      if (currentFrontier.length === 0) break; // Stop if there are no more nodes to explore
 
-      // BUGFIX: Graph traversal is scoped by workspaceId, preventing any possibility of
-      // traversing into another tenant's relationship graph (IDOR vulnerability).
-      const edges = await DocumentRelationship.find({ workspaceId, sourceDocId: id }).lean();
+      // PERFORMANCE: Solves N+1 query problem. Instead of one query per node,
+      // this performs one query per traversal depth level using the $in operator.
+      // This requires an index on { workspaceId: 1, sourceDocId: 1 } for efficiency.
+      const edges = await DocumentRelationship.find({
+        workspaceId,
+        sourceDocId: { $in: currentFrontier },
+      }).lean();
+
+      const nextFrontier = new Set();
       for (const edge of edges) {
-        resultEdges.push(edge);
+        allEdges.push(edge);
         if (!visited.has(edge.targetDocId)) {
           visited.add(edge.targetDocId);
-          queue.push({ id: edge.targetDocId, currentDepth: currentDepth + 1 });
+          nextFrontier.add(edge.targetDocId);
         }
       }
+      currentFrontier = Array.from(nextFrontier);
     }
 
     return {
       success: true,
       startingNodes: startDocIds,
       traversedNodes: Array.from(visited),
-      edges: resultEdges,
+      edges: allEdges,
     };
   } catch (err) {
     logger.error('RelationshipGraph traverse failed:', err);
