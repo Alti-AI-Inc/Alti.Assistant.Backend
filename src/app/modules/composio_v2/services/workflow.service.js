@@ -184,6 +184,7 @@ class WorkflowService {
   /**
    * Retrieves a single workflow by its ID, ensuring it belongs to the specified user.
    * Also fetches recent execution history and provides execution statistics for the workflow.
+   * This operation is scoped to the provided `userId` to prevent unauthorized access.
    *
    * @async
    * @param {string} workflowId - The ID of the workflow to retrieve.
@@ -191,7 +192,8 @@ class WorkflowService {
    * @returns {Promise<ServiceResponse>} A promise that resolves to an object containing the workflow details,
    *   recent executions, and execution statistics, or an error if not found or failed.
    */
-  async getWorkflowById(workflowId, userId) { // userId is now mandatory to prevent IDOR
+  async getWorkflowById(workflowId, userId) {
+    // userId is now mandatory to prevent IDOR
     try {
       const query = { workflowId, userId }; // Ensure workflow belongs to the user
       // Optimization: Added .lean() for read-only query to improve performance.
@@ -332,7 +334,10 @@ class WorkflowService {
       // Optimization: Added .lean() for read-only query to improve performance, as only status is checked.
       // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
       // `{ workflowId: 1, userId: 1 }`
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
+      const workflow = await ScheduledWorkflow.findOne({
+        workflowId,
+        userId,
+      }).lean();
 
       if (!workflow) {
         return {
@@ -388,7 +393,10 @@ class WorkflowService {
       // Optimization: Added .lean() for read-only query to improve performance.
       // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
       // `{ workflowId: 1, userId: 1 }`
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
+      const workflow = await ScheduledWorkflow.findOne({
+        workflowId,
+        userId,
+      }).lean();
 
       if (!workflow) {
         return {
@@ -543,7 +551,10 @@ class WorkflowService {
       // Optimization: Added .lean() for read-only query to improve performance.
       // Indexing Recommendation: For better performance, consider adding a compound index on `ScheduledWorkflow` model:
       // `{ workflowId: 1, userId: 1 }`
-      const workflow = await ScheduledWorkflow.findOne({ workflowId, userId }).lean();
+      const workflow = await ScheduledWorkflow.findOne({
+        workflowId,
+        userId,
+      }).lean();
       if (!workflow) {
         return {
           success: false,
