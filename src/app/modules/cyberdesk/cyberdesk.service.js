@@ -21,7 +21,7 @@ const tenantSuspensionState = new Map();
 
 /**
  * Centralized logger for consistent, structured logging.
- * @param {'INFO' | 'WARN' | 'ERROR'} severity - The log level.
+ * @param {'INFO' | 'WARNING' | 'ERROR'} severity - The log level. Must be a GCP Cloud Logging compatible severity string.
  * @param {string} message - The log message.
  * @param {PlatformContext} context - The context of the request (tenant, user).
  * @param {object} [details={}] - Additional details to include in the log.
@@ -40,6 +40,7 @@ const log = (severity, message, context, details = {}) => {
     ...details,
   };
   // In a real application, this would use a proper logger like Winston writing to a centralized logging system.
+  // The output is a single line of JSON, which is automatically parsed by GCP Cloud Logging.
   console.log(JSON.stringify(logEntry));
 };
 
@@ -77,7 +78,7 @@ const getCyberdeskClient = (() => {
    * @param {string} newApiKey - The new Cyberdesk API key.
    */
   getInstance.reinitialize = (newApiKey) => {
-    log('WARN', 'Platform Owner is re-initializing the Cyberdesk client singleton.', { isPlatformOwnerAction: true });
+    log('WARNING', 'Platform Owner is re-initializing the Cyberdesk client singleton.', { isPlatformOwnerAction: true });
     initialize(newApiKey);
   };
 
@@ -151,7 +152,7 @@ const setTenantSuspensionStatus = async (context, tenantId, isSuspended) => {
   }
 
   const action = isSuspended ? 'suspending' : 'unsuspending';
-  log('WARN', `Platform Owner is ${action} tenant ${tenantId}`, context, { tenantId, isSuspended });
+  log('WARNING', `Platform Owner is ${action} tenant ${tenantId}`, context, { tenantId, isSuspended });
   tenantSuspensionState.set(tenantId, isSuspended);
 
   return { success: true, message: `Tenant ${tenantId} has been ${isSuspended ? 'suspended' : 'unsuspended'}.` };
@@ -174,7 +175,7 @@ const terminateAllDesktopsForTenant = async (context, tenantIdToSuspend) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant ID is required for this operation.');
   }
 
-  log('WARN', 'Platform Owner: Initiating termination of all desktops for a tenant', context, { tenantIdToSuspend });
+  log('WARNING', 'Platform Owner: Initiating termination of all desktops for a tenant', context, { tenantIdToSuspend });
 
   // Step 1: List all desktops for the specified tenant using metadata filter.
   const listResult = await listAllDesktops(context, { 'metadata.tenantId': tenantIdToSuspend });
@@ -222,7 +223,7 @@ const updatePlatformConfig = async (context, newCyberdeskConfig) => {
     throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
   }
 
-  log('WARN', 'Platform Owner: Updating platform-wide Cyberdesk configuration', context, { newCyberdeskConfig });
+  log('WARNING', 'Platform Owner: Updating platform-wide Cyberdesk configuration', context, { newCyberdeskConfig });
 
   if (newCyberdeskConfig.apiKey) {
     try {
@@ -266,7 +267,7 @@ const getGlobalLogs = async (context, filters = {}) => {
     logs: [
       {
         timestamp: new Date().toISOString(),
-        severity: 'WARN',
+        severity: 'WARNING',
         message: 'Platform Owner is updating suspension status for tenant tenant-456',
         service: 'CyberdeskService',
         context: { tenantId: context.tenantId, userId: context.userId, isPlatformOwner: true },
@@ -299,7 +300,7 @@ const launchDesktop = async (context, options = {}) => {
 
   // A suspended tenant cannot launch new desktops, but a Platform Owner can override this for administrative purposes.
   if (tenantSuspensionState.get(tenantId) && !isPlatformOwner) {
-    log('WARN', 'Blocked launch attempt from suspended tenant', context);
+    log('WARNING', 'Blocked launch attempt from suspended tenant', context);
     throw new ApiError(httpStatus.FORBIDDEN, 'This tenant account is suspended. Please contact support.');
   }
 
@@ -349,7 +350,7 @@ const getDesktopInfo = async (context, desktopId) => {
   // Authorization check: Ensure the desktop belongs to the tenant, unless the user is a Platform Owner.
   const desktopTenantId = result?.data?.metadata?.tenantId;
   if (!context.isPlatformOwner && desktopTenantId !== context.tenantId) {
-    log('WARN', 'Access denied to desktop belonging to another tenant', context, { desktopId, desktopTenantId });
+    log('WARNING', 'Access denied to desktop belonging to another tenant', context, { desktopId, desktopTenantId });
     throw new ApiError(httpStatus.FORBIDDEN, 'Access denied. You do not have permission to view this desktop.');
   }
 

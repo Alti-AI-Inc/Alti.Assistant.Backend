@@ -6,7 +6,20 @@ import { SupportController } from './support.controller.js';
 import { supportValidationSchema } from './support.validation.js';
 
 /**
- * @constant {express.Router} router - Express router for support routes.
+ * @file Defines the routes for the support module.
+ * @module routes/support
+ * @requires express
+ * @requires ../../../shared/enum
+ * @requires ../../middlewares/auth/auth
+ * @requires ../../middlewares/validateRequest/validateRequest
+ * @requires ./support.controller
+ * @requires ./support.validation
+ */
+
+/**
+ * Express router for support-related endpoints.
+ * @type {express.Router}
+ * @namespace supportRoutes
  */
 const router = express.Router();
 
@@ -69,7 +82,7 @@ router
  * /api/v1/support/{id}:
  *   get:
  *     summary: Get support request by ID
- *     description: Retrieves the details of a specific support request using its unique ID.
+ *     description: Retrieves the details of a specific support request using its unique ID. **Accessible by ADMIN and USER roles.** An admin can retrieve any request, while a user can only retrieve a request they created.
  *     tags:
  *       - Support
  *     security:
@@ -218,7 +231,7 @@ router
  * /api/v1/support/all-support:
  *   get:
  *     summary: Get all support requests
- *     description: Retrieves a list of all support requests. This endpoint supports pagination, filtering, and sorting.
+ *     description: Retrieves a list of all support requests. **Requires ADMIN role.** This endpoint supports pagination, filtering, and sorting.
  *     tags:
  *       - Support
  *     security:
@@ -306,9 +319,11 @@ router
  * /api/v1/support/bulk-delete:
  *   delete:
  *     summary: Bulk delete support requests
- *     description: Allows for the deletion of multiple support requests simultaneously by providing an array of their IDs.
+ *     description: Allows for the deletion of multiple support requests simultaneously by providing an array of their IDs. **Accessible by ADMIN and USER roles.** Admins can delete any requests, while users can only delete requests they created.
  *     tags:
  *       - Support
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:

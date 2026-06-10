@@ -1,11 +1,3 @@
-/**
- * @file Manages the Composio repository catalog.
- * @description This service provides functionalities to search, import, and get statistics
- * for the Composio repository catalog stored in the database. It interacts with the
- * ComposioRepository model and can execute git commands for submodule management.
- * Access control and multi-tenancy are expected to be handled by the calling layers (e.g., controllers).
- * @module services/composio-catalog
- */
 import { promises as fs } from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
@@ -13,37 +5,11 @@ import { fileURLToPath } from 'url';
 import util from 'util';
 import ComposioRepository from './composio-repository.model.js';
 
-/**
- * The filename of the current module, derived from `import.meta.url`.
- * @private
- * @type {string}
- */
 const __filename = fileURLToPath(import.meta.url);
-/**
- * The directory name of the current module.
- * @private
- * @type {string}
- */
 const __dirname = path.dirname(__filename);
 
-/**
- * The file path to the JSON catalog file.
- * @private
- * @type {string}
- * @deprecated This path points to a static file, but the service now uses a dynamic MongoDB collection.
- */
 const CATALOG_PATH = path.join(__dirname, '../../../../output/composio-license-catalog.json');
-/**
- * The root directory of the project, calculated relative to the current file's location.
- * @private
- * @type {string}
- */
 const ROOT_DIR = path.join(__dirname, '../../../../..');
-/**
- * A promisified version of the `child_process.execFile` function for async/await usage.
- * @private
- * @type {function(...*): Promise<{stdout: string, stderr: string}>}
- */
 const execFileAsync = util.promisify(execFile);
 
 /**
@@ -54,8 +20,7 @@ const execFileAsync = util.promisify(execFile);
  */
 const escapeRegExp = (string) => {
   // Escape characters with special meaning either inside or outside character sets.
-  // '$&' is the replacement pattern that inserts the matched substring,
-  // effectively prefixing each special character with a backslash.
+  // $& inserts the matched substring, effectively prefixing each special character with a backslash.
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
@@ -165,25 +130,23 @@ const importComposioSubmodule = async (repoName) => {
     throw new Error('Repository name is required for import.');
   }
 
-  // Use the existing search function to find potential matches
-  const catalogResult = await searchComposioCatalog(repoName);
-  if (!catalogResult.success || catalogResult.results.length === 0) {
-    return {
-      success: false,
-      message: `Repository "${repoName}" was not found in the scanned Composio catalog.`
-    };
-  }
-
-  // Find an exact, case-insensitive match from the search results
-  const match = catalogResult.results.find(
-    r => r.name.toLowerCase() === repoName.toLowerCase()
-  );
+  // Optimization: Use a direct, case-insensitive query for an exact match first.
+  // This is much more efficient than a broad search.
+  // For best performance, an index on 'name' with a case-insensitive collation is recommended:
+  // schema.index({ name: 1 }, { collation: { locale: 'en', strength: 2 } });
+  const match = await ComposioRepository.findOne({
+    name: new RegExp(`^${escapeRegExp(repoName)}$`, 'i')
+  }).lean();
 
   if (!match) {
+    // If no exact match, perform a broader search to provide suggestions.
+    const catalogResult = await searchComposioCatalog(repoName, { limit: 5 });
+    const suggestions = catalogResult.success ? catalogResult.results.map(r => r.name) : [];
+
     return {
       success: false,
       message: `No exact match found for repository "${repoName}".`,
-      suggestions: catalogResult.results.map(r => r.name).slice(0, 5) // Provide a few suggestions
+      suggestions
     };
   }
 
@@ -243,48 +206,69 @@ const importComposioSubmodule = async (repoName) => {
  */
 const getComposioStats = async () => {
   try {
-    // Optimization Recommendation: Ensure indexes exist on fields used in aggregations
-    // (e.g., language, license, stars, forks) for better performance.
-
-    const [totalRepos, aggregations, languages, licenses] = await Promise.all([
-      ComposioRepository.countDocuments({}),
-      // Star and Fork aggregations
-      ComposioRepository.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalStars: { $sum: '$stars' },
-            totalForks: { $sum: '$forks' },
-            avgStars: { $avg: '$stars' }
-          }
+    // Optimization: Use a single aggregation query with $facet to reduce database round trips from 4 to 1.
+    // This is significantly more performant than running multiple independent queries.
+    // Ensure indexes exist on fields used in aggregations (language, license, stars, forks).
+    const results = await ComposioRepository.aggregate([
+      {
+        $facet: {
+          // Facet 1: Calculate total repos, stars, forks, and average stars
+          generalStats: [
+            {
+              $group: {
+                _id: null,
+                totalRepositories: { $sum: 1 },
+                totalStars: { $sum: '$stars' },
+                totalForks: { $sum: '$forks' },
+                averageStars: { $avg: '$stars' }
+              }
+            }
+          ],
+          // Facet 2: Group by language
+          languages: [
+            { $match: { language: { $ne: null, $ne: '' } } },
+            { $group: { _id: '$language', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 10 }
+          ],
+          // Facet 3: Group by license
+          licenses: [
+            { $match: { license: { $ne: null, $ne: '' } } },
+            { $group: { _id: '$license', count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+          ]
         }
-      ]),
-      // Language splits
-      ComposioRepository.aggregate([
-        { $match: { language: { $ne: null, $ne: '' } } }, // Ensure clean data by filtering out null/empty values
-        { $group: { _id: '$language', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 } // Return top 10 languages
-      ]),
-      // License splits
-      ComposioRepository.aggregate([
-        { $match: { license: { $ne: null, $ne: '' } } }, // Ensure clean data
-        { $group: { _id: '$license', count: { $sum: 1 } } },
-        { $sort: { count: -1 } }
-      ])
+      }
     ]);
 
-    const baseStats = aggregations[0] || { totalStars: 0, totalForks: 0, avgStars: 0 };
+    // The result of a $facet aggregation is an array with a single document.
+    if (!results || results.length === 0) {
+      // Handle case where the collection is empty or aggregation returns no results.
+      return {
+        success: true,
+        stats: {
+          totalRepositories: 0,
+          totalStars: 0,
+          totalForks: 0,
+          averageStars: 0,
+          languages: [],
+          licenses: []
+        }
+      };
+    }
+
+    const facetResult = results[0];
+    const baseStats = facetResult.generalStats[0] || { totalRepositories: 0, totalStars: 0, totalForks: 0, averageStars: 0 };
 
     return {
       success: true,
       stats: {
-        totalRepositories: totalRepos,
+        totalRepositories: baseStats.totalRepositories,
         totalStars: baseStats.totalStars,
         totalForks: baseStats.totalForks,
-        averageStars: Math.round(baseStats.avgStars),
-        languages: languages.map(lang => ({ name: lang._id, count: lang.count })),
-        licenses: licenses.map(lic => ({ name: lic._id, count: lic.count }))
+        averageStars: Math.round(baseStats.averageStars || 0),
+        languages: facetResult.languages.map(lang => ({ name: lang._id, count: lang.count })),
+        licenses: facetResult.licenses.map(lic => ({ name: lic._id, count: lic.count }))
       }
     };
   } catch (err) {
