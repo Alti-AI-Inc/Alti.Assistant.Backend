@@ -88,6 +88,26 @@ const router = express.Router();
  *     security:
  *       - bearerAuth: []
  */
+/**
+ * Route for the AI Conversational Assistant.
+ * Supports both authenticated and guest users (optional authentication).
+ * Enforces multi-tenant context extraction, daily request limits, storage limits, and RAG feature checks.
+ * 
+ * @name post/assistant
+ * @function
+ * @memberof module:article_writer
+ * @inner
+ * @param {string} path - Express path
+ * @param {Function} optionalAuth - Authenticates user if token is present, otherwise allows guest access
+ * @param {Function} extractTenantContext - Extracts tenant information from the request headers/subdomain
+ * @param {Function} checkDailyRequestLimit - Enforces daily request limits based on tenant/user tier
+ * @param {Function} checkStorageLimit - Verifies if the tenant has sufficient storage for file uploads
+ * @param {Function} uploadArticleFile - Handles single file upload ('file') for RAG context
+ * @param {Function} checkRAGFeature - Validates if RAG features are enabled for the tenant/user
+ * @param {Function} createRateLimiter - Rate limiter (30 requests per 15 minutes)
+ * @param {Function} validateRequest - Validates request body against ArticleWriterValidation.conversationalRequestSchema
+ * @param {Function} articleWriterController.conversationalAssistant - Controller handling the assistant logic
+ */
 router.post(
   '/assistant',
   optionalAuth(),
@@ -161,6 +181,21 @@ router.post(
  *         $ref: '#/components/responses/InternalServerError'
  *     security:
  *       - bearerAuth: []
+ */
+/**
+ * Route to retrieve conversation history.
+ * Requires authentication with USER or ADMIN roles.
+ * Enforces tenant isolation via tenant context extraction.
+ * 
+ * @name get/conversation/:conversationId
+ * @function
+ * @memberof module:article_writer
+ * @inner
+ * @param {string} path - Express path with conversationId parameter
+ * @param {Function} auth - Restricts access to ENUM_USER_ROLE.USER and ENUM_USER_ROLE.ADMIN
+ * @param {Function} extractTenantContext - Extracts and validates tenant context to ensure data isolation
+ * @param {Function} validateRequest - Validates path parameters against ArticleWriterValidation.getConversationHistorySchema
+ * @param {Function} articleWriterController.getConversationHistory - Controller handling history retrieval
  */
 router.get(
   '/conversation/:conversationId',

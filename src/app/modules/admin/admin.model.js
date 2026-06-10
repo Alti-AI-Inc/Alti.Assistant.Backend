@@ -62,6 +62,12 @@ const adminSchema = new Schema({
     timestamps: true // Adds createdAt and updatedAt fields automatically
 });
 
+// Compound index to optimize queries filtering active administrators by role (e.g., authorization checks)
+adminSchema.index({ isActive: 1, roles: 1 });
+
+// Index to optimize sorting administrators by creation date (common in admin dashboards/management panels)
+adminSchema.index({ createdAt: -1 });
+
 /**
  * Mongoose model for the Admin entity.
  * Provides an interface for interacting with the 'admins' collection in the database.
