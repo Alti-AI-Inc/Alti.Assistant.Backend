@@ -110,6 +110,8 @@
 
 import { Composio } from '@composio/core';
 import config from '../../../../../config/index.js';
+// GCP: Import the Pub/Sub client for asynchronous task offloading.
+import { PubSub } from '@google-cloud/pubsub';
 import ComposioAuth from '../../composio_v2/composio.model.js';
 import AuthConfig from '../../composio_v2/authConfig.model.js';
 import Tool from '../../composio_v2/tools.model.js';
@@ -122,6 +124,13 @@ import { logger } from '../../../../shared/logger.js';
 const composio = new Composio({
   apiKey: config.composio.orgApiKey,
 });
+
+// GCP: Initialize the Pub/Sub client.
+const pubSubClient = new PubSub();
+// GCP: Define the Pub/Sub topic name for tool synchronization tasks.
+// It's recommended to manage this via environment variables or a config file.
+const toolsSyncTopicName =
+  config.gcp?.pubsub?.topics?.toolsSync || 'composio-tools-sync';
 
 /**
  * Service for managing Composio apps and tools for workflow automation.
@@ -201,91 +210,94 @@ class ComposioIntegrationService {
   }
 
   /**
-   * Retrieves available tools for the user's connected apps, optionally filtered by specific app names.
-   * It fetches tools from both the Composio platform and a local database.
+   * [REWRITTEN] Retrieves available tools for the user's connected apps from the local database.
+   * This function provides a fast response using cached/previously synced data and triggers
+   * an asynchronous background job via Pub/Sub to refresh the tool data from the Composio platform.
    *
    * @memberof ComposioIntegrationService
    * @param {string} userId - The unique identifier of the user.
    * @param {string[]} [appNames=null] - An optional array of app names (case-insensitive) to filter the tools by.
    * @returns {Promise<GetUserAvailableToolsResult>} An object containing the success status,
-   *   tools grouped by app, a list of connected app names, local tools, and the total count of tools.
+   *   tools grouped by app from the local cache, a list of connected app names, local tools, and the total count of tools.
    */
   async getUserAvailableTools(userId, appNames = null) {
     try {
-      logger.info(`Getting available tools for user ${userId}`, { appNames });
+      logger.info(`Getting available tools for user ${userId} from local cache`, {
+        appNames,
+      });
 
       const userApps = await this.getUserAvailableApps(userId);
-
       if (!userApps.success) {
         throw new Error(userApps.error);
       }
 
-      // Filter to connected apps only
       let connectedApps = userApps.connectedApps;
-
-      // Filter by specific app names if provided
       if (appNames && appNames.length > 0) {
-        const lowerCaseAppNames = new Set(appNames.map(name => name.toLowerCase()));
+        const lowerCaseAppNames = new Set(
+          appNames.map((name) => name.toLowerCase())
+        );
         connectedApps = connectedApps.filter((app) =>
           lowerCaseAppNames.has(app.app.toLowerCase())
         );
       }
 
-      // Get tools for connected apps from Composio
+      const connectedAppNames = connectedApps.map((app) => app.app);
+
+      // GCP: Asynchronously trigger a background job to refresh the tools from Composio.
+      // This is a non-blocking, fire-and-forget operation. The user gets an immediate
+      // response based on the currently stored data, ensuring the API remains fast.
+      this._triggerToolsSync(userId, connectedAppNames).catch((err) => {
+        // The trigger function already logs errors; this prevents unhandled promise rejections.
+        logger.warn(
+          'Background tool sync trigger failed, but request will proceed with cached data.',
+          err.message
+        );
+      });
+
+      // --- DATA RETRIEVAL FROM LOCAL DB ---
+      // Fetch tools that have been previously synced and stored for this user.
+      // NOTE: This assumes the 'Tool' schema has been extended with `userId` and `source` fields
+      // to differentiate user-specific, synced tools from generic local tools.
+      const userToolsQuery = {
+        userId: userId,
+        appName: { $in: connectedAppNames },
+        source: 'composio', // Assumed field to mark tools synced from Composio
+      };
+      const syncedTools = await Tool.find(userToolsQuery).lean();
+
       const toolsByApp = {};
-
-      // Optimization: Use Promise.all to run external API calls concurrently
-      // instead of sequentially in a loop, significantly improving response time.
-      const toolPromises = connectedApps.map(async (app) => {
-        try {
-          const tools = await composio.getTools(
-            {
-              apps: [app.app],
-            },
-            userId
-          );
-
-          return {
-            app: app.app,
-            tools: tools.map((tool) => ({
-              name: tool.name,
-              description: tool.description,
-              app: app.app,
-              parameters: tool.parameters || {},
-              slug: tool.slug || tool.name,
-            })),
-          };
-        } catch (toolError) {
-          logger.warn(`Error getting tools for app ${app.app}:`, toolError);
-          return { app: app.app, tools: [] }; // Return empty array on error to not fail the whole operation
+      syncedTools.forEach((tool) => {
+        if (!toolsByApp[tool.appName]) {
+          toolsByApp[tool.appName] = [];
         }
+        toolsByApp[tool.appName].push({
+          name: tool.name,
+          description: tool.description,
+          app: tool.appName,
+          parameters: tool.parameters || {}, // Assumes 'parameters' field exists on the model
+          slug: tool.slug || tool.name,
+        });
       });
 
-      const results = await Promise.all(toolPromises);
-      results.forEach((result) => {
-        if (result.tools.length > 0) {
-          toolsByApp[result.app] = result.tools;
-        }
-      });
-
-      // Also get tools from our local database, scoped to requested apps if provided
-      const localToolsQuery = appNames && appNames.length > 0
-        ? { appName: { $in: appNames } }
-        : {};
-      // Optimization: Using .lean() for read-only queries.
-      // Indexing Recommendation: Add an index on `Tool.appName` for efficient filtering, especially with `$in` queries.
+      // Also get generic tools from our local database (not user-specific).
+      const localToolsQuery = {
+        source: { $ne: 'composio' }, // Or however generic tools are identified, e.g., `userId: null`
+      };
+      if (appNames && appNames.length > 0) {
+        localToolsQuery.appName = { $in: appNames };
+      }
       const localTools = await Tool.find(localToolsQuery).limit(100).lean();
 
       return {
         success: true,
         toolsByApp,
-        connectedApps: connectedApps.map((app) => app.app),
+        connectedApps: connectedAppNames,
         localTools: localTools.map((tool) => ({
           name: tool.name,
           description: tool.description,
           slug: tool.slug,
         })),
-        totalTools: Object.values(toolsByApp).flat().length,
+        totalTools: Object.values(toolsByApp).flat().length + localTools.length,
       };
     } catch (error) {
       logger.error('Error getting user available tools:', error);
@@ -297,6 +309,96 @@ class ComposioIntegrationService {
         localTools: [],
         totalTools: 0,
       };
+    }
+  }
+
+  /**
+   * [NEW] Handles the background processing for a tool sync message from Pub/Sub.
+   * This function would be called by a subscriber (e.g., a Cloud Function or a dedicated service).
+   * It fetches tools from the Composio API and updates the local database.
+   *
+   * @memberof ComposioIntegrationService
+   * @param {Object} message - The message payload from the Pub/Sub topic.
+   * @param {string} message.userId - The user ID for whom to sync tools.
+   * @param {string[]} message.appNames - The list of app names to sync.
+   * @returns {Promise<void>}
+   */
+  async handleToolsSyncEvent({ userId, appNames }) {
+    logger.info(`Handling tools sync event for user ${userId}`, { appNames });
+    if (!userId || !appNames || appNames.length === 0) {
+      logger.warn('Invalid tools sync message received. Aborting.');
+      return;
+    }
+
+    try {
+      // Use Promise.all to fetch tools for all apps concurrently.
+      const toolPromises = appNames.map(async (appName) => {
+        try {
+          const tools = await composio.getTools({ apps: [appName] }, userId);
+          return {
+            appName,
+            tools: tools.map((tool) => ({
+              name: tool.name,
+              description: tool.description,
+              parameters: tool.parameters || {},
+              slug: tool.slug || tool.name,
+            })),
+          };
+        } catch (toolError) {
+          logger.error(
+            `Error getting tools from Composio for app ${appName} during background sync:`,
+            toolError
+          );
+          return { appName, tools: [] }; // Continue even if one app fails
+        }
+      });
+
+      const results = await Promise.all(toolPromises);
+
+      // Use bulk operations for efficient database updates.
+      const bulkOps = [];
+      for (const result of results) {
+        if (result.tools.length > 0) {
+          for (const tool of result.tools) {
+            // `updateOne` with `upsert: true` will insert a new tool if it doesn't exist
+            // or update it if it does. The filter should uniquely identify a tool for a user.
+            // NOTE: This assumes the 'Tool' schema is extended with `userId`, `source`, and `parameters`.
+            const filter = {
+              userId: userId,
+              appName: result.appName,
+              slug: tool.slug,
+              source: 'composio',
+            };
+            const update = {
+              $set: {
+                name: tool.name,
+                description: tool.description,
+                parameters: tool.parameters,
+                lastSyncedAt: new Date(), // Recommended: track sync time
+              },
+            };
+            bulkOps.push({ updateOne: { filter, update, upsert: true } });
+          }
+        }
+      }
+
+      if (bulkOps.length > 0) {
+        logger.info(
+          `Performing ${bulkOps.length} bulk operations to update tools for user ${userId}.`
+        );
+        await Tool.bulkWrite(bulkOps);
+        logger.info(`Successfully synced and updated tools for user ${userId}.`);
+      } else {
+        logger.info(`No new tools found to sync for user ${userId}.`);
+      }
+    } catch (error) {
+      logger.error(
+        `Unhandled error during handleToolsSyncEvent for user ${userId}:`,
+        error
+      );
+      // Depending on the subscriber setup, re-throwing the error can signal
+      // a processing failure to Pub/Sub and trigger a retry.
+      throw error;
     }
   }
 
@@ -318,17 +420,27 @@ class ComposioIntegrationService {
         throw new Error(userApps.error);
       }
 
-      const connectedAppNames = new Set(userApps.connectedApps.map((app) =>
-        app.app.toLowerCase()
-      ));
+      const connectedAppNames = new Set(
+        userApps.connectedApps.map((app) => app.app.toLowerCase())
+      );
 
       // Optimization: Convert userApps.apps to a Map for O(1) average lookup time,
       // which is more efficient than `array.find()` inside a loop.
-      const userAppsMap = new Map(userApps.apps.map(app => [app.app.toLowerCase(), app]));
+      const userAppsMap = new Map(
+        userApps.apps.map((app) => [app.app.toLowerCase(), app])
+      );
 
       const connectionStatus = requiredApps.map((appName) => {
         const normalizedAppName = appName.toLowerCase();
-        const platformApps = ['chat', 'research', 'agents', 'data', 'apps', 'google_cloud', 'google_workspace'];
+        const platformApps = [
+          'chat',
+          'research',
+          'agents',
+          'data',
+          'apps',
+          'google_cloud',
+          'google_workspace',
+        ];
         if (platformApps.includes(normalizedAppName)) {
           return {
             app: appName,
@@ -400,10 +512,20 @@ class ComposioIntegrationService {
         config.app.toLowerCase()
       );
 
-      const platformApps = ['chat', 'research', 'agents', 'data', 'apps', 'google_cloud', 'google_workspace'];
+      const platformApps = [
+        'chat',
+        'research',
+        'agents',
+        'data',
+        'apps',
+        'google_cloud',
+        'google_workspace',
+      ];
 
       // Combine and deduplicate using a Set for efficiency.
-      const allAvailableApps = [...new Set([...authConfigApps, ...toolApps, ...platformApps])];
+      const allAvailableApps = [
+        ...new Set([...authConfigApps, ...toolApps, ...platformApps]),
+      ];
 
       return {
         success: true,
@@ -564,6 +686,50 @@ class ComposioIntegrationService {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  /**
+   * GCP: Triggers a background job to sync tools from Composio for a user's connected apps.
+   * This is a fire-and-forget operation that publishes a message to Pub/Sub.
+   *
+   * @memberof ComposioIntegrationService
+   * @param {string} userId - The unique identifier of the user.
+   * @param {string[]} appNames - An array of app names to sync tools for.
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _triggerToolsSync(userId, appNames) {
+    if (!userId || !appNames || appNames.length === 0) {
+      logger.info(
+        'Skipping tools sync trigger due to missing userId or appNames.'
+      );
+      return;
+    }
+
+    try {
+      const message = {
+        userId,
+        appNames,
+        timestamp: new Date().toISOString(),
+      };
+      const dataBuffer = Buffer.from(JSON.stringify(message));
+
+      const messageId = await pubSubClient
+        .topic(toolsSyncTopicName)
+        .publishMessage({ data: dataBuffer });
+      logger.info(
+        `Tools sync message ${messageId} published for user ${userId} for apps: ${appNames.join(
+          ', '
+        )}.`
+      );
+    } catch (error) {
+      // Log the error but don't throw, to avoid failing the primary user request.
+      // The main `getUserAvailableTools` function should still return cached data.
+      logger.error(
+        `Failed to publish tools sync message for user ${userId}:`,
+        error
+      );
     }
   }
 }
