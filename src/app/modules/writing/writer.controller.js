@@ -1,3 +1,5 @@
+import express from 'express';
+import http from 'http';
 import { writingAssistantApp } from './writing_assistant/workflow.js';
 
 /**
@@ -21,6 +23,13 @@ import { writingAssistantApp } from './writing_assistant/workflow.js';
  * @typedef {object} ErrorResponse
  * @property {string} error - A descriptive error message.
  */
+
+// --- Express App Setup ---
+const app = express();
+app.use(express.json());
+
+// A flag to indicate the server is in the process of shutting down.
+let isShuttingDown = false;
 
 /**
  * Handles requests to the writing assistant, processing user messages and managing conversation threads.
@@ -166,4 +175,55 @@ const generateConversationId = () => {
   return `conv-${Date.now()}`;
 };
 
-export default writingTask;
+// --- API Routes ---
+app.post('/api/writing-task', writingTask);
+
+// --- Cloud Run Health Checks ---
+// Liveness probe: A simple check to see if the server is running.
+// Cloud Run uses this to know when to restart a container that is unresponsive.
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Readiness probe: Checks if the container is ready to accept traffic.
+// Cloud Run stops sending new requests to containers that fail this check.
+// This is useful during startup or before shutting down.
+app.get('/readyz', (req, res) => {
+  if (isShuttingDown) {
+    // If the server is shutting down, it's no longer "ready" to take new requests.
+    res.status(503).send('Service Unavailable');
+  } else {
+    // In a real app, you might check database connections or other dependencies here.
+    res.status(200).send('OK');
+  }
+});
+
+// --- Server Startup ---
+// Cloud Run provides the PORT environment variable.
+const PORT = process.env.PORT || 8080;
+const server = http.createServer(app).listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
+
+// --- Graceful Shutdown Logic ---
+// Listen for SIGTERM signal (sent by Cloud Run to stop a container).
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  isShuttingDown = true; // Mark as not ready for the readiness probe.
+
+  // Set a timeout to force shutdown if connections don't close gracefully.
+  // Cloud Run gives a 10-second grace period by default.
+  const shutdownTimeout = setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 9500); // 9.5 seconds
+
+  // Stop accepting new connections and wait for existing ones to finish.
+  server.close(() => {
+    console.log('HTTP server closed.');
+    // Close any other resources like database connections here.
+    // e.g., database.close();
+    clearTimeout(shutdownTimeout);
+    process.exit(0); // Exit gracefully
+  });
+});
