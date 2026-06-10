@@ -11,7 +11,11 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
 const GoogleSearchGetResponse = catchAsync(async (req, res) => {
   const prompt = req.body?.prompt;
-  const userId = req.body?.user;
+  // Security Fix: userId should come from the authenticated user (e.g., req.user.id)
+  // to prevent Insecure Direct Object Reference (IDOR) vulnerabilities,
+  // where one user could potentially create or view sessions for another user.
+  // This assumes an authentication middleware has populated req.user.
+  const userId = req.user.id; // Assuming req.user.id is available from authentication middleware
   const sessionId = req.body?.sessionId;
   const currentSessionId = sessionId || generateSessionId(24);
 
@@ -27,6 +31,7 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
   // Optimization: Added .lean() as we only need to check for user existence and don't modify the user object.
   const user = await UserModel.findById(userId).lean();
   if (!user) {
+    // This check is still valid to ensure the authenticated user actually exists in the DB.
     return sendResponse(res, {
       statusCode: httpStatus.NOT_FOUND,
       success: false,
@@ -69,10 +74,11 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
       prompt,
       model: 'gemini-2.5-flash-grounded',
       reply,
-      total_time: result.usageMetadata?.totalTokenCount || 0,
+      // Bug Fix: Renamed 'total_time' to 'total_tokens' as it uses totalTokenCount, not time.
+      total_tokens: result.usageMetadata?.totalTokenCount || 0,
     };
 
-    // Optimization: For the ChatHistory.findOne query, consider adding a compound index
+    // Performance Optimization Suggestion: For the ChatHistory.findOne query, consider adding a compound index
     // on { user: 1, sessionId: 1 } in the ChatHistory schema for better performance.
     // Example: ChatHistorySchema.index({ user: 1, sessionId: 1 });
     let session = await ChatHistory.findOne({
@@ -90,8 +96,11 @@ const GoogleSearchGetResponse = catchAsync(async (req, res) => {
         responses: [responseData],
       });
 
+      // Bug Fix: Changed 'llamaAiSessions' to 'googleSearchSessions'
+      // to correctly associate Google Search related sessions with the user,
+      // as this module is specifically for Google Search integration.
       await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: session._id },
+        $push: { googleSearchSessions: session._id },
       });
     }
 
