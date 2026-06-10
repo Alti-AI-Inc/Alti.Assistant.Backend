@@ -6,6 +6,7 @@ import { searchService } from '../search/search.service.js';
 import { SwarmService } from './swarm.service.js';
 import { userMemoryService } from '../conversations/userMemory.service.js';
 import { dockerWorkspaceService } from '../docker/dockerWorkspace.service.js';
+import ApiError from '../../../errors/ApiError.js';
 
 /**
  * @swagger
@@ -102,19 +103,24 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
   const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
   
   let userId;
-  if (!isGuest) {
-    // SECURE: Strictly load authenticated user ID from verified token, ignoring request body inputs
-    userId = req.user?.userId || req.user?._id;
-  } else {
-    // SECURE: Only accept body userId if it strictly conforms to a guest-prefixed format
-    const providedUserId = req.body.userId;
-    const isGuestPattern = providedUserId && typeof providedUserId === 'string' && providedUserId.startsWith('guest_');
-    
-    if (providedUserId && isGuestPattern) {
-      userId = providedUserId;
+  try {
+    if (!isGuest) {
+      // SECURE: Strictly load authenticated user ID from verified token, ignoring request body inputs
+      userId = req.user?.userId || req.user?._id;
     } else {
-      userId = searchService.generateGuestUserId();
+      // SECURE: Only accept body userId if it strictly conforms to a guest-prefixed format
+      const providedUserId = req.body.userId;
+      const isGuestPattern = providedUserId && typeof providedUserId === 'string' && providedUserId.startsWith('guest_');
+      
+      if (providedUserId && isGuestPattern) {
+        userId = providedUserId;
+      } else {
+        userId = searchService.generateGuestUserId();
+      }
     }
+  } catch (err) {
+    logger.error('📡 Swarm Controller: Error resolving user ID:', err);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to resolve user identifier');
   }
 
   const { message, conversationId } = req.body;
@@ -257,7 +263,9 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     // 5. ASYNCHRONOUS CROSS-THREAD MEMORY FACT EXTRACTION (Hermes-style)
     // This operation is already asynchronous and non-blocking.
     if (userId && !isGuest && fullText) {
-      userMemoryService.asyncExtractFacts(userId, message, fullText);
+      userMemoryService.asyncExtractFacts(userId, message, fullText).catch((err) => {
+        logger.error(`[MEMORY EXTRACTION ERROR] Failed to extract facts for user ${userId}:`, err);
+      });
     }
 
     // Send completion event
@@ -279,6 +287,11 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
   } catch (error) {
     logger.error('📡 Swarm Controller: Streaming Search Error:', error);
 
+    // Normalize error using ApiError
+    const apiError = error instanceof ApiError 
+      ? error 
+      : new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message || 'An internal error occurred', error.stack);
+
     const errorConversationId =
       conversationId || searchService.generateSearchConversationId();
 
@@ -290,7 +303,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
           errorConversationId,
           userId,
           'I apologize, but an error occurred while processing your streaming search request.',
-          error,
+          apiError,
           isGuest,
           req
         );
@@ -308,7 +321,7 @@ const performSwarmStreamingSearch = catchAsync(async (req, res) => {
     res.write(
       `data: ${JSON.stringify({
         type: 'error',
-        error: error.message || 'An internal error occurred',
+        error: apiError.message || 'An internal error occurred',
         conversationId: errorConversationId,
         timestamp: Date.now(),
       })}\n\n`
@@ -369,27 +382,32 @@ const prewarmUserSandbox = catchAsync(async (req, res) => {
   const isGuest = req.isGuest === undefined ? (!req.user) : req.isGuest;
   
   let userId;
-  if (!isGuest) {
-    userId = req.user?.userId || req.user?._id;
-  } else {
-    // SECURE: Only accept body userId if it strictly conforms to a guest-prefixed format
-    const providedUserId = req.body.userId;
-    const isGuestPattern = providedUserId && typeof providedUserId === 'string' && providedUserId.startsWith('guest_');
-    if (providedUserId && isGuestPattern) {
-      userId = providedUserId;
+  try {
+    if (!isGuest) {
+      userId = req.user?.userId || req.user?._id;
+    } else {
+      // SECURE: Only accept body userId if it strictly conforms to a guest-prefixed format
+      const providedUserId = req.body.userId;
+      const isGuestPattern = providedUserId && typeof providedUserId === 'string' && providedUserId.startsWith('guest_');
+      if (providedUserId && isGuestPattern) {
+        userId = providedUserId;
+      }
+      // If a guest userId is not provided or does not conform to the pattern,
+      // userId remains undefined, and prewarming will not be attempted due to the 'if (userId)' check.
     }
-    // If a guest userId is not provided or does not conform to the pattern,
-    // userId remains undefined, and prewarming will not be attempted due to the 'if (userId)' check.
-  }
 
-  if (userId) {
-    logger.info(`[DOCKER PREWARM] Asynchronously pre-warming sandbox container for user: ${userId}`);
-    // Trigger in the background asynchronously so it does not block Express response
-    // OPTIMIZATION: If 'dockerWorkspaceService.prewarmWorkspace' involves database lookups (e.g., for user settings or existing workspaces),
-    // ensure those queries are optimized with appropriate indexing on 'userId' and use '.lean()' for read-only retrievals.
-    dockerWorkspaceService.prewarmWorkspace(userId).catch((err) => {
-      logger.error(`[DOCKER PREWARM ERROR] Failed to prewarm container for user ${userId}: ${err.message}`);
-    });
+    if (userId) {
+      logger.info(`[DOCKER PREWARM] Asynchronously pre-warming sandbox container for user: ${userId}`);
+      // Trigger in the background asynchronously so it does not block Express response
+      // OPTIMIZATION: If 'dockerWorkspaceService.prewarmWorkspace' involves database lookups (e.g., for user settings or existing workspaces),
+      // ensure those queries are optimized with appropriate indexing on 'userId' and use '.lean()' for read-only retrievals.
+      dockerWorkspaceService.prewarmWorkspace(userId).catch((err) => {
+        logger.error(`[DOCKER PREWARM ERROR] Failed to prewarm container for user ${userId}:`, err);
+      });
+    }
+  } catch (error) {
+    logger.error('[DOCKER PREWARM CONTROLLER ERROR] Error during prewarm setup:', error);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to initiate sandbox pre-warming');
   }
 
   return sendResponse(res, {
