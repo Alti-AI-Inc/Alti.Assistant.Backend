@@ -2,16 +2,26 @@ import axios from 'axios';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 
-// Resolve maps API key from standard env variables or fallback to search key
+/**
+ * Resolves the Google Maps API key from environment variables or a fallback configuration.
+ * It checks `process.env.GOOGLE_MAPS_API_KEY`, then `process.env.MAPS_API_KEY`,
+ * and finally `config.google_search_api_key`.
+ *
+ * @private
+ * @function
+ * @returns {string|undefined} The resolved Google Maps API key, or undefined if not found.
+ */
 const getApiKey = () => {
   return process.env.GOOGLE_MAPS_API_KEY || process.env.MAPS_API_KEY || config.google_search_api_key;
 };
 
 /**
  * Natively geocodes a physical string address into geolocational coordinates (lat/lng).
- * 
+ *
  * @param {string} address - Physical address to geocode (e.g. "1600 Amphitheatre Pkwy, Mountain View, CA")
- * @returns {Promise<object>} Geocoding result report
+ * @returns {Promise<object>} Geocoding result report containing formatted address, location, place ID, types, and address components.
+ * @throws {Error} If the Google Maps API Key is not configured.
+ * @throws {Error} If the Google Maps Geocoding API call fails or returns a non-OK status.
  */
 const geocodeAddress = async (address) => {
   try {
@@ -50,12 +60,14 @@ const geocodeAddress = async (address) => {
 
 /**
  * Searches for nearby business establishments, landmarks, and points of interest.
- * 
- * @param {number} latitude - Latitude coordinate
- * @param {number} longitude - Longitude coordinate
- * @param {number} [radius] - Radius search boundary in meters (default 5000)
- * @param {string} [keyword] - Keyword filter (e.g., "coffee", "restaurant")
- * @returns {Promise<object>} Nearby places query report
+ *
+ * @param {number} latitude - Latitude coordinate of the center point for the search.
+ * @param {number} longitude - Longitude coordinate of the center point for the search.
+ * @param {number} [radius=5000] - Radius search boundary in meters (default 5000). Max 50000.
+ * @param {string} [keyword=''] - Keyword filter (e.g., "coffee", "restaurant") to narrow down results.
+ * @returns {Promise<object>} Nearby places query report containing the search parameters and a list of found places.
+ * @throws {Error} If the Google Maps API Key is not configured.
+ * @throws {Error} If the Google Maps Places Search API call fails or returns a non-OK/ZERO_RESULTS status.
  */
 const searchNearbyPlaces = async (latitude, longitude, radius = 5000, keyword = '') => {
   try {
@@ -107,11 +119,13 @@ const searchNearbyPlaces = async (latitude, longitude, radius = 5000, keyword = 
 
 /**
  * Calculates transit routes, distances, durations, and turn-by-turn driving directions between two points.
- * 
- * @param {string} origin - Starting point name or address
- * @param {string} destination - Ending point name or address
- * @param {string} [mode] - Transit mode: 'driving', 'walking', 'bicycling', 'transit' (default 'driving')
- * @returns {Promise<object>} Turn-by-turn directions report
+ *
+ * @param {string} origin - Starting point name or address (e.g., "Eiffel Tower", "Paris, France").
+ * @param {string} destination - Ending point name or address (e.g., "Louvre Museum", "75001 Paris, France").
+ * @param {string} [mode='driving'] - Transit mode: 'driving', 'walking', 'bicycling', 'transit' (default 'driving').
+ * @returns {Promise<object>} Turn-by-turn directions report including origin, destination, total distance, total duration, and individual steps.
+ * @throws {Error} If the Google Maps API Key is not configured.
+ * @throws {Error} If the Google Maps Directions API call fails or returns a non-OK status.
  */
 const calculateRoute = async (origin, destination, mode = 'driving') => {
   try {
@@ -164,9 +178,11 @@ const calculateRoute = async (origin, destination, mode = 'driving') => {
 
 /**
  * Retrieves complete place details including business hours, phone number, website, rating, and customer reviews.
- * 
- * @param {string} placeId - Google Place ID
- * @returns {Promise<object>} Complete Places Details report
+ *
+ * @param {string} placeId - Google Place ID (e.g., "ChIJN1t_tDeuEmsRUsoyG83frY4").
+ * @returns {Promise<object>} Complete Places Details report containing comprehensive information about the place.
+ * @throws {Error} If the Google Maps API Key is not configured.
+ * @throws {Error} If the Google Maps Place Details API call fails or returns a non-OK status.
  */
 const getPlaceDetails = async (placeId) => {
   try {
@@ -230,10 +246,12 @@ const getPlaceDetails = async (placeId) => {
 
 /**
  * Generates the programmatic direct photo URL from a Google Place photo reference.
- * 
- * @param {string} photoReference - Google Place photo_reference
- * @param {number} [maxWidth] - Target width in pixels (default 800)
- * @returns {object} Photo URL details
+ * This URL can be used to display the photo directly in a web application.
+ *
+ * @param {string} photoReference - Google Place photo_reference obtained from Place Details or Nearby Search.
+ * @param {number} [maxWidth=800] - Target width in pixels for the photo (default 800). Max 1600.
+ * @returns {object} Photo URL details including the reference, max width, and the generated photo URL.
+ * @throws {Error} If the Google Maps API Key is not configured.
  */
 const getPlacePhotoUrl = (photoReference, maxWidth = 800) => {
   const apiKey = getApiKey();
@@ -251,6 +269,12 @@ const getPlacePhotoUrl = (photoReference, maxWidth = 800) => {
   };
 };
 
+/**
+ * @constant
+ * @exports {object} GcpMapsService - A service object providing methods for interacting with Google Maps APIs.
+ * This service encapsulates functionalities like geocoding addresses, searching nearby places,
+ * calculating routes, retrieving place details, and generating place photo URLs.
+ */
 export const GcpMapsService = {
   geocodeAddress,
   searchNearbyPlaces,
