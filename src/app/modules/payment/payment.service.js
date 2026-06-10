@@ -17,12 +17,24 @@ import { sendSecurityAlert } from '../../../shared/securityAlerts.js';
 import StripeEvent from '../subscription/stripeEvent.model.js';
 import { isStripeIp } from '../../../shared/stripeSecurity.js';
 
+/**
+ * Stripe API client instance.
+ * Initialized with the secret key from configuration and a specific API version.
+ * @type {Stripe}
+ */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
   apiVersion: '2022-11-15',
 });
 
 /**
- * Plan limits configuration based on plan type
+ * Plan limits configuration based on plan type.
+ * Defines the maximum API calls, storage, and users allowed for each subscription plan.
+ * @typedef {object} PlanLimits
+ * @property {number} maxApiCalls - Maximum number of API calls allowed. -1 for unlimited.
+ * @property {number} maxStorage - Maximum storage in bytes allowed. -1 for unlimited.
+ * @property {number} maxUsers - Maximum number of users allowed. -1 for unlimited.
+ *
+ * @type {object.<string, PlanLimits>}
  */
 const PLAN_LIMITS = {
   free: {
@@ -57,6 +69,22 @@ const PLAN_LIMITS = {
   },
 };
 
+/**
+ * Creates a Stripe checkout session for a user to subscribe to a specific plan.
+ * This function handles customer creation if necessary and sets up the subscription details.
+ *
+ * @param {object} user - The user object initiating the subscription.
+ * @param {mongoose.Types.ObjectId} user._id - The ID of the user.
+ * @param {string} user.email - The email of the user.
+ * @param {mongoose.Types.ObjectId} user.tenantId - The ID of the tenant the user belongs to.
+ * @param {object} plan - The plan details for the subscription.
+ * @param {string} plan.plan_name - The name of the plan (e.g., 'explore', 'analyze').
+ * @param {'month' | 'year'} plan.duration - The billing duration of the plan.
+ * @param {number} plan.price - The price of the plan in USD.
+ * @param {object} [req=null] - Optional Express request object, currently unused in this function's logic.
+ * @returns {Promise<string>} A promise that resolves to the URL of the Stripe checkout session.
+ * @throws {Error} If the plan name or duration is invalid, or if the user does not belong to a tenant.
+ */
 const createCheckoutSessionService = async (user, plan, req = null) => {
   if (!['explore', 'analyze', 'execute', 'command'].includes(plan.plan_name)) {
     throw new Error('Invalid plan name');
@@ -128,8 +156,22 @@ const createCheckoutSessionService = async (user, plan, req = null) => {
   return session.url;
 };
 
-
-
+/**
+ * Handles incoming Stripe webhook events.
+ * This service verifies the webhook signature, prevents replay attacks,
+ * and processes various event types such as `checkout.session.completed`
+ * and `customer.subscription.deleted` to update the application's database.
+ *
+ * @param {object} req - The Express request object.
+ * @param {object} req.headers - Request headers, including 'stripe-signature'.
+ * @param {string} req.headers['stripe-signature'] - The Stripe signature header for webhook verification.
+ * @param {string} req.ip - The IP address of the client making the request.
+ * @param {object} req.body - The raw request body containing the Stripe event payload.
+ * @param {object} res - The Express response object used to send back status codes to Stripe.
+ * @returns {Promise<void>} A promise that resolves when the webhook is processed and a response is sent.
+ *   Sends a 200 status for successful processing, 400 for verification failures,
+ *   403 for untrusted IPs, 500 for internal server errors or missing configurations.
+ */
 const handleWebhookService = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = config.stripe.webhook_secret || process.env.STRIPE_WEBHOOK_SECRET;
@@ -458,12 +500,23 @@ const handleWebhookService = async (req, res) => {
   }
 };
 
+/**
+ * Calculates the expiration date for a subscription based on its duration.
+ *
+ * @param {'month' | 'year'} duration - The duration of the subscription.
+ * @returns {Date} The calculated expiration date, either one month or one year from the current date.
+ */
 const getExpirationDate = (duration) => {
   return duration === 'month'
     ? moment().add(1, 'months').toDate()
     : moment().add(1, 'years').toDate();
 };
 
+/**
+ * @namespace PaymentService
+ * @description Provides services for handling payment-related operations,
+ * including creating Stripe checkout sessions and processing Stripe webhooks.
+ */
 export const PaymentService = {
   createCheckoutSessionService,
   handleWebhookService,
