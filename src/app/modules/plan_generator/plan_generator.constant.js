@@ -1,4 +1,23 @@
-// Plan Generator Configuration
+/**
+ * @fileoverview This file defines various constants used throughout the plan generation module.
+ * It includes configurations for the AI model, plan types, complexity levels, stages,
+ * system prompts, and other operational parameters.
+ */
+
+/**
+ * Plan Generator Configuration.
+ * Defines parameters and settings for the AI-powered plan generation process.
+ * @constant
+ * @type {object}
+ * @property {string} MODEL - The primary AI model to use for plan generation.
+ * @property {string} FALLBACK_MODEL - The fallback AI model to use if the primary model fails or is unavailable.
+ * @property {number} TEMPERATURE_BRAINSTORM - The creativity temperature for brainstorming phases (0.0-1.0). Higher values mean more creative, less predictable output.
+ * @property {number} TEMPERATURE_PLANNING - The creativity temperature for structured plan generation phases (0.0-1.0). Lower values mean more focused, less creative output.
+ * @property {number} MAX_OUTPUT_TOKENS - The maximum number of tokens the AI model can generate in a single response.
+ * @property {number} MAX_FILE_SIZE - The maximum allowed size for uploaded files in bytes (e.g., for document analysis).
+ * @property {string[]} SUPPORTED_MIME_TYPES - An array of MIME types for files that can be processed by the plan generator.
+ * @property {string[]} SUPPORTED_FILE_EXTENSIONS - An array of file extensions for files that can be processed by the plan generator.
+ */
 export const PLAN_GENERATOR_CONFIG = {
   MODEL: 'gemini-2.5-pro',
   FALLBACK_MODEL: 'gemini-2.5-flash',
@@ -17,7 +36,20 @@ export const PLAN_GENERATOR_CONFIG = {
   SUPPORTED_FILE_EXTENSIONS: ['.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls'],
 };
 
-// Plan types
+/**
+ * Defines the various types of plans that can be generated.
+ * @constant
+ * @type {object}
+ * @property {string} BUSINESS_PLAN - A comprehensive plan outlining a business's objectives, strategies, and financial forecasts.
+ * @property {string} PROJECT_PLAN - A detailed plan for a specific project, including tasks, timelines, and resources.
+ * @property {string} PRODUCT_LAUNCH - A strategic plan for introducing a new product to the market.
+ * @property {string} EVENT_PLAN - A plan for organizing and executing an event.
+ * @property {string} MARKETING_CAMPAIGN - A plan for a series of marketing activities to achieve specific goals.
+ * @property {string} RESEARCH_PLAN - A structured plan for conducting research, including methodology and objectives.
+ * @property {string} CONTENT_STRATEGY - A plan for the creation, publication, and management of useful and usable content.
+ * @property {string} STARTUP_PLAN - A plan specifically tailored for new businesses or startups.
+ * @property {string} GENERAL - A generic plan type for ideas that don't fit specific categories or require a broad approach.
+ */
 export const PLAN_TYPES = {
   BUSINESS_PLAN: 'business_plan',
   PROJECT_PLAN: 'project_plan',
@@ -30,7 +62,15 @@ export const PLAN_TYPES = {
   GENERAL: 'general',
 };
 
-// Complexity levels
+/**
+ * Defines the complexity levels for plan generation, influencing the depth and detail of the output.
+ * @constant
+ * @type {object}
+ * @property {string} SIMPLE - A plan suitable for short-term execution (1-2 weeks).
+ * @property {string} MODERATE - A plan suitable for medium-term execution (1-3 months).
+ * @property {string} COMPLEX - A plan suitable for long-term execution (3-12 months).
+ * @property {string} ENTERPRISE - A plan suitable for very long-term or large-scale execution (12+ months).
+ */
 export const COMPLEXITY_LEVELS = {
   SIMPLE: 'simple', // 1-2 weeks execution
   MODERATE: 'moderate', // 1-3 months
@@ -38,7 +78,15 @@ export const COMPLEXITY_LEVELS = {
   ENTERPRISE: 'enterprise', // 12+ months
 };
 
-// Plan depth
+/**
+ * Defines the desired depth or level of detail for the generated plan.
+ * @constant
+ * @type {object}
+ * @property {string} QUICK - Provides a high-level overview of the plan.
+ * @property {string} STANDARD - Generates a detailed plan with standard sections.
+ * @property {string} COMPREHENSIVE - Offers a deep dive into the plan, including alternatives and detailed analysis.
+ * @property {string} STRATEGIC - Focuses on an executive-level plan with strategic insights and financial considerations.
+ */
 export const PLAN_DEPTH = {
   QUICK: 'quick', // High-level overview
   STANDARD: 'standard', // Detailed plan
@@ -46,7 +94,21 @@ export const PLAN_DEPTH = {
   STRATEGIC: 'strategic', // Executive-level with financials
 };
 
-// Brainstorm aspects
+/**
+ * Defines various aspects that can be covered during the brainstorming phase.
+ * @constant
+ * @type {object}
+ * @property {string} MARKET_ANALYSIS - Focuses on understanding the target market, trends, and size.
+ * @property {string} COMPETITIVE_LANDSCAPE - Analyzes competitors, their strengths, weaknesses, and market positioning.
+ * @property {string} RESOURCE_NEEDS - Identifies required resources such as budget, personnel, tools, and time.
+ * @property {string} TIMELINE_ESTIMATION - Provides estimates for project duration and key milestones.
+ * @property {string} RISK_ASSESSMENT - Identifies potential risks and challenges, along with mitigation strategies.
+ * @property {string} STAKEHOLDER_MAPPING - Identifies key stakeholders and their interests or influence.
+ * @property {string} FINANCIAL_PROJECTIONS - Forecasts financial outcomes, including costs, revenue, and profitability.
+ * @property {string} TECHNICAL_FEASIBILITY - Assesses the technical viability and requirements of the idea.
+ * @property {string} SWOT_ANALYSIS - Performs a Strengths, Weaknesses, Opportunities, and Threats analysis.
+ * @property {string} SUCCESS_METRICS - Defines key performance indicators (KPIs) and metrics for measuring success.
+ */
 export const BRAINSTORM_ASPECTS = {
   MARKET_ANALYSIS: 'market_analysis',
   COMPETITIVE_LANDSCAPE: 'competitive_landscape',
@@ -60,7 +122,16 @@ export const BRAINSTORM_ASPECTS = {
   SUCCESS_METRICS: 'success_metrics',
 };
 
-// Plan stages
+/**
+ * Defines the different stages a plan goes through in the generation process.
+ * @constant
+ * @type {object}
+ * @property {string} IDEA_ANALYSIS - The initial stage where the user's idea is analyzed and clarified.
+ * @property {string} BRAINSTORMING - The stage where creative insights and strategic considerations are generated.
+ * @property {string} PLAN_GENERATION - The stage where the structured plan document is created.
+ * @property {string} REFINEMENT - The stage where the plan is adjusted and improved based on feedback.
+ * @property {string} COMPLETED - The final stage indicating the plan generation process is finished.
+ */
 export const PLAN_STAGES = {
   IDEA_ANALYSIS: 'idea_analysis',
   BRAINSTORMING: 'brainstorming',
@@ -69,7 +140,19 @@ export const PLAN_STAGES = {
   COMPLETED: 'completed',
 };
 
-// Domains
+/**
+ * Defines various domains or areas of expertise relevant to plan generation.
+ * @constant
+ * @type {object}
+ * @property {string} TECHNICAL - Pertaining to technology, software, hardware, or engineering.
+ * @property {string} BUSINESS - Pertaining to business strategy, operations, and management.
+ * @property {string} MARKETING - Pertaining to promotion, sales, and market engagement.
+ * @property {string} FINANCIAL - Pertaining to money, budgeting, investments, and accounting.
+ * @property {string} OPERATIONS - Pertaining to the processes and systems used to deliver products or services.
+ * @property {string} LEGAL - Pertaining to laws, regulations, and compliance.
+ * @property {string} DESIGN - Pertaining to user experience, aesthetics, and product design.
+ * @property {string} HR - Pertaining to human resources, staffing, and organizational development.
+ */
 export const DOMAINS = {
   TECHNICAL: 'technical',
   BUSINESS: 'business',
@@ -81,11 +164,29 @@ export const DOMAINS = {
   HR: 'hr',
 };
 
-// Conversation configuration
+/**
+ * The category identifier for conversations related to plan generation.
+ * @constant
+ * @type {string}
+ */
 export const CONVERSATION_CATEGORY = 'plan_generation';
+
+/**
+ * The AI model used for general conversational interactions within the plan generation module.
+ * @constant
+ * @type {string}
+ */
 export const CONVERSATION_MODEL = 'gemini-2.5-pro';
 
-// Default parameters
+/**
+ * Defines default parameters for plan generation requests.
+ * @constant
+ * @type {object}
+ * @property {string} planDepth - The default depth of the plan, referencing {@link PLAN_DEPTH}.
+ * @property {string} complexity - The default complexity level of the plan, referencing {@link COMPLEXITY_LEVELS}.
+ * @property {string} planType - The default type of plan, referencing {@link PLAN_TYPES}.
+ * @property {string[]} brainstormAspects - An array of default brainstorming aspects to include, referencing {@link BRAINSTORM_ASPECTS}.
+ */
 export const DEFAULT_PARAMS = {
   planDepth: PLAN_DEPTH.STANDARD,
   complexity: COMPLEXITY_LEVELS.MODERATE,
@@ -97,7 +198,17 @@ export const DEFAULT_PARAMS = {
   ],
 };
 
-// System prompts for different stages
+/**
+ * Defines system prompts used by the AI for different stages of the plan generation process.
+ * These prompts guide the AI's persona and task for each specific stage.
+ * @constant
+ * @type {object}
+ * @property {string} IDEA_ANALYSIS - Prompt for the AI when analyzing a user's initial idea.
+ * @property {string} BRAINSTORMING - Prompt for the AI during the brainstorming phase.
+ * @property {string} PLAN_GENERATION - Prompt for the AI when generating the structured plan.
+ * @property {string} REFINEMENT - Prompt for the AI when refining an existing plan based on feedback.
+ * @property {string} CONVERSATIONAL - Prompt for the AI when engaging in general conversational assistance for planning.
+ */
 export const SYSTEM_PROMPTS = {
   IDEA_ANALYSIS: `You are an expert business analyst and strategic planner. Your role is to:
 1. Analyze the user's idea thoroughly to understand its scope, feasibility, and requirements
@@ -153,7 +264,19 @@ Maintain consistency with the original plan while incorporating improvements. Be
 Be conversational, helpful, and professional. Guide users through the planning process step by step.`,
 };
 
-// Response messages
+/**
+ * Standardized response messages used by the plan generation module.
+ * @constant
+ * @type {object}
+ * @property {string} PLAN_GENERATED - Message indicating a plan was successfully generated.
+ * @property {string} BRAINSTORM_COMPLETED - Message indicating the brainstorming session is complete.
+ * @property {string} REFINEMENT_APPLIED - Message indicating plan refinements were successfully applied.
+ * @property {string} CLARIFICATION_NEEDED - Message indicating that more information is required from the user.
+ * @property {string} INVALID_IDEA - Message indicating the provided idea description is insufficient.
+ * @property {string} FILE_UPLOADED - Message indicating a file was successfully uploaded and analyzed.
+ * @property {string} CONVERSATION_CREATED - Message indicating a new planning conversation has been initiated.
+ * @property {string} EXPORT_READY - Message indicating the plan is ready for export.
+ */
 export const RESPONSE_MESSAGES = {
   PLAN_GENERATED: 'Plan generated successfully',
   BRAINSTORM_COMPLETED: 'Brainstorming session completed',
@@ -166,7 +289,22 @@ export const RESPONSE_MESSAGES = {
   EXPORT_READY: 'Plan exported successfully',
 };
 
-// Plan sections
+/**
+ * Defines the standard sections that can be included in a generated plan.
+ * @constant
+ * @type {object}
+ * @property {string} EXECUTIVE_SUMMARY - A brief overview of the entire plan.
+ * @property {string} OBJECTIVES - The specific goals the plan aims to achieve.
+ * @property {string} PHASES - The major stages or steps of the plan.
+ * @property {string} ACTION_ITEMS - Specific tasks or activities to be performed.
+ * @property {string} RESOURCES - Required assets, personnel, or budget.
+ * @property {string} RISKS - Potential challenges and mitigation strategies.
+ * @property {string} METRICS - Key performance indicators for measuring success.
+ * @property {string} TIMELINE - The schedule and deadlines for the plan.
+ * @property {string} BUDGET - Financial allocation and cost estimates.
+ * @property {string} STAKEHOLDERS - Identified individuals or groups involved or affected.
+ * @property {string} ALTERNATIVES - Alternative approaches or strategies considered.
+ */
 export const PLAN_SECTIONS = {
   EXECUTIVE_SUMMARY: 'executive_summary',
   OBJECTIVES: 'objectives',
@@ -181,7 +319,16 @@ export const PLAN_SECTIONS = {
   ALTERNATIVES: 'alternatives',
 };
 
-// Clarity score thresholds
+/**
+ * Defines thresholds for assessing the clarity of a user's idea.
+ * These scores help determine if further clarification is needed.
+ * @constant
+ * @type {object}
+ * @property {number} VERY_CLEAR - Idea is well-defined and ready for planning (score >= 0.8).
+ * @property {number} CLEAR - Idea is understandable, minor clarifications needed (score >= 0.6).
+ * @property {number} MODERATE - Idea needs significant clarification (score >= 0.4).
+ * @property {number} UNCLEAR - Idea is too vague, major clarifications needed (score >= 0.2).
+ */
 export const CLARITY_THRESHOLDS = {
   VERY_CLEAR: 0.8, // Idea is well-defined, ready for planning
   CLEAR: 0.6, // Idea is understandable, minor clarifications needed
@@ -189,7 +336,16 @@ export const CLARITY_THRESHOLDS = {
   UNCLEAR: 0.2, // Idea is too vague, major clarifications needed
 };
 
-// Export formats
+/**
+ * Defines the supported formats for exporting generated plans.
+ * @constant
+ * @type {object}
+ * @property {string} PDF - Portable Document Format.
+ * @property {string} DOCX - Microsoft Word Document (Open XML).
+ * @property {string} JSON - JavaScript Object Notation.
+ * @property {string} MARKDOWN - Markdown text format.
+ * @property {string} HTML - HyperText Markup Language.
+ */
 export const EXPORT_FORMATS = {
   PDF: 'pdf',
   DOCX: 'docx',
@@ -198,7 +354,15 @@ export const EXPORT_FORMATS = {
   HTML: 'html',
 };
 
-// Plan status
+/**
+ * Defines the possible statuses for a generated plan.
+ * @constant
+ * @type {object}
+ * @property {string} DRAFT - The plan is in its initial, incomplete stage.
+ * @property {string} ACTIVE - The plan is currently being worked on or is in use.
+ * @property {string} COMPLETED - The plan has been finalized.
+ * @property {string} ARCHIVED - The plan is no longer active but kept for reference.
+ */
 export const PLAN_STATUS = {
   DRAFT: 'draft',
   ACTIVE: 'active',
@@ -206,7 +370,17 @@ export const PLAN_STATUS = {
   ARCHIVED: 'archived',
 };
 
-// Question templates for clarification
+/**
+ * Provides templates for clarification questions based on the plan type.
+ * These questions help the AI gather more information from the user when an idea is vague.
+ * @constant
+ * @type {object}
+ * @property {string[]} BUSINESS_PLAN - Questions specific to business plans.
+ * @property {string[]} PRODUCT_LAUNCH - Questions specific to product launch plans.
+ * @property {string[]} EVENT_PLAN - Questions specific to event plans.
+ * @property {string[]} MARKETING_CAMPAIGN - Questions specific to marketing campaigns.
+ * @property {string[]} GENERAL - General clarification questions applicable to any plan type.
+ */
 export const CLARIFICATION_QUESTIONS = {
   BUSINESS_PLAN: [
     'What is your target market or customer segment?',
