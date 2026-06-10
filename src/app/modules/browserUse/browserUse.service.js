@@ -51,75 +51,108 @@ const initiateTaskInSessionService = async (
   structuredOutputSchema,
   req = null
 ) => {
-  const tenantId = req ? (req.user?.currentTenantId || req.tenantId || null) : null;
+  try {
+    const tenantId = req ? (req.user?.currentTenantId || req.tenantId || null) : null;
 
-  const apiBody = {
-    task: prompt,
-    secrets: {},
-    allowed_domains: null,
-    save_browser_data: true,
-    llm_model: 'gemini-2.5-flash',
-    use_adblock: true,
-    use_proxy: true,
-    highlight_elements: true,
-  };
+    const apiBody = {
+      task: prompt,
+      secrets: {},
+      allowed_domains: null,
+      save_browser_data: true,
+      llm_model: 'gemini-2.5-flash',
+      use_adblock: true,
+      use_proxy: true,
+      highlight_elements: true,
+    };
 
-  if (structuredOutputSchema) {
-    apiBody.structured_output_json = structuredOutputSchema;
-  }
-
-  const apiResponse = await axios.post(
-    'https://api.browser-use.com/api/v1/run-task',
-    apiBody,
-    {
-      headers: {
-        Authorization: `Bearer ${config.browser_use_secret_key}`,
-        'Content-Type': 'application/json',
-      },
+    if (structuredOutputSchema) {
+      apiBody.structured_output_json = structuredOutputSchema;
     }
-  );
-  const apiData = apiResponse.data;
 
-  if (!apiData.id) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'API did not return a task ID');
-  }
+    let apiResponse;
+    try {
+      apiResponse = await axios.post(
+        'https://api.browser-use.com/api/v1/run-task',
+        apiBody,
+        {
+          headers: {
+            Authorization: `Bearer ${config.browser_use_secret_key}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (apiErr) {
+      logger.error('Error calling external browser-use API in initiateTaskInSessionService', {
+        error: apiErr.message,
+        stack: apiErr.stack,
+        userId,
+        sessionId,
+      });
+      throw new ApiError(
+        apiErr.response?.status || httpStatus.BAD_GATEWAY,
+        `External browser automation service error: ${apiErr.response?.data?.message || apiErr.message}`
+      );
+    }
 
-  // --- CORRECTED: Save ALL initial data from the API response ---
-  const newResponseObject = {
-    taskId: apiData.id,
-    status: apiData.status || 'created',
-    prompt: prompt,
-    live_url: apiData.live_url,
-    steps: apiData.steps || [], // Save initial steps if they exist
-  };
+    const apiData = apiResponse.data;
 
-  // 2. Check if we are adding to an existing session or creating a new one
-  if (sessionId) {
-    // Find the existing session and push a new response, ensuring it belongs to the active tenant/user
-    // .lean() is not used here because we are modifying and saving the Mongoose document.
-    const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
-    const session = await BrowserSession.findOne(query);
-    if (!session)
-      throw new ApiError(httpStatus.NOT_FOUND, 'Session not found.');
+    if (!apiData || !apiData.id) {
+      logger.error('External browser-use API did not return a task ID', { apiData, userId, sessionId });
+      throw new ApiError(httpStatus.BAD_GATEWAY, 'API did not return a task ID');
+    }
 
-    session.responses.push(newResponseObject);
-    await session.save();
-    return session;
-  } else {
-    // Create a new session document
-    const newSession = await BrowserSession.create({
-      user: userId,
-      tenantId: tenantId,
-      responses: [newResponseObject],
+    // --- CORRECTED: Save ALL initial data from the API response ---
+    const newResponseObject = {
+      taskId: apiData.id,
+      status: apiData.status || 'created',
+      prompt: prompt,
+      live_url: apiData.live_url,
+      steps: apiData.steps || [], // Save initial steps if they exist
+    };
+
+    // 2. Check if we are adding to an existing session or creating a new one
+    if (sessionId) {
+      // Find the existing session and push a new response, ensuring it belongs to the active tenant/user
+      // .lean() is not used here because we are modifying and saving the Mongoose document.
+      const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
+      const session = await BrowserSession.findOne(query);
+      if (!session) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Session not found.');
+      }
+
+      session.responses.push(newResponseObject);
+      await session.save();
+      return session;
+    } else {
+      // Create a new session document
+      const newSession = await BrowserSession.create({
+        user: userId,
+        tenantId: tenantId,
+        responses: [newResponseObject],
+      });
+
+      // Add the new session's ID to the user's document
+      // .lean() is not applicable here as we are modifying the document.
+      await User.findByIdAndUpdate(userId, {
+        $push: { browserSessions: newSession._id },
+      });
+
+      return newSession;
+    }
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Error in initiateTaskInSessionService', {
+      error: error.message,
+      stack: error.stack,
+      userId,
+      sessionId,
     });
-
-    // Add the new session's ID to the user's document
-    // .lean() is not applicable here as we are modifying the document.
-    await User.findByIdAndUpdate(userId, {
-      $push: { browserSessions: newSession._id },
-    });
-
-    return newSession;
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal error occurred while initiating the browser task.'
+    );
   }
 };
 
@@ -134,42 +167,73 @@ const initiateTaskInSessionService = async (
  * @throws {ApiError} If the task or session is not found in the database.
  */
 const updateTaskStatusService = async (sessionId, taskId, req = null) => {
-  const apiResponse = await axios.get(
-    `https://api.browser-use.com/api/v1/task/${taskId}`,
-    { headers: { Authorization: `Bearer ${config.browser_use_secret_key}` } }
-  );
-  const apiData = apiResponse.data;
+  try {
+    let apiResponse;
+    try {
+      apiResponse = await axios.get(
+        `https://api.browser-use.com/api/v1/task/${taskId}`,
+        { headers: { Authorization: `Bearer ${config.browser_use_secret_key}` } }
+      );
+    } catch (apiErr) {
+      logger.error('Error fetching task status from external browser-use API', {
+        error: apiErr.message,
+        stack: apiErr.stack,
+        sessionId,
+        taskId,
+      });
+      throw new ApiError(
+        apiErr.response?.status || httpStatus.BAD_GATEWAY,
+        `External browser automation service error: ${apiErr.response?.data?.message || apiErr.message}`
+      );
+    }
 
-  // --- CORRECTED: Build the complete update object ---
-  const updateFields = {
-    'responses.$.status': apiData.status,
-    'responses.$.output': apiData.output,
-    'responses.$.structured_output': apiData.structured_output,
-    'responses.$.live_url': apiData.live_url,
-    'responses.$.error_message': apiData.error_message,
-    'responses.$.finished_at': apiData.finished_at,
-    'responses.$.steps': apiData.steps, // CRITICAL: Update the steps array
-  };
+    const apiData = apiResponse.data;
 
-  const query = req
-    ? withTenantFilter(req, { _id: sessionId, 'responses.taskId': taskId })
-    : { _id: sessionId, 'responses.taskId': taskId };
+    // --- CORRECTED: Build the complete update object ---
+    const updateFields = {
+      'responses.$.status': apiData.status,
+      'responses.$.output': apiData.output,
+      'responses.$.structured_output': apiData.structured_output,
+      'responses.$.live_url': apiData.live_url,
+      'responses.$.error_message': apiData.error_message,
+      'responses.$.finished_at': apiData.finished_at,
+      'responses.$.steps': apiData.steps, // CRITICAL: Update the steps array
+    };
 
-  // .lean() is not used here as { new: true } returns a Mongoose document, which is then returned by the service.
-  const updatedSession = await BrowserSession.findOneAndUpdate(
-    query,
-    { $set: updateFields },
-    { new: true }
-  );
+    const query = req
+      ? withTenantFilter(req, { _id: sessionId, 'responses.taskId': taskId })
+      : { _id: sessionId, 'responses.taskId': taskId };
 
-  if (!updatedSession) {
+    // .lean() is not used here as { new: true } returns a Mongoose document, which is then returned by the service.
+    const updatedSession = await BrowserSession.findOneAndUpdate(
+      query,
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!updatedSession) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        'Task to update was not found in the session.'
+      );
+    }
+
+    return updatedSession;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Error in updateTaskStatusService', {
+      error: error.message,
+      stack: error.stack,
+      sessionId,
+      taskId,
+    });
     throw new ApiError(
-      httpStatus.NOT_FOUND,
-      'Task to update was not found in the session.'
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal error occurred while updating the task status.'
     );
   }
-
-  return updatedSession;
 };
 
 /**
@@ -182,26 +246,38 @@ const updateTaskStatusService = async (sessionId, taskId, req = null) => {
  * @returns {Promise<Array<IBrowserSession>>} A promise that resolves to an array of browser session documents (lean objects).
  */
 const getSessionsForUserService = async (userId, req = null) => {
-  const query = req ? withTenantFilter(req, { user: userId }) : { user: userId };
-  // Optimization: Added .lean() for read-only operations to improve performance
-  // by returning plain JavaScript objects instead of Mongoose documents.
-  const sessions = await BrowserSession.find(query)
-    .select({
-      'responses.prompt': { $slice: 1 }, // Only get the first element of the responses array
-      'responses.status': 0, // Exclude all other fields from the sub-document
-      'responses.output': 0,
-      'responses.taskId': 0,
-      'responses.live_url': 0,
-      'responses.error_message': 0,
-      'responses.finished_at': 0,
-      'responses.structured_output': 0,
-      'responses.createdAt': 0,
-      'responses.updatedAt': 0,
-    })
-    .sort({ updatedAt: -1 }) // Sort by most recently updated
-    .lean(); // Optimization: Use .lean() for read-only query
+  try {
+    const query = req ? withTenantFilter(req, { user: userId }) : { user: userId };
+    // Optimization: Added .lean() for read-only operations to improve performance
+    // by returning plain JavaScript objects instead of Mongoose documents.
+    const sessions = await BrowserSession.find(query)
+      .select({
+        'responses.prompt': { $slice: 1 }, // Only get the first element of the responses array
+        'responses.status': 0, // Exclude all other fields from the sub-document
+        'responses.output': 0,
+        'responses.taskId': 0,
+        'responses.live_url': 0,
+        'responses.error_message': 0,
+        'responses.finished_at': 0,
+        'responses.structured_output': 0,
+        'responses.createdAt': 0,
+        'responses.updatedAt': 0,
+      })
+      .sort({ updatedAt: -1 }) // Sort by most recently updated
+      .lean(); // Optimization: Use .lean() for read-only query
 
-  return sessions;
+    return sessions;
+  } catch (error) {
+    logger.error('Error in getSessionsForUserService', {
+      error: error.message,
+      stack: error.stack,
+      userId,
+    });
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal error occurred while retrieving browser sessions.'
+    );
+  }
 };
 
 /**
@@ -214,17 +290,33 @@ const getSessionsForUserService = async (userId, req = null) => {
  * @throws {ApiError} If the session is not found or if the user does not have access to it.
  */
 const getSessionByIdService = async (sessionId, userId, req = null) => {
-  const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
-  // Optimization: Added .lean() for read-only operations to improve performance
-  // by returning plain JavaScript objects instead of Mongoose documents.
-  const session = await BrowserSession.findOne(query).lean(); // Optimization: Use .lean() for read-only query
-  if (!session) {
+  try {
+    const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
+    // Optimization: Added .lean() for read-only operations to improve performance
+    // by returning plain JavaScript objects instead of Mongoose documents.
+    const session = await BrowserSession.findOne(query).lean(); // Optimization: Use .lean() for read-only query
+    if (!session) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        'Session not found or access denied.'
+      );
+    }
+    return session;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    logger.error('Error in getSessionByIdService', {
+      error: error.message,
+      stack: error.stack,
+      sessionId,
+      userId,
+    });
     throw new ApiError(
-      httpStatus.NOT_FOUND,
-      'Session not found or access denied.'
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'An internal error occurred while retrieving the browser session.'
     );
   }
-  return session;
 };
 
 /**
