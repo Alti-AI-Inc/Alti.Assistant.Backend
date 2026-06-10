@@ -112,6 +112,31 @@ const listAllDesktops = async (context, filters = {}) => {
 };
 
 /**
+ * [Platform Owner] Lists all tenants known to the system and their suspension status.
+ * In this implementation, "known" tenants are those who have an entry in the suspension state map.
+ * A more robust implementation would query a dedicated tenant database.
+ * @async
+ * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @returns {Promise<Array<object>>} A promise that resolves with a list of tenants and their status.
+ * @throws {ApiError} If the user is not a Platform Owner.
+ */
+const listTenants = async (context) => {
+  if (!context?.isPlatformOwner) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  }
+  log('INFO', 'Platform Owner: Listing all known tenants and their suspension status', context);
+
+  const tenants = [];
+  for (const [tenantId, isSuspended] of tenantSuspensionState.entries()) {
+    tenants.push({ tenantId, isSuspended });
+  }
+
+  // This is a simple implementation. A real one might also list tenants from a database
+  // who don't have an explicit suspension state (and would be considered active).
+  return tenants;
+};
+
+/**
  * [Platform Owner] Retrieves global usage statistics for the Cyberdesk platform.
  * @async
  * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
@@ -131,119 +156,6 @@ const getGlobalStats = async (context) => {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, result.error.message || 'Failed to retrieve global statistics');
   }
   return result;
-};
-
-/**
- * [Platform Owner] Sets the suspension status for a tenant.
- * A suspended tenant cannot launch new desktops.
- * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
- * @param {string} tenantId - The ID of the tenant to suspend or unsuspend.
- * @param {boolean} isSuspended - True to suspend, false to unsuspend.
- * @returns {Promise<object>} A promise that resolves with a success message.
- * @throws {ApiError} If the user is not a Platform Owner.
- */
-const setTenantSuspensionStatus = async (context, tenantId, isSuspended) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
-  }
-  if (!tenantId) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant ID is required.');
-  }
-
-  const action = isSuspended ? 'suspending' : 'unsuspending';
-  log('WARNING', `Platform Owner is ${action} tenant ${tenantId}`, context, { tenantId, isSuspended });
-  tenantSuspensionState.set(tenantId, isSuspended);
-
-  return { success: true, message: `Tenant ${tenantId} has been ${isSuspended ? 'suspended' : 'unsuspended'}.` };
-};
-
-/**
- * [Platform Owner] Terminates all running desktops for a specific tenant.
- * This is a critical function for tenant suspension enforcement.
- * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
- * @param {string} tenantIdToSuspend - The ID of the tenant whose desktops will be terminated.
- * @returns {Promise<object>} A promise that resolves with a summary of the termination operations.
- * @throws {ApiError} If the user is not a Platform Owner or if the operation fails.
- */
-const terminateAllDesktopsForTenant = async (context, tenantIdToSuspend) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
-  }
-  if (!tenantIdToSuspend) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant ID is required for this operation.');
-  }
-
-  log('WARNING', 'Platform Owner: Initiating termination of all desktops for a tenant', context, { tenantIdToSuspend });
-
-  // Step 1: List all desktops for the specified tenant using metadata filter.
-  const listResult = await listAllDesktops(context, { 'metadata.tenantId': tenantIdToSuspend });
-  const desktopsToTerminate = listResult.data;
-
-  if (!desktopsToTerminate || desktopsToTerminate.length === 0) {
-    log('INFO', `Platform Owner: No active desktops found for tenant ${tenantIdToSuspend}.`, context);
-    return { success: true, message: 'No active desktops found for the specified tenant.', terminatedCount: 0 };
-  }
-
-  // Step 2: Terminate each desktop in parallel. The inner `terminateDesktop` call is authorized by the Platform Owner context.
-  const terminationPromises = desktopsToTerminate.map(desktop =>
-    terminateDesktop(context, desktop.id)
-  );
-  const results = await Promise.allSettled(terminationPromises);
-
-  const successfulTerminations = results.filter(r => r.status === 'fulfilled').length;
-  const failedTerminations = results.length - successfulTerminations;
-
-  log('INFO', `Platform Owner: Termination process completed for tenant ${tenantIdToSuspend}.`, context, {
-    totalFound: desktopsToTerminate.length,
-    successfulTerminations,
-    failedTerminations,
-  });
-
-  return {
-    success: failedTerminations === 0,
-    message: `Termination process completed. ${successfulTerminations} succeeded, ${failedTerminations} failed.`,
-    terminatedCount: successfulTerminations,
-    failedCount: failedTerminations,
-  };
-};
-
-/**
- * [Platform Owner] Updates system-wide Cyberdesk configuration, such as the API key.
- * Includes a verification step to ensure the new key is valid before applying it.
- * @async
- * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
- * @param {object} newCyberdeskConfig - The new configuration object. e.g., { apiKey: '...', defaultTimeout: 900000 }
- * @returns {Promise<object>} A promise that resolves with a success message.
- * @throws {ApiError} If the user is not a Platform Owner or the new config is invalid.
- */
-const updatePlatformConfig = async (context, newCyberdeskConfig) => {
-  if (!context?.isPlatformOwner) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
-  }
-
-  log('WARNING', 'Platform Owner: Updating platform-wide Cyberdesk configuration', context, { newCyberdeskConfig });
-
-  if (newCyberdeskConfig.apiKey) {
-    try {
-      // Create a temporary client to test the new key without disrupting the current singleton.
-      const tempClient = createCyberdeskClient({ apiKey: newCyberdeskConfig.apiKey });
-      // Verification step: Make a low-impact call to verify the new key.
-      await tempClient.getUsageStatistics();
-      // If successful, re-initialize the singleton for real.
-      getCyberdeskClient.reinitialize(newCyberdeskConfig.apiKey);
-      log('INFO', 'Platform Owner: Cyberdesk client re-initialized with new, verified API key.', context);
-    } catch (error) {
-      log('ERROR', 'Platform Owner: New API key is invalid. Configuration change rejected.', context, { error: error.message });
-      throw new ApiError(httpStatus.BAD_REQUEST, 'The provided API key is invalid. Configuration was not updated.');
-    }
-  }
-
-  // In a real system, other config values would be persisted to a database or config store.
-  // For example: config.cyberdesk_default_timeout_ms = newCyberdeskConfig.defaultTimeout;
-
-  return { success: true, message: 'Platform configuration updated successfully.' };
 };
 
 /**
@@ -285,6 +197,162 @@ const getGlobalLogs = async (context, filters = {}) => {
   };
 };
 
+/**
+ * [Platform Owner] Retrieves the current, non-sensitive platform configuration.
+ * Sensitive values like the API key will be masked.
+ * @async
+ * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @returns {Promise<object>} A promise that resolves with the current configuration.
+ * @throws {ApiError} If the user is not a Platform Owner.
+ */
+const getPlatformConfig = async (context) => {
+  if (!context?.isPlatformOwner) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  }
+  log('INFO', 'Platform Owner: Fetching platform configuration', context);
+
+  // Helper to mask sensitive strings for security.
+  const maskString = (str) => (str ? `${str.substring(0, 4)}...${str.slice(-4)}` : 'Not Set');
+
+  return {
+    cyberdeskApiKey: maskString(config.cyberdesk_api_key),
+    defaultDesktopTimeoutMs: config.cyberdesk_default_timeout_ms || 600000,
+    // Add other relevant config values here as the platform grows.
+  };
+};
+
+/**
+ * [Platform Owner] Updates system-wide Cyberdesk configuration, such as the API key.
+ * Includes a verification step to ensure the new key is valid before applying it.
+ * @async
+ * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {object} newCyberdeskConfig - The new configuration object. e.g., { apiKey: '...', defaultTimeout: 900000 }
+ * @returns {Promise<object>} A promise that resolves with a success message.
+ * @throws {ApiError} If the user is not a Platform Owner or the new config is invalid.
+ */
+const updatePlatformConfig = async (context, newCyberdeskConfig) => {
+  if (!context?.isPlatformOwner) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  }
+
+  log('WARNING', 'Platform Owner: Updating platform-wide Cyberdesk configuration', context, { newCyberdeskConfig });
+
+  if (newCyberdeskConfig.apiKey) {
+    try {
+      // Create a temporary client to test the new key without disrupting the current singleton.
+      const tempClient = createCyberdeskClient({ apiKey: newCyberdeskConfig.apiKey });
+      // Verification step: Make a low-impact call to verify the new key.
+      await tempClient.getUsageStatistics();
+      // If successful, re-initialize the singleton for real.
+      getCyberdeskClient.reinitialize(newCyberdeskConfig.apiKey);
+      log('INFO', 'Platform Owner: Cyberdesk client re-initialized with new, verified API key.', context);
+    } catch (error) {
+      log('ERROR', 'Platform Owner: New API key is invalid. Configuration change rejected.', context, { error: error.message });
+      throw new ApiError(httpStatus.BAD_REQUEST, 'The provided API key is invalid. Configuration was not updated.');
+    }
+  }
+
+  // In a real system, other config values would be persisted to a database or config store.
+  // For example: config.cyberdesk_default_timeout_ms = newCyberdeskConfig.defaultTimeout;
+
+  return { success: true, message: 'Platform configuration updated successfully.' };
+};
+
+/**
+ * [Platform Owner] Sets the suspension status for a tenant.
+ * A suspended tenant cannot launch new desktops.
+ * If a tenant is being suspended, all their active desktops will be terminated automatically.
+ * @async
+ * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {string} tenantId - The ID of the tenant to suspend or unsuspend.
+ * @param {boolean} isSuspended - True to suspend, false to unsuspend.
+ * @returns {Promise<object>} A promise that resolves with a summary of the actions taken.
+ * @throws {ApiError} If the user is not a Platform Owner.
+ */
+const setTenantSuspensionStatus = async (context, tenantId, isSuspended) => {
+  if (!context?.isPlatformOwner) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  }
+  if (!tenantId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant ID is required.');
+  }
+
+  const action = isSuspended ? 'suspending' : 'unsuspending';
+  log('WARNING', `Platform Owner is ${action} tenant ${tenantId}`, context, { tenantId, isSuspended });
+  tenantSuspensionState.set(tenantId, isSuspended);
+
+  let terminationResult = null;
+  // If suspending, also terminate all running desktops for that tenant as a security and cost-control measure.
+  if (isSuspended) {
+    log('INFO', `Automatically terminating all desktops for newly suspended tenant ${tenantId}`, context);
+    try {
+      terminationResult = await terminateAllDesktopsForTenant(context, tenantId);
+    } catch (error) {
+      // Log the error but don't fail the entire suspension operation. The tenant is still marked as suspended.
+      log('ERROR', `Failed to automatically terminate desktops for suspended tenant ${tenantId}`, context, { error: error.message });
+      terminationResult = { success: false, message: `Termination failed: ${error.message}` };
+    }
+  }
+
+  const message = `Tenant ${tenantId} has been ${isSuspended ? 'suspended' : 'unsuspended'}.`;
+  return {
+    success: true,
+    message,
+    terminationDetails: terminationResult, // Provide details of the automatic termination if it occurred.
+  };
+};
+
+/**
+ * [Platform Owner] Terminates all running desktops for a specific tenant.
+ * This is a critical function for tenant suspension enforcement or other administrative actions.
+ * @async
+ * @param {PlatformContext} context - The request context. Must have `isPlatformOwner: true`.
+ * @param {string} tenantIdToTerminate - The ID of the tenant whose desktops will be terminated.
+ * @returns {Promise<object>} A promise that resolves with a summary of the termination operations.
+ * @throws {ApiError} If the user is not a Platform Owner or if the operation fails.
+ */
+const terminateAllDesktopsForTenant = async (context, tenantIdToTerminate) => {
+  if (!context?.isPlatformOwner) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: This action requires Platform Owner privileges.');
+  }
+  if (!tenantIdToTerminate) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant ID is required for this operation.');
+  }
+
+  log('WARNING', 'Platform Owner: Initiating termination of all desktops for a tenant', context, { tenantIdToTerminate });
+
+  // Step 1: List all desktops for the specified tenant using metadata filter.
+  const listResult = await listAllDesktops(context, { 'metadata.tenantId': tenantIdToTerminate });
+  const desktopsToTerminate = listResult.data;
+
+  if (!desktopsToTerminate || desktopsToTerminate.length === 0) {
+    log('INFO', `Platform Owner: No active desktops found for tenant ${tenantIdToTerminate}.`, context);
+    return { success: true, message: 'No active desktops found for the specified tenant.', terminatedCount: 0 };
+  }
+
+  // Step 2: Terminate each desktop in parallel. The inner `terminateDesktop` call is authorized by the Platform Owner context.
+  const terminationPromises = desktopsToTerminate.map(desktop =>
+    terminateDesktop(context, desktop.id)
+  );
+  const results = await Promise.allSettled(terminationPromises);
+
+  const successfulTerminations = results.filter(r => r.status === 'fulfilled').length;
+  const failedTerminations = results.length - successfulTerminations;
+
+  log('INFO', `Platform Owner: Termination process completed for tenant ${tenantIdToTerminate}.`, context, {
+    totalFound: desktopsToTerminate.length,
+    successfulTerminations,
+    failedTerminations,
+  });
+
+  return {
+    success: failedTerminations === 0,
+    message: `Termination process completed. ${successfulTerminations} succeeded, ${failedTerminations} failed.`,
+    terminatedCount: successfulTerminations,
+    failedCount: failedTerminations,
+  };
+};
+
 // --- Core Service Functions (with Platform Owner enhancements) ---
 
 /**
@@ -297,6 +365,12 @@ const getGlobalLogs = async (context, filters = {}) => {
  */
 const launchDesktop = async (context, options = {}) => {
   const { tenantId, userId, isPlatformOwner } = context;
+
+  // Ensure tenant exists in the state map for tracking purposes. Default to not suspended.
+  // This populates the list of known tenants for the `listTenants` admin function.
+  if (!tenantSuspensionState.has(tenantId)) {
+    tenantSuspensionState.set(tenantId, false);
+  }
 
   // A suspended tenant cannot launch new desktops, but a Platform Owner can override this for administrative purposes.
   if (tenantSuspensionState.get(tenantId) && !isPlatformOwner) {
@@ -438,13 +512,17 @@ const terminateDesktop = async (context, desktopId) => {
  * including standard user operations and enhanced features for Platform Owners.
  */
 export const cyberdeskService = {
-  // Platform Owner Features
+  // Platform Owner Features (Oversight)
   listAllDesktops,
+  listTenants,
   getGlobalStats,
+  getGlobalLogs,
+  // Platform Owner Features (Configuration)
+  getPlatformConfig,
+  updatePlatformConfig,
+  // Platform Owner Features (Tenant Management)
   setTenantSuspensionStatus,
   terminateAllDesktopsForTenant,
-  updatePlatformConfig,
-  getGlobalLogs,
   // Standard Features (with Platform Owner overrides)
   launchDesktop,
   getDesktopInfo,

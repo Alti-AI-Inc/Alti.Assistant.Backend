@@ -135,8 +135,10 @@ const addAiEndpoint = async (req, res) => {
       delete: deleteUrl,
     });
 
-    // Audit log for platform owner action
+    // GCP COMPLIANCE: Added 'severity' and 'message' keys for structured logging.
     auditLogger.info({
+      severity: 'INFO',
+      message: `User ${req.user.id} successfully created AI endpoint ${newEndpoint._id}.`,
       actor: req.user.id, // Assumes auth middleware provides req.user
       action: 'create_ai_endpoint',
       resource: newEndpoint._id,
@@ -151,12 +153,19 @@ const addAiEndpoint = async (req, res) => {
       data: newEndpoint,
     });
   } catch (error) {
+    // GCP COMPLIANCE: Added 'severity' and 'message' keys, and structured error details for structured logging.
     auditLogger.error({
+      severity: 'ERROR',
+      message: `Failed to create AI endpoint. Error: ${error.message}`,
       actor: req.user?.id,
       action: 'create_ai_endpoint',
       details: req.body,
       status: 'failure',
-      error: error.message,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
     });
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
@@ -210,6 +219,18 @@ const getAllAiEndpoints = async (req, res) => {
       data: endpoints,
     });
   } catch (error) {
+    // GCP COMPLIANCE: Added structured error logging.
+    auditLogger.error({
+      severity: 'ERROR',
+      message: `Failed to fetch all AI endpoints. Error: ${error.message}`,
+      action: 'get_all_ai_endpoints',
+      status: 'failure',
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
+    });
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
       message: 'Error fetching AI endpoints',
@@ -271,6 +292,19 @@ const getAiEndpointById = async (req, res) => {
       data: endpoint,
     });
   } catch (error) {
+    // GCP COMPLIANCE: Added structured error logging.
+    auditLogger.error({
+      severity: 'ERROR',
+      message: `Failed to fetch AI endpoint by ID ${req.params.id}. Error: ${error.message}`,
+      action: 'get_ai_endpoint_by_id',
+      resource: req.params.id,
+      status: 'failure',
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
+    });
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
       message: 'Error fetching AI endpoint',
@@ -374,8 +408,10 @@ const updateAiEndpoint = async (req, res) => {
       });
     }
 
-    // Audit log for platform owner action
+    // GCP COMPLIANCE: Added 'severity' and 'message' keys for structured logging.
     auditLogger.info({
+      severity: 'INFO',
+      message: `User ${req.user.id} successfully updated AI endpoint ${updatedEndpoint._id}.`,
       actor: req.user.id,
       action: 'update_ai_endpoint',
       resource: updatedEndpoint._id,
@@ -390,13 +426,20 @@ const updateAiEndpoint = async (req, res) => {
       data: updatedEndpoint,
     });
   } catch (error) {
+    // GCP COMPLIANCE: Added 'severity' and 'message' keys, and structured error details for structured logging.
     auditLogger.error({
+      severity: 'ERROR',
+      message: `Failed to update AI endpoint ${id}. Error: ${error.message}`,
       actor: req.user?.id,
       action: 'update_ai_endpoint',
       resource: id,
       details: { changes: updateData },
       status: 'failure',
-      error: error.message,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
     });
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
@@ -489,8 +532,10 @@ const deleteAiEndpoint = async (req, res) => {
 
     await AiEndpoint.findByIdAndDelete(id);
 
-    // Audit log for platform owner action
+    // GCP COMPLIANCE: Added 'severity' and 'message' keys for structured logging.
     auditLogger.info({
+      severity: 'INFO',
+      message: `User ${req.user.id} successfully deleted AI endpoint ${id}.`,
       actor: req.user.id,
       action: 'delete_ai_endpoint',
       resource: id,
@@ -505,12 +550,19 @@ const deleteAiEndpoint = async (req, res) => {
       data: null,
     });
   } catch (error) {
+    // GCP COMPLIANCE: Added 'severity' and 'message' keys, and structured error details for structured logging.
     auditLogger.error({
+      severity: 'ERROR',
+      message: `Failed to delete AI endpoint ${id}. Error: ${error.message}`,
       actor: req.user?.id,
       action: 'delete_ai_endpoint',
       resource: id,
       status: 'failure',
-      error: error.message,
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      },
     });
     res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       status: 'fail',
