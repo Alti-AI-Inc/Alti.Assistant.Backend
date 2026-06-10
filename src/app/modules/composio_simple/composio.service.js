@@ -1,6 +1,8 @@
 import { Composio } from '@composio/core';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import config from '../../../../config/index.js';
+// AUDIT: Removed local config import to prevent reading secrets from files.
+// import config from '../../../../config/index.js';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager'; // AUDIT: Added GCP Secret Manager client for secure secret retrieval.
 import ComposioAuth from '../composio_v2/composio.model.js';
 import AuthConfig from '../composio_v2/authConfig.model.js';
 import {
@@ -14,17 +16,84 @@ import { getConversationHistory } from '../composio_v2/ai_classification/workflo
 import Conversation from '../conversations/conversation.model.js';
 import ConversationSummary from '../conversations/conversationSummary.model.js';
 
-/**
- * @constant {Composio} composio - An instance of the Composio SDK initialized with the organization API key.
- * This instance is used to interact with the Composio platform for managing connected accounts and executing tools.
- */
-const composio = new Composio({ apiKey: config.composio.orgApiKey });
+// AUDIT: Securely manage secrets using GCP Secret Manager.
+// This approach avoids reading credentials from local files in production.
+// It relies on environment variables for configuration (GCP_PROJECT_ID, COMPOSIO_API_KEY_SECRET, GEMINI_API_KEY_SECRET),
+// which can be injected by Cloud Run or other GCP services.
+
+const secretManagerClient = new SecretManagerServiceClient();
+const secretCache = new Map();
 
 /**
- * @constant {GoogleGenerativeAI} genAI - An instance of the Google Generative AI SDK initialized with the Gemini secret key.
- * This instance is used for interacting with Google's AI models, primarily for token counting and potentially for generating responses.
+ * Asynchronously retrieves a secret from GCP Secret Manager with in-memory caching.
+ * @param {string} secretName - The name of the secret to retrieve (e.g., 'my-api-key').
+ * @returns {Promise<string>} The secret value.
+ * @throws {Error} If required environment variables (GCP_PROJECT_ID) are not set or secret retrieval fails.
  */
-const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
+async function getSecret(secretName) {
+  if (secretCache.has(secretName)) {
+    return secretCache.get(secretName);
+  }
+
+  const projectId = process.env.GCP_PROJECT_ID;
+  if (!projectId) {
+    console.error('FATAL: GCP_PROJECT_ID environment variable not set.');
+    throw new Error('Server configuration error: Missing GCP Project ID.');
+  }
+
+  try {
+    const [version] = await secretManagerClient.accessSecretVersion({
+      name: `projects/${projectId}/secrets/${secretName}/versions/latest`,
+    });
+
+    const payload = version.payload.data.toString('utf8');
+    secretCache.set(secretName, payload);
+    return payload;
+  } catch (error) {
+    console.error(`Failed to access secret: ${secretName}`, error);
+    throw new Error(`Could not retrieve a required secret: ${secretName}.`);
+  }
+}
+
+// Lazily initialized service instances to be populated by the getter functions.
+let composio;
+let genAI;
+
+/**
+ * Gets a singleton instance of the Composio SDK, initializing it on first use
+ * with an API key from GCP Secret Manager.
+ * @returns {Promise<Composio>} The initialized Composio SDK instance.
+ */
+async function getComposioInstance() {
+  if (!composio) {
+    // The name of the secret in GCP Secret Manager is read from an environment variable.
+    const apiKeySecretName = process.env.COMPOSIO_API_KEY_SECRET;
+    if (!apiKeySecretName) {
+      throw new Error('Server configuration error: COMPOSIO_API_KEY_SECRET env var not set.');
+    }
+    const apiKey = await getSecret(apiKeySecretName);
+    composio = new Composio({ apiKey });
+  }
+  return composio;
+}
+
+/**
+ * Gets a singleton instance of the GoogleGenerativeAI SDK, initializing it on first use
+ * with an API key from GCP Secret Manager.
+ * @returns {Promise<GoogleGenerativeAI>} The initialized GoogleGenerativeAI SDK instance.
+ */
+async function getGenAIInstance() {
+  if (!genAI) {
+    // The name of the secret in GCP Secret Manager is read from an environment variable.
+    const apiKeySecretName = process.env.GEMINI_API_KEY_SECRET;
+    if (!apiKeySecretName) {
+      throw new Error('Server configuration error: GEMINI_API_KEY_SECRET env var not set.');
+    }
+    const apiKey = await getSecret(apiKeySecretName);
+    genAI = new GoogleGenerativeAI(apiKey);
+  }
+  return genAI;
+}
 
 /**
  * Executes a user's natural language request by identifying relevant applications,
@@ -239,8 +308,9 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
     .map((message) => message.content)
     .join(' ');
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-  const tokenCount = await model.countTokens(constructMessasges);
+  const genAIClient = await getGenAIInstance(); // AUDIT: Dynamically get initialized client with secret from GCP Secret Manager.
+  const model = genAIClient.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const { totalTokens: tokenCount } = await model.countTokens(constructMessasges);
   totalTokens = tokenCount;
 
   if (totalTokens > 4000) {
@@ -297,8 +367,9 @@ export const initiateAuth = async (appName, userId) => {
     }
 
     let connectionUrl;
+    const composioClient = await getComposioInstance(); // AUDIT: Dynamically get initialized client with secret from GCP Secret Manager.
     try {
-      connectionUrl = await composio.connectedAccounts.initiate(
+      connectionUrl = await composioClient.connectedAccounts.initiate(
         safeUserId,
         authConfig.authConfigId // Use the Mongoose document's authConfigId
       );
@@ -306,7 +377,7 @@ export const initiateAuth = async (appName, userId) => {
       console.warn(`[Simple] Custom config ${authConfig.authConfigId} initiation failed: ${initiateError.message}. Falling back to globally managed credentials using appName: ${safeAppName}...`);
 
       // Fallback: use appName directly as authConfigId
-      connectionUrl = await composio.connectedAccounts.initiate(
+      connectionUrl = await composioClient.connectedAccounts.initiate(
         safeUserId,
         safeAppName
       );
@@ -352,8 +423,9 @@ export const waitForConnection = async (connectedAccountId) => {
   const safeConnectedAccountId = String(connectedAccountId);
 
   try {
+    const composioClient = await getComposioInstance(); // AUDIT: Dynamically get initialized client with secret from GCP Secret Manager.
     const connection =
-      await composio.connectedAccounts.waitForConnection(safeConnectedAccountId);
+      await composioClient.connectedAccounts.waitForConnection(safeConnectedAccountId);
     // Indexing Recommendation: Consider an index on `{ connectedAccountId: 1 }`
     // for the ComposioAuth model to optimize this update operation.
     await ComposioAuth.updateOne(
@@ -443,11 +515,12 @@ export const disconnectApp = async (userId, appName) => {
       return { success: false, error: 'No active connection found for this app.' };
     }
 
+    const composioClient = await getComposioInstance(); // AUDIT: Dynamically get initialized client with secret from GCP Secret Manager.
     try {
-      if (typeof composio.connectedAccounts.delete === 'function') {
-         await composio.connectedAccounts.delete(account.connectedAccountId);
-      } else if (typeof composio.connectedAccounts.remove === 'function') {
-         await composio.connectedAccounts.remove(account.connectedAccountId);
+      if (typeof composioClient.connectedAccounts.delete === 'function') {
+         await composioClient.connectedAccounts.delete(account.connectedAccountId);
+      } else if (typeof composioClient.connectedAccounts.remove === 'function') {
+         await composioClient.connectedAccounts.remove(account.connectedAccountId);
       }
     } catch (apiErr) {
       console.warn(`[Simple] Composio API delete failed for ${account.connectedAccountId}:`, apiErr.message);
