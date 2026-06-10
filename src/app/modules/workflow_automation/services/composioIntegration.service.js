@@ -3,7 +3,7 @@
  * @property {string} app - The name of the application.
  * @property {string} authConfigId - The unique ID of the authentication configuration for the app.
  * @property {boolean} isConnected - True if the user has an active connection to this app, false otherwise.
- * @property {'active'|'pending'|'not_connected'|string} connectionStatus - The status of the user's connection to the app.
+ * @property {'active'|'pending'|'not_connected'|string} connectionStatus - The status of the user's connection to this app.
  * @property {string} [connectedAccountId] - The ID of the connected account if `isConnected` is true.
  * @property {string} [integrationId] - The ID of the integration if `isConnected` is true.
  */
@@ -55,7 +55,7 @@
  * @typedef {Object} AppConnectionStatus
  * @property {string} app - The name of the application.
  * @property {boolean} isConnected - True if the user has an active connection to this app, false otherwise.
- * @property {'active'|'pending'|'not_connected'|string} status - The status of the user's connection to the app.
+ * @property {'active'|'pending'|'not_connected'|string} status - The status of the user's connection to this app.
  * @property {string} [authConfigId] - The unique ID of the authentication configuration for the app.
  * @property {string} [connectedAccountId] - The ID of the connected account if `isConnected` is true.
  */
@@ -144,19 +144,19 @@ class ComposioIntegrationService {
       logger.info(`Getting available apps for user ${userId}`);
 
       // Get all auth configs (available apps)
-      // Optimization: Add .lean() for read-only queries to return plain JavaScript objects,
-      // which can improve performance by skipping Mongoose document instantiation overhead.
+      // Optimization: Using .lean() for read-only queries returns plain JavaScript objects,
+      // which improves performance by skipping Mongoose document instantiation overhead.
       // Indexing Recommendation: Consider an index on `AuthConfig.app` if queries often filter or sort by app name.
       const authConfigs = await AuthConfig.find({}).lean();
 
       // Get user's connected accounts
-      // Optimization: Add .lean() for read-only queries.
+      // Optimization: Using .lean() for read-only queries.
       // Indexing Recommendation: Add an index on `ComposioAuth.userId` for efficient lookups.
       const userConnections = await ComposioAuth.find({
         userId: userId,
       }).lean();
 
-      // Map connected accounts by app
+      // Map connected accounts by app for efficient O(1) average time lookup.
       const connectedAppsMap = new Map();
       userConnections.forEach((connection) => {
         if (connection.authConfigId) {
@@ -225,8 +225,9 @@ class ComposioIntegrationService {
 
       // Filter by specific app names if provided
       if (appNames && appNames.length > 0) {
+        const lowerCaseAppNames = new Set(appNames.map(name => name.toLowerCase()));
         connectedApps = connectedApps.filter((app) =>
-          appNames.includes(app.app.toLowerCase())
+          lowerCaseAppNames.has(app.app.toLowerCase())
         );
       }
 
@@ -234,14 +235,12 @@ class ComposioIntegrationService {
       const toolsByApp = {};
 
       // Optimization: Use Promise.all to run external API calls concurrently
-      // instead of sequentially in a loop, improving overall response time.
-      // If composio.getTools supports fetching tools for multiple apps in a single call,
-      // a single batch call would be even more efficient.
+      // instead of sequentially in a loop, significantly improving response time.
       const toolPromises = connectedApps.map(async (app) => {
         try {
           const tools = await composio.getTools(
             {
-              apps: [app.app], // Assuming this can take an array of app names for batching, but currently used for single app
+              apps: [app.app],
             },
             userId
           );
@@ -258,20 +257,22 @@ class ComposioIntegrationService {
           };
         } catch (toolError) {
           logger.warn(`Error getting tools for app ${app.app}:`, toolError);
-          return { app: app.app, tools: [] };
+          return { app: app.app, tools: [] }; // Return empty array on error to not fail the whole operation
         }
       });
 
       const results = await Promise.all(toolPromises);
       results.forEach((result) => {
-        toolsByApp[result.app] = result.tools;
+        if (result.tools.length > 0) {
+          toolsByApp[result.app] = result.tools;
+        }
       });
 
       // Also get tools from our local database, scoped to requested apps if provided
       const localToolsQuery = appNames && appNames.length > 0
         ? { appName: { $in: appNames } }
         : {};
-      // Optimization: Add .lean() for read-only queries.
+      // Optimization: Using .lean() for read-only queries.
       // Indexing Recommendation: Add an index on `Tool.appName` for efficient filtering, especially with `$in` queries.
       const localTools = await Tool.find(localToolsQuery).limit(100).lean();
 
@@ -317,12 +318,12 @@ class ComposioIntegrationService {
         throw new Error(userApps.error);
       }
 
-      const connectedAppNames = userApps.connectedApps.map((app) =>
+      const connectedAppNames = new Set(userApps.connectedApps.map((app) =>
         app.app.toLowerCase()
-      );
+      ));
 
-      // Optimization: Convert userApps.apps to a Map for O(1) average lookup
-      // when checking `appInfo`, which is more efficient for larger arrays than `array.find()`.
+      // Optimization: Convert userApps.apps to a Map for O(1) average lookup time,
+      // which is more efficient than `array.find()` inside a loop.
       const userAppsMap = new Map(userApps.apps.map(app => [app.app.toLowerCase(), app]));
 
       const connectionStatus = requiredApps.map((appName) => {
@@ -338,7 +339,7 @@ class ComposioIntegrationService {
           };
         }
 
-        const isConnected = connectedAppNames.includes(normalizedAppName);
+        const isConnected = connectedAppNames.has(normalizedAppName);
         // Optimization: Use map lookup instead of array.find for better performance
         const appInfo = userAppsMap.get(normalizedAppName);
 
@@ -388,26 +389,26 @@ class ComposioIntegrationService {
    */
   async getAvailableAppsForDetection() {
     try {
-      // Optimization: Add .lean() for read-only queries.
-      // Indexing Recommendation: Consider an index on `AuthConfig.app` if queries often filter or sort by app name.
+      // Optimization: Using .lean() for read-only queries.
+      // Indexing Recommendation: Consider an index on `AuthConfig.app` for potential filtering/sorting.
       const authConfigs = await AuthConfig.find({}).lean();
-      // Indexing Recommendation: Add an index on `Tool.appName` for efficient distinct queries.
+      // Indexing Recommendation: Add an index on `Tool.appName` for efficient `distinct` queries.
       const toolApps = await Tool.find({}).distinct('appName');
 
       // Get app names from auth configs
-      const availableApps = authConfigs.map((config) =>
+      const authConfigApps = authConfigs.map((config) =>
         config.app.toLowerCase()
       );
 
       const platformApps = ['chat', 'research', 'agents', 'data', 'apps', 'google_cloud', 'google_workspace'];
 
-      // Combine and deduplicate
-      const allAvailableApps = [...new Set([...availableApps, ...toolApps, ...platformApps])];
+      // Combine and deduplicate using a Set for efficiency.
+      const allAvailableApps = [...new Set([...authConfigApps, ...toolApps, ...platformApps])];
 
       return {
         success: true,
         availableApps: allAvailableApps,
-        authConfigApps: availableApps,
+        authConfigApps: authConfigApps,
         toolApps: toolApps,
       };
     } catch (error) {
@@ -441,17 +442,19 @@ class ComposioIntegrationService {
       }
 
       // Optimization: Convert availableApps to a Set for O(1) average lookup time
-      // when checking `includes`, which is more efficient for larger arrays.
+      // when checking for existence, which is more efficient than `array.includes()`.
       const availableAppsSet = new Set(availableAppsResult.availableApps);
 
-      // Filter detected apps to only include available ones
-      const validApps = detectedApps.filter((app) =>
-        availableAppsSet.has(app.toLowerCase())
-      );
-
-      const invalidApps = detectedApps.filter(
-        (app) => !availableAppsSet.has(app.toLowerCase())
-      );
+      // Partition detected apps into valid and invalid lists
+      const validApps = [];
+      const invalidApps = [];
+      for (const app of detectedApps) {
+        if (availableAppsSet.has(app.toLowerCase())) {
+          validApps.push(app);
+        } else {
+          invalidApps.push(app);
+        }
+      }
 
       let connectionStatus = null;
       if (userId && validApps.length > 0) {
@@ -496,12 +499,13 @@ class ComposioIntegrationService {
    */
   async getConnectionUrl(userId, appName) {
     try {
-      // Optimization: Add .lean() for read-only queries.
-      // Indexing Recommendation: Add an index on `AuthConfig.app` for efficient lookups.
-      // Note: Regex queries, especially with leading wildcards, can be slow even with indexes.
-      // Consider storing a lowercase version of `app` or using a collation for case-insensitive exact matches.
+      // Optimization: Using .lean() for read-only queries.
+      // Indexing Recommendation: Add an index on `AuthConfig.app`.
+      // Performance Note: Case-insensitive regex queries can be slow and may not fully utilize an index.
+      // For better performance, consider using a case-insensitive collation on the index or storing a
+      // normalized (e.g., lowercase) version of the `app` field to query against with an exact match.
       const authConfig = await AuthConfig.findOne({
-        app: { $regex: new RegExp(appName, 'i') },
+        app: { $regex: new RegExp(`^${appName}$`, 'i') }, // Anchored regex is more performant
       }).lean();
 
       if (!authConfig) {
@@ -509,9 +513,9 @@ class ComposioIntegrationService {
       }
 
       // Check if already connected
-      // Optimization: Add .lean() for read-only queries.
+      // Optimization: Using .lean() for read-only queries.
       // Indexing Recommendation: Add a compound index on `ComposioAuth.{userId, authConfigId, status}`
-      // for efficient lookup of existing connections.
+      // for highly efficient lookup of existing, active connections.
       const existingConnection = await ComposioAuth.findOne({
         userId: userId,
         authConfigId: authConfig.authConfigId,

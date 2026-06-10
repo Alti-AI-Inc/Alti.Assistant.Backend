@@ -1,4 +1,7 @@
 import mongoose from 'mongoose';
+import httpStatus from 'http-status';
+import logger from '../../config/logger';
+import ApiError from '../../utils/ApiError';
 
 /**
  * @typedef {Object} ILangchainRepository
@@ -21,7 +24,7 @@ import mongoose from 'mongoose';
 /**
  * Mongoose schema definition for the LangchainRepository model.
  * Represents a tracked Langchain-related repository with multi-tenant and global platform owner controls.
- * 
+ *
  * @type {import('mongoose').Schema<ILangchainRepository>}
  */
 const LangchainRepositorySchema = new mongoose.Schema(
@@ -113,54 +116,68 @@ LangchainRepositorySchema.index({ isApproved: 1, isGlobal: 1 });
 // This index covers the `isApproved` filter and the `tenantId` part of the $or condition.
 LangchainRepositorySchema.index({ isApproved: 1, tenantId: 1 });
 
-
 /**
  * Static method for Platform Owners to retrieve global statistics across all tenants.
  * @returns {Promise<Object>} Statistics object
+ * @throws {ApiError} If there is a database error during the aggregation.
  */
 LangchainRepositorySchema.statics.getGlobalStats = async function () {
-  // OPTIMIZATION: The aggregation pipeline is the most efficient way to calculate stats on the DB side.
-  // No changes needed here as this is already best practice.
-  const stats = await this.aggregate([
-    {
-      $group: {
-        _id: null,
-        totalRepositories: { $sum: 1 },
-        globalRepositories: { $sum: { $cond: [{ $eq: ['$isGlobal', true] }, 1, 0] } },
-        tenantRepositories: { $sum: { $cond: [{ $ne: ['$tenantId', null] }, 1, 0] } },
-        totalStars: { $sum: '$stars' },
-        totalForks: { $sum: '$forks' }
+  try {
+    // OPTIMIZATION: The aggregation pipeline is the most efficient way to calculate stats on the DB side.
+    const stats = await this.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalRepositories: { $sum: 1 },
+          globalRepositories: { $sum: { $cond: [{ $eq: ['$isGlobal', true] }, 1, 0] } },
+          tenantRepositories: { $sum: { $cond: [{ $ne: ['$tenantId', null] }, 1, 0] } },
+          totalStars: { $sum: '$stars' },
+          totalForks: { $sum: '$forks' }
+        }
       }
-    }
-  ]);
-  return stats[0] || { totalRepositories: 0, globalRepositories: 0, tenantRepositories: 0, totalStars: 0, totalForks: 0 };
+    ]);
+    // If the aggregation returns an empty array (no documents found), provide a default object.
+    return stats[0] || { totalRepositories: 0, globalRepositories: 0, tenantRepositories: 0, totalStars: 0, totalForks: 0 };
+  } catch (error) {
+    // Log the internal database error for telemetry and debugging.
+    logger.error('Error fetching global langchain repository stats from database.', {
+      errorMessage: error.message,
+      errorStack: error.stack,
+      context: 'LangchainRepository.getGlobalStats'
+    });
+    // Throw a normalized, user-friendly error to the service layer.
+    // Do not expose internal database error details to the client.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve global repository statistics due to a database error.'
+    );
+  }
 };
 
 /**
  * Query helper to find repositories accessible by a specific tenant.
  * Returns global repositories and repositories owned by the specific tenant.
- * 
+ *
  * @param {string|mongoose.Types.ObjectId} tenantId - The tenant ID
  * @returns {mongoose.Query}
  */
 LangchainRepositorySchema.query.forTenant = function (tenantId) {
   // OPTIMIZATION: This query is now supported by compound indexes on {isApproved, isGlobal} and {isApproved, tenantId},
   // which is significantly faster than relying on single-field indexes for an $or query.
+  // NOTE: This is a query builder, not an async operation. Error handling belongs where this query is executed (e.g., in a service).
   return this.find({
     isApproved: true,
-    $or: [
-      { isGlobal: true },
-      { tenantId: tenantId }
-    ]
+    $or: [{ isGlobal: true }, { tenantId: tenantId }]
   });
 };
 
 /**
  * Mongoose Model for LangchainRepository.
  * Provides database access and operations for Langchain repositories.
- * 
+ *
  * @type {import('mongoose').Model<ILangchainRepository>}
  */
-const LangchainRepository = mongoose.models.LangchainRepository || mongoose.model('LangchainRepository', LangchainRepositorySchema);
+const LangchainRepository =
+  mongoose.models.LangchainRepository || mongoose.model('LangchainRepository', LangchainRepositorySchema);
 
 export default LangchainRepository;
