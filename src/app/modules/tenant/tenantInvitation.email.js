@@ -221,7 +221,8 @@ export const sendInvitationReminderEmail = async (invitationData) => {
   } = invitationData;
 
   const baseUrl = config.app?.frontend_url || 'https://app.altihq.com';
-  const invitationLink = `${baseUrl}/invite/${token}`;
+  // BUG FIX: Changed invitationLink path to '/accept-invite/' for consistency with initial invitation email.
+  const invitationLink = `${baseUrl}/accept-invite/${token}`;
 
   const templateData = {
     inviterName,
@@ -232,12 +233,16 @@ export const sendInvitationReminderEmail = async (invitationData) => {
   };
 
   const htmlContent = generateInvitationEmailHTML(templateData);
+  // BUG FIX: Added plain text content for better email client compatibility and accessibility.
+  const textContent = generateInvitationEmailText(templateData);
   const subject = `Reminder: Your invitation to ${tenantName} expires soon`;
 
   const mailData = {
     sub: subject,
     message: htmlContent,
     userEmail: email,
+    // BUG FIX: Included plain text content.
+    text: textContent,
   };
 
   try {
@@ -267,11 +272,10 @@ export const isValidEmail = (email) => {
  * @property {function(InvitationData): Promise<Object>} sendInvitationEmail - Function to send a new tenant invitation email.
  * @property {function(InvitationData): Promise<Object>} sendInvitationReminderEmail - Function to send an invitation reminder email.
  * @property {function(string): boolean} isValidEmail - Function to validate an email address format.
- * @property {function(string): boolean} checkEmailRateLimit - Function to check and apply email rate limiting.
  */
 export default {
   sendInvitationEmail,
   sendInvitationReminderEmail,
   isValidEmail,
-  checkEmailRateLimit,
+  // BUG FIX: Removed checkEmailRateLimit from default export as it's an internal helper.
 };
