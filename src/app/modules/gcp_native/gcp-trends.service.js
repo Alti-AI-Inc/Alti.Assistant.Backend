@@ -3,16 +3,27 @@ import { logger } from '../../../shared/logger.js';
 
 /**
  * Decodes XML HTML entities and extracts CDATA blocks.
+ * Handles named and numeric (decimal and hexadecimal) entities.
  */
 const decodeXml = (str) => {
   if (!str) return '';
-  return str
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'");
+  let decoded = str;
+
+  // First, remove CDATA blocks
+  decoded = decoded.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
+
+  // Then, decode named entities. Order matters for &amp;lt; etc.
+  decoded = decoded.replace(/&amp;/g, '&');
+  decoded = decoded.replace(/&lt;/g, '<');
+  decoded = decoded.replace(/&gt;/g, '>');
+  decoded = decoded.replace(/&quot;/g, '"');
+  decoded = decoded.replace(/&apos;/g, "'");
+
+  // Finally, decode numeric entities (decimal and hexadecimal)
+  decoded = decoded.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(parseInt(dec, 10)));
+  decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+
+  return decoded;
 };
 
 /**
