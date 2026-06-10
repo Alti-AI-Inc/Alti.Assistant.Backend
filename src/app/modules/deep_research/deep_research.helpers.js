@@ -66,7 +66,7 @@ export const formatDeepResearchError = (error, conversationId, userType) => {
  * @property {number} averageMessagesPerResearch - The average messages per research conversation.
  * @property {string} lastUpdated - An ISO 8601 formatted timestamp indicating when these statistics were last updated or generated.
  */
-export const formatDeepResearchStats = (stats) => {
+export const formatDeepResearchStats = (stats = {}) => { // Added default empty object for stats to prevent TypeError if stats is null/undefined
   return {
     totalResearches: stats.totalDeepResearchConversations || 0,
     totalMessages: stats.totalDeepResearchMessages || 0,
@@ -89,7 +89,7 @@ export const formatDeepResearchStats = (stats) => {
  * @property {string} downloadUrl - The URL to download the PDF.
  * @property {string} generatedAt - An ISO 8601 formatted timestamp indicating when the PDF response was generated.
  */
-export const formatPDFResponse = (pdfData) => {
+export const formatPDFResponse = (pdfData = {}) => { // Added default empty object for pdfData to prevent TypeError if pdfData is null/undefined
   return {
     filename: pdfData.filename,
     size: pdfData.size,
