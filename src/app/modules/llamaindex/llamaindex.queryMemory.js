@@ -1,4 +1,6 @@
+import httpStatus from 'http-status';
 import { logger } from '../../../shared/logger.js';
+import ApiError from '../../../core/ApiError.js';
 import QueryMemory from './llamaindex.queryMemory.model.js';
 
 /**
@@ -104,9 +106,9 @@ const recordQuery = async (userId, query, answer, engine = 'vector', confidence 
     });
 
     logger.debug(`QueryMemory: recorded query for user ${userId}`);
-  } catch (err) {
+  } catch (error) {
     // Non-blocking — never let memory recording break the query flow
-    logger.error('QueryMemory.recordQuery failed:', err.message);
+    logger.error({ message: 'QueryMemory.recordQuery failed', error, userId });
   }
 };
 
@@ -150,8 +152,9 @@ const getRelevantHistory = async (userId, currentQuery, limit = 3, minSimilarity
       .slice(0, limit);
 
     return scored;
-  } catch (err) {
-    logger.error('QueryMemory.getRelevantHistory failed:', err.message);
+  } catch (error) {
+    // Fail-safe: return empty array on error to avoid breaking the query flow.
+    logger.error({ message: 'QueryMemory.getRelevantHistory failed', error, userId });
     return [];
   }
 };
@@ -187,10 +190,11 @@ ${historyBlock}
 Current Query:
 ${currentQuery}`;
 
-    logger.info(`QueryMemory: enriched query with ${history.length} prior memory entries`);
+    logger.info(`QueryMemory: enriched query with ${history.length} prior memory entries for user ${userId}`);
     return enriched;
-  } catch (err) {
-    logger.error('QueryMemory.buildMemoryEnrichedQuery failed:', err.message);
+  } catch (error) {
+    // Fail-safe: return original query on error to avoid breaking the query flow.
+    logger.error({ message: 'QueryMemory.buildMemoryEnrichedQuery failed', error, userId });
     return currentQuery;
   }
 };
@@ -202,7 +206,8 @@ ${currentQuery}`;
  * @async
  * @function getMemorySummary
  * @param {string} userId - The unique identifier of the user (acts as the multi-tenant isolation boundary).
- * @returns {Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>} Summary object containing memory statistics.
+ * @returns {Promise<{totalEntries: number, byEngine: Array<{engine: string, count: number}>, oldestEntry: {createdAt: Date, queryPreview: string} | null, newestEntry: {createdAt: Date, queryPreview: string} | null}>} Summary object containing memory statistics.
+ * @throws {ApiError} If there is a failure in querying the database.
  */
 const getMemorySummary = async (userId) => {
   try {
@@ -217,27 +222,26 @@ const getMemorySummary = async (userId) => {
     const newest = await QueryMemory.findOne({ userId }).sort({ createdAt: -1 }).select('createdAt query').lean();
 
     return {
-      success: true,
       totalEntries: total,
       byEngine: byEngine.map(e => ({ engine: e._id, count: e.count })),
       oldestEntry: oldest ? { createdAt: oldest.createdAt, queryPreview: oldest.query.substring(0, 80) } : null,
       newestEntry: newest ? { createdAt: newest.createdAt, queryPreview: newest.query.substring(0, 80) } : null,
     };
-  } catch (err) {
-    logger.error('QueryMemory.getMemorySummary failed:', err.message);
-    return { success: false, error: err.message };
+  } catch (error) {
+    logger.error({ message: 'QueryMemory.getMemorySummary failed', error, userId });
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to retrieve memory summary.');
   }
 };
 
 /**
  * Service object containing methods for managing and querying cross-session query memory.
  * All operations are scoped by `userId` to maintain strict multi-tenant data isolation.
- * 
+ *
  * @type {{
  *   recordQuery: (userId: string, query: string, answer: string, engine?: string, confidence?: number) => Promise<void>,
  *   getRelevantHistory: (userId: string, currentQuery: string, limit?: number, minSimilarity?: number) => Promise<Array<{query: string, answer: string, engine: string, createdAt: Date, similarity: number}>>,
  *   buildMemoryEnrichedQuery: (userId: string, currentQuery: string) => Promise<string>,
- *   getMemorySummary: (userId: string) => Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>
+ *   getMemorySummary: (userId: string) => Promise<{totalEntries: number, byEngine: Array<{engine: string, count: number}>, oldestEntry: {createdAt: Date, queryPreview: string} | null, newestEntry: {createdAt: Date, queryPreview: string} | null}>
  * }}
  */
 export const queryMemoryService = {

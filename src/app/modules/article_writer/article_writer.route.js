@@ -90,34 +90,43 @@ const router = express.Router();
  */
 /**
  * Route for the AI Conversational Assistant.
- * Supports both authenticated and guest users (optional authentication).
- * Enforces multi-tenant context extraction, daily request limits, storage limits, and RAG feature checks.
- * 
+ * This endpoint follows a precise middleware execution order to ensure security,
+ * fair usage, and a good user experience.
+ * 1. Optional Authentication: Allows both registered and guest users.
+ * 2. Tenant Isolation: Extracts tenant context to keep data separate.
+ * 3. Rate Limiting: Prevents abuse by limiting request frequency.
+ * 4. Input Validation: Rejects malformed requests early, before consuming usage credits.
+ * 5. Usage Limits: Enforces daily request quotas.
+ * 6. File Handling (RAG): Manages file uploads for context-aware generation.
+ * 7. Storage & Feature Checks: Verifies storage capacity and feature access for file uploads.
+ *
  * @name post/assistant
  * @function
  * @memberof module:article_writer
  * @inner
- * @param {string} path - Express path
- * @param {Function} optionalAuth - Authenticates user if token is present, otherwise allows guest access
- * @param {Function} extractTenantContext - Extracts tenant information from the request headers/subdomain
- * @param {Function} checkDailyRequestLimit - Enforces daily request limits based on tenant/user tier
- * @param {Function} checkStorageLimit - Verifies if the tenant has sufficient storage for file uploads
- * @param {Function} uploadArticleFile - Handles single file upload ('file') for RAG context
- * @param {Function} checkRAGFeature - Validates if RAG features are enabled for the tenant/user
- * @param {Function} createRateLimiter - Rate limiter (30 requests per 15 minutes)
- * @param {Function} validateRequest - Validates request body against ArticleWriterValidation.conversationalRequestSchema
- * @param {Function} articleWriterController.conversationalAssistant - Controller handling the assistant logic
+ * @param {string} path - Express path '/assistant'
+ * @param {express.RequestHandler[]} middlewares - A chain of middlewares to process the request.
+ * @param {Function} articleWriterController.conversationalAssistant - The final controller to handle the logic.
  */
 router.post(
   '/assistant',
+  // 1. Authenticate if a token is provided; otherwise, proceed as a guest.
   optionalAuth(),
+  // 2. Extract tenant context for data isolation and applying correct limits.
   extractTenantContext,
-  checkDailyRequestLimit,
-  checkStorageLimit,
-  uploadArticleFile.single('file'),
-  checkRAGFeature,
+  // 3. Apply rate limiting early to prevent abuse and protect server resources.
   createRateLimiter(30, 15),
+  // 4. Validate the request payload. Fail fast on malformed requests before consuming usage credits.
   validateRequest(ArticleWriterValidation.conversationalRequestSchema),
+  // 5. Check if the user/tenant is within their daily request limits.
+  checkDailyRequestLimit,
+  // 6. Handle the file upload (if any). This middleware populates `req.file`.
+  uploadArticleFile.single('file'),
+  // 7. If a file was uploaded, check if the user has enough storage space.
+  checkStorageLimit,
+  // 8. If a file was uploaded, verify that the RAG feature is enabled for the user/tenant.
+  checkRAGFeature,
+  // 9. Finally, pass the validated and checked request to the controller.
   articleWriterController.conversationalAssistant
 );
 
@@ -186,7 +195,7 @@ router.post(
  * Route to retrieve conversation history.
  * Requires authentication with USER or ADMIN roles.
  * Enforces tenant isolation via tenant context extraction.
- * 
+ *
  * @name get/conversation/:conversationId
  * @function
  * @memberof module:article_writer
