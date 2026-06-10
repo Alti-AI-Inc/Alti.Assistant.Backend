@@ -147,7 +147,18 @@ const _handleGeminiInteraction = async (
         throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
       }
     } catch (error) {
-      logger.error('Error in incrementPromptsUsed:', error);
+      // GCP-compatible structured logging
+      logger.error({
+        message: 'Failed to increment prompt usage',
+        severity: 'ERROR',
+        userId,
+        sessionId,
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        },
+      });
       if (error instanceof ApiError) throw error;
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
@@ -166,7 +177,13 @@ const _handleGeminiInteraction = async (
           $inc: { managedUsageCount: 1 }
         })
       );
-      logger.info(`Notification: Usage propagated to Manager ${user.managerId} for User ${userId}`);
+      // GCP-compatible structured logging
+      logger.info({
+        message: 'Usage propagated to Manager',
+        severity: 'INFO',
+        userId,
+        managerId: user.managerId,
+      });
     }
 
     // Propagate to Tenant Administrator / Workspace Owner
@@ -178,7 +195,13 @@ const _handleGeminiInteraction = async (
           { $inc: { tenantUsageCount: 1 } }
         )
       );
-      logger.info(`Notification: Usage propagated to Tenant Admins for Tenant ${user.tenantId}`);
+      // GCP-compatible structured logging
+      logger.info({
+        message: 'Usage propagated to Tenant Admins',
+        severity: 'INFO',
+        userId,
+        tenantId: user.tenantId,
+      });
     }
 
     // Propagate to Super Admin / Platform Owner
@@ -229,7 +252,18 @@ const _handleGeminiInteraction = async (
     }
     return payload;
   } catch (err) {
-    logger.error('Gemini Service Error:', err);
+    // GCP-compatible structured logging
+    logger.error({
+      message: 'An unhandled error occurred in the Gemini service interaction.',
+      severity: 'ERROR',
+      userId,
+      sessionId,
+      error: {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+      },
+    });
     if (err instanceof ApiError) {
       throw err;
     }
