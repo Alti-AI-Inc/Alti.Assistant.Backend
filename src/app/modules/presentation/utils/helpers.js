@@ -111,12 +111,17 @@ export const formatTaskStatus = (result) => {
 
   switch (result.status) {
     case 'completed':
-      message +=
-        `🎉 Your presentation is ready!\n\n` +
-        `📊 Presentation ID: ${result.data.presentation_id}\n` +
-        `📥 Download: ${result.data.path}\n` +
-        `✏️ Edit online: ${result.data.edit_path}\n` +
-        `💳 Credits consumed: ${result.data.credits_consumed}`;
+      // Bug fix: Ensure result.data exists before accessing its properties to prevent TypeError.
+      if (result.data) {
+        message +=
+          `🎉 Your presentation is ready!\n\n` +
+          `📊 Presentation ID: ${result.data.presentation_id}\n` +
+          `📥 Download: ${result.data.path}\n` +
+          `✏️ Edit online: ${result.data.edit_path}\n` +
+          `💳 Credits consumed: ${result.data.credits_consumed}`;
+      } else {
+        message += `✅ Task completed, but presentation details are unavailable.`;
+      }
       break;
 
     case 'failed':
