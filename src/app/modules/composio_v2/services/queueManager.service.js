@@ -433,12 +433,10 @@ class QueueManager {
    * Clean up stale executions on startup
    *
    * Optimization:
-   * 1. Added `.lean()` to the initial find query to fetch only necessary data (IDs)
-   *    without hydrating full Mongoose documents, improving read performance.
-   * 2. Addressed N+1 query problem by replacing individual `completeExecution` calls
-   *    with a single `updateMany` operation, significantly reducing database load
-   *    for bulk updates.
-   * 3. Recommended indexing for the `WorkflowExecution` model to speed up the query.
+   * 1. Replaced a two-step process (find IDs, then update by IDs) with a single `updateMany` operation.
+   *    This significantly reduces database load by avoiding an unnecessary round trip to fetch IDs
+   *    and performing the update in one atomic database command.
+   * 2. Recommended indexing for the `WorkflowExecution` model to speed up the query.
    */
   async cleanupStaleExecutions() {
     try {
@@ -446,34 +444,27 @@ class QueueManager {
       // Example: workflowExecutionSchema.index({ status: 1, updatedAt: 1 });
       // This will significantly speed up the following query.
 
-      // Find IDs of executions that were running but the app was restarted (stale)
-      const staleExecutionIds = await WorkflowExecution.find(
+      // Directly update executions that are marked as 'running' but are older than 5 minutes.
+      // This avoids fetching individual documents and then updating them,
+      // performing the cleanup in a single, efficient database operation.
+      const updateResult = await WorkflowExecution.updateMany(
         {
           status: 'running',
           updatedAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) }, // 5 minutes old
         },
-        { _id: 1 } // Project only the _id field to minimize data transfer
-      ).lean(); // Use .lean() as we only need the IDs, not full Mongoose documents
-
-      if (staleExecutionIds.length > 0) {
-        const idsToUpdate = staleExecutionIds.map((exec) => exec._id);
-
-        // Perform a single updateMany operation to mark all stale executions as failed
-        // This avoids the N+1 query problem of fetching N documents and then updating each individually.
-        const updateResult = await WorkflowExecution.updateMany(
-          { _id: { $in: idsToUpdate } },
-          {
-            $set: {
-              status: 'failed',
-              completedAt: new Date(),
-              details: {
-                error: 'Execution interrupted by system restart',
-                cleanupReason: 'stale_execution_cleanup',
-              },
+        {
+          $set: {
+            status: 'failed',
+            completedAt: new Date(),
+            details: {
+              error: 'Execution interrupted by system restart',
+              cleanupReason: 'stale_execution_cleanup',
             },
-          }
-        );
+          },
+        }
+      );
 
+      if (updateResult.modifiedCount > 0) {
         logger.info(
           `Cleaned up ${updateResult.modifiedCount} stale executions`
         );
@@ -529,7 +520,7 @@ class QueueManager {
     return {
       healthy: this.processing,
       queueSize: this.queue.length,
-      runningExecutions: this.runningExecutions.size,
+      runningExecutions: this.runningExecs.size,
       stats: this.stats,
       timestamp: new Date().toISOString(),
     };
