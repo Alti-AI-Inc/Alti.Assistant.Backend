@@ -83,8 +83,8 @@ export const analyzeIdea = async (ideaText, contextData = {}) => {
 
     // Check usage limits before proceeding with AI generation
     if (usageLimitCheck) {
-      const hasLimit = await usageLimitCheck(tenantId, workspaceId, user);
-      if (!hasLimit) {
+      const isWithinLimit = await usageLimitCheck(tenantId, workspaceId, user);
+      if (!isWithinLimit) {
         logger.warn('Usage limit exceeded for tenant/workspace', { tenantId, workspaceId });
         throw new Error('PaymentRequired: AI analysis limit exceeded for this workspace.');
       }
@@ -128,7 +128,10 @@ Only return valid JSON, no additional text.`;
 
     const response = result.response;
     let analysisText = response.text();
-    console.log('Analysis Response Text:', analysisText);
+    // BUGFIX: Replaced console.log with structured debug logger to avoid leaking raw AI output in production logs.
+    logger.debug('Raw analysis response from AI', {
+      analysisTextSnippet: analysisText.substring(0, 500),
+    });
 
     // Remove markdown code block markers if present
     analysisText = analysisText
@@ -179,15 +182,36 @@ Only return valid JSON, no additional text.`;
       await contextData.propagateUsage(usageDetails);
     }
 
+    // HIERARCHY_GAP_FIX: Correctly determine notification recipients based on the user's role.
     if (contextData.notifyHierarchy) {
-      await contextData.notifyHierarchy({
-        recipientRoles: ['super_admin', 'admin', 'manager'],
-        managerId: user.managerId,
-        tenantId,
-        workspaceId,
-        message: `User ${user.email || user.id} performed an idea analysis.`,
-        type: 'USAGE_ALERT',
-      });
+      const recipientRoles = [];
+      // Determine which roles in the hierarchy should be notified based on the user's role
+      switch (user.role) {
+        case 'user':
+          recipientRoles.push('manager', 'admin', 'super_admin');
+          break;
+        case 'manager':
+          recipientRoles.push('admin', 'super_admin');
+          break;
+        case 'admin':
+          recipientRoles.push('super_admin');
+          break;
+        // No notification needed if a super_admin performs the action as they are at the top.
+      }
+
+      if (recipientRoles.length > 0) {
+        await contextData.notifyHierarchy({
+          recipientRoles,
+          managerId: user.managerId,
+          tenantId,
+          workspaceId,
+          message: `User ${user.email || user.id} (Role: ${
+            user.role
+          }) performed an idea analysis.`,
+          type: 'USAGE_ALERT',
+          originatingUserId: user.id, // Add originating user ID for better filtering in the notification service
+        });
+      }
     }
 
     logger.info('Idea analysis completed:', {
