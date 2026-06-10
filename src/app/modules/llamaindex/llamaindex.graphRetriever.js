@@ -4,8 +4,13 @@ import { logger } from '../../../shared/logger.js';
 
 /**
  * Graph RAG query context resolver.
- * Parses query terms, traverses the semantic document relationship graph, 
+ * Parses query terms, traverses the semantic document relationship graph,
  * and enriches the search query with cross-document connection schemas.
+ *
+ * @param {string} query - The original user query string.
+ * @param {string} userId - The ID of the user for whom to retrieve document metadata.
+ * @returns {Promise<string>} A promise that resolves to the original query string or a new query string
+ *   enriched with cross-document relationship context.
  */
 const getGraphEnrichedQueryContext = async (query, userId) => {
   try {
@@ -80,6 +85,12 @@ ${query}`;
   }
 };
 
+/**
+ * Service object for graph-based document retrieval and query enrichment.
+ * Provides methods to leverage a semantic relationship graph for enhancing RAG queries.
+ * @typedef {object} GraphRetrieverService
+ * @property {function(string, string): Promise<string>} getGraphEnrichedQueryContext - Function to enrich a user query with cross-document relationship context.
+ */
 export const graphRetrieverService = {
   getGraphEnrichedQueryContext,
 };
