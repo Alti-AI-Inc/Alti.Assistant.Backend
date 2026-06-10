@@ -8,6 +8,10 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { creativeWritingController } from './creative_writing.controller.js';
 import { CreativeWritingValidation } from './creative_writing.validation.js';
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
+// Import a middleware to check resource ownership, crucial for preventing IDOR.
+// This middleware would typically verify that the requested resource (e.g., conversation)
+// belongs to the authenticated user.
+import checkOwnership from '../../middlewares/checkOwnership/checkOwnership.js';
 
 /**
  * @file This file defines the API routes for the creative writing module.
@@ -180,6 +184,11 @@ router.get(
   '/conversation/:conversationId',
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   extractTenantContext,
+  // Add a middleware to prevent Insecure Direct Object Reference (IDOR).
+  // This ensures that the 'conversationId' requested belongs to the authenticated user.
+  // The 'checkOwnership' middleware should verify the ownership of the resource
+  // identified by 'conversationId' against the 'req.user.id' and 'req.tenant.id'.
+  checkOwnership('conversationId', 'Conversation'),
   validateRequest(CreativeWritingValidation.getConversationHistorySchema),
   creativeWritingController.getConversationHistory
 );
