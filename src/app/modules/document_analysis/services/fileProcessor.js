@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { PDFParse } from 'pdf-parse';
+import pdfParse from 'pdf-parse'; // Corrected import for pdf-parse library
 import mammoth from 'mammoth';
 import xlsx from 'xlsx';
 import { logger } from '../../../../shared/logger.js';
@@ -10,17 +10,14 @@ import { logger } from '../../../../shared/logger.js';
  */
 const extractTextFromPDF = async (filePath) => {
   try {
-    const dataBuffer = fs.readFileSync(filePath);
-    const data = new PDFParse({
-      data: dataBuffer,
-    });
-    const parsedData = await data.getText();
+    // Use asynchronous file reading to prevent blocking the Node.js event loop
+    const dataBuffer = await fs.promises.readFile(filePath);
+    // Correct usage of pdf-parse: it takes a buffer and returns a promise
+    const parsedData = await pdfParse(dataBuffer);
 
-    let finalText = '';
-    for (const item of parsedData.pages) {
-      finalText += item.text + '\n';
-    }
-    console.log('PDF text extraction completed', finalText);
+    // The extracted text is available directly in the 'text' property of the result
+    const finalText = parsedData.text;
+    logger.info('PDF text extraction completed'); // Use logger for consistent logging
     return finalText;
   } catch (error) {
     logger.error('Error extracting text from PDF:', error);
@@ -46,7 +43,8 @@ const extractTextFromDOCX = async (filePath) => {
  */
 const extractTextFromTXT = async (filePath) => {
   try {
-    return fs.readFileSync(filePath, 'utf8');
+    // Use asynchronous file reading to prevent blocking the Node.js event loop
+    return await fs.promises.readFile(filePath, 'utf8');
   } catch (error) {
     logger.error('Error reading TXT file:', error);
     throw new Error('Failed to read TXT file');
@@ -58,7 +56,10 @@ const extractTextFromTXT = async (filePath) => {
  */
 const extractTextFromExcel = async (filePath) => {
   try {
-    const workbook = xlsx.readFile(filePath);
+    // Read the file asynchronously first to prevent blocking the event loop
+    const dataBuffer = await fs.promises.readFile(filePath);
+    // Use xlsx.read with the buffer for asynchronous processing
+    const workbook = xlsx.read(dataBuffer, { type: 'buffer' });
     let text = '';
 
     workbook.SheetNames.forEach((sheetName) => {
@@ -116,18 +117,18 @@ const processFile = async (fileInfo) => {
         extractedText = await extractTextFromPDF(fileInfo.path);
         break;
       case '.docx':
-      case '.doc':
+      case '.doc': // Note: mammoth might not fully support older .doc files, but it's included for completeness.
         extractedText = await extractTextFromDOCX(fileInfo.path);
         break;
       case '.txt':
         extractedText = await extractTextFromTXT(fileInfo.path);
         break;
       case '.xlsx':
-      case '.xls':
+      case '.xls': // Note: xlsx library supports both .xlsx and older .xls formats.
         extractedText = await extractTextFromExcel(fileInfo.path);
         break;
       case '.pptx':
-      case '.ppt':
+      case '.ppt': // Note: mammoth might not fully support older .ppt files, but it's included for completeness.
         extractedText = await extractTextFromPPTX(fileInfo.path);
         break;
       default:
