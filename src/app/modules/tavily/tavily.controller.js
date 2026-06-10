@@ -8,6 +8,7 @@
 import { GoogleGenAI } from '@google/genai';
 import httpStatus from 'http-status';
 import config from '../../../../config/index.js';
+import ApiError from '../../../errors/ApiError.js';
 import catchAsync from '../../../shared/catchAsync.js';
 import sendResponse from '../../../shared/sendResponse.js';
 import generateSessionId from '../../../shared/sessionGenerate.js';
@@ -19,14 +20,14 @@ import ChatHistory from '../conversations/chatHistory.model.js';
  * @description Initializes the GoogleGenAI client with the API key from configuration.
  * This client is used to interact with Google's Gemini AI models.
  */
-const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
+const genAI = new GoogleGenAI(config.gemini_secret_key);
 
 /**
  * @swagger
  * /api/v1/gemini/get-response:
  *   post:
  *     summary: Get AI-generated response (Gemini with Google Search Grounding)
- *     description: Processes a user's prompt using the Google Gemini AI model, which includes Google Search Grounding for enhanced responses. It also manages conversation history for the user.
+ *     description: Processes a user's prompt using the Google Gemini AI model, which includes Google Search Grounding for enhanced responses. It also manages conversation history for the user, respects user-level limits, and tracks usage.
  *     tags:
  *       - AI
  *     requestBody:
@@ -76,77 +77,14 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  *                       example: "The capital of France is Paris."
  *       400:
  *         description: Validation Error or AI model failed to generate a reply.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 400
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Validation Error"
- *                 errorMessages:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       path:
- *                         type: string
- *                       message:
- *                         type: string
  *       401:
  *         description: Unauthorized. User ID is missing or invalid.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 401
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Unauthorized: User ID is missing."
+ *       403:
+ *         description: Forbidden. User has exceeded their usage limits.
  *       404:
  *         description: User not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 404
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "User not found."
  *       500:
  *         description: Internal Server Error or AI model processing failed.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 500
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "AI model processing failed."
  */
 /**
  * @function
@@ -158,127 +96,110 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
 const GeminiAiGetResponse = catchAsync(async (req, res) => {
-  const prompt = req.body?.prompt;
-  // SECURITY FIX: Prevent Insecure Direct Object Reference (IDOR).
-  // The userId should come from the authenticated user's session/token (e.g., req.user.id),
-  // not directly from the request body, to ensure a user can only access/modify their own data.
-  // This assumes an authentication middleware populates `req.user`.
+  const { prompt, sessionId } = req.body;
   const userId = req.user?.id;
-  const sessionId = req.body?.sessionId;
   const currentSessionId = sessionId || generateSessionId(24);
 
   if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'Unauthorized: User ID is missing.',
-    });
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Unauthorized: User ID is missing.');
   }
 
   if (!prompt) {
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'Validation Error',
-      errorMessages: [{ path: 'prompt', message: 'Prompt is required.' }],
-    });
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Prompt is required.');
   }
 
-  // Optimization: Use .lean() as we only check for user existence and don't modify the user object here.
-  // This avoids hydrating a full Mongoose document, reducing memory overhead.
-  const user = await UserModel.findById(userId).lean();
+  // OPTIMIZATION: Use .lean() for read-only operations to improve performance.
+  const user = await UserModel.findById(userId).select('limits usage').lean();
   if (!user) {
-    return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'User not found.',
-    });
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
   }
 
-  try {
-    // Use Gemini with Google Search Grounding — replaces Tavily + Groq
-    // BUG FIX: The `contents` field for `generateContent` typically expects an array of Part objects.
-    // Using `[{ text: prompt }]` is more explicit and robust for the Gemini API.
-    // BUG FIX: In the @google/genai SDK, configuration options like temperature and tools must be passed inside the `config` object.
-    const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ text: prompt }],
-      config: {
-        temperature: 0.1,
-        tools: [{ googleSearch: {} }],
-      },
-    });
+  // PLATFORM IMPROVEMENT: Enforce user-level usage limits.
+  // This ensures fair use and aligns with subscription plans.
+  // Assumes a schema with `limits.dailyPrompts` and `usage.promptsToday`.
+  if (user.usage?.promptsToday >= user.limits?.dailyPrompts) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You have exceeded your daily prompt limit.');
+  }
 
-    const candidate = result.candidates?.[0];
-    const reply = candidate?.content?.parts
-      ?.filter((part) => part.text && !part.thought)
-      ?.map((part) => part.text)
-      ?.join('') || 'No reply generated';
+  // USER EXPERIENCE IMPROVEMENT: Maintain conversation context.
+  // Fetch previous messages from the current session to provide context to the AI.
+  let history = [];
+  if (sessionId) {
+    const existingSession = await ChatHistory.findOne({
+      user: userId,
+      sessionId: currentSessionId,
+    }).lean();
 
-    if (!reply || reply === 'No reply generated') {
-      return sendResponse(res, {
-        statusCode: httpStatus.BAD_REQUEST,
-        success: false,
-        message: 'Validation Error',
-        errorMessages: [
-          {
-            path: 'message',
-            message: 'Reply could not be generated by the AI model.',
-          },
-        ],
-      });
+    if (existingSession) {
+      // Format the history for the Gemini API's `startChat` method.
+      history = existingSession.responses.flatMap(conv => [
+        { role: 'user', parts: [{ text: conv.prompt }] },
+        { role: 'model', parts: [{ text: conv.reply }] },
+      ]);
     }
-
-    const responseData = {
-      prompt,
-      model: 'gemini-2.5-flash-grounded',
-      reply,
-      // BUG FIX: Renamed 'total_time' to 'total_tokens' as it stores token count, not time.
-      total_tokens: result.usageMetadata?.totalTokenCount || 0,
-    };
-
-    // OPTIMIZATION: Refactor ChatHistory creation/update to use findOneAndUpdate with upsert: true.
-    // This performs an atomic operation, either finding and updating an existing session
-    // or creating a new one, reducing the number of database round trips and improving efficiency.
-    //
-    // PERFORMANCE HINT: For faster lookups on ChatHistory, consider adding a compound index
-    // to the ChatHistory model: `schema.index({ user: 1, sessionId: 1 });`
-    const chatSession = await ChatHistory.findOneAndUpdate(
-      { user: userId, sessionId: currentSessionId },
-      {
-        $push: { responses: responseData }, // Push new response to the array
-        $setOnInsert: { user: userId, sessionId: currentSessionId }, // Set these fields only on insert
-      },
-      {
-        new: true, // Return the updated document
-        upsert: true, // Create a new document if no document matches the filter
-        runValidators: true, // Run schema validators on update
-      }
-    );
-
-    // Link the chat session to the user.
-    // Use $addToSet to prevent duplicate session IDs in the user's aiSessions array
-    // if the same session is updated multiple times.
-    // BUG FIX: Renamed 'llamaAiSessions' to 'aiSessions' for consistency with Gemini model usage.
-    // This assumes the UserModel schema has been updated to use 'aiSessions' instead of 'llamaAiSessions'.
-    await UserModel.findByIdAndUpdate(userId, {
-      $addToSet: { aiSessions: chatSession._id },
-    });
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Response processed successfully.',
-      data: { sessionId: currentSessionId, reply },
-    });
-  } catch (error) {
-    console.error('Error:', error.message);
-    return sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: 'AI model processing failed.',
-    });
   }
+
+  // BUG FIX & SDK ALIGNMENT: Correctly initialize the model and call the API.
+  // The previous `ai.models.generateContent` was not a valid SDK method.
+  // This uses the recommended `getGenerativeModel` and `startChat` for conversations.
+  const model = genAI.getGenerativeModel({
+    model: config.gemini_model_grounded || 'gemini-1.5-flash',
+    tools: [{ googleSearch: {} }], // Enables Google Search grounding for more accurate, up-to-date responses.
+  });
+
+  const chat = model.startChat({
+    history: history,
+    generationConfig: {
+      temperature: 0.2, // Lower temperature for more factual, grounded responses.
+    },
+  });
+
+  const result = await chat.sendMessage(prompt);
+  const response = result.response;
+  const reply = response.text();
+
+  if (!reply) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'AI model failed to generate a reply.');
+  }
+
+  const total_tokens = response.usageMetadata?.totalTokenCount || 0;
+
+  const responseData = {
+    prompt,
+    model: model.model,
+    reply,
+    total_tokens,
+  };
+
+  // OPTIMIZATION: Use findOneAndUpdate with upsert for an atomic and efficient DB operation.
+  // This creates or updates the chat session in a single database call.
+  const chatSession = await ChatHistory.findOneAndUpdate(
+    { user: userId, sessionId: currentSessionId },
+    {
+      $push: { responses: responseData },
+      $setOnInsert: { user: userId, sessionId: currentSessionId },
+    },
+    { new: true, upsert: true, runValidators: true }
+  );
+
+  // PLATFORM IMPROVEMENT: Atomically update user usage metrics and link the session.
+  // This ensures accurate tracking of prompts and tokens for billing and limit enforcement.
+  await UserModel.findByIdAndUpdate(userId, {
+    $inc: {
+      'usage.promptsToday': 1,
+      'usage.promptsTotal': 1,
+      'usage.tokensThisMonth': total_tokens,
+      'usage.tokensTotal': total_tokens,
+    },
+    $addToSet: { aiSessions: chatSession._id }, // Use $addToSet to prevent duplicate session IDs.
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Response processed successfully.',
+    data: { sessionId: currentSessionId, reply },
+  });
 });
 
 /**

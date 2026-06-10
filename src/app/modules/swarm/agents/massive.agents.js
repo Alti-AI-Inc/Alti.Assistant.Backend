@@ -26,6 +26,7 @@
  * @property {string} model - The specific AI model used by this agent (e.g., 'gemini-2.0-flash').
  * @property {Array<any>} tools - An array of external tools or functions that the agent can utilize.
  *           Currently, these agents do not use external tools.
+ * @property {Array<object>} safetySettings - Configuration for Google's safety filters.
  * @property {Array<string>} keywords - A list of keywords or phrases that are likely to trigger or
  *           be relevant to this agent's domain, used for routing user queries.
  * @property {object} accessControl - [FIX] Defines the permissions required to use this agent, ensuring proper role validation.
@@ -82,6 +83,25 @@ FORMAT:
 - Be direct, dense, and professional — no filler text`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [AUDIT] Added enterprise-grade safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   // [FIX] Added access control and usage tracking metadata to ensure proper
   // role-based validation and to propagate usage data for limits and billing.
   accessControl: {
@@ -147,6 +167,25 @@ FORMAT:
 - Risk/reward table`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [AUDIT] Added enterprise-grade safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   // [FIX] Added access control and usage tracking metadata to ensure proper
   // role-based validation and to propagate usage data for limits and billing.
   accessControl: {
@@ -208,6 +247,25 @@ FORMAT:
 - Sentiment verdict badge`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [AUDIT] Added enterprise-grade safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   // [FIX] Added access control and usage tracking metadata to ensure proper
   // role-based validation and to propagate usage data for limits and billing.
   accessControl: {
@@ -270,6 +328,25 @@ FORMAT:
 - Trade setup recommendation`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [AUDIT] Added enterprise-grade safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   // [FIX] Added access control and usage tracking metadata to ensure proper
   // role-based validation and to propagate usage data for limits and billing.
   accessControl: {
@@ -336,6 +413,25 @@ FORMAT:
 - Fed policy conclusion`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [AUDIT] Added enterprise-grade safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   // [FIX] Added access control and usage tracking metadata to ensure proper
   // role-based validation and to propagate usage data for limits and billing.
   accessControl: {
@@ -407,6 +503,25 @@ FORMAT:
 - Final verdict badge with conviction level`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [AUDIT] Added enterprise-grade safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   // [FIX] Added access control and usage tracking metadata to ensure proper
   // role-based validation and to propagate usage data for limits and billing.
   accessControl: {
@@ -481,6 +596,25 @@ FORMAT:
 - Quality score card`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [AUDIT] Added enterprise-grade safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   // [FIX] Added access control and usage tracking metadata to ensure proper
   // role-based validation and to propagate usage data for limits and billing.
   accessControl: {
@@ -547,6 +681,25 @@ FORMAT:
 - Overall portfolio health score`,
   model: 'gemini-2.0-flash',
   tools: [],
+  // [AUDIT] Added enterprise-grade safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    },
+  ],
   // [FIX] Added access control and usage tracking metadata to ensure proper
   // role-based validation and to propagate usage data for limits and billing.
   accessControl: {
