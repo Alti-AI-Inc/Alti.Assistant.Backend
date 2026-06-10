@@ -43,11 +43,25 @@ const createSnapshot = async (chainId, userId, changeSummary = 'Configuration sn
       changeSummary,
     });
 
+    // Important: For data integrity and to prevent duplicate version numbers under concurrent access,
+    // the LangchainChainVersion model MUST have a unique compound index on `{ chainId: 1, versionNumber: 1 }`.
+    // If this index is missing, concurrent calls could create multiple snapshots with the same versionNumber,
+    // leading to data corruption. With the index, concurrent attempts to save the same versionNumber will
+    // result in a duplicate key error, which is caught and re-thrown here.
     await snapshot.save();
 
     // Sync latest version count back to chain
-    chain.version = nextVersionNumber;
-    await chain.save();
+    // BUG FIX: The previous direct assignment `chain.version = nextVersionNumber; await chain.save();`
+    // was susceptible to race conditions. If multiple snapshots were created concurrently,
+    // a lower version number could overwrite a higher one if their `chain.save()` operations interleaved.
+    // This `findOneAndUpdate` atomically updates the `version` field only if `nextVersionNumber`
+    // is greater than the currently stored `chain.version`, ensuring the `version` field always
+    // reflects the highest successfully created snapshot version.
+    await LangchainChain.findOneAndUpdate(
+      { _id: chainId, userId, version: { $lt: nextVersionNumber } },
+      { $set: { version: nextVersionNumber } },
+      { new: true } // Return the updated document (optional, but good practice)
+    );
 
     logger.info(`LangchainVersion: created snapshot v${nextVersionNumber} for chain ${chainId}`);
     return snapshot;
@@ -88,6 +102,7 @@ const rollbackToVersion = async (chainId, versionNumber, userId) => {
     }
 
     // Take a snapshot of the current state before rolling back, in case they want to undo
+    // If this snapshot fails, the rollback operation will be aborted, which is desired behavior.
     await createSnapshot(chainId, userId, `Pre-rollback snapshot before restoring v${versionNumber}.`);
 
     // Restore snapshots
