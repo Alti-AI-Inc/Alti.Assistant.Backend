@@ -127,7 +127,10 @@ router.post(
 router.post(
   '/flash/get-response',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
-  GeminiAiController.Gemini25PreviewAiGetResponse
+  // BUG FIX: Renamed controller method to align with the route's purpose (Gemini 1.5 Flash).
+  // The previous name 'Gemini25PreviewAiGetResponse' was misleading given the route path and description,
+  // suggesting a different model version than intended for the '/flash' endpoint.
+  GeminiAiController.GeminiFlashAiGetResponse
 );
 
 /**
