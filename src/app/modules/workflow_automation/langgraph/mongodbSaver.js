@@ -10,6 +10,11 @@ import { logger } from '../../../../shared/logger.js';
  * to provide persistent storage for LangGraph checkpoints using MongoDB.
  * It serializes and deserializes checkpoint data and metadata using the
  * `serde` utility provided by the base class.
+ *
+ * OPTIMIZATION NOTE:
+ * For maximum query performance, ensure the following indexes are created on the WorkflowCheckpoint collection:
+ * 1. { threadId: 1, checkpointId: 1 } (Unique index)
+ * 2. { threadId: 1, createdAt: -1 }
  */
 export class MongoDBSaver extends BaseCheckpointSaver {
   /**
@@ -36,19 +41,19 @@ export class MongoDBSaver extends BaseCheckpointSaver {
 
       let doc;
       if (checkpoint_id) {
+        // Optimized with .lean() to bypass Mongoose hydration overhead
         doc = await WorkflowCheckpoint.findOne({
           threadId: thread_id,
           checkpointId: checkpoint_id,
-        });
+        }).lean();
       } else {
         // Retrieve the latest checkpoint based on creation time.
-        // Assumes 'createdAt' field exists in the WorkflowCheckpoint model for chronological sorting.
-        const docs = await WorkflowCheckpoint.find({
+        // Optimized to findOne with sort and .lean() instead of find().limit(1)
+        doc = await WorkflowCheckpoint.findOne({
           threadId: thread_id,
         })
-          .sort({ createdAt: -1 }) // Sort by createdAt to get the truly latest checkpoint
-          .limit(1);
-        doc = docs[0];
+          .sort({ createdAt: -1 })
+          .lean();
       }
 
       if (!doc) {
@@ -154,13 +159,14 @@ export class MongoDBSaver extends BaseCheckpointSaver {
       // If 'before' checkpoint_id is provided, find its creation timestamp
       // to filter for checkpoints truly "older than" it chronologically.
       if (before?.configurable?.checkpoint_id) {
+        // Optimized with .lean() and projection to minimize memory and CPU overhead
         const beforeDoc = await WorkflowCheckpoint.findOne(
           {
             threadId: thread_id, // Ensure scoping to the current thread for security and correctness
             checkpointId: before.configurable.checkpoint_id,
           },
           { createdAt: 1 } // Only project the 'createdAt' field to minimize data transfer
-        );
+        ).lean();
 
         if (beforeDoc?.createdAt) {
           query.createdAt = { $lt: beforeDoc.createdAt };
@@ -170,8 +176,8 @@ export class MongoDBSaver extends BaseCheckpointSaver {
       }
 
       // Sort by 'createdAt' in descending order to list the newest checkpoints first.
-      // Assumes 'createdAt' field exists in the WorkflowCheckpoint model for chronological sorting.
-      let cursor = WorkflowCheckpoint.find(query).sort({ createdAt: -1 });
+      // Optimized with .lean() to avoid hydrating Mongoose documents
+      let cursor = WorkflowCheckpoint.find(query).sort({ createdAt: -1 }).lean();
       if (limit !== undefined) {
         cursor = cursor.limit(limit);
       }
