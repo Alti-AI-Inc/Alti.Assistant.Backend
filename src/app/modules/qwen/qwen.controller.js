@@ -79,7 +79,14 @@ const QwenAiGetResponse = catchAsync(async (req, res) => {
     userId,
     sessionId
   );
-  logger.info('✅ Service result:', result); // log result
+  // Structured log for GCP Cloud Logging
+  logger.info({
+    message: 'Qwen AI service call successful.',
+    service: 'QwenAiGetResponseService',
+    userId,
+    sessionId,
+    payload: result,
+  });
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -162,7 +169,14 @@ const QwenQWQAiGetResponse = catchAsync(async (req, res) => {
     userId,
     sessionId
   );
-  logger.info('✅ Service result:', result); // log result
+  // Structured log for GCP Cloud Logging
+  logger.info({
+    message: 'Qwen QWQ AI service call successful.',
+    service: 'QwenQWQAiGetResponseService',
+    userId,
+    sessionId,
+    payload: result,
+  });
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

@@ -1,4 +1,15 @@
+import { PubSub } from '@google-cloud/pubsub';
 import mongoose from 'mongoose';
+
+// Instantiate a Pub/Sub client.
+// Ensure GOOGLE_APPLICATION_CREDENTIALS is set in the environment for authentication.
+const pubSubClient = new PubSub();
+
+// Define the topic name for triggering file processing.
+// It's best practice to use an environment variable for this configuration.
+const KNOWLEDGE_FILE_PROCESSING_TOPIC =
+  process.env.KNOWLEDGE_FILE_PROCESSING_TOPIC ||
+  'knowledge-file-processing-trigger';
 
 /**
  * @typedef {object} KnowledgeBankFileSchema
@@ -527,15 +538,67 @@ KnowledgeBankFileSchema.methods.softDelete = async function () {
 };
 
 /**
- * Pre-save middleware to set the `processingStatus` to 'pending' for new documents.
+ * Pre-save middleware to set the `processingStatus` for new documents
+ * and a temporary flag to trigger the post-save hook.
  * @param {function} next - The next middleware function.
  * @private
  */
 KnowledgeBankFileSchema.pre('save', function (next) {
   if (this.isNew) {
     this.processingStatus = 'pending';
+    // Set a temporary, non-persistent flag to indicate this is a new document.
+    // This flag will be used in the post-save hook to trigger the async job.
+    this._wasNew = true;
   }
   next();
+});
+
+/**
+ * Post-save middleware to trigger asynchronous processing for new files.
+ * When a new KnowledgeBankFile is created, this hook publishes a message
+ * to a GCP Pub/Sub topic. A separate worker service will subscribe to this
+ * topic to handle the heavy processing (e.g., for RAG), ensuring the main
+ * application remains stateless and responsive.
+ * @param {KnowledgeBankFileSchema} doc - The saved document.
+ * @private
+ */
+KnowledgeBankFileSchema.post('save', async function (doc) {
+  // The `_wasNew` flag is set in the pre-save hook.
+  // This ensures we only trigger processing for newly created files.
+  if (this._wasNew && doc.processingStatus === 'pending') {
+    console.log(
+      `New file created (ID: ${doc._id}), publishing job to Pub/Sub topic: ${KNOWLEDGE_FILE_PROCESSING_TOPIC}`
+    );
+
+    try {
+      // The message payload only needs the ID. The worker will fetch the full details from the DB.
+      // Including tenantId and userId can be useful for routing or logging in the worker.
+      const messagePayload = {
+        knowledgeBankFileId: doc._id.toString(),
+        tenantId: doc.tenantId ? doc.tenantId.toString() : null,
+        userId: doc.userId.toString(),
+      };
+      const dataBuffer = Buffer.from(JSON.stringify(messagePayload));
+
+      // Publish the message to the Pub/Sub topic.
+      const messageId = await pubSubClient
+        .topic(KNOWLEDGE_FILE_PROCESSING_TOPIC)
+        .publishMessage({ data: dataBuffer });
+
+      console.log(
+        `Successfully published message ${messageId} for file ${doc._id}.`
+      );
+    } catch (error) {
+      // Log the error, but do not throw it, as this would break the API flow.
+      // The save operation has already succeeded.
+      // A separate monitoring/retry mechanism should handle publishing failures,
+      // or a cron job could scan for 'pending' files that haven't been processed.
+      console.error(
+        `CRITICAL: Failed to publish processing message for file ${doc._id} to Pub/Sub. Manual intervention may be required.`,
+        error
+      );
+    }
+  }
 });
 
 /**

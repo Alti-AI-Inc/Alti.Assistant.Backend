@@ -5,6 +5,25 @@ import { runAIClassificationAgent } from '../ai_classification/workflow.js';
 import { executeComposioWithGemini } from '../services/aiClassificationService.js';
 import ComposioAuth from '../composio.model.js';
 
+// Security Patch: Helper function to escape special characters for safe RegExp creation, preventing ReDoS attacks.
+const escapeRegex = (string) => {
+  if (typeof string !== 'string') {
+    return '';
+  }
+  // Escape characters with special meaning in regular expressions.
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// Security Patch: Helper function to sanitize strings for storage/output, preventing stored XSS.
+const sanitizeString = (str) => {
+  if (typeof str !== 'string') {
+    // Ensure we always return a string to prevent downstream errors.
+    return str ? String(str) : '';
+  }
+  return str.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+
+
 // Optimization Recommendation: Add indexes to Mongoose models for improved query performance.
 // For WorkflowExecution model:
 // - Consider a compound index on `{ executionId: 1, userId: 1 }` for `findOne` queries in `cancelExecution` and `retryExecution`.
@@ -49,6 +68,7 @@ class WorkflowExecutor {
       // Validate connections before execution
       const connectionCheck = await this.validateConnections(workflow);
       if (!connectionCheck.success) {
+        // Note: connectionCheck.error is already sanitized by validateConnections
         await execution.addLog(
           'error',
           `Connection validation failed: ${connectionCheck.error}`
@@ -86,6 +106,7 @@ class WorkflowExecutor {
 
       // Complete execution
       await execution.completeExecution(executionResult.success, {
+        // Note: summary is already sanitized by the execution methods
         summary: executionResult.summary || 'Workflow completed',
         data: executionResult.data,
         outputData: executionResult.outputData,
@@ -110,14 +131,17 @@ class WorkflowExecutor {
     } catch (error) {
       logger.error(`Error executing workflow ${workflow.workflowId}:`, error);
 
+      // Security Patch: Sanitize error messages before saving to the database or returning in response to prevent stored XSS.
+      const sanitizedErrorMessage = sanitizeString(error.message || 'An unknown error occurred.');
+
       // Update execution record with error
       try {
         // Optimization: Reuse the 'execution' object if it was successfully saved.
         // Avoids a redundant database query if the error occurred after execution.save().
         // Check for `_id` to ensure the document was persisted.
         if (execution && execution._id) {
-          await execution.addLog('error', `Execution failed: ${error.message}`);
-          await execution.completeExecution(false, { error: error.message });
+          await execution.addLog('error', `Execution failed: ${sanitizedErrorMessage}`);
+          await execution.completeExecution(false, { error: sanitizedErrorMessage });
         } else {
           logger.warn(
             `Execution record for ${executionId} was not found or not saved, cannot update with error.`
@@ -136,7 +160,7 @@ class WorkflowExecutor {
       return {
         success: false,
         executionId,
-        error: error.message,
+        error: sanitizedErrorMessage,
         message: 'Workflow execution failed',
       };
     }
@@ -148,10 +172,13 @@ class WorkflowExecutor {
   async executeSingleStepWorkflow(workflow, execution, prefetchedAccounts = null) {
     try {
       const step = workflow.executionPlan[0];
+      // Security Patch: Sanitize potentially user-controlled workflow data before use in logs or summaries.
+      const sanitizedApp = sanitizeString(step.app);
+      const sanitizedAction = sanitizeString(step.action);
 
       await execution.addLog(
         'info',
-        `Executing single step: ${step.app} -> ${step.action}`
+        `Executing single step: ${sanitizedApp} -> ${sanitizedAction}`
       );
       
       const startTime = new Date(); // Capture start time for duration calculation
@@ -171,7 +198,8 @@ class WorkflowExecutor {
         prefetchedAccounts
       );
       if (!connectedAccount) {
-        throw new Error(`No connected account found for ${step.app}`);
+        // Security Patch: Sanitize app name in error message.
+        throw new Error(`No connected account found for ${sanitizedApp}`);
       }
 
       // Execute using existing Composio integration
@@ -186,6 +214,9 @@ class WorkflowExecutor {
       const endTime = new Date(); // Capture end time
       const duration = endTime.getTime() - startTime.getTime(); // Calculate actual duration
 
+      // Security Patch: Sanitize error message from result before saving.
+      const sanitizedError = result.success ? null : { message: sanitizeString(result.error) };
+
       // Update step result
       await execution.updateProgress(1, {
         step: 1,
@@ -195,19 +226,23 @@ class WorkflowExecutor {
         endTime: endTime,
         duration: duration, // Use calculated duration
         result: result.data,
-        error: result.success ? null : { message: result.error },
+        error: sanitizedError,
       });
 
       return {
         success: result.success,
         data: result.data,
+        // Security Patch: Use sanitized variables to construct the summary to prevent stored XSS.
         summary: result.success
-          ? `Successfully executed ${step.action} on ${step.app}`
-          : `Failed to execute ${step.action}: ${result.error}`,
+          ? `Successfully executed ${sanitizedAction} on ${sanitizedApp}`
+          : `Failed to execute ${sanitizedAction}: ${sanitizedError.message}`,
         outputData: { stepResults: [result.data] },
       };
     } catch (error) {
       logger.error('Error in single-step execution:', error);
+
+      // Security Patch: Sanitize error messages before saving to the database or returning in response.
+      const sanitizedErrorMessage = sanitizeString(error.message || 'An unknown error occurred.');
 
       await execution.updateProgress(1, {
         step: 1,
@@ -215,13 +250,13 @@ class WorkflowExecutor {
         action: workflow.executionPlan[0].action,
         status: 'failed',
         endTime: new Date(),
-        error: { message: error.message },
+        error: { message: sanitizedErrorMessage },
       });
 
       return {
         success: false,
-        error: error.message,
-        summary: `Single-step execution failed: ${error.message}`,
+        error: sanitizedErrorMessage,
+        summary: `Single-step execution failed: ${sanitizedErrorMessage}`,
       };
     }
   }
@@ -244,10 +279,13 @@ class WorkflowExecutor {
       for (let i = 0; i < workflow.executionPlan.length; i++) {
         const step = workflow.executionPlan[i];
         const stepNumber = step.step;
+        // Security Patch: Sanitize potentially user-controlled workflow data.
+        const sanitizedApp = sanitizeString(step.app);
+        const sanitizedAction = sanitizeString(step.action);
 
         await execution.addLog(
           'info',
-          `Starting step ${stepNumber}: ${step.app} -> ${step.action}`
+          `Starting step ${stepNumber}: ${sanitizedApp} -> ${sanitizedAction}`
         );
 
         // Check dependencies
@@ -296,7 +334,8 @@ class WorkflowExecutor {
           }
 
           if (!connectedAccount) {
-            throw new Error(`No connected account found for ${step.app}`);
+            // Security Patch: Sanitize app name in error message.
+            throw new Error(`No connected account found for ${sanitizedApp}`);
           }
 
           // Execute step
@@ -326,6 +365,9 @@ class WorkflowExecutor {
           const stepEndTime = new Date(); // Capture end time
           const stepDuration = stepEndTime.getTime() - stepStartTime.getTime(); // Calculate actual duration
 
+          // Security Patch: Sanitize error message from result before saving.
+          const sanitizedError = result.success ? null : { message: sanitizeString(result.error) };
+
           // Update step result
           const stepResult = {
             step: stepNumber,
@@ -335,14 +377,14 @@ class WorkflowExecutor {
             endTime: stepEndTime,
             duration: stepDuration, // Use calculated duration
             result: result.data,
-            error: result.success ? null : { message: result.error },
+            error: sanitizedError,
           };
 
           await execution.updateProgress(stepNumber, stepResult);
           stepResults.push(stepResult);
 
           if (!result.success) {
-            throw new Error(`Step ${stepNumber} failed: ${result.error}`);
+            throw new Error(`Step ${stepNumber} failed: ${sanitizedError.message}`);
           }
 
           await execution.addLog(
@@ -351,6 +393,9 @@ class WorkflowExecutor {
           );
         } catch (stepError) {
           logger.error(`Error in step ${stepNumber}:`, stepError);
+          
+          // Security Patch: Sanitize error message before saving.
+          const sanitizedStepErrorMessage = sanitizeString(stepError.message);
 
           const failedStepResult = {
             step: stepNumber,
@@ -358,14 +403,14 @@ class WorkflowExecutor {
             action: step.action,
             status: 'failed',
             endTime: new Date(),
-            error: { message: stepError.message },
+            error: { message: sanitizedStepErrorMessage },
           };
 
           await execution.updateProgress(stepNumber, failedStepResult);
           stepResults.push(failedStepResult);
 
           throw new Error(
-            `Multi-step execution failed at step ${stepNumber}: ${stepError.message}`
+            `Multi-step execution failed at step ${stepNumber}: ${sanitizedStepErrorMessage}`
           );
         }
       }
@@ -382,10 +427,13 @@ class WorkflowExecutor {
     } catch (error) {
       logger.error('Error in multi-step execution:', error);
 
+      // Security Patch: Sanitize error message before returning in response.
+      const sanitizedErrorMessage = sanitizeString(error.message || 'An unknown error occurred.');
+
       return {
         success: false,
-        error: error.message,
-        summary: `Multi-step execution failed: ${error.message}`,
+        error: sanitizedErrorMessage,
+        summary: `Multi-step execution failed: ${sanitizedErrorMessage}`,
         outputData: { stepResults: stepResults },
       };
     }
@@ -431,7 +479,8 @@ class WorkflowExecutor {
       logger.error(`Error executing Composio action ${app}.${action}:`, error);
       return {
         success: false,
-        error: error.message,
+        // Security Patch: Sanitize error message before returning.
+        error: sanitizeString(error.message),
       };
     }
   }
@@ -487,8 +536,8 @@ class WorkflowExecutor {
       // to avoid N+1 query problem. Use .lean() as we only need to read data.
       const connectedAccounts = await ComposioAuth.find({
         userId: workflow.userId,
-        // Using regex for $in to match the behavior of getConnectedAccount's regex
-        integrationId: { $in: requiredApps.map(app => new RegExp(app, 'i')) },
+        // Security Patch: Use escaped regex for each app to prevent ReDoS injection.
+        integrationId: { $in: requiredApps.map(app => new RegExp(escapeRegex(app), 'i')) },
         status: 'active',
       }).lean();
 
@@ -506,9 +555,11 @@ class WorkflowExecutor {
       }
 
       if (missingApps.length > 0) {
+        // Security Patch: Sanitize the list of app names before including in the error message.
+        const sanitizedAppList = sanitizeString(missingApps.join(', '));
         return {
           success: false,
-          error: `Missing connections for: ${missingApps.join(', ')}`,
+          error: `Missing connections for: ${sanitizedAppList}`,
           missingApps,
         };
       }
@@ -517,7 +568,8 @@ class WorkflowExecutor {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        // Security Patch: Sanitize error message before returning.
+        error: sanitizeString(error.message),
       };
     }
   }
@@ -527,9 +579,11 @@ class WorkflowExecutor {
    */
   async getConnectedAccount(userId, app, prefetchedAccounts = null) {
     try {
+      // Security Patch: Escape app name to prevent ReDoS attacks in regex.
+      const regex = new RegExp(escapeRegex(app), 'i');
+
       // Optimization: If prefetched accounts are provided, search in memory to avoid DB query
       if (prefetchedAccounts && Array.isArray(prefetchedAccounts)) {
-        const regex = new RegExp(app, 'i');
         const account = prefetchedAccounts.find(acc => regex.test(acc.integrationId));
         if (account) {
           return {
@@ -545,7 +599,7 @@ class WorkflowExecutor {
       // reducing Mongoose document overhead for read-only operations.
       const account = await ComposioAuth.findOne({
         userId: userId,
-        integrationId: { $regex: new RegExp(app, 'i') },
+        integrationId: { $regex: regex },
         status: 'active',
       }).lean();
 
@@ -576,7 +630,8 @@ class WorkflowExecutor {
       logger.error(`Error getting execution stats for ${workflowId}:`, error);
       return {
         success: false,
-        error: error.message,
+        // Security Patch: Sanitize error message before returning.
+        error: sanitizeString(error.message),
       };
     }
   }
@@ -618,7 +673,8 @@ class WorkflowExecutor {
       logger.error(`Error cancelling execution ${executionId}:`, error);
       return {
         success: false,
-        error: error.message,
+        // Security Patch: Sanitize error message before returning.
+        error: sanitizeString(error.message),
       };
     }
   }
@@ -678,7 +734,8 @@ class WorkflowExecutor {
       logger.error(`Error retrying execution ${executionId}:`, error);
       return {
         success: false,
-        error: error.message,
+        // Security Patch: Sanitize error message before returning.
+        error: sanitizeString(error.message),
       };
     }
   }
