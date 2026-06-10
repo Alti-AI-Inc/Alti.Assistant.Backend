@@ -4,6 +4,7 @@ import config from '../../../../config/index.js';
 /**
  * Initializes the Stripe API client with the secret key from the application configuration.
  * The API version is set to '2022-11-15'.
+ * 
  * @type {Stripe}
  */
 const stripe = new Stripe(config.stripe.stripe_secret_key, {
@@ -13,6 +14,9 @@ const stripe = new Stripe(config.stripe.stripe_secret_key, {
 /**
  * Creates a new Stripe Payment Intent for a given amount, currency, and customer.
  * This intent is used to collect payment from a customer.
+ *
+ * @security Requires 'Workspace Owner' or 'Billing Admin' role within the multi-tenant context.
+ * @tenant Context: The `customerId` must map to the active tenant's/workspace's Stripe Customer ID.
  *
  * @param {number} amount - The amount to charge in cents (e.g., 1000 for $10.00).
  * @param {string} currency - The three-letter ISO currency code (e.g., 'usd', 'eur').
@@ -41,6 +45,9 @@ const createPaymentIntentService = async (amount, currency, customerId) => {
 /**
  * Retrieves all payment methods of type 'card' associated with a specific Stripe customer.
  *
+ * @security Requires 'Workspace Owner', 'Billing Admin', or authorized workspace member roles.
+ * @tenant Context: The `customerId` must belong to the tenant/workspace currently being accessed.
+ *
  * @param {string} customerId - The ID of the Stripe customer whose payment methods are to be retrieved.
  * @returns {Promise<Array<Stripe.PaymentMethod>>} A promise that resolves to an array of Stripe PaymentMethod objects.
  * @throws {Error} If retrieving payment methods fails due to Stripe API errors or network issues.
@@ -61,6 +68,9 @@ const getAllPaymentMethodsService = async (customerId) => {
 /**
  * Attaches a payment method to a Stripe customer and optionally sets it as the customer's default payment method
  * for future invoices.
+ *
+ * @security Requires 'Workspace Owner' or 'Billing Admin' role to modify billing details.
+ * @tenant Context: The `customerId` must correspond to the active workspace/tenant.
  *
  * @param {string} customerId - The ID of the Stripe customer to whom the payment method will be attached.
  * @param {string} paymentMethodId - The ID of the Payment Method to attach and potentially set as default.
@@ -88,6 +98,9 @@ const savePaymentMethodService = async (customerId, paymentMethodId) => {
 /**
  * Detaches a payment method from a customer. This is crucial for workspace owners to manage and delete old payment methods.
  *
+ * @security Requires 'Workspace Owner' or 'Billing Admin' role.
+ * @tenant Context: The payment method must belong to a customer associated with the active tenant/workspace.
+ *
  * @param {string} paymentMethodId - The ID of the Payment Method to detach.
  * @returns {Promise<boolean>} A promise that resolves to `true` if the payment method is successfully detached.
  * @throws {Error} If detaching the payment method fails due to Stripe API errors or network issues.
@@ -103,6 +116,9 @@ const detachPaymentMethodService = async (paymentMethodId) => {
 
 /**
  * Sets an existing payment method as the default payment method for a customer's invoices.
+ *
+ * @security Requires 'Workspace Owner' or 'Billing Admin' role.
+ * @tenant Context: The `customerId` and payment method must belong to the active tenant/workspace.
  *
  * @param {string} customerId - The ID of the Stripe customer.
  * @param {string} paymentMethodId - The ID of the Payment Method to set as default.

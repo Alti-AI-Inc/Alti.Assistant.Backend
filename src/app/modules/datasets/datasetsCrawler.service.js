@@ -134,6 +134,9 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
       const existingQueueItems = await DatasetQueue.find({ datasetId: { $in: datasetIdsOnPage } }).lean();
       const existingQueueMap = new Map(existingQueueItems.map(item => [item.datasetId, item]));
 
+      // Optimization: Collect bulk operations to avoid N write queries per page
+      const bulkOps = [];
+
       for (const item of datasets) {
         if (scannedCount >= maxDatasetsToScan) break;
         scannedCount++;
@@ -256,16 +259,24 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
           sizeBytes: calculatedSizeBytes,
         };
 
-        await DatasetQueue.findOneAndUpdate(
-          { datasetId },
-          { $set: updatePayload },
-          { upsert: true, new: true }
-        );
+        // Optimization: Push to bulk operations instead of executing individual findOneAndUpdate queries
+        bulkOps.push({
+          updateOne: {
+            filter: { datasetId },
+            update: { $set: updatePayload },
+            upsert: true
+          }
+        });
 
         // Update stats for queued items based on final status
         if (finalStatus === 'pending' && (!existingQueueItem || existingQueueItem.status !== 'pending')) {
           stats.queued++; // Count as queued if it's new or changed to pending
         }
+      }
+
+      // Optimization: Execute bulk write for the current page
+      if (bulkOps.length > 0) {
+        await DatasetQueue.bulkWrite(bulkOps);
       }
 
       // Extract next page URL from 'Link' header (Hugging Face pagination format)
@@ -345,7 +356,7 @@ const runWorkerLoop = async () => {
         // Prepare local dataset metadata catalog record
         const info = await DatasetsService.getHFDatasetInfo(datasetId);
         
-        // Optimization: Use findOneAndUpdate with upsert: true to create or update the Dataset record.
+        // Optimization: Use findOneAndUpdate with upsert: true and lean: true to avoid Mongoose document overhead.
         // Recommended index: { datasetId: 1 } on Dataset model for efficient lookups.
         let dataset = await Dataset.findOneAndUpdate(
           { datasetId },
@@ -363,7 +374,7 @@ const runWorkerLoop = async () => {
               status: 'pending' // Status will be updated after archiving
             }
           },
-          { upsert: true, new: true } // Create if not exists, return the updated/new document
+          { upsert: true, new: true, lean: true } // Added lean: true for performance
         );
         
         // Execute awaited pipeline piping directly to GCS
