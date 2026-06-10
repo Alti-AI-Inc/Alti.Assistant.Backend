@@ -7,11 +7,30 @@ import {
   BRAINSTORM_ASPECTS,
 } from '../plan_generator.constant.js';
 
-// Initialize Gemini client
+/**
+ * @constant {GoogleGenerativeAI} genAI
+ * @description An instance of the Google Generative AI client, initialized with the secret key from the configuration.
+ * This client is used to interact with the Gemini models.
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Generate comprehensive brainstorming insights for an idea
+ * Generates a comprehensive brainstorming analysis for a given idea using a generative AI model.
+ * This function constructs a detailed prompt including the idea, a pre-computed analysis, and requested aspects,
+ * then calls the AI to get insights on SWOT, resource needs, and timelines.
+ *
+ * @async
+ * @param {string} ideaText - The core idea or concept to be brainstormed.
+ * @param {object} analysis - An object containing a pre-computed analysis of the idea.
+ * @param {string} analysis.plan_type - The type of plan (e.g., 'Business Plan', 'Project Plan').
+ * @param {string} analysis.complexity - The estimated complexity of the idea (e.g., 'High', 'Medium', 'Low').
+ * @param {string[]} analysis.domains - An array of relevant domains (e.g., ['Technology', 'Marketing']).
+ * @param {string[]} analysis.key_concepts - An array of key concepts identified in the idea.
+ * @param {string[]} [requestedAspects=[]] - An optional array of specific aspects to focus on (from `BRAINSTORM_ASPECTS`). If empty, a default set is used.
+ * @param {object} [contextData={}] - Optional additional context data, such as constraints.
+ * @param {object} [contextData.constraints] - Specific constraints to consider during brainstorming.
+ * @returns {Promise<object>} A promise that resolves to a structured JSON object containing the brainstorming results, including SWOT analysis, resource needs, timeline estimation, and key insights.
+ * @throws {Error} Throws an error if the AI model fails to generate a response or if the response cannot be parsed into valid JSON.
  */
 export const generateBrainstorm = async (
   ideaText,
@@ -107,7 +126,12 @@ Only return valid JSON, no additional text. Keep responses concise.`;
 };
 
 /**
- * Generate quick SWOT analysis
+ * Generates a quick SWOT (Strengths, Weaknesses, Opportunities, Threats) analysis for a given idea.
+ * This is a focused version of the main brainstormer, intended for rapid analysis.
+ *
+ * @async
+ * @param {string} ideaText - The idea or concept to analyze.
+ * @returns {Promise<object|null>} A promise that resolves to a JSON object with `strengths`, `weaknesses`, `opportunities`, and `threats` arrays. Returns `null` if an error occurs during generation or parsing.
  */
 export const generateSWOT = async (ideaText) => {
   try {
@@ -146,7 +170,15 @@ Return only JSON:
 };
 
 /**
- * Identify stakeholders for the idea
+ * Identifies and categorizes stakeholders based on the brainstorming output.
+ * It processes the stakeholder list from the brainstorm data and sorts them into primary, secondary, internal, and external groups.
+ *
+ * @param {object} brainstorm - The brainstorming result object, typically from `generateBrainstorm`.
+ * @param {object} [brainstorm.stakeholder_mapping] - An object containing stakeholder lists.
+ * @param {string[]} [brainstorm.stakeholder_mapping.primary_stakeholders] - List of primary stakeholders.
+ * @param {string[]} [brainstorm.stakeholder_mapping.secondary_stakeholders] - List of secondary stakeholders.
+ * @param {object} analysis - The pre-computed analysis object (currently unused in this function but kept for future compatibility).
+ * @returns {object} An object containing categorized stakeholder lists: `primary`, `secondary`, `internal`, and `external`.
  */
 export const identifyStakeholders = (brainstorm, analysis) => {
   const stakeholders = {
@@ -178,7 +210,15 @@ export const identifyStakeholders = (brainstorm, analysis) => {
 };
 
 /**
- * Generate success metrics based on brainstorm
+ * Defines success metrics based on the brainstorming output.
+ * It extracts Key Performance Indicators (KPIs) and milestones. If none are provided by the AI, it populates the list with sensible defaults.
+ *
+ * @param {object} brainstorm - The brainstorming result object from `generateBrainstorm`.
+ * @param {object} [brainstorm.success_metrics] - An object containing success metrics.
+ * @param {object[]} [brainstorm.success_metrics.kpis] - An array of Key Performance Indicators.
+ * @param {string[]} [brainstorm.success_metrics.milestones] - An array of project milestones.
+ * @param {string} planType - The type of plan (currently unused but kept for future compatibility).
+ * @returns {object} An object containing `kpis`, `milestones`, `measurement_frequency`, and `review_cycle`.
  */
 export const defineSuccessMetrics = (brainstorm, planType) => {
   const metrics = {
@@ -213,7 +253,19 @@ export const defineSuccessMetrics = (brainstorm, planType) => {
 };
 
 /**
- * Estimate resource requirements
+ * Estimates resource requirements based on the brainstorming output.
+ * It extracts budget, team, tools, infrastructure, and timeline information.
+ *
+ * @param {object} brainstorm - The brainstorming result object from `generateBrainstorm`.
+ * @param {object} [brainstorm.resource_needs] - An object detailing resource needs.
+ * @param {string} [brainstorm.resource_needs.budget_estimate] - A string describing the estimated budget.
+ * @param {string[]} [brainstorm.resource_needs.team_composition] - An array of required team roles.
+ * @param {string[]} [brainstorm.resource_needs.tools_and_technology] - An array of necessary tools.
+ * @param {string[]} [brainstorm.resource_needs.infrastructure] - An array of infrastructure requirements.
+ * @param {object} [brainstorm.timeline_estimation] - An object detailing the estimated timeline.
+ * @param {string} [brainstorm.timeline_estimation.total_duration] - A string describing the total project duration.
+ * @param {string} complexity - The estimated complexity of the project (currently unused but kept for future compatibility).
+ * @returns {object} An object containing estimated `budget`, `team`, `tools`, `infrastructure`, and `timeline`.
  */
 export const estimateResources = (brainstorm, complexity) => {
   const resources = {
@@ -228,6 +280,16 @@ export const estimateResources = (brainstorm, complexity) => {
   return resources;
 };
 
+/**
+ * @constant {object} brainstormEngine
+ * @description A service object that encapsulates all functions related to brainstorming and analyzing an idea.
+ * This engine uses a generative AI to produce insights and then processes that data into a structured format.
+ * @property {function} generateBrainstorm - Generates a comprehensive brainstorming analysis.
+ * @property {function} generateSWOT - Generates a quick SWOT analysis.
+ * @property {function} identifyStakeholders - Identifies and categorizes project stakeholders.
+ * @property {function} defineSuccessMetrics - Defines success metrics and KPIs.
+ * @property {function} estimateResources - Estimates required resources like budget, team, and tools.
+ */
 export const brainstormEngine = {
   generateBrainstorm,
   generateSWOT,
