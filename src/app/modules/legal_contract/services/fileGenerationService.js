@@ -36,7 +36,9 @@ export const generateTextFile = async (
     // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true });
 
-    const filePath = path.join(outputDir, fileName);
+    // Sanitize fileName to prevent path traversal vulnerabilities by ensuring only the basename is used.
+    const sanitizedFileName = path.basename(fileName);
+    const filePath = path.join(outputDir, sanitizedFileName);
 
     // Write contract to file
     await fs.writeFile(filePath, contractContent, 'utf8');
@@ -46,7 +48,7 @@ export const generateTextFile = async (
     return {
       success: true,
       filePath,
-      fileName,
+      fileName: sanitizedFileName, // Return the sanitized file name
       fileType: 'txt',
     };
   } catch (error) {
@@ -76,7 +78,9 @@ export const generateDocxFile = async (
     // Ensure output directory exists
     await fs.mkdir(outputDir, { recursive: true });
 
-    const filePath = path.join(outputDir, fileName);
+    // Sanitize fileName to prevent path traversal vulnerabilities by ensuring only the basename is used.
+    const sanitizedFileName = path.basename(fileName);
+    const filePath = path.join(outputDir, sanitizedFileName);
 
     const children = [];
     const lines = contractContent.split('\n');
@@ -115,6 +119,7 @@ export const generateDocxFile = async (
           })
         );
       } else {
+        // Basic bolding for lines starting and ending with **
         let text = line;
         let bold = false;
         if (text.startsWith('**') && text.endsWith('**')) {
@@ -153,7 +158,7 @@ export const generateDocxFile = async (
     return {
       success: true,
       filePath,
-      fileName,
+      fileName: sanitizedFileName, // Return the sanitized file name
       fileType: 'docx',
     };
   } catch (error) {
@@ -182,10 +187,12 @@ export const generateContractFile = async (
 ) => {
   try {
     const timestamp = Date.now();
-    const contractType = metadata.contractType || 'contract';
-    const userId = metadata.userId || 'anonymous';
+    // Sanitize contractType and userId to prevent invalid characters or path traversal attempts in file names.
+    // Allow only alphanumeric characters, hyphens, and underscores.
+    const contractType = (metadata.contractType || 'contract').replace(/[^a-zA-Z0-9_-]/g, '');
+    const userId = (metadata.userId || 'anonymous').replace(/[^a-zA-Z0-9_-]/g, '');
 
-    const fileName = `${contractType}_${timestamp}.${format}`;
+    const fileName = `${contractType}_${userId}_${timestamp}.${format}`;
 
     let result;
 
@@ -218,6 +225,18 @@ export const generateContractFile = async (
  */
 export const cleanupContractFile = async (filePath) => {
   try {
+    const outputDir = path.join(process.cwd(), 'output', 'contracts');
+    const absoluteOutputDir = path.resolve(outputDir);
+    const absoluteFilePath = path.resolve(filePath);
+
+    // Security check: Prevent path traversal (IDOR) by ensuring the file to be deleted
+    // is strictly within the designated contract output directory.
+    // We add path.sep to ensure it's a child of the directory, not just a string prefix match.
+    if (!absoluteFilePath.startsWith(absoluteOutputDir + path.sep)) {
+      logger.warn(`Attempted to delete file outside designated contract directory: ${filePath}`);
+      return { success: false, error: 'Attempted to delete file outside designated contract directory.' };
+    }
+
     await fs.unlink(filePath);
     logger.info(`Cleaned up file: ${filePath}`);
     return { success: true };
