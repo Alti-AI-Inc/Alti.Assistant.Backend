@@ -1,5 +1,33 @@
+/**
+ * @fileoverview Utility functions for handling social login logic.
+ * This module provides the core functionality for finding or creating users
+ * during a social authentication flow (e.g., Google, Facebook).
+ * @module modules/social-login/social-login.utils
+ */
+
 import UserModel from '../auth/auth.model.js';
 
+/**
+ * Finds an existing user based on their social provider profile or creates a new one.
+ * This function handles the core logic for social login by:
+ * 1. Finding a user by their unique provider ID.
+ * 2. If not found, finding a user by their email address and linking the new provider,
+ *    with a critical security check to prevent linking to password-protected accounts.
+ * 3. If no user is found by either method, creating a new user with the profile information.
+ *
+ * @async
+ * @function findOrCreateUserModel
+ * @param {object} profile - The user profile object returned by the social provider (e.g., from Passport.js).
+ * @param {string} profile.id - The unique identifier for the user from the social provider.
+ * @param {Array<{value: string}>} [profile.emails] - An array of email objects. The first email is used.
+ * @param {string} [profile.displayName] - The user's display name.
+ * @param {string} [profile.username] - The user's username.
+ * @param {Array<{value: string}>} [profile.photos] - An array of photo objects. The first photo is used as the avatar.
+ * @param {string} provider - The name of the social login provider (e.g., 'google', 'facebook').
+ * @returns {Promise<{user: import('../auth/auth.model.js').User, status: 'existing'|'linked'|'created', message: string}>} A promise that resolves to an object containing the user document and the status of the operation ('existing', 'linked', or 'created').
+ * @throws {Error} Throws an error if the user's email is already registered with a password, preventing account takeover.
+ * @throws {Error} Throws an error if the user's email is already linked to a different social provider.
+ */
 export async function findOrCreateUserModel(profile, provider) {
   try {
     // --- Step 1: Find the user by their unique provider ID ---

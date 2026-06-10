@@ -71,10 +71,11 @@ export const WORKSPACE_LIMITS = {
  */
 export const MANAGER_PERMISSIONS = [
   'VIEW_WORKSPACE_METRICS',
+  'VIEW_TEAM_MEMBERS',
   'INVITE_MEMBER',
+  'CANCEL_INVITATION',
   'REMOVE_MEMBER',
-  'UPDATE_MEMBER_ROLE',
-  'VIEW_TEAM_MEMBERS'
+  'UPDATE_MEMBER_ROLE'
 ];
 
 /**
@@ -92,7 +93,14 @@ export const OWNER_PERMISSIONS = [
 
 /**
  * @constant {string[]} MANAGER_ASSIGNABLE_ROLES - Defines the roles a Manager can assign to other members.
- * This is a critical security measure to prevent privilege escalation. A manager cannot promote a member
- * to an Owner, nor can they demote an existing Owner.
+ * This is a critical security measure to prevent privilege escalation. A manager cannot promote anyone
+ * to an Owner.
  */
 export const MANAGER_ASSIGNABLE_ROLES = [USER_ROLES.MANAGER, USER_ROLES.MEMBER];
+
+/**
+ * @constant {string[]} MANAGER_UNMODIFIABLE_ROLES - Defines roles that a Manager cannot modify.
+ * This prevents a manager from demoting or otherwise altering the role of an Owner, ensuring the integrity
+ * of the workspace hierarchy. This should be checked before any role update operation.
+ */
+export const MANAGER_UNMODIFIABLE_ROLES = [USER_ROLES.OWNER];

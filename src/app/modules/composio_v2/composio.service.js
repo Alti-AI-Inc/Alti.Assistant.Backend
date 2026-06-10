@@ -9,6 +9,105 @@ import {
   withTenantContext,
   withTenantFilter,
 } from '../../helpers/tenantQuery.js';
+// Security Patch: Import modules for input sanitization and encryption.
+import sanitizeHtml from 'sanitize-html';
+import crypto from 'crypto';
+
+// --- Security Enhancements ---
+
+// Default options for sanitize-html to strip all HTML tags and attributes, preventing Stored XSS.
+const sanitizeOptions = {
+  allowedTags: [],
+  allowedAttributes: {},
+};
+
+// Configuration for AES-256-GCM encryption.
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH_BYTES = 12; // GCM standard IV size is 12 bytes.
+const ENCRYPTION_KEY_SECRET = 'db-encryption-key'; // The name of the secret in GCP Secret Manager containing the 64-char hex-encoded key.
+
+// In-memory cache for the encryption key to reduce Secret Manager calls.
+let encryptionKey;
+
+/**
+ * Fetches the database encryption key from GCP Secret Manager.
+ * The key is expected to be a 64-character hex-encoded string (representing 32 bytes).
+ * @returns {Promise<Buffer>} The encryption key as a Buffer.
+ * @throws {Error} If the key is not found or has an invalid format.
+ */
+async function getEncryptionKey() {
+  if (encryptionKey) {
+    return encryptionKey;
+  }
+  const keyHex = await getSecret(ENCRYPTION_KEY_SECRET);
+  if (!keyHex || keyHex.length !== 64) {
+    console.error(`Encryption key '${ENCRYPTION_KEY_SECRET}' is invalid. It must be a 64-character hex string.`);
+    throw new Error(`Encryption key '${ENCRYPTION_KEY_SECRET}' must be a 64-character hex string.`);
+  }
+  encryptionKey = Buffer.from(keyHex, 'hex');
+  return encryptionKey;
+}
+
+/**
+ * Encrypts a plaintext string using AES-256-GCM.
+ * @param {string} text - The plaintext to encrypt.
+ * @returns {Promise<string|null>} The encrypted string in 'iv:authtag:ciphertext' hex format, or null if input is falsy.
+ */
+async function encrypt(text) {
+  if (!text) {
+    return null;
+  }
+  const key = await getEncryptionKey();
+  const iv = crypto.randomBytes(IV_LENGTH_BYTES);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  const authTag = cipher.getAuthTag();
+
+  // Store IV and authTag with the ciphertext for decryption.
+  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+}
+
+/**
+ * Decrypts an AES-256-GCM encrypted string.
+ * NOTE: This function is not actively used in this file but is provided for completeness
+ * to demonstrate how to retrieve and use the encrypted tokens elsewhere in the application.
+ * @param {string} encryptedText - The encrypted string in 'iv:authtag:ciphertext' hex format.
+ * @returns {Promise<string|null>} The decrypted plaintext, or null if input is invalid.
+ */
+async function decrypt(encryptedText) {
+  if (!encryptedText || typeof encryptedText !== 'string') {
+    return null;
+  }
+  const parts = encryptedText.split(':');
+  if (parts.length !== 3) {
+    console.error('Invalid encrypted text format. Expected "iv:authtag:ciphertext".');
+    // Returning null is safer than throwing an error or returning the input.
+    return null;
+  }
+
+  try {
+    const key = await getEncryptionKey();
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+  } catch (error) {
+    console.error('Failed to decrypt data:', error);
+    return null;
+  }
+}
+
+// --- End Security Enhancements ---
 
 // Optimization Recommendation:
 // For AuthConfig model, consider adding an index on the 'app' field for faster lookups:
@@ -110,7 +209,7 @@ const initiateComposioAuth = async (body, req = null) => {
   try {
     // AuthConfig is potentially modified and saved later, so .lean() is not suitable here.
     let auth_config = await AuthConfig.findOne({ app: app_name });
-    if (!auth_config) {
+    if (!auth__config) {
       console.log(`AuthConfig for app ${app_name} not found in DB. Proactively creating default...`);
       auth_config = new AuthConfig({
         app: app_name,
@@ -230,17 +329,29 @@ const waitForConnection = async (connectedAccountId) => {
     const connection =
       await composio.connectedAccounts.waitForConnection(connectedAccountId);
     console.log('Composio connection established successfully', connection);
+
+    // Security Patch: Encrypt tokens before storing them in the database to protect sensitive credentials at rest.
+    const updatePayload = {
+      status: (connection.data.status || 'ACTIVE').toUpperCase(),
+      toolkit: connection.toolkit,
+    };
+
+    if (connection.data.accessToken) {
+      updatePayload.accessToken = await encrypt(connection.data.accessToken);
+    }
+    if (connection.data.refreshToken) {
+      updatePayload.refreshToken = await encrypt(connection.data.refreshToken);
+    }
+    if (connection.data.idToken) {
+      updatePayload.idToken = await encrypt(connection.data.idToken);
+    }
+
     await ComposionAuth.updateOne(
       { connectedAccountId: connectedAccountId },
-      {
-        status: (connection.data.status || 'ACTIVE').toUpperCase(),
-        accessToken: connection.data.accessToken,
-        refreshToken: connection.data.refreshToken,
-        idToken: connection.data.idToken,
-        toolkit: connection.toolkit,
-      },
+      updatePayload,
       { upsert: true }
     );
+
     // Return the connection details
     return { connection };
   } catch (error) {
@@ -301,10 +412,13 @@ const handleComposioConversation = async (
       // Create new conversation
       const newConversationId = generateComposioConversationId();
 
+      // Security Patch: Sanitize user-provided message to prevent Stored XSS vulnerabilities.
+      const sanitizedMessage = sanitizeHtml(message, sanitizeOptions);
+
       conversation = new Conversation({
         conversationId: newConversationId,
         userId: userId,
-        title: message.length > 50 ? `${message.substring(0, 50)}...` : message,
+        title: sanitizedMessage.length > 50 ? `${sanitizedMessage.substring(0, 50)}...` : sanitizedMessage,
         messages: [],
         metadata: {
           category: 'composio',
@@ -348,9 +462,12 @@ const addComposioQueryMessage = async (
     );
 
     if (conversation) {
+      // Security Patch: Sanitize user-provided message to prevent Stored XSS.
+      const sanitizedMessage = sanitizeHtml(message, sanitizeOptions);
+
       conversation.messages.push({
         role: 'user',
-        content: message,
+        content: sanitizedMessage,
         timestamp: new Date(),
         metadata: {
           isGuest: isGuest,
@@ -395,9 +512,12 @@ const addComposioResponseMessage = async (
     );
 
     if (conversation) {
+      // Security Patch: Sanitize assistant response to prevent Stored XSS, as it may echo user input.
+      const sanitizedResponse = sanitizeHtml(response, sanitizeOptions);
+
       conversation.messages.push({
         role: 'assistant',
-        content: response,
+        content: sanitizedResponse,
         timestamp: new Date(),
         metadata: {
           isGuest: isGuest,
@@ -436,9 +556,12 @@ const processComposioConversation = async (inputs) => {
     const { query, conversationContext, history, userId, conversationId } =
       inputs;
 
+    // Security Patch: Sanitize user-provided query to prevent XSS or other injection attacks in downstream services.
+    const sanitizedQuery = sanitizeHtml(query, sanitizeOptions);
+
     // Use the existing AI classification service to process the user input
     const result = await aiClassificationService.processUserInputService(
-      query,
+      sanitizedQuery,
       {
         userId,
         conversationId,

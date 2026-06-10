@@ -1,66 +1,68 @@
-import fs from 'fs';
+import { PubSub } from '@google-cloud/pubsub';
+import { Storage } from '@google-cloud/storage';
 import multer from 'multer';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { LEGAL_CONTRACT_CONFIG } from '../legal_contract.constant.js';
 
-/**
- * @const {string} __filename
- * @description The absolute path to the current module file.
- * @private
- */
-const __filename = fileURLToPath(import.meta.url);
+// --- GCP Client and Configuration Setup ---
 
 /**
- * @const {string} __dirname
- * @description The absolute path to the directory containing the current module file.
- * @private
+ * @description GCP Storage client instance. Used for uploading files to a GCS bucket.
+ * This is a core component for making the service stateless.
+ * @see https://cloud.google.com/nodejs/docs/reference/storage/latest
  */
-const __dirname = path.dirname(__filename);
+const storageClient = new Storage();
 
 /**
- * @const {string} uploadDir
- * @description The absolute path to the directory where legal contract files will be uploaded.
- * It is constructed relative to the project's root `uploads` directory.
+ * @description GCP Pub/Sub client instance. Used for publishing messages to trigger background jobs.
+ * This enables asynchronous processing of long-running tasks.
+ * @see https://cloud.google.com/nodejs/docs/reference/pubsub/latest
  */
-const uploadDir = path.join(
-  __dirname,
-  '../../../../../uploads/legal_contracts'
-);
+const pubSubClient = new PubSub();
 
 /**
- * @description Ensures that the upload directory exists. If it doesn't, it's created recursively.
+ * @const {string} GCS_BUCKET_NAME
+ * @description The name of the Google Cloud Storage bucket where legal contracts will be stored.
+ * It's a best practice to configure this via environment variables for different environments.
+ * @example
+ * // In your .env file
+ * // LEGAL_CONTRACTS_GCS_BUCKET=your-company-legal-contracts-bucket
  */
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const GCS_BUCKET_NAME = process.env.LEGAL_CONTRACTS_GCS_BUCKET;
+
+/**
+ * @const {string} PUBSUB_TOPIC_NAME
+ * @description The name of the Pub/Sub topic to which a message is sent after a successful upload.
+ * A background worker (e.g., a Cloud Function or another Cloud Run service) should subscribe
+ * to this topic to perform heavy processing like AI analysis, parsing, etc.
+ * @example
+ * // In your .env file
+ * // LEGAL_CONTRACT_PROCESSING_TOPIC=projects/your-gcp-project/topics/process-legal-contract
+ */
+const PUBSUB_TOPIC_NAME = process.env.LEGAL_CONTRACT_PROCESSING_TOPIC;
+
+// Startup check to ensure necessary environment variables are set for the service to function.
+if (!GCS_BUCKET_NAME || !PUBSUB_TOPIC_NAME) {
+  throw new Error(
+    'FATAL_ERROR: Missing required environment variables: LEGAL_CONTRACTS_GCS_BUCKET and/or LEGAL_CONTRACT_PROCESSING_TOPIC must be set.'
+  );
 }
 
+// --- Multer Configuration for In-Memory Processing ---
+
 /**
- * @const {multer.StorageEngine} storage
- * @description Configures the storage engine for multer. It specifies how files are stored on disk.
- * @property {function(req, file, cb)} destination - Determines the destination directory for uploaded files.
- * @property {function(req, file, cb)} filename - Determines the filename for uploaded files, ensuring uniqueness by appending a timestamp and a random number to the original filename.
+ * @const {multer.StorageEngine} memoryStorage
+ * @description Configures multer to store files in memory as a Buffer.
+ * This is essential for a stateless, cloud-native architecture, as it avoids
+ * writing to the ephemeral local filesystem of a container. The file buffer
+ * is then streamed directly to a persistent storage service like GCS.
  */
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    const nameWithoutExt = path.basename(file.originalname, ext);
-    cb(null, `${nameWithoutExt}-${uniqueSuffix}${ext}`);
-  },
-});
+const memoryStorage = multer.memoryStorage();
 
 /**
  * @const {function(import('express').Request, Express.Multer.File, multer.FileFilterCallback)} fileFilter
- * @description A multer filter function to validate incoming files.
- * It checks if the file's extension and MIME type are among the supported types defined in `LEGAL_CONTRACT_CONFIG`.
- * If the file is invalid, it passes an error to the callback, which rejects the file upload.
- * @param {import('express').Request} req - The Express request object.
- * @param {Express.Multer.File} file - The file being uploaded.
- * @param {multer.FileFilterCallback} cb - The callback to signal whether to accept the file.
+ * @description A multer filter function to validate incoming files based on extension and MIME type.
+ * This logic remains unchanged as it provides essential input validation before any processing.
  */
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
@@ -89,43 +91,119 @@ const fileFilter = (req, file, cb) => {
 };
 
 /**
- * @const {import('multer').Multer} uploadLegalContract
- * @description A configured multer instance for handling legal contract file uploads.
- * It uses the defined `storage` and `fileFilter`, and sets a file size limit based on `LEGAL_CONTRACT_CONFIG`.
- * This middleware should be used in routes that require legal contract file uploads.
+ * @const {import('multer').Multer} parseLegalContractUpload
+ * @description A configured multer instance for parsing multipart/form-data.
+ * It uses in-memory storage and the file filter. This middleware should be first in the chain
+ * to handle the raw upload data and make it available on `req.file`.
  *
  * @example
- * // Usage in an Express route for a single file upload:
- * // router.post('/upload', uploadLegalContract.single('contract'), (req, res) => { ... });
- *
- * @security
- * Role-based access control should be implemented in the route that uses this middleware
- * to ensure only authorized users can upload files.
- *
- * @multi-tenant
- * If the application is multi-tenant, the `destination` function within the `storage` configuration
- * could be modified to include a tenant-specific identifier in the path (e.g., from `req.user.tenantId`)
- * to isolate tenant data.
+ * // Usage in an Express route:
+ * // router.post(
+ * //   '/upload',
+ * //   parseLegalContractUpload.single('contract'),
+ * //   offloadLegalContractProcessing,
+ * //   (req, res) => { ... }
+ * // );
  */
-export const uploadLegalContract = multer({
-  storage: storage,
+export const parseLegalContractUpload = multer({
+  storage: memoryStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: LEGAL_CONTRACT_CONFIG.MAX_FILE_SIZE,
   },
 });
 
+// --- Asynchronous Offloading Middleware ---
+
+/**
+ * @function offloadLegalContractProcessing
+ * @description An Express middleware that performs the core offloading logic. It should be placed
+ * after `parseLegalContractUpload`.
+ * 1. Streams the file from memory (`req.file.buffer`) to Google Cloud Storage.
+ * 2. Publishes a message to a Google Pub/Sub topic with file metadata.
+ * 3. Attaches GCS file information to `req.gcsFile` for the next handler (e.g., a controller).
+ * This ensures the main request-response cycle is fast and that heavy processing
+ * is handled by a separate, scalable background worker.
+ * @param {import('express').Request} req - The Express request object, expected to have `req.file`.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {import('express').NextFunction} next - The next middleware function.
+ */
+export const offloadLegalContractProcessing = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+
+    const bucket = storageClient.bucket(GCS_BUCKET_NAME);
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(req.file.originalname);
+    const gcsFileName = `contracts/${uniqueSuffix}${ext}`; // Use a structured path in the bucket.
+
+    const blob = bucket.file(gcsFileName);
+    const blobStream = blob.createWriteStream({
+      resumable: false,
+      contentType: req.file.mimetype,
+    });
+
+    blobStream.on('error', (err) => {
+      // Ensure GCS errors are passed to the central error handler.
+      err.message = `GCS Upload Error: ${err.message}`;
+      return next(err);
+    });
+
+    blobStream.on('finish', async () => {
+      try {
+        // The file is now in GCS. Attach its metadata to the request object
+        // so the controller can, for example, save a reference to it in the database.
+        req.gcsFile = {
+          bucket: GCS_BUCKET_NAME,
+          name: gcsFileName,
+          gcsUri: `gs://${GCS_BUCKET_NAME}/${gcsFileName}`,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+        };
+
+        // Prepare the message for the background processing service.
+        const messagePayload = {
+          gcsUri: req.gcsFile.gcsUri,
+          originalFilename: req.file.originalname,
+          // Pass any other relevant context, like user or tenant ID.
+          // This assumes user information is available on the request object from a preceding auth middleware.
+          userId: req.user?.id,
+          tenantId: req.user?.tenantId,
+        };
+        const dataBuffer = Buffer.from(JSON.stringify(messagePayload));
+
+        // Publish the message to Pub/Sub to trigger the asynchronous workflow.
+        await pubSubClient.topic(PUBSUB_TOPIC_NAME).publishMessage({ data: dataBuffer });
+
+        // The offloading is complete. Proceed to the next middleware (usually the controller).
+        return next();
+      } catch (pubSubError) {
+        // Ensure Pub/Sub errors are passed to the central error handler.
+        pubSubError.message = `Pub/Sub Publishing Error: ${pubSubError.message}`;
+        return next(pubSubError);
+      }
+    });
+
+    // Start the stream by writing the file buffer from memory.
+    blobStream.end(req.file.buffer);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// --- Centralized Error Handling ---
+
 /**
  * @function handleUploadError
- * @description An Express error-handling middleware specifically for multer-related errors.
- * It catches `MulterError` instances (e.g., file size limit exceeded) and other upload-related errors
- * from the `fileFilter`, sending a standardized JSON error response to the client.
- * This should be placed in the middleware chain after any routes that use the `uploadLegalContract` middleware.
+ * @description An Express error-handling middleware for upload-related errors.
+ * It now handles errors from multer (e.g., file size limit), GCS, and Pub/Sub,
+ * providing a consistent error response format.
  * @param {Error | import('multer').MulterError} err - The error object.
  * @param {import('express').Request} req - The Express request object.
  * @param {import('express').Response} res - The Express response object.
  * @param {import('express').NextFunction} next - The next middleware function.
- * @returns {void | import('express').Response} Sends a JSON response or calls the next middleware if the error is not from multer.
  */
 export const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
@@ -140,10 +218,16 @@ export const handleUploadError = (err, req, res, next) => {
       message: `Upload error: ${err.message}`,
     });
   } else if (err) {
-    // Catches errors from the fileFilter
-    return res.status(400).json({
+    // Catches errors from fileFilter, GCS upload, or Pub/Sub publishing.
+    console.error('File offloading failed:', err); // Log the actual error for debugging.
+
+    // Distinguish between client-side validation errors and server-side infrastructure errors.
+    const isClientError = err.message.toLowerCase().startsWith('invalid');
+    const statusCode = isClientError ? 400 : 500;
+
+    return res.status(statusCode).json({
       success: false,
-      message: err.message,
+      message: err.message || 'An unexpected error occurred during file processing.',
     });
   }
   next();
