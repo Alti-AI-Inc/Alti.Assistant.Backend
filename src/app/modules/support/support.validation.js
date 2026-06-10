@@ -11,6 +11,8 @@ export const supportValidationSchema = z.object({
     isRead: z.boolean().optional(),
   }),
   params: z.object({
-    id: z.string(), // validate URL param like /:userId
+    // Validate URL parameter 'id' to ensure it's a valid MongoDB ObjectId format.
+    // This prevents invalid IDs from reaching the database layer, improving security and error handling.
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ID format'),
   }),
 });
