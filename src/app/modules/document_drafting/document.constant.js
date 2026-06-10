@@ -224,4 +224,46 @@ export const ERROR_MESSAGES = {
   GENERATION_FAILED: 'Failed to generate document',
   EXPORT_FAILED: 'Failed to export document',
   CONVERSATION_FAILED: 'Failed to process conversation',
+  RATE_LIMIT_EXCEEDED: 'Too many requests. Please try again later.',
+};
+
+/**
+ * Rate limiting configurations for the document drafting endpoints.
+ * These settings help prevent API abuse, DDOS attacks, and control costs associated with AI model usage.
+ *
+ * - `windowMs`: The time window in milliseconds.
+ * - `max`: The maximum number of requests allowed from a user/IP within the `windowMs`.
+ * - `message`: The error message to return when the limit is exceeded.
+ */
+export const RATE_LIMIT_CONFIG = {
+  /**
+   * Strict rate limit for expensive AI-powered document generation and modification actions.
+   * (e.g., DRAFT, EDIT, REFINE, EXPAND, SUMMARIZE, REWRITE).
+   * Allows 10 requests per hour per user.
+   */
+  GENERATION: {
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10,
+    message:
+      'You have exceeded the document generation limit. Please try again later.',
+  },
+  /**
+   * Moderate rate limit for general API usage within the module, such as fetching
+   * document lists or details.
+   * Allows 100 requests per 15 minutes per user.
+   */
+  GENERAL: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    message: ERROR_MESSAGES.RATE_LIMIT_EXCEEDED,
+  },
+  /**
+   * A more lenient limit for fetching document status or non-sensitive information.
+   * Allows 200 requests per 15 minutes per user.
+   */
+  INFO: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200,
+    message: ERROR_MESSAGES.RATE_LIMIT_EXCEEDED,
+  },
 };
