@@ -55,11 +55,12 @@ let rateLimitBackoffMs = 0; // Dynamic backoff tracking
  * @description Normalizes and extracts the license string from a Hugging Face API dataset item.
  *   It attempts to find the license in `item.cardData.license` (string, array, or object with 'type')
  *   or falls back to searching `item.tags` for a 'license:' prefixed tag.
+ *   For arrays, it enforces strict purity: only if exactly one allowed license is present will it be returned.
  * @param {object} item - The dataset item object from the Hugging Face API.
  * @param {object} [item.cardData] - Card data containing metadata.
  * @param {(string|string[]|object)} [item.cardData.license] - License information, can be a string, array of strings, or an object with a 'type' property.
  * @param {string[]} [item.tags] - Array of tags associated with the dataset.
- * @returns {string} The normalized, lowercase license string, or 'unspecified' if not found.
+ * @returns {string} The normalized, lowercase license string, or 'unspecified' if not found or not strictly pure.
  */
 const extractLicense = (item) => {
   if (item.cardData && item.cardData.license) {
@@ -67,9 +68,17 @@ const extractLicense = (item) => {
     if (typeof item.cardData.license === 'string') {
       return item.cardData.license.trim().toLowerCase();
     }
-    // If it's an array
+    // If it's an array, enforce strict purity: only one allowed license
     if (Array.isArray(item.cardData.license)) {
-      return item.cardData.license.map(l => String(l).trim().toLowerCase()).join(',');
+      const normalizedLicenses = item.cardData.license
+        .map(l => String(l).trim().toLowerCase())
+        .filter(l => ALLOWED_LICENSES.includes(l)); // Filter for allowed ones
+
+      if (normalizedLicenses.length === 1) { // Only one allowed license found
+        return normalizedLicenses[0];
+      }
+      // If zero, or more than one allowed license, it's not "pure"
+      return 'unspecified';
     }
     // If it's an object (e.g. { type: 'mit' })
     if (typeof item.cardData.license === 'object' && item.cardData.license.type) {
@@ -92,7 +101,8 @@ const extractLicense = (item) => {
  * @function scanHuggingFaceHub
  * @description Discovers and indexes Hugging Face datasets into the local crawling queue (`DatasetQueue`).
  *   It fetches datasets from the Hugging Face Hub API, applies various filters (gated, private, media, license, size),
- *   and queues eligible datasets for ingestion. Existing datasets in the queue are updated.
+ *   and queues eligible datasets for ingestion. Existing datasets in the queue are updated, and their status
+ *   is re-evaluated based on current HF metadata.
  * @param {number} [maxDatasetsToScan=500] - The maximum number of datasets to scan from the Hugging Face Hub.
  * @returns {Promise<object>} An object containing `success` status and `stats` about the scan process.
  * @throws {Error} If the HF Discovery Scanner encounters a critical error during the scan.
@@ -133,129 +143,129 @@ const scanHuggingFaceHub = async (maxDatasetsToScan = 500) => {
         const likes = item.likes || 0;
         const isGated = item.gated || false;
         const isPrivate = item.private || false;
-        
-        // Extract license
         const rawLicense = extractLicense(item);
         
-        // Optimization: Use findOneAndUpdate with upsert: true to handle both existing and new items efficiently.
-        // This replaces the findOne + save/create logic.
+        let calculatedStatus = 'pending'; // Default status, will be updated by filters
+        let calculatedSkipReason = '';
+        let calculatedSizeBytes = 0;
+
+        // Determine status based on current Hugging Face data
+        // 1. Gatekeeper Filter: Gated or Private
+        if (isGated || isPrivate) {
+          calculatedStatus = 'skipped';
+          calculatedSkipReason = 'Gated or Private dataset';
+          stats.skippedGated++;
+        } 
+        // 2. Gatekeeper Filter: Media/Non-Text (Image, Audio, Video, 3D) dataset detection
+        else {
+          const tags = item.tags || [];
+          const blacklistedTasks = [
+            'image-classification', 'image-segmentation', 'zero-shot-image-classification', 
+            'image-to-image', 'unconditional-image-generation', 'video-classification', 
+            'text-to-video', 'zero-shot-video-classification', 'depth-estimation', 
+            'image-to-text', 'image-to-video', 'text-to-image', 'mask-generation',
+            'audio-classification', 'text-to-speech', 'automatic-speech-recognition', 
+            'audio-to-audio', 'voice-activity-detection', 'text-to-3d', 'image-to-3d', '3d'
+          ];
+          
+          let isMedia = false;
+          let matchedMediaTag = '';
+          for (const tag of tags) {
+            if (tag.startsWith('task_categories:')) {
+              const category = tag.replace('task_categories:', '').trim().toLowerCase();
+              if (blacklistedTasks.includes(category)) {
+                isMedia = true;
+                matchedMediaTag = tag;
+                break;
+              }
+            }
+          }
+          
+          // Check dataset ID or tags for keywords like 'image', 'audio', 'video', 'objaverse'
+          const lowerId = datasetId.toLowerCase();
+          if (!isMedia) {
+            const mediaKeywords = ['image', 'audio', 'video', 'spectrogram', 'speech', 'objaverse', 'point-cloud', 'pointcloud', '3d-mesh', 'voxels'];
+            for (const keyword of mediaKeywords) {
+              if (lowerId.includes(keyword)) {
+                isMedia = true;
+                matchedMediaTag = `keyword:${keyword}`;
+                break;
+              }
+            }
+          }
+
+          if (isMedia) {
+            calculatedStatus = 'skipped';
+            calculatedSkipReason = `Media/Non-Text Dataset: matched ${matchedMediaTag}`;
+            stats.skippedLicense++; // Count as skipped/license skip metric (as per original logic)
+          } 
+          // 3. Gatekeeper Filter: Strict Legal License Purity (Pure MIT or pure Apache 2.0 only)
+          else {
+            const isMIT = rawLicense === 'mit';
+            const isApache = rawLicense === 'apache-2.0' || rawLicense === 'apache-2.0-only';
+            if (!isMIT && !isApache) {
+              calculatedStatus = 'skipped';
+              calculatedSkipReason = `Unsupported License: "${rawLicense}" (Only pure mit and apache-2.0 allowed)`;
+              stats.skippedLicense++;
+            } 
+            // 4. Gatekeeper Filter: Rough Size threshold (if exposed in metadata)
+            else {
+              if (item.cardData?.dataset_info?.dataset_size) {
+                calculatedSizeBytes = item.cardData.dataset_info.dataset_size;
+              } else if (item.cardData?.dataset_info?.download_size) {
+                calculatedSizeBytes = item.cardData.dataset_info.download_size;
+              }
+
+              if (calculatedSizeBytes > maxSizeBytes) {
+                calculatedStatus = 'skipped';
+                calculatedSkipReason = `Exceeded Max Size Limit (${(calculatedSizeBytes / (1024 * 1024)).toFixed(2)} MB)`;
+                stats.skippedSize++;
+              }
+            }
+          }
+        }
+
+        // Now, determine the final status for the queue item, considering its previous state
+        const existingQueueItem = existingQueueMap.get(datasetId);
+        let finalStatus = calculatedStatus;
+
+        if (existingQueueItem) {
+          // If an item was previously completed or downloading, and still passes filters, keep its status.
+          // If it now fails filters, update to 'skipped'.
+          if ((existingQueueItem.status === 'completed' || existingQueueItem.status === 'downloading') && calculatedStatus === 'pending') {
+            finalStatus = existingQueueItem.status; 
+          } 
+          // If it was failed or skipped before, but now passes filters, set to 'pending' for re-evaluation.
+          else if ((existingQueueItem.status === 'failed' || existingQueueItem.status === 'skipped') && calculatedStatus === 'pending') {
+            finalStatus = 'pending';
+          }
+          // In all other cases (e.g., was pending, now skipped; was completed, now skipped; was failed, still skipped),
+          // `finalStatus` remains `calculatedStatus`.
+        } else {
+          stats.discovered++; // Only increment discovered for truly new items
+        }
+
+        // Update or create the queue item in the database
         const updatePayload = {
           downloads,
           likes,
           license: rawLicense,
-          lastAttemptedAt: new Date(), // Update timestamp on scan
+          lastAttemptedAt: new Date(), // Always update last attempted at scan time
+          status: finalStatus,
+          skipReason: calculatedSkipReason,
+          sizeBytes: calculatedSizeBytes,
         };
 
-        if (existingQueueMap.has(datasetId)) {
-          // If already cataloged, just update likes/downloads and continue
-          // No need to re-evaluate filters if it's already in the queue, just update stats.
-          // We use findOneAndUpdate here to ensure atomicity and avoid race conditions if multiple scanners run.
-          await DatasetQueue.findOneAndUpdate(
-            { datasetId },
-            { $set: { downloads, likes, lastAttemptedAt: new Date() } },
-            { new: true }
-          );
-          continue;
-        }
-
-        stats.discovered++;
-
-        // 2. Gatekeeper Filter: Gated or Private
-        if (isGated || isPrivate) {
-          stats.skippedGated++;
-          await DatasetQueue.findOneAndUpdate(
-            { datasetId },
-            { $set: { ...updatePayload, status: 'skipped', skipReason: 'Gated or Private dataset' } },
-            { upsert: true, new: true }
-          );
-          continue;
-        }
-
-        // 2.5 Gatekeeper Filter: Media/Non-Text (Image, Audio, Video, 3D) dataset detection
-        const tags = item.tags || [];
-        const blacklistedTasks = [
-          'image-classification', 'image-segmentation', 'zero-shot-image-classification', 
-          'image-to-image', 'unconditional-image-generation', 'video-classification', 
-          'text-to-video', 'zero-shot-video-classification', 'depth-estimation', 
-          'image-to-text', 'image-to-video', 'text-to-image', 'mask-generation',
-          'audio-classification', 'text-to-speech', 'automatic-speech-recognition', 
-          'audio-to-audio', 'voice-activity-detection', 'text-to-3d', 'image-to-3d', '3d'
-        ];
-        
-        let isMedia = false;
-        let matchedMediaTag = '';
-        for (const tag of tags) {
-          if (tag.startsWith('task_categories:')) {
-            const category = tag.replace('task_categories:', '').trim().toLowerCase();
-            if (blacklistedTasks.includes(category)) {
-              isMedia = true;
-              matchedMediaTag = tag;
-              break;
-            }
-          }
-        }
-        
-        // Check dataset ID or tags for keywords like 'image', 'audio', 'video', 'objaverse'
-        const lowerId = datasetId.toLowerCase();
-        if (!isMedia) {
-          const mediaKeywords = ['image', 'audio', 'video', 'spectrogram', 'speech', 'objaverse', 'point-cloud', 'pointcloud', '3d-mesh', 'voxels'];
-          for (const keyword of mediaKeywords) {
-            if (lowerId.includes(keyword)) {
-              isMedia = true;
-              matchedMediaTag = `keyword:${keyword}`;
-              break;
-            }
-          }
-        }
-
-        if (isMedia) {
-          stats.skippedLicense++; // Count as skipped/license skip metric
-          await DatasetQueue.findOneAndUpdate(
-            { datasetId },
-            { $set: { ...updatePayload, status: 'skipped', skipReason: `Media/Non-Text Dataset: matched ${matchedMediaTag}` } },
-            { upsert: true, new: true }
-          );
-          continue;
-        }
-
-        // 3. Gatekeeper Filter: Strict Legal License Purity (Pure MIT or pure Apache 2.0 only)
-        const isMIT = rawLicense === 'mit';
-        const isApache = rawLicense === 'apache-2.0' || rawLicense === 'apache-2.0-only';
-        if (!isMIT && !isApache) {
-          stats.skippedLicense++;
-          await DatasetQueue.findOneAndUpdate(
-            { datasetId },
-            { $set: { ...updatePayload, status: 'skipped', skipReason: `Unsupported License: "${rawLicense}" (Only pure mit and apache-2.0 allowed)` } },
-            { upsert: true, new: true }
-          );
-          continue;
-        }
-
-        // 4. Gatekeeper Filter: Rough Size threshold (if exposed in metadata)
-        let sizeBytes = 0;
-        if (item.cardData?.dataset_info?.dataset_size) {
-          sizeBytes = item.cardData.dataset_info.dataset_size;
-        } else if (item.cardData?.dataset_info?.download_size) {
-          sizeBytes = item.cardData.dataset_info.download_size;
-        }
-
-        if (sizeBytes > maxSizeBytes) {
-          stats.skippedSize++;
-          await DatasetQueue.findOneAndUpdate(
-            { datasetId },
-            { $set: { ...updatePayload, status: 'skipped', sizeBytes, skipReason: `Exceeded Max Size Limit (${(sizeBytes / (1024 * 1024)).toFixed(2)} MB)` } },
-            { upsert: true, new: true }
-          );
-          continue;
-        }
-
-        // Passes all initial filters! Queue it for serial archival.
-        stats.queued++;
         await DatasetQueue.findOneAndUpdate(
           { datasetId },
-          { $set: { ...updatePayload, status: 'pending', sizeBytes } },
+          { $set: updatePayload },
           { upsert: true, new: true }
         );
+
+        // Update stats for queued items based on final status
+        if (finalStatus === 'pending' && (!existingQueueItem || existingQueueItem.status !== 'pending')) {
+          stats.queued++; // Count as queued if it's new or changed to pending
+        }
       }
 
       // Extract next page URL from 'Link' header (Hugging Face pagination format)
@@ -359,19 +369,31 @@ const runWorkerLoop = async () => {
         // Execute awaited pipeline piping directly to GCS
         await DatasetsService.archiveDatasetToGCSCore(datasetId, dataset);
 
-        // Success!
-        queueItem.status = 'completed';
-        queueItem.sizeBytes = dataset.sizeBytes;
-        queueItem.error = '';
-        await queueItem.save();
-        console.log(`[HF Worker] Successfully archived to GCS: ${datasetId}`);
-
         // Autonomously trigger the high-fidelity RAG vector indexing step sequentially
         try {
           console.log(`[HF Worker] Autonomously indexing dataset for RAG vector search: ${datasetId}`);
           await DatasetsService.indexDatasetForRAGCore(datasetId, dataset);
+
+          // If both archiving and indexing succeed, mark as completed
+          queueItem.status = 'completed';
+          queueItem.sizeBytes = dataset.sizeBytes;
+          queueItem.error = '';
+          await queueItem.save();
+          console.log(`[HF Worker] Successfully archived to GCS and indexed: ${datasetId}`);
+
         } catch (indexErr) {
           console.error(`[HF Worker] Failed to index dataset ${datasetId} autonomously:`, indexErr.message);
+          // If indexing fails, mark the item as failed for retry or final failure
+          queueItem.retryCount = (queueItem.retryCount || 0) + 1;
+          queueItem.error = `Indexing Failed: ${indexErr.message}`;
+          if (queueItem.retryCount >= 3) {
+            queueItem.status = 'failed';
+            console.error(`[HF Worker] Dataset ${datasetId} failed all retries including indexing. Marking as FAILED.`);
+          } else {
+            queueItem.status = 'pending'; // Schedule retry for the whole ingestion process
+            console.log(`[HF Worker] Scheduled retry ${queueItem.retryCount}/3 for dataset (indexing failed): ${datasetId}`);
+          }
+          await queueItem.save();
         }
 
       } catch (err) {
