@@ -11,6 +11,11 @@ import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
+// BUG & INTEGRATION FIX: Import necessary services for usage tracking and role-based access control.
+// These are assumed to exist and provide the necessary business logic for checking limits,
+// recording usage, and validating user hierarchy within a workspace/tenant.
+import { usageService } from '../usage/usage.service.js';
+import { workspaceService } from '../workspaces/workspace.service.js';
 import {
   CREATIVE_WRITING_CONFIG,
   WRITING_TYPES,
@@ -145,6 +150,73 @@ const analyzeUserMessage = (message, conversationHistory = []) => {
 };
 
 /**
+ * A helper function to fetch a conversation while enforcing role-based access control.
+ * It ensures that the requesting user (`req.user`) has the permission to access the
+ * conversation, either by being the owner or by having a managerial/administrative role
+ * over the conversation's owner within the same workspace.
+ *
+ * @param {string} conversationId - The ID of the conversation to fetch.
+ * @param {string} targetUserId - The ID of the user who owns the conversation.
+ * @param {object} req - The Express request object, containing the authenticated user (`req.user`).
+ * @returns {Promise<Object|null>} The conversation object if found and authorized, otherwise null.
+ * @throws {ApiError} If the user is not authorized (FORBIDDEN).
+ */
+const _getAuthorizedConversation = async (
+  conversationId,
+  targetUserId,
+  req
+) => {
+  // BUG & INTEGRATION FIX: Ensure a request object with an authenticated user is present.
+  if (!req || !req.user) {
+    logger.error('Authorization check failed: req.user is missing.');
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+  }
+
+  const authenticatedUser = req.user;
+
+  // 1. Check if the authenticated user is the owner of the conversation.
+  const isOwner = authenticatedUser.id === targetUserId;
+
+  // 2. If not the owner, check for hierarchical permissions (manager, admin, super_admin).
+  // This call is assumed to be tenant-aware, ensuring the manager and user are in the same workspace.
+  const isAuthorizedManager =
+    !isOwner &&
+    (await workspaceService.isManagerOf(authenticatedUser, targetUserId));
+
+  // 3. Super Admins have universal access.
+  const isSuperAdmin = authenticatedUser.role === 'super_admin';
+
+  if (!isOwner && !isAuthorizedManager && !isSuperAdmin) {
+    logger.warn(
+      `Authorization failed for user ${authenticatedUser.id} trying to access conversation ${conversationId} belonging to user ${targetUserId}.`
+    );
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'You are not authorized to access this conversation.'
+    );
+  }
+
+  // If authorized, attempt to fetch the conversation.
+  // The helper is still passed the targetUserId to ensure it fetches the conversation for the correct user.
+  try {
+    const conversation = await conversationHelpers.getConversationById(
+      conversationId,
+      targetUserId, // We still filter by the target user to ensure the conversationId belongs to them.
+      req,
+      { lean: true }
+    );
+    return conversation;
+  } catch (error) {
+    // If the helper throws a "not found" error, we return null to allow the caller to handle it (e.g., create a new conversation).
+    // Any other error type should be re-thrown.
+    if (error.statusCode === httpStatus.NOT_FOUND) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+/**
  * Handles the retrieval or creation of a creative writing conversation.
  * If a `conversationId` is provided, it attempts to fetch the existing conversation.
  * If no ID is provided, or if the provided ID is not found/unauthorized, a new conversation is created.
@@ -166,30 +238,45 @@ const handleCreativeWritingConversation = async (
 ) => {
   try {
     let conversation;
-    let currentConversationId = conversationId; // Use a mutable variable for the ID
+    let currentConversationId = conversationId;
 
     if (currentConversationId) {
-      try {
-        // Optimization: Add .lean() to avoid Mongoose document overhead
-        // as the conversation object is primarily read from and not directly saved
-        // or modified via Mongoose document methods within this flow.
-        // Updates are handled by conversationService.updateConversationMetadata
-        // which takes the ID and new data, not the document itself.
-        conversation = await conversationHelpers.getConversationById(
+      // For guests, ownership is based on the guest ID. No complex auth needed.
+      if (isGuest) {
+        try {
+          conversation = await conversationHelpers.getConversationById(
+            currentConversationId,
+            userId,
+            req,
+            { lean: true }
+          );
+          logger.info(`Fetched guest conversation with ID: ${currentConversationId}`);
+        } catch (error) {
+          logger.warn(
+            `Guest conversation ${currentConversationId} not found, creating new one.`
+          );
+          currentConversationId = null;
+        }
+      } else {
+        // BUG & INTEGRATION FIX: Use the centralized authorization helper for authenticated users.
+        conversation = await _getAuthorizedConversation(
           currentConversationId,
           userId,
-          req,
-          { lean: true } // Assuming conversationHelpers.getConversationById supports a lean option
+          req
         );
-        logger.info(`Fetched conversation with ID: ${currentConversationId}`);
-      } catch (error) {
-        logger.warn(
-          `Conversation ${currentConversationId} not found or unauthorized, creating new one`
-        );
-        // If the provided conversationId was not found or unauthorized,
-        // we should proceed to create a new conversation with a *newly generated* ID.
-        // Clear currentConversationId so a new one is generated below.
-        currentConversationId = null;
+        if (conversation) {
+          logger.info(
+            `Fetched and authorized conversation with ID: ${currentConversationId} for user ${req.user.id}`
+          );
+        } else {
+          // This case means the conversation was not found for the target user, which is fine.
+          // _getAuthorizedConversation would have thrown an error if it was a permission issue.
+          // We proceed to create a new conversation.
+          logger.warn(
+            `Conversation ${currentConversationId} not found for user ${userId}, creating new one.`
+          );
+          currentConversationId = null;
+        }
       }
     }
 
@@ -222,6 +309,10 @@ const handleCreativeWritingConversation = async (
     return conversation;
   } catch (error) {
     logger.error('Error handling creative writing conversation:', error);
+    // BUG & INTEGRATION FIX: Propagate specific errors from authorization helpers.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to handle conversation'
@@ -520,11 +611,11 @@ const generateClarificationQuestion = analysis => {
  * It orchestrates conversation handling, message analysis, prompt building,
  * AI generation, and storing results.
  *
- * @param {string} userId - The ID of the user (guest or authenticated).
+ * @param {string} userId - The ID of the user (guest or authenticated) for whom the action is being taken.
  * @param {string} message - The user's current input message.
  * @param {string|null} conversationId - The ID of the current conversation, or null for a new one.
  * @param {boolean} [isGuest=false] - True if the user is a guest, false otherwise.
- * @param {object} [req=null] - The Express request object.
+ * @param {object} [req=null] - The Express request object, containing the authenticated user (`req.user`).
  * @returns {Promise<Object>} An object containing the success status, conversation ID, AI response,
  *                            detected writing parameters, and analysis.
  * @returns {boolean} return.success - True if the request was processed successfully.
@@ -543,7 +634,43 @@ const processConversationalRequest = async (
   req = null
 ) => {
   try {
-    // Handle or create conversation
+    // BUG & INTEGRATION FIX: For authenticated users, perform authorization and usage checks upfront.
+    if (!isGuest) {
+      if (!req || !req.user) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required.');
+      }
+      const authenticatedUser = req.user;
+
+      // 1. Authorization Check: Can the authenticated user act for the target user?
+      const isOwner = authenticatedUser.id === userId;
+      // isManagerOf should be tenant-aware, checking roles within the same workspace.
+      const isAuthorizedManager =
+        !isOwner &&
+        (await workspaceService.isManagerOf(authenticatedUser, userId));
+      const isSuperAdmin = authenticatedUser.role === 'super_admin';
+
+      if (!isOwner && !isAuthorizedManager && !isSuperAdmin) {
+        throw new ApiError(
+          httpStatus.FORBIDDEN,
+          'You are not authorized to perform this action for the specified user.'
+        );
+      }
+
+      // 2. Usage Limit Check: Does the user's workspace have generation credits remaining?
+      // The check is performed against the workspace of the user making the request.
+      const hasSufficientUsage = await usageService.checkLimits(
+        authenticatedUser.workspaceId,
+        'creative_writing' // Specify the feature being used
+      );
+      if (!hasSufficientUsage) {
+        throw new ApiError(
+          httpStatus.PAYMENT_REQUIRED,
+          'Workspace usage limit exceeded. Please upgrade your plan or contact your administrator.'
+        );
+      }
+    }
+
+    // Handle or create conversation (now with authorization handled)
     const conversation = await handleCreativeWritingConversation(
       userId,
       conversationId,
@@ -558,8 +685,6 @@ const processConversationalRequest = async (
     await addMessage(actualConversationId, userId, 'user', message, {}, req);
 
     // Get conversation history
-    // If conversation is a lean object, conversation.messages will be a plain array.
-    // If it's a Mongoose document, it will be a Mongoose array. Both are iterable.
     const conversationHistory = conversation.messages || [];
 
     // Analyze user message
@@ -624,6 +749,21 @@ const processConversationalRequest = async (
       prompt,
       writingParams.temperature
     );
+
+    // BUG & INTEGRATION FIX: Record the usage after a successful generation.
+    // Usage is attributed to the authenticated user and their workspace.
+    if (!isGuest) {
+      await usageService.recordUsage({
+        userId: req.user.id,
+        workspaceId: req.user.workspaceId,
+        feature: 'creative_writing',
+        units: 1, // Or could be token-based, e.g., generatedText.length / 4
+        metadata: {
+          conversationId: actualConversationId,
+          writingType: writingParams.writingType,
+        },
+      });
+    }
 
     // Optimization: Pass the 'conversation' object directly to avoid a redundant database fetch.
     await storeWritingInConversation(
@@ -692,15 +832,20 @@ const processConversationalRequest = async (
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    // Optimization: Add .lean() to avoid Mongoose document overhead
-    // as this function is purely for retrieving and returning data,
-    // and no Mongoose document methods are used on the fetched object.
-    const conversation = await conversationHelpers.getConversationById(
+    // BUG & INTEGRATION FIX: Use the centralized authorization helper to enforce role-based access.
+    // This prevents IDOR by ensuring the authenticated user (`req.user`) has rights to view
+    // the conversation belonging to the target `userId`.
+    const conversation = await _getAuthorizedConversation(
       conversationId,
       userId,
-      req,
-      { lean: true } // Assuming conversationHelpers.getConversationById supports a lean option
+      req
     );
+
+    // If conversation is not found, _getAuthorizedConversation will return null.
+    // If user is not authorized, it will throw a FORBIDDEN error which is caught below.
+    if (!conversation) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found.');
+    }
 
     return {
       conversationId: conversation.conversationId,
@@ -711,8 +856,16 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
       updatedAt: conversation.updatedAt,
     };
   } catch (error) {
+    // BUG & INTEGRATION FIX: Propagate specific errors from the authorization helper.
+    // If it's already an ApiError (like FORBIDDEN), re-throw it. Otherwise, wrap it.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Error getting conversation history:', error);
-    throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Failed to retrieve conversation history'
+    );
   }
 };
 
