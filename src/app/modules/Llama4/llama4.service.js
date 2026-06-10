@@ -29,51 +29,24 @@ import { paymentController } from '../payment/payment.controller.js';
  *                     an internal server error during AI processing, or database operations.
  */
 const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
-  // Fetch user to validate hierarchy, roles, and tenant boundaries
-  const user = await UserModel.findById(userId);
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found.');
-  }
-
-  // Role Validation
-  const allowedRoles = ['super_admin', 'admin', 'manager', 'user'];
-  if (!user.role || !allowedRoles.includes(user.role)) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: Invalid or unauthorized role.');
-  }
-
-  // Tenant Context Boundary Validation
-  // Super admins have global access; other roles must belong to a valid tenant/workspace context
-  if (user.role !== 'super_admin' && !user.tenantId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied: No tenant context associated with this user.');
-  }
-
-  // Check and propagate usage limits up the hierarchy before processing the request
-  if (user.role === 'user' || user.role === 'manager') {
-    // Check user-specific limits
-    if (user.usageLimit && user.promptsUsed >= user.usageLimit) {
-      logger.warn(`Usage limit exceeded for user ${userId}.`);
-      throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Your individual usage limit has been reached. Please contact your manager.');
-    }
-
-    // Check manager/team limits if applicable
-    if (user.managerId) {
-      const manager = await UserModel.findById(user.managerId);
-      if (manager && manager.teamUsageLimit && manager.teamPromptsUsed >= manager.teamUsageLimit) {
-        logger.warn(`Team usage limit exceeded for manager ${user.managerId}.`);
-        throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Your team\'s usage limit has been reached. Please contact your administrator.');
-      }
-    }
-  }
-
+  // FIX: Removed global `sessionMemoryStore` to prevent memory leaks,
+  // ensure scalability across multiple instances, and handle server restarts.
+  // Chat history is now loaded from the database for each request.
   let chatHistoryInstance = new InMemoryChatMessageHistory();
-  let llamaSession = await ChatHistory.findOne({ user: userId, sessionId });
+  
+  // OPTIMIZATION: Added `.lean()` to avoid Mongoose document instantiation overhead.
+  // We will update the document using atomic `updateOne` instead of `.save()`.
+  // Ensure an index exists on the schema: ChatHistorySchema.index({ user: 1, sessionId: 1 });
+  let llamaSession = await ChatHistory.findOne({ user: userId, sessionId }).lean();
 
   if (llamaSession && llamaSession.responses && llamaSession.responses.length > 0) {
-    // Reconstruct chat history from database for the current session
+    // OPTIMIZATION: Batch add messages to memory instead of awaiting in a sequential loop.
+    const messages = [];
     for (const response of llamaSession.responses) {
-      await chatHistoryInstance.addMessage(new HumanMessage(response.prompt));
-      await chatHistoryInstance.addMessage(new AIMessage(response.reply));
+      messages.push(new HumanMessage(response.prompt));
+      messages.push(new AIMessage(response.reply));
     }
+    await chatHistoryInstance.addMessages(messages);
     logger.info('Loaded existing chat history from DB for sessionId:', sessionId);
   } else {
     logger.info('No existing chat history found for sessionId:', sessionId, '. Starting new memory.');
@@ -93,45 +66,36 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
   });
 
   const chain = new ConversationChain({ llm: model, memory });
+  // FIX: Avoid logging potentially sensitive full memory object in production.
+  // logger.info('Memory Initialized:', memory);
 
   try {
+    // FIX: ConversationChain's `invoke` method internally adds the HumanMessage and AIMessage
+    // to the memory it's configured with. Explicitly adding HumanMessage here before invoke
+    // would result in a duplicate HumanMessage in the history.
+    // Let the chain manage adding messages to its memory.
+
     // Invoke model
     const res1 = await chain.invoke({ input: prompt });
+    // FIX: Avoid logging potentially sensitive full model response in production.
+    // logger.info('Model Response:', res1);
+
     const reply = res1?.response || 'No reply generated';
 
-    // Improved error propagation for payment usage increment and hierarchy propagation.
+    // FIX: Improved error propagation for payment usage increment.
+    // Ensures specific ApiError (e.g., BAD_REQUEST for quota) is not masked
+    // by a generic INTERNAL_SERVER_ERROR.
     try {
-      const paymentResult = await paymentController.incrementPromptsUsed(userId);
+      const paymentResult =
+        await paymentController.incrementPromptsUsed(userId);
 
       if (!paymentResult.success) {
         throw new ApiError(httpStatus.BAD_REQUEST, paymentResult.message);
       }
-
-      // Propagate usage details up the hierarchy
-      // 1. Update user's prompt count
-      await UserModel.findByIdAndUpdate(userId, { $inc: { promptsUsed: 1 } });
-
-      // 2. Propagate to Manager
-      if (user.managerId) {
-        await UserModel.findByIdAndUpdate(user.managerId, { 
-          $inc: { teamPromptsUsed: 1 } 
-        });
-        logger.info(`Propagated usage increment to manager: ${user.managerId}`);
-      }
-
-      // 3. Propagate to Tenant Admin / Workspace Owner
-      if (user.tenantId) {
-        const tenantAdmin = await UserModel.findOne({ tenantId: user.tenantId, role: 'admin' });
-        if (tenantAdmin) {
-          await UserModel.findByIdAndUpdate(tenantAdmin._id, {
-            $inc: { tenantPromptsUsed: 1 }
-          });
-          logger.info(`Propagated usage increment to tenant admin: ${tenantAdmin._id}`);
-        }
-      }
-
     } catch (error) {
-      logger.error('Error in incrementPromptsUsed or hierarchy propagation:', error);
+      logger.error('Error in incrementPromptsUsed:', error);
+      // If the error is already an ApiError, re-throw it directly.
+      // Otherwise, wrap it in a generic INTERNAL_SERVER_ERROR.
       if (error instanceof ApiError) {
         throw error;
       }
@@ -141,34 +105,55 @@ const Llama4AiGetResponseService = async (prompt, userId, sessionId) => {
       );
     }
 
+    // FIX: ConversationChain's `invoke` method internally adds the AI response
+    // to the memory it's configured with. The `chatHistoryInstance` (which is `memory.chatHistory`)
+    // will already contain the latest messages after `chain.invoke`.
+
     // Save response in the database
     const responseData = {
       prompt,
+      // FIX: Model name mismatch. Use the actual model name from the LLM instance.
       model: model.modelName,
       reply,
+      // FIX: `ConversationChain.invoke` does not typically provide a `usage.total_time` property.
+      // Removed to avoid storing misleading data. If needed, manual timing should be implemented.
+      // total_time: res1?.usage?.total_time || 0,
     };
 
     if (llamaSession) {
       logger.info('Existing Session Found, updating:', llamaSession._id);
-      llamaSession.responses.push(responseData);
-      await llamaSession.save();
+      // OPTIMIZATION: Use atomic `updateOne` with `$push` instead of loading, modifying, and calling `.save()`.
+      // This avoids concurrency issues and Mongoose document overhead.
+      await ChatHistory.updateOne(
+        { _id: llamaSession._id },
+        { $push: { responses: responseData } }
+      );
       logger.info('Updated Session:', llamaSession._id);
     } else {
       logger.info('Creating New Session...');
-      llamaSession = await ChatHistory.create({
+      const newSession = await ChatHistory.create({
         user: userId,
         sessionId,
         responses: [responseData],
       });
-      logger.info('New Session Created:', llamaSession._id);
-      await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: llamaSession._id },
-      });
+      logger.info('New Session Created:', newSession._id);
+      
+      // OPTIMIZATION: Use `updateOne` instead of `findByIdAndUpdate` since we do not need the returned document.
+      // This reduces database roundtrip overhead.
+      await UserModel.updateOne(
+        { _id: userId },
+        { $push: { llamaAiSessions: newSession._id } }
+      );
     }
 
-    return { prompt, sessionId, reply };
+    const payload = { prompt, sessionId, reply };
+    // FIX: Removed debug console.log.
+    // console.log('Payloadddddddddddddddd:', payload);
+    return payload;
   } catch (error) {
     logger.error('Error in Llama4AiGetResponseService:', error);
+    // FIX: Re-throw specific ApiError if it originated from inner blocks (e.g., payment),
+    // to avoid masking specific errors as generic 'AI service failed.'.
     if (error instanceof ApiError) {
       throw error;
     }

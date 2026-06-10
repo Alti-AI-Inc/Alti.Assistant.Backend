@@ -14,6 +14,22 @@ import { withTenantFilter } from '../../helpers/tenantQuery.js';
  */
 
 /**
+ * Masks Personally Identifiable Information (PII) such as emails, phone numbers,
+ * social security numbers, and credit card numbers from a given string before transmission.
+ *
+ * @param {string} text - The input text to sanitize.
+ * @returns {string} The sanitized text with PII masked.
+ */
+const maskPII = (text) => {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
+    .replace(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, '[PHONE]')
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[SSN]')
+    .replace(/\b(?:\d[ -]*?){13,16}\b/g, '[CREDIT_CARD]');
+};
+
+/**
  * Validates the user and tenant context to ensure proper role-based access control
  * and tenant boundary isolation.
  *
@@ -135,8 +151,11 @@ const initiateTaskInSessionService = async (
   await validateUserAndTenantContext(userId, req);
   await propagateUsageAndCheckLimits(userId, tenantId);
 
+  // Sanitize prompt to filter out or mask PII before transmitting data to external LLM-based services
+  const sanitizedPrompt = maskPII(prompt);
+
   const apiBody = {
-    task: prompt,
+    task: sanitizedPrompt,
     secrets: {},
     allowed_domains: null,
     save_browser_data: true,
@@ -169,7 +188,7 @@ const initiateTaskInSessionService = async (
   const newResponseObject = {
     taskId: apiData.id,
     status: apiData.status || 'created',
-    prompt: prompt,
+    prompt: sanitizedPrompt,
     live_url: apiData.live_url,
     steps: apiData.steps || [],
   };

@@ -12,13 +12,13 @@ const __dirname = path.dirname(__filename);
 const backendPath = path.resolve(__dirname, '../../');
 dotenv.config({ path: path.join(backendPath, '.env') });
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_SECRET_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.GEMINI_SECRET_KEY });
 
 // Get configuration from environment variables
 const AGENT_TYPE = process.env.AGENT_TYPE || 'fixer'; // fixer, tester, optimizer, documenter
 const ZONE_ID = process.env.ZONE_ID || '1';
 const ASSIGNED_MODULES = JSON.parse(process.env.ASSIGNED_MODULES || '[]');
-const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-pro'; // Upgrade to Pro model to leverage user's Ultra subscription plan
+const MODEL_NAME = process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro'; // Upgrade to Pro model to leverage user's Ultra subscription plan
 
 console.log(`Starting Swarm Worker - Type: ${AGENT_TYPE.toUpperCase()}, Zone: ${ZONE_ID}, Modules: ${ASSIGNED_MODULES.join(', ')}`);
 

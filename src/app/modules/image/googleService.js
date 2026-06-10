@@ -8,9 +8,33 @@ import { predictionServiceClient } from './llm.js';
  * @returns {Promise<string|null>} - The URL of the generated image, or null on failure.
  */
 export const generateImage = async (prompt) => {
-  const endpoint = `projects/${config.gcpProjectId}/locations/${config.gcpLocation}/publishers/google/models/imagen-3.0-generate-002`;
+  // Validate prompt to ensure robust execution and avoid unnecessary API calls
+  if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+    console.error('Invalid prompt provided for image generation.');
+    return null;
+  }
 
-  const instances = [{ prompt }];
+  // Prevent excessively long prompts from causing API errors
+  const trimmedPrompt = prompt.trim().substring(0, 4000);
+
+  // Fallback configuration resolution to prevent runtime crashes
+  const projectId = config.gcpProjectId || (config.google && config.google.gcp_project_id);
+  const location = config.gcpLocation || (config.google && config.google.vertex_ai_region);
+
+  if (!projectId || !location) {
+    console.error('GCP Project ID or Location is not configured.');
+    return null;
+  }
+
+  // Ensure the prediction service client is initialized before calling predict
+  if (!predictionServiceClient || typeof predictionServiceClient.predict !== 'function') {
+    console.error('Prediction service client is not initialized or unavailable.');
+    return null;
+  }
+
+  const endpoint = `projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-002`;
+
+  const instances = [{ prompt: trimmedPrompt }];
   const parameters = {
     sampleCount: 1,
     aspectRatio: '1:1', // Or "16:9", "9:16", etc.
@@ -24,13 +48,17 @@ export const generateImage = async (prompt) => {
   };
 
   try {
-    console.log('Sending request to Vertex AI with prompt:', prompt);
+    console.log('Sending request to Vertex AI with prompt:', trimmedPrompt);
     const [response] = await predictionServiceClient.predict(request);
 
-    if (response.predictions && response.predictions.length > 0) {
+    if (response && response.predictions && response.predictions.length > 0) {
       // The image data is base64 encoded
       const prediction = response.predictions[0];
       const imageBase64 = prediction.bytesBase64Encoded;
+      if (!imageBase64) {
+        console.error('Vertex AI prediction response did not contain bytesBase64Encoded data.');
+        return null;
+      }
       return `data:image/png;base64,${imageBase64}`;
     } else {
       console.error('Vertex AI returned no predictions.');
@@ -43,12 +71,27 @@ export const generateImage = async (prompt) => {
 };
 
 export const generateImageUsingVertexAI = async (prompt) => {
+  // Validate prompt to ensure robust execution and avoid unnecessary API calls
+  if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+    console.error('Invalid prompt provided for image generation.');
+    return null;
+  }
+
+  // Prevent excessively long prompts from causing API errors
+  const trimmedPrompt = prompt.trim().substring(0, 4000);
+
   // Ensure all operations are wrapped in a try-catch for robust error handling
   try {
-    const imageEndpoint = config.google.vertex_ai_endpoint;
-    const location = config.google.vertex_ai_region;
-    const modelId = config.google.model_id; // Use this model ID consistently
-    const projectId = config.google.gcp_project_id;
+    // Fallback configuration resolution to prevent runtime crashes
+    const imageEndpoint = (config.google && config.google.vertex_ai_endpoint) || 'us-central1-aiplatform.googleapis.com';
+    const location = (config.google && config.google.vertex_ai_region) || config.gcpLocation;
+    const modelId = (config.google && config.google.model_id) || 'imagen-3.0-generate-002';
+    const projectId = (config.google && config.google.gcp_project_id) || config.gcpProjectId;
+
+    if (!projectId || !location) {
+      console.error('GCP Project ID or Location is not configured for Vertex AI HTTP API.');
+      return null;
+    }
 
     // Construct the full endpoint URL for the prediction API
     // Bug fix: Use the modelId from config instead of a hardcoded value
@@ -58,14 +101,21 @@ export const generateImageUsingVertexAI = async (prompt) => {
       scopes: 'https://www.googleapis.com/auth/cloud-platform',
     });
     const client = await auth.getClient();
-    const accessToken = (await client.getAccessToken()).token;
+    const accessTokenResponse = await client.getAccessToken();
+    const accessToken = accessTokenResponse ? accessTokenResponse.token : null;
+
+    if (!accessToken) {
+      console.error('Failed to retrieve GCP access token.');
+      return null;
+    }
+
     // Security fix: Do not log sensitive access tokens
     // console.log(`Using access token for endpoint: ${accessToken}`);
 
     const data = {
       instances: [
         {
-          prompt: prompt,
+          prompt: trimmedPrompt,
         },
       ],
       parameters: {
