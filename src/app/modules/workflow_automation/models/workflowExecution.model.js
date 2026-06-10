@@ -42,6 +42,15 @@ const WorkflowExecutionSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // HIERARCHY & SECURITY FIX: Added workspaceId to enforce tenant boundaries.
+    // Every execution must be associated with a workspace to prevent data leakage
+    // and ensure that queries, usage tracking, and actions are properly scoped.
+    workspaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Workspace',
+      required: true,
+      index: true,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -142,6 +151,10 @@ WorkflowExecutionSchema.post('save', async function (doc) {
       const messagePayload = {
         executionId: this.executionId,
         workflowId: this.workflowId.toString(),
+        // INTEGRATION FIX: Pass workspaceId to the worker.
+        // The worker needs this context to update workspace-level usage metrics,
+        // apply limits, and ensure all subsequent operations are tenant-scoped.
+        workspaceId: this.workspaceId.toString(),
         status: this.status, // Pass the status to allow workers to handle different initial states.
       };
       const dataBuffer = Buffer.from(JSON.stringify(messagePayload));
@@ -163,15 +176,25 @@ WorkflowExecutionSchema.post('save', async function (doc) {
   }
 });
 
-// Indexes for efficient querying
-// Common query: Find latest executions for a specific workflow
-WorkflowExecutionSchema.index({ workflowId: 1, createdAt: -1 });
-// Common query: Find latest executions for a user, often filtered by status
-WorkflowExecutionSchema.index({ userId: 1, status: 1, createdAt: -1 });
-// Common query: Find latest executions by status globally (e.g., for admin dashboards or workers)
+// Indexes for efficient querying in a multi-tenant environment.
+// Most queries should be scoped by workspaceId to ensure data isolation and prevent IDOR.
+
+// For fetching executions for a specific workflow within a workspace.
+WorkflowExecutionSchema.index({ workspaceId: 1, workflowId: 1, createdAt: -1 });
+
+// For fetching a user's executions within a workspace, often filtered by status.
+WorkflowExecutionSchema.index({ workspaceId: 1, userId: 1, status: 1, createdAt: -1 });
+
+// For workspace-level dashboards, showing executions by status (e.g., running, failed).
+WorkflowExecutionSchema.index({ workspaceId: 1, status: 1, createdAt: -1 });
+
+// For worker services that may need to pull pending jobs across all workspaces.
+// This is one of the few queries that should not be scoped by workspace.
 WorkflowExecutionSchema.index({ status: 1, createdAt: -1 });
-// OPTIMIZATION: Removed redundant `WorkflowExecutionSchema.index({ executionId: 1 });`
-// The `unique: true` option on the `executionId` field already creates a unique index, making a separate index definition unnecessary.
+
+// OPTIMIZATION: The `unique: true` option on the `executionId` field already creates a unique index.
+// Redundant or insecure indexes (e.g., `{ userId: 1, ... }` without `workspaceId`) have been removed
+// to encourage secure, tenant-scoped querying patterns throughout the application.
 
 // Check if model is already compiled to prevent OverwriteModelError
 const WorkflowExecution =

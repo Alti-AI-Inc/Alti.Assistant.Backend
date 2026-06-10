@@ -4,17 +4,13 @@ import { logger } from '../../../shared/logger.js';
 
 /**
  * Graph RAG query context resolver.
- * Parses query terms, traverses a user's semantic document relationship graph,
+ * Parses query terms, traverses the semantic document relationship graph,
  * and enriches the search query with cross-document connection schemas.
  *
- * This function operates within a multi-tenant context, ensuring that all document metadata
- * lookups and graph traversals are strictly scoped to the provided `userId`.
- *
  * @param {string} query - The original user query string.
- * @param {string} userId - The ID of the user, used to scope all data access.
+ * @param {string} userId - The ID of the user for whom to retrieve document metadata.
  * @returns {Promise<string>} A promise that resolves to the original query string or a new query string
- *   enriched with cross-document relationship context. If no relationships are found or an error occurs,
- *   it gracefully falls back to the original query.
+ *   enriched with cross-document relationship context.
  */
 const getGraphEnrichedQueryContext = async (query, userId) => {
   try {
@@ -32,29 +28,63 @@ const getGraphEnrichedQueryContext = async (query, userId) => {
     }
 
     // 2. Identify target files that match query terms
-    const matchingDocIds = [];
+    // OPTIMIZATION: To avoid O(N*M) complexity (N docs * M keywords per doc) of repeatedly scanning the query string,
+    // we first build an inverted index (a map of unique keywords to the documents they appear in).
+    // Then, we iterate through the unique keywords (a much smaller set) and check for their presence in the query.
+    // This significantly reduces the number of expensive string inclusion checks.
+    const keywordToDocIds = new Map();
     const metadataLength = metadataList.length;
 
     for (let i = 0; i < metadataLength; i++) {
       const meta = metadataList[i];
-      
-      // OPTIMIZATION: Avoid heavy split operations where possible by using indexOf and slice
-      const fileName = meta.fileName || '';
-      const dotIndex = fileName.indexOf('.');
-      const baseName = dotIndex !== -1 ? fileName.slice(0, dotIndex) : fileName;
-      
-      const fileNameMatch = baseName
-        .toLowerCase()
-        .split('_')
-        .some(part => part.length > 2 && queryLower.includes(part));
+      const { docId, fileName, topics, entities } = meta;
 
-      const topicsMatch = (meta.topics || []).some(t => queryLower.includes(t.toLowerCase()));
-      const entitiesMatch = (meta.entities || []).some(e => queryLower.includes(e.toLowerCase()));
+      // Use a Set to collect unique keywords for the current document.
+      const docKeywords = new Set();
 
-      if (fileNameMatch || topicsMatch || entitiesMatch) {
-        matchingDocIds.push(meta.docId);
+      // Extract keywords from filename
+      const fName = fileName || '';
+      const dotIndex = fName.indexOf('.');
+      const baseName = (dotIndex !== -1 ? fName.slice(0, dotIndex) : fName).toLowerCase();
+      const fileNameParts = baseName.split('_');
+      for (let j = 0; j < fileNameParts.length; j++) {
+        const part = fileNameParts[j];
+        if (part.length > 2) {
+          docKeywords.add(part);
+        }
+      }
+
+      // Extract keywords from topics
+      const metaTopics = topics || [];
+      for (let j = 0; j < metaTopics.length; j++) {
+        docKeywords.add(metaTopics[j].toLowerCase());
+      }
+
+      // Extract keywords from entities
+      const metaEntities = entities || [];
+      for (let j = 0; j < metaEntities.length; j++) {
+        docKeywords.add(metaEntities[j].toLowerCase());
+      }
+      
+      // Populate the main inverted index map from the document's unique keywords.
+      for (const keyword of docKeywords) {
+        if (!keywordToDocIds.has(keyword)) {
+          keywordToDocIds.set(keyword, []);
+        }
+        keywordToDocIds.get(keyword).push(docId);
       }
     }
+
+    const matchingDocIdsSet = new Set();
+    for (const [keyword, docIds] of keywordToDocIds.entries()) {
+      if (queryLower.includes(keyword)) {
+        for (let i = 0; i < docIds.length; i++) {
+          matchingDocIdsSet.add(docIds[i]);
+        }
+      }
+    }
+    
+    const matchingDocIds = Array.from(matchingDocIdsSet);
 
     if (matchingDocIds.length === 0) {
       // Fallback: use top 2 files if no exact keyword match
@@ -135,9 +165,9 @@ ${query}`;
 
 /**
  * Service object for graph-based document retrieval and query enrichment.
- * Provides methods to leverage a user-specific semantic relationship graph for enhancing RAG queries.
- * @exports graphRetrieverService
- * @type {{getGraphEnrichedQueryContext: function(string, string): Promise<string>}}
+ * Provides methods to leverage a semantic relationship graph for enhancing RAG queries.
+ * @typedef {object} GraphRetrieverService
+ * @property {function(string, string): Promise<string>} getGraphEnrichedQueryContext - Function to enrich a user query with cross-document relationship context.
  */
 export const graphRetrieverService = {
   getGraphEnrichedQueryContext,
