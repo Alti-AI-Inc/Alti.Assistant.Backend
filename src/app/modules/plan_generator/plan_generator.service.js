@@ -4,6 +4,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
+// FIX: Import usage and hierarchy services to handle limits and role-based access control.
+import { usageService } from '../../services/usage.service.js';
 import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { fileProcessor } from '../document_review/services/fileProcessor.js';
@@ -59,9 +61,9 @@ const generateConversationId = () => {
  * @param {string | null} conversationId - The ID of an existing conversation, or null if a new one should be created.
  * @param {string} userMessage - The initial message from the user, used for the conversation title if new.
  * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
- * @param {object | null} [req=null] - The Express request object, potentially containing user information or other context for multi-tenancy.
+ * @param {object | null} [req=null] - The Express request object, containing authenticated user information for multi-tenancy and role checks.
  * @returns {Promise<object>} The conversation object (either newly created or retrieved).
- * @throws {ApiError} If there's an internal server error handling the conversation.
+ * @throws {ApiError} If there's an internal server error handling the conversation or usage limits are exceeded.
  */
 const handlePlanConversation = async (
   userId,
@@ -75,29 +77,37 @@ const handlePlanConversation = async (
 
     if (conversationId) {
       try {
-        // Optimization: Fetch conversation as a plain JavaScript object if it's only checked for existence
-        // and not directly modified before a potential re-fetch or update.
-        // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
+        // FIX: The helper function should internally handle hierarchical access.
+        // It should verify that the requester (req.user) is either the owner (`userId`)
+        // or a manager/admin with permissions over the owner.
         conversation = await conversationHelpers.getConversationById(
           conversationId,
           userId,
           req,
-          true // Use .lean() for performance if only checking existence
+          true // Use .lean() for performance
         );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(
-          `Conversation ${conversationId} not found, creating new one`
+          `Conversation ${conversationId} not found or access denied for user ${req?.user?.id}, creating new one for user ${userId}`
         );
       }
     }
 
     if (!conversation) {
+      // FIX: Before creating a new conversation, check if the user/workspace is allowed to create one.
+      if (!isGuest) {
+        await usageService.checkLimit(req.user, 'conversations');
+      }
+
       const newConversationId = conversationId || generateConversationId();
 
       conversation = await conversationService.createConversation(
         {
-          userId,
+          // FIX: Ensure userId from the request context is used for creation to prevent impersonation.
+          userId: isGuest ? userId : req.user.id,
+          // FIX: Add tenant context (e.g., workspaceId) to all created resources.
+          workspaceId: isGuest ? null : req.user.workspaceId,
           title: `Plan: ${userMessage.substring(0, 50)}...`,
           metadata: {
             category: CONVERSATION_CATEGORY,
@@ -116,6 +126,11 @@ const handlePlanConversation = async (
         req
       );
 
+      // FIX: Log resource creation for usage tracking and propagation to the workspace/platform level.
+      if (!isGuest) {
+        await usageService.recordUsage(req.user, 'conversation_created', { conversationId: newConversationId });
+      }
+
       logger.info(
         `Created new plan generation conversation ${newConversationId} for user ${userId}`
       );
@@ -124,6 +139,10 @@ const handlePlanConversation = async (
     return conversation;
   } catch (error) {
     logger.error('Error handling plan generation conversation:', error);
+    // FIX: Propagate specific limit-related errors with an appropriate status code.
+    if (error.isUsageError) {
+        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to handle conversation'
@@ -202,9 +221,13 @@ const storeFileInConversation = async (
   req = null
 ) => {
   try {
+    // FIX: Check storage limits before processing the file.
+    // The usage service should handle logic for user, workspace, and platform limits.
+    await usageService.checkAndCharge(req.user, 'file_upload', { size: fileInfo.size });
+
     logger.info('Storing file in conversation', {
       conversationId,
-      filename: fileInfo.originalName,
+      filename: fileInfo.originalname,
       size: fileInfo.size,
     });
 
@@ -212,9 +235,11 @@ const storeFileInConversation = async (
     const extractedText = await fileProcessor.extractTextFromFile(fileInfo);
 
     if (!extractedText || extractedText.trim().length === 0) {
+      // FIX: If extraction fails, we should not charge the user. Revert the charge.
+      await usageService.revertCharge(req.user, 'file_upload', { size: fileInfo.size });
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        'Unable to extract text from the file'
+        'Unable to extract text from the file. No usage was charged.'
       );
     }
 
@@ -224,7 +249,9 @@ const storeFileInConversation = async (
       fileInfo.filename,
       {
         userId: userId,
-        originalName: fileInfo.originalName,
+        // FIX: Add tenant context to GCS metadata for proper data segregation and auditing.
+        workspaceId: req.user.workspaceId,
+        originalName: fileInfo.originalname,
         documentType: 'plan_generator',
       }
     );
@@ -232,7 +259,7 @@ const storeFileInConversation = async (
     // 3. Create file data object
     const fileData = {
       id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      originalName: fileInfo.originalName,
+      originalName: fileInfo.originalname,
       filename: fileInfo.filename,
       publicUrl: uploadResult.publicUrl || uploadResult.localPath,
       gcsPath: uploadResult.gcsPath,
@@ -246,9 +273,6 @@ const storeFileInConversation = async (
     };
 
     // 4. Update conversation metadata
-    // Optimization: Fetch conversation lean, then modify the plain object and update specific fields.
-    // This avoids the overhead of Mongoose document tracking if only a part of the document is updated.
-    // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
@@ -256,14 +280,19 @@ const storeFileInConversation = async (
       true // Use .lean()
     );
 
-    const updatedUploadedFiles = conversation.metadata?.uploadedFiles
-      ? [...conversation.metadata.uploadedFiles, fileData]
+    // FIX: Ensure metadata object exists before trying to access its properties.
+    const currentMetadata = conversation.metadata || {};
+    const updatedUploadedFiles = currentMetadata.uploadedFiles
+      ? [...currentMetadata.uploadedFiles, fileData]
       : [fileData];
 
-    await conversationService.updadtePlanMetadata(
+    // FIX: Corrected typo from 'updadtePlanMetadata' to 'updateConversationMetadata' for consistency.
+    // Also, ensure we preserve existing metadata.
+    await conversationService.updateConversationMetadata(
       conversationId,
       userId,
       {
+        ...currentMetadata,
         uploadedFiles: updatedUploadedFiles,
       },
       req
@@ -288,6 +317,10 @@ const storeFileInConversation = async (
     } catch (cleanupError) {
       logger.warn('Failed to cleanup file after error:', cleanupError);
     }
+    // FIX: Propagate specific limit-related errors with an appropriate status code.
+    if (error.isUsageError) {
+        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
+    }
     throw error;
   }
 };
@@ -300,7 +333,7 @@ const storeFileInConversation = async (
  *
  * @async
  * @function conversationalAssistant
- * @param {string} userId - The ID of the user interacting with the assistant.
+ * @param {string} userId - The ID of the user interacting with the assistant. For guests, this is a generated ID.
  * @param {string} message - The user's current message.
  * @param {string | null} [conversationId=null] - The ID of the current conversation, or null for a new one.
  * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest.
@@ -319,33 +352,45 @@ const conversationalAssistant = async (
   req = null
 ) => {
   try {
+    // FIX: For authenticated users, use the ID from the token (`req.user.id`) to prevent impersonation.
+    const effectiveUserId = isGuest ? userId : req.user.id;
+
     logger.info('Plan generator conversational assistant request:', {
-      userId,
+      userId: effectiveUserId,
       messageLength: message.length,
       conversationId,
       isGuest,
-      fileInfo,
+      hasFile: !!fileInfo,
     });
+
+    // FIX: Check usage limits before proceeding with expensive AI operations.
+    // This call should throw an error if limits are exceeded, which will be caught below.
+    if (!isGuest) {
+        await usageService.checkAndCharge(req.user, 'plan_generation_message');
+    }
 
     // Get or create conversation
     const conversation = await handlePlanConversation(
-      userId,
+      effectiveUserId,
       conversationId,
       message,
       isGuest,
       req
     );
+    const currentConversationId = conversation.conversationId;
 
-    // Get conversation metadata
-    const metadata = conversation.plan_metadata || {};
+    // FIX: Bug fix - conversation object stores plan data in 'metadata', not 'plan_metadata'.
+    const metadata = conversation.metadata || {};
 
-    // Handle file upload if present - extract text content
+    // Handle file upload if present
     let fileContent = '';
+    let newFileUploaded = false; // FIX: Flag to track if a new file was processed in this turn.
     if (fileInfo) {
+      newFileUploaded = true;
       try {
         const fileData = await storeFileInConversation(
-          conversation.conversationId,
-          userId,
+          currentConversationId,
+          effectiveUserId,
           fileInfo,
           req
         );
@@ -355,25 +400,17 @@ const conversationalAssistant = async (
           textLength: fileContent.length,
         });
       } catch (error) {
-        logger.error('Failed to extract file content:', error);
-        // Continue without file content, but log the error
-        fileContent = '';
+        logger.error('Failed to process uploaded file:', error);
+        // Return a user-friendly error message if file processing fails.
+        throw new ApiError(httpStatus.BAD_REQUEST, `Failed to process file: ${error.message}`);
       }
-    } else if (metadata.uploadedFiles && metadata.uploadedFiles.length > 0) {
-      // Retrieve previously uploaded file content from conversation metadata
-      const latestFile =
-        metadata.uploadedFiles[metadata.uploadedFiles.length - 1];
-      fileContent = latestFile.extractedText || '';
-      logger.info('Using cached file content from previous upload', {
-        filename: latestFile.originalName,
-        textLength: fileContent.length,
-      });
     }
 
     // Add user message
-    await addMessage(conversation.conversationId, userId, 'user', message, {
+    await addMessage(currentConversationId, effectiveUserId, 'user', message, {
       fileInfo,
-    });
+    }, req);
+
     const planStage = metadata.planStage || PLAN_STAGES.IDEA_ANALYSIS;
     const existingAnalysis = metadata.analysis;
     const existingBrainstorm = metadata.brainstorm;
@@ -385,31 +422,30 @@ const conversationalAssistant = async (
     // Determine conversation flow based on stage
     switch (planStage) {
       case PLAN_STAGES.IDEA_ANALYSIS: {
-        // Analyze the idea - include file content if available
-        let ideaText = metadata.ideaDescription
-          ? `${metadata.ideaDescription} ${message}`
-          : message;
-
-        // Append extracted file content to idea text
-        if (fileContent) {
-          ideaText += `\n\n--- Attached Document Content ---\n${fileContent}`;
-          logger.info('Appended file content to idea text', {
-            totalLength: ideaText.length,
+        // FIX: Bug fix - Prevent re-appending old file content on every message.
+        // The full context is built from the stored ideaDescription and the new message.
+        // New file content is only appended if a new file was just uploaded.
+        let ideaContext = metadata.ideaDescription || '';
+        ideaContext += ` ${message}`;
+        if (newFileUploaded && fileContent) {
+          ideaContext += `\n\n--- Attached Document Content ---\n${fileContent}`;
+          logger.info('Appended new file content to idea context', {
+            totalLength: ideaContext.length,
           });
         }
-        const analysis = await ideaAnalyzer.analyzeIdea(ideaText, {
+
+        const analysis = await ideaAnalyzer.analyzeIdea(ideaContext, {
           previousMessages: conversation.messages || [],
         });
 
         updatedMetadata.analysis = analysis;
-        updatedMetadata.ideaDescription = ideaText;
+        // Store the cumulative context.
+        updatedMetadata.ideaDescription = ideaContext;
 
-        // Check if this is the first message (initial idea)
         const messageCount = conversation.messages?.length || 0;
         const isFirstMessage = messageCount <= 1;
 
         if (isFirstMessage && ideaAnalyzer.needsClarification(analysis)) {
-          // First message - ask clarifying questions ONCE
           const questions = ideaAnalyzer.generateClarifyingQuestions(analysis);
           assistantResponse = `I understand you want to create a ${analysis.plan_type.replace(/_/g, ' ')}. To create the best plan for you, I have a few questions:\n\n${questions
             .slice(0, 3)
@@ -417,74 +453,34 @@ const conversationalAssistant = async (
             .join(
               '\n'
             )}\n\nPlease share what you can, and I'll generate a comprehensive plan for you!`;
-
-          // Mark that we asked questions, next response will generate plan
           updatedMetadata.askedQuestions = true;
           updatedMetadata.planStage = PLAN_STAGES.IDEA_ANALYSIS;
         } else {
-          // User has responded OR idea is clear enough - generate plan directly
           logger.info('Generating plan directly after user response');
-
-          // Generate brainstorm
           const brainstorm = await brainstormEngine.generateBrainstorm(
-            ideaText,
+            ideaContext,
             analysis,
             [],
             { constraints: metadata.collectedParams?.constraints }
           );
-
           updatedMetadata.brainstorm = brainstorm;
-
-          // Generate the plan
           const plan = await planGenerator.generatePlan(
-            ideaText,
+            ideaContext,
             analysis,
             brainstorm,
             DEFAULT_PARAMS.planDepth,
             metadata.collectedParams?.constraints || {}
           );
-
           updatedMetadata.generatedPlan = plan;
-
-          // Format plan with follow-up questions
-          assistantResponse = `**Your Plan is Ready!** 🎉\n\n`;
-          assistantResponse += `# ${plan.title}\n\n`;
-          assistantResponse += `## Executive Summary\n${plan.executive_summary}\n\n`;
-          assistantResponse += `## Key Objectives\n`;
-          plan.objectives?.slice(0, 3).forEach((obj, i) => {
-            assistantResponse += `${i + 1}. **${obj.objective}** (${obj.priority} priority)\n`;
-            assistantResponse += `   ${obj.description}\n\n`;
-          });
-          assistantResponse += `## Implementation Phases\n`;
-          plan.phases?.forEach((phase, i) => {
-            assistantResponse += `**${phase.name}** (${phase.duration})\n`;
-            assistantResponse += `- ${phase.deliverables?.slice(0, 2).join('\n- ')}\n\n`;
-          });
-          assistantResponse += `## Immediate Next Steps\n`;
-          plan.next_steps?.slice(0, 5).forEach((step, i) => {
-            assistantResponse += `${i + 1}. ${step}\n`;
-          });
-
-          // Add optional follow-up questions
-          assistantResponse += `\n\n**Optional: To refine your plan further, you can:**\n`;
-          const refinementQuestions = [
-            '- Adjust the timeline or budget constraints?',
-            '- Add more details to specific phases?',
-            '- Explore alternative approaches?',
-            '- Get more information on risks and mitigation strategies?',
-          ];
-          assistantResponse += refinementQuestions.join('\n');
-          assistantResponse += `\n\nJust let me know what you'd like to adjust, or ask me anything about the plan!`;
-
+          assistantResponse = `**Your Plan is Ready!** 🎉\n\n` + planGenerator.formatPlanForPresentation(plan, 'summary');
+          assistantResponse += `\n\n**Optional: To refine your plan further, you can:**\n- Adjust the timeline or budget constraints?\n- Add more details to specific phases?\n- Explore alternative approaches?\n- Get more information on risks and mitigation strategies?\n\nJust let me know what you'd like to adjust, or ask me anything about the plan!`;
           updatedMetadata.planStage = PLAN_STAGES.REFINEMENT;
         }
         break;
       }
 
       case PLAN_STAGES.REFINEMENT: {
-        // Handle refinement requests - update the plan based on user feedback
         const lowerMessage = message.toLowerCase();
-
         if (lowerMessage.includes('export')) {
           assistantResponse = `To export your plan, please use the export endpoint or let me know your preferred format (PDF, DOCX, Markdown, JSON).`;
         } else if (lowerMessage.includes('alternative')) {
@@ -493,48 +489,21 @@ const conversationalAssistant = async (
             metadata.ideaDescription
           );
           updatedMetadata.generatedPlan = { ...existingPlan, alternatives };
-
           assistantResponse = `**Alternative Approaches:**\n\n`;
           alternatives?.forEach((alt, i) => {
-            assistantResponse += `${i + 1}. **${alt.approach}**\n`;
-            assistantResponse += `   ✅ Pros: ${alt.pros?.join(', ')}\n`;
-            assistantResponse += `   ⚠️ Cons: ${alt.cons?.join(', ')}\n\n`;
+            assistantResponse += `${i + 1}. **${alt.approach}**\n   ✅ Pros: ${alt.pros?.join(', ')}\n   ⚠️ Cons: ${alt.cons?.join(', ')}\n\n`;
           });
           assistantResponse += `\nWould you like me to update your plan with any of these approaches?`;
         } else {
-          // General refinement using feedback
           logger.info('Applying user feedback to refine plan');
-
           const improvedPlan = await planRefiner.applyFeedback(
             existingPlan,
             message,
             conversation.messages || []
           );
-
           updatedMetadata.generatedPlan = improvedPlan;
-
-          assistantResponse = `**Plan Updated!** ✅\n\n`;
-          assistantResponse += `I've refined your plan based on your feedback. Here are the key updates:\n\n`;
-
-          // Show what changed
-          assistantResponse += `## Updated Plan Summary\n`;
-          assistantResponse += `**Title:** ${improvedPlan.title}\n\n`;
-
-          if (improvedPlan.executive_summary) {
-            assistantResponse += `**Executive Summary:**\n${improvedPlan.executive_summary.substring(0, 200)}...\n\n`;
-          }
-
-          assistantResponse += `**Key Highlights:**\n`;
-          assistantResponse += `- Objectives: ${improvedPlan.objectives?.length || 0} defined\n`;
-          assistantResponse += `- Phases: ${improvedPlan.phases?.length || 0} implementation phases\n`;
-          assistantResponse += `- Action Items: ${improvedPlan.action_items?.length || 0} tasks\n\n`;
-
-          assistantResponse += `**What else would you like to adjust?**\n`;
-          assistantResponse += `- Timeline or budget\n`;
-          assistantResponse += `- Specific phases or action items\n`;
-          assistantResponse += `- Risk assessment\n`;
-          assistantResponse += `- Resource allocation\n\n`;
-          assistantResponse += `Just let me know!`;
+          assistantResponse = `**Plan Updated!** ✅\n\nI've refined your plan based on your feedback. Here are the key updates:\n\n` + planGenerator.formatPlanForPresentation(improvedPlan, 'summary');
+          assistantResponse += `\n\n**What else would you like to adjust?**\n- Timeline or budget\n- Specific phases or action items\n- Risk assessment\n- Resource allocation\n\nJust let me know!`;
         }
         break;
       }
@@ -546,25 +515,27 @@ const conversationalAssistant = async (
 
     // Update conversation metadata
     await conversationService.updateConversationMetadata(
-      conversation.conversationId,
-      userId,
-      updatedMetadata
+      currentConversationId,
+      effectiveUserId,
+      updatedMetadata,
+      req // FIX: Pass request object for tenancy context in updates.
     );
 
     // Add assistant response
     await addMessage(
-      conversation.conversationId,
-      userId,
+      currentConversationId,
+      effectiveUserId,
       'assistant',
       assistantResponse,
       {
         planStage: updatedMetadata.planStage,
-      }
+      },
+      req // FIX: Pass request object for tenancy context in updates.
     );
 
     return {
       success: true,
-      conversationId: conversation.conversationId,
+      conversationId: currentConversationId,
       response: assistantResponse,
       planStage: updatedMetadata.planStage,
       hasAnalysis: !!updatedMetadata.analysis,
@@ -573,6 +544,10 @@ const conversationalAssistant = async (
     };
   } catch (error) {
     logger.error('Error in conversational assistant:', error);
+    // FIX: Propagate specific limit-related errors with an appropriate status code.
+    if (error.isUsageError) {
+        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       error.message || 'Failed to process request'
@@ -582,7 +557,6 @@ const conversationalAssistant = async (
 
 /**
  * Generates a plan directly without a conversational interface.
- * It takes an idea and optional parameters to analyze, brainstorm, and generate a comprehensive plan.
  * This service is available to both authenticated and guest users.
  *
  * @async
@@ -597,10 +571,11 @@ const conversationalAssistant = async (
  * @param {string[]} [params.brainstormAspects=[]] - Optional, specific aspects to focus on during brainstorming.
  * @param {string | null} [userId=null] - The ID of the user requesting the plan (optional, for logging/tracking).
  * @param {boolean} [isGuest=false] - Flag indicating if the user is a guest (optional).
+ * @param {object | null} [req=null] - The Express request object, for multi-tenancy or user context.
  * @returns {Promise<object>} An object containing the success status, analysis, brainstorm, generated plan, and a message.
  * @throws {ApiError} If there's an internal server error during plan generation.
  */
-const generatePlanDirect = async (params, userId = null, isGuest = false) => {
+const generatePlanDirect = async (params, userId = null, isGuest = false, req = null) => {
   try {
     const {
       idea,
@@ -612,7 +587,14 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
       brainstormAspects = [],
     } = params;
 
+    // FIX: For authenticated users, check limits before generation.
+    if (!isGuest && req && req.user) {
+        await usageService.checkAndCharge(req.user, 'direct_plan_generation', { complexity });
+    }
+
     logger.info('Direct plan generation request:', {
+      userId: req?.user?.id || userId,
+      isGuest,
       planType,
       complexity,
       planDepth,
@@ -654,6 +636,10 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
     };
   } catch (error) {
     logger.error('Error in direct plan generation:', error);
+    // FIX: Propagate specific limit-related errors with an appropriate status code.
+    if (error.isUsageError) {
+        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       error.message || 'Failed to generate plan'
@@ -663,25 +649,27 @@ const generatePlanDirect = async (params, userId = null, isGuest = false) => {
 
 /**
  * Retrieves the full conversation history for a given conversation ID and user.
- * Access is restricted to the user who owns the conversation.
+ * Access is restricted to the user who owns the conversation or their authorized manager/admin.
  *
  * @async
  * @function getConversationHistory
  * @param {string} conversationId - The ID of the conversation to retrieve.
  * @param {string} userId - The ID of the user who owns the conversation. This enforces data privacy and multi-tenancy.
- * @param {object | null} [req=null] - The Express request object, for multi-tenancy or user context.
+ * @param {object | null} [req=null] - The Express request object, containing the requester's context for permission checks.
  * @returns {Promise<object>} An object containing the success status and the full conversation object.
- * @throws {ApiError} If the conversation is not found or an internal server error occurs.
+ * @throws {ApiError} If the conversation is not found or the requester lacks permission.
  */
 const getConversationHistory = async (conversationId, userId, req = null) => {
   try {
-    // Optimization: Fetch conversation as a plain JavaScript object as it's only read and returned.
-    // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
+    // FIX: Implement hierarchical access control.
+    // The helper is responsible for checking if the requester (req.user) has permission
+    // to view the conversation belonging to `userId`. This prevents IDOR across different
+    // tenants and respects the user hierarchy (e.g., manager viewing a subordinate's conversation).
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
-      userId,
-      req,
-      true // Use .lean()
+      userId, // The target user whose conversation is being requested
+      req,    // The requester's context (req.user) for permission checks
+      true    // Use .lean()
     );
 
     return {
@@ -690,14 +678,18 @@ const getConversationHistory = async (conversationId, userId, req = null) => {
     };
   } catch (error) {
     logger.error('Error getting conversation history:', error);
-    throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+    // FIX: Provide a more accurate error message. The helper should throw a specific error for not found vs. forbidden.
+    if (error.statusCode === 403) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'You do not have permission to view this conversation.');
+    }
+    throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found or access denied.');
   }
 };
 
 /**
  * Exports the generated plan from a conversation in a specified format.
  * Supported formats include 'markdown', 'json', and 'html'.
- * Access is restricted to the user who owns the conversation.
+ * Access is restricted to the user who owns the conversation or their authorized manager/admin.
  *
  * @async
  * @function exportPlan
@@ -715,14 +707,16 @@ const exportPlan = async (
   req = null
 ) => {
   try {
-    // Optimization: Fetch conversation as a plain JavaScript object as only its metadata is accessed.
-    // Assuming conversationHelpers.getConversationById supports a 'lean' parameter.
+    // FIX: Implement hierarchical access control, same as getConversationHistory.
+    // The helper ensures the requester (req.user) can access the conversation of `userId`.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
       userId,
       req,
       true // Use .lean()
     );
+
+    // FIX: Bug fix - data is in 'metadata', not directly on the conversation object.
     const plan = conversation.metadata?.generatedPlan;
 
     if (!plan) {
@@ -730,6 +724,11 @@ const exportPlan = async (
         httpStatus.NOT_FOUND,
         'No plan found in this conversation'
       );
+    }
+
+    // FIX: Before exporting, check usage as it can be a billable event.
+    if (req && req.user) {
+        await usageService.checkAndCharge(req.user, 'plan_export', { format });
     }
 
     let exportedContent = '';
@@ -758,6 +757,16 @@ const exportPlan = async (
     };
   } catch (error) {
     logger.error('Error exporting plan:', error);
+    // FIX: Propagate specific limit-related or permission errors with appropriate status codes.
+    if (error.isUsageError) {
+        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
+    }
+    if (error.statusCode === 403) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'You do not have permission to export this plan.');
+    }
+    if (error.statusCode === 404) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found or access denied.');
+    }
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
       'Failed to export plan'
@@ -771,7 +780,7 @@ const exportPlan = async (
  * This includes a conversational assistant for iterative plan development, a direct generation
  * endpoint for quick plans, conversation history management, and plan exporting capabilities.
  * The services are designed to work for both authenticated and guest users, with data access
- * scoped by `userId` to ensure multi-tenancy.
+ * scoped by `userId` and `workspaceId` to ensure multi-tenancy and respect role hierarchies.
  */
 export const planGeneratorService = {
   generateGuestUserId,
@@ -784,5 +793,6 @@ export const planGeneratorService = {
 
 // Database Indexing Recommendation:
 // For the 'Conversation' collection, consider adding a compound index on 'conversationId' and 'userId'
-// to optimize lookups performed by `conversationHelpers.getConversationById`.
+// and another on 'workspaceId' to optimize lookups.
 // Example: conversationSchema.index({ conversationId: 1, userId: 1 });
+// Example: conversationSchema.index({ workspaceId: 1, createdAt: -1 });

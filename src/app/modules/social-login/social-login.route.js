@@ -46,14 +46,27 @@ function sendTokenResponse(user, res) {
   try {
     const userEmail = user.email ? user.email.toLowerCase() : '';
     const superAdminEmail = (config.superAdminEmail || '').toLowerCase();
-    const resolvedRole = (superAdminEmail && userEmail === superAdminEmail) ? 'super_admin' : user.role;
+    const resolvedRole =
+      superAdminEmail && userEmail === superAdminEmail
+        ? 'super_admin'
+        : user.role;
 
     const payload = {
       role: resolvedRole,
       _id: user._id,
     };
 
-    const secret = config.jwt.access_token;
+    // GCP AUDIT: Prioritize JWT secret from environment variables (injected by Cloud Run from Secret Manager).
+    // This prevents reading secrets from local files in production environments.
+    const secret = process.env.JWT_ACCESS_TOKEN_SECRET || config.jwt.access_token;
+    if (!secret) {
+      console.error(
+        'JWT secret is not configured. Set JWT_ACCESS_TOKEN_SECRET environment variable or jwt.access_token in config.'
+      );
+      const errorRedirectUrl = `${FRONTEND_URL}/?showLogin=true&error=server_configuration_error`;
+      return res.redirect(errorRedirectUrl);
+    }
+
     const options = {
       expiresIn: config.jwt.access_expires_in || '7d',
     };

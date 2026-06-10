@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'; // Removed unused 'connect' import
+import mongoose from 'mongoose';
 
 /**
  * @typedef {object} ComposioAuthToolkit
@@ -40,7 +40,10 @@ const ComposioAuthToolkitSchema = new mongoose.Schema({
 
 /**
  * @typedef {object} ComposioAuthDocument
- * @property {mongoose.Types.ObjectId} userId - The ID of the user associated with this authentication.
+ * @property {mongoose.Types.ObjectId} tenantId - The ID of the tenant this authentication belongs to. Enforces multi-tenancy.
+ * @property {mongoose.Types.ObjectId} workspaceId - The ID of the workspace this authentication belongs to. Enforces workspace-level context.
+ * @property {mongoose.Types.ObjectId} connectedByUserId - The ID of the user who performed the authentication action.
+ * @property {{id: mongoose.Types.ObjectId, type: 'User'|'Workspace'}} owner - Defines the ownership of the integration (personal or workspace-level).
  * @property {string} authConfigId - The unique identifier for the authentication configuration used.
  * @property {string} [connectedAccountId] - The ID of the connected account on the Composio platform.
  * @property {string} [integrationId] - The ID of the specific integration instance.
@@ -50,7 +53,7 @@ const ComposioAuthToolkitSchema = new mongoose.Schema({
  * @property {string} [refreshToken] - The refresh token obtained during authentication.
  * @property {string} [idToken] - The ID token obtained during authentication (e.g., for OIDC).
  * @property {ComposioAuthToolkit} [toolkit] - Information about the Composio toolkit associated with this authentication.
- * @property {mongoose.Types.ObjectId|null} [tenantId] - The ID of the tenant this authentication belongs to, if multi-tenancy is enabled.
+ * @property {Date|null} lastUsedAt - Timestamp of the last time this integration was used.
  * @property {Date} createdAt - The timestamp when the document was created.
  * @property {Date} updatedAt - The timestamp when the document was last updated.
  */
@@ -59,24 +62,75 @@ const ComposioAuthToolkitSchema = new mongoose.Schema({
  * Mongoose Schema for ComposioAuth.
  * Represents an authentication record for a user with a Composio integration.
  * This schema stores details about the authentication process, including tokens,
- * status, and associated user/tenant information.
+ * status, and associated user/tenant/workspace information.
  *
  * @type {mongoose.Schema<ComposioAuthDocument>}
  */
 const ComposioAuthSchema = new mongoose.Schema({
   /**
-   * The ID of the user associated with this authentication.
+   * Multi-tenant support: The ID of the tenant this authentication belongs to.
+   * This is a critical field for data isolation and security.
+   * @type {mongoose.Schema.Types.ObjectId}
+   * @ref Tenant
+   * @required true
+   * @index true
+   */
+  tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tenant',
+    required: [true, 'A tenant ID is required for all authentications.'],
+    index: true,
+  },
+
+  /**
+   * Workspace Context: The ID of the workspace this authentication is associated with.
+   * Ensures that integrations are scoped to the correct workspace, preventing context leakage.
+   * @type {mongoose.Schema.Types.ObjectId}
+   * @ref Workspace
+   * @required true
+   * @index true
+   */
+  workspaceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Workspace',
+    required: [true, 'A workspace ID is required for all authentications.'],
+    index: true,
+  },
+
+  /**
+   * The ID of the user who performed the connection action.
+   * This is used for auditing and tracking who initiated the authentication.
    * @type {mongoose.Schema.Types.ObjectId}
    * @ref User
    * @required true
    * @index true
    */
-  userId: {
+  connectedByUserId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
     index: true,
   },
+
+  /**
+   * Defines the ownership of the integration. This is crucial for applying limits,
+   * managing permissions, and propagating usage data up the hierarchy.
+   * An integration can be owned by an individual user or by the entire workspace.
+   */
+  owner: {
+    id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      // Note: No 'ref' here as it can refer to different models ('User', 'Workspace').
+      // Population must be handled conditionally in the application logic.
+    },
+    type: {
+      type: String,
+      required: true,
+      enum: ['User', 'Workspace'],
+    }
+  },
+
   /**
    * The unique identifier for the authentication configuration used.
    * This typically corresponds to a specific application or integration setup.
@@ -136,26 +190,33 @@ const ComposioAuthSchema = new mongoose.Schema({
   /**
    * The access token obtained during authentication.
    * Used to make authorized requests to the integrated service.
+   * SECURITY: This field should be encrypted at rest using a library like mongoose-encryption.
+   * It is excluded from default query projections to prevent accidental exposure.
    * @type {string}
    */
   accessToken: {
     type: String,
+    select: false,
   },
   /**
    * The refresh token obtained during authentication.
    * Used to obtain new access tokens when the current one expires.
+   * SECURITY: This field should be encrypted at rest.
    * @type {string}
    */
   refreshToken: {
     type: String,
+    select: false,
   },
   /**
    * The ID token obtained during authentication (e.g., for OpenID Connect).
    * Contains claims about the authenticated user.
+   * SECURITY: This field should be encrypted at rest.
    * @type {string}
    */
   idToken: {
     type: String,
+    select: false,
   },
   /**
    * Information about the Composio toolkit associated with this authentication.
@@ -167,18 +228,15 @@ const ComposioAuthSchema = new mongoose.Schema({
   },
 
   /**
-   * Multi-tenant support: The ID of the tenant this authentication belongs to.
-   * @type {mongoose.Schema.Types.ObjectId|null}
-   * @ref Tenant
-   * @default null
-   * @index true
+   * Tracks the last time the integration was actively used.
+   * This helps in identifying dormant connections and managing resource lifecycle.
+   * @type {Date|null}
    */
-  tenantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Tenant',
+  lastUsedAt: {
+    type: Date,
     default: null,
-    index: true,
   },
+
 }, {
   /**
    * Mongoose timestamps option.
@@ -190,15 +248,20 @@ const ComposioAuthSchema = new mongoose.Schema({
 
 /**
  * Compound index for the most common query pattern:
- * finding active connections for a user's specific toolkit.
- * Optimizes queries that filter by `userId`, `status`, and `toolkit.slug`.
+ * finding active connections within a specific workspace.
  */
-ComposioAuthSchema.index({ userId: 1, status: 1, 'toolkit.slug': 1 });
+ComposioAuthSchema.index({ tenantId: 1, workspaceId: 1, status: 1 });
+
 /**
- * Compound index for authConfigId-based lookups.
- * Optimizes queries that filter by `userId`, `status`, and `authConfigId`.
+ * Compound index for finding connections by a specific user.
  */
-ComposioAuthSchema.index({ userId: 1, status: 1, authConfigId: 1 });
+ComposioAuthSchema.index({ connectedByUserId: 1, status: 1, 'toolkit.slug': 1 });
+
+/**
+ * Compound index for finding connections by their owner (user or workspace).
+ * This is crucial for applying limits and permissions based on ownership.
+ */
+ComposioAuthSchema.index({ 'owner.id': 1, 'owner.type': 1, status: 1 });
 
 /**
  * Mongoose Model for ComposioAuth.
