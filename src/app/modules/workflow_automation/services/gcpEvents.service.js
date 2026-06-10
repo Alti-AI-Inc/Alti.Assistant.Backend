@@ -33,6 +33,8 @@ class GcpEventsService {
       
       this.pubSubClient = new PubSub({
         projectId,
+        // It's generally recommended to use an absolute path for keyFilename or ensure it's correctly
+        // configured in `config.gcp?.saKeyPath` to avoid issues with varying current working directories.
         keyFilename: config.gcp?.saKeyPath || './gcp-sa-key.json'
       });
 
@@ -64,6 +66,8 @@ class GcpEventsService {
       }
 
       if (!this.pubSubClient) {
+        // Ensure the Pub/Sub client is initialized before proceeding.
+        // This handles cases where registerPubSubTrigger might be called before initializePubSubTriggers.
         await this.initializePubSubTriggers();
       }
 
@@ -81,6 +85,7 @@ class GcpEventsService {
           try {
             eventData = JSON.parse(message.data.toString());
           } catch (e) {
+            // If JSON parsing fails, provide the raw payload for debugging/alternative processing
             eventData = { rawPayload: message.data.toString() };
           }
 
@@ -93,16 +98,23 @@ class GcpEventsService {
             ...eventData
           };
 
-          // Execute workflow asynchronously
-          workflowExecutionService.executeWorkflow(workflowId, userId, context)
-            .then(res => logger.info(`[GCP Pub/Sub] Event-driven workflow ${workflowId} execution result:`, res.success))
-            .catch(err => logger.error(`[GCP Pub/Sub] Event-driven workflow execution failed:`, err));
-
-          // Acknowledge the message
-          message.ack();
+          // Execute workflow asynchronously and handle acknowledgment based on its completion.
+          // BUG FIX: The original code acknowledged the message immediately,
+          // potentially losing the event if workflow execution failed later.
+          // Now, message.ack() is called only upon successful workflow execution,
+          // and message.nack() is called if the workflow fails, ensuring at-least-once delivery.
+          try {
+            await workflowExecutionService.executeWorkflow(workflowId, userId, context);
+            logger.info(`[GCP Pub/Sub] Event-driven workflow ${workflowId} executed successfully.`);
+            message.ack(); // Acknowledge the message only after successful workflow execution
+          } catch (workflowErr) {
+            logger.error(`[GCP Pub/Sub] Event-driven workflow ${workflowId} execution failed:`, workflowErr);
+            message.nack(); // Negative acknowledge to retry if workflow execution fails
+          }
         } catch (msgErr) {
-          logger.error(`[GCP Pub/Sub] Error processing subscription message:`, msgErr);
-          message.nack(); // Negative acknowledge to retry
+          // Catch errors during initial message processing (e.g., JSON parsing)
+          logger.error(`[GCP Pub/Sub] Error processing subscription message or initial parsing:`, msgErr);
+          message.nack(); // Negative acknowledge for any error before workflow execution attempt
         }
       });
 
@@ -129,7 +141,12 @@ class GcpEventsService {
           logger.info(`[GCP Pub/Sub Mock] Releasing simulated subscription for workflow ${workflowId}`);
         } else {
           logger.info(`[GCP Pub/Sub] Closing subscription connection for workflow ${workflowId}`);
-          await subscription.close();
+          // Ensure the subscription object has a close method before calling it
+          if (typeof subscription.close === 'function') {
+            await subscription.close();
+          } else {
+            logger.warn(`[GCP Pub/Sub] Subscription object for workflow ${workflowId} does not have a 'close' method.`);
+          }
         }
         this.activeSubscriptions.delete(workflowId);
       }
@@ -169,6 +186,8 @@ class GcpEventsService {
         }
       });
 
+      // The response.text is expected to be a JSON string due to responseMimeType and responseSchema.
+      // If the AI returns malformed JSON, JSON.parse will throw, which is caught by the outer try/catch.
       const parsedResult = JSON.parse(response.text);
       return { success: true, result: parsedResult };
     } catch (error) {
