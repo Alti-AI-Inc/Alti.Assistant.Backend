@@ -15,6 +15,13 @@ import { logger } from '../../../shared/logger.js';
 //    db.actionauditlogs.createIndex({ workspaceId: 1, createdAt: 1 });
 //    db.actionauditlogs.createIndex({ userId: 1, createdAt: 1 });
 
+// OPTIMIZATION: In your User model definition (e.g., user.model.js), ensure the following
+// index exists. Without it, queries for managers viewing their team's activity in
+// getAuditLogs and getAnalytics will be very slow and may time out.
+//
+// 1. To efficiently find all users reporting to a manager:
+//    db.users.createIndex({ managerId: 1 });
+
 /**
  * @constant {Set<string>} SENSITIVE_KEYS
  * @description A set of lowercase strings representing parameter keys
