@@ -146,31 +146,60 @@ export const extractTextFromFile = async (fileInfo) => {
 };
 
 /**
- * Uploads a file to Google Cloud Storage (GCS).
+ * Securely uploads a file to a tenant-isolated path in Google Cloud Storage (GCS).
  * The file can be provided as a Buffer or a local file path.
- * The GCS path is constructed based on owner type, owner ID, and optional folder ID.
+ * The GCS path is constructed to enforce data isolation between workspaces.
  *
  * @async
  * @param {Buffer|string} fileData - The file content as a Buffer or the absolute path to the local file.
- * @param {string} fileName - The desired name for the file in Google Cloud Storage, including its extension.
- * @param {object} [metadata={}] - Additional metadata to associate with the file in GCS.
+ * @param {string} fileName - The desired name for the file in Google Cloud Storage, including its extension. Any path information is stripped.
+ * @param {object} metadata - Metadata for constructing the secure GCS path.
+ * @param {string} metadata.workspaceId - The ID of the workspace (tenant) to which this file belongs. CRITICAL for data isolation.
  * @param {string} metadata.ownerType - The type of owner (e.g., 'user', 'bot') to determine the GCS path prefix.
- * @param {string} metadata.ownerId - The ID of the owner, used to create a unique folder structure.
+ * @param {string} metadata.ownerId - The ID of the owner, used to create a unique folder structure within the workspace.
  * @param {string} [metadata.folderId] - Optional ID of a specific folder within the owner's directory.
  * @returns {Promise<GCSUploadResult>} A promise that resolves with an object containing the public URL, GCS path, bucket name, and storage type.
- * @throws {Error} If the file data is invalid or if the upload to GCS fails.
+ * @throws {Error} If metadata is invalid, a path traversal attempt is detected, file data is invalid, or the upload to GCS fails.
  */
-export const uploadToGCS = async (fileData, fileName, metadata = {}) => {
+export const uploadToGCS = async (fileData, fileName, metadata) => {
   try {
+    // SECURITY & INTEGRATION FIX: Enforce tenant boundaries and prevent path traversal.
+    // The GCS path must be constructed from validated and sanitized components to ensure
+    // files are stored within the correct workspace and user directory, preventing IDOR and data leakage.
+    if (!metadata || !metadata.workspaceId || !metadata.ownerId || !metadata.ownerType) {
+      throw new Error('workspaceId, ownerId, and ownerType are required in metadata for GCS upload.');
+    }
+
+    const validatePathComponent = (component, componentName) => {
+      if (typeof component !== 'string' || component.includes('..') || component.includes('/')) {
+        // Log the attempt for security monitoring.
+        logger.warn(`Potential path traversal attempt detected. Component '${componentName}' with value '${component}' is invalid.`);
+        throw new Error(`Invalid format for ${componentName}.`);
+      }
+      return component;
+    };
+
+    // SECURITY FIX: Sanitize filename to remove any directory paths, preventing path traversal.
+    const safeFileName = path.basename(fileName);
+
+    // SECURITY FIX: Validate other path components to prevent path traversal.
+    const workspaceId = validatePathComponent(metadata.workspaceId, 'workspaceId');
+    const ownerId = validatePathComponent(metadata.ownerId, 'ownerId');
+    const folderId = metadata.folderId ? validatePathComponent(metadata.folderId, 'folderId') : null;
+
     const bucket = storage.bucket(STORAGE_CONFIG.GCS_BUCKET);
-    const gcsPath = `${metadata.ownerType === 'user' ? STORAGE_CONFIG.USER_FILES_PREFIX : STORAGE_CONFIG.BOT_FILES_PREFIX}/${metadata.ownerId}${metadata.folderId ? `/folders/${metadata.folderId}` : ''}/${fileName}`;
+    
+    // INTEGRATION FIX: Construct a secure, tenant-isolated path using the workspaceId.
+    const ownerPrefix = metadata.ownerType === 'user' ? STORAGE_CONFIG.USER_FILES_PREFIX : STORAGE_CONFIG.BOT_FILES_PREFIX;
+    const folderPath = folderId ? `/folders/${folderId}` : '';
+    const gcsPath = `workspaces/${workspaceId}/${ownerPrefix}/${ownerId}${folderPath}/${safeFileName}`;
 
     logger.info(`Uploading file to GCS: ${gcsPath}`);
 
     const file = bucket.file(gcsPath);
 
     // Determine content type
-    const ext = path.extname(fileName).toLowerCase();
+    const ext = path.extname(safeFileName).toLowerCase();
     const contentTypeMap = {
       '.pdf': 'application/pdf',
       '.doc': 'application/msword',
