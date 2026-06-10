@@ -1,5 +1,28 @@
 // Added import for Vertex AI safety settings enums.
 import { HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
+import winston from 'winston';
+
+// Create a Winston logger configured for GCP Cloud Logging.
+// Logs will be in structured JSON format with a 'severity' property that Cloud Logging
+// understands, allowing automatic parsing of log levels (INFO, WARNING, ERROR).
+const logger = winston.createLogger({
+  level: 'info', // Default log level.
+  format: winston.format.combine(
+    winston.format.timestamp(), // Add a timestamp to each log.
+    // Custom formatter to add the 'severity' field required by GCP Cloud Logging.
+    // This must come BEFORE the json() formatter to ensure the field is added to the object before serialization.
+    winston.format((info) => {
+      info.severity = info.level.toUpperCase();
+      return info;
+    })(),
+    winston.format.json() // Output logs in JSON format.
+  ),
+  transports: [
+    // Log to the console. In GCP environments (Cloud Run, GKE, App Engine),
+    // console output is automatically collected by the Cloud Logging agent.
+    new winston.transports.Console(),
+  ],
+});
 
 /**
  * Business Copywriting, Text Translation, and Productivity Specialists
@@ -51,6 +74,16 @@ export const globalAgentOverrides = {
  */
 export function updateGlobalAgentOverrides(newOverrides) {
   // PLATFORM_OWNER_AUDIT_LOG: Log the entire newOverrides object and the admin user who initiated the change for security and compliance.
+  logger.info({
+    message: 'Global agent overrides configuration updated.',
+    component: 'AgentOverrides',
+    event: 'UPDATE_GLOBAL_OVERRIDES',
+    // For a complete audit trail, the ID of the admin user performing this action
+    // should be captured from the request context and included here.
+    // e.g., adminUserId: req.user.id,
+    updatedConfig: newOverrides, // Log the new configuration for auditing.
+  });
+
   if (newOverrides.enabled !== undefined) {
     globalAgentOverrides.enabled = newOverrides.enabled;
   }
@@ -136,6 +169,13 @@ export function resolveAgent(baseAgent, tenantId = null) {
   // Check if the entire tenant is suspended.
   if (tenantId && globalAgentOverrides.suspendedTenants.has(tenantId)) {
     // PLATFORM_OWNER_AUDIT_LOG: Log agent access attempt for suspended tenant 'tenantId'.
+    logger.warn({
+      message: 'Agent access denied for suspended tenant.',
+      component: 'AgentResolver',
+      event: 'ACCESS_DENIED_SUSPENDED_TENANT',
+      tenantId: tenantId,
+      agentId: baseAgent.id,
+    });
     return null;
   }
 
@@ -148,7 +188,7 @@ export function resolveAgent(baseAgent, tenantId = null) {
   if (tenantId && globalAgentOverrides.tenantDisabledAgents[tenantId]?.has(baseAgent.id)) {
     return null;
   }
-  
+
   const resolved = { ...baseAgent };
   const appliedOverrides = []; // For logging/auditing purposes.
 
@@ -179,7 +219,17 @@ export function resolveAgent(baseAgent, tenantId = null) {
   }
 
   // PLATFORM_OWNER_AUDIT_LOG: If appliedOverrides.length > 0, log that agent 'baseAgent.id' was resolved for tenant 'tenantId' with overrides: appliedOverrides.join(', ').
-  
+  if (appliedOverrides.length > 0) {
+    logger.info({
+      message: 'Agent resolved with overrides applied.',
+      component: 'AgentResolver',
+      event: 'AGENT_RESOLVED_WITH_OVERRIDES',
+      tenantId: tenantId,
+      agentId: baseAgent.id,
+      appliedOverrides: appliedOverrides,
+    });
+  }
+
   return resolved;
 }
 
@@ -193,7 +243,7 @@ export function getAllUtilityAgents(tenantId = null) {
   // Platform Owner tenant suspension check. If suspended, the tenant has access to no utility agents.
   // This check respects the master 'enabled' switch.
   if (tenantId && globalAgentOverrides.enabled && globalAgentOverrides.suspendedTenants.has(tenantId)) {
-      return [];
+    return [];
   }
 
   const agents = [
@@ -210,11 +260,9 @@ export function getAllUtilityAgents(tenantId = null) {
     resumeCvCoach,
     socialMediaWriter,
     pressReleaseWriter,
-    grantProposalWriter
+    grantProposalWriter,
   ];
-  return agents
-    .map(agent => resolveAgent(agent, tenantId))
-    .filter(agent => agent !== null);
+  return agents.map((agent) => resolveAgent(agent, tenantId)).filter((agent) => agent !== null);
 }
 
 /**
@@ -234,7 +282,7 @@ Never lose crucial data points, statistics, or licenses.`,
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['summarize', 'summary', 'tldr', 'executive summary', 'brief', 'shorten', 'outline'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // User-provided documents may contain PII.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // User-provided documents may contain PII.
 };
 
 /**
@@ -254,7 +302,7 @@ Ensure the translation matches localized technical terminology exactly.`,
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['translate', 'translation', 'spanish', 'french', 'german', 'chinese', 'japanese', 'language', 'polyglot'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // User-provided text for translation may contain PII.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // User-provided text for translation may contain PII.
 };
 
 /**
@@ -273,7 +321,7 @@ Stay 100% accurate to the verbatim transcripts.`,
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['transcribe', 'transcription', 'audio', 'video', 'speech to text', 'timestamp', 'meeting minutes'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Transcripts of meetings or calls often contain PII.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Transcripts of meetings or calls often contain PII.
 };
 
 /**
@@ -292,7 +340,7 @@ Implement clean heading structures, clear code examples, and structured setup ch
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['document', 'readme', 'wiki', 'documentation', 'api doc', 'technical writing', 'guide'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Source code or design docs may contain sensitive info.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Source code or design docs may contain sensitive info.
 };
 
 /**
@@ -311,7 +359,7 @@ Provide ideas grouped by feasibility, impact, and immediate actionability.`,
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['brainstorm', 'idea', 'creative', 'suggest', 'innovate', 'strategies', 'features'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Brainstorming may be based on confidential business data.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Brainstorming may be based on confidential business data.
 };
 
 /**
@@ -330,7 +378,7 @@ Maintain an engaging, professional, and impact-driven tone tailored to modern te
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['copywriting', 'newsletter', 'landing page copy', 'marketing', 'outreach', 'email copy', 'blog post', 'technical writing'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Content may be based on confidential product plans.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Content may be based on confidential product plans.
 };
 
 /**
@@ -348,7 +396,7 @@ Ensure layouts feel premium, dynamic, and visually harmonious.`,
   model: 'gemini-1.5-flash-001',
   safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['tailwind classes', 'ux design', 'ui design', 'layout structure', 'aria accessibility', 'css styling', 'responsive component', 'wireframe']
+  keywords: ['tailwind classes', 'ux design', 'ui design', 'layout structure', 'aria accessibility', 'css styling', 'responsive component', 'wireframe'],
 };
 
 /**
@@ -366,7 +414,7 @@ Focus on maximizing organic click-through rates.`,
   model: 'gemini-1.5-flash-001',
   safetySettings: defaultSafetySettings,
   tools: [],
-  keywords: ['seo', 'meta tag', 'json-ld', 'schema markup', 'meta description', 'keyword', 'sitemap', 'organic search', 'ranking']
+  keywords: ['seo', 'meta tag', 'json-ld', 'schema markup', 'meta description', 'keyword', 'sitemap', 'organic search', 'ranking'],
 };
 
 /**
@@ -385,7 +433,7 @@ Adapt your tone perfectly to the requested context: warm/friendly, ultra-formal,
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['write me a letter', 'draft this email', 'send an email', 'write letter', 'email draft', 'memo', 'outreach email', 'cold mail', 'newsletter email'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Emails and letters are highly likely to contain PII.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Emails and letters are highly likely to contain PII.
 };
 
 /**
@@ -404,7 +452,7 @@ Highlight key takeaways, action items, and provide estimated timestamp markers/m
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['youtube transcript', 'video summary', 'summarize video', 'youtube notes', 'transcribe video', 'watch video summary'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Transcripts from private videos or meetings may contain PII.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Transcripts from private videos or meetings may contain PII.
 };
 
 /**
@@ -423,7 +471,7 @@ Highlight quantitative achievements, dynamic action verbs, and core competencies
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['resume', 'cv', 'cover letter', 'job application', 'linkedin bio', 'career profile', 'interview prep'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Resumes and CVs are rich with PII.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Resumes and CVs are rich with PII.
 };
 
 /**
@@ -442,7 +490,7 @@ Use dynamic hooks, concise paragraphs, and clear formatting to capture absolute 
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['blog post', 'twitter thread', 'linkedin post', 'instagram caption', 'video script', 'write a post', 'viral copy'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Input may be based on confidential company information.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Input may be based on confidential company information.
 };
 
 /**
@@ -461,7 +509,7 @@ Implement standard AP Style guidelines, including clear headers, datelines, and 
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['press release', 'pr announcement', 'news release', 'corporate launch letter', 'brand update', 'media statement'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Press releases are often drafted using confidential pre-launch info.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Press releases are often drafted using confidential pre-launch info.
 };
 
 /**
@@ -480,5 +528,5 @@ Highlight structural impacts, feasibility metrics, and budget partitions.`,
   safetySettings: defaultSafetySettings,
   tools: [],
   keywords: ['grant proposal', 'funding application', 'academic grant', 'non-profit proposal', 'startup funding grant', 'write a grant'],
-  dataHandlingNotes: ['PII_FILTERING_REQUIRED'] // Grant proposals contain sensitive financial, personal, and research data.
+  dataHandlingNotes: ['PII_FILTERING_REQUIRED'], // Grant proposals contain sensitive financial, personal, and research data.
 };
