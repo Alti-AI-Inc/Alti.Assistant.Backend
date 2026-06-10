@@ -37,18 +37,103 @@ export const PLAN_GENERATOR_CONFIG = {
 };
 
 /**
- * User-level limits and usage metrics configurations to ensure platform stability,
+ * Platform roles for access control and hierarchy validation.
+ * @constant
+ * @type {object}
+ */
+export const ROLES = {
+  SUPER_ADMIN: 'super_admin', // Platform Owner
+  ADMIN: 'admin',             // Workspace Owner
+  MANAGER: 'manager',         // Team Manager
+  USER: 'user',               // End User
+};
+
+/**
+ * Role hierarchy mapping to validate permissions.
+ * Higher roles inherit permissions of lower roles.
+ * @constant
+ * @type {object}
+ */
+export const ROLE_HIERARCHY = {
+  [ROLES.SUPER_ADMIN]: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER],
+  [ROLES.ADMIN]: [ROLES.MANAGER, ROLES.USER],
+  [ROLES.MANAGER]: [ROLES.USER],
+  [ROLES.USER]: [],
+};
+
+/**
+ * Tenant and Workspace context configuration to enforce strict data isolation.
+ * @constant
+ * @type {object}
+ */
+export const TENANT_CONTEXT_CONFIG = {
+  TENANT_ID_HEADER: 'x-tenant-id',
+  WORKSPACE_ID_HEADER: 'x-workspace-id',
+  ENFORCE_STRICT_ISOLATION: true,
+};
+
+/**
+ * Configuration for propagating usage details, limits, and notifications
+ * up the management and administrative hierarchy.
+ * @constant
+ * @type {object}
+ */
+export const USAGE_PROPAGATION_CONFIG = {
+  PROPAGATE_TO_MANAGER: true,
+  PROPAGATE_TO_ADMIN: true,
+  PROPAGATE_TO_SUPER_ADMIN: true,
+  NOTIFICATION_TRIGGERS: {
+    LIMIT_REACHED: 'limit_reached',
+    LIMIT_WARNING: 'limit_warning', // e.g., 80% usage
+    UNAUTHORIZED_ACCESS: 'unauthorized_access',
+    TENANT_CROSS_ACCESS_ATTEMPT: 'tenant_cross_access_attempt',
+  },
+  WARNING_THRESHOLD_PERCENTAGE: 80,
+};
+
+/**
+ * Role-based limits and usage metrics configurations to ensure platform stability,
  * prevent abuse, and maintain strict user data isolation.
  * @constant
  * @type {object}
  */
-export const USER_LIMITS = {
-  MAX_PLANS_PER_USER: 100,
-  MAX_CONVERSATIONS_PER_USER: 50,
-  DAILY_PROMPT_LIMIT: 200,
-  MAX_PERSONAL_STORAGE_BYTES: 100 * 1024 * 1024, // 100MB personal file storage limit
-  MAX_FILE_UPLOAD_COUNT: 20, // Maximum number of files a user can store
+export const ROLE_BASED_LIMITS = {
+  [ROLES.SUPER_ADMIN]: {
+    MAX_PLANS: Infinity,
+    MAX_CONVERSATIONS: Infinity,
+    DAILY_PROMPT_LIMIT: Infinity,
+    MAX_STORAGE_BYTES: Infinity,
+    MAX_FILE_UPLOAD_COUNT: Infinity,
+  },
+  [ROLES.ADMIN]: {
+    MAX_PLANS: 1000,
+    MAX_CONVERSATIONS: 500,
+    DAILY_PROMPT_LIMIT: 2000,
+    MAX_STORAGE_BYTES: 10 * 1024 * 1024 * 1024, // 10GB
+    MAX_FILE_UPLOAD_COUNT: 200,
+  },
+  [ROLES.MANAGER]: {
+    MAX_PLANS: 250,
+    MAX_CONVERSATIONS: 150,
+    DAILY_PROMPT_LIMIT: 500,
+    MAX_STORAGE_BYTES: 1 * 1024 * 1024 * 1024, // 1GB
+    MAX_FILE_UPLOAD_COUNT: 50,
+  },
+  [ROLES.USER]: {
+    MAX_PLANS: 100,
+    MAX_CONVERSATIONS: 50,
+    DAILY_PROMPT_LIMIT: 200,
+    MAX_STORAGE_BYTES: 100 * 1024 * 1024, // 100MB
+    MAX_FILE_UPLOAD_COUNT: 20,
+  },
 };
+
+/**
+ * Legacy user-level limits (maintained for backward compatibility).
+ * @constant
+ * @type {object}
+ */
+export const USER_LIMITS = ROLE_BASED_LIMITS[ROLES.USER];
 
 /**
  * Defines the various types of plans that can be generated.
@@ -298,6 +383,8 @@ Be conversational, helpful, and professional. Guide users through the planning p
  * @property {string} EXPORT_READY - Message indicating the plan is ready for export.
  * @property {string} LIMIT_EXCEEDED - Message indicating user-level limits have been exceeded.
  * @property {string} STORAGE_FULL - Message indicating personal storage limit has been reached.
+ * @property {string} UNAUTHORIZED_ROLE - Message indicating role validation failure.
+ * @property {string} TENANT_MISMATCH - Message indicating tenant boundary violation.
  */
 export const RESPONSE_MESSAGES = {
   PLAN_GENERATED: 'Plan generated successfully',
@@ -311,6 +398,8 @@ export const RESPONSE_MESSAGES = {
   EXPORT_READY: 'Plan exported successfully',
   LIMIT_EXCEEDED: 'Usage limit exceeded. Please upgrade your plan or try again later.',
   STORAGE_FULL: 'Personal file storage limit exceeded. Please delete some files to free up space.',
+  UNAUTHORIZED_ROLE: 'You do not have the required role permissions to perform this action.',
+  TENANT_MISMATCH: 'Access denied: Tenant context boundary violation detected.',
 };
 
 /**

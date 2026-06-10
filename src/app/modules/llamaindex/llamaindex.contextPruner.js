@@ -86,17 +86,26 @@ const pruneAndRerank = async (query, userId, options = {}) => {
     }
 
     // 1. Fetch document metadata profiles
-    const metadataList = await DocumentMetadata.find(queryCriteria).lean();
+    // OPTIMIZATION: Added projection to fetch only required fields and reduce memory footprint.
+    // INDEX RECOMMENDATION: Ensure compound or single indexes exist on { userId: 1 } and { tenantId: 1 } in DocumentMetadata.
+    const metadataList = await DocumentMetadata.find(queryCriteria)
+      .select('fileName topics entities docId userId summary')
+      .lean();
+
     if (metadataList.length < 2) {
       return query; // Not enough files to resolve graph relationships
     }
 
     // 2. Identify target matching documents based on key terms
+    // OPTIMIZATION: Build a Map of docId -> metadata in the same single-pass loop to avoid O(N) lookups later.
+    const metadataMap = new Map();
     const matchingDocIds = [];
     for (const meta of metadataList) {
-      const fileNameMatch = meta.fileName.toLowerCase().split('.')[0].split('_').some(part => part.length > 2 && queryLower.includes(part));
-      const topicsMatch = meta.topics.some(t => queryLower.includes(t.toLowerCase()));
-      const entitiesMatch = meta.entities.some(e => queryLower.includes(e.toLowerCase()));
+      metadataMap.set(meta.docId, meta);
+
+      const fileNameMatch = meta.fileName && meta.fileName.toLowerCase().split('.')[0].split('_').some(part => part.length > 2 && queryLower.includes(part));
+      const topicsMatch = meta.topics && meta.topics.some(t => queryLower.includes(t.toLowerCase()));
+      const entitiesMatch = meta.entities && meta.entities.some(e => queryLower.includes(e.toLowerCase()));
 
       if (fileNameMatch || topicsMatch || entitiesMatch) {
         matchingDocIds.push(meta.docId);
@@ -133,11 +142,12 @@ const pruneAndRerank = async (query, userId, options = {}) => {
       if (visitedTargetIds.has(edge.targetDocId)) continue;
       visitedTargetIds.add(edge.targetDocId);
 
-      const targetMeta = metadataList.find(m => m.docId === edge.targetDocId);
+      // OPTIMIZATION: O(1) Map lookup instead of O(N) array find inside the loop.
+      const targetMeta = metadataMap.get(edge.targetDocId);
       if (!targetMeta) continue;
 
       // Extract tokens from the target document summary, topics, entities, and name
-      const targetText = `${targetMeta.fileName} ${targetMeta.topics.join(' ')} ${targetMeta.entities.join(' ')} ${targetMeta.summary}`;
+      const targetText = `${targetMeta.fileName || ''} ${(targetMeta.topics || []).join(' ')} ${(targetMeta.entities || []).join(' ')} ${targetMeta.summary || ''}`;
       const targetTokens = getTokens(targetText);
 
       // Compute semantic Jaccard similarity score
@@ -175,7 +185,7 @@ const pruneAndRerank = async (query, userId, options = {}) => {
     // Build the enriched, reranked Graph RAG context block
     const relationshipContextParts = topScoredLinks.map(link => {
       const { targetMeta, edge, relevanceScore, edgeConfidence } = link; // Use edgeConfidence for output
-      return `- Related File: "${targetMeta.fileName}" (${edge.relationType} link, coherence: ${relevanceScore.toFixed(3)}, confidence: ${edgeConfidence.toFixed(3)}). Topics: ${targetMeta.topics.join(', ')}. Context Summary: ${targetMeta.summary}`;
+      return `- Related File: "${targetMeta.fileName}" (${edge.relationType} link, coherence: ${relevanceScore.toFixed(3)}, confidence: ${edgeConfidence.toFixed(3)}). Topics: ${(targetMeta.topics || []).join(', ')}. Context Summary: ${targetMeta.summary || ''}`;
     });
 
     logger.info(`ContextPruner: injected ${relationshipContextParts.length} coherent & reranked document context links, pruned ${scoredLinks.length - relationshipContextParts.length} connections.`);
@@ -215,6 +225,7 @@ const updateGlobalConfig = (newConfig) => {
  */
 const getGlobalStats = async () => {
   try {
+    // INDEX RECOMMENDATION: Ensure { userId: 1 } is indexed to speed up distinct and count operations.
     const totalMetadataCount = await DocumentMetadata.countDocuments({});
     const uniqueUsersCount = (await DocumentMetadata.distinct('userId')).length;
     

@@ -1,5 +1,6 @@
 /**
- * apisports.service.js — API-Sports.io Service Layer v14
+ * @module apisports.service
+ * @description API-Sports.io Service Layer v14
  *
  * REST client for API-Sports.io APIs.
  * Supports ALL sports dynamically via their specific hosts:
@@ -21,6 +22,12 @@
  * Out-of-the-box support for live scores, box scores/game statistics, standings,
  * head-to-head history, and team statistics. Includes a premium high-fidelity
  * mock engine that activates automatically when the API key is absent.
+ *
+ * @security-context
+ * This service operates under system-level privileges and does not enforce multi-tenant
+ * isolation internally. It is the responsibility of the calling controller or orchestrator
+ * to ensure that the requested league IDs, team IDs, or sport parameters align with the
+ * tenant's subscription tier, regional permissions, or role-based access controls (RBAC).
  */
 
 import dotenv from 'dotenv';
@@ -31,6 +38,8 @@ dotenv.config();
 /**
  * Retrieves the API key from environment variables.
  * Removes any Byte Order Mark (BOM) and trims whitespace.
+ * 
+ * @private
  * @returns {string} The API-Sports API key, or an empty string if not set.
  */
 const getApiKey = () =>
@@ -38,7 +47,10 @@ const getApiKey = () =>
 
 // ─── Sport Hosts ─────────────────────────────────────────────────────────────
 /**
- * @constant {Object.<string, string>} SPORT_HOSTS - Maps sport names to their respective API-Sports host domains.
+ * Maps sport names to their respective API-Sports host domains.
+ * 
+ * @constant
+ * @type {Object.<string, string>}
  */
 const SPORT_HOSTS = {
   'football': 'v3.football.api-sports.io',
@@ -57,9 +69,12 @@ const SPORT_HOSTS = {
 };
 
 /**
- * @constant {Object.<string, {sport: string, leagueId: number}>} LEAGUE_MAP -
+ * Standardized league mapping configuration.
  * Maps standardized league codes (e.g., 'NFL', 'NBA') to their corresponding
  * API-Sports sport identifier and league ID.
+ * 
+ * @constant
+ * @type {Object.<string, {sport: string, leagueId: number}>}
  */
 export const LEAGUE_MAP = {
   'NFL': { sport: 'american-football', leagueId: 1 },
@@ -88,12 +103,14 @@ export const LEAGUE_MAP = {
  * Handles API key authentication, constructs URLs, and processes responses.
  * Automatically falls back to a mock engine if `APISPORTS_API_KEY` is not set.
  *
+ * @async
+ * @private
  * @param {string} sport - The name of the sport (e.g., 'football', 'basketball'). Used to determine the correct host.
  * @param {string} path - The API endpoint path (e.g., 'fixtures', 'standings').
  * @param {Object} [params={}] - Query parameters for the API request.
- * @returns {Promise<Array|Object|null>} A promise that resolves to the API response data (usually an array or object),
+ * @returns {Promise<Array<any>|Object|null>} A promise that resolves to the API response data (usually an array or object),
  *                                       or `null` if the API key is missing and the mock engine is used.
- * @throws {Error} If the API request fails or returns errors.
+ * @throws {Error} If the API request fails, returns a non-2xx status, or returns API-specific errors.
  */
 async function apisportsFetch(sport, path, params = {}) {
   const apiKey = getApiKey();
@@ -148,9 +165,10 @@ async function apisportsFetch(sport, path, params = {}) {
  * This function is used when the API key is not available, ensuring the application
  * can still display data during development or in sandbox environments.
  *
+ * @private
  * @param {string} sport - The name of the sport (e.g., 'football', 'basketball').
  * @param {number} [leagueId] - Optional league ID to simulate specific league scores.
- * @returns {Array<Object>} An array of mock live score objects.
+ * @returns {Array<Object>} An array of mock live score objects matching the API-Sports schema.
  */
 const generateMockLiveScores = (sport, leagueId) => {
   const s = sport.toLowerCase();
@@ -321,10 +339,11 @@ const generateMockLiveScores = (sport, leagueId) => {
  * Generates mock standings data for various sports.
  * This function is used when the API key is not available.
  *
+ * @private
  * @param {string} sport - The name of the sport (e.g., 'football', 'formula-1').
  * @param {number} [leagueId] - Optional league ID.
  * @param {number} [season] - Optional season year.
- * @returns {Array<Object>} An array of mock standing objects.
+ * @returns {Array<Object>} An array of mock standing objects matching the API-Sports schema.
  */
 const generateMockStandings = (sport, leagueId, season) => {
   const s = sport.toLowerCase();
@@ -399,6 +418,7 @@ const generateMockStandings = (sport, leagueId, season) => {
  * Generates mock fixture statistics (box score) data for various sports.
  * This function is used when the API key is not available.
  *
+ * @private
  * @param {string} sport - The name of the sport (e.g., 'football', 'formula-1').
  * @param {number} fixtureId - The ID of the fixture.
  * @returns {Array<Object>} An array of mock fixture statistics objects.
@@ -512,6 +532,7 @@ const generateMockFixtureStats = (sport, fixtureId) => {
  * Generates mock head-to-head historical matchup data between two teams.
  * This function is used when the API key is not available.
  *
+ * @private
  * @param {string} sport - The name of the sport.
  * @param {number} teamAId - The ID of the first team.
  * @param {number} teamBId - The ID of the second team.
@@ -573,6 +594,7 @@ const generateMockHeadToHead = (sport, teamAId, teamBId) => {
  * Generates mock team statistics for a specific team, league, and season.
  * This function is used when the API key is not available.
  *
+ * @private
  * @param {string} sport - The name of the sport.
  * @param {number} teamId - The ID of the team.
  * @param {number} leagueId - The ID of the league.
@@ -602,8 +624,10 @@ const generateMockTeamStats = (sport, teamId, leagueId, season) => {
  * Fetches live scores for a specified sport, optionally filtered by league.
  * If `APISPORTS_API_KEY` is not set, it falls back to generating mock data.
  *
+ * @async
+ * @function getLiveScores
  * @param {string} sport - The name of the sport (e.g., 'football', 'basketball', 'formula-1').
- * @param {number} [leagueId=null] - Optional. The ID of the league to filter live scores.
+ * @param {number|null} [leagueId=null] - Optional. The ID of the league to filter live scores.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of live score objects.
  * @throws {Error} If the API request fails and the API key is present.
  */
@@ -635,9 +659,11 @@ export const getLiveScores = async (sport, leagueId = null) => {
  * Fetches current season standings for a specified league and sport.
  * If `APISPORTS_API_KEY` is not set, it falls back to generating mock data.
  *
+ * @async
+ * @function getStandings
  * @param {string} sport - The name of the sport (e.g., 'football', 'formula-1').
  * @param {number} leagueId - The ID of the league.
- * @param {number} [season=current year] - The season year for which to fetch standings. Defaults to the current year.
+ * @param {number} [season=new Date().getFullYear()] - The season year for which to fetch standings. Defaults to the current year.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of standing objects.
  * @throws {Error} If the API request fails and the API key is present.
  */
@@ -673,6 +699,8 @@ export const getStandings = async (sport, leagueId, season = new Date().getFullY
  * Fetches detailed match statistics (box score) for a specific fixture.
  * If `APISPORTS_API_KEY` is not set, it falls back to generating mock data.
  *
+ * @async
+ * @function getFixtureStats
  * @param {string} sport - The name of the sport (e.g., 'football', 'basketball').
  * @param {number} fixtureId - The ID of the fixture/game.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of statistics objects.
@@ -707,6 +735,8 @@ export const getFixtureStats = async (sport, fixtureId) => {
  * Fetches head-to-head historical matchups between two teams.
  * If `APISPORTS_API_KEY` is not set, it falls back to generating mock data.
  *
+ * @async
+ * @function getHeadToHead
  * @param {string} sport - The name of the sport (e.g., 'football', 'basketball').
  * @param {number} teamAId - The ID of the first team.
  * @param {number} teamBId - The ID of the second team.
@@ -769,10 +799,12 @@ export const getHeadToHead = async (sport, teamAId, teamBId) => {
  * Fetches overall statistics of a team in a specific league and season.
  * If `APISPORTS_API_KEY` is not set, it falls back to generating mock data.
  *
+ * @async
+ * @function getTeamStats
  * @param {string} sport - The name of the sport (e.g., 'football', 'basketball').
  * @param {number} teamId - The ID of the team.
  * @param {number} leagueId - The ID of the league.
- * @param {number} [season=current year] - The season year. Defaults to the current year.
+ * @param {number} [season=new Date().getFullYear()] - The season year. Defaults to the current year.
  * @returns {Promise<Object>} A promise that resolves to a team statistics object.
  * @throws {Error} If the API request fails and the API key is present.
  */

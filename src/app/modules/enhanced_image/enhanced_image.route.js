@@ -36,6 +36,7 @@ router.post(
 // Analyze image generation intent - open to all
 router.post(
   '/analyze-intent',
+  createRateLimiter(30, 15), // Rate limit intent analysis to prevent LLM cost runaway
   validateRequest(EnhancedImageValidation.analyzeIntentSchema),
   enhancedImageController.analyzeIntent
 );
@@ -46,6 +47,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
+  createRateLimiter(20, 15), // Rate limit expensive multimodal image analysis
   validateRequest(EnhancedImageValidation.analyzeImageIntentSchema), // Re-enabled validation
   enhancedImageController.analyzeImageIntent
 );
@@ -55,6 +57,7 @@ router.post(
   '/evaluate-prompt',
   optionalAuth(),
   extractTenantContext,
+  createRateLimiter(30, 15), // Rate limit prompt evaluation LLM calls
   validateRequest(EnhancedImageValidation.evaluatePromptSchema), // Re-enabled validation
   enhancedImageController.evaluatePrompt
 );
@@ -64,6 +67,7 @@ router.post(
   '/add-detail',
   optionalAuth(),
   extractTenantContext,
+  createRateLimiter(30, 15), // Rate limit conversation detail additions
   validateRequest(EnhancedImageValidation.addDetailSchema),
   enhancedImageController.addDetail
 );
@@ -74,6 +78,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
+  createRateLimiter(30, 15), // Rate limit prompt finalization LLM calls
   validateRequest(EnhancedImageValidation.finalizePromptSchema),
   enhancedImageController.finalizePrompt
 );
@@ -84,6 +89,7 @@ router.post(
   optionalAuth(),
   extractTenantContext,
   checkDailyRequestLimit,
+  createRateLimiter(30, 15), // Rate limit prompt building LLM calls
   validateRequest(EnhancedImageValidation.buildEnhancedPromptSchema),
   enhancedImageController.buildEnhancedPrompt
 );
@@ -104,6 +110,7 @@ router.get(
   '/stats',
   auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.USER),
   extractTenantContext,
+  createRateLimiter(100, 15), // Rate limit stats queries to prevent DB abuse
   enhancedImageController.getImageStats
 );
 

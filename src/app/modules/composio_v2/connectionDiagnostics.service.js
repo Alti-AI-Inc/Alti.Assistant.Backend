@@ -34,10 +34,11 @@ import { logger } from '../../../shared/logger.js';
 class ConnectionDiagnosticsService {
   /**
    * Runs a full diagnostic report for a user's connections across all applications.
+   * Supports workspace-level diagnostics by accepting an array of user IDs.
    * It aggregates general performance statistics, app-specific health, error distributions,
    * and forecasts rate limit usage based on recent activity trends.
    *
-   * @param {string} userId The ID of the user for whom to run diagnostics.
+   * @param {string|string[]} userId The ID of the user or an array of user IDs (e.g., workspace members) for whom to run diagnostics.
    * @returns {Promise<Object>} A promise that resolves to a comprehensive diagnostics report.
    * @property {boolean} success - Indicates if the diagnostics report was generated successfully.
    * @property {Object} diagnostics - The main diagnostics object.
@@ -75,9 +76,9 @@ class ConnectionDiagnosticsService {
       const pastHour = new Date(now.getTime() - 60 * 60 * 1000);
       const pastDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-      // 1. Fetch action logs in past 24h
+      // 1. Fetch action logs in past 24h (supports single user or array of workspace users)
       const matchStage = {
-        userId: userId,
+        userId: Array.isArray(userId) ? { $in: userId } : userId,
         createdAt: { $gte: pastDay }
       };
 
@@ -128,7 +129,12 @@ class ConnectionDiagnosticsService {
         // Fix: Group by actual 10-minute timestamp intervals, not just the minute component,
         // to correctly represent trends within the past hour.
         ActionAuditLog.aggregate([
-          { $match: { userId, createdAt: { $gte: pastHour } } },
+          { 
+            $match: { 
+              userId: Array.isArray(userId) ? { $in: userId } : userId, 
+              createdAt: { $gte: pastHour } 
+            } 
+          },
           {
             $group: {
               _id: {
@@ -151,7 +157,7 @@ class ConnectionDiagnosticsService {
       // 2. Rate limiting predictive capacity forecast
       // Count actions in the last 1 hour
       const totalPastHour = await ActionAuditLog.countDocuments({
-        userId,
+        userId: Array.isArray(userId) ? { $in: userId } : userId,
         createdAt: { $gte: pastHour }
       });
 
@@ -259,11 +265,11 @@ class ConnectionDiagnosticsService {
   }
 
   /**
-   * Runs detailed diagnostics for a specific application connection for a given user.
+   * Runs detailed diagnostics for a specific application connection for a given user or workspace.
    * It fetches recent logs, calculates app-specific performance metrics,
    * identifies top errors, and provides recommendations.
    *
-   * @param {string} userId The ID of the user.
+   * @param {string|string[]} userId The ID of the user or an array of user IDs.
    * @param {string} app The name of the application to diagnose.
    * @returns {Promise<Object>} A promise that resolves to an app-specific diagnostics report.
    * @property {boolean} success - Indicates if the diagnostics report was generated successfully.
@@ -286,7 +292,7 @@ class ConnectionDiagnosticsService {
       const pastDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const logs = await ActionAuditLog.find({
-        userId,
+        userId: Array.isArray(userId) ? { $in: userId } : userId,
         app,
         createdAt: { $gte: pastDay }
       }).sort({ createdAt: -1 }).limit(100).lean();
