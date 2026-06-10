@@ -11,11 +11,14 @@ import fs from 'fs';
 /**
  * The directory where uploaded article files will be stored.
  * If the directory does not exist, it will be created recursively.
+ * Using an absolute path ensures consistent behavior regardless of the application's current working directory.
+ * The path is resolved relative to the project root (Alti.Assistant.Backend).
  * @type {string}
  */
-const uploadDir = 'uploads/article_files';
+const uploadDir = path.join(__dirname, '..', '..', '..', '..', '..', 'uploads', 'article_files');
 
 // Ensure upload directory exists
+// Using synchronous mkdirSync is acceptable here as it runs once during module initialization.
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
