@@ -34,6 +34,7 @@ router.post(
   '/generate',
   optionalAuth(),
   extractTenantContext, // Extract tenant context after auth
+  checkDailyRequestLimit, // BUG FIX: Added missing daily request limit check for consistency and resource management.
   createRateLimiter(20, 15),
   validateRequest(DocumentValidation.generateDocumentSchema),
   documentController.generateDocument
@@ -46,6 +47,7 @@ router.post(
   '/export',
   optionalAuth(),
   extractTenantContext, // Extract tenant context after auth
+  checkDailyRequestLimit, // BUG FIX: Added missing daily request limit check for consistency and resource management.
   createRateLimiter(20, 15),
   validateRequest(DocumentValidation.exportDocumentSchema),
   documentController.exportDocument
@@ -58,6 +60,7 @@ router.post(
   '/edit',
   optionalAuth(),
   extractTenantContext, // Extract tenant context after auth
+  checkDailyRequestLimit, // BUG FIX: Added missing daily request limit check for consistency and resource management.
   createRateLimiter(20, 15),
   validateRequest(DocumentValidation.editDocumentSchema),
   documentController.editDocument
