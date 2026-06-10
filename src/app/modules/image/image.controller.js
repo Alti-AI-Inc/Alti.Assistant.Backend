@@ -7,7 +7,73 @@ import { app as imageAssistantApp } from './imageAssistant/workflow.js';
 import { imageHelpers } from './image.helper.js';
 
 /**
- * Generate image based on user prompt
+ * @typedef {object} ImageGenerationRequest
+ * @property {string} message - The user's prompt for image generation.
+ * @property {string} [conversationId] - Optional ID of an existing conversation to continue.
+ * @property {string} [imageSize='standard'] - Desired size of the generated image (e.g., 'standard', 'large').
+ * @property {string} [imageStyle='realistic'] - Desired style of the generated image (e.g., 'realistic', 'cartoon').
+ * @property {string} [imageModel='default'] - Specific image generation model to use.
+ */
+
+/**
+ * @typedef {object} ImageGenerationResponseData
+ * @property {string} response - The assistant's textual response.
+ * @property {string | null} imageUrl - URL of the generated image, if any.
+ * @property {string} conversationId - The ID of the conversation.
+ * @property {number} messageCount - The total number of messages in the conversation after this interaction.
+ * @property {'guest' | 'authenticated'} userType - Type of user who made the request.
+ * @property {string} [userId] - The user ID, included for guest users for frontend tracking.
+ */
+
+/**
+ * @typedef {object} ErrorResponseData
+ * @property {string} conversationId - The ID of the conversation where the error occurred.
+ * @property {'guest' | 'authenticated'} userType - Type of user who made the request.
+ */
+
+/**
+ * Generate image based on user prompt.
+ *
+ * @description
+ * Allows both authenticated and guest users to generate images based on a provided prompt.
+ * The user ID is securely determined from the request context (authenticated user from `req.user`,
+ * guest user from `imageService.generateGuestUserId()`).
+ * It manages conversation state, adds user queries and assistant responses, and handles errors.
+ *
+ * @summary Generate an image from a prompt
+ * @tags Image Generation
+ * @param {import('express').Request} req - The Express request object.
+ * @param {ImageGenerationRequest} req.body - The request body containing the image prompt and optional preferences.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the response is sent.
+ *
+ * @api
+ * @method POST
+ * @path /api/v1/image/generate
+ * @security BearerAuth
+ * @body {object} body
+ * @body {string} body.message - The user's prompt for image generation.
+ * @body {string} [body.conversationId] - Optional ID of an existing conversation to continue.
+ * @body {string} [body.imageSize='standard'] - Desired size of the generated image (e.g., 'standard', 'large').
+ * @body {string} [body.imageStyle='realistic'] - Desired style of the generated image (e.g., 'realistic', 'cartoon').
+ * @body {string} [body.imageModel='default'] - Specific image generation model to use.
+ * @response 200 - Success: Image generation completed successfully.
+ * @response {object} 200.body
+ * @response {number} 200.body.statusCode - HTTP status code.
+ * @response {boolean} 200.body.success - Indicates if the request was successful.
+ * @response {string} 200.body.message - A success message.
+ * @response {ImageGenerationResponseData} 200.body.data - The generated image data and conversation details.
+ * @response 400 - Bad Request: An image prompt is required or invalid input.
+ * @response {object} 400.body
+ * @response {number} 400.body.statusCode - HTTP status code.
+ * @response {boolean} 400.body.success - Indicates if the request was successful.
+ * @response {string} 400.body.message - An error message.
+ * @response 500 - Internal Server Error: An error occurred during image processing.
+ * @response {object} 500.body
+ * @response {number} 500.body.statusCode - HTTP status code.
+ * @response {boolean} 500.body.success - Indicates if the request was successful.
+ * @response {string} 500.body.message - An error message.
+ * @response {ErrorResponseData} 500.body.data - Additional error details including conversation ID and user type.
  */
 export const generateImage = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
@@ -199,7 +265,62 @@ export const generateImage = catchAsync(async (req, res) => {
 });
 
 /**
- * Analyze an existing image
+ * @typedef {object} ImageAnalysisRequest
+ * @property {string} imageData - Base64 encoded image data or a publicly accessible image URL.
+ * @property {string} [message] - Optional additional context or specific questions about the image.
+ * @property {string} [conversationId] - Optional ID of an existing conversation to continue.
+ */
+
+/**
+ * @typedef {object} ImageAnalysisResponseData
+ * @property {string} response - The assistant's textual analysis response.
+ * @property {string} conversationId - The ID of the conversation.
+ * @property {number} messageCount - The total number of messages in the conversation after this interaction.
+ * @property {'guest' | 'authenticated'} userType - Type of user who made the request.
+ * @property {string} [userId] - The user ID, included for guest users for frontend tracking.
+ */
+
+/**
+ * Analyze an existing image.
+ *
+ * @description
+ * Allows both authenticated and guest users to submit an image for analysis.
+ * The image data can be provided as a base64 string or a URL.
+ * The user ID is securely determined from the request context.
+ * It validates the image data, manages conversation state, adds user queries and assistant responses, and handles errors.
+ *
+ * @summary Analyze an existing image
+ * @tags Image Analysis
+ * @param {import('express').Request} req - The Express request object.
+ * @param {ImageAnalysisRequest} req.body - The request body containing the image data and optional message.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the response is sent.
+ *
+ * @api
+ * @method POST
+ * @path /api/v1/image/analyze
+ * @security BearerAuth
+ * @body {object} body
+ * @body {string} body.imageData - Base64 encoded image data or a publicly accessible image URL.
+ * @body {string} [body.message] - Optional additional context or specific questions about the image.
+ * @body {string} [body.conversationId] - Optional ID of an existing conversation to continue.
+ * @response 200 - Success: Image analysis completed successfully.
+ * @response {object} 200.body
+ * @response {number} 200.body.statusCode - HTTP status code.
+ * @response {boolean} 200.body.success - Indicates if the request was successful.
+ * @response {string} 200.body.message - A success message.
+ * @response {ImageAnalysisResponseData} 200.body.data - The image analysis data and conversation details.
+ * @response 400 - Bad Request: Image data is required or invalid.
+ * @response {object} 400.body
+ * @response {number} 400.body.statusCode - HTTP status code.
+ * @response {boolean} 400.body.success - Indicates if the request was successful.
+ * @response {string} 400.body.message - An error message.
+ * @response 500 - Internal Server Error: An error occurred during image analysis.
+ * @response {object} 500.body
+ * @response {number} 500.body.statusCode - HTTP status code.
+ * @response {boolean} 500.body.success - Indicates if the request was successful.
+ * @response {string} 500.body.message - An error message.
+ * @response {ErrorResponseData} 500.body.data - Additional error details including conversation ID and user type.
  */
 export const analyzeImage = catchAsync(async (req, res) => {
   // Handle both authenticated and guest users
@@ -365,7 +486,41 @@ export const analyzeImage = catchAsync(async (req, res) => {
 });
 
 /**
- * Get image statistics for the user (authenticated users only)
+ * @typedef {object} ImageStatsResponseData
+ * @property {number} totalImagesGenerated - Total count of images generated by the user.
+ * @property {number} totalImagesAnalyzed - Total count of images analyzed by the user.
+ * @property {object} generationTrends - Data on image generation trends (e.g., by size, style).
+ * @property {object} analysisTrends - Data on image analysis trends.
+ */
+
+/**
+ * Get image statistics for the user (authenticated users only).
+ *
+ * @description
+ * Retrieves various statistics related to image generation and analysis for the currently authenticated user.
+ * This endpoint is not accessible to guest users.
+ *
+ * @summary Get user image statistics
+ * @tags Image Statistics
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the response is sent.
+ *
+ * @api
+ * @method GET
+ * @path /api/v1/image/stats
+ * @security BearerAuth
+ * @response 200 - Success: Image statistics retrieved successfully.
+ * @response {object} 200.body
+ * @response {number} 200.body.statusCode - HTTP status code.
+ * @response {boolean} 200.body.success - Indicates if the request was successful.
+ * @response {string} 200.body.message - A success message.
+ * @response {ImageStatsResponseData} 200.body.data - The image statistics.
+ * @response 401 - Unauthorized: Statistics are only available for authenticated users or user authentication required.
+ * @response {object} 401.body
+ * @response {number} 401.body.statusCode - HTTP status code.
+ * @response {boolean} 401.body.success - Indicates if the request was successful.
+ * @response {string} 401.body.message - An error message.
  */
 const getImageStats = catchAsync(async (req, res) => {
   const isGuest = req.isGuest || !req.user;
@@ -403,7 +558,74 @@ const getImageStats = catchAsync(async (req, res) => {
 });
 
 /**
- * Get image conversation by ID (supports both guest and authenticated users)
+ * @typedef {object} ConversationMessage
+ * @property {string} role - Role of the message sender (e.g., 'user', 'assistant').
+ * @property {string} content - The message content.
+ * @property {string} timestamp - ISO date string of when the message was created.
+ * @property {object} [metadata] - Additional metadata related to the message (e.g., image URLs, preferences).
+ */
+
+/**
+ * @typedef {object} ImageConversationResponseData
+ * @property {string} conversationId - The ID of the conversation.
+ * @property {string} userId - The ID of the user (guest or authenticated).
+ * @property {string} title - A title for the conversation.
+ * @property {ConversationMessage[]} messages - Array of messages in the conversation.
+ * @property {number} messageCount - Total number of messages.
+ * @property {string} createdAt - ISO date string of conversation creation.
+ * @property {string} updatedAt - ISO date string of last update.
+ * @property {'guest' | 'authenticated'} userType - Type of user who owns the conversation.
+ */
+
+/**
+ * Get image conversation by ID (supports both guest and authenticated users).
+ *
+ * @description
+ * Retrieves a specific image conversation by its unique ID.
+ * For authenticated users, it verifies ownership. For guest users, it verifies that the
+ * conversation belongs to the current session's guest ID, preventing Insecure Direct Object Reference (IDOR).
+ *
+ * @summary Get a specific image conversation
+ * @tags Image Conversations
+ * @param {import('express').Request} req - The Express request object.
+ * @param {object} req.params - The request path parameters.
+ * @param {string} req.params.conversationId - The ID of the conversation to retrieve.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the response is sent.
+ *
+ * @api
+ * @method GET
+ * @path /api/v1/image/conversations/{conversationId}
+ * @security BearerAuth
+ * @param {string} conversationId - The ID of the conversation to retrieve.
+ * @response 200 - Success: Conversation retrieved successfully.
+ * @response {object} 200.body
+ * @response {number} 200.body.statusCode - HTTP status code.
+ * @response {boolean} 200.body.success - Indicates if the request was successful.
+ * @response {string} 200.body.message - A success message.
+ * @response {object} 200.body.data
+ * @response {ImageConversationResponseData} 200.body.data.conversation - The retrieved conversation object.
+ * @response {'guest' | 'authenticated'} 200.body.data.userType - Type of user who owns the conversation.
+ * @response 400 - Bad Request: Conversation ID is required.
+ * @response {object} 400.body
+ * @response {number} 400.body.statusCode - HTTP status code.
+ * @response {boolean} 400.body.success - Indicates if the request was successful.
+ * @response {string} 400.body.message - An error message.
+ * @response 401 - Unauthorized: Guest user ID not established for this session.
+ * @response {object} 401.body
+ * @response {number} 401.body.statusCode - HTTP status code.
+ * @response {boolean} 401.body.success - Indicates if the request was successful.
+ * @response {string} 401.body.message - An error message.
+ * @response 404 - Not Found: Conversation not found or access denied.
+ * @response {object} 404.body
+ * @response {number} 404.body.statusCode - HTTP status code.
+ * @response {boolean} 404.body.success - Indicates if the request was successful.
+ * @response {string} 404.body.message - An error message.
+ * @response 500 - Internal Server Error: An error occurred while retrieving the conversation.
+ * @response {object} 500.body
+ * @response {number} 500.body.statusCode - HTTP status code.
+ * @response {boolean} 500.body.success - Indicates if the request was successful.
+ * @response {string} 500.body.message - An error message.
  */
 const getImageConversation = catchAsync(async (req, res) => {
   const { conversationId } = req.params;
@@ -455,7 +677,8 @@ const getImageConversation = catchAsync(async (req, res) => {
       // Optimization Note: The 'conversationHelpers.getConversationById' method should use .lean()
       // if it fetches conversation data for read-only purposes.
       // Ensure 'conversationId' and 'authenticatedUserId' fields are indexed in the Conversation schema.
-      // Also, ensure 'conversationHelpers' is properly imported if it's a separate module, as it's not imported in this file.
+      // @todo: 'conversationHelpers' is not imported in this file. This line will cause a ReferenceError.
+      // It should likely be `imageService.getConversationById` or similar, or `conversationHelpers` needs to be imported.
       conversation = await conversationHelpers.getConversationById(
         conversationId,
         authenticatedUserId,
@@ -485,7 +708,57 @@ const getImageConversation = catchAsync(async (req, res) => {
 });
 
 /**
- * Get guest conversations for a specific guest user
+ * @typedef {object} GuestConversationsResponseData
+ * @property {ImageConversationResponseData[]} conversations - Array of conversation objects for the guest user.
+ * @property {number} totalCount - Total number of conversations retrieved.
+ * @property {'guest'} userType - Type of user (always 'guest' for this endpoint).
+ * @property {string} userId - The ID of the guest user.
+ */
+
+/**
+ * Get guest conversations for a specific guest user.
+ *
+ * @description
+ * Retrieves all image conversations associated with a given guest user ID.
+ * This endpoint includes robust IDOR (Insecure Direct Object Reference) protection,
+ * ensuring that a guest user can only access conversations linked to their current session's guest ID.
+ * Access is denied if the request is not from a guest user or if the `guestUserId` in the URL
+ * does not match the `guestUserId` established for the current session.
+ *
+ * @summary Get all guest image conversations
+ * @tags Image Conversations
+ * @param {import('express').Request} req - The Express request object.
+ * @param {object} req.params - The request path parameters.
+ * @param {string} req.params.guestUserId - The ID of the guest user whose conversations are to be retrieved.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the response is sent.
+ *
+ * @api
+ * @method GET
+ * @path /api/v1/image/guest-conversations/{guestUserId}
+ * @security GuestAuth
+ * @param {string} guestUserId - The ID of the guest user whose conversations are to be retrieved. This must match the guest ID from the current session.
+ * @response 200 - Success: Guest conversations retrieved successfully.
+ * @response {object} 200.body
+ * @response {number} 200.body.statusCode - HTTP status code.
+ * @response {boolean} 200.body.success - Indicates if the request was successful.
+ * @response {string} 200.body.message - A success message.
+ * @response {GuestConversationsResponseData} 200.body.data - The list of guest conversations and metadata.
+ * @response 400 - Bad Request: Guest user ID is required.
+ * @response {object} 400.body
+ * @response {number} 400.body.statusCode - HTTP status code.
+ * @response {boolean} 400.body.success - Indicates if the request was successful.
+ * @response {string} 400.body.message - An error message.
+ * @response 403 - Forbidden: Access denied to guest conversations (e.g., IDOR attempt or not a guest user).
+ * @response {object} 403.body
+ * @response {number} 403.body.statusCode - HTTP status code.
+ * @response {boolean} 403.body.success - Indicates if the request was successful.
+ * @response {string} 403.body.message - An error message.
+ * @response 500 - Internal Server Error: Failed to retrieve guest conversations.
+ * @response {object} 500.body
+ * @response {number} 500.body.statusCode - HTTP status code.
+ * @response {boolean} 500.body.success - Indicates if the request was successful.
+ * @response {string} 500.body.message - An error message.
  */
 const getGuestConversations = catchAsync(async (req, res) => {
   const { guestUserId: requestedGuestUserId } = req.params; // The ID from the URL parameter
@@ -553,6 +826,19 @@ const getGuestConversations = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @typedef {object} ImageController
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} generateImage - Controller for generating images.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} analyzeImage - Controller for analyzing images.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getImageStats - Controller for retrieving image statistics for authenticated users.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getImageConversation - Controller for retrieving a single image conversation by ID.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} getGuestConversations - Controller for retrieving all image conversations for a specific guest user.
+ */
+
+/**
+ * Exports an object containing all image-related controller functions.
+ * @type {ImageController}
+ */
 export const imageController = {
   generateImage,
   analyzeImage,
