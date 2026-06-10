@@ -1,11 +1,18 @@
 /**
- * @constant {string[]} paginationFields - An array of strings representing the valid fields that can be used for pagination queries.
- * These fields are typically extracted from query parameters to control the pagination behavior (e.g., current page, number of items per page, sorting criteria).
+ * @fileoverview This file contains constants used across the admin and workspace management modules.
+ * It defines roles, permissions, limits, and statuses to ensure consistent and secure business logic.
+ * @module app/modules/admin/admin.constant
+ */
+
+/**
+ * @constant {string[]} paginationFields - An array of strings representing the valid fields for pagination queries.
+ * These fields control pagination behavior (e.g., page, limit, sortBy, sortOrder).
  */
 export const paginationFields = ['page', 'limit', 'sortBy', 'sortOrder'];
 
 /**
- * @constant {Object} USER_ROLES - Defines the available roles within the workspace.
+ * @constant {Object<string, string>} USER_ROLES - Defines the available roles within the workspace.
+ * The roles are hierarchical: OWNER > MANAGER > MEMBER.
  */
 export const USER_ROLES = {
   OWNER: 'owner',
@@ -14,7 +21,7 @@ export const USER_ROLES = {
 };
 
 /**
- * @constant {Object} INVITATION_STATUS - Defines the status of workspace invitations.
+ * @constant {Object<string, string>} INVITATION_STATUS - Defines the status of workspace invitations.
  */
 export const INVITATION_STATUS = {
   PENDING: 'pending',
@@ -25,7 +32,7 @@ export const INVITATION_STATUS = {
 
 /**
  * @constant {Object} WORKSPACE_LIMITS - Default limits for workspaces based on subscription tiers.
- * Prevents managers from exceeding plan limits during team management.
+ * Used to enforce plan limits when managers invite new members or create projects.
  */
 export const WORKSPACE_LIMITS = {
   FREE: {
@@ -44,7 +51,8 @@ export const WORKSPACE_LIMITS = {
 
 /**
  * @constant {string[]} MANAGER_PERMISSIONS - Actions a Manager is authorized to perform.
- * Explicitly excludes billing management to ensure security.
+ * This set defines the scope of a manager's capabilities, focusing on team and workspace operations
+ * while explicitly excluding sensitive owner-level actions like billing or workspace deletion.
  */
 export const MANAGER_PERMISSIONS = [
   'VIEW_WORKSPACE_METRICS',
@@ -55,10 +63,21 @@ export const MANAGER_PERMISSIONS = [
 ];
 
 /**
- * @constant {string[]} RESTRICTED_MANAGER_ACTIONS - Actions that managers are strictly forbidden from performing.
+ * @constant {string[]} OWNER_PERMISSIONS - Actions an Owner is authorized to perform.
+ * This is a superset of manager permissions, including critical administrative and billing tasks
+ * that are restricted from managers.
  */
-export const RESTRICTED_MANAGER_ACTIONS = [
+export const OWNER_PERMISSIONS = [
+  ...MANAGER_PERMISSIONS,
   'ACCESS_BILLING',
   'UPDATE_BILLING_PLAN',
-  'DELETE_WORKSPACE'
+  'DELETE_WORKSPACE',
+  'TRANSFER_OWNERSHIP'
 ];
+
+/**
+ * @constant {string[]} MANAGER_ASSIGNABLE_ROLES - Defines the roles a Manager can assign to other members.
+ * This is a critical security measure to prevent privilege escalation. A manager cannot promote a member
+ * to an Owner, nor can they demote an existing Owner.
+ */
+export const MANAGER_ASSIGNABLE_ROLES = [USER_ROLES.MANAGER, USER_ROLES.MEMBER];

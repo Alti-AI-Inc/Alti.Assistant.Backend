@@ -1,5 +1,5 @@
 import { Composio } from '@composio/core';
-import config from '../../../../config/index.js';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import ComposionAuth from './composio.model.js';
 import AuthConfig from './authConfig.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
@@ -31,14 +31,65 @@ import {
 // for the findByConversationId method:
 // ConversationSchema.index({ conversationId: 1, userId: 1 });
 
+// --- GCP Secret Manager Integration ---
+
+// GCP Secret Manager client for securely fetching secrets.
+const secretManagerClient = new SecretManagerServiceClient();
+const secretCache = new Map();
+
 /**
- * Composio SDK instance initialized with the organization API key from the configuration.
- * This instance is used to interact with the Composio API for managing connected accounts and integrations.
- * @type {Composio}
+ * Fetches a secret from GCP Secret Manager with in-memory caching to reduce latency and API calls.
+ * @param {string} secretName - The name of the secret to fetch.
+ * @returns {Promise<string>} The secret value.
+ * @throws {Error} If the GCP project ID is not set or the secret cannot be accessed.
  */
-const composio = new Composio({
-  apiKey: config.composio.orgApiKey,
-});
+async function getSecret(secretName) {
+  if (secretCache.has(secretName)) {
+    return secretCache.get(secretName);
+  }
+  // The GCP_PROJECT_ID is automatically available in most GCP environments like Cloud Run.
+  const projectId = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+  if (!projectId) {
+    console.error('GCP_PROJECT_ID or GOOGLE_CLOUD_PROJECT environment variable must be set.');
+    throw new Error('GCP project ID is not configured.');
+  }
+  const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
+  try {
+    const [version] = await secretManagerClient.accessSecretVersion({ name });
+    const payload = version.payload.data.toString('utf8');
+    secretCache.set(secretName, payload);
+    return payload;
+  } catch (error) {
+    console.error(`Failed to access secret: ${name}`, error);
+    throw new Error(`Could not retrieve secret: ${secretName}. Ensure it exists and the service account has 'Secret Manager Secret Accessor' role.`);
+  }
+}
+
+let composioInstance;
+
+/**
+ * Lazily initializes and returns a singleton instance of the Composio SDK.
+ * It retrieves the API key by first checking for the 'COMPOSIO_ORG_API_KEY' environment variable
+ * (ideal for Cloud Run secret injection) and then falling back to GCP Secret Manager.
+ * @returns {Promise<Composio>} The initialized Composio SDK instance.
+ * @throws {Error} If the API key cannot be found in either environment variables or Secret Manager.
+ */
+async function getComposioInstance() {
+  if (composioInstance) {
+    return composioInstance;
+  }
+
+  // Prioritize environment variables, then fall back to Secret Manager.
+  // This is ideal for environments like Cloud Run where secrets can be injected as env vars.
+  const apiKey = process.env.COMPOSIO_ORG_API_KEY || await getSecret('composio-org-api-key');
+
+  if (!apiKey) {
+    throw new Error('Composio API key is not configured. Set COMPOSIO_ORG_API_KEY environment variable or a secret named "composio-org-api-key" in Secret Manager.');
+  }
+
+  composioInstance = new Composio({ apiKey });
+  return composioInstance;
+}
 
 /**
  * Initiates the Composio authentication flow for a given application and user.
@@ -104,6 +155,8 @@ const initiateComposioAuth = async (body, req = null) => {
     }
     let connectionUrl;
     try {
+      // Get the lazily-initialized Composio client
+      const composio = await getComposioInstance();
       connectionUrl = await composio.connectedAccounts.initiate(
         user_id,
         auth_config_id
@@ -111,6 +164,8 @@ const initiateComposioAuth = async (body, req = null) => {
     } catch (initiateError) {
       console.warn(`[v2] Custom config ${auth_config_id} initiation failed: ${initiateError.message}. Falling back to globally managed credentials using app_name: ${app_name}...`);
       
+      // Get the lazily-initialized Composio client for fallback
+      const composio = await getComposioInstance();
       // Fallback: use app_name directly as auth_config_id
       connectionUrl = await composio.connectedAccounts.initiate(
         user_id,
@@ -170,6 +225,8 @@ const initiateComposioAuth = async (body, req = null) => {
  */
 const waitForConnection = async (connectedAccountId) => {
   try {
+    // Get the lazily-initialized Composio client
+    const composio = await getComposioInstance();
     const connection =
       await composio.connectedAccounts.waitForConnection(connectedAccountId);
     console.log('Composio connection established successfully', connection);
