@@ -21,7 +21,8 @@ import {
 } from '../../llamaindex/llamaindex.indexer.js';
 import { logger } from '../../../../shared/logger.js';
 import path from 'path';
-import { existsSync } from 'node:fs';
+// PERF: Switched from synchronous 'existsSync' to asynchronous 'fs.promises' to prevent blocking the event loop.
+import { promises as fs } from 'node:fs';
 
 /**
  * @typedef {object} SearchCompleteEventData
@@ -157,7 +158,13 @@ searchWorkflow.handle([RouteSelectedEvent], async (context, event) => {
   const persistDir = path.resolve(`storage/ragsystem/${userId}`);
   const indexMetaPath = path.join(persistDir, 'index_store.json');
 
-  if (!existsSync(indexMetaPath)) {
+  // PERF: Use asynchronous file system check to avoid blocking the event loop.
+  // The synchronous 'existsSync' can pause the entire server under load, while this async
+  // version allows Node.js to handle other requests while waiting for the file system.
+  try {
+    await fs.access(indexMetaPath);
+  } catch (error) {
+    // The file doesn't exist or is not accessible.
     throw new Error(`No index store exists for user ${userId}. Please upload documents first.`);
   }
 
