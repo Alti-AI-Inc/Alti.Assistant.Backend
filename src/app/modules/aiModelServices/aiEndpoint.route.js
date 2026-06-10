@@ -49,7 +49,7 @@ const router = express.Router();
 router.get(
   '/all-model',
   extractTenantContext,
-  // auth(ENUM_USER_ROLE.ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN), // BUG FIX: Uncommented auth middleware to secure this endpoint.
   AiEndpointsController.getAiEndpointForApp
 );
 
@@ -96,7 +96,7 @@ router.get(
 router.get(
   '/all-model-web',
   extractTenantContext,
-  // auth(ENUM_USER_ROLE.ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN), // BUG FIX: Uncommented auth middleware to secure this endpoint.
   AiEndpointsController.getWebAiEndpoint
 );
 
@@ -119,7 +119,7 @@ router.get(
  *       required: true
  *       content:
  *         application/json:
- *           schema:
+      *           schema:
  *             type: object
  *             required:
  *               - name
@@ -169,7 +169,7 @@ router.get(
 router.post(
   '/add-model',
   extractTenantContext,
-  // auth(ENUM_USER_ROLE.ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN), // BUG FIX: Uncommented auth middleware to secure this endpoint.
   AiEndpointsController.addAiEndpoint
 );
 
@@ -247,7 +247,7 @@ router.post(
 router.patch(
   '/update-model',
   extractTenantContext,
-  // auth(ENUM_USER_ROLE.ADMIN),
+  auth(ENUM_USER_ROLE.ADMIN), // BUG FIX: Uncommented auth middleware to secure this endpoint.
   AiEndpointsController.updateWebAiEndpoint
 );
 
