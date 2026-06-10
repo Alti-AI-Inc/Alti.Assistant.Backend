@@ -58,6 +58,7 @@ const handleDocumentConversation = async (
 ) => {
   try {
     let conversation;
+    let actualConversationId = conversationId; // Use provided ID initially
 
     if (conversationId) {
       try {
@@ -68,14 +69,23 @@ const handleDocumentConversation = async (
         );
         logger.info(`Retrieved existing conversation: ${conversationId}`);
       } catch (error) {
+        // BUG/SECURITY FIX: If conversationId was provided but not found or not accessible,
+        // it should be treated as an error (e.g., NOT_FOUND or FORBIDDEN),
+        // not silently creating a new conversation. This prevents masking IDOR attempts.
         logger.warn(
-          `Conversation ${conversationId} not found, creating new one`
+          `Attempted to retrieve conversation ${conversationId} for user ${userId} but failed. Error: ${error.message}`
+        );
+        throw new ApiError(
+          httpStatus.NOT_FOUND, // Or FORBIDDEN if getConversationById specifically checks ownership
+          `Conversation with ID ${conversationId} not found or not accessible.`
         );
       }
     }
 
     if (!conversation) {
-      const newConversationId = conversationId || generateConversationId();
+      // Only generate a new ID if no conversationId was provided initially.
+      // If we reach here, it means conversationId was null/undefined.
+      actualConversationId = generateConversationId();
 
       conversation = await conversationService.createConversation(
         {
@@ -89,17 +99,21 @@ const handleDocumentConversation = async (
             collectedParams: {},
           },
         },
-        newConversationId,
+        actualConversationId, // Use the newly generated ID
         req
       );
 
       logger.info(
-        `Created new document conversation ${newConversationId} for user ${userId}`
+        `Created new document conversation ${actualConversationId} for user ${userId}`
       );
     }
 
     return conversation;
   } catch (error) {
+    // Re-throw ApiError if it's already one, otherwise wrap it.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     logger.error('Error handling document conversation:', error);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
@@ -215,17 +229,21 @@ const generateDocumentContent = async (params) => {
       additionalInstructions = '',
     } = params;
 
-    // Build generation prompt
+    // BUG/SECURITY FIX: Wrap user-provided free-form text in distinct markers
+    // to mitigate prompt injection risks. This clearly delineates user input
+    // from system instructions for the AI model.
     let prompt = `You are a professional document writer. Generate a high-quality ${documentType} document.
 
-Topic/Content: ${content}
+<user_content>
+${content}
+</user_content>
 
 Requirements:
 - Document Type: ${documentType}
 - Tone: ${tone}
 - Length: ${length}${wordCount ? ` (approximately ${wordCount} words)` : ''}
 - Language: ${language}
-${additionalInstructions ? `- Additional Instructions: ${additionalInstructions}` : ''}
+${additionalInstructions ? `- Additional Instructions: <user_instructions>${additionalInstructions}</user_instructions>` : ''}
 
 Guidelines:
 1. Create well-structured, professional content
@@ -353,7 +371,10 @@ const handleDraftIntent = async (
         content: documentContent,
         format: outputFormat,
         file: exportResult,
-        url: uploadResult.publicUrl || uploadResult.localPath,
+        // BUG/SECURITY FIX: Do not expose localPath to the client.
+        // Only publicUrl should be returned. If publicUrl is not available,
+        // the URL will be null, which is safer than exposing internal paths.
+        url: uploadResult.publicUrl,
         metadata,
       },
       improvementQuestions,
@@ -457,7 +478,9 @@ const handleExportIntent = async (
       document: {
         format: outputFormat,
         file: exportResult,
-        url: uploadResult.publicUrl || uploadResult.localPath,
+        // BUG/SECURITY FIX: Do not expose localPath to the client.
+        // Only publicUrl should be returned.
+        url: uploadResult.publicUrl,
       },
       collectedParams: updatedParams,
     };
@@ -676,7 +699,9 @@ const generateDocument = async (
         content: documentContent,
         format: outputFormat,
         file: exportResult,
-        url: uploadResult.publicUrl || uploadResult.localPath,
+        // BUG/SECURITY FIX: Do not expose localPath to the client.
+        // Only publicUrl should be returned.
+        url: uploadResult.publicUrl,
         metadata,
       },
     };
