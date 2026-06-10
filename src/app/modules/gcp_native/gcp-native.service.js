@@ -12,7 +12,7 @@ import GoogleRepository from './gcp-repository.model.js';
  * @returns {string} The escaped string, safe for use within a RegExp constructor.
  */
 const escapeRegExp = (string) => {
-  // FIX: Correctly escape special characters for RegExp. '\\$&' inserts the matched substring.
+  // FIX: Correctly escape special characters for RegExp. The '\\$&' replacement inserts a backslash before the matched character.
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
