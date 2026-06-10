@@ -5,7 +5,8 @@ import ApiError from '../../../errors/ApiError.js';
 import { Composio } from '@composio/core';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const integrationId = '5c9834e1-14b3-4c06-9262-606bce538a9f';
+// The global 'integrationId' constant was unused and has been removed.
+
 const toolset = new OpenAIToolSet({ apiKey: config.composio.apiKey });
 const composio = new Composio();
 
@@ -21,6 +22,8 @@ const capitalizeTypes = (schema) => {
     if (subSchema && typeof subSchema === 'object') {
       return capitalizeTypes(subSchema);
     }
+    // If subSchema is not an object or doesn't exist, it will be returned as is,
+    // effectively stripping the complex structure.
   }
 
   const newSchema = Array.isArray(schema) ? [] : {};
@@ -77,18 +80,28 @@ const sendGmailFromAuthorizedAccountService = async (body) => {
   console.log('Sending email with Composio...', body);
 
   // Fetch tools for your user and execute
-  const userEmail = body.userEmail || '';
+  const userEmail = body.userEmail;
   const toEmail = body.toEmail;
   const subject = body.subject;
   const content = body.content;
+  const connectedAccountId = body.connectedAccountId; // Ensure you pass the connected account ID
+
+  // Validate required fields
+  if (!userEmail || !toEmail || !subject || !content || !connectedAccountId) {
+    throw new ApiError(
+      400,
+      'Missing required fields: userEmail, toEmail, subject, content, connectedAccountId'
+    );
+  }
+
   const toolsForResponses = await composio.tools.get(
     userEmail,
     {
       tools: ['GMAIL_SEND_EMAIL'],
-      connectedAccountId: body.connectedAccountId, // Ensure you pass the connected account ID
+      connectedAccountId: connectedAccountId,
     },
     {
-      reciepient_email: 'admin@altihq.com',
+      recipient_email: 'admin@altihq.com', // Fixed typo: 'reciepient_email' to 'recipient_email'
     }
   );
 
@@ -155,17 +168,24 @@ const sendGmailFromAuthorizedAccountService = async (body) => {
 
   // Execute the tool calls using mock OpenAI completions
   const result = await composio.provider.handleToolCalls(userEmail, mockOpenAIMsg, {
-    connectedAccountId: body.connectedAccountId, // Ensure you pass the connected account ID
+    connectedAccountId: connectedAccountId, // Ensure you pass the connected account ID
   });
   console.log(result);
   // Will return the raw response from the GMAIL_SEND_EMAIL API.
-  console.log('Email sent successfully!');
+  // Removed unconditional success log, as 'result' should be checked for actual success/failure.
 };
 
-const getAllConnectedAccountsService = async (integrationId) => {
+const getAllConnectedAccountsService = async (integrationId, entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!integrationId) {
+    throw new ApiError(400, 'integrationId is required to list connected accounts.');
+  }
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required to list connected accounts.');
+  }
   const connected_accounts = await composio.connectedAccounts.list({
-    integrationId: 'dc88453c-0435-4487-9b61-4da031b4c2ee',
-    entityId: 'default',
+    integrationId, // Used the passed integrationId instead of a hardcoded one.
+    entityId,
   });
   console.log(connected_accounts.current_page);
   return connected_accounts.items;
@@ -190,10 +210,14 @@ const getAllIntegrationsService = async () => {
   };
 };
 
-const initiateGmailConnectionService = async (integrationId) => {
+const initiateGmailConnectionService = async (integrationId, entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required for initiating connection.');
+  }
   const connectedAccount = await toolset.connectedAccounts.initiate({
     integrationId,
-    entityId: 'default', // or user ID if multi-user
+    entityId, // Use the provided entityId
   });
 
   const data = {
@@ -215,10 +239,6 @@ const sendEmailService = async (req) => {
   } = req.body;
 
   if (!connectedAccountId || !to || !subject || !message) {
-    // return res.status(400).json({
-    //   error:
-    //     'Missing required fields: connectedAccountId, to, subject, message',
-    // });
     throw new ApiError(
       400,
       'Missing required fields: connectedAccountId, to, subject, message'
@@ -249,6 +269,7 @@ const sendEmailService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   const data = {
     success: true,
     data: response.data,
@@ -272,10 +293,14 @@ const getYouTubeIntegrationService = async () => {
 
   return { integration, inputFields };
 };
-const initiateYouTubeConnectionService = async () => {
+const initiateYouTubeConnectionService = async (entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required for initiating connection.');
+  }
   const connectedAccount = await toolset.connectedAccounts.initiate({
     integrationId: youtubeIntegrationId,
-    entityId: 'default',
+    entityId,
   });
 
   return {
@@ -315,6 +340,7 @@ const searchYouTubeService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return response.data;
 };
 const disconnectYouTubeAccountService = async (connectedAccountId) => {
@@ -322,6 +348,7 @@ const disconnectYouTubeAccountService = async (connectedAccountId) => {
     connectedAccountId,
   });
 
+  // Consider adding checks for response.success or specific error codes from the external API
   return {
     success: true,
     message: 'Disconnected successfully',
@@ -334,10 +361,14 @@ const disconnectYouTubeAccountService = async (connectedAccountId) => {
 // =============================
 
 const twitterIntegrationId = '03615643-b71c-4a13-a012-4f7f94d92bc8';
-const initiateTwitterConnectionService = async () => {
+const initiateTwitterConnectionService = async (entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required for initiating connection.');
+  }
   const connectedAccount = await toolset.connectedAccounts.initiate({
     integrationId: twitterIntegrationId,
-    entityId: 'default',
+    entityId,
   });
 
   return {
@@ -351,7 +382,8 @@ const postTweetService = async (req) => {
   const { connectedAccountId, text } = req.body;
 
   if (!connectedAccountId || !text) {
-    return { error: 'Missing required fields: connectedAccountId, text' };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(400, 'Missing required fields: connectedAccountId, text');
   }
 
   const actionId = 'TWITTER_CREATION_OF_A_POST';
@@ -372,6 +404,7 @@ const postTweetService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return {
     success: true,
     data: response.data,
@@ -381,7 +414,8 @@ const deleteTweetService = async (req) => {
   const { connectedAccountId, tweetId } = req.body;
 
   if (!connectedAccountId || !tweetId) {
-    return { error: 'Missing required fields: connectedAccountId, tweetId' };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(400, 'Missing required fields: connectedAccountId, tweetId');
   }
 
   const actionId = 'TWITTER_POST_DELETE_BY_POST_ID';
@@ -404,6 +438,7 @@ const deleteTweetService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return { success: true, data: response.data };
 };
 
@@ -411,7 +446,8 @@ const followTwitterUserService = async (req) => {
   const { connectedAccountId, username } = req.body;
 
   if (!connectedAccountId || !username) {
-    return { error: 'Missing required fields: connectedAccountId, username' };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(400, 'Missing required fields: connectedAccountId, username');
   }
 
   const actionId = 'TWITTER_FOLLOW_USER';
@@ -432,13 +468,15 @@ const followTwitterUserService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return { success: true, data: response.data };
 };
 const getTwitterUserByUsernameService = async (req) => {
   const { connectedAccountId, username } = req.body;
 
   if (!connectedAccountId || !username) {
-    return { error: 'Missing required fields: connectedAccountId, username' };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(400, 'Missing required fields: connectedAccountId, username');
   }
 
   const actionId = 'TWITTER_USER_LOOKUP_BY_USERNAMES';
@@ -459,6 +497,7 @@ const getTwitterUserByUsernameService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return { success: true, data: response.data };
 };
 
@@ -489,7 +528,7 @@ const getUserIdFromUsername = async (connectedAccountId, username) => {
   if (users && users.length > 0) {
     return users[0].id;
   }
-  throw new Error('User not found');
+  throw new ApiError(404, 'Twitter user not found'); // Throws ApiError for consistency
 };
 
 // Step 2: Send DM by user ID (participant_id)
@@ -497,9 +536,11 @@ const sendDMByUsernameService = async (req) => {
   const { connectedAccountId, username, text } = req.body;
 
   if (!connectedAccountId || !username || !text) {
-    return {
-      error: 'Missing required fields: connectedAccountId, username, text',
-    };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(
+      400,
+      'Missing required fields: connectedAccountId, username, text',
+    );
   }
 
   try {
@@ -529,9 +570,11 @@ const sendDMByUsernameService = async (req) => {
       }
     );
 
+    // Consider adding checks for response.data.success or specific error codes from the external API
     return { success: true, data: response.data };
   } catch (error) {
-    return { error: error.message };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(500, error.message || 'Failed to send direct message');
   }
 };
 // =============================
@@ -539,6 +582,10 @@ const sendDMByUsernameService = async (req) => {
 // =============================
 
 const getLinkedInOAuthRedirectUrlService = async (integrationId, entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required for initiating connection.');
+  }
   const connectedAccount = await toolset.connectedAccounts.initiate({
     integrationId,
     entityId,
@@ -547,6 +594,10 @@ const getLinkedInOAuthRedirectUrlService = async (integrationId, entityId) => {
 };
 
 const exchangeCodeLinkedInService = async (code, integrationId, entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required for exchanging code.');
+  }
   const connectedAccount = await toolset.connectedAccounts.exchangeCode({
     code,
     integrationId,
@@ -555,7 +606,8 @@ const exchangeCodeLinkedInService = async (code, integrationId, entityId) => {
   return connectedAccount;
 };
 
-const postToLinkedInService = async (
+// Renamed service to accurately reflect its functionality (fetching input fields, not posting)
+const getLinkedInPostInputFieldsService = async (
   integrationId,
   connectedAccountId,
   content
@@ -570,6 +622,8 @@ const postToLinkedInService = async (
 
   console.log(expectedInputFields);
   return expectedInputFields;
+  // This service currently only fetches input fields. If the intention was to post,
+  // additional logic for executing the LinkedIn post action would be needed here.
 };
 
 // =============================
@@ -577,10 +631,14 @@ const postToLinkedInService = async (
 // =============================
 
 const calendarIntegrationId = '21c69c18-54ef-464b-a181-dc82f3e5b089';
-const initiateGoogleCalendarConnectionService = async () => {
+const initiateGoogleCalendarConnectionService = async (entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required for initiating connection.');
+  }
   const connectedAccount = await toolset.connectedAccounts.initiate({
     integrationId: calendarIntegrationId,
-    entityId: 'default',
+    entityId,
   });
 
   return {
@@ -600,10 +658,11 @@ const createCalendarEventService = async (req) => {
   } = req.body;
 
   if (!connectedAccountId || !summary || !startTime || !endTime) {
-    return {
-      error:
-        'Missing required fields: connectedAccountId, summary, startTime, endTime',
-    };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(
+      400,
+      'Missing required fields: connectedAccountId, summary, startTime, endTime',
+    );
   }
 
   const actionId = 'GOOGLECALENDAR_CREATE_EVENT';
@@ -630,6 +689,7 @@ const createCalendarEventService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return {
     success: true,
     data: response.data,
@@ -640,7 +700,8 @@ const getCalendarEventsService = async (req) => {
   const { connectedAccountId } = req.body;
 
   if (!connectedAccountId) {
-    return { error: 'Missing required field: connectedAccountId' };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(400, 'Missing required field: connectedAccountId');
   }
 
   const actionId = 'GOOGLECALENDAR_EVENTS_LIST';
@@ -663,15 +724,18 @@ const getCalendarEventsService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return response.data;
 };
 const deleteCalendarEventService = async (req) => {
   const { connectedAccountId, eventId, calendarId = 'primary' } = req.body;
 
   if (!connectedAccountId || !eventId) {
-    return {
-      error: 'Missing required fields: connectedAccountId, eventId',
-    };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(
+      400,
+      'Missing required fields: connectedAccountId, eventId',
+    );
   }
 
   const actionId = 'GOOGLECALENDAR_DELETE_EVENT';
@@ -695,6 +759,7 @@ const deleteCalendarEventService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return response.data;
 };
 const updateCalendarEventService = async (req) => {
@@ -710,7 +775,8 @@ const updateCalendarEventService = async (req) => {
   } = req.body;
 
   if (!connectedAccountId || !eventId) {
-    return { error: 'Missing required fields: connectedAccountId, eventId' };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(400, 'Missing required fields: connectedAccountId, eventId');
   }
 
   const actionId = 'GOOGLECALENDAR_PATCH_EVENT';
@@ -739,6 +805,7 @@ const updateCalendarEventService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return response.data;
 };
 
@@ -760,10 +827,14 @@ const getGithubIntegrationService = async () => {
   return { integration, inputFields };
 };
 
-const initiateGithubConnectionService = async (integrationId) => {
+const initiateGithubConnectionService = async (integrationId, entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required for initiating connection.');
+  }
   const connectedAccount = await toolset.connectedAccounts.initiate({
     integrationId,
-    entityId: 'default',
+    entityId,
   });
 
   return {
@@ -776,7 +847,8 @@ const createGithubIssueService = async (req) => {
   const { connectedAccountId, owner, repo, title, body } = req.body;
 
   if (!connectedAccountId || !owner || !repo || !title) {
-    return { error: 'Missing required fields' };
+    // Consistent error handling: throw ApiError instead of returning an object
+    throw new ApiError(400, 'Missing required fields: connectedAccountId, owner, repo, title');
   }
 
   const actionId = 'GITHUB_CREATE_ISSUE';
@@ -802,12 +874,19 @@ const createGithubIssueService = async (req) => {
     }
   );
 
+  // Consider adding checks for response.data.success or specific error codes from the external API
   return response.data;
 };
 // =============================
 //      Amazon Services
 // =============================
-const initiateAmazonConnectionService = async () => {
+const amazonIntegrationId = 'YOUR_AMAZON_INTEGRATION_ID'; // Placeholder: Define the Amazon integration ID
+
+const initiateAmazonConnectionService = async (entityId) => {
+  // entityId should be derived from the authenticated user in a multi-user environment.
+  if (!entityId) {
+    throw new ApiError(400, 'entityId is required for initiating connection.');
+  }
   // 1. Get all integrations
   const allIntegrationsResponse = await toolset.integrations.list();
   const integrations = allIntegrationsResponse.items || [];
@@ -818,13 +897,13 @@ const initiateAmazonConnectionService = async () => {
   );
 
   if (!amazonIntegration) {
-    throw new Error('Amazon integration not found');
+    throw new ApiError(404, 'Amazon integration not found'); // Throws ApiError for consistency
   }
 
   // 3. Initiate OAuth connection
   const connectionRequest = await toolset.connectedAccounts.initiate({
     integrationId: amazonIntegration.id,
-    entityId: 'default', // Change as needed, "default" works for testing
+    entityId, // Use the provided entityId
   });
 
   return {
@@ -872,7 +951,7 @@ export const composioService = {
   disconnectYouTubeAccountService,
   getLinkedInOAuthRedirectUrlService,
   exchangeCodeLinkedInService,
-  postToLinkedInService,
+  getLinkedInPostInputFieldsService, // Renamed from postToLinkedInService
   initiateGoogleCalendarConnectionService,
   createCalendarEventService,
   getCalendarEventsService,
