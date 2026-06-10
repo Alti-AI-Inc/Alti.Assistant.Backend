@@ -14,6 +14,12 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
 // ── Helpers shared from langchainExecution.service.js ────────────────────────
 
 /**
+ * Regex for matching variable placeholders in prompt templates, e.g., {variableName}.
+ * Pre-compiled to avoid repeated compilation in `formatPrompt` for minor performance improvement.
+ */
+const VARIABLE_PLACEHOLDER_REGEX = /\{([a-zA-Z0-9_]+)\}/g;
+
+/**
  * Optimizes prompt formatting by using a single regex replacement with a callback,
  * avoiding repeated regex compilation and improving performance for templates with many variables.
  *
@@ -23,7 +29,7 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key || 'mock-key');
  * @returns {string} The formatted prompt string with all placeholders replaced by their corresponding values from the scope.
  */
 const formatPrompt = (template, scope) => {
-  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, varName) => {
+  return template.replace(VARIABLE_PLACEHOLDER_REGEX, (match, varName) => { // Using pre-compiled regex
     const val = scope[varName] !== undefined ? scope[varName] : '';
     // Ensure value is stringified if it's an object, otherwise convert to string
     return typeof val === 'object' ? JSON.stringify(val) : String(val);
