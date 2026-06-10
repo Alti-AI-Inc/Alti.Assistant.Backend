@@ -12,22 +12,53 @@ import {
 } from '../presentation.constant.js';
 
 // Token limits and thresholds
-const MAX_TOKENS_FOR_CONTEXT = 6000; // Conservative limit for context (Gemini 2.0 Flash supports ~1M tokens)
-const SUMMARIZATION_THRESHOLD = 5000; // Trigger summarization at this token count
-const MAX_USER_MESSAGE_LENGTH = 20000; // Prevent abuse/excessive token usage from single prompt
-const MAX_HISTORY_MESSAGES = 15; // Keep history bounded to protect user session performance
+/**
+ * @const {number} MAX_TOKENS_FOR_CONTEXT
+ * @description A conservative token limit for the context sent to the AI model to prevent exceeding its capacity.
+ * Gemini 2.5 Flash supports a much larger context window, but this keeps requests fast and manageable.
+ */
+const MAX_TOKENS_FOR_CONTEXT = 6000;
 
 /**
- * AI-powered conversation analyzer for presentation generation
- * Uses Gemini to understand user intent and extract parameters
+ * @const {number} SUMMARIZATION_THRESHOLD
+ * @description The token count at which the conversation history should be summarized to reduce context size.
+ */
+const SUMMARIZATION_THRESHOLD = 5000;
+
+/**
+ * @const {number} MAX_USER_MESSAGE_LENGTH
+ * @description The maximum character length for a single user message to prevent abuse or excessive token usage.
+ */
+const MAX_USER_MESSAGE_LENGTH = 20000;
+
+/**
+ * @const {number} MAX_HISTORY_MESSAGES
+ * @description The maximum number of recent messages to keep in the conversation history to protect performance and manage context.
+ */
+const MAX_HISTORY_MESSAGES = 15;
+
+/**
+ * AI-powered conversation analyzer for presentation generation.
+ * This class uses Google's Gemini models to understand user intent, extract parameters for presentation creation,
+ * and manage conversation context.
+ * @class ConversationAnalyzer
  */
 class ConversationAnalyzer {
+  /**
+   * Initializes the ConversationAnalyzer by setting up the Gemini AI models.
+   * @constructor
+   */
   constructor() {
     const apiKey = config.gemini_secret_key;
     if (!apiKey) {
       logger.error('Gemini API key is missing in configuration');
     }
 
+    /**
+     * The primary model for intent analysis and parameter extraction.
+     * Configured with a lower temperature for more deterministic and structured output.
+     * @type {ChatGoogleGenerativeAI}
+     */
     this.model = new ChatGoogleGenerativeAI({
       model: 'gemini-2.5-flash',
       apiKey: apiKey || 'dummy-key-to-prevent-crash',
@@ -35,6 +66,10 @@ class ConversationAnalyzer {
       maxOutputTokens: 2048,
     });
 
+    /**
+     * A separate model instance used specifically for summarizing long conversations.
+     * @type {ChatGoogleGenerativeAI}
+     */
     this.summarizerModel = new ChatGoogleGenerativeAI({
       model: 'gemini-2.5-flash',
       apiKey: apiKey || 'dummy-key-to-prevent-crash',
@@ -44,9 +79,11 @@ class ConversationAnalyzer {
   }
 
   /**
-   * Estimate token count (rough approximation: 1 token ≈ 4 characters)
-   * @param {string} text - Text to estimate tokens for
-   * @returns {number} - Estimated token count
+   * Estimates the token count of a given text.
+   * This is a rough approximation where 1 token is about 4 characters.
+   * @private
+   * @param {string} text - The text to estimate tokens for.
+   * @returns {number} The estimated token count.
    */
   _estimateTokens(text) {
     if (typeof text !== 'string') return 0;
@@ -54,10 +91,11 @@ class ConversationAnalyzer {
   }
 
   /**
-   * Calculate total tokens for conversation history
-   * @param {Array} conversationHistory - Array of messages
-   * @param {Object} existingParams - Existing parameters
-   * @returns {number} - Total estimated tokens
+   * Calculates the total estimated token count for the conversation history and existing parameters.
+   * @private
+   * @param {Array<Object>} conversationHistory - An array of message objects.
+   * @param {Object} existingParams - The currently collected parameters.
+   * @returns {number} The total estimated token count.
    */
   _calculateConversationTokens(conversationHistory, existingParams) {
     let totalTokens = 0;
@@ -83,10 +121,11 @@ class ConversationAnalyzer {
   }
 
   /**
-   * Summarize conversation history to reduce token usage
-   * @param {Array} conversationHistory - Full conversation history
-   * @param {Object} existingParams - Parameters collected so far
-   * @returns {Promise<string>} - Summarized conversation
+   * Summarizes the conversation history to reduce token usage when it becomes too long.
+   * @async
+   * @param {Array<Object>} conversationHistory - The full conversation history.
+   * @param {Object} existingParams - The parameters collected so far.
+   * @returns {Promise<string>} A summarized version of the conversation.
    */
   async summarizeConversation(conversationHistory, existingParams) {
     try {
@@ -94,8 +133,8 @@ class ConversationAnalyzer {
         throw new Error('Gemini API key is not configured.');
       }
 
-      const safeHistory = Array.isArray(conversationHistory) 
-        ? conversationHistory.slice(-MAX_HISTORY_MESSAGES) 
+      const safeHistory = Array.isArray(conversationHistory)
+        ? conversationHistory.slice(-MAX_HISTORY_MESSAGES)
         : [];
 
       const conversationText = safeHistory
@@ -137,12 +176,19 @@ Provide a brief summary (max 200 words):`;
   }
 
   /**
-   * Analyze user message and extract intent + parameters
-   * @param {string} userMessage - Current user message
-   * @param {Array} conversationHistory - Previous conversation messages
-   * @param {Object} existingParams - Parameters collected so far
-   * @param {string} conversationSummary - Optional pre-computed summary
-   * @returns {Promise<Object>} - Analysis result with intent, parameters, missing fields, and follow-up question
+   * Analyzes the user's message to determine their intent and extract relevant parameters for presentation generation.
+   * @async
+   * @param {string} userMessage - The current message from the user.
+   * @param {Array<Object>} [conversationHistory=[]] - The history of the conversation.
+   * @param {Object} [existingParams={}] - Parameters that have already been collected in the conversation.
+   * @param {string|null} [conversationSummary=null] - An optional pre-computed summary of the conversation to save tokens.
+   * @returns {Promise<Object>} An object containing the analysis result, including intent, parameters, missing fields, and a follow-up question.
+   * @property {string} intent - The detected user intent (e.g., 'generate', 'edit').
+   * @property {Object} parameters - The extracted parameters for the presentation.
+   * @property {Array<string>} missingRequired - A list of required parameters that are still missing.
+   * @property {string|null} followUpQuestion - A suggested question to ask the user to gather missing information.
+   * @property {number} confidence - The AI's confidence in its analysis (0.0 to 1.0).
+   * @property {string} reasoning - The AI's reasoning for its conclusion.
    */
   async analyzeIntent(
     userMessage,
@@ -156,10 +202,10 @@ Provide a brief summary (max 200 words):`;
       }
 
       // Input validation and sanitization to prevent prompt injection or memory exhaustion
-      const sanitizedMessage = typeof userMessage === 'string' 
-        ? userMessage.substring(0, MAX_USER_MESSAGE_LENGTH) 
+      const sanitizedMessage = typeof userMessage === 'string'
+        ? userMessage.substring(0, MAX_USER_MESSAGE_LENGTH)
         : '';
-      
+
       const safeHistory = Array.isArray(conversationHistory)
         ? conversationHistory.slice(-MAX_HISTORY_MESSAGES)
         : [];
@@ -208,10 +254,13 @@ Provide a brief summary (max 200 words):`;
       logger.error('Error analyzing intent:', error);
       throw error;
     }
-  } 
-  
+  }
+
   /**
-   * Build system prompt for intent analysis
+   * Builds the system prompt that instructs the AI on how to perform intent analysis.
+   * This prompt defines the rules, available parameters, intents, and output format.
+   * @private
+   * @returns {string} The system prompt string.
    */
   _buildSystemPrompt() {
     return `You are an AI assistant specialized in understanding user requests for presentation generation. Your job is to:
@@ -424,7 +473,13 @@ Return your analysis as a JSON object with this structure:
   }
 
   /**
-   * Build user prompt with context
+   * Builds the user-specific part of the prompt, including the conversation context and the latest message.
+   * @private
+   * @param {string} userMessage - The current user message.
+   * @param {Array<Object>} conversationHistory - The conversation history.
+   * @param {Object} existingParams - Parameters already collected.
+   * @param {string|null} [conversationSummary=null] - An optional conversation summary.
+   * @returns {string} The user prompt string.
    */
   _buildUserPrompt(
     userMessage,
@@ -480,7 +535,11 @@ Return your analysis as a JSON object with this structure:
   }
 
   /**
-   * Parse AI response and extract structured data
+   * Parses the AI's string response to extract a structured JSON object.
+   * Handles cases where the JSON is wrapped in markdown code blocks.
+   * @private
+   * @param {string} content - The raw string content from the AI model's response.
+   * @returns {Object} The parsed and validated analysis object.
    */
   _parseResponse(content) {
     try {
@@ -533,7 +592,11 @@ Return your analysis as a JSON object with this structure:
   }
 
   /**
-   * Generate a helpful response for general questions
+   * Generates a helpful response for general, non-presentation-related questions.
+   * @async
+   * @param {string} userMessage - The user's question.
+   * @param {Array<Object>} [conversationHistory=[]] - The recent conversation history for context.
+   * @returns {Promise<string>} A helpful, conversational answer to the user's question.
    */
   async answerGeneralQuestion(userMessage, conversationHistory = []) {
     try {
@@ -549,8 +612,8 @@ Return your analysis as a JSON object with this structure:
 
 Be concise, friendly, and helpful. If the user seems ready to create a presentation, guide them toward it.`;
 
-      const sanitizedMessage = typeof userMessage === 'string' 
-        ? userMessage.substring(0, MAX_USER_MESSAGE_LENGTH) 
+      const sanitizedMessage = typeof userMessage === 'string'
+        ? userMessage.substring(0, MAX_USER_MESSAGE_LENGTH)
         : '';
 
       const safeHistory = Array.isArray(conversationHistory)
@@ -574,4 +637,9 @@ Be concise, friendly, and helpful. If the user seems ready to create a presentat
   }
 }
 
+/**
+ * A singleton instance of the ConversationAnalyzer class.
+ * This instance is exported for use throughout the application.
+ * @type {ConversationAnalyzer}
+ */
 export const conversationAnalyzer = new ConversationAnalyzer();
