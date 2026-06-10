@@ -29,7 +29,7 @@ const researchResultSchema = new mongoose.Schema(
     query: {
       type: String,
       required: true,
-      index: true,
+      // PERFORMANCE: Removed redundant single-field index, which is covered by the text index below.
     },
     answer: {
       type: String,
@@ -39,7 +39,7 @@ const researchResultSchema = new mongoose.Schema(
       type: String,
       enum: ['search', 'direct', 'deep_research'],
       required: true,
-      index: true,
+      // PERFORMANCE: Removed redundant single-field index, covered by more specific compound indexes.
     },
     sources: [
       {
@@ -78,21 +78,21 @@ const researchResultSchema = new mongoose.Schema(
     timestamp: {
       type: Date,
       default: Date.now,
-      index: true,
+      // PERFORMANCE: Removed redundant single-field index, covered by more specific compound indexes.
     },
     tags: [
       {
         type: String,
-        index: true,
+        index: true, // PERFORMANCE: Keep index on tags for efficient $in queries.
       },
     ],
     userId: {
       type: String,
-      index: true,
+      // PERFORMANCE: Removed redundant single-field index, covered by more specific compound indexes.
     },
     conversationId: {
       type: String,
-      index: true,
+      // PERFORMANCE: Removed redundant single-field index, covered by more specific compound indexes.
     },
   },
   {
@@ -101,10 +101,20 @@ const researchResultSchema = new mongoose.Schema(
   }
 );
 
-// Add indexes for better query performance
-researchResultSchema.index({ timestamp: -1 });
-researchResultSchema.index({ classification: 1, timestamp: -1 });
+// PERFORMANCE: Consolidated and optimized indexes for common query patterns.
+// Text index for free-text search.
 researchResultSchema.index({ query: 'text', answer: 'text' });
+// Index for general-purpose sorting and filtering by time (e.g., global recent results).
+researchResultSchema.index({ timestamp: -1 });
+// Index for filtering by classification and sorting by time (useful for stats).
+researchResultSchema.index({ classification: 1, timestamp: -1 });
+// Index for user-specific queries sorted by time (e.g., recent results for a user).
+researchResultSchema.index({ userId: 1, timestamp: -1 });
+// Index for fetching a specific conversation's history for a user.
+researchResultSchema.index({ userId: 1, conversationId: 1, timestamp: 1 });
+// A general-purpose index for the main search function, covering common user-based filters.
+researchResultSchema.index({ userId: 1, classification: 1, timestamp: -1 });
+
 
 // Create the model
 const ResearchResult = mongoose.model('ResearchResult', researchResultSchema);
@@ -142,7 +152,7 @@ export const getResearchResultsByQuery = async (query, limit = 10, req) => {
     const tenantFilteredQuery = withTenantFilter(req, { $text: { $search: query } });
 
     const results = await ResearchResult.find(tenantFilteredQuery)
-      .sort({ timestamp: -1 })
+      .sort({ score: { $meta: 'textScore' } }) // PERFORMANCE: Sort by text search relevance score.
       .limit(limit)
       .lean();
 
@@ -164,6 +174,7 @@ export const getRecentResearchResults = async (limit = 20, req) => {
     // Ensures users can only view recent results belonging to their tenant/user context.
     const tenantFilteredQuery = withTenantFilter(req, {});
 
+    // PERFORMANCE: This query is optimized by the { userId: 1, timestamp: -1 } index.
     const results = await ResearchResult.find(tenantFilteredQuery)
       .sort({ timestamp: -1 })
       .limit(limit)
@@ -206,6 +217,8 @@ export const getResearchResultsByConversation = async (conversationId, req) => {
     // SECURITY FIX: Apply tenant filter to prevent Insecure Direct Object Reference (IDOR).
     // Ensures users can only access results belonging to their tenant/user context.
     const tenantFilteredQuery = withTenantFilter(req, { conversationId });
+
+    // PERFORMANCE: This query is optimized by the { userId: 1, conversationId: 1, timestamp: 1 } index.
     const results = await ResearchResult.find(tenantFilteredQuery)
       .sort({ timestamp: 1 })
       .lean();
@@ -242,62 +255,88 @@ export const deleteResearchResult = async (id, req) => {
  */
 export const getResearchStatistics = async (req = null) => {
   try {
-    // Existing tenant filtering is already applied here, so no change needed for IDOR.
-    const baseQuery = req ? withTenantFilter(req, {}) : {};
-    const totalResults = await ResearchResult.countDocuments(baseQuery);
+    // PERFORMANCE: Replaced 5 separate DB calls with a single, more efficient aggregation pipeline using $facet.
+    // This reduces network overhead and database load.
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const searchQuery = req
-      ? withTenantFilter(req, { classification: 'search' })
-      : { classification: 'search' };
-    const searchResults = await ResearchResult.countDocuments(searchQuery);
-
-    const directQuery = req
-      ? withTenantFilter(req, { classification: 'direct' })
-      : { classification: 'direct' };
-    const directResults = await ResearchResult.countDocuments(directQuery);
-
-    const avgTimePipeline = [
+    const statsPipeline = [
       {
-        $group: {
-          _id: null,
-          avgTime: { $avg: '$metadata.processingTime' },
+        $facet: {
+          // Stage 1: Get counts for each classification and total count.
+          counts: [
+            {
+              $group: {
+                _id: '$classification',
+                count: { $sum: 1 },
+              },
+            },
+          ],
+          // Stage 2: Calculate average processing time.
+          avgProcessingTime: [
+            {
+              $match: {
+                'metadata.processingTime': { $exists: true, $ne: null },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                avgTime: { $avg: '$metadata.processingTime' },
+              },
+            },
+          ],
+          // Stage 3: Get activity in the last 24 hours, grouped by hour.
+          recentActivity: [
+            {
+              $match: {
+                timestamp: { $gte: twentyFourHoursAgo },
+              },
+            },
+            {
+              $group: {
+                _id: { $hour: '$timestamp' },
+                count: { $sum: 1 },
+              },
+            },
+            {
+              $sort: { _id: 1 },
+            },
+          ],
         },
       },
     ];
-    const avgTimeTenantPipeline = req
-      ? withTenantPipeline(req, avgTimePipeline)
-      : avgTimePipeline;
-    const avgProcessingTime = await ResearchResult.aggregate(
-      avgTimeTenantPipeline
-    );
 
-    const recentPipeline = [
-      {
-        $match: {
-          timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-        },
-      },
-      {
-        $group: {
-          _id: { $hour: '$timestamp' },
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { _id: 1 },
-      },
-    ];
-    const recentTenantPipeline = req
-      ? withTenantPipeline(req, recentPipeline)
-      : recentPipeline;
-    const recentActivity = await ResearchResult.aggregate(recentTenantPipeline);
+    // Apply tenant filtering at the beginning of the pipeline if a request object is provided.
+    const tenantPipeline = req
+      ? withTenantPipeline(req, statsPipeline)
+      : statsPipeline;
+
+    const results = await ResearchResult.aggregate(tenantPipeline);
+
+    if (!results || results.length === 0) {
+      return {
+        total: 0,
+        searchBased: 0,
+        directResponse: 0,
+        averageProcessingTime: 0,
+        last24Hours: [],
+      };
+    }
+
+    const stats = results[0];
+    const classificationCounts = stats.counts.reduce((acc, item) => {
+      acc[item._id] = item.count;
+      return acc;
+    }, {});
+
+    const total = stats.counts.reduce((sum, item) => sum + item.count, 0);
 
     return {
-      total: totalResults,
-      searchBased: searchResults,
-      directResponse: directResults,
-      averageProcessingTime: avgProcessingTime[0]?.avgTime || 0,
-      last24Hours: recentActivity,
+      total: total,
+      searchBased: classificationCounts.search || 0,
+      directResponse: classificationCounts.direct || 0,
+      averageProcessingTime: stats.avgProcessingTime[0]?.avgTime || 0,
+      last24Hours: stats.recentActivity,
     };
   } catch (error) {
     console.error('Error getting research statistics:', error);
@@ -375,20 +414,42 @@ export const searchResearchResults = async (filters = {}, req) => {
       mongoQuery.userId = userId;
     }
 
-    const results = await ResearchResult.find(mongoQuery)
-      .sort({ timestamp: -1 })
-      .skip(offset)
-      .limit(limit)
-      .lean();
+    // PERFORMANCE: Replaced find() + countDocuments() with a single aggregation pipeline using $facet.
+    // This is more efficient as it requires only one round trip to the database.
+    const pipeline = [
+      { $match: mongoQuery },
+      {
+        $facet: {
+          // Paginated results
+          results: [
+            // If it's a text search, sort by relevance, otherwise by time.
+            { $sort: query ? { score: { $meta: 'textScore' } } : { timestamp: -1 } },
+            { $skip: offset },
+            { $limit: limit },
+          ],
+          // Total count for pagination
+          totalCount: [
+            {
+              $count: 'count',
+            },
+          ],
+        },
+      },
+    ];
 
-    const total = await ResearchResult.countDocuments(mongoQuery);
+    const aggregationResult = await ResearchResult.aggregate(pipeline);
+
+    // The result of a $facet aggregation is an array with a single document.
+    const data = aggregationResult[0];
+    const results = data.results;
+    const total = data.totalCount[0]?.count || 0;
 
     return {
       results,
       total,
       limit,
       offset,
-      hasMore: total > offset + limit,
+      hasMore: total > offset + results.length,
     };
   } catch (error) {
     console.error('Error searching research results:', error);

@@ -1,4 +1,8 @@
 import express from 'express';
+import { Storage } from '@google-cloud/storage';
+import Busboy from 'busboy';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 import { ENUM_USER_ROLE } from '../../../shared/enum.js';
 import auth from '../../middlewares/auth/auth.js';
 import optionalAuth from '../../middlewares/auth/optionalAuth.js';
@@ -8,9 +12,103 @@ import { validateRequest } from '../../middlewares/validateRequest/validateReque
 import { extractTenantContext } from '../../middlewares/tenant/tenantContext.js';
 import { reportController } from './report.controller.js';
 import { ReportValidation } from './report.validation.js';
-import { uploadReportFiles } from './middlewares/uploadReportFiles.js';
+// import { uploadReportFiles } from './middlewares/uploadReportFiles.js'; // GCS_REWRITE: Replaced with gcsStreamUpload middleware
 import checkRAGFeature from '../../middlewares/checkRAGFeature/checkRAGFeature.js';
 import checkStorageLimit from '../../middlewares/checkStorageLimit/checkStorageLimit.js';
+
+// GCS_REWRITE: Initialize Google Cloud Storage client.
+// Assumes GOOGLE_APPLICATION_CREDENTIALS environment variable is set.
+const storage = new Storage();
+const bucketName = process.env.GCS_UPLOADS_BUCKET; // Ensure this is configured in your environment.
+
+if (!bucketName) {
+  // Throw an error on startup if the bucket isn't configured, to prevent runtime errors.
+  throw new Error(
+    'GCS_UPLOADS_BUCKET environment variable not set. File uploads will fail.'
+  );
+}
+
+/**
+ * GCS_REWRITE: Middleware to handle multipart/form-data uploads by streaming them directly to a GCS bucket.
+ * This avoids writing files to the local ephemeral filesystem, which is critical for stateless containerized environments.
+ * It uses 'busboy' to parse the incoming request stream.
+ *
+ * @param {express.Request} req - The Express request object.
+ * @param {express.Response} res - The Express response object.
+ * @param {express.NextFunction} next - The next middleware function.
+ */
+const gcsStreamUpload = (req, res, next) => {
+  const busboy = new Busboy({ headers: req.headers });
+
+  // Initialize containers for form fields and file upload promises.
+  req.body = {};
+  req.files = []; // Use req.files to maintain compatibility with controllers expecting this from multer.
+  const uploadPromises = [];
+
+  // Listener for non-file form fields.
+  busboy.on('field', (fieldname, val) => {
+    req.body[fieldname] = val;
+  });
+
+  // Listener for file parts in the multipart stream.
+  busboy.on('file', (fieldname, fileStream, filename, encoding, mimetype) => {
+    // Generate a unique filename to prevent collisions in the GCS bucket.
+    const gcsFileName = `${uuidv4()}-${path.basename(filename)}`;
+    const gcsFile = storage.bucket(bucketName).file(gcsFileName);
+
+    const passthroughStream = gcsFile.createWriteStream({
+      metadata: {
+        contentType: mimetype,
+      },
+      resumable: false, // Use simple upload for smaller files, more efficient for this use case.
+    });
+
+    // Create a promise that resolves when the file stream to GCS is finished.
+    const uploadPromise = new Promise((resolve, reject) => {
+      fileStream
+        .pipe(passthroughStream)
+        .on('error', err => {
+          // Ensure the source stream is drained on error to prevent hangs.
+          fileStream.resume();
+          reject(err);
+        })
+        .on('finish', () => {
+          // On successful upload, add file metadata to req.files for the controller.
+          req.files.push({
+            fieldname,
+            originalname: filename,
+            encoding,
+            mimetype,
+            bucket: bucketName,
+            name: gcsFileName,
+            gcsUrl: `gs://${bucketName}/${gcsFileName}`,
+            size: passthroughStream.bytesWritten,
+          });
+          resolve();
+        });
+    });
+    uploadPromises.push(uploadPromise);
+  });
+
+  // Listener for the end of the busboy stream.
+  busboy.on('finish', async () => {
+    try {
+      // Wait for all file uploads to complete.
+      await Promise.all(uploadPromises);
+      // Proceed to the next middleware (e.g., validation, controller).
+      next();
+    } catch (error) {
+      // Pass any GCS upload errors to the Express error handler.
+      next(error);
+    }
+  });
+
+  // Handle busboy parsing errors.
+  busboy.on('error', err => next(err));
+
+  // Pipe the incoming request stream into busboy for parsing.
+  req.pipe(busboy);
+};
 
 /**
  * @swagger
@@ -104,8 +202,9 @@ router.post(
   extractTenantContext,
   // OPTIMIZATION: Fail fast on daily limits before processing files.
   checkDailyRequestLimit,
-  // Process file uploads to make req.files and req.body available.
-  uploadReportFiles,
+  // GCS_REWRITE: Use GCS stream upload middleware instead of writing to local disk.
+  // This middleware populates req.body and req.files for downstream processing.
+  gcsStreamUpload,
   // Validate the request payload (including text fields from multipart form).
   validateRequest(ReportValidation.conversationalRequestSchema),
   // Check if the user has access to the RAG feature, especially if files were provided.
@@ -234,8 +333,8 @@ router.post(
   extractTenantContext,
   // OPTIMIZATION: Fail fast on daily limits before processing files.
   checkDailyRequestLimit,
-  // Process file uploads to make req.files and req.body available.
-  uploadReportFiles,
+  // GCS_REWRITE: Use GCS stream upload middleware instead of writing to local disk.
+  gcsStreamUpload,
   // Validate the request payload.
   validateRequest(ReportValidation.analyzeFilesSchema),
   // Check if the user has access to the RAG feature.
@@ -249,10 +348,11 @@ router.post(
  * @swagger
  * /report/download/{reportId}:
  *   get:
- *     summary: Download a generated report
+ *     summary: Get a download URL for a generated report
  *     description: |
- *       Downloads a report file by its ID.
- *       Requires authentication to ensure only the report owner can download it, protecting user data.
+ *       Retrieves a time-limited, secure signed URL for downloading a report file directly from cloud storage.
+ *       Requires authentication to ensure only the report owner can access it.
+ *       This method avoids proxying the download through the server, improving performance and scalability.
  *     tags:
  *       - Report
  *     security:
@@ -267,12 +367,23 @@ router.post(
  *         description: The unique identifier of the report to download.
  *     responses:
  *       200:
- *         description: Report file streamed successfully.
+ *         description: Signed URL for the report generated successfully.
  *         content:
- *           application/octet-stream:
+ *           application/json:
  *             schema:
- *               type: string
- *               format: binary
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     downloadUrl:
+ *                       type: string
+ *                       format: uri
+ *                       description: A secure, time-limited URL to download the report file.
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -292,6 +403,7 @@ router.get(
   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
   // Added validation for the reportId parameter.
   validateRequest(ReportValidation.downloadReportSchema),
+  // GCS_REWRITE: The controller method is now expected to generate and return a GCS signed URL, not stream the file.
   reportController.downloadReport
 );
 
@@ -302,6 +414,7 @@ router.get(
  *     summary: Export an existing report to a different format
  *     description: |
  *       Exports a specified report to a different format (e.g., PDF, DOCX).
+ *       The export process generates the new file directly in cloud storage and returns a secure signed URL for download.
  *       Requires user or admin authentication.
  *     tags:
  *       - Report

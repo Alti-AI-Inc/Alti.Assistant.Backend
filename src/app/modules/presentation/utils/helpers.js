@@ -18,6 +18,8 @@
  *
  * @param {Array<SlideEdit>} slides - An array of slide edit objects, each containing an `index` and `content`.
  * @param {number} maxSlides - The maximum number of slides allowed in the presentation (exclusive upper bound for index).
+ *                             INTEGRATION NOTE: The calling function is responsible for ensuring `maxSlides` is derived from the
+ *                             user's current subscription plan and tenant/workspace limits.
  * @returns {boolean} - `true` if all slide indices are valid and content is an object, `false` otherwise.
  */
 export const validateSlideIndices = (slides, maxSlides) => {
@@ -59,8 +61,18 @@ export const validateSlideIndices = (slides, maxSlides) => {
  * @param {SyncPresentationResult | AsyncPresentationResult} result - The result object from the presentation API.
  * @param {boolean} [isAsync=false] - A flag indicating whether the result pertains to an asynchronous task.
  * @returns {string} - A formatted string message suitable for display to the user.
+ *                     INTEGRATION NOTE: The calling function is responsible for persisting the `credits_consumed` value
+ *                     (for synchronous results) against the user's account and workspace. It should also handle
+ *                     notifying managers or administrators if usage limits are approached or exceeded.
  */
 export const formatPresentationResult = (result, isAsync = false) => {
+  // BUG FIX: Add a guard clause to handle cases where the result object is null or undefined, preventing TypeErrors.
+  if (!result) {
+    return isAsync
+      ? '🚀 Presentation task started, but result details are currently unavailable.'
+      : '🎉 Presentation generated, but result details are currently unavailable.';
+  }
+
   if (isAsync) {
     // result is AsyncPresentationResult
     return (
@@ -105,13 +117,21 @@ export const formatPresentationResult = (result, isAsync = false) => {
  *
  * @param {TaskStatusResult} result - The task status result object from the API.
  * @returns {string} - A formatted string message describing the task's status and relevant details.
+ *                     INTEGRATION NOTE: When a task completes successfully, the calling function is responsible for
+ *                     persisting the `credits_consumed` value against the user's account and workspace. It should also
+ *                     handle notifying managers or administrators if usage limits are approached or exceeded.
  */
 export const formatTaskStatus = (result) => {
+  // BUG FIX: Add a guard clause to handle cases where the result object is null or lacks a status, preventing TypeErrors.
+  if (!result || !result.status) {
+    return '📋 Task Status: UNKNOWN\n\nCould not retrieve task status details.';
+  }
+
   let message = `📋 Task Status: ${result.status.toUpperCase()}\n\n`;
 
   switch (result.status) {
     case 'completed':
-      // Bug fix: Ensure result.data exists before accessing its properties to prevent TypeError.
+      // This check correctly prevents a TypeError if data is missing on a completed task.
       if (result.data) {
         message +=
           `🎉 Your presentation is ready!\n\n` +
@@ -120,12 +140,13 @@ export const formatTaskStatus = (result) => {
           `✏️ Edit online: ${result.data.edit_path}\n` +
           `💳 Credits consumed: ${result.data.credits_consumed}`;
       } else {
-        message += `✅ Task completed, but presentation details are unavailable.`;
+        message += `✅ Task completed, but presentation details are unavailable. Please check your dashboard.`;
       }
       break;
 
     case 'failed':
-      message += `❌ Generation failed: ${result.message}`;
+      // BUG FIX: Provide a fallback message if `result.message` is not available.
+      message += `❌ Generation failed: ${result.message || 'No specific reason provided.'}`;
       break;
 
     case 'processing':
@@ -137,7 +158,7 @@ export const formatTaskStatus = (result) => {
       break;
 
     default:
-      message += result.message || 'Status unknown';
+      message += result.message || 'Status unknown. Please contact support if this persists.';
   }
 
   return message;
@@ -162,8 +183,14 @@ export const sanitizeInput = (input) => {
  *
  * @param {string} text - The user message or text potentially containing a presentation ID.
  * @returns {string|null} - The extracted presentation ID (UUID string) if found, otherwise `null`.
+ *                          SECURITY WARNING: The returned ID is not validated for ownership. The calling
+ *                          function MUST verify that the current user (and their tenant/workspace) has
+ *                          explicit permission to access the resource with this ID to prevent Insecure
+ *                          Direct Object Reference (IDOR) vulnerabilities. This check must be performed
+ *                          for all roles (user, manager, admin, super_admin).
  */
 export const extractPresentationId = (text) => {
+  if (typeof text !== 'string') return null;
   // Match UUID format: 8-4-4-4-12 hexadecimal characters
   const uuidRegex =
     /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
@@ -177,10 +204,16 @@ export const extractPresentationId = (text) => {
  *
  * @param {string} text - The user message or text potentially containing a task ID.
  * @returns {string|null} - The extracted task ID (e.g., "task-abc123") if found, otherwise `null`.
+ *                          SECURITY WARNING: The returned ID is not validated for ownership. The calling
+ *                          function MUST verify that the current user (and their tenant/workspace) has
+ *                          explicit permission to access the resource with this ID to prevent Insecure
+ *                          Direct Object Reference (IDOR) vulnerabilities. This check must be performed
+ *                          for all roles (user, manager, admin, super_admin).
  */
 export const extractTaskId = (text) => {
+  if (typeof text !== 'string') return null;
   // Match task-xxxxx format
-  const taskRegex = /task-([a-z0-9]+)/i;
+  const taskRegex = /task-([a-z0-9-]+)/i; // Allow hyphens in the task ID part for more flexibility
   const match = text.match(taskRegex);
   // Return the full match, e.g., "task-abc123"
   return match ? match[0] : null;
@@ -198,11 +231,14 @@ export const extractTaskId = (text) => {
 export const mergeParameters = (existing, newParams) => {
   const merged = { ...existing };
 
-  Object.keys(newParams).forEach((key) => {
-    if (newParams[key] !== undefined && newParams[key] !== null) {
-      merged[key] = newParams[key];
-    }
-  });
+  // BUG FIX: Ensure newParams is a non-null object before attempting to iterate over its keys.
+  if (typeof newParams === 'object' && newParams !== null) {
+    Object.keys(newParams).forEach((key) => {
+      if (newParams[key] !== undefined && newParams[key] !== null) {
+        merged[key] = newParams[key];
+      }
+    });
+  }
 
   return merged;
 };
@@ -224,8 +260,13 @@ export const mergeParameters = (existing, newParams) => {
  * @returns {ParameterCompletionStatus} - An object indicating whether parameters are complete and listing any missing ones.
  */
 export const checkParametersComplete = (intent, params, requiredParams) => {
-  const required = requiredParams[intent] || [];
-  const missing = required.filter((param) => !params[param]);
+  const required = (requiredParams && requiredParams[intent]) || [];
+  // BUG FIX: Changed check from `!params[param]` to `!Object.prototype.hasOwnProperty.call(params, param)`.
+  // The original check would incorrectly flag valid "falsy" values (like 0, false, or an empty string) as missing.
+  // This new check correctly verifies the presence of the parameter key itself, which is more robust.
+  const missing = required.filter(
+    (param) => !params || !Object.prototype.hasOwnProperty.call(params, param)
+  );
 
   return {
     complete: missing.length === 0,
