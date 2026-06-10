@@ -1,4 +1,8 @@
 import { cyberdeskService } from './cyberdesk.service.js';
+// BUG-FIX: Added a placeholder import for a user service.
+// This is required to fetch user details to enforce the manager-user hierarchy for access control.
+// In a real application, this would point to the actual user service implementation.
+import { userService } from '../user/user.service.js';
 
 /**
  * Helper to verify if a user has access to a specific desktop based on tenant boundaries and roles.
@@ -23,22 +27,37 @@ const verifyDesktopAccess = async (user, desktopId) => {
     return { valid: true, desktop };
   }
 
-  // Enforce tenant context boundary
+  // Enforce tenant context boundary for all other roles
   if (desktop.tenantId !== user.tenantId) {
     return { valid: false, status: 403, message: 'Access denied: Tenant boundary violation.' };
   }
 
-  // Workspace owners (admin) and managers can access resources within their tenant
-  if (user.role === 'admin' || user.role === 'manager') {
+  // Workspace owners (admin) can access any resource within their tenant
+  if (user.role === 'admin') {
     return { valid: true, desktop };
   }
 
-  // Standard users can only access their own assigned desktops
-  if (user.role === 'user' && desktop.userId !== user.id) {
-    return { valid: false, status: 403, message: 'Access denied: You do not own this desktop.' };
+  // BUG-FIX: Added hierarchical check for 'manager' role.
+  // The original code granted managers tenant-wide access, equivalent to an 'admin',
+  // which violates the principle of least privilege and the expected role hierarchy.
+  // A manager should only be able to access desktops of users they directly manage.
+  if (user.role === 'manager') {
+    // To verify, we fetch the owner of the desktop and check if their manager is the current user.
+    const desktopOwner = await userService.getUserById(desktop.userId);
+    if (desktopOwner && desktopOwner.managerId === user.id) {
+      return { valid: true, desktop };
+    }
   }
 
-  return { valid: true, desktop };
+  // Standard users can only access their own assigned desktops
+  if (user.role === 'user' && desktop.userId === user.id) {
+    return { valid: true, desktop };
+  }
+
+  // BUG-FIX: Replaced implicit grant with an explicit default deny.
+  // The original code would fall through and grant access to any unhandled role or case (e.g., a manager viewing a non-managed user's desktop).
+  // This ensures that access is denied unless explicitly granted by one of the checks above.
+  return { valid: false, status: 403, message: 'Access denied. You do not have permission to access this resource.' };
 };
 
 /**

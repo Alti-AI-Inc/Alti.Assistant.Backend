@@ -158,15 +158,25 @@ const router = express.Router();
  */
 router.post(
   '/analyze',
+  // Middleware chain is ordered to fail as fast as possible, reducing server load.
+  // 1. Authenticate if a token is provided. This is first to identify the user.
   optionalAuth(),
-  // Apply conditional rate limiting after authentication middleware to distinguish between guests and users.
+  // 2. Apply rate limiting early to block abusive requests. Differentiates between guests and users.
   conditionalAnalyzeLimiter,
+  // 3. Extract tenant context for data isolation. Depends on auth.
   extractTenantContext,
-  checkDailyRequestLimit,
-  checkStorageLimit,
+  // 4. Perform quick, pre-upload checks that can fail fast without expensive I/O operations.
+  checkDailyRequestLimit, // Check overall usage quota.
+  checkRAGFeature, // Check if the feature is enabled for the tenant.
+  // 5. Handle the file upload. This is the most resource-intensive step.
+  // It's placed after quick checks to avoid processing unnecessary uploads.
   uploadDocumentAnalysis.single('file'),
-  checkRAGFeature,
+  // 6. Perform checks that depend on the uploaded file or other form data.
+  // This check is now more accurate as it can use the actual file size from req.file.
+  checkStorageLimit,
+  // 7. Validate all request inputs (prompt, conversationId, etc.) now that multer has parsed them.
   validateRequest(DocumentAnalysisValidation.analyzeRequestSchema),
+  // 8. If all checks pass, proceed to the controller.
   documentAnalysisController.analyzeDocument
 );
 
