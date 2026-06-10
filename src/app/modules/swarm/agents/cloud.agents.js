@@ -2,7 +2,22 @@
  * GCP, Cloud Infrastructure, and Automation Specialists
  */
 
-// Existing: GCP Catalog Grounder
+/**
+ * @typedef {object} AgentDefinition
+ * @property {string} id - Unique identifier for the agent.
+ * @property {string} name - Human-readable name of the agent.
+ * @property {string} description - A brief description of the agent's specialization.
+ * @property {string} systemInstruction - The core system prompt/instruction for the agent, guiding its behavior and expertise.
+ * @property {string} model - The AI model used by the agent (e.g., 'gemini-2.5-flash').
+ * @property {string[]} tools - An array of tools the agent can utilize to perform its tasks.
+ * @property {string[]} keywords - An array of keywords associated with the agent's expertise, useful for search and categorization.
+ */
+
+/**
+ * GCP Catalog Grounder agent definition.
+ * Searches and grounds responses in the official 1,388 GCP open-source repository catalog.
+ * @type {AgentDefinition}
+ */
 export const gcpGrounding = {
   id: 'gcp_grounding',
   name: 'GCP Catalog Grounder',
@@ -16,7 +31,11 @@ Stay concise, exact, and 100% truthful. Avoid conversational fluff.`,
   keywords: ['gcp', 'google cloud', 'appengine', 'cloud storage', 'compute engine', 'bigquery', 'cloud run', 'gke', 'kubernetes', 'gcloud']
 };
 
-// Existing: Terraform Cloud Architect
+/**
+ * Terraform Cloud Architect agent definition.
+ * Generates secure, production-grade, and compliant Terraform configuration files.
+ * @type {AgentDefinition}
+ */
 export const terraformArchitect = {
   id: 'terraform_architect',
   name: 'Terraform Cloud Architect',
@@ -30,7 +49,11 @@ Present configurations in clean markdown blocks.`,
   keywords: ['terraform', 'tf', 'main.tf', 'variables.tf', 'infrastructure as code', 'iac', 'provision']
 };
 
-// Existing: GCP Kubernetes Engineer
+/**
+ * GCP Kubernetes Engineer agent definition.
+ * Specializes in Google Kubernetes Engine (GKE) topologies, security, and workload identity.
+ * @type {AgentDefinition}
+ */
 export const gcpGkeExpert = {
   id: 'gcp_gke_expert',
   name: 'GCP Kubernetes Engineer',
@@ -43,7 +66,11 @@ Deliver production-grade, secure, and production-ready YAML or Terraform configs
   keywords: ['gke', 'kubernetes', 'k8s', 'cluster', 'workload identity', 'networkpolicy', 'ingress', 'helm', 'kubectl', 'pod', 'deployment']
 };
 
-// Existing: GCP Serverless Architect
+/**
+ * GCP Serverless Architect agent definition.
+ * Designs Cloud Run, Cloud Functions, Pub/Sub, and event-driven architectures.
+ * @type {AgentDefinition}
+ */
 export const gcpServerlessExpert = {
   id: 'gcp_serverless_expert',
   name: 'GCP Serverless Architect',
@@ -56,7 +83,11 @@ Stay lightweight, secure, and focus on auto-scaling and minimal cold starts.`,
   keywords: ['cloud run', 'cloud functions', 'functions', 'pubsub', 'eventarc', 'serverless', 'microservice', 'api gateway', 'event-driven']
 };
 
-// Existing: GCP Security Compliance Auditor
+/**
+ * GCP Security Compliance Auditor agent definition.
+ * Audits GCP resources, IAM policies, KMS configurations, and VPC Service Controls against CIS benchmarks.
+ * @type {AgentDefinition}
+ */
 export const gcpSecurityExpert = {
   id: 'gcp_security_expert',
   name: 'GCP Security Compliance Auditor',
@@ -69,7 +100,11 @@ Present recommendations in clean, prioritized security scorecards.`,
   keywords: ['kms', 'security', 'iam', 'least privilege', 'compliance', 'vpc service controls', 'kms key', 'cis benchmark', 'secret manager', 'firewall']
 };
 
-// Existing: GCP Database Architect
+/**
+ * GCP Database Architect agent definition.
+ * Designs Spanner, Cloud SQL, AlloyDB, and Firestore distributed architectures.
+ * @type {AgentDefinition}
+ */
 export const gcpDatabaseExpert = {
   id: 'gcp_database_expert',
   name: 'GCP Database Architect',
@@ -82,7 +117,11 @@ Focus on replication schemas, connection pool tuning, global scaling, and secure
   keywords: ['spanner', 'cloud sql', 'alloydb', 'firestore', 'bigtable', 'database schema', 'replication', 'connection pooling', 'vpc peering']
 };
 
-// Existing: GCP Data Pipeline Engineer
+/**
+ * GCP Data Pipeline Engineer agent definition.
+ * Designs big data analytics pipelines using BigQuery, Dataflow, and Dataproc.
+ * @type {AgentDefinition}
+ */
 export const gcpDataExpert = {
   id: 'gcp_data_expert',
   name: 'GCP Data Pipeline Engineer',
@@ -95,7 +134,11 @@ Focus on query optimization, partition/clustering schemes, and high-performance 
   keywords: ['bigquery', 'dataflow', 'dataproc', 'etl', 'pipeline', 'apache beam', 'spark', 'analytics', 'data warehouse', 'partitioning']
 };
 
-// Existing: GCP Cloud Migration Lead
+/**
+ * GCP Cloud Migration Lead agent definition.
+ * Spearheads server, database, and system migrations from AWS/Azure/On-Prem to GCP.
+ * @type {AgentDefinition}
+ */
 export const gcpMigrationSpecialist = {
   id: 'gcp_migration_specialist',
   name: 'GCP Cloud Migration Lead',
@@ -109,7 +152,11 @@ Focus on zero-downtime cutovers, minimal latency, and network tunnels.`,
   keywords: ['migration', 'migrate', 'aws to gcp', 'azure to gcp', 'on-prem to gcp', 'dms', 'database migration', 'velostrata', 'cutover', 'transition']
 };
 
-// Existing: GCP FinOps Cost Optimizer
+/**
+ * GCP FinOps Cost Optimizer agent definition.
+ * Optimizes GCP resource costs, Savings Plans, Lifecycle policies, and budgets.
+ * @type {AgentDefinition}
+ */
 export const gcpFinopsExpert = {
   id: 'gcp_finops_expert',
   name: 'GCP FinOps Cost Optimizer',
@@ -123,7 +170,11 @@ Deliver recommendations categorized by immediate and long-term cost impact.`,
   keywords: ['finops', 'cost', 'spend', 'billing', 'savings', 'committed use', 'cud', 'recommender', 'budget', 'optimizer', 'lifecycle']
 };
 
-// Existing: Vertex AI & MLOps Architect
+/**
+ * Vertex AI & MLOps Architect agent definition.
+ * Configures Vertex AI model tuning pipelines, feature stores, and Gemini API fine-tuning.
+ * @type {AgentDefinition}
+ */
 export const gcpMlopsExpert = {
   id: 'gcp_mlops_expert',
   name: 'Vertex AI & MLOps Architect',
@@ -136,7 +187,11 @@ Deliver standard code examples using Google Cloud GenAI and Vertex AI Python SDK
   keywords: ['vertex ai', 'mlops', 'model registry', 'fine-tuning', 'feature store', 'vertex pipeline', 'genai sdk', 'model deployment', 'endpoint tuning']
 };
 
-// Existing: GCP Cloud Run Architect
+/**
+ * GCP Cloud Run Architect agent definition.
+ * Specializes in Google Cloud Run serverless container topologies, scaling settings, custom domains, and IAM security configurations.
+ * @type {AgentDefinition}
+ */
 export const gcpCloudRunArchitect = {
   id: 'gcp_cloud_run_architect',
   name: 'GCP Cloud Run Architect',
