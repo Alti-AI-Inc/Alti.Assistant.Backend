@@ -7,10 +7,18 @@ import { logger } from '../../../shared/logger.js';
 import DocumentMetadata from './llamaindex.metadata.model.js';
 import * as llama from './llamaindex.indexer.js';
 
+/**
+ * Initializes the Google Generative AI client with the API key from the configuration.
+ * @type {GoogleGenerativeAI}
+ */
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
 /**
- * Clean Markdown backticks from LLM response.
+ * Cleans markdown backticks and optional language specifiers from a given text string.
+ * This is typically used to parse JSON responses from LLMs that might wrap their output in markdown code blocks.
+ *
+ * @param {string} text The input string, potentially containing markdown code block formatting.
+ * @returns {string} The cleaned string, with leading/trailing markdown backticks removed.
  */
 const cleanJSONResponse = (text) => {
   let clean = text.trim();
@@ -21,7 +29,16 @@ const cleanJSONResponse = (text) => {
 };
 
 /**
- * Enriches a single document using Google Gemini semantic parsing.
+ * Enriches a single document's metadata by analyzing its content (or a preview) using Google Gemini.
+ * It extracts a summary, topics, entities, complexity, audience, and temporal context,
+ * then stores this information in the database.
+ *
+ * @param {string | null} filePath The local file path to the document. Can be `null` if the document is remote or its content is not directly accessible.
+ * @param {string} fileName The name of the document.
+ * @param {string} docId The unique identifier for the document within the LlamaIndex corpus.
+ * @param {string} userId The unique identifier for the user who owns the document.
+ * @returns {Promise<DocumentMetadata>} A promise that resolves to the created or updated `DocumentMetadata` record.
+ * @throws {Error} If the enrichment process fails critically, though it attempts graceful fallback.
  */
 const enrichDocument = async (filePath, fileName, docId, userId) => {
   try {
@@ -32,7 +49,7 @@ const enrichDocument = async (filePath, fileName, docId, userId) => {
       const stats = await fs.stat(filePath);
       const ext = path.extname(filePath).toLowerCase();
 
-      // Read a prefix snippet to analyze (cap at 20KB for token optimization)
+      // Read a prefix snippet to analyze (cap at 15KB for token optimization)
       if (ext === '.json' || ext === '.txt' || ext === '.md' || ext === '.csv') {
         const fullContent = await fs.readFile(filePath, 'utf-8');
         fileContentPreview = fullContent.substring(0, 15000);
@@ -108,7 +125,13 @@ ${fileContentPreview}`;
 };
 
 /**
- * Scans a user's entire corpus index and enriches any documents missing metadata.
+ * Scans a user's entire LlamaIndex corpus and enriches any documents that are missing metadata profiles
+ * in the application's database. It processes documents asynchronously but sequentially to manage API rate limits.
+ *
+ * @param {string} userId The unique identifier for the user whose documents are to be enriched.
+ * @returns {Promise<{ success: boolean, message: string, enrichedCount: number }>} A promise that resolves to an object
+ *   indicating the success of the operation, a descriptive message, and the count of newly enriched documents.
+ * @throws {Error} If there's a critical failure in listing documents or during the enrichment cycle.
  */
 const enrichAllUserDocuments = async (userId) => {
   try {
@@ -141,6 +164,16 @@ const enrichAllUserDocuments = async (userId) => {
   }
 };
 
+/**
+ * @typedef {Object} MetadataAgentService
+ * @property {function(string | null, string, string, string): Promise<DocumentMetadata>} enrichDocument - Function to enrich a single document's metadata.
+ * @property {function(string): Promise<{ success: boolean, message: string, enrichedCount: number }>} enrichAllUserDocuments - Function to enrich all documents for a given user that are missing metadata.
+ */
+
+/**
+ * Exports the core services of the metadata agent.
+ * @type {MetadataAgentService}
+ */
 export const metadataAgentService = {
   enrichDocument,
   enrichAllUserDocuments,
