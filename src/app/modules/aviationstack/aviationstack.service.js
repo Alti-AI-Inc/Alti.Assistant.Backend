@@ -11,21 +11,14 @@
 import dotenv from 'dotenv';
 import { logger } from '../../../shared/logger.js';
 import { RedisClient } from '../../../shared/redis.js';
-import {
-  getMETARTAFService,
-  getFAANasStatusService,
-  getFAANotamsService,
-  getNTSBSafetyIncidentsService,
-  getAlternateAirportsService,
-  getFlightFuelPlanningService,
-  getCurfewComplianceService,
-  getOceanicTracksService,
-  getETOPSPlanningService,
-  getPassengerCompensationService,
-  getVolcanicAshProjectionService,
-  getCargoHazmatComplianceService,
-  getJetStreamTurbulenceService
-} from './aviationOpenData.service.js';
+// INTEGRATION: Import utilities for error handling, permission checks, and usage tracking.
+// This is critical for ensuring the service integrates correctly with the platform's security and billing model.
+import { AppError } from '../../../shared/errors.js';
+import { checkPermission } from '../../auth/auth.utils.js';
+import { recordUsage, checkUsageLimit } from '../../usage/usage.service.js';
+// INTEGRATION: Import original open data services to be wrapped for security and usage tracking.
+import * as openDataServices from './aviationOpenData.service.js';
+
 
 dotenv.config();
 
@@ -199,10 +192,12 @@ const generateCacheKey = (endpoint, params) => {
  *
  * @param {string} endpoint - The API endpoint (e.g., 'flights', 'airports').
  * @param {Object} [params={}] - Query parameters for the API request.
+ * @param {Object} [userContext] - INTEGRATION: The user context for usage tracking.
+ * @param {string} [usageMetric] - INTEGRATION: The specific metric to record for usage.
  * @returns {Promise<any>} The data from the API or mock data on failure/missing key.
  * @throws {Error} If the API returns an error and mock data cannot be generated.
  */
-async function makeRequest(endpoint, params = {}) {
+async function makeRequest(endpoint, params = {}, userContext, usageMetric) {
   const cacheKey = generateCacheKey(endpoint, params);
 
   // 1. Try retrieving from cache first
@@ -255,6 +250,12 @@ async function makeRequest(endpoint, params = {}) {
         throw new Error(`AviationStack API Error: ${json.error.message || JSON.stringify(json.error)}`);
       }
 
+      // INTEGRATION: Record the successful API call against the user/workspace.
+      // This must be done before caching to ensure it's only counted once per actual API call.
+      if (userContext && usageMetric) {
+          await recordUsage(userContext, usageMetric, 1);
+      }
+
       // Cache the successful results
       const ttl = TTL[endpoint] || 60;
       await setCachedData(cacheKey, json.data, ttl);
@@ -288,16 +289,16 @@ async function makeRequest(endpoint, params = {}) {
  * Falls back to mock data if API key is missing or request fails.
  *
  * @param {Object} [params={}] - Query parameters for the flights endpoint.
- *   @param {string} [params.flight_iata] - Filter by IATA flight code (e.g., 'UA123').
- *   @param {string} [params.flight_icao] - Filter by ICAO flight code (e.g., 'UAL123').
- *   @param {string} [params.dep_iata] - Filter by departure airport IATA code.
- *   @param {string} [params.arr_iata] - Filter by arrival airport IATA code.
- *   @param {string} [params.airline_iata] - Filter by airline IATA code.
- *   @param {string} [params.flight_status] - Filter by flight status (e.g., 'active', 'landed', 'scheduled').
+ * @param {Object} userContext - INTEGRATION: The context of the user making the request for auth and usage.
  * @returns {Promise<Array<Object>>} An array of flight objects.
  */
-export const getFlightsService = async (params = {}) => {
-  return makeRequest('flights', params);
+export const getFlightsService = async (params = {}, userContext) => {
+  // INTEGRATION: Enforce authentication, authorization, and usage limits.
+  if (!userContext) throw new AppError('Authentication required to access aviation data.', 401);
+  checkPermission(userContext, 'aviation:read');
+  await checkUsageLimit(userContext, 'aviationstack_api_calls');
+
+  return makeRequest('flights', params, userContext, 'aviationstack_api_calls');
 };
 
 /**
@@ -306,13 +307,16 @@ export const getFlightsService = async (params = {}) => {
  * Falls back to mock data if API key is missing or request fails.
  *
  * @param {Object} [params={}] - Query parameters for the routes endpoint.
- *   @param {string} [params.dep_iata] - Filter by departure airport IATA code.
- *   @param {string} [params.arr_iata] - Filter by arrival airport IATA code.
- *   @param {string} [params.airline_iata] - Filter by airline IATA code.
+ * @param {Object} userContext - INTEGRATION: The context of the user making the request for auth and usage.
  * @returns {Promise<Array<Object>>} An array of route objects.
  */
-export const getRoutesService = async (params = {}) => {
-  return makeRequest('routes', params);
+export const getRoutesService = async (params = {}, userContext) => {
+  // INTEGRATION: Enforce authentication, authorization, and usage limits.
+  if (!userContext) throw new AppError('Authentication required to access aviation data.', 401);
+  checkPermission(userContext, 'aviation:read');
+  await checkUsageLimit(userContext, 'aviationstack_api_calls');
+
+  return makeRequest('routes', params, userContext, 'aviationstack_api_calls');
 };
 
 /**
@@ -321,14 +325,16 @@ export const getRoutesService = async (params = {}) => {
  * Falls back to mock data if API key is missing or request fails.
  *
  * @param {Object} [params={}] - Query parameters for the airports endpoint.
- *   @param {string} [params.iata_code] - Filter by airport IATA code.
- *   @param {string} [params.icao_code] - Filter by airport ICAO code.
- *   @param {string} [params.city_name] - Filter by city name.
- *   @param {string} [params.country_name] - Filter by country name.
+ * @param {Object} userContext - INTEGRATION: The context of the user making the request for auth and usage.
  * @returns {Promise<Array<Object>>} An array of airport objects.
  */
-export const getAirportsService = async (params = {}) => {
-  return makeRequest('airports', params);
+export const getAirportsService = async (params = {}, userContext) => {
+  // INTEGRATION: Enforce authentication, authorization, and usage limits.
+  if (!userContext) throw new AppError('Authentication required to access aviation data.', 401);
+  checkPermission(userContext, 'aviation:read');
+  await checkUsageLimit(userContext, 'aviationstack_api_calls');
+
+  return makeRequest('airports', params, userContext, 'aviationstack_api_calls');
 };
 
 /**
@@ -337,13 +343,16 @@ export const getAirportsService = async (params = {}) => {
  * Falls back to mock data if API key is missing or request fails.
  *
  * @param {Object} [params={}] - Query parameters for the airlines endpoint.
- *   @param {string} [params.iata_code] - Filter by airline IATA code.
- *   @param {string} [params.icao_code] - Filter by airline ICAO code.
- *   @param {string} [params.airline_name] - Filter by airline name.
+ * @param {Object} userContext - INTEGRATION: The context of the user making the request for auth and usage.
  * @returns {Promise<Array<Object>>} An array of airline objects.
  */
-export const getAirlinesService = async (params = {}) => {
-  return makeRequest('airlines', params);
+export const getAirlinesService = async (params = {}, userContext) => {
+  // INTEGRATION: Enforce authentication, authorization, and usage limits.
+  if (!userContext) throw new AppError('Authentication required to access aviation data.', 401);
+  checkPermission(userContext, 'aviation:read');
+  await checkUsageLimit(userContext, 'aviationstack_api_calls');
+
+  return makeRequest('airlines', params, userContext, 'aviationstack_api_calls');
 };
 
 /**
@@ -352,30 +361,57 @@ export const getAirlinesService = async (params = {}) => {
  * Falls back to mock data if API key is missing or request fails.
  *
  * @param {Object} [params={}] - Query parameters for the airplanes endpoint.
- *   @param {string} [params.registration_number] - Filter by aircraft registration number.
- *   @param {string} [params.iata_type] - Filter by IATA aircraft type code.
+ * @param {Object} userContext - INTEGRATION: The context of the user making the request for auth and usage.
  * @returns {Promise<Array<Object>>} An array of airplane objects.
  */
-export const getAirplanesService = async (params = {}) => {
-  return makeRequest('airplanes', params);
+export const getAirplanesService = async (params = {}, userContext) => {
+  // INTEGRATION: Enforce authentication, authorization, and usage limits.
+  if (!userContext) throw new AppError('Authentication required to access aviation data.', 401);
+  checkPermission(userContext, 'aviation:read');
+  await checkUsageLimit(userContext, 'aviationstack_api_calls');
+
+  return makeRequest('airplanes', params, userContext, 'aviationstack_api_calls');
 };
 
-// Re-export open aviation database services
-export {
-  getMETARTAFService,
-  getFAANasStatusService,
-  getFAANotamsService,
-  getNTSBSafetyIncidentsService,
-  getAlternateAirportsService,
-  getFlightFuelPlanningService,
-  getCurfewComplianceService,
-  getOceanicTracksService,
-  getETOPSPlanningService,
-  getPassengerCompensationService,
-  getVolcanicAshProjectionService,
-  getCargoHazmatComplianceService,
-  getJetStreamTurbulenceService
+// INTEGRATION: Wrap open aviation database services to enforce security and usage tracking.
+// This ensures that all data access through this module is properly controlled and metered.
+const createWrappedOpenDataService = (serviceName, permission, usageMetric) => {
+  const originalService = openDataServices[serviceName];
+  if (!originalService) {
+    // Fail-safe to prevent runtime errors if the underlying service name changes.
+    logger.error(`[AviationStack Integration] Could not find original service: ${serviceName}`);
+    return async () => { throw new AppError(`Service ${serviceName} is not available.`, 500); };
+  }
+
+  return async (params = {}, userContext) => {
+    if (!userContext) throw new AppError(`Authentication required for ${serviceName}.`, 401);
+    checkPermission(userContext, permission);
+    await checkUsageLimit(userContext, usageMetric);
+
+    // Note: These services are not cached via the `makeRequest` helper, so usage is recorded here directly.
+    const result = await originalService(params);
+
+    await recordUsage(userContext, usageMetric, 1);
+
+    return result;
+  };
 };
+
+// Export the wrapped, context-aware services
+export const getMETARTAFService = createWrappedOpenDataService('getMETARTAFService', 'aviation:read:metar', 'open_aviation_api_calls');
+export const getFAANasStatusService = createWrappedOpenDataService('getFAANasStatusService', 'aviation:read:faa', 'open_aviation_api_calls');
+export const getFAANotamsService = createWrappedOpenDataService('getFAANotamsService', 'aviation:read:faa', 'open_aviation_api_calls');
+export const getNTSBSafetyIncidentsService = createWrappedOpenDataService('getNTSBSafetyIncidentsService', 'aviation:read:ntsb', 'open_aviation_api_calls');
+export const getAlternateAirportsService = createWrappedOpenDataService('getAlternateAirportsService', 'aviation:plan:read', 'open_aviation_api_calls');
+export const getFlightFuelPlanningService = createWrappedOpenDataService('getFlightFuelPlanningService', 'aviation:plan:read', 'open_aviation_api_calls');
+export const getCurfewComplianceService = createWrappedOpenDataService('getCurfewComplianceService', 'aviation:compliance:read', 'open_aviation_api_calls');
+export const getOceanicTracksService = createWrappedOpenDataService('getOceanicTracksService', 'aviation:plan:read', 'open_aviation_api_calls');
+export const getETOPSPlanningService = createWrappedOpenDataService('getETOPSPlanningService', 'aviation:plan:read', 'open_aviation_api_calls');
+export const getPassengerCompensationService = createWrappedOpenDataService('getPassengerCompensationService', 'aviation:compliance:read', 'open_aviation_api_calls');
+export const getVolcanicAshProjectionService = createWrappedOpenDataService('getVolcanicAshProjectionService', 'aviation:weather:read', 'open_aviation_api_calls');
+export const getCargoHazmatComplianceService = createWrappedOpenDataService('getCargoHazmatComplianceService', 'aviation:compliance:read', 'open_aviation_api_calls');
+export const getJetStreamTurbulenceService = createWrappedOpenDataService('getJetStreamTurbulenceService', 'aviation:weather:read', 'open_aviation_api_calls');
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HIGH-FIDELITY REALISTIC MOCK DATA ENGINE
