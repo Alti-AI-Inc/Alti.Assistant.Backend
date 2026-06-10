@@ -10,8 +10,6 @@ import ApiError from '../../../errors/ApiError.js';
 // BUG: Missing tenancy and usage tracking models/services.
 // FIX: Import necessary services and models to enforce workspace boundaries and track resource usage.
 import { usageService } from '../usage/usage.service.js';
-// PLATFORM_OWNER: Import Workspace model to enforce tenant-level status checks like suspension.
-import Workspace from '../workspace/workspace.model.js';
 
 /**
  * Initializes the Vertex AI client with project and location from configuration.
@@ -79,12 +77,11 @@ const formatPrompt = (template, scope) => {
  * @param {string} step.type - The type of the step (e.g., 'prompt', 'llm', 'parser', 'retriever', 'tool', 'branch').
  * @param {Object} step.config - The specific configuration for the step type.
  * @param {Object.<string, any>} scope - The shared execution scope containing variables and outputs from previous steps.
- * @param {Object} user - The authenticated user object, used for role-based checks and services like RAG.
+ * @param {string} userId - The ID of the user performing the execution, used for services like RAG.
  * @returns {Promise<Object>} An object containing the step's execution details, including input, output, duration, and token usage.
  * @throws {ApiError} If execution fails or an unsupported chain step type is encountered.
  */
-// PLATFORM_OWNER: Modified signature to accept the full user object for role-based configuration enforcement.
-const executeSingleStep = async (step, scope, user) => {
+const executeSingleStep = async (step, scope, userId) => {
   const stepStart = Date.now();
   let stepInput = {};
   let stepOutput = null;
@@ -111,21 +108,6 @@ const executeSingleStep = async (step, scope, user) => {
         const maxOutputTokens = step.config.maxOutputTokens ?? 1024;
         const modelName = step.config.model || 'gemini-1.5-flash';
 
-        // PLATFORM_OWNER: Enforce a global maximum on output tokens to prevent abuse and control costs.
-        // The Platform Owner can set this limit in the global config. This is a critical platform stability and cost-control feature.
-        // Note: A platform owner's own requests could also be capped, which is a safe default. An override is possible if needed.
-        const platformMaxTokens = config.llm?.maxOutputTokensGlobalLimit || 8192;
-        const effectiveMaxOutputTokens = Math.min(maxOutputTokens, platformMaxTokens);
-
-        if (effectiveMaxOutputTokens < maxOutputTokens) {
-            logger.warn(`Tenant-requested maxOutputTokens (${maxOutputTokens}) was capped at the platform limit (${effectiveMaxOutputTokens})`, {
-                userId: user._id,
-                workspaceId: user.workspaceId,
-                role: user.role,
-                chainStep: step.name,
-            });
-        }
-
         // SECURITY (PII): Filter out Personally Identifiable Information before sending data to the model.
         const sanitizedPromptText = filterPII(promptText);
 
@@ -145,7 +127,7 @@ const executeSingleStep = async (step, scope, user) => {
           const model = vertexAI.getGenerativeModel({
             model: modelName,
             safetySettings, // Apply the defined safety settings
-            generationConfig: { temperature, maxOutputTokens: effectiveMaxOutputTokens }, // Use the capped token limit
+            generationConfig: { temperature, maxOutputTokens },
           });
           const request = {
             contents: [{ role: 'user', parts: [{ text: sanitizedPromptText }] }], // Use the sanitized prompt
@@ -165,7 +147,11 @@ const executeSingleStep = async (step, scope, user) => {
         }
         if (response.candidates?.[0]?.finishReason !== 'STOP' && response.candidates?.[0]?.finishReason !== 'MAX_TOKENS') {
             // Handle cases where the generation was stopped for safety reasons.
-            logger.warn(`LLM generation stopped for reason: ${response.candidates?.[0]?.finishReason}`, { candidate: response.candidates?.[0] });
+            // GCP LOGGING: Switched to structured JSON logging for better parsing in Cloud Logging.
+            logger.warn({
+              message: `LLM generation stopped for reason: ${response.candidates?.[0]?.finishReason}`,
+              candidate: response.candidates?.[0]
+            });
             // Depending on policy, you might throw an error or return a canned response.
             // For this audit, we'll throw an error to make the issue visible.
             throw new ApiError(500, `Content generation stopped due to safety filters or an unexpected reason: ${response.candidates?.[0]?.finishReason}`);
@@ -226,8 +212,7 @@ const executeSingleStep = async (step, scope, user) => {
 
         let context;
         try {
-          // PLATFORM_OWNER: Pass user ID for RAG service context.
-          context = await ragService.queryDocument(queryText, user._id);
+          context = await ragService.queryDocument(queryText, userId);
         } catch (ragErr) {
           throw new ApiError(500, `RAG retrieval failed: ${ragErr.message}`, ragErr.stack);
         }
@@ -277,8 +262,10 @@ const executeSingleStep = async (step, scope, user) => {
     }
   } catch (err) {
     const normalizedErr = err instanceof ApiError ? err : new ApiError(500, `Step [${step.name}] execution failed: ${err.message}`, err.stack);
-    logger.error(`executeSingleStep failed for step [${step.name}]:`, {
-      message: normalizedErr.message,
+    // GCP LOGGING: Switched to structured JSON logging for better parsing in Cloud Logging.
+    logger.error({
+      message: `executeSingleStep failed for step [${step.name}]`,
+      errorMessage: normalizedErr.message,
       stack: normalizedErr.stack,
       stepName: step.name,
       stepType: step.type
@@ -308,53 +295,41 @@ const executeSingleStep = async (step, scope, user) => {
  * @param {Function} emit - A callback function `(data: Object) => void` used to send SSE events.
  * @returns {Promise<void>} A promise that resolves when the chain execution is complete or an error occurs.
  */
-const streamChainExecution = async (chainId, inputs, user, emit) => {
+const streamChainExecution = async (chainId, inputs, user, emit) => { // FIX: Changed userId to the full user object for role and tenancy checks.
   const tStart = Date.now();
   let execution;
-  // PLATFORM_OWNER: Destructure role from user object to implement role-based access control (RBAC).
-  const { _id: userId, workspaceId, role } = user;
+  // INTEGRATION: Destructure user object to get necessary IDs for tenancy and tracking.
+  const { _id: userId, workspaceId } = user;
 
   try {
-    // PLATFORM_OWNER: Enforce tenant (workspace) status. A suspended tenant cannot execute chains.
-    // The Platform Owner can bypass this check for administrative or debugging purposes.
-    const workspace = await Workspace.findById(workspaceId);
-    if (!workspace) {
-        const tenantNotFoundError = new ApiError(404, `Workspace with ID ${workspaceId} not found.`);
-        logger.error(`StreamChain execution failed: Workspace not found`, { chainId, userId, workspaceId });
-        emit({ event: 'error', message: tenantNotFoundError.message });
-        return;
-    }
-    if (workspace.status === 'suspended' && role !== 'platform_owner') {
-        const suspendedError = new ApiError(403, 'This workspace is suspended. Please contact support.');
-        logger.warn(`Execution blocked for suspended workspace`, { chainId, userId, workspaceId });
-        emit({ event: 'error', message: suspendedError.message });
-        return;
-    }
-
-    // PLATFORM_OWNER: Modify query to allow Platform Owners to access chains from any tenant.
-    // This is essential for global oversight and debugging tenant-specific issues.
-    const chainQuery = { _id: chainId };
-    if (role !== 'platform_owner') {
-      chainQuery.workspaceId = workspaceId;
-    }
-    const chain = await LangchainChain.findOne(chainQuery).lean();
+    // SECURITY (IDOR): The original code fetched a chain by its ID without checking if the user had permission.
+    // FIX: The query is now scoped to the user's workspaceId, preventing users from accessing or executing chains from other tenants.
+    const chain = await LangchainChain.findOne({ _id: chainId, workspaceId }).lean();
     if (!chain) {
       const notFoundError = new ApiError(404, `Chain not found or you do not have permission to access it.`);
-      logger.warn(`StreamChain execution failed: Chain not found or permission denied`, { chainId, userId, workspaceId, role });
+      // GCP LOGGING: Switched to structured JSON logging for better parsing in Cloud Logging.
+      logger.warn({
+        message: 'StreamChain execution failed: Chain not found or permission denied',
+        chainId,
+        userId,
+        workspaceId
+      });
       emit({ event: 'error', message: notFoundError.message });
       return;
     }
 
-    // PLATFORM_OWNER: Allow Platform Owners to bypass tenant usage limits.
-    // This is crucial for debugging production issues without being blocked by a tenant's quota.
-    if (role !== 'platform_owner') {
-        const canExecute = await usageService.canPerformAction(workspaceId, 'llmExecution');
-        if (!canExecute) {
-            const limitError = new ApiError(402, 'Workspace usage limit reached. Please upgrade your plan or contact your administrator.');
-            logger.warn(`Workspace usage limit reached for workspaceId: ${workspaceId}`, { chainId, userId });
-            emit({ event: 'error', message: limitError.message });
-            return;
-        }
+    // INTEGRATION (Limits): Check if the workspace has sufficient credits or is within its usage limits before starting execution.
+    const canExecute = await usageService.canPerformAction(workspaceId, 'llmExecution');
+    if (!canExecute) {
+        const limitError = new ApiError(402, 'Workspace usage limit reached. Please upgrade your plan or contact your administrator.');
+        // GCP LOGGING: Switched to structured JSON logging for better parsing in Cloud Logging.
+        logger.warn({
+          message: `Workspace usage limit reached for workspaceId: ${workspaceId}`,
+          chainId,
+          userId
+        });
+        emit({ event: 'error', message: limitError.message });
+        return;
     }
 
     const totalSteps = chain.steps.length;
@@ -398,8 +373,7 @@ const streamChainExecution = async (chainId, inputs, user, emit) => {
       });
 
       try {
-        // PLATFORM_OWNER: Pass the full user object to executeSingleStep for role-based config enforcement.
-        const result = await executeSingleStep(step, scope, user);
+        const result = await executeSingleStep(step, scope, userId);
 
         totalPromptTokens += result.tokenUsage.promptTokens;
         totalCompletionTokens += result.tokenUsage.completionTokens;
@@ -430,8 +404,10 @@ const streamChainExecution = async (chainId, inputs, user, emit) => {
         const normalizedErr = stepErr instanceof ApiError ? stepErr : new ApiError(500, stepErr.message, stepErr.stack);
         errorMsg = normalizedErr.message;
         
-        logger.error(`StreamChain: step [${step.name}] failed:`, {
-          message: normalizedErr.message,
+        // GCP LOGGING: Switched to structured JSON logging for better parsing in Cloud Logging.
+        logger.error({
+          message: `StreamChain: step [${step.name}] failed`,
+          errorMessage: normalizedErr.message,
           stack: normalizedErr.stack,
           stepName: step.name,
           stepType: step.type,
@@ -485,7 +461,9 @@ const streamChainExecution = async (chainId, inputs, user, emit) => {
         } catch (usageError) {
             // This is a non-fatal error for the end-user, but critical for the platform to monitor.
             // We log it as a high-priority error without failing the user's request.
-            logger.error('CRITICAL: Failed to record token usage after successful chain execution', {
+            // GCP LOGGING: Switched to structured JSON logging for better parsing in Cloud Logging.
+            logger.error({
+                message: 'CRITICAL: Failed to record token usage after successful chain execution',
                 workspaceId,
                 userId,
                 executionId: execution._id.toString(),
@@ -508,8 +486,10 @@ const streamChainExecution = async (chainId, inputs, user, emit) => {
     });
   } catch (err) {
     const apiError = err instanceof ApiError ? err : new ApiError(500, err.message || 'An unexpected error occurred during chain execution', err.stack);
-    logger.error(`StreamChain execution failed:`, {
-      message: apiError.message,
+    // GCP LOGGING: Switched to structured JSON logging for better parsing in Cloud Logging.
+    logger.error({
+      message: 'StreamChain execution failed',
+      errorMessage: apiError.message,
       stack: apiError.stack,
       chainId,
       userId
@@ -525,8 +505,10 @@ const streamChainExecution = async (chainId, inputs, user, emit) => {
         execution.error = apiError.message;
         await execution.save();
       } catch (saveErr) {
-        logger.error(`Failed to save failed execution state:`, {
-          message: saveErr.message,
+        // GCP LOGGING: Switched to structured JSON logging for better parsing in Cloud Logging.
+        logger.error({
+          message: 'Failed to save failed execution state',
+          errorMessage: saveErr.message,
           stack: saveErr.stack
         });
       }

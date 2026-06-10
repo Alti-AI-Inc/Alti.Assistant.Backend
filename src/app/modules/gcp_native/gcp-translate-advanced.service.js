@@ -8,6 +8,8 @@ const auth = new GoogleAuth({
 
 /**
  * Automatically detects the language of a given text content.
+ * This is a fast, synchronous API call and does not qualify as a long-running job.
+ * It is appropriately handled in-process for immediate feedback.
  * 
  * @param {string} text - Input text content
  * @returns {Promise<object>} Detected language report with confidence scores
@@ -50,16 +52,20 @@ const detectTextLanguage = async (text) => {
 };
 
 /**
- * Translates a complete binary document (PDF, DOCX, XLSX) using the GCP Translate Document API.
- * Keeps structural formatting and layouts fully intact.
+ * REFACTORED: Initiates an asynchronous, long-running document translation job using the GCP Batch Translate API.
+ * This function offloads the heavy processing from the application server to a managed GCP service.
+ * Instead of processing a document in-memory and blocking the request, this function starts a job and returns immediately.
+ * The caller is responsible for storing the returned operation name to check for completion later.
+ * This approach requires the source document to be in a GCS bucket.
  * 
- * @param {Buffer} documentBuffer - Binary document buffer
+ * @param {string} gcsInputUri - The GCS URI of the source document. e.g., 'gs://my-bucket/my-folder/document.pdf'
  * @param {string} mimeType - Document mimetype (e.g. 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+ * @param {string} gcsOutputUriPrefix - The GCS URI prefix for the output folder. e.g., 'gs://my-bucket/my-folder/translated/'
  * @param {string} targetLanguageCode - Target ISO language code (e.g. 'es', 'fr', 'ja')
  * @param {string} [sourceLanguageCode] - Optional source language code (if omitted, GCP auto-detects)
- * @returns {Promise<object>} Translated document report containing base64 document output bytes
+ * @returns {Promise<object>} An object containing the name of the long-running operation.
  */
-const translateDocument = async (documentBuffer, mimeType, targetLanguageCode, sourceLanguageCode = null) => {
+const startDocumentTranslation = async (gcsInputUri, mimeType, gcsOutputUriPrefix, targetLanguageCode, sourceLanguageCode = null) => {
   try {
     const projectId = config.google.gcp_project_id || process.env.GCP_PROJECT_ID;
     // Location must be a regional endpoint for document translation (global not supported for docs)
@@ -70,17 +76,27 @@ const translateDocument = async (documentBuffer, mimeType, targetLanguageCode, s
     if (!projectId) {
       throw new Error('GCP Project ID is not configured.');
     }
+    if (!gcsInputUri || !gcsOutputUriPrefix) {
+      throw new Error('GCS input URI and output URI prefix are required for batch translation.');
+    }
 
-    logger.info(`Translate API (Advanced): Translates document of type "${mimeType}" to "${targetLanguageCode}"`);
+    logger.info(`Translate API (Advanced): Starting batch translation job for "${gcsInputUri}" to "${targetLanguageCode}"`);
 
     const client = await auth.getClient();
-    const endpoint = `https://translate.googleapis.com/v3/projects/${projectId}/locations/${location}:translateDocument`;
+    const endpoint = `https://translate.googleapis.com/v3/projects/${projectId}/locations/${location}:batchTranslateDocument`;
 
     const requestBody = {
-      targetLanguageCode,
-      documentInput: {
-        content: documentBuffer.toString('base64'),
-        mimeType
+      targetLanguageCodes: [targetLanguageCode],
+      inputConfigs: [{
+        mimeType: mimeType,
+        gcsSource: {
+          inputUri: gcsInputUri
+        }
+      }],
+      outputConfig: {
+        gcsDestination: {
+          outputUriPrefix: gcsOutputUriPrefix
+        }
       }
     };
 
@@ -88,32 +104,27 @@ const translateDocument = async (documentBuffer, mimeType, targetLanguageCode, s
       requestBody.sourceLanguageCode = sourceLanguageCode;
     }
 
-    const response = await client.request({
+    // This API call is non-blocking. It initiates a Long-Running Operation (LRO) on GCP.
+    const [operation] = await client.request({
       url: endpoint,
       method: 'POST',
       data: requestBody
     });
 
-    const docTranslation = response.data?.documentTranslation || {};
-    const translatedContent = docTranslation.byteStreamOutputs?.[0];
-
-    if (!translatedContent) {
-      throw new Error('GCP Document Translation did not return translated byte stream.');
-    }
+    logger.info(`Successfully started translation LRO: ${operation.name}`);
 
     return {
       success: true,
-      translatedContent, // Base64 encoded translated file
-      mimeType: docTranslation.mimeType || mimeType,
-      detectedLanguageCode: docTranslation.detectedLanguageCode
+      operationName: operation.name,
+      message: 'Document translation job started successfully. Check the operation status for completion.'
     };
   } catch (err) {
-    logger.error('GCP Translate Advanced (Doc Translation) Error:', err);
-    throw new Error(`GCP Document Translation failed: ${err.message}`);
+    logger.error('GCP Translate Advanced (Batch Doc Translation) Error:', err);
+    throw new Error(`GCP Batch Document Translation failed to start: ${err.message}`);
   }
 };
 
 export const GcpTranslateAdvancedService = {
   detectTextLanguage,
-  translateDocument
+  startDocumentTranslation
 };

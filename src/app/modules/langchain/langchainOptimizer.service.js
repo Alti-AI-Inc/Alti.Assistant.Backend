@@ -56,14 +56,11 @@ const sanitizeObjectForAI = obj => {
  * @param {Object|string} userContext - The current user object or user ID.
  */
 const optimizeChain = async (chainId, userContext) => {
-  try {
-    // Structured log for GCP Cloud Logging compatibility
-    logger.info({
-      severity: 'INFO',
-      message: `LangchainOptimizer: running diagnostics on chain ${chainId}`,
-      chainId,
-    });
+  // PLATFORM-OWNER-ENHANCEMENT: Define a logging-specific variable for the user ID
+  // to ensure it's available in the final catch block even if user resolution fails partially.
+  let userIdForLogging = userContext?._id || (typeof userContext === 'string' ? userContext : 'unknown');
 
+  try {
     // Resolve user context and fetch full user details if only ID is provided
     let currentUser = null;
     const User = mongoose.models.User || mongoose.model('User');
@@ -86,8 +83,19 @@ const optimizeChain = async (chainId, userContext) => {
     }
 
     const userId = currentUser._id || currentUser.id;
+    userIdForLogging = userId.toString(); // Update with the definitive ID
     const userRole = currentUser.role; // super_admin, admin, manager, user
     const tenantId = currentUser.tenantId;
+
+    // PLATFORM-OWNER-ENHANCEMENT: Centralized, detailed initial log for improved audit trails.
+    logger.info({
+      severity: 'INFO',
+      message: `LangchainOptimizer: User ${userId} (${userRole}) starting diagnostics on chain ${chainId}.`,
+      chainId,
+      userId,
+      userRole,
+      tenantId: tenantId ? tenantId.toString() : 'N/A',
+    });
 
     // Fetch the chain
     const chain = await LangchainChain.findById(chainId).lean();
@@ -132,14 +140,28 @@ const optimizeChain = async (chainId, userContext) => {
       // Admins have full access within their tenant, so no further checks needed for 'admin'
     }
 
-    // 2. Usage Limits & Subscription Checks
+    // 2. Tenant Status & Usage Limit Checks
     if (userRole !== 'super_admin' && tenantId) {
-      // First, get tenant details like name and limit for potential notifications.
-      const tenantInfo = await Tenant.findById(tenantId).select('name aiUsage.optimizationLimit').lean();
-      if (!tenantInfo) {
+      // PLATFORM-OWNER-ENHANCEMENT: Fetch tenant details to verify status and check usage limits in a single operation.
+      const tenant = await Tenant.findById(tenantId).select('name status aiUsage').lean();
+      if (!tenant) {
         throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Tenant context not found.');
       }
-      const limit = tenantInfo.aiUsage?.optimizationLimit || 100; // Default limit
+
+      // PLATFORM-OWNER-ENHANCEMENT: Ensure the tenant is active before allowing resource consumption.
+      // Super Admins can operate on any tenant regardless of status for administrative purposes.
+      if (tenant.status !== 'active') {
+        logger.warn({
+          severity: 'WARNING',
+          message: `User ${userId} from inactive tenant ${tenantId} attempted to run optimization.`,
+          userId,
+          tenantId,
+          tenantStatus: tenant.status,
+        });
+        throw new ApiError(httpStatus.FORBIDDEN, `Access denied: Your workspace is not active (status: ${tenant.status}).`);
+      }
+
+      const limit = tenant.aiUsage?.optimizationLimit || 100; // Default limit
 
       // BUG-FIX: Atomically check and increment usage count to prevent race conditions.
       // This operation finds a tenant that is under its limit and increments its count in a single DB operation.
@@ -160,7 +182,7 @@ const optimizeChain = async (chainId, userContext) => {
           const notifications = admins.map(admin => ({
             recipientId: admin._id,
             title: 'AI Limit Exceeded',
-            message: `Tenant ${tenantInfo.name || tenantId} has reached its AI optimization limit (${limit}).`,
+            message: `Tenant ${tenant.name || tenantId} has reached its AI optimization limit (${limit}).`,
             type: 'warning',
           }));
           // Fire-and-forget notification creation to not block the user response, but log any errors.
@@ -178,7 +200,9 @@ const optimizeChain = async (chainId, userContext) => {
     }
 
     // Fetch last 15 executions for this chain
-    // If user is regular user, restrict executions to their own. Otherwise, allow tenant-wide executions.
+    // If user is regular user, restrict executions to their own.
+    // If user is admin/manager, restrict to their tenant.
+    // PLATFORM-OWNER-ENHANCEMENT: Super Admins are not restricted and can view executions across all tenants for a given chain.
     const executionQuery = { chainId };
     if (userRole === 'user') {
       executionQuery.userId = userId;
@@ -237,7 +261,7 @@ const optimizeChain = async (chainId, userContext) => {
     }
 
     const successRate = Math.round((successfulExecutions / totalExecutions) * 100);
-    const avgDuration = Math.round(totalDuration / totalExecutions);
+    const avgDuration = totalExecutions > 0 ? Math.round(totalDuration / totalExecutions) : 0;
     const slowSteps = [];
 
     // Find slow steps (avg duration > 4 seconds)
@@ -356,6 +380,7 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
     }
 
     // 3. Propagate Notifications to Managers and Admins
+    // PLATFORM-OWNER-ENHANCEMENT: Super Admin actions are considered administrative and do not trigger tenant-level notifications.
     if (userRole !== 'super_admin' && tenantId) {
       const notificationsToCreate = [];
 
@@ -417,7 +442,7 @@ Ensure your response is raw JSON only, with no markdown styling or wrapping back
       message: `LangchainOptimizer error on chain ${chainId}: ${err.message}`,
       error: err.stack || err.toString(),
       chainId,
-      userId: userContext?._id || (typeof userContext === 'string' ? userContext : 'unknown'),
+      userId: userIdForLogging,
     });
 
     // Re-throw ApiError instances to be handled by the global error middleware
