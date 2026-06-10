@@ -57,6 +57,9 @@ const handleTranscriptionConversation = async (
           isGuest ? null : userId,
           req
         );
+        // Optimization Recommendation: If `conversationHelpers.getConversationById` only retrieves data for read-only purposes
+        // (as it appears here, checking `conversation.metadata?.userType`), consider adding `.lean()` to the Mongoose query
+        // within `conversationHelpers.getConversationById` for better performance by returning a plain JavaScript object.
 
         if (isGuest && conversation.metadata?.userType !== 'guest') {
           logger.warn(
@@ -289,6 +292,14 @@ const getTranscriptionStats = async (userId, req = null) => {
         'metadata.category': TRANSCRIPTION_CONSTANTS.CATEGORY,
       }
     );
+    // Optimization Recommendation: For read-only operations like retrieving conversations for statistics,
+    // ensure `conversationHelpers.getUserConversations` uses `.lean()` in its Mongoose query
+    // to return plain JavaScript objects, reducing Mongoose document overhead.
+
+    // Indexing Recommendation: To optimize the query for `getUserConversations` which filters by
+    // `userId` (implicitly, as it's `getUserConversations(userId, ...)`) and `metadata.category`,
+    // consider adding a compound index to the 'conversations' collection:
+    // db.conversations.createIndex({ userId: 1, 'metadata.category': 1 });
 
     let totalTranscriptions = 0;
     let totalDuration = 0;
