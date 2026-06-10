@@ -88,11 +88,31 @@ import { deepseekServices } from './deepseek.service.js';
  * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
 const DeepseekAiGetResponse = catchAsync(async (req, res) => {
-  const { prompt, userId, sessionId } = await validatePromptRequest(req);
+  // Validate the request body parameters (prompt, userId, sessionId).
+  // This ensures the incoming data adheres to expected formats and presence.
+  // The `userId` from the body is extracted as `_bodyUserId` but will be overridden for security.
+  const { prompt, userId: _bodyUserId, sessionId } = await validatePromptRequest(req);
+
+  // Security Fix: Prevent Insecure Direct Object Reference (IDOR).
+  // The `userId` for the service call should come from the authenticated user's context (e.g., req.user.id)
+  // rather than directly from the request body. This ensures that a user cannot
+  // impersonate another user by simply changing the `userId` in the request.
+  // It is assumed that an authentication middleware has populated `req.user` with the authenticated user's details.
+  const authenticatedUserId = req.user?.id;
+
+  // If authentication is expected but the authenticated user ID is missing,
+  // it indicates an unauthorized access attempt or a misconfiguration in the authentication flow.
+  if (!authenticatedUserId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Authentication required or authenticated user ID missing.',
+    });
+  }
 
   const result = await deepseekServices.deepseekResponseService(
     prompt,
-    userId,
+    authenticatedUserId, // Use the authenticated user's ID for the service call
     sessionId
   );
 

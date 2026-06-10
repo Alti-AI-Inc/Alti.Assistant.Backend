@@ -8,6 +8,14 @@ import { parquetReadObjects } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import { rag } from '../knowledge/knowledge.service.js';
 
+// Recommended Mongoose Indexes for Dataset model (to be defined in datasets.model.js):
+// For optimal performance, ensure the following indexes are defined on your Dataset schema:
+// 1. `datasetId`: For efficient lookups in `Dataset.findOne({ datasetId: ... })`.
+//    Example in schema definition: `datasetSchema.index({ datasetId: 1 }, { unique: true });`
+// 2. `updatedAt`: For efficient sorting in `Dataset.find(...).sort({ updatedAt: -1 })`.
+//    Example in schema definition: `datasetSchema.index({ updatedAt: -1 });`
+// 3. If `filter` commonly includes specific fields in `getLocalCatalog`, consider adding indexes for those fields as well.
+
 
 /**
  * Initializes and returns a Google Cloud Storage client and bucket.
