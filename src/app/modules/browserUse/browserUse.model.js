@@ -139,6 +139,7 @@ const responseSchema = new mongoose.Schema(
  * @typedef {object} BrowserSession
  * @property {mongoose.Types.ObjectId} user - The ID of the user who initiated the browser session.
  * @property {mongoose.Types.ObjectId|null} [tenantId=null] - The ID of the tenant associated with this session.
+ * @property {mongoose.Schema.Types.Mixed} [metadata={}] - Flexible key-value store for platform-level data, like admin overrides or special configurations.
  * @property {mongoose.Types.DocumentArray<Response>} responses - An array of responses/tasks performed within this session.
  * @property {Date} createdAt - The timestamp when the session was created.
  * @property {Date} updatedAt - The timestamp when the session was last updated.
@@ -158,7 +159,7 @@ const browserSessionSchema = new mongoose.Schema(
      */
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     /**
-     * The ID of the tenant associated with this session.
+     * The ID of the tenant associated with this session. Null for platform-level operations.
      * @type {mongoose.Schema.Types.ObjectId|null}
      * @ref 'Tenant'
      * @default null
@@ -167,6 +168,17 @@ const browserSessionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Tenant',
       default: null,
+      index: true, // Added simple index for tenant-specific queries
+    },
+    /**
+     * Flexible key-value store for platform-level data.
+     * Useful for Platform Owners to track admin overrides, applied configurations, or other audit metadata.
+     * @type {mongoose.Schema.Types.Mixed}
+     * @default {}
+     */
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
     /**
      * An array of responses/tasks performed within this session.
@@ -177,9 +189,21 @@ const browserSessionSchema = new mongoose.Schema(
   { timestamps: true } // Adds createdAt and updatedAt timestamps
 );
 
-// Indexes for multi-tenant production efficiency
+// === INDEXES ===
+// Indexes are critical for performance, especially for Platform Owner oversight and global logging.
+
 /**
- * Index for efficient querying by tenant, user, and creation date (descending).
+ * Platform Owner Global Log Index: Enables efficient querying for the most recent sessions across ALL tenants.
+ * Crucial for a global activity feed or system-wide monitoring.
+ * @memberof BrowserSession
+ * @index
+ * @property {-1} createdAt - Descending order for creation date.
+ */
+browserSessionSchema.index({ createdAt: -1 });
+
+/**
+ * Primary Tenant-User Index: For efficient querying by tenant, user, and creation date.
+ * This is the main index for drilling down into specific tenant and user activity.
  * @memberof BrowserSession
  * @index
  * @property {1} tenantId - Ascending order for tenant ID.
@@ -187,22 +211,25 @@ const browserSessionSchema = new mongoose.Schema(
  * @property {-1} createdAt - Descending order for creation date.
  */
 browserSessionSchema.index({ tenantId: 1, user: 1, createdAt: -1 });
+
 /**
- * Index for efficient querying by tenant and creation date (descending).
+ * Tenant-wide Log Index: For efficient querying of a specific tenant's recent activity.
  * @memberof BrowserSession
  * @index
  * @property {1} tenantId - Ascending order for tenant ID.
  * @property {-1} createdAt - Descending order for creation date.
  */
 browserSessionSchema.index({ tenantId: 1, createdAt: -1 });
+
 /**
- * Legacy fallback index for efficient querying by user and creation date (descending).
+ * Legacy/User-centric Index: Fallback for efficient querying by user and creation date,
+ * especially in non-tenant or user-centric views.
  * @memberof BrowserSession
  * @index
  * @property {1} user - Ascending order for user ID.
  * @property {-1} createdAt - Descending order for creation date.
  */
-browserSessionSchema.index({ user: 1, createdAt: -1 }); // Legacy fallback
+browserSessionSchema.index({ user: 1, createdAt: -1 });
 
 /**
  * Mongoose model for a BrowserSession.
