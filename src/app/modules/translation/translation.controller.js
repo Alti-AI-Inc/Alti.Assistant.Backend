@@ -6,6 +6,97 @@ import { translationService } from './translation.service.js';
 import SubscriptionModel from '../payment/payment.model.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 
+// Dynamically attempt to load the shared Redis client to prevent startup failures if not configured.
+// Falls back gracefully to an in-memory rate limiter to ensure high availability.
+let redisClient = null;
+try {
+  const redisModule = await import('../../../shared/redis.js');
+  redisClient = redisModule.redisClient || redisModule.redis || redisModule.default;
+} catch (error) {
+  logger.warn('Redis client not found or failed to load. Falling back to in-memory rate limiting.');
+}
+
+const memoryStore = new Map();
+
+// Periodically clean up expired memory store entries to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, data] of memoryStore.entries()) {
+    if (data.resetTime < now) {
+      memoryStore.delete(key);
+    }
+  }
+}, 60000).unref();
+
+/**
+ * Core rate-limiting evaluator supporting Redis sliding/fixed window and memory fallback.
+ * Protects downstream LLM and translation APIs from cost runaway and DDOS.
+ *
+ * @param {string} key - Unique identifier for the rate limit bucket.
+ * @param {number} limit - Maximum allowed requests within the window.
+ * @param {number} windowSecs - Window duration in seconds.
+ * @returns {Promise<{allowed: boolean, current: number, limit: number, remaining: number, resetTime: number}>}
+ */
+async function checkRateLimit(key, limit, windowSecs) {
+  const now = Date.now();
+  const windowMs = windowSecs * 1000;
+
+  if (redisClient && typeof redisClient.multi === 'function') {
+    try {
+      const redisKey = `rate_limit:${key}`;
+      const replies = await redisClient
+        .multi()
+        .incr(redisKey)
+        .ttl(redisKey)
+        .exec();
+
+      // ioredis returns results as [err, result] pairs
+      const count = Array.isArray(replies[0]) ? replies[0][1] : replies[0];
+      const ttl = Array.isArray(replies[1]) ? replies[1][1] : replies[1];
+
+      if (count === 1 || ttl === -1) {
+        await redisClient.expire(redisKey, windowSecs);
+      }
+
+      return {
+        allowed: count <= limit,
+        current: count,
+        limit,
+        remaining: Math.max(0, limit - count),
+        resetTime: now + (ttl > 0 ? ttl * 1000 : windowMs),
+      };
+    } catch (err) {
+      logger.error('Redis rate limiting error, falling back to memory:', err);
+    }
+  }
+
+  // Memory fallback implementation
+  const record = memoryStore.get(key);
+  if (!record || record.resetTime < now) {
+    const newRecord = {
+      count: 1,
+      resetTime: now + windowMs,
+    };
+    memoryStore.set(key, newRecord);
+    return {
+      allowed: true,
+      current: 1,
+      limit,
+      remaining: limit - 1,
+      resetTime: newRecord.resetTime,
+    };
+  }
+
+  record.count += 1;
+  return {
+    allowed: record.count <= limit,
+    current: record.count,
+    limit,
+    remaining: Math.max(0, limit - record.count),
+    resetTime: record.resetTime,
+  };
+}
+
 /**
  * @swagger
  * /api/v1/translation/assistant:
@@ -98,6 +189,8 @@ import { conversationHelpers } from '../conversations/conversation.helpers.js';
  *         $ref: '#/components/responses/BadRequest'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -117,19 +210,31 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
     userId = translationService.generateGuestUserId();
   } else {
     // Security Fix: Prevent IDOR (Insecure Direct Object Reference) / User ID spoofing.
-    // For authenticated users, the userId must be derived from the authenticated user's session (req.user),
-    // not from req.body, which could be manipulated by a malicious user.
     userId = req.user?.userId || req.user?._id;
   }
 
   const { message, conversationId } = req.body;
-  // If req.body.userId was intended for guest users to resume a session,
-  // that logic needs to be explicit and securely handled (e.g., validating guest tokens).
-  // For authenticated users, req.body.userId must not override the authenticated user's ID.
-  // If req.body.userId is present for a guest, it could be used to identify an existing guest session.
-  // For now, we ensure authenticated users' IDs are not overridden.
   if (isGuest && req.body.userId) {
     userId = req.body.userId;
+  }
+
+  // Rate Limiting: Prevent DDOS and high LLM cost runaway.
+  // Guests are limited strictly (e.g., 5 requests/min), authenticated users get higher limits (e.g., 30 requests/min).
+  const rateLimitLimit = isGuest ? 5 : 30;
+  const rateLimitWindow = 60;
+  const rateLimitKey = `assistant:${userId || req.ip}`;
+  const rateLimitResult = await checkRateLimit(rateLimitKey, rateLimitLimit, rateLimitWindow);
+
+  res.setHeader('X-RateLimit-Limit', rateLimitLimit);
+  res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000));
+
+  if (!rateLimitResult.allowed) {
+    return sendResponse(res, {
+      statusCode: httpStatus.TOO_MANY_REQUESTS,
+      success: false,
+      message: 'Too many requests to the conversational assistant. Please try again later.',
+    });
   }
 
   // Get uploaded file if present
@@ -149,8 +254,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   if (!isGuest) {
     try {
       // Optimization: Added .lean() for read-only query to improve performance.
-      // Performance Recommendation: For optimal performance, ensure an index exists on `userId` and `createdAt`
-      // in your SubscriptionModel schema (e.g., schema.index({ userId: 1, createdAt: -1 })).
       const userSubscription = await SubscriptionModel.findOne({ userId })
         .sort({
           createdAt: -1,
@@ -159,19 +262,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 
       const promptLimit = userSubscription ? userSubscription.usage : 0; // Assuming 'usage' is the monthly limit
 
-      // Bug Fix: The original logic incorrectly used `conversationHelpers.getConversationById`
-      // to determine monthly usage. This function likely returns details for a single conversation
-      // or its message count, not the total monthly usage across all conversations.
-      // A proper implementation requires a dedicated service method to calculate
-      // the user's total message/prompt count for the current billing period.
-      // For the purpose of fixing the comparison logic within existing helper structures,
-      // we make a strong assumption that `conversationHelpers.getConversationById(null, userId, req)`
-      // is intended to return the *total monthly usage* for the user when `conversationId` is null.
-      // If this assumption is incorrect, this line remains a bug and requires a new service method.
-      // Performance Recommendation: If `conversationHelpers.getConversationById` performs database queries
-      // to calculate total monthly usage, ensure it uses efficient aggregation queries with appropriate
-      // indexes (e.g., on `userId` and `createdAt` in the relevant message/conversation collection)
-      // and `.lean()` for read-only operations.
       const currentMonthlyUsage = await conversationHelpers.getConversationById(
         null, // Pass null to signify "get total monthly usage" if helper supports it
         userId,
@@ -189,7 +279,6 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       }
     } catch (error) {
       // Bug Fix: If subscription check itself fails, it's an internal server error.
-      // The request should not proceed without a successful subscription verification.
       logger.error('Subscription check failed:', error);
       return sendResponse(res, {
         statusCode: httpStatus.INTERNAL_SERVER_ERROR,
@@ -306,6 +395,8 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
  *                   example: "Hola, mundo!"
  *       400:
  *         $ref: '#/components/responses/BadRequest'
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -319,8 +410,27 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
 export const translateText = catchAsync(async (req, res) => {
   const { text, targetLanguage, sourceLanguage } = req.body;
 
+  // Rate Limiting: Direct translation calls external translation APIs which incur costs.
+  const clientId = req.user?.userId || req.user?._id || req.ip;
+  const rateLimitLimit = 20;
+  const rateLimitWindow = 60;
+  const rateLimitKey = `translate:${clientId}`;
+  const rateLimitResult = await checkRateLimit(rateLimitKey, rateLimitLimit, rateLimitWindow);
+
+  res.setHeader('X-RateLimit-Limit', rateLimitLimit);
+  res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000));
+
+  if (!rateLimitResult.allowed) {
+    return sendResponse(res, {
+      statusCode: httpStatus.TOO_MANY_REQUESTS,
+      success: false,
+      message: 'Too many translation requests. Please try again later.',
+    });
+  }
+
   logger.info('Direct translation request', {
-    textLength: text.length,
+    textLength: text ? text.length : 0,
     targetLanguage,
     sourceLanguage: sourceLanguage || 'auto',
   });
@@ -401,6 +511,8 @@ export const translateText = catchAsync(async (req, res) => {
  *                       example: 0.98
  *       400:
  *         $ref: '#/components/responses/BadRequest'
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -414,8 +526,27 @@ export const translateText = catchAsync(async (req, res) => {
 export const detectLanguage = catchAsync(async (req, res) => {
   const { text } = req.body;
 
+  // Rate Limiting: Prevent abuse of language detection endpoint.
+  const clientId = req.user?.userId || req.user?._id || req.ip;
+  const rateLimitLimit = 40;
+  const rateLimitWindow = 60;
+  const rateLimitKey = `detect:${clientId}`;
+  const rateLimitResult = await checkRateLimit(rateLimitKey, rateLimitLimit, rateLimitWindow);
+
+  res.setHeader('X-RateLimit-Limit', rateLimitLimit);
+  res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000));
+
+  if (!rateLimitResult.allowed) {
+    return sendResponse(res, {
+      statusCode: httpStatus.TOO_MANY_REQUESTS,
+      success: false,
+      message: 'Too many language detection requests. Please try again later.',
+    });
+  }
+
   logger.info('Language detection request', {
-    textLength: text.length,
+    textLength: text ? text.length : 0,
   });
 
   try {
@@ -476,6 +607,8 @@ export const detectLanguage = catchAsync(async (req, res) => {
  *                         type: string
  *                         description: The name of the language (e.g., 'English', 'Spanish').
  *                         example: "English"
+ *       429:
+ *         description: Too many requests.
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -487,6 +620,25 @@ export const detectLanguage = catchAsync(async (req, res) => {
  * @returns {Promise<void>} A promise that resolves when the response is sent.
  */
 export const getSupportedLanguages = catchAsync(async (req, res) => {
+  // Rate Limiting: Prevent DDOS on static/semi-static metadata endpoints.
+  const clientId = req.user?.userId || req.user?._id || req.ip;
+  const rateLimitLimit = 100;
+  const rateLimitWindow = 60;
+  const rateLimitKey = `languages:${clientId}`;
+  const rateLimitResult = await checkRateLimit(rateLimitKey, rateLimitLimit, rateLimitWindow);
+
+  res.setHeader('X-RateLimit-Limit', rateLimitLimit);
+  res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000));
+
+  if (!rateLimitResult.allowed) {
+    return sendResponse(res, {
+      statusCode: httpStatus.TOO_MANY_REQUESTS,
+      success: false,
+      message: 'Too many requests for supported languages. Please try again later.',
+    });
+  }
+
   logger.info('Get supported languages request');
 
   try {
