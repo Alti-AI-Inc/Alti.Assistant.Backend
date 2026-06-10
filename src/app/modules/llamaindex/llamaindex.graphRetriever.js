@@ -4,13 +4,17 @@ import { logger } from '../../../shared/logger.js';
 
 /**
  * Graph RAG query context resolver.
- * Parses query terms, traverses the semantic document relationship graph,
+ * Parses query terms, traverses a user's semantic document relationship graph,
  * and enriches the search query with cross-document connection schemas.
  *
+ * This function operates within a multi-tenant context, ensuring that all document metadata
+ * lookups and graph traversals are strictly scoped to the provided `userId`.
+ *
  * @param {string} query - The original user query string.
- * @param {string} userId - The ID of the user for whom to retrieve document metadata.
+ * @param {string} userId - The ID of the user, used to scope all data access.
  * @returns {Promise<string>} A promise that resolves to the original query string or a new query string
- *   enriched with cross-document relationship context.
+ *   enriched with cross-document relationship context. If no relationships are found or an error occurs,
+ *   it gracefully falls back to the original query.
  */
 const getGraphEnrichedQueryContext = async (query, userId) => {
   try {
@@ -131,9 +135,9 @@ ${query}`;
 
 /**
  * Service object for graph-based document retrieval and query enrichment.
- * Provides methods to leverage a semantic relationship graph for enhancing RAG queries.
- * @typedef {object} GraphRetrieverService
- * @property {function(string, string): Promise<string>} getGraphEnrichedQueryContext - Function to enrich a user query with cross-document relationship context.
+ * Provides methods to leverage a user-specific semantic relationship graph for enhancing RAG queries.
+ * @exports graphRetrieverService
+ * @type {{getGraphEnrichedQueryContext: function(string, string): Promise<string>}}
  */
 export const graphRetrieverService = {
   getGraphEnrichedQueryContext,

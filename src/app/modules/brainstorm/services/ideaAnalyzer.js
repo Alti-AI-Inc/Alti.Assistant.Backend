@@ -9,6 +9,79 @@ import {
   DEPTH_LEVELS,
   COMPLEXITY_LEVELS,
 } from '../brainstorm.constant.js';
+import { rateLimit } from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import { redisClient } from '../../../../shared/redis/redis.client.js'; // Assuming a shared Redis client is available
+
+// --- Rate Limiting & DDOS Protection Setup ---
+
+// Create a new Redis store for rate-limit-redis to persist rate limit counts
+// across multiple processes or servers, which is essential for DDOS protection.
+const rateLimitStore = new RedisStore({
+  // The `sendCommand` function is the new API for ioredis v5 and node-redis v4.
+  sendCommand: (...args) => redisClient.sendCommand(args),
+});
+
+/**
+ * Custom key generator for rate limiting.
+ * It prioritizes the authenticated user's ID to ensure the limit is applied
+ * per-user, not per-IP, for logged-in users. This prevents a single user
+ * from being blocked if they switch networks (IPs).
+ * For anonymous (public) users, it falls back to the IP address.
+ * @param {import('express').Request} req - The Express request object.
+ * @returns {string} The identifier to use for rate limiting (user ID or IP).
+ */
+const keyGenerator = (req) => {
+  // Assumes an authentication middleware (e.g., Passport.js, JWT) attaches
+  // a `user` object with an `id` to the request for authenticated endpoints.
+  if (req.user && req.user.id) {
+    return `user:${req.user.id}`;
+  }
+  // Fallback for unauthenticated/public requests. `req.ip` is used, which requires
+  // Express's 'trust proxy' setting to be configured correctly if behind a reverse proxy.
+  return `ip:${req.ip}`;
+};
+
+/**
+ * Rate limiter for core, expensive AI analysis functions (e.g., analyzeIntent, analyzeIdea).
+ * This is a crucial defense against cost runaway from API abuse and DDOS attempts.
+ * The limits are set to allow a reasonable brainstorming session for a legitimate user
+ * while preventing rapid, automated requests.
+ * - Limit: 100 requests per 15 minutes per user/IP.
+ */
+export const aiAnalysisLimiter = rateLimit({
+  store: rateLimitStore,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator,
+  message: {
+    status: 429,
+    message: 'Too many analysis requests. Please wait a while before trying again.',
+  },
+});
+
+/**
+ * A slightly more lenient rate limiter for simpler, faster AI calls (e.g., extractIdea).
+ * These calls are less resource-intensive but can still be abused in high volume.
+ * This layered approach provides more granular control over resource consumption.
+ * - Limit: 75 requests per 5 minutes per user/IP.
+ */
+export const aiExtractionLimiter = rateLimit({
+  store: rateLimitStore,
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 75,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator,
+  message: {
+    status: 429,
+    message: 'Too many requests. Please slow down.',
+  },
+});
+
+// --- End of Rate Limiting Setup ---
 
 const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
 
