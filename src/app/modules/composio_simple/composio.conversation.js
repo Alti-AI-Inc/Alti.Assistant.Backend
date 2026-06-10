@@ -181,13 +181,18 @@ export const getUserConversations = async (userId, options = {}) => {
     sortOrder = -1,
   } = options;
 
+  // Whitelist allowed sort fields to prevent potential injection or performance issues
+  // If an invalid sortBy field is provided, it defaults to 'lastActivity'.
+  const allowedSortFields = ['lastActivity', 'title', 'createdAt', 'updatedAt'];
+  const finalSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'lastActivity';
+
   const skip = (page - 1) * limit;
 
   const conversations = await Conversation.find({
     userId: userId,
     'metadata.category': 'composio_simple',
   })
-    .sort({ [sortBy]: sortOrder })
+    .sort({ [finalSortBy]: sortOrder }) // Use the validated sort field
     .skip(skip)
     .limit(limit)
     .lean();
