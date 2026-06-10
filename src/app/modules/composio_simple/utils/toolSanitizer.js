@@ -22,6 +22,8 @@
  * @returns {object} return.parameters - The sanitized parameter schema, including `type: 'object'` and `properties`.
  */
 export function sanitizeToolForGemini(tool) {
+  if (!tool) return null;
+
   /**
    * Recursively cleans a properties object by removing fields not supported by the Gemini API.
    *
@@ -49,9 +51,11 @@ export function sanitizeToolForGemini(tool) {
           cleanedValue.properties = cleanProperties(cleanedValue.properties);
         }
         if (cleanedValue.items?.properties) {
-          cleanedValue.items.properties = cleanProperties(
-            cleanedValue.items.properties
-          );
+          // Avoid mutating the original nested items object by shallow copying it first
+          cleanedValue.items = {
+            ...cleanedValue.items,
+            properties: cleanProperties(cleanedValue.items.properties)
+          };
         }
 
         cleaned[key] = cleanedValue;
@@ -69,7 +73,7 @@ export function sanitizeToolForGemini(tool) {
     parameters: {
       ...tool.parameters, // Preserve any other top-level parameter fields if they exist and are supported
       type: 'object', // Gemini expects parameters to be an object
-      properties: cleanProperties(tool.input_parameters.properties),
+      properties: cleanProperties(tool.input_parameters?.properties),
     },
   };
 
@@ -94,10 +98,11 @@ export function sanitizeToolForGemini(tool) {
  *                   with leading/trailing whitespace trimmed.
  */
 export function buildEmbeddingText(doc) {
-  const name = doc.name ?? '';
-  const desc = doc.description ?? '';
-  const tags = Array.isArray(doc.tags) ? doc.tags.join(', ') : '';
-  const appName = doc.appName ?? '';
-  const slug = doc.slug ?? '';
+  const safeDoc = doc || {};
+  const name = safeDoc.name ?? '';
+  const desc = safeDoc.description ?? '';
+  const tags = Array.isArray(safeDoc.tags) ? safeDoc.tags.join(', ') : '';
+  const appName = safeDoc.appName ?? '';
+  const slug = safeDoc.slug ?? '';
   return `${name}\n${desc}\nTags: ${tags}\nAppName: ${appName}\nSlug: ${slug}`.trim();
 }
