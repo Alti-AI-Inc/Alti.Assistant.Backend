@@ -1,8 +1,27 @@
 import mongoose from 'mongoose';
 
+/**
+ * @type {boolean}
+ * @description Flag indicating whether a MongoDB connection is currently active.
+ */
 let isConnected = false;
+/**
+ * @type {string | null}
+ * @description Stores the URI of the currently active MongoDB connection.
+ */
 let currentUri = null;
 
+/**
+ * Establishes a connection to MongoDB using Mongoose.
+ * If already connected to the same URI, it returns the existing connection.
+ * If connected to a different URI, it disconnects first before establishing a new connection.
+ * It also sets up event listeners for connection errors, disconnections, and reconnections.
+ *
+ * @param {string} [uri='mongodb://localhost:27017/research_agent'] - The MongoDB connection URI.
+ *   Defaults to 'mongodb://localhost:27017/research_agent'.
+ * @returns {Promise<mongoose.Connection>} A promise that resolves to the Mongoose connection object.
+ * @throws {Error} If there is an error connecting to MongoDB.
+ */
 export const connectToMongoDB = async (
   uri = 'mongodb://localhost:27017/research_agent'
 ) => {
@@ -59,6 +78,12 @@ export const connectToMongoDB = async (
   }
 };
 
+/**
+ * Retrieves the active Mongoose connection object.
+ *
+ * @returns {mongoose.Connection} The active Mongoose connection object.
+ * @throws {Error} If MongoDB is not connected. Call `connectToMongoDB()` first.
+ */
 export const getMongoDBConnection = () => {
   if (!isConnected) {
     throw new Error('MongoDB is not connected. Call connectToMongoDB() first.');
@@ -66,6 +91,11 @@ export const getMongoDBConnection = () => {
   return mongoose.connection;
 };
 
+/**
+ * Disconnects from the active MongoDB connection if one exists.
+ *
+ * @returns {Promise<void>} A promise that resolves when the disconnection is complete.
+ */
 export const disconnectFromMongoDB = async () => {
   if (isConnected) {
     await mongoose.disconnect();
