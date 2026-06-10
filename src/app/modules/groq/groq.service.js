@@ -14,11 +14,30 @@ import { fetchSearchResults } from './groq.utilities.js';
 import { massiveSmartRouter } from '../../helpers/massiveSmartRouter.js';
 import { GeminiAiService } from '../gemini/gemini.service.js';
 
+/**
+ * @typedef {Object.<string, BufferMemory>} AnonymousSessionMemoryStore
+ * @description Stores in-memory chat history for anonymous user sessions.
+ * Each key is a session ID, and its value is a BufferMemory instance.
+ */
 const AnonymousSessionMemoryStore = {}; // Stores session memory for each user session
+
+/**
+ * @constant {number} MAX_MEMORY_SIZE
+ * @description Defines the maximum number of chat messages to retain in memory for a session.
+ * This prevents excessive context accumulation and manages memory usage.
+ */
 const MAX_MEMORY_SIZE = 12; // Limits stored messages per session
 
 /**
- * Redirects user-registered Groq completions to Google Gemini 3.1 Flash exclusively
+ * @description Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
+ * This function acts as a proxy, ensuring that all Groq-related AI interactions for registered users
+ * are handled by the Gemini AI service for consistency and potentially enhanced capabilities.
+ *
+ * @param {string} prompt - The user's input prompt for the AI.
+ * @param {string} userId - The ID of the registered user making the request.
+ * @param {string} sessionId - The unique identifier for the current chat session.
+ * @returns {Promise<Object>} A promise that resolves to the AI's response,
+ *                            delegated from the Gemini AI service.
  */
 const getAiResponsesGroqService = async (prompt, userId, sessionId) => {
   logger.info(
@@ -28,7 +47,17 @@ const getAiResponsesGroqService = async (prompt, userId, sessionId) => {
 };
 
 /**
- * Redirects anonymous search-enhanced Groq completions to Google Gemini 3.1 Flash exclusively
+ * @description Handles anonymous, search-enhanced AI completions by redirecting requests
+ * to the Google Gemini 3.1 Flash service. This service manages session memory,
+ * enhances prompts with real-time market data, fetches search results, and constructs
+ * a rich context for the AI model to generate a response.
+ *
+ * @param {string} prompt - The user's input prompt for the AI.
+ * @param {string} [sessionIdFromClient] - An optional unique identifier for the current chat session.
+ *                                         If not provided, a new UUID will be generated.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the session ID,
+ *                            the original prompt, the AI's reply, and any fetched search results.
+ * @throws {ApiError} If the prompt is missing.
  */
 const GroqAiGetResponseAnonymousService = async (
   prompt,
@@ -37,13 +66,13 @@ const GroqAiGetResponseAnonymousService = async (
   const sessionId = sessionIdFromClient || randomUUID(); // Unique session ID if not provided
 
   if (!prompt) {
-    throw ApiError(httpStatus.NOT_FOUND, 'Prompt is required.');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Prompt is required.');
   }
 
   // Enhance prompt using massiveSmartRouter for real-time market data
   const enhancedPrompt = await massiveSmartRouter.combinedRouteAndEnhancePrompt(prompt);
 
-  // Initialize memory if it doesn't exist
+  // Initialize memory if it doesn't exist for this session
   if (!AnonymousSessionMemoryStore[sessionId]) {
     AnonymousSessionMemoryStore[sessionId] = new BufferMemory({
       returnMessages: true,
@@ -87,7 +116,7 @@ ${previousMessages
 
 User Query: ${enhancedPrompt}`
     : `[SYSTEM INSTRUCTION - ACTIVE ELITE SEARCH]
-Answer the user query directly, simply, and concisely. Never include conversational preamble or throat-clearing.
+Answer the user query directly, simply and concisely. Never include conversational preamble or throat-clearing.
 Be extremely concise to maximize response speed.
 
 Previous Conversation:
@@ -101,7 +130,7 @@ User Query: ${enhancedPrompt}`;
   const client = new GoogleGenerativeAI(config.gemini_secret_key);
   const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-  // Add the new user message
+  // Add the new user message to memory
   await memory.chatHistory.addMessage(new HumanMessage(prompt));
 
   // Generate response using Google Gemini
@@ -124,6 +153,15 @@ User Query: ${enhancedPrompt}`;
   return responseData;
 };
 
+/**
+ * @description Retrieves all AI chat sessions associated with a specific user ID.
+ * It populates the 'llamaAiSessions' field from the User model to fetch detailed
+ * session information.
+ *
+ * @param {string} userId - The unique identifier of the user.
+ * @returns {Promise<Object>} A promise that resolves to the user's session data
+ *                            or an error object if the user/session is not found.
+ */
 const getAiResponsesByUserIdService = async (userId) => {
   // Optimization: Added .lean() for read-only query to improve performance
   const sessionData = await UserModel.findOne({
@@ -145,9 +183,16 @@ const getAiResponsesByUserIdService = async (userId) => {
   return sessionData;
 };
 
+/**
+ * @description Retrieves a single AI chat session by its unique session ID.
+ *
+ * @param {string} id - The unique identifier of the chat session.
+ * @returns {Promise<Object>} A promise that resolves to the chat session data
+ *                            or an error object if the session is not found.
+ * @remarks Ensure an index exists on `sessionId` in the ChatHistory model schema for efficient lookups.
+ */
 const getAiResponsesBySession = async (id) => {
   // Optimization: Added .lean() for read-only query to improve performance
-  // Recommendation: Ensure an index exists on `sessionId` in the ChatHistory model schema for efficient lookups.
   const sessionData = await ChatHistory.findOne({
     sessionId: id,
   }).lean(); // Added .lean()
@@ -163,6 +208,16 @@ const getAiResponsesBySession = async (id) => {
   return sessionData;
 };
 
+/**
+ * @description Deletes a single AI chat session by its MongoDB ObjectId and removes
+ * its reference from the associated user's `llamaAiSessions` array.
+ * This operation ensures data consistency across related models.
+ *
+ * @param {string} objectId - The MongoDB ObjectId of the chat session to delete.
+ * @returns {Promise<Object>} A promise that resolves to an object indicating
+ *                            the success of the deletion and update operation.
+ * @throws {Error} If the LlamaAiSession is not found, or if deletion/user update fails.
+ */
 const deleteOneLlamaAiSession = async (objectId) => {
   // Optimization: Added .lean() for read-only query to improve performance
   const userData = await ChatHistory.findOne({
@@ -196,6 +251,16 @@ const deleteOneLlamaAiSession = async (objectId) => {
   }
 };
 
+/**
+ * @description Deletes all AI chat sessions associated with a given user ID and
+ * removes their references from the user's `llamaAiSessions` array.
+ * This operation is performed within a MongoDB transaction to ensure atomicity
+ * and data consistency.
+ *
+ * @param {string} userId - The unique identifier of the user whose sessions are to be deleted.
+ * @returns {Promise<Object>} A promise that resolves to an object indicating
+ *                            the success or failure of the bulk deletion operation.
+ */
 const deleteAllAiSessionsService = async (userId) => {
   const session = await mongoose.startSession();
 
@@ -265,11 +330,58 @@ const deleteAllAiSessionsService = async (userId) => {
   }
 };
 
+/**
+ * @namespace LlamaAiService
+ * @description Provides a collection of services for managing AI chat interactions,
+ * including generating responses, retrieving chat history, and managing sessions.
+ * This service primarily acts as a proxy or orchestrator for Groq-related requests,
+ * redirecting them to the Google Gemini AI service and handling anonymous sessions
+ * with search enhancement and memory management.
+ */
 export const LlamaAiService = {
+  /**
+   * @function getAiResponsesGroqService
+   * @memberof LlamaAiService
+   * @description Redirects user-registered Groq completions requests to the Google Gemini 3.1 Flash service.
+   * @see {@link getAiResponsesGroqService} for implementation details.
+   */
   getAiResponsesGroqService,
+  /**
+   * @function GroqAiGetResponseAnonymousService
+   * @memberof LlamaAiService
+   * @description Handles anonymous, search-enhanced AI completions by redirecting requests
+   * to the Google Gemini 3.1 Flash service, managing session memory and search context.
+   * @see {@link GroqAiGetResponseAnonymousService} for implementation details.
+   */
   GroqAiGetResponseAnonymousService,
+  /**
+   * @function getAiResponsesByUserIdService
+   * @memberof LlamaAiService
+   * @description Retrieves all AI chat sessions associated with a specific user ID.
+   * @see {@link getAiResponsesByUserIdService} for implementation details.
+   */
   getAiResponsesByUserIdService,
+  /**
+   * @function getAiResponsesBySession
+   * @memberof LlamaAiService
+   * @description Retrieves a single AI chat session by its unique session ID.
+   * @see {@link getAiResponsesBySession} for implementation details.
+   */
   getAiResponsesBySession,
+  /**
+   * @function deleteOneLlamaAiSession
+   * @memberof LlamaAiService
+   * @description Deletes a single AI chat session by its MongoDB ObjectId and removes
+   * its reference from the associated user's `llamaAiSessions` array.
+   * @see {@link deleteOneLlamaAiSession} for implementation details.
+   */
   deleteOneLlamaAiSession,
+  /**
+   * @function deleteAllAiSessionsService
+   * @memberof LlamaAiService
+   * @description Deletes all AI chat sessions associated with a given user ID and
+   * removes their references from the user's `llamaAiSessions` array, using a transaction.
+   * @see {@link deleteAllAiSessionsService} for implementation details.
+   */
   deleteAllAiSessionsService,
 };
