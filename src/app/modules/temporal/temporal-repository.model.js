@@ -94,23 +94,21 @@ const TemporalRepositorySchema = new mongoose.Schema(
      * The number of stars or likes the repository has received.
      * @type {number}
      * @default 0
-     * @index
      */
     stars: {
       type: Number,
-      default: 0,
-      index: true
+      default: 0
+      // OPTIMIZATION: Removed individual index. It's now the last part of a compound index for better query performance on common filters and sorts.
     },
     /**
      * Indicates if the repository is archived.
      * @type {boolean}
      * @default false
-     * @index
      */
     archived: {
       type: Boolean,
-      default: false,
-      index: true
+      default: false
+      // OPTIMIZATION: Removed individual index. It's now part of a compound index for better query performance on common filters.
     },
     /**
      * The local file system path where the repository is cloned.
@@ -126,13 +124,12 @@ const TemporalRepositorySchema = new mongoose.Schema(
      * @type {'Active'|'Archived'}
      * @enum ['Active', 'Archived']
      * @default 'Active'
-     * @index
      */
     status: {
       type: String,
       enum: ['Active', 'Archived'],
-      default: 'Active',
-      index: true
+      default: 'Active'
+      // OPTIMIZATION: Removed individual index. It's now part of a compound index for better query performance on common filters.
     }
   },
   {
@@ -143,6 +140,12 @@ const TemporalRepositorySchema = new mongoose.Schema(
     timestamps: true
   }
 );
+
+// OPTIMIZATION: Added a compound index to support common query patterns.
+// This index is optimized for queries that filter by status and archived status,
+// and then sort by the number of stars (e.g., finding active, non-archived repos sorted by popularity).
+// This is more efficient than having separate indexes on each of these fields, improving read performance and reducing write overhead.
+TemporalRepositorySchema.index({ status: 1, archived: 1, stars: -1 });
 
 /**
  * Enable full-text search index on the `name` and `description` fields.
