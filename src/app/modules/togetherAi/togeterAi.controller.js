@@ -1,3 +1,17 @@
+/**
+ * @file togetherAi.controller.js
+ * @module togetherAi/controller
+ * @description Controller for handling AI-powered image generation requests using Google Cloud's Vertex AI (Imagen model).
+ * This controller includes security measures such as PII masking and content safety filtering.
+ * It also integrates with a payment/quota system to track and limit user-specific usage.
+ *
+ * @requires http-status
+ * @requires @google-cloud/vertexai
+ * @requires ../../../../config/index.js
+ * @requires ../../../shared/catchAsync.js
+ * @requires ../../../shared/sendResponse.js
+ * @requires ../payment/payment.controller.js
+ */
 import httpStatus from 'http-status';
 // VULNERABILITY: The '@google/genai' library is the consumer-grade SDK.
 // FIX: Switched to the enterprise-grade '@google-cloud/vertexai' SDK for better security, IAM integration, and compliance.
@@ -14,6 +28,15 @@ import { paymentController } from '../payment/payment.controller.js';
 // FIX: Initialize the enterprise Vertex AI client.
 // This requires GCP project ID and location to be set in the configuration.
 // It uses Application Default Credentials (ADC) for authentication, which is more secure than API keys.
+/**
+ * @const {VertexAI} vertex_ai
+ * @description Initializes the enterprise-grade Google Cloud Vertex AI client.
+ * This client is configured using the project ID and location from the application's configuration.
+ * It leverages Application Default Credentials (ADC) for secure authentication, which is the recommended
+ * approach for GCP services over API keys.
+ * @see {@link https://cloud.google.com/vertex-ai/docs/start/cloud-sdk} for more details on the SDK.
+ * @see {@link https://cloud.google.com/docs/authentication/application-default-credentials} for ADC information.
+ */
 const vertex_ai = new VertexAI({
   project: config.gcp_project_id, // e.g., 'my-gcp-project-id'
   location: config.gcp_location, // e.g., 'us-central1'
@@ -143,8 +166,8 @@ const maskPII = text => {
  * @context Multi-tenant / User-specific quota tracking via payment controller
  *
  * @param {import('express').Request} req - The Express request object.
- * @param {Object} req.body - The request body.
- * @param {Object} req.body.user - The user object used for tracking usage.
+ * @param {object} req.body - The request body.
+ * @param {object} req.body.user - The user object used for tracking usage.
  * @param {string} [req.body.sessionId] - Optional session identifier.
  * @param {string} req.body.prompt - The text prompt to generate the image from.
  * @param {import('express').Response} res - The Express response object.

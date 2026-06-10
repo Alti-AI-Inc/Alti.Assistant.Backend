@@ -7,6 +7,14 @@
 import mongoose, { Schema } from 'mongoose';
 
 /**
+ * @typedef {object} PlatformAction
+ * @property {('flagged'|'reviewed'|'cleared'|'annotated')} action - The type of administrative action taken.
+ * @property {mongoose.Schema.Types.ObjectId} adminId - The ID of the administrator who performed the action.
+ * @property {Date} timestamp - The time the action was performed.
+ * @property {string} [details] - Optional notes or details specific to this action.
+ */
+
+/**
  * @typedef {object} DocumentRelationship
  * @property {mongoose.Schema.Types.ObjectId} workspaceId - The ID of the workspace this relationship belongs to.
  * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who owns this relationship.
@@ -19,9 +27,7 @@ import mongoose, { Schema } from 'mongoose';
  * @property {mongoose.Schema.Types.ObjectId} lastModifiedBy - The ID of the user who last modified the record.
  * @property {boolean} isFlaggedForReview - A flag for platform administrators to mark the record for review.
  * @property {object} platformMetadata - A container for administrator-specific metadata.
- * @property {string} platformMetadata.notes - Administrative notes.
- * @property {mongoose.Schema.Types.ObjectId} platformMetadata.reviewedBy - The admin who reviewed the record.
- * @property {Date} platformMetadata.reviewedAt - The timestamp of the administrative review.
+ * @property {PlatformAction[]} platformMetadata.actionHistory - A full audit trail of administrative actions.
  * @property {Date} createdAt - The timestamp when the relationship was created.
  * @property {Date} updatedAt - The timestamp when the relationship was last updated.
  */
@@ -155,34 +161,35 @@ const DocumentRelationshipSchema = new mongoose.Schema(
     },
 
     /**
-     * A container for metadata used exclusively by platform administrators.
-     * This provides a dedicated space for notes, review status, and other administrative details
-     * without cluttering the primary data fields used by tenants.
+     * PLATFORM OWNER ENHANCEMENT: A container for a full audit trail of administrator actions.
+     * This provides a comprehensive, immutable history for compliance, quality control, and oversight,
+     * allowing Platform Owners to track every administrative touchpoint on a specific record.
+     * This is a significant improvement over storing only the last review action.
      * @type {object}
      */
     platformMetadata: {
-      /**
-       * Administrative notes regarding this relationship.
-       * @type {string}
-       */
-      notes: {
-        type: String,
-        default: ''
-      },
-      /**
-       * The ID of the administrator who last reviewed this flagged item.
-       * @type {mongoose.Schema.Types.ObjectId}
-       */
-      reviewedBy: {
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      /**
-       * The timestamp of the last administrative review.
-       * @type {Date}
-       */
-      reviewedAt: {
-        type: Date
+      actionHistory: {
+        type: [{
+          action: {
+            type: String,
+            required: true,
+            enum: ['flagged', 'reviewed', 'cleared', 'annotated']
+          },
+          adminId: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+          },
+          timestamp: {
+            type: Date,
+            default: Date.now,
+            required: true
+          },
+          details: {
+            type: String
+          }
+        }],
+        default: []
       }
     }
   },
@@ -218,6 +225,14 @@ DocumentRelationshipSchema.index({ workspaceId: 1, targetDocId: 1 });
  * relationships by their type within a specific workspace (e.g., "show all 'hierarchical' relationships").
  */
 DocumentRelationshipSchema.index({ workspaceId: 1, relationType: 1 });
+
+/**
+ * PLATFORM OWNER OPTIMIZATION: Added index for global analytics.
+ * This index supports efficient platform-wide aggregation queries by Platform Owners,
+ * such as counting all relationships of a certain type across all tenants, without
+ * needing to scan the entire collection.
+ */
+DocumentRelationshipSchema.index({ relationType: 1 });
 
 
 /**

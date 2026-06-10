@@ -1,6 +1,8 @@
 import { extractTextAndBuildDocuments, saveManifest, loadManifest, nodeToMetadata, Settings } from '../llamaindex.indexer.js';
 import { TitleExtractor, KeywordExtractor, IngestionPipeline, MarkdownNodeParser, SentenceWindowNodeParser } from 'llamaindex';
 import fsPromises from 'node:fs/promises';
+import fs from 'node:fs';
+import readline from 'node:readline';
 import path from 'path';
 import crypto from 'node:crypto';
 import { logger } from '../../../../shared/logger.js';
@@ -294,42 +296,73 @@ export async function chunkAndEmbedActivity(documents, originalName, docId, tena
 export async function commitToVectorStoreActivity(nodes, originalName, docId, tenantId, invoker) {
   const activityName = 'commitToVectorStoreActivity';
   logger.info({ severity: 'INFO', message: 'Writing index and committing vector storage', activity: activityName, tenantId, docId, invoker });
+  
+  const persistDir = getSafePersistDir(tenantId);
+  // OPTIMIZATION: Using a temporary file for the new vector store to ensure atomic writes and safe error recovery.
+  const tempVectorStorePath = path.join(persistDir, `vector_store_${crypto.randomUUID()}.tmp`);
+
   try {
     // BUG FIX: Use 'nodes' passed as an argument.
     if (!nodes) {
       throw new Error('Input vector nodes not provided.');
     }
 
-    const persistDir = getSafePersistDir(tenantId);
     await fsPromises.mkdir(persistDir, { recursive: true });
 
-    const vectorStorePath = path.join(persistDir, 'vector_store.json');
-    let currentNodes = [];
-    
-    try {
-      const fileContent = await fsPromises.readFile(vectorStorePath, 'utf-8');
-      const parsed = JSON.parse(fileContent);
-      if (Array.isArray(parsed)) {
-        currentNodes = parsed;
-      }
-    } catch (err) {
-      if (err.code !== 'ENOENT') {
-        logger.warn({ severity: 'WARNING', message: 'Could not read or parse existing vector store, will create new one.', error: err.message, activity: activityName, tenantId, vectorStorePath });
-      }
+    // OPTIMIZATION: Switched from a single large JSON array to JSON Lines (JSONL) format.
+    // This avoids reading the entire vector store into memory, which caused significant
+    // CPU and memory pressure, blocking the event loop on large datasets.
+    // The new approach streams the existing file, filters out old nodes, and appends
+    // new nodes in a memory-efficient, non-blocking way.
+    const vectorStorePath = path.join(persistDir, 'vector_store.jsonl');
+    const writeStream = fs.createWriteStream(tempVectorStorePath, { encoding: 'utf-8' });
+
+    let totalBytesWritten = 0;
+
+    // First, write the new nodes for the current document to the temp file.
+    const newNodesAsMeta = nodes.map(nodeToMetadata);
+    for (const nodeMeta of newNodesAsMeta) {
+        const line = JSON.stringify(nodeMeta) + '\n';
+        writeStream.write(line);
+        totalBytesWritten += Buffer.byteLength(line, 'utf8');
     }
 
-    // RECOMMENDATION: Replace this file-based vector store with a dedicated database solution (e.g., PostgreSQL with pgvector, Chroma, Weaviate)
-    // to avoid performance bottlenecks associated with reading/writing large JSON files on every ingestion.
+    // Second, stream the existing vector store (if it exists) and write all nodes
+    // that DON'T belong to the current document to the temp file.
+    try {
+        await fsPromises.access(vectorStorePath, fs.constants.R_OK); // Check if file exists and is readable
+        const readStream = fs.createReadStream(vectorStorePath, { encoding: 'utf-8' });
+        const rl = readline.createInterface({ input: readStream, crlfDelay: Infinity });
 
-    // Upsert strategy: Clean out any previous nodes matching the same source filename
-    const baseNodes = currentNodes.filter(n => n?.metadata?.fileName !== originalName);
-    const finalNodes = [...baseNodes, ...nodes.map(nodeToMetadata)];
+        for await (const line of rl) {
+            if (line.trim() === '') continue;
+            try {
+                const node = JSON.parse(line);
+                if (node?.metadata?.fileName !== originalName) {
+                    const lineToWrite = line + '\n';
+                    writeStream.write(lineToWrite);
+                    totalBytesWritten += Buffer.byteLength(lineToWrite, 'utf8');
+                }
+            } catch (parseError) {
+                logger.warn({ severity: 'WARNING', message: 'Skipping corrupt line in vector store during rewrite.', line, error: parseError.message, activity: activityName, tenantId });
+            }
+        }
+    } catch (err) {
+        // If the file doesn't exist (ENOENT), it's not an error. We are creating it.
+        if (err.code !== 'ENOENT') throw err;
+    }
 
-    // Platform Owner Feature: Enforce storage quota with override capability using hierarchical config.
+    // Finish writing to the temp file
+    writeStream.end();
+    await new Promise((resolve, reject) => {
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+    });
+
+    // Platform Owner Feature: Enforce storage quota with override capability.
     const isPlatformOwner = invoker?.role === 'platform_owner';
     const resolvedConfig = await getResolvedConfig(tenantId, invoker);
-    const newStoreContent = JSON.stringify(finalNodes, null, 2);
-    const newStoreSizeMb = Buffer.byteLength(newStoreContent, 'utf8') / (1024 * 1024);
+    const newStoreSizeMb = totalBytesWritten / (1024 * 1024);
 
     if (newStoreSizeMb > resolvedConfig.storageQuotaMb) {
       if (isPlatformOwner) {
@@ -339,8 +372,8 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
       }
     }
 
-    // Commit back to local storage
-    await fsPromises.writeFile(vectorStorePath, newStoreContent, 'utf-8');
+    // Atomically replace the old vector store with the new one.
+    await fsPromises.rename(tempVectorStorePath, vectorStorePath);
 
     // Update the knowledge bank manifest
     const manifest = await loadManifest(persistDir) || {};
@@ -367,6 +400,12 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
       docId
     };
   } catch (error) {
+    // Ensure temp file is cleaned up on any failure.
+    await fsPromises.unlink(tempVectorStorePath).catch(e => {
+        if (e.code !== 'ENOENT') {
+            logger.error({ severity: 'ERROR', message: 'Failed to clean up temporary vector store file after an error.', error: e.message, tempFile: tempVectorStorePath });
+        }
+    });
     logger.error({ severity: 'ERROR', message: 'commitToVectorStoreActivity failed', error: error.message, stack: error.stack, activity: activityName, tenantId, docId });
     throw error;
   }
@@ -378,26 +417,62 @@ export async function commitToVectorStoreActivity(nodes, originalName, docId, te
 export async function cleanupFailedIngestionActivity(originalName, docId, tenantId, invoker) {
   const activityName = 'cleanupFailedIngestionActivity';
   logger.warn({ severity: 'WARNING', message: 'Reverting RAG vectors and purging records', activity: activityName, saga: true, tenantId, docId, invoker });
+  
+  const persistDir = getSafePersistDir(tenantId);
+  // OPTIMIZATION: Using a temporary file for the new vector store to ensure atomic writes and safe error recovery.
+  const tempVectorStorePath = path.join(persistDir, `vector_store_cleanup_${crypto.randomUUID()}.tmp`);
+
   try {
-    const persistDir = getSafePersistDir(tenantId);
-    const vectorStorePath = path.join(persistDir, 'vector_store.json');
-
-    // Revert nodes from vector store JSON
+    // OPTIMIZATION: Using streaming and JSONL format to avoid high memory/CPU usage on large vector stores.
+    const vectorStorePath = path.join(persistDir, 'vector_store.jsonl');
+    
     try {
-      const fileContent = await fsPromises.readFile(vectorStorePath, 'utf-8');
-      const currentNodes = JSON.parse(fileContent);
+        await fsPromises.access(vectorStorePath, fs.constants.R_OK); // Check if file exists
 
-      if (Array.isArray(currentNodes)) {
-        const cleanedNodes = currentNodes.filter(n => n?.metadata?.fileName !== originalName && n?.metadata?.docId !== docId);
-        await fsPromises.writeFile(vectorStorePath, JSON.stringify(cleanedNodes, null, 2), 'utf-8');
+        const readStream = fs.createReadStream(vectorStorePath, { encoding: 'utf-8' });
+        const writeStream = fs.createWriteStream(tempVectorStorePath, { encoding: 'utf-8' });
+        const rl = readline.createInterface({ input: readStream, crlfDelay: Infinity });
+
+        let nodesKept = 0;
+        for await (const line of rl) {
+            if (line.trim() === '') continue;
+            try {
+                const node = JSON.parse(line);
+                // Keep nodes that are NOT from the document being cleaned up
+                if (node?.metadata?.fileName !== originalName && node?.metadata?.docId !== docId) {
+                    writeStream.write(line + '\n');
+                    nodesKept++;
+                }
+            } catch (parseError) {
+                logger.warn({ severity: 'WARNING', message: 'Skipping corrupt line during cleanup.', line, error: parseError.message, activity: activityName, saga: true, tenantId });
+                writeStream.write(line + '\n'); // Preserve corrupt lines
+            }
+        }
+
+        writeStream.end();
+        await new Promise((resolve, reject) => {
+            writeStream.on('finish', resolve);
+            writeStream.on('error', reject);
+        });
+
+        // Atomically replace the old file with the cleaned one, or remove it if empty.
+        if (nodesKept > 0) {
+            await fsPromises.rename(tempVectorStorePath, vectorStorePath);
+        } else {
+            // If the cleaned file is empty, remove both the original and the temp file.
+            await fsPromises.unlink(vectorStorePath).catch(e => { if (e.code !== 'ENOENT') throw e; });
+            await fsPromises.unlink(tempVectorStorePath).catch(e => { if (e.code !== 'ENOENT') throw e; });
+        }
         logger.info({ severity: 'INFO', message: 'Successfully purged transaction records from vector store.', activity: activityName, saga: true, tenantId, docId });
-      }
+
     } catch (err) {
-      if (err.code === 'ENOENT') {
-        logger.info({ severity: 'INFO', message: 'Vector store file does not exist, no cleanup needed.', activity: activityName, saga: true, tenantId });
-      } else {
-        logger.warn({ severity: 'WARNING', message: 'Could not revert vector store database records.', error: err.message, activity: activityName, saga: true, tenantId });
-      }
+        if (err.code === 'ENOENT') {
+            logger.info({ severity: 'INFO', message: 'Vector store file does not exist, no cleanup needed.', activity: activityName, saga: true, tenantId });
+        } else {
+            // For other errors, log a warning and re-throw to be caught by the outer block.
+            logger.warn({ severity: 'WARNING', message: 'Could not revert vector store database records.', error: err.message, activity: activityName, saga: true, tenantId });
+            throw err;
+        }
     }
 
     // Revert document manifests
@@ -413,8 +488,6 @@ export async function cleanupFailedIngestionActivity(originalName, docId, tenant
       }
     }
 
-    // BUG FIX: No in-memory state to clean up. This is now handled by the workflow engine's state management.
-
     return {
       success: true,
       docId,
@@ -423,5 +496,12 @@ export async function cleanupFailedIngestionActivity(originalName, docId, tenant
   } catch (error) {
     logger.error({ severity: 'ERROR', message: 'Compensating transaction failed', error: error.message, stack: error.stack, activity: activityName, saga: true, tenantId, docId });
     throw error;
+  } finally {
+    // Ensure temp file is always cleaned up.
+    await fsPromises.unlink(tempVectorStorePath).catch(e => {
+        if (e.code !== 'ENOENT') {
+            logger.error({ severity: 'ERROR', message: 'Failed to clean up temporary vector store file during cleanup.', error: e.message, tempFile: tempVectorStorePath });
+        }
+    });
   }
 }
