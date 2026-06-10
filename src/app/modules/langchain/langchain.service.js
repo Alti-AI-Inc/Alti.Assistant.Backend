@@ -10,7 +10,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { execFile } from 'child_process'; // Changed from 'exec' to 'execFile' for safer command execution
 import { fileURLToPath } from 'url';
 import LangchainRepository from './langchain-repository.model.js';
 
@@ -73,19 +73,40 @@ const ROOT_DIR = path.join(__dirname, '../../../../..');
  */
 (async () => {
   try {
-    await LangchainRepository.createIndexes([
-      { name: 'text', description: 'text' }, // Text index for full-text search
-      { license: 1 },                       // Index for license filtering and aggregation
-      { language: 1 },                      // Index for language filtering and aggregation
-      { stars: -1 },                        // Index for sorting by stars
-      { name: 1 },                          // Index for regex search on name
-      { description: 1 }                    // Index for regex search on description
-    ]);
+    // Using collection.createIndex for explicit index creation outside of schema definition.
+    // This method is idempotent for identical index definitions.
+    await LangchainRepository.collection.createIndex({ name: 'text', description: 'text' }, { name: 'text_name_description' }); // Text index for full-text search
+    await LangchainRepository.collection.createIndex({ license: 1 }, { name: 'license_1' });                       // Index for license filtering and aggregation
+    await LangchainRepository.collection.createIndex({ language: 1 }, { name: 'language_1' });                      // Index for language filtering and aggregation
+    await LangchainRepository.collection.createIndex({ stars: -1 }, { name: 'stars_-1' });                        // Index for sorting by stars
+    await LangchainRepository.collection.createIndex({ name: 1 }, { name: 'name_1' });                           // Index for regex search on name
+    await LangchainRepository.collection.createIndex({ description: 1 }, { name: 'description_1' });             // Index for regex search on description
     // console.log('LangchainRepository indexes ensured.'); // Optional: for logging
   } catch (error) {
+    // Log the error if index creation fails for reasons other than the index already existing.
+    // MongoDB's createIndex is idempotent, so it won't error if an identical index already exists.
     console.error('Failed to ensure LangchainRepository indexes:', error);
   }
 })();
+
+/**
+ * Helper function to escape special characters in a string for use in a regular expression.
+ * This prevents ReDoS (Regular Expression Denial of Service) and unexpected regex behavior
+ * when user input is used to construct a RegExp object.
+ * @param {string} string - The string to escape.
+ * @returns {string} The escaped string.
+ */
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+};
+
+/**
+ * Pre-compiled set of common stop words for search queries.
+ * This is defined once to avoid re-creating the Set on every function call, improving performance.
+ * @type {Set<string>}
+ * @private
+ */
+const STOP_WORDS = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'langchain', 'langgraph', 'a', 'of', 'in', 'for', 'with', 'on', 'how', 'to', 'find', 'get', 'list', 'search', 'what', 'is', 'are', 'any', 'some', 'about']);
 
 
 /**
@@ -123,19 +144,17 @@ const searchLangchainCatalog = async (query = '', options = {}) => {
     // Filter by Language
     if (options.language) {
       // Using a RegExp with '^' ensures it can utilize an index on the 'language' field.
-      filter.language = new RegExp(`^${options.language}`, 'i');
+      // Escape special regex characters in the language query to prevent ReDoS or unexpected behavior.
+      filter.language = new RegExp(`^${escapeRegExp(options.language)}`, 'i');
     }
 
     let queryBuilder;
 
     if (query) {
-      // Optimize stop word filtering: pre-compile the Set for faster lookups.
-      // For typical query lengths, the performance gain is minimal but good practice.
-      const stopWords = new Set(['show', 'me', 'the', 'and', 'its', 'from', 'collection', 'repository', 'repo', 'repositories', 'langchain', 'langgraph', 'a', 'of', 'in', 'for', 'with', 'on', 'how', 'to', 'find', 'get', 'list', 'search', 'what', 'is', 'are', 'any', 'some', 'about']);
       const queryWords = query.toLowerCase()
         .replace(/[^\w\s-]/g, ' ')
         .split(/\s+/)
-        .filter(word => word.length > 2 && !stopWords.has(word));
+        .filter(word => word.length > 2 && !STOP_WORDS.has(word)); // Use pre-compiled STOP_WORDS Set
 
       if (queryWords.length > 0) {
         // Utilize MongoDB full-text index matching. Requires a text index on relevant fields (e.g., name, description).
@@ -145,14 +164,18 @@ const searchLangchainCatalog = async (query = '', options = {}) => {
       } else {
         // Fallback to basic case-insensitive regex match if query only consists of stopwords.
         // Indexes on 'name' and 'description' fields will help here.
+        // Escape special regex characters in the query to prevent ReDoS or unexpected behavior.
+        const escapedQuery = escapeRegExp(query);
         filter.$or = [
-          { name: { $regex: query, $options: 'i' } },
-          { description: { $regex: query, $options: 'i' } }
+          { name: { $regex: escapedQuery, $options: 'i' } },
+          { description: { $regex: escapedQuery, $options: 'i' } }
         ];
         queryBuilder = LangchainRepository.find(filter).sort({ stars: -1 });
       }
     } else {
-      const sortBy = options.sortBy || 'stars';
+      // Validate sortBy option to prevent unexpected sorting or errors if an invalid field is provided.
+      const allowedSortFields = ['stars'];
+      const sortBy = allowedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
       // Indexes on 'license', 'language', and 'stars' will optimize this query.
       queryBuilder = LangchainRepository.find(filter).sort({ [sortBy]: -1 });
     }
@@ -182,6 +205,18 @@ const searchLangchainCatalog = async (query = '', options = {}) => {
   } catch (err) {
     throw new Error(`Failed to query LangChain catalog in MongoDB: ${err.message}`);
   }
+};
+
+/**
+ * Sanitizes a string to be used as a safe directory name.
+ * Removes characters that are not alphanumeric, hyphens, underscores, or periods.
+ * This helps prevent path traversal vulnerabilities and ensures valid directory names.
+ * @param {string} name - The original name.
+ * @returns {string} The sanitized name.
+ */
+const sanitizeDirName = (name) => {
+  // Allow alphanumeric, hyphens, underscores, and periods (for potential file extensions, though not strictly for dir names)
+  return name.replace(/[^a-zA-Z0-9-_.]/g, '');
 };
 
 /**
@@ -229,7 +264,27 @@ const importLangchainSubmodule = async (repoName) => {
     };
   }
 
-  const submodulePath = `external/langchain/${match.name}`;
+  // Validate and sanitize match.name for path safety to prevent path traversal or command injection.
+  const sanitizedRepoName = sanitizeDirName(match.name);
+  if (!sanitizedRepoName || sanitizedRepoName.length === 0) {
+    return {
+      success: false,
+      message: `Repository name "${match.name}" is invalid or empty after sanitization.`,
+    };
+  }
+  const submodulePath = `external/langchain/${sanitizedRepoName}`;
+
+  // Basic validation for clone_url to ensure it's a plausible Git URL.
+  // This helps prevent command injection if a malicious URL were stored in the database.
+  // More robust validation might be needed depending on the threat model.
+  const gitUrlRegex = /^(git|https?|ssh):\/\/[^\s$.?#].[^\s]*$/i;
+  if (!gitUrlRegex.test(match.clone_url)) {
+    return {
+      success: false,
+      message: `Invalid Git clone URL "${match.clone_url}" for repository "${match.name}".`,
+    };
+  }
+
   const localLangchainPath = path.join(ROOT_DIR, 'external/langchain');
 
   return new Promise((resolve) => {
@@ -242,8 +297,11 @@ const importLangchainSubmodule = async (repoName) => {
     }
 
     console.log(`Programmatic import: git submodule add ${match.clone_url} ${submodulePath}`);
-    exec(
-      `git submodule add ${match.clone_url} ${submodulePath}`,
+    // Using execFile instead of exec for safer command execution.
+    // Arguments are passed as an array, preventing shell interpretation and command injection.
+    execFile(
+      'git',
+      ['submodule', 'add', match.clone_url, submodulePath],
       { cwd: ROOT_DIR },
       (error, stdout, stderr) => {
         if (error) {
@@ -283,51 +341,35 @@ const importLangchainSubmodule = async (repoName) => {
  */
 const getLangchainStats = async () => {
   try {
-    const totalRepos = await LangchainRepository.countDocuments({});
-    
-    // Star and Fork aggregations
-    // This aggregation performs a collection scan.
-    const aggregations = await LangchainRepository.aggregate([
+    // Combine multiple aggregation calls into a single $facet pipeline for improved efficiency,
+    // reducing multiple round trips to the database.
+    const facetResults = await LangchainRepository.aggregate([
       {
-        $group: {
-          _id: null,
-          totalStars: { $sum: '$stars' },
-          totalForks: { $sum: '$forks' },
-          avgStars: { $avg: '$stars' }
+        $facet: {
+          "overallStats": [
+            { $group: { _id: null, totalStars: { $sum: '$stars' }, totalForks: { $sum: '$forks' }, avgStars: { $avg: '$stars' }, totalRepositories: { $sum: 1 } } }
+          ],
+          "languages": [
+            { $group: { _id: '$language', count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+          ],
+          "licenses": [
+            { $group: { _id: '$license', count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+          ]
         }
       }
     ]);
 
-    const stats = aggregations[0] || { totalStars: 0, totalForks: 0, avgStars: 0 };
-
-    // Language splits
-    // An index on 'language: 1' will significantly speed up this aggregation's $group stage.
-    const languages = await LangchainRepository.aggregate([
-      {
-        $group: {
-          _id: '$language',
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-
-    // License splits
-    // An index on 'license: 1' will significantly speed up this aggregation's $group stage.
-    const licenses = await LangchainRepository.aggregate([
-      {
-        $group: {
-          _id: '$license',
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
+    // Extract results from the $facet output
+    const stats = facetResults[0].overallStats[0] || { totalStars: 0, totalForks: 0, avgStars: 0, totalRepositories: 0 };
+    const languages = facetResults[0].languages;
+    const licenses = facetResults[0].licenses;
 
     return {
       success: true,
       stats: {
-        totalRepositories: totalRepos,
+        totalRepositories: stats.totalRepositories,
         totalStars: stats.totalStars,
         totalForks: stats.totalForks,
         averageStars: Math.round(stats.avgStars),
