@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs'; // Keep fs for fs.promises
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ApiError from '../../../errors/ApiError.js';
 import { logger } from '../../../shared/logger.js';
@@ -427,11 +427,13 @@ const processConversationalRequest = async (
     const outputDir = path.join(process.cwd(), 'output', 'reports');
     const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
 
-    // `fs.existsSync` and `fs.mkdirSync` are synchronous but are called infrequently
-    // and are generally fast for single directory checks/creations, not a bottleneck here.
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    // Bug Fix: Replaced synchronous fs.existsSync and fs.mkdirSync with asynchronous fs.promises.mkdir
+    // This prevents blocking the Node.js event loop for I/O operations.
+    await fs.promises.mkdir(outputDir, { recursive: true }).catch((err) => {
+      if (err.code !== 'EEXIST') {
+        throw err;
+      }
+    });
 
     const filePath = await exportReport(reportData, outputFormat, outputPath);
 
@@ -505,11 +507,13 @@ const generateReport = async (params, userId, isGuest = false) => {
     const outputDir = path.join(process.cwd(), 'output', 'reports');
     const outputPath = path.join(outputDir, `${reportId}.${outputFormat}`);
 
-    // `fs.existsSync` and `fs.mkdirSync` are synchronous but are called infrequently
-    // and are generally fast for single directory checks/creations, not a bottleneck here.
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    // Bug Fix: Replaced synchronous fs.existsSync and fs.mkdirSync with asynchronous fs.promises.mkdir
+    // This prevents blocking the Node.js event loop for I/O operations.
+    await fs.promises.mkdir(outputDir, { recursive: true }).catch((err) => {
+      if (err.code !== 'EEXIST') {
+        throw err;
+      }
+    });
 
     const filePath = await exportReport(reportData, outputFormat, outputPath);
     const downloadUrl = `/api/v1/reports/download/${reportId}.${outputFormat}`;
