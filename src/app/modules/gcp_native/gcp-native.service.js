@@ -12,7 +12,8 @@ import GoogleRepository from './gcp-repository.model.js';
  * @returns {string} The escaped string, safe for use within a RegExp constructor.
  */
 const escapeRegExp = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+  // FIX: Correctly escape special characters for RegExp. '\\$&' inserts the matched substring.
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
 // Recommended MongoDB Indexes for GoogleRepository model:
@@ -86,12 +87,14 @@ const searchGcpCatalog = async (query = '', options = {}) => {
     let filter = {};
 
     // Filter by License (MIT or Apache 2.0)
+    // OPTIMIZATION: This query benefits from an index on `license: 1`.
     if (options.license) {
       const lowerLicense = options.license.toLowerCase();
       filter.license = lowerLicense === 'mit' ? 'MIT' : 'Apache 2.0';
     }
 
     // Filter by Language - FIX: Escape regex special characters to prevent ReDoS/Regex Injection
+    // OPTIMIZATION: This prefix regex query benefits from an index on `language: 1`.
     if (options.language) {
       filter.language = new RegExp(`^${escapeRegExp(options.language)}`, 'i');
     }
@@ -107,6 +110,8 @@ const searchGcpCatalog = async (query = '', options = {}) => {
 
       if (queryWords.length > 0) {
         // Utilize MongoDB full-text index matching
+        // OPTIMIZATION: This query requires a text index on fields like `name` and `description`.
+        // Example: GoogleRepositorySchema.index({ name: 'text', description: 'text' });
         filter.$text = { $search: queryWords.join(' ') };
         queryBuilder = GoogleRepository.find(filter, { score: { $meta: 'textScore' } })
           .sort({ score: { $meta: 'textScore' }, stars: -1 });
@@ -117,6 +122,8 @@ const searchGcpCatalog = async (query = '', options = {}) => {
         // (i.e., they often result in collection scans). For better performance on
         // 'name' and 'description' regex searches, consider using MongoDB Atlas Search
         // or a dedicated search engine like Elasticsearch.
+        // OPTIMIZATION: For non-prefix regex searches, a simple index on `name` or `description`
+        // will not be fully utilized. Consider Atlas Search for better performance on such patterns.
         const escapedQuery = escapeRegExp(query);
         filter.$or = [
           { name: { $regex: escapedQuery, $options: 'i' } },
@@ -128,6 +135,9 @@ const searchGcpCatalog = async (query = '', options = {}) => {
       // FIX: Validate sortBy option against a whitelist to prevent MongoDB Operator Injection
       const allowedSortFields = ['stars', 'name', 'license', 'language']; // Add other fields if needed
       const sortBy = allowedSortFields.includes(options.sortBy) ? options.sortBy : 'stars';
+      // OPTIMIZATION: If filtering by `license` or `language` and sorting by `stars`,
+      // a compound index like `{ license: 1, stars: -1 }` or `{ language: 1, stars: -1 }`
+      // would significantly improve performance.
       queryBuilder = GoogleRepository.find(filter).sort({ [sortBy]: -1 });
     }
 
@@ -136,6 +146,7 @@ const searchGcpCatalog = async (query = '', options = {}) => {
     const page = options.page ? parseInt(options.page) : 1;
     const startIndex = (page - 1) * limit;
 
+    // OPTIMIZATION: `countDocuments` also benefits from the same indexes as the `find` query.
     const total = await GoogleRepository.countDocuments(filter);
     // .lean() is already used, which is good for performance as it returns plain JavaScript objects.
     const results = await queryBuilder.skip(startIndex).limit(limit).lean();
