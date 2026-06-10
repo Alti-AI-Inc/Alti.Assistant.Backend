@@ -9,6 +9,12 @@ import mongoose from 'mongoose';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleAIFileManager } from '@google/generative-ai/server';
 import ApiError from '../../../errors/ApiError.js';
+// --- HIERARCHY & USAGE MANAGEMENT IMPORTS ---
+// BUG FIX & INTEGRATION: Import services for workspace-aware usage tracking, limits, and notifications.
+// This is critical for ensuring actions respect tenant boundaries and that usage is correctly propagated.
+import { usageService } from '../usage/usage.service.js';
+import { notificationService } from '../notification/notification.service.js';
+// --- END HIERARCHY & USAGE MANAGEMENT IMPORTS ---
 import { logger } from '../../../shared/logger.js';
 import config from '../../../../config/index.js';
 import { conversationService } from '../conversations/conversation.service.js';
@@ -105,42 +111,37 @@ const generateConversationId = () => {
  * If a `conversationId` is provided, it attempts to fetch the existing conversation.
  * If no `conversationId` is provided or the existing one is not found, a new conversation is created.
  *
- * @param {string} userId - The ID of the user (authenticated or guest).
+ * @param {object} user - The authenticated user object, containing id, role, workspaceId, etc.
  * @param {string | null} conversationId - The ID of an existing conversation, or null to create a new one.
  * @param {string} userMessage - The initial message from the user, used for the conversation title if new.
- * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
  * @param {object} [req=null] - The Express request object, potentially containing transaction information.
  * @returns {Promise<object>} The conversation object (either existing or newly created).
  * @throws {ApiError} If there's an internal server error during conversation handling.
  */
 const handleArticleWriterConversation = async (
-  userId,
+  user,
   conversationId,
   userMessage,
-  isGuest = false,
   req = null
 ) => {
   try {
     let conversation;
+    const isGuest = user.role === 'guest';
 
     if (conversationId) {
       try {
-        // Optimization Note: .lean() is not applied here because the 'conversation' object
-        // fetched by getConversationById might be modified and saved later in 'processConversationalRequest'.
-        // If the conversation object were only read and not modified, .lean() would be beneficial.
-        // With the optimization in processConversationalRequest to use a direct database update
-        // for uploadedFiles, this conversation object is no longer directly saved after modification.
-        // However, to maintain consistency with `conversationService.createConversation` which
-        // likely returns a Mongoose document, we keep this fetch as non-lean.
+        // INTEGRATION FIX: Pass the full user object to the helper.
+        // This allows the helper to perform role-based access control (e.g., an admin
+        // can access any conversation in their workspace, while a user can only access their own).
         conversation = await conversationHelpers.getConversationById(
           conversationId,
-          userId,
+          user,
           req
         );
         logger.info(`Fetched conversation with ID: ${conversationId}`);
       } catch (error) {
         logger.warn(
-          `Conversation ${conversationId} not found, creating new one`
+          `Conversation ${conversationId} not found or access denied for user ${user.id}, creating new one`
         );
       }
     }
@@ -148,25 +149,31 @@ const handleArticleWriterConversation = async (
     if (!conversation) {
       const newConversationId = conversationId || generateConversationId();
 
-      conversation = await conversationService.createConversation(
-        {
-          userId,
-          title: `Article: ${userMessage.substring(0, 50)}...`,
-          metadata: {
-            category: CONVERSATION_CATEGORY,
-            model: CONVERSATION_MODEL,
-            userType: isGuest ? 'guest' : 'authenticated',
-            isGuest,
-            collectedParams: {},
-            uploadedFiles: [],
-          },
+      // HIERARCHY GAP FIX: When creating a conversation, embed the workspace and tenant context.
+      // This is crucial for data isolation, billing, and allowing managers/admins to view team activity.
+      const conversationData = {
+        userId: user.id,
+        workspaceId: user.workspaceId, // Associate conversation with the workspace
+        tenantId: user.tenantId, // Associate conversation with the tenant/platform
+        title: `Article: ${userMessage.substring(0, 50)}...`,
+        metadata: {
+          category: CONVERSATION_CATEGORY,
+          model: CONVERSATION_MODEL,
+          userType: isGuest ? 'guest' : 'authenticated',
+          isGuest,
+          collectedParams: {},
+          uploadedFiles: [],
         },
+      };
+
+      conversation = await conversationService.createConversation(
+        conversationData,
         newConversationId,
         req
       );
 
       logger.info(
-        `Created new article writer conversation ${newConversationId} for user ${userId}`
+        `Created new article writer conversation ${newConversationId} for user ${user.id} in workspace ${user.workspaceId}`
       );
     }
 
@@ -184,7 +191,7 @@ const handleArticleWriterConversation = async (
  * Adds a new message to an existing conversation.
  *
  * @param {string} conversationId - The ID of the conversation to add the message to.
- * @param {string} userId - The ID of the user associated with the conversation.
+ * @param {object} user - The authenticated user object.
  * @param {'user' | 'assistant'} role - The role of the sender ('user' or 'assistant').
  * @param {string} content - The text content of the message.
  * @param {object} [metadata={}] - Optional metadata to store with the message.
@@ -194,7 +201,7 @@ const handleArticleWriterConversation = async (
  */
 const addMessage = async (
   conversationId,
-  userId,
+  user,
   role,
   content,
   metadata = {},
@@ -208,9 +215,12 @@ const addMessage = async (
       metadata,
     };
 
+    // INTEGRATION FIX: Pass the full user object to the service.
+    // This ensures that the service can verify that the user has permission to add a message
+    // to this specific conversation, respecting workspace boundaries.
     return await conversationService.addMessageToConversation(
       conversationId,
-      userId,
+      user,
       message,
       req
     );
@@ -381,11 +391,10 @@ const generateArticle = async (prompt, fileData = null) => {
  * This includes managing the conversation, processing uploaded files, building the AI prompt,
  * generating the article, and updating the conversation history.
  *
- * @param {string} userId - The ID of the user making the request.
+ * @param {object} user - The authenticated user object, containing id, role, workspaceId, etc.
  * @param {string} message - The user's input message for the article.
  * @param {string | null} conversationId - The ID of the current conversation, or null for a new one.
  * @param {object | null} [fileInfo=null] - Optional object containing details of an uploaded file.
- * @param {boolean} [isGuest=false] - Indicates if the user is a guest.
  * @param {string | null} [articleType=null] - The desired type of article (e.g., 'blog_post').
  * @param {string | null} [tone=null] - The desired writing tone.
  * @param {string | null} [length=null] - The desired length of the article.
@@ -394,21 +403,20 @@ const generateArticle = async (prompt, fileData = null) => {
  * @throws {ApiError} If any step in the process fails.
  */
 const processConversationalRequest = async (
-  userId,
+  user,
   message,
   conversationId,
   fileInfo = null,
-  isGuest = false,
   articleType = null,
   tone = null,
   length = null,
   req = null
 ) => {
+  const isGuest = user.role === 'guest';
+
   // --- Rate Limiting & DDOS Guard ---
   try {
     if (isGuest) {
-      // For guest users, rate limit by IP address.
-      // It's crucial that the Express 'trust proxy' setting is enabled if behind a proxy.
       if (!req || !req.ip) {
         logger.warn(
           'IP address not available for guest user rate limiting. Request will proceed without limit check. This is a potential security risk.'
@@ -417,11 +425,9 @@ const processConversationalRequest = async (
         await guestArticleLimiter.consume(req.ip);
       }
     } else {
-      // For authenticated users, rate limit by their unique user ID.
-      await authenticatedArticleLimiter.consume(userId);
+      await authenticatedArticleLimiter.consume(user.id);
     }
   } catch (rateLimiterRes) {
-    // The rate limiter throws an error when points are consumed.
     throw new ApiError(
       httpStatus.TOO_MANY_REQUESTS,
       'You have made too many requests. Please try again later.'
@@ -429,20 +435,38 @@ const processConversationalRequest = async (
   }
   // --- End Rate Limiting & DDOS Guard ---
 
+  // --- HIERARCHY GAP FIX: Workspace Usage & Limit Enforcement ---
+  // For authenticated users, check if their workspace has sufficient credits/usage quota before proceeding.
+  if (!isGuest) {
+    try {
+      await usageService.checkAndConsumeCredits(
+        user.workspaceId,
+        ARTICLE_WRITER_CONFIG.GENERATION_COST
+      );
+    } catch (error) {
+      // Assuming usageService throws a specific error type for limit exhaustion
+      if (error.name === 'LimitExceededError') {
+        throw new ApiError(httpStatus.PAYMENT_REQUIRED, error.message);
+      }
+      // Re-throw other unexpected errors
+      throw error;
+    }
+  }
+  // --- End Workspace Usage & Limit Enforcement ---
+
   try {
     // Handle conversation (create or retrieve)
     const conversation = await handleArticleWriterConversation(
-      userId,
+      user,
       conversationId,
       message,
-      isGuest,
       req
     );
 
     // Add user message to conversation
     await addMessage(
       conversation.conversationId,
-      userId,
+      user,
       'user',
       message,
       {
@@ -457,14 +481,10 @@ const processConversationalRequest = async (
     if (fileInfo) {
       fileData = await processUploadedFile(fileInfo);
 
-      // Optimization: For better performance, update the conversation directly in the database
-      // using a method like `findOneAndUpdate` with `$push` in `conversationService`
-      // instead of fetching the whole document, modifying it in memory, and then saving.
-      // This avoids unnecessary data transfer and Mongoose document overhead.
-      // Assuming conversationService.updateConversationById supports $push operations.
+      // HIERARCHY GAP FIX: Pass the full user object for permission checks during updates.
       await conversationService.updateConversationById(
         conversation.conversationId,
-        userId,
+        user,
         {
           $push: {
             'metadata.uploadedFiles': {
@@ -477,12 +497,10 @@ const processConversationalRequest = async (
       );
     }
 
-    // Use provided parameters or defaults
     const finalArticleType = articleType || DEFAULT_PARAMS.articleType;
     const finalTone = tone || DEFAULT_PARAMS.tone;
     const finalLength = length || DEFAULT_PARAMS.length;
 
-    // Build prompt
     const prompt = buildArticlePrompt(
       message,
       finalArticleType,
@@ -491,13 +509,12 @@ const processConversationalRequest = async (
       fileData
     );
 
-    // Generate article
     const articleText = await generateArticle(prompt, fileData);
 
     // Add AI response to conversation
     await addMessage(
       conversation.conversationId,
-      userId,
+      user,
       'assistant',
       articleText,
       {
@@ -509,7 +526,23 @@ const processConversationalRequest = async (
       req
     );
 
-    // Clean up uploaded file if it exists
+    // --- HIERARCHY GAP FIX: Propagate Usage and Notifications ---
+    // After a successful generation, record the usage and check if notifications are needed.
+    if (!isGuest) {
+      const usageInfo = await usageService.getWorkspaceUsage(user.workspaceId);
+      // Asynchronously send notifications to admins/managers if usage thresholds are met.
+      // This is done without awaiting to avoid blocking the user's response.
+      notificationService
+        .notifyAdminsOnUsageThreshold(user.workspaceId, usageInfo)
+        .catch(err =>
+          logger.error(
+            `Failed to send usage notification for workspace ${user.workspaceId}`,
+            err
+          )
+        );
+    }
+    // --- End Usage Propagation ---
+
     if (fileInfo && fileInfo.path) {
       try {
         await fs.unlink(fileInfo.path);
@@ -521,7 +554,7 @@ const processConversationalRequest = async (
 
     return {
       conversationId: conversation.conversationId,
-      userId: userId,
+      userId: user.id,
       article: articleText,
       metadata: {
         articleType: finalArticleType,
@@ -530,7 +563,15 @@ const processConversationalRequest = async (
       },
     };
   } catch (error) {
+    // HIERARCHY GAP FIX: If generation fails, refund the consumed credits.
+    if (!isGuest) {
+      await usageService.refundCredits(
+        user.workspaceId,
+        ARTICLE_WRITER_CONFIG.GENERATION_COST
+      );
+    }
     logger.error('Error processing conversational article request:', error);
+    // Re-throw the original error to be handled by the controller.
     throw error;
   }
 };
@@ -538,19 +579,14 @@ const processConversationalRequest = async (
 /**
  * Retrieves the complete conversation history for a given conversation ID and user.
  *
+ * @param {object} user - The authenticated user object, containing id, role, workspaceId, etc.
  * @param {string} conversationId - The ID of the conversation to retrieve.
- * @param {string} userId - The ID of the user who owns the conversation.
- * @param {boolean} [isGuest=false] - Flag to indicate if the user is a guest.
  * @param {object} [req=null] - The Express request object, required for IP-based rate limiting for guests.
  * @returns {Promise<object>} The conversation object, including its messages.
  * @throws {ApiError} If the conversation is not found, the rate limit is exceeded, or an internal server error occurs.
  */
-const getConversationHistory = async (
-  conversationId,
-  userId,
-  isGuest = false,
-  req = null
-) => {
+const getConversationHistory = async (user, conversationId, req = null) => {
+  const isGuest = user.role === 'guest';
   // --- Rate Limiting & DDOS Guard ---
   try {
     if (isGuest) {
@@ -562,7 +598,7 @@ const getConversationHistory = async (
         await guestHistoryLimiter.consume(req.ip);
       }
     } else {
-      await authenticatedHistoryLimiter.consume(userId);
+      await authenticatedHistoryLimiter.consume(user.id);
     }
   } catch (rateLimiterRes) {
     throw new ApiError(
@@ -573,20 +609,22 @@ const getConversationHistory = async (
   // --- End Rate Limiting & DDOS Guard ---
 
   try {
-    // Optimization: Using .lean() for read-only queries improves performance
-    // by returning plain JavaScript objects instead of Mongoose documents.
-    // This reduces memory consumption and CPU overhead as Mongoose doesn't
-    // need to hydrate and track changes for the document.
-    // Assuming conversationHelpers.getConversationById supports an options object
-    // as its third argument, where { lean: true } can be passed.
+    // INTEGRATION FIX & IDOR PREVENTION: Pass the full user object to the helper.
+    // This allows the helper to perform role-based access control. For example:
+    // - A 'user' can only get their own conversations.
+    // - An 'admin' can get any conversation within their 'workspaceId'.
+    // - A 'super_admin' can get any conversation.
+    // This prevents a user from accessing another user's data, even within the same workspace, unless they have the appropriate role.
     const conversation = await conversationHelpers.getConversationById(
       conversationId,
-      userId,
-      { lean: true } // Pass an options object to enable .lean()
+      user,
+      { lean: true } // Pass lean option for performance
     );
 
     if (!conversation) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found');
+      // The helper should throw an error if not found or access is denied.
+      // This is a fallback.
+      throw new ApiError(httpStatus.NOT_FOUND, 'Conversation not found or access denied');
     }
 
     return conversation;
@@ -619,28 +657,23 @@ export const articleWriterService = {
  * Database Indexing Recommendations for the 'Conversation' model:
  *
  * The 'Conversation' model (managed by `conversationService` and `conversationHelpers`)
- * is frequently queried by `conversationId` and `userId`. To optimize these lookups:
+ * is frequently queried. To optimize these lookups:
  *
- * 1. Index on `conversationId`:
- *    - `db.conversations.createIndex({ conversationId: 1 })`
- *    - Rationale: `conversationId` is a unique identifier used for direct lookups in
- *      `getConversationById` and `addMessageToConversation`. An index will significantly
- *      speed up these point queries.
+ * 1. Compound Index on `(workspaceId, userId)`:
+ *    - `db.conversations.createIndex({ workspaceId: 1, userId: 1 })`
+ *    - Rationale: This is the most critical index. It supports queries for all conversations
+ *      in a workspace (for admins/managers) and drills down to a specific user's conversations.
  *
- * 2. Index on `userId`:
- *    - `db.conversations.createIndex({ userId: 1 })`
- *    - Rationale: `userId` is used to filter conversations belonging to a specific user,
- *      for example, when fetching a user's list of conversations. This is crucial for
- *      efficient retrieval of user-specific data.
+ * 2. Unique Index on `conversationId`:
+ *    - `db.conversations.createIndex({ conversationId: 1 }, { unique: true })`
+ *    - Rationale: `conversationId` is the primary key for direct lookups. Making it unique
+ *      enforces data integrity.
  *
- * 3. Compound Index on `(userId, conversationId)`:
- *    - `db.conversations.createIndex({ userId: 1, conversationId: 1 })`
- *    - Rationale: If queries frequently involve both `userId` and `conversationId` together
- *      (e.g., `find({ userId: '...', conversationId: '...' })`), a compound index can be
- *      more efficient than two separate indexes. The order `userId` first is generally
- *      preferred if filtering by user is more common, followed by `conversationId` for
- *      specific conversation identification within that user's set.
+ * 3. Index on `tenantId`:
+ *    - `db.conversations.createIndex({ tenantId: 1 })`
+ *    - Rationale: Useful for platform-level operations and data segregation if the application
+ *      is multi-tenant at the highest level.
  *
- * These indexes will help optimize read and write operations on the Conversation model,
- * reducing query times and improving overall database performance.
+ * These indexes will significantly improve query performance and scalability, especially
+ * as the number of users and conversations grows.
  */

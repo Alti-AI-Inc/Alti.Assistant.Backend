@@ -3,14 +3,57 @@
  * It streams files directly to a Google Cloud Storage (GCS) bucket, avoiding the local filesystem.
  * It also implements file filtering based on allowed extensions, MIME types, and file size limits
  * specified in `PLAN_GENERATOR_CONFIG`.
+ * It also exports a rate limiter specifically for this high-cost operation.
  * @module middlewares/uploadPlanFiles
  */
 
 import multer from 'multer';
 import path from 'path';
 import { Storage } from '@google-cloud/storage';
+import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
 import ApiError from '../../../../errors/ApiError.js';
 import { PLAN_GENERATOR_CONFIG } from '../plan_generator.constant.js';
+import redisClient from '../../../../config/redisClient.js';
+
+/**
+ * @description Rate limiter for the file upload endpoint.
+ * File uploads are resource-intensive operations (CPU, network, GCS API calls, storage costs).
+ * This limiter protects the endpoint from abuse, DDOS attacks, and excessive costs by restricting
+ * the number of uploads an authenticated user (or IP address) can perform in a given time window.
+ * It should be applied in the route chain *before* the `uploadPlanFiles` multer middleware.
+ *
+ * @example
+ * import { uploadPlanRateLimiter, uploadPlanFiles } from './middlewares/uploadPlanFiles';
+ * router.post(
+ *   '/generate-from-file',
+ *   authMiddleware, // Ensures req.user.id is available
+ *   uploadPlanRateLimiter,
+ *   uploadPlanFiles.single('planFile'),
+ *   planGeneratorController.generatePlanFromFile
+ * );
+ */
+export const uploadPlanRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 20, // Limit each user to 20 upload requests per window.
+  standardHeaders: 'draft-7', // Use standard `RateLimit-*` headers.
+  legacyHeaders: false, // Disable the non-standard `X-RateLimit-*` headers.
+  // Store rate limit data in Redis to ensure consistency across multiple server instances.
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+  }),
+  // Key requests by the authenticated user's ID for fairness. Fallback to IP if unauthenticated.
+  keyGenerator: (req, res) => {
+    return req.user?.id || req.ip;
+  },
+  // Custom handler to throw a consistent ApiError when the limit is exceeded.
+  handler: (req, res, next, options) => {
+    throw new ApiError(
+      options.statusCode, // 429
+      `Too many upload requests. You are limited to ${options.limit} requests per ${options.windowMs / 60000} minutes.`
+    );
+  },
+});
 
 // Initialize the Google Cloud Storage client.
 // Assumes GOOGLE_APPLICATION_CREDENTIALS environment variable is set for authentication.
