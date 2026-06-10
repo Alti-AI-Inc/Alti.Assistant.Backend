@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import { GCPStorageService } from '../services/gcpStorageService.js';
 import config from '../../../../../config/index.js';
 import redisClient from '../../../../../config/redisClient.js'; // DDOS GUARD: Import shared Redis client for rate limiting.
+// INTEGRATION: Import services for usage tracking and limit enforcement across the tenant hierarchy.
+// This is an assumed service that encapsulates the business logic for checking and recording usage.
+import { checkImageGenerationLimit, recordImageGeneration } from '../../usage/usage.service.js';
 
 dotenv.config();
 
@@ -46,17 +49,21 @@ const mimeTypeToExtension = {
  * Generates an image based on a user prompt and optional reference images.
  * This function ensures user data isolation, enforces limits, and handles file operations securely.
  *
- * @param {string} userId - The unique identifier for the user to ensure data isolation and for usage tracking.
+ * @param {object} userContext - The context of the user making the request.
+ * @param {string} userContext.id - The unique identifier for the user.
+ * @param {string} userContext.workspaceId - The identifier for the user's workspace to enforce tenant boundaries and limits.
+ * @param {string} userContext.role - The user's role (e.g., 'user', 'admin', 'super_admin') for applying role-based logic.
  * @param {string} prompt - The text prompt for image generation.
  * @param {Array<{path: string, mimeType: string}>} [referenceImages] - An array of objects, each with a path to a temporary reference image and its MIME type.
  * @returns {Promise<string|null>} The public URL of the generated and uploaded image, or null if no image was generated.
  * @throws {Error} Throws an error for invalid input, security violations, or failures in the generation/upload process.
  */
-export async function imagen3(userId, prompt, referenceImages = []) {
+export async function imagen3(userContext, prompt, referenceImages = []) {
   // USER EXPERIENCE/ROBUSTNESS: Validate inputs at the beginning of the function to fail fast with clear errors.
-  if (!userId) {
-    throw new Error('User ID is required for image generation to ensure data isolation.');
+  if (!userContext || !userContext.id || !userContext.workspaceId || !userContext.role) {
+    throw new Error('User context including ID, workspace ID, and role is required for image generation.');
   }
+  const { id: userId, workspaceId, role } = userContext;
 
   // DDOS GUARD/COST CONTROL: Apply per-user rate limiting before processing the request.
   try {
@@ -113,6 +120,17 @@ export async function imagen3(userId, prompt, referenceImages = []) {
     throw new Error(`The number of reference images cannot exceed ${MAX_REFERENCE_IMAGES}.`);
   }
 
+  // HIERARCHY/LIMITS: Before incurring costs, check if the user's workspace has exceeded its generation limits.
+  // Super admins may be exempt from these limits for administrative purposes.
+  if (role !== 'super_admin') {
+      const canGenerate = await checkImageGenerationLimit(workspaceId);
+      if (!canGenerate) {
+          const error = new Error('Workspace image generation limit reached. Please upgrade your plan or contact your administrator.');
+          error.status = 402; // HTTP 402 Payment Required is appropriate here.
+          throw error;
+      }
+  }
+
   try {
     const content = [{ text: prompt }];
 
@@ -163,9 +181,9 @@ export async function imagen3(userId, prompt, referenceImages = []) {
       // ROBUSTNESS: Determine file extension from the actual MIME type returned by the model.
       const fileExtension = mimeTypeToExtension[mimeType] || '.bin'; // Fallback for unknown types.
 
-      // DATA ISOLATION/SECURITY: Generate a unique, non-guessable filename within a user-specific folder.
+      // DATA ISOLATION/SECURITY: Generate a unique, non-guessable filename within a workspace-and-user-specific folder.
       const uniqueFilename = `${uuidv4()}${fileExtension}`;
-      const storagePath = `users/${userId}/generated/${uniqueFilename}`;
+      const storagePath = `workspaces/${workspaceId}/users/${userId}/generated/${uniqueFilename}`;
 
       // Upload the generated image buffer to cloud storage.
       const uploadedUrl = await gcpStorage.uploadBuffer(
@@ -173,7 +191,19 @@ export async function imagen3(userId, prompt, referenceImages = []) {
         storagePath,
         mimeType
       );
-      console.log(`User ${userId} image uploaded to GCP: ${uploadedUrl}`);
+      console.log(`User ${userId} in workspace ${workspaceId} image uploaded to GCP: ${uploadedUrl}`);
+
+      // HIERARCHY/USAGE: Record the successful generation event. This service is responsible for
+      // decrementing quotas and propagating usage data up to managers and workspace administrators.
+      try {
+          await recordImageGeneration(userId, workspaceId);
+      } catch (usageError) {
+          // FAIL-SAFE: If usage recording fails, log it critically but do not fail the user's request,
+          // as the image has already been generated and stored. This prevents a poor user experience.
+          // An external monitoring/reconciliation process should track these failures.
+          console.error(`CRITICAL: Failed to record image generation usage for user ${userId} in workspace ${workspaceId}.`, usageError);
+      }
+
       return uploadedUrl;
     } else {
       // USER EXPERIENCE: Handle cases where the model returns text instead of an image (e.g., due to safety filters).
@@ -184,7 +214,7 @@ export async function imagen3(userId, prompt, referenceImages = []) {
 
   } catch (error) {
     // ERROR HANDLING: Log the detailed error with user context for debugging and re-throw to be handled by the calling service.
-    console.error(`Error in imagen3 for user ${userId}:`, error);
+    console.error(`Error in imagen3 for user ${userId} in workspace ${workspaceId}:`, error);
     // Propagate the error to allow the controller to send an appropriate HTTP response to the end-user.
     throw error;
   }
