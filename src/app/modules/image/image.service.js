@@ -331,9 +331,12 @@ const addErrorMessage = async (
  */
 const getGuestConversations = async (guestUserId, req = null) => {
   try {
-    // FIX: Mongoose query options should not include the entire 'req' object.
-    // Only pass specific Mongoose options like 'lean', 'populate', etc.
-    const queryOptions = { lean: true };
+    // OPTIMIZATION: Use projection ('select') to avoid fetching heavy fields (like messages array)
+    // when retrieving a list of conversations. This significantly reduces network overhead and memory usage.
+    const queryOptions = { 
+      lean: true,
+      select: 'title metadata lastActivity messageCount'
+    };
 
     // Push the 'metadata.userType' filter to the database query
     // and use .lean() for performance as documents are read-only.
@@ -348,7 +351,7 @@ const getGuestConversations = async (guestUserId, req = null) => {
     );
 
     // No need for client-side filtering as it's handled by the DB query
-    const guestConversations = conversations.conversations;
+    const guestConversations = conversations.conversations || [];
 
     logger.info(
       `Retrieved ${guestConversations.length} guest conversations for user ${guestUserId}`
@@ -409,9 +412,12 @@ const getGuestConversation = async (
  */
 const getImageStats = async (userId, req = null) => {
   try {
-    // FIX: Mongoose query options should not include the entire 'req' object.
-    // Only pass specific Mongoose options like 'lean', 'populate', etc.
-    const queryOptions = { lean: true };
+    // OPTIMIZATION: Use projection ('select') to only fetch fields needed for statistics calculation.
+    // This prevents loading heavy message arrays into memory for up to 1000 conversations.
+    const queryOptions = { 
+      lean: true,
+      select: 'messageCount lastActivity'
+    };
 
     // Get conversation count for image category
     // Use .lean() for performance as documents are read-only.
@@ -427,22 +433,25 @@ const getImageStats = async (userId, req = null) => {
     // Calculate total messages across all image conversations
     let totalMessages = 0;
     let totalImages = 0;
+    const conversations = imageConversations.conversations || [];
 
-    for (const conversation of imageConversations.conversations) {
-      totalMessages += conversation.messageCount || 0;
+    // OPTIMIZATION: Use a standard for-loop for maximum performance over large arrays
+    for (let i = 0; i < conversations.length; i++) {
+      const msgCount = conversations[i].messageCount || 0;
+      totalMessages += msgCount;
       // Count assistant messages as generated images (rough estimate)
-      totalImages += Math.floor((conversation.messageCount || 0) / 2);
+      totalImages += Math.floor(msgCount / 2);
     }
 
     const stats = {
-      totalConversations: imageConversations.totalCount,
+      totalConversations: imageConversations.totalCount || conversations.length,
       totalMessages,
       totalImages,
       averageMessagesPerConversation:
         imageConversations.totalCount > 0
           ? (totalMessages / imageConversations.totalCount).toFixed(2)
           : 0,
-      lastActivity: imageConversations.conversations[0]?.lastActivity || null,
+      lastActivity: conversations[0]?.lastActivity || null,
     };
 
     logger.info(`Retrieved image stats for user ${userId}:`, stats);
