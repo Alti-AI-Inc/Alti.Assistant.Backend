@@ -49,9 +49,9 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
   // regardless of whether a conversationId is present (e.g., for new conversations).
   if (!isGuest) {
     try {
-      // Optimization: Added .lean() for read-only query to improve performance
-      // Recommendation: For optimal performance, ensure an index exists on `userId` and `createdAt`
-      // (e.g., { userId: 1, createdAt: -1 }) in your SubscriptionModel schema.
+      // Optimization: Added .lean() for read-only query to improve performance.
+      // Performance Recommendation: For optimal performance, ensure an index exists on `userId` and `createdAt`
+      // in your SubscriptionModel schema (e.g., schema.index({ userId: 1, createdAt: -1 })).
       const userSubscription = await SubscriptionModel.findOne({ userId })
         .sort({
           createdAt: -1,
@@ -69,6 +69,10 @@ export const conversationalAssistant = catchAsync(async (req, res) => {
       // we make a strong assumption that `conversationHelpers.getConversationById(null, userId, req)`
       // is intended to return the *total monthly usage* for the user when `conversationId` is null.
       // If this assumption is incorrect, this line remains a bug and requires a new service method.
+      // Performance Recommendation: If `conversationHelpers.getConversationById` performs database queries
+      // to calculate total monthly usage, ensure it uses efficient aggregation queries with appropriate
+      // indexes (e.g., on `userId` and `createdAt` in the relevant message/conversation collection)
+      // and `.lean()` for read-only operations.
       const currentMonthlyUsage = await conversationHelpers.getConversationById(
         null, // Pass null to signify "get total monthly usage" if helper supports it
         userId,
