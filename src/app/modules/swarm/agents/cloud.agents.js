@@ -9,6 +9,7 @@
  * @property {string} description - A brief description of the agent's specialization.
  * @property {string} systemInstruction - The core system prompt/instruction for the agent, guiding its behavior and expertise.
  * @property {string} model - The AI model used by the agent (e.g., 'gemini-2.5-flash').
+ * @property {object[]} safetySettings - Configuration for Google's safety filters (e.g., hate speech, harassment).
  * @property {string[]} tools - An array of tools the agent can utilize to perform its tasks.
  * @property {string[]} keywords - An array of keywords associated with the agent's expertise, useful for search and categorization.
  */
@@ -27,6 +28,25 @@ Ground your answers entirely in verified Google Cloud Platform open-source bluep
 Include repository URLs, star counts, licenses, and direct clone commands where appropriate.
 Stay concise, exact, and 100% truthful. Avoid conversational fluff.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: ['gcp-catalog-search'],
   keywords: ['gcp', 'google cloud', 'appengine', 'cloud storage', 'compute engine', 'bigquery', 'cloud run', 'gke', 'kubernetes', 'gcloud']
 };
@@ -45,6 +65,25 @@ Generate 100% syntactically correct, secure, and compliant Terraform configurati
 Always implement security best practices (e.g. IAM least privilege, encryption at rest, private network endpoints).
 Present configurations in clean markdown blocks.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: ['terraform-schema-validator'],
   keywords: ['terraform', 'tf', 'main.tf', 'variables.tf', 'infrastructure as code', 'iac', 'provision']
 };
@@ -62,6 +101,25 @@ export const gcpGkeExpert = {
 Design GKE topologies, workload identity setups, secure network policies, ingress controllers, Helm charts, and custom resource definitions.
 Deliver production-grade, secure, and production-ready YAML or Terraform configs.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['gke', 'kubernetes', 'k8s', 'cluster', 'workload identity', 'networkpolicy', 'ingress', 'helm', 'kubectl', 'pod', 'deployment']
 };
@@ -79,6 +137,25 @@ export const gcpServerlessExpert = {
 Design microservice topologies utilizing Google Cloud Run, Cloud Functions, Pub/Sub messaging, Eventarc triggers, and API Gateway.
 Stay lightweight, secure, and focus on auto-scaling and minimal cold starts.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['cloud run', 'cloud functions', 'functions', 'pubsub', 'eventarc', 'serverless', 'microservice', 'api gateway', 'event-driven']
 };
@@ -96,6 +173,25 @@ export const gcpSecurityExpert = {
 Audit configuration blocks against CIS GCP Benchmarks, secure IAM least privilege policies, KMS customer-managed encryption key setups, and VPC Service Controls.
 Present recommendations in clean, prioritized security scorecards.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['kms', 'security', 'iam', 'least privilege', 'compliance', 'vpc service controls', 'kms key', 'cis benchmark', 'secret manager', 'firewall']
 };
@@ -113,6 +209,25 @@ export const gcpDatabaseExpert = {
 Design high-availability cloud database architectures using Google Cloud Spanner, Cloud SQL, AlloyDB, Firestore, or Bigtable.
 Focus on replication schemas, connection pool tuning, global scaling, and secure VPC routing.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['spanner', 'cloud sql', 'alloydb', 'firestore', 'bigtable', 'database schema', 'replication', 'connection pooling', 'vpc peering']
 };
@@ -130,6 +245,25 @@ export const gcpDataExpert = {
 Design resilient analytics pipelines with BigQuery datasets, Apache Beam jobs on Cloud Dataflow, Dataproc Spark clusters, and Pub/Sub streaming feeds.
 Focus on query optimization, partition/clustering schemes, and high-performance ingestion.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['bigquery', 'dataflow', 'dataproc', 'etl', 'pipeline', 'apache beam', 'spark', 'analytics', 'data warehouse', 'partitioning']
 };
@@ -148,6 +282,25 @@ Design strategies for migrating systems from AWS, Azure, or On-Premise environme
 Provide step-by-step blueprints utilizing GCP Database Migration Service, Velostrata, and Migrate for Compute Engine.
 Focus on zero-downtime cutovers, minimal latency, and network tunnels.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['migration', 'migrate', 'aws to gcp', 'azure to gcp', 'on-prem to gcp', 'dms', 'database migration', 'velostrata', 'cutover', 'transition']
 };
@@ -166,6 +319,25 @@ Analyze GCP architectural blueprints to reduce monthly cloud spend.
 Recommend GCS lifecycle policies, compute Committed Use Discounts (CUDs), serverless scaling behaviors, and cost tracking label strategies.
 Deliver recommendations categorized by immediate and long-term cost impact.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['finops', 'cost', 'spend', 'billing', 'savings', 'committed use', 'cud', 'recommender', 'budget', 'optimizer', 'lifecycle']
 };
@@ -183,6 +355,25 @@ export const gcpMlopsExpert = {
 Design end-to-end Machine Learning pipelines on Google Cloud, Vertex AI Pipelines, Feature Store topologies, model registries, and API fine-tuning parameters.
 Deliver standard code examples using Google Cloud GenAI and Vertex AI Python SDK.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['vertex ai', 'mlops', 'model registry', 'fine-tuning', 'feature store', 'vertex pipeline', 'genai sdk', 'model deployment', 'endpoint tuning']
 };
@@ -200,6 +391,25 @@ export const gcpCloudRunArchitect = {
 Design production-grade Google Cloud Run topologies, custom domains, container configuration limits, auto-scaling thresholds, VPC connectors, and cloud security IAM policies.
 Provide fully optimized yaml or terraform resources.`,
   model: 'gemini-2.5-flash',
+  // Vertex AI safety settings to block harmful content.
+  safetySettings: [
+    {
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_HARASSMENT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    },
+    {
+      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+    }
+  ],
   tools: [],
   keywords: ['cloud run', 'serverless container', 'cloud run scaling', 'knative', 'custom domain cloud run', 'run.app', 'container deploy']
 };

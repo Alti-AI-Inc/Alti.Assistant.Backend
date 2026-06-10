@@ -1,3 +1,7 @@
+import httpStatus from 'http-status';
+import { logger } from '../../../core/logger.js';
+import { ApiError } from '../../../core/ApiError.js';
+
 /**
  * Stateful, durable Temporal RAG Ingestion Workflow that orchestrates
  * resilient document loading, structured Markdown parsing, metadata extraction,
@@ -9,7 +13,7 @@
  * @param {string} userId - User identifier for isolated storage workspace.
  * @param {string} docId - Unique document identifier.
  * @returns {Promise<object>} Ingestion execution report containing success status, docId, originalName, and a message.
- * @throws {Error} If any step of the ingestion process fails, or if the rollback compensation fails.
+ * @throws {ApiError} If any step of the ingestion process fails, or if the rollback compensation fails.
  */
 export async function resilientRAGIngestionWorkflow(filePath, originalName, userId, docId) {
   let activities;
@@ -67,14 +71,41 @@ export async function resilientRAGIngestionWorkflow(filePath, originalName, user
     };
   } catch (error) {
     // Saga Rollback logic: Purge any partial/corrupt vector nodes and reset state records
-    console.error(`[Temporal RAG Ingestion Orchestrator] Critical ingestion failure: ${error.message}. Initiating rollback compensation...`);
+    logger.error({
+      message: `[Temporal RAG Ingestion Orchestrator] Critical ingestion failure. Initiating rollback compensation.`,
+      docId,
+      userId,
+      originalName,
+      filePath,
+      error: error.message,
+      stack: error.stack,
+    });
     
     try {
+      // Attempt to execute the compensating activity to clean up resources
       await activities.cleanupFailedIngestionActivity(filePath, originalName, docId, userId);
     } catch (purgeError) {
-      console.error(`[Temporal RAG Ingestion Orchestrator] Failed to execute compensating rollback activity: ${purgeError.message}`);
+      // Log the failure of the cleanup activity itself, as this is a critical state
+      logger.error({
+        message: `[Temporal RAG Ingestion Orchestrator] FATAL: Failed to execute compensating rollback activity. Manual cleanup may be required.`,
+        docId,
+        userId,
+        originalName,
+        filePath,
+        error: purgeError.message,
+        stack: purgeError.stack,
+      });
+      // Note: We do not re-throw the purgeError, as the original error is the root cause of the workflow failure.
+      // The workflow should fail because of the original 'error', not the 'purgeError'.
     }
 
-    throw new Error(`Resilient RAG Ingestion Workflow Failed: ${error.message}`);
+    // Normalize the error and re-throw it to fail the workflow execution.
+    // The client that invoked this workflow will receive this normalized error.
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      `Resilient RAG Ingestion Workflow Failed: ${error.message}`,
+      true, // isOperational
+      error.stack
+    );
   }
 }
