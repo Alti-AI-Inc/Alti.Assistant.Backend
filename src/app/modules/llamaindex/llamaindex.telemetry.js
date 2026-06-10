@@ -2,6 +2,9 @@ import fs from 'node:fs/promises';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'path';
 import { logger } from '../../../shared/logger.js';
+// This module does not create user-facing errors, so ApiError is not needed here.
+// The withTelemetry wrapper re-throws errors to be handled by a global error middleware,
+// which is responsible for normalizing them into ApiError responses.
 
 /**
  * Phase 19: Query Telemetry Pipeline
@@ -101,18 +104,24 @@ class TelemetryCollector {
 
     try {
       if (!existsSync(TELEMETRY_DIR)) {
+        // This is a synchronous operation, but it's critical for initialization.
+        // If it fails, the catch block will handle it.
         mkdirSync(TELEMETRY_DIR, { recursive: true });
+        logger.info(`TelemetryCollector: Created telemetry directory at ${TELEMETRY_DIR}`);
       }
 
-      // Load existing entries from today's log file into the ring buffer
+      // Load existing entries from today's log file into the ring buffer.
+      // This is an unawaited promise. Errors are handled in the catch block.
       this._loadFromDisk().catch((err) => {
-        logger.warn('TelemetryCollector: could not load existing entries:', err.message);
+        // The error is already logged with details in _loadFromDisk.
+        logger.error('TelemetryCollector: Initialization failed during disk load.', { error: err });
       });
 
       // Start periodic flush
       this._flushTimer = setInterval(() => {
-        this._flushToDisk().catch((err) => {
-          logger.warn('TelemetryCollector: flush error:', err.message);
+        this._flushToDisk().catch(() => {
+          // The error is already logged with details in _flushToDisk.
+          // This catch just prevents an unhandled promise rejection from crashing the process.
         });
       }, FLUSH_INTERVAL_MS);
 
@@ -132,7 +141,10 @@ class TelemetryCollector {
       this._initialized = true;
       logger.info('TelemetryCollector initialized');
     } catch (err) {
-      logger.error('TelemetryCollector initialization error:', err);
+      // This will catch synchronous errors from mkdirSync.
+      logger.error('TelemetryCollector: Fatal initialization error. Telemetry will be disabled.', { error: err });
+      // To prevent further errors, we can mark it as initialized but effectively disabled.
+      this._initialized = true; // Prevents re-attempts
     }
   }
 
@@ -362,10 +374,10 @@ class TelemetryCollector {
     const entriesToFlush = this.pendingFlushEntries;
     this.pendingFlushEntries = [];
 
-    try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const filePath = path.join(TELEMETRY_DIR, `telemetry_${today}.jsonl`);
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const filePath = path.join(TELEMETRY_DIR, `telemetry_${today}.jsonl`);
 
+    try {
       // Append new entries as JSONL
       const lines = entriesToFlush
         .map((entry) => JSON.stringify(entry))
@@ -375,9 +387,15 @@ class TelemetryCollector {
 
       logger.info(`TelemetryCollector: flushed ${entriesToFlush.length} entries to ${filePath}`);
     } catch (err) {
-      logger.error('TelemetryCollector: disk flush error:', err);
+      logger.error('TelemetryCollector: Failed to flush telemetry entries to disk. Entries will be retried.', {
+        filePath,
+        entryCount: entriesToFlush.length,
+        error: err,
+      });
       // If flush fails, re-add entries to the front of pendingFlushEntries to retry later.
       this.pendingFlushEntries.unshift(...entriesToFlush);
+      // Re-throw so the caller (setInterval's catch block) is aware of the failure.
+      throw err;
     }
   }
 
@@ -389,22 +407,28 @@ class TelemetryCollector {
    * @returns {Promise<void>} A promise that resolves when entries have been loaded.
    */
   async _loadFromDisk() {
+    const today = new Date().toISOString().split('T')[0];
+    const filePath = path.join(TELEMETRY_DIR, `telemetry_${today}.jsonl`);
+
+    // Check for file existence first to avoid throwing an error for a common case.
+    if (!existsSync(filePath)) {
+      return; // No file to load, which is a normal condition on a new day.
+    }
+
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const filePath = path.join(TELEMETRY_DIR, `telemetry_${today}.jsonl`);
-
-      if (!existsSync(filePath)) return;
-
       const content = await fs.readFile(filePath, 'utf-8');
       const lines = content.trim().split('\n').filter(Boolean);
+      let loadedCount = 0;
 
       for (const line of lines) {
         try {
           const entry = JSON.parse(line);
           this.entries.push(entry);
           this.totalRecorded++;
-        } catch {
-          // Skip malformed lines
+          loadedCount++;
+        } catch (parseError) {
+          // Log malformed lines as a warning, but don't stop the process.
+          logger.warn('TelemetryCollector: Skipping malformed line in telemetry log.', { line, error: parseError });
         }
       }
 
@@ -413,9 +437,14 @@ class TelemetryCollector {
         this.entries = this.entries.slice(-MAX_RING_BUFFER_SIZE);
       }
 
-      logger.info(`TelemetryCollector: loaded ${this.entries.length} entries from disk`);
+      if (loadedCount > 0) {
+        logger.info(`TelemetryCollector: loaded ${loadedCount} entries from disk`);
+      }
     } catch (err) {
-      logger.warn('TelemetryCollector: could not load from disk:', err.message);
+      // This catch block now handles file system errors (e.g., read permissions).
+      logger.error('TelemetryCollector: Error reading telemetry file from disk.', { filePath, error: err });
+      // Re-throw to be caught by the caller in initialize()
+      throw err;
     }
   }
 
@@ -475,8 +504,12 @@ class TelemetryCollector {
       this._cleanupTimer = null;
     }
     // Ensure all pending entries are flushed before shutdown
-    await this._flushToDisk();
-    logger.info('TelemetryCollector: shut down');
+    try {
+      await this._flushToDisk();
+      logger.info('TelemetryCollector: shut down');
+    } catch (err) {
+      logger.error('TelemetryCollector: Final flush on shutdown failed.', { error: err });
+    }
   }
 }
 
@@ -497,7 +530,8 @@ export const telemetryCollector = new TelemetryCollector();
  * @returns {Function} An instrumented Express handler function that includes telemetry tracking.
  */
 export const withTelemetry = (queryType, handler) => {
-  return async (req, res) => {
+  // The handler must be an async function to be properly wrapped.
+  return async (req, res, next) => {
     const userId = req.user?.userId || req.user?.id || 'default_user';
     const traceId = telemetryCollector.startTrace(queryType, userId, {
       queryLength: (req.body?.query || req.body?.message || '').length,
@@ -526,6 +560,7 @@ export const withTelemetry = (queryType, handler) => {
     res.json = function (body) {
       captureEnd({
         success: res.statusCode < 400,
+        // If the body contains an error property, capture it.
         error: body?.error,
       });
       return originalJson(body);
@@ -533,16 +568,31 @@ export const withTelemetry = (queryType, handler) => {
 
     // Override res.end for cases like SSE endpoints that call res.end() directly
     res.end = function (...args) {
+      // Only capture if not already captured by res.json or an error.
       captureEnd({ success: res.statusCode < 400 });
       return originalEnd(...args);
     };
 
     try {
-      await handler(req, res);
+      // Pass `next` to the handler if it's designed as standard middleware.
+      await handler(req, res, next);
     } catch (err) {
-      // Ensure telemetry is captured even if the handler throws an error
+      // Log the full error with stack trace for internal diagnostics.
+      // The global error handler will be responsible for normalizing this into an ApiError for the user.
+      logger.error(`Error in handler for telemetry trace: ${traceId}`, {
+        error: err, // Winston will handle serializing the error object
+        traceId,
+        queryType,
+        userId,
+      });
+
+      // Ensure telemetry is captured even if the handler throws an error.
+      // Use the error message for the telemetry record.
       captureEnd({ success: false, error: err.message });
-      throw err; // Re-throw the error to be handled by upstream error middleware
+
+      // Re-throw the error to be handled by the global Express error middleware.
+      // This ensures the response is still sent correctly by the upstream handler.
+      throw err;
     }
   };
 };
