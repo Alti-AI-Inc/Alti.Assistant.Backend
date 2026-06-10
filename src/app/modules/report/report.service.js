@@ -1,7 +1,5 @@
 import httpStatus from 'http-status';
 import mongoose from 'mongoose';
-import path from 'path';
-import fs from 'fs'; // Keep fs for fs.promises
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Storage } from '@google-cloud/storage';
 import ApiError from '../../../errors/ApiError.js';
@@ -10,7 +8,6 @@ import { conversationService } from '../conversations/conversation.service.js';
 import { conversationHelpers } from '../conversations/conversation.helpers.js';
 import { extractContentFromFiles } from './utils/fileParser.js';
 import { exportReport } from './utils/reportExporter.js';
-import { cleanupUploadedFiles } from './middlewares/uploadReportFiles.js';
 import {
   REPORT_CONFIG,
   REPORT_INTENTS,
@@ -32,13 +29,14 @@ const storage = new Storage({
   projectId: config.gcp_project_id || config.gcp?.projectId,
   credentials: config.gcp_credentials || config.gcp?.credentials,
 });
-const bucketName = config.gcs_bucket_name || config.gcs?.bucketName || 'alti-reports-bucket';
+const bucketName =
+  config.gcs_bucket_name || config.gcs?.bucketName || 'alti-reports-bucket';
 const bucket = storage.bucket(bucketName);
 
 /**
  * Helper to get content type based on file format
  */
-const getContentType = (format) => {
+const getContentType = format => {
   const mimeTypes = {
     pdf: 'application/pdf',
     json: 'application/json',
@@ -205,8 +203,10 @@ Respond in JSON format:
     let conversationText = systemPrompt + '\n\n';
     // The `slice(-5).forEach` loop iterates over a small, fixed number of elements (max 5).
     // This is not considered a CPU-intensive synchronous loop.
-    conversationHistory.slice(-5).forEach((msg) => {
-      conversationText += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
+    conversationHistory.slice(-5).forEach(msg => {
+      conversationText += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${
+        msg.content
+      }\n\n`;
     });
     conversationText += `User: ${userMessage}\n\nRespond with valid JSON only.`;
 
@@ -241,7 +241,7 @@ Respond in JSON format:
 /**
  * Generate report content using AI
  */
-const generateReportContent = async (params) => {
+const generateReportContent = async params => {
   try {
     const {
       content,
@@ -370,34 +370,35 @@ const processConversationalRequest = async (
     );
     // The `map` operation here is on the `messages` array, which is typically not excessively large
     // for a single conversation. This is not considered a CPU-intensive synchronous loop.
-    const conversationHistory = conversationData.messages.map((msg) => ({
+    const conversationHistory = conversationData.messages.map(msg => ({
       role: msg.role,
       content: msg.content,
     }));
 
-    // Process uploaded files if any
+    // Process uploaded files if any.
+    // This logic assumes the 'files' array is provided by a middleware (e.g., multer)
+    // configured with memoryStorage. This ensures each file object has a 'buffer'
+    // property instead of a 'path', thus avoiding writes to the local ephemeral filesystem.
     let fileContents = '';
     if (files && files.length > 0) {
       try {
         // `extractContentFromFiles` is an asynchronous operation,
-        // mitigating potential CPU blocking for large files.
+        // and must be implemented to read from file buffers in memory.
         const extractedData = await extractContentFromFiles(files);
         // The `map` operation here iterates over the number of uploaded files.
         // While string concatenation can be intensive for very large numbers of files
         // or extremely large file contents, for typical use cases, this is acceptable.
         fileContents = extractedData
           .map(
-            (file) =>
+            file =>
               `\n--- ${file.filename} ---\n${file.content || file.error}`
           )
           .join('\n');
 
         logger.info(`Processed ${files.length} files for report generation`);
       } catch (error) {
-        logger.error('Error processing files:', error);
-      } finally {
-        // Cleanup uploaded files
-        cleanupUploadedFiles(files);
+        // No local file cleanup is needed as files are only in memory and will be garbage collected.
+        logger.error('Error processing files from memory buffer:', error);
       }
     }
 
@@ -443,7 +444,9 @@ const processConversationalRequest = async (
     // Export directly to GCS stream
     const outputFormat =
       analysis.parameters.outputFormat || DEFAULT_PARAMS.outputFormat;
-    const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const reportId = `report_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     const gcsFileName = `reports/${userId}/${reportId}.${outputFormat}`;
     const gcsFile = bucket.file(gcsFileName);
 
@@ -474,7 +477,9 @@ const processConversationalRequest = async (
 
     logger.info(`Report generated and streamed directly to GCS: ${publicUrl}`);
 
-    const assistantResponse = `I've generated your ${analysis.parameters.reportType || 'report'} in ${outputFormat.toUpperCase()} format. ${analysis.response}`;
+    const assistantResponse = `I've generated your ${
+      analysis.parameters.reportType || 'report'
+    } in ${outputFormat.toUpperCase()} format. ${analysis.response}`;
 
     await addMessage(
       conversation.conversationId,
@@ -526,7 +531,9 @@ const generateReport = async (params, userId, isGuest = false) => {
     const reportData = await generateReportContent(params);
 
     const outputFormat = params.outputFormat || DEFAULT_PARAMS.outputFormat;
-    const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const reportId = `report_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     const gcsFileName = `reports/${userId}/${reportId}.${outputFormat}`;
     const gcsFile = bucket.file(gcsFileName);
 
@@ -595,23 +602,23 @@ const analyzeFiles = async (
       );
     }
 
-    // `extractContentFromFiles` is an asynchronous operation,
-    // mitigating potential CPU blocking for large files.
+    // This logic assumes the 'files' array is provided by a middleware (e.g., multer)
+    // configured with memoryStorage. `extractContentFromFiles` must be implemented
+    // to read from file buffers in memory, not file paths, to avoid local filesystem writes.
     const extractedData = await extractContentFromFiles(files);
-
-    // Cleanup uploaded files
-    cleanupUploadedFiles(files);
 
     // The `map` operation here iterates over the number of uploaded files.
     // While string concatenation can be intensive for very large numbers of files
     // or extremely large file contents, for typical use cases, this is acceptable.
     const fileContents = extractedData
       .map(
-        (file) => `\n--- ${file.filename} ---\n${file.content || file.error}`
+        file => `\n--- ${file.filename} ---\n${file.content || file.error}`
       )
       .join('\n');
 
-    const prompt = `You are an expert data analyst. Provide a comprehensive ${analysisType} analysis of the provided files.\n\nAnalyze the following files and provide a ${analysisType} analysis.\n\n${instructions ? `Additional instructions: ${instructions}\n\n` : ''}Files content:${fileContents}`;
+    const prompt = `You are an expert data analyst. Provide a comprehensive ${analysisType} analysis of the provided files.\n\nAnalyze the following files and provide a ${analysisType} analysis.\n\n${
+      instructions ? `Additional instructions: ${instructions}\n\n` : ''
+    }Files content:${fileContents}`;
 
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -631,8 +638,7 @@ const analyzeFiles = async (
     };
   } catch (error) {
     logger.error('Error analyzing files:', error);
-    // Cleanup on error
-    cleanupUploadedFiles(files);
+    // No local file cleanup is necessary as files are handled in-memory.
     throw error;
   }
 };
