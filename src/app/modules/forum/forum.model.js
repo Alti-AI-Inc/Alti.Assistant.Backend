@@ -92,6 +92,22 @@ const forumSchema = mongoose.Schema(
   }
 );
 
+// --- PERFORMANCE OPTIMIZATIONS: INDEXES ---
+// Compound index for tenant-specific author queries (highly common in multi-tenant dashboards/statistics)
+forumSchema.index({ tenantId: 1, author: 1 });
+
+// Compound index for tenant-specific category filtering (e.g., loading forum categories per tenant)
+forumSchema.index({ tenantId: 1, category: 1 });
+
+// Single-field index for author queries (e.g., global admin checking cross-user statistics or user profile posts)
+forumSchema.index({ author: 1 });
+
+// Single-field index for category queries
+forumSchema.index({ category: 1 });
+
+// Compound index for sorting posts by creation date within a tenant (common for feed pagination)
+forumSchema.index({ tenantId: 1, createdAt: -1 });
+
 /**
  * Represents the Mongoose model for a Forum post.
  *

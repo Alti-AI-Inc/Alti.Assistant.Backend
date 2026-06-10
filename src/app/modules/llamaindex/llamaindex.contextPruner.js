@@ -19,6 +19,15 @@ const STOPWORDS = new Set([
   'youll', 'youre', 'youve', 'your', 'yours', 'yourself', 'yourselves'
 ]);
 
+// Global system-wide configuration manageable by Platform Owner / Super Admin
+let globalConfig = {
+  minRelevanceThreshold: 0.25,
+  maxContextNodes: 5,
+  semanticWeight: 0.7,
+  confidenceWeight: 0.3,
+  bypassPruningForAdmins: false
+};
+
 /**
  * Tokenizes a string into a set of lowercased alphanumeric words, filtering out stopwords.
  */
@@ -52,14 +61,32 @@ const computeJaccardSimilarity = (setA, setB) => {
  * Traverses document relationships, evaluates relevance scores using Jaccard and relationship metrics,
  * prunes connections failing a minimal relevance threshold (< 0.25 relevance),
  * and reranks highly pertinent relationship details to place them at the top of the prompt expansion.
+ * Supports Platform Owner overrides, global oversight, and custom thresholds.
  */
-const pruneAndRerank = async (query, userId) => {
+const pruneAndRerank = async (query, userId, options = {}) => {
   try {
+    const { isPlatformOwner = false, customThreshold, customLimit, tenantId } = options;
     const queryLower = query.toLowerCase();
     const queryTokens = getTokens(query);
 
-    // 1. Fetch user document metadata profiles
-    const metadataList = await DocumentMetadata.find({ userId }).lean();
+    // Platform Owner global oversight: can query across all tenants/users or filter specifically
+    let queryCriteria = {};
+    if (isPlatformOwner) {
+      if (tenantId) {
+        queryCriteria = { tenantId };
+      } else if (userId) {
+        queryCriteria = { userId };
+      } else {
+        // Global oversight: fetch all metadata across the platform
+        queryCriteria = {};
+      }
+      logger.info(`[Platform Owner Oversight] ContextPruner executing query. Criteria: ${JSON.stringify(queryCriteria)}`);
+    } else {
+      queryCriteria = { userId };
+    }
+
+    // 1. Fetch document metadata profiles
+    const metadataList = await DocumentMetadata.find(queryCriteria).lean();
     if (metadataList.length < 2) {
       return query; // Not enough files to resolve graph relationships
     }
@@ -82,13 +109,21 @@ const pruneAndRerank = async (query, userId) => {
       if (metadataList[1]) matchingDocIds.push(metadataList[1].docId);
     }
 
+    // Resolve target userId for graph traversal
+    const targetUserId = queryCriteria.userId || (metadataList[0] && metadataList[0].userId) || userId;
+
     // 3. Traverse the relationship graph from matching files
-    const traversal = await relationshipGraphService.traverseGraph(userId, matchingDocIds, 1);
+    const traversal = await relationshipGraphService.traverseGraph(targetUserId, matchingDocIds, 1);
     const connectedEdges = traversal.edges || [];
 
     if (connectedEdges.length === 0) {
       return query; // No relational links to inject
     }
+
+    // Resolve thresholds and limits (Platform Owner can override or bypass)
+    const effectiveThreshold = customThreshold !== undefined ? customThreshold : 
+      (isPlatformOwner && globalConfig.bypassPruningForAdmins ? 0.0 : globalConfig.minRelevanceThreshold);
+    const effectiveLimit = customLimit ?? globalConfig.maxContextNodes;
 
     // 4. Calculate semantic coherence, prune low relevance, and rerank
     const scoredLinks = [];
@@ -111,13 +146,13 @@ const pruneAndRerank = async (query, userId) => {
       // Relationship confidence weight, using a fallback if not provided by the graph service
       const edgeConfidence = edge.confidence ?? 0.5;
 
-      // Compound relevance score: 70% semantic relevance + 30% link traversal confidence
-      const relevanceScore = (jaccardScore * 0.7) + (edgeConfidence * 0.3);
+      // Compound relevance score: semantic weight + link traversal confidence weight
+      const relevanceScore = (jaccardScore * globalConfig.semanticWeight) + (edgeConfidence * globalConfig.confidenceWeight);
 
       logger.info(`Graph RAG Coherence: "${targetMeta.fileName}" computed relevanceScore: ${relevanceScore.toFixed(3)} (Jaccard: ${jaccardScore.toFixed(3)}, Link Confidence: ${edgeConfidence.toFixed(3)})`);
 
-      // Coherence boundary filter (min threshold 0.25)
-      if (relevanceScore >= 0.25) {
+      // Coherence boundary filter
+      if (relevanceScore >= effectiveThreshold) {
         scoredLinks.push({
           targetMeta,
           edge,
@@ -134,8 +169,8 @@ const pruneAndRerank = async (query, userId) => {
     // Sort links by relevance score descending
     scoredLinks.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-    // Limit context expansion to top 5 highly coherent nodes to prevent token bloat
-    const topScoredLinks = scoredLinks.slice(0, 5);
+    // Limit context expansion to prevent token bloat
+    const topScoredLinks = scoredLinks.slice(0, effectiveLimit);
 
     // Build the enriched, reranked Graph RAG context block
     const relationshipContextParts = topScoredLinks.map(link => {
@@ -159,6 +194,44 @@ ${query}`;
   }
 };
 
+/**
+ * Platform Owner / Super Admin: Get current global configuration settings.
+ */
+const getGlobalConfig = () => {
+  return { ...globalConfig };
+};
+
+/**
+ * Platform Owner / Super Admin: Update global configuration settings.
+ */
+const updateGlobalConfig = (newConfig) => {
+  globalConfig = { ...globalConfig, ...newConfig };
+  logger.info('ContextPruner global configuration updated by Platform Owner:', globalConfig);
+  return globalConfig;
+};
+
+/**
+ * Platform Owner / Super Admin: Retrieve global statistics of document metadata and relationships.
+ */
+const getGlobalStats = async () => {
+  try {
+    const totalMetadataCount = await DocumentMetadata.countDocuments({});
+    const uniqueUsersCount = (await DocumentMetadata.distinct('userId')).length;
+    
+    return {
+      totalMetadataCount,
+      uniqueUsersCount,
+      globalConfig: { ...globalConfig }
+    };
+  } catch (err) {
+    logger.error('ContextPruner getGlobalStats failed:', err);
+    throw err;
+  }
+};
+
 export const contextPrunerService = {
-  pruneAndRerank
+  pruneAndRerank,
+  getGlobalConfig,
+  updateGlobalConfig,
+  getGlobalStats
 };

@@ -33,7 +33,7 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  *
  * @async
  * @param {string} userMessage - The natural language message from the user.
- * @param {string} userId - The ID of the user making the request.
+ * @param {string} userId - The ID of the user making the request. Acts as the tenant isolation boundary.
  * @param {string | null} [conversationId=null] - The ID of the current conversation, used for context and history.
  * @param {string | null} [scopedApp=null] - An optional app slug to directly scope the execution to a specific application, bypassing LLM app identification.
  * @returns {Promise<object>} A promise that resolves to an object containing the success status,
@@ -46,6 +46,9 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * @returns {Array<object>} returns.data.toolsUsed - An array of tools that were identified and potentially executed.
  * @returns {string} returns.data.executionTime - The total time taken for the request execution.
  * @returns {string} returns.error - The error message if the operation failed.
+ * 
+ * @security Multi-tenant Isolation: Operations are scoped strictly to the provided `userId`.
+ * Ensures users can only access their own conversation history and connected tool accounts.
  */
 export const executeUserRequest = async (
   userMessage,
@@ -256,6 +259,8 @@ const countTokenFromConversationAndProvideContext = async (conversationId) => {
  * @returns {boolean} returns.success - Indicates if the operation was successful.
  * @returns {object} returns.data - The data returned on success, including `redirectUrl` and `id`.
  * @returns {string} returns.error - The error message if the operation failed.
+ * 
+ * @security Multi-tenant Isolation: Scoped to the provided `userId` to prevent cross-tenant account linking.
  */
 export const initiateAuth = async (appName, userId) => {
   try {
@@ -321,6 +326,8 @@ export const initiateAuth = async (appName, userId) => {
  * @returns {boolean} returns.success - Indicates if the operation was successful.
  * @returns {object} returns.data - The data returned on success, including the connection status and tokens.
  * @returns {string} returns.error - The error message if the operation failed.
+ * 
+ * @security Multi-tenant Isolation: Updates are bound to the specific `connectedAccountId` which is mapped to a single user.
  */
 export const waitForConnection = async (connectedAccountId) => {
   try {
@@ -353,6 +360,8 @@ export const waitForConnection = async (connectedAccountId) => {
  * @returns {boolean} returns.success - Indicates if the operation was successful.
  * @returns {Array<object>} returns.data - An array of ComposioAuth documents representing the user's connected accounts.
  * @returns {string} returns.error - The error message if the operation failed.
+ * 
+ * @security Multi-tenant Isolation: Restricts account retrieval strictly to the requesting `userId`.
  */
 export const getUserConnectedAccounts = async (userId) => {
   try {
@@ -380,6 +389,8 @@ export const getUserConnectedAccounts = async (userId) => {
  * @returns {boolean} returns.success - Indicates if the operation was successful.
  * @returns {string} returns.message - A success message.
  * @returns {string} returns.error - The error message if the operation failed.
+ * 
+ * @security Multi-tenant Isolation: Ensures a user can only disconnect apps belonging to their own `userId`.
  */
 export const disconnectApp = async (userId, appName) => {
   try {
@@ -441,6 +452,8 @@ export const disconnectApp = async (userId, appName) => {
  * @returns {Array<object>} returns.data.toolsUsed - An array of tools that were identified and potentially executed.
  * @returns {string} returns.data.executionTime - The total time taken for the workflow execution.
  * @returns {string} returns.error - The error message if the operation failed.
+ * 
+ * @security Multi-tenant Isolation: Scoped to the provided `entityId` (acting as the tenant/user identifier).
  */
 async function multiAppWorkflow(query, apps, toolKits, entityId) {
   // BUG FIX: Added try-catch block for robustness in this exported function.
