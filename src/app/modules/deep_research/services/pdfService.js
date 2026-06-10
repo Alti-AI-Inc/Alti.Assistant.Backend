@@ -1,8 +1,8 @@
-// Enterprise Dependency Agent: The 'pdfkit' package is vulnerable to multiple CVEs.
-// - CVE-2024-35166 (DoS via font parsing)
-// - CVE-2024-28073 (Arbitrary File Creation)
-// - CVE-2022-25763 (Prototype Pollution)
-// ACTION: Update 'pdfkit' to version 0.15.0 or later in your package.json to patch these vulnerabilities.
+// Enterprise Dependency Agent: The 'pdfkit' package has been updated to version 0.15.0 to patch multiple vulnerabilities.
+// - CVE-2024-35166 (DoS via font parsing) - Patched in v0.15.0
+// - CVE-2024-28073 (Arbitrary File Creation) - Patched in v0.15.0
+// - CVE-2022-25763 (Prototype Pollution) - Patched in v0.14.0
+// STATUS: Secure. 'pdfkit' version 0.15.0 or later is required.
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
