@@ -34,42 +34,39 @@ if (!GCS_REPORT_BUCKET) {
  */
 
 /**
- * Helper to sanitize GCS object names.
- * - Prevents directory traversal-like patterns.
- * - Removes leading slashes.
- * - Replaces multiple slashes with a single one.
+ * Helper to sanitize a filename.
+ * - Prevents directory traversal.
+ * - Disallows path separators to enforce storage within a user-specific directory.
  * - Ensures the name doesn't contain invalid characters like newlines.
- * @param {string} userObjectName The user-provided object name.
- * @returns {string} The sanitized GCS object name.
- * @throws {Error} If the object name is invalid.
+ * @param {string} fileName The user-provided file name.
+ * @returns {string} The sanitized file name.
+ * @throws {Error} If the file name is invalid.
  */
-const sanitizeGCSObjectName = (userObjectName) => {
-  if (!userObjectName || typeof userObjectName !== 'string') {
-    throw new Error('Invalid GCS object name provided.');
+const sanitizeFileName = (fileName) => {
+  if (!fileName || typeof fileName !== 'string') {
+    throw new Error('Invalid file name provided.');
   }
 
-  // Normalize and clean the path
-  let sanitized = userObjectName.replace(/\\/g, '/'); // Convert backslashes to forward slashes
-  sanitized = sanitized.replace(/\/{2,}/g, '/'); // Replace multiple slashes
-  if (sanitized.startsWith('/')) {
-    sanitized = sanitized.substring(1); // Remove leading slash
+  // Disallow path separators to ensure the file stays within its designated user directory.
+  if (/[/\\]/.test(fileName)) {
+    throw new Error('File name cannot contain path separators (e.g., / or \\).');
   }
 
-  // Prevent directory traversal
-  if (sanitized.includes('..')) {
-    throw new Error(`Invalid characters in GCS object name: '..'. Directory traversal is not allowed.`);
+  // Prevent directory traversal (defense-in-depth).
+  if (fileName.includes('..')) {
+    throw new Error(`Invalid characters in file name: '..'. Directory traversal is not allowed.`);
   }
 
-  // Check for other invalid characters (e.g., newlines)
-  if (/[\r\n]/.test(sanitized)) {
-    throw new Error(`Invalid characters (newlines) in GCS object name: '${sanitized}'.`);
+  // Check for other invalid characters (e.g., newlines).
+  if (/[\r\n]/.test(fileName)) {
+    throw new Error(`Invalid characters (newlines) in file name: '${fileName}'.`);
   }
 
-  if (sanitized === '' || sanitized.endsWith('/')) {
-    throw new Error('GCS object name cannot be empty or end with a slash.');
+  if (fileName === '') {
+    throw new Error('File name cannot be empty.');
   }
 
-  return sanitized;
+  return fileName;
 };
 
 /**
@@ -102,16 +99,17 @@ const escapeCSV = (value) => {
   if (typeof value !== 'string') return value;
   // Prepend with a single quote to neutralize formulas if the value starts with
   // '=', '+', '-', or '@'. This prevents CSV injection attacks.
-  if (value.startsWith('=') || value.startsWith('+') || value.startsWith('-') || value.startsWith('@')) {
-    value = `'${value}`;
+  let escapedValue = value;
+  if (['=', '+', '-', '@'].some(char => value.startsWith(char))) {
+    escapedValue = `'${value}`;
   }
   // Escape values with commas, quotes, or newlines for standard CSV formatting.
   // Double quotes inside the value are escaped by doubling them.
   // The entire value is then enclosed in double quotes.
-  if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
-    return `"${value.replace(/"/g, '""')}"`;
+  if (escapedValue.includes(',') || escapedValue.includes('"') || escapedValue.includes('\n') || escapedValue.includes('\r')) {
+    return `"${escapedValue.replace(/"/g, '""')}"`;
   }
-  return value;
+  return escapedValue;
 };
 
 /**
@@ -132,331 +130,287 @@ const getSignedUrl = async (gcsObjectName) => {
       .getSignedUrl(options);
     return url;
   } catch (error) {
-    logger.error(`Failed to generate signed URL for ${gcsObjectName}`, error);
+    logger.error(`Failed to generate signed URL for ${gcsObjectName}`, { error });
     throw new Error(`Could not generate signed URL: ${error.message}`);
   }
 };
 
 /**
- * Generates a PDF report and streams it directly to a GCS bucket.
- * The report can include a title page, table of contents, and multiple content sections.
- * @param {BaseReportData} reportData - The data to populate the PDF report.
- * @param {string} gcsObjectName - The desired object name in the GCS bucket for the generated PDF.
- * @returns {Promise<string>} A promise that resolves with a signed URL for the generated PDF file.
- * @throws {Error} If there's an error during GCS object name sanitization or PDF generation/upload.
+ * A helper function to create a Promise-wrapped GCS stream for uploading generated content.
+ * This standardizes the streaming logic for all report generators.
+ * @param {string} gcsObjectName - The full, sanitized path to the object in GCS.
+ * @param {string} contentType - The MIME type of the content.
+ * @param {(stream: import('stream').Writable) => void} contentWriter - A callback function that writes content to the provided GCS stream.
+ * @returns {Promise<string>} A promise that resolves with the signed URL for the uploaded file.
  */
-export const generatePDFReport = async (reportData, gcsObjectName) => {
-  const sanitizedObjectName = sanitizeGCSObjectName(gcsObjectName);
-  const file = storage.bucket(GCS_REPORT_BUCKET).file(sanitizedObjectName);
+const streamToGCS = (gcsObjectName, contentType, contentWriter) => {
+  const file = storage.bucket(GCS_REPORT_BUCKET).file(gcsObjectName);
+  return new Promise((resolve, reject) => {
+    const gcsStream = file.createWriteStream({
+      resumable: false,
+      contentType,
+    });
 
-  try {
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({
-        margins: EXPORT_CONFIG.PDF.margins,
-        size: 'A4',
-      });
-
-      // Create a write stream directly to the GCS object.
-      const gcsStream = file.createWriteStream({
-        resumable: false, // Use a simple upload for in-memory generated files.
-        contentType: 'application/pdf',
-      });
-
-      // Pipe the PDF document output to the GCS stream.
-      doc.pipe(gcsStream);
-
-      // Title Page
-      if (reportData.includeTitlePage && reportData.title) {
-        doc.fontSize(24).font('Helvetica-Bold').text(reportData.title, { align: 'center' });
-        doc.moveDown(2);
-        if (reportData.subtitle) {
-          doc.fontSize(16).text(reportData.subtitle, { align: 'center' });
-          doc.moveDown(1);
-        }
-        doc.fontSize(12).text(new Date().toLocaleDateString(), { align: 'center' });
-        doc.addPage();
+    gcsStream.on('finish', async () => {
+      try {
+        logger.info(`Report uploaded to GCS: gs://${GCS_REPORT_BUCKET}/${gcsObjectName}`);
+        const url = await getSignedUrl(gcsObjectName);
+        resolve(url);
+      } catch (urlError) {
+        reject(urlError);
       }
+    });
 
-      // Table of Contents
-      if (reportData.includeTableOfContents && reportData.sections) {
-        doc.fontSize(18).font('Helvetica-Bold').text('Table of Contents');
+    gcsStream.on('error', (error) => {
+      logger.error(`Error streaming report to GCS for ${gcsObjectName}:`, { error });
+      reject(error);
+    });
+
+    try {
+      contentWriter(gcsStream);
+    } catch (writeError) {
+      // Ensure any synchronous error in the writer function is caught and rejects the promise.
+      gcsStream.destroy(writeError); // This will trigger the 'error' event on the stream.
+    }
+  });
+};
+
+/**
+ * Generates a PDF report and streams it directly to a GCS bucket.
+ * @param {BaseReportData} reportData - The data to populate the PDF report.
+ * @param {string} gcsObjectName - The full, sanitized path in the GCS bucket for the generated PDF.
+ * @returns {Promise<string>} A promise that resolves with a signed URL for the generated PDF file.
+ */
+export const generatePDFReport = (reportData, gcsObjectName) => {
+  return streamToGCS(gcsObjectName, 'application/pdf', (gcsStream) => {
+    const doc = new PDFDocument({
+      margins: EXPORT_CONFIG.PDF.margins,
+      size: 'A4',
+    });
+
+    doc.pipe(gcsStream);
+
+    if (reportData.includeTitlePage && reportData.title) {
+      doc.fontSize(24).font('Helvetica-Bold').text(reportData.title, { align: 'center' });
+      doc.moveDown(2);
+      if (reportData.subtitle) {
+        doc.fontSize(16).text(reportData.subtitle, { align: 'center' });
         doc.moveDown(1);
-        doc.fontSize(12).font('Helvetica');
-        reportData.sections.forEach((section, index) => {
-          doc.text(`${index + 1}. ${section.title}`);
-        });
-        doc.addPage();
       }
+      doc.fontSize(12).text(new Date().toLocaleDateString(), { align: 'center' });
+      doc.addPage();
+    }
 
-      // Content Sections
-      if (reportData.sections) {
-        reportData.sections.forEach((section, index) => {
-          doc.fontSize(16).font('Helvetica-Bold').text(section.title || `Section ${index + 1}`);
-          doc.moveDown(0.5);
-          doc.fontSize(EXPORT_CONFIG.PDF.fontSize).font('Helvetica').text(section.content || '', {
-            align: 'justify',
-            lineGap: EXPORT_CONFIG.PDF.lineHeight,
-          });
-          doc.moveDown(2);
-          if (index < reportData.sections.length - 1) {
-            doc.addPage();
-          }
-        });
-      } else if (reportData.content) {
-        doc.fontSize(EXPORT_CONFIG.PDF.fontSize).font('Helvetica').text(reportData.content, {
+    if (reportData.includeTableOfContents && reportData.sections) {
+      doc.fontSize(18).font('Helvetica-Bold').text('Table of Contents');
+      doc.moveDown(1);
+      doc.fontSize(12).font('Helvetica');
+      reportData.sections.forEach((section, index) => {
+        doc.text(`${index + 1}. ${section.title}`);
+      });
+      doc.addPage();
+    }
+
+    if (reportData.sections) {
+      reportData.sections.forEach((section, index) => {
+        doc.fontSize(16).font('Helvetica-Bold').text(section.title || `Section ${index + 1}`);
+        doc.moveDown(0.5);
+        doc.fontSize(EXPORT_CONFIG.PDF.fontSize).font('Helvetica').text(section.content || '', {
           align: 'justify',
           lineGap: EXPORT_CONFIG.PDF.lineHeight,
         });
-      }
-
-      doc.end();
-
-      gcsStream.on('finish', async () => {
-        try {
-          logger.info(`PDF report uploaded to GCS: gs://${GCS_REPORT_BUCKET}/${sanitizedObjectName}`);
-          const url = await getSignedUrl(sanitizedObjectName);
-          resolve(url);
-        } catch (urlError) {
-          reject(urlError);
+        if (index < reportData.sections.length - 1) {
+          doc.addPage();
         }
       });
-
-      gcsStream.on('error', (error) => {
-        logger.error(`Error streaming PDF to GCS for ${sanitizedObjectName}:`, error);
-        reject(error);
+    } else if (reportData.content) {
+      doc.fontSize(EXPORT_CONFIG.PDF.fontSize).font('Helvetica').text(reportData.content, {
+        align: 'justify',
+        lineGap: EXPORT_CONFIG.PDF.lineHeight,
       });
-    });
-  } catch (error) {
-    logger.error(`Error in generatePDFReport for GCS object ${sanitizedObjectName}:`, error);
-    throw new Error(`Failed to generate PDF and upload to GCS: ${error.message}`);
-  }
+    }
+
+    doc.end();
+  });
 };
 
 /**
  * Generates a DOCX report and uploads it to a GCS bucket.
- * Currently, this is a placeholder implementation that uploads content as a plain text file.
  * @param {BaseReportData} reportData - The data to populate the DOCX report.
- * @param {string} gcsObjectName - The desired object name in the GCS bucket for the generated DOCX.
+ * @param {string} gcsObjectName - The full, sanitized path in the GCS bucket for the generated DOCX.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated DOCX file.
- * @throws {Error} If there's an error during GCS object name sanitization or file upload.
  */
-export const generateDOCXReport = async (reportData, gcsObjectName) => {
-  const sanitizedObjectName = sanitizeGCSObjectName(gcsObjectName);
-  const file = storage.bucket(GCS_REPORT_BUCKET).file(sanitizedObjectName);
-
-  try {
-    logger.warn('DOCX generation is a placeholder (text format). Install `docx` package for full functionality.');
-
-    let content = '';
-    if (reportData.title) content += `${reportData.title}\n\n`;
+export const generateDOCXReport = (reportData, gcsObjectName) => {
+  logger.warn('DOCX generation is a placeholder (text format). Install `docx` package for full functionality.');
+  return streamToGCS(gcsObjectName, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', (gcsStream) => {
+    if (reportData.title) gcsStream.write(`${reportData.title}\n\n`);
     if (reportData.sections) {
       reportData.sections.forEach((section) => {
-        content += `${section.title}\n\n`;
-        content += `${section.content}\n\n`;
+        gcsStream.write(`${section.title}\n\n`);
+        gcsStream.write(`${section.content}\n\n`);
       });
     } else if (reportData.content) {
-      content += reportData.content;
+      gcsStream.write(reportData.content);
     }
-
-    await file.save(content, { contentType: 'text/plain' });
-    logger.info(`DOCX report (text format) uploaded to GCS: gs://${GCS_REPORT_BUCKET}/${sanitizedObjectName}`);
-    return await getSignedUrl(sanitizedObjectName);
-  } catch (error) {
-    logger.error(`Error in generateDOCXReport for GCS object ${sanitizedObjectName}:`, error);
-    throw new Error(`Failed to generate DOCX and upload to GCS: ${error.message}`);
-  }
+    gcsStream.end();
+  });
 };
 
 /**
- * Generates a CSV report and uploads it to a GCS bucket.
- * Applies CSV injection prevention and standard CSV escaping.
+ * Generates a CSV report and streams it to a GCS bucket.
  * @param {BaseReportData} reportData - The data to populate the CSV report.
- * @param {string} gcsObjectName - The desired object name in the GCS bucket for the generated CSV.
+ * @param {string} gcsObjectName - The full, sanitized path in the GCS bucket for the generated CSV.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated CSV file.
- * @throws {Error} If there's an error during GCS object name sanitization or file upload.
  */
-export const generateCSVReport = async (reportData, gcsObjectName) => {
-  const sanitizedObjectName = sanitizeGCSObjectName(gcsObjectName);
-  const file = storage.bucket(GCS_REPORT_BUCKET).file(sanitizedObjectName);
-
-  try {
-    let csvContent = '';
+export const generateCSVReport = (reportData, gcsObjectName) => {
+  return streamToGCS(gcsObjectName, 'text/csv', (gcsStream) => {
     if (reportData.data && Array.isArray(reportData.data) && reportData.data.length > 0) {
       const headers = Object.keys(reportData.data[0]);
-      csvContent += headers.map(escapeCSV).join(',') + '\n';
-      reportData.data.forEach((row) => {
+      gcsStream.write(headers.map(escapeCSV).join(',') + '\n');
+      for (const row of reportData.data) {
         const values = headers.map((header) => {
           const value = row[header];
           return escapeCSV(String(value === null || value === undefined ? '' : value));
         });
-        csvContent += values.join(',') + '\n';
-      });
+        gcsStream.write(values.join(',') + '\n');
+      }
     } else if (reportData.content) {
-      csvContent = reportData.content;
+      gcsStream.write(reportData.content);
     }
-
-    await file.save(csvContent, { contentType: 'text/csv' });
-    logger.info(`CSV report uploaded to GCS: gs://${GCS_REPORT_BUCKET}/${sanitizedObjectName}`);
-    return await getSignedUrl(sanitizedObjectName);
-  } catch (error) {
-    logger.error(`Error in generateCSVReport for GCS object ${sanitizedObjectName}:`, error);
-    throw new Error(`Failed to generate CSV and upload to GCS: ${error.message}`);
-  }
+    gcsStream.end();
+  });
 };
 
 /**
  * Generates an XLSX report and uploads it to a GCS bucket.
- * Currently, this is a placeholder that falls back to generating a CSV report.
  * @param {BaseReportData} reportData - The data to populate the XLSX report.
- * @param {string} gcsObjectName - The desired object name in the GCS bucket for the generated XLSX.
+ * @param {string} gcsObjectName - The full, sanitized path in the GCS bucket for the generated XLSX.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated file.
- * @throws {Error} If there's an error during the fallback CSV generation.
  */
 export const generateXLSXReport = async (reportData, gcsObjectName) => {
-  const sanitizedObjectName = sanitizeGCSObjectName(gcsObjectName);
   try {
     logger.warn('XLSX generation requires `xlsx` package. Falling back to CSV.');
-    const csvObjectName = sanitizedObjectName.replace(/\.xlsx$/i, '.csv');
-    const sanitizedCsvObjectName = sanitizeGCSObjectName(csvObjectName);
-    return await generateCSVReport(reportData, sanitizedCsvObjectName);
+    const csvObjectName = gcsObjectName.replace(/\.xlsx?$/i, '.csv');
+    return await generateCSVReport(reportData, csvObjectName);
   } catch (error) {
-    logger.error(`Error in generateXLSXReport for GCS object ${sanitizedObjectName}:`, error);
+    logger.error(`Error in generateXLSXReport for GCS object ${gcsObjectName}:`, { error });
     throw new Error(`Failed to generate XLSX (fallback to CSV) and upload to GCS: ${error.message}`);
   }
 };
 
 /**
- * Generates a plain text (TXT) report and uploads it to a GCS bucket.
+ * Generates a plain text (TXT) report and streams it to a GCS bucket.
  * @param {BaseReportData} reportData - The data to populate the TXT report.
- * @param {string} gcsObjectName - The desired object name in the GCS bucket for the generated TXT.
+ * @param {string} gcsObjectName - The full, sanitized path in the GCS bucket for the generated TXT.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated TXT file.
- * @throws {Error} If there's an error during GCS object name sanitization or file upload.
  */
-export const generateTXTReport = async (reportData, gcsObjectName) => {
-  const sanitizedObjectName = sanitizeGCSObjectName(gcsObjectName);
-  const file = storage.bucket(GCS_REPORT_BUCKET).file(sanitizedObjectName);
-
-  try {
-    let content = '';
-    if (reportData.title) content += `${reportData.title}\n${'='.repeat(reportData.title.length)}\n\n`;
+export const generateTXTReport = (reportData, gcsObjectName) => {
+  return streamToGCS(gcsObjectName, 'text/plain', (gcsStream) => {
+    if (reportData.title) gcsStream.write(`${reportData.title}\n${'='.repeat(reportData.title.length)}\n\n`);
     if (reportData.sections) {
       reportData.sections.forEach((section) => {
-        content += `${section.title}\n${'-'.repeat(section.title.length)}\n\n`;
-        content += `${section.content}\n\n`;
+        gcsStream.write(`${section.title}\n${'-'.repeat(section.title.length)}\n\n`);
+        gcsStream.write(`${section.content}\n\n`);
       });
     } else if (reportData.content) {
-      content += reportData.content;
+      gcsStream.write(reportData.content);
     }
-
-    await file.save(content, { contentType: 'text/plain' });
-    logger.info(`TXT report uploaded to GCS: gs://${GCS_REPORT_BUCKET}/${sanitizedObjectName}`);
-    return await getSignedUrl(sanitizedObjectName);
-  } catch (error) {
-    logger.error(`Error in generateTXTReport for GCS object ${sanitizedObjectName}:`, error);
-    throw new Error(`Failed to generate TXT and upload to GCS: ${error.message}`);
-  }
+    gcsStream.end();
+  });
 };
 
 /**
- * Generates a Markdown (MD) report and uploads it to a GCS bucket.
+ * Generates a Markdown (MD) report and streams it to a GCS bucket.
  * @param {BaseReportData} reportData - The data to populate the Markdown report.
- * @param {string} gcsObjectName - The desired object name in the GCS bucket for the generated MD file.
+ * @param {string} gcsObjectName - The full, sanitized path in the GCS bucket for the generated MD file.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated Markdown file.
- * @throws {Error} If there's an error during GCS object name sanitization or file upload.
  */
-export const generateMDReport = async (reportData, gcsObjectName) => {
-  const sanitizedObjectName = sanitizeGCSObjectName(gcsObjectName);
-  const file = storage.bucket(GCS_REPORT_BUCKET).file(sanitizedObjectName);
-
-  try {
-    let content = '';
-    if (reportData.title) content += `# ${reportData.title}\n\n`;
-    if (reportData.subtitle) content += `## ${reportData.subtitle}\n\n`;
+export const generateMDReport = (reportData, gcsObjectName) => {
+  return streamToGCS(gcsObjectName, 'text/markdown', (gcsStream) => {
+    if (reportData.title) gcsStream.write(`# ${reportData.title}\n\n`);
+    if (reportData.subtitle) gcsStream.write(`## ${reportData.subtitle}\n\n`);
     if (reportData.sections) {
       reportData.sections.forEach((section) => {
-        content += `## ${section.title}\n\n`;
-        content += `${section.content}\n\n`;
+        gcsStream.write(`## ${section.title}\n\n`);
+        gcsStream.write(`${section.content}\n\n`);
       });
     } else if (reportData.content) {
-      content += reportData.content;
+      gcsStream.write(reportData.content);
     }
-
-    await file.save(content, { contentType: 'text/markdown' });
-    logger.info(`Markdown report uploaded to GCS: gs://${GCS_REPORT_BUCKET}/${sanitizedObjectName}`);
-    return await getSignedUrl(sanitizedObjectName);
-  } catch (error) {
-    logger.error(`Error in generateMDReport for GCS object ${sanitizedObjectName}:`, error);
-    throw new Error(`Failed to generate Markdown and upload to GCS: ${error.message}`);
-  }
+    gcsStream.end();
+  });
 };
 
 /**
- * Generates an HTML report and uploads it to a GCS bucket.
- * Applies HTML escaping to prevent XSS vulnerabilities.
+ * Generates an HTML report and streams it to a GCS bucket.
  * @param {BaseReportData} reportData - The data to populate the HTML report.
- * @param {string} gcsObjectName - The desired object name in the GCS bucket for the generated HTML file.
+ * @param {string} gcsObjectName - The full, sanitized path in the GCS bucket for the generated HTML file.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated HTML file.
- * @throws {Error} If there's an error during GCS object name sanitization or file upload.
  */
-export const generateHTMLReport = async (reportData, gcsObjectName) => {
-  const sanitizedObjectName = sanitizeGCSObjectName(gcsObjectName);
-  const file = storage.bucket(GCS_REPORT_BUCKET).file(sanitizedObjectName);
-
-  try {
-    let html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHTML(reportData.title || 'Report')}</title><style>body{font-family:Arial,sans-serif;line-height:1.6;max-width:800px;margin:0 auto;padding:20px;color:#333}h1{color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:10px}h2{color:#34495e;margin-top:30px;border-bottom:1px solid #bdc3c7;padding-bottom:5px}.section{margin:20px 0}.date{color:#7f8c8d;font-style:italic}</style></head><body>`;
-    if (reportData.title) html += `<h1>${escapeHTML(reportData.title)}</h1>\n`;
-    if (reportData.subtitle) html += `<p class="subtitle"><strong>${escapeHTML(reportData.subtitle)}</strong></p>\n`;
-    html += `<p class="date">${new Date().toLocaleDateString()}</p>\n\n`;
+export const generateHTMLReport = (reportData, gcsObjectName) => {
+  return streamToGCS(gcsObjectName, 'text/html', (gcsStream) => {
+    gcsStream.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHTML(reportData.title || 'Report')}</title><style>body{font-family:Arial,sans-serif;line-height:1.6;max-width:800px;margin:0 auto;padding:20px;color:#333}h1{color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:10px}h2{color:#34495e;margin-top:30px;border-bottom:1px solid #bdc3c7;padding-bottom:5px}.section{margin:20px 0}.date{color:#7f8c8d;font-style:italic}</style></head><body>`);
+    if (reportData.title) gcsStream.write(`<h1>${escapeHTML(reportData.title)}</h1>\n`);
+    if (reportData.subtitle) gcsStream.write(`<p class="subtitle"><strong>${escapeHTML(reportData.subtitle)}</strong></p>\n`);
+    gcsStream.write(`<p class="date">${new Date().toLocaleDateString()}</p>\n\n`);
     if (reportData.sections) {
       reportData.sections.forEach((section) => {
-        html += `<div class="section"><h2>${escapeHTML(section.title)}</h2><p>${escapeHTML(section.content || '').replace(/\n/g, '<br>')}</p></div>\n`;
+        gcsStream.write(`<div class="section"><h2>${escapeHTML(section.title)}</h2><p>${escapeHTML(section.content || '').replace(/\n/g, '<br>')}</p></div>\n`);
       });
     } else if (reportData.content) {
-      html += `<div class="section"><p>${escapeHTML(reportData.content || '').replace(/\n/g, '<br>')}</p></div>\n`;
+      gcsStream.write(`<div class="section"><p>${escapeHTML(reportData.content || '').replace(/\n/g, '<br>')}</p></div>\n`);
     }
-    html += `</body></html>`;
-
-    await file.save(html, { contentType: 'text/html' });
-    logger.info(`HTML report uploaded to GCS: gs://${GCS_REPORT_BUCKET}/${sanitizedObjectName}`);
-    return await getSignedUrl(sanitizedObjectName);
-  } catch (error) {
-    logger.error(`Error in generateHTMLReport for GCS object ${sanitizedObjectName}:`, error);
-    throw new Error(`Failed to generate HTML and upload to GCS: ${error.message}`);
-  }
+    gcsStream.end(`</body></html>`);
+  });
 };
 
 /**
- * Generates a JSON report and uploads it to a GCS bucket.
+ * Generates a JSON report and streams it to a GCS bucket.
  * @param {BaseReportData} reportData - The data to populate the JSON report.
- * @param {string} gcsObjectName - The desired object name in the GCS bucket for the generated JSON file.
+ * @param {string} gcsObjectName - The full, sanitized path in the GCS bucket for the generated JSON file.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated JSON file.
- * @throws {Error} If there's an error during GCS object name sanitization or file upload.
  */
-export const generateJSONReport = async (reportData, gcsObjectName) => {
-  const sanitizedObjectName = sanitizeGCSObjectName(gcsObjectName);
-  const file = storage.bucket(GCS_REPORT_BUCKET).file(sanitizedObjectName);
-
-  try {
-    const jsonContent = JSON.stringify(reportData, null, 2);
-    await file.save(jsonContent, { contentType: 'application/json' });
-    logger.info(`JSON report uploaded to GCS: gs://${GCS_REPORT_BUCKET}/${sanitizedObjectName}`);
-    return await getSignedUrl(sanitizedObjectName);
-  } catch (error) {
-    logger.error(`Error in generateJSONReport for GCS object ${sanitizedObjectName}:`, error);
-    throw new Error(`Failed to generate JSON and upload to GCS: ${error.message}`);
-  }
+export const generateJSONReport = (reportData, gcsObjectName) => {
+  return streamToGCS(gcsObjectName, 'application/json', (gcsStream) => {
+    // For JSON, stringifying the whole object and streaming it is simple and effective.
+    gcsStream.end(JSON.stringify(reportData, null, 2));
+  });
 };
 
 /**
  * Main export function that dispatches report generation to the appropriate handler.
- * The generated report is uploaded to GCS, and a signed URL is returned.
+ * The generated report is uploaded to a user-specific folder in GCS, and a signed URL is returned.
+ * This ensures user data isolation and enforces resource limits.
  * @param {BaseReportData} reportData - The data to be included in the report.
  * @param {string} format - The desired output format (e.g., 'pdf', 'docx', 'csv', 'xlsx', 'txt', 'md', 'html', 'json').
- * @param {string} gcsObjectName - The desired GCS object name for the generated report (e.g., 'reports/user-123/report.pdf').
+ * @param {string} fileName - The desired file name for the report (e.g., 'monthly-summary.pdf'). Path characters are not allowed.
+ * @param {string} userId - The unique identifier for the user requesting the report. Used to isolate user data.
  * @returns {Promise<string>} A promise that resolves with a signed URL for the generated report.
- * @throws {Error} If the specified export format is unsupported or if any underlying generator fails.
+ * @throws {Error} If the report data is too large, the format is unsupported, or any underlying generator fails.
  */
-export const exportReport = async (reportData, format, gcsObjectName) => {
+export const exportReport = async (reportData, format, fileName, userId) => {
+  // 1. Validate inputs for security and data isolation.
+  if (!userId || typeof userId !== 'string') {
+    throw new Error('A valid userId must be provided for report generation.');
+  }
+  // Sanitize userId to ensure it's a safe directory name.
+  const sanitizedUserId = userId.replace(/[^a-zA-Z0-9-_]/g, '');
+  if (!sanitizedUserId) {
+    throw new Error('Provided userId is invalid or contains only disallowed characters.');
+  }
+
+  // 2. Enforce user-level limits to prevent abuse and ensure system stability.
+  const MAX_REPORT_DATA_SIZE_BYTES = EXPORT_CONFIG.maxReportSizeBytes || 5 * 1024 * 1024; // 5MB default
+  if (Buffer.byteLength(JSON.stringify(reportData), 'utf8') > MAX_REPORT_DATA_SIZE_BYTES) {
+    const limitMB = Math.round(MAX_REPORT_DATA_SIZE_BYTES / 1024 / 1024);
+    throw new Error(`Report data exceeds the maximum allowed size of ${limitMB}MB.`);
+  }
+
+  // 3. Sanitize filename and construct a secure, isolated GCS path.
+  const sanitizedFileName = sanitizeFileName(fileName);
+  const gcsObjectName = `reports/${sanitizedUserId}/${sanitizedFileName}`;
+
+  // 4. Dispatch to the correct generator based on the requested format.
   const generators = {
     pdf: generatePDFReport,
     docx: generateDOCXReport,

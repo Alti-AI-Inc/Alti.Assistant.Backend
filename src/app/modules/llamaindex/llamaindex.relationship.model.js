@@ -4,11 +4,12 @@
  * @author Your Name/Organization (if known, otherwise omit)
  */
 
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 /**
  * @typedef {object} DocumentRelationship
- * @property {string} userId - The ID of the user who owns this relationship.
+ * @property {mongoose.Schema.Types.ObjectId} workspaceId - The ID of the workspace this relationship belongs to.
+ * @property {mongoose.Schema.Types.ObjectId} userId - The ID of the user who owns this relationship.
  * @property {string} sourceDocId - The ID of the source document in the relationship.
  * @property {string} targetDocId - The ID of the target document in the relationship.
  * @property {('shared_entity'|'cross_reference'|'hierarchical'|'dependency'|'topic_similarity')} relationType - The type of relationship between the documents.
@@ -31,18 +32,38 @@ import mongoose from 'mongoose';
 const DocumentRelationshipSchema = new mongoose.Schema(
   {
     /**
+     * CRITICAL FIX: Added workspaceId for multi-tenancy and role-based access control.
+     * This ensures that document relationships are strictly scoped to a specific workspace,
+     * preventing data leakage between tenants and allowing admins/managers to view data
+     * within their designated context. It is essential for propagating usage details and limits
+     * up to the workspace/admin level.
+     * @type {mongoose.Schema.Types.ObjectId}
+     */
+    workspaceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Workspace',
+      required: true,
+      index: true
+    },
+    /**
      * The ID of the user who owns this document relationship.
      * This field is required and indexed for efficient querying by user.
-     * @type {string}
+     * SECURITY FIX: Changed from String to ObjectId and added a ref to the 'User' model.
+     * This enforces referential integrity at the application level and allows for easier
+     * population of user data, preventing orphaned records and strengthening access control checks.
+     * @type {mongoose.Schema.Types.ObjectId}
      */
     userId: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
       index: true
     },
     /**
      * The ID of the source document in this relationship.
      * This field is required and indexed.
+     * NOTE: This is kept as a String assuming it might be an external ID from LlamaIndex.
+     * If it corresponds to a model within this application, it should be converted to an ObjectId with a ref.
      * @type {string}
      */
     sourceDocId: {
@@ -53,6 +74,8 @@ const DocumentRelationshipSchema = new mongoose.Schema(
     /**
      * The ID of the target document in this relationship.
      * This field is required and indexed.
+     * NOTE: This is kept as a String assuming it might be an external ID from LlamaIndex.
+     * If it corresponds to a model within this application, it should be converted to an ObjectId with a ref.
      * @type {string}
      */
     targetDocId: {
@@ -109,11 +132,13 @@ const DocumentRelationshipSchema = new mongoose.Schema(
 );
 
 /**
- * Compound index to ensure uniqueness of relationships and speed up queries.
- * This index allows for efficient lookup of relationships from a specific source document
- * to a specific target document for a given user, and prevents duplicate relationships.
+ * HIERARCHY/SECURITY FIX: Updated compound index to include workspaceId.
+ * This enforces uniqueness of a relationship (source -> target) per user *within a specific workspace*.
+ * It's a critical change for maintaining data integrity in a multi-tenant environment and
+ * significantly improves query performance for workspace-scoped operations, which is fundamental
+ * for role-based access by admins and managers.
  */
-DocumentRelationshipSchema.index({ userId: 1, sourceDocId: 1, targetDocId: 1 }, { unique: true });
+DocumentRelationshipSchema.index({ workspaceId: 1, userId: 1, sourceDocId: 1, targetDocId: 1 }, { unique: true });
 
 /**
  * Mongoose model for Document Relationships.
