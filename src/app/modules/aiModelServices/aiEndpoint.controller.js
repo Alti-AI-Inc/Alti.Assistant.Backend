@@ -35,6 +35,7 @@ import auditLogger from '../../../shared/auditLogger.js';
  * @param {object} req - The Express request object.
  * @param {object} req.user - The authenticated user object (from auth middleware).
  * @param {string} req.user.id - The ID of the user performing the action.
+ * @param {string} req.user.role - The role of the user performing the action.
  * @param {object} req.body - The request body containing AI endpoint details.
  * @param {string} req.body.title - The unique title of the AI endpoint.
  * @param {string} req.body.nickName - A user-friendly nickname for the AI endpoint.
@@ -82,6 +83,15 @@ import auditLogger from '../../../shared/auditLogger.js';
  */
 const addAiEndpoint = async (req, res) => {
   try {
+    // SECURITY FIX: Enforce role-based access control. Only super_admin or platform_owner can add endpoints.
+    // This prevents any authenticated user from modifying global platform settings.
+    if (!req.user || !['super_admin', 'platform_owner'].includes(req.user.role)) {
+      return res.status(httpStatus.FORBIDDEN).json({
+        status: 'fail',
+        message: 'Forbidden: You do not have the required permissions to perform this action.',
+      });
+    }
+
     const {
       title,
       nickName,
@@ -277,6 +287,7 @@ const getAiEndpointById = async (req, res) => {
  * @param {object} req - The Express request object.
  * @param {object} req.user - The authenticated user object.
  * @param {string} req.user.id - The ID of the user performing the action.
+ * @param {string} req.user.role - The role of the user performing the action.
  * @param {string} req.params.id - The ID of the endpoint to update.
  * @param {object} req.body - The request body containing update details.
  * @param {object} res - The Express response object.
@@ -326,6 +337,14 @@ const updateAiEndpoint = async (req, res) => {
   const updateData = req.body;
 
   try {
+    // SECURITY FIX: Enforce role-based access control. Only super_admin or platform_owner can update endpoints.
+    if (!req.user || !['super_admin', 'platform_owner'].includes(req.user.role)) {
+      return res.status(httpStatus.FORBIDDEN).json({
+        status: 'fail',
+        message: 'Forbidden: You do not have the required permissions to perform this action.',
+      });
+    }
+
     // Prevent changing the unique title to one that already exists
     if (updateData.title) {
       const existingEndpoint = await AiEndpoint.findOne({ title: updateData.title, _id: { $ne: id } }).lean();
@@ -395,6 +414,7 @@ const updateAiEndpoint = async (req, res) => {
  * @param {object} req - The Express request object.
  * @param {object} req.user - The authenticated user object.
  * @param {string} req.user.id - The ID of the user performing the action.
+ * @param {string} req.user.role - The role of the user performing the action.
  * @param {string} req.params.id - The ID of the endpoint to delete.
  * @param {object} res - The Express response object.
  * @returns {Promise<void>} A Promise that resolves when the response is sent.
@@ -440,6 +460,14 @@ const updateAiEndpoint = async (req, res) => {
 const deleteAiEndpoint = async (req, res) => {
   const { id } = req.params;
   try {
+    // SECURITY FIX: Enforce role-based access control. Only super_admin or platform_owner can delete endpoints.
+    if (!req.user || !['super_admin', 'platform_owner'].includes(req.user.role)) {
+      return res.status(httpStatus.FORBIDDEN).json({
+        status: 'fail',
+        message: 'Forbidden: You do not have the required permissions to perform this action.',
+      });
+    }
+
     // First, find the endpoint to check if it's the default
     const endpointToDelete = await AiEndpoint.findById(id).lean();
 

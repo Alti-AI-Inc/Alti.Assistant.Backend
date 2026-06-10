@@ -19,17 +19,25 @@ const genAI = new GoogleGenerativeAI(config.gemini_secret_key);
  * Analyzes a user's idea to determine its clarity, potential plan type, complexity, and missing information.
  * It uses a Generative AI model to process the idea and provide a structured JSON analysis.
  *
+ * This service is multi-tenant aware and enforces role-based access control.
+ *
+ * @permission This function requires a valid user context with a role.
+ * - **Roles:** `super_admin`, `admin`, `manager`, `user`.
+ * - **Tenant Context:** The user's `tenantId` must match the target `tenantId` unless the user is a `super_admin`.
+ * - **Workspace Context:** The user's `workspaceId` must match the target `workspaceId` if both are provided, unless the user is a `super_admin` or `admin`.
+ * - **Usage Limits:** This function may check for usage limits based on the tenant/workspace context if a `usageLimitCheck` function is provided.
+ *
  * @param {string} ideaText - The raw text of the user's idea.
  * @param {object} [contextData={}] - Optional context data, such as previous conversation messages, user context, and tenant/workspace details.
  * @param {Array<object>} [contextData.previousMessages] - An array of previous message objects in the conversation.
  * @param {object} [contextData.user] - The user object containing id, role, tenantId, workspaceId, managerId, and email.
  * @param {string} [contextData.tenantId] - The target tenant ID for context validation.
  * @param {string} [contextData.workspaceId] - The target workspace ID for context validation.
- * @param {function} [contextData.usageLimitCheck] - Optional function to check usage limits.
+ * @param {function} [contextData.usageLimitCheck] - Optional function to check usage limits. Should return a Promise<boolean>.
  * @param {function} [contextData.propagateUsage] - Optional function to propagate usage details.
  * @param {function} [contextData.notifyHierarchy] - Optional function to send notifications up the hierarchy.
  * @returns {Promise<object>} A promise that resolves to a structured analysis object in JSON format.
- * @throws {Error} If validation fails, the AI model fails to generate content, or if the response cannot be parsed.
+ * @throws {Error} If validation fails (e.g., "Unauthorized", "Forbidden", "PaymentRequired"), the AI model fails to generate content, or if the response cannot be parsed.
  */
 export const analyzeIdea = async (ideaText, contextData = {}) => {
   try {

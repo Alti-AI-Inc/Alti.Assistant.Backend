@@ -4,11 +4,14 @@ import { conversationService } from '../../../conversations/conversation.service
 import WorkflowExecution from '../../models/workflowExecution.model.js';
 
 /**
- * Resilient Temporal Activity wrapping a single workflow step execution.
- * @param {object} step - The step definition to execute.
- * @param {object} context - Current workflow runtime variables.
- * @param {string} userId - User identifier.
- * @returns {Promise<object>} Step execution output containing updates.
+ * @description A resilient Temporal Activity that executes a single step of a workflow.
+ * It wraps the core step execution logic with robust status tracking and error handling.
+ * The activity updates the step's status in the database ('running', 'completed', 'failed')
+ * and re-throws errors to allow Temporal to manage retries according to the defined `RetryPolicy`.
+ * @param {object} step - The workflow step definition object to be executed.
+ * @param {object} context - The current state of the workflow's runtime variables.
+ * @param {string} userId - The identifier of the user who initiated the workflow.
+ * @returns {Promise<object>} A promise that resolves with the output of the step execution, which typically contains updates to the workflow context.
  */
 export async function executeWorkflowStepActivity(step, context, userId) {
   logger.info(`[Temporal Activity] Executing step: ${step.stepId} (${step.app}.${step.action || step.stepType})`);
@@ -75,7 +78,12 @@ export async function executeWorkflowStepActivity(step, context, userId) {
 }
 
 /**
- * Update step status to skipped in database for Temporal runs
+ * @description A Temporal Activity to update a workflow step's status to 'skipped' in the database.
+ * This is used when a step is bypassed due to conditional logic within the workflow.
+ * @param {string} executionId - The unique identifier of the parent workflow execution.
+ * @param {string} stepId - The unique identifier of the step to be skipped.
+ * @param {string} reason - The reason why the step was skipped.
+ * @returns {Promise<{success: boolean, error?: string}>} A promise that resolves to an object indicating the success or failure of the operation.
  */
 export async function skipWorkflowStepActivity(executionId, stepId, reason) {
   try {
@@ -96,7 +104,11 @@ export async function skipWorkflowStepActivity(executionId, stepId, reason) {
 }
 
 /**
- * Initialize state tracking in database for Temporal execution
+ * @description A Temporal Activity to initialize the state of a workflow execution in the database.
+ * It sets the status to 'running' and records the start time and total number of steps.
+ * @param {string} executionId - The unique identifier of the workflow execution to update.
+ * @param {number} totalSteps - The total number of steps planned for this execution.
+ * @returns {Promise<{success: boolean, error?: string}>} A promise that resolves to an object indicating the success or failure of the operation.
  */
 export async function updateExecutionToRunningActivity(executionId, totalSteps) {
   try {
@@ -116,7 +128,14 @@ export async function updateExecutionToRunningActivity(executionId, totalSteps) 
 }
 
 /**
- * Update execution record as completed successfully in MongoDB
+ * @description A Temporal Activity to mark a workflow execution as 'completed' in the database.
+ * It records the end time, duration, final context, step counts, and a summary of the result.
+ * @param {string} executionId - The unique identifier of the workflow execution.
+ * @param {string} summary - A summary message describing the outcome of the workflow.
+ * @param {object} currentContext - The final state of the workflow's context variables.
+ * @param {number} completedSteps - The total count of successfully completed steps.
+ * @param {number} failedSteps - The total count of failed steps.
+ * @returns {Promise<{success: boolean, error?: string}>} A promise that resolves to an object indicating the success or failure of the operation.
  */
 export async function completeExecutionActivity(executionId, summary, currentContext, completedSteps, failedSteps) {
   try {
@@ -147,7 +166,12 @@ export async function completeExecutionActivity(executionId, summary, currentCon
 }
 
 /**
- * Update execution record as failed in MongoDB
+ * @description A Temporal Activity to mark a workflow execution as 'failed' in the database.
+ * It records the end time and captures the error details that caused the failure.
+ * @param {string} executionId - The unique identifier of the workflow execution.
+ * @param {string} errorMessage - The error message.
+ * @param {string} errorStack - The stack trace of the error.
+ * @returns {Promise<{success: boolean, error?: string}>} A promise that resolves to an object indicating the success or failure of the operation.
  */
 export async function failExecutionActivity(executionId, errorMessage, errorStack) {
   try {
@@ -170,12 +194,13 @@ export async function failExecutionActivity(executionId, errorMessage, errorStac
 }
 
 /**
- * Compensating activity executed to undo a previously completed action.
- * Part of the transactional Saga pattern implementation.
- * @param {object} step - The step to rollback.
- * @param {object} stepResult - The result of the completed step to undo.
- * @param {string} userId - User identifier.
- * @returns {Promise<object>} Rollback report
+ * @description A compensating Temporal Activity designed to "undo" a previously completed action as part of a Saga pattern.
+ * If a subsequent step in a workflow fails, this activity is called for each preceding completed step to attempt to revert its side effects.
+ * It contains specific compensation logic for various integrations like Google Cloud, Google Workspace, Notion, etc.
+ * @param {object} step - The original step definition that needs to be rolled back.
+ * @param {object} stepResult - The result object from the original execution of the step, which may contain IDs or data needed for the rollback.
+ * @param {string} userId - The identifier of the user who initiated the workflow.
+ * @returns {Promise<object>} A promise that resolves with a rollback report, including whether compensation was executed and details of the action taken.
  */
 export async function rollbackWorkflowStepActivity(step, stepResult, userId) {
   logger.info(`[Temporal Saga Activity] Undoing step: ${step.stepId} (${step.app}.${step.action})`);
