@@ -34,16 +34,16 @@ const zones = {
 };
 
 const zoneAgents = {
-  '1': ['fixer', 'tester', 'optimizer', 'documenter', 'manager_agent'],
-  '2': ['fixer', 'tester', 'optimizer', 'documenter', 'owner_agent'],
-  '3': ['fixer', 'tester', 'optimizer', 'documenter', 'user_agent'],
-  '4': ['fixer', 'tester', 'optimizer', 'documenter', 'admin_agent']
+  '1': ['fixer', 'tester', 'optimizer', 'documenter', 'manager_agent', 'security_agent'],
+  '2': ['fixer', 'tester', 'optimizer', 'documenter', 'owner_agent', 'telemetry_agent'],
+  '3': ['fixer', 'tester', 'optimizer', 'documenter', 'user_agent', 'ratelimit_agent'],
+  '4': ['fixer', 'tester', 'optimizer', 'documenter', 'admin_agent', 'patch_agent']
 };
 const activeProcesses = [];
 
 console.log('====================================================');
 console.log('         LAUNCHING AUTONOMOUS SWARM ORCHESTRATOR    ');
-console.log('                 20 AGENTS ACTIVE SWARM             ');
+console.log('                 24 AGENTS ACTIVE SWARM             ');
 console.log('====================================================');
 
 // Spawn 20 worker processes
