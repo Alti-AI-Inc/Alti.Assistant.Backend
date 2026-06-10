@@ -61,7 +61,11 @@ const _handleGeminiInteraction = async (
 ) => {
   try {
     // 1. Fetch user and validate hierarchy, roles, and tenant context boundaries
-    const user = await UserModel.findById(userId);
+    // Optimization: Use .select() to fetch only necessary fields and .lean() for a faster, plain JavaScript object.
+    const user = await UserModel.findById(userId)
+      .select('role tenantId promptLimit promptsUsed managerId')
+      .lean();
+
     if (!user) {
       throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
     }
@@ -84,14 +88,29 @@ const _handleGeminiInteraction = async (
 
     // Check tenant-wide limits if applicable
     if (user.tenantId && user.role !== 'super_admin') {
-      const tenantAdmin = await UserModel.findOne({ tenantId: user.tenantId, role: 'admin' });
+      // Optimization: Fetch only required fields using .select() and use .lean() for a read-only, faster query.
+      // Recommendation: Create a compound index on { tenantId: 1, role: 1 } in the 'users' collection for performance.
+      const tenantAdmin = await UserModel.findOne({
+        tenantId: user.tenantId,
+        role: 'admin',
+      })
+        .select('tenantLimit tenantUsage')
+        .lean();
+
       if (tenantAdmin && tenantAdmin.tenantLimit !== undefined && tenantAdmin.tenantUsage >= tenantAdmin.tenantLimit) {
         throw new ApiError(httpStatus.PAYMENT_REQUIRED, 'Workspace/Tenant limit exceeded');
       }
     }
 
     // Dynamically load chat history from the database for the current session.
-    const existingChatHistoryDoc = await ChatHistory.findOne({ user: userId, sessionId });
+    // Optimization: Fetch only the 'responses' field and use .lean() as we only need to read the data.
+    // Recommendation: Create a compound index on { user: 1, sessionId: 1 } in the 'chathistories' collection for both reads and writes.
+    const existingChatHistoryDoc = await ChatHistory.findOne({
+      user: userId,
+      sessionId,
+    })
+      .select('responses')
+      .lean();
 
     const chatHistory = new InMemoryChatMessageHistory();
     if (existingChatHistoryDoc && existingChatHistoryDoc.responses) {
@@ -141,6 +160,7 @@ const _handleGeminiInteraction = async (
 
     // Propagate to Manager
     if (user.managerId) {
+      // Note: findByIdAndUpdate is efficient as it uses the primary _id index.
       propagationPromises.push(
         UserModel.findByIdAndUpdate(user.managerId, {
           $inc: { managedUsageCount: 1 }
@@ -151,6 +171,7 @@ const _handleGeminiInteraction = async (
 
     // Propagate to Tenant Administrator / Workspace Owner
     if (user.tenantId) {
+      // Recommendation: Ensure an index exists on { tenantId: 1, role: 1 } for this update operation.
       propagationPromises.push(
         UserModel.updateMany(
           { tenantId: user.tenantId, role: 'admin' },
@@ -161,6 +182,7 @@ const _handleGeminiInteraction = async (
     }
 
     // Propagate to Super Admin / Platform Owner
+    // Recommendation: Ensure an index exists on { role: 1 } for this update operation.
     propagationPromises.push(
       UserModel.updateMany(
         { role: 'super_admin' },
@@ -180,6 +202,7 @@ const _handleGeminiInteraction = async (
       total_time: result?.usage?.total_time || 0,
     };
 
+    // Note: The index on { user: 1, sessionId: 1 } recommended earlier also optimizes this update.
     const updateResult = await ChatHistory.updateOne(
       { user: userId, sessionId },
       { $push: { responses: responseData } }
@@ -191,6 +214,7 @@ const _handleGeminiInteraction = async (
         sessionId,
         responses: [responseData],
       });
+      // Note: findByIdAndUpdate is efficient as it uses the primary _id index.
       await UserModel.findByIdAndUpdate(userId, {
         $push: { geminiAiSessions: newGeminiSession._id },
       });

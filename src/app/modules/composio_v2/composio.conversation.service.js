@@ -44,7 +44,7 @@ const generateComposioConversationId = () => {
  * @param {string | null} conversationId - The ID of an existing conversation, or `null` to create a new one.
  * @param {string} userInput - The initial user input for the conversation, used to generate a title.
  * @param {boolean} [isGuest=false] - A flag indicating if the user is a guest.
- * @param {import('express').Request} [req=null] - The Express request object, potentially containing user information or context.
+ * @param {import('express').Request} [req=null] - The Express request object, potentially containing user or multi-tenant context.
  * @returns {Promise<Object>} A promise that resolves to the conversation object.
  * @throws {ApiError} If there is an internal server error during conversation handling.
  */
@@ -163,7 +163,7 @@ const handleComposioConversation = async (
  * @param {string} userId - The ID of the user sending the message.
  * @param {string} userInput - The content of the user's message.
  * @param {boolean} [isGuest=false] - A flag indicating if the user is a guest.
- * @param {import('express').Request} [req=null] - The Express request object, potentially containing user information or context.
+ * @param {import('express').Request} [req=null] - The Express request object, potentially containing user or multi-tenant context.
  * @returns {Promise<Object>} A promise that resolves to the updated conversation object with the new message.
  * @throws {ApiError} If there is an internal server error while adding the message.
  */
@@ -211,7 +211,7 @@ const addComposioQueryMessage = async (
  * @param {string} result - The content of the Composio execution result.
  * @param {Object} [metadata={}] - Additional metadata to store with the message (e.g., tool details).
  * @param {boolean} [isGuest=false] - A flag indicating if the user is a guest.
- * @param {import('express').Request} [req=null] - The Express request object, potentially containing user information or context.
+ * @param {import('express').Request} [req=null] - The Express request object, potentially containing user or multi-tenant context.
  * @returns {Promise<Object>} A promise that resolves to the updated conversation object with the new message.
  * @throws {ApiError} If there is an internal server error while adding the result message.
  */
@@ -263,8 +263,8 @@ const addComposioResultMessage = async (
  * @param {string} errorMessage - A user-friendly error message to display.
  * @param {Error} originalError - The original error object for logging and detailed metadata.
  * @param {boolean} [isGuest=false] - A flag indicating if the user is a guest.
- * @param {import('express').Request} [req=null] - The Express request object, potentially containing user information or context.
- * @returns {Promise<Object>} A promise that resolves to the updated conversation object with the new message.
+ * @param {import('express').Request} [req=null] - The Express request object, potentially containing user or multi-tenant context.
+ * @returns {Promise<Object|undefined>} A promise that resolves to the updated conversation object with the new message, or undefined if an error occurs during message addition.
  * @remarks This function catches its own errors to prevent cascading failures, as its purpose is to report errors.
  */
 const addComposioErrorMessage = async (
@@ -308,7 +308,7 @@ const addComposioErrorMessage = async (
  * @param {string} conversationId - The ID of the conversation to retrieve history from.
  * @param {string} userId - The ID of the user associated with the conversation.
  * @param {number} [limit=10] - The maximum number of recent messages to retrieve.
- * @param {import('express').Request} [req=null] - The Express request object, potentially containing user information or context.
+ * @param {import('express').Request} [req=null] - The Express request object, potentially containing user or multi-tenant context.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of message objects, or an empty array if the conversation is not found or an error occurs.
  */
 const getComposioHistory = async (
@@ -364,9 +364,11 @@ const getComposioHistory = async (
  *
  * @param {string} conversationId - The ID of the conversation to update.
  * @param {string} userId - The ID of the user associated with the conversation.
- * @param {Object} workflowResult - An object containing details about the workflow execution,
- *                                  e.g., `{ identifiedApp, identifiedAction, workflowType }`.
- * @param {import('express').Request} [req=null] - The Express request object, potentially containing user information or context.
+ * @param {Object} workflowResult - An object containing details about the workflow execution.
+ * @param {string} [workflowResult.identifiedApp] - The application identified in the workflow.
+ * @param {string} [workflowResult.identifiedAction] - The action identified in the workflow.
+ * @param {string} [workflowResult.workflowType] - The type of workflow (e.g., 'multi_step').
+ * @param {import('express').Request} [req=null] - The Express request object, potentially containing user or multi-tenant context.
  * @returns {Promise<void>} A promise that resolves when the conversation title has been updated.
  * @remarks This function catches its own errors to avoid disrupting the main workflow.
  */
@@ -409,11 +411,11 @@ const updateComposioConversationTitle = async (
  * and the average messages per conversation.
  *
  * @param {string} userId - The ID of the user for whom to retrieve statistics.
- * @param {import('express').Request} [req=null] - The Express request object, potentially containing user information or context.
+ * @param {import('express').Request} [req=null] - The Express request object, potentially containing user or multi-tenant context.
  * @returns {Promise<Object>} A promise that resolves to an object containing Composio conversation statistics.
- *   - `totalComposioConversations`: The total count of Composio conversations.
- *   - `totalComposioMessages`: The total count of messages across all Composio conversations.
- *   - `averageMessagesPerConversation`: The average number of messages per Composio conversation.
+ * @property {number} totalComposioConversations - The total count of Composio conversations.
+ * @property {number} totalComposioMessages - The total count of messages across all Composio conversations.
+ * @property {number} averageMessagesPerConversation - The average number of messages per Composio conversation.
  */
 const getComposioStats = async (userId, req = null) => {
   try {
