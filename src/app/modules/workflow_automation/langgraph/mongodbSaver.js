@@ -40,18 +40,27 @@ export class MongoDBSaver extends BaseCheckpointSaver {
       }
 
       let doc;
+      // Optimize query payload by projecting only the required fields
+      const projection = { checkpointId: 1, checkpointStr: 1, metadataStr: 1 };
+
       if (checkpoint_id) {
-        // Optimized with .lean() to bypass Mongoose hydration overhead
-        doc = await WorkflowCheckpoint.findOne({
-          threadId: thread_id,
-          checkpointId: checkpoint_id,
-        }).lean();
+        // Optimized with .lean() and projection to bypass Mongoose hydration and minimize payload size
+        doc = await WorkflowCheckpoint.findOne(
+          {
+            threadId: thread_id,
+            checkpointId: checkpoint_id,
+          },
+          projection
+        ).lean();
       } else {
         // Retrieve the latest checkpoint based on creation time.
-        // Optimized to findOne with sort and .lean() instead of find().limit(1)
-        doc = await WorkflowCheckpoint.findOne({
-          threadId: thread_id,
-        })
+        // Optimized to findOne with sort, projection, and .lean() instead of find().limit(1)
+        doc = await WorkflowCheckpoint.findOne(
+          {
+            threadId: thread_id,
+          },
+          projection
+        )
           .sort({ createdAt: -1 })
           .lean();
       }
@@ -176,14 +185,21 @@ export class MongoDBSaver extends BaseCheckpointSaver {
       }
 
       // Sort by 'createdAt' in descending order to list the newest checkpoints first.
-      // Optimized with .lean() to avoid hydrating Mongoose documents
-      let cursor = WorkflowCheckpoint.find(query).sort({ createdAt: -1 }).lean();
+      // Optimized with .lean() and projection to avoid hydrating Mongoose documents and minimize payload size.
+      // Uses a cursor to stream documents instead of loading all matching checkpoints into memory at once.
+      let queryBuilder = WorkflowCheckpoint.find(
+        query,
+        { checkpointId: 1, checkpointStr: 1, metadataStr: 1 }
+      )
+        .sort({ createdAt: -1 })
+        .lean();
+
       if (limit !== undefined) {
-        cursor = cursor.limit(limit);
+        queryBuilder = queryBuilder.limit(limit);
       }
 
-      const docs = await cursor.exec();
-      for (const doc of docs) {
+      const cursor = queryBuilder.cursor();
+      for await (const doc of cursor) {
         yield {
           config: {
             configurable: {

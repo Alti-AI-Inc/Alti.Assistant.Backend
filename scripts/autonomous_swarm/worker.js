@@ -221,7 +221,11 @@ async function runLoop() {
         const skipKeywords = {
           fixer: 'NO_BUGS_FOUND',
           optimizer: 'NO_OPTIMIZATIONS_NEEDED',
-          documenter: 'NO_DOCUMENTATION_NEEDED'
+          documenter: 'NO_DOCUMENTATION_NEEDED',
+          user_agent: 'NO_CHANGES_NEEDED',
+          manager_agent: 'NO_CHANGES_NEEDED',
+          admin_agent: 'NO_CHANGES_NEEDED',
+          owner_agent: 'NO_CHANGES_NEEDED'
         };
 
         if (reply && reply.includes(skipKeywords[AGENT_TYPE])) {
@@ -245,7 +249,11 @@ async function runLoop() {
         const commitPrefixes = {
           fixer: 'fix',
           optimizer: 'perf',
-          documenter: 'docs'
+          documenter: 'docs',
+          user_agent: 'feat(user)',
+          manager_agent: 'feat(manager)',
+          admin_agent: 'feat(admin)',
+          owner_agent: 'feat(owner)'
         };
         const gitResult = await commitAndPush('main', `${commitPrefixes[AGENT_TYPE]}: [Zone ${ZONE_ID}] autonomous update to ${path.basename(filePath)}`);
         if (gitResult.success) {
