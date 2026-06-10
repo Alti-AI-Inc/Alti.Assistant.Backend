@@ -210,12 +210,12 @@ const fileSchema = new mongoose.Schema(
 
 /**
  * Indexes for faster queries.
- * - `knowledgebotId` and `isActive` for efficient filtering by bot and status.
- * - `userId` and `isActive` for efficient filtering by user and status.
- * - `createdAt` for efficient sorting by creation date.
+ * Optimized compound indexes to support filtering and sorting without in-memory filesort.
  */
-fileSchema.index({ knowledgebotId: 1, isActive: 1 });
-fileSchema.index({ userId: 1, isActive: 1 });
+fileSchema.index({ knowledgebotId: 1, isActive: 1, createdAt: -1 });
+fileSchema.index({ userId: 1, isActive: 1, createdAt: -1 });
+fileSchema.index({ userId: 1, knowledgebotId: 1, isActive: 1, createdAt: -1 });
+fileSchema.index({ tenantId: 1, isActive: 1, createdAt: -1 });
 fileSchema.index({ createdAt: -1 });
 
 /**

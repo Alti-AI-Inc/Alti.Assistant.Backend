@@ -1,7 +1,11 @@
 import { logger } from '../../../shared/logger.js';
 import QueryMemory from './llamaindex.queryMemory.model.js';
 
-// Shared English stopwords (consistent with contextPruner.js)
+/**
+ * A set of common English stopwords used to filter out noise words during tokenization.
+ * Consistent with contextPruner.js.
+ * @type {Set<string>}
+ */
 const STOPWORDS = new Set([
   'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'as', 'at',
   'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'can', 'cannot',
@@ -16,7 +20,12 @@ const STOPWORDS = new Set([
 ]);
 
 /**
- * Tokenize a string for Jaccard comparison.
+ * Tokenizes a string for Jaccard similarity comparison.
+ * Converts text to lowercase, removes non-alphanumeric characters, splits by whitespace,
+ * and filters out short words (length <= 2) and common stopwords.
+ *
+ * @param {string} text - The input text to tokenize.
+ * @returns {string[]} An array of filtered tokens.
  */
 const tokenize = (text) => {
   if (!text) return [];
@@ -28,7 +37,12 @@ const tokenize = (text) => {
 };
 
 /**
- * Compute Jaccard similarity between two token arrays.
+ * Computes the Jaccard similarity coefficient between two token arrays.
+ * Jaccard similarity is calculated as the size of the intersection divided by the size of the union.
+ *
+ * @param {string[]} tokensA - The first array of tokens.
+ * @param {string[]} tokensB - The second array of tokens.
+ * @returns {number} The similarity score between 0 and 1.
  */
 const jaccardSimilarity = (tokensA, tokensB) => {
   if (tokensA.length === 0 || tokensB.length === 0) return 0;
@@ -43,13 +57,15 @@ const jaccardSimilarity = (tokensA, tokensB) => {
 };
 
 /**
- * Record a successful query→answer pair into cross-session memory.
+ * Records a successful query-answer pair into cross-session memory.
+ * Deduplicates queries by checking Jaccard similarity against recent entries.
  *
- * @param {string} userId
- * @param {string} query
- * @param {string} answer
- * @param {string} engine - The engine that produced the answer
- * @param {number} confidence - Routing confidence (0–1)
+ * @param {string} userId - The unique identifier of the user.
+ * @param {string} query - The user's query.
+ * @param {string} answer - The generated answer.
+ * @param {string} [engine='vector'] - The engine that produced the answer.
+ * @param {number} [confidence=0.0] - Routing confidence score (0 to 1).
+ * @returns {Promise<void>} Resolves when the query is recorded or skipped.
  */
 const recordQuery = async (userId, query, answer, engine = 'vector', confidence = 0.0) => {
   try {
@@ -90,13 +106,14 @@ const recordQuery = async (userId, query, answer, engine = 'vector', confidence 
 };
 
 /**
- * Retrieve the top-N semantically relevant prior query→answer pairs for a new query.
+ * Retrieves the top-N semantically relevant prior query-answer pairs for a new query.
+ * Uses Jaccard similarity to rank and filter candidates from the user's history.
  *
- * @param {string} userId
- * @param {string} currentQuery
- * @param {number} limit - Max number of results to return
- * @param {number} minSimilarity - Minimum Jaccard similarity threshold (default 0.2)
- * @returns {Array<Object>} Ranked prior Q&A pairs
+ * @param {string} userId - The unique identifier of the user.
+ * @param {string} currentQuery - The current user query to match against.
+ * @param {number} [limit=3] - Maximum number of results to return.
+ * @param {number} [minSimilarity=0.2] - Minimum Jaccard similarity threshold.
+ * @returns {Promise<Array<{query: string, answer: string, engine: string, createdAt: Date, similarity: number}>>} Ranked prior Q&A pairs.
  */
 const getRelevantHistory = async (userId, currentQuery, limit = 3, minSimilarity = 0.2) => {
   try {
@@ -132,12 +149,12 @@ const getRelevantHistory = async (userId, currentQuery, limit = 3, minSimilarity
 };
 
 /**
- * Build a context injection block from relevant history entries.
- * Prepends prior Q&A pairs to the current query to give the LLM persistent memory context.
+ * Builds a context injection block from relevant history entries.
+ * Prepends prior Q&A pairs to the current query to provide the LLM with persistent memory context.
  *
- * @param {string} userId
- * @param {string} currentQuery
- * @returns {string} The enriched query (with prior context prepended if relevant)
+ * @param {string} userId - The unique identifier of the user.
+ * @param {string} currentQuery - The current user query.
+ * @returns {Promise<string>} The enriched query with prior context prepended, or the original query if no relevant history is found.
  */
 const buildMemoryEnrichedQuery = async (userId, currentQuery) => {
   try {
@@ -168,7 +185,10 @@ ${currentQuery}`;
 };
 
 /**
- * Get a summary of stored memory for a user (for debugging/analytics).
+ * Retrieves a summary of stored memory for a user, useful for debugging and analytics.
+ *
+ * @param {string} userId - The unique identifier of the user.
+ * @returns {Promise<{success: boolean, totalEntries?: number, byEngine?: Array<{engine: string, count: number}>, oldestEntry?: {createdAt: Date, queryPreview: string} | null, newestEntry?: {createdAt: Date, queryPreview: string} | null, error?: string}>} Summary object containing memory statistics.
  */
 const getMemorySummary = async (userId) => {
   try {
@@ -195,6 +215,15 @@ const getMemorySummary = async (userId) => {
   }
 };
 
+/**
+ * Service object containing methods for managing and querying cross-session query memory.
+ * @type {{
+ *   recordQuery: Function,
+ *   getRelevantHistory: Function,
+ *   buildMemoryEnrichedQuery: Function,
+ *   getMemorySummary: Function
+ * }}
+ */
 export const queryMemoryService = {
   recordQuery,
   getRelevantHistory,
