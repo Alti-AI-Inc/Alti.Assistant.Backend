@@ -1,3 +1,10 @@
+/**
+ * @file This file contains the controller logic for handling AI-related requests,
+ * specifically for generating responses using Google Gemini with Google Search Grounding.
+ * It integrates with the Google GenAI service, manages user chat history, and provides
+ * an endpoint for anonymous AI interactions.
+ */
+
 import { GoogleGenAI } from '@google/genai';
 import httpStatus from 'http-status';
 import config from '../../../../config/index.js';
@@ -7,8 +14,138 @@ import generateSessionId from '../../../shared/sessionGenerate.js';
 import UserModel from '../auth/auth.model.js';
 import ChatHistory from '../conversations/chatHistory.model.js';
 
+/**
+ * @type {GoogleGenAI}
+ * @description Initializes the GoogleGenAI client with the API key from configuration.
+ * This client is used to interact with Google's Gemini AI models.
+ */
 const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
+/**
+ * @swagger
+ * /api/v1/tavily/get-response-anonymously:
+ *   post:
+ *     summary: Get AI-generated response (Gemini with Google Search Grounding)
+ *     description: Processes a user's prompt using the Google Gemini AI model, which includes Google Search Grounding for enhanced responses. It also manages conversation history for the user.
+ *     tags:
+ *       - AI
+ *       - Tavily (Deprecated)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - prompt
+ *               - user
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 description: The user's prompt for the AI.
+ *                 example: "What is the capital of France?"
+ *               user:
+ *                 type: string
+ *                 description: The ID of the user making the request.
+ *                 example: "60d5ec49f8c7a2001c8e4d1a"
+ *               sessionId:
+ *                 type: string
+ *                 description: An optional session ID to continue an existing conversation. If not provided, a new one will be generated.
+ *                 example: "some_existing_session_id"
+ *     responses:
+ *       200:
+ *         description: Response processed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Response processed successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sessionId:
+ *                       type: string
+ *                       description: The session ID used for the conversation.
+ *                       example: "new_generated_session_id"
+ *                     reply:
+ *                       type: string
+ *                       description: The AI-generated response.
+ *                       example: "The capital of France is Paris."
+ *       400:
+ *         description: Validation Error or AI model failed to generate a reply.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 400
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation Error"
+ *                 errorMessages:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       path:
+ *                         type: string
+ *                       message:
+ *                         type: string
+ *       404:
+ *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 404
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User not found."
+ *       500:
+ *         description: Internal Server Error or AI model processing failed.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 500
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "AI model processing failed."
+ */
+/**
+ * @function
+ * @description Handles the request to get an AI-generated response using Google Gemini with Google Search Grounding.
+ * It processes a user's prompt, interacts with the Gemini API, and stores the conversation history.
+ * @param {import('express').Request} req - The Express request object, containing the prompt, user ID, and an optional session ID in the body.
+ * @param {import('express').Response} res - The Express response object.
+ * @returns {Promise<void>} A promise that resolves when the response has been sent.
+ */
 const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
   const prompt = req.body?.prompt;
   const userId = req.body?.user;
@@ -111,6 +248,12 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * @description Controller for handling AI-related requests, specifically for generating responses using Google Gemini.
+ * This object exports various handler functions for AI interactions.
+ * @type {object}
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} TavilyAiGetResponseAnonymously - Handles the AI response generation for anonymous users.
+ */
 export const TavilyAiController = {
   TavilyAiGetResponseAnonymously,
 };
