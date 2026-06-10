@@ -1,17 +1,18 @@
+import mongoose from 'mongoose';
 import ActionAuditLog from './models/actionAuditLog.model.js';
+import User from '../../user/user.model.js'; // FIX: Import User model for role-based access control.
+import { usageService } from '../../usage/usage.service.js'; // FIX: Import usage service for propagating usage data.
 import { logger } from '../../../shared/logger.js';
 
 // In your ActionAuditLog model definition (e.g., actionAuditLog.model.js),
-// consider adding the following indexes for optimal query and aggregation performance:
-
-// 1. For `getUserAuditLog` (filtering by userId, optional app/status, sorting by createdAt):
-//    db.actionauditlogs.createIndex({ userId: 1, createdAt: -1 });
-//    If 'app' is frequently filtered alongside userId:
-//    db.actionauditlogs.createIndex({ userId: 1, app: 1, createdAt: -1 });
-//    If 'status' is frequently filtered alongside userId:
-//    db.actionauditlogs.createIndex({ userId: 1, status: 1, createdAt: -1 });
-
-// 2. For `getUserAnalytics` (all aggregations start with userId and createdAt range):
+// you must add a `workspaceId` field and update indexes for optimal query performance:
+//
+// 1. For `getAuditLogs` (filtering by workspaceId, userId, app, status, sorting by createdAt):
+//    db.actionauditlogs.createIndex({ workspaceId: 1, userId: 1, createdAt: -1 });
+//    db.actionauditlogs.createIndex({ workspaceId: 1, app: 1, createdAt: -1 });
+//
+// 2. For `getAnalytics` (all aggregations start with workspaceId/userId and createdAt range):
+//    db.actionauditlogs.createIndex({ workspaceId: 1, createdAt: 1 });
 //    db.actionauditlogs.createIndex({ userId: 1, createdAt: 1 });
 
 /**
@@ -21,7 +22,8 @@ import { logger } from '../../../shared/logger.js';
  * debugging, and analytics. Designed to be non-blocking — audit writes
  * are fire-and-forget so they never slow down the main execution path.
  *
- * Also provides analytics aggregations for per-user and per-app insights.
+ * Also provides analytics aggregations for per-user and per-app insights,
+ * respecting multi-tenancy and role-based access control.
  */
 
 /**
@@ -39,11 +41,12 @@ const SENSITIVE_KEYS = new Set([
 class ActionAuditService {
   /**
    * Log the start of an action execution.
-   * Returns the audit log ID for later update.
+   * Returns the audit log entry ID for later update.
    *
    * @async
    * @param {Object} params - The parameters for the action audit log entry.
    * @param {string} params.userId - The ID of the user who initiated the action.
+   * @param {string} params.workspaceId - The ID of the workspace where the action is performed.
    * @param {string} params.app - The name of the application or integration.
    * @param {string} params.action - The specific action performed within the application.
    * @param {string} [params.toolName] - The human-readable name of the tool. Defaults to `${app}_${action}`.
@@ -61,10 +64,16 @@ class ActionAuditService {
    * @returns {Promise<string|null>} The audit log entry ID if successful, otherwise `null`.
    */
   async logStart(params) {
+    // FIX: Enforce presence of userId and workspaceId for proper tenancy and ownership.
+    if (!params.userId || !params.workspaceId) {
+      logger.error('ActionAuditService.logStart called with missing userId or workspaceId.');
+      return null;
+    }
     try {
       // OPTIMIZATION: Use insertMany with lean: true to bypass expensive Mongoose document hydration
       const [entry] = await ActionAuditLog.insertMany([{
         userId: params.userId,
+        workspaceId: params.workspaceId, // FIX: Added workspaceId for multi-tenancy.
         app: params.app,
         action: params.action,
         toolName: params.toolName || `${params.app}_${params.action}`,
@@ -92,28 +101,28 @@ class ActionAuditService {
 
   /**
    * Log the completion of an action execution.
-   * This method updates an existing audit log entry identified by `auditLogId`.
-   * It includes `userId` in the query to prevent Insecure Direct Object Reference (IDOR) vulnerabilities.
+   * This method updates an existing audit log entry.
+   * It includes `userId` and `workspaceId` in the query to prevent IDOR vulnerabilities and enforce tenant boundaries.
    *
    * @async
-   * @param {string} auditLogId - The ID returned by `logStart` for the audit log entry to update.
-   * @param {string} userId - The ID of the user who initiated the action. Required for ownership verification.
+   * @param {Object} context - The context for identifying the log entry.
+   * @param {string} context.auditLogId - The ID returned by `logStart`.
+   * @param {string} context.userId - The ID of the user who initiated the action.
+   * @param {string} context.workspaceId - The ID of the workspace for the action.
+   * @param {string} context.app - The name of the application (for usage propagation).
    * @param {Object} outcome - The outcome details of the action execution.
    * @param {boolean} outcome.success - True if the action completed successfully, false otherwise.
    * @param {Object} [outcome.result] - The result data from the action execution. Will be summarized and redacted.
    * @param {Error} [outcome.error] - The error object if the action failed.
-   * @param {string} [outcome.error.message] - The error message.
-   * @param {string|number} [outcome.error.code] - The error code or status.
    * @param {number} [outcome.durationMs] - The duration of the action execution in milliseconds.
    * @param {number} [outcome.attempts] - The number of attempts made for the action.
    * @param {boolean} [outcome.retried] - True if the action was retried before completion.
    * @returns {Promise<void>}
    */
-  async logComplete(auditLogId, userId, outcome) { // Added userId parameter for ownership verification
-    // Ensure both auditLogId and userId are provided to prevent IDOR (Insecure Direct Object Reference)
-    // by ensuring the update operation is scoped to the correct user.
-    if (!auditLogId || !userId) {
-      logger.warn('ActionAuditService.logComplete called with missing auditLogId or userId. Skipping update.');
+  async logComplete({ auditLogId, userId, workspaceId, app }, outcome) {
+    // FIX: Enforce presence of auditLogId, userId, and workspaceId to prevent IDOR and ensure tenant isolation.
+    if (!auditLogId || !userId || !workspaceId) {
+      logger.warn('ActionAuditService.logComplete called with missing auditLogId, userId, or workspaceId. Skipping update.');
       return;
     }
 
@@ -126,10 +135,7 @@ class ActionAuditService {
       };
 
       if (outcome.success) {
-        // Redact the result to avoid storing sensitive response data
-        update.result = this._redactSensitive(
-          this._summarizeResult(outcome.result)
-        );
+        update.result = this._redactSensitive(this._summarizeResult(outcome.result));
       } else {
         update.error = {
           message: outcome.error?.message || 'Unknown error',
@@ -140,8 +146,23 @@ class ActionAuditService {
         }
       }
 
-      // Include userId in the query to ensure only the owner of the log entry can update it.
-      await ActionAuditLog.updateOne({ _id: auditLogId, userId: userId }, { $set: update });
+      // FIX: Added workspaceId to the query to ensure tenant boundary is respected.
+      const result = await ActionAuditLog.updateOne(
+        { _id: auditLogId, userId: userId, workspaceId: workspaceId },
+        { $set: update }
+      );
+
+      // FIX: Propagate usage details to the usage service upon successful action completion.
+      // This addresses the requirement for usage tracking and limit enforcement.
+      if (result.modifiedCount > 0 && outcome.success) {
+        // Fire-and-forget call to usage service.
+        usageService.recordAction({
+          userId,
+          workspaceId,
+          app,
+          durationMs: outcome.durationMs || 0,
+        }).catch(err => logger.error(`Failed to propagate usage data for workspace ${workspaceId}:`, err));
+      }
     } catch (error) {
       logger.error('ActionAuditService.logComplete failed:', error.message);
     }
@@ -149,25 +170,26 @@ class ActionAuditService {
 
   /**
    * Log a rollback event for an action execution.
-   * This method updates an existing audit log entry identified by `auditLogId` to 'rolled_back' status.
-   * It includes `userId` in the query to prevent Insecure Direct Object Reference (IDOR) vulnerabilities.
+   * This method updates an existing audit log entry to 'rolled_back' status.
+   * It includes `userId` and `workspaceId` in the query to prevent IDOR vulnerabilities.
    *
    * @async
-   * @param {string} auditLogId - The ID returned by `logStart` for the audit log entry to update.
-   * @param {string} userId - The ID of the user who initiated the action. Required for ownership verification.
+   * @param {Object} context - The context for identifying the log entry.
+   * @param {string} context.auditLogId - The ID returned by `logStart`.
+   * @param {string} context.userId - The ID of the user who initiated the action.
+   * @param {string} context.workspaceId - The ID of the workspace for the action.
    * @returns {Promise<void>}
    */
-  async logRollback(auditLogId, userId) { // Added userId parameter for ownership verification
-    // Ensure both auditLogId and userId are provided to prevent IDOR (Insecure Direct Object Reference)
-    // by ensuring the update operation is scoped to the correct user.
-    if (!auditLogId || !userId) {
-      logger.warn('ActionAuditService.logRollback called with missing auditLogId or userId. Skipping update.');
+  async logRollback({ auditLogId, userId, workspaceId }) {
+    // FIX: Enforce presence of auditLogId, userId, and workspaceId to prevent IDOR and ensure tenant isolation.
+    if (!auditLogId || !userId || !workspaceId) {
+      logger.warn('ActionAuditService.logRollback called with missing auditLogId, userId, or workspaceId. Skipping update.');
       return;
     }
     try {
-      // Include userId in the query to ensure only the owner of the log entry can update it.
+      // FIX: Added workspaceId to the query to ensure tenant boundary is respected.
       await ActionAuditLog.updateOne(
-        { _id: auditLogId, userId: userId },
+        { _id: auditLogId, userId: userId, workspaceId: workspaceId },
         { $set: { status: 'rolled_back' } }
       );
     } catch (error) {
@@ -176,34 +198,71 @@ class ActionAuditService {
   }
 
   /**
-   * Get paginated audit log entries for a specific user.
+   * Get paginated audit log entries based on the authenticated user's role and permissions.
+   * Enforces tenant boundaries and user hierarchy.
    *
    * @async
-   * @param {string} userId - The ID of the user whose audit logs are to be retrieved.
+   * @param {Object} authUser - The authenticated user object from the request context.
+   * @param {string} authUser._id - The ID of the authenticated user.
+   * @param {string} authUser.workspaceId - The workspace ID of the authenticated user.
+   * @param {string} authUser.role - The role of the authenticated user (e.g., 'user', 'manager', 'admin', 'super_admin').
    * @param {Object} [filters={}] - Optional filters for the audit log query.
+   * @param {string} [filters.userId] - Filter by a specific user ID (subject to permissions).
+   * @param {string} [filters.workspaceId] - Filter by a specific workspace ID (super_admin only).
    * @param {string} [filters.app] - Filter logs by a specific application name.
-   * @param {string} [filters.status] - Filter logs by a specific status (e.g., 'success', 'failed', 'executing').
+   * @param {string} [filters.status] - Filter logs by a specific status.
    * @param {number} [filters.limit=50] - The maximum number of entries to return (capped at 200).
    * @param {number} [filters.offset=0] - The number of entries to skip for pagination.
    * @param {string} [filters.since] - An ISO date string to retrieve logs created on or after this date.
    * @returns {Promise<Object>} An object containing paginated audit entries and metadata.
-   * @returns {boolean} return.success - True if the operation was successful, false otherwise.
-   * @returns {Array<Object>} return.entries - An array of audit log entries.
-   * @returns {number} return.total - The total number of entries matching the query without pagination.
-   * @returns {number} return.limit - The actual limit applied to the query.
-   * @returns {number} return.offset - The actual offset applied to the query.
-   * @returns {boolean} return.hasMore - True if there are more entries available beyond the current limit/offset.
-   * @returns {string} [return.error] - Error message if the operation failed.
    */
-  async getUserAuditLog(userId, filters = {}) {
+  async getAuditLogs(authUser, filters = {}) {
     try {
-      const query = { userId };
+      const query = {};
+
+      // FIX: Build query based on user role to enforce RBAC and tenancy.
+      switch (authUser.role) {
+        case 'user':
+          query.userId = authUser._id;
+          break;
+        case 'manager': {
+          query.workspaceId = authUser.workspaceId;
+          const managedUsers = await User.find({ managerId: authUser._id }).select('_id').lean();
+          const managedUserIds = managedUsers.map(u => u._id);
+          managedUserIds.push(authUser._id); // Include manager's own logs
+
+          if (filters.userId) {
+            if (!managedUserIds.some(id => id.equals(filters.userId))) {
+              return { success: false, error: 'Forbidden: You can only view logs for users you manage.', entries: [], total: 0 };
+            }
+            query.userId = new mongoose.Types.ObjectId(filters.userId);
+          } else {
+            query.userId = { $in: managedUserIds };
+          }
+          break;
+        }
+        case 'admin':
+          query.workspaceId = authUser.workspaceId;
+          if (filters.userId) {
+            query.userId = new mongoose.Types.ObjectId(filters.userId);
+          }
+          break;
+        case 'super_admin':
+          if (filters.workspaceId) {
+            query.workspaceId = new mongoose.Types.ObjectId(filters.workspaceId);
+          }
+          if (filters.userId) {
+            query.userId = new mongoose.Types.ObjectId(filters.userId);
+          }
+          break;
+        default:
+          logger.warn(`Unauthorized role trying to access audit logs: ${authUser.role}`);
+          return { success: false, error: 'Forbidden', entries: [], total: 0 };
+      }
 
       if (filters.app) query.app = filters.app;
       if (filters.status) query.status = filters.status;
       if (filters.since) {
-        // Attempt to parse the date. If invalid, it will result in an "Invalid Date" object,
-        // which MongoDB typically handles by not matching any documents, preventing errors.
         query.createdAt = { $gte: new Date(filters.since) };
       }
 
@@ -228,52 +287,75 @@ class ActionAuditService {
         hasMore: offset + entries.length < total,
       };
     } catch (error) {
-      logger.error('ActionAuditService.getUserAuditLog failed:', error.message);
+      logger.error('ActionAuditService.getAuditLogs failed:', error.message);
       return { success: false, error: error.message, entries: [], total: 0 };
     }
   }
 
   /**
-   * Get aggregated analytics for a user's action history.
+   * Get aggregated analytics based on the authenticated user's role and permissions.
    * Provides insights into status distribution, per-app breakdown, overall performance, and daily trends.
+   * Enforces tenant boundaries and user hierarchy.
    *
    * @async
-   * @param {string} userId - The ID of the user for whom to retrieve analytics.
-   * @param {string} [window='7d'] - The time window for analytics (e.g., '24h', '7d', '30d', '1w', '1m').
+   * @param {Object} authUser - The authenticated user object from the request context.
+   * @param {string} authUser._id - The ID of the authenticated user.
+   * @param {string} authUser.workspaceId - The workspace ID of the authenticated user.
+   * @param {string} authUser.role - The role of the authenticated user (e.g., 'user', 'manager', 'admin', 'super_admin').
+   * @param {Object} [filters={}] - Optional filters for the analytics query.
+   * @param {string} [filters.userId] - Filter by a specific user ID (subject to permissions).
+   * @param {string} [filters.workspaceId] - Filter by a specific workspace ID (super_admin only).
+   * @param {string} [filters.window='7d'] - The time window for analytics (e.g., '24h', '7d', '30d').
    * @returns {Promise<Object>} An object containing various analytics summaries.
-   * @returns {boolean} return.success - True if the operation was successful, false otherwise.
-   * @returns {string} return.window - The time window used for the analytics.
-   * @returns {string} return.since - The ISO date string representing the start of the analytics window.
-   * @returns {Object} return.performance - Overall performance metrics.
-   * @returns {number} return.performance.totalActions - Total number of actions within the window.
-   * @returns {number} return.performance.totalRetries - Total number of retried actions.
-   * @returns {number} return.performance.avgDurationMs - Average duration of actions in milliseconds.
-   * @returns {number} return.performance.p95DurationMs - 95th percentile duration of actions in milliseconds.
-   * @returns {number} return.performance.successRate - Overall success rate as a percentage.
-   * @returns {Object<string, number>} return.statusDistribution - Count of actions by status (e.g., { success: 10, failed: 2 }).
-   * @returns {Array<Object>} return.appBreakdown - Breakdown of actions per application.
-   * @returns {string} return.appBreakdown[].app - The application name.
-   * @returns {number} return.appBreakdown[].total - Total actions for this app.
-   * @returns {number} return.appBreakdown[].successes - Successful actions for this app.
-   * @returns {number} return.appBreakdown[].failures - Failed actions for this app.
-   * @returns {number} return.appBreakdown[].successRate - Success rate for this app as a percentage.
-   * @returns {number} return.appBreakdown[].avgDurationMs - Average duration for this app's actions.
-   * @returns {Array<Object>} return.dailyTrend - Daily count of actions and successes.
-   * @returns {string} return.dailyTrend[].id - Date in 'YYYY-MM-DD' format.
-   * @returns {number} return.dailyTrend[].count - Total actions on this date.
-   * @returns {number} return.dailyTrend[].successes - Successful actions on this date.
-   * @returns {string} [return.error] - Error message if the operation failed.
    */
-  async getUserAnalytics(userId, window = '7d') {
+  async getAnalytics(authUser, filters = {}) {
     try {
+      const window = filters.window || '7d';
       const since = this._windowToDate(window);
       const matchStage = {
-        userId: userId,
         createdAt: { $gte: since },
       };
 
-      // OPTIMIZATION: Combine 4 separate aggregation queries into a single aggregation pipeline using $facet.
-      // This reduces database roundtrips from 4 to 1 and allows MongoDB to optimize the shared $match stage.
+      // FIX: Build match stage based on user role to enforce RBAC and tenancy.
+      switch (authUser.role) {
+        case 'user':
+          matchStage.userId = authUser._id;
+          break;
+        case 'manager': {
+          matchStage.workspaceId = authUser.workspaceId;
+          const managedUsers = await User.find({ managerId: authUser._id }).select('_id').lean();
+          const managedUserIds = managedUsers.map(u => u._id);
+          managedUserIds.push(authUser._id);
+
+          if (filters.userId) {
+            if (!managedUserIds.some(id => id.equals(filters.userId))) {
+              return { success: false, error: 'Forbidden: You can only view analytics for users you manage.' };
+            }
+            matchStage.userId = new mongoose.Types.ObjectId(filters.userId);
+          } else {
+            matchStage.userId = { $in: managedUserIds };
+          }
+          break;
+        }
+        case 'admin':
+          matchStage.workspaceId = authUser.workspaceId;
+          if (filters.userId) {
+            matchStage.userId = new mongoose.Types.ObjectId(filters.userId);
+          }
+          break;
+        case 'super_admin':
+          if (filters.workspaceId) {
+            matchStage.workspaceId = new mongoose.Types.ObjectId(filters.workspaceId);
+          }
+          if (filters.userId) {
+            matchStage.userId = new mongoose.Types.ObjectId(filters.userId);
+          }
+          break;
+        default:
+          logger.warn(`Unauthorized role trying to access analytics: ${authUser.role}`);
+          return { success: false, error: 'Forbidden' };
+      }
+
       const [analyticsResult] = await ActionAuditLog.aggregate([
         { $match: matchStage },
         {
@@ -286,12 +368,8 @@ class ActionAuditService {
                 $group: {
                   _id: '$app',
                   total: { $sum: 1 },
-                  successes: {
-                    $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
-                  },
-                  failures: {
-                    $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] },
-                  },
+                  successes: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
+                  failures: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
                   avgDurationMs: { $avg: '$durationMs' },
                 },
               },
@@ -306,36 +384,26 @@ class ActionAuditService {
                   totalRetries: { $sum: { $cond: ['$retried', 1, 0] } },
                   avgDurationMs: { $avg: '$durationMs' },
                   p95DurationMs: { $percentile: { input: '$durationMs', p: [0.95], method: 'approximate' } },
-                  successRate: {
-                    $avg: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
-                  },
+                  successRate: { $avg: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
                 },
               },
             ],
             dailyAgg: [
               {
                 $group: {
-                  _id: {
-                    $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-                  },
+                  _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
                   count: { $sum: 1 },
-                  successes: {
-                    $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
-                  },
+                  successes: { $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] } },
                 },
               },
               { $sort: { _id: 1 } },
+              { $project: { id: '$_id', count: 1, successes: 1, _id: 0 } },
             ]
           }
         }
       ]);
 
-      const statusAgg = analyticsResult?.statusAgg || [];
-      const appAgg = analyticsResult?.appAgg || [];
-      const performanceAgg = analyticsResult?.performanceAgg || [];
-      const dailyAgg = analyticsResult?.dailyAgg || [];
-
-      const perf = performanceAgg[0] || {};
+      const perf = analyticsResult?.performanceAgg?.[0] || {};
 
       return {
         success: true,
@@ -348,29 +416,28 @@ class ActionAuditService {
           p95DurationMs: Math.round(perf.p95DurationMs?.[0] || 0),
           successRate: Math.round((perf.successRate || 0) * 100),
         },
-        statusDistribution: statusAgg.reduce((acc, s) => {
+        statusDistribution: (analyticsResult?.statusAgg || []).reduce((acc, s) => {
           acc[s._id] = s.count;
           return acc;
         }, {}),
-        appBreakdown: appAgg.map((a) => ({
+        appBreakdown: (analyticsResult?.appAgg || []).map((a) => ({
           app: a._id,
           total: a.total,
           successes: a.successes,
           failures: a.failures,
-          successRate: Math.round((a.successes / a.total) * 100),
-          avgDurationMs: Math.round(a.avgDurationMs),
+          successRate: a.total > 0 ? Math.round((a.successes / a.total) * 100) : 0,
+          avgDurationMs: Math.round(a.avgDurationMs || 0),
         })),
-        dailyTrend: dailyAgg,
+        dailyTrend: analyticsResult?.dailyAgg || [],
       };
     } catch (error) {
-      logger.error('ActionAuditService.getUserAnalytics failed:', error.message);
+      logger.error('ActionAuditService.getAnalytics failed:', error.message);
       return { success: false, error: error.message };
     }
   }
 
   /**
    * Recursively redacts sensitive fields from an object based on `SENSITIVE_KEYS`.
-   * If a key matches a sensitive key, its value is replaced with '[REDACTED]'.
    *
    * @private
    * @param {Object|Array|any} obj - The object or array to redact.
@@ -394,17 +461,15 @@ class ActionAuditService {
 
   /**
    * Summarizes a result object to avoid storing massive payloads in the audit log.
-   * Truncates long strings, and replaces arrays/objects with summary strings.
    *
    * @private
    * @param {Object|any} result - The result object to summarize.
-   * @returns {Object|null} A summarized version of the result object, or null if input is null/undefined.
+   * @returns {Object|null} A summarized version of the result object.
    */
   _summarizeResult(result) {
-    if (!result) return null;
+    if (result === null || result === undefined) return null;
     if (typeof result !== 'object') return { value: result };
 
-    // Keep only top-level keys with summarized values
     const summary = {};
     for (const [key, value] of Object.entries(result)) {
       if (typeof value === 'string' && value.length > 500) {
@@ -421,22 +486,20 @@ class ActionAuditService {
   }
 
   /**
-   * Converts a time window string (e.g., '24h', '7d', '30d', '1w', '1m') into a Date object
-   * representing the start of that window relative to the current time.
-   * Defaults to 7 days if the format is invalid.
+   * Converts a time window string into a Date object.
    *
    * @private
-   * @param {string} window - The time window string.
+   * @param {string} window - The time window string (e.g., '24h', '7d', '30d').
    * @returns {Date} A Date object representing the start of the specified window.
    */
   _windowToDate(window) {
     const now = new Date();
     const match = window.match(/^(\d+)([hdwm])$/);
-    if (!match) return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Default to 7 days if format is invalid
+    if (!match) return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Default to 7 days
 
     const [, amount, unit] = match;
-    const multipliers = { h: 3600000, d: 86400000, w: 604800000, m: 2592000000 }; // Milliseconds in hour, day, week, 30-day month
-    return new Date(now.getTime() - parseInt(amount) * (multipliers[unit] || 86400000)); // Fallback to 1 day multiplier if unit is unknown
+    const multipliers = { h: 3600000, d: 86400000, w: 604800000, m: 2592000000 };
+    return new Date(now.getTime() - parseInt(amount) * (multipliers[unit] || 86400000));
   }
 }
 
