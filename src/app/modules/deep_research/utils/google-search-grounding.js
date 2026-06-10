@@ -39,10 +39,10 @@ const callGeminiWithResilience = async (params, fallbackGenerator) => {
   try {
     return await ai.models.generateContent(params);
   } catch (err) {
+    // Refined error check to strictly target billing/quota/API key related issues
     const isBillingOrApiError = err.message.includes('dunning') || 
                                 err.message.includes('403') || 
                                 err.message.includes('API key') || 
-                                err.message.includes('fetch') ||
                                 err.message.includes('invalid_grant') ||
                                 err.message.includes('PERMISSION_DENIED');
     if (isBillingOrApiError) {
@@ -352,4 +352,3 @@ export class GoogleSearchGroundingTool extends StructuredTool {
     return this.invoke(params);
   }
 }
-
