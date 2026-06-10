@@ -91,6 +91,13 @@ const aiEndpointSchema = new mongoose.Schema({
 });
 
 /**
+ * Compound indexes to optimize common multi-tenant queries.
+ * Speeds up queries filtering by tenant and active status or default status.
+ */
+aiEndpointSchema.index({ tenantId: 1, enabled: 1 });
+aiEndpointSchema.index({ tenantId: 1, default: 1 });
+
+/**
  * Mongoose model for an AI Endpoint.
  * Provides an interface to the database for AI endpoint configurations.
  * @type {mongoose.Model<AiEndpointSchema>}
