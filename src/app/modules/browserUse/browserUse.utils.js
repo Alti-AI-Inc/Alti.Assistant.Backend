@@ -12,8 +12,8 @@ const AppError = require('../../utils/AppError'); // Assume a custom error class
  * Platform Owner Feature: Centralized function to get browser launch options.
  * This merges default settings with platform-wide configurations,
  * allowing the Platform Owner to control browser behavior globally (e.g., proxies, user agents, executable paths).
- * @param {object} userContext - The context of the user making the request.
- * @returns {Promise<import('puppeteer').LaunchOptions>}
+ * @param {object} userContext - The context of the user making the request, containing tenant and user information.
+ * @returns {Promise<import('puppeteer').LaunchOptions>} A promise that resolves to the Puppeteer launch options object.
  */
 async function getBrowserLaunchOptions(userContext) {
     const platformConfig = await getPlatformConfig();
@@ -41,8 +41,10 @@ async function getBrowserLaunchOptions(userContext) {
 
 /**
  * Launches a browser instance with platform-aware configuration.
+ * This function utilizes `getBrowserLaunchOptions` to ensure that all browser instances
+ * adhere to the centrally managed platform settings.
  * @param {object} userContext - The context of the user making the request ({ tenantId, userId, role }).
- * @returns {Promise<import('puppeteer').Browser>}
+ * @returns {Promise<import('puppeteer').Browser>} A promise that resolves to a Puppeteer Browser instance.
  */
 async function launchBrowser(userContext) {
     const launchOptions = await getBrowserLaunchOptions(userContext);
@@ -52,11 +54,13 @@ async function launchBrowser(userContext) {
 
 /**
  * Platform Owner Feature: Enhanced URL validation.
- * Blocks tenants from accessing private/internal network resources,
+ * Blocks tenants from accessing private/internal network resources (e.g., localhost, 192.168.x.x),
  * but allows the Platform Owner to access them for diagnostic or administrative purposes.
+ * This is a critical security measure in a multi-tenant environment to prevent SSRF attacks.
  * @param {string} url - The URL to validate.
- * @param {object} userContext - The context of the user making the request.
- * @throws {AppError} If the URL is invalid or forbidden for the user's role.
+ * @param {object} userContext - The context of the user making the request, containing the user's role.
+ * @param {string} userContext.role - The role of the user (e.g., 'PlatformOwner', 'TenantAdmin').
+ * @throws {AppError} If the URL is invalid, uses a forbidden protocol, or points to a restricted network resource for the user's role.
  */
 function validateUrl(url, userContext) {
     let parsedUrl;
@@ -88,10 +92,27 @@ function validateUrl(url, userContext) {
 
 /**
  * Navigates to a URL and takes a screenshot, with Platform Owner controls and oversight.
- * @param {object} userContext - The context of the user making the request ({ tenantId, userId, role }).
+ * This function enforces multi-tenant security and usage policies. It validates the URL,
+ * checks tenant status (active/suspended), and enforces usage limits. Platform Owners
+ * have elevated privileges, bypassing certain restrictions for administrative purposes.
+ *
+ * @permission This function has role-based access control:
+ * - **All Roles**: Can request screenshots, subject to tenant status and limits.
+ * - **PlatformOwner**: Bypasses URL restrictions (can access internal IPs) and tenant usage limits. Can operate without a `tenantId`.
+ *
+ * @multitenancy This function is tenant-aware.
+ * - A valid `tenantId` is required for all users except the `PlatformOwner`.
+ * - It checks if the tenant is active and not suspended.
+ * - It enforces tenant-specific usage limits (e.g., `maxScreenshots`).
+ *
+ * @param {object} userContext - The context of the user making the request.
+ * @param {string} userContext.tenantId - The ID of the tenant making the request. Can be null for Platform Owner.
+ * @param {string} userContext.userId - The ID of the user making the request.
+ * @param {string} userContext.role - The role of the user (e.g., 'PlatformOwner', 'TenantAdmin').
  * @param {string} url - The URL to navigate to.
- * @param {object} [options={}] - Options for the screenshot (e.g., fullPage: true).
- * @returns {Promise<Buffer>} - The screenshot image buffer.
+ * @param {import('puppeteer').ScreenshotOptions} [options={}] - Options for the screenshot (e.g., fullPage: true).
+ * @returns {Promise<Buffer>} - A promise that resolves to the screenshot image buffer.
+ * @throws {AppError} Throws an error for various reasons including invalid URL, tenant issues (not found, suspended, limit reached), or if Puppeteer fails.
  */
 async function takeScreenshot(userContext, url, options = {}) {
     const { tenantId, role } = userContext;
