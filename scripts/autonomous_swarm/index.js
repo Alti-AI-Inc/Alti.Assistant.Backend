@@ -33,19 +33,25 @@ const zones = {
   ]
 };
 
-const agentTypes = ['fixer', 'tester', 'optimizer', 'documenter'];
+const zoneAgents = {
+  '1': ['fixer', 'tester', 'optimizer', 'documenter', 'manager_agent'],
+  '2': ['fixer', 'tester', 'optimizer', 'documenter', 'owner_agent'],
+  '3': ['fixer', 'tester', 'optimizer', 'documenter', 'user_agent'],
+  '4': ['fixer', 'tester', 'optimizer', 'documenter', 'admin_agent']
+};
 const activeProcesses = [];
 
 console.log('====================================================');
 console.log('         LAUNCHING AUTONOMOUS SWARM ORCHESTRATOR    ');
-console.log('                 16 AGENTS ACTIVE SWARM             ');
+console.log('                 20 AGENTS ACTIVE SWARM             ');
 console.log('====================================================');
 
-// Spawn 16 worker processes
+// Spawn 20 worker processes
 for (const zoneId of Object.keys(zones)) {
   const modules = zones[zoneId];
+  const agents = zoneAgents[zoneId];
   
-  for (const type of agentTypes) {
+  for (const type of agents) {
     console.log(`Spawning Agent [${type.toUpperCase()}] for Zone [${zoneId}]...`);
     
     const child = fork(workerPath, [], {
@@ -59,9 +65,7 @@ for (const zoneId of Object.keys(zones)) {
 
     child.on('exit', (code) => {
       console.warn(`Worker [${type.toUpperCase()}] for Zone [${zoneId}] exited with code ${code}. Restarting in 10s...`);
-      // Restart logic after crash
       setTimeout(() => {
-        // Re-spawn
         const newChild = fork(workerPath, [], {
           env: {
             ...process.env,
@@ -78,7 +82,7 @@ for (const zoneId of Object.keys(zones)) {
   }
 }
 
-console.log(`Successfully spawned all 16 workers! Monitoring logs...`);
+console.log(`Successfully spawned all 20 workers! Monitoring logs...`);
 
 // Graceful cleanup
 process.on('SIGINT', () => {

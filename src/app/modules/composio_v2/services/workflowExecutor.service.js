@@ -73,12 +73,14 @@ class WorkflowExecutor {
       if (workflow.workflowType === 'single_step') {
         executionResult = await this.executeSingleStepWorkflow(
           workflow,
-          execution
+          execution,
+          connectionCheck.connectedAccounts
         );
       } else {
         executionResult = await this.executeMultiStepWorkflow(
           workflow,
-          execution
+          execution,
+          connectionCheck.connectedAccounts
         );
       }
 
@@ -143,7 +145,7 @@ class WorkflowExecutor {
   /**
    * Execute single-step workflow
    */
-  async executeSingleStepWorkflow(workflow, execution) {
+  async executeSingleStepWorkflow(workflow, execution, prefetchedAccounts = null) {
     try {
       const step = workflow.executionPlan[0];
 
@@ -162,10 +164,11 @@ class WorkflowExecutor {
         parameters: step.parameters,
       });
 
-      // Get user's connected account for the app
+      // Get user's connected account for the app (utilizing prefetched accounts to avoid DB query)
       const connectedAccount = await this.getConnectedAccount(
         workflow.userId,
-        step.app
+        step.app,
+        prefetchedAccounts
       );
       if (!connectedAccount) {
         throw new Error(`No connected account found for ${step.app}`);
@@ -226,7 +229,7 @@ class WorkflowExecutor {
   /**
    * Execute multi-step workflow
    */
-  async executeMultiStepWorkflow(workflow, execution) {
+  async executeMultiStepWorkflow(workflow, execution, prefetchedAccounts = null) {
     const stepResults = [];
     const stepOutputs = {}; // Store outputs for cross-step parameter mapping
     // Optimization: Cache connected accounts to avoid N+1 queries if multiple steps use the same app.
@@ -279,12 +282,13 @@ class WorkflowExecutor {
             workflow.crossStepParameters
           );
 
-          // Get connected account - use cache to prevent N+1 queries for the same app
+          // Get connected account - use cache and prefetched accounts to prevent N+1 queries
           let connectedAccount = connectedAccountsCache.get(step.app);
           if (!connectedAccount) {
             connectedAccount = await this.getConnectedAccount(
               workflow.userId,
-              step.app
+              step.app,
+              prefetchedAccounts
             );
             if (connectedAccount) {
               connectedAccountsCache.set(step.app, connectedAccount);
@@ -476,7 +480,7 @@ class WorkflowExecutor {
     try {
       const requiredApps = workflow.requiredApps || [];
       if (requiredApps.length === 0) {
-        return { success: true }; // No apps to validate
+        return { success: true, connectedAccounts: [] }; // No apps to validate
       }
 
       // Optimization: Fetch all required ComposioAuth documents in a single query
@@ -509,7 +513,7 @@ class WorkflowExecutor {
         };
       }
 
-      return { success: true };
+      return { success: true, connectedAccounts };
     } catch (error) {
       return {
         success: false,
@@ -521,8 +525,22 @@ class WorkflowExecutor {
   /**
    * Get connected account for user and app
    */
-  async getConnectedAccount(userId, app) {
+  async getConnectedAccount(userId, app, prefetchedAccounts = null) {
     try {
+      // Optimization: If prefetched accounts are provided, search in memory to avoid DB query
+      if (prefetchedAccounts && Array.isArray(prefetchedAccounts)) {
+        const regex = new RegExp(app, 'i');
+        const account = prefetchedAccounts.find(acc => regex.test(acc.integrationId));
+        if (account) {
+          return {
+            connectedAccountId: account.connectedAccountId,
+            integrationId: account.integrationId,
+            status: account.status,
+          };
+        }
+        return null;
+      }
+
       // Optimization: Use .lean() as this method returns a plain JavaScript object,
       // reducing Mongoose document overhead for read-only operations.
       const account = await ComposioAuth.findOne({
@@ -610,12 +628,11 @@ class WorkflowExecutor {
    */
   async retryExecution(executionId, userId) {
     try {
-      // .lean() cannot be used here as `execution.status` is accessed and `this.executeWorkflow`
-      // expects a Mongoose document for `workflow` which calls `workflow.updateExecutionStats`.
+      // Optimization: Use .lean() here as we only read status and workflowId from the execution document.
       const execution = await WorkflowExecution.findOne({
         executionId,
         userId,
-      });
+      }).lean();
 
       if (!execution) {
         return {
