@@ -62,7 +62,9 @@ const researchResultSchema = new mongoose.Schema(
     metadata: {
       queryType: String,
       processingTime: Number,
-      timestamp: Date,
+      // BUG FIX: Removed redundant 'timestamp' field from metadata.
+      // The top-level 'timestamp' and Mongoose's 'createdAt'/'updatedAt'
+      // (from timestamps: true) provide sufficient timestamping.
       confidence: Number,
       savedId: String,
       saveError: String,
@@ -109,9 +111,14 @@ const ResearchResult = mongoose.model('ResearchResult', researchResultSchema);
 
 /**
  * Save a research result to MongoDB
+ * @param {object} resultData - The data for the research result.
  */
 export const saveResearchResult = async (resultData) => {
   try {
+    // SECURITY NOTE: Ensure userId and tenantId are securely set from the authenticated user context
+    // before saving to prevent data ownership issues. This service assumes resultData
+    // already contains userId and conversationId, but a robust implementation would
+    // validate/inject these from the request's authenticated user.
     const researchResult = new ResearchResult(resultData);
     const savedResult = await researchResult.save();
     console.log('Research result saved successfully:', savedResult._id);
@@ -124,12 +131,17 @@ export const saveResearchResult = async (resultData) => {
 
 /**
  * Retrieve research results by query
+ * @param {string} query - The search query string.
+ * @param {number} limit - The maximum number of results to return.
+ * @param {object} req - The Express request object, used for tenant filtering.
  */
-export const getResearchResultsByQuery = async (query, limit = 10) => {
+export const getResearchResultsByQuery = async (query, limit = 10, req) => {
   try {
-    const results = await ResearchResult.find({
-      $text: { $search: query },
-    })
+    // SECURITY FIX: Apply tenant filter to prevent Insecure Direct Object Reference (IDOR).
+    // Ensures users can only query results belonging to their tenant/user context.
+    const tenantFilteredQuery = withTenantFilter(req, { $text: { $search: query } });
+
+    const results = await ResearchResult.find(tenantFilteredQuery)
       .sort({ timestamp: -1 })
       .limit(limit)
       .lean();
@@ -143,10 +155,16 @@ export const getResearchResultsByQuery = async (query, limit = 10) => {
 
 /**
  * Retrieve recent research results
+ * @param {number} limit - The maximum number of results to return.
+ * @param {object} req - The Express request object, used for tenant filtering.
  */
-export const getRecentResearchResults = async (limit = 20) => {
+export const getRecentResearchResults = async (limit = 20, req) => {
   try {
-    const results = await ResearchResult.find({})
+    // SECURITY FIX: Apply tenant filter to prevent Insecure Direct Object Reference (IDOR).
+    // Ensures users can only view recent results belonging to their tenant/user context.
+    const tenantFilteredQuery = withTenantFilter(req, {});
+
+    const results = await ResearchResult.find(tenantFilteredQuery)
       .sort({ timestamp: -1 })
       .limit(limit)
       .select('query classification timestamp metadata.processingTime')
@@ -161,10 +179,16 @@ export const getRecentResearchResults = async (limit = 20) => {
 
 /**
  * Get research result by ID
+ * @param {string} id - The ID of the research result.
+ * @param {object} req - The Express request object, used for tenant filtering.
  */
-export const getResearchResultById = async (id) => {
+export const getResearchResultById = async (id, req) => {
   try {
-    const result = await ResearchResult.findById(id).lean();
+    // SECURITY FIX: Apply tenant filter to prevent Insecure Direct Object Reference (IDOR).
+    // Ensures users can only access results belonging to their tenant/user context.
+    // Changed from findById to findOne to allow merging with tenant filter.
+    const tenantFilteredQuery = withTenantFilter(req, { _id: id });
+    const result = await ResearchResult.findOne(tenantFilteredQuery).lean();
     return result;
   } catch (error) {
     console.error('Error retrieving research result by ID:', error);
@@ -174,10 +198,15 @@ export const getResearchResultById = async (id) => {
 
 /**
  * Get research results by conversation ID
+ * @param {string} conversationId - The ID of the conversation.
+ * @param {object} req - The Express request object, used for tenant filtering.
  */
-export const getResearchResultsByConversation = async (conversationId) => {
+export const getResearchResultsByConversation = async (conversationId, req) => {
   try {
-    const results = await ResearchResult.find({ conversationId })
+    // SECURITY FIX: Apply tenant filter to prevent Insecure Direct Object Reference (IDOR).
+    // Ensures users can only access results belonging to their tenant/user context.
+    const tenantFilteredQuery = withTenantFilter(req, { conversationId });
+    const results = await ResearchResult.find(tenantFilteredQuery)
       .sort({ timestamp: 1 })
       .lean();
 
@@ -190,10 +219,16 @@ export const getResearchResultsByConversation = async (conversationId) => {
 
 /**
  * Delete research result by ID
+ * @param {string} id - The ID of the research result to delete.
+ * @param {object} req - The Express request object, used for tenant filtering.
  */
-export const deleteResearchResult = async (id) => {
+export const deleteResearchResult = async (id, req) => {
   try {
-    const result = await ResearchResult.findByIdAndDelete(id);
+    // SECURITY FIX: Apply tenant filter to prevent Insecure Direct Object Reference (IDOR).
+    // Ensures users can only delete results belonging to their tenant/user context.
+    // Changed from findByIdAndDelete to findOneAndDelete to allow merging with tenant filter.
+    const tenantFilteredQuery = withTenantFilter(req, { _id: id });
+    const result = await ResearchResult.findOneAndDelete(tenantFilteredQuery);
     return result;
   } catch (error) {
     console.error('Error deleting research result:', error);
@@ -203,9 +238,11 @@ export const deleteResearchResult = async (id) => {
 
 /**
  * Get research statistics
+ * @param {object} req - The Express request object, used for tenant filtering.
  */
 export const getResearchStatistics = async (req = null) => {
   try {
+    // Existing tenant filtering is already applied here, so no change needed for IDOR.
     const baseQuery = req ? withTenantFilter(req, {}) : {};
     const totalResults = await ResearchResult.countDocuments(baseQuery);
 
@@ -270,11 +307,18 @@ export const getResearchStatistics = async (req = null) => {
 
 /**
  * Add tags to a research result
+ * @param {string} id - The ID of the research result.
+ * @param {string[]} tags - An array of tags to add.
+ * @param {object} req - The Express request object, used for tenant filtering.
  */
-export const addTagsToResult = async (id, tags) => {
+export const addTagsToResult = async (id, tags, req) => {
   try {
-    const result = await ResearchResult.findByIdAndUpdate(
-      id,
+    // SECURITY FIX: Apply tenant filter to prevent Insecure Direct Object Reference (IDOR).
+    // Ensures users can only modify results belonging to their tenant/user context.
+    // Changed from findByIdAndUpdate to findOneAndUpdate to allow merging with tenant filter.
+    const tenantFilteredQuery = withTenantFilter(req, { _id: id });
+    const result = await ResearchResult.findOneAndUpdate(
+      tenantFilteredQuery,
       { $addToSet: { tags: { $each: tags } } },
       { new: true }
     );
@@ -287,8 +331,10 @@ export const addTagsToResult = async (id, tags) => {
 
 /**
  * Search research results with filters
+ * @param {object} filters - An object containing search filters.
+ * @param {object} req - The Express request object, used for tenant filtering.
  */
-export const searchResearchResults = async (filters = {}) => {
+export const searchResearchResults = async (filters = {}, req) => {
   try {
     const {
       query,
@@ -296,12 +342,14 @@ export const searchResearchResults = async (filters = {}) => {
       startDate,
       endDate,
       tags,
-      userId,
+      userId, // This userId filter should be applied *in addition* to the tenant filter from req.
       limit = 20,
       offset = 0,
     } = filters;
 
-    const mongoQuery = {};
+    // SECURITY FIX: Initialize mongoQuery with tenant filter to prevent IDOR.
+    // This ensures all search results are scoped to the user's tenant.
+    let mongoQuery = withTenantFilter(req, {});
 
     if (query) {
       mongoQuery.$text = { $search: query };
@@ -312,7 +360,7 @@ export const searchResearchResults = async (filters = {}) => {
     }
 
     if (startDate || endDate) {
-      mongoQuery.timestamp = {};
+      mongoQuery.timestamp = mongoQuery.timestamp || {}; // Ensure timestamp object exists
       if (startDate) mongoQuery.timestamp.$gte = new Date(startDate);
       if (endDate) mongoQuery.timestamp.$lte = new Date(endDate);
     }
@@ -321,6 +369,8 @@ export const searchResearchResults = async (filters = {}) => {
       mongoQuery.tags = { $in: tags };
     }
 
+    // If a userId is provided in filters, it should further restrict the results
+    // within the tenant's scope, not override it.
     if (userId) {
       mongoQuery.userId = userId;
     }
