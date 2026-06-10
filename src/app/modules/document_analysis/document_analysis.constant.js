@@ -1,4 +1,19 @@
-// Document Analysis Configuration
+/**
+ * @file Document Analysis Configuration Constants
+ * @module document_analysis.constant
+ * @description Defines configuration settings, analysis types, output formats, system prompts,
+ *              and response messages for the document analysis module.
+ */
+
+/**
+ * @constant {object} DOCUMENT_ANALYSIS_CONFIG - Configuration settings for document analysis.
+ * @property {string} MODEL - The AI model to use for document analysis.
+ * @property {number} TEMPERATURE - The creativity/randomness of the AI model's output (0.0 - 1.0).
+ * @property {number} MAX_OUTPUT_TOKENS - The maximum number of tokens the AI model should generate in its response.
+ * @property {number} MAX_FILE_SIZE - The maximum allowed file size for document uploads in bytes (10MB).
+ * @property {string[]} SUPPORTED_MIME_TYPES - An array of MIME types supported for document analysis.
+ * @property {string[]} SUPPORTED_FILE_EXTENSIONS - An array of file extensions supported for document analysis.
+ */
 export const DOCUMENT_ANALYSIS_CONFIG = {
   MODEL: 'gemini-2.5-flash',
   TEMPERATURE: 0.7,
@@ -26,7 +41,16 @@ export const DOCUMENT_ANALYSIS_CONFIG = {
   ],
 };
 
-// Analysis types
+/**
+ * @constant {object} ANALYSIS_TYPES - Defines the various types of analysis that can be performed on a document.
+ * @property {string} GENERAL - General comprehensive analysis.
+ * @property {string} SENTIMENT - Sentiment analysis to determine emotional tone.
+ * @property {string} SUMMARY - Summarization of the document's content.
+ * @property {string} KEY_POINTS - Extraction of main ideas and critical facts.
+ * @property {string} ENTITY_EXTRACTION - Identification and categorization of entities (people, places, organizations, etc.).
+ * @property {string} TOPIC_CLASSIFICATION - Classification of the document's primary and secondary topics.
+ * @property {string} LANGUAGE_DETECTION - Analysis of linguistic aspects like language, style, and readability.
+ */
 export const ANALYSIS_TYPES = {
   GENERAL: 'general',
   SENTIMENT: 'sentiment',
@@ -37,17 +61,38 @@ export const ANALYSIS_TYPES = {
   LANGUAGE_DETECTION: 'language_detection',
 };
 
-// Output formats
+/**
+ * @constant {object} OUTPUT_FORMATS - Defines the available output formats for analysis results.
+ * @property {string} STRUCTURED - Output formatted in a structured way (e.g., JSON, bullet points).
+ * @property {string} NARRATIVE - Output formatted as a free-form, descriptive text.
+ */
 export const OUTPUT_FORMATS = {
   STRUCTURED: 'structured',
   NARRATIVE: 'narrative',
 };
 
-// Conversation configuration
+/**
+ * @constant {string} CONVERSATION_CATEGORY - The category identifier for document analysis conversations.
+ */
 export const CONVERSATION_CATEGORY = 'document_analysis';
+
+/**
+ * @constant {string} CONVERSATION_MODEL - The AI model to use for document analysis related conversations.
+ */
 export const CONVERSATION_MODEL = 'gemini-2.5-flash';
 
-// System prompts for different analysis types
+/**
+ * @constant {object} SYSTEM_PROMPTS - A collection of system prompts tailored for different analysis types.
+ * Each key corresponds to an `ANALYSIS_TYPES` value, and its value is the specific prompt
+ * instructing the AI on how to perform that analysis.
+ * @property {string} [ANALYSIS_TYPES.GENERAL] - Prompt for general document analysis.
+ * @property {string} [ANALYSIS_TYPES.SENTIMENT] - Prompt for sentiment analysis.
+ * @property {string} [ANALYSIS_TYPES.SUMMARY] - Prompt for document summarization.
+ * @property {string} [ANALYSIS_TYPES.KEY_POINTS] - Prompt for key point extraction.
+ * @property {string} [ANALYSIS_TYPES.ENTITY_EXTRACTION] - Prompt for entity extraction.
+ * @property {string} [ANALYSIS_TYPES.TOPIC_CLASSIFICATION] - Prompt for topic classification.
+ * @property {string} [ANALYSIS_TYPES.LANGUAGE_DETECTION] - Prompt for language detection and linguistic analysis.
+ */
 export const SYSTEM_PROMPTS = {
   [ANALYSIS_TYPES.GENERAL]: `You are an expert document analysis assistant. Analyze the provided content comprehensively, covering:
 - Main themes and topics
@@ -104,7 +149,16 @@ Provide clear categorization with confidence levels.`,
 Provide detailed linguistic insights.`,
 };
 
-// Response messages
+/**
+ * @constant {object} RESPONSE_MESSAGES - Standardized response messages for various outcomes in document analysis.
+ * @property {string} SUCCESS - Message for successful analysis completion.
+ * @property {string} NO_CONTENT - Message when no content is provided for analysis.
+ * @property {string} UNSUPPORTED_FILE_TYPE - Message for unsupported file types, listing supported extensions.
+ * @property {string} FILE_TOO_LARGE - Message when the uploaded file exceeds the maximum size limit.
+ * @property {string} PROCESSING_ERROR - Generic message for errors during document processing.
+ * @property {string} ANALYSIS_ERROR - Generic message for errors during content analysis.
+ * @property {string} CONVERSATION_ERROR - Generic message for errors during conversation handling.
+ */
 export const RESPONSE_MESSAGES = {
   SUCCESS: 'Analysis completed successfully',
   NO_CONTENT:
@@ -119,7 +173,11 @@ export const RESPONSE_MESSAGES = {
   CONVERSATION_ERROR: 'Error handling conversation',
 };
 
-// Default parameters
+/**
+ * @constant {object} DEFAULT_PARAMS - Default parameters to be used for document analysis requests.
+ * @property {string} analysisType - The default analysis type, set to general analysis.
+ * @property {string} outputFormat - The default output format, set to narrative.
+ */
 export const DEFAULT_PARAMS = {
   analysisType: ANALYSIS_TYPES.GENERAL,
   outputFormat: OUTPUT_FORMATS.NARRATIVE,
