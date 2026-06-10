@@ -1,7 +1,17 @@
 import { logger } from '../../../../shared/logger.js';
 
 /**
- * Generate report title from content
+ * @file This module provides a collection of utility functions for report generation,
+ * including content processing, data extraction, validation, and metadata generation.
+ * @module reportHelpers
+ */
+
+/**
+ * Generates a concise report title from the provided content.
+ * It attempts to use the first meaningful sentence or the beginning of the content.
+ *
+ * @param {string} content - The full text content of the report.
+ * @returns {string} A generated title for the report, or 'Untitled Report' if content is empty.
  */
 export const generateTitleFromContent = (content) => {
   if (!content) return 'Untitled Report';
@@ -15,7 +25,12 @@ export const generateTitleFromContent = (content) => {
 };
 
 /**
- * Extract structured data from CSV content
+ * Extracts structured data (headers and rows) from CSV content.
+ * Each row is converted into an object where keys are the CSV headers.
+ *
+ * @param {string} csvContent - The raw CSV content as a string.
+ * @returns {{headers: string[], data: object[]}} An object containing an array of headers and an array of data rows.
+ * Each data row is an object with header names as keys. Returns empty arrays if content is invalid or empty.
  */
 export const extractCSVData = (csvContent) => {
   try {
@@ -40,7 +55,15 @@ export const extractCSVData = (csvContent) => {
 };
 
 /**
- * Format file information for AI prompt
+ * Formats an array of file objects into a human-readable string suitable for AI prompts.
+ * Each file is described with its name, type, and character count.
+ *
+ * @param {Array<Object>} files - An array of file objects.
+ * @param {string} files[].filename - The name of the file.
+ * @param {Object} [files[].metadata] - Optional metadata for the file.
+ * @param {string} [files[].metadata.type] - The type/format of the file (e.g., 'pdf', 'csv').
+ * @param {string} [files[].content] - The content of the file (used to determine length).
+ * @returns {string} A concatenated string describing each file, or an empty string if no files are provided.
  */
 export const formatFileInfo = (files) => {
   if (!files || files.length === 0) return '';
@@ -53,7 +76,11 @@ export const formatFileInfo = (files) => {
 };
 
 /**
- * Clean and normalize text content
+ * Cleans and normalizes text content by standardizing line endings,
+ * replacing tabs with spaces, and limiting consecutive newlines.
+ *
+ * @param {string} content - The raw text content to normalize.
+ * @returns {string} The normalized and cleaned text content. Returns an empty string if input is null or undefined.
  */
 export const normalizeContent = (content) => {
   if (!content) return '';
@@ -66,7 +93,11 @@ export const normalizeContent = (content) => {
 };
 
 /**
- * Estimate reading time for content
+ * Estimates the reading time for a given text content in minutes.
+ * Assumes an average reading speed of 200 words per minute.
+ *
+ * @param {string} content - The text content for which to estimate reading time.
+ * @returns {number} The estimated reading time in minutes, rounded up to the nearest whole number. Returns 0 if content is empty.
  */
 export const estimateReadingTime = (content) => {
   if (!content) return 0;
@@ -77,7 +108,23 @@ export const estimateReadingTime = (content) => {
 };
 
 /**
- * Generate summary statistics for data
+ * Generates summary statistics for an array of data objects, typically extracted from CSV or similar sources.
+ * Provides row count, column count, column names, and basic statistics (min, max, mean, median, count)
+ * for numeric columns.
+ *
+ * @param {Array<Object>} data - An array of data objects, where each object represents a row
+ * and its properties are column names.
+ * @returns {Object|null} An object containing overall statistics and per-column numeric statistics,
+ * or `null` if the input data is not an array or is empty.
+ * @property {number} rowCount - The number of rows in the data.
+ * @property {number} columnCount - The number of columns in the data.
+ * @property {string[]} columns - An array of column names.
+ * @property {Object.<string, Object>} [columnName] - For each numeric column, an object containing:
+ * @property {number} [columnName.min] - The minimum value in the column.
+ * @property {number} [columnName.max] - The maximum value in the column.
+ * @property {number} [columnName.mean] - The average value in the column.
+ * @property {number} [columnName.median] - The median value in the column.
+ * @property {number} [columnName.count] - The count of numeric values in the column.
  */
 export const generateDataStats = (data) => {
   if (!Array.isArray(data) || data.length === 0) {
@@ -116,7 +163,16 @@ export const generateDataStats = (data) => {
 };
 
 /**
- * Validate report parameters
+ * Validates a set of report parameters against predefined rules and acceptable values.
+ * Checks for presence of content/files, valid output format, report type, and tone.
+ *
+ * @param {Object} params - An object containing report generation parameters.
+ * @param {string} [params.content] - The main content of the report.
+ * @param {Array<Object>} [params.files] - An array of file objects associated with the report.
+ * @param {string} [params.outputFormat] - The desired output format for the report (e.g., 'pdf', 'docx').
+ * @param {string} [params.reportType] - The type of report (e.g., 'executive_summary', 'analytical').
+ * @param {string} [params.tone] - The desired tone for the report (e.g., 'professional', 'casual').
+ * @returns {{isValid: boolean, errors: string[]}} An object indicating validity and an array of error messages.
  */
 export const validateReportParams = (params) => {
   const errors = [];
@@ -176,7 +232,24 @@ export const validateReportParams = (params) => {
 };
 
 /**
- * Generate report metadata
+ * Generates a standard set of metadata for a report based on provided parameters.
+ * Includes generation timestamp, generator info, report type, output format, tone,
+ * word count, and estimated reading time.
+ *
+ * @param {Object} params - An object containing report generation parameters.
+ * @param {string} [params.reportType='custom'] - The type of report.
+ * @param {string} [params.outputFormat='pdf'] - The desired output format.
+ * @param {string} [params.tone='professional'] - The desired tone.
+ * @param {string} [params.content] - The main content of the report, used for word count and reading time.
+ * @returns {Object} An object containing the generated report metadata.
+ * @property {string} generatedAt - ISO string timestamp of when the metadata was generated.
+ * @property {string} generator - Name of the report generation module.
+ * @property {string} version - Version of the report generation module.
+ * @property {string} reportType - The type of report.
+ * @property {string} outputFormat - The output format of the report.
+ * @property {string} tone - The tone of the report.
+ * @property {number} wordCount - The estimated word count of the report content.
+ * @property {number} estimatedReadingTime - The estimated reading time in minutes.
  */
 export const generateReportMetadata = (params) => {
   return {
@@ -192,7 +265,15 @@ export const generateReportMetadata = (params) => {
 };
 
 /**
- * Split long content into sections
+ * Splits a long text content into an array of sections, ensuring each section
+ * does not exceed a specified maximum length. It attempts to split by paragraphs.
+ *
+ * @param {string} content - The full text content to be split.
+ * @param {number} [maxSectionLength=5000] - The maximum character length for each section.
+ * @returns {Array<Object>} An array of section objects, each with a `title` and `content`.
+ * Returns a single section if content is short enough or an empty array if content is null/empty.
+ * @property {string} title - The title of the section (e.g., "Section 1").
+ * @property {string} content - The text content of the section.
  */
 export const splitContentIntoSections = (content, maxSectionLength = 5000) => {
   if (!content || content.length <= maxSectionLength) {
@@ -231,7 +312,11 @@ export const splitContentIntoSections = (content, maxSectionLength = 5000) => {
 };
 
 /**
- * Format date for report
+ * Formats a Date object into a human-readable string (e.g., "Month Day, Year").
+ * Uses 'en-US' locale for consistent formatting.
+ *
+ * @param {Date} [date=new Date()] - The Date object to format. Defaults to the current date if not provided.
+ * @returns {string} The formatted date string.
  */
 export const formatReportDate = (date = new Date()) => {
   return date.toLocaleDateString('en-US', {
@@ -242,7 +327,11 @@ export const formatReportDate = (date = new Date()) => {
 };
 
 /**
- * Generate file-safe filename
+ * Sanitizes a string to create a file-system safe filename.
+ * Replaces invalid characters with underscores and converts to lowercase.
+ *
+ * @param {string} filename - The original filename string.
+ * @returns {string} The sanitized filename.
  */
 export const sanitizeFilename = (filename) => {
   return filename
@@ -252,7 +341,16 @@ export const sanitizeFilename = (filename) => {
 };
 
 /**
- * Calculate confidence score for AI-generated content
+ * Calculates a confidence score for AI-generated content based on the completeness
+ * and richness of the provided parameters. The score ranges from 0.5 to 1.0.
+ *
+ * @param {Object} params - An object containing various parameters related to the AI generation.
+ * @param {string} [params.content] - The generated content itself.
+ * @param {string} [params.title] - The title of the generated content.
+ * @param {string} [params.reportType] - The type of report generated.
+ * @param {Array<Object>} [params.sections] - An array of sections if the content was split.
+ * @param {string} [params.customInstructions] - Any custom instructions provided for generation.
+ * @returns {number} A confidence score between 0.5 and 1.0, where higher means more complete input.
  */
 export const calculateConfidenceScore = (params) => {
   let score = 0.5; // Base score
