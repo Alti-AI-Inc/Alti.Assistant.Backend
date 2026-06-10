@@ -13,7 +13,7 @@ const zones = {
     'composio_simple', 'mcp_toolbox', 'auth', 'social-login', 'admin', 'tenant'
   ],
   '2': [
-    'Llama4', 'aiModelServices', 'browserUse', 'cyberdesk', 'deepseek', 
+    'Llama4', 'aiModelServices', 'browserUse', 'cyberdesk', 
     'gemini', 'groq', 'langchain', 'llamaindex', 'openAi', 'qwen', 
     'togetherAi', 'swarm', 'orchestrator'
   ],

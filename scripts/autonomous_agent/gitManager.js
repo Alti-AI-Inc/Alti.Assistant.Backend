@@ -16,51 +16,56 @@ const execPromise = util.promisify(exec);
 export async function commitAndPush(branchName, commitMessage, retries = 5, delay = 2000) {
   const backendPath = path.resolve(__dirname, '../../');
   console.log(`Committing changes with message: "${commitMessage}"`);
-  try {
-    const safeMessage = commitMessage.replace(/"/g, '\\"');
-    
-    await execPromise('git add .', { cwd: backendPath });
-    
-    const { stdout: statusOut } = await execPromise('git status --porcelain', { cwd: backendPath });
-    if (!statusOut.trim()) {
-      return { success: true, output: 'No changes to commit.' };
-    }
-    
-    await execPromise(`git commit -m "${safeMessage}"`, { cwd: backendPath });
-    
-    let attempt = 0;
-    while (attempt < retries) {
-      try {
-        const { stdout, stderr } = await execPromise(`git push origin HEAD:${branchName}`, { cwd: backendPath });
-        return {
-          success: true,
-          output: `${stdout}\n${stderr}`,
-        };
-      } catch (pushError) {
-        attempt++;
-        console.warn(`Git push collision detected (Attempt ${attempt}/${retries}). Rebasing...`);
+  
+  const safeMessage = commitMessage.replace(/"/g, '\\"');
+  let attempt = 0;
+  
+  while (attempt < retries) {
+    try {
+      // Add files
+      await execPromise('git add .', { cwd: backendPath });
+      
+      // Check status
+      const { stdout: statusOut } = await execPromise('git status --porcelain', { cwd: backendPath });
+      if (!statusOut.trim()) {
+        return { success: true, output: 'No changes to commit.' };
+      }
+      
+      // Commit
+      await execPromise(`git commit -m "${safeMessage}"`, { cwd: backendPath });
+      
+      // Push
+      const { stdout, stderr } = await execPromise(`git push origin HEAD:${branchName}`, { cwd: backendPath });
+      return {
+        success: true,
+        output: `${stdout}\n${stderr}`,
+      };
+    } catch (gitError) {
+      attempt++;
+      const errorMessage = gitError.stdout || gitError.stderr || gitError.message || '';
+      console.warn(`Git operation failed (Attempt ${attempt}/${retries}): ${errorMessage.trim()}`);
+      
+      // If it's a lock file issue or push collision, try to rebase or clean up
+      if (errorMessage.includes('index.lock') || errorMessage.includes('push')) {
         try {
-          // Rebase local changes to avoid merge commits
+          // Rebase local changes to avoid merge conflicts
           await execPromise(`git pull --rebase origin ${branchName}`, { cwd: backendPath });
         } catch (rebaseError) {
           console.error('Git rebase failed. Aborting rebase...', rebaseError);
           await execPromise('git rebase --abort', { cwd: backendPath }).catch(() => {});
         }
-        
-        if (attempt >= retries) {
-          throw pushError;
-        }
-        
-        // Wait with exponential backoff + jitter
-        const sleepTime = delay * Math.pow(2, attempt) + Math.random() * 1000;
-        await new Promise(resolve => setTimeout(resolve, sleepTime));
       }
+      
+      if (attempt >= retries) {
+        return {
+          success: false,
+          output: errorMessage,
+        };
+      }
+      
+      // Wait with exponential backoff + jitter
+      const sleepTime = delay * Math.pow(2, attempt) + Math.random() * 1000;
+      await new Promise(resolve => setTimeout(resolve, sleepTime));
     }
-  } catch (error) {
-    console.error('Failed to commit and push:', error);
-    return {
-      success: false,
-      output: error.stdout || error.stderr || error.message,
-    };
   }
 }
