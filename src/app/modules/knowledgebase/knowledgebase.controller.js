@@ -182,6 +182,8 @@ const getUserFiles = catchAsync(async (req, res) => {
   const { knowledgebotId } = req.query;
 
   try {
+    // Optimization: If knowledgebaseService.getUserFiles fetches documents for read-only,
+    // consider adding .lean() inside the service method for better performance.
     const files = await knowledgebaseService.getUserFiles(
       userId,
       knowledgebotId,
