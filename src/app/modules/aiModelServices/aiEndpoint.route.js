@@ -11,7 +11,7 @@ const router = express.Router();
  * /api/ai-models/all-model:
  *   get:
  *     summary: Get all AI models for the current application
- *     description: Retrieves a list of all AI model endpoints configured for the application associated with the current tenant context. Requires ADMIN role.
+ *     description: Retrieves a list of all AI model endpoints configured for the application associated with the current tenant context. Requires SUPER_ADMIN or ADMIN role.
  *     tags:
  *       - AI Models
  *     security:
@@ -46,14 +46,15 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized. User is not authenticated.
  *       403:
- *         description: Forbidden. User does not have the required ADMIN role.
+ *         description: Forbidden. User does not have the required role.
  *       500:
  *         description: Internal server error.
  */
 router.get(
   '/all-model',
   extractTenantContext,
-  auth(ENUM_USER_ROLE.ADMIN), // BUG FIX: Uncommented auth middleware to secure this endpoint.
+  // BUG FIX: Role validation updated to include SUPER_ADMIN, ensuring proper role hierarchy.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN),
   AiEndpointsController.getAiEndpointForApp
 );
 
@@ -62,7 +63,7 @@ router.get(
  * /api/ai-models/all-model-web:
  *   get:
  *     summary: Get all web-specific AI models for the current application
- *     description: Retrieves a list of AI model endpoints specifically configured for web usage within the current tenant context. Requires ADMIN role.
+ *     description: Retrieves a list of AI model endpoints specifically configured for web usage within the current tenant context. Requires SUPER_ADMIN or ADMIN role.
  *     tags:
  *       - AI Models
  *     security:
@@ -97,14 +98,15 @@ router.get(
  *       401:
  *         description: Unauthorized. User is not authenticated.
  *       403:
- *         description: Forbidden. User does not have the required ADMIN role.
+ *         description: Forbidden. User does not have the required role.
  *       500:
  *         description: Internal server error.
  */
 router.get(
   '/all-model-web',
   extractTenantContext,
-  auth(ENUM_USER_ROLE.ADMIN), // BUG FIX: Uncommented auth middleware to secure this endpoint.
+  // BUG FIX: Role validation updated to include SUPER_ADMIN, ensuring proper role hierarchy.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN),
   AiEndpointsController.getWebAiEndpoint
 );
 
@@ -113,7 +115,7 @@ router.get(
  * /api/ai-models/add-model:
  *   post:
  *     summary: Add a new AI model endpoint
- *     description: Creates and adds a new AI model endpoint configuration for the current application. Requires ADMIN role.
+ *     description: Creates and adds a new AI model endpoint configuration for the current application. Requires SUPER_ADMIN or ADMIN role.
  *     tags:
  *       - AI Models
  *     security:
@@ -174,14 +176,15 @@ router.get(
  *       401:
  *         description: Unauthorized. User is not authenticated.
  *       403:
- *         description: Forbidden. User does not have the required ADMIN role.
+ *         description: Forbidden. User does not have the required role.
  *       500:
  *         description: Internal server error.
  */
 router.post(
   '/add-model',
   extractTenantContext,
-  auth(ENUM_USER_ROLE.ADMIN), // BUG FIX: Uncommented auth middleware to secure this endpoint.
+  // BUG FIX: Role validation updated to include SUPER_ADMIN, ensuring proper role hierarchy.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN),
   AiEndpointsController.addAiEndpoint
 );
 
@@ -190,7 +193,7 @@ router.post(
  * /api/ai-models/update-model:
  *   patch:
  *     summary: Update an existing web-specific AI model endpoint
- *     description: Modifies the details of an existing AI model endpoint specifically configured for web usage within the current tenant context. Requires ADMIN role.
+ *     description: Modifies the details of an existing AI model endpoint specifically configured for web usage within the current tenant context. Requires SUPER_ADMIN or ADMIN role.
  *     tags:
  *       - AI Models
  *     security:
@@ -254,7 +257,7 @@ router.post(
  *       401:
  *         description: Unauthorized. User is not authenticated.
  *       403:
- *         description: Forbidden. User does not have the required ADMIN role.
+ *         description: Forbidden. User does not have the required role.
  *       404:
  *         description: Not Found if the AI model endpoint does not exist.
  *       500:
@@ -263,7 +266,8 @@ router.post(
 router.patch(
   '/update-model',
   extractTenantContext,
-  auth(ENUM_USER_ROLE.ADMIN), // BUG FIX: Uncommented auth middleware to secure this endpoint.
+  // BUG FIX: Role validation updated to include SUPER_ADMIN, ensuring proper role hierarchy.
+  auth(ENUM_USER_ROLE.SUPER_ADMIN, ENUM_USER_ROLE.ADMIN),
   AiEndpointsController.updateWebAiEndpoint
 );
 
@@ -274,7 +278,7 @@ router.patch(
 /**
  * Express router for managing AI model endpoints.
  * Provides routes for retrieving, adding, and updating AI model configurations
- * within a tenant-specific context. All routes require ADMIN privileges.
+ * within a tenant-specific context. All routes require SUPER_ADMIN or ADMIN privileges.
  * @type {Router}
  * @namespace aiModelEndpointRoutes
  */

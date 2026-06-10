@@ -1,3 +1,6 @@
+// GCP Cloud Logging (Stackdriver) structured logging format is used for all console logs.
+// This ensures that logs are correctly parsed, searchable, and trigger alerts in GCP.
+// Log entries are JSON strings with a 'severity' key ('INFO', 'WARNING', 'ERROR').
 import { cyberdeskService } from './cyberdesk.service.js';
 // BUG-FIX: Added a placeholder import for a user service.
 // This is required to fetch user details to enforce the manager-user hierarchy for access control.
@@ -145,7 +148,17 @@ const launch = async (req, res) => {
 
     res.status(200).json({ message: 'Desktop launched successfully', data: result });
   } catch (err) {
-    console.error('Error launching desktop:', err);
+    // GCP-compatible structured logging
+    console.error(JSON.stringify({
+      severity: 'ERROR',
+      message: 'Error launching desktop.',
+      error: { message: err.message, stack: err.stack, name: err.name },
+      context: {
+        userId: req.user?.id,
+        tenantId: req.user?.tenantId,
+        role: req.user?.role,
+      }
+    }));
     res.status(500).json({ error: 'Failed to launch desktop.' });
   }
 };
@@ -224,7 +237,18 @@ const info = async (req, res) => {
 
     res.status(200).json(access.desktop);
   } catch (err) {
-    console.error(`Error getting info for desktop ID ${id}:`, err);
+    // GCP-compatible structured logging
+    console.error(JSON.stringify({
+      severity: 'ERROR',
+      message: `Error getting info for desktop ID ${id}.`,
+      error: { message: err.message, stack: err.stack, name: err.name },
+      context: {
+        desktopId: id,
+        userId: user.id,
+        tenantId: user.tenantId,
+        role: user.role,
+      }
+    }));
     res.status(500).json({ error: 'Failed to retrieve desktop information.' });
   }
 };
@@ -327,7 +351,19 @@ const click = async (req, res) => {
     });
     res.status(200).json(result);
   } catch (err) {
-    console.error(`Error clicking mouse for desktop ID ${id} at (${x}, ${y}):`, err);
+    // GCP-compatible structured logging
+    console.error(JSON.stringify({
+      severity: 'ERROR',
+      message: `Error clicking mouse for desktop ID ${id} at (${x}, ${y}).`,
+      error: { message: err.message, stack: err.stack, name: err.name },
+      context: {
+        desktopId: id,
+        coordinates: { x, y },
+        userId: user.id,
+        tenantId: user.tenantId,
+        role: user.role,
+      }
+    }));
     res.status(500).json({ error: 'Failed to perform mouse click.' });
   }
 };
@@ -438,7 +474,19 @@ const bash = async (req, res) => {
     });
     res.status(200).json(result);
   } catch (err) {
-    console.error(`Error executing bash command for desktop ID ${id}: "${command}"`, err);
+    // GCP-compatible structured logging
+    console.error(JSON.stringify({
+      severity: 'ERROR',
+      message: `Error executing bash command for desktop ID ${id}.`,
+      error: { message: err.message, stack: err.stack, name: err.name },
+      context: {
+        desktopId: id,
+        command,
+        userId: user.id,
+        tenantId: user.tenantId,
+        role: user.role,
+      }
+    }));
     res.status(500).json({ error: 'Failed to execute bash command.' });
   }
 };
@@ -518,7 +566,18 @@ const terminate = async (req, res) => {
     });
     res.status(200).json(result);
   } catch (err) {
-    console.error(`Error terminating desktop ID ${id}:`, err);
+    // GCP-compatible structured logging
+    console.error(JSON.stringify({
+      severity: 'ERROR',
+      message: `Error terminating desktop ID ${id}.`,
+      error: { message: err.message, stack: err.stack, name: err.name },
+      context: {
+        desktopId: id,
+        userId: user.id,
+        tenantId: user.tenantId,
+        role: user.role,
+      }
+    }));
     res.status(500).json({ error: 'Failed to terminate desktop.' });
   }
 };

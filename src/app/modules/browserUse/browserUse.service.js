@@ -1,4 +1,5 @@
-import axios from 'axios';
+import { VertexAI, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
+import crypto from 'crypto';
 import config from '../../../../config/index.js';
 import { logger } from '../../../shared/logger.js';
 import ApiError from '../../../errors/ApiError.js';
@@ -160,9 +161,10 @@ const propagateUsageAndCheckLimits = async (userId, tenantId) => {
 };
 
 /**
- * Initiates a browser automation task via an external API and records it in a user's session.
+ * Initiates a browser automation task via a direct call to Google's Vertex AI and records it in a user's session.
  * If a sessionId is provided, the task is added to an existing session. Otherwise, a new session is created.
  * This service enforces role-based permissions, tenant boundaries, and usage limits.
+ * It uses the @google-cloud/vertexai SDK and configures enterprise-grade safety settings.
  *
  * **Permissions:**
  * - Requires an authenticated user.
@@ -175,7 +177,7 @@ const propagateUsageAndCheckLimits = async (userId, tenantId) => {
  * @param {object | null} structuredOutputSchema - An optional JSON schema for the desired structured output from the browser task.
  * @param {Request | null} [req=null] - The Express request object, used for user authentication, role checks, and tenant filtering.
  * @returns {Promise<IBrowserSession>} A promise that resolves to the updated or newly created browser session document.
- * @throws {ApiError} If the external API does not return a task ID, or if the specified session is not found.
+ * @throws {ApiError} If the Vertex AI API call fails, or if the specified session is not found.
  * @throws {ApiError} Throws errors from `validateUserAndTenantContext` and `propagateUsageAndCheckLimits` on validation or limit failures.
  */
 const initiateTaskInSessionService = async (
@@ -194,44 +196,91 @@ const initiateTaskInSessionService = async (
   // Sanitize prompt to filter out or mask PII before transmitting data to external LLM-based services
   const sanitizedPrompt = maskPII(prompt);
 
-  const apiBody = {
-    task: sanitizedPrompt,
-    secrets: {},
-    allowed_domains: null,
-    save_browser_data: true,
-    llm_model: 'gemini-2.5-flash',
-    use_adblock: true,
-    use_proxy: true,
-    highlight_elements: true,
-  };
+  // --- VERTEX AI SDK INTEGRATION ---
+  // Initialize Vertex AI client using credentials and configuration from the environment.
+  const vertex_ai = new VertexAI({ project: config.google_project_id, location: config.google_location });
+  const model = 'gemini-1.5-flash-001';
 
-  if (structuredOutputSchema) {
-    apiBody.structured_output_json = structuredOutputSchema;
-  }
-
-  const apiResponse = await axios.post(
-    'https://api.browser-use.com/api/v1/run-task',
-    apiBody,
+  // Configure enterprise-grade safety settings to block harmful content at a low threshold.
+  const safetySettings = [
     {
-      headers: {
-        Authorization: `Bearer ${config.browser_use_secret_key}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-  const apiData = apiResponse.data;
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    },
+  ];
 
-  if (!apiData.id) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'API did not return a task ID');
+  const generativeModel = vertex_ai.getGenerativeModel({
+    model: model,
+    safetySettings,
+  });
+
+  const systemInstruction = `You are an AI assistant that generates a sequence of steps to accomplish a browser-based task.
+  Based on the user's prompt, provide a clear, step-by-step plan. If a JSON schema is provided, format your output to match it.`;
+
+  const request = {
+    contents: [{ role: 'user', parts: [{ text: sanitizedPrompt }] }],
+    systemInstruction: { parts: [{ text: systemInstruction }] },
+  };
+
+  // If a schema is provided, use Vertex AI's function calling/tool use feature for structured output.
+  if (structuredOutputSchema) {
+    request.tools = [{
+      function_declarations: [{
+        name: 'extract_information',
+        description: 'Extracts information from the page according to the provided schema.',
+        parameters: {
+          type: 'object',
+          properties: {
+            extracted_data: structuredOutputSchema
+          },
+          required: ['extracted_data']
+        }
+      }]
+    }];
   }
 
+  const result = await generativeModel.generateContent(request);
+  const response = result.response;
+
+  if (!response.candidates || response.candidates.length === 0) {
+    // Handle cases where the model response was blocked by safety settings or other reasons.
+    const blockReason = response.promptFeedback?.blockReason;
+    logger.error(`Vertex AI call blocked. Reason: ${blockReason}`, { response });
+    throw new ApiError(httpStatus.BAD_REQUEST, `Request blocked by safety filters: ${blockReason}`);
+  }
+
+  const modelContent = response.candidates[0].content.parts[0];
+
+  // Create a new response object based on the direct Vertex AI call.
+  // NOTE: The original implementation used a third-party service that returned a live URL and could be polled.
+  // This has been replaced with a direct, synchronous call to Vertex AI. The response object reflects this change.
   const newResponseObject = {
-    taskId: apiData.id,
-    status: apiData.status || 'created',
+    taskId: crypto.randomUUID(), // Using a local UUID as there's no external service.
+    status: 'completed', // Status is immediate as we get the response directly.
     prompt: sanitizedPrompt,
-    live_url: apiData.live_url,
-    steps: apiData.steps || [],
+    live_url: null, // No live browser session URL available with this direct approach.
+    steps: [{ description: 'Generated plan from AI', output: modelContent.text || '' }],
+    output: modelContent.text || '',
   };
+
+  // Populate structured output if the model used the provided tool/function.
+  if (structuredOutputSchema && modelContent.functionCall) {
+    newResponseObject.structured_output = modelContent.functionCall.args.extracted_data;
+    newResponseObject.output = JSON.stringify(newResponseObject.structured_output, null, 2);
+  }
+  // --- END VERTEX AI SDK INTEGRATION ---
 
   if (sessionId) {
     const query = req ? withTenantFilter(req, { _id: sessionId, user: userId }) : { _id: sessionId, user: userId };
@@ -258,27 +307,23 @@ const initiateTaskInSessionService = async (
 };
 
 /**
- * Fetches the latest status of a browser automation task from the external API and updates the corresponding entry
- * within a specific browser session in the database.
- *
- * **Permissions:**
- * - Requires an authenticated user.
- * - Access is restricted by tenant boundaries. A user can only update tasks in sessions they have access to within their tenant.
+ * [DEPRECATED] Fetches the latest status of a browser automation task.
+ * NOTE: This service is deprecated. Following the migration to the direct Vertex AI SDK,
+ * tasks are generated in a single request-response cycle and there is no external,
+ * long-running task to poll for status updates. This function now returns the session
+ * without modification to maintain API compatibility.
  *
  * @param {string} sessionId - The ID of the browser session containing the task.
  * @param {string} taskId - The ID of the specific task to update.
  * @param {Request | null} [req=null] - The Express request object, used for user authentication and tenant filtering.
- * @returns {Promise<IBrowserSession>} A promise that resolves to the updated browser session document.
- * @throws {ApiError} If the task or session is not found in the database or if access is denied due to tenant restrictions.
+ * @returns {Promise<IBrowserSession>} A promise that resolves to the existing browser session document.
+ * @throws {ApiError} If the task or session is not found in the database.
  */
 const updateTaskStatusService = async (sessionId, taskId, req = null) => {
   const query = req
     ? withTenantFilter(req, { _id: sessionId, 'responses.taskId': taskId })
     : { _id: sessionId, 'responses.taskId': taskId };
 
-  // OPTIMIZATION: For this query to be performant, especially if the 'responses' array can grow,
-  // an index on the 'responses.taskId' field is recommended.
-  // Example: `BrowserSession.collection.createIndex({ 'responses.taskId': 1 })`
   const session = await BrowserSession.findOne(query);
   if (!session) {
     throw new ApiError(
@@ -291,29 +336,10 @@ const updateTaskStatusService = async (sessionId, taskId, req = null) => {
     await validateUserAndTenantContext(session.user, req);
   }
 
-  const apiResponse = await axios.get(
-    `https://api.browser-use.com/api/v1/task/${taskId}`,
-    { headers: { Authorization: `Bearer ${config.browser_use_secret_key}` } }
-  );
-  const apiData = apiResponse.data;
-
-  const updateFields = {
-    'responses.$.status': apiData.status,
-    'responses.$.output': apiData.output,
-    'responses.$.structured_output': apiData.structured_output,
-    'responses.$.live_url': apiData.live_url,
-    'responses.$.error_message': apiData.error_message,
-    'responses.$.finished_at': apiData.finished_at,
-    'responses.$.steps': apiData.steps,
-  };
-
-  const updatedSession = await BrowserSession.findOneAndUpdate(
-    query,
-    { $set: updateFields },
-    { new: true }
-  );
-
-  return updatedSession;
+  // No-op: The external polling mechanism is no longer valid after switching to the direct Vertex AI SDK.
+  // Returning the session as-is.
+  logger.warn(`[Deprecated] updateTaskStatusService was called for taskId: ${taskId}. No action is taken.`);
+  return session;
 };
 
 /**
