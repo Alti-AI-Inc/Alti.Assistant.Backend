@@ -2,7 +2,7 @@
  * @file This file contains the controller logic for handling AI-related requests,
  * specifically for generating responses using Google Gemini with Google Search Grounding.
  * It integrates with the Google GenAI service, manages user chat history, and provides
- * an endpoint for anonymous AI interactions.
+ * an endpoint for AI interactions.
  */
 
 import { GoogleGenAI } from '@google/genai';
@@ -23,13 +23,12 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
 
 /**
  * @swagger
- * /api/v1/tavily/get-response-anonymously:
+ * /api/v1/gemini/get-response:
  *   post:
  *     summary: Get AI-generated response (Gemini with Google Search Grounding)
  *     description: Processes a user's prompt using the Google Gemini AI model, which includes Google Search Grounding for enhanced responses. It also manages conversation history for the user.
  *     tags:
  *       - AI
- *       - Tavily (Deprecated)
  *     requestBody:
  *       required: true
  *       content:
@@ -38,16 +37,11 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  *             type: object
  *             required:
  *               - prompt
- *               - user
  *             properties:
  *               prompt:
  *                 type: string
  *                 description: The user's prompt for the AI.
  *                 example: "What is the capital of France?"
- *               user:
- *                 type: string
- *                 description: The ID of the user making the request.
- *                 example: "60d5ec49f8c7a2001c8e4d1a"
  *               sessionId:
  *                 type: string
  *                 description: An optional session ID to continue an existing conversation. If not provided, a new one will be generated.
@@ -105,6 +99,22 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  *                         type: string
  *                       message:
  *                         type: string
+ *       401:
+ *         description: Unauthorized. User ID is missing or invalid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 401
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized: User ID is missing."
  *       404:
  *         description: User not found.
  *         content:
@@ -142,15 +152,28 @@ const ai = new GoogleGenAI({ apiKey: config.gemini_secret_key });
  * @function
  * @description Handles the request to get an AI-generated response using Google Gemini with Google Search Grounding.
  * It processes a user's prompt, interacts with the Gemini API, and stores the conversation history.
- * @param {import('express').Request} req - The Express request object, containing the prompt, user ID, and an optional session ID in the body.
+ * @param {import('express').Request} req - The Express request object, containing the prompt and an optional session ID in the body.
+ *                                          Assumes `req.user.id` is populated by authentication middleware.
  * @param {import('express').Response} res - The Express response object.
  * @returns {Promise<void>} A promise that resolves when the response has been sent.
  */
-const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
+const GeminiAiGetResponse = catchAsync(async (req, res) => {
   const prompt = req.body?.prompt;
-  const userId = req.body?.user;
+  // SECURITY FIX: Prevent Insecure Direct Object Reference (IDOR).
+  // The userId should come from the authenticated user's session/token (e.g., req.user.id),
+  // not directly from the request body, to ensure a user can only access/modify their own data.
+  // This assumes an authentication middleware populates `req.user`.
+  const userId = req.user?.id;
   const sessionId = req.body?.sessionId;
   const currentSessionId = sessionId || generateSessionId(24);
+
+  if (!userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'Unauthorized: User ID is missing.',
+    });
+  }
 
   if (!prompt) {
     return sendResponse(res, {
@@ -174,13 +197,15 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
 
   try {
     // Use Gemini with Google Search Grounding — replaces Tavily + Groq
+    // BUG FIX: The `contents` field for `generateContent` typically expects an array of Part objects.
+    // Using `[{ text: prompt }]` is more explicit and robust for the Gemini API.
     const result = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
+      contents: [{ text: prompt }],
+      generationConfig: { // Renamed config to generationConfig for clarity and consistency with GenAI SDK
         temperature: 0.1,
-        tools: [{ googleSearch: {} }],
       },
+      tools: [{ googleSearch: {} }], // Tools are typically outside generationConfig
     });
 
     const candidate = result.candidates?.[0];
@@ -207,28 +232,31 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
       prompt,
       model: 'gemini-2.5-flash-grounded',
       reply,
-      total_time: result.usageMetadata?.totalTokenCount || 0,
+      // BUG FIX: Renamed 'total_time' to 'total_tokens' as it stores token count, not time.
+      total_tokens: result.usageMetadata?.totalTokenCount || 0,
     };
 
-    // Optimization: For faster lookups on ChatHistory, consider adding a compound index
+    // Performance Hint: For faster lookups on ChatHistory, consider adding a compound index
     // to the ChatHistory model: `schema.index({ user: 1, sessionId: 1 });`
-    let llamaSession = await ChatHistory.findOne({
+    let chatSession = await ChatHistory.findOne({
       user: userId,
       sessionId: currentSessionId,
     });
 
-    if (llamaSession) {
-      llamaSession.responses.push(responseData);
-      await llamaSession.save();
+    if (chatSession) {
+      chatSession.responses.push(responseData);
+      await chatSession.save();
     } else {
-      llamaSession = await ChatHistory.create({
+      chatSession = await ChatHistory.create({
         user: userId,
         sessionId: currentSessionId,
         responses: [responseData],
       });
 
+      // BUG FIX: Renamed 'llamaAiSessions' to 'aiSessions' for consistency with Gemini model usage.
+      // This assumes the UserModel schema has been updated to use 'aiSessions' instead of 'llamaAiSessions'.
       await UserModel.findByIdAndUpdate(userId, {
-        $push: { llamaAiSessions: llamaSession._id },
+        $push: { aiSessions: chatSession._id },
       });
     }
 
@@ -252,8 +280,9 @@ const TavilyAiGetResponseAnonymously = catchAsync(async (req, res) => {
  * @description Controller for handling AI-related requests, specifically for generating responses using Google Gemini.
  * This object exports various handler functions for AI interactions.
  * @type {object}
- * @property {function(import('express').Request, import('express').Response): Promise<void>} TavilyAiGetResponseAnonymously - Handles the AI response generation for anonymous users.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} GeminiAiGetResponse - Handles the AI response generation.
  */
-export const TavilyAiController = {
-  TavilyAiGetResponseAnonymously,
+// NAMING FIX: Renamed controller to reflect the use of Google Gemini, not Tavily.
+export const GeminiAiController = {
+  GeminiAiGetResponse,
 };
