@@ -1,13 +1,7 @@
 import mongoose from 'mongoose';
 import { Schema } from 'mongoose';
 import crypto from 'crypto';
-
-/**
- * Encryption key used for securing message content and conversation titles.
- * Defaults to a fallback 32-character key if not provided in environment variables.
- * @type {string}
- */
-const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY || '12345678901234567890123456789012'; // Must be 32 characters
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 /**
  * Initialization vector length for AES-256-CBC encryption.
@@ -16,11 +10,34 @@ const ENCRYPTION_KEY = process.env.CHAT_ENCRYPTION_KEY || '123456789012345678901
 const IV_LENGTH = 16;
 
 /**
- * Pre-allocated buffer of the encryption key to optimize performance.
- * Pre-allocating avoids repeated Buffer creation overhead during serialization/deserialization.
+ * Encryption key buffer used for securing message content and conversation titles.
+ * Dynamically resolved from environment variables (e.g., injected by Cloud Run)
+ * or fetched from GCP Secret Manager in production.
  * @type {Buffer}
  */
-const ENCRYPTION_KEY_BUF = Buffer.from(ENCRYPTION_KEY);
+let ENCRYPTION_KEY_BUF = Buffer.from(process.env.CHAT_ENCRYPTION_KEY || '12345678901234567890123456789012');
+
+// If in production and the key is not injected via environment variables,
+// dynamically resolve it from GCP Secret Manager.
+if (process.env.NODE_ENV === 'production' && !process.env.CHAT_ENCRYPTION_KEY) {
+  try {
+    const client = new SecretManagerServiceClient();
+    const secretName = process.env.GCP_CHAT_ENCRYPTION_KEY_SECRET || 'projects/alti-assistant/secrets/chat-encryption-key/versions/latest';
+    
+    client.accessSecretVersion({ name: secretName })
+      .then(([version]) => {
+        const payload = version.payload.data.toString().trim();
+        if (payload) {
+          ENCRYPTION_KEY_BUF = Buffer.from(payload);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to resolve CHAT_ENCRYPTION_KEY from GCP Secret Manager:', err);
+      });
+  } catch (err) {
+    console.error('Error initializing SecretManagerServiceClient:', err);
+  }
+}
 
 /**
  * Encrypts a plain text string using AES-256-CBC.
