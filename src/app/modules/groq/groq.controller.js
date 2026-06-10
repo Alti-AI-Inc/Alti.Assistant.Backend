@@ -3,7 +3,7 @@
  * @module modules/groq/groq.controller
  * @description This file contains the Express controller functions for handling all AI-related interactions
  * with the Groq service (which internally uses Google Gemini). It includes endpoints for authenticated
- * and anonymous chat, as well as session management (retrieval and deletion).
+ * and anonymous chat, session management, and Platform Owner/Super Admin features for global oversight.
  * All controller functions are wrapped with an async error handler (`catchAsync`).
  */
 
@@ -16,6 +16,10 @@ import { LlamaAiService } from './groq.service.js';
 import validatePromptRequest from '../../../shared/validatePromptRequest.js';
 
 // Active endpoints — all redirected to Google Gemini via groq.service.js
+
+// =================================================================================================
+// == USER-FACING FEATURES
+// =================================================================================================
 
 /**
  * @swagger
@@ -602,6 +606,288 @@ const deleteAllAiSessions = catchAsync(async (req, res) => {
   });
 });
 
+
+// =================================================================================================
+// == PLATFORM OWNER / SUPER ADMIN FEATURES
+// =================================================================================================
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/stats:
+ *   get:
+ *     summary: (Admin) Get global platform-wide AI usage statistics.
+ *     description: >
+ *       Retrieves aggregated statistics for the entire platform, such as total prompts,
+ *       number of active users, and total sessions. Requires Super Admin privileges.
+ *     tags:
+ *       - Groq AI (Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Global statistics retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalPrompts:
+ *                   type: integer
+ *                   example: 10523
+ *                 uniqueUsers:
+ *                   type: integer
+ *                   example: 450
+ *                 totalSessions:
+ *                   type: integer
+ *                   example: 1200
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+const adminGetPlatformStats = catchAsync(async (req, res) => {
+  // This endpoint assumes an auth middleware has verified the user is a 'super_admin'.
+  const stats = await LlamaAiService.getPlatformWideStats();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Platform statistics retrieved successfully.',
+    data: stats,
+  });
+});
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/sessions/user/{userId}:
+ *   get:
+ *     summary: (Admin) Get all AI chat sessions for a specific user.
+ *     description: >
+ *       Retrieves all AI chat sessions for a specific user, identified by their `userId`.
+ *       This provides global oversight into tenant activity. Requires Super Admin privileges.
+ *     tags:
+ *       - Groq AI (Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the user (tenant) whose sessions are to be retrieved.
+ *         example: "654321098765432109876543"
+ *     responses:
+ *       200:
+ *         description: Sessions for the specified user retrieved successfully.
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+const adminGetSessionsByUserId = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    const error = new Error('User ID parameter is required.');
+    error.statusCode = httpStatus.BAD_REQUEST;
+    throw error;
+  }
+  // Re-uses the existing service, but called in an admin context.
+  const sessions = await LlamaAiService.getAiResponsesByUserIdService(userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Sessions for user ${userId} retrieved successfully.`,
+    data: sessions,
+  });
+});
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/sessions/user/{userId}:
+ *   delete:
+ *     summary: (Admin) Delete all AI chat sessions for a specific user.
+ *     description: >
+ *       Deletes all AI chat sessions for a specific user, identified by their `userId`.
+ *       This is a destructive tenant management action. Requires Super Admin privileges.
+ *     tags:
+ *       - Groq AI (Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the user (tenant) whose sessions are to be deleted.
+ *         example: "654321098765432109876543"
+ *     responses:
+ *       200:
+ *         description: All sessions for the specified user deleted successfully.
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+const adminDeleteAllUserSessions = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    const error = new Error('User ID parameter is required.');
+    error.statusCode = httpStatus.BAD_REQUEST;
+    throw error;
+  }
+  // Re-uses the existing service for a targeted bulk delete.
+  const result = await LlamaAiService.deleteAllAiSessionsService(userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `All sessions for user ${userId} deleted successfully.`,
+    data: result,
+  });
+});
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/session/{objectId}:
+ *   delete:
+ *     summary: (Admin) Delete a specific AI chat session entry by its ID.
+ *     description: >
+ *       Deletes a single AI chat session entry identified by its `objectId`, regardless of owner.
+ *       Requires Super Admin privileges for precise content moderation or management.
+ *     tags:
+ *       - Groq AI (Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: objectId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The unique ID of the AI chat session entry to delete.
+ *         example: "654321098765432109876543"
+ *     responses:
+ *       200:
+ *         description: Session deleted successfully by admin.
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+const adminDeleteOneAiSession = catchAsync(async (req, res) => {
+  const { objectId } = req.params;
+  if (!objectId) {
+    const error = new Error('Object ID parameter is required.');
+    error.statusCode = httpStatus.BAD_REQUEST;
+    throw error;
+  }
+  // Assumes a new service method that does NOT check for userId ownership.
+  const result = await LlamaAiService.adminDeleteOneLlamaAiSessionById(objectId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Session deleted successfully by admin.',
+    data: result,
+  });
+});
+
+/**
+ * @swagger
+ * /api/v1/groq/admin/config:
+ *   get:
+ *     summary: (Admin) Get the current system-wide AI configuration.
+ *     description: >
+ *       Retrieves the current global configuration for the AI service, such as enabled models,
+ *       global rate limits, and feature flags. Requires Super Admin privileges.
+ *     tags:
+ *       - Groq AI (Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: System configuration retrieved successfully.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *   put:
+ *     summary: (Admin) Update the system-wide AI configuration.
+ *     description: >
+ *       Updates the global configuration for the AI service. Allows overriding tenant limits,
+ *       enabling/disabling models, and setting other platform-wide parameters.
+ *       Requires Super Admin privileges.
+ *     tags:
+ *       - Groq AI (Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               defaultModel:
+ *                 type: string
+ *                 description: The default AI model for all tenants.
+ *                 example: "llama3-70b-8192"
+ *               globalRequestLimitPerUser:
+ *                 type: number
+ *                 description: A global limit on requests per user per day. Set to 0 for unlimited.
+ *                 example: 100
+ *               isAnonymousChatEnabled:
+ *                 type: boolean
+ *                 description: System-wide toggle for the anonymous chat feature.
+ *                 example: false
+ *     responses:
+ *       200:
+ *         description: System configuration updated successfully.
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+const adminGetSystemConfig = catchAsync(async (req, res) => {
+  const config = await LlamaAiService.getSystemConfig();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'System configuration retrieved successfully.',
+    data: config,
+  });
+});
+
+const adminUpdateSystemConfig = catchAsync(async (req, res) => {
+  const configUpdates = req.body;
+  const updatedConfig = await LlamaAiService.updateSystemConfig(configUpdates);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'System configuration updated successfully.',
+    data: updatedConfig,
+  });
+});
+
 /**
  * @typedef {object} LlamaAiController
  * @property {function(import('express').Request, import('express').Response): Promise<void>} GroqAiGetResponse - Controller for getting AI responses for authenticated users.
@@ -610,12 +896,27 @@ const deleteAllAiSessions = catchAsync(async (req, res) => {
  * @property {function(import('express').Request, import('express').Response): Promise<void>} LlamaAiGetResponseFromDbBySessionId - Controller for retrieving AI responses by session ID.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} deleteOneAiSession - Controller for deleting a single AI session entry.
  * @property {function(import('express').Request, import('express').Response): Promise<void>} deleteAllAiSessions - Controller for deleting all AI sessions for a user.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} adminGetPlatformStats - (Admin) Controller for getting global platform statistics.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} adminGetSessionsByUserId - (Admin) Controller for retrieving all sessions for a specific user.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} adminDeleteAllUserSessions - (Admin) Controller for deleting all sessions for a specific user.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} adminDeleteOneAiSession - (Admin) Controller for deleting any single session by its ID.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} adminGetSystemConfig - (Admin) Controller for retrieving system-wide AI configuration.
+ * @property {function(import('express').Request, import('express').Response): Promise<void>} adminUpdateSystemConfig - (Admin) Controller for updating system-wide AI configuration.
  */
 export const LlamaAiController = {
+  // User-facing
   GroqAiGetResponse,
   GroqAiGetResponseAnonymously,
   LlamaAiGetResponseFromDbByUserId,
   LlamaAiGetResponseFromDbBySessionId,
   deleteOneAiSession,
   deleteAllAiSessions,
+
+  // Platform Owner / Super Admin
+  adminGetPlatformStats,
+  adminGetSessionsByUserId,
+  adminDeleteAllUserSessions,
+  adminDeleteOneAiSession,
+  adminGetSystemConfig,
+  adminUpdateSystemConfig,
 };

@@ -1,4 +1,12 @@
 /**
+ * @file Manages the in-memory registry of all available "micro-agents" in the AI Swarm.
+ * @module modules/swarm/swarm.registry
+ * @description This module initializes and populates the `SWARM_REGISTRY`, a central, high-speed lookup
+ * table for agent profiles. It provides a function to register new agents and automatically
+ * discovers and registers all agents defined under the `./agents/` directory upon application startup.
+ */
+
+/**
  * @typedef {Object} AgentProfile
  * @property {string} id - A unique identifier for the agent.
  * @property {string} name - The human-readable name of the agent.
@@ -66,5 +74,10 @@ export const registerAgent = (agentProfile) => {
   console.log(`📡 Swarm Registry: Successfully loaded micro-agent "${agentProfile.name}" (ID: ${agentProfile.id})`);
 };
 
+/**
+ * @description Initializes the Swarm Registry by automatically discovering and registering
+ * all agent profiles exported from the `./agents/` directory. This loop executes
+ * upon module import, ensuring the registry is populated at application startup.
+ */
 // Auto-register all modular agents under the dedicated folder
 customAgents.forEach(agent => registerAgent(agent));

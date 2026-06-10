@@ -5,7 +5,12 @@
  * prompt routing and payment processing.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// SECURITY UPDATE: Switched to the enterprise-grade @google-cloud/vertexai SDK.
+import {
+  VertexAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} from '@google-cloud/vertexai';
 import { InMemoryChatMessageHistory } from '@langchain/core/chat_history';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import httpStatus from 'http-status';
@@ -21,21 +26,62 @@ import { RedisClient } from '../../../shared/redis.js';
 import { UnifiedSmartRouter } from '../../helpers/UnifiedSmartRouter.js';
 
 /**
- * Initializes the Google Generative AI client with the configured API key.
- * @type {GoogleGenerativeAI}
+ * Initializes the Google Vertex AI client with project and location configuration.
+ * @type {VertexAI}
  */
-const client = new GoogleGenerativeAI(config.gemini_secret_key);
+// SECURITY UPDATE: Initialized VertexAI with required project and location for enterprise SDK.
+const vertex_ai = new VertexAI({
+  project: config.google_project_id,
+  location: config.google_location,
+});
 
 /**
  * Configures the primary Gemini AI model for content generation.
  * PLATFORM OWNER FEATURE: Model name and temperature are sourced from the global config,
  * allowing system-wide changes without code deployment.
- * @type {import('@google/generative-ai').GenerativeModel}
+ * SECURITY UPDATE: Explicitly configured Google's safety settings to block high-risk content.
+ * @type {import('@google-cloud/vertexai').GenerativeModel}
  */
-const model = client.getGenerativeModel({
-  model: config.gemini.model_name || 'gemini-1.5-flash', // Fallback to a default model
+const model = vertex_ai.getGenerativeModel({
+  model: config.gemini.model_name || 'gemini-1.5-flash-001', // Fallback to a default model
   generationConfig: { temperature: config.gemini.temperature || 0.2 }, // Fallback to a default temperature
+  // SECURITY ENHANCEMENT: Explicitly configure safety settings to block harmful content.
+  // This sets a high threshold for blocking hate speech and harassment.
+  safetySettings: [
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    },
+  ],
 });
+
+/**
+ * A placeholder function for filtering Personally Identifiable Information (PII) from text.
+ * In a production environment, this should be replaced with a robust PII detection and masking/redaction service
+ * like Google's Cloud Data Loss Prevention (DLP) API.
+ * @private
+ * @param {string} text - The input text to be sanitized.
+ * @returns {string} The sanitized text with PII removed or masked.
+ */
+const _filterPII = text => {
+  // SECURITY ENHANCEMENT: This is a placeholder for PII filtering.
+  // Replace this with a real implementation (e.g., using Google Cloud DLP).
+  // Example simple regex for email (not comprehensive):
+  return text.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL_REDACTED]');
+};
+
 
 /**
  * Handles the core interaction with the Gemini AI model, manages chat history,
@@ -48,7 +94,7 @@ const model = client.getGenerativeModel({
  * @param {string} sessionId - The unique identifier for the current chat session.
  * @param {string} prompt - The user's input prompt to the Gemini AI.
  * @param {string} userId - The ID of the user initiating the conversation (used for multi-tenant/user data isolation).
- * @param {import('@google/generative-ai').GenerativeModel} modelToUse - The Gemini model instance to use for generation.
+ * @param {import('@google-cloud/vertexai').GenerativeModel} modelToUse - The Gemini model instance to use for generation.
  * @param {boolean} shouldPublishToRedis - Flag to determine if the response should be published to Redis.
  * @returns {Promise<{prompt: string, sessionId: string, reply: string}>} An object containing the original prompt, sessionId, and the AI's reply.
  * @throws {ApiError} If there's an issue with prompt usage, Gemini AI generation, or database operations.
@@ -148,14 +194,20 @@ const _handleGeminiInteraction = async (
       chatHistory: chatHistory,
     });
 
+    // SECURITY ENHANCEMENT: Filter PII from the user prompt before processing or sending to the AI.
+    const filteredPrompt = _filterPII(prompt);
+
     // Enhance prompt using UnifiedSmartRouter for real-time market data
     const enhancedPrompt =
-      await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(prompt);
+      await UnifiedSmartRouter.combinedRouteAndEnhancePrompt(filteredPrompt);
 
-    await memory.chatHistory.addMessage(new HumanMessage(prompt));
+    await memory.chatHistory.addMessage(new HumanMessage(prompt)); // Store original prompt in history
 
     // Call Gemini AI to generate a response
-    const result = await modelToUse.generateContent(enhancedPrompt);
+    // SECURITY UPDATE: Using the generateContent method from the Vertex AI SDK.
+    const result = await modelToUse.generateContent({
+      contents: [{ role: 'user', parts: [{ text: enhancedPrompt }] }],
+    });
     const reply =
       result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
       'No reply generated';
