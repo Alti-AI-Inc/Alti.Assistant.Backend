@@ -42,8 +42,19 @@ const launchDesktop = async () => {
   const result = await getCyberdeskClient().launchDesktop({
     body: { timeout_ms: 600000 },
   });
-  console.log('Cyberdesk launch result:', result);
-  console.log('❗Cyberdesk error object:', result.error);
+  
+  // Structured GCP Cloud Logging
+  console.log(JSON.stringify({
+    severity: 'INFO',
+    message: 'Cyberdesk launch result',
+    result
+  }));
+  
+  console.log(JSON.stringify({
+    severity: result.error ? 'ERROR' : 'INFO',
+    message: 'Cyberdesk error object check',
+    error: result.error
+  }));
 
   if ('error' in result)
     throw new ApiError(
@@ -88,10 +99,12 @@ const clickMouse = async (desktopId, x, y) => {
     },
   });
   if ('error' in result) {
-    console.error(
-      'Cyberdesk Action Error:',
-      JSON.stringify(result.error, null, 2)
-    );
+    // Structured GCP Cloud Logging
+    console.error(JSON.stringify({
+      severity: 'ERROR',
+      message: 'Cyberdesk Action Error',
+      error: result.error
+    }));
     throw new Error(result.error.message || 'Unknown Cyberdesk Error');
   }
   return result;
