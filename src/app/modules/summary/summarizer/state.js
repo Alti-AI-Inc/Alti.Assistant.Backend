@@ -19,15 +19,19 @@
  */
 
 /**
- * Manages the state for the summarizer process.
- * This object holds various pieces of data relevant to a summarization task,
- * such as user input, extracted content, the generated summary, and conversation history.
- * Each property is an object containing a `value` field, and some may have additional fields
- * like `default` for initializers or specific functions.
+ * Creates and returns a new, isolated state object for a summarizer process.
+ * This function should be called for each new summarization task to ensure
+ * independent state management, preventing race conditions and data corruption
+ * in concurrent operations.
  *
- * @type {SummarizerState}
+ * The original implementation used a single, globally mutable object (`summarizerState`),
+ * which would lead to incorrect behavior and data corruption if multiple summarization
+ * tasks were run concurrently in a Node.js/Express backend. By providing a factory
+ * function, each task can now have its own dedicated state instance.
+ *
+ * @returns {SummarizerState} A new summarizer state object.
  */
-export const summarizerState = {
+export const createSummarizerState = () => ({
   /**
    * The URL or user input provided by the user for summarization.
    * @type {SummarizerStateProperty & {value: string | null}}
@@ -58,4 +62,4 @@ export const summarizerState = {
    * @type {SummarizerStateProperty & {value: boolean | null}}
    */
   isFilePassed: { value: null },
-};
+});
